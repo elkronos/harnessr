@@ -1,101 +1,217 @@
 # retrieval_mode.R
 
-#' Search text for keywords and extract surrounding context.
+#' Split Text into Minimal Chunks Based on Token Limit
 #'
-#' A simple keyword-based retrieval that finds occurrences of keywords in the text 
-#' and returns snippets around them. Useful for quick filtering of relevant sections.
+#' This function splits a document's text into as few chunks as possible without exceeding
+#' the provided token limit. The splitting is performed first by paragraphs (using double newlines)
+#' and then by individual words if a single paragraph exceeds the limit.
 #'
-#' @param text A character string (or vector of strings) to search within.
-#' @param keywords A character vector of keywords (single words or phrases).
-#' @param window_chars Number of characters to include before and after each hit (default 200).
-#' @return A list of passages containing the keywords.
-search_text <- function(text, keywords, window_chars = 200) {
-  text_str <- paste(text, collapse = " ")
-  results <- list()
-  for (kw in keywords) {
-    matches <- gregexpr(kw, text_str, ignore.case = TRUE)[[1]]
-    for (m in matches[matches != -1]) {
-      start <- max(1, m - window_chars)
-      end <- min(nchar(text_str), m + attr(matches, "match.length")[1] + window_chars)
-      snippet <- substr(text_str, start, end)
-      results <- c(results, snippet)
+#' @param text A character string containing the full document text.
+#' @param token_limit An integer specifying the maximum allowed tokens per chunk.
+#' @return A character vector where each element is a text chunk that does not exceed the token limit.
+#' @details The function uses \code{estimate_token_count} (assumed to be available from your utils)
+#' to estimate token counts. It first splits the text into paragraphs, then iteratively combines
+#' paragraphs until adding another would exceed \code{token_limit}. If a single paragraph is too long,
+#' it is further split into words.
+#' @examples
+#' \dontrun{
+#' text <- "Paragraph one.\n\nParagraph two that might be longer."
+#' chunks <- chunk_text_minimal(text, token_limit = 100)
+#' print(chunks)
+#' }
+#' @export
+chunk_text_minimal <- function(text, token_limit) {
+  paragraphs <- unlist(strsplit(text, "\n\n"))
+  paragraphs <- paragraphs[nchar(trimws(paragraphs)) > 0]
+  chunks <- c()
+  current_chunk <- ""
+  for (para in paragraphs) {
+    candidate <- if (nzchar(current_chunk)) paste(current_chunk, para, sep = "\n\n") else para
+    if (estimate_token_count(candidate) <= token_limit) {
+      current_chunk <- candidate
+    } else {
+      if (nzchar(current_chunk)) {
+        chunks <- c(chunks, current_chunk)
+      }
+      # If a single paragraph exceeds the token limit, split it by words
+      if (estimate_token_count(para) > token_limit) {
+        words <- unlist(strsplit(para, "\\s+"))
+        temp_chunk <- ""
+        for (word in words) {
+          candidate2 <- if (nzchar(temp_chunk)) paste(temp_chunk, word) else word
+          if (estimate_token_count(candidate2) <= token_limit) {
+            temp_chunk <- candidate2
+          } else {
+            chunks <- c(chunks, temp_chunk)
+            temp_chunk <- word
+          }
+        }
+        current_chunk <- temp_chunk
+      } else {
+        current_chunk <- para
+      }
     }
   }
-  return(unique(results))
+  if (nzchar(current_chunk)) {
+    chunks <- c(chunks, current_chunk)
+  }
+  return(chunks)
 }
 
-#' Answer a question using Retrieval mode (extract relevant text then query GPT).
+#' Retrieve Answer from Document Using GPT with Retrieval Mode
 #'
-#' This function consolidates the document text and attempts to extract only the parts relevant to the question.
-#' It then asks GPT the question using just those relevant parts as context.
-#' If relevant text extraction fails or yields nothing, it can fall back to chunked mode.
+#' This function extracts relevant text from the document to answer a given question.
+#' It first checks whether the document's full text exceeds the allowed token limit for a single API call.
+#' If it does, the function uses \code{chunk_text_minimal} to split the text into minimal chunks.
+#' For each chunk, a targeted "skimming" prompt extracts only the information relevant to the question.
+#' The skimmed results are then combined and used to generate the final answer. If the full text
+#' fits within the token limit, a direct retrieval prompt is used.
 #'
-#' @param chunks A character vector of text chunks (from parse_text).
-#' @param question The question to answer.
-#' @param model GPT model to use for filtering and answering (default "gpt-3.5-turbo").
-#' @param temperature Temperature for the OpenAI API (default 0.0 for deterministic answers).
-#' @param max_tokens Max tokens for the answer (defaults to model's limit).
-#' @param presence_penalty Presence penalty for the API (default 0.0).
-#' @param frequency_penalty Frequency penalty for the API (default 0.0).
-#' @param num_retries Number of API call retries on failure (default 5).
-#' @param pause_base Base wait time for exponential backoff between retries (default 3 seconds).
-#' @param use_parallel If falling back to chunked mode, whether to use parallel processing (default FALSE).
-#' @param fallback Whether to fall back to chunked mode if no relevant text is found (default TRUE).
-#' @return A answer string to the question.
+#' @param chunks A character vector of text chunks (e.g. generated by a parsing function).
+#' @param question A character string representing the question to answer.
+#' @param model A character string specifying the GPT model to use (default: "gpt-3.5-turbo").
+#' @param temperature A numeric value for the sampling temperature (default: 0.0).
+#' @param max_tokens Maximum tokens for each API response; if NULL, defaults to the model's output limit.
+#' @param presence_penalty A numeric value for the presence penalty (default: 0.0).
+#' @param frequency_penalty A numeric value for the frequency penalty (default: 0.0).
+#' @param num_retries An integer specifying the number of retries for API calls (default: 5).
+#' @param pause_base A numeric value (in seconds) specifying the base pause time for retry backoff (default: 3).
+#' @param use_parallel Logical; if TRUE, processes chunks in parallel (default: FALSE).
+#' @param fallback Logical; if TRUE, falls back to generic chunked mode if no relevant text is extracted (default: TRUE).
+#' @param return_json Logical; if TRUE, returns a JSON string containing the full chain-of-thought detailing
+#'        every step (prompts, responses, parameters); if FALSE, only the final answer is returned (default: FALSE).
+#' @return A character string containing the final answer, or a JSON string with detailed chain-of-thought information if \code{return_json} is TRUE.
+#' @details This function requires the helper functions \code{get_model_limits}, \code{estimate_token_count},
+#' and \code{process_api_call} (typically defined in your utils file). It uses a token-based approach to decide
+#' whether to perform a single retrieval or to split the text into minimal chunks for targeted skimming.
+#' @examples
+#' \dontrun{
+#' # Assume chunks have been generated from a document.
+#' chunks <- c("This is the first chunk of text.", "This is the second chunk of text.")
+#' question <- "What is the main topic of the document?"
+#' answer <- gpt_read_retrieval(chunks, question, return_json = TRUE)
+#' cat(answer)
+#' }
+#' @import jsonlite
+#' @export
 gpt_read_retrieval <- function(chunks, question, model = "gpt-3.5-turbo", temperature = 0.0, 
                                max_tokens = NULL, presence_penalty = 0.0, frequency_penalty = 0.0,
-                               num_retries = 5, pause_base = 3, use_parallel = FALSE, fallback = TRUE) {
-  # Combine all chunks into one text (the full document content)
+                               num_retries = 5, pause_base = 3, use_parallel = FALSE, fallback = TRUE, 
+                               return_json = FALSE) {
+  chain <- list()  # container for chain-of-thought details
+  
+  # Combine all chunks into one full text
   full_text <- paste(chunks, collapse = "\n\n")
-  # Ensure we don't exceed model context window for the filtering step
+  chain$combined_text <- full_text
+  
   model_limits <- get_model_limits(model)
   if (is.null(max_tokens)) max_tokens <- model_limits$output_tokens
   allowed_input_tokens <- model_limits$context_window - max_tokens - 1000  # reserve some buffer
+  
   if (estimate_token_count(full_text) > allowed_input_tokens) {
-    message("Document is too large for a single retrieval query; using chunked approach instead.")
-    if (!fallback) {
-      return("")  # if fallback not allowed, return empty indicating failure
+    chain$mode <- "chunked_retrieval"
+    chain$initial_message <- "Document exceeds allowed token limit for a single retrieval query. Splitting into minimal chunks..."
+    
+    # Use the new minimal chunking function
+    retrieval_chunks <- chunk_text_minimal(full_text, allowed_input_tokens)
+    chain$retrieval_chunks <- retrieval_chunks
+    
+    # For each minimal chunk, perform targeted skimming
+    skim_results <- list()
+    for (i in seq_along(retrieval_chunks)) {
+      chunk <- retrieval_chunks[i]
+      skim_prompt <- paste(
+        "Skim the following document excerpt and extract only the information relevant to the question.",
+        "Omit any parts that are not helpful for answering.",
+        "\n\nQuestion:\n", question,
+        "\n\nExcerpt:\n", chunk
+      )
+      messages <- list(
+        list(role = "system", content = "You are an assistant that skims document text for relevance."),
+        list(role = "user", content = skim_prompt)
+      )
+      step_result <- process_api_call(messages, model = model, temperature = temperature, max_tokens = max_tokens,
+                                      presence_penalty = presence_penalty, frequency_penalty = frequency_penalty,
+                                      num_retries = num_retries, pause_base = pause_base)
+      skim_results[[paste0("chunk_", i)]] <- list(
+        prompt = skim_prompt,
+        response = step_result
+      )
     }
-    # Fall back to chunked mode for answering
-    return(gpt_read_chunked(chunks, question, model = model, temperature = temperature, max_tokens = max_tokens,
-                            presence_penalty = presence_penalty, frequency_penalty = frequency_penalty,
-                            num_retries = num_retries, pause_base = pause_base, use_parallel = use_parallel))
-  }
-  # Construct prompt to have GPT extract relevant sections
-  relevant_prompt <- paste(
-    "You are an assistant that helps extract only the sections of a document that are relevant",
-    "to answering a given question. Return the text snippets that are most pertinent to the question,",
-    "and omit any parts that are not helpful for answering.",
-    "\n\nQuestion:\n", question,
-    "\n\nDocument:\n", full_text
-  )
-  messages_filter <- list(
-    list(role = "system", content = "You selectively extract relevant text for a question."),
-    list(role = "user", content = relevant_prompt)
-  )
-  relevant_text <- process_api_call(messages_filter, model = model, temperature = 0.0, 
-                                    max_tokens = ifelse(is.null(max_tokens), 2048, max_tokens),
-                                    presence_penalty = 0.0, frequency_penalty = 0.0,
-                                    num_retries = num_retries, pause_base = pause_base)
-  if (is.null(relevant_text) || nchar(trimws(relevant_text)) == 0) {
-    warning("No relevant text extracted by GPT.")
-    if (!fallback) {
-      return("")  # no relevant info found and no fallback
+    chain$skim_results <- skim_results
+    
+    # Combine skimmed results
+    combined_relevant_text <- paste(sapply(skim_results, function(x) x$response), collapse = "\n\n")
+    chain$combined_relevant_text <- combined_relevant_text
+    
+    # Final step: answer the question based on the combined skimmed text
+    final_prompt <- paste(
+      "Based on the following extracted relevant information from a document, answer the question:",
+      "\n\nRelevant Information:\n", combined_relevant_text,
+      "\n\nQuestion:\n", question
+    )
+    messages_final <- list(
+      list(role = "system", content = "You are a research assistant who answers questions based solely on provided relevant information."),
+      list(role = "user", content = final_prompt)
+    )
+    final_answer <- process_api_call(messages_final, model = model, temperature = temperature, max_tokens = max_tokens,
+                                     presence_penalty = presence_penalty, frequency_penalty = frequency_penalty,
+                                     num_retries = num_retries, pause_base = pause_base)
+    chain$final_step <- list(
+      prompt = final_prompt,
+      response = final_answer
+    )
+    chain$final_answer <- final_answer
+  } else {
+    chain$mode <- "single_retrieval"
+    # Use original retrieval approach if the text fits in one query.
+    relevant_prompt <- paste(
+      "You are an assistant that helps extract only the sections of a document that are relevant",
+      "to answering a given question. Return the text snippets that are most pertinent to the question,",
+      "and omit any parts that are not helpful for answering.",
+      "\n\nQuestion:\n", question,
+      "\n\nDocument:\n", full_text
+    )
+    messages_filter <- list(
+      list(role = "system", content = "You selectively extract relevant text for a question."),
+      list(role = "user", content = relevant_prompt)
+    )
+    relevant_text <- process_api_call(messages_filter, model = model, temperature = 0.0, 
+                                      max_tokens = ifelse(is.null(max_tokens), 2048, max_tokens),
+                                      presence_penalty = 0.0, frequency_penalty = 0.0,
+                                      num_retries = num_retries, pause_base = pause_base)
+    chain$extraction_step <- list(
+      prompt = relevant_prompt,
+      response = relevant_text
+    )
+    
+    if (is.null(relevant_text) || nchar(trimws(relevant_text)) == 0) {
+      warning("No relevant text extracted by GPT. Falling back to generic chunked mode.")
+      fallback_answer <- gpt_read_chunked(chunks, question, model = model, temperature = temperature, max_tokens = max_tokens,
+                                          presence_penalty = presence_penalty, frequency_penalty = frequency_penalty,
+                                          num_retries = num_retries, pause_base = pause_base, use_parallel = use_parallel)
+      chain$fallback <- fallback_answer
+      chain$final_answer <- fallback_answer
+    } else {
+      messages_answer <- list(
+        list(role = "system", content = "You are a research assistant who answers questions based solely on the provided excerpts."),
+        list(role = "user", content = paste("Relevant Text:\n", relevant_text)),
+        list(role = "user", content = paste("Question:\n", question))
+      )
+      answer <- process_api_call(messages_answer, model = model, temperature = temperature, max_tokens = max_tokens,
+                                 presence_penalty = presence_penalty, frequency_penalty = frequency_penalty,
+                                 num_retries = num_retries, pause_base = pause_base)
+      chain$answer_step <- list(
+        prompt = paste("Relevant Text:\n", relevant_text, "\nQuestion:\n", question),
+        response = answer
+      )
+      chain$final_answer <- answer
     }
-    # Fall back to chunked mode if GPT could not find anything
-    return(gpt_read_chunked(chunks, question, model = model, temperature = temperature, max_tokens = max_tokens,
-                            presence_penalty = presence_penalty, frequency_penalty = frequency_penalty,
-                            num_retries = num_retries, pause_base = pause_base, use_parallel = use_parallel))
   }
-  # Now ask GPT the final question using only the relevant text
-  message("Using filtered relevant text to answer the question...")
-  messages_answer <- list(
-    list(role = "system", content = "You are a research assistant who answers questions based solely on the provided excerpts."),
-    list(role = "user", content = paste("Relevant Text:\n", relevant_text)),
-    list(role = "user", content = paste("Question:\n", question))
-  )
-  answer <- process_api_call(messages_answer, model = model, temperature = temperature, max_tokens = max_tokens,
-                             presence_penalty = presence_penalty, frequency_penalty = frequency_penalty,
-                             num_retries = num_retries, pause_base = pause_base)
-  return(answer)
+  
+  if (return_json) {
+    return(jsonlite::toJSON(chain, pretty = TRUE, auto_unbox = TRUE))
+  } else {
+    return(chain$final_answer)
+  }
 }
