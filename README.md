@@ -9,7 +9,7 @@ The repository implements several strategies for document processing, including 
 ## Key Features
 
 - **Multiple Processing Methods:**  
-  Supports various strategies such as [retrieval](https://github.com/elkronos/gpt_read/blob/main/R/retrieval_mode.R), [chunking](https://github.com/elkronos/gpt_read/blob/main/R/chunked_mode.R), [hierarchical summarization](https://github.com/elkronos/gpt_read/blob/main/R/hierarchical_mode.R), and [combined multi-pass](https://github.com/elkronos/gpt_read/blob/main/R/multi_pass_mode.R) approaches, all callable from the [main.R](https://github.com/elkronos/gpt_read/blob/main/R/main.R) allows users the flexibility of handling diverse documents.
+  Supports various [strategies](https://github.com/elkronos/gpt_read/blob/main/R/README.md) such as [retrieval](https://github.com/elkronos/gpt_read/blob/main/R/retrieval_mode.R), [chunking](https://github.com/elkronos/gpt_read/blob/main/R/chunked_mode.R), [hierarchical summarization](https://github.com/elkronos/gpt_read/blob/main/R/hierarchical_mode.R), and [combined multi-pass](https://github.com/elkronos/gpt_read/blob/main/R/multi_pass_mode.R) approaches, all callable from the [main.R](https://github.com/elkronos/gpt_read/blob/main/R/main.R) allows users the flexibility of handling diverse documents.
 
 - **Broad Format Support:**  
   Works with PDFs, DOCX, TXT, and images (with OCR), making it applicable across a wide range of document formats.
