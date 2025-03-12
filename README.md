@@ -33,11 +33,11 @@ This system assumes you have a valid API key with OpenAI. To obtain an API key:
 
 ## Getting Started
 
-1. **Select Your Document(s):**  
+1. **Select One or More Document(s):**  
    Place your document in the designated folder. Supported formats include PDF, DOCX, TXT, and images (with OCR).
 
-2. **Select a Processing Method:**  
-   Choose from one of the available strategies based on your document and the nature of your question.
+2. **Select One or More Processing Methods:**  
+   Choose from one of the available strategies based on your document and the nature of your question. See the 'R' folder [README](https://github.com/elkronos/gpt_read/blob/main/R/README.md) for more details about each method.
 
 3. **Submit Your Query:**  
    Use the provided functions to ask a question. The system will process the document and return a generated answer.
