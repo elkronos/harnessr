@@ -33,7 +33,7 @@ This system assumes you have a valid API key with OpenAI. To obtain an API key:
 
 ## Getting Started
 
-1. **Prepare Your Document:**  
+1. **Select Your Document(s):**  
    Place your document in the designated folder. Supported formats include PDF, DOCX, TXT, and images (with OCR).
 
 2. **Select a Processing Method:**  
