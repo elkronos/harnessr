@@ -37,7 +37,7 @@ This repository contains several R scripts that implement document processing an
   - **Key Features:**
     - **Multi-Mode Support:**  
       - **Retrieval:** Extracts relevant sections from the document and queries GPT once.
-      - **Chunked:** Splits the document into chunks and queries GPT for each chunk individually (Deep Thinking Mode).
+      - **Chunked:** Splits the document into chunks and queries GPT for each chunk individually.
       - **Semantic:** Uses semantic-aware chunking and sorts chunks by relevance before querying (invokes semantic chunking and sorting).
       - **Hierarchical:** Summarizes each chunk with respect to the question and then combines these summaries to generate a detailed answer.
       - **MultiPass:** Combines both retrieval and chunked strategies to generate a comprehensive answer.
