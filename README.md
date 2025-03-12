@@ -6,7 +6,7 @@ This repository contains a system that allows users to ask questions of document
 
 The system includes different methods to process and analyze documents:
 
-- **Retrieval Mode:** Extracts relevant text using keyword-based filtering.
+- **Retrieval Mode:** Extracts relevant text and queries using the relevant information.
 - **Chunked Mode:** Splits the document into smaller chunks and queries each one separately.
 - **Semantic Mode:** Sorts text chunks by semantic relevance before querying.
 - **Hierarchical Mode:** Summarizes text chunks first and then uses the summaries to answer the question.
