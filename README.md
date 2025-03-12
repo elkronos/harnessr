@@ -48,6 +48,6 @@ This framework offers a clear, systematic approach to document analysis, enablin
 
 This repository expands on the original [gpt_read](https://github.com/elkronos/openai_api/blob/main/assistants/gpt_read.R) function. Initially, gpt_read split text into chunks and queried GPT with each chunk plus a user question, then consolidated the responses. This method, designed for smaller context windows and high hallucination rates, was slow and API-intensive.
 
-Inspired by projects like LangChain, I sought more control over how GPT ingests, extracts, and parses information. As API costs fell and context windows grew, I experimented with methods that mimic human reading: first skimming to identify key points, then revisiting details. For example, while `chunked_mode.R` refines the original approach, the retrieval method first filters relevant text before querying GPT, aiming for greater accuracy.
+Inspired by projects like [LangChain](https://www.langchain.com/), I sought more control over how GPT ingests, extracts, and parses information. As API costs fell and context windows grew, I experimented with methods that mimic human reading: first skimming to identify key points, then revisiting details. For example, while `chunked_mode.R` refines the original approach, the retrieval method first filters relevant text before querying GPT, aiming for greater accuracy.
 
 This seems too niche for a lot of people, but I am sharing should someone find they'd like to experiment with these sort of methods too.
