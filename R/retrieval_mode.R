@@ -10,15 +10,7 @@
 #' @param token_limit An integer specifying the maximum allowed tokens per chunk.
 #' @return A character vector where each element is a text chunk that does not exceed the token limit.
 #' @details The function uses \code{estimate_token_count} (assumed to be available from your utils)
-#' to estimate token counts. It first splits the text into paragraphs, then iteratively combines
-#' paragraphs until adding another would exceed \code{token_limit}. If a single paragraph is too long,
-#' it is further split into words.
-#' @examples
-#' \dontrun{
-#' text <- "Paragraph one.\n\nParagraph two that might be longer."
-#' chunks <- chunk_text_minimal(text, token_limit = 100)
-#' print(chunks)
-#' }
+#' to estimate token counts.
 #' @export
 chunk_text_minimal <- function(text, token_limit) {
   paragraphs <- unlist(strsplit(text, "\n\n"))
@@ -78,26 +70,15 @@ chunk_text_minimal <- function(text, token_limit) {
 #' @param pause_base A numeric value (in seconds) specifying the base pause time for retry backoff (default: 3).
 #' @param use_parallel Logical; if TRUE, processes chunks in parallel (default: FALSE).
 #' @param fallback Logical; if TRUE, falls back to generic chunked mode if no relevant text is extracted (default: TRUE).
-#' @param return_json Logical; if TRUE, returns a JSON string containing the full chain-of-thought detailing
-#'        every step (prompts, responses, parameters); if FALSE, only the final answer is returned (default: FALSE).
+#' @param return_json Logical; if TRUE, returns a JSON string containing the full chain-of-thought; otherwise, only the final answer is returned.
+#' @param ... Additional arguments that will be passed to underlying functions.
 #' @return A character string containing the final answer, or a JSON string with detailed chain-of-thought information if \code{return_json} is TRUE.
-#' @details This function requires the helper functions \code{get_model_limits}, \code{estimate_token_count},
-#' and \code{process_api_call} (typically defined in your utils file). It uses a token-based approach to decide
-#' whether to perform a single retrieval or to split the text into minimal chunks for targeted skimming.
-#' @examples
-#' \dontrun{
-#' # Assume chunks have been generated from a document.
-#' chunks <- c("This is the first chunk of text.", "This is the second chunk of text.")
-#' question <- "What is the main topic of the document?"
-#' answer <- gpt_read_retrieval(chunks, question, return_json = TRUE)
-#' cat(answer)
-#' }
 #' @import jsonlite
 #' @export
 gpt_read_retrieval <- function(chunks, question, model = "gpt-3.5-turbo", temperature = 0.0, 
                                max_tokens = NULL, presence_penalty = 0.0, frequency_penalty = 0.0,
                                num_retries = 5, pause_base = 3, use_parallel = FALSE, fallback = TRUE, 
-                               return_json = FALSE) {
+                               return_json = FALSE, ...) {
   chain <- list()  # container for chain-of-thought details
   
   # Combine all chunks into one full text
@@ -106,17 +87,20 @@ gpt_read_retrieval <- function(chunks, question, model = "gpt-3.5-turbo", temper
   
   model_limits <- get_model_limits(model)
   if (is.null(max_tokens)) max_tokens <- model_limits$output_tokens
-  allowed_input_tokens <- model_limits$context_window - max_tokens - 1000  # reserve some buffer
+  # Calculate allowed input tokens for a single API call.
+  # Decrease the window size by subtracting 2000 tokens to account for skimming responses and question tokens.
+  allowed_input_tokens <- model_limits$context_window - max_tokens - 2000  
   
   if (estimate_token_count(full_text) > allowed_input_tokens) {
     chain$mode <- "chunked_retrieval"
     chain$initial_message <- "Document exceeds allowed token limit for a single retrieval query. Splitting into minimal chunks..."
     
-    # Use the new minimal chunking function
-    retrieval_chunks <- chunk_text_minimal(full_text, allowed_input_tokens)
+    # Set a safe token limit for each minimal chunk (e.g., maximum 2000 tokens)
+    safe_token_limit <- min(allowed_input_tokens, 2000)
+    retrieval_chunks <- chunk_text_minimal(full_text, safe_token_limit)
     chain$retrieval_chunks <- retrieval_chunks
     
-    # For each minimal chunk, perform targeted skimming
+    # For each minimal chunk, perform targeted skimming with dynamic max_tokens adjustment
     skim_results <- list()
     for (i in seq_along(retrieval_chunks)) {
       chunk <- retrieval_chunks[i]
@@ -126,11 +110,16 @@ gpt_read_retrieval <- function(chunks, question, model = "gpt-3.5-turbo", temper
         "\n\nQuestion:\n", question,
         "\n\nExcerpt:\n", chunk
       )
+      # Compute how many tokens are already in the prompt
+      prompt_tokens <- estimate_token_count(skim_prompt)
+      available_tokens <- max(model_limits$context_window - prompt_tokens - 50, 50)
+      skim_max_tokens <- min(max_tokens, available_tokens)
+      
       messages <- list(
         list(role = "system", content = "You are an assistant that skims document text for relevance."),
         list(role = "user", content = skim_prompt)
       )
-      step_result <- process_api_call(messages, model = model, temperature = temperature, max_tokens = max_tokens,
+      step_result <- process_api_call(messages, model = model, temperature = temperature, max_tokens = skim_max_tokens,
                                       presence_penalty = presence_penalty, frequency_penalty = frequency_penalty,
                                       num_retries = num_retries, pause_base = pause_base)
       skim_results[[paste0("chunk_", i)]] <- list(
@@ -140,7 +129,7 @@ gpt_read_retrieval <- function(chunks, question, model = "gpt-3.5-turbo", temper
     }
     chain$skim_results <- skim_results
     
-    # Combine skimmed results
+    # Combine skimmed results from each chunk
     combined_relevant_text <- paste(sapply(skim_results, function(x) x$response), collapse = "\n\n")
     chain$combined_relevant_text <- combined_relevant_text
     
@@ -150,11 +139,15 @@ gpt_read_retrieval <- function(chunks, question, model = "gpt-3.5-turbo", temper
       "\n\nRelevant Information:\n", combined_relevant_text,
       "\n\nQuestion:\n", question
     )
+    final_prompt_tokens <- estimate_token_count(final_prompt)
+    available_tokens_final <- max(model_limits$context_window - final_prompt_tokens - 50, 50)
+    final_max_tokens <- min(max_tokens, available_tokens_final)
+    
     messages_final <- list(
       list(role = "system", content = "You are a research assistant who answers questions based solely on provided relevant information."),
       list(role = "user", content = final_prompt)
     )
-    final_answer <- process_api_call(messages_final, model = model, temperature = temperature, max_tokens = max_tokens,
+    final_answer <- process_api_call(messages_final, model = model, temperature = temperature, max_tokens = final_max_tokens,
                                      presence_penalty = presence_penalty, frequency_penalty = frequency_penalty,
                                      num_retries = num_retries, pause_base = pause_base)
     chain$final_step <- list(
@@ -172,13 +165,17 @@ gpt_read_retrieval <- function(chunks, question, model = "gpt-3.5-turbo", temper
       "\n\nQuestion:\n", question,
       "\n\nDocument:\n", full_text
     )
+    relevant_prompt_tokens <- estimate_token_count(relevant_prompt)
+    available_tokens_single <- max(model_limits$context_window - relevant_prompt_tokens - 50, 50)
+    single_max_tokens <- min(ifelse(is.null(max_tokens), 2048, max_tokens), available_tokens_single)
+    
     messages_filter <- list(
       list(role = "system", content = "You selectively extract relevant text for a question."),
       list(role = "user", content = relevant_prompt)
     )
     relevant_text <- process_api_call(messages_filter, model = model, temperature = 0.0, 
-                                      max_tokens = ifelse(is.null(max_tokens), 2048, max_tokens),
-                                      presence_penalty = 0.0, frequency_penalty = 0.0,
+                                      max_tokens = single_max_tokens,
+                                      presence_penalty = presence_penalty, frequency_penalty = frequency_penalty,
                                       num_retries = num_retries, pause_base = pause_base)
     chain$extraction_step <- list(
       prompt = relevant_prompt,

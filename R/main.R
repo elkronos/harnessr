@@ -75,6 +75,10 @@ answer_question <- function(file_path, question, mode = c("Retrieval", "Chunked"
   }
   cat("\n====================\n")
   
-  return(invisible(answers))
+  # If only one mode was provided, return its answer as plain text.
+  if (length(answers) == 1) {
+    return(invisible(answers[[1]]))
+  } else {
+    return(invisible(answers))
+  }
 }
-

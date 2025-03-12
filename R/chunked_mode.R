@@ -21,6 +21,7 @@
 #' @param delay_between_chunks Delay (seconds) between chunk requests to avoid rate limits (default 0).
 #' @param use_parallel Whether to process chunks in parallel (default FALSE).
 #' @param return_json If TRUE, returns the entire chain-of-thought as a JSON string.
+#' @param ... Additional arguments passed to underlying functions.
 #' @return A single consolidated answer string or a JSON chain-of-thought.
 gpt_read_chunked <- function(chunks, question, model = "gpt-3.5-turbo", temperature = 0.0, max_tokens = NULL,
                              chunk_token_limit = NULL,
@@ -28,7 +29,7 @@ gpt_read_chunked <- function(chunks, question, model = "gpt-3.5-turbo", temperat
                              system_message_2 = "You are a content editor who will merge multiple pieces of answers into one comprehensive answer.",
                              presence_penalty = 0.0, frequency_penalty = 0.0,
                              num_retries = 5, pause_base = 3, delay_between_chunks = 0,
-                             use_parallel = FALSE, return_json = FALSE) {
+                             use_parallel = FALSE, return_json = FALSE, ...) {
   if (is.null(question) || nchar(trimws(question)) == 0) {
     stop("Question must be provided for chunked processing.")
   }

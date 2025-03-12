@@ -19,11 +19,12 @@
 #' @param num_retries API retry count (default 5).
 #' @param pause_base Base pause for retries (default 3).
 #' @param return_json If TRUE, returns the entire chain-of-thought as a JSON string.
+#' @param ... Additional arguments (e.g., presence_penalty) that will be ignored.
 #' @return A final answer string or a JSON chain-of-thought.
 gpt_read_hierarchical <- function(chunks, question, model = "gpt-3.5-turbo", temperature = 0.0,
                                   summary_max_tokens = 512, answer_max_tokens = 1024,
                                   use_parallel = FALSE, num_retries = 5, pause_base = 3,
-                                  return_json = FALSE) {
+                                  return_json = FALSE, ...) {
   if (is.null(question) || nchar(trimws(question)) == 0) {
     stop("Question must be provided for hierarchical mode.")
   }

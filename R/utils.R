@@ -80,6 +80,19 @@ process_api_call <- function(messages, model = "gpt-3.5-turbo", temperature = 0.
     warning("Error in API request: ", conditionMessage(attr(response, "condition")))
     return(NULL)
   }
+  
+  # If response is not an httr response, assume a 200 status (for testing purposes)
+  if (!inherits(response, "response")) {
+    status <- 200
+  } else {
+    status <- httr::status_code(response)
+  }
+  
+  if (status == 400) {
+    error_details <- httr::content(response, as = "text", encoding = "UTF-8")
+    warning("OpenAI API returned 400: ", error_details)
+  }
+  
   httr::stop_for_status(response, task = "OpenAI API request")
   content_list <- httr::content(response)
   if (length(content_list$choices) > 0) {
