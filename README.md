@@ -30,6 +30,7 @@ This system assumes you have a valid API key with OpenAI. To obtain an API key:
 - Visit [OpenAI's API page](https://openai.com/api/).
 - Register for an account and follow the instructions to generate your API key.
 - Configure your environment to use this key as required by the system.
+- The Shiny application will automatically prompt you for the key.
 
 ## Getting Started
 
