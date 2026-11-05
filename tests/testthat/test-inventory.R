@@ -27,9 +27,9 @@ test_that("a directory reports what it skipped instead of dropping it in silence
   # corpus looked exactly like an empty one, which is the failure this package
   # treats as the serious kind everywhere else.
   d <- local_corpus()
-  expect_warning(src <- readgpt:::corpus_sources(d, recursive = TRUE),
+  expect_warning(src <- harnessr:::corpus_sources(d, recursive = TRUE),
                  class = "gr_sources_skipped")
-  w <- tryCatch(readgpt:::corpus_sources(d, recursive = TRUE), warning = function(w) w)
+  w <- tryCatch(harnessr:::corpus_sources(d, recursive = TRUE), warning = function(w) w)
   expect_match(conditionMessage(w), "doc (1)", fixed = TRUE)
   expect_match(conditionMessage(w), "gr_inventory()", fixed = TRUE)
 
@@ -39,7 +39,7 @@ test_that("a directory reports what it skipped instead of dropping it in silence
   expect_length(src, 4L)      # two reports, the protocol, and the empty file
 
   # `quiet` is for the inventory's own use, which reports skips as a table.
-  expect_silent(readgpt:::corpus_sources(d, recursive = TRUE, quiet = TRUE))
+  expect_silent(harnessr:::corpus_sources(d, recursive = TRUE, quiet = TRUE))
 })
 
 test_that("a document keeps the folder it came from", {
@@ -48,8 +48,8 @@ test_that("a document keeps the folder it came from", {
   # away the meaningful half and replacing it with an index that depends on sort
   # order. Somebody who filed by year could not tell their rows apart.
   d <- local_corpus()
-  src <- readgpt:::corpus_sources(d, recursive = TRUE, quiet = TRUE)
-  labs <- vapply(src, readgpt:::corpus_label, character(1),
+  src <- harnessr:::corpus_sources(d, recursive = TRUE, quiet = TRUE)
+  labs <- vapply(src, harnessr:::corpus_label, character(1),
                  root = attr(src, "root"), USE.NAMES = FALSE)
   expect_true("2019/report.txt" %in% labs)
   expect_true("2020/report.txt" %in% labs)
@@ -67,9 +67,9 @@ test_that("corpus_label falls back to the basename off the root, and does not ma
   d <- local_corpus()
   outside <- withr::local_tempfile(fileext = ".txt")
   writeLines("elsewhere", outside)
-  expect_identical(readgpt:::corpus_label(outside, root = d), basename(outside))
-  expect_identical(readgpt:::relative_path(paste0(d, "-old/x.txt"), d), NA_character_)
-  expect_identical(readgpt:::relative_path(file.path(d, "protocol.md"), paste0(d, "/")),
+  expect_identical(harnessr:::corpus_label(outside, root = d), basename(outside))
+  expect_identical(harnessr:::relative_path(paste0(d, "-old/x.txt"), d), NA_character_)
+  expect_identical(harnessr:::relative_path(file.path(d, "protocol.md"), paste0(d, "/")),
                    "protocol.md")
 })
 
@@ -231,7 +231,7 @@ test_that("a probe that raises still becomes a row, not an error", {
   d <- hostile_corpus()
   local_mocked_bindings(
     probe_text = function(path) stop("something nobody predicted"),
-    .package = "readgpt")
+    .package = "harnessr")
   inv <- suppressWarnings(gr_inventory(d))
   expect_equal(nrow(inv$files), 5L)
   # A zero-byte file is settled before any probe runs, so it stays "empty" --
@@ -331,7 +331,7 @@ test_that("a file whose extractor has no package is not reported as ready", {
   local_mocked_bindings(
     missing_extractor_deps = function(extractor)
       if (identical(extractor, "pdf")) "pdftools" else character(0),
-    .package = "readgpt")
+    .package = "harnessr")
   inv <- suppressWarnings(gr_inventory(d))
 
   pdf_row <- inv$files[inv$files$file == "paper.pdf", ]
@@ -361,7 +361,7 @@ test_that("the extractor dependency map matches what the extractors actually req
   # "Hard" means precisely: a requireNamespace() whose failure aborts. The OCR
   # packages are asked for without aborting -- a PDF with a text layer reads
   # perfectly without them -- and probe_pdf() reports on those separately.
-  ns <- asNamespace("readgpt")
+  ns <- asNamespace("harnessr")
   hard_deps <- function(nm) {
     body_txt <- paste(deparse(body(get(paste0("extract_", nm), envir = ns))), collapse = " ")
     at <- gregexpr('requireNamespace\\("[^"]+"', body_txt)[[1]]
@@ -374,12 +374,12 @@ test_that("the extractor dependency map matches what the extractors actually req
     sort(unique(pkg[aborts]))
   }
   for (nm in c("txt", "md", "html", "pdf", "docx", "image")) {
-    expect_identical(sort(readgpt:::.gr_extractor_deps[[nm]] %||% character(0)), hard_deps(nm),
+    expect_identical(sort(harnessr:::.gr_extractor_deps[[nm]] %||% character(0)), hard_deps(nm),
                      info = sprintf("the map and extract_%s() disagree about what it must have", nm))
   }
   # The map is only consulted for names it holds, so a third-party extractor is
   # assumed able to run -- and if it cannot, it becomes a row saying so.
-  expect_identical(readgpt:::missing_extractor_deps("something_nobody_registered"), character(0))
+  expect_identical(harnessr:::missing_extractor_deps("something_nobody_registered"), character(0))
 })
 
 

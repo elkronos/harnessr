@@ -55,7 +55,7 @@ test_that("a backend handler is held to the same gr_result invariants as everyth
   expect_false(gr_call(mk(function(m, p) "   "), "q")$ok)
 
   # A handler returning a malformed gr_result is re-normalised, not trusted.
-  loose <- gr_call(mk(function(m, p) readgpt:::gr_result(TRUE, text = "fine")), "q")
+  loose <- gr_call(mk(function(m, p) harnessr:::gr_result(TRUE, text = "fine")), "q")
   expect_true(loose$ok)
   expect_identical(loose$text, "fine")
   expect_length(loose$text, 1L)
@@ -175,7 +175,7 @@ test_that("an embedder returning the wrong shape is caught before it corrupts ra
 # ---------------------------------------------------------------------------
 
 test_that("messages map onto ellmer's system prompt and turn", {
-  split <- readgpt:::ellmer_split_messages
+  split <- harnessr:::ellmer_split_messages
 
   one <- split(list(list(role = "user", content = "just a question")))
   expect_identical(one$system, "")
@@ -207,7 +207,7 @@ test_that("messages map onto ellmer's system prompt and turn", {
 })
 
 test_that("token usage is read from ellmer when it can be, and counted locally when not", {
-  usage <- readgpt:::ellmer_usage
+  usage <- harnessr:::ellmer_usage
   params <- list(prompt_tokens = 100L)
 
   from_chat <- usage(list(get_tokens = function() data.frame(input = 7, output = 11)),
@@ -256,12 +256,12 @@ test_that("the methods the adapter requires are the ones ellmer really has", {
     if (!is.null(chat)) break
   }
   skip_if(is.null(chat), "could not construct an ellmer Chat to inspect")
-  for (m in readgpt:::.gr_ellmer_methods) {
+  for (m in harnessr:::.gr_ellmer_methods) {
     expect_true(is.function(chat[[m]]),
                 info = sprintf("ellmer's Chat has no `%s()`; the adapter requires it", m))
   }
   # And a real Chat must pass the constructor's own check.
-  expect_silent(readgpt:::check_chat_methods(chat))
+  expect_silent(harnessr:::check_chat_methods(chat))
 })
 
 test_that("gr_ellmer_client drives a chat and never mutates the caller's", {
@@ -308,7 +308,7 @@ test_that("gr_ellmer_client drives a chat and never mutates the caller's", {
   # The fixture has to be right before the assertions below mean anything. Both
   # of these failed once, and both surfaced as a confusing expectation several
   # lines later rather than here, where the fault is.
-  for (m in readgpt:::.gr_ellmer_methods) {
+  for (m in harnessr:::.gr_ellmer_methods) {
     expect_true(is.function(stub[[m]]),
                 info = sprintf("the stub is missing `%s()`, which the adapter requires", m))
   }

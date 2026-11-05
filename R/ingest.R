@@ -97,7 +97,7 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
 #'   machine or a private network (localhost, 10.x, 172.16/12, 192.168.x,
 #'   169.254.x, the IPv6 local ranges), and a host name that resolves to one,
 #'   is refused (`gr_url_error`), after a redirect too, unless
-#'   `options(readgpt.allow_local_urls = TRUE)`; behind a proxy that looks
+#'   `options(harnessr.allow_local_urls = TRUE)`; behind a proxy that looks
 #'   names up itself, a name that cannot be looked up here is not checked. The
 #'   request uses the address in full, but the document's `source`, the
 #'   messages and the errors show it without a user name and password and with
@@ -188,9 +188,9 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
   if (!is_path && !looks_like_path && !url && one_line && grepl("[/\\\\]", source) &&
       grepl("\\.[A-Za-z][A-Za-z0-9]{0,5}$", source) && !grepl("[ \t]{2,}", source)) {
     withCallingHandlers(
-      gr_warn(sprintf(paste0("'%s' is not an existing file, and '.%s' is not an extension readgpt ",
+      gr_warn(sprintf(paste0("'%s' is not an existing file, and '.%s' is not an extension harnessr ",
                              "reads, so the string itself is being read as the document. If it is ",
-                             "a path, check it; readgpt reads %s."),
+                             "a path, check it; harnessr reads %s."),
                       source, ext_of(source),
                       paste0(".", sort(known_ext), collapse = ", ")),
               class = "gr_path_as_text"),

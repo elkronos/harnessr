@@ -1682,7 +1682,7 @@ cited_chunks <- function(text) cited_ids(text, "chunk")
 #' marks, a full-width letter, digit or number sign as its ASCII form, the
 #' ideographic space as a space, and a letter written with combining accents
 #' (as macOS tools write text) as the accented letter, for Latin, Greek,
-#' Cyrillic and Korean letters. readgpt does no other Unicode normalisation,
+#' Cyrillic and Korean letters. harnessr does no other Unicode normalisation,
 #' so a quotation that differs from its document only in how some other
 #' letter is encoded is reported unverified, never verified by mistake.
 #' It has to match whole words and whole numbers: "5%" is not found in "25%",

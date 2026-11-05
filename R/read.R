@@ -37,7 +37,7 @@
 #'     by stage against the call's `label`, so give each call a label of its
 #'     own; a call without it is sent no effort.}
 #'   \item{`trace`}{Pass it to every [gr_call()] so your calls are counted and
-#'     priced, and check `readgpt:::trace_can_call(trace)` before each one so
+#'     priced, and check `harnessr:::trace_can_call(trace)` before each one so
 #'     the run's call and spending limits are respected.}
 #' }
 #' Return [new_answer()]. Budget your prompt with [gr_budget()] rather than
@@ -253,7 +253,7 @@ gr_reader_signature <- function(reader) {
 #'   [is_not_found()] is `FALSE` for it. Excerpts that are merely silent are
 #'   still `NOT_IN_DOCUMENT`. See "Checking the premise" below for how each
 #'   reader combines what its requests report. The verdict is the model's
-#'   reading of the excerpts, not a check readgpt makes, so weigh it as you
+#'   reading of the excerpts, not a check harnessr makes, so weigh it as you
 #'   would any answer. Off by default because it changes what is sent: the
 #'   prompts are longer, so a cache, a recorded replay or a [gr_read_many()]
 #'   store made without it does not answer a run with it, and the reverse.

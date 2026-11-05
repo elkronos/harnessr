@@ -24,7 +24,7 @@ test_that("skim and preview drop a NONE written with an ideographic full stop", 
   txt <- c("Revenue was 45.2 million in 2023.", "The cafeteria serves soup on Fridays.",
            "Parking is behind the main building.")
   cl <- gr_mock_client(function(m, p) {
-    if (r7_is(m, readgpt:::.gr_prompts$extract_system)) {
+    if (r7_is(m, harnessr:::.gr_prompts$extract_system)) {
       if (grepl("Revenue", m[[3]]$content, fixed = TRUE)) return("Revenue was 45.2 million in 2023.")
       return("NONE\u3002")
     }
@@ -111,7 +111,7 @@ test_that("gr_read() records where its run starts on a trace shared with an earl
   ch <- quiet(gr_segment("Para one says revenue rose.\n\nPara two says costs fell.",
                          list(method = "paragraph", max_tokens = 50), trace = tr2))
   a3 <- quiet(gr_read(ch, "What rose?", cl, "stuff", trace = tr2))
-  expect_identical(readgpt:::answer_trace(a3), tr2)
+  expect_identical(harnessr:::answer_trace(a3), tr2)
   expect_true("segment" %in% vapply(r7_json(a3)$trace$steps, function(s) s$label, ""))
 
   # A reader that answers on a trace of its own keeps its own numbering.
@@ -158,7 +158,7 @@ test_that("answer_document() records its whole run, and a failed recipe in a com
                          read = list(reader = "r7_call_then_fail")))
   cmp <- quiet(gr_compare(txt, "What was revenue?", recs, client = cl))
   bad <- cmp$answers$bad
-  steps <- readgpt:::answer_trace(bad)$steps
+  steps <- harnessr:::answer_trace(bad)$steps
   labels <- vapply(steps, function(s) s$label, "")
   # Before: steps 1 to where the recipe began, so the other recipe's request
   # and none of its own.
@@ -353,13 +353,13 @@ test_that("partial reasons name an ensemble's partial members and skim's consoli
                     notes = list(partial_members = c("retrieve", "map_reduce")))
   # Before: nothing, so print() said "see $notes".
   expect_true(any(grepl("member(s) 'retrieve', 'map_reduce' returned a partial answer",
-                        readgpt:::partial_reasons(ens), fixed = TRUE)))
+                        harnessr:::partial_reasons(ens), fixed = TRUE)))
   sk <- new_answer("An answer.", "skim", "What?", 1L, tr, partial = TRUE,
                    notes = list(merge_ok = FALSE))
-  expect_true("the evidence could not be consolidated" %in% readgpt:::partial_reasons(sk))
+  expect_true("the evidence could not be consolidated" %in% harnessr:::partial_reasons(sk))
   mr <- new_answer("An answer.", "map_reduce", "What?", 1L, tr, partial = TRUE,
                    notes = list(merge_ok = FALSE))
-  expect_true("the answers could not be merged" %in% readgpt:::partial_reasons(mr))
+  expect_true("the answers could not be merged" %in% harnessr:::partial_reasons(mr))
 })
 
 # ---------------------------------------------------------------------------
@@ -381,16 +381,16 @@ test_that("tree_merge() counts the merge requests that failed, at every level", 
     "Merged."
   })
   spec <- gr_read_spec("map_reduce", model = "r7-tiny-4k", max_answer_tokens = 400)
-  out <- quiet(readgpt:::tree_merge(cl, "What was enrolment?", rep(long, 6), spec, gr_trace()))
+  out <- quiet(harnessr:::tree_merge(cl, "What was enrolment?", rep(long, 6), spec, gr_trace()))
   # Before: no `failed`, and nothing but the trace said a group had failed.
   expect_true(out$ok)
   expect_identical(out$failed, 1L)
   cl <- gr_mock_client(function(m, p) stop("HTTP 500"))
-  out <- quiet(readgpt:::tree_merge(cl, "q", c("one finding", "another finding"), spec,
+  out <- quiet(harnessr:::tree_merge(cl, "q", c("one finding", "another finding"), spec,
                                     gr_trace()))
   expect_false(out$ok)
   expect_identical(out$failed, 1L)
-  expect_identical(readgpt:::tree_merge(cl, "q", "only", spec, gr_trace())$failed, 0L)
+  expect_identical(harnessr:::tree_merge(cl, "q", "only", spec, gr_trace())$failed, 0L)
 })
 
 # ---------------------------------------------------------------------------
@@ -408,12 +408,12 @@ test_that("a reasoning model's requests are priced at the cap they are sent with
                     input_usd = 1, output_usd = 10)
   cl <- mock_echo()
   # Before: 100 tokens in and 90 out.
-  expect_equal(readgpt:::batch_item_usd(cl, "r7-reason", 100, 90),
+  expect_equal(harnessr:::batch_item_usd(cl, "r7-reason", 100, 90),
                gr_estimate_cost("r7-reason", 100, 2048))
-  expect_equal(readgpt:::batch_item_usd(cl, "r7-plain", 100, 90),
+  expect_equal(harnessr:::batch_item_usd(cl, "r7-plain", 100, 90),
                gr_estimate_cost("r7-plain", 100, 90))
   # A cap at or above the floor is priced as it is.
-  expect_equal(readgpt:::batch_item_usd(cl, "r7-reason", 100, 3000),
+  expect_equal(harnessr:::batch_item_usd(cl, "r7-reason", 100, 3000),
                gr_estimate_cost("r7-reason", 100, 3000))
 
   pf <- function(model) {
@@ -439,7 +439,7 @@ test_that("a reasoning model's requests are priced at the cap they are sent with
 test_that("the merge tree's worst case counts each finding in its tags", {
   tag <- gr_count_tokens("<findings 999>\n\n</findings 999>\n\n")
   # Ten findings of 100 tokens fit a 1,000-token merge bare, not in tags.
-  w <- readgpt:::merge_tree_worst(10, 100, 100, 1000)
+  w <- harnessr:::merge_tree_worst(10, 100, 100, 1000)
   expect_gt(w$calls, 1)                                        # was 1
   expect_equal(w$input, 10 * (100 + tag) + 2 * (100 + tag))
 
@@ -448,13 +448,13 @@ test_that("the merge tree's worst case counts each finding in its tags", {
                           input_usd = 0, output_usd = 0))
   spec <- gr_read_spec("map_reduce", model = "r7-merge-ctx", max_answer_tokens = 300L)
   tr <- gr_trace()
-  quiet(readgpt:::tree_merge(gr_mock_client(function(m, p) "Merged answer."),
+  quiet(harnessr:::tree_merge(gr_mock_client(function(m, p) "Merged answer."),
                              "Did revenue rise in 2023?", rep("Yes.", 300), spec, tr))
   room <- gr_budget("r7-merge-ctx", reserve_output = 300L,
-                    overhead = readgpt:::prompt_overhead("Did revenue rise in 2023?",
-                                                         readgpt:::.gr_prompts$merge_system,
+                    overhead = harnessr:::prompt_overhead("Did revenue rise in 2023?",
+                                                         harnessr:::.gr_prompts$merge_system,
                                                          "never"))$input
-  worst <- readgpt:::merge_tree_worst(300, gr_count_tokens("Yes."), 300, room)
+  worst <- harnessr:::merge_tree_worst(300, gr_count_tokens("Yes."), 300, room)
   # Before: one merge, against the several tree_merge() made.
   expect_gte(worst$calls, tr$calls)
 })

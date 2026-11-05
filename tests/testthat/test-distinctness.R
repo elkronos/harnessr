@@ -341,11 +341,11 @@ test_that("rerank_min_score keeps chunks out rather than being a number nothing 
   # mock_echo() scores every candidate 8.
   keep <- quiet(gr_read(ch, "How many participants?", mock_echo(),
                         list(reader = "rerank", rerank_min_score = 4, top_k = 2L)))
-  expect_false(identical(keep$answer, readgpt:::.NOT_FOUND))
+  expect_false(identical(keep$answer, harnessr:::.NOT_FOUND))
 
   drop <- quiet(gr_read(ch, "How many participants?", mock_echo(),
                         list(reader = "rerank", rerank_min_score = 9, top_k = 2L)))
-  expect_identical(drop$answer, readgpt:::.NOT_FOUND)
+  expect_identical(drop$answer, harnessr:::.NOT_FOUND)
   expect_match(drop$notes$reason, "no candidate scored")
 })
 
@@ -487,11 +487,11 @@ test_that("a name that is both a recipe and a reader resolves loudly, not silent
   gr_register_reader("survey", function(chunks, question, client, spec, trace) {
     new_answer("x", "survey", question, integer(0), trace)
   }, signature = "clash|1|none", cost_calls = "1", description = "clashes with the recipe")
-  expect_warning(rec <- readgpt:::as_recipe("survey"), class = "gr_ambiguous_name")
+  expect_warning(rec <- harnessr:::as_recipe("survey"), class = "gr_ambiguous_name")
   expect_identical(rec$read$reader, "hierarchical")   # the recipe still wins
   # And a name owned by only one of the two stays silent.
-  expect_silent(readgpt:::as_recipe("preview"))
-  expect_identical(readgpt:::as_recipe("preview")$read$reader, "preview")
+  expect_silent(harnessr:::as_recipe("preview"))
+  expect_identical(harnessr:::as_recipe("preview")$read$reader, "preview")
 })
 
 

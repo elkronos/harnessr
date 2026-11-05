@@ -26,7 +26,7 @@ golden_dir <- function(root = NULL) {
   testthat::test_path("fixtures", "golden")
 }
 
-# The packages a golden run needs. Both are imports of readgpt, so they are
+# The packages a golden run needs. Both are imports of harnessr, so they are
 # normally present; digest matters twice over, since without it the package
 # keys its cache with a fallback hash and every recorded key would differ. The
 # test skips, naming the package, when one is missing; it never passes without
@@ -89,7 +89,7 @@ golden_volatile <- c("at", "seconds", "started", "run_id", "elapsed_s", "readgpt
 
 # Every absolute path a run can mention, longest first, with what it becomes.
 golden_paths <- function() {
-  ex <- readgpt::readgpt_example()
+  ex <- harnessr::readgpt_example()
   p <- c(normalizePath(ex, winslash = "/", mustWork = FALSE), ex,
          normalizePath(dirname(ex), winslash = "/", mustWork = FALSE), dirname(ex),
          normalizePath(tempdir(), winslash = "/", mustWork = FALSE), tempdir())
@@ -197,11 +197,11 @@ golden_client <- function(dir) {
     n <<- n + 1L
     golden_reply(messages, params)
   }
-  cl <- readgpt::gr_mock_client(handler)
+  cl <- harnessr::gr_mock_client(handler)
   # The mock draws a fresh id per client, and the id is part of every cache
   # key, embedding key and corpus key. Pinned, two runs key alike.
   cl$.client_id <- "golden-mock"
-  cl <- readgpt::gr_cache_client(cl, readgpt::gr_cache(dir, read = FALSE, write = TRUE))
+  cl <- harnessr::gr_cache_client(cl, harnessr::gr_cache(dir, read = FALSE, write = TRUE))
   attr(cl, "golden_keys") <- function() {
     if (n > length(keys$seen)) keys$seen <- c(keys$seen, take())
     keys$seen
@@ -237,7 +237,7 @@ golden_call_summary <- function(call, key, paths) {
 
 golden_trace <- function(trace, paths) {
   if (!inherits(trace, "gr_trace")) return(NULL)
-  tr <- jsonlite::parse_json(readgpt::as_json(trace), simplifyVector = FALSE)
+  tr <- jsonlite::parse_json(harnessr::as_json(trace), simplifyVector = FALSE)
   tr$steps <- lapply(tr$steps, function(st) {
     if (!is.null(st$prompt)) st$prompt <- golden_hash(golden_scrub(st$prompt, paths))
     if (!is.null(st$response)) st$response <- golden_hash(golden_scrub(st$response, paths))
@@ -249,20 +249,20 @@ golden_trace <- function(trace, paths) {
 # Run `expr(client)` from a clean state and record it. `result` turns what the
 # run returned into the plain data whose hash is kept.
 golden_run <- function(expr, result = function(x) NULL) {
-  old <- readgpt::gr_options()
-  st <- readgpt:::gr_state
+  old <- harnessr::gr_options()
+  st <- harnessr:::gr_state
   slots <- c("extractors", "cleaners", "segmenters", "readers", "embedders", "models",
              "model_patterns", "protocols")
   snap <- stats::setNames(lapply(slots, function(s) st[[s]]), slots)
   on.exit({
     for (s in names(snap)) st[[s]] <- snap[[s]]
-    readgpt::gr_options(old)
-    readgpt::gr_flush_caches()
+    harnessr::gr_options(old)
+    harnessr::gr_flush_caches()
   }, add = TRUE)
   # The defaults, whatever an earlier test or the session set.
-  readgpt::gr_options(readgpt:::gr_defaults)
-  readgpt::gr_options(verbose = FALSE)
-  readgpt::gr_flush_caches()
+  harnessr::gr_options(harnessr:::gr_defaults)
+  harnessr::gr_options(verbose = FALSE)
+  harnessr::gr_flush_caches()
   dir <- tempfile("golden-cache")
   on.exit(unlink(dir, recursive = TRUE), add = TRUE)
   cl <- golden_client(dir)
@@ -293,10 +293,10 @@ golden_answer <- function(ans) list(answer = ans$answer)
 
 # Each shipped recipe through answer_document(), plus "auto", its default.
 golden_recipe_runs <- function() {
-  recipes <- c(names(readgpt::gr_recipes()), "auto")
+  recipes <- c(names(harnessr::gr_recipes()), "auto")
   stats::setNames(lapply(recipes, function(r) {
     function() golden_run(function(cl) {
-      readgpt::answer_document(readgpt::readgpt_example(), golden_question, r, client = cl)
+      harnessr::answer_document(harnessr::readgpt_example(), golden_question, r, client = cl)
     }, golden_answer)
   }), paste0("recipe-", recipes))
 }
@@ -325,7 +325,7 @@ golden_builtin_readers <- function() {
       for (a in as.list(e)[-1L]) if (!missing(a)) walk(a)
     }
   }
-  walk(body(utils::getFromNamespace("register_builtin_readers", "readgpt")))
+  walk(body(utils::getFromNamespace("register_builtin_readers", "harnessr")))
   sort(unique(found))
 }
 
@@ -333,28 +333,28 @@ golden_reader_runs <- function() {
   readers <- golden_readers
   spec <- function(r) {
     if (identical(r, "ensemble")) {
-      return(readgpt::gr_read_spec(r, members = c("retrieve", "map_reduce", "refine")))
+      return(harnessr::gr_read_spec(r, members = c("retrieve", "map_reduce", "refine")))
     }
-    readgpt::gr_read_spec(r)
+    harnessr::gr_read_spec(r)
   }
   stats::setNames(lapply(readers, function(r) {
     function() golden_run(function(cl) {
-      rec <- readgpt::gr_recipe(paste0("golden-", r),
+      rec <- harnessr::gr_recipe(paste0("golden-", r),
                                 segment = list(method = "paragraph", max_tokens = 120),
                                 read = spec(r))
-      readgpt::answer_document(readgpt::readgpt_example(), golden_question, rec, client = cl)
+      harnessr::answer_document(harnessr::readgpt_example(), golden_question, rec, client = cl)
     }, golden_answer)
   }), paste0("reader-", readers))
 }
 
 golden_protocol <- function() {
-  readgpt::gr_protocol(
+  harnessr::gr_protocol(
     "golden",
     question = "How did revenue change?",
     include = "Reports a revenue figure",
-    fields = readgpt::gr_fields(
+    fields = harnessr::gr_fields(
       company = "The company the report covers",
-      revenue = readgpt::gr_field("Revenue in millions of dollars", type = "number")),
+      revenue = harnessr::gr_field("Revenue in millions of dollars", type = "number")),
     outline = c(Findings = "How revenue changed"))
 }
 
@@ -362,14 +362,14 @@ golden_protocol <- function() {
 # before it. The upstream stages are run with a client of their own, so each
 # record holds only its own stage's requests.
 golden_stage_runs <- function() {
-  ex <- function() readgpt::readgpt_example()
+  ex <- function() harnessr::readgpt_example()
   upstream <- function() {
     tmp <- golden_client(tempfile("golden-up"))
     p <- golden_protocol()
-    s <- readgpt::gr_screen(ex(), p, client = tmp)
-    x <- readgpt::gr_extract(s, p, client = tmp)
-    cm <- readgpt::gr_claims(x, question = p$question, client = tmp)
-    list(p = p, s = s, x = x, cm = cm, o = readgpt::gr_outline(cm, client = tmp))
+    s <- harnessr::gr_screen(ex(), p, client = tmp)
+    x <- harnessr::gr_extract(s, p, client = tmp)
+    cm <- harnessr::gr_claims(x, question = p$question, client = tmp)
+    list(p = p, s = s, x = x, cm = cm, o = harnessr::gr_outline(cm, client = tmp))
   }
   quietly <- function(e) suppressWarnings(suppressMessages(e))
   tab <- function(x) {
@@ -378,22 +378,22 @@ golden_stage_runs <- function() {
   }
   list(
     `stage-screen` = function() golden_run(function(cl) {
-      readgpt::gr_screen(ex(), golden_protocol(), client = cl)
+      harnessr::gr_screen(ex(), golden_protocol(), client = cl)
     }, function(s) tab(s)),
     `stage-extract` = function() golden_run(function(cl) {
       up <- quietly(upstream())
-      readgpt::gr_extract(up$s, up$p, client = cl)
+      harnessr::gr_extract(up$s, up$p, client = cl)
     }, function(x) tab(x)),
     `stage-claims` = function() golden_run(function(cl) {
       up <- quietly(upstream())
-      readgpt::gr_claims(up$x, question = up$p$question, client = cl)
+      harnessr::gr_claims(up$x, question = up$p$question, client = cl)
     }, function(cm) cm$claims),
     # gr_outline() records into the trace of the claims it is given, so that
     # trace, holding the claims stage's step and then the outline's, is the
     # one kept.
     `stage-outline` = function() golden_run(function(cl) {
       up <- quietly(upstream())
-      o <- readgpt::gr_outline(up$cm, client = cl)
+      o <- harnessr::gr_outline(up$cm, client = cl)
       list(outline = o, trace = up$cm$trace)
     }, function(x) {
       o <- x$outline
@@ -402,7 +402,7 @@ golden_stage_runs <- function() {
     }),
     `stage-synthesise` = function() golden_run(function(cl) {
       up <- quietly(upstream())
-      readgpt::gr_synthesise(up$x, protocol = up$p, outline = up$o, claims = up$cm, client = cl)
+      harnessr::gr_synthesise(up$x, protocol = up$p, outline = up$o, claims = up$cm, client = cl)
     }, function(r) list(text = r$text))
   )
 }
@@ -429,8 +429,8 @@ golden_formals <- function(f) {
 }
 
 golden_api <- function() {
-  ns <- asNamespace("readgpt")
-  exports <- sort(getNamespaceExports("readgpt"), method = "radix")
+  ns <- asNamespace("harnessr")
+  exports <- sort(getNamespaceExports("harnessr"), method = "radix")
   fun <- lapply(stats::setNames(exports, exports), function(nm) {
     obj <- get(nm, envir = ns)
     if (is.function(obj)) {

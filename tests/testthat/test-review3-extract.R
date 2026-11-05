@@ -86,7 +86,7 @@ test_that("a number the quote does not state is still unverified, in any form", 
   }
   # A fragment of English that states no number is not a passage in a foreign
   # language: no fallback to the span check.
-  bq <- readgpt:::quote_backs_value
+  bq <- harnessr:::quote_backs_value
   n <- gr_field("n", type = "integer")
   expect_false(bq(9999L, "Patients enrolled", "Patients enrolled were followed up.", n))
   expect_false(bq(9999L, "the", "We enrolled 120 people. The trial was funded.", n))
@@ -94,7 +94,7 @@ test_that("a number the quote does not state is still unverified, in any form", 
 })
 
 test_that("quote_numbers() reads each form once and invents none", {
-  qn <- function(s) sort(readgpt:::quote_numbers(readgpt:::normalise_for_match(s)))
+  qn <- function(s) sort(harnessr:::quote_numbers(harnessr:::normalise_for_match(s)))
   expect_identical(qn("one hundred and twenty"), 120)
   expect_identical(qn("two thousand three hundred and five"), 2305)
   expect_identical(qn("twenty-first"), 21)
@@ -133,7 +133,7 @@ test_that("a quotation of several passages carries its value into gr_extract()",
     expect_false(x$answers[[1]]$partial, info = q)
   }
   # Every passage must still be in the chunk, and the value in one of them.
-  bq <- readgpt:::quote_backs_value
+  bq <- harnessr:::quote_backs_value
   src <- "We enrolled 120 adults from three clinics. All 120 completed it."
   expect_true(bq(120L, "We enrolled 120 adults ... All 120 completed it.", src,
                  gr_field("n", type = "integer")))
@@ -293,7 +293,7 @@ test_that("extraction_table() names an auxiliary failure only when it did not re
                      status = "failed", duplicate_of = NA_character_,
                      error = "1 request(s) failed, so the document was not read in full (first error: HTTP 503)",
                      stringsAsFactors = FALSE)
-  tab <- readgpt:::extraction_table(c("a", "b"), list(a = mk(TRUE), b = mk(FALSE)), f, summ)
+  tab <- harnessr:::extraction_table(c("a", "b"), list(a = mk(TRUE), b = mk(FALSE)), f, summ)
   # Either way every excerpt was read, so both rows are reads.
   expect_identical(tab$status, c("ok", "ok"))
   expect_identical(tab$n_filled, c(1L, 1L))

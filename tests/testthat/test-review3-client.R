@@ -86,7 +86,7 @@ test_that("a schema asked for in the prompt keeps its numbers too", {
   })
   odd <- list(type = "object", properties = list(
     a = list(anyOf = list(list(type = "number", minimum = 0.00003)))))
-  quiet(readgpt:::gr_call_json(gr_ellmer_client(chat), "Question?", schema = odd))
+  quiet(harnessr:::gr_call_json(gr_ellmer_client(chat), "Question?", schema = odd))
   expect_match(seen$user, "3e-05", fixed = TRUE)
 })
 
@@ -110,20 +110,20 @@ test_that("an ellmer reconcile saying every claim is distinct keeps every claim"
   cl <- claude_client()
   # The reply text is the provider's JSON: an array of one-element arrays. It
   # used to arrive flattened to [1,2,3], which reads as a single group.
-  res <- quiet(readgpt:::gr_call_json(cl, "Group these.", schema = readgpt:::.gr_reconcile_schema,
+  res <- quiet(harnessr:::gr_call_json(cl, "Group these.", schema = harnessr:::.gr_reconcile_schema,
                                       schema_name = "claim_groups", max_output = 800L))
   expect_identical(res$result$text, '{"groups":[[1],[2],[3]]}')
 
   spec <- gr_read_spec("stuff", model = "claude-test", max_answer_tokens = 800L)
   claims <- reconcile_claims()
-  out <- quiet(readgpt:::claims_reconcile(claims, "Does it work?", cl, spec, gr_trace()))
+  out <- quiet(harnessr:::claims_reconcile(claims, "Does it work?", cl, spec, gr_trace()))
   expect_identical(nrow(out), 3L)
   expect_setequal(out$kind, c("finding", "method", "gap"))
   expect_identical(lengths(out$.support), c(1L, 1L, 1L))
 
   # A real merge still merges.
   groups <- '{"groups":[[1,3],[2]]}'
-  out <- quiet(readgpt:::claims_reconcile(claims, "Does it work?", cl, spec, gr_trace()))
+  out <- quiet(harnessr:::claims_reconcile(claims, "Does it work?", cl, spec, gr_trace()))
   expect_identical(nrow(out), 2L)
   expect_setequal(unlist(out$.support), 1:3)
 })
@@ -151,13 +151,13 @@ test_that("an ellmer structured reply cut off at the cap is reported as cut off"
     list(clo, responses_cut))
   for (i in seq_along(cases)) {
     body <- cases[[i]][[2]]
-    r <- quiet(readgpt:::gr_call_json(cases[[i]][[1]], "Draw claims.",
-                                      schema = readgpt:::.gr_claims_schema,
+    r <- quiet(harnessr:::gr_call_json(cases[[i]][[1]], "Draw claims.",
+                                      schema = harnessr:::.gr_claims_schema,
                                       schema_name = "claims", max_output = 1600L))
     expect_false(r$ok, info = paste("case", i))
     expect_false(r$result$ok, info = paste("case", i))                  # nothing of the reply survives
     expect_identical(r$result$finish_reason, "length", info = paste("case", i))   # was NA
-    expect_true(readgpt:::reply_cut_off(r$result), info = paste("case", i))
+    expect_true(harnessr:::reply_cut_off(r$result), info = paste("case", i))
     expect_match(r$result$error, "truncated", info = paste("case", i))
     # Billed for the cap it hit, not recorded as free.
     expect_identical(as.integer(r$result$usage$output), 1600L, info = paste("case", i))
@@ -167,15 +167,15 @@ test_that("an ellmer structured reply cut off at the cap is reported as cut off"
   body <- httr2::response(status_code = 400L, headers = list(`Content-Type` = "application/json"),
                           body = charToRaw(paste0('{"type":"error","error":',
                                                   '{"type":"invalid_request_error","message":"bad"}}')))
-  r <- quiet(readgpt:::gr_call_json(cl, "Draw claims.", schema = readgpt:::.gr_claims_schema,
+  r <- quiet(harnessr:::gr_call_json(cl, "Draw claims.", schema = harnessr:::.gr_claims_schema,
                                     max_output = 1600L))
   expect_false(r$result$ok)
   expect_true(is.na(r$result$finish_reason))
-  expect_false(readgpt:::reply_cut_off(r$result))
+  expect_false(harnessr:::reply_cut_off(r$result))
 })
 
 test_that("the stop reason is read from ellmer's truncation errors, styled or not", {
-  reason <- function(msg) readgpt:::ellmer_error_finish_reason(list(), simpleError(msg))
+  reason <- function(msg) harnessr:::ellmer_error_finish_reason(list(), simpleError(msg))
   expect_identical(reason("Response was truncated because it hit the `max_tokens` limit."),
                    "max_tokens")
   expect_identical(reason(paste0("\033[1m\033[22mResponse was truncated because it hit the ",
@@ -228,12 +228,12 @@ test_that("a nullable enum sent to an OpenAI-family chat can still be null", {
       '"usage":{"input_tokens":10,"output_tokens":5,"total_tokens":15}}'),
       jsonlite::toJSON(reply, auto_unbox = TRUE)))
   })
-  schema <- readgpt:::fields_schema(gr_fields(
+  schema <- harnessr:::fields_schema(gr_fields(
     design = gr_field("design", "enum", values = c("RCT", "quasi"))))
   prop_json <- function(p) as.character(jsonlite::toJSON(p, auto_unbox = TRUE, null = "null"))
 
   clo <- gr_ellmer_client(ellmer::chat_openai(model = "gpt-test", credentials = function() "k"))
-  r <- quiet(readgpt:::gr_call_json(clo, "x", schema = schema, max_output = 200L))
+  r <- quiet(harnessr:::gr_call_json(clo, "x", schema = schema, max_output = 200L))
   s <- seen$bodies[[1]]$text$format$schema
   # Strict mode lists every field as required, so null must be among the
   # values or the model has to pick one. ellmer sent ["RCT","quasi"].
@@ -245,7 +245,7 @@ test_that("a nullable enum sent to an OpenAI-family chat can still be null", {
 
   # Anthropic takes an optional field as optional: unchanged.
   seen$bodies <- list()
-  quiet(readgpt:::gr_call_json(claude_client(), "x", schema = schema, max_output = 200L))
+  quiet(harnessr:::gr_call_json(claude_client(), "x", schema = schema, max_output = 200L))
   a <- seen$bodies[[1]]$tools[[1]]$input_schema$properties$data
   expect_false("design" %in% unlist(a$required))
   expect_match(prop_json(a$properties$design), '"enum":["RCT","quasi"]', fixed = TRUE)
@@ -254,27 +254,27 @@ test_that("a nullable enum sent to an OpenAI-family chat can still be null", {
 test_that("only providers rendered in OpenAI's strict form get null among enum values", {
   skip_if_not_installed("ellmer")
   chat_with <- function(cls) list(get_provider = function() structure(list(), class = cls))
-  expect_true(readgpt:::ellmer_strict_nullable(chat_with(
+  expect_true(harnessr:::ellmer_strict_nullable(chat_with(
     c("ellmer::ProviderOpenAI", "ellmer::ProviderOpenAICompatible", "ellmer::Provider"))))
-  expect_true(readgpt:::ellmer_strict_nullable(chat_with(
+  expect_true(harnessr:::ellmer_strict_nullable(chat_with(
     c("ellmer::ProviderAzureOpenAI", "ellmer::ProviderOpenAICompatible", "ellmer::Provider"))))
   # These descend from the OpenAI-compatible provider but list only the
   # required fields, so an optional enum is already free to be absent.
-  expect_false(readgpt:::ellmer_strict_nullable(chat_with(
+  expect_false(harnessr:::ellmer_strict_nullable(chat_with(
     c("ellmer::ProviderOllama", "ellmer::ProviderOpenAICompatible", "ellmer::Provider"))))
-  expect_false(readgpt:::ellmer_strict_nullable(chat_with(
+  expect_false(harnessr:::ellmer_strict_nullable(chat_with(
     c("ellmer::ProviderAnthropic", "ellmer::Provider"))))
-  expect_false(readgpt:::ellmer_strict_nullable(list()))
+  expect_false(harnessr:::ellmer_strict_nullable(list()))
 
-  schema <- readgpt:::fields_schema(gr_fields(
+  schema <- harnessr:::fields_schema(gr_fields(
     arm = gr_field("arm", "enum", values = c("a", "b"))))
   # Unchanged without the flag, so the other providers see what they saw.
-  expect_identical(readgpt:::ellmer_type(schema)@properties$arm@values, c("a", "b"))
-  strict <- readgpt:::ellmer_type(schema, null_in_enum = TRUE)@properties$arm
+  expect_identical(harnessr:::ellmer_type(schema)@properties$arm@values, c("a", "b"))
+  strict <- harnessr:::ellmer_type(schema, null_in_enum = TRUE)@properties$arm
   expect_true(strict@required)                           # not widened a second time
   expect_identical(strict@json$enum, list("a", "b", NULL))
   # A required enum is left as it was.
-  req <- readgpt:::ellmer_type(readgpt:::.gr_screen_schema, null_in_enum = TRUE)
+  req <- harnessr:::ellmer_type(harnessr:::.gr_screen_schema, null_in_enum = TRUE)
   expect_identical(req@properties$decision@values, c("include", "exclude", "unclear"))
 })
 
@@ -289,7 +289,7 @@ test_that("text-embedding-ada-002 is priced, so its embedding steps have a cost"
   expect_equal(gr_estimate_cost("text-embedding-ada-002", 1e6), 0.10)
 
   tr <- gr_trace()
-  readgpt:::trace_record(tr, "embed.request", list(list(role = "user", content = "x")),
+  harnessr:::trace_record(tr, "embed.request", list(list(role = "user", content = "x")),
                          gr_result(TRUE, text = "", model = "text-embedding-ada-002",
                                    usage = list(input = 5000L, output = 0L)))
   cost <- gr_trace_cost(tr)

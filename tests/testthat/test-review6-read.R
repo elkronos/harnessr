@@ -62,7 +62,7 @@ test_that("iterative ranks a query whose embedding fell back in the same space a
   expect_setequal(a$chunks_used, c(3L, 6L))
   expect_true(a$partial)
   expect_true(a$notes$embedding_fallback)
-  expect_true(any(grepl("embeddings fell back", readgpt:::partial_reasons(a))))
+  expect_true(any(grepl("embeddings fell back", harnessr:::partial_reasons(a))))
 })
 
 # ---------------------------------------------------------------------------
@@ -87,7 +87,7 @@ test_that("an ensemble is partial when a member it adjudicated is", {
   expect_true(a$partial)
   expect_equal(a$notes$failed_calls, 7)
   expect_identical(a$notes$partial_members, "map_reduce")
-  expect_true(any(grepl("7 request\\(s\\) failed", readgpt:::partial_reasons(a))))
+  expect_true(any(grepl("7 request\\(s\\) failed", harnessr:::partial_reasons(a))))
 
   # Members that both read everything leave it whole.
   whole <- quiet(gr_read(ch, "What was enrolment?",
@@ -112,7 +112,7 @@ test_that("hierarchical counts a failed summary at every level and keeps the gro
                 collapse = " ")
   n2 <- 0L
   cl <- gr_mock_client(function(m, p) {
-    if (r6_is(m, readgpt:::.gr_prompts$summarise_system)) {
+    if (r6_is(m, harnessr:::.gr_prompts$summarise_system)) {
       if (grepl("^<text>\nSite", m[[3]]$content)) return(long)
       n2 <<- n2 + 1L
       if (n2 == 2L) stop("HTTP 500 transient")
@@ -185,13 +185,13 @@ test_that("MMR picks the same chunks whatever the length of the vectors", {
   emb <- rbind(c(1, 0.02, 0, 0), c(1, 0.03, 0, 0), c(0.6, 0.8, 0, 0), c(0, 0, 1, 0.05))
   emb <- emb / sqrt(rowSums(emb^2))
   rel <- c(0.95, 0.94, 0.80, 0.10)
-  unit <- readgpt:::mmr_select(rel, emb, 2L, 0.7)
+  unit <- harnessr:::mmr_select(rel, emb, 2L, 0.7)
   expect_identical(unit, c(1L, 3L))
   # Before: c(1L, 4L), the cafeteria chunk.
-  expect_identical(readgpt:::mmr_select(rel, emb * 30, 2L, 0.7), unit)
+  expect_identical(harnessr:::mmr_select(rel, emb * 30, 2L, 0.7), unit)
   # A zero row stays a legitimate, unpromising choice, and nothing hangs.
   z <- emb; z[4, ] <- 0
-  expect_length(readgpt:::mmr_select(rel, z * 30, 4L, 0.5), 4L)
+  expect_length(harnessr:::mmr_select(rel, z * 30, 4L, 0.5), 4L)
 
   txt <- c("The office cafeteria menu changed in spring.",
            "Revenue in 2023 was 45.2 million dollars, an increase over 2022.",
@@ -270,7 +270,7 @@ test_that("a recipe's segmentation in a comparison is counted for that recipe al
                     read = list(reader = "stuff"))
   gr_options(max_calls = 9)
   alone <- quiet(gr_compare(txt, "How many enrolled?", list(prop), client = mock_echo("An answer.")))
-  readgpt:::gr_flush_caches()
+  harnessr:::gr_flush_caches()
   both <- quiet(gr_compare(txt, "How many enrolled?", list(thor, prop),
                            client = mock_echo("An answer.")))
   expect_false(any(both$summary$partial))
@@ -312,15 +312,15 @@ test_that("a comparison does not share a chunking that a limit cut short", {
   # The second recipe is charged the requests the shared chunking took, as it
   # would be alone: here that leaves too few for map_reduce, as it does alone.
   p3 <- gr_recipe("p3", segment = seg, read = list(reader = "map_reduce"))
-  readgpt:::gr_flush_caches()
+  harnessr:::gr_flush_caches()
   alone <- quiet(gr_compare(txt, "How many enrolled?", list(p3), client = mock_echo("An answer.")))
-  readgpt:::gr_flush_caches()
+  harnessr:::gr_flush_caches()
   cmp <- quiet(gr_compare(txt, "How many enrolled?", list(p1, p3), client = mock_echo("An answer.")))
   expect_false(is.na(alone$summary$error))
   expect_identical(cmp$summary$error[2], alone$summary$error)
 
   # With room for only part of it, each recipe cuts the document itself.
-  readgpt:::gr_flush_caches()
+  harnessr:::gr_flush_caches()
   gr_options(max_calls = 3)
   cmp <- quiet(gr_compare(txt, "How many enrolled?", list(p1, p2), client = mock_echo("An answer.")))
   df <- as.data.frame(cmp$trace)
@@ -338,7 +338,7 @@ test_that("the v1 shims read their chunks as given, and never as a source", {
   # gr_ingest() takes a string for a path, a web address or text. Before, a
   # chunk that was a web address was fetched.
   testthat::local_mocked_bindings(gr_ingest = function(...) stop("gr_ingest() was called"),
-                                  .package = "readgpt")
+                                  .package = "harnessr")
   for (x in c("Revenue was 5M.", "The final figures are in appendix.docx",
               "http://127.0.0.1:9/compat-probe")) {
     # Before: "Only 15 characters survived ingestion", "File not found", and a
@@ -381,7 +381,7 @@ test_that("skim reports a failed consolidation and checks citations against what
     if (grepl("extract evidence", sys, fixed = TRUE)) {
       return(sub("^<excerpt>\n\\[chunk [0-9]+\\]\n", "", sub("\n</excerpt>$", "", m[[3]]$content)))
     }
-    if (r6_is(m, readgpt:::.gr_prompts$summarise_system)) return(consolidate(m))
+    if (r6_is(m, harnessr:::.gr_prompts$summarise_system)) return(consolidate(m))
     answer
   })
   cl <- client(function(m) stop("HTTP 503"))
@@ -393,7 +393,7 @@ test_that("skim reports a failed consolidation and checks citations against what
   expect_false(a$notes$merge_ok)
   expect_gt(a$notes$failed_calls, 0L)
   body <- r6_last(cl)$messages[[2]]$content
-  shown <- readgpt:::cited_chunks(body)
+  shown <- harnessr:::cited_chunks(body)
   expect_false(any(c(3L, 11L) %in% shown))
   expect_setequal(a$notes$cited_unknown, c(3L, 11L))
 
@@ -443,7 +443,7 @@ test_that("rerank says which chosen chunks did not fit, and does not answer from
   # Before: partial = FALSE with nothing about the three that were dropped.
   expect_true(a$partial)
   expect_equal(a$notes$dropped_chunks, 3L)
-  expect_true(any(grepl("did not fit", readgpt:::partial_reasons(a))))
+  expect_true(any(grepl("did not fit", harnessr:::partial_reasons(a))))
 
   ch <- r6_chunks(vapply(1:6, para, character(1), n = 650))
   cl <- mock_echo("Revenue was 42 million dollars.")
@@ -476,7 +476,7 @@ test_that("preview fits its whole answer prompt to the budget", {
   spec <- list(reader = "preview", model = "r6-tiny-8k", max_answer_tokens = 1500,
                max_chunk_tokens = 1500)
   bud <- gr_budget("r6-tiny-8k", reserve_output = 1500,
-                   overhead = readgpt:::prompt_overhead(q, readgpt:::answer_system(FALSE)))
+                   overhead = harnessr:::prompt_overhead(q, harnessr:::answer_system(FALSE)))
   run <- function(skim_words) {
     cl <- gr_mock_client(function(m, p) {
       sys <- m[[1]]$content
@@ -514,9 +514,9 @@ test_that("preview fits its whole answer prompt to the budget", {
   expect_equal(big$last$params$max_output, 1500)
   expect_gt(big$a$notes$dropped_chunks, 0L)
   expect_true(big$a$partial)
-  expect_true(any(grepl("did not fit", readgpt:::partial_reasons(big$a))))
+  expect_true(any(grepl("did not fit", harnessr:::partial_reasons(big$a))))
   expect_false(any(big$a$evidence$kind == "extracted" &
-                   !big$a$evidence$chunk_id %in% readgpt:::cited_chunks(big$body)))
+                   !big$a$evidence$chunk_id %in% harnessr:::cited_chunks(big$body)))
 })
 
 # ---------------------------------------------------------------------------
@@ -533,7 +533,7 @@ test_that("preview catches a citation of a section no request was shown", {
   a <- quiet(gr_read(ch, q, cl, list(reader = "preview", cite = TRUE)))
   # Before: cited_unknown NULL.
   expect_equal(a$notes$cited_unknown, 8L)
-  expect_true(any(grepl("never sent", readgpt:::partial_reasons(a))))
+  expect_true(any(grepl("never sent", harnessr:::partial_reasons(a))))
 
   # A section a skim was sent for is not an invention to cite.
   cl <- mock_planner(c("read", "skim", "skip", "skip"),
@@ -557,7 +557,7 @@ test_that("map_reduce counts a merge request that failed below the last level", 
                 collapse = " ")
   n_merge <- 0L
   cl <- gr_mock_client(function(m, p) {
-    if (r6_is(m, readgpt:::.gr_prompts$merge_system)) {
+    if (r6_is(m, harnessr:::.gr_prompts$merge_system)) {
       n_merge <<- n_merge + 1L
       if (n_merge == 1L) stop("HTTP 500")
       return(paste("Merged:", nchar(m[[2]]$content), "chars"))
@@ -576,7 +576,7 @@ test_that("map_reduce counts a merge request that failed below the last level", 
 
   # Merges that all work leave it whole.
   cl <- gr_mock_client(function(m, p) {
-    if (r6_is(m, readgpt:::.gr_prompts$merge_system)) return("Merged.")
+    if (r6_is(m, harnessr:::.gr_prompts$merge_system)) return("Merged.")
     long
   })
   a <- quiet(gr_read(ch, "What was enrolment?", cl,

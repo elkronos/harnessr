@@ -51,7 +51,7 @@
 #' # Priced by the model each step records: a mock's own model, at no cost.
 #' # A cached re-run costs nothing for a different reason: paid_calls falls
 #' # to zero while calls does not.
-#' cache <- gr_cache(file.path(tempdir(), "readgpt-cost-example"))
+#' cache <- gr_cache(file.path(tempdir(), "harnessr-cost-example"))
 #' again <- answer_document(readgpt_example(), "What was revenue?", "fast",
 #'                          client = gr_cache_client(cl, cache))
 #' twice <- answer_document(readgpt_example(), "What was revenue?", "fast",
@@ -287,7 +287,7 @@ format_trace_cost <- function(trace) {
 #' `chunks`, `chunks_used`, `calls`, `cached`, `tokens_in`, `tokens_out`,
 #' `cost_usd`, `seconds`, `status`, `duplicate_of`, `error`, `warnings`.
 #'
-#' `warnings` holds what readgpt warned about while reading that document,
+#' `warnings` holds what harnessr warned about while reading that document,
 #' joined with `" | "`, or `NA` when it raised nothing. The warnings still print
 #' as they happen; this column is what lets you tie them to a document afterwards.
 #'

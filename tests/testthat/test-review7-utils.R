@@ -23,21 +23,21 @@ test_that("lower_text() keeps unlabelled UTF-8 intact under a C locale", {
   skip_if(!nzchar(ok), "cannot switch to the C locale here")
 
   # Before: ee b1 6c ... e3 9c ..., which is not UTF-8.
-  short <- readgpt:::lower_text(unmarked(s))
+  short <- harnessr:::lower_text(unmarked(s))
   expect_true(validUTF8(short))
   expect_identical(charToRaw(short), charToRaw(want))
   # The long-string path (one code point at a time) too.
-  long <- readgpt:::lower_text(unmarked(paste(rep(s, 40), collapse = " ")))
+  long <- harnessr:::lower_text(unmarked(paste(rep(s, 40), collapse = " ")))
   expect_true(validUTF8(long))
   expect_identical(charToRaw(long), charToRaw(paste(rep(want, 40), collapse = " ")))
   # Names, NA and a labelled string are as they were.
-  v <- readgpt:::lower_text(c(a = unmarked(s), b = NA, c = s))
+  v <- harnessr:::lower_text(c(a = unmarked(s), b = NA, c = s))
   expect_identical(names(v), c("a", "b", "c"))
   expect_true(is.na(v[["b"]]))
   expect_identical(charToRaw(v[["a"]]), charToRaw(want))
   expect_identical(charToRaw(v[["c"]]), charToRaw(want))
   # Bytes that are not UTF-8 are not made any worse.
-  expect_identical(charToRaw(readgpt:::lower_text(r7_cp1252())), charToRaw(r7_cp1252()))
+  expect_identical(charToRaw(harnessr:::lower_text(r7_cp1252())), charToRaw(r7_cp1252()))
 })
 
 # ---------------------------------------------------------------------------
@@ -53,7 +53,7 @@ test_that("counting and truncating bytes in another encoding falls back, not ove
   n <- gr_count_tokens(b)
   expect_true(is.integer(n) && n > 0L)
   # A byte for a character: never fewer than the transcoded text counts.
-  expect_gte(n, gr_count_tokens(readgpt:::to_utf8(b)))
+  expect_gte(n, gr_count_tokens(harnessr:::to_utf8(b)))
   expect_identical(gr_count_tokens(c(b, "", NA, "   ", b)), c(n, 0L, 0L, 0L, n))
   # A line of no-break spaces still costs tokens, as it did.
   expect_gt(gr_count_tokens("\u00a0\u00a0\u00a0"), 0L)
@@ -84,7 +84,7 @@ test_that("the tiktoken counter hands Python text, not bytes it cannot decode", 
   })
   local_mocked_bindings(tiktoken_available = function() TRUE,
                         tiktoken_encodings = function(model = NULL) list(fake))
-  expect_identical(readgpt:::tok_tiktoken(c(r7_cp1252(), "plain"), NULL), c(6L, 5L))
+  expect_identical(harnessr:::tok_tiktoken(c(r7_cp1252(), "plain"), NULL), c(6L, 5L))
   expect_identical(seen[1], "caf\u00e9 q")
 })
 
@@ -110,9 +110,9 @@ test_that("gr_flush_caches() is documented and exported, apart from gr_cache_cle
 
 test_that("gr_flush_caches() clears each memory cache and its bookkeeping", {
   local_clean_cache()
-  st <- readgpt:::gr_state
-  readgpt:::embed_cache_put(c("e1", "e2"), list(c(1, 0), c(0, 1)))
-  readgpt:::doc_cache_put("d1", list(text = "x"))
+  st <- harnessr:::gr_state
+  harnessr:::embed_cache_put(c("e1", "e2"), list(c(1, 0), c(0, 1)))
+  harnessr:::doc_cache_put("d1", list(text = "x"))
   expect_identical(gr_flush_caches("embeddings"), "embeddings")
   expect_length(ls(st$embed_cache, all.names = TRUE), 0L)
   expect_identical(ls(st$doc_cache), "d1")
@@ -128,16 +128,16 @@ test_that("gr_flush_caches() clears each memory cache and its bookkeeping", {
 
 test_that("the embedding cache drops the vectors used least recently past its budget", {
   local_clean_cache()
-  st <- readgpt:::gr_state
+  st <- harnessr:::gr_state
   size <- as.numeric(utils::object.size(c(1, 2, 3)))
   put <- function(k, keep = k) {
-    readgpt:::embed_cache_put(k, rep(list(c(1, 2, 3)), length(k)), keep = keep,
+    harnessr:::embed_cache_put(k, rep(list(c(1, 2, 3)), length(k)), keep = keep,
                               budget = 2.5 * size)
   }
   for (k in c("k1", "k2", "k3", "k4")) put(k)
   expect_identical(ls(st$embed_cache), c("k3", "k4"))
   # A vector read counts as used.
-  expect_false(is.null(readgpt:::embed_cache_get("k3")[[1]]))
+  expect_false(is.null(harnessr:::embed_cache_get("k3")[[1]]))
   put("k5")
   expect_identical(ls(st$embed_cache), c("k3", "k5"))
   # One call larger than the budget keeps all it stores and all it found.
@@ -191,7 +191,7 @@ test_that("gr_embed() serves vectors from the bounded cache and asks again for d
   expect_identical(seen$texts, c("a", "bb", "ccc"))
   expect_equal(again, first[c(3, 1), ], ignore_attr = TRUE)
   emb("dddd")
-  expect_length(ls(readgpt:::gr_state$embed_cache), 2L)
+  expect_length(ls(harnessr:::gr_state$embed_cache), 2L)
   # "a" was used last before "dddd", so it stayed; "bb" and "ccc" went.
   emb("a")
   expect_identical(seen$texts, c("a", "bb", "ccc", "dddd"))
@@ -208,10 +208,10 @@ test_that("gr_embed() serves vectors from the bounded cache and asks again for d
 test_that("overlap and hard splits of Chinese and Russian text cut at sentences", {
   zh <- paste(rep(c("\u6cbb\u7597\u7ec4\u7684\u6b7b\u4ea1\u7387\u4e0b\u964d\u4e86\u5341\u4e8c\u4e2a\u767e\u5206\u70b9\u3002",
                     "\u5206\u6790\u662f\u9884\u5148\u89c4\u5b9a\u7684\uff01"), 6), collapse = "")
-  tail <- readgpt:::tail_by_tokens(zh, 30)
+  tail <- harnessr:::tail_by_tokens(zh, 30)
   expect_true(nzchar(tail))
   expect_true(startsWith(tail, "\u6cbb") || startsWith(tail, "\u5206"))
-  parts <- readgpt:::hard_split(zh, 40)
+  parts <- harnessr:::hard_split(zh, 40)
   expect_gt(length(parts), 1L)
   expect_true(all(grepl("[\u3002\uff01]$", parts)))
 
@@ -219,7 +219,7 @@ test_that("overlap and hard splits of Chinese and Russian text cut at sentences"
                          "\u0441\u043d\u0438\u0437\u0438\u043b\u0430\u0441\u044c. ",
                          "\u0410\u043d\u0430\u043b\u0438\u0437 \u0431\u044b\u043b ",
                          "\u0437\u0430\u0440\u0430\u043d\u0435\u0435."), 8), collapse = " ")
-  parts <- readgpt:::hard_split(ru, 60)
+  parts <- harnessr:::hard_split(ru, 60)
   expect_gt(length(parts), 1L)
   expect_true(all(grepl("\\.$", parts)))
 })

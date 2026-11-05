@@ -255,7 +255,7 @@ test_that("the raw parsed API response is dropped before an entry is written", {
   bulky <- list(id = "resp_1", output = list(list(content = list(list(
     type = "output_text", text = "SENSITIVE-RAW-PAYLOAD")))))
   cl <- gr_cache_client(
-    gr_mock_client(function(m, p) readgpt:::gr_result(TRUE, text = "clean answer", raw = bulky)),
+    gr_mock_client(function(m, p) harnessr:::gr_result(TRUE, text = "clean answer", raw = bulky)),
     gr_cache(dir))
 
   first <- gr_call(cl, "q")
@@ -316,7 +316,7 @@ test_that("the exported gr_cache_clear is the response-cache one, not the intern
   expect_true("cache" %in% names(formals(gr_cache_clear)))
   expect_false("what" %in% names(formals(gr_cache_clear)))
   expect_error(gr_cache_clear("documents"), "gr_cache")
-  expect_identical(readgpt:::gr_flush_caches("documents"), "documents")
+  expect_identical(harnessr:::gr_flush_caches("documents"), "documents")
 })
 
 # ---------------------------------------------------------------------------

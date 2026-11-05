@@ -138,7 +138,7 @@ test_that("letters outside ASCII are part of a title, and short titles merge not
   # Every one of these is a different study; each merge removed one silently.
   expect_true(all(is.na(r$records$duplicate_of)))
   expect_equal(r$counts$n[r$counts$stage == "duplicates removed"], 0L)
-  expect_false(identical(readgpt:::title_key("PPAR\u03b1"), readgpt:::title_key("PPAR\u03b3")))
+  expect_false(identical(harnessr:::title_key("PPAR\u03b1"), harnessr:::title_key("PPAR\u03b3")))
 })
 
 test_that("the title fallback still merges one work written two ways", {
@@ -150,8 +150,8 @@ test_that("the title fallback still merges one work written two ways", {
   r <- gr_records(ris)
   expect_identical(r$records$duplicate_of, c(NA, 1L, NA))
   # The fold is a table, so it does not depend on the platform's iconv.
-  expect_identical(readgpt:::title_key("Pr\u00e1ctica \u00c9VORA \u00df"), "practicaevorass")
-  expect_identical(readgpt:::title_key("Pra\u0301ctica"), "practica")
+  expect_identical(harnessr:::title_key("Pr\u00e1ctica \u00c9VORA \u00df"), "practicaevorass")
+  expect_identical(harnessr:::title_key("Pra\u0301ctica"), "practica")
 })
 
 # ---------------------------------------------------------------------------
@@ -215,7 +215,7 @@ test_that("BibTeX fields are read by brace depth, and the first occurrence wins"
   # year is not taken from inside the abstract. The accent itself is decoded
   # (review 3, records-6): the backslash form was nobody's name in a citation.
   expect_identical(r$authors, "M\u00fcller, J\u00f6rg; Smith, Anna")
-  expect_identical(readgpt:::record_first_author(r$authors)$surname, "M\u00fcller")
+  expect_identical(harnessr:::record_first_author(r$authors)$surname, "M\u00fcller")
   expect_identical(r$title, "Spacing DNA effects, revisited")
   expect_identical(r$year, "2019")
   expect_identical(r$venue, "Memory & Cognition")
@@ -312,7 +312,7 @@ test_that("exports and inventories are ordered the same way under every collatio
   withr::defer(Sys.setlocale("LC_COLLATE", old))
   for (loc in c("C", "en_US.UTF-8", "en_US", "English_United States.1252")) {
     if (!nzchar(suppressWarnings(Sys.setlocale("LC_COLLATE", loc)))) next
-    expect_identical(basename(readgpt:::export_paths(d)), bytes, info = loc)
+    expect_identical(basename(harnessr:::export_paths(d)), bytes, info = loc)
     expect_identical(gr_inventory(d)$files$file, bytes, info = loc)
     expect_identical(gr_records(d)$records$authors, c("Baker, A.", "adams, A.", "zhou, A."),
                      info = loc)

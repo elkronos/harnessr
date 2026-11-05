@@ -118,7 +118,7 @@ code against.
 \code{chunks}, \code{chunks_used}, \code{calls}, \code{cached}, \code{tokens_in}, \code{tokens_out},
 \code{cost_usd}, \code{seconds}, \code{status}, \code{duplicate_of}, \code{error}, \code{warnings}.
 
-\code{warnings} holds what readgpt warned about while reading that document,
+\code{warnings} holds what harnessr warned about while reading that document,
 joined with \code{" | "}, or \code{NA} when it raised nothing. The warnings still print
 as they happen; this column is what lets you tie them to a document afterwards.
 

@@ -456,14 +456,14 @@ test_that("a store written by an older version still resumes", {
   b <- tempfile(fileext = ".txt"); writeLines("A wholly different document here.", b)
   store <- withr::local_tempdir()
 
-  rec <- readgpt:::as_recipe("fast")
-  key <- readgpt:::corpus_key(a, "Q?", rec, cl)
-  legacy <- readgpt:::corpus_row("old.txt", status = "ok")
+  rec <- harnessr:::as_recipe("fast")
+  key <- harnessr:::corpus_key(a, "Q?", rec, cl)
+  legacy <- harnessr:::corpus_row("old.txt", status = "ok")
   legacy$answer <- "A restored answer."
   legacy[c("document_id", "duplicate_of")] <- NULL          # the 0.3.0 shape
   expect_false("document_id" %in% names(legacy))
   saveRDS(list(format = 1L, key = key, created = Sys.time(), row = legacy, answer = NULL),
-          readgpt:::corpus_store_path(store, key))
+          harnessr:::corpus_store_path(store, key))
 
   out <- quiet(gr_read_many(c(a, b), "Q?", "fast", client = cl, store = store))
   expect_identical(out$summary$status, c("restored", "ok"))

@@ -66,7 +66,7 @@ chunk ranking.}
 \item{\code{cache_dir} (NULL)}{Directory \code{\link[=gr_cache]{gr_cache()}} stores model responses in.
 \code{NULL} means a per-session directory under \code{tempdir()}, which costs
 nothing and disappears with the session. Set it to a real path, such as
-\code{tools::R_user_dir("readgpt", "cache")}, to keep responses across
+\code{tools::R_user_dir("harnessr", "cache")}, to keep responses across
 sessions and make a long run resumable.}
 \item{\code{parallel} (FALSE)}{Run per-chunk calls concurrently. Needs the
 future and future.apply packages; without them it warns and runs

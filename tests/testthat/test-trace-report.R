@@ -144,7 +144,7 @@ test_that("folding a trace in never takes a recipe from a list of recipes", {
   parent <- gr_trace()
   child <- gr_trace(meta = list(recipes = c("fast", "thorough")))
   gr_call(gr_mock_client(function(m, p) "x"), "hi", trace = child)
-  readgpt:::trace_absorb(parent, child)
+  harnessr:::trace_absorb(parent, child)
   expect_true(is.na(as.data.frame(parent)$recipe))
 })
 
@@ -201,7 +201,7 @@ test_that("a per-chunk reader keeps one line up to date with the count and the s
   expect_true(any(grepl(sprintf("chunk %d of %d, \\$0\\.0[0-9]+ spent", n, n), p)))
   # The last one clears the line.
   expect_match(p[length(p)], "^\r +\r$")
-  expect_false(isTRUE(readgpt:::gr_state$progress_on))
+  expect_false(isTRUE(harnessr:::gr_state$progress_on))
   # The clearing line is as wide as the widest line drawn.
   expect_equal(nchar(p[length(p)]), max(nchar(p[-length(p)])) + 1L)
 })
@@ -236,7 +236,7 @@ test_that("a model with no registered price makes the spend unknown, not zero", 
 test_that("a line is never wider than the console", {
   local_mocked_bindings(progress_wanted = function() TRUE)
   withr::local_options(width = 30)
-  got <- catch_msgs(readgpt:::gr_lapply(1:3, function(i, trace) i,
+  got <- catch_msgs(harnessr:::gr_lapply(1:3, function(i, trace) i,
                                         label = "a label much longer than thirty"))
   drawn <- got$progress[-length(got$progress)]
   expect_true(length(drawn) > 0L)
@@ -247,23 +247,23 @@ test_that("progress is for a person at the console: not scripts, not knitting, n
   old <- gr_options(verbose = TRUE)
   withr::defer(gr_options(old))
   local_mocked_bindings(session_interactive = function() TRUE)
-  expect_true(readgpt:::progress_wanted())
-  withr::with_options(list(knitr.in.progress = TRUE), expect_false(readgpt:::progress_wanted()))
+  expect_true(harnessr:::progress_wanted())
+  withr::with_options(list(knitr.in.progress = TRUE), expect_false(harnessr:::progress_wanted()))
   gr_options(verbose = FALSE)
-  expect_false(readgpt:::progress_wanted())
+  expect_false(harnessr:::progress_wanted())
   gr_options(verbose = TRUE)
   local_mocked_bindings(session_interactive = function() FALSE)
-  expect_false(readgpt:::progress_wanted())
+  expect_false(harnessr:::progress_wanted())
 })
 
 test_that("another message clears the line first, and an inner loop draws no second line", {
   local_mocked_bindings(progress_wanted = function() TRUE)
   seen <- character(0)
   out <- withCallingHandlers(
-    readgpt:::gr_lapply(1:4, function(i, trace) {
+    harnessr:::gr_lapply(1:4, function(i, trace) {
       if (i == 2L) message("a note")
       # A nested loop while the outer line is showing.
-      readgpt:::gr_lapply(1:3, function(j, trace) j, label = "inner")
+      harnessr:::gr_lapply(1:3, function(j, trace) j, label = "inner")
       i
     }, label = "item"),
     message = function(m) { seen <<- c(seen, conditionMessage(m)); invokeRestart("muffleMessage") })
@@ -273,14 +273,14 @@ test_that("another message clears the line first, and an inner loop draws no sec
   expect_match(seen[at - 1L], "^\r +\r$")
   expect_false(any(grepl("inner", seen)))
   expect_true(any(grepl("item 4 of 4", seen)))
-  expect_false(isTRUE(readgpt:::gr_state$progress_on))
+  expect_false(isTRUE(harnessr:::gr_state$progress_on))
 })
 
 test_that("an error part way clears the line before it is reported, and frees it", {
   local_mocked_bindings(progress_wanted = function() TRUE)
   log <- character(0)
   res <- tryCatch(withCallingHandlers(
-    readgpt:::gr_lapply(1:3, function(i, trace) {
+    harnessr:::gr_lapply(1:3, function(i, trace) {
       if (i == 2L) stop("boom")
       i
     }, label = "item"),
@@ -294,17 +294,17 @@ test_that("an error part way clears the line before it is reported, and frees it
   # Cleared before anything outside saw the error, as R prints it before
   # on.exit() runs.
   expect_equal(log, c("draw", "clear", "error"))
-  expect_false(isTRUE(readgpt:::gr_state$progress_on))
-  got <- catch_msgs(readgpt:::gr_lapply(1:3, function(i, trace) i, label = "item"))
+  expect_false(isTRUE(harnessr:::gr_state$progress_on))
+  got <- catch_msgs(harnessr:::gr_lapply(1:3, function(i, trace) i, label = "item"))
   expect_true(length(got$progress) > 0L)
 })
 
 test_that("a line that is never shown does not stop the next one", {
   local_mocked_bindings(progress_wanted = function() TRUE)
-  p <- readgpt:::progress_start(3L, "item")
+  p <- harnessr:::progress_start(3L, "item")
   expect_false(is.null(p))
-  expect_false(isTRUE(readgpt:::gr_state$progress_on))
-  got <- catch_msgs(readgpt:::gr_lapply(1:3, function(i, trace) i, label = "item"))
+  expect_false(isTRUE(harnessr:::gr_state$progress_on))
+  got <- catch_msgs(harnessr:::gr_lapply(1:3, function(i, trace) i, label = "item"))
   expect_match(got$progress[1], "^\r  item 0 of 3$")
 })
 
@@ -409,7 +409,7 @@ answer_with <- function(evidence, text = "Revenue was 45.2 million [chunk 7].", 
 }
 
 test_that("a whole-chunk passage shows the answer's numbers, and a cited chunk says so", {
-  ev <- readgpt:::evidence_table(c(7L, 2L), c("Revenue in 2024 was 45.2 million, up from 145.25.",
+  ev <- harnessr:::evidence_table(c(7L, 2L), c("Revenue in 2024 was 45.2 million, up from 145.25.",
                                               "Nothing about <money> here, 45.20 aside."),
                                  pages = c(4L, 1L), sections = c("Results", "Intro"),
                                  kind = "verbatim")
@@ -434,7 +434,7 @@ test_that("a whole-chunk passage shows the answer's numbers, and a cited chunk s
 })
 
 test_that("rows with no page come after the rest, in chunk order", {
-  ev <- readgpt:::evidence_table(c(9L, 3L, 5L), c("Ninth 11.5.", "Third 11.5.", "Fifth 11.5."),
+  ev <- harnessr:::evidence_table(c(9L, 3L, 5L), c("Ninth 11.5.", "Third 11.5.", "Fifth 11.5."),
                                  pages = c(NA, 2L, NA), kind = "verbatim")
   h <- read_page(answer = answer_with(ev, text = "It was 11.5."))
   pos <- vapply(c(">Page 2, chunk 3<", ">Chunk 5<", ">Chunk 9<"),
@@ -445,7 +445,7 @@ test_that("rows with no page come after the rest, in chunk order", {
 
 test_that("a quotation is marked where it stands, and one that is not there is flagged", {
   chunk <- "The trial enrolled 412 patients.\nMortality was 12.5%   in the \u201ctreated\u201d arm."
-  ev <- readgpt:::evidence_table(c(1L, 1L, 1L),
+  ev <- harnessr:::evidence_table(c(1L, 1L, 1L),
                                  c("mortality was 12.5% in the \"treated\" arm",
                                    "The trial enrolled 900 patients.",
                                    "412 patients"),
@@ -490,7 +490,7 @@ test_that("a reader's answer from each chunk is shown as its own words", {
 })
 
 test_that("not found is worded by how much was read, and a partial answer says why", {
-  whole <- answer_with(readgpt:::evidence_table(integer(0), character(0)),
+  whole <- answer_with(harnessr:::evidence_table(integer(0), character(0)),
                        text = "NOT_IN_DOCUMENT")
   h <- read_page(answer = whole)
   expect_match(h, "<strong>Not found in the document.</strong>", fixed = TRUE)
@@ -501,7 +501,7 @@ test_that("not found is worded by how much was read, and a partial answer says w
   expect_match(read_page(answer = some), "Not found in the part of the document that was read.",
                fixed = TRUE)
 
-  cut <- answer_with(readgpt:::evidence_table(1L, "Revenue 45.2.", kind = "verbatim"),
+  cut <- answer_with(harnessr:::evidence_table(1L, "Revenue 45.2.", kind = "verbatim"),
                      text = "Revenue was 45.2 million.", partial = TRUE,
                      notes = list(failed_calls = 2L))
   expect_match(read_page(answer = cut), "Partial: 2 request(s) failed.", fixed = TRUE)
@@ -510,7 +510,7 @@ test_that("not found is worded by how much was read, and a partial answer says w
 test_that("a long passage is cut to the text around what is marked", {
   filler <- paste(rep("Background text with no figures in it at all.", 400), collapse = " ")
   long <- paste(filler, "Revenue was 45.2 million.", filler)
-  ev <- readgpt:::evidence_table(1L, long, kind = "verbatim")
+  ev <- harnessr:::evidence_table(1L, long, kind = "verbatim")
   h <- read_page(answer = answer_with(ev, text = "Revenue was 45.2 million."))
   expect_match(h, "Revenue was <mark>45.2</mark> million.", fixed = TRUE)
   expect_equal(lengths(regmatches(h, gregexpr("[...]", h, fixed = TRUE))), 2L)
@@ -521,19 +521,19 @@ test_that("a long passage is cut to the text around what is marked", {
 })
 
 test_that("the numbers marked are the answer's, whole, and not its citations", {
-  expect_equal(readgpt:::answer_numbers("It was 45.2 million in 2024 [chunk 3], [chunks 12 and 14]; 7 sites."),
+  expect_equal(harnessr:::answer_numbers("It was 45.2 million in 2024 [chunk 3], [chunks 12 and 14]; 7 sites."),
                c("2024", "45.2"))
-  expect_equal(readgpt:::answer_numbers("NOT_IN_DOCUMENT"), character(0))
-  sp <- readgpt:::number_spans("45.2 145.2 45.25 45,2 (45.2) 45.2.", c("45.2"))
+  expect_equal(harnessr:::answer_numbers("NOT_IN_DOCUMENT"), character(0))
+  sp <- harnessr:::number_spans("45.2 145.2 45.25 45,2 (45.2) 45.2.", c("45.2"))
   starts <- vapply(sp, `[[`, 1L, 1L)
   expect_equal(starts, c(1L, 24L, 30L))
-  expect_equal(readgpt:::mark_html("a<b>c", list(c(2L, 4L), c(3L, 5L))),
+  expect_equal(harnessr:::mark_html("a<b>c", list(c(2L, 4L), c(3L, 5L))),
                "a<mark>&lt;b&gt;c</mark>")
 })
 
 test_that("the page marks exactly the quotations the check found", {
   one <- function(quote, chunk) {
-    ev <- readgpt:::evidence_table(1L, quote, source_text = chunk, kind = "extracted")
+    ev <- harnessr:::evidence_table(1L, quote, source_text = chunk, kind = "extracted")
     list(verified = ev$verified, page = read_page(answer = answer_with(ev, text = "x")))
   }
   # A micro sign is not a Greek mu to the check, whatever a regex engine's case
@@ -560,7 +560,7 @@ test_that("the page marks exactly the quotations the check found", {
 })
 
 test_that("the page follows the check recorded on the evidence", {
-  ev <- readgpt:::evidence_table(1L, "412 patients", source_text = "We enrolled 412 patients.",
+  ev <- harnessr:::evidence_table(1L, "412 patients", source_text = "We enrolled 412 patients.",
                                  kind = "extracted")
   expect_true(ev$verified)
   ev$verified <- FALSE
@@ -570,7 +570,7 @@ test_that("the page follows the check recorded on the evidence", {
 })
 
 test_that("a chunk that runs across a page break keeps its place", {
-  ev <- readgpt:::evidence_table(1:3, c("From page 1 onto page 2.", "On page 3.", "On page 4."),
+  ev <- harnessr:::evidence_table(1:3, c("From page 1 onto page 2.", "On page 3.", "On page 4."),
                                  pages = c(NA, 3L, 4L), kind = "verbatim")
   h <- read_page(answer = answer_with(ev, text = "x"))
   pos <- vapply(c(">Chunk 1<", ">Page 3, chunk 2<", ">Page 4, chunk 3<"),
@@ -581,23 +581,23 @@ test_that("a chunk that runs across a page break keeps its place", {
 
 test_that("numbers are not marked beside a quotation, and text around a mark is escaped", {
   chunk <- "Across 31 sites, <b>mortality</b> was 12.5% in the treated arm."
-  ev <- readgpt:::evidence_table(1L, "mortality was 12.5%", source_text = chunk,
+  ev <- harnessr:::evidence_table(1L, "mortality was 12.5%", source_text = chunk,
                                  kind = "extracted")
   expect_false(ev$verified)
-  ev2 <- readgpt:::evidence_table(1L, "was 12.5% in the treated arm", source_text = chunk,
+  ev2 <- harnessr:::evidence_table(1L, "was 12.5% in the treated arm", source_text = chunk,
                                   kind = "extracted")
   h <- read_page(answer = answer_with(ev2, text = "Mortality was 12.5% across 31 sites."))
   expect_match(h, paste0("Across 31 sites, &lt;b&gt;mortality&lt;/b&gt; ",
                          "<mark>was 12.5% in the treated arm</mark>."), fixed = TRUE)
   expect_equal(lengths(regmatches(h, gregexpr("<mark>", h, fixed = TRUE))), 1L)
 
-  v <- readgpt:::evidence_table(1L, "<i>Revenue</i> was 45.2 million.", kind = "verbatim")
+  v <- harnessr:::evidence_table(1L, "<i>Revenue</i> was 45.2 million.", kind = "verbatim")
   hv <- read_page(answer = answer_with(v, text = "Revenue was 45.2 million."))
   expect_match(hv, "&lt;i&gt;Revenue&lt;/i&gt; was <mark>45.2</mark> million.", fixed = TRUE)
 })
 
 test_that("a trace from before requests were timed says the times are not recorded", {
-  ev <- readgpt:::evidence_table(1L, "Revenue 45.2.", kind = "verbatim")
+  ev <- harnessr:::evidence_table(1L, "Revenue 45.2.", kind = "verbatim")
   a <- answer_with(ev)
   gr_call(gr_mock_client(function(m, p) "x"), "hi", trace = a$trace)
   a$trace$steps <- lapply(a$trace$steps, function(s) { s$seconds <- NULL; s })
@@ -670,7 +670,7 @@ test_that("`answer` must be an answer or a corpus, and is enough on its own", {
 })
 
 test_that("open = TRUE shows the page in the viewer or, outside tempdir(), the browser", {
-  ev <- readgpt:::evidence_table(1L, "Revenue 45.2.", kind = "verbatim")
+  ev <- harnessr:::evidence_table(1L, "Revenue 45.2.", kind = "verbatim")
   a <- answer_with(ev)
   shown <- NULL
   browsed <- NULL
@@ -702,7 +702,7 @@ test_that("open = TRUE shows the page in the viewer or, outside tempdir(), the b
 })
 
 test_that("a review report still has its search and caveats, and can carry an answer", {
-  ev <- readgpt:::evidence_table(1L, "Revenue 45.2.", kind = "verbatim")
+  ev <- harnessr:::evidence_table(1L, "Revenue 45.2.", kind = "verbatim")
   fields <- gr_fields(design = "The study design")
   cl <- gr_mock_client(function(messages, params) {
     '{"design":"randomised trial","design__quote":"We ran a randomised trial."}'

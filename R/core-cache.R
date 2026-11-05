@@ -47,8 +47,11 @@
 #' disappears with the session. That is the right default for a package (it
 #' writes nothing to your filesystem you did not ask for), but it is not what
 #' you want for a long experiment. Pass a real directory, or
-#' `tools::R_user_dir("readgpt", "cache")`, to keep entries across sessions and
-#' make a run resumable after a crash.
+#' `tools::R_user_dir("harnessr", "cache")`, to keep entries across sessions and
+#' make a run resumable after a crash. With that directory, entries that
+#' readgpt stored in `tools::R_user_dir("readgpt", "cache")` are read too, after
+#' it; new entries go only to the harnessr directory, and the old one is never
+#' cleared.
 #'
 #' Cross-session reuse needs a client that can say what it is. [gr_client()] and
 #' [gr_ellmer_client()] can: an endpoint and a model describe what will answer
@@ -93,7 +96,7 @@
 #'   [gr_cache_clear()], [gr_replay_client()] for reproducing a recorded run
 #' @export
 #' @examples
-#' cache <- gr_cache(dir = file.path(tempdir(), "readgpt-example-cache"))
+#' cache <- gr_cache(dir = file.path(tempdir(), "harnessr-example-cache"))
 #' cache
 #'
 #' # Nothing is written until a call is cached.
@@ -153,7 +156,7 @@ print.gr_cache <- function(x, ...) {
 #' @examples
 #' calls <- 0
 #' cl <- gr_mock_client(function(m, p) { calls <<- calls + 1; "42" })
-#' cl <- gr_cache_client(cl, gr_cache(file.path(tempdir(), "readgpt-doc-cache")))
+#' cl <- gr_cache_client(cl, gr_cache(file.path(tempdir(), "harnessr-doc-cache")))
 #'
 #' gr_call(cl, "What is the answer?")$text
 #' gr_call(cl, "What is the answer?")$text   # served from the cache
@@ -181,7 +184,7 @@ gr_cache_client <- function(client, cache = gr_cache()) {
 #' @seealso [gr_cache()], [gr_cache_clear()]
 #' @export
 #' @examples
-#' cache <- gr_cache(file.path(tempdir(), "readgpt-stats-cache"))
+#' cache <- gr_cache(file.path(tempdir(), "harnessr-stats-cache"))
 #' cl <- gr_cache_client(gr_mock_client(function(m, p) "hi"), cache)
 #' invisible(gr_call(cl, "one"))
 #' invisible(gr_call(cl, "one"))
@@ -212,7 +215,7 @@ gr_cache_stats <- function(cache) {
 #' @seealso [gr_cache()], [gr_cache_stats()]
 #' @export
 #' @examples
-#' cache <- gr_cache(file.path(tempdir(), "readgpt-clear-cache"))
+#' cache <- gr_cache(file.path(tempdir(), "harnessr-clear-cache"))
 #' cl <- gr_cache_client(gr_mock_client(function(m, p) "hi"), cache)
 #' invisible(gr_call(cl, "something"))
 #' gr_cache_clear(cache)
@@ -236,7 +239,27 @@ gr_cache_clear <- function(cache) {
 #' baked into the namespace image, pointing every later session at a directory
 #' that no longer exists.
 #' @noRd
-default_cache_dir <- function() file.path(tempdir(), "readgpt-cache")
+default_cache_dir <- function() file.path(tempdir(), "harnessr-cache")
+
+#' Where readgpt's documented cache directory is, when `dir` is harnessr's.
+#'
+#' The help pages of readgpt suggested `tools::R_user_dir("readgpt", "cache")`
+#' as a cache directory that lasts. When the configured directory is the one
+#' harnessr suggests in its place, the old one is read after it, so a warm
+#' cache kept where the old help said keeps answering: the keys are the same.
+#' It is never written to or cleared. For any other directory this is "", no
+#' directory: file.path("", ...) would be the filesystem root.
+#' @noRd
+legacy_cache_dir <- function(dir) {
+  same <- function(a, b) {
+    identical(normalizePath(a, winslash = "/", mustWork = FALSE),
+              normalizePath(b, winslash = "/", mustWork = FALSE))
+  }
+  new <- tools::R_user_dir("harnessr", "cache")
+  if (!same(as_chr1(dir), new)) return("")
+  old <- tools::R_user_dir("readgpt", "cache")
+  if (same(old, new) || !dir.exists(old)) "" else old
+}
 
 #' Every entry file under a cache directory.
 #'
@@ -334,6 +357,10 @@ cache_get <- function(cache, key) {
   # No directory is no cache: file.path("", ...) is the filesystem root.
   if (!isTRUE(cache$read) || !nzchar(as_chr1(cache$dir))) return(NULL)
   path <- cache_path(cache$dir, key)
+  if (!file.exists(path)) {
+    old <- legacy_cache_dir(cache$dir)
+    if (nzchar(old)) path <- cache_path(old, key)
+  }
   if (!file.exists(path)) {
     cache$.stats$misses <- cache$.stats$misses + 1L
     return(NULL)

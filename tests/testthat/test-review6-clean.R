@@ -4,7 +4,7 @@
 #
 # Each block names the finding and says what the code did before.
 
-r6_sm <- function(span, src) readgpt:::span_match(span, src)
+r6_sm <- function(span, src) harnessr:::span_match(span, src)
 r6_verified <- function(span, src) isTRUE(r6_sm(span, src)$verified)
 
 # ---------------------------------------------------------------------------
@@ -44,7 +44,7 @@ test_that("the captions step drops captions, not results stated in the body", {
                     "Figure 3 presents the dose-response curve.\nThe effect plateaued above 40 mg.",
                     "Table 1 and Figure 2 show the same.", "Table 2, which follows, lists them.",
                     "Table 2. Baseline characteristics"),
-                  steps = readgpt:::resolve_clean_steps("academic"))
+                  steps = harnessr:::resolve_clean_steps("academic"))
   # Before: "", "The effect plateaued above 40 mg.", "", "", "".
   expect_identical(as.character(out)[1:4],
                    c(paste0("Table 2 shows that 30-day mortality fell from 21% to 14% in the ",
@@ -120,11 +120,11 @@ test_that("headers_footers keeps repeated table values and drops running heads b
 # ---------------------------------------------------------------------------
 
 test_that("two ids made at the same moment differ", {
-  st <- readgpt:::gr_state
+  st <- harnessr:::gr_state
   now <- as.POSIXct("2026-09-25 10:00:00.123", tz = "UTC")
   before <- st$counter
-  a <- readgpt:::gr_new_id("backend", now = now)
-  b <- readgpt:::gr_new_id("backend", now = now)
+  a <- harnessr:::gr_new_id("backend", now = now)
+  b <- harnessr:::gr_new_id("backend", now = now)
   expect_false(identical(a, b))
   expect_identical(substr(a, 1, 27), substr(b, 1, 27))   # same prefix and millisecond
   expect_equal(st$counter, before + 2)
@@ -153,7 +153,7 @@ test_that("words split across a line break are rejoined in any script", {
 # ---------------------------------------------------------------------------
 
 test_that("sentences are split in every script, not only before an ASCII capital", {
-  so <- function(x) readgpt:::sentences_of(x)
+  so <- function(x) harnessr:::sentences_of(x)
   # Before: 1 sentence each (French: 1 of 3).
   expect_length(so("Le patient est venu. \u00c0 ce moment il allait bien. \u00c9tat stable."), 3L)
   expect_length(so(paste0("\u041f\u0435\u0440\u0432\u043e\u0435. \u0412\u0442\u043e\u0440\u043e\u0435. ",
@@ -207,9 +207,9 @@ test_that("a compound the document writes with its hyphen keeps it across a line
                    "IN THE PLACEBO-CONTROLLED ARM OF THE TRIAL")
   # A compound the document never writes whole is still joined (a documented
   # limitation), and a split word is joined as before.
-  expect_identical(readgpt:::rejoin_hyphenated("the investigator-\nblinded arm"),
+  expect_identical(harnessr:::rejoin_hyphenated("the investigator-\nblinded arm"),
                    "the investigatorblinded arm")
-  expect_identical(readgpt:::rejoin_hyphenated("a-\nb-\nc and mito-\nchondria"),
+  expect_identical(harnessr:::rejoin_hyphenated("a-\nb-\nc and mito-\nchondria"),
                    "abc and mitochondria")
 })
 
@@ -247,7 +247,7 @@ test_that("en and em dashes are kept, so quotations of them check out", {
 # ---------------------------------------------------------------------------
 
 test_that("a message holding the key separator does not share a key with two messages", {
-  h <- readgpt:::gr_hash
+  h <- harnessr:::gr_hash
   expect_false(identical(h(c("user", "Say A", "user", "Say B")),
                          h(c("user", "Say A\u0002user\u0002Say B"))))
   expect_false(identical(h(list("a", "b")), h(list("a\u0001/2=character:b"))))
@@ -274,19 +274,19 @@ test_that("a message holding the key separator does not share a key with two mes
 
 test_that("the document cache drops the documents used least recently past its budget", {
   local_clean_cache()
-  put <- function(k, x) readgpt:::doc_cache_put(k, list(x = strrep(x, 1e5)), budget = 3.5e5)
+  put <- function(k, x) harnessr:::doc_cache_put(k, list(x = strrep(x, 1e5)), budget = 3.5e5)
   for (i in 1:5) put(paste0("k", i), letters[i])
-  expect_identical(ls(readgpt:::gr_state$doc_cache), c("k3", "k4", "k5"))
-  expect_false(is.null(readgpt:::doc_cache_get("k3")))    # k3 used again
+  expect_identical(ls(harnessr:::gr_state$doc_cache), c("k3", "k4", "k5"))
+  expect_false(is.null(harnessr:::doc_cache_get("k3")))    # k3 used again
   put("k6", "f")
-  expect_identical(ls(readgpt:::gr_state$doc_cache), c("k3", "k5", "k6"))
+  expect_identical(ls(harnessr:::gr_state$doc_cache), c("k3", "k5", "k6"))
   # One document over the budget is still kept, alone.
-  readgpt:::doc_cache_put("big", list(x = strrep("z", 5e5)), budget = 3.5e5)
-  expect_identical(ls(readgpt:::gr_state$doc_cache), "big")
+  harnessr:::doc_cache_put("big", list(x = strrep("z", 5e5)), budget = 3.5e5)
+  expect_identical(ls(harnessr:::gr_state$doc_cache), "big")
 
   # gr_ingest() still caches and serves from it.
   d1 <- quiet(gr_ingest("A document with enough text to be kept in the cache."))
-  expect_true(length(ls(readgpt:::gr_state$doc_cache)) >= 1L)
+  expect_true(length(ls(harnessr:::gr_state$doc_cache)) >= 1L)
   expect_identical(quiet(gr_ingest("A document with enough text to be kept in the cache.")), d1)
 })
 
@@ -299,9 +299,9 @@ test_that("the blank-text helpers do not stop on bytes that are not UTF-8", {
   bad <- rawToChar(as.raw(c(0x63, 0x61, 0x66, 0xe9, 0x20, 0x71)))
   skip_if(validUTF8(bad))
   # Before: "input string 1 is invalid UTF-8".
-  expect_true(readgpt:::is_nonblank(bad))
-  expect_identical(readgpt:::has_content(c(bad, " ", "")), c(TRUE, FALSE, FALSE))
-  expect_length(readgpt:::words_of(bad), 2L)
+  expect_true(harnessr:::is_nonblank(bad))
+  expect_identical(harnessr:::has_content(c(bad, " ", "")), c(TRUE, FALSE, FALSE))
+  expect_length(harnessr:::words_of(bad), 2L)
 })
 
 # ---------------------------------------------------------------------------
@@ -316,9 +316,9 @@ test_that("a line of no-break or ideographic spaces is a blank line", {
     d <- quiet(gr_ingest(paste0(p1, sep, p2), cache = FALSE))
     expect_identical(d$blocks$text, c(p1, p2))    # before: one block
   }
-  expect_identical(readgpt:::paragraphs_of(paste0(p1, "\n\u3000\n\u3000", p2)), c(p1, p2))
-  expect_identical(readgpt:::has_content(c("\u00a0\u3000", "\u2003x")), c(FALSE, TRUE))
-  expect_false(readgpt:::is_nonblank("\u3000"))
+  expect_identical(harnessr:::paragraphs_of(paste0(p1, "\n\u3000\n\u3000", p2)), c(p1, p2))
+  expect_identical(harnessr:::has_content(c("\u00a0\u3000", "\u2003x")), c(FALSE, TRUE))
+  expect_false(harnessr:::is_nonblank("\u3000"))
   # Inside a line the spaces stay: "1<no-break space>200" is one number.
   out <- as.character(gr_clean("A total of 1\u00a0200 patients.\n\u00a0\u00a0\nNext."))
   expect_identical(out, "A total of 1\u00a0200 patients.\n\nNext.")
@@ -355,10 +355,10 @@ test_that("lower_text lowers a long string one distinct code point at a time, to
                   0x1E00:0x1EFF, 0x2160:0x2188, 0x24B6:0x24E9, 0x4E00:0x4E80, 0x10400:0x1044F,
                   0x130), 5000, TRUE)
   s <- intToUtf8(cps)
-  expect_identical(readgpt:::lower_text(s), readgpt:::lower_chars(s))
-  expect_identical(readgpt:::lower_text(c(a = "X", b = NA, c = s)),
-                   c(a = "x", b = NA, c = readgpt:::lower_chars(s)))
+  expect_identical(harnessr:::lower_text(s), harnessr:::lower_chars(s))
+  expect_identical(harnessr:::lower_text(c(a = "X", b = NA, c = s)),
+                   c(a = "x", b = NA, c = harnessr:::lower_chars(s)))
   long <- strrep("\u6cbb\u7597\u7ec4\u6b7b\u4ea1\u7387\u4e0b\u964d", 10000L)
-  expect_identical(readgpt:::lower_text(long), long)
-  expect_lt(system.time(readgpt:::lower_text(long))[["elapsed"]], 0.2)
+  expect_identical(harnessr:::lower_text(long), long)
+  expect_lt(system.time(harnessr:::lower_text(long))[["elapsed"]], 0.2)
 })

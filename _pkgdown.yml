@@ -7,7 +7,7 @@ articles:
 - title: Guides
   navbar: Guides
   contents:
-  - readgpt
+  - harnessr
   - ingest
   - readers
 - title: Overview
@@ -135,7 +135,7 @@ reference:
   - gr_flush_caches
   - gr_replay_client
 
-- title: Extending readgpt
+- title: Extending harnessr
   desc: >
     Every axis is a registry. An addition is used exactly like a built-in.
   contents:

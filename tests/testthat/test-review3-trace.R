@@ -111,7 +111,7 @@ test_that("a failure nothing recovered from is not marked", {
 
   # Only this call's failures: one already in the trace keeps its status.
   tr <- gr_trace()
-  readgpt:::trace_record(tr, "map.answer", list(list(role = "user", content = "q")),
+  harnessr:::trace_record(tr, "map.answer", list(list(role = "user", content = "q")),
                          gr_result(FALSE, error = "HTTP 503: down", status = 503L,
                                    model = "gpt-4o"))
   expect_warning(gr_embed(cl, c("one", "two"), trace = tr), class = "gr_embed_fallback")
@@ -157,7 +157,7 @@ test_that("a request that failed without sending tokens costs nothing, priced or
   gr_options(cache_embeddings = FALSE)
   seen <- r3_endpoint(embed_status = 404L)
   tr <- gr_trace()
-  readgpt:::trace_record(tr, "map.answer", list(list(role = "user", content = "q")),
+  harnessr:::trace_record(tr, "map.answer", list(list(role = "user", content = "q")),
                          gr_result(TRUE, text = "a", model = "gpt-4o",
                                    usage = list(input = 1000L, output = 10L)))
   # "bad-embed" has no registered price. The request failed, so it cost 0, and
@@ -168,7 +168,7 @@ test_that("a request that failed without sending tokens costs nothing, priced or
   expect_identical(df$usd[2], 0)
   expect_equal(df$usd[1], gr_estimate_cost("gpt-4o", 1000L, 10L))
   # A request that did send tokens to an unpriced model is still unknown.
-  readgpt:::trace_record(tr, "map.answer", list(list(role = "user", content = "q2")),
+  harnessr:::trace_record(tr, "map.answer", list(list(role = "user", content = "q2")),
                          gr_result(TRUE, text = "a", model = "no-such-model",
                                    usage = list(input = 5L, output = 1L)))
   expect_true(is.na(as.data.frame(tr)$usd[3]))
@@ -236,8 +236,8 @@ test_that("embedding tokens survive being folded into a parent trace", {
   child <- gr_trace()
   child$embed_tokens <- 40L
   child$tokens_in <- 7L
-  readgpt:::trace_absorb(parent, child)
-  readgpt:::trace_absorb(parent, child)
+  harnessr:::trace_absorb(parent, child)
+  harnessr:::trace_absorb(parent, child)
   expect_identical(parent$embed_tokens, 80L)
   expect_identical(parent$tokens_in, 14L)
 })
@@ -253,7 +253,7 @@ test_that("print() lists embeddings requests apart from model calls", {
   gr_options(cache_embeddings = FALSE)
   seen <- r3_endpoint(embed_status = 404L)
   tr <- gr_trace()
-  readgpt:::trace_record(tr, "map.answer", list(list(role = "user", content = "q")),
+  harnessr:::trace_record(tr, "map.answer", list(list(role = "user", content = "q")),
                          gr_result(TRUE, text = "a", model = "gpt-4o",
                                    usage = list(input = 10L, output = 2L)))
   # The first request fails and the fallback takes over, so one is sent.
@@ -265,7 +265,7 @@ test_that("print() lists embeddings requests apart from model calls", {
 
   # A run that embeds nothing prints as it always did.
   plain <- gr_trace()
-  readgpt:::trace_record(plain, "map.answer", list(list(role = "user", content = "q")),
+  harnessr:::trace_record(plain, "map.answer", list(list(role = "user", content = "q")),
                          gr_result(TRUE, text = "a", model = "gpt-4o",
                                    usage = list(input = 10L, output = 2L)))
   out <- capture.output(print(plain))[1]
@@ -355,12 +355,12 @@ test_that("an absorbed error still names the step that failed", {
   # error's step number as it was, so the error pointed at one of the parent's
   # own steps, and trace_mark_recovered() marked that one instead.
   parent <- gr_trace()
-  readgpt:::trace_record(parent, "first", list(list(role = "user", content = "a")),
-                         readgpt:::gr_result(TRUE, text = "ok"))
+  harnessr:::trace_record(parent, "first", list(list(role = "user", content = "a")),
+                         harnessr:::gr_result(TRUE, text = "ok"))
   child <- gr_trace()
-  readgpt:::trace_record(child, "fails", list(list(role = "user", content = "b")),
-                         readgpt:::gr_result(FALSE, error = "HTTP 500"))
-  readgpt:::trace_absorb(parent, child)
+  harnessr:::trace_record(child, "fails", list(list(role = "user", content = "b")),
+                         harnessr:::gr_result(FALSE, error = "HTTP 500"))
+  harnessr:::trace_absorb(parent, child)
   e <- parent$errors[[length(parent$errors)]]
   expect_identical(parent$steps[[e$step]]$label, "fails")
 })

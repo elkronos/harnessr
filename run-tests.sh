@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# run-tests.sh -- install readgpt and run its test suite.
+# run-tests.sh -- install harnessr and run its test suite.
 #
 # Works from the package directory or from the repository root (it finds
 # DESCRIPTION either here or in ./readgpt). Nothing it does touches the network
@@ -53,7 +53,7 @@ fi
 echo "R:       $(Rscript -e 'cat(R.version.string)')"
 
 # R >= 4.1 is required (the package uses the native |> era baseline).
-Rscript -e 'if (getRversion() < "4.1.0") { cat("ERROR: readgpt needs R >= 4.1.0; you have", as.character(getRversion()), "\n"); quit(status = 1) }'
+Rscript -e 'if (getRversion() < "4.1.0") { cat("ERROR: harnessr needs R >= 4.1.0; you have", as.character(getRversion()), "\n"); quit(status = 1) }'
 
 # --- what it needs ---------------------------------------------------------
 # Everything the package imports, read from DESCRIPTION so the list cannot fall
@@ -80,7 +80,7 @@ fi
 LIB=$(Rscript -e '
   p <- Sys.getenv("R_LIBS_USER")
   p <- strsplit(p, .Platform$path.sep)[[1]][1]
-  if (!nzchar(p) || is.na(p)) p <- file.path(path.expand("~"), "R", "readgpt-lib")
+  if (!nzchar(p) || is.na(p)) p <- file.path(path.expand("~"), "R", "harnessr-lib")
   dir.create(p, recursive = TRUE, showWarnings = FALSE)
   cat(normalizePath(p))')
 echo "Library: $LIB"
@@ -121,10 +121,10 @@ fi
 
 # --- install the package ---------------------------------------------------
 echo
-echo "Installing readgpt..."
-R CMD INSTALL "$PKG" -l "$LIB" --no-byte-compile >/tmp/readgpt-install.log 2>&1 || {
-  echo "ERROR: install failed. Last 25 lines of /tmp/readgpt-install.log:" >&2
-  tail -25 /tmp/readgpt-install.log >&2
+echo "Installing harnessr..."
+R CMD INSTALL "$PKG" -l "$LIB" --no-byte-compile >/tmp/harnessr-install.log 2>&1 || {
+  echo "ERROR: install failed. Last 25 lines of /tmp/harnessr-install.log:" >&2
+  tail -25 /tmp/harnessr-install.log >&2
   exit 1
 }
 echo "Installed."
@@ -148,10 +148,10 @@ echo "Running the test suite..."
 echo
 Rscript -e "
   .libPaths(c('$LIB', .libPaths()))
-  suppressPackageStartupMessages({ library(readgpt); library(testthat) })
+  suppressPackageStartupMessages({ library(harnessr); library(testthat) })
   gr_options(verbose = FALSE)
   res <- as.data.frame(testthat::test_dir(file.path('$PKG', 'tests', 'testthat'),
-                                          package = 'readgpt',
+                                          package = 'harnessr',
                                           reporter = 'progress',
                                           stop_on_failure = FALSE))
   cat('\n----------------------------------------\n')

@@ -56,7 +56,7 @@
 #' and the cost, not how much of the document is read.
 #'
 #' The room is measured for the model that answers: the one passed as `model`
-#' in `...`, or else the client's. A model whose limits readgpt has to guess
+#' in `...`, or else the client's. A model whose limits harnessr has to guess
 #' (see [gr_model_info()]) always gets `"thorough"`; register its real limits
 #' with [gr_register_model()].
 #'

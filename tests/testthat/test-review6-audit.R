@@ -149,21 +149,21 @@ test_that("with no protocol, the report shows the criteria the screening recorde
 
 test_that("a web address is shown without its credentials", {
   u <- "https://user:pw@files.example.org/paper.pdf?X-Amz-Signature=SECRETSIG&X-Amz-Credential=AKIAKEY#f"
-  shown <- readgpt:::report_doc_name(u)
+  shown <- harnessr:::report_doc_name(u)
   expect_false(grepl("SECRETSIG|AKIAKEY|user:pw|pw@", shown))
   expect_match(shown, "^https://files\\.example\\.org/paper\\.pdf\\?\\[query hidden [0-9a-f]{6}\\]$")
   # The label a corpus gives it (no scheme), and two that differ only in the
   # query stay apart.
-  a <- readgpt:::report_url(c("files.example.org/p.pdf?sig=AAA", "files.example.org/p.pdf?sig=BBB"))
+  a <- harnessr:::report_url(c("files.example.org/p.pdf?sig=AAA", "files.example.org/p.pdf?sig=BBB"))
   expect_false(any(grepl("AAA|BBB", a)))
   expect_false(identical(a[1], a[2]))
   # A file name is left alone, "#" in it included.
-  expect_identical(readgpt:::report_url(c("report.txt", "2019/report.txt", "notes#2.txt",
+  expect_identical(harnessr:::report_url(c("report.txt", "2019/report.txt", "notes#2.txt",
                                           "data.v2/report.txt", NA)),
                    c("report.txt", "2019/report.txt", "notes#2.txt", "data.v2/report.txt", NA))
-  expect_identical(readgpt:::report_url_text("Fetching 'https://h.org/x?t=SECRET' returned HTTP 403."),
+  expect_identical(harnessr:::report_url_text("Fetching 'https://h.org/x?t=SECRET' returned HTTP 403."),
                    sprintf("Fetching 'https://h.org/x?[query hidden %s]' returned HTTP 403.",
-                           substr(readgpt:::gr_hash("?t=SECRET"), 1, 6)))
+                           substr(harnessr:::gr_hash("?t=SECRET"), 1, 6)))
 })
 
 test_that("a corpus read from presigned links does not put the links' secrets in the report", {
@@ -172,7 +172,7 @@ test_that("a corpus read from presigned links does not put the links' secrets in
     if (grepl("denied", url, fixed = TRUE)) return(list(status = 403L, type = ""))
     writeLines("Revenue was 45.2 million dollars.", dest)
     list(status = 200L, type = "text/plain")
-  }, .package = "readgpt")
+  }, .package = "harnessr")
   urls <- c("https://bucket.example.org/p.txt?X-Amz-Credential=AKIAKEYID&X-Amz-Signature=SECRETSIG",
             "https://bucket.example.org/denied.txt?X-Amz-Signature=SECRETSIG2")
   co <- quiet(gr_read_many(urls, "What was revenue?", "fast",

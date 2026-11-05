@@ -5,7 +5,7 @@
 #   Rscript dev/record-golden.R
 #
 # It loads the package from this source tree (with pkgload, when installed;
-# otherwise the installed readgpt, which must then be reinstalled from this
+# otherwise the installed harnessr, which must then be reinstalled from this
 # tree first), runs every golden run defined in tests/testthat/helper-golden.R
 # and rewrites tests/testthat/fixtures/golden/ from scratch.
 #
@@ -23,8 +23,8 @@ if (requireNamespace("pkgload", quietly = TRUE)) {
   suppressMessages(pkgload::load_all(".", export_all = FALSE, helpers = FALSE, quiet = TRUE))
   from <- "this source tree"
 } else {
-  suppressPackageStartupMessages(library(readgpt))
-  from <- sprintf("the installed readgpt %s", utils::packageVersion("readgpt"))
+  suppressPackageStartupMessages(library(harnessr))
+  from <- sprintf("the installed harnessr %s", utils::packageVersion("harnessr"))
 }
 
 source(file.path("tests", "testthat", "helper-golden.R"), local = TRUE)

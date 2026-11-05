@@ -18,7 +18,7 @@ extractor reads is refused (\code{gr_unsupported_format}). An address on this
 machine or a private network (localhost, 10.x, 172.16/12, 192.168.x,
 169.254.x, the IPv6 local ranges), and a host name that resolves to one,
 is refused (\code{gr_url_error}), after a redirect too, unless
-\code{options(readgpt.allow_local_urls = TRUE)}; behind a proxy that looks
+\code{options(harnessr.allow_local_urls = TRUE)}; behind a proxy that looks
 names up itself, a name that cannot be looked up here is not checked. The
 request uses the address in full, but the document's \code{source}, the
 messages and the errors show it without a user name and password and with

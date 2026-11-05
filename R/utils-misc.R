@@ -406,6 +406,11 @@ hash_escape <- function(v) {
 env_identity <- function(env) {
   if (is.null(env)) return("<primitive>")
   nm <- environmentName(env)
+  # The package was called readgpt when today's keys were made, and every key
+  # that hashes one of its functions includes this name. Hashing the old name
+  # keeps those keys stable until the planned key-version change, which will
+  # carry a lookup of the old keys.
+  if (identical(nm, "harnessr")) return("readgpt")
   if (nzchar(nm)) return(nm)
   utils::capture.output(print.default(env))[1]
 }

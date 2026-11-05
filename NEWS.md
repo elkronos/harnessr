@@ -1,3 +1,36 @@
+# harnessr 0.6.0.9000
+
+## Renamed
+
+* **The package is now called harnessr.** readgpt grew a general core for
+  model calls (clients, spending limits, a response cache, recordings that
+  replay offline, traces) under its document-reading layer, and the new name
+  says so. Load it with `library(harnessr)`. The GitHub repository is still
+  `elkronos/readgpt`, so `remotes::install_github("elkronos/readgpt")` installs
+  harnessr. No exported function, class, argument or prompt changes name in
+  this release; `readgpt_example()` keeps its name too.
+
+* **Requests, cache keys and recordings are unchanged.** Every request is sent
+  as 0.6.0 sent it, and every response-cache key, replay key and corpus store
+  key is the one 0.6.0 computed, so a warm cache, a recording made for
+  `gr_replay_client()` and a `gr_read_many()` store all keep answering.
+
+* **Two options are renamed**: `readgpt.api_key` is now `harnessr.api_key`, and
+  `readgpt.allow_local_urls` is now `harnessr.allow_local_urls`. The old names
+  are still read when the new ones are not set, with one `gr_deprecated`
+  warning per session naming the new option.
+
+* The help pages now suggest `tools::R_user_dir("harnessr", "cache")` for a
+  cache that lasts. With that directory set, entries readgpt kept in
+  `tools::R_user_dir("readgpt", "cache")` are read too, after it; new entries
+  are written only to the new directory, and the old one is never cleared. The
+  per-session default is now `file.path(tempdir(), "harnessr-cache")`.
+
+* Text that named the package now says harnessr: the URL fetcher's user agent
+  (`harnessr/<version>`), the audit report's title and footer, messages, and
+  the Shiny app's title. A trace's `meta` still records the version under
+  `readgpt`, so traces written before and after the rename read the same way.
+
 # readgpt 0.6.0
 
 ## New

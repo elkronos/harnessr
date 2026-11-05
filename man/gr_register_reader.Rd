@@ -50,7 +50,7 @@ filled \code{model} from the client when the spec named none. Pass
 by stage against the call's \code{label}, so give each call a label of its
 own; a call without it is sent no effort.}
 \item{\code{trace}}{Pass it to every \code{\link[=gr_call]{gr_call()}} so your calls are counted and
-priced, and check \code{readgpt:::trace_can_call(trace)} before each one so
+priced, and check \code{harnessr:::trace_can_call(trace)} before each one so
 the run's call and spending limits are respected.}
 }
 Return \code{\link[=new_answer]{new_answer()}}. Budget your prompt with \code{\link[=gr_budget]{gr_budget()}} rather than

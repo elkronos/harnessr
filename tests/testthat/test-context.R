@@ -24,15 +24,15 @@ test_that("iterative_fit keeps whole chunks and drops the weakest, not the newes
   # Round one took chunks 1 and 2, round two took 3 and 4; chunk 2 scored worst.
   seen <- c(1L, 2L, 3L, 4L)
   score <- c(0.9, 0.1, 0.8, 0.7)
-  big <- readgpt:::iterative_fit(d, seen, score, 1e6, "relevance")
+  big <- harnessr:::iterative_fit(d, seen, score, 1e6, "relevance")
   expect_setequal(big$rows, seen)
   expect_length(big$dropped, 0L)
 
   # A budget that fits three of the four. The old code truncated the tail, which
   # dropped the material the loop had just gone back for; the weakest chunk is
   # the one that should go.
-  one <- readgpt:::gr_count_tokens(readgpt:::render_chunks(d[1, , drop = FALSE]))
-  tight <- readgpt:::iterative_fit(d, seen, score, one * 3L, "relevance")
+  one <- harnessr:::gr_count_tokens(harnessr:::render_chunks(d[1, , drop = FALSE]))
+  tight <- harnessr:::iterative_fit(d, seen, score, one * 3L, "relevance")
   expect_length(tight$rows, 3L)
   expect_identical(tight$dropped, 2L)
   expect_false(2L %in% tight$rows)
@@ -48,11 +48,11 @@ test_that("iterative_fit orders the prompt by context_order", {
                   section = NA_character_, stringsAsFactors = FALSE)
   seen <- c(3L, 1L, 2L)                       # accumulation order
   score <- c(0.9, 0.5, 0.1)                   # chunk 3 best, chunk 2 worst
-  rel <- readgpt:::iterative_fit(d, seen, score, 1e6, "relevance")
+  rel <- harnessr:::iterative_fit(d, seen, score, 1e6, "relevance")
   expect_identical(rel$rows, c(3L, 1L, 2L))
   # Document order has to come from the chunk ids, not from where the chunk
   # happens to sit in the accumulation.
-  doc <- readgpt:::iterative_fit(d, seen, score, 1e6, "document")
+  doc <- harnessr:::iterative_fit(d, seen, score, 1e6, "document")
   expect_identical(doc$rows, c(1L, 2L, 3L))
 })
 
@@ -133,11 +133,11 @@ test_that("iterative's final call is budgeted, which it never used to be", {
 test_that("a long body gets the question before the excerpts as well as after", {
   short <- "One short excerpt."
   long <- paste(rep("a sentence with several words in it", 400L), collapse = " ")
-  expect_false(readgpt:::restate_now(short))
-  expect_true(readgpt:::restate_now(long))
+  expect_false(harnessr:::restate_now(short))
+  expect_true(harnessr:::restate_now(long))
 
-  m_short <- readgpt:::answer_messages("What was revenue?", short)
-  m_long <- readgpt:::answer_messages("What was revenue?", long)
+  m_short <- harnessr:::answer_messages("What was revenue?", short)
+  m_long <- harnessr:::answer_messages("What was revenue?", long)
   # The question is already last in both -- that was never the gap.
   expect_match(m_short[[3]]$content, "What was revenue?", fixed = TRUE)
   expect_match(m_long[[3]]$content, "What was revenue?", fixed = TRUE)
@@ -153,11 +153,11 @@ test_that("a long body gets the question before the excerpts as well as after", 
 test_that("restate can be forced on or off", {
   short <- "One short excerpt."
   long <- paste(rep("a sentence with several words in it", 400L), collapse = " ")
-  expect_true(readgpt:::restate_now(short, "always"))
-  expect_false(readgpt:::restate_now(long, "never"))
-  expect_match(readgpt:::answer_messages("Q?", short, restate = "always")[[2]]$content,
+  expect_true(harnessr:::restate_now(short, "always"))
+  expect_false(harnessr:::restate_now(long, "never"))
+  expect_match(harnessr:::answer_messages("Q?", short, restate = "always")[[2]]$content,
                "^Question: Q\\?")
-  expect_false(grepl("Question:", readgpt:::answer_messages("Q?", long, restate = "never")[[2]]$content,
+  expect_false(grepl("Question:", harnessr:::answer_messages("Q?", long, restate = "never")[[2]]$content,
                      fixed = TRUE))
 })
 

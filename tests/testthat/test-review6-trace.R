@@ -62,9 +62,9 @@ test_that("a step folded in twice keeps its recipe", {
   doc <- gr_trace(meta = list(recipe = "thorough", source = "c.txt"))
   gr_call(cl, "q", trace = doc)
   stage <- gr_trace(meta = list(stage = "synthesise"))
-  readgpt:::trace_absorb(stage, doc)
+  harnessr:::trace_absorb(stage, doc)
   top <- gr_trace()
-  readgpt:::trace_absorb(top, stage)
+  harnessr:::trace_absorb(top, stage)
   df <- as.data.frame(top)
   expect_identical(df$recipe, "thorough")
   expect_identical(df$document, "c.txt")
@@ -73,7 +73,7 @@ test_that("a step folded in twice keeps its recipe", {
   bare <- gr_trace()
   gr_call(cl, "q2", trace = bare)
   named <- gr_trace(meta = list(recipe = "fast"))
-  readgpt:::trace_absorb(named, bare)
+  harnessr:::trace_absorb(named, bare)
   expect_identical(as.data.frame(named)$recipe, "fast")
 })
 
@@ -173,12 +173,12 @@ test_that("a replayed batch makes every call the recorded batch made", {
                     input_usd = 0, output_usd = 1e5)
   client <- gr_mock_client(function(m, p) "two words")
   fn <- function(i, trace) {
-    if (!readgpt:::trace_can_call(trace)) return(NA_character_)
+    if (!harnessr:::trace_can_call(trace)) return(NA_character_)
     gr_call(client, sprintf("item %d", i), model = "r6-batch", trace = trace)$text
   }
   gr_options(max_cost_usd = Inf)
   rec <- gr_trace()
-  readgpt:::gr_lapply(1:4, fn, parallel = FALSE, trace = rec)
+  harnessr:::gr_lapply(1:4, fn, parallel = FALSE, trace = rec)
   # What a batch sent to workers leaves when it passes the limit: every call
   # made, and the stop recorded after them.
   rec$budget_stop <- TRUE
@@ -187,7 +187,7 @@ test_that("a replayed batch makes every call the recorded batch made", {
   gr_options(max_cost_usd = 0.5)
   client <- gr_replay_client(rec)
   tr <- gr_trace()
-  got <- quiet(readgpt:::gr_lapply(1:4, fn, parallel = TRUE, workers = 2, trace = tr,
+  got <- quiet(harnessr:::gr_lapply(1:4, fn, parallel = TRUE, workers = 2, trace = tr,
                                    item_usd = 0.01))
   expect_identical(unlist(got), rep("two words", 4L))
   expect_identical(client$stats()$hits, 4L)
@@ -197,7 +197,7 @@ test_that("a replayed batch makes every call the recorded batch made", {
 
 test_that("a recording whose steps do not carry their cost still replays to the stop", {
   run <- r6_costcap_run()
-  obj <- readgpt:::trace_as_list(run$tr)
+  obj <- harnessr:::trace_as_list(run$tr)
   obj$steps <- lapply(obj$steps, function(st) { st$budget_usd <- NULL; st })
   rp <- gr_replay_client(obj)
   again <- quiet(gr_read(run$ch, "What rose?", rp, run$spec))
@@ -208,19 +208,19 @@ test_that("a recording whose steps do not carry their cost still replays to the 
 test_that("a cache hit counts nothing against the limit, a replayed call its cost", {
   local_registries()
   tr <- gr_trace()
-  readgpt:::trace_record(tr, "hit", list(list(role = "user", content = "q")),
-                         readgpt:::gr_result(TRUE, "a", model = "gpt-4o", cached = TRUE,
+  harnessr:::trace_record(tr, "hit", list(list(role = "user", content = "q")),
+                         harnessr:::gr_result(TRUE, "a", model = "gpt-4o", cached = TRUE,
                                    usage = list(input = 1000L, output = 10L)))
   expect_identical(tr$replayed_usd, 0)
-  res <- readgpt:::gr_result(TRUE, "a", model = "gpt-4o", cached = TRUE,
+  res <- harnessr:::gr_result(TRUE, "a", model = "gpt-4o", cached = TRUE,
                    usage = list(input = 1000L, output = 10L))
   res$replay_usd <- 0.25
-  readgpt:::trace_record(tr, "replayed", list(list(role = "user", content = "q")), res)
+  harnessr:::trace_record(tr, "replayed", list(list(role = "user", content = "q")), res)
   expect_identical(tr$spent_usd, 0)
   expect_identical(tr$replayed_usd, 0.25)
   expect_identical(tr$steps[[2]]$budget_usd, 0.25)
   gr_options(max_cost_usd = 0.25)
-  expect_false(readgpt:::trace_can_call(tr))
+  expect_false(harnessr:::trace_can_call(tr))
   expect_identical(tr$stop_reason, "cost")
 })
 
@@ -230,11 +230,11 @@ test_that("what a request counts is saved exactly in 15 digits, so a trace is wr
                     input_usd = 2.5, output_usd = 10)
   tr <- gr_trace()
   for (i in 1:40) {
-    readgpt:::trace_record(tr, "call", list(list(role = "user", content = "q")),
-                           readgpt:::gr_result(TRUE, "a", model = "r6-odd",
+    harnessr:::trace_record(tr, "call", list(list(role = "user", content = "q")),
+                           harnessr:::gr_result(TRUE, "a", model = "r6-odd",
                                      usage = list(input = 1234L + i, output = 56L + i)))
   }
-  expect_false(readgpt:::needs_more_digits(readgpt:::trace_as_list(tr)))
+  expect_false(harnessr:::needs_more_digits(harnessr:::trace_as_list(tr)))
 })
 
 # ---------------------------------------------------------------------------
@@ -463,8 +463,8 @@ test_that("a trace's fields that list things are arrays at every length", {
   expect_identical(j$meta$recipes, list("fast"))
 
   tr <- gr_trace()
-  readgpt:::trace_note(tr, "retrieve.rank", list(k = 1L, top_scores = 0.5))
-  readgpt:::trace_note(tr, "ingest", list(blocks = 3L, clean_steps = "unicode"))
+  harnessr:::trace_note(tr, "retrieve.rank", list(k = 1L, top_scores = 0.5))
+  harnessr:::trace_note(tr, "ingest", list(blocks = 3L, clean_steps = "unicode"))
   j <- jsonlite::parse_json(as_json(tr))
   expect_identical(j$steps[[1]]$detail$top_scores, list(0.5))
   expect_identical(j$steps[[1]]$detail$k, 1L)
@@ -539,7 +539,7 @@ test_that("gr_embed()'s help gives the order the code uses", {
 test_that("a parallel batch leaves the caller's random numbers alone", {
   skip_if_no_future6()
   set.seed(42)
-  quiet(readgpt:::gr_lapply(1:3, function(i, trace) i, parallel = TRUE, workers = 2,
+  quiet(harnessr:::gr_lapply(1:3, function(i, trace) i, parallel = TRUE, workers = 2,
                             trace = gr_trace()))
   after <- stats::runif(1)
   set.seed(42)
@@ -556,9 +556,9 @@ test_that("an item that fails in a parallel batch keeps every trace", {
   skip_if_no_future6()
   run <- function(parallel) {
     tr <- gr_trace()
-    err <- tryCatch(quiet(readgpt:::gr_lapply(1:6, function(i, trace) {
-      readgpt:::trace_record(trace, sprintf("item%d", i), list(),
-                             readgpt:::gr_result(TRUE, "x", model = "mock-model",
+    err <- tryCatch(quiet(harnessr:::gr_lapply(1:6, function(i, trace) {
+      harnessr:::trace_record(trace, sprintf("item%d", i), list(),
+                             harnessr:::gr_result(TRUE, "x", model = "mock-model",
                                                  usage = list(input = 10L, output = 2L)))
       if (i == 4L) stop(structure(class = c("r6_boom", "error", "condition"),
                                   list(message = "boom on item 4", call = NULL)))

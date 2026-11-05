@@ -67,7 +67,7 @@ test_that("a braced corporate author stays one author, and accents become letter
   r <- gr_records(f)$records
   expect_identical(r$authors[1], "Centers for Disease Control and Prevention")
   expect_identical(r$authors[2], "Garc\u00eda, Mar\u00eda; M\u00fcller, Hans; World Health Organization")
-  fa <- readgpt:::record_first_author(r$authors[1])
+  fa <- harnessr:::record_first_author(r$authors[1])
   expect_true(fa$corporate)
 })
 
@@ -163,7 +163,7 @@ test_that("a filename that begins two works' titles goes to neither", {
 # ---------------------------------------------------------------------------
 
 test_that("BibTeX entries are sliced in bytes, correctly around multi-byte letters", {
-  expect_warning(e <- readgpt:::bib_entries(c(
+  expect_warning(e <- harnessr:::bib_entries(c(
     "@article{a, author = {M\u00fcller, J\u00fcrgen}, title = {{\u00c9tude} \u2265 18}}",
     "@comment{skip me}", "@book{b, title = {\u4e2d\u6587 title}}", "@article{c, title = {unclosed")),
     class = "gr_bib_unterminated")
@@ -171,7 +171,7 @@ test_that("BibTeX entries are sliced in bytes, correctly around multi-byte lette
   expect_identical(e[[1]], "a, author = {M\u00fcller, J\u00fcrgen}, title = {{\u00c9tude} \u2265 18}")
   expect_identical(Encoding(e[[1]]), "UTF-8")
   expect_identical(e[[2]], "b, title = {\u4e2d\u6587 title}")
-  expect_warning(readgpt:::bib_entries("x\n@article{c, title = {unclosed"),
+  expect_warning(harnessr:::bib_entries("x\n@article{c, title = {unclosed"),
                  "on line 2", class = "gr_bib_unterminated")
 })
 
@@ -183,7 +183,7 @@ test_that("a large BibTeX file with one non-ASCII letter is not quadratic", {
                  strrep("spaced practice and retention ", 30))
   # f5061ab: about 40 s for this (every character position found from the start
   # of the file); in bytes it is a fraction of a second.
-  t <- system.time(e <- readgpt:::bib_entries(enc2utf8(ent)))[["elapsed"]]
+  t <- system.time(e <- harnessr:::bib_entries(enc2utf8(ent)))[["elapsed"]]
   expect_length(e, n)
   expect_lt(t, 10)
 })
@@ -233,11 +233,11 @@ test_that("title keys lower Greek and Cyrillic capitals the same way in a C loca
   # On glibc, tolower() in a C locale lowers A-Z alone. macOS lowers the rest
   # too, so on this platform the test guards rather than reproduces.
   up <- "\u0391\u039d\u0391\u039b\u03a5\u03a3\u0397 \u0418\u0421\u0421\u041b\u0415\u0414\u041e\u0412\u0410\u041d\u0418\u0415 of outcomes"
-  low <- readgpt:::lower_text(up)
+  low <- harnessr:::lower_text(up)
   withr::local_locale(c(LC_CTYPE = "C"))
-  expect_identical(readgpt:::title_key(up), readgpt:::title_key(low))
-  expect_identical(readgpt:::title_key("Sj\u00f6gren's syndrome and dry eye"),
-                   readgpt:::title_key("SJOGREN'S SYNDROME AND DRY EYE"))
+  expect_identical(harnessr:::title_key(up), harnessr:::title_key(low))
+  expect_identical(harnessr:::title_key("Sj\u00f6gren's syndrome and dry eye"),
+                   harnessr:::title_key("SJOGREN'S SYNDROME AND DRY EYE"))
 })
 
 # ---------------------------------------------------------------------------

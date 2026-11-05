@@ -25,8 +25,8 @@ r6c_claim <- function(text, sup, con = integer(0), moderator = NULL, kind = "fin
 # Verified claim rows, as claims_reconcile() receives them.
 r6c_rows <- function(...) {
   js <- sprintf('{"claims":[%s]}', paste(c(...), collapse = ","))
-  readgpt:::claims_verify(readgpt:::claim_rows(jsonlite::fromJSON(js)$claims),
-                          readgpt:::synth_studies(r6c_table(c("RCT", "cohort", "RCT")), FALSE))$claims
+  harnessr:::claims_verify(harnessr:::claim_rows(jsonlite::fromJSON(js)$claims),
+                          harnessr:::synth_studies(r6c_table(c("RCT", "cohort", "RCT")), FALSE))$claims
 }
 
 r6c_warns <- function(expr) {
@@ -49,7 +49,7 @@ test_that("a flat groups array leaves the claims unmerged, with a warning", {
                      r6c_claim("Surveys of children found no effect.", 2),
                      r6c_claim("Harms were rare.", 3))
   cl <- gr_mock_client(function(m, p) '{"groups":[1,2,3]}')
-  r <- r6c_warns(readgpt:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  r <- r6c_warns(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
   expect_identical(nrow(r$value), 3L)
   expect_identical(lengths(r$value$.support), c(1L, 1L, 1L))
   expect_true("gr_claims_unmerged" %in% r$classes)
@@ -57,7 +57,7 @@ test_that("a flat groups array leaves the claims unmerged, with a warning", {
   expect_true(isTRUE(attr(r$value, "unmerged")))
   # A real single group of three still merges: it arrives as a 1 x 3 matrix.
   cl <- gr_mock_client(function(m, p) '{"groups":[[1,2,3]]}')
-  expect_identical(nrow(quiet(readgpt:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"),
+  expect_identical(nrow(quiet(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"),
                                                          gr_trace()))), 1L)
 })
 
@@ -72,13 +72,13 @@ test_that("a merged claim names the wordings it absorbed", {
     r6c_claim("The treatment improved symptoms in clinical samples.", 1),
     r6c_claim("The treatment did not improve symptoms in the community samples studied.", 2:3))
   cl <- gr_mock_client(function(m, p) '{"groups":[[1,2]]}')
-  got <- quiet(readgpt:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  got <- quiet(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
   expect_identical(nrow(got), 1L)
   expect_match(got$note, "merged with: 'The treatment improved symptoms in clinical samples.'",
                fixed = TRUE)
   # The same claim twice is a merge with nothing to report.
   same <- r6c_rows(r6c_claim("It works.", 1), r6c_claim("It  works.", 2))
-  got <- quiet(readgpt:::claims_reconcile(same, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  got <- quiet(harnessr:::claims_reconcile(same, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
   expect_true(is.na(got$note))
 })
 
@@ -86,12 +86,12 @@ test_that("a group mixing a finding with a gap is warned about", {
   claims <- r6c_rows(r6c_claim("Trials find the effect.", 1),
                      r6c_claim("No study followed up past a year.", 2, kind = "gap"))
   cl <- gr_mock_client(function(m, p) '{"groups":[[1,2]]}')
-  r <- r6c_warns(readgpt:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  r <- r6c_warns(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
   expect_true("gr_claims_merged" %in% r$classes)
   expect_match(r$value$note, "merged with:", fixed = TRUE)
   # Claims of one kind merge without that warning.
   claims$kind <- "finding"
-  r <- r6c_warns(readgpt:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  r <- r6c_warns(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
   expect_false("gr_claims_merged" %in% r$classes)
 })
 
@@ -135,10 +135,10 @@ test_that("the reconcile reply limit grows with the number of claims", {
   claims <- r6c_rows(r6c_claim("Seed.", 1))[rep(1L, n), ]
   claims$claim <- sprintf("Claim number %d.", seq_len(n))
   cl <- gr_mock_client(function(m, p) { seen <<- p$max_output; '{"groups":[]}' })
-  quiet(readgpt:::claims_reconcile(claims, "Q?", cl,
+  quiet(harnessr:::claims_reconcile(claims, "Q?", cl,
                                    gr_read_spec("stuff", model = "mock-model",
                                                 max_answer_tokens = 1600L), gr_trace()))
-  expect_gte(seen, readgpt:::reconcile_reply_tokens(n))
+  expect_gte(seen, harnessr:::reconcile_reply_tokens(n))
   expect_gt(seen, 1600L)
 })
 
@@ -150,7 +150,7 @@ test_that("a reconcile reply cut off by the window is not blamed on the reply li
   claims$claim <- sprintf("Claim number %d says something moderately long about the evidence.",
                           seq_len(40L))
   cl <- gr_mock_client(function(m, p) gr_result(TRUE, '{"groups":[[1,', finish_reason = "length"))
-  r <- r6c_warns(readgpt:::claims_reconcile(
+  r <- r6c_warns(harnessr:::claims_reconcile(
     claims, "Q?", cl, gr_read_spec("stuff", model = "recon-small", max_answer_tokens = 400L),
     gr_trace()))
   msg <- r$messages[r$classes == "gr_claims_unmerged"]
@@ -185,7 +185,7 @@ test_that("a moderator naming a column that does not vary is cleared", {
 })
 
 test_that("a numeric moderator must separate the sides by a threshold", {
-  sp <- readgpt:::moderator_split
+  sp <- harnessr:::moderator_split
   used <- data.frame(study = 1:4, n = c(40, 60, 900, 50), dose = c("10", "20", "5", "15"),
                      stringsAsFactors = FALSE)
   # Every value differs, so as sets the sides are always disjoint; that explains nothing.
@@ -304,7 +304,7 @@ test_that("gr_outline's reply limit can be raised and grows with the claims", {
   big <- r6c_many_claims(300L)
   quiet(gr_outline(big, client = cl))
   expect_gt(seen, 1200L)
-  expect_identical(seen, readgpt:::outline_reply_tokens(300L, 6L, gr_model_info("mock-model")))
+  expect_identical(seen, harnessr:::outline_reply_tokens(300L, 6L, gr_model_info("mock-model")))
   # A reasoning model spends part of the limit thinking, so it gets more.
   local_registries()
   gr_register_model("outline-think", context_window = 200000L, max_output = 64000L,
@@ -329,20 +329,20 @@ test_that("a cut-off outline names the argument that raises its limit", {
 
 r6c_revise <- function(draft, revision, pass = "register") {
   cl <- gr_mock_client(function(m, p) revision)
-  r6c_warns(readgpt:::revise_once(draft, "Q?", cl, gr_read_spec("stuff", model = "mock-model"),
+  r6c_warns(harnessr:::revise_once(draft, "Q?", cl, gr_read_spec("stuff", model = "mock-model"),
                                   gr_trace(), NULL, pass))
 }
 
 test_that("a marker moved past the full stop still makes its sentence a claim", {
   # Before: "[study 1] [study 2]" became a sentence of its own, so the universal
   # in the sentence it cites was never counted.
-  expect_false(readgpt:::strength_guard(
+  expect_false(harnessr:::strength_guard(
     "The two trials reported a benefit in adults [study 1] [study 2].",
     "All trials always show a benefit in every adult. [study 1] [study 2]")$ok)
-  expect_equal(readgpt:::claim_sentences("A benefit in adults. [study 1] [study 2]"),
+  expect_equal(harnessr:::claim_sentences("A benefit in adults. [study 1] [study 2]"),
                "A benefit in adults. [study 1] [study 2]")
   # An honest revision that only moves the marker is still allowed.
-  expect_true(readgpt:::strength_guard(
+  expect_true(harnessr:::strength_guard(
     "The two trials may suggest a benefit in adults [study 1] [study 2].",
     "The two trials may suggest a benefit in adults. [study 1] [study 2]")$ok)
 })
@@ -358,7 +358,7 @@ test_that("taking the citation off a claim that stays is refused", {
   expect_true("gr_coherence_rejected" %in% r$classes)
   expect_match(r$value$reason, "took the citation off 1 claim sentence", fixed = TRUE)
   # Even with an uncited sentence deleted to balance the count, the universal is seen.
-  expect_false(readgpt:::strength_guard(
+  expect_false(harnessr:::strength_guard(
     paste("This section covers harms.", draft),
     paste("All patients over 65 always suffer more adverse events.",
           "The trial may suggest a small benefit [study 1]."))$ok)
@@ -393,9 +393,9 @@ test_that("a draft the guard cannot read is not revised", {
                      "[study 1] [study 2]. Une cohorte pourrait montrer un risque [study 3].")
   fr_rev <- paste0("Tous les essais d\u00e9montrent clairement un b\u00e9n\u00e9fice ",
                    "[study 1] [study 2]. Le m\u00e9dicament est prouv\u00e9 s\u00fbr [study 3].")
-  expect_false(readgpt:::strength_guard(fr_draft, fr_rev)$ok)
+  expect_false(harnessr:::strength_guard(fr_draft, fr_rev)$ok)
   cl <- gr_mock_client(function(m, p) fr_rev)
-  r <- r6c_warns(readgpt:::synth_revise(fr_draft, "Q?", cl,
+  r <- r6c_warns(harnessr:::synth_revise(fr_draft, "Q?", cl,
                                         gr_read_spec("stuff", model = "mock-model"),
                                         gr_trace(), "en fran\u00e7ais", "register"))
   expect_null(r$value$text)
@@ -407,15 +407,15 @@ test_that("a draft the guard cannot read is not revised", {
   zh <- paste0("\u4e09\u9879\u5c0f\u578b\u8bd5\u9a8c\u63d0\u793a\u53ef\u80fd\u6709\u76ca",
                "[study 1]\u3002\u4e00\u9879\u961f\u5217\u7814\u7a76\u53ef\u80fd\u663e\u793a",
                "\u98ce\u9669[study 2]\u3002")
-  expect_length(readgpt:::split_sentences(zh), 2L)
-  expect_false(readgpt:::guard_reads(zh))
+  expect_length(harnessr:::split_sentences(zh), 2L)
+  expect_false(harnessr:::guard_reads(zh))
 
   # An English draft revised into another language is refused too.
-  expect_false(readgpt:::strength_guard(
+  expect_false(harnessr:::strength_guard(
     "Three small trials may suggest a modest benefit [study 1] [study 2].",
     "Tous les essais d\u00e9montrent un b\u00e9n\u00e9fice [study 1] [study 2].")$ok)
   # And English, with a Latin phrase and an acronym that look foreign, is read.
-  expect_true(readgpt:::guard_reads(paste(
+  expect_true(harnessr:::guard_reads(paste(
     "De novo variants in IL-6 may matter in von Willebrand disease [study 1].",
     "Two trials suggest a possible benefit [study 2].")))
 })

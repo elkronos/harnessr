@@ -1,8 +1,8 @@
 ---
-title: "A tour of readgpt"
+title: "A tour of harnessr"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{A tour of readgpt}
+  %\VignetteIndexEntry{A tour of harnessr}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -12,7 +12,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 This is a short tour of the whole package, for readers who already know the
-ideas. If you are new to language models, start with `vignette("readgpt")`, which
+ideas. If you are new to language models, start with `vignette("harnessr")`, which
 explains them; `vignette("ingest")` and `vignette("readers")` cover two of the
 decisions below in depth.
 
@@ -28,7 +28,7 @@ Each is a registry you can list, swap and extend. Any ingest × any segmenter ×
 any reader composes.
 
 ```{r message = FALSE}
-library(readgpt)
+library(harnessr)
 ```
 
 ## Running this vignette without an API key
@@ -296,7 +296,7 @@ A **cache** stores each successful response against the exact request, so a
 repeat is free and identical:
 
 ```{r}
-cache <- gr_cache(dir = file.path(tempdir(), "readgpt-vignette-cache"))
+cache <- gr_cache(dir = file.path(tempdir(), "harnessr-vignette-cache"))
 cached_cl <- gr_cache_client(cl, cache)
 
 first  <- answer_document(readgpt_example(), "What was revenue?", "fast",

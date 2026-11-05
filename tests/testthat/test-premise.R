@@ -61,7 +61,7 @@ readers_answering <- c("stuff", "map_reduce", "refine", "skim", "retrieve", "rer
 # --- the detector ------------------------------------------------------------
 
 test_that("the premise sentinel is read through the ways models decorate it", {
-  pc <- readgpt:::premise_correction
+  pc <- harnessr:::premise_correction
   rose <- "Revenue rose 12%."
   forms <- c("FALSE_PREMISE: Revenue rose 12%.",
              "**FALSE_PREMISE:** Revenue rose 12%.",
@@ -96,7 +96,7 @@ test_that("the premise sentinel is read through the ways models decorate it", {
 })
 
 test_that("an answer that merely mentions or resembles the sentinel is not a verdict", {
-  pc <- readgpt:::premise_correction
+  pc <- harnessr:::premise_correction
   for (x in c("Revenue rose 12%.", "NOT_IN_DOCUMENT", "",
               "The log said FALSE_PREMISE: revenue rose.",
               "False premise reasoning is common in surveys.",
@@ -109,19 +109,19 @@ test_that("an answer that merely mentions or resembles the sentinel is not a ver
 
 test_that("a bare sentinel is a verdict without its sentence, and says so", {
   for (x in c("FALSE_PREMISE", "**FALSE_PREMISE.**", "FALSE_PREMISE:")) {
-    r <- readgpt:::premise_reply(x, TRUE)
-    expect_identical(r$premise, readgpt:::.gr_premise_unstated, info = x)
+    r <- harnessr:::premise_reply(x, TRUE)
+    expect_identical(r$premise, harnessr:::.gr_premise_unstated, info = x)
     expect_identical(r$text, r$premise)
     expect_false(is_not_found(r$text))
   }
 })
 
 test_that("both sentinels at once read as not found, and an unchecked reply is left alone", {
-  r <- readgpt:::premise_reply("FALSE_PREMISE: NOT_IN_DOCUMENT.", TRUE)
+  r <- harnessr:::premise_reply("FALSE_PREMISE: NOT_IN_DOCUMENT.", TRUE)
   expect_identical(r$text, "NOT_IN_DOCUMENT")
   expect_true(is.na(r$premise))
   # Not checked: the text exactly as it came, sentinel and all, and no field.
-  r0 <- readgpt:::premise_reply("**FALSE_PREMISE:** Revenue rose.", FALSE)
+  r0 <- harnessr:::premise_reply("**FALSE_PREMISE:** Revenue rose.", FALSE)
   expect_identical(r0$text, "**FALSE_PREMISE:** Revenue rose.")
   expect_null(r0$premise)
 })
@@ -134,13 +134,13 @@ test_that("the spec carries `premise` only when it is TRUE", {
   s <- gr_read_spec("stuff", premise = TRUE)
   expect_true(s$premise)
   # What was changed from the defaults, for the trace and gr_compare().
-  expect_true(readgpt:::read_settings(s)$premise)
-  expect_null(readgpt:::read_settings(gr_read_spec("stuff"))$premise)
+  expect_true(harnessr:::read_settings(s)$premise)
+  expect_null(harnessr:::read_settings(gr_read_spec("stuff"))$premise)
   # And so the keys a store and a comparison file under are the ones they were.
-  expect_identical(readgpt:::gr_hash(unclass(gr_read_spec("stuff", premise = FALSE))),
-                   readgpt:::gr_hash(unclass(gr_read_spec("stuff"))))
-  expect_false(identical(readgpt:::gr_hash(unclass(s)),
-                         readgpt:::gr_hash(unclass(gr_read_spec("stuff")))))
+  expect_identical(harnessr:::gr_hash(unclass(gr_read_spec("stuff", premise = FALSE))),
+                   harnessr:::gr_hash(unclass(gr_read_spec("stuff"))))
+  expect_false(identical(harnessr:::gr_hash(unclass(s)),
+                         harnessr:::gr_hash(unclass(gr_read_spec("stuff")))))
 })
 
 test_that("`premise` must be TRUE or FALSE, and is said to do nothing for screen and extract", {
@@ -156,22 +156,22 @@ test_that("`premise` must be TRUE or FALSE, and is said to do nothing for screen
 
 test_that("the rule is in the string the budget is computed from", {
   for (cite in c(FALSE, TRUE)) {
-    base <- readgpt:::answer_system(cite)
-    with <- readgpt:::answer_system(cite, premise = TRUE)
-    expect_identical(base, if (cite) readgpt:::.gr_prompts$answer_system_cited
-                           else readgpt:::.gr_prompts$answer_system)
+    base <- harnessr:::answer_system(cite)
+    with <- harnessr:::answer_system(cite, premise = TRUE)
+    expect_identical(base, if (cite) harnessr:::.gr_prompts$answer_system_cited
+                           else harnessr:::.gr_prompts$answer_system)
     expect_true(startsWith(with, base))
     expect_true(grepl("FALSE_PREMISE:", with, fixed = TRUE))
     expect_true(grepl("NOT_IN_DOCUMENT", sub(base, "", with, fixed = TRUE), fixed = TRUE))
-    expect_gt(readgpt:::prompt_overhead(Q, with), readgpt:::prompt_overhead(Q, base))
+    expect_gt(harnessr:::prompt_overhead(Q, with), harnessr:::prompt_overhead(Q, base))
   }
-  expect_identical(readgpt:::merge_system_prompt(), readgpt:::.gr_prompts$merge_system)
-  expect_identical(readgpt:::refine_system_prompt(), readgpt:::.gr_prompts$refine_system)
+  expect_identical(harnessr:::merge_system_prompt(), harnessr:::.gr_prompts$merge_system)
+  expect_identical(harnessr:::refine_system_prompt(), harnessr:::.gr_prompts$refine_system)
 
   # What `stuff` sends is the string it budgeted with.
   cl <- premise_model()
   quiet(gr_read(premise_fixture(), Q, cl, gr_read_spec("stuff", premise = TRUE, cite = TRUE)))
-  expect_identical(sys_of(cl$calls()[[1]]), readgpt:::answer_system(TRUE, premise = TRUE))
+  expect_identical(sys_of(cl$calls()[[1]]), harnessr:::answer_system(TRUE, premise = TRUE))
 })
 
 test_that("the recorded worst-case cost covers the rule in every answering prompt", {
@@ -308,7 +308,7 @@ test_that("map_reduce: the merge weighs a correction against an answer, and may 
   expect_length(m, 1L)
   # The merge prompt has the rule; the contradicting chunk reached it as a
   # finding that says what it is, normalised, and the answering chunk as itself.
-  expect_identical(sys_of(m[[1]]), readgpt:::merge_system_prompt(TRUE))
+  expect_identical(sys_of(m[[1]]), harnessr:::merge_system_prompt(TRUE))
   expect_true(grepl("FALSE_PREMISE: Revenue rose 12% in 2023, to 45.2 million.", body_of(m[[1]]),
                     fixed = TRUE))
   expect_false(grepl("**FALSE_PREMISE", body_of(m[[1]]), fixed = TRUE))
@@ -356,7 +356,7 @@ test_that("refine carries the verdict in its draft, and a later excerpt can over
   a <- quiet(gr_read(ch, Q, cl, gr_read_spec("refine", premise = TRUE)))
   rev <- Filter(function(k) identical(k$label, "refine.revise"), cl$calls())
   expect_length(rev, 2L)
-  expect_identical(sys_of(rev[[1]]), readgpt:::refine_system_prompt(TRUE))
+  expect_identical(sys_of(rev[[1]]), harnessr:::refine_system_prompt(TRUE))
   expect_true(grepl("<draft>\nFALSE_PREMISE: Revenue rose 12%.\n</draft>", body_of(rev[[1]]),
                     fixed = TRUE))
   expect_identical(a$premise, "Revenue rose 12%.")
@@ -393,7 +393,7 @@ test_that("iterative asks for the verdict in its schema and stops on it", {
   c2 <- quiet(gr_read(ch, Q, premise_model(step = paste0(
     '{"can_answer": false, "answer": "", "next_query": "x", "false_premise": true}')),
     gr_read_spec("iterative", premise = TRUE)))
-  expect_identical(c2$premise, readgpt:::.gr_premise_unstated)
+  expect_identical(c2$premise, harnessr:::.gr_premise_unstated)
   # The flag with the not-found sentinel as its answer is no verdict: the step
   # is read as can_answer says, and the loop goes on to its final answer.
   cl3 <- premise_model(step = paste0('{"can_answer": false, "answer": "NOT_IN_DOCUMENT", ',
@@ -415,7 +415,7 @@ test_that("iterative asks for the verdict in its schema and stops on it", {
 test_that("iterative: the flag with both sentinels as its answer is no verdict either", {
   # The step prompt asks for the flag and the answer prompt for the sentinel,
   # so a model that found nothing may send both, and both exits at once.
-  fr <- readgpt:::premise_field_reply
+  fr <- harnessr:::premise_field_reply
   for (x in c("FALSE_PREMISE: NOT_IN_DOCUMENT", "**FALSE_PREMISE:** NOT_IN_DOCUMENT")) {
     for (flag in c(TRUE, FALSE)) {
       r <- fr(x, flag)
@@ -425,7 +425,7 @@ test_that("iterative: the flag with both sentinels as its answer is no verdict e
   }
   # What the field adds to a sentinel already read is nothing.
   expect_identical(fr("FALSE_PREMISE: Revenue rose.", TRUE)$premise, "Revenue rose.")
-  expect_identical(fr("FALSE_PREMISE:", TRUE)$premise, readgpt:::.gr_premise_unstated)
+  expect_identical(fr("FALSE_PREMISE:", TRUE)$premise, harnessr:::.gr_premise_unstated)
 
   ch <- premise_fixture()
   cl <- premise_model(step = paste0(
@@ -458,7 +458,7 @@ test_that("ensemble adjudicates its members' corrections as corrections", {
                                              premise = TRUE)))
   adj <- Filter(function(k) identical(k$label, "ensemble.adjudicate"), cl$calls())
   expect_length(adj, 1L)
-  expect_true(startsWith(sys_of(adj[[1]]), readgpt:::merge_system_prompt(TRUE)))
+  expect_true(startsWith(sys_of(adj[[1]]), harnessr:::merge_system_prompt(TRUE)))
   body <- body_of(adj[[1]])
   expect_identical(lengths(regmatches(body, gregexpr("FALSE_PREMISE: Revenue rose 12%.", body,
                                                      fixed = TRUE))), 2L)
@@ -542,7 +542,7 @@ test_that("new_answer() leaves the field out unless a reader passes it", {
   # correction "FALSE", and the answer said the model contradicted the question.
   f <- new_answer("Revenue was 45.2 million.", "r", "q", 1L, tr, premise = FALSE)
   expect_true(is.na(f$premise))
-  expect_false(readgpt:::premise_flagged(f))
+  expect_false(harnessr:::premise_flagged(f))
   expect_false(any(grepl("contradicts", capture.output(print(f)), fixed = TRUE)))
   # Anything else that is no sentence is refused, not read as one.
   for (p in list(TRUE, 1, c(FALSE, FALSE))) {

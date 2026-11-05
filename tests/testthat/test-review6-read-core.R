@@ -8,7 +8,7 @@
 #
 # Each block names the finding and says what the old behaviour was.
 
-sm <- function(span, src, ...) readgpt:::span_match(span, src, ...)
+sm <- function(span, src, ...) harnessr:::span_match(span, src, ...)
 verified <- function(span, src, ...) isTRUE(sm(span, src, ...)$verified)
 manual_chunks <- function(texts, ...) {
   new_chunks(texts, "manual", gr_segment_spec(max_tokens = 100), ...)
@@ -88,7 +88,7 @@ test_that("the sentinels are recognised in the punctuation of other scripts", {
               "NOT_IN_DOCUMENT\u3002\u8be5\u6458\u5f55\u672a\u63d0\u53ca\u6536\u5165\u3002")) {
     expect_true(is_not_found(x), info = x)
   }
-  none <- readgpt:::is_none_reply
+  none <- harnessr:::is_none_reply
   expect_true(all(none(c("NONE", "NONE.", "**None**", "NONE\u3002", "\u300cNONE\u300d",
                          "\u00ab NONE \u00bb", "NONE\uff01", "\u201cNONE.\u201d"))))
   # A passage copied verbatim may open with the word, and is evidence.
@@ -114,7 +114,7 @@ test_that("map_reduce over chunks that all reply the sentinel with an ideographi
 # ---------------------------------------------------------------------------
 
 test_that("a per-chunk answer keeps its chunk's page, and a quotation is placed as whole words", {
-  rp <- readgpt:::resolve_evidence_pages
+  rp <- harnessr:::resolve_evidence_pages
   blocks <- data.frame(text = c("All eyes were on the board meeting in March.",
                                 "Staff numbers were stable through the year.",
                                 "Revenue rose 12 percent in 2023."),
@@ -147,7 +147,7 @@ test_that("a per-chunk answer keeps its chunk's page, and a quotation is placed 
 })
 
 test_that("a common phrase on many pages is left unplaced, quickly", {
-  rp <- readgpt:::resolve_evidence_pages
+  rp <- harnessr:::resolve_evidence_pages
   blocks <- data.frame(text = sprintf("Block %d: revenue rose 12%% in year %d.", 1:3000, 1:3000),
                        page = rep(1:1000, each = 3), section = NA_character_,
                        stringsAsFactors = FALSE)
@@ -215,7 +215,7 @@ test_that("an answer that records where its run started reports only from there"
   # A trace made for the one answer is passed through whole.
   own <- quiet(answer_document("Third memo: the budget for next year is unchanged.",
                               "What is the budget?", "fast", client = cl))
-  expect_identical(readgpt:::answer_trace(own), own$trace)
+  expect_identical(harnessr:::answer_trace(own), own$trace)
 })
 
 # ---------------------------------------------------------------------------
@@ -323,8 +323,8 @@ test_that("chunks whose pages are labels or fractions are read, and the prompt n
   expect_false(a2$partial)
   expect_true(any(grepl("[chunk 1 p.1.5]", seen, fixed = TRUE)))
   expect_true(any(grepl("[chunk 2 p.2]", seen, fixed = TRUE)))
-  expect_identical(readgpt:::page_text(c(3, 1e5, NA)), c("3", "100000", NA))
-  expect_identical(readgpt:::page_text(7L), "7")
+  expect_identical(harnessr:::page_text(c(3, 1e5, NA)), c("3", "100000", NA))
+  expect_identical(harnessr:::page_text(7L), "7")
 })
 
 # ---------------------------------------------------------------------------
@@ -340,7 +340,7 @@ test_that("merge groups are sized with the tags each finding is sent in", {
   cl <- gr_mock_client(function(messages, params) "Merged answer.")
   spec <- gr_read_spec("map_reduce", model = "review6-merge-ctx", max_answer_tokens = 300L)
   tr <- gr_trace()
-  res <- quiet(readgpt:::tree_merge(cl, "Did revenue rise in 2023?", rep("Yes.", 300), spec, tr))
+  res <- quiet(harnessr:::tree_merge(cl, "Did revenue rise in 2023?", rep("Yes.", 300), spec, tr))
   expect_true(res$ok)                                        # was FALSE
   expect_length(tr$errors, 0L)
   sent <- vapply(tr$steps, function(s)

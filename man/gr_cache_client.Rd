@@ -22,7 +22,7 @@ issued, which is how you check that the cache is working.
 \examples{
 calls <- 0
 cl <- gr_mock_client(function(m, p) { calls <<- calls + 1; "42" })
-cl <- gr_cache_client(cl, gr_cache(file.path(tempdir(), "readgpt-doc-cache")))
+cl <- gr_cache_client(cl, gr_cache(file.path(tempdir(), "harnessr-doc-cache")))
 
 gr_call(cl, "What is the answer?")$text
 gr_call(cl, "What is the answer?")$text   # served from the cache

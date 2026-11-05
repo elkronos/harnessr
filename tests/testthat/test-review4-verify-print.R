@@ -4,7 +4,7 @@
 #
 # Each block names the finding and says what the old behaviour was.
 
-sm <- function(...) readgpt:::span_match(...)
+sm <- function(...) harnessr:::span_match(...)
 
 # ---------------------------------------------------------------------------
 # read-core-05, part 2: an elision in a skim quotation may not drop a negation
@@ -68,11 +68,11 @@ test_that("an elision across a sentence end has to resume at a sentence start", 
 test_that("the search over repeated passages is bounded and fails closed", {
   src <- paste0(paste(rep("alpha not beta.", 20), collapse = " "), " alpha and beta.")
   pieces <- c("alpha", "beta")
-  ms <- readgpt:::match_source(src)
-  expect_true(readgpt:::found_in_order(pieces, ms))
+  ms <- harnessr:::match_source(src)
+  expect_true(harnessr:::found_in_order(pieces, ms))
   # With no gaps left to read, a quotation it has not placed is not verified.
-  expect_false(readgpt:::elided_chain(pieces, ms, budget = 1L))
-  expect_true(readgpt:::elided_chain(pieces, ms))
+  expect_false(harnessr:::elided_chain(pieces, ms, budget = 1L))
+  expect_true(harnessr:::elided_chain(pieces, ms))
 })
 
 test_that("a skim quotation that elides a negation makes the answer partial", {
@@ -120,8 +120,8 @@ test_that("Han and Cyrillic quotations are checked under a C locale", {
     expect_true(sm(zh_q, zh)$verified)
     expect_true(sm(ru_q, ru)$verified)
     expect_false(sm(ru_bad, ru)$verified)
-    expect_length(readgpt:::quote_passages(ru_q)$raw, 1L)
-    expect_true(readgpt:::quote_backs_value("\u0432\u044b\u0440\u043e\u0441\u043b\u0430", ru_q, ru,
+    expect_length(harnessr:::quote_passages(ru_q)$raw, 1L)
+    expect_true(harnessr:::quote_backs_value("\u0432\u044b\u0440\u043e\u0441\u043b\u0430", ru_q, ru,
                                             gr_field("trend")))
   }
   check()
@@ -145,16 +145,16 @@ test_that("Han and Cyrillic quotations are checked under a C locale", {
 r4_trace <- function(fail = TRUE) {
   tr <- gr_trace()
   msg <- list(list(role = "user", content = "q"))
-  readgpt:::trace_record(tr, "map.answer", msg,
+  harnessr:::trace_record(tr, "map.answer", msg,
                          gr_result(TRUE, text = "a", model = "gpt-4o",
                                    usage = list(input = 10L, output = 2L)))
-  readgpt:::trace_record(tr, "embed.request", msg,
+  harnessr:::trace_record(tr, "embed.request", msg,
                          gr_result(FALSE, error = "HTTP 404: no embeddings model",
                                    model = "text-embedding-3-small"),
                          embedding = TRUE)
-  readgpt:::trace_mark_recovered(tr, 1L)
+  harnessr:::trace_mark_recovered(tr, 1L)
   if (fail) {
-    readgpt:::trace_record(tr, "map.answer", msg,
+    harnessr:::trace_record(tr, "map.answer", msg,
                            gr_result(FALSE, error = "HTTP 503: upstream down", model = "gpt-4o"))
   }
   tr
@@ -171,7 +171,7 @@ test_that("print() on an answer counts embeddings requests apart from model call
 
   # An answer that embedded nothing prints as it always did.
   plain <- gr_trace()
-  readgpt:::trace_record(plain, "map.answer", list(list(role = "user", content = "q")),
+  harnessr:::trace_record(plain, "map.answer", list(list(role = "user", content = "q")),
                          gr_result(TRUE, text = "a", model = "gpt-4o",
                                    usage = list(input = 10L, output = 2L)))
   b <- new_answer("x", "stuff", "q?", chunks_used = 1L, trace = plain)
@@ -182,7 +182,7 @@ test_that("print() on an answer counts embeddings requests apart from model call
 test_that("print() names the first failure nothing recovered from", {
   a <- new_answer("x", "stuff", "q?", chunks_used = 1L, trace = r4_trace(),
                   partial = TRUE, notes = list(failed_calls = 1L))
-  why <- readgpt:::partial_reasons(a)
+  why <- harnessr:::partial_reasons(a)
   expect_true("first error: HTTP 503: upstream down" %in% why)
   expect_false(any(grepl("HTTP 404", why)))
   expect_true(any(grepl("first error: HTTP 503: upstream down",
@@ -192,13 +192,13 @@ test_that("print() names the first failure nothing recovered from", {
   # the fallback was needed.
   b <- new_answer("x", "stuff", "q?", chunks_used = 1L, trace = r4_trace(fail = FALSE),
                   partial = TRUE, notes = list(embedding_fallback = TRUE))
-  expect_identical(readgpt:::partial_reasons(b),
+  expect_identical(harnessr:::partial_reasons(b),
                    c("embeddings fell back to word matching",
                      "first error: HTTP 404: no embeddings model"))
   # A note the reader left still comes first.
   d <- new_answer("x", "stuff", "q?", chunks_used = 1L, trace = r4_trace(),
                   partial = TRUE, notes = list(error = "the reader's own error"))
-  expect_true("first error: the reader's own error" %in% readgpt:::partial_reasons(d))
+  expect_true("first error: the reader's own error" %in% harnessr:::partial_reasons(d))
 })
 
 # Stands in for an OpenAI-shaped server whose embeddings endpoint answers
@@ -262,12 +262,12 @@ test_that("a verbatim quote that does not state its value is not called 'not fou
                    verified = c(FALSE, FALSE), match = c(1, 0.2), field = c("n", "design"),
                    stringsAsFactors = FALSE)
   a <- structure(list(evidence = ev, notes = list(unverified_evidence = 2L)), class = "gr_answer")
-  why <- readgpt:::partial_reasons(a)
+  why <- harnessr:::partial_reasons(a)
   expect_true(any(grepl("1 quotation(s) found but not stating the value cited", why, fixed = TRUE)))
   expect_true(any(grepl("1 quotation(s) not found in the document", why, fixed = TRUE)))
   # A table without the columns to tell them apart keeps the old wording.
   a$evidence <- NULL
-  expect_true(any(grepl("2 quotation(s) not found in the document", readgpt:::partial_reasons(a),
+  expect_true(any(grepl("2 quotation(s) not found in the document", harnessr:::partial_reasons(a),
                         fixed = TRUE)))
 })
 
@@ -275,14 +275,14 @@ test_that("lower case does not depend on the session's locale", {
   # tolower() lowers only A-Z in a C locale on Linux, so a quotation in lower
   # case of a capitalised Russian sentence failed there and nowhere else.
   up <- intToUtf8(c(0x412, 0x44b, 0x440, 0x443, 0x447, 0x43a, 0x430))       # Cyrillic
-  expect_identical(utf8ToInt(readgpt:::lower_text(up))[1], 0x432L)
-  expect_identical(utf8ToInt(readgpt:::lower_text(intToUtf8(0x391L))), 0x3B1L)   # Greek
-  expect_identical(utf8ToInt(readgpt:::lower_text(intToUtf8(0xC9L))), 0xE9L)     # Latin-1
-  expect_identical(utf8ToInt(readgpt:::lower_text(intToUtf8(0x1EA0L))), 0x1EA1L) # Vietnamese
-  expect_identical(readgpt:::lower_text("MiXeD 12"), "mixed 12")
+  expect_identical(utf8ToInt(harnessr:::lower_text(up))[1], 0x432L)
+  expect_identical(utf8ToInt(harnessr:::lower_text(intToUtf8(0x391L))), 0x3B1L)   # Greek
+  expect_identical(utf8ToInt(harnessr:::lower_text(intToUtf8(0xC9L))), 0xE9L)     # Latin-1
+  expect_identical(utf8ToInt(harnessr:::lower_text(intToUtf8(0x1EA0L))), 0x1EA1L) # Vietnamese
+  expect_identical(harnessr:::lower_text("MiXeD 12"), "mixed 12")
   old <- Sys.getlocale("LC_CTYPE")
   skip_if(!nzchar(old), "no LC_CTYPE to restore")
   withr::defer(suppressWarnings(Sys.setlocale("LC_CTYPE", old)))
   skip_if(!nzchar(suppressWarnings(Sys.setlocale("LC_CTYPE", "C"))), "cannot switch to the C locale here")
-  expect_identical(utf8ToInt(readgpt:::lower_text(up))[1], 0x432L)
+  expect_identical(utf8ToInt(harnessr:::lower_text(up))[1], 0x432L)
 })

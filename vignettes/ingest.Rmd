@@ -15,14 +15,14 @@ has_pdftools <- requireNamespace("pdftools", quietly = TRUE)
 Before a model can read a document, the text has to come out of the file. That
 step, *ingestion*, is easy to overlook and hard to undo. Text lost here, or
 damaged by too much clean-up, is text no model will see, however good the rest
-of the pipeline is. This guide covers what readgpt can read, what it keeps, what
+of the pipeline is. This guide covers what harnessr can read, what it keeps, what
 it removes, and how to check a folder before spending anything on it.
 
-New to readgpt? `vignette("readgpt")` introduces the package and the ideas used
+New to harnessr? `vignette("harnessr")` introduces the package and the ideas used
 here.
 
 ```{r message = FALSE}
-library(readgpt)
+library(harnessr)
 old <- gr_options(verbose = FALSE)
 ```
 
@@ -30,7 +30,7 @@ old <- gr_options(verbose = FALSE)
 
 `gr_ingest()` reads a file and returns a *document*: the text split into
 *blocks*, which are the paragraphs, headings and list items as the file has them.
-readgpt includes a short example, an annual report written in Markdown:
+harnessr includes a short example, an annual report written in Markdown:
 
 ```{r}
 doc <- gr_ingest(readgpt_example())
@@ -57,7 +57,7 @@ unlist(doc$stats[c("blocks", "chars", "tokens", "chars_removed")])
 You rarely need to call `gr_ingest()` yourself, since `answer_document()` does it
 for you. Calling it directly shows you what the model will get.
 
-## What readgpt can read
+## What harnessr can read
 
 Each file type is handled by an *extractor*, chosen by the file's extension.
 `available` says whether the packages it needs are installed:
@@ -159,7 +159,7 @@ report$blocks[, c("page", "section", "kind", "text")]
 ```
 
 A PDF's text comes out as the page looks, which is not always the order a person
-reads in, so readgpt puts it back in reading order:
+reads in, so harnessr puts it back in reading order:
 
 - A page set in two columns is read one column after the other. Without this,
   each line would join the start of a line from each column.
@@ -180,7 +180,7 @@ relying on a new kind of PDF.
 
 A scanned PDF is a picture of text, with no text inside it to extract. Reading it
 needs *optical character recognition* (OCR), which turns the picture back into
-text. OCR is slow (seconds per page) and never perfect, so readgpt uses it only
+text. OCR is slow (seconds per page) and never perfect, so harnessr uses it only
 where it is needed:
 
 ```{r eval = FALSE}
@@ -199,7 +199,7 @@ gr_ingest("scan.pdf", gr_ingest_spec(ocr_lang = "deu", ocr_dpi = 400))
 ```
 
 OCR on PDFs needs both `tesseract` and `magick`. Without them a scanned page
-comes back nearly empty and readgpt warns (`gr_ocr_unavailable`). The document
+comes back nearly empty and harnessr warns (`gr_ocr_unavailable`). The document
 lists those pages in `doc$stats$unread_pages`, and an answer drawn from it is
 marked partial. The same holds with `ocr = "never"`: a page with no text, or only
 a stamp or a running head, is listed as unread. A document with too little text left is refused outright, as the
@@ -210,7 +210,7 @@ document.
 
 Extracted text is rarely clean. PDFs break words across lines with hyphens, repeat
 the page number on every page, and use typographic ligatures ("ﬁ" for "fi").
-readgpt tidies this with *cleaners*. Each does one job and can be turned on or
+harnessr tidies this with *cleaners*. Each does one job and can be turned on or
 off:
 
 ```{r}
@@ -361,7 +361,7 @@ unlist(inv$totals[c("readable", "tokens", "cost_floor_usd")])
 
 ## Adding your own
 
-A format readgpt does not know, or a clean-up step your documents need, can be
+A format harnessr does not know, or a clean-up step your documents need, can be
 added and then used exactly like a built-in one. A cleaner that drops lines
 marked "CONFIDENTIAL":
 

@@ -20,7 +20,7 @@ r5_as_050 <- function(obj) {
 
 r5_save <- function(obj) {
   f <- withr::local_tempfile(fileext = ".json", .local_envir = parent.frame())
-  writeLines(as.character(readgpt:::as_json.default(obj, pretty = TRUE)), f, useBytes = TRUE)
+  writeLines(as.character(harnessr:::as_json.default(obj, pretty = TRUE)), f, useBytes = TRUE)
   f
 }
 
@@ -49,7 +49,7 @@ test_that("a 0.5.0 recording with a skim or summary model replays", {
     # client (a mock, "mock-model") never came into it.
     live <- quiet(gr_read(ch, q, mock_echo("The cohort comprised 482 participants."),
                           c(spec, list(model = gr_options("model"))), trace = tr))
-    f <- r5_save(r5_as_050(readgpt:::trace_as_list(tr)))
+    f <- r5_save(r5_as_050(harnessr:::trace_as_list(tr)))
     rp <- gr_replay_client(f)
     expect_identical(rp$model, gr_options("model"), info = spec$reader)
     again <- quiet(gr_read(ch, q, rp, spec))
@@ -84,7 +84,7 @@ test_that("a 0.5.0 recording whose segmenter followed the client replays", {
     asked <- vapply(Filter(function(s) !identical(s$kind, "local"), tr$steps),
                     function(s) as.character(s$params$model), character(1))
     expect_true(all(c("mock-model", gr_options("model")) %in% asked))
-    f <- r5_save(r5_as_050(readgpt:::trace_as_list(tr)))
+    f <- r5_save(r5_as_050(harnessr:::trace_as_list(tr)))
     rp <- gr_replay_client(f)
     tr2 <- gr_trace()
     ch2 <- quiet(gr_segment(doc, seg, client = rp, trace = tr2))
@@ -110,7 +110,7 @@ test_that("reads through two clients with different models replay through one", 
   tr <- gr_trace()
   la <- quiet(gr_read(ch, q, ca, list(reader = "skim"), trace = tr))
   lb <- quiet(gr_read(ch, q, cb, list(reader = "map_reduce"), trace = tr))
-  f <- r5_save(readgpt:::trace_as_list(tr))
+  f <- r5_save(harnessr:::trace_as_list(tr))
   rp <- gr_replay_client(f)
   a <- quiet(gr_read(ch, q, rp, list(reader = "skim")))
   b <- quiet(gr_read(ch, q, rp, list(reader = "map_reduce")))
@@ -127,7 +127,7 @@ test_that("reads through two clients with different models replay through one", 
   quiet(gr_read(ch, q, cc, list(reader = "map_reduce"), trace = tr))
   quiet(gr_read(ch, q, ca, list(reader = "stuff"), trace = tr))
   quiet(gr_read(ch, q, cb, list(reader = "stuff"), trace = tr))
-  rp <- gr_replay_client(readgpt:::trace_as_list(tr))
+  rp <- gr_replay_client(harnessr:::trace_as_list(tr))
   expect_identical(rp$model, "mock-c")
   expect_error(quiet(gr_read(ch, q, rp, list(reader = "stuff"))), class = "gr_replay_miss")
 })
@@ -144,7 +144,7 @@ test_that("an ellmer structured reply keeps numbers that need 16 or 17 digits", 
   value <- list(id = 1234567890123456, amount = 123456789012345.6, pi = pi,
                 p = 0.00003, small = 0.12345, n = 12L, groups = list(list(1L), list(2L)))
   stub <- list(chat_structured = function(user, type = NULL, echo = "none", convert = TRUE) value)
-  txt <- readgpt:::ellmer_structured_text(stub, "q", NULL)
+  txt <- harnessr:::ellmer_structured_text(stub, "q", NULL)
   back <- jsonlite::parse_json(txt)
   expect_identical(back$id, 1234567890123456)
   expect_identical(back$amount, 123456789012345.6)
@@ -198,7 +198,7 @@ test_that("an ellmer extraction keeps a 16-digit identifier exactly", {
 # ---------------------------------------------------------------------------
 
 test_that("a truncation is recognised in a message wrapped for a narrow console", {
-  reason <- function(msg) readgpt:::ellmer_error_finish_reason(list(), simpleError(msg))
+  reason <- function(msg) harnessr:::ellmer_error_finish_reason(list(), simpleError(msg))
   expect_identical(reason("Response was truncated because it hit the\n`max_tokens` limit."),
                    "max_tokens")
   expect_identical(reason("Response was truncated because\nit hit the `max_tokens`\n  limit."),
@@ -220,9 +220,9 @@ test_that("ellmer's own truncation errors are recognised at any console width", 
     withr::local_options(width = w, cli.width = w, cli.condition_width = w)
     e1 <- tryCatch(check("max_tokens"), error = function(e) e)
     e2 <- tryCatch(check("context_window"), error = function(e) e)
-    expect_identical(readgpt:::ellmer_error_finish_reason(NULL, e1), "max_tokens",
+    expect_identical(harnessr:::ellmer_error_finish_reason(NULL, e1), "max_tokens",
                      info = paste("width", w))
-    expect_identical(readgpt:::ellmer_error_finish_reason(NULL, e2), "context_window",
+    expect_identical(harnessr:::ellmer_error_finish_reason(NULL, e2), "context_window",
                      info = paste("width", w))
     expect_match(conditionMessage(e1), "\n", fixed = TRUE)
     # The caller's console is left as it was.

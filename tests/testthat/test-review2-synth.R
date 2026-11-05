@@ -22,7 +22,7 @@ r2s_big <- function(n = 40L) {
 
 # A reply the provider reported as stopped at the limit, spelled as the default
 # Responses API spells it; gr_result() normalises it to "length".
-r2s_cut <- function(text) readgpt:::gr_result(TRUE, text, finish_reason = "incomplete")
+r2s_cut <- function(text) harnessr:::gr_result(TRUE, text, finish_reason = "incomplete")
 
 # The warnings a call raised, by class, with the value.
 r2s_warns <- function(expr) {
@@ -324,9 +324,9 @@ test_that("a range renders as the studies the check counted, never as its two en
   used <- data.frame(study = 1:3, authors = c("Smith, J.", "Garcia, M.", "Lee, K."),
                      year = c("2019", "2020", "2021"), document = paste0(1:3, ".pdf"),
                      stringsAsFactors = FALSE)
-  cols <- readgpt:::bib_columns(used)
-  keys <- readgpt:::bib_keys(used, cols)
-  rc <- function(x, style = "author-year") readgpt:::render_citations(x, used, keys, style)
+  cols <- harnessr:::bib_columns(used)
+  keys <- harnessr:::bib_keys(used, cols)
+  rc <- function(x, style = "author-year") harnessr:::render_citations(x, used, keys, style)
   expect_identical(rc("A benefit [studies 1-3]."), "A benefit (Garcia, 2020; Lee, 2021; Smith, 2019).")
   expect_identical(rc("A benefit [studies 1-3].", "numeric"), "A benefit (1, 2, 3).")
   expect_identical(rc("A benefit [study 1] [studies 2–3]."),
@@ -341,11 +341,11 @@ test_that("a range renders as the studies the check counted, never as its two en
 test_that("a revision is held to the hedging of range-cited claims too", {
   # Before: only the listed form marked a claim sentence, so a draft citing
   # "[studies 1-3]" had none and "may suggest" -> "All trials suggest" passed.
-  st <- readgpt:::strength_guard("Three small trials may suggest a benefit [studies 1-3].",
+  st <- harnessr:::strength_guard("Three small trials may suggest a benefit [studies 1-3].",
                                  "All trials suggest a benefit [studies 1-3].")
   expect_false(st$ok)
   expect_match(st$reason, "all", fixed = TRUE)
-  expect_length(readgpt:::claim_sentences("A benefit [study 3, page 4]. Framing."), 1L)
+  expect_length(harnessr:::claim_sentences("A benefit [study 3, page 4]. Framing."), 1L)
 })
 
 test_that("a revision that writes a citation the check cannot read is discarded", {
@@ -381,15 +381,15 @@ test_that("the reference list and in-text order do not depend on the collation l
                      year = c("2020", "2019", "2018", "2017", "2016"),
                      title = c("Z", "O", "B", "D", "Oa"), document = paste0(1:5, ".pdf"),
                      stringsAsFactors = FALSE)
-  cols <- readgpt:::bib_columns(used)
-  keys <- readgpt:::bib_keys(used, cols)
+  cols <- harnessr:::bib_columns(used)
+  keys <- harnessr:::bib_keys(used, cols)
   want_refs <- c("Baker", "de la Cruz", "Oakes", "Öztürk", "Zhou")
   want_text <- paste0("All (Baker, 2018; de la Cruz, 2017; Oakes, 2016; Öztürk, 2019; ",
                       "Zhou, 2020).")
   check <- function() {
-    refs <- readgpt:::reference_list(used, keys, 1:5, cols, "author-year")
+    refs <- harnessr:::reference_list(used, keys, 1:5, cols, "author-year")
     expect_identical(sub("^- ([^,]+),.*", "\\1", refs), want_refs)
-    expect_identical(readgpt:::render_citations("All [study 1] [study 2] [study 3] [study 4] [study 5].",
+    expect_identical(harnessr:::render_citations("All [study 1] [study 2] [study 3] [study 4] [study 5].",
                                                 used, keys, "author-year"), want_text)
   }
   check()
@@ -403,18 +403,18 @@ test_that("same-author, same-year letters follow the title, not the row order", 
   dup <- data.frame(study = 1:2, authors = "Smith, J.", year = "2019",
                     title = c("Zebra trial", "Apple trial"), document = c("a.pdf", "b.pdf"),
                     stringsAsFactors = FALSE)
-  cols <- readgpt:::bib_columns(dup)
-  k <- readgpt:::bib_keys(dup, cols)
+  cols <- harnessr:::bib_columns(dup)
+  k <- harnessr:::bib_keys(dup, cols)
   expect_identical(k, c("Smith, 2019b", "Smith, 2019a"))
-  refs <- readgpt:::reference_list(dup, k, 1:2, cols, "author-year")
+  refs <- harnessr:::reference_list(dup, k, 1:2, cols, "author-year")
   expect_identical(refs, c("- Smith, J. (2019a). Apple trial.", "- Smith, J. (2019b). Zebra trial."))
   # The same papers in the other row order get the same letters.
   flip <- dup[2:1, ]; flip$study <- 1:2
-  expect_identical(readgpt:::bib_keys(flip, cols), c("Smith, 2019a", "Smith, 2019b"))
+  expect_identical(harnessr:::bib_keys(flip, cols), c("Smith, 2019a", "Smith, 2019b"))
 })
 
 test_that("the sort key folds accents, case and apostrophes by rule, not by locale", {
-  key <- readgpt:::bib_sort_key
+  key <- harnessr:::bib_sort_key
   expect_identical(key(c("Öztürk", "de la Cruz", "O'Brien", "Łukasz", "Öberg",
                          "Straße")),
                    c("ozturk", "de la cruz", "obrien", "lukasz", "oberg", "strasse"))

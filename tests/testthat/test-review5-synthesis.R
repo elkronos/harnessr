@@ -203,7 +203,7 @@ test_that("each kept pass is followed in turn, so a cut then a polish keeps the 
 })
 
 test_that("sentence_spans() hands back every character it was given", {
-  f <- readgpt:::sentence_spans
+  f <- harnessr:::sentence_spans
   x <- paste0("## A\n\nOne claim [study 3 p. 4]. Two, e.g. this [study 1]!  Three?\n",
               "### Sub\n\nFour [studies 1-3].\n\n")
   sp <- f(x)
@@ -265,7 +265,7 @@ test_that("an author list cut off with an ellipsis, or a misspelt et al., is cit
   # al." was cited "(al., 2020)".
   k <- function(a) {
     row <- data.frame(authors = a, year = "2020", stringsAsFactors = FALSE)
-    readgpt:::bib_key(row, list(authors = "authors", year = "year"))
+    harnessr:::bib_key(row, list(authors = "authors", year = "year"))
   }
   ell <- intToUtf8(0x2026)
   for (a in c("Smith J, Okafor A, ...", paste0("Smith J, Okafor A, ", ell),
@@ -293,7 +293,7 @@ test_that("a surname ending in -et before the initials AL is not et al.", {
   # Before: "Brunet AL" was cited "(Brun et al., 2020)", "Paquet AL" "(Paqu et
   # al.)" and "Ahmet Al" "(Ahm et al.)".
   f <- function(x) {
-    s <- readgpt:::bib_surnames(x)
+    s <- harnessr:::bib_surnames(x)
     paste0(paste(s, collapse = "|"), if (isTRUE(attr(s, "et_al"))) " et al." else "")
   }
   expect_identical(f("Brunet AL"), "Brunet")
@@ -313,7 +313,7 @@ test_that("a surname-first name with a degree falls back to markers, not two aut
   # Before: "Smith, John, PhD" was cited "(Smith & John, 2019)", "Okafor,
   # Aisha, DPhil" "(Okafor & Aisha)", and "Smith, John (PhD)" "(Smith & (),
   # 2019)"; 41fe931 fell back to markers.
-  f <- readgpt:::bib_surnames
+  f <- harnessr:::bib_surnames
   for (a in c("Smith, John, PhD", "Smith, John, MD, PhD", "Okafor, Aisha, DPhil",
               "Smith, John (PhD)")) {
     expect_null(f(a), info = a)
@@ -347,7 +347,7 @@ test_that("a byline's surnames in capitals are not stripped as degrees or read a
   # Before: "MA Wei, PhD; LI Jun, PhD" was cited "(Wei & Jun, 2020)" -- given
   # names -- and "Wei MA, PhD" "(Wei, 2020)": MA was stripped as a degree, and
   # "Jun LI" read as Jun with the initials L. I.
-  f <- readgpt:::bib_surnames
+  f <- harnessr:::bib_surnames
   for (a in c("MA Wei, PhD; LI Jun, PhD", "Wei MA, PhD; Jun LI, MD", "Thanh DO, PhD; Wei MA, MSc",
               "Jun LI, PhD", "Wei MA, PhD", "Wei WANG, MD, PhD", "Van Anh DO, MSc")) {
     expect_null(f(a), info = a)
@@ -370,7 +370,7 @@ test_that("joint organisation authors by acronym are cited by name", {
   # Before: "UNICEF and WHO" was cited "(UNICEF, 2020)", WHO read as the
   # initials of a surname UNICEF, and "WHO and UNICEF", "NICE; SIGN" and the
   # five-agency SOFI report sent the whole review to markers.
-  f <- function(x) as.character(readgpt:::bib_surnames(x))
+  f <- function(x) as.character(harnessr:::bib_surnames(x))
   expect_identical(f("UNICEF and WHO"), c("UNICEF", "WHO"))
   expect_identical(f("WHO and UNICEF"), c("WHO", "UNICEF"))
   expect_identical(f("WHO & UNICEF"), c("WHO", "UNICEF"))
@@ -380,9 +380,9 @@ test_that("joint organisation authors by acronym are cited by name", {
   expect_identical(f("European Food Safety Authority"), "European Food Safety Authority")
   expect_identical(f("EFSA Panel on Food Additives"), "EFSA Panel on Food Additives")
   # Surnames and initials in capitals are still people, or nothing.
-  expect_null(readgpt:::bib_surnames("LEE, JA"))
-  expect_null(readgpt:::bib_surnames("SMITH, JA, LEE, KB"))
-  expect_null(readgpt:::bib_surnames("MD and RN"))
+  expect_null(harnessr:::bib_surnames("LEE, JA"))
+  expect_null(harnessr:::bib_surnames("SMITH, JA, LEE, KB"))
+  expect_null(harnessr:::bib_surnames("MD and RN"))
   tab <- data.frame(document = c("a.pdf", "b.pdf", "c.pdf"), status = "ok",
                     duplicate_of = NA_character_, n_filled = 2L,
                     authors = c("Smith, J. and Okafor, A.", "UNICEF and WHO",

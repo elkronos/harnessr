@@ -19,7 +19,7 @@ itself is left in place, and so is anything in it that is not a cache entry
 layout are removed.
 }
 \examples{
-cache <- gr_cache(file.path(tempdir(), "readgpt-clear-cache"))
+cache <- gr_cache(file.path(tempdir(), "harnessr-clear-cache"))
 cl <- gr_cache_client(gr_mock_client(function(m, p) "hi"), cache)
 invisible(gr_call(cl, "something"))
 gr_cache_clear(cache)

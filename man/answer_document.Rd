@@ -56,7 +56,7 @@ answers. Both send every chunk, so the choice changes the number of requests
 and the cost, not how much of the document is read.
 
 The room is measured for the model that answers: the one passed as \code{model}
-in \code{...}, or else the client's. A model whose limits readgpt has to guess
+in \code{...}, or else the client's. A model whose limits harnessr has to guess
 (see \code{\link[=gr_model_info]{gr_model_info()}}) always gets \code{"thorough"}; register its real limits
 with \code{\link[=gr_register_model]{gr_register_model()}}.
 

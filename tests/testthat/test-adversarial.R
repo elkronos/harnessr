@@ -18,11 +18,11 @@ test_that("a combined citation marker is seen by the check, not only the rendere
   # published prose that the check had reported as citing nothing.
   for (form in c("[studies 1 and 2]", "[studies 1, 2]", "[study 1, 2]",
                  "[studies 1 & 2]", "[studies 1 and 2]")) {
-    expect_setequal(readgpt:::cited_ids(paste("Both agree", form, "."), "study"), c(1L, 2L))
+    expect_setequal(harnessr:::cited_ids(paste("Both agree", form, "."), "study"), c(1L, 2L))
   }
-  expect_setequal(readgpt:::cited_ids("One [study 3].", "study"), 3L)
-  expect_setequal(readgpt:::cited_ids("Two [chunks 4 and 5].", "chunk"), c(4L, 5L))
-  expect_length(readgpt:::cited_ids("No markers here.", "study"), 0L)
+  expect_setequal(harnessr:::cited_ids("One [study 3].", "study"), 3L)
+  expect_setequal(harnessr:::cited_ids("Two [chunks 4 and 5].", "chunk"), c(4L, 5L))
+  expect_length(harnessr:::cited_ids("No markers here.", "study"), 0L)
 })
 
 test_that("the checker and the renderer cannot disagree about what a marker is", {
@@ -31,11 +31,11 @@ test_that("the checker and the renderer cannot disagree about what a marker is",
   used <- data.frame(study = 1:3, authors = c("Smith, J.", "Garcia, R.", "Lee, K."),
                      year = c("2019", "2022", "2021"), title = paste("T", 1:3),
                      document = paste0("d", 1:3, ".pdf"), stringsAsFactors = FALSE)
-  cols <- readgpt:::bib_columns(used); keys <- readgpt:::bib_keys(used, cols)
+  cols <- harnessr:::bib_columns(used); keys <- harnessr:::bib_keys(used, cols)
   for (txt in c("A [studies 1 and 2].", "B [study 3].", "C [studies 1, 2 and 3].",
                 "D [study 1] [study 2].")) {
-    rendered <- readgpt:::render_citations(txt, used, keys, "author-year")
-    seen <- readgpt:::cited_ids(txt, "study")
+    rendered <- harnessr:::render_citations(txt, used, keys, "author-year")
+    seen <- harnessr:::cited_ids(txt, "study")
     # Rendered means the renderer matched it; a match the check did not make
     # would be a citation in the prose that no reference list can support.
     expect_false(identical(rendered, txt) && !length(seen))
@@ -62,8 +62,8 @@ test_that("the reference list carries the a/b suffix the prose points with", {
   used <- data.frame(study = 1:2, authors = c("Smith, J.; Okafor, A.", "Smith, J.; Okafor, A."),
                      year = c("2019", "2019"), title = c("Trial one", "Trial two"),
                      document = c("a.pdf", "b.pdf"), stringsAsFactors = FALSE)
-  cols <- readgpt:::bib_columns(used); keys <- readgpt:::bib_keys(used, cols)
-  refs <- readgpt:::reference_list(used, keys, 1:2, cols, "author-year")
+  cols <- harnessr:::bib_columns(used); keys <- harnessr:::bib_keys(used, cols)
+  refs <- harnessr:::reference_list(used, keys, 1:2, cols, "author-year")
   expect_true(any(grepl("(2019a)", refs, fixed = TRUE)))
   expect_true(any(grepl("(2019b)", refs, fixed = TRUE)))
 })
@@ -221,7 +221,7 @@ test_that("screened_n survives the CSV the docs tell people to email", {
   scr <- fake_screening(dec)
   p <- withr::local_tempfile(fileext = ".csv")
   ref <- quiet(gr_reference(scr, n = 20, of = "excluded", seed = 3, path = p))
-  back <- readgpt:::read_reference(p)
+  back <- harnessr:::read_reference(p)
   # nrow(tab) counts rows the screener never decided; sum(judged) is 80.
   expect_identical(attr(back, "screened_n"), attr(ref, "screened_n"))
   expect_identical(attr(back, "screened_n"), 80L)
@@ -249,19 +249,19 @@ test_that("a value carrying more than one number is a miss, not a concatenation"
   # digit was glued into one number -- and the QUOTE was verbatim, so the
   # evidence check passed and the audit certified a figure in no paper.
   f <- gr_field("Number randomised", type = "integer")
-  expect_null(readgpt:::coerce_field("120 (60 per arm)", f))
-  expect_null(readgpt:::coerce_field("1,204 randomised; 1,180 analysed", f))
-  expect_null(readgpt:::coerce_field("12 to 15", f))
+  expect_null(harnessr:::coerce_field("120 (60 per arm)", f))
+  expect_null(harnessr:::coerce_field("1,204 randomised; 1,180 analysed", f))
+  expect_null(harnessr:::coerce_field("12 to 15", f))
   # The ordinary cases still work, including thousands separators.
-  expect_identical(readgpt:::coerce_field("120", f), 120L)
-  expect_identical(readgpt:::coerce_field("1,204 participants", f), 1204L)
-  expect_identical(readgpt:::coerce_field("about -3 points", f), -3L)
+  expect_identical(harnessr:::coerce_field("120", f), 120L)
+  expect_identical(harnessr:::coerce_field("1,204 participants", f), 1204L)
+  expect_identical(harnessr:::coerce_field("about -3 points", f), -3L)
   g <- gr_field("Effect size", type = "number")
   # A scale word is not dropped: 45.2 is not "45.2 million" unless the field is
   # in millions, which the value cannot say (review 6, corpus-extract-06).
-  expect_null(readgpt:::coerce_field("45.2 million", g))
-  expect_equal(readgpt:::coerce_field("1.2e-3", g), 1.2e-3)
-  expect_null(readgpt:::coerce_field("0.2 to 0.9", g))
+  expect_null(harnessr:::coerce_field("45.2 million", g))
+  expect_equal(harnessr:::coerce_field("1.2e-3", g), 1.2e-3)
+  expect_null(harnessr:::coerce_field("0.2 to 0.9", g))
 })
 
 # ---------------------------------------------------------------------------
@@ -276,12 +276,12 @@ test_that("gr_hash() sees a name nested below the third level", {
               properties = list(revenue = list(type = "number")))))
   b <- list(type = "object", properties = list(result = list(type = "object",
               properties = list(headcount = list(type = "number")))))
-  expect_false(identical(readgpt:::gr_hash(a), readgpt:::gr_hash(b)))
-  expect_identical(readgpt:::gr_hash(a), readgpt:::gr_hash(a))
+  expect_false(identical(harnessr:::gr_hash(a), harnessr:::gr_hash(b)))
+  expect_identical(harnessr:::gr_hash(a), harnessr:::gr_hash(a))
   # And a value difference at the same depth is still seen, so the fix did not
   # trade one blindness for another.
   cc <- b; cc$properties$result$properties$headcount$type <- "integer"
-  expect_false(identical(readgpt:::gr_hash(b), readgpt:::gr_hash(cc)))
+  expect_false(identical(harnessr:::gr_hash(b), harnessr:::gr_hash(cc)))
 })
 
 test_that("the temperature actually sent is part of the cache key", {
@@ -300,8 +300,8 @@ test_that("the temperature actually sent is part of the cache key", {
 })
 
 test_that("the embedding endpoint is part of the embedding cache key", {
-  k1 <- readgpt:::embed_cache_key("api", "shared-embed", "hello", "https://a.invalid|x")
-  k2 <- readgpt:::embed_cache_key("api", "shared-embed", "hello", "https://b.invalid|x")
+  k1 <- harnessr:::embed_cache_key("api", "shared-embed", "hello", "https://a.invalid|x")
+  k2 <- harnessr:::embed_cache_key("api", "shared-embed", "hello", "https://b.invalid|x")
   expect_false(identical(k1, k2))
 })
 
@@ -310,9 +310,9 @@ test_that("the tokenizer is part of the corpus store key", {
   rec <- gr_recipe("fast")
   cl <- gr_mock_client(function(m, p) "x")
   gr_set_tokenizer("chars")
-  a <- readgpt:::corpus_key("some document text", "Q?", rec, cl)
+  a <- harnessr:::corpus_key("some document text", "Q?", rec, cl)
   gr_set_tokenizer("words")
-  b <- readgpt:::corpus_key("some document text", "Q?", rec, cl)
+  b <- harnessr:::corpus_key("some document text", "Q?", rec, cl)
   # The tokenizer is what turns max_tokens into a chunk boundary, so the store
   # was handing back an answer built from a segmentation this run would not have
   # produced.
@@ -337,7 +337,7 @@ test_that("the sequential fallback for parallel = TRUE actually runs", {
       else orig(package, ..., quietly = quietly), .package = "base")
   fn <- function(item, trace) item * 2
   out <- NULL
-  expect_warning(out <- readgpt:::gr_lapply(list(1, 2, 3), fn, parallel = TRUE,
+  expect_warning(out <- harnessr:::gr_lapply(list(1, 2, 3), fn, parallel = TRUE,
                                             trace = gr_trace()),
                  class = "gr_parallel_unavailable")
   expect_identical(unlist(out), c(2, 4, 6))
@@ -358,10 +358,10 @@ test_that("a setting that is not one number is named as such", {
   # `||` short-circuits on a scalar, so a length-2 value reached is.na(x) and
   # R >= 4.3 stopped with "'length = 2' in coercion to 'logical(1)'" -- naming
   # neither the setting nor the function, from inside gr_budget().
-  expect_error(readgpt:::clamp(c(0.05, 0.10), 0, 1), class = "gr_bad_setting")
-  expect_equal(readgpt:::clamp(0.5, 0, 1), 0.5)
-  expect_equal(readgpt:::clamp(NA, 0, 1), 0)
-  expect_equal(readgpt:::clamp(numeric(0), 0, 1), 0)
+  expect_error(harnessr:::clamp(c(0.05, 0.10), 0, 1), class = "gr_bad_setting")
+  expect_equal(harnessr:::clamp(0.5, 0, 1), 0.5)
+  expect_equal(harnessr:::clamp(NA, 0, 1), 0)
+  expect_equal(harnessr:::clamp(numeric(0), 0, 1), 0)
 })
 
 # ---------------------------------------------------------------------------
@@ -373,16 +373,16 @@ test_that("a document with no headings is not one giant preview unit", {
   # so `!all(is.na(sec))` was TRUE and the whole document became ONE unit. A
   # plan marking that unit "skim" sent one truncated excerpt and reported the
   # answer complete: 16% of an 18,000-token document read, partial = FALSE.
-  d <- data.frame(section = rep(readgpt:::.gr_no_section, 24), tokens = 100L,
+  d <- data.frame(section = rep(harnessr:::.gr_no_section, 24), tokens = 100L,
                   stringsAsFactors = FALSE)
-  expect_gt(length(readgpt:::preview_units(d)), 1L)
+  expect_gt(length(harnessr:::preview_units(d)), 1L)
   # Real headings still group by heading.
   d2 <- data.frame(section = rep(c("Methods", "Results", "Discussion"), each = 8),
                    tokens = 100L, stringsAsFactors = FALSE)
-  expect_equal(length(readgpt:::preview_units(d2)), 3L)
+  expect_equal(length(harnessr:::preview_units(d2)), 3L)
   # One heading over the whole document is not a plan either.
   d3 <- data.frame(section = rep("Everything", 24), tokens = 100L, stringsAsFactors = FALSE)
-  expect_gt(length(readgpt:::preview_units(d3)), 1L)
+  expect_gt(length(harnessr:::preview_units(d3)), 1L)
 })
 
 test_that("the structural segmenter's placeholder is the one preview looks for", {
@@ -391,9 +391,9 @@ test_that("the structural segmenter's placeholder is the one preview looks for",
   doc <- gr_ingest("First paragraph here, with enough words to make a block.\n\nSecond one.")
   ch <- gr_segment(doc, list(method = "structural", max_tokens = 40))
   expect_true(all(is.na(ch$chunks$section) |
-                    ch$chunks$section %in% c(readgpt:::.gr_no_section,
+                    ch$chunks$section %in% c(harnessr:::.gr_no_section,
                                              unique(ch$chunks$section))))
-  expect_identical(readgpt:::.gr_no_section, "[no section]")
+  expect_identical(harnessr:::.gr_no_section, "[no section]")
 })
 
 # ---------------------------------------------------------------------------
@@ -403,7 +403,7 @@ test_that("the structural segmenter's placeholder is the one preview looks for",
 test_that("a trace records finish_reason, so a replay reaches the same decision", {
   tr <- gr_trace()
   cl <- gr_mock_client(function(m, p)
-    readgpt:::gr_result(TRUE, text = "a truncated revision", model = "mock-model",
+    harnessr:::gr_result(TRUE, text = "a truncated revision", model = "mock-model",
                         finish_reason = "length"))
   invisible(gr_call(cl, "write it", model = "mock-model", trace = tr))
   expect_identical(tr$steps[[1]]$finish_reason, "length")
@@ -452,7 +452,7 @@ test_that("a failed batch marks the section partial instead of vanishing from it
     s <- paste(vapply(m, function(x) as.character(x$content), character(1)), collapse = " ")
     if (grepl("<studies>", s, fixed = TRUE)) {
       nb <<- nb + 1L
-      if (nb == 1L) return(readgpt:::gr_result(FALSE, error = "503 upstream", status = 503L))
+      if (nb == 1L) return(harnessr:::gr_result(FALSE, error = "503 upstream", status = 503L))
       return("A batch of findings. [study 3]")
     }
     "Merged. [study 3]"
@@ -481,13 +481,13 @@ squash <- function(x) gsub("\\s+", " ", paste(x, collapse = " "))
 test_that("prompt_overhead() counts the question twice unless restatement is off", {
   q <- paste(rep("a long multi clause information need", 20), collapse = " ")
   sys <- "system"
-  once <- readgpt:::prompt_overhead(q, sys, "never")
-  twice <- readgpt:::prompt_overhead(q, sys, "auto")
+  once <- harnessr:::prompt_overhead(q, sys, "never")
+  twice <- harnessr:::prompt_overhead(q, sys, "auto")
   expect_equal(twice - once, gr_count_tokens(q))
-  expect_equal(readgpt:::prompt_overhead(q, sys, "always"), twice)
+  expect_equal(harnessr:::prompt_overhead(q, sys, "always"), twice)
   # The default is the safe direction: over-reserving costs a little context,
   # under-reserving cost the whole answer.
-  expect_equal(readgpt:::prompt_overhead(q, sys), twice)
+  expect_equal(harnessr:::prompt_overhead(q, sys), twice)
 })
 
 test_that("restate = 'auto' still leaves room for the call it is going to make", {
@@ -516,25 +516,25 @@ test_that("the budget uses the system prompt the call actually sends", {
   # answer_messages(cite = TRUE) sends answer_system_cited, which is longer than
   # answer_system. Budgeting against the short one understated the overhead by
   # the difference on every cited read.
-  expect_gt(gr_count_tokens(readgpt:::answer_system(TRUE)),
-            gr_count_tokens(readgpt:::answer_system(FALSE)))
-  msgs <- readgpt:::answer_messages("Q?", "body", cite = TRUE)
-  expect_identical(msgs[[1]]$content, readgpt:::answer_system(TRUE))
-  msgs <- readgpt:::answer_messages("Q?", "body", cite = FALSE)
-  expect_identical(msgs[[1]]$content, readgpt:::answer_system(FALSE))
+  expect_gt(gr_count_tokens(harnessr:::answer_system(TRUE)),
+            gr_count_tokens(harnessr:::answer_system(FALSE)))
+  msgs <- harnessr:::answer_messages("Q?", "body", cite = TRUE)
+  expect_identical(msgs[[1]]$content, harnessr:::answer_system(TRUE))
+  msgs <- harnessr:::answer_messages("Q?", "body", cite = FALSE)
+  expect_identical(msgs[[1]]$content, harnessr:::answer_system(FALSE))
   # The premise rule is part of the same string, so it is budgeted too.
-  msgs <- readgpt:::answer_messages("Q?", "body", cite = TRUE, premise = TRUE)
-  expect_identical(msgs[[1]]$content, readgpt:::answer_system(TRUE, TRUE))
+  msgs <- harnessr:::answer_messages("Q?", "body", cite = TRUE, premise = TRUE)
+  expect_identical(msgs[[1]]$content, harnessr:::answer_system(TRUE, TRUE))
   # Every reader that goes on to call answer_messages(cite = spec$cite,
   # premise = spec$premise) budgets against the same function with the same
   # arguments, not against the short prompt by name.
   for (fn in c("read_stuff", "read_skim", "read_retrieve", "read_rerank", "read_preview")) {
-    src <- squash(deparse(get(fn, envir = asNamespace("readgpt"))))
+    src <- squash(deparse(get(fn, envir = asNamespace("harnessr"))))
     expect_match(src, "prompt_overhead(question, answer_system(spec$cite, spec$premise)",
                  fixed = TRUE, info = fn)
   }
   # hierarchical sends cite = FALSE explicitly, so it budgets for that.
-  src <- squash(deparse(readgpt:::read_hierarchical))
+  src <- squash(deparse(harnessr:::read_hierarchical))
   expect_match(src, "prompt_overhead(question, answer_system(FALSE, spec$premise)", fixed = TRUE)
 })
 
@@ -565,7 +565,7 @@ test_that("the iterative step budgets for the system prompt it sends", {
   # And the guarantee itself, which is a source-shape one because the defect was
   # source drift: the string is built once and used for BOTH the budget and the
   # call, so the two cannot describe different prompts.
-  src <- squash(deparse(readgpt:::read_iterative))
+  src <- squash(deparse(harnessr:::read_iterative))
   expect_match(src, "prompt_overhead(question, step_system, spec$restate)", fixed = TRUE)
   expect_match(src, 'content = step_system', fixed = TRUE)
 })
@@ -594,7 +594,7 @@ test_that("the synthesis section budgets for its own tail restatement", {
   # restate_tail() was called with two arguments, so `spec$restate` could not
   # reach it -- and its tokens were not in the overhead either, so the studies
   # were fitted to a budget the tail then overran.
-  expect_equal(length(formals(readgpt:::restate_tail)), 3L)
+  expect_equal(length(formals(harnessr:::restate_tail)), 3L)
   gr_register_model("sec-ctx", context_window = 2600L, max_output = 300L,
                     input_usd = 0, output_usd = 0)
   used <- data.frame(study = 1:40,
@@ -604,12 +604,12 @@ test_that("the synthesis section budgets for its own tail restatement", {
                      conflicts = NA_character_,
                      finding = paste("a reasonably wordy finding sentence number", 1:40),
                      stringsAsFactors = FALSE)
-  rendered <- readgpt:::render_studies(used)
+  rendered <- harnessr:::render_studies(used)
   usable <- floor(2600 * (1 - gr_options("safety_margin")))
   tails <- list()
   for (rs in c("always", "never")) {
     cl <- mock_echo("Something [study 1].")
-    quiet(readgpt:::synth_section(
+    quiet(harnessr:::synth_section(
       "Findings", "what the evidence supports", "Does it work?", rendered, used, cl,
       gr_read_spec("stuff", model = "sec-ctx", max_answer_tokens = 300L, restate = rs),
       gr_trace()))
@@ -880,7 +880,7 @@ test_that("the search travels with the corpus it produced", {
   file.copy(sc$included, file.path(gone, basename(sc$included)))
   sc2 <- sc
   sc2$included <- c(sc$included, file.path(gone, "not-here.txt"))
-  expect_s3_class(attr(readgpt:::corpus_sources(sc2), "record_set"), "gr_records")
+  expect_s3_class(attr(harnessr:::corpus_sources(sc2), "record_set"), "gr_records")
 
   # A screening that kept nothing says so, rather than telling somebody who
   # passed a screening result to pass file paths.
@@ -959,7 +959,7 @@ test_that("a shared trace accumulates the review without becoming its budget", {
   expect_equal(sum(nzchar(trimws(sy$sections$text))), 3L)
 
   # And the audit's per-stage costs still add up to the review's.
-  rows <- readgpt:::audit_cost(sc, x, rv)
+  rows <- harnessr:::audit_cost(sc, x, rv)
   nums <- as.numeric(regmatches(rows, regexpr("(?<=<td class=\"num\">)[0-9]+(?=</td>)",
                                               rows, perl = TRUE)))
   expect_equal(sum(nums[!is.na(nums)]), tr$calls)
@@ -1020,8 +1020,8 @@ test_that("a trace or a ceiling that cannot be compared is refused, not ignored"
   # A ceiling above .Machine$integer.max must stay comparable. as.integer(1e10)
   # is NA, and the loop guard then compared against NA, so `if` threw a bare
   # simpleError -- the exact failure the validator exists to prevent.
-  expect_equal(readgpt:::as_call_ceiling(1e10), 1e10)
-  expect_silent(readgpt:::as_call_ceiling(1e10))
+  expect_equal(harnessr:::as_call_ceiling(1e10), 1e10)
+  expect_silent(harnessr:::as_call_ceiling(1e10))
   expect_error(quiet(gr_read_many(d, "Q?", client = mock_echo(), recipe = "fast",
                                   max_total_calls = 1e10)), NA)
   # Inf is a legitimate way to say "no ceiling", and saying it that way must not
@@ -1170,11 +1170,11 @@ test_that("a model reply is read by exact key, never by prefix", {
 
   # The accessor itself, on every shape simplifyVector can produce.
   v <- list(score = 8, both = c(1, 2), obj = list(a = 1), txt = "x")
-  expect_equal(readgpt:::json_field(v, "score"), 8)
-  expect_null(readgpt:::json_field(v, "scor"))        # no prefix match
-  expect_null(readgpt:::json_field(v, "both"))        # not a scalar
-  expect_null(readgpt:::json_field(v, "obj"))
-  expect_equal(readgpt:::json_num(v, "txt", -1), -1)
+  expect_equal(harnessr:::json_field(v, "score"), 8)
+  expect_null(harnessr:::json_field(v, "scor"))        # no prefix match
+  expect_null(harnessr:::json_field(v, "both"))        # not a scalar
+  expect_null(harnessr:::json_field(v, "obj"))
+  expect_equal(harnessr:::json_num(v, "txt", -1), -1)
 })
 
 test_that("a proposition list keeps its order whatever shape it arrived in", {
@@ -1196,9 +1196,9 @@ test_that("a proposition list keeps its order whatever shape it arrived in", {
     '{"propositions":[{"text":"A1."},{"text":"A2."}]}')
   cs <- quiet(gr_segment(quiet(gr_ingest(src)), list(method = "proposition"), client = cl))
   expect_false(any(grepl("c(\"", cs$chunks$text, fixed = TRUE)))
-  expect_equal(readgpt:::prop_strings(matrix(c("a", "b", "c", "d"), nrow = 2, byrow = TRUE)),
+  expect_equal(harnessr:::prop_strings(matrix(c("a", "b", "c", "d"), nrow = 2, byrow = TRUE)),
                c("a", "b", "c", "d"))
-  expect_equal(readgpt:::prop_strings(NULL), character(0))
+  expect_equal(harnessr:::prop_strings(NULL), character(0))
 })
 
 test_that("a plan or a claim list that omits a required key degrades, not crashes", {
@@ -1230,8 +1230,8 @@ test_that("a plan or a claim list that omits a required key degrades, not crashe
   # And the outline equivalent: a reply with no `heading` anywhere yields no
   # usable sections rather than an error, which is what gr_outline() checks for
   # before falling back to one section.
-  expect_error(readgpt:::outline_rows(list(list(brief = "b1"), list(brief = "b2"))), NA)
-  expect_equal(nrow(readgpt:::outline_rows(list(list(brief = "b1"),
+  expect_error(harnessr:::outline_rows(list(list(brief = "b1"), list(brief = "b2"))), NA)
+  expect_equal(nrow(harnessr:::outline_rows(list(list(brief = "b1"),
                                                 list(brief = "b2")))), 0L)
 })
 
@@ -1336,8 +1336,8 @@ test_that("a missing value never becomes the destructive end of a scale", {
   # as.integer(3e9) is NA, so the function returned the NA its own contract says
   # it never returns, and gr_screen(screen_tokens = 3e9) then marked every
   # document "failed" with "missing value where TRUE/FALSE needed".
-  expect_equal(readgpt:::as_int1(3e9, 999L), 999L)
-  expect_equal(readgpt:::as_int1(5.7, 0L), 5L)
+  expect_equal(harnessr:::as_int1(3e9, 999L), 999L)
+  expect_equal(harnessr:::as_int1(5.7, 0L), 5L)
 
   # An overhead nobody can count would be budgeted as zero, which is the one
   # direction that overruns the window.
@@ -1402,24 +1402,24 @@ test_that("a NULL override does not silently reset a recipe field", {
   # recipe's value and not what the constructor would have made of NULL. The
   # segmentation changed with no warning, and the trace's `settings` lost the
   # entry too, so the run record no longer said which cap was used.
-  r <- readgpt:::as_recipe("fast")
+  r <- harnessr:::as_recipe("fast")
   for (nm in c("max_tokens", "method", "prefix_section", "reader", "top_k")) {
-    expect_error(readgpt:::apply_overrides(r, stats::setNames(list(NULL), nm)),
+    expect_error(harnessr:::apply_overrides(r, stats::setNames(list(NULL), nm)),
                  class = "gr_bad_override", info = nm)
   }
   # NULL IS a setting where the constructor's own default is NULL -- "the
   # session's model", "no separate skim model" -- and there an override of NULL
   # replaces the recipe's value with whatever the constructor makes of NULL.
   for (nm in c("model", "skim_model", "summary_model")) {
-    set <- readgpt:::apply_overrides(r, stats::setNames(list("gpt-4o"), nm))
+    set <- harnessr:::apply_overrides(r, stats::setNames(list("gpt-4o"), nm))
     expect_identical(unclass(set$read)[[nm]], "gpt-4o")
-    back <- readgpt:::apply_overrides(set, stats::setNames(list(NULL), nm))
+    back <- harnessr:::apply_overrides(set, stats::setNames(list(NULL), nm))
     expect_identical(unclass(back$read)[[nm]], unclass(gr_read_spec())[[nm]], info = nm)
   }
-  set <- readgpt:::apply_overrides(r, list(temperature = 0.7))
-  expect_null(unclass(readgpt:::apply_overrides(set, list(temperature = NULL))$read)$temperature)
-  set <- readgpt:::apply_overrides(r, list(parallel = TRUE))
-  back <- readgpt:::apply_overrides(set, list(parallel = NULL))
+  set <- harnessr:::apply_overrides(r, list(temperature = 0.7))
+  expect_null(unclass(harnessr:::apply_overrides(set, list(temperature = NULL))$read)$temperature)
+  set <- harnessr:::apply_overrides(r, list(parallel = TRUE))
+  back <- harnessr:::apply_overrides(set, list(parallel = NULL))
   expect_identical(unclass(back$segment)$parallel, unclass(gr_segment_spec())$parallel)
   expect_identical(unclass(back$read)$parallel, unclass(gr_read_spec())$parallel)
   # Through the public entry point too: refused before anything is read.
@@ -1461,7 +1461,7 @@ test_that("a text field that arrives as an array is joined, not discarded", {
   expect_identical(a$notes$queries, c("How many?", "nine sites\ncohort"))
 
   # json_text() itself: exact key, NAs dropped, nothing usable is the default.
-  jt <- readgpt:::json_text
+  jt <- harnessr:::json_text
   expect_identical(jt(list(answer = list("a", "b")), "answer"), "a\nb")
   expect_identical(jt(list(answers = "a"), "answer", "none"), "none")
   expect_identical(jt(list(answer = c(NA, "z")), "answer"), "z")
@@ -1527,7 +1527,7 @@ test_that("a proposition batch that cannot be decomposed is kept as written", {
   expect_identical(s$extra$propositions, 2L)
 
   # Every shape a model has returned for the list, and none of it lost.
-  ps <- readgpt:::prop_strings
+  ps <- harnessr:::prop_strings
   expect_identical(ps(jsonlite::fromJSON('[{"text":"B1."},{"proposition":"B2."}]')),
                    c("B1.", "B2."))
   expect_identical(ps(jsonlite::fromJSON('[{"text":["B1.","B2."]},{"text":"B3."}]')),
@@ -1613,11 +1613,11 @@ test_that("a rerank score that was never given is not a score", {
   old <- gr_options(max_calls = 2)
   on.exit(gr_options(old), add = TRUE)
   zero <- scorer(function(ex) '{"score":0,"reason":"r"}')
-  r <- quiet(readgpt:::read_rerank(ch, "How many?", zero, spec(rerank_min_score = 0), gr_trace()))
+  r <- quiet(harnessr:::read_rerank(ch, "How many?", zero, spec(rerank_min_score = 0), gr_trace()))
   expect_length(r$chunks_used, 2L)
   expect_true(r$partial)
   # And with nothing over the bar, "not in the document" rests on half the list.
-  r <- quiet(readgpt:::read_rerank(ch, "How many?", zero, spec(rerank_min_score = 4), gr_trace()))
+  r <- quiet(harnessr:::read_rerank(ch, "How many?", zero, spec(rerank_min_score = 4), gr_trace()))
   expect_identical(r$answer, "NOT_IN_DOCUMENT")
   expect_true(r$partial)
 })
@@ -1709,7 +1709,7 @@ test_that("an adequacy bar that cannot be met is not met, and the report still r
 })
 
 test_that("two values that differ past the seventh digit are two values", {
-  vk <- readgpt:::value_key
+  vk <- harnessr:::value_key
   expect_false(identical(vk(0.123456789), vk(0.123456781)))
   expect_false(identical(vk(3000000001), vk(3000000002)))
   expect_identical(vk(3000000001), "3000000001")
@@ -1772,21 +1772,21 @@ test_that("a study whose weight is unknown counts as an average one, not a weigh
   # within the claim gave the mean of nothing, NaN, which sum(na.rm = TRUE) made
   # 0 -- so claim 1 ranked below claim 2 on no evidence at all.
   w <- c(`1` = NA, `2` = NA, `3` = 0.6, `4` = 0.6, `5` = 1.5)
-  expect_identical(readgpt:::claim_order(claims, support, w), c(1L, 2L, 3L))
+  expect_identical(harnessr:::claim_order(claims, support, w), c(1L, 2L, 3L))
   # With no weight known anywhere, every study counts the same.
-  expect_identical(readgpt:::claim_order(claims, support, c(`1` = NA, `2` = NA, `3` = NA,
+  expect_identical(harnessr:::claim_order(claims, support, c(`1` = NA, `2` = NA, `3` = NA,
                                                           `4` = NA, `5` = NA)), c(1L, 2L, 3L))
 })
 
 test_that("a model's claim or heading is read by its own key and no other", {
   # `$` let `claim_draft` answer for `claim` and `headings` for `heading`, so a
   # key the schema never defined produced a real row.
-  expect_null(readgpt:::claim_rows(list(list(claim_draft = "X helps.", supported_by = 1))))
-  expect_null(readgpt:::claim_rows(data.frame(claim_draft = "X helps.", supported_by = 1)))
-  ok <- readgpt:::claim_rows(data.frame(claim = "X helps.", supported_by = 1))
+  expect_null(harnessr:::claim_rows(list(list(claim_draft = "X helps.", supported_by = 1))))
+  expect_null(harnessr:::claim_rows(data.frame(claim_draft = "X helps.", supported_by = 1)))
+  ok <- harnessr:::claim_rows(data.frame(claim = "X helps.", supported_by = 1))
   expect_identical(ok$claim, "X helps.")
-  expect_equal(nrow(readgpt:::outline_rows(list(list(headings = "H", brief = "b", claims = 1)))), 0L)
-  expect_equal(nrow(readgpt:::outline_rows(data.frame(headings = "H", brief = "b", claims = 1))), 0L)
+  expect_equal(nrow(harnessr:::outline_rows(list(list(headings = "H", brief = "b", claims = 1)))), 0L)
+  expect_equal(nrow(harnessr:::outline_rows(data.frame(headings = "H", brief = "b", claims = 1))), 0L)
 })
 
 test_that("every setting's missing-value fallback is its formal default", {
@@ -1803,7 +1803,7 @@ test_that("every setting's missing-value fallback is its formal default", {
   }
   checked <- character(0)
   for (fn in c("gr_ingest_spec", "gr_segment_spec", "gr_read_spec")) {
-    f <- get(fn, envir = asNamespace("readgpt"))
+    f <- get(fn, envir = asNamespace("harnessr"))
     found <- list()
     walk(body(f))
     for (cl in found) {
@@ -1821,7 +1821,7 @@ test_that("every setting's missing-value fallback is its formal default", {
   # gr_read_spec() would warn about `max_answer_tokens`, which the caller never
   # passed.
   for (fn in c("gr_claims", "gr_synthesise")) {
-    f <- get(fn, envir = asNamespace("readgpt"))
+    f <- get(fn, envir = asNamespace("harnessr"))
     found <- list()
     walk(body(f))
     args <- vapply(found, function(cl) as.character(cl[[2]]), character(1))

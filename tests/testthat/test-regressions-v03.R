@@ -12,7 +12,7 @@ test_that("mmr_select() cannot fail to terminate", {
   # the loop never ends. Not an error and not a crash: a hang, which is the
   # worst thing a library can do. An all-zero vector L2-normalised is 0/0, so
   # any chunk an embedder finds no words in produces one.
-  mmr <- readgpt:::mmr_select
+  mmr <- harnessr:::mmr_select
   emb <- rbind(c(NaN, NaN, NaN), c(1, 0, 0), c(0, 1, 0), c(0, 0, 1))
   rel <- c(0.99, 0.8, 0.7, 0.6)          # the poisoned row ranks FIRST
 
@@ -36,7 +36,7 @@ test_that("an unusable embedding row is neutralised, not dropped from the answer
   # top-k will take. Excluding it meant `mmr < 1` silently returned FEWER chunks
   # than top_k asked for while `mmr = 1` returned the full set -- a diversity
   # setting shrinking the evidence with nothing in `notes` to say so.
-  mmr <- readgpt:::mmr_select
+  mmr <- harnessr:::mmr_select
   emb <- rbind(c(NaN, NaN, NaN), c(1, 0, 0), c(0, 1, 0))
   rel <- c(0, 0.9, 0.8)                  # all finite, as cosine_against() delivers
 
@@ -172,7 +172,7 @@ test_that("a minus sign is content, not typography", {
   # stripped, which also deleted a leading minus: "-5%" verified as an exact
   # quotation of "fell 5%". A flipped sign is the fabrication this check exists
   # to catch.
-  sm <- readgpt:::span_match
+  sm <- harnessr:::span_match
   src <- "Operating margin fell 5% year over year, before tax."
   expect_false(sm("-5%", src)$verified)
   expect_false(sm("-5% year over year", src)$verified)
@@ -190,10 +190,10 @@ test_that("the documented extraction examples key off the prompt that exists", {
   # feature's only demonstration shows it failing. R CMD check cannot catch it:
   # the example runs fine, it just proves the opposite of what it says.
   marker <- "You extract evidence"
-  expect_true(grepl(marker, readgpt:::.gr_prompts$extract_system, fixed = TRUE))
+  expect_true(grepl(marker, harnessr:::.gr_prompts$extract_system, fixed = TRUE))
 
-  rd <- file.path(system.file("help", package = "readgpt"))
-  ex <- readgpt:::.gr_prompts$extract_system
+  rd <- file.path(system.file("help", package = "harnessr"))
+  ex <- harnessr:::.gr_prompts$extract_system
   expect_false(grepl("^Extract", ex))     # the marker that used to be assumed
 })
 
@@ -206,14 +206,14 @@ test_that("clamp() does not eat warnings raised while its argument is evaluated"
   # expect_warning(suppressWarnings(...)) never fire: the inner handler is
   # established last and wins.
   noisy <- function() { warning("raised while the promise was forced"); 1 }
-  expect_warning(readgpt:::clamp_warn(noisy(), 0, 1, "x", integer = FALSE),
+  expect_warning(harnessr:::clamp_warn(noisy(), 0, 1, "x", integer = FALSE),
                  "raised while the promise was forced")
-  expect_warning(readgpt:::clamp(noisy(), 0, 1), "raised while the promise was forced")
-  expect_warning(readgpt:::as_num1(noisy()), "raised while the promise was forced")
+  expect_warning(harnessr:::clamp(noisy(), 0, 1), "raised while the promise was forced")
+  expect_warning(harnessr:::as_num1(noisy()), "raised while the promise was forced")
 
   # And the coercion warning it IS meant to quiet is still quiet.
-  expect_no_warning(readgpt:::clamp("not a number", 0, 1))
-  expect_identical(readgpt:::clamp("not a number", 0, 1), 0)
+  expect_no_warning(harnessr:::clamp("not a number", 0, 1))
+  expect_identical(harnessr:::clamp("not a number", 0, 1), 0)
 })
 
 test_that("a missing setting falls back to the default, not to the bottom of the range", {
@@ -232,7 +232,7 @@ test_that("a missing setting falls back to the default, not to the bottom of the
 # ---------------------------------------------------------------------------
 
 test_that("the adapter requires every method its guarantees depend on", {
-  check <- readgpt:::check_chat_methods
+  check <- harnessr:::check_chat_methods
   full <- list(chat = function(...) "x", chat_structured = function(...) NULL,
                clone = function(...) NULL, set_turns = function(...) NULL,
                set_system_prompt = function(...) NULL)
@@ -252,14 +252,14 @@ test_that("the adapter requires every method its guarantees depend on", {
 })
 
 test_that("an empty ellmer reply is a failure, as it is for every other handler", {
-  res <- readgpt:::ellmer_result("", "m", list(input = 5L, output = 0L))
+  res <- harnessr:::ellmer_result("", "m", list(input = 5L, output = 0L))
   expect_false(res$ok)
   expect_identical(res$text, "")
   expect_match(res$error, "empty completion")
   expect_identical(res$usage$input, 5L)          # usage is still reported
 
-  expect_false(readgpt:::ellmer_result("   \n ", "m", list(input = 1L, output = 0L))$ok)
-  good <- readgpt:::ellmer_result("an answer", "m", list(input = 5L, output = 2L))
+  expect_false(harnessr:::ellmer_result("   \n ", "m", list(input = 1L, output = 0L))$ok)
+  good <- harnessr:::ellmer_result("an answer", "m", list(input = 5L, output = 2L))
   expect_true(good$ok)
   expect_identical(good$text, "an answer")
 })
@@ -389,7 +389,7 @@ test_that("an embedding that fell back sets partial; one that was chosen does no
 test_that("context_order = 'document' applies however few chunks were selected", {
   # The length guard sat above the "document" branch, so it was a silent no-op
   # below three chunks -- which is the common case for a top-k reader.
-  arr <- readgpt:::arrange_context
+  arr <- harnessr:::arrange_context
   expect_identical(arr(c(5L, 1L), "document"), c(1L, 5L))
   expect_identical(arr(c(9L, 2L, 7L), "document"), c(2L, 7L, 9L))
   expect_identical(arr(c(5L, 1L), "edges"), c(5L, 1L))    # nothing to bury in a pair

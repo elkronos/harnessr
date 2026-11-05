@@ -27,7 +27,8 @@
 
 #' Resolve the API key
 #'
-#' Looks in `key`, then the `readgpt.api_key` option, then `OPENAI_API_KEY`.
+#' Looks in `key`, then the `harnessr.api_key` option (or, failing that, the
+#' deprecated `readgpt.api_key`), then `OPENAI_API_KEY`.
 #' Never prints or logs the key.
 #'
 #' Spaces and line endings around the key are dropped, so a key read from a
@@ -68,7 +69,7 @@
 gr_api_key <- function(key = NULL) {
   k <- api_key_value(key)
   if (!nzchar(k)) {
-    gr_abort(paste0("No API key. Set OPENAI_API_KEY, or options(readgpt.api_key = '...'), ",
+    gr_abort(paste0("No API key. Set OPENAI_API_KEY, or options(harnessr.api_key = '...'), ",
                     "or pass `api_key` to gr_client()."), class = "gr_auth_error")
   }
   k
@@ -86,14 +87,15 @@ gr_api_key <- function(key = NULL) {
 #' error ("Server returned nothing") that never mentioned the key.
 #' @noRd
 api_key_value <- function(key = NULL) {
-  k <- trimws(as_chr1(key %||% getOption("readgpt.api_key", "") %||% ""))
+  k <- key %||% renamed_option("harnessr.api_key", "readgpt.api_key", "") %||% ""
+  k <- trimws(as_chr1(k))
   if (!nzchar(k)) k <- trimws(as_chr1(Sys.getenv("OPENAI_API_KEY")))
   if (grepl("[[:cntrl:]]", k)) {
     # Never the value: an error message is the one place a credential is
     # guaranteed to be printed.
     gr_abort(paste0("The API key contains a control character. A line break inside a key is ",
                     "usually a stray line ending from the file or environment variable it was ",
-                    "read from; check OPENAI_API_KEY, options(readgpt.api_key =) and the ",
+                    "read from; check OPENAI_API_KEY, options(harnessr.api_key =) and the ",
                     "`api_key` passed to gr_client()."),
              class = c("gr_bad_key", "gr_auth_error"))
   }
@@ -213,7 +215,7 @@ request_headers <- function(client) {
 #' @noRd
 no_credentials_error <- function() {
   gr_abort(paste0(
-    "No API key found, so no request can be sent. readgpt reads the key from the ",
+    "No API key found, so no request can be sent. harnessr reads the key from the ",
     "OPENAI_API_KEY environment variable: add the line OPENAI_API_KEY=<your key> to your ",
     ".Renviron file (file.edit(\"~/.Renviron\") opens it), restart R, and check with ",
     "gr_api_key(). To practise without a key, pass `client = gr_mock_client(...)`. A ",

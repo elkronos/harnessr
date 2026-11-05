@@ -354,9 +354,9 @@ test_that("the bundled example document exists and ingests", {
 
 test_that("every exported function has a help topic with a value section", {
   # Cheap guard against documentation drifting away from the exports.
-  exported <- setdiff(getNamespaceExports("readgpt"), "%||%")
+  exported <- setdiff(getNamespaceExports("harnessr"), "%||%")
   for (fn in exported) {
-    topic <- utils::help((fn), package = "readgpt", try.all.packages = FALSE)
+    topic <- utils::help((fn), package = "harnessr", try.all.packages = FALSE)
     expect_gt(length(topic), 0L, label = sprintf("help topic for '%s'", fn))
   }
 })

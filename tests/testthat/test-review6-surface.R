@@ -7,7 +7,7 @@
 # folder `dir` is the one root it may read.
 shiny_app <- function(dir, cl, fns = list(), env = parent.frame()) {
   skip_if_not_installed("shiny")
-  app <- system.file("shiny", "app.R", package = "readgpt")
+  app <- system.file("shiny", "app.R", package = "harnessr")
   skip_if(!nzchar(app), "the Shiny app is not available")
   e <- new.env(parent = globalenv())
   e$gr_client <- function(model = NULL, api_key = NULL, ...) cl
@@ -311,7 +311,7 @@ test_that("clearing the cost field keeps the R session's cap, and the label says
 test_that("the offline demo runs every section and every reader", {
   local_registries()
   local_clean_cache()
-  demo <- system.file("examples", "demo.R", package = "readgpt")
+  demo <- system.file("examples", "demo.R", package = "harnessr")
   skip_if(!nzchar(demo), "the demo is not available")
   out <- quiet(utils::capture.output(
     sys.source(demo, envir = new.env(parent = globalenv()), keep.source = FALSE)))
@@ -342,7 +342,7 @@ test_that("an answer from gr_compare carries its recipe's read, and the help say
   expect_true("segment" %in% labels(cmp$answers$a$trace))
   expect_false("b" %in% recipes(cmp$answers$a$trace))
   expect_true("segment" %in% labels(cmp$trace))
-  f <- source_file("R", "readgpt-package.R")
+  f <- source_file("R", "harnessr-package.R")
   skip_if(is.null(f), "the package source is not available")
   txt <- paste(readLines(f, warn = FALSE), collapse = " ")
   # It said the trace was shared across recipes and recorded every one's calls.
@@ -406,7 +406,7 @@ test_that("the CI vignette step fails a vignette whose chunks error", {
 # surface-12: run-tests.sh installs what the package imports.
 # ---------------------------------------------------------------------------
 
-test_that("run-tests.sh needs every package readgpt imports, and knitr for --check", {
+test_that("run-tests.sh needs every package harnessr imports, and knitr for --check", {
   skip_on_cran()
   skip_on_os("windows")
   sh <- source_file("run-tests.sh")
