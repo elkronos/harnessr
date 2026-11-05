@@ -280,7 +280,7 @@ test_that("the progress line keeps the spend through a failed empty request", {
 
 test_that("the gr_trace_cost() example describes what it shows", {
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl))
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl))
   cost <- gr_trace_cost(ans$trace)
   expect_identical(cost$model, "mock-model")
   expect_identical(cost$usd, 0)

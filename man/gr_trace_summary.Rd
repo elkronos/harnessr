@@ -38,7 +38,7 @@ Summarise a trace
 }
 \examples{
 cl <- gr_mock_client(function(m, p) "45.2 million dollars")
-ans <- answer_document(readgpt_example(), "What was revenue?", "thorough", client = cl)
+ans <- answer_document(gr_example(), "What was revenue?", "thorough", client = cl)
 gr_trace_summary(ans$trace)
 
 # What the run cost, each request priced at its own model (nothing, for a

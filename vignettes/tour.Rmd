@@ -58,7 +58,7 @@ registered.
 pipeline and runs it. The bundled example is a short annual report.
 
 ```{r}
-ans <- answer_document(readgpt_example(), "What was revenue?", "thorough",
+ans <- answer_document(gr_example(), "What was revenue?", "thorough",
                        client = cl)
 ans$answer
 ```
@@ -164,7 +164,7 @@ calls at all, so you can compare strategies for nothing before spending anything
 on reading:
 
 ```{r}
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"), function(m)
   gr_chunk_stats(gr_segment(doc, list(method = m, max_tokens = 120)))))
 ```
@@ -197,7 +197,7 @@ segmentation and the same read settings are the same work, and `gr_compare()`
 refuses to bill you twice for them.
 
 ```{r}
-cmp <- gr_compare(readgpt_example(), "What was revenue?",
+cmp <- gr_compare(gr_example(), "What was revenue?",
                   c("fast", "precise", "thorough"), client = cl)
 cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "chunks_used", "not_found")]
 ```
@@ -299,9 +299,9 @@ repeat is free and identical:
 cache <- gr_cache(dir = file.path(tempdir(), "harnessr-vignette-cache"))
 cached_cl <- gr_cache_client(cl, cache)
 
-first  <- answer_document(readgpt_example(), "What was revenue?", "fast",
+first  <- answer_document(gr_example(), "What was revenue?", "fast",
                           client = cached_cl)
-second <- answer_document(readgpt_example(), "What was revenue?", "fast",
+second <- answer_document(gr_example(), "What was revenue?", "fast",
                           client = cached_cl)
 
 gr_trace_summary(second$trace)[, c("calls", "cached")]
@@ -319,7 +319,7 @@ network and no spend:
 f <- file.path(tempdir(), "run.json")
 gr_trace_save(first$trace, f)
 
-replayed <- answer_document(readgpt_example(), "What was revenue?", "fast",
+replayed <- answer_document(gr_example(), "What was revenue?", "fast",
                             client = gr_replay_client(f))
 identical(replayed$answer, first$answer)
 ```

@@ -158,7 +158,7 @@ test_that("an effort reaches a reasoning model and never one that would refuse i
 })
 
 test_that("a read sends each stage the effort its label resolves to", {
-  ch <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 150)))
+  ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150)))
   cl <- effort_client()
   quiet(gr_read(ch, "What was revenue?", cl,
                 gr_read_spec("map_reduce", model = reasoner,
@@ -178,7 +178,7 @@ test_that("a read sends each stage the effort its label resolves to", {
   long <- paste(rep("Revenue was 45.2 million dollars in the year under review.", 60),
                 collapse = " ")
   cl <- gr_mock_client(function(m, p) long)
-  ch2 <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 60)))
+  ch2 <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 60)))
   quiet(gr_read(ch2, "What was revenue?", cl,
                 gr_read_spec("map_reduce", model = "tiny-thinker", max_answer_tokens = 1500L,
                              effort = c(map = "low", reduce = "high"))))
@@ -214,7 +214,7 @@ test_that("calls made in parallel workers resolve the same effort", {
                     input_usd = 0, output_usd = 0, reasoning = TRUE,
                     supports_temperature = FALSE)
   gr_options(workers = 2)
-  ch <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 150)))
+  ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150)))
   cl <- gr_mock_client(function(m, p) sprintf("pid %d", Sys.getpid()))
   quiet(gr_read(ch, "What was revenue?", cl,
                 gr_read_spec("map_reduce", model = "par-thinker", parallel = TRUE,
@@ -228,7 +228,7 @@ test_that("calls made in parallel workers resolve the same effort", {
 })
 
 test_that("effort passes through answer_document() and gr_read_many(), into the store key", {
-  f <- readgpt_example()
+  f <- gr_example()
   cl <- effort_client()
   ans <- quiet(answer_document(f, "What was revenue?", "fast", client = cl, model = reasoner,
                                effort = "low"))
@@ -264,7 +264,7 @@ test_that("gr_compare() keeps recipes apart that differ only in effort, and says
                    read = gr_read_spec("stuff", model = reasoner, effort = "low"))
   high <- gr_recipe("high", segment = list(method = "paragraph", max_tokens = 150),
                     read = gr_read_spec("stuff", model = reasoner, effort = "high"))
-  cmp <- quiet(gr_compare(readgpt_example(), "What was revenue?", list(low = low, high = high),
+  cmp <- quiet(gr_compare(gr_example(), "What was revenue?", list(low = low, high = high),
                           client = cl))
   expect_setequal(unname(efforts_by_label(cl)), c("low", "high"))
   expect_match(cmp$summary$settings[cmp$summary$recipe == "low"], "effort=low", fixed = TRUE)
@@ -278,7 +278,7 @@ test_that("the segmenters that call a model are sent the run's effort", {
   # A segmenter asks the client's model, so the client's model is the
   # reasoning one here.
   cl <- gr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
-  quiet(answer_document(readgpt_example(), "What was revenue?",
+  quiet(answer_document(gr_example(), "What was revenue?",
                         gr_recipe("ctx", segment = gr_segment_spec("contextual", max_tokens = 200,
                                                                    context_source = "llm"),
                                   read = "stuff"),
@@ -297,12 +297,12 @@ test_that("gr_compare() shares chunks between recipes whose segmenter is sent th
   }
   context_calls <- function(ea, eb) {
     cl <- gr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
-    quiet(gr_compare(readgpt_example(), "What was revenue?", pair(ctx, ea, eb), client = cl))
+    quiet(gr_compare(gr_example(), "What was revenue?", pair(ctx, ea, eb), client = cl))
     e <- efforts_by_label(cl)
     e[names(e) == "segment.context"]
   }
   cl <- gr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
-  quiet(answer_document(readgpt_example(), "What was revenue?",
+  quiet(answer_document(gr_example(), "What was revenue?",
                         gr_recipe("one", segment = ctx, read = "stuff"), client = cl))
   n <- sum(names(efforts_by_label(cl)) == "segment.context")
   expect_gt(n, 0L)
@@ -329,12 +329,12 @@ test_that("gr_compare() shares chunks between recipes whose segmenter is sent th
                             cbind(nchar(texts), seq_along(texts), 1)
                           })
   sem <- gr_segment_spec("semantic", max_tokens = 200)
-  quiet(answer_document(readgpt_example(), "What was revenue?",
+  quiet(answer_document(gr_example(), "What was revenue?",
                         gr_recipe("one", segment = sem, read = "stuff"), client = cl))
   once <- embedded
   expect_gt(once, 0L)
   embedded <- 0L
-  quiet(gr_compare(readgpt_example(), "What was revenue?", pair(sem, "low", "high"), client = cl))
+  quiet(gr_compare(gr_example(), "What was revenue?", pair(sem, "low", "high"), client = cl))
   expect_identical(embedded, once)
 })
 
@@ -441,7 +441,7 @@ test_that("a cache keeps replies at different efforts apart", {
 })
 
 test_that("a replay matches on the effort it was recorded with", {
-  doc <- readgpt_example()
+  doc <- gr_example()
   cl <- effort_client()
   rec <- gr_recipe("r", segment = list(method = "paragraph", max_tokens = 150),
                    read = gr_read_spec("map_reduce", model = reasoner))
@@ -492,7 +492,7 @@ test_that("a replay does not need the recording session's reasoning-model regist
 })
 
 test_that("a replay looks up the recording's other models at the effort each is sent", {
-  ch <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 150)))
+  ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150)))
   sp <- gr_read_spec("stuff", effort = "low")
   # A reasoning model and one that is sent no effort, each as the replay
   # client's own model and as the other one.
@@ -560,7 +560,7 @@ test_that("a call through an ellmer chat is not recorded as sent at the effort i
 
 test_that("the audit report shows what effort each stage ran at", {
   cl <- effort_client()
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl,
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                                model = reasoner, effort = "low"))
   html <- paste(readLines(quiet(gr_audit_report(tempfile(fileext = ".html"), answer = ans,
                                                 open = FALSE)), warn = FALSE), collapse = "\n")
@@ -568,7 +568,7 @@ test_that("the audit report shows what effort each stage ran at", {
   expect_match(html, ">effort<", fixed = TRUE)
   # Not for a run without it.
   cl <- effort_client()
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl,
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                                model = reasoner))
   html <- paste(readLines(quiet(gr_audit_report(tempfile(fileext = ".html"), answer = ans,
                                                 open = FALSE)), warn = FALSE), collapse = "\n")
@@ -636,7 +636,7 @@ test_that("the help's custom reader and suggested profile do what the help says"
   tools::Rd2ex(file.path(man, "gr_register_reader.Rd"), ex)
   utils::capture.output(quiet(source(ex, local = new.env())))
   cl <- effort_client()
-  quiet(gr_read(quiet(gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 120))),
+  quiet(gr_read(quiet(gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))),
                 "What was revenue?", cl, gr_read_spec("longest", model = reasoner, effort = "low")))
   expect_identical(unname(efforts_by_label(cl)), "low")
 

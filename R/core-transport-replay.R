@@ -33,7 +33,7 @@
 #' @export
 #' @examples
 #' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-#' ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
+#' ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #'
 #' f <- tempfile(fileext = ".json")
 #' gr_trace_save(ans$trace, f)
@@ -155,11 +155,11 @@ gr_trace_save <- function(trace, path) {
 #' @examples
 #' # A run.
 #' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-#' ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
+#' ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #'
 #' # The same run, from the recording, with no client and no key.
 #' rp <- gr_replay_client(ans$trace)
-#' again <- answer_document(readgpt_example(), "What was revenue?", "fast", client = rp)
+#' again <- answer_document(gr_example(), "What was revenue?", "fast", client = rp)
 #' identical(again$answer, ans$answer)
 #'
 #' rp$stats()
@@ -167,7 +167,7 @@ gr_trace_save <- function(trace, path) {
 #' # Through a file, which is how a run reaches someone else.
 #' f <- tempfile(fileext = ".json")
 #' gr_trace_save(ans$trace, f)
-#' answer_document(readgpt_example(), "What was revenue?", "fast",
+#' answer_document(gr_example(), "What was revenue?", "fast",
 #'                 client = gr_replay_client(f))$answer
 gr_replay_client <- function(source, strict = TRUE) {
   # Read once: a file is parsed, and a trace listed, a single time for all the

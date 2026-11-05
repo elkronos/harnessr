@@ -71,7 +71,7 @@ gr_register_reader("longest", signature = "one|1|none", cost_calls = "1",
     new_answer(res$text, "longest", question, d$chunk_id[i], trace)
   })
 
-ch <- gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 120))
+ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
 gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million"),
         "longest")$answer
 }

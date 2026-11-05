@@ -35,7 +35,7 @@ many different segmentations, so comparing chunking strategies costs one file
 read, not one per strategy.
 }
 \examples{
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 
 # The same document, three boundary hypotheses. No API calls.
 do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"),

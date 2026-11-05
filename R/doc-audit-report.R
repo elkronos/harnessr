@@ -168,7 +168,7 @@
 #'
 #' # One answer and the passages behind it.
 #' cl2 <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-#' ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl2)
+#' ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl2)
 #' page <- gr_audit_report(tempfile(fileext = ".html"), answer = ans, open = FALSE)
 gr_audit_report <- function(path, screening = NULL, extraction = NULL,
                             synthesis = NULL, protocol = NULL, title = NULL,

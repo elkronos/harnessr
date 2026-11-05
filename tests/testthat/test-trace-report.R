@@ -150,7 +150,7 @@ test_that("folding a trace in never takes a recipe from a list of recipes", {
 
 test_that("a comparison's shared requests belong to no recipe, and each answer to its own", {
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  cmp <- quiet(gr_compare(readgpt_example(), "What was revenue?", c("fast", "thorough"),
+  cmp <- quiet(gr_compare(gr_example(), "What was revenue?", c("fast", "thorough"),
                           client = cl, method = "contextual", context_source = "llm"))
   df <- as.data.frame(cmp$trace)
   expect_true(any(df$stage == "segment.context"))
@@ -162,9 +162,9 @@ test_that("a comparison's shared requests belong to no recipe, and each answer t
 test_that("a cached request to a model with no price is unknown, as gr_trace_cost() says", {
   gr_register_model("rpt-local", context_window = 32768, max_output = 4096)
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl,
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                                model = "rpt-local"))
-  again <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast",
+  again <- quiet(answer_document(gr_example(), "What was revenue?", "fast",
                                  client = gr_replay_client(ans$trace), model = "rpt-local"))
   df <- as.data.frame(again$trace)
   expect_true(all(df$cached))

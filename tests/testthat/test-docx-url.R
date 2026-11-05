@@ -221,7 +221,7 @@ serve <- function(file, type = "", status = 200L, env = parent.frame()) {
 
 test_that("a web address is downloaded and read as what it serves", {
   local_clean_cache()
-  serve(readgpt_example(), type = "text/markdown; charset=utf-8")
+  serve(gr_example(), type = "text/markdown; charset=utf-8")
   doc <- quiet(gr_ingest("https://example.org/reports/annual"))
   expect_identical(doc$source, "https://example.org/reports/annual")
   # Read with the Markdown extractor, so its headings are sections.
@@ -236,7 +236,7 @@ test_that("a web address is downloaded and read as what it serves", {
 
 test_that("an address ending in an extension is fetched, not looked for on disk", {
   local_clean_cache()
-  serve(readgpt_example(), type = "text/plain")
+  serve(gr_example(), type = "text/plain")
   doc <- quiet(gr_ingest("https://example.org/files/report.md"))
   expect_identical(doc$source, "https://example.org/files/report.md")
   # Served as plain text, still read as Markdown: the address says what it is.
@@ -248,7 +248,7 @@ test_that("space around an address, or inside it, does not make it text", {
   asked <- character(0)
   local_mocked_bindings(url_download = function(url, dest) {
     asked <<- c(asked, url)
-    file.copy(readgpt_example(), dest, overwrite = TRUE)
+    file.copy(gr_example(), dest, overwrite = TRUE)
     list(status = 200L, type = "text/markdown")
   }, .package = "harnessr")
   for (u in c(" https://example.org/reports/a", "https://example.org/reports/b\n",
@@ -265,7 +265,7 @@ test_that("space around an address, or inside it, does not make it text", {
 
 test_that("a failed download is an error that names the address", {
   local_clean_cache()
-  serve(readgpt_example(), status = 404L)
+  serve(gr_example(), status = 404L)
   expect_error(quiet(gr_ingest("https://example.org/missing.pdf")),
                class = "gr_url_error", regexp = "HTTP 404")
   local_mocked_bindings(url_download = function(url, dest) stop("could not resolve host"),
@@ -331,7 +331,7 @@ test_that("each address is cached as itself", {
 
 test_that("a corpus of addresses is labelled by address", {
   local_clean_cache()
-  serve(readgpt_example(), type = "text/markdown")
+  serve(gr_example(), type = "text/markdown")
   out <- quiet(gr_read_many(c("https://example.org/a/report", "https://example.net/b/report"),
                             "What was revenue?", "fast", client = mock_echo()))
   expect_identical(out$summary$document, c("example.org/a/report", "example.net/b/report"))

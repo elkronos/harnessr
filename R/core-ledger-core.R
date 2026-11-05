@@ -89,7 +89,7 @@
 #' @examples
 #' tr <- gr_trace(meta = list(purpose = "demo"))
 #' cl <- gr_mock_client(function(m, p) "an answer")
-#' ch <- gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 150))
+#' ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150))
 #' invisible(gr_read(ch, "What was revenue?", cl, "map_reduce", trace = tr))
 #' print(tr)
 #'
@@ -386,7 +386,7 @@ as_parent_trace <- function(trace, arg = "trace") {
 #' @export
 #' @examples
 #' cl <- gr_mock_client(function(m, p) "45.2 million dollars")
-#' ans <- answer_document(readgpt_example(), "What was revenue?", "thorough", client = cl)
+#' ans <- answer_document(gr_example(), "What was revenue?", "thorough", client = cl)
 #' gr_trace_summary(ans$trace)
 #'
 #' # What the run cost, each request priced at its own model (nothing, for a

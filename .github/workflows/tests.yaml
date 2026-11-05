@@ -132,7 +132,7 @@ jobs:
               assign("cl", gr_mock_client(reply), envir = env)
               # Lazy: only the blocks that actually reference `ans` pay for it.
               delayedAssign("ans", {
-                answer_document(readgpt_example(), "What was revenue?", "needle",
+                answer_document(gr_example(), "What was revenue?", "needle",
                                 client = gr_mock_client(function(m, p) "Revenue was 45.2 million dollars."))
               }, assign.env = env)
               # The review walkthrough continues from a run of your own, as the

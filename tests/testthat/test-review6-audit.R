@@ -97,7 +97,7 @@ test_that("a protocol edited after the run is flagged, and what the screening us
   expect_false(grepl("not the protocol the run was made under", h4, fixed = TRUE))
 
   # With no stage to compare against, the report does not vouch for it.
-  syn_free <- r6_page(answer = quiet(answer_document(readgpt_example(), "What was revenue?",
+  syn_free <- r6_page(answer = quiet(answer_document(gr_example(), "What was revenue?",
                                                      "fast",
                                                      client = gr_mock_client(function(m, p) "45.2"))),
                       protocol = p)
@@ -228,7 +228,7 @@ test_that("a failed request is not reported as every request succeeding", {
 })
 
 test_that("a clean answer is not partial, and a recovered failure is named as recovered", {
-  a <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast",
+  a <- quiet(answer_document(gr_example(), "What was revenue?", "fast",
                              client = gr_mock_client(function(m, p) "Revenue was 45.2 million.")))
   h <- r6_page(answer = a)
   expect_match(h, "<p class='ok'>Not partial: no request failed", fixed = TRUE)

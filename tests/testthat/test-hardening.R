@@ -527,7 +527,7 @@ test_that("as_json survives every object that embeds a trace", {
     expect_true(any(grepl("readgpt", names(flat), fixed = TRUE)) ||
                   any(grepl("revenue", as.character(flat), ignore.case = TRUE)))
   }
-  j <- quiet(answer_question(readgpt_example(), "What was revenue?", mode = "Chunked",
+  j <- quiet(answer_question(gr_example(), "What was revenue?", mode = "Chunked",
                              return_json = TRUE, client = mock_echo()))
   parsed <- jsonlite::fromJSON(as.character(j), simplifyVector = FALSE)
   expect_true(all(c("answers", "summary", "trace") %in% names(parsed)))
@@ -555,10 +555,10 @@ test_that("every v1 shim runs and does not reproduce the v1 bug it replaced", {
   # Mutation survivor: the whole of compat.R could be deleted without a failure.
   harnessr:::.warn_once_reset()
   on.exit(harnessr:::.warn_once_reset(), add = TRUE)
-  expect_warning(answer_question(readgpt_example(), "What was revenue?",
+  expect_warning(answer_question(gr_example(), "What was revenue?",
                                  mode = "Chunked", client = mock_echo()),
                  class = "gr_deprecated")
-  a <- quiet(answer_question(readgpt_example(), "What was revenue?",
+  a <- quiet(answer_question(gr_example(), "What was revenue?",
                              mode = "Chunked", client = mock_echo()))
   expect_type(a, "character")
 
@@ -569,7 +569,7 @@ test_that("every v1 shim runs and does not reproduce the v1 bug it replaced", {
   labels <- function(fn, ...) {
     cl <- mock_echo()
     harnessr:::.warn_once_reset()
-    invisible(quiet(suppressWarnings(fn(readgpt_example(), "What was revenue?",
+    invisible(quiet(suppressWarnings(fn(gr_example(), "What was revenue?",
                                         client = cl, ...))))
     paste(sort(unique(vapply(cl$calls(), function(x) as_chr1(x$label), character(1)))),
           collapse = ",")
@@ -582,7 +582,7 @@ test_that("every v1 shim runs and does not reproduce the v1 bug it replaced", {
 
   # v1 stripped every digit by default, so no question about a figure could be
   # answered. parse_text() must not do that any more.
-  chunks <- quiet(parse_text(readgpt_example(), chunk_token_limit = 200))
+  chunks <- quiet(parse_text(gr_example(), chunk_token_limit = 200))
   expect_type(chunks, "character")
   expect_gt(length(chunks), 1L)
   expect_true(any(grepl("[0-9]", chunks)))
@@ -1027,7 +1027,7 @@ test_that("ingestion and segmentation are identical under a C locale", {
   on.exit(suppressWarnings(Sys.setlocale("LC_CTYPE", old)), add = TRUE)
 
   measure <- function() {
-    d <- gr_ingest(readgpt_example())
+    d <- gr_ingest(gr_example())
     ch <- gr_segment(d, list(method = "structural", max_tokens = 120))
     list(tokens = d$stats$tokens, chars = d$stats$chars,
          text = d$text, totals = sum(ch$chunks$tokens))

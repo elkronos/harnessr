@@ -33,7 +33,7 @@ old <- gr_options(verbose = FALSE)
 harnessr includes a short example, an annual report written in Markdown:
 
 ```{r}
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 doc
 ```
 
@@ -251,14 +251,14 @@ Here is how much text each leaves of the example report:
 
 ```{r}
 presets <- c("none", "minimal", "standard", "academic", "scan", "legacy")
-vapply(presets, function(p) gr_ingest(readgpt_example(), gr_ingest_spec(clean = p))$stats$chars,
+vapply(presets, function(p) gr_ingest(gr_example(), gr_ingest_spec(clean = p))$stats$chars,
        integer(1))
 ```
 
 Or name the cleaners yourself:
 
 ```{r}
-tidy <- gr_ingest(readgpt_example(),
+tidy <- gr_ingest(gr_example(),
                   gr_ingest_spec(clean = c("page_numbers", "hyphenation", "collapse_whitespace")))
 tidy$stats$chars
 ```
@@ -319,7 +319,7 @@ without calling a model and without an API key:
 ```{r}
 inbox <- file.path(tempdir(), "inbox")
 dir.create(inbox, showWarnings = FALSE)
-invisible(file.copy(readgpt_example(), file.path(inbox, "annual_report.md"),
+invisible(file.copy(gr_example(), file.path(inbox, "annual_report.md"),
                     overwrite = TRUE))
 writeLines("Headcount grew to 1,204 employees across nine sites.",
            file.path(inbox, "notes.txt"))

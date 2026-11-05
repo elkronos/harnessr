@@ -30,7 +30,7 @@
 #'   for `cache_documents` and `cache_embeddings`, [gr_ingest()], [gr_embed()]
 #' @export
 #' @examples
-#' doc <- gr_ingest(readgpt_example())
+#' doc <- gr_ingest(gr_example())
 #' gr_flush_caches("documents")
 #' gr_flush_caches()
 gr_flush_caches <- function(what = "all") {

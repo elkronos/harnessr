@@ -298,7 +298,7 @@ suppressWarnings(gr_read_spec("hierarchical", fan_in = 999)$fan_in)
 
 # Reasoning effort by stage: little for the per-chunk calls, more for the
 # merge. The trace says which request carried which.
-ch <- gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 150))
+ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150))
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 sp <- gr_read_spec("map_reduce", model = "gpt-5.6-luna",
                    effort = c(map = "low", reduce = "high"))
@@ -309,7 +309,7 @@ unique(as.data.frame(tr)[, c("stage", "effort")])
 # that finds the excerpts contradict it.
 cl <- gr_mock_client(function(m, p)
   "FALSE_PREMISE: Revenue rose 12\% in 2023, to 45.2 million.")
-ch <- gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 400))
+ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 400))
 ans <- gr_read(ch, "Why did revenue fall in 2023?", cl,
                gr_read_spec("stuff", premise = TRUE))
 ans$premise

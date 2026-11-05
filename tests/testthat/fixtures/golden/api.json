@@ -112,6 +112,10 @@
       "formals": ["model", "input_tokens", "output_tokens = 0"],
       "type": "function"
     },
+    "gr_example": {
+      "formals": [],
+      "type": "function"
+    },
     "gr_extract": {
       "formals": ["sources", "fields", "goal = NULL", "recipe = \"research\"", "client = NULL", "store = NULL", "resolve = c(\"first\", \"model\")", "require_quote = FALSE", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = FALSE", "recursive = FALSE", "trace = NULL", "..."],
       "type": "function"

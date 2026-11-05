@@ -89,7 +89,7 @@ golden_volatile <- c("at", "seconds", "started", "run_id", "elapsed_s", "readgpt
 
 # Every absolute path a run can mention, longest first, with what it becomes.
 golden_paths <- function() {
-  ex <- harnessr::readgpt_example()
+  ex <- harnessr::gr_example()
   p <- c(normalizePath(ex, winslash = "/", mustWork = FALSE), ex,
          normalizePath(dirname(ex), winslash = "/", mustWork = FALSE), dirname(ex),
          normalizePath(tempdir(), winslash = "/", mustWork = FALSE), tempdir())
@@ -300,7 +300,7 @@ golden_recipe_runs <- function() {
   recipes <- c(names(harnessr::gr_recipes()), "auto")
   stats::setNames(lapply(recipes, function(r) {
     function() golden_run(function(cl) {
-      harnessr::answer_document(harnessr::readgpt_example(), golden_question, r, client = cl)
+      harnessr::answer_document(harnessr::gr_example(), golden_question, r, client = cl)
     }, golden_answer)
   }), paste0("recipe-", recipes))
 }
@@ -346,7 +346,7 @@ golden_reader_runs <- function() {
       rec <- harnessr::gr_recipe(paste0("golden-", r),
                                 segment = list(method = "paragraph", max_tokens = 120),
                                 read = spec(r))
-      harnessr::answer_document(harnessr::readgpt_example(), golden_question, rec, client = cl)
+      harnessr::answer_document(harnessr::gr_example(), golden_question, rec, client = cl)
     }, golden_answer)
   }), paste0("reader-", readers))
 }
@@ -366,7 +366,7 @@ golden_protocol <- function() {
 # before it. The upstream stages are run with a client of their own, so each
 # record holds only its own stage's requests.
 golden_stage_runs <- function() {
-  ex <- function() harnessr::readgpt_example()
+  ex <- function() harnessr::gr_example()
   upstream <- function() {
     tmp <- golden_client(tempfile("golden-up"))
     p <- golden_protocol()

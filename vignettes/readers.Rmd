@@ -66,7 +66,7 @@ word matching instead of a paid embedding service; more on that below.
 Now the document, cut into chunks along its section headings:
 
 ```{r}
-chunks <- gr_segment(gr_ingest(readgpt_example()),
+chunks <- gr_segment(gr_ingest(gr_example()),
                      list(method = "structural", max_tokens = 120))
 gr_chunk_stats(chunks)
 ```
@@ -479,7 +479,7 @@ answer. `gr_compare()` runs several configurations on one document, extracting t
 text once and sharing chunks between configurations that cut them the same way:
 
 ```{r}
-cmp <- gr_compare(readgpt_example(), "What was revenue in 2024?", list(
+cmp <- gr_compare(gr_example(), "What was revenue in 2024?", list(
   gr_recipe("narrow", segment = list(method = "structural", max_tokens = 120),
             read = list(reader = "retrieve", top_k = 2)),
   gr_recipe("wide", segment = list(method = "structural", max_tokens = 120),

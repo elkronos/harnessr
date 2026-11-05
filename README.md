@@ -114,7 +114,7 @@ extraction is shared across all of them:
 
 ```r
 cl  <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-cmp <- gr_compare(readgpt_example(), "What was revenue in fiscal 2024?",
+cmp <- gr_compare(gr_example(), "What was revenue in fiscal 2024?",
                   c("fast", "needle", "thorough", "survey"), client = cl)
 cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "settings")]
 #>     recipe  segmenter chunks       reader         signature
@@ -297,7 +297,7 @@ merges across section boundaries.
 Compare chunkings for free, before spending anything on reading:
 
 ```r
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"),
   function(m) gr_chunk_stats(gr_segment(doc, list(method = m, max_tokens = 120)))))
 #>       method n total_tokens min median  mean max over_cap
@@ -313,7 +313,7 @@ do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"),
 What overlap costs, in duplicated tokens:
 
 ```r
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 do.call(rbind, lapply(c(0, 30, 60), function(ov)
   gr_chunk_stats(gr_segment(doc, list(method = "sentence", max_tokens = 120,
                                       overlap_tokens = ov)))))
@@ -519,7 +519,7 @@ label, and is sent only to reasoning models:
 
 ```r
 # Little reasoning for each chunk's request, more for the merge that answers.
-ans <- answer_document(readgpt_example(), "What was revenue?", "thorough",
+ans <- answer_document(gr_example(), "What was revenue?", "thorough",
                        client = cl, effort = c(map = "low", reduce = "high"))
 
 # In a review: the writing at high effort. gr_screen() and gr_extract() take
@@ -681,7 +681,7 @@ named to show a bill:
 
 ```r
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-run <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl,
+run <- answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                        model = "gpt-5.6-terra")
 gr_trace_cost(run$trace)
 #>           model calls paid_calls paid_in paid_out     usd
@@ -1204,8 +1204,8 @@ repeat is free and *identical*:
 cache  <- gr_cache(file.path(tempdir(), "harnessr-cache"))
 cached <- gr_cache_client(cl, cache)
 
-first  <- answer_document(readgpt_example(), "What was revenue?", "thorough", client = cached)
-second <- answer_document(readgpt_example(), "What was revenue?", "thorough", client = cached)
+first  <- answer_document(gr_example(), "What was revenue?", "thorough", client = cached)
+second <- answer_document(gr_example(), "What was revenue?", "thorough", client = cached)
 
 gr_trace_summary(second$trace)[c("calls", "cached", "tokens_in")]
 #>   calls cached tokens_in
@@ -1243,10 +1243,10 @@ trace plus the source document is enough to reproduce a run exactly, with no key
 and no spend:
 
 ```r
-run <- answer_document(readgpt_example(), "What was revenue?", "thorough", client = cl)
+run <- answer_document(gr_example(), "What was revenue?", "thorough", client = cl)
 gr_trace_save(run$trace, file.path(tempdir(), "run.json"))
 
-replayed <- answer_document(readgpt_example(), "What was revenue?", "thorough",
+replayed <- answer_document(gr_example(), "What was revenue?", "thorough",
                             client = gr_replay_client(file.path(tempdir(), "run.json")))
 identical(replayed$answer, run$answer)
 #> [1] TRUE
@@ -1280,9 +1280,9 @@ own embedder registered as `deterministic = TRUE`:
 
 ```r
 old <- gr_options(embedder = "lexical")
-run <- answer_document(readgpt_example(), "What was revenue?", "needle", client = cl)
+run <- answer_document(gr_example(), "What was revenue?", "needle", client = cl)
 identical(
-  answer_document(readgpt_example(), "What was revenue?", "needle",
+  answer_document(gr_example(), "What was revenue?", "needle",
                   client = gr_replay_client(run$trace))$chunks_used,
   run$chunks_used)
 #> [1] TRUE

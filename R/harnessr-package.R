@@ -43,7 +43,7 @@
 #' Sys.setenv(OPENAI_API_KEY = "sk-...")
 #'
 #' # No key yet? Everything below works offline against gr_mock_client() and the
-#' # bundled document at readgpt_example().
+#' # bundled document at gr_example().
 #'
 #' # One question, one pipeline.
 #' ans <- answer_document("report.pdf", "What was Q3 revenue?", recipe = "needle")
@@ -212,7 +212,7 @@
 #' @seealso [gr_read()], [answer_document()], [as_json()]
 #' @examples
 #' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-#' ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
+#' ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #' ans$partial
 #' ans$evidence[, c("chunk_id", "page", "score")]
 NULL
@@ -269,7 +269,7 @@ NULL
 #' @name gr_chunks
 #' @seealso [gr_segment()], [gr_chunk_stats()], [gr_segmenters()]
 #' @examples
-#' ch <- gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 120))
+#' ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
 #' ch$method
 #' head(ch$chunks[, c("chunk_id", "tokens", "section")])
 NULL
@@ -309,7 +309,7 @@ NULL
 #' @name gr_document
 #' @seealso [gr_ingest()], [gr_ingest_spec()], [gr_cleaners()]
 #' @examples
-#' doc <- gr_ingest(readgpt_example())
+#' doc <- gr_ingest(gr_example())
 #' doc$stats$tokens
 #' vapply(doc$stats$clean_log, function(s) s$chars_removed, integer(1))
 NULL

@@ -51,7 +51,7 @@ several over one document and reports how they differ.
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{Sys.setenv(OPENAI_API_KEY = "sk-...")
 
 # No key yet? Everything below works offline against gr_mock_client() and the
-# bundled document at readgpt_example().
+# bundled document at gr_example().
 
 # One question, one pipeline.
 ans <- answer_document("report.pdf", "What was Q3 revenue?", recipe = "needle")

@@ -331,7 +331,7 @@ test_that("an answer from gr_compare carries its recipe's read, and the help say
   local_registries()
   local_clean_cache()
   gr_options(verbose = FALSE)
-  cmp <- quiet(gr_compare(readgpt_example(), "What was revenue?",
+  cmp <- quiet(gr_compare(gr_example(), "What was revenue?",
                           list(gr_recipe("a", segment = "paragraph", read = "stuff"),
                                gr_recipe("b", segment = "sentence", read = "stuff")),
                           client = mock_echo()))

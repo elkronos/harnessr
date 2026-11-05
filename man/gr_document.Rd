@@ -35,7 +35,7 @@ serialises the stats and every block with its provenance.
 }
 
 \examples{
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 doc$stats$tokens
 vapply(doc$stats$clean_log, function(s) s$chars_removed, integer(1))
 }
