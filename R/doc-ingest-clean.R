@@ -69,7 +69,7 @@ gr_register_cleaner <- function(name, fn, stage = c("early", "late"), descriptio
   if (!is.function(fn)) gr_abort("`fn` must be a function of (text, opts).")
   registry_set("cleaners", name, list(name = name, fn = fn, stage = stage, scope = scope,
                                       description = description, default_on = default_on,
-                                      registered = registration_stamp()))
+                                      registered = registration_stamp()), state = gr_state)
 }
 
 #' List registered cleaners

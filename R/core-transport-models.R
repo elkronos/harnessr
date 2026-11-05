@@ -168,7 +168,7 @@ gr_register_model <- function(id, context_window, max_output,
     reasoning = isTRUE(reasoning),
     supports_temperature = isTRUE(supports_temperature), kind = kind,
     dimensions = as_int1(dimensions), certain = TRUE, as_of = format(Sys.Date(), "%Y-%m")
-  ))
+  ), state = hr_state)
   invisible(id)
 }
 
@@ -204,11 +204,11 @@ gr_model_info <- function(model = NULL) {
   model <- as_chr1(model %||% gr_options("model"))
   if (!nzchar(model)) gr_abort("`model` must be a non-empty string.")
 
-  if (!is.null(gr_state$models[[model]])) {
+  if (!is.null(hr_state$models[[model]])) {
     return(utils::modifyList(.gr_unknown_model,
-                             c(gr_state$models[[model]], list(certain = TRUE, source = "registered"))))
+                             c(hr_state$models[[model]], list(certain = TRUE, source = "registered"))))
   }
-  seeded <- gr_state$seed_models %||% list()
+  seeded <- hr_state$seed_models %||% list()
   if (!is.null(seeded[[model]])) {
     return(utils::modifyList(.gr_unknown_model,
                              c(seeded[[model]], list(certain = TRUE, source = "builtin"))))
@@ -220,14 +220,14 @@ gr_model_info <- function(model = NULL) {
   # is set after the merge: c(target, list(id = alias)) held two `id`
   # elements, and the target's won.
   alias <- .gr_aliases[[model]]
-  target <- if (!is.null(alias)) gr_state$models[[alias]] %||% seeded[[alias]]
+  target <- if (!is.null(alias)) hr_state$models[[alias]] %||% seeded[[alias]]
   if (!is.null(target)) {
     out <- utils::modifyList(.gr_unknown_model, target)
     out$id <- model; out$certain <- TRUE; out$source <- "alias"
     return(out)
   }
   action <- gr_options("unknown_model_action")
-  for (p in gr_state$model_patterns) {
+  for (p in hr_state$model_patterns) {
     if (grepl(p$pattern, model, perl = TRUE)) {
       out <- utils::modifyList(.gr_unknown_model, p[setdiff(names(p), "pattern")])
       out$id <- model; out$certain <- FALSE; out$source <- paste0("pattern:", p$pattern)
@@ -289,7 +289,7 @@ gr_model_limits <- function(model = NULL) {
 #' @examples
 #' subset(gr_models(), kind == "chat")[, c("id", "context_window", "as_of")]
 gr_models <- function() {
-  all <- utils::modifyList(gr_state$seed_models %||% list(), gr_state$models %||% list())
+  all <- utils::modifyList(hr_state$seed_models %||% list(), hr_state$models %||% list())
   if (!length(all)) return(data.frame())
   df <- do.call(rbind, lapply(names(all), function(nm) {
     e <- utils::modifyList(.gr_unknown_model, all[[nm]])

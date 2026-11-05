@@ -44,7 +44,7 @@ gr_register_extractor <- function(name, extensions, fn, description = "") {
   if (!is.function(fn)) gr_abort("`fn` must be a function of (path, opts).")
   registry_set("extractors", name, list(name = name, extensions = tolower(extensions),
                                         fn = fn, description = description,
-                                        registered = registration_stamp()))
+                                        registered = registration_stamp()), state = gr_state)
 }
 
 #' List registered extractors

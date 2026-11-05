@@ -111,10 +111,11 @@ test_that("gr_flush_caches() is documented and exported, apart from gr_cache_cle
 test_that("gr_flush_caches() clears each memory cache and its bookkeeping", {
   local_clean_cache()
   st <- harnessr:::gr_state
+  core <- harnessr:::hr_state
   harnessr:::embed_cache_put(c("e1", "e2"), list(c(1, 0), c(0, 1)))
   harnessr:::doc_cache_put("d1", list(text = "x"))
   expect_identical(gr_flush_caches("embeddings"), "embeddings")
-  expect_length(ls(st$embed_cache, all.names = TRUE), 0L)
+  expect_length(ls(core$embed_cache, all.names = TRUE), 0L)
   expect_identical(ls(st$doc_cache), "d1")
   gr_flush_caches()
   expect_length(ls(st$doc_cache, all.names = TRUE), 0L)
@@ -128,7 +129,7 @@ test_that("gr_flush_caches() clears each memory cache and its bookkeeping", {
 
 test_that("the embedding cache drops the vectors used least recently past its budget", {
   local_clean_cache()
-  st <- harnessr:::gr_state
+  st <- harnessr:::hr_state
   size <- as.numeric(utils::object.size(c(1, 2, 3)))
   put <- function(k, keep = k) {
     harnessr:::embed_cache_put(k, rep(list(c(1, 2, 3)), length(k)), keep = keep,
@@ -191,7 +192,7 @@ test_that("gr_embed() serves vectors from the bounded cache and asks again for d
   expect_identical(seen$texts, c("a", "bb", "ccc"))
   expect_equal(again, first[c(3, 1), ], ignore_attr = TRUE)
   emb("dddd")
-  expect_length(ls(harnessr:::gr_state$embed_cache), 2L)
+  expect_length(ls(harnessr:::hr_state$embed_cache), 2L)
   # "a" was used last before "dddd", so it stayed; "bb" and "ccc" went.
   emb("a")
   expect_identical(seen$texts, c("a", "bb", "ccc", "dddd"))

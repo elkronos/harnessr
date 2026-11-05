@@ -27,7 +27,7 @@ session_interactive <- function() interactive()
 #' drawn until with_progress() runs.
 #' @noRd
 progress_start <- function(n, label, trace = NULL) {
-  if (n < 2L || isTRUE(gr_state$progress_on) || !progress_wanted()) return(NULL)
+  if (n < 2L || isTRUE(hr_state$progress_on) || !progress_wanted()) return(NULL)
   p <- new.env(parent = emptyenv())
   p$n <- as.integer(n)
   p$label <- as_chr1(label, "item")
@@ -121,7 +121,7 @@ progress_clear <- function(p) {
 #' @noRd
 progress_done <- function(p) {
   if (is.null(p)) return(invisible(NULL))
-  gr_state$progress_on <- FALSE
+  hr_state$progress_on <- FALSE
   progress_clear(p)
   invisible(NULL)
 }
@@ -141,7 +141,7 @@ progress_emit <- function(txt) {
 with_progress <- function(p, expr) {
   if (is.null(p)) return(expr)
   on.exit(progress_done(p), add = TRUE)
-  gr_state$progress_on <- TRUE
+  hr_state$progress_on <- TRUE
   progress_tick(p, 0L)
   # An error or an interrupt that reaches the console is printed before
   # on.exit() runs, so the line is cleared here, when it is signalled.

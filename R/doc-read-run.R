@@ -46,7 +46,7 @@ gr_read <- function(chunks, question, client, spec = NULL, trace = NULL) {
   settings <- read_settings(spec)
   spec <- resolve_read_model(spec, client)
   trace <- trace %||% gr_trace(meta = list(reader = spec$reader))
-  rd <- registry_get("readers", spec$reader, "readers")
+  rd <- registry_get("readers", spec$reader, "readers", state = gr_state)
 
   gr_msg(sprintf("Reading with '%s' (%s) over %d chunk(s).",
                  spec$reader, rd$signature, nrow(chunks$chunks)))
@@ -315,7 +315,7 @@ preflight <- function(chunks, spec, trace, client = NULL, question = "",
   # be cheaper. stuff sends what fits in one request. A reader that picks chunks
   # adds nothing, since what it sends is not known until it has ranked them.
   sends_all <- function(r) startsWith(as_chr1(tryCatch(
-    registry_get("readers", r, "readers")$signature, error = function(e) ""), ""), "all|")
+    registry_get("readers", r, "readers", state = gr_state)$signature, error = function(e) ""), ""), "all|")
   floor_usd <- function(r) {
     to <- billed %||% switch(r, skim = , extract = spec$skim_model %||% spec$model,
                              hierarchical = spec$summary_model %||% spec$model, spec$model)
@@ -459,7 +459,7 @@ embed_requests <- function(client, readers, texts, question, spec) {
     if (cache && length(x)) {
       keys <- vapply(x, function(t) embed_cache_key("api", model, t, endpoint), character(1),
                      USE.NAMES = FALSE)
-      held <- vapply(keys, function(k) !is.null(gr_state$embed_cache[[k]]), logical(1),
+      held <- vapply(keys, function(k) !is.null(hr_state$embed_cache[[k]]), logical(1),
                      USE.NAMES = FALSE)
       x <- x[!held & !keys %in% earlier]
       earlier <<- c(earlier, keys)

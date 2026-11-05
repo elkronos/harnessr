@@ -65,7 +65,7 @@ gr_register_embedder <- function(name, fn, description = "", deterministic = FAL
   if (!is.function(fn)) gr_abort("`fn` must be a function of (texts, params).")
   registry_set("embedders", name, list(name = name, fn = fn,
                                        description = description,
-                                       deterministic = isTRUE(deterministic)))
+                                       deterministic = isTRUE(deterministic)), state = gr_state)
 }
 
 #' List registered embedding backends
@@ -78,7 +78,7 @@ gr_register_embedder <- function(name, fn, description = "", deterministic = FAL
 #' @export
 #' @examples
 #' gr_embedders()
-gr_embedders <- function() registry_table("embedders", c("deterministic", "description"))
+gr_embedders <- function() registry_table("embedders", c("deterministic", "description"), state = gr_state)
 
 #' Which embedder a call should use.
 #'
@@ -99,11 +99,11 @@ resolve_embedder <- function(client, embedder = NULL) {
     if (is.function(embedder)) {
       return(list(name = "custom", fn = embedder, deterministic = FALSE))
     }
-    return(registry_get("embedders", as_chr1(embedder), "embedder"))
+    return(registry_get("embedders", as_chr1(embedder), "embedder", state = gr_state))
   }
   opt <- gr_options("embedder")
   if (!is.null(opt) && is_nonblank(as_chr1(opt))) {
-    return(registry_get("embedders", as_chr1(opt), "embedder"))
+    return(registry_get("embedders", as_chr1(opt), "embedder", state = gr_state))
   }
   if (is.function(client$embed_handler)) {
     # Reported as "api" whatever supplied it: the distinction that matters
@@ -119,7 +119,7 @@ resolve_embedder <- function(client, embedder = NULL) {
                   m
                 }))
   }
-  registry_get("embedders", "api", "embedder")
+  registry_get("embedders", "api", "embedder", state = gr_state)
 }
 
 #' @noRd

@@ -40,7 +40,7 @@ gr_flush_caches <- function(what = "all") {
   what <- match.arg(what, c("all", "documents", "embeddings"), several.ok = TRUE)
   if ("all" %in% what) what <- c("documents", "embeddings")
   if ("documents"  %in% what) gr_state$doc_cache   <- new.env(parent = emptyenv())
-  if ("embeddings" %in% what) gr_state$embed_cache <- new.env(parent = emptyenv())
+  if ("embeddings" %in% what) hr_state$embed_cache <- new.env(parent = emptyenv())
   invisible(what)
 }
 

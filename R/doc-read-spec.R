@@ -75,7 +75,7 @@ gr_register_reader <- function(name, fn, signature, description = "", cost_calls
     gr_abort("`signature` must have the form 'select|calls|state', e.g. 'topk|1|none'.")
   }
   registry_set("readers", name, list(name = name, fn = fn, signature = signature,
-                                     description = description, cost_calls = cost_calls))
+                                     description = description, cost_calls = cost_calls), state = gr_state)
 }
 
 #' List registered reading strategies
@@ -96,7 +96,7 @@ gr_register_reader <- function(name, fn, signature, description = "", cost_calls
 #' # `all|...` readers see every chunk, `topk|...` readers see a selection.
 #' r <- gr_readers()
 #' r[order(r$signature), c("name", "signature", "cost_calls")]
-gr_readers <- function() registry_table("readers", c("signature", "cost_calls", "description"))
+gr_readers <- function() registry_table("readers", c("signature", "cost_calls", "description"), state = gr_state)
 
 #' The traversal signature of a reader
 #'
@@ -125,13 +125,13 @@ gr_readers <- function() registry_table("readers", c("signature", "cost_calls", 
 #' gr_reader_signature(gr_read_spec("ensemble", members = c("retrieve", "refine")))
 gr_reader_signature <- function(reader) {
   if (inherits(reader, "gr_read_spec")) {
-    base <- registry_get("readers", reader$reader, "readers")$signature
+    base <- registry_get("readers", reader$reader, "readers", state = gr_state)$signature
     if (identical(reader$reader, "ensemble")) {
       base <- paste0(base, "{", paste(sort(reader$members %||% character(0)), collapse = "+"), "}")
     }
     return(base)
   }
-  registry_get("readers", as_chr1(reader), "readers")$signature
+  registry_get("readers", as_chr1(reader), "readers", state = gr_state)$signature
 }
 
 #' Describe a reading configuration
@@ -459,7 +459,7 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
   # have moved every store entry ever written to a key no run asks for.
   if (isTRUE(premise)) list(premise = TRUE),
   list(...)), class = "gr_read_spec")
-  registry_get("readers", spec$reader, "readers")   # fail fast on a typo
+  registry_get("readers", spec$reader, "readers", state = gr_state)   # fail fast on a typo
   # Asked of a reader that answers no question, the check would silently do
   # nothing; say so once, where the spec is made.
   if (isTRUE(premise) && as_chr1(reader, "") %in% c("screen", "extract")) {

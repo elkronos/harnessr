@@ -254,7 +254,7 @@ gr_options <- function(...) {
   args <- list(...)
   merged <- function() {
     out <- gr_defaults
-    cur <- as.list(gr_state$options %||% list())
+    cur <- as.list(hr_state$options %||% list())
     for (nm in names(cur)) out[nm] <- list(cur[[nm]])
     out
   }
@@ -279,7 +279,7 @@ gr_options <- function(...) {
                      paste(unknown, collapse = ", "), paste(names(gr_defaults), collapse = ", ")))
   }
   for (nm in names(args)) args[nm] <- list(check_option(nm, args[[nm]]))
-  cur <- as.list(gr_state$options %||% list())
+  cur <- as.list(hr_state$options %||% list())
   # merged(), not modifyList(). modifyList() DELETES a key whose value is NULL,
   # so once an option had been *stored* as NULL -- which is what restoring a
   # saved list does for `temperature`, `max_cost_usd`, `cache_dir` or `embedder`
@@ -293,6 +293,6 @@ gr_options <- function(...) {
   # disabling the cost cap, quietly restored the $5 cap instead. Assign directly
   # so NULL is stored as a value.
   for (nm in names(args)) cur[nm] <- list(args[[nm]])
-  gr_state$options <- cur
+  hr_state$options <- cur
   invisible(old)
 }

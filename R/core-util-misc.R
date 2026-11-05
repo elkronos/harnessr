@@ -1,7 +1,7 @@
 # core-util-misc.R -- tiny helpers shared across the package.
 #
 # Design rule for this file: nothing here may make a network call, mutate global
-# state outside `gr_state`, or return NULL where a caller is going to index into
+# state outside `hr_state`, or return NULL where a caller is going to index into
 # the result. The original codebase's most common crash class was a function
 # returning NULL / character(0) into a caller that assumed character(1); the
 # helpers here exist to make that impossible by construction.
@@ -437,9 +437,9 @@ cosine_similarity <- function(a, b) {
 #' `now` is for tests.
 #' @noRd
 gr_new_id <- function(prefix = "run", now = Sys.time()) {
-  gr_state$counter <- (gr_state$counter %||% 0) + 1
+  hr_state$counter <- (hr_state$counter %||% 0) + 1
   paste0(prefix, "_", format(now, "%Y%m%d%H%M%OS3"), "_",
-         substr(gr_hash(list(format(now, "%Y%m%d%H%M%OS6"), Sys.getpid(), gr_state$counter)),
+         substr(gr_hash(list(format(now, "%Y%m%d%H%M%OS6"), Sys.getpid(), hr_state$counter)),
                 1, 6))
 }
 

@@ -464,7 +464,7 @@ embed_cache_key <- function(embedder, model, text, endpoint = "") {
 #' @return A list with the cached vector for each key, NULL where there is none.
 #' @noRd
 embed_cache_get <- function(keys) {
-  cache <- gr_state$embed_cache
+  cache <- hr_state$embed_cache
   out <- lapply(keys, function(k) cache[[k]])
   hit <- unique(keys[!vapply(out, is.null, logical(1))])
   if (length(hit)) cache$.order <- c(setdiff(cache$.order %||% character(0), hit), hit)
@@ -477,7 +477,7 @@ embed_cache_get <- function(keys) {
 #' than the budget is kept whole and trimmed by the next.
 #' @noRd
 embed_cache_put <- function(keys, vectors, keep = keys, budget = .gr_embed_cache_bytes) {
-  cache <- gr_state$embed_cache
+  cache <- hr_state$embed_cache
   for (i in seq_along(keys)) assign(keys[i], vectors[[i]], envir = cache)
   order <- c(setdiff(cache$.order %||% character(0), keys), unique(keys))
   sizes <- cache$.sizes %||% numeric(0)

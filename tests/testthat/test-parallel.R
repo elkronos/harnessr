@@ -163,3 +163,25 @@ test_that("a budget stop inside a worker is not lost", {
      parallel = TRUE, workers = 2, trace = tr)
   expect_true(tr$budget_stop)
 })
+
+test_that("workers see modules registered in the parent session", {
+  skip_if_no_future()
+  local_registries()
+  gr_register_segmenter("seg", function(doc, spec, client, trace) list(doc))
+  gr_register_reader("rd", function(chunks, question, client, spec, trace) "x",
+                     signature = "all|1|none")
+  # A worker loads the package afresh, so it knows these two only if the
+  # document layer's worker hook handed its registries over.
+  seen <- harnessr:::gr_lapply(1:2, function(i, trace) {
+    c("seg" %in% harnessr::gr_segmenters()$name, "rd" %in% harnessr::gr_readers()$name)
+  }, parallel = TRUE, workers = 2)
+  expect_true(all(unlist(seen)))
+})
+
+test_that("the document layer hands its module registries to workers", {
+  layers <- harnessr:::worker_state()$layers
+  expect_true("doc" %in% names(layers))
+  expect_true(all(c("extractors", "cleaners", "segmenters", "readers", "embedders",
+                    "protocols") %in% names(layers$doc$values)))
+  expect_true(is.function(layers$doc$restore))
+})

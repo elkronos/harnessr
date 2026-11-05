@@ -40,10 +40,10 @@
 gr_set_tokenizer <- function(name, fn = NULL) {
   if (!is.null(fn)) {
     if (!is.function(fn)) gr_abort("`fn` must be a function.")
-    gr_state$tokenizers <- utils::modifyList(gr_state$tokenizers %||% list(),
+    hr_state$tokenizers <- utils::modifyList(hr_state$tokenizers %||% list(),
                                              stats::setNames(list(fn), name))
   }
-  known <- c("heuristic", "words", "chars", "tiktoken", names(gr_state$tokenizers %||% list()))
+  known <- c("heuristic", "words", "chars", "tiktoken", names(hr_state$tokenizers %||% list()))
   if (!name %in% known) {
     gr_abort(sprintf("Unknown tokenizer '%s'. Available: %s.", name,
                      paste(unique(known), collapse = ", ")))
@@ -115,7 +115,7 @@ gr_count_tokens <- function(text, model = NULL) {
   if (is.null(text) || length(text) == 0L) return(integer(0))
   text <- vapply(text, as_chr1, character(1), USE.NAMES = FALSE)
   which <- gr_options("tokenizer")
-  custom <- (gr_state$tokenizers %||% list())[[which]]
+  custom <- (hr_state$tokenizers %||% list())[[which]]
   out <- if (!is.null(custom)) {
     as.integer(custom(text))
   } else {

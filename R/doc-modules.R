@@ -1,5 +1,59 @@
-# doc-modules.R: the built-in segmenters and readers, registered when the
-# package loads.
+# doc-modules.R: the document layer's state, the kinds of module it brings,
+# and the built-in segmenters and readers, registered when the package loads.
+
+# The document layer's registries and its document cache. The core keeps its
+# own state in hr_state and never reads this one; what it needs from here it
+# gets through the hooks registered by register_doc_layer().
+gr_state <- new.env(parent = emptyenv())
+
+gr_state$extractors     <- list()
+
+gr_state$cleaners       <- list()
+
+gr_state$segmenters     <- list()
+
+gr_state$readers        <- list()
+
+gr_state$embedders      <- list()
+
+gr_state$protocols      <- list()
+
+gr_state$doc_cache      <- new.env(parent = emptyenv())
+
+#' The registries a parallel worker needs to see the same modules as the
+#' process that sent it the batch. Not the document cache, which holds whole
+#' documents and would cost more to send than the work.
+#' @noRd
+.gr_module_slots <- c("extractors", "cleaners", "segmenters", "readers", "embedders",
+                      "protocols")
+
+#' Tell the core what the document layer brings: its five kinds of module, and
+#' how a parallel worker gets this layer's registries. Run by .onLoad() before
+#' the built-in modules are registered.
+#' @noRd
+register_doc_layer <- function() {
+  hr_register_kind("extractor", registry = "extractors")
+  hr_register_kind("cleaner", registry = "cleaners")
+  hr_register_kind("segmenter", registry = "segmenters")
+  hr_register_kind("reader", registry = "readers")
+  hr_register_kind("embedder", registry = "embedders")
+  hr_register_worker_state("doc", doc_worker_snapshot, doc_worker_restore)
+  invisible(NULL)
+}
+
+#' This layer's registries, as a worker needs them.
+#' @noRd
+doc_worker_snapshot <- function() {
+  mget(.gr_module_slots, envir = gr_state, ifnotfound = list(NULL))
+}
+
+#' Put registries taken by doc_worker_snapshot() in place, in a worker. A
+#' registry that was not there is left as the worker's own load made it.
+#' @noRd
+doc_worker_restore <- function(values) {
+  for (nm in names(values)) if (!is.null(values[[nm]])) assign(nm, values[[nm]], envir = gr_state)
+  invisible(NULL)
+}
 
 # Readers: AXIS 3, the reading strategies.
 #
