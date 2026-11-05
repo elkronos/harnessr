@@ -93,26 +93,40 @@ quiet <- function(expr) suppressWarnings(suppressMessages(force(expr)))
 # ---------------------------------------------------------------------------
 # Registry and option isolation.
 #
-# The registries live in one package-level environment, so a test that registers
-# a cleaner, a segmenter or a model changes what every later test sees --
-# including counts (`nrow(gr_cleaners())`) that other tests assert on. That makes
-# the suite order-dependent: it passes when run as a whole and fails when a
-# single file is run, or vice versa. Anything that mutates global state calls
-# this first.
+# The registries live in two package-level environments, the core's (models)
+# and the document layer's (modules), so a test that registers a cleaner, a
+# segmenter or a model changes what every later test sees, including counts
+# (`nrow(gr_cleaners())`) that other tests assert on. That makes the suite
+# order-dependent: it passes when run as a whole and fails when a single file
+# is run, or vice versa. Anything that mutates global state calls this first.
 # ---------------------------------------------------------------------------
 .gr_registry_slots <- c("extractors", "cleaners", "segmenters", "readers",
-                        "embedders", "models", "model_patterns", "protocols")
+                        "embedders", "protocols")
+.hr_registry_slots <- c("models", "model_patterns")
 
-local_registries <- function(env = parent.frame()) {
+# Every registry slot with the environment it lives in.
+registry_snapshot <- function() {
   # `harnessr:::gr_state[[s]] <- v` is a REPLACEMENT call on `harnessr`, not on
   # the state environment, and fails with "object 'harnessr' not found". Bind the
-  # environment to a local name and assign into that.
-  st <- harnessr:::gr_state
-  snap <- stats::setNames(lapply(.gr_registry_slots, function(s) st[[s]]),
-                          .gr_registry_slots)
+  # environments to local names and assign into those.
+  envs <- list(doc = harnessr:::gr_state, core = harnessr:::hr_state)
+  slots <- list(doc = .gr_registry_slots, core = .hr_registry_slots)
+  lapply(stats::setNames(names(envs), names(envs)), function(layer) {
+    st <- envs[[layer]]
+    list(env = st, values = stats::setNames(lapply(slots[[layer]], function(s) st[[s]]),
+                                            slots[[layer]]))
+  })
+}
+
+registry_restore <- function(snap) {
+  for (layer in snap) for (s in names(layer$values)) layer$env[[s]] <- layer$values[[s]]
+}
+
+local_registries <- function(env = parent.frame()) {
+  snap <- registry_snapshot()
   opts <- gr_options()
   withr::defer({
-    for (s in names(snap)) st[[s]] <- snap[[s]]
+    registry_restore(snap)
     gr_options(opts)
     harnessr:::.warn_once_reset()
   }, envir = env)

@@ -250,12 +250,16 @@ golden_trace <- function(trace, paths) {
 # run returned into the plain data whose hash is kept.
 golden_run <- function(expr, result = function(x) NULL) {
   old <- harnessr::gr_options()
+  # The document layer's registries, then the core's.
   st <- harnessr:::gr_state
-  slots <- c("extractors", "cleaners", "segmenters", "readers", "embedders", "models",
-             "model_patterns", "protocols")
+  slots <- c("extractors", "cleaners", "segmenters", "readers", "embedders", "protocols")
   snap <- stats::setNames(lapply(slots, function(s) st[[s]]), slots)
+  core <- harnessr:::hr_state
+  core_slots <- c("models", "model_patterns")
+  core_snap <- stats::setNames(lapply(core_slots, function(s) core[[s]]), core_slots)
   on.exit({
     for (s in names(snap)) st[[s]] <- snap[[s]]
+    for (s in names(core_snap)) core[[s]] <- core_snap[[s]]
     harnessr::gr_options(old)
     harnessr::gr_flush_caches()
   }, add = TRUE)

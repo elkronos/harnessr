@@ -65,7 +65,7 @@ test_that("a workspace object no batch uses is not sent to workers", {
   expect_identical(length(cl$calls()), ch$trace$calls)
 
   # What a worker runs is the client's handler and the tokenizer in use.
-  st <- harnessr:::gr_state
+  st <- harnessr:::hr_state
   old <- st$tokenizers
   withr::defer(st$tokenizers <- old)
   tok <- function(x) nchar(x)

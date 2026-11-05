@@ -13,9 +13,10 @@
 # them. Nothing here installs anything.
 
 .onLoad <- function(libname, pkgname) {
-  gr_state$seed_models <- stats::setNames(.gr_seed_models(),
+  hr_state$seed_models <- stats::setNames(.gr_seed_models(),
                                           vapply(.gr_seed_models(), `[[`, character(1), "id"))
-  gr_state$model_patterns <- .gr_seed_patterns()
+  hr_state$model_patterns <- .gr_seed_patterns()
+  register_doc_layer()
   register_builtin_extractors()
   register_builtin_cleaners()
   register_builtin_segmenters()

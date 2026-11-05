@@ -201,7 +201,7 @@ test_that("a per-chunk reader keeps one line up to date with the count and the s
   expect_true(any(grepl(sprintf("chunk %d of %d, \\$0\\.0[0-9]+ spent", n, n), p)))
   # The last one clears the line.
   expect_match(p[length(p)], "^\r +\r$")
-  expect_false(isTRUE(harnessr:::gr_state$progress_on))
+  expect_false(isTRUE(harnessr:::hr_state$progress_on))
   # The clearing line is as wide as the widest line drawn.
   expect_equal(nchar(p[length(p)]), max(nchar(p[-length(p)])) + 1L)
 })
@@ -273,7 +273,7 @@ test_that("another message clears the line first, and an inner loop draws no sec
   expect_match(seen[at - 1L], "^\r +\r$")
   expect_false(any(grepl("inner", seen)))
   expect_true(any(grepl("item 4 of 4", seen)))
-  expect_false(isTRUE(harnessr:::gr_state$progress_on))
+  expect_false(isTRUE(harnessr:::hr_state$progress_on))
 })
 
 test_that("an error part way clears the line before it is reported, and frees it", {
@@ -294,7 +294,7 @@ test_that("an error part way clears the line before it is reported, and frees it
   # Cleared before anything outside saw the error, as R prints it before
   # on.exit() runs.
   expect_equal(log, c("draw", "clear", "error"))
-  expect_false(isTRUE(harnessr:::gr_state$progress_on))
+  expect_false(isTRUE(harnessr:::hr_state$progress_on))
   got <- catch_msgs(harnessr:::gr_lapply(1:3, function(i, trace) i, label = "item"))
   expect_true(length(got$progress) > 0L)
 })
@@ -303,7 +303,7 @@ test_that("a line that is never shown does not stop the next one", {
   local_mocked_bindings(progress_wanted = function() TRUE)
   p <- harnessr:::progress_start(3L, "item")
   expect_false(is.null(p))
-  expect_false(isTRUE(harnessr:::gr_state$progress_on))
+  expect_false(isTRUE(harnessr:::hr_state$progress_on))
   got <- catch_msgs(harnessr:::gr_lapply(1:3, function(i, trace) i, label = "item"))
   expect_match(got$progress[1], "^\r  item 0 of 3$")
 })

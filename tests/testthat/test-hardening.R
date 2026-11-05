@@ -331,7 +331,7 @@ test_that("an ensemble refuses members that share a signature", {
   # methodology under two names -- exactly the Chunked/Semantic collapse v1 had.
   gr_register_reader("clone_of_stuff",
     function(chunks, question, client, spec, trace) {
-      harnessr:::registry_get("readers", "stuff", "readers")$fn(chunks, question, client, spec, trace)
+      harnessr:::registry_get("readers", "stuff", "readers", state = harnessr:::gr_state)$fn(chunks, question, client, spec, trace)
     }, signature = "all|1|none")
   expect_error(
     quiet(gr_read(ch, "q", mock_echo(),

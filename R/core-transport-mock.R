@@ -40,7 +40,7 @@
 #' table(vapply(cl$calls(), function(x) x$label, character(1)))
 gr_mock_client <- function(handler = NULL, embed_handler = NULL) {
   # Registered so the mock does not trip the unknown-model warning on every call.
-  if (is.null(gr_state$models[["mock-model"]])) {
+  if (is.null(hr_state$models[["mock-model"]])) {
     gr_register_model("mock-model", context_window = 128000L, max_output = 16384L,
                       input_usd = 0, output_usd = 0)
     gr_register_model("mock-embed", context_window = 8191L, max_output = 0L,

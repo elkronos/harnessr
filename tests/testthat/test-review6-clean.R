@@ -120,7 +120,7 @@ test_that("headers_footers keeps repeated table values and drops running heads b
 # ---------------------------------------------------------------------------
 
 test_that("two ids made at the same moment differ", {
-  st <- harnessr:::gr_state
+  st <- harnessr:::hr_state
   now <- as.POSIXct("2026-09-25 10:00:00.123", tz = "UTC")
   before <- st$counter
   a <- harnessr:::gr_new_id("backend", now = now)

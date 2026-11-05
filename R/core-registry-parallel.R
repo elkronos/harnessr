@@ -16,14 +16,27 @@
 # `gr_lapply()` sets up a plan when asked, restores the caller's plan on exit,
 # and explicitly exports the API key to workers.
 
-#' The parts of `gr_state` a worker process needs to behave like its parent.
+#' The parts of the core's state a worker process needs to behave like its
+#' parent, and what each layer above the core says its workers need.
 #'
-#' Not the caches: `doc_cache` and `embed_cache` are environments holding whole
-#' documents, and shipping them to every worker would cost more than the work.
-#' Not `client`, which the closure already carries.
+#' Not the embedding cache: it holds whole vectors, and shipping it to every
+#' worker would cost more than the work. A layer above the core keeps its own
+#' caches out of what it hands over for the same reason.
 #' @noRd
-.gr_worker_state <- c("extractors", "cleaners", "segmenters", "readers", "embedders",
-                      "protocols", "models", "model_patterns", "tokenizers")
+.hr_worker_state <- c("models", "model_patterns", "tokenizers")
+
+#' Everything a worker is handed so its registries match this process's: the
+#' core's own registries, and for each provider registered with
+#' hr_register_worker_state() what its snapshot returned, with the function
+#' that puts it back.
+#' @noRd
+worker_state <- function() {
+  core <- mget(.hr_worker_state, envir = hr_state, ifnotfound = list(NULL))
+  layers <- lapply(hr_state$worker_providers, function(p) {
+    list(values = p$snapshot(), restore = p$restore)
+  })
+  list(core = core, layers = layers)
+}
 
 #' Apply a function over a list, optionally in parallel.
 #'
@@ -133,7 +146,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   # than neither crossing:
   # gr_options(tokenizer = "mytok") arrived naming a function that was not
   # there, and the parallel run aborted where the sequential one succeeded.
-  regs <- mget(.gr_worker_state, envir = gr_state, ifnotfound = list(NULL))
+  regs <- worker_state()
   # The user's own functions travel inside those, and inside the client: a mock
   # or backend handler, a tokenizer. One written at the top level of a script
   # is serialised by reference to the global environment, which is empty in a
@@ -314,8 +327,11 @@ worker_item <- function(fn, key, opts, regs, parent_meta, state) {
   function(item) {
     if (nzchar(key)) Sys.setenv(OPENAI_API_KEY = key)
     # Empty for a batch run in this process, whose options are already these.
-    if (length(opts)) gr_state$options <- opts
-    for (nm in names(regs)) if (!is.null(regs[[nm]])) assign(nm, regs[[nm]], envir = gr_state)
+    if (length(opts)) hr_state$options <- opts
+    for (nm in names(regs$core)) {
+      if (!is.null(regs$core[[nm]])) assign(nm, regs$core[[nm]], envir = hr_state)
+    }
+    for (layer in regs$layers) layer$restore(layer$values)
     sub <- gr_trace(meta = parent_meta)
     n_calls <- length(state$log$calls)
     n_embeds <- length(state$log$embeds)
@@ -350,7 +366,7 @@ worker_item <- function(fn, key, opts, regs, parent_meta, state) {
 worker_functions <- function(client, opts) {
   tok <- opts$tokenizer
   list(handler = if (is.list(client)) client[["handler", exact = TRUE]],
-       tokenizer = if (is_nonblank(tok)) (gr_state$tokenizers %||% list())[[tok]])
+       tokenizer = if (is_nonblank(tok)) (hr_state$tokenizers %||% list())[[tok]])
 }
 
 #' Which limit a batch of `n` items could pass, or NULL when it fits.

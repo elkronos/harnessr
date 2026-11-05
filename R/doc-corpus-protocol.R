@@ -146,7 +146,7 @@ gr_register_protocol <- function(name, protocol) {
     gr_abort("`protocol` must come from gr_protocol().", class = "gr_bad_protocol")
   }
   protocol$name <- as_chr1(name)
-  registry_set("protocols", name, protocol)
+  registry_set("protocols", name, protocol, state = gr_state)
 }
 
 #' Protocols that ship with the package, and any you have registered
@@ -180,8 +180,8 @@ gr_register_protocol <- function(name, protocol) {
 #' gr_protocols()
 #' gr_protocols("bibliography")$fields
 gr_protocols <- function(name = NULL) {
-  if (is.null(name)) return(registry_table("protocols", c("question", "description")))
-  registry_get("protocols", name, "protocols")
+  if (is.null(name)) return(registry_table("protocols", c("question", "description"), state = gr_state))
+  registry_get("protocols", name, "protocols", state = gr_state)
 }
 
 #' Save a protocol to a file, and read one back

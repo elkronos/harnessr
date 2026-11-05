@@ -243,7 +243,7 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
       on.exit(unlink(path), add = TRUE)
     }
     ext <- tolower(tools::file_ext(path))
-    ex <- if (!is.null(spec$extractor)) registry_get("extractors", spec$extractor)
+    ex <- if (!is.null(spec$extractor)) registry_get("extractors", spec$extractor, state = gr_state)
           else extractor_for(ext)
     if (is.null(ex)) {
       gr_abort(sprintf("No extractor for '.%s'. Registered extensions: %s. Add one with gr_register_extractor().",

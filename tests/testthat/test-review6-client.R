@@ -169,7 +169,7 @@ test_that("a chat model cannot be registered with half a price", {
                class = "gr_bad_setting")
   expect_error(gr_register_model("my-model", 200000, 64000, output_usd = 15),
                class = "gr_bad_setting")
-  expect_null(harnessr:::gr_state$models[["my-model"]])
+  expect_null(harnessr:::hr_state$models[["my-model"]])
   # Both, neither, and an embedding model's input price alone are fine.
   expect_silent(gr_register_model("priced", 200000, 64000, input_usd = 3, output_usd = 15))
   expect_silent(gr_register_model("unpriced", 200000, 64000))
@@ -183,7 +183,7 @@ test_that("gr_estimate_cost() is NA when replies cannot be priced", {
   # An entry that reached the registry some other way.
   harnessr:::registry_set("models", "half-priced", list(
     id = "half-priced", context_window = 200000L, max_output = 64000L, input_usd = 3,
-    output_usd = NA_real_, kind = "chat"))
+    output_usd = NA_real_, kind = "chat"), state = harnessr:::hr_state)
   expect_true(is.na(gr_estimate_cost("half-priced", 1e4, 1e6)))
   expect_true(is.na(gr_estimate_cost("half-priced", 1, 1)))    # preflight's probe
   expect_equal(gr_estimate_cost("half-priced", 1e6, 0), 3)       # no output, no question

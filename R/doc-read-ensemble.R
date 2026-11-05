@@ -44,7 +44,7 @@ read_ensemble <- function(chunks, question, client, spec, trace) {
 
   results <- lapply(members, function(m) {
     sub <- spec; sub$reader <- m; sub$members <- NULL
-    r <- registry_get("readers", m, "readers")
+    r <- registry_get("readers", m, "readers", state = gr_state)
     tryCatch(r$fn(chunks, question, client, sub, trace),
              error = function(e) {
                # A missing key fails every member the same way; recording it as
