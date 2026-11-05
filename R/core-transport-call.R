@@ -197,8 +197,9 @@ gr_call <- function(client, messages, model = NULL, max_output = NULL,
   # After `...`, so it is matched only by its full name: `...` is the request
   # body's own fields, and a field a gateway happens to call `eff` must still
   # go to the gateway.
-  model_call(client, messages, model, max_output, temperature, schema, schema_name,
-             trace, label, list(...), effort = check_effort(effort))
+  model_call(client, messages, model = model, max_output = max_output,
+             temperature = temperature, schema = schema, schema_name = schema_name,
+             trace = trace, label = label, extra = list(...), effort = check_effort(effort))
 }
 
 #' gr_call(), with a test a reply must pass before it is cached.
@@ -266,9 +267,11 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   # had to sit between the request and the response -- caching, replay -- would
   # have had to be written twice and kept in step by hand.
   started <- Sys.time()
-  res <- client_dispatch(client, messages, model, max_output, temperature,
-                         schema, schema_name, info, params, label, extra, accept,
-                         effort_map = effort_map)
+  req <- list(messages = messages, model = model, max_output = max_output,
+              temperature = temperature, schema = schema, schema_name = schema_name,
+              info = info, params = params, label = label, extra = extra,
+              accept = accept, effort_map = effort_map)
+  res <- client_dispatch(client, req)
   # An ellmer chat is handed the effort only so that it can say it does not
   # send it (gr_ellmer_client()). Recorded as `effort`, the trace, its
   # `effort` column and the audit report said every request ran at an effort
@@ -276,7 +279,7 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   # for, under its own name, as does a replay of such a step. The handler's
   # params, the cache key and the replay key are left as they were.
   if (!is.null(params$effort) &&
-      (inherits(client, "gr_ellmer_client") || isTRUE(res[["unsent_effort", exact = TRUE]]))) {
+      (!client_sends_effort(client) || isTRUE(res[["unsent_effort", exact = TRUE]]))) {
     params$unsent_effort <- params$effort
     params$effort <- NULL
   }
@@ -287,19 +290,41 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
 
 #' Where a prepared request actually goes.
 #'
-#' Order matters. A replay client never reaches the network at all. A cache is
-#' consulted before the request is issued and written only after it succeeds --
-#' a failure is a property of the moment, not of the request, and caching one
-#' would make a transient blip permanent. `accept`, when given, is the caller's
-#' test of a usable reply (see model_call()).
+#' An internal S3 generic over the client's class. `req` is the request
+#' model_call() prepared: `messages`, `model`, `max_output`, `temperature`,
+#' `schema`, `schema_name`, `info` (the model profile), `params` (what a
+#' handler is given and the trace keeps), `label`, `extra` (top level body
+#' fields), `accept` and `effort_map` (the effort setting before it was
+#' resolved for this label).
+#'
+#' The methods are registered in NAMESPACE, as S3 methods should be, so the
+#' generics dispatch the same way wherever they are called from. None of them
+#' is exported.
+#'
+#' Order matters. A replay client never reaches the network at all, so it has
+#' its own method. Every other client goes through the `gr_client` method,
+#' which consults an attached cache before the request is issued and writes it
+#' only after the request succeeds; client_send() then issues the request for
+#' that client's class. A failure is a property of the moment, not of the
+#' request, and caching one would make a transient blip permanent. `accept`,
+#' when given, is the caller's test of a usable reply (see model_call()).
+#' @rawNamespace S3method(client_dispatch, gr_replay_client)
+#' @rawNamespace S3method(client_dispatch, gr_client)
+#' @rawNamespace S3method(client_send, gr_client)
+#' @rawNamespace S3method(client_send, gr_backend_client)
+#' @rawNamespace S3method(client_send, gr_mock_client)
+#' @rawNamespace S3method(client_sends_effort, gr_client)
+#' @rawNamespace S3method(client_sends_effort, gr_ellmer_client)
 #' @noRd
-client_dispatch <- function(client, messages, model, max_output, temperature,
-                            schema, schema_name, info, params, label, extra,
-                            accept = NULL, effort_map = NULL) {
-  if (inherits(client, "gr_replay_client")) {
-    return(replay_lookup(client, messages, model, params, label, effort_map))
-  }
+client_dispatch <- function(client, req) UseMethod("client_dispatch")
 
+#' @noRd
+client_dispatch.gr_replay_client <- function(client, req) {
+  replay_lookup(client, req$messages, req$model, req$params, req$label, req$effort_map)
+}
+
+#' @noRd
+client_dispatch.gr_client <- function(client, req) {
   # Resolved BEFORE the key, not after. `temperature` arrives NULL whenever the
   # caller did not name one, and build_request_body() then filled it from
   # gr_options("temperature") -- after cache_key() had already hashed the NULL.
@@ -308,15 +333,18 @@ client_dispatch <- function(client, messages, model, max_output, temperature,
   # reported the first sample's answer for every setting. The reasoning-model
   # drop moves here for the mirror-image reason -- the body does not carry a
   # temperature for those models, so the key must not vary with one.
-  temperature <- temperature %||% gr_options("temperature")
+  info <- req$info
+  temperature <- req$temperature %||% gr_options("temperature")
   if (isTRUE(info$reasoning) || !isTRUE(info$supports_temperature)) temperature <- NULL
+  req["temperature"] <- list(temperature)
 
+  accept <- req$accept
   cache <- client$.cache
   key <- NULL
   usable <- function(r) is.null(accept) || isTRUE(tryCatch(accept(r$text), error = function(e) FALSE))
   if (inherits(cache, "gr_cache")) {
-    key <- cache_key(client, messages, model, max_output, temperature,
-                     schema, schema_name, extra, effort = params$effort)
+    key <- cache_key(client, req$messages, req$model, req$max_output, temperature,
+                     req$schema, req$schema_name, req$extra, effort = req$params$effort)
     hit <- cache_get(cache, key)
     if (!is.null(hit) && !usable(hit)) {
       # Stored before the caller's test existed. Asked again, and overwritten
@@ -332,22 +360,7 @@ client_dispatch <- function(client, messages, model, max_output, temperature,
     }
   }
 
-  res <- if (inherits(client, "gr_mock_client")) {
-    mock_dispatch(client, messages, model, params, label)
-  } else if (inherits(client, "gr_backend_client")) {
-    backend_dispatch(client, messages, model, params, label)
-  } else {
-    body <- build_request_body(client, messages, model,
-                               reasoning_output_cap(max_output, info, params$prompt_tokens),
-                               temperature, schema, schema_name, info, extra,
-                               effort = params$effort)
-    url <- paste0(client$base_url,
-                  if (identical(client$api, "responses")) "/responses" else "/chat/completions")
-    out <- http_call(client, url, body)
-    out$model <- model
-    out$usage <- settle_usage(out$usage, params$prompt_tokens, out$text)
-    out
-  }
+  res <- client_send(client, req)
 
   # A reply cut off at the cap is not stored either. It is an incomplete answer,
   # and caching it made the cut permanent: every later run replayed the same
@@ -360,6 +373,64 @@ client_dispatch <- function(client, messages, model, max_output, temperature,
   }
   res
 }
+
+#' Issue one request that the cache did not answer.
+#'
+#' An internal S3 generic. `req` is the request client_dispatch() was given,
+#' with `temperature` already resolved. The `gr_client` method is the HTTP
+#' transport; the `gr_backend_client` method serves every client whose answer
+#' comes from an R function (gr_mock_client(), gr_backend_client() and so
+#' gr_ellmer_client()).
+#' @noRd
+client_send <- function(client, req) UseMethod("client_send")
+
+#' @noRd
+client_send.gr_client <- function(client, req) {
+  info <- req$info
+  body <- build_request_body(client, req$messages, req$model,
+                             reasoning_output_cap(req$max_output, info, req$params$prompt_tokens),
+                             req$temperature, req$schema, req$schema_name, info, req$extra,
+                             effort = req$params$effort)
+  url <- paste0(client$base_url,
+                if (identical(client$api, "responses")) "/responses" else "/chat/completions")
+  out <- http_call(client, url, body)
+  out$model <- req$model
+  out$usage <- settle_usage(out$usage, req$params$prompt_tokens, out$text)
+  out
+}
+
+#' Run a closure client's handler and normalise whatever it returned.
+#'
+#' One method for the mock and the backend, deliberately: a backend is a
+#' stranger's function, and every caller downstream relies on invariants it has
+#' never heard of. Sharing `handler_result()` is what stops the two paths from
+#' drifting. The mock's method is this same function, and an ellmer client is a
+#' backend client, so it gets it by inheritance.
+#' @noRd
+client_send.gr_backend_client <- function(client, req) {
+  params <- req$params
+  out <- tryCatch(client$handler(req$messages, params), error = function(e) e)
+  res <- handler_result(out, req$model, as_int1(params$prompt_tokens, 0L))
+  client$.log$calls <- c(client$.log$calls, list(list(messages = req$messages, params = params,
+                                                      result = res, label = req$label)))
+  res
+}
+
+#' @noRd
+client_send.gr_mock_client <- client_send.gr_backend_client
+
+#' Whether a client puts the call's reasoning effort on the request it sends.
+#'
+#' An internal S3 generic. An ellmer chat is handed the effort only so that it
+#' can say it does not send it; model_call() then traces it as `unsent_effort`.
+#' @noRd
+client_sends_effort <- function(client) UseMethod("client_sends_effort")
+
+#' @noRd
+client_sends_effort.gr_client <- function(client) TRUE
+
+#' @noRd
+client_sends_effort.gr_ellmer_client <- function(client) FALSE
 
 #' The output cap a request to a reasoning model is sent with.
 #'
@@ -389,30 +460,6 @@ reasoning_output_cap <- function(max_output, info, prompt_tokens) {
 #' The least output cap a reasoning model is sent; see reasoning_output_cap().
 #' @noRd
 .gr_reasoning_floor <- 2048L
-
-#' Run a mock client's handler and normalise whatever it returned.
-#' @noRd
-mock_dispatch <- function(client, messages, model, params, label) {
-  out <- tryCatch(client$handler(messages, params), error = function(e) e)
-  res <- handler_result(out, model, as_int1(params$prompt_tokens, 0L))
-  client$.log$calls <- c(client$.log$calls, list(list(messages = messages, params = params,
-                                                      result = res, label = label)))
-  res
-}
-
-#' Run a user-supplied backend handler.
-#'
-#' Same normalisation as the mock, deliberately: a backend is a stranger's
-#' function, and every caller downstream relies on invariants it has never heard
-#' of. Sharing `handler_result()` is what stops the two paths from drifting.
-#' @noRd
-backend_dispatch <- function(client, messages, model, params, label) {
-  out <- tryCatch(client$handler(messages, params), error = function(e) e)
-  res <- handler_result(out, model, as_int1(params$prompt_tokens, 0L))
-  client$.log$calls <- c(client$.log$calls, list(list(messages = messages, params = params,
-                                                      result = res, label = label)))
-  res
-}
 
 #' Turn whatever a handler returned into a lawful `gr_result`.
 #' Token usage the trace can trust.
@@ -497,8 +544,10 @@ gr_call_json <- function(client, messages, schema, schema_name = "result",
   send <- function(client, messages, model = NULL, max_output = NULL, temperature = NULL,
                    schema = NULL, schema_name = "result", trace = NULL, label = "call", ...,
                    effort = NULL) {
-    model_call(client, messages, model, max_output, temperature, schema, schema_name,
-               trace, label, list(...), accept = accept, effort = effort)
+    model_call(client, messages, model = model, max_output = max_output,
+               temperature = temperature, schema = schema, schema_name = schema_name,
+               trace = trace, label = label, extra = list(...), accept = accept,
+               effort = effort)
   }
   res <- send(client, messages, schema = schema, schema_name = schema_name, ...)
   if (!res$ok) return(list(ok = FALSE, value = NULL, result = res))
