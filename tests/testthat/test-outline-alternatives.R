@@ -179,7 +179,7 @@ test_that("a run with alternatives replays from its recording with no model", {
 # ---------------------------------------------------------------------------
 
 test_that("outline_distance counts pairs of claims, not headings", {
-  d <- readgpt:::outline_distance
+  d <- harnessr:::outline_distance
   a <- data.frame(section = c("A", "A", "B", "B"), claim_id = 1:4)
   renamed <- data.frame(section = c("X", "X", "Y", "Y"), claim_id = 1:4)
   expect_identical(d(a, renamed), 0)
@@ -218,7 +218,7 @@ test_that("outline_distance agrees with counting every pair", {
     a <- data.frame(section = sample(c("A", "B", "C", "D, E"), n, TRUE), claim_id = seq_len(n))
     b <- data.frame(section = sample(c("x", "y", "z"), n, TRUE), claim_id = seq_len(n))
     if (i %% 5 == 0) b <- b[-1, ]
-    expect_equal(readgpt:::outline_distance(a, b), by_pairs(a, b))
+    expect_equal(harnessr:::outline_distance(a, b), by_pairs(a, b))
   }
 })
 
@@ -518,7 +518,7 @@ test_that("an outline whose claims were moved after gr_outline() is the author's
   m$section[m$claim_id == 2] <- "Trials"
   m$section[m$claim_id == 3] <- "Others"
   attr(p, "claims") <- m
-  expect_identical(readgpt:::outline_distance(attr(o, "claims"), m), 0)
+  expect_identical(harnessr:::outline_distance(attr(o, "claims"), m), 0)
   s <- quiet(gr_synthesise(oa_table(), outline = p, question = "Does it work?",
                            client = f$client, claims = f$claims))
   expect_identical(s$claim_sections$section[s$claim_sections$claim_id == 2], "Trials")
@@ -538,7 +538,7 @@ test_that("an outline whose claims were moved after gr_outline() is the author's
   m1 <- attr(o1, "claims")
   m1$section[m1$claim_id == 2] <- "Methods"
   attr(o1, "claims") <- m1
-  expect_null(readgpt:::outline_choice(o1))
+  expect_null(harnessr:::outline_choice(o1))
 
   # Renamed, it is the same grouping, and is still recorded as the one chosen.
   r <- gr_outline_pick(o, 2)

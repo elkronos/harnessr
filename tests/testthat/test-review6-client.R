@@ -32,7 +32,7 @@ test_that("a structured reply cut off mid-JSON is not cached, so re-running reco
   cache <- gr_cache(withr::local_tempdir())
   cl <- gr_cache_client(cl, cache)
   schema <- list(type = "object", properties = list(score = list(type = "number")))
-  ok <- vapply(1:3, function(i) readgpt:::gr_call_json(cl, "Rate this.", schema = schema)$ok,
+  ok <- vapply(1:3, function(i) harnessr:::gr_call_json(cl, "Rate this.", schema = schema)$ok,
                logical(1))
   expect_identical(ok, c(FALSE, TRUE, TRUE))
   expect_identical(n, 2L)                       # the third came from the cache
@@ -52,11 +52,11 @@ test_that("an unparseable structured reply already in a cache is asked again", {
   # cache did for everyone before.
   first <- gr_call(cl, "Screen this.", schema = schema)
   expect_true(first$ok)
-  out <- readgpt:::gr_call_json(cl, "Screen this.", schema = schema)
+  out <- harnessr:::gr_call_json(cl, "Screen this.", schema = schema)
   expect_true(out$ok)
   expect_identical(out$value$decision, "include")
   expect_identical(n, 2L)
-  again <- readgpt:::gr_call_json(cl, "Screen this.", schema = schema)
+  again <- harnessr:::gr_call_json(cl, "Screen this.", schema = schema)
   expect_true(again$result$cached)              # the good reply is what is stored now
   expect_identical(n, 2L)
 })
@@ -68,10 +68,10 @@ test_that("an unparseable structured reply already in a cache is asked again", {
 
 test_that("an API key carrying CR/LF is refused rather than injecting a header", {
   withr::local_envvar(OPENAI_API_KEY = NA)
-  withr::local_options(readgpt.api_key = NULL)
+  withr::local_options(harnessr.api_key = NULL)
   cl <- gr_client(api_key = "sk-local-test\r\nX-Injected: yes", api = "chat",
                   base_url = "https://x.invalid", max_retries = 0L)
-  err <- expect_error(readgpt:::request_headers(cl), class = "gr_auth_error")
+  err <- expect_error(harnessr:::request_headers(cl), class = "gr_auth_error")
   expect_match(conditionMessage(err), "control character")
   expect_false(grepl("sk-local-test", conditionMessage(err), fixed = TRUE))
   # Nothing is sent: the run stops before the request.
@@ -80,7 +80,7 @@ test_that("an API key carrying CR/LF is refused rather than injecting a header",
     POST = function(...) { sent <<- sent + 1L; simpleError("no network") }, .package = "httr")
   expect_error(gr_call(cl, "hi"), class = "gr_auth_error")
   expect_identical(sent, 0L)
-  expect_error(readgpt:::stop_if_no_credentials(cl), class = "gr_auth_error")
+  expect_error(harnessr:::stop_if_no_credentials(cl), class = "gr_auth_error")
   expect_output(print(cl), "key refused")
   # Through the environment variable too.
   withr::local_envvar(OPENAI_API_KEY = "sk-a\nsk-b")
@@ -89,13 +89,13 @@ test_that("an API key carrying CR/LF is refused rather than injecting a header",
 
 test_that("the trailing newline a key file leaves is dropped, not sent", {
   withr::local_envvar(OPENAI_API_KEY = NA)
-  withr::local_options(readgpt.api_key = "sk-from-file\n")
+  withr::local_options(harnessr.api_key = "sk-from-file\n")
   expect_identical(gr_api_key(), "sk-from-file")
-  h <- readgpt:::request_headers(gr_client())
+  h <- harnessr:::request_headers(gr_client())
   expect_identical(h[["Authorization"]], "Bearer sk-from-file")
   expect_identical(gr_api_key("  sk-explicit\r\n"), "sk-explicit")
   # Whitespace alone is no key.
-  withr::local_options(readgpt.api_key = " \n")
+  withr::local_options(harnessr.api_key = " \n")
   expect_error(gr_api_key(), class = "gr_auth_error")
 })
 
@@ -107,8 +107,8 @@ test_that("a short call to a reasoning model is sent with room for its reasoning
   local_registries()
   seen <- NULL
   testthat::local_mocked_bindings(
-    http_call = function(client, url, body) { seen <<- body; readgpt:::gr_result(TRUE, "ok") },
-    .package = "readgpt")
+    http_call = function(client, url, body) { seen <<- body; harnessr:::gr_result(TRUE, "ok") },
+    .package = "harnessr")
   cl <- gr_client(api_key = "sk-not-real", base_url = "https://x.invalid")
   tr <- gr_trace()
   invisible(gr_call(cl, "Context for this chunk?", model = "gpt-5.6-terra", max_output = 90L,
@@ -136,7 +136,7 @@ test_that("a short call to a reasoning model is sent with room for its reasoning
 # ---------------------------------------------------------------------------
 
 test_that("chat content sent as an array of parts keeps only the text parts", {
-  parse <- readgpt:::parse_response
+  parse <- harnessr:::parse_response
   body <- paste0('{"choices":[{"message":{"content":[',
                  '{"type":"thinking","thinking":[{"type":"text","text":"let me think"}]},',
                  '{"type":"text","text":"Revenue was 45.2 million."}]},"finish_reason":"stop"}]}')
@@ -169,7 +169,7 @@ test_that("a chat model cannot be registered with half a price", {
                class = "gr_bad_setting")
   expect_error(gr_register_model("my-model", 200000, 64000, output_usd = 15),
                class = "gr_bad_setting")
-  expect_null(readgpt:::gr_state$models[["my-model"]])
+  expect_null(harnessr:::gr_state$models[["my-model"]])
   # Both, neither, and an embedding model's input price alone are fine.
   expect_silent(gr_register_model("priced", 200000, 64000, input_usd = 3, output_usd = 15))
   expect_silent(gr_register_model("unpriced", 200000, 64000))
@@ -181,7 +181,7 @@ test_that("a chat model cannot be registered with half a price", {
 test_that("gr_estimate_cost() is NA when replies cannot be priced", {
   local_registries()
   # An entry that reached the registry some other way.
-  readgpt:::registry_set("models", "half-priced", list(
+  harnessr:::registry_set("models", "half-priced", list(
     id = "half-priced", context_window = 200000L, max_output = 64000L, input_usd = 3,
     output_usd = NA_real_, kind = "chat"))
   expect_true(is.na(gr_estimate_cost("half-priced", 1e4, 1e6)))
@@ -215,7 +215,7 @@ test_that("unknown_model_action = 'error' stops a family-pattern guess too", {
 test_that("under allow_empty, only {} or an object using the schema's names is a reply", {
   schema <- list(type = "object", properties = list(design = list(type = "string"),
                                                     n = list(type = "integer")))
-  ask <- function(reply) readgpt:::gr_call_json(gr_mock_client(function(m, p) reply), "x",
+  ask <- function(reply) harnessr:::gr_call_json(gr_mock_client(function(m, p) reply), "x",
                                                 schema = schema, allow_empty = TRUE)
   for (reply in c('{"extraction":{"design":"randomised trial","n":120}}',
                   '{"Design":"randomised trial","N":120}', "[]", '[{"design":"RCT"}]')) {
@@ -360,9 +360,9 @@ test_that("truncation keeps line breaks and paragraph structure", {
 test_that("a message's unlabelled UTF-8 text is labelled before it is counted or sent", {
   q <- unmarked("Quelle \u00e9tait la population d'\u00c9vora ?")
   expect_identical(Encoding(q), "unknown")
-  m <- readgpt:::normalise_messages(list(list(role = "user", content = q)))
+  m <- harnessr:::normalise_messages(list(list(role = "user", content = q)))
   expect_identical(Encoding(m[[1]]$content), "UTF-8")
-  expect_identical(Encoding(readgpt:::normalise_messages(q)[[1]]$content), "UTF-8")
+  expect_identical(Encoding(harnessr:::normalise_messages(q)[[1]]$content), "UTF-8")
   # What gr_truncate_tokens() returns is labelled too; the embeddings request
   # body is built from it.
   expect_identical(Encoding(gr_truncate_tokens(q, 100)), "UTF-8")
@@ -401,13 +401,13 @@ test_that("gr_cache() refuses an empty or missing directory", {
   expect_error(gr_cache(dir = c("a", "b")), class = "gr_bad_setting")
   # An option left blank is an option not set.
   gr_options(cache_dir = "")
-  expect_identical(gr_cache()$dir, readgpt:::default_cache_dir())
+  expect_identical(gr_cache()$dir, harnessr:::default_cache_dir())
   # And a cache object with no directory never writes under the root.
   bad <- structure(list(dir = "", read = TRUE, write = TRUE,
                         .stats = list2env(list(hits = 0L, misses = 0L, writes = 0L))),
                    class = "gr_cache")
-  expect_false(readgpt:::cache_put(bad, "ab00000000000000", readgpt:::gr_result(TRUE, "x")))
-  expect_null(readgpt:::cache_get(bad, "ab00000000000000"))
+  expect_false(harnessr:::cache_put(bad, "ab00000000000000", harnessr:::gr_result(TRUE, "x")))
+  expect_null(harnessr:::cache_get(bad, "ab00000000000000"))
 })
 
 # ---------------------------------------------------------------------------
@@ -447,7 +447,7 @@ test_that("a handler's gr_result without a model is priced as the model asked fo
   local_registries()
   gr_register_model("priced", 128000L, 4096L, input_usd = 3, output_usd = 15)
   cl <- gr_backend_client(function(messages, params)
-    readgpt:::gr_result(TRUE, "x", usage = list(input = 1e6, output = 1e5)), model = "priced")
+    harnessr:::gr_result(TRUE, "x", usage = list(input = 1e6, output = 1e5)), model = "priced")
   tr <- gr_trace()
   r <- gr_call(cl, "hello", model = "priced", trace = tr)
   expect_identical(r$model, "priced")
@@ -508,7 +508,7 @@ test_that("without an override an alias takes the built-in target, as before", {
 # ---------------------------------------------------------------------------
 
 test_that("a lone surrogate escape in an API reply is repaired, not a crash", {
-  r <- expect_no_error(readgpt:::parse_response(r6_resp(paste0(
+  r <- expect_no_error(harnessr:::parse_response(r6_resp(paste0(
     '{"choices":[{"message":{"content":"Revenue was 45 million \\udc00"},',
     '"finish_reason":"stop"}]}')), "chat"))
   expect_true(r$ok)
@@ -525,7 +525,7 @@ test_that("a reply with bytes that are not UTF-8 is still traced", {
   expect_identical(tr$calls, 1L)
   # An error while reading a 200 is a traced failure, not an escape.
   testthat::local_mocked_bindings(parse_response = function(resp, api) stop("boom"),
-                                  .package = "readgpt")
+                                  .package = "harnessr")
   testthat::local_mocked_bindings(POST = function(...) r6_resp("{}"), .package = "httr")
   http <- gr_client(api_key = "sk-not-real", base_url = "https://x.invalid", api = "chat",
                     model = "gpt-4o", max_retries = 0L)
@@ -539,7 +539,7 @@ test_that("a reply with bytes that are not UTF-8 is still traced", {
 
 test_that("a surrogate escape inside a structured reply does not fail the extraction", {
   js <- '{"design":"RCT","design__quote":"We randomly \\udc00 assigned","n":null,"n__quote":null}'
-  out <- readgpt:::gr_call_json(gr_mock_client(function(m, p) js), "x",
+  out <- harnessr:::gr_call_json(gr_mock_client(function(m, p) js), "x",
                                 schema = list(type = "object"), allow_empty = TRUE)
   expect_true(out$ok)
   expect_true(validUTF8(out$value$design__quote))
@@ -576,7 +576,7 @@ test_that("tiktoken counts document text that spells a special token", {
     tiktoken_encodings = function(model = NULL) {
       seen[[length(seen) + 1L]] <<- model
       if (is.null(model)) list(r6_encoding(0.25), r6_encoding(0.5)) else list(r6_encoding(0.3))
-    }, .package = "readgpt")
+    }, .package = "harnessr")
   gr_set_tokenizer("tiktoken")
   txt <- "Models end a document with <|endoftext|> in training data."
   expect_no_error(n <- gr_count_tokens(txt))

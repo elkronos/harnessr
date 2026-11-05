@@ -24,7 +24,7 @@ a network request:
 Files are written only under `tempdir()`. The response cache
 (`gr_cache()`) defaults to a directory under `tempdir()` and creates it on first
 write; a persistent location is opt-in via `gr_options(cache_dir = )`, and the
-documentation suggests `tools::R_user_dir("readgpt", "cache")` for it.
+documentation suggests `tools::R_user_dir("harnessr", "cache")` for it.
 
 `ellmer` is a suggested dependency used by a single exported function,
 `gr_ellmer_client()`; its tests are guarded with `skip_if_not_installed()`.

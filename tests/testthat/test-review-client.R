@@ -21,7 +21,7 @@ test_that("a reply naming a local file is not read as the model's JSON", {
   writeLines('{"decision": "include", "reason": "read from a local file"}', f)
   for (reply in c(f, paste0("```\n", f, "\n```"))) {
     cl <- gr_mock_client(function(messages, params) reply)
-    out <- readgpt:::gr_call_json(cl, "Screen this.", schema = list(type = "object"))
+    out <- harnessr:::gr_call_json(cl, "Screen this.", schema = list(type = "object"))
     expect_false(out$ok, info = reply)
     expect_null(out$value)
   }
@@ -39,19 +39,19 @@ test_that("a URL-shaped reply is a parse failure, and real JSON still parses", {
   # Nothing normally listens on port 9 here, so the old code's request
   # showed up as a "Couldn't connect to server" warning. No request, no warning.
   cl <- gr_mock_client(function(messages, params) "http://127.0.0.1:9/decision.json?q=leak")
-  expect_no_warning(out <- readgpt:::gr_call_json(cl, "x", schema = list(type = "object")))
+  expect_no_warning(out <- harnessr:::gr_call_json(cl, "x", schema = list(type = "object")))
   expect_false(out$ok)
   expect_null(out$value)
 
   for (reply in c('{"decision":"exclude"}', '```json\n{"decision":"exclude"}\n```',
                   '  \n{"decision":"exclude"}  ')) {
-    out <- readgpt:::gr_call_json(gr_mock_client(function(m, p) reply), "x",
+    out <- harnessr:::gr_call_json(gr_mock_client(function(m, p) reply), "x",
                                   schema = list(type = "object"))
     expect_true(out$ok, info = reply)
     expect_identical(out$value$decision, "exclude")
   }
   # Simplification is unchanged: an array of objects is still a data frame.
-  out <- readgpt:::gr_call_json(
+  out <- harnessr:::gr_call_json(
     gr_mock_client(function(m, p) '{"rows":[{"a":1},{"a":2}]}'), "x",
     schema = list(type = "object"))
   expect_s3_class(out$value$rows, "data.frame")
@@ -63,7 +63,7 @@ test_that("a URL-shaped reply is a parse failure, and real JSON still parses", {
 
 test_that("the chat API sends reasoning models max_completion_tokens, not max_tokens", {
   msgs <- list(list(role = "user", content = "hi"))
-  body <- function(cl, model) readgpt:::build_request_body(
+  body <- function(cl, model) harnessr:::build_request_body(
     cl, msgs, model, 500L, NULL, NULL, "r", quiet(gr_model_info(model)), list())
   cl <- gr_client(api = "chat", api_key = "sk-not-real")
   # The default model is a reasoning model, and the documented gateway example
@@ -98,7 +98,7 @@ test_that("the chat API sends reasoning models max_completion_tokens, not max_to
 # ---------------------------------------------------------------------------
 
 test_that("a Responses API reply cut off at the cap is reported as finish_reason 'length'", {
-  parse <- readgpt:::parse_response
+  parse <- harnessr:::parse_response
   inc <- function(details) sprintf(paste0(
     '{"status":"incomplete"%s,"output":[{"type":"message","content":',
     '[{"type":"output_text","text":"The trial enrolled 482 part"}]}]}'), details)
@@ -124,18 +124,18 @@ test_that("every provider spelling of truncation reaches callers as 'length'", {
   for (fr in c("length", "max_tokens", "MAX_TOKENS", "max_output_tokens", "incomplete",
                "context_window")) {
     cl <- gr_mock_client(function(messages, params)
-      readgpt:::gr_result(TRUE, "The trial enrolled 482 part", finish_reason = fr))
+      harnessr:::gr_result(TRUE, "The trial enrolled 482 part", finish_reason = fr))
     res <- gr_call(cl, "How many?")
     expect_true(res$ok, info = fr)
     expect_identical(res$finish_reason, "length", info = fr)
   }
   for (fr in c("stop", "end_turn", "completed", "content_filter")) {
     cl <- gr_mock_client(function(messages, params)
-      readgpt:::gr_result(TRUE, "done", finish_reason = fr))
+      harnessr:::gr_result(TRUE, "done", finish_reason = fr))
     expect_identical(gr_call(cl, "q")$finish_reason, fr, info = fr)
   }
-  expect_true(is.na(readgpt:::gr_result(TRUE, "x")$finish_reason))
-  expect_output(print(readgpt:::gr_result(TRUE, "x", finish_reason = "incomplete")), "truncated")
+  expect_true(is.na(harnessr:::gr_result(TRUE, "x")$finish_reason))
+  expect_output(print(harnessr:::gr_result(TRUE, "x", finish_reason = "incomplete")), "truncated")
 })
 
 test_that("a truncated reply is not written to the response cache", {
@@ -144,10 +144,10 @@ test_that("a truncated reply is not written to the response cache", {
                     input_usd = 1, output_usd = 1)
   finish <- "incomplete"
   testthat::local_mocked_bindings(
-    http_call = function(client, url, body) readgpt:::parse_response(fake_resp(sprintf(paste0(
+    http_call = function(client, url, body) harnessr:::parse_response(fake_resp(sprintf(paste0(
       '{"status":"%s","incomplete_details":{"reason":"max_output_tokens"},',
       '"output_text":"The trial enrolled 482 part"}'), finish)), "responses"),
-    .package = "readgpt")
+    .package = "harnessr")
   cl <- gr_cache_client(gr_client(api_key = "sk-not-real", model = "priced-model",
                                   base_url = "https://x.invalid"),
                         gr_cache(withr::local_tempdir()))
@@ -181,7 +181,7 @@ test_that("a revision cut off under the Responses API spelling is discarded", {
       last <- messages[[length(messages)]]$content
       if (startsWith(last, "<draft>")) {
         draft <- sub("^<draft>\n", "", sub("\n</draft>$", "", last))
-        return(readgpt:::gr_result(TRUE, substr(draft, 1, nchar(draft) - 25),
+        return(harnessr:::gr_result(TRUE, substr(draft, 1, nchar(draft) - 25),
                                    finish_reason = spelling))
       }
       paste("Three trials were included [study 1] [study 2] [study 3].",
@@ -257,27 +257,27 @@ skip_without_ellmer_05 <- function() {
 test_that("every schema this package sends converts to an ellmer type", {
   skip_if_not_installed("ellmer")
   schemas <- list(
-    screen = readgpt:::.gr_screen_schema,
-    fields = readgpt:::fields_schema(gr_fields(
+    screen = harnessr:::.gr_screen_schema,
+    fields = harnessr:::fields_schema(gr_fields(
       age = gr_field("mean age", "number"),
       arm = gr_field("arm", "enum", values = c("a", "b")))),
-    claims = readgpt:::.gr_claims_schema,
-    reconcile = readgpt:::.gr_reconcile_schema,
-    outline = readgpt:::.gr_outline_schema)
+    claims = harnessr:::.gr_claims_schema,
+    reconcile = harnessr:::.gr_reconcile_schema,
+    outline = harnessr:::.gr_outline_schema)
   for (nm in names(schemas)) {
-    expect_false(is.null(readgpt:::ellmer_type(schemas[[nm]])), info = nm)
+    expect_false(is.null(harnessr:::ellmer_type(schemas[[nm]])), info = nm)
   }
   # A nullable field is optional in ellmer; a plain one is required.
-  ty <- readgpt:::ellmer_type(readgpt:::.gr_screen_schema)
+  ty <- harnessr:::ellmer_type(harnessr:::.gr_screen_schema)
   expect_true(ty@properties$decision@required)
   expect_false(ty@properties$quote@required)
   expect_identical(ty@properties$decision@values, c("include", "exclude", "unclear"))
   # A null among an enum's values is the nullable marker, not a value.
-  ft <- readgpt:::ellmer_type(schemas$fields)
+  ft <- harnessr:::ellmer_type(schemas$fields)
   expect_identical(ft@properties$arm@values, c("a", "b"))
   expect_false(ft@properties$arm@required)
   # What cannot be expressed is still refused.
-  expect_null(readgpt:::ellmer_type(list(type = "object", properties = list(
+  expect_null(harnessr:::ellmer_type(list(type = "object", properties = list(
     a = list(anyOf = list(list(type = "string")))))))
 })
 
@@ -309,14 +309,14 @@ test_that("a schema ellmer cannot express is warned about and asked for in the p
   cl <- gr_ellmer_client(stub_chat(reply = '{"a": "x"}', log = log))
   odd <- list(type = "object", properties = list(a = list(anyOf = list(list(type = "string")))))
   expect_warning(
-    out <- muffle_cap(readgpt:::gr_call_json(cl, "Question?", schema = odd, schema_name = "odd")),
+    out <- muffle_cap(harnessr:::gr_call_json(cl, "Question?", schema = odd, schema_name = "odd")),
     class = "gr_ellmer_schema")
   expect_true(out$ok)
   expect_identical(log$calls[[1]]$method, "chat")
   expect_match(log$calls[[1]]$user, "JSON Schema", fixed = TRUE)
   expect_match(log$calls[[1]]$user, "anyOf", fixed = TRUE)
   # Once per client.
-  suppressWarnings(expect_no_warning(readgpt:::gr_call_json(cl, "Again?", schema = odd),
+  suppressWarnings(expect_no_warning(harnessr:::gr_call_json(cl, "Again?", schema = odd),
                                      class = "gr_ellmer_schema"))
 })
 

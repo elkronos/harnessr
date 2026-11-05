@@ -151,7 +151,7 @@ test_that("an ellmer chat's own unpriced model is named as uncheckable, override
   gr_options(max_cost_usd = 1)
   ch <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 200)))
   cl <- gr_ellmer_client(fake_chat("claude-test"))
-  expect_identical(readgpt:::client_billed_model(cl), "claude-test")
+  expect_identical(harnessr:::client_billed_model(cl), "claude-test")
   # The fake chat cannot take a per-call output cap either; that warning is
   # tested in test-backend.R and is not the one this test is about.
   expect_warning(suppressWarnings(suppressMessages(gr_read(ch, "Q?", cl, "stuff")),
@@ -167,8 +167,8 @@ test_that("an ellmer chat's own unpriced model is named as uncheckable, override
                       })
   expect_true(any(grepl("^gr_cost_uncheckable .*claude-test", ws)))
   # Other clients bill as the model each request names.
-  expect_null(readgpt:::client_billed_model(mock_echo()))
-  expect_null(readgpt:::client_billed_model(gr_backend_client(function(m, p) "x", model = "bk")))
+  expect_null(harnessr:::client_billed_model(mock_echo()))
+  expect_null(harnessr:::client_billed_model(gr_backend_client(function(m, p) "x", model = "bk")))
 })
 
 # ---------------------------------------------------------------------------
@@ -178,16 +178,16 @@ test_that("an ellmer chat's own unpriced model is named as uncheckable, override
 test_that("the worst case counts every merge and summary level", {
   # 64 findings of 400 tokens into a merge room of 3,000: 7 per merge, so nine
   # merges and one finding passed on alone, then two merges, then the last.
-  w <- readgpt:::merge_tree_worst(64, 400, 400, 3000)
+  w <- harnessr:::merge_tree_worst(64, 400, 400, 3000)
   expect_identical(w$calls, 9 + 2 + 1)
-  expect_null(readgpt:::merge_tree_worst(64, 400, 400, NA_real_))
-  expect_identical(readgpt:::merge_tree_worst(1, 400, 400, 3000)$calls, 0)
+  expect_null(harnessr:::merge_tree_worst(64, 400, 400, NA_real_))
+  expect_identical(harnessr:::merge_tree_worst(1, 400, 400, 3000)$calls, 0)
   # 64 summaries halving until 400-token summaries fit 3,000 tokens, within 5
   # levels: 64 + 32 + 16 + 8 + 4, then the answer.
-  h <- readgpt:::summary_levels_worst(64, 400, 3000, 2, 5)
+  h <- harnessr:::summary_levels_worst(64, 400, 3000, 2, 5)
   expect_identical(h$calls, 64 + 32 + 16 + 8 + 4 + 1)
   # max_levels still caps it.
-  expect_identical(readgpt:::summary_levels_worst(64, 400, 3000, 2, 2)$calls, 64 + 32 + 1)
+  expect_identical(harnessr:::summary_levels_worst(64, 400, 3000, 2, 2)$calls, 64 + 32 + 1)
 })
 
 test_that("a hierarchical read's recorded worst case is not below what it makes", {
@@ -286,14 +286,14 @@ test_that("a quotation with a changed figure does not verify", {
            "Revenue rose to 45.", "5 mg twice daily.", "5 patients died.",
            "Headcount grew to 1,20", "grew to 204", "19 patients were excluded")
   for (s in bad) {
-    m <- readgpt:::span_match(s, src)
+    m <- harnessr:::span_match(s, src)
     expect_false(m$verified, label = s)
     expect_lt(m$match, 1, label = s)
   }
   good <- c("25% of patients had nausea.", "-12% year on year", "The trial enrolled 200 patients.",
             "Revenue rose to 45.2 million dollars", "0.5 mg twice daily", "headcount grew to 1,204",
             "\u201cOverall, 25% of patients had nausea\u2026\u201d", "enrolled 200", "In all, 15")
-  for (s in good) expect_true(readgpt:::span_match(s, src)$verified, label = s)
+  for (s in good) expect_true(harnessr:::span_match(s, src)$verified, label = s)
 })
 
 test_that("a skim quotation that drops a digit makes the answer partial", {
@@ -328,7 +328,7 @@ test_that("several verbatim passages, listed or elided, verify", {
     "Overall, 25% of patients had nausea [...] Headache was reported by 12 patients.",
     "\"Overall, 25% of patients had nausea during the trial.\" \"Headache was reported by 12 patients.\"")
   for (s in good) {
-    m <- readgpt:::span_match(s, src)
+    m <- harnessr:::span_match(s, src)
     expect_true(m$verified, label = s)
     expect_identical(m$match, 1, label = s)
   }
@@ -340,9 +340,9 @@ test_that("several verbatim passages, listed or elided, verify", {
            # "Revenue ... rose 30%" quotes "Revenue fell 12%. Costs rose 30%."
            # (read-core-05, part 2; test-review4-verify-print.R).
            "Overall, 25% of patients had nausea [...] reported by 12 patients.")
-  for (s in bad) expect_false(readgpt:::span_match(s, src)$verified, label = s)
+  for (s in bad) expect_false(harnessr:::span_match(s, src)$verified, label = s)
   # Nothing to check is still NA.
-  expect_true(is.na(readgpt:::span_match("...", src)$verified))
+  expect_true(is.na(harnessr:::span_match("...", src)$verified))
 })
 
 test_that("a faithful multi-passage extraction does not make a skim answer partial", {
@@ -366,7 +366,7 @@ test_that("a faithful multi-passage extraction does not make a skim answer parti
 # ---------------------------------------------------------------------------
 
 test_that("every common way of writing a citation is read", {
-  ids <- function(x, w = "study") sort(readgpt:::cited_ids(x, w))
+  ids <- function(x, w = "study") sort(harnessr:::cited_ids(x, w))
   expect_identical(ids("[studies 1, 2, and 7]"), c(1L, 2L, 7L))
   expect_identical(ids("[studies 1-4]"), 1:4)
   expect_identical(ids("[studies 1\u20134]"), 1:4)
@@ -379,17 +379,17 @@ test_that("every common way of writing a citation is read", {
   # A locator is not an id: the page and section render_chunks() prints.
   expect_identical(ids("[chunk 3 p.12, \u00a7 Study population]", "chunk"), 3L)
   expect_identical(ids("[study 3, p. 4]"), 3L)
-  expect_length(readgpt:::unparsed_citations("[chunk 3 p.12, \u00a7 Study population]", "chunk"), 0L)
+  expect_length(harnessr:::unparsed_citations("[chunk 3 p.12, \u00a7 Study population]", "chunk"), 0L)
   # ...but it cannot hide another id.
-  expect_identical(readgpt:::unparsed_citations("[chunk 1 p.7, chunk 9]", "chunk"),
+  expect_identical(harnessr:::unparsed_citations("[chunk 1 p.7, chunk 9]", "chunk"),
                    "[chunk 1 p.7, chunk 9]")
-  expect_identical(readgpt:::unparsed_citations("see [chunk nine] and [chunk 2]", "chunk"),
+  expect_identical(harnessr:::unparsed_citations("see [chunk nine] and [chunk 2]", "chunk"),
                    "[chunk nine]")
   # A range too long to be a citation is kept as its two ends.
   expect_identical(ids("[chunks 1-1000000]", "chunk"), c(1L, 1000000L))
   # The listed form, which the renderer reads every number of, takes the lists
   # but never a range or a locator: those it leaves as written.
-  listed <- readgpt:::cite_pattern("study")
+  listed <- harnessr:::cite_pattern("study")
   expect_true(grepl(listed, "[studies 1, 2, and 7]", perl = TRUE))
   expect_true(grepl(listed, "[study 1; study 7]", perl = TRUE))
   expect_false(grepl(listed, "[studies 1-7]", perl = TRUE))
@@ -442,7 +442,7 @@ test_that("a fabricated id in a list or range makes the answer partial", {
   c2 <- read_with("Revenue rose [chunk nine].")
   expect_true(c2$partial)
   expect_identical(c2$notes$cited_unparsed, "[chunk nine]")
-  expect_true(any(grepl("could not be checked", readgpt:::partial_reasons(c2))))
+  expect_true(any(grepl("could not be checked", harnessr:::partial_reasons(c2))))
   # Faithful lists and ranges are clean.
   expect_false(read_with("Revenue rose [chunks 1-2] and [chunk 1 p.3].")$partial)
 })

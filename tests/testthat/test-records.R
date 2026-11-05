@@ -19,7 +19,7 @@ test_that("RIS parses across the dialects databases actually emit", {
     "AB  - We conducted a randomised trial of spaced practice",
     "against massed practice in 482 adult learners.",
     "L1  - files/smith2019.pdf", "DB  - Scopus", "ER  - "))
-  r <- readgpt:::records_from_ris(readLines(p, warn = FALSE), "scopus.ris")
+  r <- harnessr:::records_from_ris(readLines(p, warn = FALSE), "scopus.ris")
 
   expect_equal(nrow(r), 1L)
   # Repeated AU tags are one author list.
@@ -41,7 +41,7 @@ test_that("PubMed's DP is a date, not a database", {
   # year -- and a citation with no year is not one anybody can follow up.
   p <- ris_file(c("TY  - JOUR", "AU  - Smith J", "TI  - A trial", "JF  - J Educ Psychol",
                   "DP  - 2019 Mar", "AN  - 30987654", "ER  -"))
-  r <- readgpt:::records_from_ris(readLines(p, warn = FALSE), "pubmed.ris")
+  r <- harnessr:::records_from_ris(readLines(p, warn = FALSE), "pubmed.ris")
   expect_identical(r$year, "2019")
   expect_identical(r$venue, "J Educ Psychol")
   expect_identical(r$accession, "30987654")
@@ -50,12 +50,12 @@ test_that("PubMed's DP is a date, not a database", {
   # Dates come in several shapes and a year is whatever four digits are there.
   for (d in c("2019", "2019/03/12", "2019 Mar", "c2019", "12 March 2019")) {
     p2 <- ris_file(c("TY  - JOUR", "TI  - x", paste("PY  -", d), "ER  -"))
-    expect_identical(readgpt:::records_from_ris(readLines(p2, warn = FALSE), "x")$year, "2019",
+    expect_identical(harnessr:::records_from_ris(readLines(p2, warn = FALSE), "x")$year, "2019",
                      info = d)
   }
   # And something that is not a date does not become one.
   p3 <- ris_file(c("TY  - JOUR", "TI  - x", "PY  - in press", "ER  -"))
-  expect_true(is.na(readgpt:::records_from_ris(readLines(p3, warn = FALSE), "x")$year))
+  expect_true(is.na(harnessr:::records_from_ris(readLines(p3, warn = FALSE), "x")$year))
 })
 
 test_that("a missing final ER does not lose the last record", {
@@ -63,7 +63,7 @@ test_that("a missing final ER does not lose the last record", {
   # be wrong here: the count is off by one and nothing says so.
   p <- ris_file(c("TY  - JOUR", "TI  - First", "PY  - 2019", "ER  - ",
                   "TY  - JOUR", "TI  - Second", "PY  - 2020"))
-  r <- readgpt:::records_from_ris(readLines(p, warn = FALSE), "x")
+  r <- harnessr:::records_from_ris(readLines(p, warn = FALSE), "x")
   expect_equal(nrow(r), 2L)
   expect_identical(r$title, c("First", "Second"))
 })
@@ -78,7 +78,7 @@ test_that("BibTeX survives braces, escapes and multi-word surnames", {
     "  year = {2020},",
     "  doi = {10.3758/s13421-020-01099-1}",
     "}"), p)
-  r <- readgpt:::records_from_bib(readLines(p, warn = FALSE), "mendeley.bib")
+  r <- harnessr:::records_from_bib(readLines(p, warn = FALSE), "mendeley.bib")
 
   expect_equal(nrow(r), 1L)
   # Capitalisation-protecting braces are not part of the value, and a regex that
@@ -89,23 +89,23 @@ test_that("BibTeX survives braces, escapes and multi-word surnames", {
   # " and " becomes the same separator RIS produces, so downstream sees one
   # convention rather than two.
   expect_identical(r$authors, "Chen, W.; Dubois, M.-C.; van der Berg, P.")
-  expect_identical(readgpt:::bib_surnames(r$authors), c("Chen", "Dubois", "van der Berg"))
+  expect_identical(harnessr:::bib_surnames(r$authors), c("Chen", "Dubois", "van der Berg"))
 })
 
 test_that("the parser is chosen by content, not by extension", {
   # Web of Science writes RIS into a .txt and Scholar writes BibTeX into one.
   p <- withr::local_tempfile(fileext = ".txt")
   writeLines(c("TY  - JOUR", "TI  - In a txt file", "PY  - 2019", "ER  -"), p)
-  expect_identical(readgpt:::read_export(p)$title, "In a txt file")
+  expect_identical(harnessr:::read_export(p)$title, "In a txt file")
 
   b <- withr::local_tempfile(fileext = ".txt")
   writeLines(c("@article{x, title = {Also a txt file}, year = {2020}}"), b)
-  expect_identical(readgpt:::read_export(b)$title, "Also a txt file")
+  expect_identical(harnessr:::read_export(b)$title, "Also a txt file")
 
   # And something that is neither says so rather than contributing silently.
   junk <- withr::local_tempfile(fileext = ".ris")
   writeLines(c("just some prose", "with no tags at all"), junk)
-  expect_warning(out <- readgpt:::read_export(junk), class = "gr_unknown_export")
+  expect_warning(out <- harnessr:::read_export(junk), class = "gr_unknown_export")
   expect_equal(nrow(out), 0L)
 })
 

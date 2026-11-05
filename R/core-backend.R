@@ -306,7 +306,7 @@ gr_ellmer_client <- function(chat, embed = NULL, model = NULL) {
                              "it per call, so the run's caps are not applied. Replies can run ",
                              "longer than cost estimates assume; one cut off at the chat's own ",
                              "limit is reported with finish_reason \"length\". ellmer 0.5.0 or ",
-                             "later lets readgpt set the cap on each call."),
+                             "later lets harnessr set the cap on each call."),
                       as_int1(params$max_output, 0L),
                       if (is.na(own)) "the provider's default" else sprintf("max_tokens = %d", own)),
               class = "gr_ellmer_max_output")
@@ -647,7 +647,7 @@ ellmer_result <- function(txt, model, usage, finish_reason = NA_character_) {
   gr_result(TRUE, text = txt, model = model, usage = usage, finish_reason = finish_reason)
 }
 
-#' Split readgpt messages into ellmer's two slots.
+#' Split harnessr messages into ellmer's two slots.
 #'
 #' ellmer has a system prompt and a turn; this package has a list of roles. The
 #' mapping is separated out because it is the part most likely to be wrong and

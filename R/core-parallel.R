@@ -124,12 +124,13 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   # environment and must be carried across explicitly.
   key <- as_chr1(key %||% tryCatch(gr_api_key(), error = function(e) ""))
   opts <- gr_options()
-  # The registries travel too. `future.packages = "readgpt"` re-runs .onLoad()
-  # in the worker, which registers the BUILT-INS and nothing else -- so a model
-  # registered with gr_register_model() was unknown there, and the worker read
-  # with the fallback context window instead of the one the caller set (4000
-  # output tokens against a real ceiling of 512). Options crossed and the
-  # registry they refer to did not, which is worse than neither crossing:
+  # The registries travel too. `future.packages` names this package, so the
+  # worker loads it and re-runs .onLoad(), which registers the BUILT-INS and
+  # nothing else -- so a model registered with gr_register_model() was unknown
+  # there, and the worker read with the fallback context window instead of the
+  # one the caller set (4000 output tokens against a real ceiling of 512).
+  # Options crossed and the registry they refer to did not, which is worse
+  # than neither crossing:
   # gr_options(tokenizer = "mytok") arrived naming a function that was not
   # there, and the parallel run aborted where the sequential one succeeded.
   regs <- mget(.gr_worker_state, envir = gr_state, ifnotfound = list(NULL))
@@ -176,7 +177,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   # Each item reports what it added, and the parent adds it back in the order
   # of `x`, as it does the traces. Written out here and in worker_item()'s
   # closure rather than as package helpers, because a worker resolves package
-  # functions in the readgpt it loads, which is not always the one that sent
+  # functions in the harnessr it loads, which is not always the one that sent
   # the batch.
   client_state <- function(cl) {
     if (!is.list(cl)) return(NULL)
@@ -205,7 +206,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   out <- keep_caller_rng(tryCatch(withCallingHandlers(
     future.apply::future_lapply(x, wrapped, future.seed = TRUE,
                                 future.globals = user$globals,
-                                future.packages = unique(c("readgpt", user$packages))),
+                                future.packages = unique(c(utils::packageName(), user$packages))),
     warning = function(w) {
       if (grepl("Canceling all iterations", conditionMessage(w), fixed = TRUE)) {
         cancelled <<- w

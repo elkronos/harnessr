@@ -18,7 +18,7 @@ written by earlier sessions; the three counters cover this session only.
 Cache statistics
 }
 \examples{
-cache <- gr_cache(file.path(tempdir(), "readgpt-stats-cache"))
+cache <- gr_cache(file.path(tempdir(), "harnessr-stats-cache"))
 cl <- gr_cache_client(gr_mock_client(function(m, p) "hi"), cache)
 invisible(gr_call(cl, "one"))
 invisible(gr_call(cl, "one"))

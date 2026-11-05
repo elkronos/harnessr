@@ -1,8 +1,8 @@
 ---
-title: "Get started with readgpt"
+title: "Get started with harnessr"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Get started with readgpt}
+  %\VignetteIndexEntry{Get started with harnessr}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-readgpt asks a large language model questions about your documents (a report, a
+harnessr asks a large language model questions about your documents (a report, a
 contract, a folder of research papers) and returns the answer with a record of
 how it was reached: which parts of the document the model saw, what it was
 asked, what it said, and what that cost. This guide assumes no previous
@@ -25,7 +25,7 @@ follow along for free.
 
 **The model runs somewhere else.** A large language model (an *LLM*) such as
 GPT is a program run by a *provider*: OpenAI, Anthropic, Google, or a model on
-your own computer. readgpt sends it text over the internet and reads the reply.
+your own computer. harnessr sends it text over the internet and reads the reply.
 Commercial providers charge for each request.
 
 **Text is measured in tokens.** Models do not read characters or words; they
@@ -34,14 +34,14 @@ so a page of text is several hundred tokens. Providers charge per token, both
 for the text you send and, at a higher rate, for the text the model writes back.
 
 ```{r message = FALSE}
-library(readgpt)
+library(harnessr)
 ```
 
 ```{r}
 gr_count_tokens("Revenue rose to 45.2 million dollars in fiscal 2024.")
 ```
 
-readgpt estimates token counts itself, without asking the provider, so it can
+harnessr estimates token counts itself, without asking the provider, so it can
 work out what a request will cost before sending it.
 
 **A model can only take in so much at once.** The most text a model accepts in a
@@ -50,7 +50,7 @@ it does, models tend to overlook details in the middle of a very long prompt. So
 documents are cut into smaller pieces, called *chunks*, and the question is put
 to the chunks in some order.
 
-**That makes three decisions**, and readgpt keeps them separate so you can see and
+**That makes three decisions**, and harnessr keeps them separate so you can see and
 change each one:
 
 1. **Ingest**: get the text out of the file and tidy it.
@@ -62,18 +62,21 @@ change each one:
 A fourth choice, which model answers, is independent of all three.
 
 **Models can make things up.** A model may state something the document never
-says, and it can do so fluently. readgpt cannot prevent that. It records which
+says, and it can do so fluently. harnessr cannot prevent that. It records which
 text each answer rests on, checks quotations against the document, and tells you
 when anything went wrong. The first example below shows where to look.
 
 ## Installing
 
-readgpt needs R 4.1 or later. Install it from GitHub:
+harnessr needs R 4.1 or later. Install it from GitHub:
 
 ```{r eval = FALSE}
 install.packages(c("remotes", "knitr", "rmarkdown"))
 remotes::install_github("elkronos/readgpt", build_vignettes = TRUE)
 ```
+
+The repository is still called readgpt, the package's name up to version 0.6.0;
+the package it installs is harnessr.
 
 `build_vignettes = TRUE` also installs these guides, so `vignette()` can open
 them. Building them needs `knitr`, `rmarkdown` and Pandoc. Pandoc comes with
@@ -94,7 +97,7 @@ you use:
 | count tokens with OpenAI's own tokenizer | `reticulate`, with Python's `tiktoken` |
 | use the point-and-click app | `shiny` |
 
-If you ask for something that needs a package you do not have, readgpt says
+If you ask for something that needs a package you do not have, harnessr says
 which one. It stops, unless it can carry on without it. For example, it runs
 requests one at a time when the parallel packages are missing.
 
@@ -138,14 +141,14 @@ cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollar
 old <- gr_options(verbose = FALSE)
 ```
 
-`verbose = FALSE` stops readgpt printing a line for each stage; leave it on in
+`verbose = FALSE` stops harnessr printing a line for each stage; leave it on in
 your own work while you are learning. In an interactive session it also keeps a
 line up to date with how far a long read has got and what it has spent. `gr_options()` returns the settings it
 replaced, so they can be restored later with `gr_options(old)`.
 
 ## Your first question
 
-`answer_document()` does all three steps in one call. readgpt includes a short
+`answer_document()` does all three steps in one call. harnessr includes a short
 example document, an annual report:
 
 ```{r}
@@ -160,7 +163,7 @@ ans <- answer_document("annual-report.pdf", "What was revenue in 2024?")
 ```
 
 The first argument can be a path to a file, a web address, or the text itself.
-A missing file whose name ends in an extension readgpt reads (`.pdf`, `.docx`,
+A missing file whose name ends in an extension harnessr reads (`.pdf`, `.docx`,
 `.md` and so on) is an error. Any other string is read as the text of the
 document, including a path with a mistyped extension:
 `"reports/2024/annual-report.pfd"` becomes a one-line document about a file name.
@@ -217,7 +220,7 @@ to the call and the model is told that, when the document says the opposite, it
 should say so in one sentence giving what the document states. That sentence is
 the answer and `ans$premise`, and `is_not_found()` is `FALSE` for it. A document
 that is merely silent still gets the marker. It is off by default, and the
-correction is the model's reading, not a check readgpt makes (`?gr_read_spec`).
+correction is the model's reading, not a check harnessr makes (`?gr_read_spec`).
 
 **`evidence` shows what the answer rests on.** Each row is a chunk the answer
 drew on, with where it came from: the page, for a PDF, and the heading it sits
@@ -230,7 +233,7 @@ ans$evidence[, c("chunk_id", "page", "section")]
 
 On a long document there is a row for every chunk used, and `page` and `section`
 tell you where to find the passage. What each row's `text` holds depends on the
-reading strategy. When the model is asked to quote the document, readgpt checks
+reading strategy. When the model is asked to quote the document, harnessr checks
 every quotation against the text and marks the answer `partial` if one is not
 there. `vignette("readers")` shows both.
 
@@ -260,7 +263,7 @@ The `prompt` and `reply` columns hold exactly what was sent and what came back:
 as.data.frame(ans$trace)[, c("stage", "tokens_in", "tokens_out", "usd", "seconds")]
 ```
 
-`usd` is priced from readgpt's list of known models (`gr_models()`). A model it
+`usd` is priced from harnessr's list of known models (`gr_models()`). A model it
 does not know is priced as unknown rather than free. You can also estimate
 before sending anything. Here is a 120,000-token document with a 4,000-token
 answer:
@@ -269,7 +272,7 @@ answer:
 gr_estimate_cost(gr_options("model"), input_tokens = 120000, output_tokens = 4000)
 ```
 
-Two safety limits are on from the start. readgpt stops reading a document once
+Two safety limits are on from the start. harnessr stops reading a document once
 it has spent $5 or made 400 requests. Each request is priced as it is made, so a
 run can pass $5 by the cost of one request. The answer is then marked partial,
 and printing it says which limit stopped the run. A run that could not finish
@@ -285,7 +288,7 @@ Change them with `gr_options()`, for example `gr_options(max_cost_usd = 20)`.
 The default models also *reason* before they answer: they work through the
 question in text you never see, and it is charged as text the model writes back.
 `effort` sets how much, for example `"low"` or `"high"`. Unless you set it,
-nothing is sent and the provider's default applies. readgpt sends it only to a
+nothing is sent and the provider's default applies. harnessr sends it only to a
 model it knows reasons. The mock is not one, so here it is given the default
 model's name to stand in for it:
 
@@ -370,7 +373,7 @@ gr_options(old)
   replaying runs, many documents, reviews, and extending the package.
 - `?gr_options`: every setting, with its default.
 
-`browseVignettes("readgpt")` lists all the guides.
+`browseVignettes("harnessr")` lists all the guides.
 
 ## Glossary
 

@@ -55,7 +55,7 @@ test_that("the fixtures are small and hold nothing specific to a machine or a ru
   # not match this session's tempdir() or R.home(), so look for any.
   # A drive letter is a lone letter before ":/" or ":\\" (escaped in JSON).
   expect_false(any(grepl("Rtmp|/tmp/|/home/|/Users/|(^|[^A-Za-z])[A-Za-z]:(/|\\\\\\\\)", txt)))
-  expect_false(any(grepl(as.character(utils::packageVersion("readgpt")), txt, fixed = TRUE)))
+  expect_false(any(grepl(as.character(utils::packageVersion("harnessr")), txt, fixed = TRUE)))
 })
 
 test_that("every built-in reader has a golden run", {

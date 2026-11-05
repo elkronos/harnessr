@@ -14,7 +14,8 @@ The key string. Raises a \code{gr_auth_error} if none is found, or if the
 key contains a control character.
 }
 \description{
-Looks in \code{key}, then the \code{readgpt.api_key} option, then \code{OPENAI_API_KEY}.
+Looks in \code{key}, then the \code{harnessr.api_key} option (or, failing that, the
+deprecated \code{readgpt.api_key}), then \code{OPENAI_API_KEY}.
 Never prints or logs the key.
 }
 \details{

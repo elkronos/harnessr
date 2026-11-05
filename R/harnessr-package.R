@@ -1,7 +1,18 @@
-#' readgpt: control how a language model reads a document
+#' harnessr: compose, budget, cache, record and check model calls
 #'
-#' Document question answering, with the three decisions that actually drive
-#' answer quality pulled apart into independent, swappable axes:
+#' harnessr has two layers.
+#'
+#' The general core sends model calls and keeps them under control: clients
+#' for an API, a local backend or [ellmer](https://ellmer.tidyverse.org) (see
+#' [gr_client()], [gr_backend_client()], [gr_ellmer_client()], and
+#' [gr_mock_client()] for offline work), spending and call limits checked
+#' before each request ([gr_options()]), a response cache ([gr_cache()]),
+#' recordings that replay offline ([gr_replay_client()]), and a trace of every
+#' call ([gr_trace()]).
+#'
+#' The document layer, built on that core, controls how a model reads a
+#' document. The three decisions that drive answer quality are pulled apart
+#' into independent, swappable axes:
 #'
 #' \describe{
 #'   \item{\strong{ingest}}{bytes to clean text: which extractor, which cleaning
@@ -14,6 +25,14 @@
 #'     what call pattern. See [gr_read()], [gr_read_spec()], [gr_readers()]; it
 #'     returns a [gr_answer].}
 #' }
+#'
+#' Over a set of documents it also screens ([gr_screen()]), extracts fields
+#' ([gr_extract()]) and synthesises what was found ([gr_synthesise()]).
+#'
+#' harnessr was called readgpt up to version 0.6.0. Requests, cache keys and
+#' recordings are unchanged by the rename. The `readgpt.api_key` and
+#' `readgpt.allow_local_urls` options are still read, with a warning, when
+#' their `harnessr.` names are not set.
 #'
 #' Any ingest x any segmenter x any reader composes. [gr_recipe()] binds one of
 #' each into a named pipeline; [answer_document()] runs one; [gr_compare()] runs
@@ -112,7 +131,7 @@
 #'     reported nothing in the document contradicting the question; otherwise
 #'     the sentence in which it said what the document states instead, which
 #'     is then `answer` as well, so `is_not_found()` is `FALSE`. It is the
-#'     model's verdict, not a check readgpt made. Absent (`NULL`) for a spec
+#'     model's verdict, not a check harnessr made. Absent (`NULL`) for a spec
 #'     that did not ask, and for `screen` and `extract`, which answer no
 #'     question.}
 #'   \item{`partial`}{Logical(1). `TRUE` when anything degraded: a call failed,
@@ -127,7 +146,7 @@
 #'     `unverified_evidence`, the number of quoted spans that are not in the
 #'     chunk they claim to come from; and `unread_pages`, the pages that never
 #'     became text. Any of them makes the answer `partial`.}
-#'   \item{`warnings`}{Character. What readgpt warned about while the document
+#'   \item{`warnings`}{Character. What harnessr warned about while the document
 #'     was ingested, cut and read, named by the warning's class. The warnings
 #'     still print as they happen; this copy stays with the answer, including
 #'     when the document came from the ingestion cache and nothing was raised
@@ -275,7 +294,7 @@ NULL
 #'     when cleaning ate more than you expected) and `unread_pages` (pages that
 #'     never became text, such as scanned pages read without OCR; an answer
 #'     drawn from the document is marked partial when there are any).}
-#'   \item{`warnings`}{Character. What readgpt warned about while extracting
+#'   \item{`warnings`}{Character. What harnessr warned about while extracting
 #'     and cleaning, named by the warning's class. Kept with the document, so a
 #'     copy served from the ingestion cache still carries them.}
 #' }
@@ -339,5 +358,5 @@ NULL
 #' @examples
 #' gr_ingest(readgpt_example())
 readgpt_example <- function() {
-  system.file("extdata", "annual_report.md", package = "readgpt", mustWork = TRUE)
+  system.file("extdata", "annual_report.md", package = "harnessr", mustWork = TRUE)
 }

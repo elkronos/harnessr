@@ -37,8 +37,11 @@ The default location is under \code{\link[=tempdir]{tempdir()}}, so a cache cost
 disappears with the session. That is the right default for a package (it
 writes nothing to your filesystem you did not ask for), but it is not what
 you want for a long experiment. Pass a real directory, or
-\code{tools::R_user_dir("readgpt", "cache")}, to keep entries across sessions and
-make a run resumable after a crash.
+\code{tools::R_user_dir("harnessr", "cache")}, to keep entries across sessions and
+make a run resumable after a crash. With that directory, entries that
+readgpt stored in \code{tools::R_user_dir("readgpt", "cache")} are read too, after
+it; new entries go only to the harnessr directory, and the old one is never
+cleared.
 
 Cross-session reuse needs a client that can say what it is. \code{\link[=gr_client]{gr_client()}} and
 \code{\link[=gr_ellmer_client]{gr_ellmer_client()}} can: an endpoint and a model describe what will answer
@@ -72,7 +75,7 @@ or \code{read = FALSE}, when you want new draws.
 }
 
 \examples{
-cache <- gr_cache(dir = file.path(tempdir(), "readgpt-example-cache"))
+cache <- gr_cache(dir = file.path(tempdir(), "harnessr-example-cache"))
 cache
 
 # Nothing is written until a call is cached.

@@ -20,9 +20,9 @@ col_tag <- function(x) sub("^((Left|Right) [0-9]+):.*", "\\1", x)
 col_tags <- function(side, i) sprintf("%s %02d", side, i)
 
 read_page <- function(lines) {
-  g <- readgpt:::column_gutter(lines)
+  g <- harnessr:::column_gutter(lines)
   expect_false(is.na(g))
-  out <- trimws(readgpt:::reorder_columns(lines, g))
+  out <- trimws(harnessr:::reorder_columns(lines, g))
   out[nzchar(out)]
 }
 
@@ -74,7 +74,7 @@ test_that("a heading beside the other column on a page's first row is kept as a 
   out <- read_page(lines)
   expect_identical(out[1:2], c("You should now have a clear understanding of the differ-",
                                "ence between fixed and random effects, but let us sum this"))
-  b <- readgpt:::pdf_page_blocks(list(out), readgpt:::heading_matcher())
+  b <- harnessr:::pdf_page_blocks(list(out), harnessr:::heading_matcher())
   expect_identical(b$text[b$kind == "heading"], "3 Results")
   expect_identical(b$section[b$kind == "body"][2], "3 Results")
 })
@@ -153,7 +153,7 @@ test_that("a single-column table whose last column wraps is not read as two colu
              "> objective <- do.call(fitSpec, parsed)", "",
              "the search stage,", "",
              "> best <- searchSpec(objective)")
-  expect_true(is.na(readgpt:::column_gutter(lines)))
+  expect_true(is.na(harnessr:::column_gutter(lines)))
 })
 
 # ---------------------------------------------------------------------------
@@ -163,7 +163,7 @@ test_that("a single-column table whose last column wraps is not read as two colu
 rl_body <- function(p) sprintf("Body sentence %d on page %d talks about outcomes at length here.",
                                1:6, p)
 rl_page <- function(p, head = NULL, foot = NULL) c(head, "", rl_body(p), "", foot)
-dropped <- function(pages) setdiff(unlist(pages), unlist(readgpt:::drop_running_lines(pages)))
+dropped <- function(pages) setdiff(unlist(pages), unlist(harnessr:::drop_running_lines(pages)))
 
 test_that("page numbers go when one page has another bare number at the same edge", {
   # Page 6 ends with an axis label just above its page number.
@@ -177,7 +177,7 @@ test_that("page numbers go when one page has another bare number at the same edg
   # A word line too: page 7 has a body line "Page 3" above its foot.
   pages <- lapply(1:10, function(p) rl_page(p, foot = sprintf("Page %d", p)))
   pages[[7]] <- c(rl_body(7), "Page 3", "", "Page 7")
-  out <- readgpt:::drop_running_lines(pages)
+  out <- harnessr:::drop_running_lines(pages)
   expect_false(any(grepl("^Page ([0-9]|10)$", unlist(out)[unlist(out) != "Page 3"])))
   expect_identical(sum(unlist(out) == "Page 3"), 1L)
 })
@@ -203,12 +203,12 @@ test_that("a long head whose page number stands in a cell of its own is dropped"
     frontiers = function(p) sprintf("Frontiers in Psychology | www.frontiersin.org   %d   March 2019 | Volume 10 | Article 512", p))
   for (h in heads) {
     pages <- lapply(1:12, function(p) rl_page(p, head = h(p)))
-    expect_identical(readgpt:::drop_running_lines(pages), lapply(1:12, function(p) rl_page(p)))
+    expect_identical(harnessr:::drop_running_lines(pages), lapply(1:12, function(p) rl_page(p)))
   }
   # A number inside a sentence is still content.
   inside <- lapply(1:6, function(p) rl_page(p, head = sprintf(
     "In cluster %d the investigators documented the outcome of the trial.", p + 40)))
-  expect_identical(readgpt:::drop_running_lines(inside), inside)
+  expect_identical(harnessr:::drop_running_lines(inside), inside)
 })
 
 test_that("the header of a table continued across pages is kept above its rows", {
@@ -220,14 +220,14 @@ test_that("the header of a table continued across pages is kept above its rows",
     sprintf("%d    %4.1f    %3.1f    %d", years[(p - 1) * 12 + 1:12],
             stats::runif(12, 10, 60), stats::runif(12, 1, 9), sample(1000:9999, 12)),
     "", sprintf("Page %d of 5", p)))
-  out <- readgpt:::drop_running_lines(pages)
+  out <- harnessr:::drop_running_lines(pages)
   expect_identical(vapply(out, function(l) sum(l == "Year    Rate    SE     Cases"), integer(1)),
                    rep(1L, 5))
   expect_identical(sum(grepl("^(19|20)[0-9]{2} ", unlist(out))), 60L)
   expect_false(any(grepl("^Page [0-9] of 5$", unlist(out))))
   # A running head above a blank line is not a table's header.
   heads <- lapply(1:5, function(p) c("Journal of Learning Studies, vol. 12", "", pages[[p]][-1]))
-  expect_false("Journal of Learning Studies, vol. 12" %in% unlist(readgpt:::drop_running_lines(heads)))
+  expect_false("Journal of Learning Studies, vol. 12" %in% unlist(harnessr:::drop_running_lines(heads)))
 })
 
 test_that("a note under two tables of a short paper is not taken for a running foot", {
@@ -242,7 +242,7 @@ test_that("a note under two tables of a short paper is not taken for a running f
                   c(body2(2), tab(1), note, if (numbered) "2"),
                   c(body2(3), if (numbered) "3"),
                   c(body2(4), tab(2), note, if (numbered) "4"))
-    out <- readgpt:::drop_running_lines(pages)
+    out <- harnessr:::drop_running_lines(pages)
     expect_identical(sum(unlist(out) == note), 2L)
     expect_identical(sum(unlist(out) == "Observations    1,204      1,204"), 2L)
     expect_false(any(unlist(out) %in% as.character(1:4)))
@@ -250,12 +250,12 @@ test_that("a note under two tables of a short paper is not taken for a running f
   # A line ending a sentence at the foot of two pages is content too.
   line <- "the predefined noninferiority margin of the primary analysis."
   pages <- lapply(1:5, function(p) c(rl_body(p), if (p %in% c(3, 5)) line))
-  expect_identical(readgpt:::drop_running_lines(pages), pages)
+  expect_identical(harnessr:::drop_running_lines(pages), pages)
   # Alternating heads of a short paper still go.
   alt <- lapply(1:5, function(p) c(
     if (p == 2 || p == 4) "Alice Smith, Bao Lee, and Chidi Okafor",
     if (p == 3 || p == 5) "Effects of widgets: a randomised trial", rl_body(p)))
-  expect_identical(readgpt:::drop_running_lines(alt), lapply(1:5, rl_body))
+  expect_identical(harnessr:::drop_running_lines(alt), lapply(1:5, rl_body))
 })
 
 # ---------------------------------------------------------------------------

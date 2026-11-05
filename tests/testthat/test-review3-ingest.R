@@ -6,7 +6,7 @@
 html_blocks_of <- function(html, ext = ".html") {
   p <- withr::local_tempfile(fileext = ext)
   writeLines(html, p)
-  readgpt:::extract_html(p, list())
+  harnessr:::extract_html(p, list())
 }
 
 # ---------------------------------------------------------------------------
@@ -112,7 +112,7 @@ test_that("reading HTML takes time in proportion to the page", {
     p <- withr::local_tempfile(fileext = ".html")
     writeLines(html, p)
     min(vapply(seq_len(reps), function(i) {
-      system.time(readgpt:::extract_html(p, list()))[["elapsed"]]
+      system.time(harnessr:::extract_html(p, list()))[["elapsed"]]
     }, numeric(1)))
   }
   br_page <- function(n) paste0("<html><body>", paste0("line ", seq_len(n), collapse = "<br>"),
@@ -132,7 +132,7 @@ test_that("reading HTML takes time in proportion to the page", {
   # And the text is all there, once.
   p <- withr::local_tempfile(fileext = ".html")
   writeLines(br_page(3L), p)
-  expect_identical(readgpt:::extract_html(p, list())$text, "line 1\nline 2\nline 3")
+  expect_identical(harnessr:::extract_html(p, list())$text, "line 1\nline 2\nline 3")
 })
 
 # ---------------------------------------------------------------------------
@@ -190,7 +190,7 @@ test_that("hyphenation rejoins words split in capitals and at CRLF line ends", {
               "Anglo-\nSaxon", "aged 18-\r\n65 years", "SEE LIA-\n\nBLE")) {
     expect_identical(hy(x), x)
   }
-  expect_identical(readgpt:::rejoin_hyphenated(c("well-\nknown", NA, "LIA-\nBLE")),
+  expect_identical(harnessr:::rejoin_hyphenated(c("well-\nknown", NA, "LIA-\nBLE")),
                    c("wellknown", NA, "LIABLE"))
 })
 

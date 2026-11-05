@@ -6,7 +6,7 @@
 r5_html_blocks <- function(html) {
   p <- withr::local_tempfile(fileext = ".html")
   writeLines(paste0("<html><body>", html, "</body></html>"), p)
-  readgpt:::extract_html(p, list())
+  harnessr:::extract_html(p, list())
 }
 
 r5_hy <- function(x) as.character(gr_clean(x, steps = "hyphenation"))
@@ -23,7 +23,7 @@ test_that("rejoining hyphenated words takes time in proportion to the block", {
   timed <- function(k, reps) {
     x <- paste(rep(unit, k), collapse = " ")
     min(vapply(seq_len(reps), function(i) {
-      system.time(readgpt:::rejoin_hyphenated(x))[["elapsed"]]
+      system.time(harnessr:::rejoin_hyphenated(x))[["elapsed"]]
     }, numeric(1)))
   }
   # Eight times the text. Before: some 60 times as long (8,000 units: 20 s;
@@ -32,7 +32,7 @@ test_that("rejoining hyphenated words takes time in proportion to the block", {
   expect_lt(timed(8000L, reps = 2L) / max(small, 0.01), 20)
 
   # And every join is still made, and every pair in prose kept.
-  y <- readgpt:::rejoin_hyphenated(paste(rep(unit, 500L), collapse = " "))
+  y <- harnessr:::rejoin_hyphenated(paste(rep(unit, 500L), collapse = " "))
   expect_identical(lengths(regmatches(y, gregexpr("LIABLE", y, fixed = TRUE))), 500L)
   expect_identical(lengths(regmatches(y, gregexpr("HIV-\nAIDS", y, fixed = TRUE))), 500L)
   expect_identical(lengths(regmatches(y, gregexpr("mitochondria", y, fixed = TRUE))), 500L)
@@ -228,7 +228,7 @@ test_that("deciding whether a table lays out the page takes time in proportion t
     p <- withr::local_tempfile(fileext = ".html")
     writeLines(paste0("<html><body>", html, "</body></html>"), p)
     min(vapply(seq_len(reps), function(i) {
-      system.time(readgpt:::extract_html(p, list()))[["elapsed"]]
+      system.time(harnessr:::extract_html(p, list()))[["elapsed"]]
     }, numeric(1)))
   }
   column <- function(n) paste0("<table>", paste0("<tr><td><p>row ", seq_len(n), "</p></td></tr>",

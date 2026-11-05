@@ -219,7 +219,7 @@ r7_serve <- function(text = "Revenue was 45.2 million dollars in the year under 
     asked$urls <- c(asked$urls, url)
     writeLines(text, dest)
     list(status = status, type = type)
-  }, .package = "readgpt", .env = env)
+  }, .package = "harnessr", .env = env)
   asked
 }
 
@@ -258,7 +258,7 @@ test_that("a document fetched from a presigned address does not keep its secrets
   a <- quiet(answer_document(u, "What was revenue?", "fast",
                              client = gr_mock_client(function(m, p) "45.2 million.")))
   expect_false(r7_leaks(a$document$source))
-  expect_identical(readgpt:::report_doc_name(a$document$source), a$document$source)
+  expect_identical(harnessr:::report_doc_name(a$document$source), a$document$source)
 })
 
 test_that("an address with nothing to hide is shown as it is", {
@@ -267,8 +267,8 @@ test_that("an address with nothing to hide is shown as it is", {
   shown <- url_shown(r7_secret_url())
   # Shown once or twice, and by the audit report after, it is the same.
   expect_identical(url_shown(shown), shown)
-  expect_identical(readgpt:::report_url(shown), shown)
-  expect_identical(readgpt:::report_url_text(sprintf("Fetching '%s' failed.", shown)),
+  expect_identical(harnessr:::report_url(shown), shown)
+  expect_identical(harnessr:::report_url_text(sprintf("Fetching '%s' failed.", shown)),
                    sprintf("Fetching '%s' failed.", shown))
 })
 
@@ -302,14 +302,14 @@ test_that("the fetch errors do not quote an address's secrets", {
   local_mocked_bindings(url_download = function(url, dest) {
     writeBin(as.raw(c(0x50, 0x4b, 0x03, 0x04, 0, 0, 0, 0)), dest)
     list(status = 200L, type = "application/zip")
-  }, .package = "readgpt")
+  }, .package = "harnessr")
   err <- tryCatch(quiet(gr_ingest(r7_secret_url("data"), cache = FALSE)), error = function(e) e)
   expect_s3_class(err, "gr_unsupported_format")
   expect_false(r7_leaks(conditionMessage(err)))
 
   local_mocked_bindings(url_download = function(url, dest) {
     stop(sprintf("Timeout was reached: [%s] Operation timed out", url))
-  }, .package = "readgpt")
+  }, .package = "harnessr")
   err <- tryCatch(quiet(gr_ingest(r7_secret_url(), cache = FALSE)), error = function(e) e)
   expect_s3_class(err, "gr_url_error")
   expect_match(conditionMessage(err), "Timeout was reached", fixed = TRUE)
@@ -317,8 +317,8 @@ test_that("the fetch errors do not quote an address's secrets", {
 })
 
 test_that("a refused or redirected download does not quote an address's secrets", {
-  withr::local_options(readgpt.allow_local_urls = NULL)
-  err <- tryCatch(readgpt:::url_download("http://user:pw@127.0.0.1/x?token=SECRETSIG",
+  withr::local_options(harnessr.allow_local_urls = NULL)
+  err <- tryCatch(harnessr:::url_download("http://user:pw@127.0.0.1/x?token=SECRETSIG",
                                          withr::local_tempfile(), allow_local = FALSE),
                   error = function(e) e)
   expect_s3_class(err, "gr_url_error")
@@ -332,7 +332,7 @@ test_that("a refused or redirected download does not quote an address's secrets"
     structure(list(url = url, status_code = 302L, headers = list(location = loc)),
               class = "response")
   }, .package = "httr")
-  err <- tryCatch(readgpt:::url_download("https://example.org/start?X-Amz-Credential=AKIAKEYID",
+  err <- tryCatch(harnessr:::url_download("https://example.org/start?X-Amz-Credential=AKIAKEYID",
                                          withr::local_tempfile(), allow_local = FALSE,
                                          lookup = function(host) NULL),
                   error = function(e) e)
@@ -341,7 +341,7 @@ test_that("a refused or redirected download does not quote an address's secrets"
   expect_false(r7_leaks(conditionMessage(err)))
   # One that leaves the web says where it went without its credentials, and
   # names the address that sent it there, not the one it was sent to.
-  err <- tryCatch(readgpt:::url_download("https://example.org/go?X-Amz-Credential=AKIAKEYID",
+  err <- tryCatch(harnessr:::url_download("https://example.org/go?X-Amz-Credential=AKIAKEYID",
                                          withr::local_tempfile(), allow_local = TRUE),
                   error = function(e) e)
   expect_s3_class(err, "gr_url_error")
@@ -357,7 +357,7 @@ test_that("a corpus of presigned addresses keeps their secrets out of its labels
     writeLines(sprintf("Revenue was %s million dollars.", if (grepl("AAA", url)) "45.2" else "51.8"),
                dest)
     list(status = 200L, type = "text/plain")
-  }, .package = "readgpt")
+  }, .package = "harnessr")
   urls <- c(r7_secret_url("p.txt", "SECRETSIGAAA"), r7_secret_url("p.txt", "SECRETSIGBBB"),
             r7_secret_url("denied.txt"))
   st <- withr::local_tempdir()
@@ -372,7 +372,7 @@ test_that("a corpus of presigned addresses keeps their secrets out of its labels
   expect_match(co$summary$document[1], "^bucket\\.example\\.org/p\\.txt \\[query hidden [0-9a-f]{6}\\]$")
   expect_identical(co$summary$status, c("ok", "ok", "failed"))
   # The audit report shows the labels as they are.
-  expect_identical(readgpt:::report_url(co$summary$document), co$summary$document)
+  expect_identical(harnessr:::report_url(co$summary$document), co$summary$document)
   # The store is keyed by the address, not the label: a second run restores.
   again <- quiet(gr_read_many(urls, "What was revenue?", "fast", store = st, client = cl))
   expect_identical(again$summary$status, c("restored", "restored", "failed"))
@@ -403,7 +403,7 @@ test_that("gr_ingest's documentation states the download limits and refusals", {
   from <- grep("^#' @param source", src)
   to <- grep("^#' @param spec", src)
   doc <- paste(sub("^#' ?", "", src[from:(to - 1L)]), collapse = " ")
-  for (s in c("512 MB", "`gr_too_large`", "`gr_url_error`", "readgpt.allow_local_urls",
+  for (s in c("512 MB", "`gr_too_large`", "`gr_url_error`", "harnessr.allow_local_urls",
               "169.254", "192.168", "172.16", "redirect", "proxy", "charset",
               "Word file", "query hidden")) {
     expect_match(doc, s, fixed = TRUE, info = s)

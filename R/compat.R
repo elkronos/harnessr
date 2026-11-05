@@ -20,6 +20,25 @@
   }
 })
 
+#' An option under its harnessr name, or else under the readgpt name it had
+#' before the package was renamed.
+#'
+#' Scripts written for readgpt set `readgpt.api_key` and
+#' `readgpt.allow_local_urls`. Those still work, with one warning per session
+#' naming the new option, so a key set the old way is not silently ignored.
+#' The new name wins when both are set.
+#' @noRd
+renamed_option <- function(new, old, default = NULL) {
+  v <- getOption(new)
+  if (!is.null(v)) return(v)
+  v <- getOption(old)
+  if (is.null(v)) return(default)
+  .warn_once(paste0("option:", old), sprintf(
+    "options(%s =) is deprecated; the package is now harnessr, so set options(%s =) instead.",
+    old, new))
+  v
+}
+
 #' Forget which deprecation warnings have been emitted.
 #'
 #' Session state that persists across `test_that()` blocks makes a test suite

@@ -50,9 +50,9 @@ test_that("the built-in protocols are usable schemas, not prose", {
   for (nm in tab$name) {
     p <- gr_protocols(nm)
     expect_s3_class(p, "gr_protocol")
-    expect_true(readgpt:::is_nonblank(p$question))
+    expect_true(harnessr:::is_nonblank(p$question))
     expect_s3_class(p$fields, "gr_fields")
-    expect_silent(readgpt:::check_field_names(names(p$fields)))
+    expect_silent(harnessr:::check_field_names(names(p$fields)))
     # Every field carries a real instruction, not just a name.
     expect_true(all(vapply(p$fields, function(f) nchar(f$description) > 8L, logical(1))))
   }
@@ -210,7 +210,7 @@ test_that("the claims template codes what must be compared and quotes what must 
 
   # The fields the other templates lack, and the reason this one exists.
   expect_true(all(c("measure", "limitation") %in% names(f)))
-  expect_silent(readgpt:::check_field_names(names(f)))
+  expect_silent(harnessr:::check_field_names(names(f)))
   # An outline it can actually support, rather than a topic list.
   expect_gt(length(p$outline), 1L)
 })
@@ -246,7 +246,7 @@ test_that("a template nobody edited is refused before anything is spent", {
   # Editing the question is all it takes.
   ok <- gr_protocol("mine", question = "Does spacing improve retention?",
                     fields = gr_protocols("claims")$fields, recipe = "fast")
-  expect_silent(readgpt:::check_protocol_edited(ok))
+  expect_silent(harnessr:::check_protocol_edited(ok))
 })
 
 test_that("the placeholder guard does not refuse a real protocol that says REPLACE", {
@@ -255,11 +255,11 @@ test_that("the placeholder guard does not refuse a real protocol that says REPLA
   p <- gr_protocol("mine", question = "Did the REPLACE trial change practice?",
                    include = "Cites the REPLACE trial",
                    fields = gr_fields(x = "Anything at all"))
-  expect_silent(readgpt:::check_protocol_edited(p))
+  expect_silent(harnessr:::check_protocol_edited(p))
 
   # And it looks at the criteria, not only the question.
   q <- gr_protocol("mine", question = "A real question about a real thing?",
                    include = c("REPLACE: the population", "Reports original data"),
                    fields = gr_fields(x = "Anything at all"))
-  expect_error(readgpt:::check_protocol_edited(q), class = "gr_protocol_unedited")
+  expect_error(harnessr:::check_protocol_edited(q), class = "gr_protocol_unedited")
 })

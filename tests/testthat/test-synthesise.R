@@ -155,7 +155,7 @@ test_that("the studies handed to the model carry their values, and not their ide
   x <- two_studies(cl)
   used <- x$table[1:2, ]
   used$study <- 1:2
-  rendered <- readgpt:::render_studies(used)
+  rendered <- harnessr:::render_studies(used)
 
   expect_length(rendered, 2L)
   expect_true(grepl("[study 1]", rendered[1], fixed = TRUE))
@@ -169,13 +169,13 @@ test_that("the studies handed to the model carry their values, and not their ide
   # audit; the writing model has no use for it.
   expect_false(grepl(used$document[1], rendered[1], fixed = TRUE))
   # `hide` takes the rest of the identity out, and leaves the findings in.
-  hidden <- readgpt:::render_studies(used, hide = "design")
+  hidden <- harnessr:::render_studies(used, hide = "design")
   expect_false(grepl("design:", hidden[1], fixed = TRUE))
   expect_true(grepl("n: 120", hidden[1], fixed = TRUE))
   # A field nothing reported says so, rather than being silently absent: "not
   # reported" is a finding, and a review that cannot see it cannot report it.
   empty <- used[1, ]; empty$n <- NA_integer_; empty$study <- 1L
-  expect_true(grepl("n: not reported", readgpt:::render_studies(empty), fixed = TRUE))
+  expect_true(grepl("n: not reported", harnessr:::render_studies(empty), fixed = TRUE))
   # Bookkeeping columns are not offered to the model as findings.
   expect_false(grepl("n_filled", rendered[1], fixed = TRUE))
   expect_false(grepl("duplicate_of", rendered[1], fixed = TRUE))
@@ -201,7 +201,7 @@ test_that("a table too large for one prompt is written in batches, not truncated
   cl <- gr_mock_client(function(messages, params) {
     txt <- paste(vapply(messages, function(m) paste(as.character(m$content), collapse = ""),
                         character(1)), collapse = "\n")
-    ids <- readgpt:::cited_ids(txt, "study")
+    ids <- harnessr:::cited_ids(txt, "study")
     seen_ids$v <- c(seen_ids$v, ids)
     paste(sprintf("Point about [study %d].", ids), collapse = " ")
   })
@@ -298,7 +298,7 @@ mock_writer <- function(revision = NULL,
 }
 
 test_that("surnames come out of the shapes author lists actually take", {
-  f <- readgpt:::bib_surnames
+  f <- harnessr:::bib_surnames
   expect_identical(f("Smith, J., Okafor, A."), c("Smith", "Okafor"))
   expect_identical(f("John Smith and Aisha Okafor"), c("Smith", "Okafor"))
   expect_identical(f("Smith J, Okafor A"), c("Smith", "Okafor"))
@@ -318,13 +318,13 @@ test_that("surnames come out of the shapes author lists actually take", {
 
 test_that("a citation key takes the form the sentence needs, and disambiguates a shared year", {
   tab <- bib_table()
-  cols <- readgpt:::bib_columns(tab)
+  cols <- harnessr:::bib_columns(tab)
   expect_identical(cols$authors, "authors")
   expect_identical(cols$year, "year")
 
-  par <- readgpt:::bib_keys(tab, cols)
+  par <- harnessr:::bib_keys(tab, cols)
   expect_identical(par, c("Smith & Okafor, 2019", "Lee & Petrov, 2021", "Garcia, 2022"))
-  nar <- readgpt:::bib_keys(tab, cols, form = "narrative")
+  nar <- harnessr:::bib_keys(tab, cols, form = "narrative")
   expect_identical(nar[1], "Smith and Okafor (2019)")
 
   # Two studies by the same authors in the same year get a and b -- and BOTH of
@@ -332,18 +332,18 @@ test_that("a citation key takes the form the sentence needs, and disambiguates a
   # one-liner gave every duplicate the suffix "a" and left them identical,
   # which is the fault the suffix exists to fix.
   dup <- rbind(tab, tab[1, ]); dup$document[4] <- "smith2.pdf"
-  k <- readgpt:::bib_keys(dup, cols)
+  k <- harnessr:::bib_keys(dup, cols)
   expect_identical(k[c(1, 4)], c("Smith & Okafor, 2019a", "Smith & Okafor, 2019b"))
   expect_equal(anyDuplicated(k), 0L)
-  expect_identical(vapply(c(1, 26, 27), readgpt:::.gr_bib_suffix, character(1)),
+  expect_identical(vapply(c(1, 26, 27), harnessr:::.gr_bib_suffix, character(1)),
                    c("a", "z", "aa"))
 
   # Three or more authors are "et al.", one is bare, and a missing year means no
   # key at all rather than a citation nobody can look up.
   many <- tab[1, ]; many$authors <- "Chen, W., Dubois, M., van der Berg, P."
-  expect_identical(readgpt:::bib_key(many, cols), "Chen et al., 2019")
+  expect_identical(harnessr:::bib_key(many, cols), "Chen et al., 2019")
   noyr <- tab[1, ]; noyr$year <- NA_integer_
-  expect_true(is.na(readgpt:::bib_key(noyr, cols)))
+  expect_true(is.na(harnessr:::bib_key(noyr, cols)))
 })
 
 test_that("a review cites by name and carries a reference list", {
@@ -366,7 +366,7 @@ test_that("a review cites by name and carries a reference list", {
   # published rather than only on what was drafted.
   expect_true("text_marked" %in% names(syn$sections))
   expect_match(syn$sections$text_marked[1], "[study 1]", fixed = TRUE)
-  expect_setequal(readgpt:::cited_ids(syn$text_marked, "study"), 1:3)
+  expect_setequal(harnessr:::cited_ids(syn$text_marked, "study"), 1:3)
 })
 
 test_that("only cited studies reach the reference list", {

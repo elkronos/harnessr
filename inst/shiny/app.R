@@ -25,7 +25,7 @@
 #    to the reactive flush. The progress bar here is driven by withProgress.
 
 library(shiny)
-library(readgpt)
+library(harnessr)
 
 ALLOWED_ROOTS <- local({
   env <- Sys.getenv("GPTREAD_DOC_ROOTS")
@@ -113,7 +113,7 @@ ui <- fluidPage(
     .chat{border:1px solid #ddd;padding:12px;height:460px;overflow-y:auto;background:#fafafa}
     .knob-help{font-size:11px;color:#777;margin:-8px 0 10px 0}
   "))),
-  titlePanel("readgpt - document Q&A with explicit control over ingest, chunking and reading"),
+  titlePanel("harnessr - document Q&A with explicit control over ingest, chunking and reading"),
   sidebarLayout(
     sidebarPanel(
       width = 4,
@@ -436,7 +436,7 @@ server <- function(input, output, session) {
   })
 
   output$dl <- downloadHandler(
-    filename = function() sprintf("readgpt_history_%s.json", Sys.Date()),
+    filename = function() sprintf("harnessr_history_%s.json", Sys.Date()),
     content = function(file) {
       h <- lapply(history(), function(e) list(
         question = e$question, asked_at = e$asked_at, document = e$document,
@@ -447,7 +447,7 @@ server <- function(input, output, session) {
       # answer with a character that has no place there (a "greater than or
       # equal" sign, an accented name) was saved as "<U+2265>". The helper is
       # internal, but this app ships inside the package, as why_partial() says.
-      readgpt:::write_utf8_lines(as.character(jsonlite::toJSON(
+      harnessr:::write_utf8_lines(as.character(jsonlite::toJSON(
         h, pretty = TRUE, auto_unbox = TRUE, null = "null", na = "null", force = TRUE)),
         file)
     })
@@ -467,7 +467,7 @@ note_error <- function(a) {
 # read "NOT_IN_DOCUMENT - PARTIAL" with no reason. The helper is internal, but
 # this app ships inside the package, so the two cannot drift apart.
 why_partial <- function(a) {
-  why <- tryCatch(readgpt:::partial_reasons(a), error = function(e) character(0))
+  why <- tryCatch(harnessr:::partial_reasons(a), error = function(e) character(0))
   # A recipe's own error in full, as the bubble showed it before: the helper
   # cuts its "first error" to 120 characters, which can lose what to change.
   err <- note_error(a)
@@ -479,7 +479,7 @@ why_partial <- function(a) {
 # raw it read as "the document does not say" even of a run that read nothing.
 answer_text <- function(a) {
   if (!is_not_found(a$answer)) return(a$answer)
-  tryCatch(readgpt:::not_found_wording(a), error = function(e) a$answer)
+  tryCatch(harnessr:::not_found_wording(a), error = function(e) a$answer)
 }
 
 shinyApp(ui, server)

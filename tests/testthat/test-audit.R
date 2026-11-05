@@ -154,9 +154,9 @@ test_that("text from the document cannot escape into the markup", {
   expect_false(grepl("was <5%", h, fixed = TRUE))
 
   # `&` must be escaped FIRST or the escapes escape each other.
-  expect_identical(readgpt:::esc("a & b < c"), "a &amp; b &lt; c")
-  expect_identical(readgpt:::esc("&lt;"), "&amp;lt;")
-  expect_identical(readgpt:::esc(NA), "")
+  expect_identical(harnessr:::esc("a & b < c"), "a &amp; b &lt; c")
+  expect_identical(harnessr:::esc("&lt;"), "&amp;lt;")
+  expect_identical(harnessr:::esc(NA), "")
 })
 
 test_that("the file is complete and is UTF-8 whatever the locale", {

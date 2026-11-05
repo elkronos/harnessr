@@ -36,7 +36,7 @@ gr_trace_cost(ans$trace)
 # Priced by the model each step records: a mock's own model, at no cost.
 # A cached re-run costs nothing for a different reason: paid_calls falls
 # to zero while calls does not.
-cache <- gr_cache(file.path(tempdir(), "readgpt-cost-example"))
+cache <- gr_cache(file.path(tempdir(), "harnessr-cost-example"))
 again <- answer_document(readgpt_example(), "What was revenue?", "fast",
                          client = gr_cache_client(cl, cache))
 twice <- answer_document(readgpt_example(), "What was revenue?", "fast",

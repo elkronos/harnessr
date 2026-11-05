@@ -14,7 +14,7 @@ gr_flush_caches(what = "all")
 Invisibly, the caches cleared: \code{"documents"}, \code{"embeddings"} or both.
 }
 \description{
-readgpt keeps two caches in memory for the life of the R session: the
+harnessr keeps two caches in memory for the life of the R session: the
 documents \code{\link[=gr_ingest]{gr_ingest()}} has already extracted and cleaned, keyed on the file
 and every setting that changes the result, and the vectors the built-in
 \code{"api"} embedder has already fetched (see \code{\link[=gr_embed]{gr_embed()}}). This empties them.

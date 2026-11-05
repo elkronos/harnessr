@@ -30,7 +30,7 @@ r6_labels <- function(cl) vapply(cl$calls(), function(c) as.character(c$label), 
 # ---------------------------------------------------------------------------
 
 test_that("a field sent as [] or {} is empty, and the document's other values stand", {
-  cf <- readgpt:::coerce_field
+  cf <- harnessr:::coerce_field
   for (type in c("string", "integer", "number", "boolean")) {
     fl <- gr_field("x", type = type)
     expect_null(cf(list(), fl), info = type)
@@ -64,7 +64,7 @@ test_that("a field sent as [] or {} is empty, and the document's other values st
 # ---------------------------------------------------------------------------
 
 test_that("a boolean field reads only the words that answer yes or no", {
-  cf <- readgpt:::coerce_field
+  cf <- harnessr:::coerce_field
   b <- gr_field("f", type = "boolean")
   for (s in c("unclear", "Yes, industry funded", "not stated", "unknown", "partially",
               "Yes - Pfizer funded it", "maybe", "2")) {
@@ -113,7 +113,7 @@ test_that("a boolean that is not a yes or a no is unknown, not a verified FALSE"
 # ---------------------------------------------------------------------------
 
 test_that("a number keeps its sign, its decimal point and its scale, or is a miss", {
-  cf <- readgpt:::coerce_field
+  cf <- harnessr:::coerce_field
   num <- gr_field("x", type = "number")
   int <- gr_field("x", type = "integer")
   # A typeset minus sign or en dash is a minus.
@@ -150,13 +150,13 @@ test_that("a number keeps its sign, its decimal point and its scale, or is a mis
   expect_identical(cf(120, int), 120L)
   expect_identical(cf(3e9, int), 3e9)
 
-  nc <- readgpt:::n_column
+  nc <- harnessr:::n_column
   expect_identical(nc(c("\u2212120", "3 million", "900 participants", ".5")),
                    c(-120, NA, 900, 0.5))
 })
 
 test_that("digits of other scripts are read, not recorded as not reported", {
-  cf <- readgpt:::coerce_field
+  cf <- harnessr:::coerce_field
   num <- gr_field("x", type = "number")
   int <- gr_field("x", type = "integer")
   expect_identical(cf("\u0661\u0662\u0660", int), 120L)            # Arabic-Indic
@@ -164,7 +164,7 @@ test_that("digits of other scripts are read, not recorded as not reported", {
   expect_identical(cf("\uff11\uff12\uff10", int), 120L)            # full-width
   expect_identical(cf("\uff0d\uff10\uff0e\uff13\uff15", num), -0.35)
   expect_identical(cf("\u0663\u066b\u0665", num), 3.5)             # Arabic decimal separator
-  expect_identical(readgpt:::n_column(c("\u0661\u0662\u0660 \u0645\u0631\u064a\u0636\u0627",
+  expect_identical(harnessr:::n_column(c("\u0661\u0662\u0660 \u0645\u0631\u064a\u0636\u0627",
                                         "\uff11\uff12\uff10\u4f8b")), c(120, 120))
 
   # End to end: the value is read, and its verbatim quote verifies it.
@@ -302,7 +302,7 @@ test_that("an adjudication skipped at the call limit does not fail a fully read 
 # ---------------------------------------------------------------------------
 
 test_that("string values that differ only in case or a trailing full stop do not conflict", {
-  vk <- readgpt:::value_key
+  vk <- harnessr:::value_key
   expect_identical(vk("Randomised controlled trial", "string"),
                    vk("randomised controlled trial.", "string"))
   expect_identical(vk("Adults", "string"), vk("\u201cadults\u201d", "string"))
@@ -386,7 +386,7 @@ test_that("a restored duplicate whose first copy is not in this run is the first
 
   # A legacy entry with no hash keeps a duplicate_of only when it names a row
   # earlier in this run.
-  csd <- readgpt:::corpus_stored_duplicate
+  csd <- harnessr:::corpus_stored_duplicate
   expect_identical(csd("a.txt", c("a.txt", "c.txt")), "a.txt")
   expect_identical(csd("a.txt", "c.txt"), NA_character_)
   expect_identical(csd(NULL, "c.txt"), NA_character_)
@@ -460,22 +460,22 @@ test_that("documents in the store are restored after a run ceiling is reached", 
 
 test_that("a store entry is found from another time zone, and a same-second edit is new", {
   f <- r6_file("Revenue was 45.2 million.")
-  rec <- readgpt:::as_recipe("fast")
+  rec <- harnessr:::as_recipe("fast")
   cl <- gr_mock_client()
-  k1 <- withr::with_timezone("America/New_York", readgpt:::corpus_key(f, "q", rec, cl))
-  k2 <- withr::with_timezone("UTC", readgpt:::corpus_key(f, "q", rec, cl))
+  k1 <- withr::with_timezone("America/New_York", harnessr:::corpus_key(f, "q", rec, cl))
+  k2 <- withr::with_timezone("UTC", harnessr:::corpus_key(f, "q", rec, cl))
   expect_identical(k1, k2)
 
   # Rewritten within one second, at the same size: a different document.
   Sys.setFileTime(f, as.POSIXct("2026-01-01 00:00:00", tz = "UTC"))
-  k3 <- readgpt:::corpus_key(f, "q", rec, cl)
+  k3 <- harnessr:::corpus_key(f, "q", rec, cl)
   r6_file("Revenue was 51.8 million.", dir = dirname(f), name = basename(f))
   Sys.setFileTime(f, as.POSIXct("2026-01-01 00:00:00", tz = "UTC"))
-  expect_false(identical(k3, readgpt:::corpus_key(f, "q", rec, cl)))
+  expect_false(identical(k3, harnessr:::corpus_key(f, "q", rec, cl)))
   # Touched but unchanged: the same document.
-  k4 <- readgpt:::corpus_key(f, "q", rec, cl)
+  k4 <- harnessr:::corpus_key(f, "q", rec, cl)
   Sys.setFileTime(f, as.POSIXct("2026-02-01 00:00:00", tz = "UTC"))
-  expect_identical(k4, readgpt:::corpus_key(f, "q", rec, cl))
+  expect_identical(k4, harnessr:::corpus_key(f, "q", rec, cl))
 
   # End to end: a run resumed under another TZ pays for nothing.
   store <- withr::local_tempdir()
@@ -500,7 +500,7 @@ test_that("an extraction prints its model calls and its embeddings requests apar
   fl <- gr_fields(n = gr_field("Participants", type = "integer"))
   cl <- gr_mock_client(function(m, p) r6_json(n = 120, n__quote = "We enrolled 120 patients."))
   x <- quiet(gr_extract(r6_file("We enrolled 120 patients."), fl, client = cl))
-  readgpt:::embed_record(x$trace, "mock-embed", "We enrolled 120 patients.", NULL,
+  harnessr:::embed_record(x$trace, "mock-embed", "We enrolled 120 patients.", NULL,
                          list(data = list(list(embedding = 1)), usage = list(prompt_tokens = 5L)))
   line <- grep("this run:", capture.output(print(x)), value = TRUE, fixed = TRUE)
   expect_match(line, "this run: 1 model call(s), 1 embeddings request(s), ", fixed = TRUE)

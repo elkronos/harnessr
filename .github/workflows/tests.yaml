@@ -66,9 +66,9 @@ jobs:
       - name: Run test suite
         run: |
           Rscript -e '
-            suppressPackageStartupMessages({library(readgpt); library(testthat)})
+            suppressPackageStartupMessages({library(harnessr); library(testthat)})
             gr_options(verbose = FALSE)
-            res <- as.data.frame(test_dir("tests/testthat", package = "readgpt",
+            res <- as.data.frame(test_dir("tests/testthat", package = "harnessr",
                                           reporter = "summary", stop_on_failure = FALSE))
             cat(sprintf("\nPASS %d  FAIL %d  ERROR %d\n",
                         sum(res$passed), sum(res$failed), sum(res$error)))
@@ -89,7 +89,7 @@ jobs:
           Rscript -e '
             lines  <- readLines("README.md", warn = FALSE)
             fences <- grep("^```", lines)
-            suppressPackageStartupMessages(library(readgpt))
+            suppressPackageStartupMessages(library(harnessr))
             gr_options(verbose = FALSE, max_cost_usd = NULL,
                        api_base = Sys.getenv("GPTREAD_API_BASE"), max_retries = 0L)
             # The plain answer every block expects, except that the claims-layer
@@ -186,7 +186,7 @@ jobs:
       - name: Verify README output blocks still match real output
         run: |
           Rscript -e '
-            suppressPackageStartupMessages(library(readgpt))
+            suppressPackageStartupMessages(library(harnessr))
             gr_options(verbose = FALSE, max_cost_usd = NULL)
             lines <- readLines("README.md", warn = FALSE); fences <- grep("^```", lines)
             starts <- fences[grepl("^```[rR]$", lines[fences])]
@@ -277,7 +277,7 @@ jobs:
       - name: Verify documented counts match the registries
         run: |
           Rscript -e '
-            suppressPackageStartupMessages(library(readgpt))
+            suppressPackageStartupMessages(library(harnessr))
             readme <- paste(readLines("README.md", warn = FALSE), collapse = "\n")
             claims <- list(extractors = nrow(gr_extractors()),
                            cleaners   = nrow(gr_cleaners()),

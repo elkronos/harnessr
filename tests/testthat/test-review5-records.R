@@ -35,7 +35,7 @@ R5 <- function(au, ti, py, jo = NULL, do = NULL) list(au = au, ti = ti, py = py,
 # ---------------------------------------------------------------------------
 
 test_that("an all-capitals surname keeps its particle, with or without a comma", {
-  fa <- readgpt:::record_first_author(c("VAN DAM, P", "DE JONG, P", "DE LA ROSA, J", "ST. JOHN, M",
+  fa <- harnessr:::record_first_author(c("VAN DAM, P", "DE JONG, P", "DE LA ROSA, J", "ST. JOHN, M",
                                         "LE ROUX J", "VAN DER BERG, A", "VAN DAM P", "LI WS", "KIM S",
                                         "LI W S", "J LI", "LE T", "LI WEI"))
   expect_identical(fa$surname, c("VAN DAM", "DE JONG", "DE LA ROSA", "ST. JOHN", "LE ROUX",
@@ -77,7 +77,7 @@ test_that("a Web of Science capitals name merges with its mixed-case copy that h
 # ---------------------------------------------------------------------------
 
 test_that("a suffix in the middle of a BibTeX name is not the initial", {
-  fa <- readgpt:::record_first_author(c("King, Jr., Robert", "Smith, Jr., Robert", "King, Jr.",
+  fa <- harnessr:::record_first_author(c("King, Jr., Robert", "Smith, Jr., Robert", "King, Jr.",
                                         "Wallace RB 3rd", "KING JR, R", "Smith JR"))
   expect_identical(fa$surname, c("King", "Smith", "King", "Wallace", "KING", "Smith"))
   expect_identical(fa$initial, c("R", "R", NA, "R", "R", "J"))
@@ -96,7 +96,7 @@ test_that("a suffix in the middle of a BibTeX name is not the initial", {
 # ---------------------------------------------------------------------------
 
 test_that("a LaTeX letter ended by {} keeps the space after it", {
-  un <- readgpt:::bib_unlatex
+  un <- harnessr:::bib_unlatex
   expect_identical(un("Pawe\\l{} Nowak and Jan Kowalski"), "Pawe\u0142 Nowak and Jan Kowalski")
   expect_identical(un("Anna Wei\\ss{} and John Smith"), "Anna Wei\u00df and John Smith")
   expect_identical(un("\\O{}stergaard"), "\u00d8stergaard")
@@ -116,7 +116,7 @@ test_that("a LaTeX letter ended by {} keeps the space after it", {
 })
 
 test_that("stacked LaTeX accents compose to the Vietnamese letter", {
-  un <- readgpt:::bib_unlatex
+  un <- harnessr:::bib_unlatex
   expect_identical(un("Nguy{\\~{\\^{e}}}n, V"), "Nguy{\u1ec5}n, V")
   expect_identical(un("Nguy\\~{\\^e}n, V"), "Nguy\u1ec5n, V")
   expect_identical(un("Tr{\\`{\\^a}}n"), "Tr{\u1ea7}n")
@@ -125,7 +125,7 @@ test_that("stacked LaTeX accents compose to the Vietnamese letter", {
   expect_identical(un("L\\\"{u}\\'{\\\"u}"), "L\u00fc\u01d8")
   # No table entry: the mark follows the letter, and the key still folds.
   expect_identical(un("\\^{\\'e}"), "\u00e9\u0302")
-  expect_identical(readgpt:::title_key(un("\\^{\\'e}")), "e")
+  expect_identical(harnessr:::title_key(un("\\^{\\'e}")), "e")
   # Commands that are not accents are left alone.
   expect_identical(un("$\\hat{x}$ \\href{y} \\vspace{1}"), "$\\hat{x}$ \\href{y} \\vspace{1}")
 
@@ -156,7 +156,7 @@ test_that("a quoted BibTeX value ending in a backslash closes at its quote", {
 # ---------------------------------------------------------------------------
 
 test_that("Roman numerals, circled digits, fractions and ordinals fold as they used to", {
-  tk <- readgpt:::title_key
+  tk <- harnessr:::title_key
   expect_identical(tk("Phase \u2161 trial of drug X in type \u2161 diabetes"),
                    tk("Phase II trial of drug X in type II diabetes"))
   expect_identical(tk("Stage \u2173 and \u216b"), tk("Stage iv and XII"))
@@ -356,7 +356,7 @@ test_that("the end of a longer surname is not a surname, and a record's capitals
   expect_identical(alone("OBrien, K.", 2018, "O'Brien_2018.txt"), TRUE)
   expect_identical(alone("McKay, R.", 2019, "McKay2019.txt"), TRUE)
   # A particle in a given-name-first BibTeX name is part of the surname.
-  expect_identical(readgpt:::record_first_author(c("Jan van Leeuwen", "Bin Li"))$surname, c("van Leeuwen", "Li"))
+  expect_identical(harnessr:::record_first_author(c("Jan van Leeuwen", "Bin Li"))$surname, c("van Leeuwen", "Li"))
   d <- withr::local_tempdir()
   writeLines(c("@inproceedings{k, author = {Jan van Leeuwen and Min Kim},",
                "title = {Retrieval practice in interface learning}, booktitle = {CHI}, year = {2021}}"),

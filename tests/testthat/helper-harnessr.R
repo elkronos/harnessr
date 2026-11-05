@@ -1,4 +1,4 @@
-# helper-readgpt.R
+# helper-harnessr.R
 #
 # The v1 test suite mocked by writing over globals -- `process_api_call <<- fake`
 # and `assign(..., envir = .GlobalEnv)` -- and never restored them. testthat runs
@@ -104,17 +104,17 @@ quiet <- function(expr) suppressWarnings(suppressMessages(force(expr)))
                         "embedders", "models", "model_patterns", "protocols")
 
 local_registries <- function(env = parent.frame()) {
-  # `readgpt:::gr_state[[s]] <- v` is a REPLACEMENT call on `readgpt`, not on
-  # the state environment, and fails with "object 'readgpt' not found". Bind the
+  # `harnessr:::gr_state[[s]] <- v` is a REPLACEMENT call on `harnessr`, not on
+  # the state environment, and fails with "object 'harnessr' not found". Bind the
   # environment to a local name and assign into that.
-  st <- readgpt:::gr_state
+  st <- harnessr:::gr_state
   snap <- stats::setNames(lapply(.gr_registry_slots, function(s) st[[s]]),
                           .gr_registry_slots)
   opts <- gr_options()
   withr::defer({
     for (s in names(snap)) st[[s]] <- snap[[s]]
     gr_options(opts)
-    readgpt:::.warn_once_reset()
+    harnessr:::.warn_once_reset()
   }, envir = env)
   invisible(snap)
 }
@@ -122,8 +122,8 @@ local_registries <- function(env = parent.frame()) {
 # Caches are global too: a document cached under one ingest spec must not decide
 # what a later test sees.
 local_clean_cache <- function(env = parent.frame()) {
-  readgpt:::gr_flush_caches()
-  withr::defer(readgpt:::gr_flush_caches(), envir = env)
+  harnessr:::gr_flush_caches()
+  withr::defer(harnessr:::gr_flush_caches(), envir = env)
 }
 
 # Strip a string's encoding label without touching its bytes.

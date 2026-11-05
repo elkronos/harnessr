@@ -174,7 +174,7 @@ sentence becomes \verb{$answer} and \verb{$premise} (see \link{gr_answer}), and
 \code{\link[=is_not_found]{is_not_found()}} is \code{FALSE} for it. Excerpts that are merely silent are
 still \code{NOT_IN_DOCUMENT}. See "Checking the premise" below for how each
 reader combines what its requests report. The verdict is the model's
-reading of the excerpts, not a check readgpt makes, so weigh it as you
+reading of the excerpts, not a check harnessr makes, so weigh it as you
 would any answer. Off by default because it changes what is sent: the
 prompts are longer, so a cache, a recorded replay or a \code{\link[=gr_read_many]{gr_read_many()}}
 store made without it does not answer a run with it, and the reverse.

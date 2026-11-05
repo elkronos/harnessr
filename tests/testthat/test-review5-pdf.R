@@ -21,9 +21,9 @@ col_tags <- function(side, i) sprintf("%s %02d", side, i)
 body_rows <- function(i) vapply(i, function(k) two_col(l_text(k), r_text(k)), character(1))
 
 read_page <- function(lines) {
-  g <- readgpt:::column_gutter(lines)
+  g <- harnessr:::column_gutter(lines)
   expect_false(is.na(g))
-  out <- trimws(readgpt:::reorder_columns(lines, g))
+  out <- trimws(harnessr:::reorder_columns(lines, g))
   out[nzchar(out)]
 }
 # Text laid out at fixed character positions, as pdftotext sets a row.
@@ -141,16 +141,16 @@ test_that("a caption or heading beside a table's row is read with its own column
   expect_true("Group N Mean P" %in% out)
   expect_false(any(grepl("Group N Mean P student", out, fixed = TRUE)))
   expect_true("1 Introduction" %in% out)
-  b <- readgpt:::pdf_page_blocks(list(out), readgpt:::heading_matcher())
+  b <- harnessr:::pdf_page_blocks(list(out), harnessr:::heading_matcher())
   expect_identical(b$text[b$kind == "heading"], "1 Introduction")
   # Section headings set side by side at the head of both columns.
   heads <- at_cols(c("INTRODUCTION", "BACKGROUND"), c(19L, 73L))
   out <- read_page(c(paste0(strrep(" ", 40), "Widgets and outcomes"), "", heads, "", body_rows(1:8)))
-  b <- readgpt:::pdf_page_blocks(list(out), readgpt:::heading_matcher())
+  b <- harnessr:::pdf_page_blocks(list(out), harnessr:::heading_matcher())
   expect_identical(b$text[b$kind == "heading"], c("INTRODUCTION", "BACKGROUND"))
   # The same as the page's first row, with no running head above it.
   out <- read_page(c(heads, "", body_rows(1:8)))
-  b <- readgpt:::pdf_page_blocks(list(out), readgpt:::heading_matcher())
+  b <- harnessr:::pdf_page_blocks(list(out), harnessr:::heading_matcher())
   expect_identical(b$text[b$kind == "heading"], c("INTRODUCTION", "BACKGROUND"))
 })
 
@@ -250,7 +250,7 @@ test_that("no row of a short continued table is dropped because one figure follo
     for (caption in c(TRUE, FALSE)) {
       set.seed(cfg[2])
       pages <- tab(cfg[1], caption, pn = caption)
-      out <- unlist(readgpt:::drop_running_lines(pages))
+      out <- unlist(harnessr:::drop_running_lines(pages))
       rows <- grep("^(19|20)[0-9]{2} ", unlist(pages), value = TRUE)
       expect_true(all(rows %in% out))
       expect_false(any(as.character(41:45) %in% out))
@@ -262,10 +262,10 @@ test_that("no row of a short continued table is dropped because one figure follo
   mon <- lapply(1:5, function(p) c("Year  Month   Rate    SE",
                                    sprintf("%d   %s    %.1f   %.1f", 2014 + p, month.abb,
                                            stats::runif(12, 10, 60), stats::runif(12, 1, 9))))
-  expect_identical(readgpt:::drop_running_lines(mon), mon)
+  expect_identical(harnessr:::drop_running_lines(mon), mon)
   # Feet numbered by section still go.
   sec <- lapply(1:9, function(p) c(rl_body(p), "", sprintf("%d-%d", (p - 1) %/% 3 + 1, (p - 1) %% 3 + 1)))
-  expect_identical(readgpt:::drop_running_lines(sec), lapply(1:9, function(p) c(rl_body(p), "")))
+  expect_identical(harnessr:::drop_running_lines(sec), lapply(1:9, function(p) c(rl_body(p), "")))
 })
 
 test_that("a continued numeric table keeps every row through gr_ingest in three pages", {
@@ -312,24 +312,24 @@ test_that("notes under the tables or charts of a short paper are not taken for r
     on <- switch(as.character(n), "3" = 2:3, "4" = c(2, 4), "5" = c(3, 5))
     pages <- lapply(1:n, function(p) c(if (p == 1) c("A Short Brief on Incomes", ""), rl_body(p),
                                        if (p %in% on) c("", under(p), note)))
-    expect_identical(sum(unlist(readgpt:::drop_running_lines(pages)) == note), 2L)
+    expect_identical(sum(unlist(harnessr:::drop_running_lines(pages)) == note), 2L)
   }
   # The heads of a short paper still go, a question and a citation among them.
   alt <- lapply(1:6, function(p) c(
     if (p %in% c(2, 4, 6)) "Smith et al.",
     if (p %in% c(3, 5)) "Does a widget intervention improve adherence?", rl_body(p)))
-  expect_identical(readgpt:::drop_running_lines(alt), lapply(1:6, rl_body))
+  expect_identical(harnessr:::drop_running_lines(alt), lapply(1:6, rl_body))
   cite <- lapply(1:5, function(p) c(if (p %in% c(3, 5)) "Evid Synth 2026; 14: 101-118", rl_body(p)))
-  expect_identical(readgpt:::drop_running_lines(cite), lapply(1:5, rl_body))
+  expect_identical(harnessr:::drop_running_lines(cite), lapply(1:5, rl_body))
 })
 
 test_that("a journal's citation foot is dropped from a short paper, a row of figures is kept", {
   foot <- "MNRAS 000, 1-3 (0000)"
   pages <- lapply(1:3, function(p) c(rl_body(p), if (p > 1) c("", foot)))
-  expect_false(foot %in% unlist(readgpt:::drop_running_lines(pages)))
+  expect_false(foot %in% unlist(harnessr:::drop_running_lines(pages)))
   row <- "Observations    1,204      1,204"
   pages <- lapply(1:5, function(p) c(rl_body(p), if (p %in% c(2, 4)) row))
-  expect_identical(sum(unlist(readgpt:::drop_running_lines(pages)) == row), 2L)
+  expect_identical(sum(unlist(harnessr:::drop_running_lines(pages)) == row), 2L)
 })
 
 test_that("a running head as long as a continued table is wide is not kept as its header", {
@@ -337,7 +337,7 @@ test_that("a running head as long as a continued table is wide is not kept as it
   mk <- function(head) lapply(1:4, function(p) c(head, "", "",
     sprintf("                         %d   %4.1f   %d", 1880 + (p - 1) * 10 + 1:10,
             stats::runif(10, 10, 60), sample(1000:9999, 10))))
-  out <- readgpt:::drop_running_lines(mk("Statistical annex 2025"))
+  out <- harnessr:::drop_running_lines(mk("Statistical annex 2025"))
   expect_false("Statistical annex 2025" %in% unlist(out))
   # A header that stands over its rows is kept, as the first line of a page
   # or below a caption, and set on single spaces too.
@@ -345,11 +345,11 @@ test_that("a running head as long as a continued table is wide is not kept as it
   hdr <- lapply(1:5, function(p) c("Region            2019     2020     2021",
     sprintf("Region %-3d        %d      %d      %d", (p - 1) * 10 + 1:10, sample(100:999, 10),
             sample(100:999, 10), sample(100:999, 10))))
-  expect_identical(readgpt:::drop_running_lines(hdr), hdr)
+  expect_identical(harnessr:::drop_running_lines(hdr), hdr)
   tight <- lapply(1:5, function(p) c("Year Rate SE Cases",
     sprintf("%d  %.1f  %.1f  %d", 1960 + (p - 1) * 12 + 1:12, stats::runif(12, 10, 60),
             stats::runif(12, 1, 9), sample(1000:9999, 12)), "", as.character(p)))
-  out <- readgpt:::drop_running_lines(tight)
+  out <- harnessr:::drop_running_lines(tight)
   expect_identical(sum(unlist(out) == "Year Rate SE Cases"), 5L)
 })
 
@@ -373,5 +373,5 @@ test_that("a two-cell table whose descriptions wrap is not read as two columns",
                              "baseline sbp (numeric)", "followup sbp (numeric)",
                              "adverse events (count)", "adherence pct (numeric)"), item, desc = desc)))
   lines <- c("1    Data", prose, "", table, "", prose, prose)
-  expect_true(is.na(readgpt:::column_gutter(lines)))
+  expect_true(is.na(harnessr:::column_gutter(lines)))
 })

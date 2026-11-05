@@ -1,10 +1,16 @@
-# readgpt
+# harnessr
 
 [![R-CMD-check](https://github.com/elkronos/readgpt/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/elkronos/readgpt/actions/workflows/R-CMD-check.yaml)
 [![tests](https://github.com/elkronos/readgpt/actions/workflows/tests.yaml/badge.svg)](https://github.com/elkronos/readgpt/actions/workflows/tests.yaml)
 
-Fine-grained control over how a language model ingests, segments, and reads a
-document.
+Compose, budget, cache, record and check model calls. On top of that core sits
+a document layer: fine-grained control over how a language model ingests,
+segments, and reads a document, and over screening, extracting from and
+synthesising across a corpus.
+
+harnessr was called readgpt up to version 0.6.0. The GitHub repository keeps
+the old name. Requests, cache keys and recordings are unchanged by the rename;
+the `readgpt.*` options are still read, with a warning (see `NEWS.md`).
 
 The premise is that *how* you break a document up and *how* you make the model
 read it are separate decisions worth experimenting with. This package makes them
@@ -33,7 +39,7 @@ Ollama and Hugging Face all work with every strategy below.
 offline, so you can follow them without a key. They are also on the website,
 <https://elkronos.github.io/readgpt/>, with the reference for every function:
 
-- `vignette("readgpt")`: get started. The ideas you need, installing, and a
+- `vignette("harnessr")`: get started. The ideas you need, installing, and a
   first question checked from start to finish.
 - `vignette("ingest")`: getting text out of PDFs, Word files, web pages and
   scans, and cleaning it.
@@ -75,7 +81,8 @@ install.packages(c("remotes", "knitr", "rmarkdown"))
 remotes::install_github("elkronos/readgpt", build_vignettes = TRUE)
 ```
 
-`build_vignettes = TRUE` installs the guides, so `vignette("readgpt")` works.
+The repository is still called readgpt; the package it installs is harnessr.
+`build_vignettes = TRUE` installs the guides, so `vignette("harnessr")` works.
 Building them needs `knitr`, `rmarkdown` and Pandoc. Pandoc comes with RStudio;
 without RStudio, install it from <https://pandoc.org/installing.html> first, or
 leave out `build_vignettes = TRUE`.
@@ -89,7 +96,7 @@ remotes::install_local("path/to/readgpt")
 ## Quick start
 
 ```r
-library(readgpt)
+library(harnessr)
 
 ans <- answer_document("report.pdf", "What was Q3 revenue?", recipe = "needle")
 ans$answer
@@ -97,7 +104,7 @@ ans$partial
 ```
 
 `answer_document()` treats its first argument as a path when the file exists.
-A missing file whose name ends in an extension readgpt reads (`.pdf`, `.docx`,
+A missing file whose name ends in an extension harnessr reads (`.pdf`, `.docx`,
 `.md`, …) is an error. Any other string is read as the document's text,
 including a path with a mistyped extension, and `ans$document$source` then
 shows `<inline text>`.
@@ -146,11 +153,11 @@ ans <- answer_document("thesis.pdf", "How was the sample recruited?", rec)
 
 ```r
 Sys.setenv(OPENAI_API_KEY = "sk-...")   # or
-options(readgpt.api_key = "sk-...")     # or
+options(harnessr.api_key = "sk-...")     # or
 cl <- gr_client(api_key = "sk-...")     # per-client, for multi-user Shiny
 ```
 
-Resolution order is explicit argument → `readgpt.api_key` option →
+Resolution order is explicit argument → `harnessr.api_key` option →
 `OPENAI_API_KEY`.
 
 Behind a company gateway, a bearer token is often not what authenticates. Azure
@@ -435,7 +442,7 @@ cause:
 | every chunk is the whole document | `nrow(doc$blocks)` | the file has no blank lines between paragraphs, so there is nothing to split on. Use `method = "sentence"` or `"fixed"` |
 | the run costs far more than expected | `gr_readers()$cost_calls` | the reader is `O(N)` in chunks and your `max_tokens` is small. `gr_chunk_stats()` first; it is free |
 | answers change between identical runs | `gr_read_spec()$temperature` | set `temperature = 0`, and note that reasoning models ignore it (see `gr_model_info(m)$supports_temperature`) |
-| `NOT_IN_DOCUMENT` for a question that assumes something the document contradicts ("why did revenue fall?" when it rose) | `gr_read_spec(premise = TRUE)`, then `ans$premise` | the readers can only answer or say the excerpts are silent. With the check on they can say the premise is false and give what the document states instead; that is the model's reading, not a check readgpt makes |
+| `NOT_IN_DOCUMENT` for a question that assumes something the document contradicts ("why did revenue fall?" when it rose) | `gr_read_spec(premise = TRUE)`, then `ans$premise` | the readers can only answer or say the excerpts are silent. With the check on they can say the premise is false and give what the document states instead; that is the model's reading, not a check harnessr makes |
 
 Two habits make all of this cheaper: run `gr_chunk_stats()` before you spend
 anything, and keep `gr_options(max_cost_usd = ...)` set to something you would
@@ -639,7 +646,7 @@ response cache, restarting a four-hour job costs approximately nothing:
 
 ```r
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-durable <- gr_cache_client(cl, gr_cache(tools::R_user_dir("readgpt", "cache")))
+durable <- gr_cache_client(cl, gr_cache(tools::R_user_dir("harnessr", "cache")))
 gr_read_many(file.path(tempdir(), "reports"), "What was revenue?", "thorough",
              client = durable, store = file.path(tempdir(), "run-store"))
 ```
@@ -1194,7 +1201,7 @@ not return the same thing twice.
 repeat is free and *identical*:
 
 ```r
-cache  <- gr_cache(file.path(tempdir(), "readgpt-cache"))
+cache  <- gr_cache(file.path(tempdir(), "harnessr-cache"))
 cached <- gr_cache_client(cl, cache)
 
 first  <- answer_document(readgpt_example(), "What was revenue?", "thorough", client = cached)
@@ -1225,7 +1232,7 @@ becomes resumable. Restart after a crash and every completed call is already
 paid for:
 
 ```r
-gr_options(cache_dir = tools::R_user_dir("readgpt", "cache"))
+gr_options(cache_dir = tools::R_user_dir("harnessr", "cache"))
 ```
 
 ## Replaying a run
@@ -1299,7 +1306,7 @@ gr_model_limits("gpt-4o")
 
 gr_tokenizer()           # which counter is in use
 
-cache <- gr_cache(file.path(tempdir(), "readgpt-cache"))
+cache <- gr_cache(file.path(tempdir(), "harnessr-cache"))
 gr_cache_stats(cache)    # entries, bytes, hits, misses, writes
 gr_cache_clear(cache)
 gr_reader_signature("skim")    # select|calls|state: how a reader traverses a document
@@ -1387,7 +1394,7 @@ gr_register_reader("longest", signature = "one|1|none", cost_calls = "1",
 ## Shiny app
 
 ```r
-shiny::runApp(system.file("shiny", package = "readgpt"))
+shiny::runApp(system.file("shiny", package = "harnessr"))
 ```
 
 Every axis is exposed as a control: cleaning preset or individual cleaners,
@@ -1437,7 +1444,7 @@ bash run-tests.sh --deps       # list the R packages it needs, then stop
 Works from the package directory or the repository root. It uses a personal R
 library, so it will not fail on a read-only system library.
 
-Running the suite needs the packages readgpt imports (`digest`, `httr`,
+Running the suite needs the packages harnessr imports (`digest`, `httr`,
 `jsonlite`) and `testthat` and `withr`; `--check` also needs `knitr`,
 `rmarkdown` and pandoc to build the vignettes. The script installs the R
 packages it finds missing. Add `knitr` for the vignette check and `future` +
@@ -1453,7 +1460,7 @@ requests are made**. By hand:
 
 ```bash
 R CMD INSTALL . --no-byte-compile
-Rscript -e 'library(readgpt); testthat::test_dir("tests/testthat", package = "readgpt")'
+Rscript -e 'library(harnessr); testthat::test_dir("tests/testthat", package = "harnessr")'
 ```
 
 ## Continuous integration

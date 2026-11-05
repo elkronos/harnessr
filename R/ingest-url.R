@@ -35,7 +35,7 @@ is_url <- function(x) {
   !grepl("[\r\n]", x) && grepl("^https?://[^[:space:]/]", x, ignore.case = TRUE)
 }
 
-#' A web address as readgpt shows and keeps it: in messages and errors, as a
+#' A web address as harnessr shows and keeps it: in messages and errors, as a
 #' document's `source`, in the trace and in a corpus's labels.
 #'
 #' The request needs the address in full, but a presigned or tokenised link
@@ -99,7 +99,7 @@ url_extension <- function(type, url, path) {
     identical(head[seq_along(bytes)], bytes)
   if (starts(charToRaw("%PDF"))) return("pdf")
   # A Word file is a zip holding word/document.xml. Other zips (a spreadsheet,
-  # a slide deck, an archive) are not documents readgpt reads.
+  # a slide deck, an archive) are not documents harnessr reads.
   if (starts(as.raw(c(0x50, 0x4b, 0x03, 0x04)))) {
     parts <- tryCatch(utils::unzip(path, list = TRUE)$Name, error = function(e) character(0))
     if ("word/document.xml" %in% parts) return("docx")
@@ -154,7 +154,7 @@ url_charset <- function(type) {
 #'     addresses checked, so a public name for a private address
 #'     ("169.254.169.254.nip.io") is refused too, and the name cannot be
 #'     pointed elsewhere between the check and the request.
-#'     `options(readgpt.allow_local_urls = TRUE)` lifts this for a document
+#'     `options(harnessr.allow_local_urls = TRUE)` lifts this for a document
 #'     server on your own network. Behind a proxy that looks names up itself,
 #'     a name that cannot be looked up here is fetched unchecked.
 #'
@@ -163,19 +163,20 @@ url_charset <- function(type) {
 #' services hand out a download.
 #' @noRd
 url_download <- function(url, dest, max_bytes = .gr_max_download_bytes,
-                         allow_local = isTRUE(getOption("readgpt.allow_local_urls")),
+                         allow_local = isTRUE(renamed_option("harnessr.allow_local_urls",
+                                                             "readgpt.allow_local_urls")),
                          lookup = url_addresses) {
-  agent <- sprintf("readgpt/%s", tryCatch(as.character(utils::packageVersion("readgpt")),
-                                          error = function(e) "dev"))
+  agent <- sprintf("harnessr/%s", tryCatch(as.character(utils::packageVersion("harnessr")),
+                                           error = function(e) "dev"))
   too_big <- function() {
-    gr_abort(sprintf(paste0("'%s' is larger than %s, the most readgpt downloads. Download it ",
+    gr_abort(sprintf(paste0("'%s' is larger than %s, the most harnessr downloads. Download it ",
                             "yourself and pass its path."), url_shown(url), format_bytes(max_bytes)),
              class = c("gr_too_large", "gr_url_error"))
   }
   refuse <- function(where) {
     gr_abort(sprintf(paste0("Refusing to fetch '%s': %s on this machine or a private network. ",
                             "Download the file yourself and pass its path, or set ",
-                            "options(readgpt.allow_local_urls = TRUE) to fetch such addresses."),
+                            "options(harnessr.allow_local_urls = TRUE) to fetch such addresses."),
                      url_shown(url), where), class = "gr_url_error")
   }
   for (hop in 0:10) {
@@ -402,7 +403,7 @@ ipv6_is_local <- function(x) {
 fetch_url <- function(url) {
   url <- trimws(url)
   shown <- url_shown(url)
-  dest <- tempfile("readgpt_url_")
+  dest <- tempfile("harnessr_url_")
   # A space in an address is not allowed on the wire. Encoded here, and left
   # alone when the address is encoded already.
   got <- tryCatch(url_download(utils::URLencode(url), dest), error = function(e) e)

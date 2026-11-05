@@ -25,7 +25,7 @@
 # the handler's params, no part of any key. Every cache entry, recording and
 # corpus store made before it still answers.
 
-#' The reasoning efforts readgpt knows. Others are sent as given, with a warning.
+#' The reasoning efforts harnessr knows. Others are sent as given, with a warning.
 #' @noRd
 .gr_effort_levels <- c("none", "minimal", "low", "medium", "high", "xhigh")
 

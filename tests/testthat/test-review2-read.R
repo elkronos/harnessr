@@ -63,7 +63,7 @@ test_that("an answer cut off at the output cap is partial, counted and explained
                        review2_spec(r)))
     expect_true(a$partial, info = r)
     expect_gte(a$notes$truncated_calls %||% 0, 1, label = r)
-    expect_true(any(grepl("cut off at the output cap", readgpt:::partial_reasons(a))), info = r)
+    expect_true(any(grepl("cut off at the output cap", harnessr:::partial_reasons(a))), info = r)
   }
   # And the words reach the printed answer.
   a <- quiet(gr_read(ch, "What was revenue?", review2_client(.answer_cap), review2_spec("stuff")))
@@ -75,7 +75,7 @@ test_that("whole replies are counted as none", {
   for (r in .review2_readers) {
     a <- quiet(gr_read(ch, "What was revenue?", review2_client(), review2_spec(r)))
     expect_identical(as.integer(a$notes$truncated_calls), 0L, info = r)
-    expect_false(any(grepl("cut off", readgpt:::partial_reasons(a))), info = r)
+    expect_false(any(grepl("cut off", harnessr:::partial_reasons(a))), info = r)
   }
   a <- quiet(gr_read(ch, "What was revenue?", review2_client(), review2_spec("stuff")))
   expect_false(a$partial)
@@ -128,16 +128,16 @@ test_that("tree_merge() counts merge replies cut off at every level", {
   final <- function(m) grepl("<findings 1>", m[[2]]$content, fixed = TRUE)
   # The levels cut, the final merge whole.
   cl <- gr_mock_client(function(m, p) if (final(m)) "merged" else cut_reply("merged part"))
-  out <- quiet(readgpt:::tree_merge(cl, "q", pieces, spec, gr_trace()))
+  out <- quiet(harnessr:::tree_merge(cl, "q", pieces, spec, gr_trace()))
   expect_true(out$ok)
   expect_gte(out$levels, 2L)
   expect_gte(out$truncated_calls, 2L)
   # Only the final merge cut.
   cl <- gr_mock_client(function(m, p) if (final(m)) cut_reply("merged") else "merged part")
-  out <- quiet(readgpt:::tree_merge(cl, "q", pieces, spec, gr_trace()))
+  out <- quiet(harnessr:::tree_merge(cl, "q", pieces, spec, gr_trace()))
   expect_identical(out$truncated_calls, 1L)
   # Nothing to merge reports none.
-  expect_identical(readgpt:::tree_merge(cl, "q", "one", spec, gr_trace())$truncated_calls, 0L)
+  expect_identical(harnessr:::tree_merge(cl, "q", "one", spec, gr_trace())$truncated_calls, 0L)
 })
 
 test_that("an iterative step cut off before its JSON closes says so", {
@@ -162,7 +162,7 @@ test_that("an iterative step cut off before its JSON closes says so", {
 record_batches <- function(env = parent.frame()) {
   seen <- new.env(parent = emptyenv())
   seen$calls <- list()
-  orig <- readgpt:::gr_lapply
+  orig <- harnessr:::gr_lapply
   testthat::local_mocked_bindings(
     gr_lapply = function(x, fn, parallel = NULL, workers = NULL, key = NULL, label = "task",
                          trace = NULL, client = NULL, item_usd = NULL) {
@@ -170,7 +170,7 @@ record_batches <- function(env = parent.frame()) {
                                                     item_usd = item_usd)
       orig(x, fn, parallel = parallel, workers = workers, key = key, label = label,
            trace = trace, client = client, item_usd = item_usd)
-    }, .package = "readgpt", .env = env)
+    }, .package = "harnessr", .env = env)
   seen
 }
 
@@ -214,7 +214,7 @@ test_that("every batch a reader sends carries its client and the most one item c
   seen$calls <- list()
   spec <- gr_read_spec("map_reduce", model = "priced-batch", max_answer_tokens = 300)
   tr <- gr_trace()
-  quiet(readgpt:::tree_merge(cl, "q", rep(paste(rep("finding text words", 200), collapse = " "), 8),
+  quiet(harnessr:::tree_merge(cl, "q", rep(paste(rep("finding text words", 200), collapse = " "), 8),
                              spec, tr))
   b <- Filter(function(x) identical(x$label, "merge group"), seen$calls)[[1]]
   expect_identical(b$client, cl)
@@ -244,7 +244,7 @@ test_that("a parallel merge level runs where each request is checked when it cou
   # workers, the whole level went out: three requests past the limit.
   tr <- gr_trace()
   tr$spent_usd <- 0.045
-  msgs <- testthat::capture_messages(out <- readgpt:::tree_merge(cl, "q", pieces, spec, tr))
+  msgs <- testthat::capture_messages(out <- harnessr:::tree_merge(cl, "q", pieces, spec, tr))
   expect_true(any(grepl("one at a time", msgs)))
   expect_false(out$ok)
   expect_identical(tr$calls, 1L)
@@ -266,7 +266,7 @@ test_that("a parallel map step near the spending limit stops where a sequential 
     spec$parallel <- parallel
     tr <- gr_trace()
     tr$spent_usd <- 0.04995
-    quiet(readgpt:::read_map_reduce(ch, "What was revenue?", cl, spec, tr))
+    quiet(harnessr:::read_map_reduce(ch, "What was revenue?", cl, spec, tr))
     tr
   }
   s <- run(FALSE)
@@ -317,7 +317,7 @@ scored_ids <- function(cl, ch) {
 
 test_that("a question sharing no word with any chunk is ranked by embeddings, and says so", {
   ch <- blind_chunks()
-  expect_true(all(readgpt:::bm25_scores(ch$chunks$text, blind_q) == 0))
+  expect_true(all(harnessr:::bm25_scores(ch$chunks$text, blind_q) == 0))
   cl <- blind_client()
   expect_warning(a <- quiet_msgs(gr_read(ch, blind_q, cl, list(reader = "rerank",
                                                                  rerank_candidates = 4))),
@@ -342,7 +342,7 @@ test_that("when embeddings cannot rank either, the candidates are an evenly spre
   expect_true(is_not_found(a$answer))
   expect_true(a$partial)
   expect_identical(a$notes$prefilter, "spread")
-  expect_true(any(grepl("evenly spread sample", readgpt:::partial_reasons(a))))
+  expect_true(any(grepl("evenly spread sample", harnessr:::partial_reasons(a))))
 })
 
 test_that("a prefilter that can rank, or a candidate list that is every chunk, is left alone", {

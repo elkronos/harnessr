@@ -414,7 +414,7 @@ esc <- function(x) {
 #' @noRd
 audit_head <- function(title) {
   c('<!DOCTYPE html>', '<html lang="en">', '<head>', '<meta charset="utf-8">',
-    sprintf('<title>%s</title>', esc(title %||% "readgpt audit report")),
+    sprintf('<title>%s</title>', esc(title %||% "harnessr audit report")),
     '<style>',
     'body{font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;',
     '  max-width:1100px;margin:2rem auto;padding:0 1.25rem;color:#1a1a1a}',
@@ -443,12 +443,12 @@ audit_header <- function(title, question, protocol, screening, extraction, synth
            if (inherits(answer, "gr_answer")) "answered",
            if (inherits(answer, "gr_corpus"))
              sprintf("answered across %d document(s)", NROW(answer$summary)))
-  c(sprintf("<h1>%s</h1>", esc(title %||% "readgpt audit report")),
+  c(sprintf("<h1>%s</h1>", esc(title %||% "harnessr audit report")),
     if (nzchar(question)) sprintf("<p><strong>Question.</strong> %s</p>", esc(question)),
-    sprintf("<p class='sub'>Stages run: %s. Generated %s by readgpt %s.</p>",
+    sprintf("<p class='sub'>Stages run: %s. Generated %s by harnessr %s.</p>",
             esc(paste(ran, collapse = ", ")),
             esc(format(Sys.time(), "%Y-%m-%d %H:%M %Z")),
-            esc(as.character(utils::packageVersion("readgpt")))))
+            esc(as.character(utils::packageVersion("harnessr")))))
 }
 
 #' The protocol, checked against what the run recorded using.

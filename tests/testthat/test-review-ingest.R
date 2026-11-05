@@ -154,7 +154,7 @@ test_that("parallel OCR builds its engine in the process that reads the page", {
   # pointers, and both are dead once copied into another process. Built only in
   # the caller, as it was, the engine reached each worker dead and every page
   # failed.
-  res <- quiet(readgpt:::ocr_pdf_pages(
+  res <- quiet(harnessr:::ocr_pdf_pages(
     "scan.pdf", pages = c("", "", ""), needs = c(TRUE, TRUE, TRUE),
     opts = list(parallel = TRUE),
     engine = function(lang) magick::image_blank(7, 2),
@@ -170,7 +170,7 @@ test_that("parallel OCR builds its engine in the process that reads the page", {
 test_that("a page whose OCR fails keeps its text layer", {
   warned <- character(0)
   res <- withCallingHandlers(
-    readgpt:::ocr_pdf_pages(
+    harnessr:::ocr_pdf_pages(
       "doc.pdf", pages = c("", "A born-digital page with a good text layer.", "Page three."),
       needs = c(TRUE, TRUE, FALSE), opts = list(parallel = FALSE),
       engine = function(lang) "engine",
@@ -193,7 +193,7 @@ test_that("a page whose OCR fails keeps its text layer", {
 # ---------------------------------------------------------------------------
 
 test_that("gr_hash() tells functions apart and leaves other values as they were", {
-  h <- readgpt:::gr_hash
+  h <- harnessr:::gr_hash
   expect_false(identical(h(list(f = function(x) x)), h(list(f = function(x) x + 1))))
   f <- function(x) x
   expect_identical(h(list(f = f)), h(list(f = f)))

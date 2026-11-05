@@ -58,7 +58,7 @@ warn_classes <- function(expr) {
 # ---------------------------------------------------------------------------
 
 test_that("a sentence's figures are read in every form a review writes them", {
-  f <- function(s) readgpt:::figure_find(s)
+  f <- function(s) harnessr:::figure_find(s)
   x <- f("The effect was moderate, d = 0.61 [95% CI 0.32 to 0.90] [study 3].")
   expect_identical(x$written, c("0.61", "0.32", "0.90"))
   expect_identical(x$value, c("0.61", "0.32", "0.9"))
@@ -82,7 +82,7 @@ test_that("a sentence's figures are read in every form a review writes them", {
 })
 
 test_that("ids, names, ordinals, decades, conventions and small counts are not figures", {
-  f <- function(s) readgpt:::figure_find(s)$value
+  f <- function(s) harnessr:::figure_find(s)$value
   expect_identical(f("Two trials agreed [study 12] [studies 14-16] [study 3; study 17]."),
                    character(0))
   expect_identical(f("As study 12 found, and [claim 3] says [study 12]."), character(0))
@@ -100,13 +100,13 @@ test_that("ids, names, ordinals, decades, conventions and small counts are not f
 })
 
 test_that("a bare id ends the list at a comma, so the figure after it is read", {
-  f <- function(s) readgpt:::figure_find(s)$value
+  f <- function(s) harnessr:::figure_find(s)$value
   # Read with the marker's list grammar and no bracket to end it, "study 3,
   # 860" was two ids, and the 860 was never checked.
   expect_identical(f("In study 3, 860 patients were enrolled [study 3]."), "860")
   expect_identical(f("In study 12, 45% of patients improved [study 12]."), "45")
   expect_identical(f("Under claim 3, 860 patients were enrolled [study 3]."), "860")
-  expect_false(readgpt:::figure_guard("In study 3, 86 patients were enrolled [study 3].",
+  expect_false(harnessr:::figure_guard("In study 3, 86 patients were enrolled [study 3].",
                                       "In study 3, 860 patients were enrolled [study 3].")$ok)
   # A list in prose is still ids: closed by "and", or the word repeated.
   ids <- c("studies 11, 12 and 14", "studies 11, 12, and 14", "studies 11 and 14",
@@ -119,18 +119,18 @@ test_that("a bare id ends the list at a comma, so the figure after it is read", 
 })
 
 test_that("a range of bare ids written out is ids, and a range of weeks is not", {
-  f <- function(s) readgpt:::figure_find(s)$value
+  f <- function(s) harnessr:::figure_find(s)$value
   expect_identical(f("Studies 12 to 15 were conducted in the USA."), character(0))
   expect_identical(f("Studies 12 through 15 were conducted in the USA."), character(0))
   expect_identical(f("Studies 3, 12 to 15 and 18 were conducted in the USA."), character(0))
   expect_identical(f("Study 4 ran for 12 to 15 weeks."), c("12", "15"))
-  expect_true(readgpt:::figure_guard(
+  expect_true(harnessr:::figure_guard(
     "Four trials were in the USA [studies 12-15].",
     "Studies 12 to 15, all in the USA [studies 12-15], were trials.")$ok)
 })
 
 test_that("thresholds, significance levels and age decades are conventions, values are not", {
-  f <- function(s) readgpt:::figure_find(s)$value
+  f <- function(s) harnessr:::figure_find(s)$value
   # Before, a threshold had to be written as .05 is, after a symbol.
   expect_identical(f("No trial found an effect (all p > 0.10) [study 3]."), character(0))
   expect_identical(f("It was significant (p < 0.050) [study 3]."), character(0))
@@ -150,22 +150,22 @@ test_that("thresholds, significance levels and age decades are conventions, valu
 })
 
 test_that("figures compare in one canonical form", {
-  canon <- readgpt:::figure_canon
+  canon <- harnessr:::figure_canon
   expect_identical(canon(c(".61", "0.610", "45.20", "1,204", "007", "0.0", "1\u00a0204")),
                    c("0.61", "0.61", "45.2", "1204", "7", "0", "1204"))
-  shift <- readgpt:::figure_shift
+  shift <- harnessr:::figure_shift
   expect_identical(shift("45.2", 6L), "45200000")
   expect_identical(shift("45", -2L), "0.45")
   expect_identical(shift("0.5", -2L), "0.005")
   # "five" inside "forty-five" is not a five of its own.
-  expect_setequal(readgpt:::figure_words("twelve weeks, forty-five per cent, a dozen, three"),
+  expect_setequal(harnessr:::figure_words("twelve weeks, forty-five per cent, a dozen, three"),
                   c(12, 45, 3))
 })
 
 test_that("a figure is compared at the precision it was written to", {
   hit <- function(sentence, row) {
-    f <- readgpt:::figure_find(sentence)
-    readgpt:::figure_hit(readgpt:::figure_targets(f)[[1]], readgpt:::figure_values(row))
+    f <- harnessr:::figure_find(sentence)
+    harnessr:::figure_hit(harnessr:::figure_targets(f)[[1]], harnessr:::figure_values(row))
   }
   # Rounding what the row wrote is copying it, a half either way.
   expect_true(hit("d = 0.61", "d = 0.613"))
@@ -193,7 +193,7 @@ test_that("a figure is compared at the precision it was written to", {
   expect_true(hit("p = 4 x 10^-4", "p = 0.0004"))
   expect_true(hit("p = 4 \u00d7 10\u207b\u2074", "p = 0.0004"))
   expect_false(hit("p = 7 x 10^-4", "p = 0.0004"))
-  expect_identical(readgpt:::figure_find("It was strong (p = 4 x 10^-12) [study 6].")$value, "4")
+  expect_identical(harnessr:::figure_find("It was strong (p = 4 x 10^-12) [study 6].")$value, "4")
 })
 
 # ---------------------------------------------------------------------------
@@ -276,7 +276,7 @@ test_that("a ratio read as a change from no effect is worked out in the sentence
   fig <- s$figures
   expect_identical(fig$basis[fig$number == "80"], "worked out in the sentence")
   expect_false(fig$backed[fig$number == "30"])
-  w <- function(ops, own) readgpt:::figure_worked(ops, own, pct = TRUE)
+  w <- function(ops, own) harnessr:::figure_worked(ops, own, pct = TRUE)
   # HR 0.78 is a 22% lower hazard, RR 1.25 a 25% higher risk, OR 2.10 110%
   # higher odds.
   expect_true(any(abs(w(c(0.78, 22), 22) - 22) < 1e-9))
@@ -345,11 +345,11 @@ test_that("a numeric field shown in E notation backs its plain copy and is total
 })
 
 test_that("'c.' before a figure is circa, and does not end the sentence", {
-  expect_identical(readgpt:::measured_sentences("The trial enrolled c. 1,200 adults [study 1]."),
+  expect_identical(harnessr:::measured_sentences("The trial enrolled c. 1,200 adults [study 1]."),
                    "The trial enrolled c. 1,200 adults [study 1].")
-  expect_identical(readgpt:::split_sentences("Take vitamin c. Then 12 more. It had c. 40 sites."),
+  expect_identical(harnessr:::split_sentences("Take vitamin c. Then 12 more. It had c. 40 sites."),
                    c("Take vitamin c.", "Then 12 more.", "It had c. 40 sites."))
-  expect_identical(readgpt:::sentence_spans("It had c. 40 sites. Then more."),
+  expect_identical(harnessr:::sentence_spans("It had c. 40 sites. Then more."),
                    c("It had c. 40 sites. ", "Then more."))
   r <- warn_classes(fig_synth("The largest trial enrolled c. 1,200 adults [study 3]."))
   fig <- r$value$figures
@@ -365,7 +365,7 @@ test_that("digits grouped by a space are one figure when that finds it, and two 
   expect_identical(fig$number, c("1 204", "450"))
   expect_identical(fig$basis[1], "cited row")
   expect_false(fig$backed[2])
-  g <- readgpt:::figure_guard
+  g <- harnessr:::figure_guard
   expect_true(g("The cohort followed 12,450 adults [study 2].",
                 "The cohort followed 12 450 adults [study 2].")$ok)
   expect_false(g("The cohort followed 12,450 adults [study 2].",
@@ -425,7 +425,7 @@ test_that("the check sends nothing and changes no request", {
   # word, so a cached or recorded write-up still replays.
   msgs <- cl$calls()[[1]]$messages
   expect_length(msgs, 3L)
-  expect_identical(msgs[[1]]$content, sprintf(readgpt:::.gr_prompts$synthesise_system, "Findings"))
+  expect_identical(msgs[[1]]$content, sprintf(harnessr:::.gr_prompts$synthesise_system, "Findings"))
   expect_identical(msgs[[2]]$content,
                    "Review question: Does it work?\n\nSection: Findings\nThis section must cover: What they found")
 })
@@ -482,7 +482,7 @@ test_that("with claims, a figure from a claim on the cited rows is found, one fr
 # ---------------------------------------------------------------------------
 
 test_that("figure_guard() allows any form of the draft's figures and refuses a new one", {
-  g <- readgpt:::figure_guard
+  g <- harnessr:::figure_guard
   before <- paste("A trial of 1,204 adults found d = 0.61 over twelve weeks [study 1].",
                   "Revenue was 45.2 million [study 2].")
   expect_true(g(before, paste("A trial of 1204 adults found d = .61 over 12 weeks [study 1].",

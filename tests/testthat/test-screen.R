@@ -71,7 +71,7 @@ test_that("a document that could not be read has no decision, and is not exclude
 test_that("an unreadable answer is 'unclear', never a guess in either direction", {
   # Defaulting to exclude loses studies silently; defaulting to include buys a
   # full extraction for every document the screener could not parse.
-  dec <- readgpt:::screen_decision
+  dec <- harnessr:::screen_decision
   expect_identical(dec("include"), "include")
   expect_identical(dec("  EXCLUDE "), "exclude")
   expect_identical(dec("probably include"), "unclear")
@@ -196,7 +196,7 @@ test_that("a screening span is verified as model-written, not as chunk text", {
 })
 
 test_that("fit_chunks(prefix =) stops rather than skipping", {
-  fit <- readgpt:::fit_chunks
+  fit <- harnessr:::fit_chunks
   d <- data.frame(chunk_id = 1:4, text = c("aa", strrep("b ", 400), "cc", "dd"),
                   page = NA_integer_, section = NA_character_, stringsAsFactors = FALSE)
   loose <- fit(d, 60)

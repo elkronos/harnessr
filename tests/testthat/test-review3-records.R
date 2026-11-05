@@ -313,8 +313,8 @@ test_that("BibTeX accent commands become the letters they spell", {
     expect_identical(r$records$duplicate_of, c(NA, 1L), info = nm)
   }
   # Math, commands and paths are left alone.
-  expect_identical(readgpt:::bib_unlatex("$\\alpha$ \\url{x} \\vspace{1}"), "$\\alpha$ \\url{x} \\vspace{1}")
-  expect_identical(readgpt:::bib_unlatex("{\\'\\i}ber Stra\\ss e"), "{\u00ed}ber Stra\u00dfe")
+  expect_identical(harnessr:::bib_unlatex("$\\alpha$ \\url{x} \\vspace{1}"), "$\\alpha$ \\url{x} \\vspace{1}")
+  expect_identical(harnessr:::bib_unlatex("{\\'\\i}ber Stra\\ss e"), "{\u00ed}ber Stra\u00dfe")
 })
 
 # ---------------------------------------------------------------------------
@@ -348,7 +348,7 @@ test_that("bare BibTeX values keep their words, and an escaped quote does not en
 # ---------------------------------------------------------------------------
 
 test_that("superscripts, ligatures, fractions and full-width letters fold as they used to", {
-  tk <- readgpt:::title_key
+  tk <- harnessr:::title_key
   expect_identical(tk("Area in m\u00b2 of green space"), tk("Area in m2 of green space"))
   expect_identical(tk("E\ufb03cacy of the new drug"), tk("Efficacy of the new drug"))
   expect_identical(tk("\u00bd dose vs full dose trial"), tk("1/2 dose vs full dose trial"))
@@ -427,14 +427,14 @@ test_that("exports and inventories sort the same way when the character type is 
   for (nm in c("adams", "Baker", "zhou", "\u00c9vora")) writeLines("text", file.path(inv, paste0(nm, ".txt")))
   want_ex <- c("Baker.ris", "adams.ris", "\u00c9vora.ris")
   want_inv <- c("Baker.txt", "adams.txt", "zhou.txt", "\u00c9vora.txt")
-  expect_identical(enc2utf8(basename(readgpt:::export_paths(d))), want_ex)
+  expect_identical(enc2utf8(basename(harnessr:::export_paths(d))), want_ex)
   expect_identical(enc2utf8(gr_inventory(inv)$files$file), want_inv)
   withr::local_locale(c(LC_CTYPE = "C"))
   # enc2utf8() in a C locale turned the name into "<c3><89>vora" text, which
   # sorts before "Baker": [study N] numbering and replays followed the locale.
-  ex <- readgpt:::export_paths(d)
-  expect_identical(readgpt:::mark_utf8(basename(ex)), want_ex)
-  expect_identical(readgpt:::mark_utf8(gr_inventory(inv)$files$file), want_inv)
+  ex <- harnessr:::export_paths(d)
+  expect_identical(harnessr:::mark_utf8(basename(ex)), want_ex)
+  expect_identical(harnessr:::mark_utf8(gr_inventory(inv)$files$file), want_inv)
   # And the record set reads at all: basename() of a UTF-8 name aborted here.
   expect_identical(nrow(gr_records(d)$records), 3L)
 })

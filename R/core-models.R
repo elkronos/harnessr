@@ -125,7 +125,7 @@
 #' gr_register_model("my-local-llama", context_window = 32768, max_output = 4096)
 #' gr_model_info("my-local-llama")[c("context_window", "source", "certain")]
 #'
-#' # Without prices, the cost cap cannot be checked; readgpt says so rather
+#' # Without prices, the cost cap cannot be checked; harnessr says so rather
 #' # than assuming the run is free.
 #' is.na(gr_estimate_cost("my-local-llama", 1000, 500))
 gr_register_model <- function(id, context_window, max_output,
@@ -146,7 +146,7 @@ gr_register_model <- function(id, context_window, max_output,
   # replies at $0 and a max_cost_usd limit never tripped.
   if (kind == "chat" && xor(is.na(as_num1(input_usd)), is.na(as_num1(output_usd)))) {
     gr_abort(sprintf(paste0("Model '%s' has %s but no %s. Give both prices (USD per 1M tokens), ",
-                            "or neither to register it unpriced, in which case readgpt reports ",
+                            "or neither to register it unpriced, in which case harnessr reports ",
                             "the cost as unknown rather than guessing."),
                      id, if (is.na(as_num1(input_usd))) "`output_usd`" else "`input_usd`",
                      if (is.na(as_num1(input_usd))) "`input_usd`" else "`output_usd`"),

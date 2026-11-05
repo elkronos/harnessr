@@ -5,7 +5,7 @@
 #
 # Each block names the finding and says what the old behaviour was.
 
-sm <- function(span, src, ...) readgpt:::span_match(span, src, ...)
+sm <- function(span, src, ...) harnessr:::span_match(span, src, ...)
 verified <- function(span, src, ...) isTRUE(sm(span, src, ...)$verified)
 
 skim_read <- function(doc, quote) {
@@ -79,7 +79,7 @@ test_that("an elision that drops a negation does not verify in other languages",
 })
 
 test_that("a gap in a script the negation lists cannot read is refused", {
-  gn <- readgpt:::gap_negated
+  gn <- harnessr:::gap_negated
   # Georgian and Tamil letters: nothing here can tell whether they negate.
   expect_true(gn(" \u10d0\u10e0 "))
   expect_true(gn(" \u0b87\u0bb2\u0bcd\u0bb2\u0bc8 "))
@@ -92,8 +92,8 @@ test_that("a gap in a script the negation lists cannot read is refused", {
   expect_true(gn(" had no effect on "))
   # The gap rule takes the normalised text as a string too, the way the
   # extract reader's quotation check reads a chunk.
-  expect_false(readgpt:::elision_gap_ok("the drug did not reduce mortality", 12L, 18L))
-  expect_true(readgpt:::elision_gap_ok("the drug did then reduce mortality", 12L, 19L))
+  expect_false(harnessr:::elision_gap_ok("the drug did not reduce mortality", 12L, 18L))
+  expect_true(harnessr:::elision_gap_ok("the drug did then reduce mortality", 12L, 19L))
 })
 
 test_that("a dropped negation outside English makes a skim answer partial and drops the value", {
@@ -233,8 +233,8 @@ test_that("a decimal with no leading zero at the start of a quotation verifies",
   expect_true(verified("...12 patients were excluded after screening.",
                        "...12 patients were excluded after screening."))
   expect_true(verified("...12 patients were excluded", "Of these, 12 patients were excluded."))
-  expect_identical(readgpt:::trim_quote_edges("\".45 in all.\""), ".45 in all")
-  expect_identical(readgpt:::trim_quote_edges("...12 patients"), "12 patients")
+  expect_identical(harnessr:::trim_quote_edges("\".45 in all.\""), ".45 in all")
+  expect_identical(harnessr:::trim_quote_edges("...12 patients"), "12 patients")
   # The kept full stop is the number's: a digit, a sign or a stop before it
   # in the source is a different number.
   for (src in c("The correlation was 1.45 in the treatment group.",
@@ -301,7 +301,7 @@ test_that("a circled list number or a footnote mark is not part of the number", 
   # A superscript on 10 is an exponent, and a fraction carries on.
   expect_false(verified("The dose was 10", "The dose was 10\u2076 cells."))
   expect_false(verified("mixed 1", "mixed 1\u00bd cups"))
-  expect_identical(readgpt:::char_kind(c(0x2460L, 0x2474L, 0x2776L, 0x3251L, 0xB9L, 0xBDL, 0xFF11L)),
+  expect_identical(harnessr:::char_kind(c(0x2460L, 0x2474L, 0x2776L, 0x3251L, 0xB9L, 0xBDL, 0xFF11L)),
                    c(0L, 0L, 0L, 0L, 2L, 2L, 2L))
 
   f <- txt_file("The trial enrolled 482\u00b9. Follow-up lasted two years.")
@@ -328,13 +328,13 @@ test_that("a Korean quotation may stop before a particle, not inside a word", {
 # ---------------------------------------------------------------------------
 
 test_that("the source the boundary test reads still lines up with the normalised text", {
-  ms <- readgpt:::match_source
+  ms <- harnessr:::match_source
   for (s in c("ABC \u00c9T\u00c9 \u0130STANBUL \u0391\u0392 \u0414\u0416 \uff21\uff22 \u2160 \u24b6",
               "\u5171\u7eb3\u5165 120\u540d", "", "Mixed \u5171 CASE")) {
     got <- ms(s)
-    expect_identical(got$text, readgpt:::normalise_for_match(s), label = s)
+    expect_identical(got$text, harnessr:::normalise_for_match(s), label = s)
     expect_identical(got$memo$lc, utf8ToInt(got$text), label = s)
-    expect_identical(readgpt:::fold_case(s), readgpt:::lower_text(s), label = s)
+    expect_identical(harnessr:::fold_case(s), harnessr:::lower_text(s), label = s)
   }
 })
 

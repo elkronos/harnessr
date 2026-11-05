@@ -42,7 +42,7 @@ test_that("require_quote keeps a value whose quote stops before a superscript re
   expect_identical(x$table$n_unverified, 0L)
   expect_true(all(x$evidence$verified))
 
-  bq <- readgpt:::quote_backs_value
+  bq <- harnessr:::quote_backs_value
   src <- "The primary outcome was all-cause mortality12 at one year."
   expect_true(bq("all-cause mortality at one year", "The primary outcome was all-cause mortality",
                  src, gr_field("outcome")))
@@ -70,16 +70,16 @@ test_that("a clause of Thai or Khmer backs its value as span_match() verifies it
                   "ពុជា")
   khmer_q <- paste0("ធ្វើឡើងនៅមន្",
                     "ទីរពេទ្យ")
-  bq <- readgpt:::quote_backs_value
+  bq <- harnessr:::quote_backs_value
   setting <- gr_field("Where the study ran")
   for (cs in list(c(thai_q, thai), c(khmer_q, khmer))) {
-    expect_true(isTRUE(readgpt:::span_match(cs[1], cs[2])$verified))
+    expect_true(isTRUE(harnessr:::span_match(cs[1], cs[2])$verified))
     expect_true(bq(cs[1], cs[1], cs[2], setting))
   }
 })
 
 test_that("the shared boundary test still refuses a quote cut out of a number or a word", {
-  bq <- readgpt:::quote_backs_value
+  bq <- harnessr:::quote_backs_value
   n <- gr_field("n", type = "integer")
   expect_false(bq(120L, "120 participants", "There were 1120 participants in all.", n))
   expect_false(bq(19L, "19 patients were seen", "In all, covid19 patients were seen.", n))
@@ -91,7 +91,7 @@ test_that("the shared boundary test still refuses a quote cut out of a number or
 })
 
 test_that("a placeholder is still a value only when a whole word of the quote spells it", {
-  ps <- readgpt:::placeholder_stated
+  ps <- harnessr:::placeholder_stated
   expect_true(ps("None", "Conflicts of interest: None."))
   expect_false(ps("None", "None"))
   expect_false(ps("None", "Nonetheless, the trial continued."))
@@ -109,7 +109,7 @@ test_that("an incomplete row does not name a recovered embeddings failure as its
   gr_register_embedder("gone-404-r4", function(texts, params) {
     tr <- params$trace
     if (inherits(tr, "gr_trace")) {
-      readgpt:::trace_record(tr, "embed.request", list(),
+      harnessr:::trace_record(tr, "embed.request", list(),
                              gr_result(FALSE, model = "bad-embed", status = 404L,
                                        error = "Embeddings request to 'bad-embed' failed: HTTP 404"),
                              params = list(model = "bad-embed"))
@@ -161,7 +161,7 @@ test_that("extraction_table() names the first unrecovered error and never a reco
   summ <- data.frame(document = c("a", "b"), document_id = c("x", "y"), status = "ok",
                      duplicate_of = NA_character_, error = NA_character_,
                      stringsAsFactors = FALSE)
-  tab <- readgpt:::extraction_table(c("a", "b"),
+  tab <- harnessr:::extraction_table(c("a", "b"),
                                     list(a = mk(embed_404), b = mk(embed_404, chat_429)), f, summ)
   expect_identical(tab$status, c("incomplete", "incomplete"))
   expect_false(grepl("404", tab$error[1], fixed = TRUE))

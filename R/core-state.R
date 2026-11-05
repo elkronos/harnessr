@@ -213,7 +213,7 @@ check_option <- function(name, value) {
 #'   \item{`cache_dir` (NULL)}{Directory [gr_cache()] stores model responses in.
 #'     `NULL` means a per-session directory under `tempdir()`, which costs
 #'     nothing and disappears with the session. Set it to a real path, such as
-#'     `tools::R_user_dir("readgpt", "cache")`, to keep responses across
+#'     `tools::R_user_dir("harnessr", "cache")`, to keep responses across
 #'     sessions and make a long run resumable.}
 #'   \item{`parallel` (FALSE)}{Run per-chunk calls concurrently. Needs the
 #'     future and future.apply packages; without them it warns and runs
@@ -314,7 +314,7 @@ gr_options <- function(...) {
 
 #' Clear the session's document and embedding caches
 #'
-#' readgpt keeps two caches in memory for the life of the R session: the
+#' harnessr keeps two caches in memory for the life of the R session: the
 #' documents [gr_ingest()] has already extracted and cleaned, keyed on the file
 #' and every setting that changes the result, and the vectors the built-in
 #' `"api"` embedder has already fetched (see [gr_embed()]). This empties them.

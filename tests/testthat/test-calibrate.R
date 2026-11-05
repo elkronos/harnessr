@@ -54,37 +54,37 @@ test_that("the interval is Wilson, and stays sensible where the textbook one doe
   # At 5 of 5 the normal-approximation interval is [1, 1] -- certainty from five
   # observations. Wilson does not do that, which is the whole reason for it,
   # because screening proportions live at the ends of the scale.
-  five <- readgpt:::prop_row("x", 5, 5)
+  five <- harnessr:::prop_row("x", 5, 5)
   expect_equal(five$estimate, 1)
   expect_lt(five$lower, 1)
   expect_gt(five$lower, 0.5)
   expect_equal(five$upper, 1)
 
-  none <- readgpt:::prop_row("x", 0, 5)
+  none <- harnessr:::prop_row("x", 0, 5)
   expect_equal(none$estimate, 0)
   expect_equal(none$lower, 0)
   expect_gt(none$upper, 0)
 
   # Against a worked value: 3 of 4, z = 1.96 -> [0.3006, 0.9544].
-  three <- readgpt:::prop_row("x", 3, 4)
+  three <- harnessr:::prop_row("x", 3, 4)
   expect_equal(three$lower, 0.3006, tolerance = 1e-3)
   expect_equal(three$upper, 0.9544, tolerance = 1e-3)
 
   # A bigger sample says more, which is the property that makes the interval
   # worth printing at all.
-  wide <- readgpt:::prop_row("x", 15, 20)
-  narrow <- readgpt:::prop_row("x", 150, 200)
+  wide <- harnessr:::prop_row("x", 15, 20)
+  narrow <- harnessr:::prop_row("x", 150, 200)
   expect_equal(wide$estimate, narrow$estimate)
   expect_lt(narrow$upper - narrow$lower, wide$upper - wide$lower)
 
   # And nothing at all is NA rather than a division by zero.
-  expect_true(is.na(readgpt:::prop_row("x", 0, 0)$estimate))
+  expect_true(is.na(harnessr:::prop_row("x", 0, 0)$estimate))
 })
 
 test_that("kappa notices a screener that agrees by doing nothing", {
   # At a realistic inclusion rate, excluding everything is ~95% accurate. That
   # is why accuracy is not reported and kappa is.
-  k <- readgpt:::cohen_kappa
+  k <- harnessr:::cohen_kappa
   expect_equal(k(rep("exclude", 20), c(rep("exclude", 19), "include")), 0, tolerance = 1e-8)
   expect_equal(k(c("include", "exclude"), c("include", "exclude")), 1)
   # Perfect disagreement is negative, not zero.
