@@ -382,6 +382,41 @@
       "formals": ["x", "pretty = TRUE", "..."],
       "generic": "as_json"
     },
+    "client_dispatch.gr_client": {
+      "class": "gr_client",
+      "formals": ["client", "req"],
+      "generic": "client_dispatch"
+    },
+    "client_dispatch.gr_replay_client": {
+      "class": "gr_replay_client",
+      "formals": ["client", "req"],
+      "generic": "client_dispatch"
+    },
+    "client_send.gr_backend_client": {
+      "class": "gr_backend_client",
+      "formals": ["client", "req"],
+      "generic": "client_send"
+    },
+    "client_send.gr_client": {
+      "class": "gr_client",
+      "formals": ["client", "req"],
+      "generic": "client_send"
+    },
+    "client_send.gr_mock_client": {
+      "class": "gr_mock_client",
+      "formals": ["client", "req"],
+      "generic": "client_send"
+    },
+    "client_sends_effort.gr_client": {
+      "class": "gr_client",
+      "formals": ["client"],
+      "generic": "client_sends_effort"
+    },
+    "client_sends_effort.gr_ellmer_client": {
+      "class": "gr_ellmer_client",
+      "formals": ["client"],
+      "generic": "client_sends_effort"
+    },
     "print.gr_answer": {
       "class": "gr_answer",
       "formals": ["x", "..."],
