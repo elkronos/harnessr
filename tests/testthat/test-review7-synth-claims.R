@@ -361,7 +361,7 @@ test_that("claims drawn with a column the write-up withholds as bibliographic ar
 # ---------------------------------------------------------------------------
 
 test_that("the gr_synthesise() help lists every reason a revision is discarded or not sent", {
-  f <- r7_source("R", "synthesise.R")
+  f <- r7_source("R", "doc-synth-batch.R")
   skip_if(is.null(f), "the package source is not available")
   src <- readLines(f, warn = FALSE)
   doc <- gsub("\\s+", " ", paste(sub("^#' ?", "", src[startsWith(src, "#'")]), collapse = " "))
@@ -380,7 +380,7 @@ test_that("the gr_synthesise() help lists every reason a revision is discarded o
   expect_match(doc, "\\item{`claim_sections`}", fixed = TRUE)
   expect_match(doc, "`lost_batches`", fixed = TRUE)
 
-  f <- r7_source("R", "claims.R")
+  f <- r7_source("R", "doc-claims-outline.R")
   skip_if(is.null(f), "the package source is not available")
   src <- readLines(f, warn = FALSE)
   doc <- gsub("\\s+", " ", paste(sub("^#' ?", "", src[startsWith(src, "#'")]), collapse = " "))

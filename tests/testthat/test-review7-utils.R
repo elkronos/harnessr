@@ -94,7 +94,7 @@ test_that("the tiktoken counter hands Python text, not bytes it cannot decode", 
 # ---------------------------------------------------------------------------
 
 test_that("gr_flush_caches() is documented and exported, apart from gr_cache_clear()", {
-  src <- test_path("..", "..", "R", "core-state.R")
+  src <- test_path("..", "..", "R", "doc-ingest-cache.R")
   skip_if_not(file.exists(src), "no source tree (installed package)")
   lines <- readLines(src, warn = FALSE)
   at <- grep("^gr_flush_caches <- function", lines)

@@ -284,7 +284,7 @@ test_that("the gr_trace_cost() example describes what it shows", {
   cost <- gr_trace_cost(ans$trace)
   expect_identical(cost$model, "mock-model")
   expect_identical(cost$usd, 0)
-  path <- testthat::test_path("..", "..", "R", "corpus.R")
+  path <- testthat::test_path("..", "..", "R", "core-ledger-cost.R")
   if (!file.exists(path)) skip("package source not available")
   src <- readLines(path, warn = FALSE)
   expect_false(any(grepl("the recipe's model", src, fixed = TRUE)))

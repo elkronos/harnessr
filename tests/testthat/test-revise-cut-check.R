@@ -252,7 +252,7 @@ test_that("the audit report shows the counts beside each pass", {
 })
 
 test_that("the gr_synthesise() help names the new reason, its class and the counts", {
-  f <- testthat::test_path("..", "..", "R", "synthesise.R")
+  f <- testthat::test_path("..", "..", "R", "doc-synth-batch.R")
   skip_if(!file.exists(f), "the package source is not available")
   src <- readLines(f, warn = FALSE)
   doc <- gsub("\\s+", " ", paste(sub("^#' ?", "", src[startsWith(src, "#'")]), collapse = " "))

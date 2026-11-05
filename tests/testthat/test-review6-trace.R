@@ -270,7 +270,7 @@ test_that("a miss caused by embeddings a replay cannot reproduce says so", {
 })
 
 test_that("the replay help no longer promises answers it cannot reproduce", {
-  path <- testthat::test_path("..", "..", "R", "core-replay.R")
+  path <- testthat::test_path("..", "..", "R", "core-transport-replay.R")
   if (!file.exists(path)) skip("package source not available")
   src <- paste(sub("^#'\\s*", "", readLines(path, warn = FALSE)), collapse = " ")
   expect_false(grepl("every recorded answer is still reproduced", src, fixed = TRUE))
@@ -523,7 +523,7 @@ test_that("gr_embed()'s help gives the order the code uses", {
   e <- gr_embed(cl, c("a b", "c d"))
   expect_identical(attr(e, "embedding_source"), "lexical")
   expect_length(cl$embeds(), 0L)
-  path <- testthat::test_path("..", "..", "R", "core-embed.R")
+  path <- testthat::test_path("..", "..", "R", "core-transport-embed.R")
   if (!file.exists(path)) skip("package source not available")
   src <- paste(sub("^#'\\s*", "", readLines(path, warn = FALSE)), collapse = " ")
   expect_false(grepl("Defaults to the embed function supplied with", src, fixed = TRUE))
