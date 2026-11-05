@@ -97,7 +97,7 @@ every prompt and response this run made
 
 \examples{
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
+ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 ans$partial
 ans$evidence[, c("chunk_id", "page", "score")]
 }

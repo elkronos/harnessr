@@ -27,7 +27,7 @@ reference:
   - gr_recipe
   - gr_answer
   - is_not_found
-  - readgpt_example
+  - gr_example
 
 - title: Connect to a model
   desc: >
@@ -149,8 +149,9 @@ reference:
 
 - title: Superseded
   desc: >
-    The entry points of the first version. They still work and warn once;
-    new code should use `answer_document()`, `gr_ingest()` and `gr_segment()`.
+    The entry points of the first version, and the old name of `gr_example()`.
+    They still work and warn once; new code should use `answer_document()`,
+    `gr_ingest()`, `gr_segment()` and `gr_example()`.
   contents:
   - answer_question
   - parse_text
@@ -158,3 +159,4 @@ reference:
   - gpt_read_hierarchical
   - gpt_read_multipass
   - gpt_read_retrieval
+  - readgpt_example

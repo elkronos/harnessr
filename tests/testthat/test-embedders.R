@@ -154,12 +154,12 @@ replay_round_trip <- function(recorded_with, replayed_with) {
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   if (!is.null(recorded_with)) gr_options(embedder = recorded_with)
   original <- suppressMessages(suppressWarnings(
-    answer_document(readgpt_example(), "What was revenue?", "needle", client = cl)))
+    answer_document(gr_example(), "What was revenue?", "needle", client = cl)))
   if (!is.null(replayed_with)) gr_options(embedder = replayed_with)
   warned <- character(0)
   out <- withCallingHandlers(
     tryCatch(suppressMessages(
-               answer_document(readgpt_example(), "What was revenue?", "needle",
+               answer_document(gr_example(), "What was revenue?", "needle",
                                client = gr_replay_client(original$trace))),
              gr_replay_miss = function(e) "MISS"),
     warning = function(w) { warned <<- c(warned, class(w)[1]); invokeRestart("muffleWarning") })

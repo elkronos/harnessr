@@ -71,8 +71,8 @@ test_that("a whole cached run reports itself as having cost nothing", {
   cache <- gr_cache(withr::local_tempdir())
   cl <- gr_cache_client(gr_mock_client(function(m, p) "Revenue was 45.2 million."), cache)
 
-  a <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough", client = cl))
-  b <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough", client = cl))
+  a <- quiet(answer_document(gr_example(), "What was revenue?", "thorough", client = cl))
+  b <- quiet(answer_document(gr_example(), "What was revenue?", "thorough", client = cl))
 
   expect_identical(a$answer, b$answer)
   sb <- gr_trace_summary(b$trace)
@@ -326,11 +326,11 @@ test_that("the exported gr_cache_clear is the response-cache one, not the intern
 test_that("a recorded run replays to the same answer with no client", {
   local_registries()
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  original <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough",
+  original <- quiet(answer_document(gr_example(), "What was revenue?", "thorough",
                                     client = cl))
 
   rp <- gr_replay_client(original$trace)
-  replayed <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough",
+  replayed <- quiet(answer_document(gr_example(), "What was revenue?", "thorough",
                                     client = rp))
 
   expect_identical(replayed$answer, original$answer)
@@ -345,14 +345,14 @@ test_that("a recorded run replays to the same answer with no client", {
 test_that("a trace survives the round trip through a file", {
   local_registries()
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  original <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl))
+  original <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl))
 
   f <- withr::local_tempfile(fileext = ".json")
   expect_identical(gr_trace_save(original$trace, f), f)
   expect_true(file.exists(f))
   expect_true(jsonlite::validate(paste(readLines(f, warn = FALSE), collapse = "\n")))
 
-  replayed <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast",
+  replayed <- quiet(answer_document(gr_example(), "What was revenue?", "fast",
                                     client = gr_replay_client(f)))
   expect_identical(replayed$answer, original$answer)
 })
@@ -448,7 +448,7 @@ test_that("a replay client is accepted anywhere a client is", {
 test_that("local trace steps are not mistaken for model calls", {
   local_registries()
   cl <- gr_mock_client(function(m, p) "an answer")
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough", client = cl))
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "thorough", client = cl))
   n_local <- sum(vapply(ans$trace$steps,
                         function(s) identical(s$kind, "local"), logical(1)))
   expect_gt(n_local, 0L)
@@ -499,13 +499,13 @@ test_that("a run with a non-ASCII question and answer replays from a file", {
   q <- unmarked("Quel \u00e9tait le chiffre d\u2019affaires ? caf\u00e9 na\u00efve")
   a <- unmarked("r\u00e9ponse enregistr\u00e9e \u2014 45,2 M\u20ac")
 
-  original <- quiet(answer_document(readgpt_example(), q, "thorough",
+  original <- quiet(answer_document(gr_example(), q, "thorough",
                                     client = gr_mock_client(function(m, p) a)))
   f <- withr::local_tempfile(fileext = ".json")
   gr_trace_save(original$trace, f)
 
   rp <- gr_replay_client(f)
-  replayed <- quiet(answer_document(readgpt_example(), q, "thorough", client = rp))
+  replayed <- quiet(answer_document(gr_example(), q, "thorough", client = rp))
 
   expect_length(rp$missed(), 0L)
   expect_identical(charToRaw(replayed$answer), charToRaw(original$answer))

@@ -47,7 +47,7 @@ test_that("a read without a model uses, budgets for and is billed as the client'
                     input_usd = 0, output_usd = 0)
   gr_register_model("house-a", context_window = 64000, max_output = 4000,
                     input_usd = 0.15, output_usd = 0.6)
-  ch <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 200)))
+  ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200)))
 
   rb <- recording_backend("tiny-local")
   a <- quiet(gr_read(ch, "What was revenue?", rb$client, "stuff"))
@@ -64,8 +64,8 @@ test_that("a read without a model uses, budgets for and is billed as the client'
 
   # The same through answer_document() and gr_compare().
   rb <- recording_backend("house-a")
-  a <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = rb$client))
-  cmp <- quiet(gr_compare(readgpt_example(), "What was revenue?", c("fast", "thorough"),
+  a <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = rb$client))
+  cmp <- quiet(gr_compare(gr_example(), "What was revenue?", c("fast", "thorough"),
                           client = rb$client))
   expect_identical(unique(rb$models()), "house-a")
 })
@@ -77,13 +77,13 @@ test_that("a model named in the spec, the recipe or the overrides still wins ove
                     input_usd = 0, output_usd = 0)
   gr_register_model("house-a", context_window = 64000, max_output = 4000,
                     input_usd = 0.15, output_usd = 0.6)
-  ch <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 200)))
+  ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200)))
   rb <- recording_backend("house-a")
   a <- quiet(gr_read(ch, "What was revenue?", rb$client, list(reader = "stuff", model = "tiny-local")))
-  b <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = rb$client,
+  b <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = rb$client,
                              model = "tiny-local"))
   rec <- gr_recipe("mine", read = list(reader = "stuff", model = "tiny-local"))
-  d <- quiet(answer_document(readgpt_example(), "What was revenue?", rec, client = rb$client))
+  d <- quiet(answer_document(gr_example(), "What was revenue?", rec, client = rb$client))
   expect_identical(unique(rb$models()), "tiny-local")
 })
 
@@ -95,7 +95,7 @@ test_that("a spec keeps no model of its own until it is read", {
   expect_true(any(grepl("read    : stuff", out, fixed = TRUE)))
   # A model that follows the client is not recorded as a setting.
   tr <- gr_trace()
-  ch <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 200)))
+  ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200)))
   a <- quiet(gr_read(ch, "Q?", mock_echo(), "stuff", trace = tr))
   pf <- Filter(function(s) identical(s$label, "preflight"), tr$steps)[[1]]$detail
   expect_null(pf$settings$model)
@@ -149,7 +149,7 @@ test_that("an ellmer chat's own unpriced model is named as uncheckable, override
   local_registries()
   gr_register_model("claude-test", context_window = 200000, max_output = 8000)
   gr_options(max_cost_usd = 1)
-  ch <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 200)))
+  ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200)))
   cl <- gr_ellmer_client(fake_chat("claude-test"))
   expect_identical(harnessr:::client_billed_model(cl), "claude-test")
   # The fake chat cannot take a per-call output cap either; that warning is

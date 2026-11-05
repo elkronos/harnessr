@@ -53,7 +53,7 @@
 #' @examples
 #' # What each preset costs you, on a real document, before any model call.
 #' vapply(c("none", "minimal", "standard", "academic", "scan"),
-#'        function(p) gr_ingest(readgpt_example(), gr_ingest_spec(clean = p))$stats$chars,
+#'        function(p) gr_ingest(gr_example(), gr_ingest_spec(clean = p))$stats$chars,
 #'        integer(1))
 #'
 #' # Or name the steps yourself; see gr_cleaners() for what is available.
@@ -128,7 +128,7 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
 #'   back, [gr_segment()] for the next axis
 #' @family ingest functions
 #' @examples
-#' doc <- gr_ingest(readgpt_example())
+#' doc <- gr_ingest(gr_example())
 #'
 #' # Provenance survives cleaning; this is what `ans$evidence` points back at.
 #' head(doc$blocks[, c("block_id", "page", "section", "kind")], 4)
@@ -137,7 +137,7 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
 #' vapply(doc$stats$clean_log, function(s) s$chars_removed, integer(1))
 #'
 #' # Cleaning is a choice, not a default. Compare before committing to it.
-#' raw <- gr_ingest(readgpt_example(), gr_ingest_spec(clean = "none"))
+#' raw <- gr_ingest(gr_example(), gr_ingest_spec(clean = "none"))
 #' c(standard = doc$stats$chars, none = raw$stats$chars)
 gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
   spec <- as_ingest_spec(spec)

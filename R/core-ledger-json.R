@@ -30,7 +30,7 @@
 #' @export
 #' @examples
 #' cl <- gr_mock_client(function(m, p) "45.2 million dollars")
-#' ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
+#' ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #'
 #' # The answer plus every prompt and response from the same single run.
 #' txt <- as_json(ans)

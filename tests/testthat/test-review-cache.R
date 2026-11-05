@@ -152,7 +152,7 @@ test_that("is_plain_data() accepts data and refuses code and references", {
 test_that("a run whose backend reports its own model replays", {
   local_registries()
   local_clean_cache()
-  doc <- readgpt_example()
+  doc <- gr_example()
   q <- "What was revenue?"
   bk <- gr_backend_client(function(messages, params) {
     gr_result(TRUE, text = "Revenue was 45.2 million dollars.", model = "provider-model-2026-01")
@@ -197,7 +197,7 @@ test_that("an ellmer run, the documented example, replays", {
     self$get_tokens <- function() data.frame(input = 5, output = 3)
     self
   }
-  doc <- readgpt_example()
+  doc <- gr_example()
   q <- "What was revenue?"
   for (recipe in c("fast", "thorough")) {
     ans <- quiet(answer_document(doc, q, recipe, client = gr_ellmer_client(make_chat())))
@@ -212,11 +212,11 @@ test_that("a trace without params is still keyed on the model it recorded", {
   local_registries()
   local_clean_cache()
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl))
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl))
   parsed <- jsonlite::fromJSON(as.character(as_json(ans$trace)), simplifyVector = FALSE)
   parsed$steps <- lapply(parsed$steps, function(s) { s$params <- NULL; s })
   rp <- gr_replay_client(parsed)
-  again <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = rp))
+  again <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = rp))
   expect_identical(again$answer, ans$answer)
   expect_identical(rp$stats()$misses, 0L)
 })

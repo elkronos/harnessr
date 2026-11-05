@@ -68,7 +68,7 @@ test_that("everything built on top of a call still works when the call is a back
   local_backend_model()
   cl <- gr_backend_client(function(m, p) "Revenue was 45.2 million dollars.", model = "bk")
 
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough", client = cl))
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "thorough", client = cl))
   expect_false(ans$partial)
   expect_match(ans$answer, "45.2")
 

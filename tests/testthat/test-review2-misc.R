@@ -148,7 +148,7 @@ test_that("the ellmer model warning names the caller's model and does not say re
   # A built-in recipe names no model, so it reads with the chat's and there is
   # nothing to warn about.
   said <- character(0)
-  collect(suppressMessages(answer_document(readgpt_example(), "What was revenue?", "fast",
+  collect(suppressMessages(answer_document(gr_example(), "What was revenue?", "fast",
                                            client = gr_ellmer_client(m2_stub_chat()))))
   expect_length(said, 0L)
 })

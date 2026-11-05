@@ -19,7 +19,7 @@
 #' @family reading functions
 #' @export
 #' @examples
-#' ch <- gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 120))
+#' ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
 #'
 #' # The same chunks, two strategies, two very different call patterns. Each gets
 #' # its own client and trace, so the call counts are comparable.

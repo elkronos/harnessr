@@ -35,7 +35,7 @@ last_call_usd <- function(tr, model = "price-test") {
 test_that("answer_document() reads a short document in one request by default", {
   local_clean_cache()
   cl <- mock_echo("Revenue was 45.2 million dollars.")
-  a <- quiet(answer_document(readgpt_example(), "What was revenue?", client = cl))
+  a <- quiet(answer_document(gr_example(), "What was revenue?", client = cl))
   expect_identical(a$recipe, "fast")
   expect_identical(a$reader, "stuff")
   expect_identical(a$notes$auto_recipe, "fast")
@@ -44,11 +44,11 @@ test_that("answer_document() reads a short document in one request by default", 
   step <- Filter(function(s) identical(s$label, "auto_recipe"), a$trace$steps)
   expect_length(step, 1L)
   expect_identical(step[[1]]$detail$chose, "fast")
-  expect_equal(step[[1]]$detail$tokens, gr_count_tokens(quiet(gr_ingest(readgpt_example()))$text))
+  expect_equal(step[[1]]$detail$tokens, gr_count_tokens(quiet(gr_ingest(gr_example()))$text))
   expect_equal(step[[1]]$detail$limit, 50000)
 
   # A recipe named outright is used as given, and "auto" leaves no mark.
-  b <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough",
+  b <- quiet(answer_document(gr_example(), "What was revenue?", "thorough",
                              client = mock_echo()))
   expect_identical(b$reader, "map_reduce")
   expect_null(b$notes[["auto_recipe", exact = TRUE]])
@@ -165,7 +165,7 @@ test_that("a replay repeats the recorded choice", {
 test_that("overrides apply to the recipe 'auto' picks, and warn only for that one", {
   local_clean_cache()
   # fast's own cap would make this one chunk; the override makes it several.
-  a <- quiet(answer_document(readgpt_example(), "Q?", client = mock_echo(), max_tokens = 100))
+  a <- quiet(answer_document(gr_example(), "Q?", client = mock_echo(), max_tokens = 100))
   expect_identical(a$recipe, "fast")
   expect_gt(a$segmentation$n, 1L)
   expect_lte(a$segmentation$max, 100L)
@@ -173,7 +173,7 @@ test_that("overrides apply to the recipe 'auto' picks, and warn only for that on
   # max_tokens = 100 puts thorough's 120-token overlap out of range. A run that
   # reads with fast has nothing to warn about.
   expect_no_warning(suppressMessages(
-    answer_document(readgpt_example(), "Q?", client = mock_echo(), max_tokens = 100)))
+    answer_document(gr_example(), "Q?", client = mock_echo(), max_tokens = 100)))
   # One that reads with thorough does. A small window makes this document long.
   local_registries()
   harnessr:::gr_flush_caches()
@@ -195,7 +195,7 @@ test_that("overrides apply to the recipe 'auto' picks, and warn only for that on
 test_that("an override that applies to neither recipe fails before the document is read", {
   local_clean_cache()
   cl <- mock_echo()
-  expect_error(answer_document(readgpt_example(), "Q?", client = cl, not_a_setting = 1),
+  expect_error(answer_document(gr_example(), "Q?", client = cl, not_a_setting = 1),
                class = "gr_unknown_override")
   expect_length(ls(harnessr:::gr_state$doc_cache), 0L)
   expect_length(cl$calls(), 0L)
@@ -215,7 +215,7 @@ test_that("a warning both recipes raise is shown before the document is read", {
   # Shown once, not again when the chosen recipe's own warnings are replayed.
   seen <- character(0)
   withCallingHandlers(
-    suppressMessages(answer_document(readgpt_example(), "Q?", client = mock_echo(),
+    suppressMessages(answer_document(gr_example(), "Q?", client = mock_echo(),
                                      max_answer_tokens = 5)),
     gr_clamped = function(w) {
       seen <<- c(seen, conditionMessage(w))
@@ -230,7 +230,7 @@ test_that("choosing a recipe adds no warning of its own", {
     harnessr:::gr_flush_caches()
     n <- 0L
     suppressWarnings(withCallingHandlers(
-      suppressMessages(answer_document(readgpt_example(), "Q?", ..., client = mock_echo(),
+      suppressMessages(answer_document(gr_example(), "Q?", ..., client = mock_echo(),
                                        model = "a-model-from-next-year")),
       gr_unknown_model = function(w) {
         n <<- n + 1L
@@ -246,9 +246,9 @@ test_that("choosing a recipe adds no warning of its own", {
 
 test_that("functions that need one fixed recipe refuse 'auto'", {
   cl <- mock_echo()
-  expect_error(quiet(gr_read_many(readgpt_example(), "Q?", "auto", client = cl)),
+  expect_error(quiet(gr_read_many(gr_example(), "Q?", "auto", client = cl)),
                class = "gr_bad_recipe")
-  expect_error(quiet(gr_compare(readgpt_example(), "Q?", c("auto", "fast"), client = cl)),
+  expect_error(quiet(gr_compare(gr_example(), "Q?", c("auto", "fast"), client = cl)),
                class = "gr_bad_recipe")
   expect_error(harnessr:::as_recipe("auto"), class = "gr_bad_recipe")
   expect_error(gr_recipes("auto"), "not a recipe")

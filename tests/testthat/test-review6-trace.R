@@ -412,7 +412,7 @@ test_that("an embedder that returns no dimensions or holes has failed", {
 
 test_that("as_json() writes any object that holds a trace or an answer", {
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  cmp <- quiet(gr_compare(readgpt_example(), "What was revenue?", c("fast", "thorough"),
+  cmp <- quiet(gr_compare(gr_example(), "What was revenue?", c("fast", "thorough"),
                           client = cl))
   j <- jsonlite::parse_json(as_json(cmp))
   expect_identical(j$trace$run_id, cmp$trace$run_id)
@@ -457,7 +457,7 @@ test_that("an object with nothing to replace is written as before", {
 
 test_that("a trace's fields that list things are arrays at every length", {
   cl <- gr_mock_client(function(m, p) "45.2 million")
-  cmp <- quiet(gr_compare(readgpt_example(), "What was revenue?", "fast", client = cl,
+  cmp <- quiet(gr_compare(gr_example(), "What was revenue?", "fast", client = cl,
                           allow_duplicates = TRUE))
   j <- jsonlite::parse_json(as_json(cmp$trace))
   expect_identical(j$meta$recipes, list("fast"))
@@ -480,7 +480,7 @@ test_that("a trace's fields that list things are arrays at every length", {
 
 test_that("a trace parsed with jsonlite's defaults is refused, saying why", {
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough", client = cl))
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "thorough", client = cl))
   f <- withr::local_tempfile(fileext = ".json")
   gr_trace_save(ans$trace, f)
   parsed <- jsonlite::fromJSON(f)
@@ -490,19 +490,19 @@ test_that("a trace parsed with jsonlite's defaults is refused, saying why", {
   expect_match(conditionMessage(err), "simplifyVector = FALSE", fixed = TRUE)
   expect_false(grepl("no recorded model calls", conditionMessage(err), fixed = TRUE))
   # Parsed as the message says, it replays.
-  again <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough",
+  again <- quiet(answer_document(gr_example(), "What was revenue?", "thorough",
                                  client = gr_replay_client(jsonlite::fromJSON(f, simplifyVector = FALSE))))
   expect_identical(again$answer, ans$answer)
 })
 
 test_that("the JSON text of a trace or an answer replays", {
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl))
-  js <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl,
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl))
+  js <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                               return = "json"))
   for (src in list(as_json(ans$trace), js, as.character(js))) {
     rp <- gr_replay_client(src)
-    again <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = rp))
+    again <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = rp))
     expect_identical(again$answer, ans$answer)
     expect_identical(rp$stats()$misses, 0L)
   }

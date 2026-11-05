@@ -8,7 +8,11 @@
   says so. Load it with `library(harnessr)`. The GitHub repository is still
   `elkronos/readgpt`, so `remotes::install_github("elkronos/readgpt")` installs
   harnessr. No exported function, class, argument or prompt changes name in
-  this release; `readgpt_example()` keeps its name too.
+  this release except `readgpt_example()`, below.
+
+* **`readgpt_example()` is now `gr_example()`**, which returns the same path to
+  the bundled example document. `readgpt_example()` still works, with one
+  `gr_deprecated` warning per session naming the new function.
 
 * **Requests, cache keys and recordings are unchanged.** Every request is sent
   as 0.6.0 sent it, and every response-cache key, replay key and corpus store

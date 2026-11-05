@@ -25,7 +25,7 @@
 #'   with one row per input.
 #' @return An object of class `gr_client`, with `$calls()`, `$embeds()` and
 #'   `$reset()`.
-#' @seealso [gr_client()], [gr_call()], [gr_result], [readgpt_example()] for a
+#' @seealso [gr_client()], [gr_call()], [gr_result], [gr_example()] for a
 #'   document to run against
 #' @export
 #' @examples
@@ -35,7 +35,7 @@
 #' # `$calls()` is how you prove two reading strategies differ: it records the
 #' # exact prompts each one sent.
 #' cl$reset()
-#' ch <- gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 150))
+#' ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150))
 #' invisible(gr_read(ch, "What was revenue?", cl, "skim"))
 #' table(vapply(cl$calls(), function(x) x$label, character(1)))
 gr_mock_client <- function(handler = NULL, embed_handler = NULL) {

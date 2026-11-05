@@ -21,7 +21,7 @@ session it happened in.
 }
 \examples{
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
+ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 
 f <- tempfile(fileext = ".json")
 gr_trace_save(ans$trace, f)

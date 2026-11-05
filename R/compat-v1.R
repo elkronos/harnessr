@@ -33,10 +33,10 @@
 #'
 #' # v1 style, still works, warns once.
 #' suppressWarnings(
-#'   answer_question(readgpt_example(), "What was revenue?", mode = "Chunked", client = cl))
+#'   answer_question(gr_example(), "What was revenue?", mode = "Chunked", client = cl))
 #'
 #' # The modern equivalent.
-#' answer_document(readgpt_example(), "What was revenue?", "thorough",
+#' answer_document(gr_example(), "What was revenue?", "thorough",
 #'                 client = cl, return = "text")
 answer_question <- function(file_path, question, mode = "Chunked", use_parallel = FALSE,
                             refine = FALSE, return_json = FALSE, client = NULL, ...) {
@@ -97,10 +97,10 @@ answer_question <- function(file_path, question, mode = "Chunked", use_parallel 
 #' @export
 #' @examples
 #' # v1 style, still works, warns once.
-#' length(suppressWarnings(parse_text(readgpt_example(), chunk_token_limit = 200)))
+#' length(suppressWarnings(parse_text(gr_example(), chunk_token_limit = 200)))
 #'
 #' # The modern equivalent, which also reports what it did.
-#' gr_chunk_stats(gr_segment(gr_ingest(readgpt_example()),
+#' gr_chunk_stats(gr_segment(gr_ingest(gr_example()),
 #'                           list(method = "paragraph", max_tokens = 200)))
 parse_text <- function(file_path, chunk_token_limit = 3000, chunk_method = c("naive", "semantic"),
                        remove_whitespace = TRUE, remove_special_chars = FALSE,
@@ -165,13 +165,13 @@ parse_text <- function(file_path, chunk_token_limit = 3000, chunk_method = c("na
 #' @export
 #' @examples
 #' cl <- gr_mock_client(function(m, p) "45.2 million dollars")
-#' chunks <- suppressWarnings(parse_text(readgpt_example(), chunk_token_limit = 200))
+#' chunks <- suppressWarnings(parse_text(gr_example(), chunk_token_limit = 200))
 #'
 #' # v1 style, still works, warns once.
 #' suppressWarnings(gpt_read_chunked(chunks, "What was revenue?", client = cl))
 #'
 #' # The modern equivalent, which also reports what it did.
-#' ch <- gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 200))
+#' ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200))
 #' gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million dollars"),
 #'         "map_reduce")$notes$chunks
 gpt_read_chunked <- function(chunks, question, client = NULL, return_json = FALSE, ...) {
@@ -194,11 +194,11 @@ gpt_read_chunked <- function(chunks, question, client = NULL, return_json = FALS
 #' @export
 #' @examples
 #' cl <- gr_mock_client(function(m, p) "45.2 million dollars")
-#' chunks <- suppressWarnings(parse_text(readgpt_example(), chunk_token_limit = 200))
+#' chunks <- suppressWarnings(parse_text(gr_example(), chunk_token_limit = 200))
 #' suppressWarnings(gpt_read_retrieval(chunks, "What was revenue?", client = cl))
 #'
 #' # The modern equivalent.
-#' ch <- gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 200))
+#' ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200))
 #' gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million dollars"),
 #'         "skim")$reader
 gpt_read_retrieval <- function(chunks, question, client = NULL, return_json = FALSE, ...) {
@@ -221,11 +221,11 @@ gpt_read_retrieval <- function(chunks, question, client = NULL, return_json = FA
 #' @export
 #' @examples
 #' cl <- gr_mock_client(function(m, p) "45.2 million dollars")
-#' chunks <- suppressWarnings(parse_text(readgpt_example(), chunk_token_limit = 200))
+#' chunks <- suppressWarnings(parse_text(gr_example(), chunk_token_limit = 200))
 #' suppressWarnings(gpt_read_hierarchical(chunks, "What was revenue?", client = cl))
 #'
 #' # The modern equivalent.
-#' ch <- gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 200))
+#' ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200))
 #' gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million dollars"),
 #'         "hierarchical")$reader
 gpt_read_hierarchical <- function(chunks, question, client = NULL, return_json = FALSE, ...) {
@@ -250,11 +250,11 @@ gpt_read_hierarchical <- function(chunks, question, client = NULL, return_json =
 #' @export
 #' @examples
 #' cl <- gr_mock_client(function(m, p) "45.2 million dollars")
-#' chunks <- suppressWarnings(parse_text(readgpt_example(), chunk_token_limit = 200))
+#' chunks <- suppressWarnings(parse_text(gr_example(), chunk_token_limit = 200))
 #' suppressWarnings(gpt_read_multipass(chunks, "What was revenue?", client = cl))
 #'
 #' # The modern equivalent.
-#' ch <- gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 200))
+#' ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200))
 #' gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million dollars"),
 #'         "ensemble")$reader
 gpt_read_multipass <- function(chunks, question, client = NULL, return_json = FALSE, ...) {
@@ -262,4 +262,21 @@ gpt_read_multipass <- function(chunks, question, client = NULL, return_json = FA
              "gpt_read_multipass() is deprecated; use gr_read(..., 'ensemble'). v1 re-ran Retrieval and Chunked verbatim, so selecting them alongside MultiPass paid for each twice.")
   .compat_read(chunks, question, "ensemble", client,
                members = c("skim", "map_reduce"), ..., return_json = return_json)
+}
+
+#' Deprecated: path to the bundled example document
+#'
+#' `readgpt_example()` is the name [gr_example()] had before the package was
+#' renamed. It returns the same path, with one `gr_deprecated` warning per
+#' session naming the new function.
+#'
+#' @return Absolute path to the file, as [gr_example()] returns it.
+#' @seealso [gr_example()]
+#' @export
+#' @examples
+#' identical(suppressWarnings(readgpt_example()), gr_example())
+readgpt_example <- function() {
+  .warn_once("readgpt_example",
+             "readgpt_example() is deprecated; the package is now harnessr, so use gr_example() instead.")
+  gr_example()
 }

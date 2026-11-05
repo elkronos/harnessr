@@ -74,10 +74,10 @@ test_that("a cached client is let through, and stops at the first request the ca
   expect_true(harnessr:::stop_if_no_credentials(cc))
   # on_error = "continue" records a failed document and moves on. A missing key
   # is not one document's failure, so it stops the run all the same.
-  expect_error(gr_read_many(c(readgpt_example(), write_doc("txt")), "What was revenue?",
+  expect_error(gr_read_many(c(gr_example(), write_doc("txt")), "What was revenue?",
                             client = cc, on_error = "continue"),
                class = "gr_auth_error")
-  expect_error(gr_compare(readgpt_example(), "What was revenue?", c("fast", "needle"),
+  expect_error(gr_compare(gr_example(), "What was revenue?", c("fast", "needle"),
                           client = cc, on_error = "continue"),
                class = "gr_auth_error")
 })
@@ -239,7 +239,7 @@ test_that("a folder run ties each warning to its document, including one that fa
 test_that("a store written before the warnings column still restores", {
   local_clean_cache()
   store <- tempfile("store-")
-  docs <- c(readgpt_example(), write_doc("txt"))
+  docs <- c(gr_example(), write_doc("txt"))
   cl <- mock_echo("Revenue was 45.2 million dollars.")
   quiet(gr_read_many(docs, "What was revenue?", "fast", client = cl, store = store))
 
@@ -354,10 +354,10 @@ test_that("refine marks the answer partial when it cuts an excerpt to fit", {
 
 test_that("gr_compare() answers carry the document and page-resolved evidence too", {
   local_clean_cache()
-  cmp <- gr_compare(readgpt_example(), "What was revenue?", c("fast", "needle"),
+  cmp <- gr_compare(gr_example(), "What was revenue?", c("fast", "needle"),
                     client = mock_echo("Revenue was 45.2 million dollars."))
   for (a in cmp$answers) {
-    expect_identical(a$document$source, normalizePath(readgpt_example(), winslash = "/"))
+    expect_identical(a$document$source, normalizePath(gr_example(), winslash = "/"))
     expect_true(is.character(a$warnings))
   }
 })
@@ -376,7 +376,7 @@ test_that("a run whose documents are all in the store needs no key", {
   # request is answered here, and every later request goes to the dead address.
   withr::with_envvar(c(OPENAI_API_KEY = "sk-test-first-run"),
     testthat::with_mocked_bindings(
-      first <- quiet(gr_read_many(readgpt_example(), "What was revenue?", "fast", client = dead(),
+      first <- quiet(gr_read_many(gr_example(), "What was revenue?", "fast", client = dead(),
                                   store = store)),
       http_call = function(client, url, body) {
         gr_result(TRUE, text = "Revenue was 45.2 million dollars.", status = 200L,
@@ -385,13 +385,13 @@ test_that("a run whose documents are all in the store needs no key", {
       .package = "harnessr"))
   expect_identical(first$summary$status, "ok")
   no_key()
-  again <- gr_read_many(readgpt_example(), "What was revenue?", "fast", client = dead(),
+  again <- gr_read_many(gr_example(), "What was revenue?", "fast", client = dead(),
                         store = store)
   expect_identical(again$summary$status, "restored")
 
   # A document that is not in the store still stops the run before it is read.
   hits <- counting_extractor()
-  expect_error(gr_read_many(c(readgpt_example(), write_doc("rgx")), "What was revenue?", "fast",
+  expect_error(gr_read_many(c(gr_example(), write_doc("rgx")), "What was revenue?", "fast",
                             client = dead(), store = store),
                class = "gr_auth_error")
   expect_identical(hits$n, 0L)

@@ -37,7 +37,7 @@ the other's cache: this leaves every stored response in place, and
 two memory caches off instead.
 }
 \examples{
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 gr_flush_caches("documents")
 gr_flush_caches()
 }

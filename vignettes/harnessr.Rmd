@@ -152,7 +152,7 @@ replaced, so they can be restored later with `gr_options(old)`.
 example document, an annual report:
 
 ```{r}
-ans <- answer_document(readgpt_example(), "What was revenue in 2024?", client = cl)
+ans <- answer_document(gr_example(), "What was revenue in 2024?", client = cl)
 ans$answer
 ```
 
@@ -190,7 +190,7 @@ details. Here is a "model" that fails every request, as a network outage would:
 
 ```{r}
 broken <- gr_mock_client(function(messages, params) stop("no connection"))
-bad <- answer_document(readgpt_example(), "What was revenue in 2024?",
+bad <- answer_document(gr_example(), "What was revenue in 2024?",
                        client = broken)
 bad
 ```
@@ -293,7 +293,7 @@ model it knows reasons. The mock is not one, so here it is given the default
 model's name to stand in for it:
 
 ```{r}
-low <- answer_document(readgpt_example(), "What was revenue in 2024?",
+low <- answer_document(gr_example(), "What was revenue in 2024?",
                        client = cl, model = gr_options("model"), effort = "low")
 as.data.frame(low$trace)[, c("stage", "model", "effort")]
 ```
@@ -342,7 +342,7 @@ A starting point for each kind of job:
 Pass the name as the third argument:
 
 ```{r}
-fast <- answer_document(readgpt_example(), "What was revenue in 2024?", "fast",
+fast <- answer_document(gr_example(), "What was revenue in 2024?", "fast",
                         client = cl)
 fast$reader
 ```

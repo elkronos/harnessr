@@ -8,9 +8,10 @@
 #' own.
 #'
 #' @return Absolute path to the file.
+#' @seealso [readgpt_example()], its name before the package was renamed.
 #' @export
 #' @examples
-#' gr_ingest(readgpt_example())
-readgpt_example <- function() {
+#' gr_ingest(gr_example())
+gr_example <- function() {
   system.file("extdata", "annual_report.md", package = "harnessr", mustWork = TRUE)
 }
