@@ -397,7 +397,7 @@ test_that("corpus_label hides an address's credentials and keeps files as they w
 # ---------------------------------------------------------------------------
 
 test_that("gr_ingest's documentation states the download limits and refusals", {
-  path <- testthat::test_path("..", "..", "R", "ingest.R")
+  path <- testthat::test_path("..", "..", "R", "doc-ingest-run.R")
   if (!file.exists(path)) skip("package source not available")
   src <- readLines(path, warn = FALSE)
   from <- grep("^#' @param source", src)
