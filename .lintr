@@ -1,0 +1,20 @@
+linters: list(
+    class_equals_linter = class_equals_linter(),
+    commas_linter = commas_linter(),
+    duplicate_argument_linter = duplicate_argument_linter(),
+    equals_na_linter = equals_na_linter(),
+    length_test_linter = length_test_linter(),
+    missing_argument_linter = missing_argument_linter(),
+    package_hooks_linter = package_hooks_linter(),
+    redundant_equals_linter = redundant_equals_linter(),
+    seq_linter = seq_linter(),
+    spaces_inside_linter = spaces_inside_linter(),
+    sprintf_linter = sprintf_linter(),
+    T_and_F_symbol_linter = T_and_F_symbol_linter(),
+    trailing_blank_lines_linter = trailing_blank_lines_linter(),
+    trailing_whitespace_linter = trailing_whitespace_linter(),
+    unreachable_code_linter = unreachable_code_linter(),
+    vector_logic_linter = vector_logic_linter(),
+    whitespace_linter = whitespace_linter()
+  )
+encoding: "UTF-8"
