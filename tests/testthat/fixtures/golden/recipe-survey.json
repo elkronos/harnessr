@@ -1,0 +1,384 @@
+{
+  "calls": [
+    {
+      "cache_key": "15aa95d88d9a4bff",
+      "chars": [202, 35, 59],
+      "label": "hier.summarise.L1",
+      "messages": "aa8cb898463b9f68",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 86,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "835df50693bf1580",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "2bfa637e43a661cf",
+      "chars": [202, 35, 347],
+      "label": "hier.summarise.L1",
+      "messages": "c1a7e865b2106363",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 170,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "7d64f9c8b126756c",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "4a8000fdf58ceb41",
+      "chars": [202, 35, 543],
+      "label": "hier.summarise.L1",
+      "messages": "3d761fa21d0958f4",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 213,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "7ab9f6de42dbc2e4",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "b300a227105c335d",
+      "chars": [202, 35, 585],
+      "label": "hier.summarise.L1",
+      "messages": "223597a38602cb02",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 224,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "685bf179c1049157",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "2bc11d2c61efff86",
+      "chars": [202, 35, 297],
+      "label": "hier.summarise.L1",
+      "messages": "99e4fe65d9dec7b4",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 153,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "6845b3ffd6194c18",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "7ac6f4b41d9379eb",
+      "chars": [202, 35, 127],
+      "label": "hier.summarise.L1",
+      "messages": "c0c0ea4354b469c7",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 108,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "2081b020a8f487cb",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "af961d0987766a46",
+      "chars": [216, 455, 35],
+      "label": "hier.answer",
+      "messages": "aaef03a88ca03e56",
+      "model": "mock-model",
+      "params": {
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 223,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "5302652317f68043",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    }
+  ],
+  "result": "a34ad3f0c8e88f77",
+  "trace": {
+    "budget_stop": false,
+    "errors": [],
+    "meta": {
+      "question": "What was revenue in 2024?",
+      "recipe": "survey",
+      "source": "annual_report.md"
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "detail": {
+          "blocks": 17,
+          "cached": false,
+          "clean_steps": [
+            "page_numbers",
+            "hyphenation",
+            "control_chars",
+            "ligatures",
+            "collapse_whitespace"
+          ],
+          "source": "annual_report.md",
+          "tokens": 574
+        },
+        "kind": "local",
+        "label": "ingest",
+        "ok": true,
+        "recipe": "survey",
+        "source": "annual_report.md",
+        "step": 1
+      },
+      {
+        "detail": {
+          "max": 155,
+          "mean": 89.8,
+          "median": 92.5,
+          "method": "structural",
+          "min": 16,
+          "n": 6,
+          "over_cap": 0,
+          "settings": {
+            "max_tokens": 1500
+          },
+          "total_tokens": 539
+        },
+        "kind": "local",
+        "label": "segment",
+        "ok": true,
+        "recipe": "survey",
+        "source": "annual_report.md",
+        "step": 2
+      },
+      {
+        "detail": {
+          "chunks": 6,
+          "embed_calls": 0,
+          "est_calls": 9,
+          "est_cost_usd": 0,
+          "est_input_usd": 0,
+          "model": "mock-model",
+          "reader": "hierarchical",
+          "settings": [],
+          "worst_calls": 9
+        },
+        "kind": "local",
+        "label": "preflight",
+        "ok": true,
+        "recipe": "survey",
+        "source": "annual_report.md",
+        "step": 3
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 86,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "aa8cb898463b9f68",
+        "recipe": "survey",
+        "response": "5e372c1edd7906c1",
+        "source": "annual_report.md",
+        "step": 4,
+        "tokens": {
+          "input": 86,
+          "output": 26
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 170,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "c1a7e865b2106363",
+        "recipe": "survey",
+        "response": "5e372c1edd7906c1",
+        "source": "annual_report.md",
+        "step": 5,
+        "tokens": {
+          "input": 170,
+          "output": 26
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 213,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "3d761fa21d0958f4",
+        "recipe": "survey",
+        "response": "5e372c1edd7906c1",
+        "source": "annual_report.md",
+        "step": 6,
+        "tokens": {
+          "input": 213,
+          "output": 26
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 224,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "223597a38602cb02",
+        "recipe": "survey",
+        "response": "5e372c1edd7906c1",
+        "source": "annual_report.md",
+        "step": 7,
+        "tokens": {
+          "input": 224,
+          "output": 26
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 153,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "99e4fe65d9dec7b4",
+        "recipe": "survey",
+        "response": "5e372c1edd7906c1",
+        "source": "annual_report.md",
+        "step": 8,
+        "tokens": {
+          "input": 153,
+          "output": 26
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 108,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "c0c0ea4354b469c7",
+        "recipe": "survey",
+        "response": "5e372c1edd7906c1",
+        "source": "annual_report.md",
+        "step": 9,
+        "tokens": {
+          "input": 108,
+          "output": 26
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "hier.answer",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 1500,
+          "model": "mock-model",
+          "prompt_tokens": 223,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "aaef03a88ca03e56",
+        "recipe": "survey",
+        "response": "5e372c1edd7906c1",
+        "source": "annual_report.md",
+        "step": 10,
+        "tokens": {
+          "input": 223,
+          "output": 26
+        }
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 7,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 10,
+      "tokens_in": 1177,
+      "tokens_out": 182
+    }
+  }
+}

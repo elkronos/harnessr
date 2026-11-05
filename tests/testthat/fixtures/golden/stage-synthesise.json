@@ -1,0 +1,81 @@
+{
+  "calls": [
+    {
+      "cache_key": "6d5d06f10af350f8",
+      "chars": [815, 230, 75],
+      "label": "synthesise.section",
+      "messages": "f4fd440f10890f8f",
+      "model": "mock-model",
+      "params": {
+        "max_output": 1200,
+        "model": "mock-model",
+        "prompt_tokens": 303,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "39664133f6f6cab9",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    }
+  ],
+  "result": "8f9d58e8d1809505",
+  "trace": {
+    "budget_stop": false,
+    "errors": [],
+    "meta": {
+      "question": "How did revenue change?",
+      "sections": 2,
+      "stage": "synthesise",
+      "studies": 1
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "synthesise.section",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 1200,
+          "model": "mock-model",
+          "prompt_tokens": 303,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "f4fd440f10890f8f",
+        "response": "df22233877e91797",
+        "step": 1,
+        "tokens": {
+          "input": 303,
+          "output": 18
+        }
+      },
+      {
+        "detail": {
+          "checked": 1,
+          "stage": "draft",
+          "unbacked": 0
+        },
+        "kind": "local",
+        "label": "synthesise.figures",
+        "ok": true,
+        "step": 2
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 1,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 2,
+      "tokens_in": 303,
+      "tokens_out": 18
+    }
+  }
+}

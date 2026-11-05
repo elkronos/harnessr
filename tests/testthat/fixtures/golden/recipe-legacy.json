@@ -1,0 +1,134 @@
+{
+  "calls": [
+    {
+      "cache_key": "4bb6824c9ceb36ea",
+      "chars": [216, 1720, 35],
+      "label": "map.answer",
+      "messages": "20a7b604956fcf26",
+      "model": "mock-model",
+      "params": {
+        "max_output": 700,
+        "model": "mock-model",
+        "prompt_tokens": 511,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "30fc57c6b364ef33",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    }
+  ],
+  "result": "a34ad3f0c8e88f77",
+  "trace": {
+    "budget_stop": false,
+    "errors": [],
+    "meta": {
+      "question": "What was revenue in 2024?",
+      "recipe": "legacy",
+      "source": "annual_report.md"
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "detail": {
+          "blocks": 15,
+          "cached": false,
+          "clean_steps": [
+            "page_numbers",
+            "captions",
+            "urls",
+            "emails",
+            "references",
+            "remove_numbers",
+            "collapse_whitespace"
+          ],
+          "source": "annual_report.md",
+          "tokens": 469
+        },
+        "kind": "local",
+        "label": "ingest",
+        "ok": true,
+        "recipe": "legacy",
+        "source": "annual_report.md",
+        "step": 1
+      },
+      {
+        "detail": {
+          "max": 423,
+          "mean": 423,
+          "median": 423,
+          "method": "paragraph",
+          "min": 423,
+          "n": 1,
+          "over_cap": 0,
+          "settings": {
+            "max_tokens": 3000
+          },
+          "total_tokens": 423
+        },
+        "kind": "local",
+        "label": "segment",
+        "ok": true,
+        "recipe": "legacy",
+        "source": "annual_report.md",
+        "step": 2
+      },
+      {
+        "detail": {
+          "chunks": 1,
+          "embed_calls": 0,
+          "est_calls": 2,
+          "est_cost_usd": 0,
+          "est_input_usd": 0,
+          "model": "mock-model",
+          "reader": "map_reduce",
+          "settings": [],
+          "worst_calls": 2
+        },
+        "kind": "local",
+        "label": "preflight",
+        "ok": true,
+        "recipe": "legacy",
+        "source": "annual_report.md",
+        "step": 3
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "map.answer",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 700,
+          "model": "mock-model",
+          "prompt_tokens": 511,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "20a7b604956fcf26",
+        "recipe": "legacy",
+        "response": "5e372c1edd7906c1",
+        "source": "annual_report.md",
+        "step": 4,
+        "tokens": {
+          "input": 511,
+          "output": 26
+        }
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 1,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 4,
+      "tokens_in": 511,
+      "tokens_out": 26
+    }
+  }
+}

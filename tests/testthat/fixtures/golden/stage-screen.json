@@ -1,0 +1,140 @@
+{
+  "calls": [
+    {
+      "cache_key": "ce1396f8623953f6",
+      "chars": [601, 40, 70, 1980],
+      "label": "screen.decide",
+      "messages": "71f66221b7ee3b0a",
+      "model": "mock-model",
+      "params": {
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 751,
+        "schema_name": "screening",
+        "temperature": null
+      },
+      "request": "9bcc23d2d06c7a29",
+      "roles": ["system", "user", "user", "user"],
+      "schema": "c1ebbae0985e31d3"
+    }
+  ],
+  "result": "598aac9bdc19bb81",
+  "trace": {
+    "budget_stop": false,
+    "errors": [],
+    "meta": {
+      "documents": 1,
+      "question": "How did revenue change?",
+      "recipe": "research+screen"
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "detail": {
+          "blocks": 15,
+          "cached": false,
+          "clean_steps": [
+            "page_numbers",
+            "captions",
+            "references",
+            "hyphenation",
+            "control_chars",
+            "ligatures",
+            "collapse_whitespace"
+          ],
+          "source": "annual_report.md",
+          "tokens": 541
+        },
+        "kind": "local",
+        "label": "ingest",
+        "ok": true,
+        "recipe": "research+screen",
+        "source": "annual_report.md",
+        "step": 1
+      },
+      {
+        "detail": {
+          "max": 155,
+          "mean": 85.5,
+          "median": 87.5,
+          "method": "structural",
+          "min": 16,
+          "n": 6,
+          "over_cap": 0,
+          "settings": {
+            "max_tokens": 900,
+            "overlap_tokens": 90
+          },
+          "total_tokens": 513
+        },
+        "kind": "local",
+        "label": "segment",
+        "ok": true,
+        "recipe": "research+screen",
+        "source": "annual_report.md",
+        "step": 2
+      },
+      {
+        "detail": {
+          "chunks": 6,
+          "embed_calls": 0,
+          "est_calls": 1,
+          "est_cost_usd": 0,
+          "est_input_usd": 0,
+          "model": "mock-model",
+          "reader": "screen",
+          "settings": {
+            "cite": true,
+            "exclude": [],
+            "include": "Reports a revenue figure",
+            "top_k": 5
+          },
+          "worst_calls": 1
+        },
+        "kind": "local",
+        "label": "preflight",
+        "ok": true,
+        "recipe": "research+screen",
+        "source": "annual_report.md",
+        "step": 3
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "screen.decide",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 1500,
+          "model": "mock-model",
+          "prompt_tokens": 751,
+          "schema_name": "screening",
+          "temperature": null
+        },
+        "prompt": "71f66221b7ee3b0a",
+        "recipe": "research+screen",
+        "response": "40cca6177efa0bcc",
+        "source": "annual_report.md",
+        "step": 4,
+        "tokens": {
+          "input": 751,
+          "output": 98
+        }
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 1,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 4,
+      "tokens_in": 751,
+      "tokens_out": 98
+    }
+  }
+}

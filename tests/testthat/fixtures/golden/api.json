@@ -1,0 +1,501 @@
+{
+  "exports": {
+    "answer_document": {
+      "formals": ["source", "question", "recipe = \"auto\"", "client = NULL", "return = c(\"answer\", \"text\", \"json\")", "trace = NULL", "..."],
+      "type": "function"
+    },
+    "answer_question": {
+      "formals": ["file_path", "question", "mode = \"Chunked\"", "use_parallel = FALSE", "refine = FALSE", "return_json = FALSE", "client = NULL", "..."],
+      "type": "function"
+    },
+    "as_json": {
+      "formals": ["x", "pretty = TRUE", "..."],
+      "type": "function"
+    },
+    "gpt_read_chunked": {
+      "formals": ["chunks", "question", "client = NULL", "return_json = FALSE", "..."],
+      "type": "function"
+    },
+    "gpt_read_hierarchical": {
+      "formals": ["chunks", "question", "client = NULL", "return_json = FALSE", "..."],
+      "type": "function"
+    },
+    "gpt_read_multipass": {
+      "formals": ["chunks", "question", "client = NULL", "return_json = FALSE", "..."],
+      "type": "function"
+    },
+    "gpt_read_retrieval": {
+      "formals": ["chunks", "question", "client = NULL", "return_json = FALSE", "..."],
+      "type": "function"
+    },
+    "gr_api_key": {
+      "formals": ["key = NULL"],
+      "type": "function"
+    },
+    "gr_audit_report": {
+      "formals": ["path", "screening = NULL", "extraction = NULL", "synthesis = NULL", "protocol = NULL", "title = NULL", "claims = NULL", "records = NULL", "calibration = NULL", "answer = NULL", "open = interactive()"],
+      "type": "function"
+    },
+    "gr_backend_client": {
+      "formals": ["handler", "embed = NULL", "model = \"backend-model\"", "embedding_model = \"backend-embed\"", "id = NULL", "max_retries = 0L", "timeout = NULL"],
+      "type": "function"
+    },
+    "gr_budget": {
+      "formals": ["model = NULL", "reserve_output = NULL", "overhead = 0", "safety_margin = NULL"],
+      "type": "function"
+    },
+    "gr_cache": {
+      "formals": ["dir = NULL", "read = TRUE", "write = TRUE"],
+      "type": "function"
+    },
+    "gr_cache_clear": {
+      "formals": ["cache"],
+      "type": "function"
+    },
+    "gr_cache_client": {
+      "formals": ["client", "cache = gr_cache()"],
+      "type": "function"
+    },
+    "gr_cache_stats": {
+      "formals": ["cache"],
+      "type": "function"
+    },
+    "gr_calibrate": {
+      "formals": ["screening", "reference", "positive = \"include\"", "min_positives = 10L", "of = NULL"],
+      "type": "function"
+    },
+    "gr_call": {
+      "formals": ["client", "messages", "model = NULL", "max_output = NULL", "temperature = NULL", "schema = NULL", "schema_name = \"result\"", "trace = NULL", "label = \"call\"", "...", "effort = NULL"],
+      "type": "function"
+    },
+    "gr_chunk_stats": {
+      "formals": ["chunks"],
+      "type": "function"
+    },
+    "gr_claims": {
+      "formals": ["extraction", "question = NULL", "protocol = NULL", "client = NULL", "model = NULL", "temperature = NULL", "max_claim_tokens = 1600L", "include_unclear = FALSE", "trace = NULL", "bib = NULL", "effort = NULL"],
+      "type": "function"
+    },
+    "gr_clean": {
+      "formals": ["text", "steps = NULL", "opts = list()"],
+      "type": "function"
+    },
+    "gr_cleaners": {
+      "formals": [],
+      "type": "function"
+    },
+    "gr_client": {
+      "formals": ["model = NULL", "api = NULL", "api_key = NULL", "base_url = NULL", "embedding_model = NULL", "max_retries = NULL", "retry_pause_base = NULL", "timeout = NULL", "extra_body = list()", "headers = NULL"],
+      "type": "function"
+    },
+    "gr_compare": {
+      "formals": ["source", "question", "recipes = c(\"fast\", \"needle\", \"thorough\")", "client = NULL", "allow_duplicates = FALSE", "on_error = c(\"continue\", \"stop\")", "..."],
+      "type": "function"
+    },
+    "gr_count_tokens": {
+      "formals": ["text", "model = NULL"],
+      "type": "function"
+    },
+    "gr_ellmer_client": {
+      "formals": ["chat", "embed = NULL", "model = NULL"],
+      "type": "function"
+    },
+    "gr_embed": {
+      "formals": ["client", "texts", "model = NULL", "batch_size = 64L", "cache = NULL", "trace = NULL", "fallback = c(\"lexical\", \"error\", \"none\")", "embedder = NULL"],
+      "type": "function"
+    },
+    "gr_embedders": {
+      "formals": [],
+      "type": "function"
+    },
+    "gr_estimate_cost": {
+      "formals": ["model", "input_tokens", "output_tokens = 0"],
+      "type": "function"
+    },
+    "gr_extract": {
+      "formals": ["sources", "fields", "goal = NULL", "recipe = \"research\"", "client = NULL", "store = NULL", "resolve = c(\"first\", \"model\")", "require_quote = FALSE", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = FALSE", "recursive = FALSE", "trace = NULL", "..."],
+      "type": "function"
+    },
+    "gr_extractors": {
+      "formals": [],
+      "type": "function"
+    },
+    "gr_field": {
+      "formals": ["description", "type = \"string\"", "values = NULL"],
+      "type": "function"
+    },
+    "gr_fields": {
+      "formals": ["..."],
+      "type": "function"
+    },
+    "gr_flow": {
+      "formals": ["screening = NULL", "extraction = NULL", "records = NULL", "claims = NULL"],
+      "type": "function"
+    },
+    "gr_flush_caches": {
+      "formals": ["what = \"all\""],
+      "type": "function"
+    },
+    "gr_gaps": {
+      "formals": ["claims", "extraction = NULL", "max_cells = 40L", "min_reported = 0.5", "bib = NULL"],
+      "type": "function"
+    },
+    "gr_ingest": {
+      "formals": ["source", "spec = NULL", "cache = NULL", "trace = NULL"],
+      "type": "function"
+    },
+    "gr_ingest_spec": {
+      "formals": ["clean = \"standard\"", "ocr = c(\"auto\", \"always\", \"never\")", "ocr_lang = \"eng\"", "ocr_dpi = 300", "ocr_min_chars = 40L", "min_chars = 20L", "extractor = NULL", "parallel = NULL", "cleaner_opts = list()", "layout = c(\"auto\", \"raw\")"],
+      "type": "function"
+    },
+    "gr_inventory": {
+      "formals": ["sources", "recursive = TRUE", "model = NULL", "ocr_min_chars = 40L", "max_pdf_pages = 3L"],
+      "type": "function"
+    },
+    "gr_mock_client": {
+      "formals": ["handler = NULL", "embed_handler = NULL"],
+      "type": "function"
+    },
+    "gr_model_info": {
+      "formals": ["model = NULL"],
+      "type": "function"
+    },
+    "gr_model_limits": {
+      "formals": ["model = NULL"],
+      "type": "function"
+    },
+    "gr_models": {
+      "formals": [],
+      "type": "function"
+    },
+    "gr_options": {
+      "formals": ["..."],
+      "type": "function"
+    },
+    "gr_outline": {
+      "formals": ["claims", "question = NULL", "client = NULL", "model = NULL", "temperature = NULL", "max_sections = 6L", "closing = \"What is missing\"", "trace = NULL", "max_outline_tokens = NULL", "effort = NULL", "alternatives = 1L"],
+      "type": "function"
+    },
+    "gr_outline_pick": {
+      "formals": ["outline", "alternative"],
+      "type": "function"
+    },
+    "gr_protocol": {
+      "formals": ["name", "question = NULL", "include = NULL", "exclude = NULL", "fields = NULL", "outline = NULL", "recipe = \"research\"", "description = \"\"", "search = NULL"],
+      "type": "function"
+    },
+    "gr_protocol_read": {
+      "formals": ["path"],
+      "type": "function"
+    },
+    "gr_protocol_save": {
+      "formals": ["protocol", "path"],
+      "type": "function"
+    },
+    "gr_protocols": {
+      "formals": ["name = NULL"],
+      "type": "function"
+    },
+    "gr_read": {
+      "formals": ["chunks", "question", "client", "spec = NULL", "trace = NULL"],
+      "type": "function"
+    },
+    "gr_read_many": {
+      "formals": ["sources", "question", "recipe = \"thorough\"", "client = NULL", "store = NULL", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = TRUE", "recursive = FALSE", "trace = NULL", "..."],
+      "type": "function"
+    },
+    "gr_read_spec": {
+      "formals": ["reader = \"map_reduce\"", "model = NULL", "temperature = NULL", "max_answer_tokens = 1500L", "max_chunk_tokens = 700L", "max_summary_tokens = 500L", "top_k = 6L", "min_score = -Inf", "mmr = 1", "context_order = c(\"relevance\", \"document\", \"edges\")", "rerank_candidates = 20L", "rerank_min_score = 4", "fan_in = 5L", "max_levels = 5L", "max_rounds = 4L", "preview_tokens = 1200L", "restate = c(\"auto\", \"always\", \"never\")", "members = NULL", "cite = FALSE", "skim_model = NULL", "summary_model = NULL", "parallel = NULL", "delay_between_calls = 0", "on_overflow = c(\"warn\", \"error\")", "effort = NULL", "premise = FALSE", "..."],
+      "type": "function"
+    },
+    "gr_reader_signature": {
+      "formals": ["reader"],
+      "type": "function"
+    },
+    "gr_readers": {
+      "formals": [],
+      "type": "function"
+    },
+    "gr_recipe": {
+      "formals": ["name = NULL", "ingest = NULL", "segment = NULL", "read = NULL"],
+      "type": "function"
+    },
+    "gr_recipes": {
+      "formals": ["name = NULL"],
+      "type": "function"
+    },
+    "gr_records": {
+      "formals": ["exports", "files = NULL", "search = NULL", "dedupe = c(\"doi+title\", \"doi\", \"none\")"],
+      "type": "function"
+    },
+    "gr_reference": {
+      "formals": ["screening", "n = 50", "of = c(\"excluded\", \"kept\", \"all\")", "seed = NULL", "path = NULL", "blind = TRUE"],
+      "type": "function"
+    },
+    "gr_register_cleaner": {
+      "formals": ["name", "fn", "stage = c(\"early\", \"late\")", "description = \"\"", "default_on = FALSE", "scope = c(\"block\", \"document\")"],
+      "type": "function"
+    },
+    "gr_register_embedder": {
+      "formals": ["name", "fn", "description = \"\"", "deterministic = FALSE"],
+      "type": "function"
+    },
+    "gr_register_extractor": {
+      "formals": ["name", "extensions", "fn", "description = \"\""],
+      "type": "function"
+    },
+    "gr_register_model": {
+      "formals": ["id", "context_window", "max_output", "input_usd = NA_real_", "output_usd = NA_real_", "reasoning = FALSE", "supports_temperature = TRUE", "kind = c(\"chat\", \"embedding\")", "dimensions = NA_integer_"],
+      "type": "function"
+    },
+    "gr_register_protocol": {
+      "formals": ["name", "protocol"],
+      "type": "function"
+    },
+    "gr_register_reader": {
+      "formals": ["name", "fn", "signature", "description = \"\"", "cost_calls = \"\""],
+      "type": "function"
+    },
+    "gr_register_segmenter": {
+      "formals": ["name", "fn", "description = \"\"", "cost = c(\"free\", \"embedding\", \"llm\")", "needs_client = FALSE"],
+      "type": "function"
+    },
+    "gr_replay_client": {
+      "formals": ["source", "strict = TRUE"],
+      "type": "function"
+    },
+    "gr_screen": {
+      "formals": ["sources", "protocol = NULL", "question = NULL", "include = NULL", "exclude = NULL", "recipe = \"research\"", "client = NULL", "store = NULL", "screen_tokens = NULL", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = FALSE", "recursive = FALSE", "trace = NULL", "..."],
+      "type": "function"
+    },
+    "gr_search": {
+      "formals": ["databases", "dates = NULL", "limits = NULL", "registration = NA_character_", "other = NULL", "notes = NULL"],
+      "type": "function"
+    },
+    "gr_segment": {
+      "formals": ["doc", "spec = NULL", "client = NULL", "trace = NULL"],
+      "type": "function"
+    },
+    "gr_segment_spec": {
+      "formals": ["method = \"paragraph\"", "max_tokens = 1200L", "overlap_tokens = 0L", "min_tokens = 0L", "separators = NULL", "prefix_section = TRUE", "semantic_window = 2L", "semantic_percentile = 90", "context_source = c(\"metadata\", \"llm\")", "proposition_batch_tokens = 900L", "parallel = NULL", "..."],
+      "type": "function"
+    },
+    "gr_segmenters": {
+      "formals": [],
+      "type": "function"
+    },
+    "gr_set_tokenizer": {
+      "formals": ["name", "fn = NULL"],
+      "type": "function"
+    },
+    "gr_synthesise": {
+      "formals": ["extraction", "protocol = NULL", "outline = NULL", "question = NULL", "client = NULL", "model = NULL", "max_section_tokens = 1200L", "temperature = NULL", "include_unclear = FALSE", "cite_style = c(\"auto\", \"marker\", \"author-year\", \"numeric\")", "bib = NULL", "style = NULL", "coherence = FALSE", "references = TRUE", "claims = NULL", "gaps = NULL", "trace = NULL", "effort = NULL"],
+      "type": "function"
+    },
+    "gr_tokenizer": {
+      "formals": [],
+      "type": "function"
+    },
+    "gr_trace": {
+      "formals": ["run_id = NULL", "meta = list()"],
+      "type": "function"
+    },
+    "gr_trace_cost": {
+      "formals": ["trace"],
+      "type": "function"
+    },
+    "gr_trace_save": {
+      "formals": ["trace", "path"],
+      "type": "function"
+    },
+    "gr_trace_summary": {
+      "formals": ["trace"],
+      "type": "function"
+    },
+    "gr_truncate_tokens": {
+      "formals": ["text", "n", "marker = \" ...[truncated]\""],
+      "type": "function"
+    },
+    "gr_verify_evidence": {
+      "formals": ["answer", "chunks = NULL"],
+      "type": "function"
+    },
+    "is_not_found": {
+      "formals": ["x"],
+      "type": "function"
+    },
+    "new_answer": {
+      "formals": ["text", "reader", "question", "chunks_used", "trace", "evidence = NULL", "partial = FALSE", "notes = list()", "chunks_sent = NULL", "premise = NULL"],
+      "type": "function"
+    },
+    "new_chunks": {
+      "formals": ["text", "method", "spec", "page = NA_integer_", "section = NA_character_", "block_id = NA_integer_", "extra = list()", "source_text = NULL"],
+      "type": "function"
+    },
+    "parse_text": {
+      "formals": ["file_path", "chunk_token_limit = 3000", "chunk_method = c(\"naive\", \"semantic\")", "remove_whitespace = TRUE", "remove_special_chars = FALSE", "remove_numbers = FALSE", "ocr_lang = \"eng\"", "client = NULL"],
+      "type": "function"
+    },
+    "readgpt_example": {
+      "formals": [],
+      "type": "function"
+    }
+  },
+  "s3methods": {
+    "[.gr_gaps": {
+      "class": "gr_gaps",
+      "formals": ["x", "..."],
+      "generic": "["
+    },
+    "[.gr_reference_frame": {
+      "class": "gr_reference_frame",
+      "formals": ["x", "..."],
+      "generic": "["
+    },
+    "as.data.frame.gr_trace": {
+      "class": "gr_trace",
+      "formals": ["x", "row.names = NULL", "optional = FALSE", "..."],
+      "generic": "as.data.frame"
+    },
+    "as_json.default": {
+      "class": "default",
+      "formals": ["x", "pretty = TRUE", "...", "digits = NA"],
+      "generic": "as_json"
+    },
+    "as_json.gr_answer": {
+      "class": "gr_answer",
+      "formals": ["x", "pretty = TRUE", "..."],
+      "generic": "as_json"
+    },
+    "as_json.gr_chunks": {
+      "class": "gr_chunks",
+      "formals": ["x", "pretty = TRUE", "..."],
+      "generic": "as_json"
+    },
+    "as_json.gr_document": {
+      "class": "gr_document",
+      "formals": ["x", "pretty = TRUE", "..."],
+      "generic": "as_json"
+    },
+    "as_json.gr_trace": {
+      "class": "gr_trace",
+      "formals": ["x", "pretty = TRUE", "..."],
+      "generic": "as_json"
+    },
+    "print.gr_answer": {
+      "class": "gr_answer",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_backend_client": {
+      "class": "gr_backend_client",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_cache": {
+      "class": "gr_cache",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_calibration": {
+      "class": "gr_calibration",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_chunks": {
+      "class": "gr_chunks",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_claims": {
+      "class": "gr_claims",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_client": {
+      "class": "gr_client",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_corpus": {
+      "class": "gr_corpus",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_document": {
+      "class": "gr_document",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_extraction": {
+      "class": "gr_extraction",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_field": {
+      "class": "gr_field",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_fields": {
+      "class": "gr_fields",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_gaps": {
+      "class": "gr_gaps",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_inventory": {
+      "class": "gr_inventory",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_protocol": {
+      "class": "gr_protocol",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_recipe": {
+      "class": "gr_recipe",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_records": {
+      "class": "gr_records",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_replay_client": {
+      "class": "gr_replay_client",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_result": {
+      "class": "gr_result",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_screening": {
+      "class": "gr_screening",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_search": {
+      "class": "gr_search",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_synthesis": {
+      "class": "gr_synthesis",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_trace": {
+      "class": "gr_trace",
+      "formals": ["x", "..."],
+      "generic": "print"
+    }
+  }
+}
