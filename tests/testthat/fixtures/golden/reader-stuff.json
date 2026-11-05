@@ -1,0 +1,132 @@
+{
+  "calls": [
+    {
+      "cache_key": "5f12fc9f44de366f",
+      "chars": [216, 1976, 35],
+      "label": "stuff.answer",
+      "messages": "1933ad4182815d5a",
+      "model": "mock-model",
+      "params": {
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 640,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "a6029f8e6983adf6",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    }
+  ],
+  "result": "a34ad3f0c8e88f77",
+  "trace": {
+    "budget_stop": false,
+    "errors": [],
+    "meta": {
+      "question": "What was revenue in 2024?",
+      "recipe": "golden-stuff",
+      "source": "annual_report.md"
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "detail": {
+          "blocks": 17,
+          "cached": false,
+          "clean_steps": [
+            "page_numbers",
+            "hyphenation",
+            "control_chars",
+            "ligatures",
+            "collapse_whitespace"
+          ],
+          "source": "annual_report.md",
+          "tokens": 574
+        },
+        "kind": "local",
+        "label": "ingest",
+        "ok": true,
+        "recipe": "golden-stuff",
+        "source": "annual_report.md",
+        "step": 1
+      },
+      {
+        "detail": {
+          "max": 116,
+          "mean": 89.8,
+          "median": 92,
+          "method": "paragraph",
+          "min": 48,
+          "n": 6,
+          "over_cap": 0,
+          "settings": {
+            "max_tokens": 120
+          },
+          "total_tokens": 539
+        },
+        "kind": "local",
+        "label": "segment",
+        "ok": true,
+        "recipe": "golden-stuff",
+        "source": "annual_report.md",
+        "step": 2
+      },
+      {
+        "detail": {
+          "chunks": 6,
+          "embed_calls": 0,
+          "est_calls": 1,
+          "est_cost_usd": 0,
+          "est_input_usd": 0,
+          "model": "mock-model",
+          "reader": "stuff",
+          "settings": [],
+          "worst_calls": 1
+        },
+        "kind": "local",
+        "label": "preflight",
+        "ok": true,
+        "recipe": "golden-stuff",
+        "source": "annual_report.md",
+        "step": 3
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "stuff.answer",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 1500,
+          "model": "mock-model",
+          "prompt_tokens": 640,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "1933ad4182815d5a",
+        "recipe": "golden-stuff",
+        "response": "5e372c1edd7906c1",
+        "source": "annual_report.md",
+        "step": 4,
+        "tokens": {
+          "input": 640,
+          "output": 26
+        }
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 1,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 4,
+      "tokens_in": 640,
+      "tokens_out": 26
+    }
+  }
+}

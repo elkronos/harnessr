@@ -1,0 +1,234 @@
+{
+  "calls": [
+    {
+      "cache_key": "e93955d6e0e2632d",
+      "chars": [642, 35, 1686, 65],
+      "label": "preview.plan",
+      "messages": "558315efcf21e51c",
+      "model": "mock-model",
+      "params": {
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 657,
+        "schema_name": "reading_plan",
+        "temperature": null
+      },
+      "request": "4e29035b42dee7d5",
+      "roles": ["system", "user", "user", "user"],
+      "schema": "a55797ddbe3dbb32"
+    },
+    {
+      "cache_key": "31edac5fac42dac2",
+      "chars": [196, 35, 482],
+      "label": "preview.skim",
+      "messages": "58d8608f7b3b288a",
+      "model": "mock-model",
+      "params": {
+        "max_output": 700,
+        "model": "mock-model",
+        "prompt_tokens": 198,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "f6292d2605e0b277",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "f01cd8971d1307ff",
+      "chars": [216, 1602, 35],
+      "label": "preview.answer",
+      "messages": "200a278ebc69e3f4",
+      "model": "mock-model",
+      "params": {
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 546,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "f72264f8259eec1c",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    }
+  ],
+  "result": "a34ad3f0c8e88f77",
+  "trace": {
+    "budget_stop": false,
+    "errors": [],
+    "meta": {
+      "question": "What was revenue in 2024?",
+      "recipe": "golden-preview",
+      "source": "annual_report.md"
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "detail": {
+          "blocks": 17,
+          "cached": false,
+          "clean_steps": [
+            "page_numbers",
+            "hyphenation",
+            "control_chars",
+            "ligatures",
+            "collapse_whitespace"
+          ],
+          "source": "annual_report.md",
+          "tokens": 574
+        },
+        "kind": "local",
+        "label": "ingest",
+        "ok": true,
+        "recipe": "golden-preview",
+        "source": "annual_report.md",
+        "step": 1
+      },
+      {
+        "detail": {
+          "max": 116,
+          "mean": 89.8,
+          "median": 92,
+          "method": "paragraph",
+          "min": 48,
+          "n": 6,
+          "over_cap": 0,
+          "settings": {
+            "max_tokens": 120
+          },
+          "total_tokens": 539
+        },
+        "kind": "local",
+        "label": "segment",
+        "ok": true,
+        "recipe": "golden-preview",
+        "source": "annual_report.md",
+        "step": 2
+      },
+      {
+        "detail": {
+          "chunks": 6,
+          "embed_calls": 0,
+          "est_calls": 6,
+          "est_cost_usd": 0,
+          "est_input_usd": 0,
+          "model": "mock-model",
+          "reader": "preview",
+          "settings": [],
+          "worst_calls": 6
+        },
+        "kind": "local",
+        "label": "preflight",
+        "ok": true,
+        "recipe": "golden-preview",
+        "source": "annual_report.md",
+        "step": 3
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "preview.plan",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 1500,
+          "model": "mock-model",
+          "prompt_tokens": 657,
+          "schema_name": "reading_plan",
+          "temperature": null
+        },
+        "prompt": "558315efcf21e51c",
+        "recipe": "golden-preview",
+        "response": "c3777ed6eb996c30",
+        "source": "annual_report.md",
+        "step": 4,
+        "tokens": {
+          "input": 657,
+          "output": 125
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "preview.skim",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 700,
+          "model": "mock-model",
+          "prompt_tokens": 198,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "58d8608f7b3b288a",
+        "recipe": "golden-preview",
+        "response": "4b04db10f8ef9f51",
+        "source": "annual_report.md",
+        "step": 5,
+        "tokens": {
+          "input": 198,
+          "output": 25
+        }
+      },
+      {
+        "detail": {
+          "degraded": false,
+          "demoted": 0,
+          "read": 2,
+          "sections": 3,
+          "skimmed": 1,
+          "skipped": 0,
+          "tokens_read": 423,
+          "tokens_skipped": 0
+        },
+        "kind": "local",
+        "label": "preview.plan",
+        "ok": true,
+        "recipe": "golden-preview",
+        "source": "annual_report.md",
+        "step": 6
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "preview.answer",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 1500,
+          "model": "mock-model",
+          "prompt_tokens": 546,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "prompt": "200a278ebc69e3f4",
+        "recipe": "golden-preview",
+        "response": "5e372c1edd7906c1",
+        "source": "annual_report.md",
+        "step": 7,
+        "tokens": {
+          "input": 546,
+          "output": 26
+        }
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 3,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 7,
+      "tokens_in": 1401,
+      "tokens_out": 176
+    }
+  }
+}

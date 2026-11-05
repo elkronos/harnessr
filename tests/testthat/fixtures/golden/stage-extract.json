@@ -1,0 +1,351 @@
+{
+  "calls": [
+    {
+      "cache_key": "b41f73ecd12cf576",
+      "chars": [330, 29, 108, 120],
+      "label": "extract.chunk",
+      "messages": "ad4d7b88454cb263",
+      "model": "mock-model",
+      "params": {
+        "max_output": 700,
+        "model": "mock-model",
+        "prompt_tokens": 168,
+        "schema_name": "extraction",
+        "temperature": null
+      },
+      "request": "1afcea1d5e2ed28a",
+      "roles": ["system", "user", "user", "user"],
+      "schema": "586b2f7408d22e66"
+    },
+    {
+      "cache_key": "0df6f4d4813798bf",
+      "chars": [330, 29, 108, 373],
+      "label": "extract.chunk",
+      "messages": "303a581729aaddcf",
+      "model": "mock-model",
+      "params": {
+        "max_output": 700,
+        "model": "mock-model",
+        "prompt_tokens": 241,
+        "schema_name": "extraction",
+        "temperature": null
+      },
+      "request": "034c29c9f80ae37e",
+      "roles": ["system", "user", "user", "user"],
+      "schema": "586b2f7408d22e66"
+    },
+    {
+      "cache_key": "6aa41ce9aad5a959",
+      "chars": [330, 29, 108, 525],
+      "label": "extract.chunk",
+      "messages": "5e397594981ff0aa",
+      "model": "mock-model",
+      "params": {
+        "max_output": 700,
+        "model": "mock-model",
+        "prompt_tokens": 269,
+        "schema_name": "extraction",
+        "temperature": null
+      },
+      "request": "008d4e614ad3a220",
+      "roles": ["system", "user", "user", "user"],
+      "schema": "586b2f7408d22e66"
+    },
+    {
+      "cache_key": "9564762409cf6698",
+      "chars": [330, 29, 108, 616],
+      "label": "extract.chunk",
+      "messages": "2a34f0eb84d2dbe8",
+      "model": "mock-model",
+      "params": {
+        "max_output": 700,
+        "model": "mock-model",
+        "prompt_tokens": 296,
+        "schema_name": "extraction",
+        "temperature": null
+      },
+      "request": "22d5aa60d8d04440",
+      "roles": ["system", "user", "user", "user"],
+      "schema": "586b2f7408d22e66"
+    },
+    {
+      "cache_key": "320b59e5fdf2b385",
+      "chars": [330, 29, 108, 285],
+      "label": "extract.chunk",
+      "messages": "d8cd2bca3344981e",
+      "model": "mock-model",
+      "params": {
+        "max_output": 700,
+        "model": "mock-model",
+        "prompt_tokens": 214,
+        "schema_name": "extraction",
+        "temperature": null
+      },
+      "request": "3b9bca6b94561eb2",
+      "roles": ["system", "user", "user", "user"],
+      "schema": "586b2f7408d22e66"
+    },
+    {
+      "cache_key": "5e761056bfbde87f",
+      "chars": [330, 29, 108, 156],
+      "label": "extract.chunk",
+      "messages": "93823856b5d31796",
+      "model": "mock-model",
+      "params": {
+        "max_output": 700,
+        "model": "mock-model",
+        "prompt_tokens": 180,
+        "schema_name": "extraction",
+        "temperature": null
+      },
+      "request": "ef8f8f4c65d5ed79",
+      "roles": ["system", "user", "user", "user"],
+      "schema": "586b2f7408d22e66"
+    }
+  ],
+  "result": "1babbe2724fdf3fe",
+  "trace": {
+    "budget_stop": false,
+    "errors": [],
+    "meta": {
+      "documents": 1,
+      "question": "How did revenue change?",
+      "recipe": "research+extract"
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "detail": {
+          "blocks": 15,
+          "cached": true
+        },
+        "kind": "local",
+        "label": "ingest",
+        "ok": true,
+        "recipe": "research+extract",
+        "source": "annual_report.md",
+        "step": 1
+      },
+      {
+        "detail": {
+          "max": 155,
+          "mean": 85.5,
+          "median": 87.5,
+          "method": "structural",
+          "min": 16,
+          "n": 6,
+          "over_cap": 0,
+          "settings": {
+            "max_tokens": 900,
+            "overlap_tokens": 90
+          },
+          "total_tokens": 513
+        },
+        "kind": "local",
+        "label": "segment",
+        "ok": true,
+        "recipe": "research+extract",
+        "source": "annual_report.md",
+        "step": 2
+      },
+      {
+        "detail": {
+          "chunks": 6,
+          "embed_calls": 0,
+          "est_calls": 6,
+          "est_cost_usd": 0,
+          "est_input_usd": 0,
+          "model": "mock-model",
+          "reader": "extract",
+          "settings": {
+            "cite": true,
+            "fields": {
+              "company": {
+                "description": "The company the report covers",
+                "type": "string",
+                "values": null
+              },
+              "revenue": {
+                "description": "Revenue in millions of dollars",
+                "type": "number",
+                "values": null
+              }
+            },
+            "require_quote": false,
+            "resolve": "first",
+            "top_k": 5
+          },
+          "worst_calls": 6
+        },
+        "kind": "local",
+        "label": "preflight",
+        "ok": true,
+        "recipe": "research+extract",
+        "source": "annual_report.md",
+        "step": 3
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "extract.chunk",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 700,
+          "model": "mock-model",
+          "prompt_tokens": 168,
+          "schema_name": "extraction",
+          "temperature": null
+        },
+        "prompt": "ad4d7b88454cb263",
+        "recipe": "research+extract",
+        "response": "8e0aff9ba9a9939c",
+        "source": "annual_report.md",
+        "step": 4,
+        "tokens": {
+          "input": 168,
+          "output": 61
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "extract.chunk",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 700,
+          "model": "mock-model",
+          "prompt_tokens": 241,
+          "schema_name": "extraction",
+          "temperature": null
+        },
+        "prompt": "303a581729aaddcf",
+        "recipe": "research+extract",
+        "response": "55a792ea2013430f",
+        "source": "annual_report.md",
+        "step": 5,
+        "tokens": {
+          "input": 241,
+          "output": 125
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "extract.chunk",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 700,
+          "model": "mock-model",
+          "prompt_tokens": 269,
+          "schema_name": "extraction",
+          "temperature": null
+        },
+        "prompt": "5e397594981ff0aa",
+        "recipe": "research+extract",
+        "response": "8e0aff9ba9a9939c",
+        "source": "annual_report.md",
+        "step": 6,
+        "tokens": {
+          "input": 269,
+          "output": 61
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "extract.chunk",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 700,
+          "model": "mock-model",
+          "prompt_tokens": 296,
+          "schema_name": "extraction",
+          "temperature": null
+        },
+        "prompt": "2a34f0eb84d2dbe8",
+        "recipe": "research+extract",
+        "response": "8e0aff9ba9a9939c",
+        "source": "annual_report.md",
+        "step": 7,
+        "tokens": {
+          "input": 296,
+          "output": 61
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "extract.chunk",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 700,
+          "model": "mock-model",
+          "prompt_tokens": 214,
+          "schema_name": "extraction",
+          "temperature": null
+        },
+        "prompt": "d8cd2bca3344981e",
+        "recipe": "research+extract",
+        "response": "8e0aff9ba9a9939c",
+        "source": "annual_report.md",
+        "step": 8,
+        "tokens": {
+          "input": 214,
+          "output": 61
+        }
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "extract.chunk",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 700,
+          "model": "mock-model",
+          "prompt_tokens": 180,
+          "schema_name": "extraction",
+          "temperature": null
+        },
+        "prompt": "93823856b5d31796",
+        "recipe": "research+extract",
+        "response": "8e0aff9ba9a9939c",
+        "source": "annual_report.md",
+        "step": 9,
+        "tokens": {
+          "input": 180,
+          "output": 61
+        }
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 6,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 9,
+      "tokens_in": 1368,
+      "tokens_out": 430
+    }
+  }
+}

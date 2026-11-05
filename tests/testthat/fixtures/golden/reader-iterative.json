@@ -1,0 +1,170 @@
+{
+  "calls": [
+    {
+      "cache_key": "0c1ea072fb711e47",
+      "chars": [514, 35, 1976],
+      "label": "iterative.step",
+      "messages": "ed830feda4eb3bdc",
+      "model": "mock-model",
+      "params": {
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 728,
+        "schema_name": "iterative_step",
+        "temperature": null
+      },
+      "request": "72d5a70e9bf70e88",
+      "roles": ["system", "user", "user"],
+      "schema": "7af19e282e21f51c"
+    }
+  ],
+  "result": "bc84fdcbd08e6a68",
+  "trace": {
+    "budget_stop": false,
+    "errors": [],
+    "meta": {
+      "question": "What was revenue in 2024?",
+      "recipe": "golden-iterative",
+      "source": "annual_report.md"
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "detail": {
+          "blocks": 17,
+          "cached": false,
+          "clean_steps": [
+            "page_numbers",
+            "hyphenation",
+            "control_chars",
+            "ligatures",
+            "collapse_whitespace"
+          ],
+          "source": "annual_report.md",
+          "tokens": 574
+        },
+        "kind": "local",
+        "label": "ingest",
+        "ok": true,
+        "recipe": "golden-iterative",
+        "source": "annual_report.md",
+        "step": 1
+      },
+      {
+        "detail": {
+          "max": 116,
+          "mean": 89.8,
+          "median": 92,
+          "method": "paragraph",
+          "min": 48,
+          "n": 6,
+          "over_cap": 0,
+          "settings": {
+            "max_tokens": 120
+          },
+          "total_tokens": 539
+        },
+        "kind": "local",
+        "label": "segment",
+        "ok": true,
+        "recipe": "golden-iterative",
+        "source": "annual_report.md",
+        "step": 2
+      },
+      {
+        "detail": {
+          "chunks": 6,
+          "embed_calls": 0,
+          "est_calls": 5,
+          "est_cost_usd": 0,
+          "est_input_usd": 0,
+          "model": "mock-model",
+          "reader": "iterative",
+          "settings": [],
+          "worst_calls": 5
+        },
+        "kind": "local",
+        "label": "preflight",
+        "ok": true,
+        "recipe": "golden-iterative",
+        "source": "annual_report.md",
+        "step": 3
+      },
+      {
+        "detail": {
+          "dim": 64,
+          "n": 6,
+          "source": "api"
+        },
+        "kind": "local",
+        "label": "embed",
+        "ok": true,
+        "recipe": "golden-iterative",
+        "source": "annual_report.md",
+        "step": 4
+      },
+      {
+        "detail": {
+          "dim": 64,
+          "n": 1,
+          "source": "api"
+        },
+        "kind": "local",
+        "label": "embed",
+        "ok": true,
+        "recipe": "golden-iterative",
+        "source": "annual_report.md",
+        "step": 5
+      },
+      {
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "finish_reason": null,
+        "label": "iterative.step",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 1500,
+          "model": "mock-model",
+          "prompt_tokens": 728,
+          "schema_name": "iterative_step",
+          "temperature": null
+        },
+        "prompt": "ed830feda4eb3bdc",
+        "recipe": "golden-iterative",
+        "response": "9a095d0f912f5e21",
+        "source": "annual_report.md",
+        "step": 6,
+        "tokens": {
+          "input": 728,
+          "output": 40
+        }
+      },
+      {
+        "detail": {
+          "reason": "model satisfied",
+          "rounds": 1
+        },
+        "kind": "local",
+        "label": "iterative.stop",
+        "ok": true,
+        "recipe": "golden-iterative",
+        "source": "annual_report.md",
+        "step": 7
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 1,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 7,
+      "tokens_in": 728,
+      "tokens_out": 40
+    }
+  }
+}
