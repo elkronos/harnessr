@@ -163,8 +163,8 @@ with the words of prose each was given and gave back. When the outline was
 one of several \code{\link[=gr_outline]{gr_outline()}} compared and chosen with \code{\link[=gr_outline_pick]{gr_outline_pick()}},
 "What was written" says which one, and how far its grouping of the claims
 lies from the first proposal's.
-The cost table includes the calls \code{\link[=gr_claims]{gr_claims()}} made and, when it was left
-to record on the claims' trace, \code{\link[=gr_outline]{gr_outline()}}. When any request was sent
+The cost table includes the calls \code{\link[=gr_claims]{gr_claims()}} made and, when the
+write-up's outline came from it, those \code{\link[=gr_outline]{gr_outline()}} made. When any request was sent
 with a reasoning effort (\code{effort} in \code{\link[=gr_read_spec]{gr_read_spec()}}), the cost table says
 which efforts each stage's requests carried, and the table of requests has
 an \code{effort} column.

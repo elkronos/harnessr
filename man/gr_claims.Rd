@@ -37,7 +37,10 @@ for fewer, larger batches.}
 \item{include_unclear}{Keep rows with nothing extracted. Off by default, the
 same as \code{\link[=gr_synthesise]{gr_synthesise()}}.}
 
-\item{trace}{A \code{\link[=gr_trace]{gr_trace()}} to record into.}
+\item{trace}{A \code{\link[=gr_trace]{gr_trace()}} to add this stage's calls to, or \code{NULL}. The
+calls are recorded on a trace of the stage's own, returned as \verb{$trace},
+and folded into \code{trace} when the stage ends, as in \code{\link[=gr_read_many]{gr_read_many()}} and
+\code{\link[=gr_synthesise]{gr_synthesise()}}.}
 
 \item{bib}{Which columns carry bibliographic identity, as in
 \code{\link[=gr_synthesise]{gr_synthesise()}}: a named list of \code{citation}, \code{authors}, \code{year}, \code{title},

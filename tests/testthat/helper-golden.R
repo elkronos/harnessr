@@ -392,15 +392,12 @@ golden_stage_runs <- function() {
       up <- quietly(upstream())
       harnessr::gr_claims(up$x, question = up$p$question, client = cl)
     }, function(cm) cm$claims),
-    # gr_outline() records into the trace of the claims it is given, so that
-    # trace, holding the claims stage's step and then the outline's, is the
-    # one kept.
+    # gr_outline() records on a trace of its own, attached to the outline,
+    # which golden_find_trace() picks up.
     `stage-outline` = function() golden_run(function(cl) {
       up <- quietly(upstream())
-      o <- harnessr::gr_outline(up$cm, client = cl)
-      list(outline = o, trace = up$cm$trace)
-    }, function(x) {
-      o <- x$outline
+      harnessr::gr_outline(up$cm, client = cl)
+    }, function(o) {
       list(sections = unclass(o)[seq_along(o)], claims = attr(o, "claims"),
            rationale = attr(o, "rationale"), closing = attr(o, "closing"))
     }),

@@ -23,9 +23,9 @@
     "budget_stop": false,
     "errors": [],
     "meta": {
+      "claims": 1,
       "question": "How did revenue change?",
-      "stage": "claims",
-      "studies": 1
+      "stage": "outline"
     },
     "replayed_usd": 0,
     "spent_usd": 0,
@@ -35,65 +35,19 @@
         "cached": false,
         "error": null,
         "finish_reason": null,
-        "label": "claims.draw",
+        "label": "outline.derive",
         "model": "mock-model",
         "ok": true,
         "params": {
-          "max_output": 1600,
+          "max_output": 1200,
           "model": "mock-model",
-          "prompt_tokens": 322,
-          "schema_name": "claims",
+          "prompt_tokens": 245,
+          "schema_name": "outline",
           "temperature": null
         },
-        "prompt": "fb0a93253ab8bd0c",
-        "response": "5c77c547d293586b",
+        "prompt": "ae9eec7d05ad9b9b",
+        "response": "b4d3eb79da47aa55",
         "step": 1,
-        "tokens": {
-          "input": 322,
-          "output": 103
-        }
-      },
-      {
-        "budget_usd": 0,
-        "cached": false,
-        "error": null,
-        "finish_reason": null,
-        "label": "outline.derive",
-        "model": "mock-model",
-        "ok": true,
-        "params": {
-          "max_output": 1200,
-          "model": "mock-model",
-          "prompt_tokens": 245,
-          "schema_name": "outline",
-          "temperature": null
-        },
-        "prompt": "ae9eec7d05ad9b9b",
-        "response": "b4d3eb79da47aa55",
-        "step": 2,
-        "tokens": {
-          "input": 245,
-          "output": 74
-        }
-      },
-      {
-        "budget_usd": 0,
-        "cached": false,
-        "error": null,
-        "finish_reason": null,
-        "label": "outline.derive",
-        "model": "mock-model",
-        "ok": true,
-        "params": {
-          "max_output": 1200,
-          "model": "mock-model",
-          "prompt_tokens": 245,
-          "schema_name": "outline",
-          "temperature": null
-        },
-        "prompt": "ae9eec7d05ad9b9b",
-        "response": "b4d3eb79da47aa55",
-        "step": 3,
         "tokens": {
           "input": 245,
           "output": 74
@@ -103,13 +57,13 @@
     "stop_reason": null,
     "summary": {
       "cached": 0,
-      "calls": 3,
+      "calls": 1,
       "embed_calls": 0,
       "embed_tokens": 0,
       "errors": 0,
-      "steps": 3,
-      "tokens_in": 812,
-      "tokens_out": 251
+      "steps": 1,
+      "tokens_in": 245,
+      "tokens_out": 74
     }
   }
 }

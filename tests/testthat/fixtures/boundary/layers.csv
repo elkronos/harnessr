@@ -754,6 +754,7 @@
 "outline_reply_tokens","doc","function"
 "outline_rows","doc","function"
 "outline_vector","doc","function"
+"outline_with_trace","doc","function"
 "pack_units","doc","function"
 "page_lines","doc","function"
 "page_text","doc","function"

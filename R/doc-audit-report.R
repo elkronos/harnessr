@@ -147,8 +147,8 @@
 #' one of several [gr_outline()] compared and chosen with [gr_outline_pick()],
 #' "What was written" says which one, and how far its grouping of the claims
 #' lies from the first proposal's.
-#' The cost table includes the calls [gr_claims()] made and, when it was left
-#' to record on the claims' trace, [gr_outline()]. When any request was sent
+#' The cost table includes the calls [gr_claims()] made and, when the
+#' write-up's outline came from it, those [gr_outline()] made. When any request was sent
 #' with a reasoning effort (`effort` in [gr_read_spec()]), the cost table says
 #' which efforts each stage's requests carried, and the table of requests has
 #' an `effort` column.
@@ -900,7 +900,8 @@ audit_cost <- function(screening = NULL, extraction = NULL, synthesis = NULL, re
   # Named for the reader, not after the class. "gr_screening" is what the object
   # is called in the code and means nothing to the person the report is for.
   stages <- list(screening = screening, extraction = extraction,
-                 claims = claims_cost_stage(claims), synthesis = synthesis, answer = reading)
+                 claims = claims_cost_stage(claims, synthesis$outline_trace),
+                 synthesis = synthesis, answer = reading)
   traces <- Filter(function(x) inherits(x$trace, "gr_trace"), stages)
   if (!length(traces)) return(NULL)
   rows <- lapply(names(traces), function(nm) {
@@ -921,27 +922,43 @@ audit_cost <- function(screening = NULL, extraction = NULL, synthesis = NULL, re
   if (any(!is.na(effort))) tab$effort <- ifelse(is.na(effort), "none", unname(effort))
   c("<h2>What the run cost</h2>",
     if ("claims" %in% names(traces))
-      paste0("<p class='sub'>The claims row is the calls gr_claims() made and, where it ",
-             "recorded them on the claims' trace, those gr_outline() made.</p>"),
+      paste0("<p class='sub'>The claims row is the calls gr_claims() made and, when the ",
+             "write-up's outline came from gr_outline(), those it made.</p>"),
     "<p class='sub'>Only requests that were sent are counted. A reply served from a cache",
     "cost nothing, however large its prompt.</p>",
     html_table(tab, numeric_cols = c("calls", "cached", "tokens_in", "tokens_out", "usd")))
 }
 
-#' The claims stage of the cost table, as a stage audit_cost() can read: its
-#' own requests only, from the claims' trace, or NULL when there are none.
+#' The claims stage of the cost table, as a stage audit_cost() can read: the
+#' requests gr_claims() and gr_outline() made, or NULL when there are none.
 #'
-#' gr_claims() and gr_outline() record their calls on `claims$trace`, and
-#' gr_synthesise() keeps a trace of its own, so a claims-based review's
-#' drawing, reconciling and outlining were in no row of the table. Not the
-#' trace's own counters: gr_claims(trace = tr) records on `tr` itself, which
-#' also holds whatever else the caller ran on it -- a screening or write-up
-#' already in the table, counted twice. Its steps are picked out by label.
+#' Each records on a trace of its own: `claims$trace`, and the outline's,
+#' which gr_synthesise() keeps as `$outline_trace`. Steps are still picked out
+#' by label, because a gr_claims result made before that rule recorded on the
+#' caller's trace, which also held whatever else ran on it: a screening or
+#' write-up already in the table, counted twice.
+#'
+#' With an outline trace, the outline's steps are read from it alone. A caller
+#' who passes `trace = claims$trace` to gr_outline() folds the outline's calls
+#' into the claims' trace as well, and that trace has a run id of its own, so
+#' reading `outline.` steps from both would count them twice.
 #' @noRd
-claims_cost_stage <- function(claims) {
-  if (!inherits(claims, "gr_claims") || !inherits(claims$trace, "gr_trace")) return(NULL)
-  mine <- Filter(function(st) grepl("^(claims|outline)\\.", as_chr1(st$label, "")),
-                 claims$trace$steps)
+claims_cost_stage <- function(claims, outline_trace = NULL) {
+  claims_trace <- if (inherits(claims, "gr_claims") && inherits(claims$trace, "gr_trace")) {
+    claims$trace
+  }
+  labelled <- function(t, pattern) {
+    if (is.null(t)) return(list())
+    Filter(function(st) grepl(pattern, as_chr1(st$label, "")), t$steps)
+  }
+  mine <- if (inherits(outline_trace, "gr_trace") &&
+              !identical(outline_trace$run_id, claims_trace$run_id)) {
+    c(labelled(claims_trace, "^claims\\."), labelled(outline_trace, "^outline\\."))
+  } else {
+    # No outline trace (a result made before the outline kept one), or the
+    # claims' own trace given again: both labels come from the claims' trace.
+    labelled(claims_trace, "^(claims|outline)\\.")
+  }
   req <- Filter(function(st) !identical(st$kind, "local") && !is.null(st$tokens), mine)
   if (!length(req)) return(NULL)
   tr <- gr_trace(meta = list(stage = "claims"))

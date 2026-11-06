@@ -134,7 +134,10 @@
 #'   for fewer, larger batches.
 #' @param include_unclear Keep rows with nothing extracted. Off by default, the
 #'   same as [gr_synthesise()].
-#' @param trace A [gr_trace()] to record into.
+#' @param trace A [gr_trace()] to add this stage's calls to, or `NULL`. The
+#'   calls are recorded on a trace of the stage's own, returned as `$trace`,
+#'   and folded into `trace` when the stage ends, as in [gr_read_many()] and
+#'   [gr_synthesise()].
 #' @param bib Which columns carry bibliographic identity, as in
 #'   [gr_synthesise()]: a named list of `citation`, `authors`, `year`, `title`,
 #'   `venue`, `doi`. Those columns are withheld from the model, so a claim
@@ -222,8 +225,17 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   # One model for the batch sizing and the requests. Left NULL, gr_budget()
   # sized batches for gr_options("model") while gr_call() asked the client's.
   spec <- resolve_read_model(spec, client)
-  trace <- trace %||% gr_trace(meta = list(stage = "claims", question = question,
-                                           studies = nrow(used)))
+  # The rule every corpus stage follows (as_parent_trace()): a given trace is
+  # the parent this stage's accounting is folded into, and the stage records on
+  # a trace of its own. Recording on the given trace charged an earlier stage's
+  # calls against this one's call limit, so claims drawn after a large
+  # screening came back empty and marked partial, and `$trace` reported the
+  # whole review's cost as the claims'.
+  parent <- as_parent_trace(trace)
+  trace <- gr_trace(meta = list(stage = "claims", question = question,
+                                studies = nrow(used)))
+  # on.exit, so calls made before an error still reach the parent.
+  if (!is.null(parent)) on.exit(trace_absorb(parent, trace), add = TRUE)
 
   # Same withholding as the write-up: a model that can see who wrote a study
   # will attribute to the name rather than to the number, and a claim attributed
