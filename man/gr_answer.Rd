@@ -109,6 +109,7 @@ to compare several, \code{\link[=is_not_found]{is_not_found()}} to test the sent
 \code{\link[=gr_read]{gr_read()}}, \code{\link[=answer_document]{answer_document()}}, \code{\link[=as_json]{as_json()}}
 
 Other reading functions: 
+\code{\link{gr_check_reader}()},
 \code{\link{gr_read}()},
 \code{\link{gr_read_spec}()},
 \code{\link{gr_reader_signature}()},

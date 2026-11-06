@@ -483,6 +483,34 @@
   keys are unchanged; the trace of a run that cut nothing gains only the state
   lengths above.
 
+## Conformance checks
+
+* **New `gr_check_reader()` and `gr_check_segmenter()`** run one registered
+  reader or segmenter on `gr_example()` through an offline mock client and
+  report which rules of its contract it breaks. A reader is checked for
+  finishing without an error, returning a `gr_answer` with the fields
+  `gr_read()` documents and a single string as its answer, evidence and
+  `chunks_used` that name only chunks of the input, call labels covered by
+  the stems it declared in `calls`, and no more requests than its `cost`
+  function's worst case for that input. A segmenter is checked for
+  finishing without an error, returning a `gr_chunks` with the documented
+  columns, text in every chunk, unique chunk ids, no chunk over
+  `max_tokens` that `gr_segment()` had to split, and call labels covered by
+  its declared stems. Every built-in reader and segmenter passes them.
+
+* **New `hr_check_module()`** is the core helper both use: it runs a
+  closure that calls a module in a temporary working directory, catches its
+  error and warnings, asks a named list of rule functions about what came
+  back, and returns an `hr_conformance` data frame with a `rule`, `ok` and
+  `detail` for each. `ok` is `NA` for a rule that could not be checked.
+  `print()` lists the broken rules first, says "passes all N rules" when
+  every rule passes, and says "passes all N rules checked; M not checked"
+  when some rules could not be checked.
+
+* The checks are reports only. `gr_register_reader()` and
+  `gr_register_segmenter()` still check only that `fn` is a function, and
+  register a module that breaks a rule as before.
+
 # readgpt 0.6.0
 
 ## New

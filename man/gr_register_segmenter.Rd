@@ -67,6 +67,7 @@ subset(gr_segmenters(), name == "by_bullet")
 \code{\link[=gr_segment]{gr_segment()}}, \code{\link[=gr_segment_spec]{gr_segment_spec()}}, \code{\link[=gr_recipe]{gr_recipe()}}
 
 Other segmentation functions: 
+\code{\link{gr_check_segmenter}()},
 \code{\link{gr_chunk_stats}()},
 \code{\link{gr_chunks}},
 \code{\link{gr_segment}()},

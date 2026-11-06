@@ -92,9 +92,7 @@ check_effort_stems <- function(effort, stems, arg = "effort") {
   if (is.null(effort)) return(NULL)
   keys <- effort_keys(effort)
   stems <- unique(stems[!is.na(stems) & nzchar(stems)])
-  known <- function(k) any(k == stems | startsWith(stems, paste0(k, ".")) |
-                             startsWith(k, paste0(stems, ".")))
-  bad <- keys[nzchar(keys) & !vapply(keys, known, logical(1))]
+  bad <- keys[nzchar(keys) & !stem_known(keys, stems)]
   if (length(bad)) {
     gr_abort(sprintf(paste0("`%s` names %s, which no call is labelled with, so the setting ",
                             "would reach no request. Name a call stem, or a part of one up to ",
@@ -104,6 +102,20 @@ check_effort_stems <- function(effort, stems, arg = "effort") {
              class = c("hr_unknown_effort_key", "gr_bad_setting"))
   }
   effort
+}
+
+#' Whether each of `x` is covered by one of `stems`: it is a stem, a part of
+#' one up to a dot ("synthesise" for "synthesise.section"), or a label under
+#' one ("reduce.level1" under "reduce"). The rule check_effort_stems() applies
+#' to the names of an effort map, and the conformance checks to the labels of
+#' a module's calls.
+#' @noRd
+stem_known <- function(x, stems) {
+  stems <- unique(stems[!is.na(stems) & nzchar(stems)])
+  vapply(as.character(x), function(k) {
+    !is.na(k) && any(k == stems | startsWith(stems, paste0(k, ".")) |
+                       startsWith(k, paste0(stems, ".")))
+  }, logical(1), USE.NAMES = FALSE)
 }
 
 #' The label prefix each element of an effort map is for; "" for the default.

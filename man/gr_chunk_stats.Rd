@@ -30,6 +30,7 @@ do.call(rbind, lapply(c(0, 30, 60), function(ov)
 \code{\link[=gr_segment]{gr_segment()}}, \code{\link[=gr_segmenters]{gr_segmenters()}}
 
 Other segmentation functions: 
+\code{\link{gr_check_segmenter}()},
 \code{\link{gr_chunks}},
 \code{\link{gr_register_segmenter}()},
 \code{\link{gr_segment}()},

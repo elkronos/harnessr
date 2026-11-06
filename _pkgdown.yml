@@ -152,6 +152,9 @@ reference:
   - hr_schema
   - hr_param
   - hr_validate
+  - hr_check_module
+  - gr_check_reader
+  - gr_check_segmenter
 
 - title: Superseded
   desc: >
