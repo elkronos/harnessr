@@ -199,6 +199,21 @@ http_call <- function(client, url, body) {
   # content_type_json() so a caller who names Content-Type wins.
   hdr <- httr::add_headers(.headers = headers)
   attempt <- 0L
+  # Every attempt is a request the provider may bill, so the result says how
+  # many there were.
+  # A failed request left with gr_result()'s default usage read nothing from
+  # the provider, so its zero is decided here and is "counted", not
+  # "reported". Usage marked unknown (NA) is left for gr_call() to settle.
+  done <- function(r) {
+    r$attempts <- attempt
+    u <- r$usage
+    if (!isTRUE(r$ok) && is.null(u$provenance) &&
+        identical(as_int1(u$input, NA_integer_), 0L) &&
+        identical(as_int1(u$output, NA_integer_), 0L)) {
+      r$usage <- usage_record(0L, 0L, "counted")
+    }
+    r
+  }
   repeat {
     attempt <- attempt + 1L
     resp <- tryCatch(
@@ -211,8 +226,8 @@ http_call <- function(client, url, body) {
     )
     if (inherits(resp, "condition")) {
       if (attempt > client$max_retries) {
-        return(gr_result(FALSE, error = paste0("Transport error: ", conditionMessage(resp)),
-                         status = 0L, retryable = TRUE))
+        return(done(gr_result(FALSE, error = paste0("Transport error: ", conditionMessage(resp)),
+                              status = 0L, retryable = TRUE)))
       }
       Sys.sleep(backoff_delay(client$retry_pause_base, attempt))
       next
@@ -223,21 +238,21 @@ http_call <- function(client, url, body) {
       # its body turns out to hold. An error here used to leave gr_call()
       # before trace_record(), and in a parallel map took the document with it.
       # Usage unknown, not zero, so gr_call() settles it against the prompt.
-      return(tryCatch(parse_response(resp, client$api), error = function(e) {
+      return(done(tryCatch(parse_response(resp, client$api), error = function(e) {
         gr_result(FALSE, status = status,
                   usage = list(input = NA_integer_, output = NA_integer_),
                   error = paste0("Could not read the API response: ",
                                  repair_utf8(conditionMessage(e))))
-      }))
+      })))
     }
     body_text <- repair_utf8(as_chr1(tryCatch(httr::content(resp, as = "text", encoding = "UTF-8"),
                                               error = function(e) "<unreadable body>")))
     detail <- substr(body_text, 1, 800)
     if (out_of_quota(status, body_text)) {
       # Terminal, whatever the status says: see out_of_quota().
-      return(gr_result(FALSE, status = status, retryable = FALSE,
-                       error = sprintf("HTTP %d (the account is out of quota; not retried): %s",
-                                       status, detail)))
+      return(done(gr_result(FALSE, status = status, retryable = FALSE,
+                            error = sprintf("HTTP %d (the account is out of quota; not retried): %s",
+                                            status, detail))))
     }
     if (status %in% .retryable_status && attempt <= client$max_retries) {
       wait <- retry_after(resp) %||% backoff_delay(client$retry_pause_base, attempt)
@@ -246,8 +261,8 @@ http_call <- function(client, url, body) {
       Sys.sleep(wait)
       next
     }
-    return(gr_result(FALSE, error = sprintf("HTTP %d: %s", status, detail),
-                     status = status, retryable = status %in% .retryable_status))
+    return(done(gr_result(FALSE, error = sprintf("HTTP %d: %s", status, detail),
+                          status = status, retryable = status %in% .retryable_status)))
   }
 }
 
@@ -328,6 +343,21 @@ parse_response <- function(resp, api) {
     input  = int1(fld(ug, "input_tokens")  %||% fld(ug, "prompt_tokens")     %||% NA_integer_),
     output = int1(fld(ug, "output_tokens") %||% fld(ug, "completion_tokens") %||% NA_integer_)
   )
+  # The breakdowns, where the provider gives them: reasoning tokens are part
+  # of the output count and cached tokens part of the input count, on both
+  # API shapes. Added only when present, so a reply without them reads as it
+  # always did.
+  reasoning <- int1(fld(fld(ug, "output_tokens_details"), "reasoning_tokens") %||%
+                    fld(fld(ug, "completion_tokens_details"), "reasoning_tokens") %||%
+                    NA_integer_)
+  cached_in <- int1(fld(fld(ug, "input_tokens_details"), "cached_tokens") %||%
+                    fld(fld(ug, "prompt_tokens_details"), "cached_tokens") %||% NA_integer_)
+  if (!is.na(reasoning)) usage$reasoning <- reasoning
+  if (!is.na(cached_in)) usage$cached_input <- cached_in
+  # Who answered, as the provider tells it. Kept out of every key.
+  str1 <- function(v) if (is.character(v) && length(v) == 1L && !is.na(v)) v else NA_character_
+  about <- list(served_model = str1(fld(parsed, "model")), response_id = str1(fld(parsed, "id")),
+                fingerprint = str1(fld(parsed, "system_fingerprint")))
   ch <- fld(parsed, "choices")
   status <- fld(parsed, "status")
   # A Responses API reply cut off at `max_output_tokens` has status
@@ -346,6 +376,8 @@ parse_response <- function(resp, api) {
   if (is_refusal(parsed)) {
     return(gr_result(FALSE, text = "", status = httr::status_code(resp), usage = usage,
                      finish_reason = "refusal", raw = parsed,
+                     served_model = about$served_model, response_id = about$response_id,
+                     fingerprint = about$fingerprint,
                      error = paste0("Model refused the request: ", substr(text, 1, 200))))
   }
   # An empty completion is a *successful* call with no content -- report it as
@@ -353,11 +385,14 @@ parse_response <- function(resp, api) {
   if (!nzchar(trimws(text))) {
     return(gr_result(FALSE, text = "", status = httr::status_code(resp), usage = usage,
                      finish_reason = finish, raw = parsed,
+                     served_model = about$served_model, response_id = about$response_id,
+                     fingerprint = about$fingerprint,
                      error = sprintf("Model returned no text content (finish reason: %s).",
                                      as_chr1(finish, "unknown"))))
   }
   gr_result(TRUE, text = text, status = httr::status_code(resp), usage = usage,
-            finish_reason = finish, raw = parsed)
+            finish_reason = finish, raw = parsed, served_model = about$served_model,
+            response_id = about$response_id, fingerprint = about$fingerprint)
 }
 
 #' One field of a parsed model reply, read EXACTLY and shaped.

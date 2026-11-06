@@ -35,6 +35,67 @@
   the Shiny app's title. A trace's `meta` still records the version under
   `readgpt`, so traces written before and after the rename read the same way.
 
+## Traces record what was sent and what came back
+
+* **Each request step records `params_sent`**, the request as it went out with
+  every default resolved: the model, `api`, `base_url`, the output cap
+  actually sent (a reasoning model's small cap goes out raised to 2048), the
+  temperature (filled from `gr_options("temperature")`, or `NA` when none was
+  sent), the effort, the schema name, and SHA-256 hashes of the schema and of
+  the extra body fields. For a `gr_client()` it is read from the request body
+  itself. `params` keeps what the caller asked for, as before. Requests,
+  response-cache keys and replay keys are unchanged.
+
+* **Steps record `served_model`, `response_id` and `fingerprint`** where the
+  provider returns them, beside `model`, which stays the model asked for and
+  is what a step is priced and replayed by. None of them enters a cache or
+  replay key. `gr_call()` results carry the same three fields.
+
+* **Steps record `attempts`**, the number of requests sent, retries included
+  (0 for a reply from a cache or a recording), and `started_utc` and
+  `ended_utc` as ISO 8601 in UTC with a trailing `Z`. A saved trace's
+  `started` is now written in UTC with a `Z` too; it was local time with no
+  offset.
+
+* **Token records say where they came from.** A step's `tokens` gains
+  `provenance`: `"reported"` by the provider, `"counted"` here with the
+  `"tiktoken"` tokenizer, or `"estimated"` with another one. Reasoning and
+  cached input tokens the provider reports are kept as `tokens$reasoning` and
+  `tokens$cached_input`, parts of `output` and `input` rather than additions.
+  `gr_trace_summary()` gains `tokens_reasoning`, `tokens_cached_in` and
+  `usage_estimated`, the share of requests whose counts were estimated, and
+  `print()` on a trace says that share when it is above zero. A request that
+  failed before the provider sent any usage records a `"counted"` zero, and a
+  handler's `gr_result()` built with no usage is counted here rather than
+  taken as a reported 0 in and 0 out.
+
+* **Embeddings requests record `attempts`, `served_model` and a provenance**
+  like any other request; `attempts` was always `NA` although they are
+  retried, and a failed one had no provenance.
+  `as.data.frame()` on a trace gains `tokens_reasoning`, `tokens_cached_in`
+  and `served_model` columns when some request has them, and
+  `gr_trace_cost()` gains `paid_reasoning` and `paid_cached_in`.
+
+* **Cached input can be priced at its own rate.** `gr_register_model()` takes
+  `cached_input_usd`, `gr_estimate_cost()` takes `cached_input_tokens`, and
+  `gr_models()` shows `cached_input_usd_per_1m`. A model with no cached rate
+  prices cached input as other input, so every built-in model costs what it
+  did.
+
+* **Runs record who they are for.** `gr_trace()` takes `system`, `owner`,
+  `run_by`, `purpose` and `approved_by`, and the new option
+  `gr_options(actor = list(...))` sets them for every trace; a field named
+  nowhere is `NA`. They are written to a saved trace under `actor` and shown
+  by `print()` when set.
+
+* **Runs record the options in force** when the trace was made, under
+  `config`, with the R version. The values of `api_headers` are left out,
+  since they can hold credentials.
+
+* `gr_options()` given one named argument whose value is a list now sets that
+  option. It used to read the list as a set of options to restore, which only
+  an unnamed list should be.
+
 # readgpt 0.6.0
 
 ## New

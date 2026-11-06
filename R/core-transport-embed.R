@@ -282,7 +282,8 @@ embed_api <- function(texts, params) {
 #' `max_retries` promised otherwise, and the next call, made a moment later,
 #' got real vectors. The statuses retried, the backoff and a server's
 #' Retry-After are http_call()'s. Returns the last response, or the transport
-#' error once the retries are spent.
+#' error once the retries are spent, with the number of requests sent as its
+#' `attempts` attribute, so the ledger can say how many were billed.
 #' @noRd
 embed_post <- function(client, url, headers, body) {
   retries <- as_int1(client$max_retries, 0L)
@@ -297,12 +298,14 @@ embed_post <- function(client, url, headers, body) {
                  body = body, encode = "json"),
       error = function(e) e)
     if (inherits(resp, "condition")) {
-      if (attempt > retries) return(resp)
+      if (attempt > retries) return(structure(resp, attempts = attempt))
       Sys.sleep(backoff_delay(as_num1(client$retry_pause_base, 0), attempt))
       next
     }
     status <- httr::status_code(resp)
-    if (!(status %in% .retryable_status) || attempt > retries) return(resp)
+    if (!(status %in% .retryable_status) || attempt > retries) {
+      return(structure(resp, attempts = attempt))
+    }
     wait <- retry_after(resp) %||% backoff_delay(as_num1(client$retry_pause_base, 0), attempt)
     gr_msg(sprintf("Embeddings request: HTTP %d; retrying in %.1fs (attempt %d/%d).",
                    status, wait, attempt, retries + 1L))
@@ -393,6 +396,7 @@ embed_record <- function(trace, model, texts, resp, parsed, problem = NULL, seco
   status <- if (inherits(resp, "condition")) 0L
             else if (inherits(resp, "response")) as_int1(httr::status_code(resp), NA_integer_)
             else NA_integer_
+  attempts <- as_int1(attr(resp, "attempts", exact = TRUE), NA_integer_)
   res <- if (is.list(parsed) && !is.null(parsed[["data"]])) {
     ug <- if (is.list(parsed[["usage"]])) parsed[["usage"]] else list()
     usage <- settle_usage(list(input = ug[["prompt_tokens"]] %||% ug[["input_tokens"]],
@@ -400,11 +404,18 @@ embed_record <- function(trace, model, texts, resp, parsed, problem = NULL, seco
                           sum(gr_count_tokens(texts)), "")
     # A reply that held embeddings the checks refused was still answered, and
     # billed, so its tokens stay on the step; only its vectors are unusable.
-    if (is.null(problem)) gr_result(TRUE, model = model, usage = usage)
-    else gr_result(FALSE, model = model, status = status, usage = usage,
-                   error = sprintf("Embeddings request to '%s' failed: %s", model, problem))
+    served <- as_chr1(parsed[["model"]], NA_character_)
+    if (is.null(problem)) {
+      gr_result(TRUE, model = model, usage = usage, served_model = served, attempts = attempts)
+    } else {
+      gr_result(FALSE, model = model, status = status, usage = usage,
+                served_model = served, attempts = attempts,
+                error = sprintf("Embeddings request to '%s' failed: %s", model, problem))
+    }
   } else {
-    gr_result(FALSE, model = model, status = status, error = sprintf(
+    # Nothing was read from the provider, so the zero is ours: "counted".
+    gr_result(FALSE, model = model, status = status, attempts = attempts,
+              usage = usage_record(0L, 0L, "counted"), error = sprintf(
       "Embeddings request to '%s' failed: %s", model,
       problem %||% embed_http_problem(resp)))
   }

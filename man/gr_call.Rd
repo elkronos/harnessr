@@ -68,6 +68,10 @@ the model wrote, but always carries \code{finish_reason = "length"}, whatever th
 provider called it (\code{"max_tokens"}, \code{"MAX_TOKENS"}, a Responses API status
 of \code{"incomplete"}); check for it wherever a complete reply matters. Such a
 reply is not written to a \code{\link[=gr_cache]{gr_cache()}}.
+\verb{$served_model}, \verb{$response_id} and \verb{$fingerprint} are what the provider
+said about its reply (\code{NA} where it said nothing; \verb{$model} stays the model
+asked for), and \verb{$attempts} is how many requests were sent for it,
+retries included, 0 for a reply from a cache or a recording.
 }
 \description{
 Call a model

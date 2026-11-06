@@ -82,10 +82,11 @@ golden_hash <- function(x) {
 # ---------------------------------------------------------------------------
 
 # Fields that change between two runs of the same inputs, dropped wherever they
-# appear: a step's clock time and duration, the trace's start, run id and
-# elapsed time, and the package version its meta records (which would make
-# every release a fixture change).
-golden_volatile <- c("at", "seconds", "started", "run_id", "elapsed_s", "readgpt")
+# appear: a step's clock times and duration, the trace's start, run id and
+# elapsed time, the package version its meta records (which would make every
+# release a fixture change) and the R version its config snapshot records.
+golden_volatile <- c("at", "seconds", "started", "started_utc", "ended_utc", "run_id",
+                     "elapsed_s", "readgpt", "r_version")
 
 # Every absolute path a run can mention, longest first, with what it becomes.
 golden_paths <- function() {

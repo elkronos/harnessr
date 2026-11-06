@@ -11,7 +11,11 @@ gr_trace_cost(trace)
 }
 \value{
 A data frame with one row per model: \code{model}, \code{calls}, \code{paid_calls},
-\code{paid_in}, \code{paid_out}, \code{usd}. \code{sum(x$usd)} is the run's cost. A model with
+\code{paid_in}, \code{paid_out}, \code{usd}, \code{paid_reasoning}, \code{paid_cached_in}.
+\code{sum(x$usd)} is the run's cost. \code{paid_reasoning} and \code{paid_cached_in} are
+the reasoning and cached input tokens the provider reported among
+\code{paid_out} and \code{paid_in}; cached input is priced at the model's cached
+input rate where \code{\link[=gr_register_model]{gr_register_model()}} gave it one. A model with
 no registered price contributes \code{NA}, so a total that silently omitted an
 unpriced model is impossible. The exception is a model whose every request
 failed without sending a token (an embeddings request to an endpoint that

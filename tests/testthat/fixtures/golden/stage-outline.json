@@ -20,7 +20,41 @@
   ],
   "result": "702653372e4f83c1",
   "trace": {
+    "actor": {
+      "approved_by": null,
+      "owner": null,
+      "purpose": null,
+      "run_by": null,
+      "system": null
+    },
     "budget_stop": false,
+    "config": {
+      "options": {
+        "actor": [],
+        "api": "responses",
+        "api_base": "https://api.openai.com/v1",
+        "api_headers": [],
+        "cache_dir": null,
+        "cache_documents": true,
+        "cache_embeddings": true,
+        "embedder": null,
+        "embedding_model": "text-embedding-3-small",
+        "max_calls": 400,
+        "max_cost_usd": 5,
+        "max_retries": 4,
+        "min_output_tokens": 256,
+        "model": "gpt-5.6-terra",
+        "parallel": false,
+        "request_timeout": 120,
+        "retry_pause_base": 2,
+        "safety_margin": 0.1,
+        "temperature": null,
+        "tokenizer": "heuristic",
+        "unknown_model_action": "warn",
+        "verbose": false,
+        "workers": 4
+      }
+    },
     "errors": [],
     "meta": {
       "question": "How did revenue change?",
@@ -31,9 +65,11 @@
     "spent_usd": 0,
     "steps": [
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "claims.draw",
         "model": "mock-model",
@@ -45,18 +81,34 @@
           "schema_name": "claims",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1600,
+          "model": "mock-model",
+          "schema_hash": "33dc77b891b87d32899e67aefb2f3208ff933924829ba39272fb172e6087648b",
+          "schema_name": "claims",
+          "temperature": null
+        },
         "prompt": "fb0a93253ab8bd0c",
         "response": "5c77c547d293586b",
+        "response_id": null,
+        "served_model": null,
         "step": 1,
         "tokens": {
           "input": 322,
-          "output": 103
+          "output": 103,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "outline.derive",
         "model": "mock-model",
@@ -68,18 +120,34 @@
           "schema_name": "outline",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1200,
+          "model": "mock-model",
+          "schema_hash": "ed20c6da8281850816b8bbc62c4aa617a1489d33e0b8aa48f55f4d48d32d3f29",
+          "schema_name": "outline",
+          "temperature": null
+        },
         "prompt": "ae9eec7d05ad9b9b",
         "response": "b4d3eb79da47aa55",
+        "response_id": null,
+        "served_model": null,
         "step": 2,
         "tokens": {
           "input": 245,
-          "output": 74
+          "output": 74,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "outline.derive",
         "model": "mock-model",
@@ -91,12 +159,26 @@
           "schema_name": "outline",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1200,
+          "model": "mock-model",
+          "schema_hash": "ed20c6da8281850816b8bbc62c4aa617a1489d33e0b8aa48f55f4d48d32d3f29",
+          "schema_name": "outline",
+          "temperature": null
+        },
         "prompt": "ae9eec7d05ad9b9b",
         "response": "b4d3eb79da47aa55",
+        "response_id": null,
+        "served_model": null,
         "step": 3,
         "tokens": {
           "input": 245,
-          "output": 74
+          "output": 74,
+          "provenance": "estimated"
         }
       }
     ],
@@ -108,8 +190,11 @@
       "embed_tokens": 0,
       "errors": 0,
       "steps": 3,
+      "tokens_cached_in": 0,
       "tokens_in": 812,
-      "tokens_out": 251
+      "tokens_out": 251,
+      "tokens_reasoning": 0,
+      "usage_estimated": 1
     }
   }
 }

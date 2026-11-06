@@ -30,7 +30,9 @@
 gr_result <- function(ok, text = "", error = NULL, status = NA_integer_,
                       usage = list(input = 0L, output = 0L), model = NA_character_,
                       finish_reason = NA_character_, retryable = FALSE, raw = NULL,
-                      cached = FALSE) {
+                      cached = FALSE, served_model = NA_character_,
+                      response_id = NA_character_, fingerprint = NA_character_,
+                      attempts = NA_integer_) {
   structure(list(
     ok = isTRUE(ok),
     # ALWAYS character(1); never NULL/character(0). And always LABELLED: bytes
@@ -53,7 +55,17 @@ gr_result <- function(ok, text = "", error = NULL, status = NA_integer_,
     # network. `usage` still reports the real token counts of the original call,
     # so the trace can say how big the prompt was; `cached` is what stops those
     # tokens from being counted as money spent this run.
-    cached = isTRUE(cached)
+    cached = isTRUE(cached),
+    # What the provider says about the reply it sent: the model that actually
+    # answered (an alias such as "gpt-4o" is served by a dated snapshot), the
+    # response id and the system fingerprint. `model` stays the model asked
+    # for, since that is what pricing, the cache key and a replay look up.
+    served_model = as_chr1(served_model, NA_character_),
+    response_id = as_chr1(response_id, NA_character_),
+    fingerprint = as_chr1(fingerprint, NA_character_),
+    # Requests sent for this reply, retries included: 0 for a reply served
+    # from a cache or a recording, NA when the transport does not say.
+    attempts = as_int1(attempts, NA_integer_)
   ), class = "gr_result")
 }
 
@@ -171,6 +183,10 @@ print.gr_result <- function(x, ...) {
 #'   provider called it (`"max_tokens"`, `"MAX_TOKENS"`, a Responses API status
 #'   of `"incomplete"`); check for it wherever a complete reply matters. Such a
 #'   reply is not written to a [gr_cache()].
+#'   `$served_model`, `$response_id` and `$fingerprint` are what the provider
+#'   said about its reply (`NA` where it said nothing; `$model` stays the model
+#'   asked for), and `$attempts` is how many requests were sent for it,
+#'   retries included, 0 for a reply from a cache or a recording.
 #' @seealso [gr_client()], [gr_mock_client()], [gr_result], [gr_budget()],
 #'   [gr_cache_client()], [gr_replay_client()]
 #' @export
@@ -245,7 +261,8 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
       paste0("Prompt is %d tokens but '%s' has a %d-token context window, leaving no room for a ",
              "reply. Segment more aggressively (lower `max_tokens` on the segmenter) or use a ",
              "larger-context model."),
-      prompt_tokens, model, info$context_window), status = 0L, model = model)
+      prompt_tokens, model, info$context_window), status = 0L, model = model,
+      usage = usage_record(0L, 0L, "counted"), attempts = 0L)
     trace_record(trace, label, messages, res, params = list(model = model), seconds = 0)
     return(res)
   }
@@ -266,12 +283,23 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   # to `return()` after recording their own trace entry, so every feature that
   # had to sit between the request and the response -- caching, replay -- would
   # have had to be written twice and kept in step by hand.
-  started <- Sys.time()
   req <- list(messages = messages, model = model, max_output = max_output,
               temperature = temperature, schema = schema, schema_name = schema_name,
               info = info, params = params, label = label, extra = extra,
               accept = accept, effort_map = effort_map)
+  # What the request carries once every default is resolved, worked out from
+  # the same function that builds it. `params` stays what the caller asked for
+  # and a handler is given, which a replay reads; this is the record of what
+  # went out, and is kept out of every key.
+  sent <- client_sent_params(client, req)
+  started <- Sys.time()
   res <- client_dispatch(client, req)
+  ended <- Sys.time()
+  # A replay hands back the record of what the recorded call sent.
+  if (!is.null(res[["params_sent", exact = TRUE]])) {
+    sent <- res$params_sent
+    res$params_sent <- NULL
+  }
   # An ellmer chat is handed the effort only so that it can say it does not
   # send it (gr_ellmer_client()). Recorded as `effort`, the trace, its
   # `effort` column and the audit report said every request ran at an effort
@@ -282,9 +310,11 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
       (!client_sends_effort(client) || isTRUE(res[["unsent_effort", exact = TRUE]]))) {
     params$unsent_effort <- params$effort
     params$effort <- NULL
+    if (is.list(sent)) sent$effort <- NA_character_
   }
   trace_record(trace, label, messages, res, params,
-               seconds = as.numeric(difftime(Sys.time(), started, units = "secs")))
+               seconds = as.numeric(difftime(ended, started, units = "secs")),
+               sent = sent, started = started, ended = ended)
   res
 }
 
@@ -315,6 +345,10 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
 #' @rawNamespace S3method(client_send, gr_mock_client)
 #' @rawNamespace S3method(client_sends_effort, gr_client)
 #' @rawNamespace S3method(client_sends_effort, gr_ellmer_client)
+#' @rawNamespace S3method(client_sent_params, gr_client)
+#' @rawNamespace S3method(client_sent_params, gr_backend_client)
+#' @rawNamespace S3method(client_sent_params, gr_mock_client)
+#' @rawNamespace S3method(client_sent_params, gr_replay_client)
 #' @noRd
 client_dispatch <- function(client, req) UseMethod("client_dispatch")
 
@@ -356,6 +390,8 @@ client_dispatch.gr_client <- function(client, req) {
       # Entries are stored as built. One written before the truncation
       # spellings were unified can still say "incomplete" or "max_tokens".
       hit$finish_reason <- normalise_finish_reason(hit$finish_reason)
+      # Nothing was sent for it this time.
+      hit$attempts <- 0L
       return(hit)
     }
   }
@@ -386,17 +422,105 @@ client_send <- function(client, req) UseMethod("client_send")
 
 #' @noRd
 client_send.gr_client <- function(client, req) {
-  info <- req$info
-  body <- build_request_body(client, req$messages, req$model,
-                             reasoning_output_cap(req$max_output, info, req$params$prompt_tokens),
-                             req$temperature, req$schema, req$schema_name, info, req$extra,
-                             effort = req$params$effort)
-  url <- paste0(client$base_url,
-                if (identical(client$api, "responses")) "/responses" else "/chat/completions")
-  out <- http_call(client, url, body)
+  out <- http_call(client, request_url(client), request_body(client, req))
+  # The model asked for, which pricing and the trace key on. The one the
+  # provider says answered is kept apart, in `served_model`.
   out$model <- req$model
   out$usage <- settle_usage(out$usage, req$params$prompt_tokens, out$text)
   out
+}
+
+#' The body an HTTP client sends for a prepared request.
+#'
+#' One function for the request and for the record of it (client_sent_params()),
+#' so the two cannot drift apart.
+#' @noRd
+request_body <- function(client, req) {
+  info <- req$info
+  build_request_body(client, req$messages, req$model,
+                     reasoning_output_cap(req$max_output, info, req$params$prompt_tokens),
+                     req$temperature, req$schema, req$schema_name, info, req$extra,
+                     effort = req$params$effort)
+}
+
+#' @noRd
+request_url <- function(client) {
+  paste0(client$base_url,
+         if (identical(client$api, "responses")) "/responses" else "/chat/completions")
+}
+
+#' What a request carries once every default is resolved.
+#'
+#' An internal S3 generic. The trace used to record the caller's values: a
+#' temperature left NULL that the request filled from gr_options(), and the cap
+#' the caller asked for where a reasoning model was sent a larger one. This is
+#' read from the request itself: for the HTTP client from the body
+#' request_body() builds, for a closure client from the params its handler is
+#' given. A schema and the extra body fields are kept as hashes of their JSON,
+#' since the trace already holds enough to rebuild neither and both can be
+#' large. `NA` marks a field the request does not carry.
+#' @noRd
+client_sent_params <- function(client, req) UseMethod("client_sent_params")
+
+#' @noRd
+client_sent_params.gr_client <- function(client, req) {
+  body <- request_body(client, req)
+  responses <- identical(client$api, "responses")
+  schema <- if (responses) body[["text", exact = TRUE]][["format", exact = TRUE]]
+            else body[["response_format", exact = TRUE]][["json_schema", exact = TRUE]]
+  effort <- if (responses) body[["reasoning", exact = TRUE]][["effort", exact = TRUE]]
+            else body[["reasoning_effort", exact = TRUE]]
+  cap <- body[["max_output_tokens", exact = TRUE]] %||%
+    body[["max_completion_tokens", exact = TRUE]] %||% body[["max_tokens", exact = TRUE]]
+  extra <- utils::modifyList(client$extra_body %||% list(), req$extra %||% list())
+  sent_params(model = body[["model", exact = TRUE]], api = client$api,
+              base_url = client$base_url, max_output = cap,
+              temperature = body[["temperature", exact = TRUE]], effort = effort,
+              schema_name = if (is.list(schema)) schema[["name", exact = TRUE]],
+              schema = if (is.list(schema)) schema[["schema", exact = TRUE]], extra = extra)
+}
+
+#' @noRd
+client_sent_params.gr_backend_client <- function(client, req) {
+  # The handler is given `params` and the messages, nothing else: no extra
+  # body fields reach it, and a temperature left NULL reaches it as NULL.
+  p <- req$params
+  sent_params(model = p$model, api = client$api, base_url = client$base_url,
+              max_output = p$max_output, temperature = p$temperature, effort = p$effort,
+              schema_name = if (!is.null(p$schema)) p$schema_name, schema = p$schema,
+              extra = NULL)
+}
+
+#' @noRd
+client_sent_params.gr_mock_client <- client_sent_params.gr_backend_client
+
+#' @noRd
+client_sent_params.gr_replay_client <- function(client, req) NULL
+
+#' The record client_sent_params() returns, with a fixed set of fields.
+#' @noRd
+sent_params <- function(model, api, base_url, max_output, temperature, effort, schema_name,
+                        schema, extra) {
+  list(model = as_chr1(model, NA_character_),
+       api = as_chr1(api, NA_character_),
+       base_url = as_chr1(base_url, NA_character_),
+       max_output = as_int1(max_output, NA_integer_),
+       temperature = as_num1(temperature, NA_real_),
+       effort = as_chr1(effort, NA_character_),
+       schema_name = as_chr1(schema_name, NA_character_),
+       schema_hash = json_sha256(schema),
+       extra_body_hash = json_sha256(extra))
+}
+
+#' SHA-256 of a value's JSON, or NA for nothing.
+#'
+#' The JSON is written as the request body is (auto_unbox, every digit), so
+#' the hash of a schema recorded here is the hash of the schema the body held.
+#' @noRd
+json_sha256 <- function(x) {
+  if (is.null(x) || (is.list(x) && !length(x))) return(NA_character_)
+  json <- jsonlite::toJSON(x, auto_unbox = TRUE, digits = NA, null = "null", na = "null")
+  digest::digest(charToRaw(enc2utf8(as.character(json))), algo = "sha256", serialize = FALSE)
 }
 
 #' Run a closure client's handler and normalise whatever it returned.
@@ -411,6 +535,7 @@ client_send.gr_backend_client <- function(client, req) {
   params <- req$params
   out <- tryCatch(client$handler(req$messages, params), error = function(e) e)
   res <- handler_result(out, req$model, as_int1(params$prompt_tokens, 0L))
+  if (is.na(res$attempts)) res$attempts <- 1L
   client$.log$calls <- c(client$.log$calls, list(list(messages = req$messages, params = params,
                                                       result = res, label = req$label)))
   res
@@ -461,7 +586,6 @@ reasoning_output_cap <- function(max_output, info, prompt_tokens) {
 #' @noRd
 .gr_reasoning_floor <- 2048L
 
-#' Turn whatever a handler returned into a lawful `gr_result`.
 #' Token usage the trace can trust.
 #'
 #' Unknown is not zero. When the provider's figure for a call is missing or not
@@ -471,27 +595,81 @@ reasoning_output_cap <- function(max_output, info, prompt_tokens) {
 #' little -- the same rule `ellmer_usage()` applies, now applied to the HTTP
 #' path and to a handler-built result that left `usage` out. A figure the
 #' provider did report is kept as reported, including a genuine zero.
+#'
+#' The record says which it is (see usage_record()), and keeps the reasoning
+#' and cached-input counts the provider reported. Both are parts of `output`
+#' and `input`, not additions to them.
 #' @noRd
 settle_usage <- function(usage, prompt_tokens, text) {
   num <- function(v) {
     v <- suppressWarnings(as.numeric(v))
     if (length(v) != 1L || is.na(v) || !is.finite(v) || v < 0) NA_integer_ else as.integer(v)
   }
-  inp <- num(if (is.list(usage)) usage$input else NULL)
-  out <- num(if (is.list(usage)) usage$output else NULL)
-  list(input  = if (is.na(inp)) as_int1(prompt_tokens, 0L) else inp,
-       output = if (is.na(out)) sum(gr_count_tokens(as_chr1(text))) else out)
+  get <- function(nm) if (is.list(usage)) usage[[nm, exact = TRUE]] else NULL
+  inp <- num(get("input"))
+  out <- num(get("output"))
+  given <- as_chr1(get("provenance"), NA_character_)
+  if (!given %in% .gr_usage_provenance) given <- "reported"
+  prov <- if (is.na(inp) || is.na(out)) weaker_provenance(given, local_provenance()) else given
+  usage_record(input  = if (is.na(inp)) as_int1(prompt_tokens, 0L) else inp,
+               output = if (is.na(out)) sum(gr_count_tokens(as_chr1(text))) else out,
+               provenance = prov,
+               reasoning = num(get("reasoning")), cached_input = num(get("cached_input")))
 }
 
+#' Where a usage figure came from, from most to least exact: the provider
+#' reported it, it was counted locally with the model's own tokenizer, or it
+#' was estimated by a heuristic one.
+#' @noRd
+.gr_usage_provenance <- c("reported", "counted", "estimated")
+
+#' @noRd
+weaker_provenance <- function(a, b) {
+  .gr_usage_provenance[max(match(c(a, b), .gr_usage_provenance), na.rm = TRUE)]
+}
+
+#' What a count made here is: "counted" with tiktoken, which encodes as the
+#' OpenAI models do, and "estimated" with any other tokenizer.
+#' @noRd
+local_provenance <- function() {
+  if (identical(gr_options("tokenizer"), "tiktoken")) "counted" else "estimated"
+}
+
+#' One usage record, its fields always in this order.
+#'
+#' `reasoning` and `cached_input` are present only when the provider reported
+#' them, so a reply without them keeps the shape it always had. `provenance`
+#' is one of .gr_usage_provenance, or NA for a record written before it was
+#' kept (an old cache entry or recording).
+#' @noRd
+usage_record <- function(input, output, provenance = NA_character_,
+                         reasoning = NA_integer_, cached_input = NA_integer_) {
+  u <- list(input = input, output = output)
+  if (!is.na(as_int1(reasoning, NA_integer_))) u$reasoning <- as_int1(reasoning)
+  if (!is.na(as_int1(cached_input, NA_integer_))) u$cached_input <- as_int1(cached_input)
+  u$provenance <- as_chr1(provenance, NA_character_)
+  u
+}
+
+#' Turn whatever a handler returned into a lawful `gr_result`.
 #' @noRd
 handler_result <- function(out, model, prompt_tokens) {
   if (inherits(out, "gr_result")) {
     # Re-normalise: a hand-built gr_result from a user handler can violate the
     # character(1) contract that every caller downstream relies on.
     txt <- repair_utf8(as_chr1(out$text))
+    # gr_result()'s default usage is 0 in and 0 out with no provenance. On a
+    # reply that has text, that is a handler that said nothing about tokens,
+    # not a provider that reported none, so it is counted here instead.
+    usage <- out$usage
+    if (is.list(usage) && is.null(usage$provenance) && nzchar(txt) &&
+        identical(as_int1(usage$input, NA_integer_), 0L) &&
+        identical(as_int1(usage$output, NA_integer_), 0L)) {
+      usage <- NULL
+    }
     return(gr_result(out$ok, text = txt, error = out$error,
                      status = out$status %||% NA_integer_,
-                     usage = settle_usage(out$usage, prompt_tokens, txt),
+                     usage = settle_usage(usage, prompt_tokens, txt),
                      # A result built with gr_result() and no `model` carries
                      # NA, not NULL, so `%||%` kept it: the trace then priced
                      # the call as model "unknown" and added nothing to
@@ -499,7 +677,11 @@ handler_result <- function(out, model, prompt_tokens) {
                      model = if (nzchar(as_chr1(out$model, ""))) as_chr1(out$model) else model,
                      finish_reason = out$finish_reason %||% NA_character_,
                      retryable = isTRUE(out$retryable), raw = out$raw,
-                     cached = isTRUE(out$cached)))
+                     cached = isTRUE(out$cached),
+                     served_model = out[["served_model", exact = TRUE]] %||% NA_character_,
+                     response_id = out[["response_id", exact = TRUE]] %||% NA_character_,
+                     fingerprint = out[["fingerprint", exact = TRUE]] %||% NA_character_,
+                     attempts = out[["attempts", exact = TRUE]] %||% NA_integer_))
   }
   if (inherits(out, "condition")) {
     # The handler was handed the prompt and then raised. Whether a provider
@@ -512,7 +694,7 @@ handler_result <- function(out, model, prompt_tokens) {
     # for a reply it could not read: it returns the failure with the tokens
     # ellmer recorded for the turn, and raises only when there was no turn.)
     return(gr_result(FALSE, error = repair_utf8(conditionMessage(out)), model = model,
-                     usage = list(input = as_int1(prompt_tokens, 0L), output = 0L)))
+                     usage = usage_record(as_int1(prompt_tokens, 0L), 0L, local_provenance())))
   }
   {
     # A handler that returns "" is the mock's version of the API returning
@@ -525,10 +707,11 @@ handler_result <- function(out, model, prompt_tokens) {
     if (!nzchar(trimws(txt))) {
       gr_result(FALSE, text = "", error = "empty completion", model = model,
                 finish_reason = "empty",
-                usage = list(input = prompt_tokens, output = 0L))
+                usage = usage_record(prompt_tokens, 0L, local_provenance()))
     } else {
       gr_result(TRUE, text = txt, model = model,
-                usage = list(input = prompt_tokens, output = sum(gr_count_tokens(txt))))
+                usage = usage_record(prompt_tokens, sum(gr_count_tokens(txt)),
+                                     local_provenance()))
     }
   }
 }

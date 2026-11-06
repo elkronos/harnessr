@@ -245,8 +245,11 @@ trace_as_list <- function(x) {
   })
   list(
     run_id = x$run_id,
-    started = format(x$started, "%Y-%m-%dT%H:%M:%OS3"),
+    # In UTC and marked so: a local time with no offset cannot be placed.
+    started = utc_stamp(x$started),
     meta = json_arrays(x$meta, .gr_trace_arrays),
+    actor = trace_actor(x$actor),
+    config = x$config,
     summary = as.list(gr_trace_summary(x)),
     steps = steps,
     errors = x$errors,
