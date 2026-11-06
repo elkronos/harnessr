@@ -102,11 +102,16 @@ seg_contextual <- function(doc, spec, client, trace) {
   # the body is the document, the header only points into it.
   fit_headers <- function(h, body) {
     for (k in which(nzchar(h) & gr_count_tokens(frame(h, body)) > cap)) {
+      was <- h[k]
       repeat {
         excess <- gr_count_tokens(frame(h[k], body[k])) - cap
         if (excess <= 0L || !nzchar(h[k])) break
         h[k] <- trimws(gr_truncate_tokens(h[k], gr_count_tokens(h[k]) - excess, marker = ""))
       }
+      # One record per header, for the whole of what it lost. The limit is the
+      # room the header was cut to, not the cap on header and body together.
+      trace_truncation(trace, "segment.contextual.header", was, h[k],
+                       limit = as.integer(gr_count_tokens(h[k])), chunk = k)
     }
     h
   }
@@ -131,7 +136,8 @@ seg_contextual <- function(doc, spec, client, trace) {
   if (!nrow(d)) return(new_chunks(character(0), "contextual", spec))
   extra <- list(context_source = src)
   headers <- if (identical(src, "llm")) {
-    doc_summary <- gr_truncate_tokens(doc$text, 1500, "")
+    doc_summary <- truncate_logged(doc$text, 1500, "segment.contextual.document", trace,
+                                   marker = "")$text
     sys_prompt <- "You situate an excerpt within its source document. Reply with one sentence, no preamble."
     ask <- function(excerpt) paste0(
       "<document>\n", doc_summary, "\n</document>\n\n<excerpt>\n", excerpt,

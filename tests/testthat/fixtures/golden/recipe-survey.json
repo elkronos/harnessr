@@ -212,6 +212,10 @@
         "recipe": "survey",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 16,
+          "tokens_out": 26
+        },
         "step": 4,
         "tokens": {
           "input": 86,
@@ -237,6 +241,10 @@
         "recipe": "survey",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 101,
+          "tokens_out": 26
+        },
         "step": 5,
         "tokens": {
           "input": 170,
@@ -262,6 +270,10 @@
         "recipe": "survey",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 144,
+          "tokens_out": 26
+        },
         "step": 6,
         "tokens": {
           "input": 213,
@@ -287,6 +299,10 @@
         "recipe": "survey",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 155,
+          "tokens_out": 26
+        },
         "step": 7,
         "tokens": {
           "input": 224,
@@ -312,6 +328,10 @@
         "recipe": "survey",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 84,
+          "tokens_out": 26
+        },
         "step": 8,
         "tokens": {
           "input": 153,
@@ -337,11 +357,28 @@
         "recipe": "survey",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 39,
+          "tokens_out": 26
+        },
         "step": 9,
         "tokens": {
           "input": 108,
           "output": 26
         }
+      },
+      {
+        "detail": {
+          "level": 1,
+          "summaries": 6,
+          "tokens": 140
+        },
+        "kind": "local",
+        "label": "hier.state.L1",
+        "ok": true,
+        "recipe": "survey",
+        "source": "annual_report.md",
+        "step": 10
       },
       {
         "budget_usd": 0,
@@ -362,7 +399,10 @@
         "recipe": "survey",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
-        "step": 10,
+        "state": {
+          "tokens_in": 140
+        },
+        "step": 11,
         "tokens": {
           "input": 223,
           "output": 26
@@ -376,7 +416,7 @@
       "embed_calls": 0,
       "embed_tokens": 0,
       "errors": 0,
-      "steps": 10,
+      "steps": 11,
       "tokens_in": 1177,
       "tokens_out": 182
     }

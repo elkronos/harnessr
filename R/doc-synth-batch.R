@@ -565,6 +565,11 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
                              "section '%s' states only those. It is marked partial."),
                       attr(fit, "kept"), attr(fit, "of"), closing),
               class = "gr_gaps_truncated")
+      # A cut inside the first line ends in the default marker, which is not
+      # text kept; a cut at a line boundary has none and the guard skips it.
+      trace_truncation(trace, "synthesise.gaps", gaps, as.character(fit),
+                       limit = max(1L, room %/% 4L), marker = " ...[truncated]",
+                       section = closing)
       gaps <- as.character(fit)
       gaps_cut <- TRUE
     }

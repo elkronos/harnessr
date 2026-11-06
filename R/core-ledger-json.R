@@ -224,7 +224,7 @@ shortest_numbers <- function(json) {
 #' "auto" weighed, the cleaning steps an ingest ran, and the scores a ranking
 #' kept. A new field that lists things belongs here too.
 #' @noRd
-.gr_trace_arrays <- c("recipes", "models", "clean_steps", "top_scores", "scores")
+.gr_trace_arrays <- c("recipes", "models", "clean_steps", "top_scores", "scores", "chunk_ids")
 
 #' A trace as a plain, serialisable list.
 #'

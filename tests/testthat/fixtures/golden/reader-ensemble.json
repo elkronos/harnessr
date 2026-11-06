@@ -589,6 +589,10 @@
         "recipe": "golden-ensemble",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 0,
+          "tokens_out": 26
+        },
         "step": 14,
         "tokens": {
           "input": 179,
@@ -614,6 +618,10 @@
         "recipe": "golden-ensemble",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 15,
         "tokens": {
           "input": 271,
@@ -639,6 +647,10 @@
         "recipe": "golden-ensemble",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 16,
         "tokens": {
           "input": 261,
@@ -664,6 +676,10 @@
         "recipe": "golden-ensemble",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 17,
         "tokens": {
           "input": 298,
@@ -689,6 +705,10 @@
         "recipe": "golden-ensemble",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 18,
         "tokens": {
           "input": 285,
@@ -714,6 +734,10 @@
         "recipe": "golden-ensemble",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 19,
         "tokens": {
           "input": 226,

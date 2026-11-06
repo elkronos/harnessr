@@ -195,6 +195,10 @@
         "recipe": "golden-refine",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 0,
+          "tokens_out": 26
+        },
         "step": 4,
         "tokens": {
           "input": 179,
@@ -220,6 +224,10 @@
         "recipe": "golden-refine",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 5,
         "tokens": {
           "input": 271,
@@ -245,6 +253,10 @@
         "recipe": "golden-refine",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 6,
         "tokens": {
           "input": 261,
@@ -270,6 +282,10 @@
         "recipe": "golden-refine",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 7,
         "tokens": {
           "input": 298,
@@ -295,6 +311,10 @@
         "recipe": "golden-refine",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 8,
         "tokens": {
           "input": 285,
@@ -320,6 +340,10 @@
         "recipe": "golden-refine",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 9,
         "tokens": {
           "input": 226,

@@ -21,13 +21,18 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
     got <- gr_lapply(seq_along(texts), function(i, trace) {
       # Not sent is not failed; see map_reduce.
       if (!trace_can_call(trace)) return(list(text = "", capped = TRUE))
+      from <- length(trace$steps)
+      lab <- sprintf("hier.summarise.L%d", level)
       r <- gr_call(client, list(
         list(role = "system", content = .gr_prompts$summarise_system),
         list(role = "user", content = paste0("Question: ", question)),
         list(role = "user", content = paste0("<text>\n", texts[i], "\n</text>"))
       ), model = summary_model, max_output = spec$max_summary_tokens,
          temperature = spec$temperature, trace = trace,
-         label = sprintf("hier.summarise.L%d", level), effort = spec$effort)
+         label = lab, effort = spec$effort)
+      # The text summarised and the summary handed up, on the request's step.
+      trace_state(trace, from, lab, tokens_in = gr_count_tokens(texts[i]),
+                  tokens_out = if (usable_text(r)) gr_count_tokens(r$text) else 0L)
       list(text = if (usable_text(r)) r$text else "", capped = FALSE,
            cut = usable_text(r) && reply_cut_off(r))
     }, parallel = spec$parallel, label = sprintf("summary L%d", level), trace = trace,
@@ -42,6 +47,15 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
     summary_failures <<- summary_failures + sum(!has_content(got) & !attr(got, "capped"))
     got
   }
+  # What a level hands on as a whole: how many summaries and how long they are
+  # together, which is what the next level, or the answer, has to fit. The
+  # per-request lengths alone do not give it, since a group whose summary
+  # failed goes up as its input.
+  note_level <- function(current, level) {
+    trace_note(trace, sprintf("hier.state.L%d", level),
+               list(level = level, summaries = length(current),
+                    tokens = gr_count_tokens(paste(current, collapse = "\n\n"))))
+  }
 
   # FALSE, not spec$cite: the merge call below asks for summaries without
   # citation markers, so that is the system prompt it sends. The premise rule
@@ -52,6 +66,7 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
   level <- 1L
   current <- count_failures(d$text, summarise(d$text, level))
   current <- current[has_content(current)]
+  note_level(current, level)
   if (!length(current)) {
     return(new_answer(.NOT_FOUND, "hierarchical", question, integer(0), trace, partial = TRUE,
                       notes = list(chunks = nrow(d), levels = 1L,
@@ -81,6 +96,7 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
     # gr_read().
     nxt[!got] <- grouped[!got]
     current <- unname(as.character(nxt))
+    note_level(current, level)
     if (length(current) >= prev_n) break
   }
 
@@ -89,11 +105,14 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
   # same loss `stuff` reports as dropped chunks, so it is partial and not only a
   # warning.
   truncated <- gr_count_tokens(body) > bud$input
+  dropped <- 0L
   if (truncated) {
-    body <- gr_truncate_tokens(body, bud$input)
+    t <- truncate_logged(body, bud$input, "hier.summaries", trace, level = level)
+    body <- t$text; dropped <- t$dropped
     gr_warn(sprintf("Hierarchical summaries still exceed the budget after %d level(s); truncating.", level),
             class = "gr_overflow")
   }
+  from <- length(trace$steps)
   res <- if (trace_can_call(trace)) {
     # cite = FALSE, always. This reader answers from SUMMARIES, which carry no
     # [chunk N] ids -- asking for citations here asks the model to invent ids
@@ -105,6 +124,7 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
             temperature = spec$temperature, trace = trace, label = "hier.answer",
             effort = spec$effort)
   } else gr_result(FALSE, error = paste(cap_name(trace), "reached before the answer step"))
+  trace_state(trace, from, "hier.answer", tokens_in = gr_count_tokens(body))
   if (usable_text(res) && reply_cut_off(res)) cut <- cut + 1L
   # Summaries handed back in place of an answer are no reply to classify.
   out <- if (usable_text(res)) premise_reply(res$text, spec$premise)
@@ -113,5 +133,5 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
              partial = !usable_text(res) || summary_failures > 0 || truncated || cut > 0L,
              notes = list(chunks = nrow(d), levels = level, final_summaries = length(current),
                           failed_summaries = summary_failures, truncated_calls = cut,
-                          summaries_truncated = truncated))
+                          summaries_truncated = truncated, tokens_truncated = dropped))
 }
