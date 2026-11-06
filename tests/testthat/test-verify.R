@@ -229,7 +229,10 @@ test_that("gr_verify_evidence validates and handles nothing to verify", {
   v <- gr_verify_evidence(none)
   expect_s3_class(v, "data.frame")
   expect_identical(nrow(v), 0L)
-  expect_identical(names(v), c("chunk_id", "kind", "verified", "match", "span"))
+  # The shadow matcher's columns sit between the old score and the span.
+  expect_identical(names(v), c("chunk_id", "kind", "verified", "match", "quote_status",
+                               "quote_sim", "quote_coverage", "quote_edits",
+                               "quote_critical_ok", "span"))
 })
 
 # ---------------------------------------------------------------------------

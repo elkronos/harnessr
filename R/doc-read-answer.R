@@ -634,6 +634,9 @@ evidence_table <- function(chunk_ids, texts, pages = NA_integer_, sections = NA_
     v <- verify_spans(df$text, df$source_text)
     df$verified <- v$verified
     df$match <- v$match
+    # The edit-distance matcher's verdict beside the one acted on (shadow
+    # mode; see verify_spans()).
+    for (nm in grep("^quote_", names(v), value = TRUE)) df[[nm]] <- v[[nm]]
   }
   # Per-row labels that have to survive the filter below. `extract` puts the
   # FIELD each span supports here; attaching it after the fact would line the
