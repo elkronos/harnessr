@@ -11,6 +11,7 @@ gr_compare(
   client = NULL,
   allow_duplicates = FALSE,
   on_error = c("continue", "stop"),
+  correct = NULL,
   ...
 )
 }
@@ -29,16 +30,50 @@ measure variance).}
 \item{on_error}{\code{"continue"} keeps going and records the failure;
 \code{"stop"} aborts the whole comparison.}
 
+\item{correct}{How to tell whether an answer is right, for the \code{correct}
+and \code{usd_per_correct} columns. \code{NULL} (the default) adds neither. A
+character vector marks an answer right when its text contains any of the
+strings, ignoring case and runs of white space; an answer that found
+nothing, or a recipe that failed, is wrong, and one that found nothing
+because a spending or call limit stopped it is \code{NA}. A function is called
+with each recipe's \link{gr_answer} and returns \code{TRUE}, \code{FALSE} or \code{NA} (not
+known); when it fails or returns anything else, a warning of class
+\code{gr_bad_correct} names the recipe and its \code{correct} is \code{NA}. An invalid
+\code{correct} argument is an error of the same class.}
+
 \item{...}{Overrides applied to every recipe.}
 }
 \value{
-A list with \code{answers} (named list of \link{gr_answer}), \code{summary} (a data
-frame with columns \code{recipe}, \code{segmenter}, \code{chunks}, \code{reader}, \code{signature},
-\code{settings}, \code{partial}, \code{chunks_used}, \code{answer_chars}, \code{not_found}, \code{error},
-and \code{premise} when a recipe checks the question's premise; see \code{premise}
-in \code{\link[=gr_read_spec]{gr_read_spec()}}), \code{trace}
+A list with \code{answers} (named list of \link{gr_answer}), \code{summary}, \code{trace}
 (shared across all recipes, so it records every recipe's calls) and
-\code{document} (source and ingestion stats).
+\code{document} (source and ingestion stats). \code{summary} is a data frame with
+one row per recipe and these columns:
+\describe{
+\item{\code{recipe}, \code{segmenter}, \code{chunks}, \code{reader}, \code{signature},
+\code{settings}}{Which pipeline the row is, and what was changed from the
+recipe's defaults.}
+\item{\code{partial}, \code{chunks_used}, \code{answer_chars}, \code{not_found},
+\code{error}}{What the answer is, and what went wrong, if anything.}
+\item{\code{calls}, \code{tokens_in}, \code{tokens_out}}{The model and embeddings
+requests the recipe made, its segmentation's included, and the tokens
+of those that were billed: a request answered from a cache or a
+recording is counted in \code{calls} and costs nothing.}
+\item{\code{usd}}{What those requests cost, at the prices registered with
+\code{\link[=gr_register_model]{gr_register_model()}}. \code{NA} when a model the recipe used has no
+registered price.}
+\item{\code{usd_estimated}}{The share of \code{usd} spent on requests whose token
+counts were estimated locally because the provider reported none, from
+0 to 1. \code{NA} when no request records how its counts were obtained, or
+when \code{usd} is 0 or unknown.}
+\item{\code{correct}, \code{usd_per_correct}}{Only with \code{correct}: whether the
+answer was right, and \code{usd} divided by the number of right answers,
+which is \code{usd} for a right answer, \code{Inf} for a wrong one that cost
+something and \code{NA} for a wrong one that cost nothing or one whose
+correctness is not known.}
+\item{\code{premise}}{Only when a recipe checks the question's premise: what
+the model said the document states instead, or \code{NA}; see \code{premise} in
+\code{\link[=gr_read_spec]{gr_read_spec()}}.}
+}
 }
 \description{
 Each recipe is an independent pipeline, so a recipe's answer is identical
@@ -52,6 +87,14 @@ Recipes that resolve to identical ingestion, identical segmentation \emph{and} a
 identical read spec are collapsed with a warning rather than billed twice. A
 shared reader signature alone is not enough: two \code{retrieve} recipes with
 different \code{top_k} share a signature and are genuinely different runs.
+
+Each row of \code{summary} says what its recipe cost, priced from the requests
+on the trace by the model each one used (see \code{\link[=gr_trace_cost]{gr_trace_cost()}}). A recipe is
+charged what it would cost run alone: a segmentation it shares with an
+earlier recipe is charged to both, as \code{max_calls} counts it for both, so
+\code{sum(summary$usd)} can be more than the comparison spent, which is
+\code{sum(gr_trace_cost(trace)$usd)}. Give \code{correct} and each row also says
+whether the answer was right and what a right answer cost.
 
 A comparison is one run for the spending limit: \code{max_cost_usd} in
 \code{\link[=gr_options]{gr_options()}} is checked against what every recipe and every segmentation
@@ -72,6 +115,14 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "chunks_
 
 # One trace covers all three, so this is the cost of the whole comparison.
 gr_trace_summary(cmp$trace)
+
+# What each recipe cost, and what a right answer cost. The mock is free, so
+# register a price for it under another name to see the columns filled.
+gr_register_model("priced-mock", context_window = 128000, max_output = 4096,
+                  input_usd = 2, output_usd = 8)
+cmp <- gr_compare(gr_example(), "What was revenue?", c("fast", "precise"),
+                  client = cl, model = "priced-mock", correct = "45.2 million")
+cmp$summary[, c("recipe", "calls", "usd", "correct", "usd_per_correct")]
 }
 \seealso{
 \code{\link[=answer_document]{answer_document()}}, \code{\link[=gr_recipes]{gr_recipes()}}, \code{\link[=gr_recipe]{gr_recipe()}}, \link{gr_answer}

@@ -120,6 +120,30 @@
   outline's calls, read from the synthesis, and counts them once when a
   script passes `trace = claims$trace` to `gr_outline()`.
 
+## Comparing recipes
+
+* **`gr_compare()` says what each recipe cost.** `summary` gains `calls`,
+  `tokens_in`, `tokens_out` and `usd`, priced from the requests on the trace
+  at each model's registered price, and `usd_estimated`, the share of those
+  dollars spent on requests whose token counts were estimated locally because
+  the provider reported none (`NA` for a trace whose requests do not
+  record how their counts were obtained, such as one saved by an earlier
+  version). A recipe is charged for a segmentation it shares with an
+  earlier recipe, as it would be run alone, so the column can add up to more
+  than `gr_trace_cost(cmp$trace)`. `usd` is `NA` when a model has no
+  registered price. The columns come after `error` and before `premise`.
+
+* **`gr_compare(correct =)`** takes strings that a right answer contains
+  (ignoring case and white space) or a function of each `gr_answer` returning
+  `TRUE`, `FALSE` or `NA`, and adds `correct` and `usd_per_correct`, the cost
+  of a right answer: `usd` when the answer is right, `Inf` when it is wrong
+  and cost something. Without it the summary has no such columns. A recipe
+  a spending or call limit stopped before it found anything is `NA`, not
+  wrong. A `correct` function that fails or returns something other than one
+  logical gives a `gr_bad_correct` warning and `NA` for that recipe, so the
+  paid results still come back; an invalid `correct` argument is an error of
+  the same class.
+
 # readgpt 0.6.0
 
 ## New
