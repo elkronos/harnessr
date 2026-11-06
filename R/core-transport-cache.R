@@ -408,14 +408,24 @@ cache_entry_result <- function(entry) {
   if (!isTRUE(.subset2(r, "ok"))) return(NULL)
   u <- .subset2(r, "usage")
   if (!is.list(u)) u <- list()
+  # The provenance and breakdown the reply was stored with. An entry written
+  # before they were kept has neither, and its provenance reads as NA.
+  prov <- as_chr1(.subset2(u, "provenance"), NA_character_)
+  if (!prov %in% .gr_usage_provenance) prov <- NA_character_
+  chr <- function(nm) as_chr1(.subset2(r, nm), NA_character_)
   gr_result(TRUE,
             text = as_chr1(.subset2(r, "text")),
             status = as_int1(.subset2(r, "status"), NA_integer_),
-            usage = list(input = as_int1(.subset2(u, "input"), 0L),
-                         output = as_int1(.subset2(u, "output"), 0L)),
-            model = as_chr1(.subset2(r, "model"), NA_character_),
-            finish_reason = as_chr1(.subset2(r, "finish_reason"), NA_character_),
-            cached = TRUE)
+            usage = usage_record(as_int1(.subset2(u, "input"), 0L),
+                                 as_int1(.subset2(u, "output"), 0L), prov,
+                                 reasoning = as_int1(.subset2(u, "reasoning"), NA_integer_),
+                                 cached_input = as_int1(.subset2(u, "cached_input"),
+                                                        NA_integer_)),
+            model = chr("model"),
+            finish_reason = chr("finish_reason"),
+            cached = TRUE,
+            served_model = chr("served_model"), response_id = chr("response_id"),
+            fingerprint = chr("fingerprint"))
 }
 
 #' Is `x` plain data all the way down?

@@ -96,7 +96,8 @@
 .gr_unknown_model <- list(
   context_window = 128000L, max_output = 4096L, input_usd = NA_real_,
   output_usd = NA_real_, reasoning = FALSE, supports_temperature = TRUE,
-  kind = "chat", dimensions = NA_integer_, certain = FALSE, as_of = NA_character_
+  kind = "chat", dimensions = NA_integer_, certain = FALSE, as_of = NA_character_,
+  cached_input_usd = NA_real_
 )
 
 #' Register a model (or override a built-in entry)
@@ -116,6 +117,9 @@
 #' @param supports_temperature Whether the API accepts `temperature`.
 #' @param kind `"chat"` or `"embedding"`.
 #' @param dimensions Embedding dimensionality, for `kind = "embedding"`.
+#' @param cached_input_usd Price per 1M input tokens the provider served from
+#'   its prompt cache, where that is billed at its own rate. `NA` (the
+#'   default) prices them as other input tokens, which never undercounts.
 #' @return Invisibly, `id`.
 #' @seealso [gr_models()] to see the registry, [gr_model_info()] for lookup and
 #'   its `certain` flag, [gr_budget()], [gr_estimate_cost()]
@@ -131,7 +135,8 @@
 gr_register_model <- function(id, context_window, max_output,
                               input_usd = NA_real_, output_usd = NA_real_,
                               reasoning = FALSE, supports_temperature = TRUE,
-                              kind = c("chat", "embedding"), dimensions = NA_integer_) {
+                              kind = c("chat", "embedding"), dimensions = NA_integer_,
+                              cached_input_usd = NA_real_) {
   kind <- match.arg(kind)
   if (!is_nonblank(id)) gr_abort("`id` must be a non-empty string.")
   context_window <- as.integer(context_window)
@@ -167,7 +172,8 @@ gr_register_model <- function(id, context_window, max_output,
     input_usd = as_num1(input_usd), output_usd = as_num1(output_usd),
     reasoning = isTRUE(reasoning),
     supports_temperature = isTRUE(supports_temperature), kind = kind,
-    dimensions = as_int1(dimensions), certain = TRUE, as_of = format(Sys.Date(), "%Y-%m")
+    dimensions = as_int1(dimensions), certain = TRUE, as_of = format(Sys.Date(), "%Y-%m"),
+    cached_input_usd = as_num1(cached_input_usd)
   ), state = hr_state)
   invisible(id)
 }
@@ -186,9 +192,10 @@ gr_register_model <- function(id, context_window, max_output,
 #' stop instead, because neither id is in the registry.
 #'
 #' @param model Model id.
-#' @return A named list: `id`, `context_window`, `max_output`, `input_usd` and
-#'   `output_usd` (per 1M tokens, used by [gr_estimate_cost()]), `reasoning`,
-#'   `supports_temperature`, `kind`, `dimensions`, `as_of`, `certain`, and
+#' @return A named list: `id`, `context_window`, `max_output`, `input_usd`,
+#'   `output_usd` and `cached_input_usd` (per 1M tokens, used by
+#'   [gr_estimate_cost()]), `reasoning`, `supports_temperature`, `kind`,
+#'   `dimensions`, `as_of`, `certain`, and
 #'   `source` (`"registered"`, `"builtin"`, `"alias"`, `"pattern:..."` or
 #'   `"default"`). `certain` is `FALSE` when the answer came from a family regex
 #'   or the fallback; verify before relying on it for cost control.
@@ -281,8 +288,9 @@ gr_model_limits <- function(model = NULL) {
 
 #' List every known model
 #' @return A data frame with `id`, `kind`, `context_window`, `max_output`,
-#'   `reasoning`, `input_usd_per_1m`, `output_usd_per_1m` and `as_of` (the month
-#'   the entry was recorded; a stale date is a prompt to verify).
+#'   `reasoning`, `input_usd_per_1m`, `output_usd_per_1m`, `as_of` (the month
+#'   the entry was recorded; a stale date is a prompt to verify) and
+#'   `cached_input_usd_per_1m`.
 #' @seealso [gr_model_info()], [gr_register_model()]
 #' @family cost and token functions
 #' @export
@@ -298,7 +306,9 @@ gr_models <- function() {
                max_output = as_int1(e$max_output), reasoning = isTRUE(e$reasoning),
                input_usd_per_1m = as_num1(e$input_usd),
                output_usd_per_1m = as_num1(e$output_usd),
-               as_of = as_chr1(e$as_of, NA_character_), stringsAsFactors = FALSE)
+               as_of = as_chr1(e$as_of, NA_character_),
+               cached_input_usd_per_1m = as_num1(e$cached_input_usd),
+               stringsAsFactors = FALSE)
   }))
   df <- df[order(df$kind, df$id), , drop = FALSE]
   rownames(df) <- NULL
@@ -310,6 +320,9 @@ gr_models <- function() {
 #' @param model Model id.
 #' @param input_tokens,output_tokens Token counts (scalars or vectors; vectors
 #'   are summed).
+#' @param cached_input_tokens How many of `input_tokens` the provider served
+#'   from its prompt cache. They are priced at the model's `cached_input_usd`
+#'   when it has one, and as other input tokens when it does not.
 #' @return A single numeric USD figure, or `NA_real_` when the model has no
 #'   pricing in the registry, or no output price and `output_tokens` above zero
 #'   (an embedding model's missing output price counts as zero, since it
@@ -322,7 +335,7 @@ gr_models <- function() {
 #' @examples
 #' gr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
 #' gr_estimate_cost("a-model-with-no-pricing", 1000, 100)
-gr_estimate_cost <- function(model, input_tokens, output_tokens = 0) {
+gr_estimate_cost <- function(model, input_tokens, output_tokens = 0, cached_input_tokens = 0) {
   info <- gr_model_info(model)
   if (is.na(info$input_usd)) return(NA_real_)
   # An UNKNOWN token count is not a zero one. `sum(na.rm = TRUE)` made
@@ -347,5 +360,14 @@ gr_estimate_cost <- function(model, input_tokens, output_tokens = 0) {
     if (tout > 0 && !identical(info$kind, "embedding")) return(NA_real_)
     out_usd <- 0
   }
-  tin / 1e6 * info$input_usd + tout / 1e6 * out_usd
+  # Cached input at its own rate only where the model has one; otherwise it
+  # stays in the input count, at the full rate. A count above the input is
+  # read as all of the input, and an unknown one as none of it.
+  cached <- suppressWarnings(usable(cached_input_tokens))
+  cached_usd <- as_num1(info$cached_input_usd)
+  if (is.na(cached_usd) || is.na(cached) || cached <= 0) {
+    return(tin / 1e6 * info$input_usd + tout / 1e6 * out_usd)
+  }
+  cached <- min(cached, tin)
+  (tin - cached) / 1e6 * info$input_usd + cached / 1e6 * cached_usd + tout / 1e6 * out_usd
 }

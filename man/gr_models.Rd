@@ -8,8 +8,9 @@ gr_models()
 }
 \value{
 A data frame with \code{id}, \code{kind}, \code{context_window}, \code{max_output},
-\code{reasoning}, \code{input_usd_per_1m}, \code{output_usd_per_1m} and \code{as_of} (the month
-the entry was recorded; a stale date is a prompt to verify).
+\code{reasoning}, \code{input_usd_per_1m}, \code{output_usd_per_1m}, \code{as_of} (the month
+the entry was recorded; a stale date is a prompt to verify) and
+\code{cached_input_usd_per_1m}.
 }
 \description{
 List every known model

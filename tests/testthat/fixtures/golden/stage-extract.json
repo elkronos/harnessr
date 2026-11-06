@@ -105,7 +105,41 @@
   ],
   "result": "1babbe2724fdf3fe",
   "trace": {
+    "actor": {
+      "approved_by": null,
+      "owner": null,
+      "purpose": null,
+      "run_by": null,
+      "system": null
+    },
     "budget_stop": false,
+    "config": {
+      "options": {
+        "actor": [],
+        "api": "responses",
+        "api_base": "https://api.openai.com/v1",
+        "api_headers": [],
+        "cache_dir": null,
+        "cache_documents": true,
+        "cache_embeddings": true,
+        "embedder": null,
+        "embedding_model": "text-embedding-3-small",
+        "max_calls": 400,
+        "max_cost_usd": 5,
+        "max_retries": 4,
+        "min_output_tokens": 256,
+        "model": "gpt-5.6-terra",
+        "parallel": false,
+        "request_timeout": 120,
+        "retry_pause_base": 2,
+        "safety_margin": 0.1,
+        "temperature": null,
+        "tokenizer": "heuristic",
+        "unknown_model_action": "warn",
+        "verbose": false,
+        "workers": 4
+      }
+    },
     "errors": [],
     "meta": {
       "documents": 1,
@@ -186,9 +220,11 @@
         "step": 3
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "extract.chunk",
         "model": "mock-model",
@@ -200,20 +236,36 @@
           "schema_name": "extraction",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": "e4d82a562115b9055fc10799f3b776e05e1411777484ba7969c180fffbb79b85",
+          "schema_name": "extraction",
+          "temperature": null
+        },
         "prompt": "ad4d7b88454cb263",
         "recipe": "research+extract",
         "response": "8e0aff9ba9a9939c",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 4,
         "tokens": {
           "input": 168,
-          "output": 61
+          "output": 61,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "extract.chunk",
         "model": "mock-model",
@@ -225,20 +277,36 @@
           "schema_name": "extraction",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": "e4d82a562115b9055fc10799f3b776e05e1411777484ba7969c180fffbb79b85",
+          "schema_name": "extraction",
+          "temperature": null
+        },
         "prompt": "303a581729aaddcf",
         "recipe": "research+extract",
         "response": "55a792ea2013430f",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 5,
         "tokens": {
           "input": 241,
-          "output": 125
+          "output": 125,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "extract.chunk",
         "model": "mock-model",
@@ -250,20 +318,36 @@
           "schema_name": "extraction",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": "e4d82a562115b9055fc10799f3b776e05e1411777484ba7969c180fffbb79b85",
+          "schema_name": "extraction",
+          "temperature": null
+        },
         "prompt": "5e397594981ff0aa",
         "recipe": "research+extract",
         "response": "8e0aff9ba9a9939c",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 6,
         "tokens": {
           "input": 269,
-          "output": 61
+          "output": 61,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "extract.chunk",
         "model": "mock-model",
@@ -275,20 +359,36 @@
           "schema_name": "extraction",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": "e4d82a562115b9055fc10799f3b776e05e1411777484ba7969c180fffbb79b85",
+          "schema_name": "extraction",
+          "temperature": null
+        },
         "prompt": "2a34f0eb84d2dbe8",
         "recipe": "research+extract",
         "response": "8e0aff9ba9a9939c",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 7,
         "tokens": {
           "input": 296,
-          "output": 61
+          "output": 61,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "extract.chunk",
         "model": "mock-model",
@@ -300,20 +400,36 @@
           "schema_name": "extraction",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": "e4d82a562115b9055fc10799f3b776e05e1411777484ba7969c180fffbb79b85",
+          "schema_name": "extraction",
+          "temperature": null
+        },
         "prompt": "d8cd2bca3344981e",
         "recipe": "research+extract",
         "response": "8e0aff9ba9a9939c",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 8,
         "tokens": {
           "input": 214,
-          "output": 61
+          "output": 61,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "extract.chunk",
         "model": "mock-model",
@@ -325,14 +441,28 @@
           "schema_name": "extraction",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": "e4d82a562115b9055fc10799f3b776e05e1411777484ba7969c180fffbb79b85",
+          "schema_name": "extraction",
+          "temperature": null
+        },
         "prompt": "93823856b5d31796",
         "recipe": "research+extract",
         "response": "8e0aff9ba9a9939c",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 9,
         "tokens": {
           "input": 180,
-          "output": 61
+          "output": 61,
+          "provenance": "estimated"
         }
       }
     ],
@@ -344,8 +474,11 @@
       "embed_tokens": 0,
       "errors": 0,
       "steps": 9,
+      "tokens_cached_in": 0,
       "tokens_in": 1368,
-      "tokens_out": 430
+      "tokens_out": 430,
+      "tokens_reasoning": 0,
+      "usage_estimated": 1
     }
   }
 }

@@ -373,6 +373,18 @@ replay_steps <- function(source) {
       response = as_chr1(st$response, ""),
       error = if (isTRUE(st$ok)) NULL else as_chr1(st$error, "recorded failure"),
       tokens = list(input = as_int1(tok$input, 0L), output = as_int1(tok$output, 0L)),
+      # The rest of the usage record and what the provider said about the
+      # reply, so a replayed step reports what the recorded one did. None of
+      # it is part of the key a call is looked up by.
+      usage = usage_record(as_int1(tok$input, 0L), as_int1(tok$output, 0L),
+                           if (as_chr1(tok$provenance, "") %in% .gr_usage_provenance)
+                             tok$provenance else NA_character_,
+                           reasoning = as_int1(tok$reasoning, NA_integer_),
+                           cached_input = as_int1(tok$cached_input, NA_integer_)),
+      served_model = as_chr1(st$served_model, NA_character_),
+      response_id = as_chr1(st$response_id, NA_character_),
+      fingerprint = as_chr1(st$fingerprint, NA_character_),
+      params_sent = replay_sent_params(st$params_sent),
       # Carried through, because a caller acts on it: gr_synthesise(coherence =
       # TRUE) rejects a revision that stopped for "length". Dropping it here
       # made every replayed call look like a clean stop, so the replay kept a
@@ -392,6 +404,22 @@ replay_steps <- function(source) {
       budget_usd = replay_step_budget(st, if (!is.na(answered)) answered else requested)
     )
   }
+  out
+}
+
+#' A recorded step's params_sent as client_sent_params() made it, or NULL.
+#'
+#' A trace read back from JSON has lost its NA fields, which were written as
+#' null; they are put back so a replayed step records the same fields.
+#' @noRd
+replay_sent_params <- function(x) {
+  if (!is.list(x)) return(NULL)
+  out <- sent_params(model = x$model, api = x$api, base_url = x$base_url,
+                     max_output = x$max_output, temperature = x$temperature,
+                     effort = x$effort, schema_name = x$schema_name, schema = NULL,
+                     extra = NULL)
+  out$schema_hash <- as_chr1(x$schema_hash, NA_character_)
+  out$extra_body_hash <- as_chr1(x$extra_body_hash, NA_character_)
   out
 }
 
@@ -672,13 +700,20 @@ replay_lookup <- function(client, messages, model, params, label = "call", effor
 
   res <- gr_result(
     ok = st$ok, text = st$response, error = st$error, status = NA_integer_,
-    usage = list(input = st$tokens$input, output = st$tokens$output),
+    usage = st$usage %||% list(input = st$tokens$input, output = st$tokens$output),
     model = as_chr1(st$answered_model, model),
     # From the recording. Hard-coded NA here made every replayed call look like
     # a clean stop, including the ones the live run rejected for being cut off.
     finish_reason = as_chr1(st$finish_reason, NA_character_),
-    cached = TRUE
+    cached = TRUE,
+    served_model = st$served_model %||% NA_character_,
+    response_id = st$response_id %||% NA_character_,
+    fingerprint = st$fingerprint %||% NA_character_,
+    attempts = 0L
   )
+  # What the recorded call sent; model_call() records it in place of a record
+  # of its own, since a replay sends nothing.
+  if (is.list(st$params_sent)) res$params_sent <- st$params_sent
   # What the call cost when it was recorded, for a recording the spending
   # limit stopped. Nothing is spent, but the trace counts it against
   # max_cost_usd, so a replay stops where the recorded run did. Counted as

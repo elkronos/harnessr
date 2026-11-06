@@ -91,6 +91,12 @@ is checked and priced against \code{max_cost_usd} the same way; an embedding
 served from the session cache is free. \code{NULL} removes the cap.}
 \item{\code{unknown_model_action} ("warn")}{\code{"warn"} or \code{"error"} when a model id
 is not in the registry.}
+\item{\code{actor} (none)}{A named list (or character vector) of the actor
+fields every \code{\link[=gr_trace]{gr_trace()}} records: \code{system}, \code{owner}, \code{run_by},
+\code{purpose} and \code{approved_by}, each one string. A field named here is
+recorded on each new trace unless \code{\link[=gr_trace]{gr_trace()}} is given its own; one
+named nowhere is \code{NA}. Other names are refused with an error of class
+\code{gr_bad_option}.}
 }
 }
 

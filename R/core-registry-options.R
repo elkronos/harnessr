@@ -44,7 +44,10 @@ gr_defaults <- list(
   max_cost_usd        = 5,
   # Refuse to issue more than this many model calls in one run.
   max_calls           = 400L,
-  unknown_model_action = "warn"        # "warn" | "error"
+  unknown_model_action = "warn",       # "warn" | "error"
+  # Who runs are for and who runs them, recorded on every trace (see
+  # gr_trace()). Empty: every field NA unless gr_trace() is given it.
+  actor               = list()
 )
 
 #' What each numeric option is allowed to be, checked where it is SET.
@@ -89,6 +92,7 @@ gr_defaults <- list(
 
 #' @noRd
 check_option <- function(name, value) {
+  if (identical(name, "actor")) return(check_actor(value))
   rule <- .gr_option_rules[[name]]
   if (is.null(rule)) return(value)
   what <- function(v) if (is.null(v)) "NULL" else if (length(v) != 1L)
@@ -223,6 +227,12 @@ check_option <- function(name, value) {
 #'     served from the session cache is free. `NULL` removes the cap.}
 #'   \item{`unknown_model_action` ("warn")}{`"warn"` or `"error"` when a model id
 #'     is not in the registry.}
+#'   \item{`actor` (none)}{A named list (or character vector) of the actor
+#'     fields every [gr_trace()] records: `system`, `owner`, `run_by`,
+#'     `purpose` and `approved_by`, each one string. A field named here is
+#'     recorded on each new trace unless [gr_trace()] is given its own; one
+#'     named nowhere is `NA`. Other names are refused with an error of class
+#'     `gr_bad_option`.}
 #' }
 #'
 #' @section Checked values:
@@ -259,7 +269,10 @@ gr_options <- function(...) {
     out
   }
   if (length(args) == 0L) return(merged())
-  if (length(args) == 1L && is.list(args[[1]]) && !is.null(names(args[[1]]))) {
+  # Unnamed only: `gr_options(actor = list(owner = "x"))` sets one option
+  # whose value is a list, and is not a list of options to restore.
+  if (length(args) == 1L && is.null(names(args)) && is.list(args[[1]]) &&
+      !is.null(names(args[[1]]))) {
     args <- args[[1]]
   } else if (length(args) == 1L && is.character(args[[1]]) && is.null(names(args))) {
     nm <- args[[1]]

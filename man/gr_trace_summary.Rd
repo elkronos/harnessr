@@ -12,7 +12,8 @@ gr_trace_summary(trace)
 \value{
 A one-row data frame: \code{run_id}, \code{calls}, \code{cached}, \code{steps},
 \code{tokens_in}, \code{tokens_out}, \code{errors}, \code{elapsed_s}, \code{embed_calls},
-\code{embed_tokens}.
+\code{embed_tokens}, \code{tokens_reasoning}, \code{tokens_cached_in},
+\code{usage_estimated}.
 
 \code{calls} counts every request, including the \code{embed_calls} of them made to
 an embeddings endpoint. \code{tokens_in} and \code{tokens_out} are the size of the
@@ -32,6 +33,14 @@ so feeding its token counts to \code{\link[=gr_estimate_cost]{gr_estimate_cost()
 
 \code{errors} counts every failed request, including any the run recovered
 from (see \code{errors} in \code{\link[=gr_trace]{gr_trace()}}).
+
+\code{tokens_reasoning} and \code{tokens_cached_in} are the reasoning tokens and
+cached input tokens the provider reported for the model calls, 0 where it
+reported none. They are parts of \code{tokens_out} and \code{tokens_in}, not
+additions to them. \code{usage_estimated} is the share of requests whose token
+counts were estimated locally because the provider reported none (see
+\code{tokens} under "Steps" in \code{\link[=gr_trace]{gr_trace()}}), from 0 to 1, or \code{NA} when no
+request says.
 }
 \description{
 Summarise a trace

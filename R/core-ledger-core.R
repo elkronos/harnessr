@@ -15,11 +15,22 @@
 #'
 #' @param run_id Optional identifier; generated when omitted.
 #' @param meta Named list of run-level metadata.
+#' @param system,owner,run_by,purpose,approved_by Who the run is for and who
+#'   ran it: the system it belongs to, the person or team accountable for that
+#'   system, the person who ran it, what it was for, and who approved it. Each
+#'   is one string. One left `NULL` is taken from `gr_options("actor")`, and is
+#'   `NA` when that does not name it either.
 #' @return A `gr_trace`. It is an environment, so it accumulates by reference:
 #'   pass the same trace to several calls and they all record into it. Fields:
-#'   `run_id`, `started`, `meta`, `steps`, `calls`, `cached`, `tokens_in`,
-#'   `tokens_out`, `embed_tokens`, `errors`, `budget_stop`, `stop_reason`,
-#'   `spent_usd`, `replayed_usd`.
+#'   `run_id`, `started`, `meta`, `actor`, `config`, `steps`, `calls`,
+#'   `cached`, `tokens_in`, `tokens_out`, `embed_tokens`, `errors`,
+#'   `budget_stop`, `stop_reason`, `spent_usd`, `replayed_usd`.
+#'
+#'   `actor` holds the five fields above. `config` is a snapshot of the
+#'   options in force when the trace was made ([gr_options()], with the values
+#'   of `api_headers` left out, since they can hold credentials) and the R
+#'   version, so a saved trace says what it ran under. [as_json()] writes
+#'   `started` in UTC, as ISO 8601 with a trailing `Z`.
 #'   `cached` counts the calls answered from a [gr_cache()] or a
 #'   [gr_replay_client()] rather than the network, so `calls - cached` is what
 #'   the run paid for. `calls` includes requests to an embeddings endpoint,
@@ -56,6 +67,40 @@
 #'
 #'   `as.data.frame()` on a trace returns one row per request; see below.
 #'
+#' @section Steps:
+#' Each request is one entry in `steps`. Besides its label, prompt, reply and
+#' the model it asked for (`model`), a step records:
+#' \describe{
+#'   \item{`params`}{What the call asked for: the parameters a
+#'     [gr_mock_client()] or [gr_backend_client()] handler is given, which is
+#'     also what a [gr_replay_client()] looks a call up by.}
+#'   \item{`params_sent`}{The request as it went out, every default resolved:
+#'     `model`, `api`, `base_url`, `max_output` (for a reasoning model, the
+#'     larger cap its request is sent with; see [gr_call()]), `temperature`
+#'     (`NA` when none was sent), `effort`, `schema_name`, and SHA-256 hashes
+#'     of the JSON schema (`schema_hash`) and of the extra body fields the
+#'     client and the call added (`extra_body_hash`). For a [gr_client()] it
+#'     is read from the request body; for a handler, from the parameters the
+#'     handler was given, which carry no extra body fields. A call answered
+#'     from a [gr_cache()] records what would have been sent, and one a replay
+#'     answered records what the recorded call sent.}
+#'   \item{`tokens`}{`input` and `output`, plus `reasoning` and
+#'     `cached_input` when the provider reported them (they are parts of
+#'     `output` and `input`, not additions), and `provenance`: `"reported"`
+#'     when the provider gave the counts, `"counted"` when they were counted
+#'     here with the `"tiktoken"` tokenizer, `"estimated"` when they were
+#'     estimated with another one, and `NA` for a reply cached or recorded
+#'     before provenance was kept.}
+#'   \item{`served_model`, `response_id`, `fingerprint`}{The model the
+#'     provider said answered, its response id and its system fingerprint,
+#'     where it returned them, else `NA`. None of them is part of a cache or
+#'     replay key.}
+#'   \item{`attempts`}{How many requests were sent for this one, retries
+#'     included: 0 when a cache or a recording answered it.}
+#'   \item{`started_utc`, `ended_utc`}{When the request started and ended,
+#'     ISO 8601 in UTC with a trailing `Z`.}
+#' }
+#'
 #' @section One row per request:
 #' `as.data.frame(trace)` has one row for each request the run made, in the
 #' order they were made, and none for local steps such as segmentation:
@@ -80,7 +125,14 @@
 #'   \item{`effort`}{The reasoning effort the request was sent with, `NA` for
 #'     one sent none. Present only when some request in the trace carried one
 #'     (see `effort` in [gr_read_spec()]).}
+#'   \item{`tokens_reasoning`, `tokens_cached_in`, `served_model`}{The
+#'     reasoning and cached input tokens the provider reported and the model
+#'     it said answered, `NA` where it did not. Each is present only when some
+#'     request in the trace has it.}
 #' }
+#' A request's `usd` prices its cached input tokens at the model's cached
+#' input rate when [gr_register_model()] gave it one, and at the input rate
+#' otherwise.
 #' @param x A `gr_trace`.
 #' @param row.names Optional row names for the result.
 #' @param optional,... Ignored; part of the [as.data.frame()] generic.
@@ -96,10 +148,22 @@
 #' # One row per request, with what each cost and how long it took.
 #' reqs <- as.data.frame(tr)
 #' reqs[, c("step", "stage", "tokens_in", "tokens_out", "usd", "seconds")]
-gr_trace <- function(run_id = NULL, meta = list()) {
+gr_trace <- function(run_id = NULL, meta = list(), system = NULL, owner = NULL, run_by = NULL,
+                     purpose = NULL, approved_by = NULL) {
   e <- new.env(parent = emptyenv())
   e$run_id <- as_chr1(run_id %||% gr_new_id("run"))
   e$started <- Sys.time()
+  # Who the run is for and who ran it, from the arguments, else the `actor`
+  # option, else NA. Kept on the run, not in `meta`, so every trace has the
+  # same five fields whether or not anyone filled them in.
+  given <- list(system = system, owner = owner, run_by = run_by, purpose = purpose,
+                approved_by = approved_by)
+  given <- given[!vapply(given, is.null, logical(1))]
+  e$actor <- trace_actor(utils::modifyList(as.list(gr_options("actor") %||% list()),
+                                           check_actor(given, "gr_trace()")))
+  # The options in force when the run began, so a trace read back later says
+  # what settings it ran under without the session that wrote it.
+  e$config <- config_snapshot()
   # The version that produced the run, so a trace read back later says which
   # version wrote it. Prompts and readers change between versions. The field
   # keeps its readgpt name for now: traces written before and after the
@@ -139,6 +203,90 @@ gr_trace <- function(run_id = NULL, meta = list()) {
   structure(e, class = "gr_trace")
 }
 
+#' The five actor fields of a run, each one string or NA.
+#' @noRd
+trace_actor <- function(x) {
+  x <- if (is.list(x)) x else list()
+  stats::setNames(lapply(.gr_actor_fields, function(f) as_chr1(x[[f]], NA_character_)),
+                  .gr_actor_fields)
+}
+
+#' The actor fields a run records: the system the run belongs to, its owner,
+#' who ran it, what for, and who approved it. `owner` and `run_by` are kept
+#' apart because the person accountable for a system is often not the person
+#' who pressed run.
+#' @noRd
+.gr_actor_fields <- c("system", "owner", "run_by", "purpose", "approved_by")
+
+#' Check actor fields given as an option or to gr_trace(): a named list or
+#' character vector, each name one of .gr_actor_fields, each value one string
+#' or NA.
+#' @noRd
+check_actor <- function(value, where = "gr_options(actor = )") {
+  if (is.null(value) || !length(value)) return(list())
+  nms <- names(value)
+  if ((!is.list(value) && !is.character(value)) || is.null(nms) || any(!nzchar(nms))) {
+    gr_abort(sprintf("%s takes named fields: %s.", where,
+                     paste(.gr_actor_fields, collapse = ", ")), class = "gr_bad_option")
+  }
+  bad <- setdiff(nms, .gr_actor_fields)
+  if (length(bad)) {
+    gr_abort(sprintf("Unknown actor field(s) in %s: %s. Known: %s.", where,
+                     paste(bad, collapse = ", "), paste(.gr_actor_fields, collapse = ", ")),
+             class = "gr_bad_option")
+  }
+  value <- as.list(value)
+  one <- vapply(value, function(v) (is.character(v) || all(is.na(v))) && length(v) == 1L,
+                logical(1))
+  if (!all(one)) {
+    gr_abort(sprintf("Each actor field in %s must be one string or NA: %s.", where,
+                     paste(names(value)[!one], collapse = ", ")), class = "gr_bad_option")
+  }
+  lapply(value, function(v) as_chr1(v, NA_character_))
+}
+
+#' The options in force, as a trace records them.
+#'
+#' Header values can hold credentials (an `api-key` header is one), so only
+#' their names are kept.
+#' @noRd
+config_snapshot <- function() {
+  opts <- gr_options()
+  h <- opts[["api_headers", exact = TRUE]]
+  if (length(h)) opts["api_headers"] <- list(stats::setNames(rep("<set>", length(h)), names(h)))
+  list(options = opts, r_version = R.version$version.string)
+}
+
+#' A time as ISO 8601 in UTC, to the millisecond, with the Z that says so.
+#' @noRd
+utc_stamp <- function(x = Sys.time()) {
+  if (is.null(x) || !inherits(x, "POSIXct")) return(NA_character_)
+  format(x, "%Y-%m-%dT%H:%M:%OS3Z", tz = "UTC")
+}
+
+#' A step's token record: the counts, the breakdowns the provider reported,
+#' and where the counts came from.
+#' @noRd
+step_tokens <- function(usage) {
+  u <- if (is.list(usage)) usage else list()
+  out <- list(input = u$input %||% 0L, output = u$output %||% 0L)
+  if (!is.null(u$reasoning)) out$reasoning <- u$reasoning
+  if (!is.null(u$cached_input)) out$cached_input <- u$cached_input
+  out$provenance <- as_chr1(u$provenance, NA_character_)
+  out
+}
+
+#' What one request cost at `model`'s prices, from its usage record, with
+#' cached input at the cached rate where the model has one.
+#' @noRd
+usage_cost <- function(model, usage) {
+  u <- if (is.list(usage)) usage else list()
+  tryCatch(suppressWarnings(as.numeric(gr_estimate_cost(
+    as_chr1(model, "unknown"), u$input %||% 0L, u$output %||% 0L,
+    cached_input_tokens = u$cached_input %||% 0L))),
+    error = function(e) NA_real_)
+}
+
 #' A dollar amount to 12 significant figures, as the double a JSON reader reads
 #' back from them.
 #'
@@ -162,7 +310,7 @@ usd12 <- function(x) {
 #' marked `kind = "embedding"`.
 #' @noRd
 trace_record <- function(trace, label, messages, result, params = list(), seconds = NA_real_,
-                         embedding = FALSE) {
+                         embedding = FALSE, sent = NULL, started = NULL, ended = NULL) {
   if (is.null(trace) || !inherits(trace, "gr_trace")) return(invisible(NULL))
   trace$calls <- trace$calls + 1L
   if (isTRUE(result$cached)) trace$cached <- trace$cached + 1L
@@ -176,10 +324,7 @@ trace_record <- function(trace, label, messages, result, params = list(), second
   # answered from a cache or a replay spent nothing.
   budget <- 0
   if (!isTRUE(result$cached)) {
-    usd <- tryCatch(suppressWarnings(as.numeric(gr_estimate_cost(
-      as_chr1(result$model %||% params$model, "unknown"),
-      result$usage$input %||% 0L, result$usage$output %||% 0L))),
-      error = function(e) NA_real_)
+    usd <- usage_cost(result$model %||% params$model, result$usage)
     if (length(usd) == 1L && !is.na(usd)) {
       usd <- usd12(usd)
       trace$spent_usd <- (trace$spent_usd %||% 0) + usd
@@ -200,10 +345,19 @@ trace_record <- function(trace, label, messages, result, params = list(), second
     trace$errors <- c(trace$errors, list(list(step = length(trace$steps) + 1L, label = label,
                                               error = mark_utf8(as_chr1(result$error)))))
   }
+  # The request's own start and end, in UTC. A caller that did not time the
+  # request is taken to have just finished it.
+  ended <- if (inherits(ended, "POSIXct")) ended else Sys.time()
+  if (!inherits(started, "POSIXct")) {
+    secs <- as_num1(seconds, NA_real_)
+    started <- ended - (if (is.finite(secs)) secs else 0)
+  }
   step <- list(
     step = length(trace$steps) + 1L,
     label = as_chr1(label),
     at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OS3"),
+    started_utc = utc_stamp(started),
+    ended_utc = utc_stamp(ended),
     model = as_chr1(result$model %||% params$model, NA_character_),
     ok = isTRUE(result$ok),
     cached = isTRUE(result$cached),
@@ -218,9 +372,17 @@ trace_record <- function(trace, label, messages, result, params = list(), second
                                                content = mark_utf8(as_chr1(m$content)))),
     response = mark_utf8(as_chr1(result$text)),
     error = if (isTRUE(result$ok)) NULL else mark_utf8(as_chr1(result$error)),
-    tokens = list(input = result$usage$input %||% 0L, output = result$usage$output %||% 0L),
+    tokens = step_tokens(result$usage),
     # Wall-clock time of the request, retries and their pauses included.
     seconds = round(as_num1(seconds, NA_real_), 3),
+    # Requests sent for this one, retries included; 0 when a cache or a
+    # recording answered. A retried request can be billed more than once.
+    attempts = as_int1(result[["attempts", exact = TRUE]], NA_integer_),
+    # What the provider said answered, kept apart from `model`, the model
+    # asked for, which this step is priced and replayed by.
+    served_model = as_chr1(result[["served_model", exact = TRUE]], NA_character_),
+    response_id = as_chr1(result[["response_id", exact = TRUE]], NA_character_),
+    fingerprint = as_chr1(result[["fingerprint", exact = TRUE]], NA_character_),
     # Recorded because a replay has to be able to reach the same decisions the
     # live run reached, and this is one a caller acts on:
     # gr_synthesise(coherence = TRUE) discards a revision whose finish_reason is
@@ -239,6 +401,9 @@ trace_record <- function(trace, label, messages, result, params = list(), second
   # Only on embeddings requests, so a model call's step keeps the fields it
   # always had.
   if (isTRUE(embedding)) step$kind <- "embedding"
+  # The request as it went out (see client_sent_params()); `params` above is
+  # what the caller asked for.
+  if (is.list(sent)) step$params_sent <- sent
   trace$steps <- c(trace$steps, list(step))
   invisible(NULL)
 }
@@ -361,7 +526,8 @@ as_parent_trace <- function(trace, arg = "trace") {
 #' @param trace A `gr_trace`.
 #' @return A one-row data frame: `run_id`, `calls`, `cached`, `steps`,
 #'   `tokens_in`, `tokens_out`, `errors`, `elapsed_s`, `embed_calls`,
-#'   `embed_tokens`.
+#'   `embed_tokens`, `tokens_reasoning`, `tokens_cached_in`,
+#'   `usage_estimated`.
 #'
 #'   `calls` counts every request, including the `embed_calls` of them made to
 #'   an embeddings endpoint. `tokens_in` and `tokens_out` are the size of the
@@ -381,6 +547,14 @@ as_parent_trace <- function(trace, arg = "trace") {
 #'
 #'   `errors` counts every failed request, including any the run recovered
 #'   from (see `errors` in [gr_trace()]).
+#'
+#'   `tokens_reasoning` and `tokens_cached_in` are the reasoning tokens and
+#'   cached input tokens the provider reported for the model calls, 0 where it
+#'   reported none. They are parts of `tokens_out` and `tokens_in`, not
+#'   additions to them. `usage_estimated` is the share of requests whose token
+#'   counts were estimated locally because the provider reported none (see
+#'   `tokens` under "Steps" in [gr_trace()]), from 0 to 1, or `NA` when no
+#'   request says.
 #' @seealso [gr_trace()], [as_json()], [gr_trace_cost()], [gr_estimate_cost()],
 #'   [gr_cache()]
 #' @export
@@ -409,8 +583,39 @@ gr_trace_summary <- function(trace) {
     embed_calls = sum(vapply(trace$steps, function(st) identical(st$kind, "embedding"),
                              logical(1))),
     embed_tokens = as.integer(trace$embed_tokens %||% 0L),
+    # The breakdowns the provider reported: parts of tokens_out and
+    # tokens_in, not additions to them.
+    tokens_reasoning = sum_step_tokens(trace$steps, "reasoning"),
+    tokens_cached_in = sum_step_tokens(trace$steps, "cached_input"),
+    usage_estimated = usage_estimated_share(trace$steps),
     stringsAsFactors = FALSE
   )
+}
+
+#' The requests of a trace whose usage is recorded: not local steps.
+#' @noRd
+request_steps <- function(steps) {
+  Filter(function(s) is.list(s) && !identical(s$kind, "local") && is.list(s$tokens), steps)
+}
+
+#' One token breakdown summed over a trace's model calls.
+#' @noRd
+sum_step_tokens <- function(steps, field) {
+  req <- Filter(function(s) !identical(s$kind, "embedding"), request_steps(steps))
+  as.integer(sum(vapply(req, function(s) as_int1(s$tokens[[field]], 0L), integer(1))))
+}
+
+#' The share of requests whose token counts were estimated here rather than
+#' reported by the provider or counted with the model's own tokenizer. NA
+#' when no request says where its counts came from (an empty trace, or one
+#' written before the record was kept).
+#' @noRd
+usage_estimated_share <- function(steps) {
+  prov <- vapply(request_steps(steps), function(s) as_chr1(s$tokens$provenance, NA_character_),
+                 character(1))
+  prov <- prov[!is.na(prov)]
+  if (!length(prov)) return(NA_real_)
+  round(mean(prov == "estimated"), 4)
 }
 
 #' @rdname gr_trace
@@ -432,9 +637,9 @@ as.data.frame.gr_trace <- function(x, row.names = NULL, optional = FALSE, ...) {
     # usually for an embedding model with no registered price, and priced NA
     # it made the cost of a run whose every other request was priced unknown.
     if (!ok[i] && identical(tin[i], 0L) && identical(tout[i], 0L)) return(0)
-    tryCatch(suppressWarnings(as.numeric(gr_estimate_cost(
-      as_chr1(model[i], "unknown"), if (cached[i]) 0L else tin[i],
-      if (cached[i]) 0L else tout[i]))), error = function(e) NA_real_)
+    usage_cost(model[i], if (cached[i]) list(input = 0L, output = 0L)
+                         else list(input = tin[i], output = tout[i],
+                                   cached_input = steps[[i]]$tokens$cached_input))
   }, numeric(1))
   prompt <- vapply(steps, function(s) {
     parts <- vapply(s$prompt %||% list(), function(m) sprintf("[%s] %s", as_chr1(m$role, "?"),
@@ -463,6 +668,15 @@ as.data.frame.gr_trace <- function(x, row.names = NULL, optional = FALSE, ...) {
   # places, it always had.
   effort <- chr(function(s) if (is.list(s$params)) s$params[["effort", exact = TRUE]])
   if (any(!is.na(effort))) out$effort <- effort
+  # The same rule for the token breakdowns and the model the provider said
+  # answered: columns only when some request has them.
+  brk <- function(f) vapply(steps, function(s) as_int1(s$tokens[[f]], NA_integer_), integer(1))
+  reasoning <- brk("reasoning")
+  if (any(!is.na(reasoning))) out$tokens_reasoning <- reasoning
+  cached_in <- brk("cached_input")
+  if (any(!is.na(cached_in))) out$tokens_cached_in <- cached_in
+  served <- chr(function(s) s$served_model)
+  if (any(!is.na(served))) out$served_model <- served
   if (!is.null(row.names)) rownames(out) <- row.names
   out
 }
@@ -505,6 +719,23 @@ print.gr_trace <- function(x, ...) {
     cat("  steps:", paste(sprintf("%s x%d", names(tab), as.integer(tab)), collapse = ", "), "\n")
   }
   cat(sprintf("  cost: %s\n", format_trace_cost(x)))
+  # The usage, served-by and actor lines print only when there is something
+  # to say, so a mock run prints what it did, plus where its token counts came
+  # from. The start time and the first error follow them.
+  if (!is.na(s$usage_estimated) && s$usage_estimated > 0) {
+    cat(sprintf("  usage: estimated locally for %s of requests (the provider reported none)\n",
+                sprintf("%.0f%%", 100 * s$usage_estimated)))
+  }
+  served <- unique(stats::na.omit(vapply(x$steps, function(st)
+    as_chr1(st$served_model, NA_character_), character(1))))
+  if (length(served)) cat("  served by:", paste(served, collapse = ", "), "\n")
+  actor <- trace_actor(x$actor)
+  set <- !vapply(actor, is.na, logical(1))
+  if (any(set)) {
+    cat("  actor:", paste(sprintf("%s = %s", names(actor)[set], unlist(actor[set])),
+                          collapse = ", "), "\n")
+  }
+  if (inherits(x$started, "POSIXct")) cat("  started:", utc_stamp(x$started), "\n")
   if (length(x$errors)) {
     cat("  first error:", substr(as_chr1(x$errors[[1]]$error), 1, 160), "\n")
   }
