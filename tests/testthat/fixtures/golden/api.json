@@ -89,7 +89,7 @@
       "type": "function"
     },
     "gr_compare": {
-      "formals": ["source", "question", "recipes = c(\"fast\", \"needle\", \"thorough\")", "client = NULL", "allow_duplicates = FALSE", "on_error = c(\"continue\", \"stop\")", "..."],
+      "formals": ["source", "question", "recipes = c(\"fast\", \"needle\", \"thorough\")", "client = NULL", "allow_duplicates = FALSE", "on_error = c(\"continue\", \"stop\")", "correct = NULL", "..."],
       "type": "function"
     },
     "gr_count_tokens": {
