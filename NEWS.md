@@ -188,6 +188,38 @@
   `verified`.
   `Rscript dev/quote-matcher-rates.R` prints the full table.
 
+## Trace records of state and cuts
+
+* **`refine` and `hierarchical` write the length of the state they carry.**
+  Each `refine.draft` and `refine.revise` step in the trace gains
+  `state$tokens_in` (the draft the request carried) and `state$tokens_out`
+  (the draft carried on from it, which is the old one when the reply was
+  unusable). Each `hier.summarise.L<k>` step gains the length of the text it
+  summarised and of the summary it returned, the `hier.answer` step the length
+  of the summaries it was sent, and each level adds a local
+  `hier.state.L<k>` step with the number of summaries handed on and their
+  combined length. A draft that shrinks sharply in one revision can now be
+  seen in the trace.
+
+* **Every cut writes a `truncate` step to the trace** with where it was made
+  (`detail$where`: `refine.excerpt`, `refine.draft`, `hier.summaries`,
+  `preview.skim`, `preview.outline`, `<label>.input` for a finding cut to fit
+  a merge, `<label>.giveup` for the capped findings a failed merge returns,
+  `segment.contextual.header`, `segment.contextual.document`,
+  `screen.opening`, `synthesise.gaps`, `embed.input`), the token limit, and
+  the tokens before, kept and dropped (the truncation marker is not counted
+  as kept). For `screen.opening` the limit is the screening cap on the
+  opening with its heading; for `segment.contextual.header` it is the room
+  the header was cut to. A `preview.skim` cut lists the cut section's
+  `chunk_ids`, always as a JSON array. `refine` and `hierarchical` answers
+  also gain `notes$tokens_truncated`, and their printed answer now says how
+  many tokens were cut ("N token(s) cut to fit") when a cut happened. The
+  `preview` reader's `notes$tokens_truncated` is now the tokens a cut dropped
+  rather than the overshoot over the cap, a correction to a count that
+  measured the wrong thing. Requests, cache keys and replay
+  keys are unchanged; the trace of a run that cut nothing gains only the state
+  lengths above.
+
 # readgpt 0.6.0
 
 ## New

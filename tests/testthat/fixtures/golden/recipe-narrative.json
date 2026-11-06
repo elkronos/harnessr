@@ -110,6 +110,10 @@
         "recipe": "narrative",
         "response": "5e372c1edd7906c1",
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 0,
+          "tokens_out": 26
+        },
         "step": 4,
         "tokens": {
           "input": 611,

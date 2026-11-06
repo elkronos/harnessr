@@ -60,6 +60,10 @@ read_screen <- function(chunks, question, client, spec, trace) {
     # "unclear" instead made no call at all, and a whole corpus came back as
     # model deferrals on openings nobody had read.
     sub <- screen_opening(d[1, , drop = FALSE], cap)
+    if (!is.null(sub) && !identical(sub$text[1], d$text[1])) {
+      trace_truncation(trace, "screen.opening", d$text[1], sub$text[1], limit = cap,
+                       chunk_id = d$chunk_id[1])
+    }
     if (is.null(sub)) {
       given <- as_int1(spec[["screen_tokens"]], NA_integer_)
       gr_abort(if (!is.na(given) && given <= bud$input) {

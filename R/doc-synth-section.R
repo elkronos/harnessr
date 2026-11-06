@@ -242,7 +242,8 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
                           system_prompt = system_prompt, kind = "draft"),
                # The merge sizes its prompt as the section did. No room is a
                # merge that did not happen, not a write-up that stops.
-               gr_budget_error = function(e) list(text = merge_giveup(parts[nzchar(parts)], spec),
+               gr_budget_error = function(e) list(text = merge_giveup(parts[nzchar(parts)], spec,
+                                                                    trace, "synthesise.merge"),
                                                   ok = FALSE, error = conditionMessage(e)))
     # tree_merge() accepts a merge reply cut off at the limit as it accepts any
     # other, and returns only the text, so the steps it recorded are the one
