@@ -100,6 +100,7 @@ suppressWarnings(gr_segment_spec("paragraph", max_tokens = 100,
 \code{\link[=gr_segment]{gr_segment()}}, \code{\link[=gr_chunk_stats]{gr_chunk_stats()}}
 
 Other segmentation functions: 
+\code{\link{gr_check_segmenter}()},
 \code{\link{gr_chunk_stats}()},
 \code{\link{gr_chunks}},
 \code{\link{gr_register_segmenter}()},

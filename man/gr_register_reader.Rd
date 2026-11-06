@@ -115,6 +115,7 @@ gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million"),
 
 Other reading functions: 
 \code{\link{gr_answer}},
+\code{\link{gr_check_reader}()},
 \code{\link{gr_read}()},
 \code{\link{gr_read_spec}()},
 \code{\link{gr_reader_signature}()},

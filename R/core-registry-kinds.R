@@ -32,13 +32,6 @@ hr_state$kinds          <- list()
 # (see hr_register_worker_state()).
 hr_state$worker_providers <- list()
 
-#' The version of the module contract this core implements.
-#'
-#' Frozen while the contract is being written: a module checked against it
-#' later can say which version it was written for.
-#' @noRd
-hr_contract_version <- function() "0.1"
-
 #' Tell the core about a kind of module.
 #'
 #' `name` is the kind, such as "reader". Anything in `...` is kept with it as

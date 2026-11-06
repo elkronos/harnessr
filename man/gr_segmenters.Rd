@@ -31,6 +31,7 @@ subset(gr_segmenters(), cost != "free" | needs_client == "TRUE")[, 1:3]
 \code{\link[=gr_chunk_stats]{gr_chunk_stats()}} to compare what they produce
 
 Other segmentation functions: 
+\code{\link{gr_check_segmenter}()},
 \code{\link{gr_chunk_stats}()},
 \code{\link{gr_chunks}},
 \code{\link{gr_register_segmenter}()},

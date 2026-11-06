@@ -68,6 +68,14 @@
       "formals": ["client", "messages", "model = NULL", "max_output = NULL", "temperature = NULL", "schema = NULL", "schema_name = \"result\"", "trace = NULL", "label = \"call\"", "...", "effort = NULL", "draw_index = 0L"],
       "type": "function"
     },
+    "gr_check_reader": {
+      "formals": ["reader", "client = NULL"],
+      "type": "function"
+    },
+    "gr_check_segmenter": {
+      "formals": ["segmenter", "client = NULL"],
+      "type": "function"
+    },
     "gr_chunk_stats": {
       "formals": ["chunks"],
       "type": "function"
@@ -328,6 +336,10 @@
       "formals": ["answer", "chunks = NULL"],
       "type": "function"
     },
+    "hr_check_module": {
+      "formals": ["fn", "run", "rules = list()", "kind = \"module\"", "name = NA_character_"],
+      "type": "function"
+    },
     "hr_cost": {
       "formals": ["calls", "calls_max = calls", "tokens_in_max = 0", "tokens_out_max = 0", "embed_max = 0", "sends = list()", "batched = TRUE"],
       "type": "function"
@@ -577,6 +589,11 @@
     },
     "print.gr_trace": {
       "class": "gr_trace",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_conformance": {
+      "class": "hr_conformance",
       "formals": ["x", "..."],
       "generic": "print"
     },

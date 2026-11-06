@@ -45,6 +45,7 @@ do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"),
 \code{\link[=gr_segmenters]{gr_segmenters()}}, \code{\link[=gr_segment_spec]{gr_segment_spec()}}, \code{\link[=gr_chunk_stats]{gr_chunk_stats()}}, \link{gr_chunks}
 
 Other segmentation functions: 
+\code{\link{gr_check_segmenter}()},
 \code{\link{gr_chunk_stats}()},
 \code{\link{gr_chunks}},
 \code{\link{gr_register_segmenter}()},
