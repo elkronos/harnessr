@@ -31,6 +31,7 @@ gr_read_spec(
   on_overflow = c("warn", "error"),
   effort = NULL,
   premise = FALSE,
+  verify = FALSE,
   ...
 )
 }
@@ -184,6 +185,24 @@ prompts are longer, so a cache, a recorded replay or a \code{\link[=gr_read_many
 store made without it does not answer a run with it, and the reverse.
 \code{screen} and \code{extract}, which answer no question, ignore it.}
 
+\item{verify}{Check the answer's quotations against the chunks they come
+from, and let the check decide what is accepted. \code{FALSE} (the default)
+sends the same requests and accepts answers as before; the \verb{quote_*}
+shadow columns are still recorded on checked evidence (see "Verifying
+quotations"). With \code{TRUE}, \code{\link[=gr_read]{gr_read()}} runs
+\code{\link[=gr_verify_evidence]{gr_verify_evidence()}} on every answer, writes its columns onto
+\verb{$evidence}, marks the answer partial when a quotation is not found, and
+records a \code{read.verify} step in the trace. The \code{iterative} reader also
+asks each step that says it can answer for the passages it rests on,
+word for word with their chunk numbers, and stops only when every one is
+found in the chunk it names; a refused step is told which quotations
+were not found, and a run that ends with none accepted answers
+\code{NOT_IN_DOCUMENT}. Its evidence is then the quotations, not every chunk
+it was shown. A step that reports the premise false (\code{premise = TRUE})
+is not asked for quotations and is not refused for lacking them: its
+verdict stops the loop as it does without \code{verify}. See "Verifying
+quotations" below.}
+
 \item{...}{Extra fields for custom readers.}
 }
 \value{
@@ -221,6 +240,27 @@ the question, and the correction when something did. \code{\link[=gr_compare]{gr
 \code{\link[=gr_read_many]{gr_read_many()}} add a \code{premise} column to their summaries, \code{print()} and
 \code{\link[=gr_audit_report]{gr_audit_report()}} say when the model reported the premise false, and the
 trace has a \code{read.premise} step with the outcome.
+}
+
+\section{Verifying quotations}{
+
+A reader that puts the chunks it read into \verb{$evidence} has quoted them by
+construction, so for \code{stuff}, \code{retrieve}, \code{rerank} and the default
+\code{iterative} a passing check says only that the chunks were the ones sent.
+The check means something where a model chose what to quote: \code{skim},
+\code{extract}, \code{screen}, and \code{iterative} under \code{verify = TRUE}.
+
+Two matchers score each quotation. The one that decides \code{verified} is the
+check described in \code{\link[=gr_verify_evidence]{gr_verify_evidence()}}, unchanged. Beside it the answer
+carries \code{quote_status}, \code{quote_sim}, \code{quote_coverage}, \code{quote_edits} and
+\code{quote_critical_ok} from an edit-distance matcher that tolerates ligatures,
+line-break hyphens and OCR letter errors while requiring numbers, units
+and negations to be identical. It is recorded only, and decides nothing in
+this release.
+
+\code{verify = TRUE} changes what \code{iterative} sends (its schema and
+instructions), so a cache or recording made without it does not answer a
+run with it. The other readers send exactly what they sent before.
 }
 
 \section{Out-of-range values}{

@@ -60,6 +60,10 @@ read_screen <- function(chunks, question, client, spec, trace) {
     # "unclear" instead made no call at all, and a whole corpus came back as
     # model deferrals on openings nobody had read.
     sub <- screen_opening(d[1, , drop = FALSE], cap)
+    if (!is.null(sub) && !identical(sub$text[1], d$text[1])) {
+      trace_truncation(trace, "screen.opening", d$text[1], sub$text[1], limit = cap,
+                       chunk_id = d$chunk_id[1])
+    }
     if (is.null(sub)) {
       given <- as_int1(spec[["screen_tokens"]], NA_integer_)
       gr_abort(if (!is.na(given) && given <= bud$input) {
@@ -196,6 +200,17 @@ read_screen <- function(chunks, question, client, spec, trace) {
 #'       this, but prefer handing it the whole screening object: a character
 #'       vector of paths cannot carry the search, so `gr_extract(screened)`
 #'       keeps it and `gr_extract(screened$included)` does not.}
+#'     \item{`forward`}{The distinct sources kept for full text: `"include"`
+#'       and `"unclear"`. An unclear record is a deferral, not an exclusion,
+#'       so this is the set a review should read next. In this release
+#'       `gr_extract(screened)` still reads `included`, and warns (class
+#'       `gr_unclear_dropped`) when that leaves unclear records out; from the
+#'       next release it reads `forward`.}
+#'     \item{`deferred`}{The distinct sources whose decision was
+#'       `"unclear"`: the ones a person still has to decide, with
+#'       [gr_resolve()].}
+#'     \item{`sources`}{Every source, one per row of `table`, so that
+#'       [gr_resolve()] can rebuild the sets above.}
 #'     \item{`records`}{The [gr_records()] the run was made over, or `NULL`.}
 #'     \item{`summary`,`answers`,`trace`,`store`}{As [gr_extract()].}
 #'   }
@@ -302,15 +317,14 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
   answers <- out$answers[docs]
   names(answers) <- docs
   tab <- screening_table(docs, answers, out$summary, include, exclude)
+  sets <- screening_sets(tab, out$sources)
 
   structure(list(
     table    = tab,
-    # The SOURCES, not summary$document, which is a display label with no way
-    # back to a file -- gr_extract(screened$included) then failed with "file not
-    # found" on every row. And distinct: a duplicate is the same study, so
-    # extracting it again buys nothing but the chance of counting it twice.
-    included = out$sources[!is.na(tab$decision) & tab$decision == "include" &
-                             is.na(tab$duplicate_of)],
+    included = sets$included,
+    forward  = sets$forward,
+    deferred = sets$deferred,
+    sources  = out$sources,
     include  = include,
     exclude  = exclude,
     summary  = out$summary,
@@ -324,6 +338,24 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
 }
 
 # --- internals -------------------------------------------------------------
+
+#' The sources each screening set holds, from the table's decisions.
+#'
+#' The SOURCES, not summary$document, which is a display label with no way
+#' back to a file: gr_extract(screened$included) then failed with "file not
+#' found" on every row. And distinct: a duplicate is the same study, so
+#' extracting it again buys nothing but the chance of counting it twice.
+#' `forward` holds the unclear records as well as the included ones, because
+#' "unclear" sends a record to a person; leaving it out of the next stage
+#' turned a deferral into an exclusion nobody recorded.
+#' @noRd
+screening_sets <- function(tab, sources) {
+  own <- is.na(tab$duplicate_of)
+  dec <- tab$decision
+  pick <- function(d) sources[!is.na(dec) & dec %in% d & own]
+  list(included = pick("include"), forward = pick(c("include", "unclear")),
+       deferred = pick("unclear"))
+}
 
 .gr_screen_schema <- list(
   type = "object", additionalProperties = FALSE,

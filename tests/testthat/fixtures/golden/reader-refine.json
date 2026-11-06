@@ -249,6 +249,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 0,
+          "tokens_out": 26
+        },
         "step": 4,
         "tokens": {
           "input": 179,
@@ -291,6 +295,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 5,
         "tokens": {
           "input": 271,
@@ -333,6 +341,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 6,
         "tokens": {
           "input": 261,
@@ -375,6 +387,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 7,
         "tokens": {
           "input": 298,
@@ -417,6 +433,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 8,
         "tokens": {
           "input": 285,
@@ -459,6 +479,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 26,
+          "tokens_out": 26
+        },
         "step": 9,
         "tokens": {
           "input": 226,

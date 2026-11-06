@@ -240,6 +240,9 @@
 #'       it was, as `alternative`, `of` (how many were asked for), `distinct`
 #'       (how many came back distinct) and `distance` from the first proposal.
 #'       The trace's meta records `outline_alternative` and `outline_of` too.}
+#'     \item{`outline_trace`}{Present only when `outline` came from
+#'       [gr_outline()]: the trace of the calls that derived it, which this
+#'       stage's `trace` does not include.}
 #'     \item{`trace`}{As [gr_extract()].}
 #'   }
 #'
@@ -376,6 +379,10 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   # reason: once the attribute is dropped, a review written from its second
   # proposal looks like one written from its first.
   chosen <- outline_choice(outline)
+  # What gr_outline() spent, kept for the audit's cost table. Only referred
+  # to: this stage's own trace does not absorb it, since a caller who gave
+  # gr_outline() a parent trace already has those calls there.
+  outline_trace <- attr(outline, "trace", exact = TRUE)
   # A section the claim assignment names is a section to write, whatever its
   # brief says. outline_vector() drops a heading with a blank brief, and
   # gr_outline() keeps one when the model left the brief empty, so the section
@@ -559,6 +566,11 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
                              "section '%s' states only those. It is marked partial."),
                       attr(fit, "kept"), attr(fit, "of"), closing),
               class = "gr_gaps_truncated")
+      # A cut inside the first line ends in the default marker, which is not
+      # text kept; a cut at a line boundary has none and the guard skips it.
+      trace_truncation(trace, "synthesise.gaps", gaps, as.character(fit),
+                       limit = max(1L, room %/% 4L), marker = " ...[truncated]",
+                       section = closing)
       gaps <- as.character(fit)
       gaps_cut <- TRUE
     }
@@ -707,6 +719,7 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   # Added only when there is something to say, so a write-up from a single
   # outline is the object it always was.
   if (!is.null(chosen)) out$outline_alternative <- chosen
+  if (inherits(outline_trace, "gr_trace")) out$outline_trace <- outline_trace
   out
 }
 

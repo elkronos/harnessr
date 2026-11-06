@@ -6,6 +6,13 @@
 #' Every source is accounted for at every stage it reached, so the arithmetic
 #' closes: nothing leaves the count without a row saying why.
 #'
+#' For a screening, the records screened split into include, exclude, unclear,
+#' could not be read (no screening call was made) and screening call failed,
+#' and those five rows sum to "screened". "resolved by a person" counts the
+#' decisions above that a person made with [gr_resolve()]. "kept for full
+#' text" is `$forward` (include and unclear), and "deferred to full text" the
+#' unclear part of it, `$deferred`.
+#'
 #' @param screening A `gr_screening` from [gr_screen()], or `NULL`.
 #' @param extraction A `gr_extraction` from [gr_extract()], or `NULL`.
 #' @return A data frame of `stage`, `n` and `note`.
@@ -51,16 +58,37 @@ gr_flow <- function(screening = NULL, extraction = NULL, records = NULL, claims 
   }
   if (!is.null(screening)) {
     t <- screening$table
-    dup <- sum(!is.na(t$duplicate_of))
+    own <- is.na(t$duplicate_of)
+    dup <- sum(!own)
     add("sources given", nrow(t))
     add("duplicates removed", dup, "same cleaned text as a document already seen")
     add("screened", nrow(t) - dup)
     for (d in c("include", "exclude", "unclear")) {
-      add(sprintf("  %s", d), sum(!is.na(t$decision) & t$decision == d & is.na(t$duplicate_of)),
-          if (d == "unclear") "the excerpt did not settle it; for a person to decide" else "")
+      add(sprintf("  %s", d), sum(!is.na(t$decision) & t$decision == d & own),
+          if (d == "unclear") "the excerpt did not settle it; deferred to a person" else "")
     }
-    add("  could not be read", sum(is.na(t$decision) & is.na(t$duplicate_of)),
-        "no decision was recorded; these are outstanding")
+    # A record with no decision either never reached the model or reached it
+    # and got nothing usable back. Both are outstanding, but they are fixed in
+    # different places (the file, or the provider), so they are counted apart.
+    # A request was made when the record's own trace counted one.
+    none <- is.na(t$decision) & own
+    calls <- screening$summary$calls
+    asked <- if (length(calls) == nrow(t)) !is.na(calls) & calls > 0L else rep(FALSE, nrow(t))
+    add("  could not be read", sum(none & !asked),
+        paste0("no decision was recorded; these are outstanding. No screening call was ",
+               "made: the document could not be read, or a limit stopped it"))
+    add("  screening call failed", sum(none & asked),
+        paste0("no decision was recorded; these are outstanding. The call failed or its ",
+               "reply was not the form asked for"))
+    # Counted under the decision the person gave, above; this row says how
+    # many of those decisions are a person's rather than the screener's.
+    add("  resolved by a person", sum(!is.na(t$resolved_by %||% rep(NA, nrow(t))) & own),
+        "decided with gr_resolve(); counted above under the person's decision")
+    fwd <- sum(!is.na(t$decision) & t$decision %in% c("include", "unclear") & own)
+    add("kept for full text", fwd, "include and unclear: $forward")
+    add("  deferred to full text", sum(!is.na(t$decision) & t$decision == "unclear" & own),
+        paste0("unclear: $deferred. gr_extract(screening) reads only the included ones ",
+               "in this release, and warns when it leaves these out"))
   }
   if (!is.null(extraction)) {
     t <- extraction$table

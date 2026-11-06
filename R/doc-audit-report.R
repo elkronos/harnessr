@@ -147,8 +147,8 @@
 #' one of several [gr_outline()] compared and chosen with [gr_outline_pick()],
 #' "What was written" says which one, and how far its grouping of the claims
 #' lies from the first proposal's.
-#' The cost table includes the calls [gr_claims()] made and, when it was left
-#' to record on the claims' trace, [gr_outline()]. When any request was sent
+#' The cost table includes the calls [gr_claims()] made and, when the
+#' write-up's outline came from it, those [gr_outline()] made. When any request was sent
 #' with a reasoning effort (`effort` in [gr_read_spec()]), the cost table says
 #' which efforts each stage's requests carried, and the table of requests has
 #' an `effort` column.
@@ -498,8 +498,12 @@ audit_screening <- function(screening) {
   # `criterion_valid` FALSE is a criterion the protocol does not list: an
   # exclusion on one was held back for a person, and the report showed the
   # criterion with nothing to say it was not the protocol's.
+  # A decision a person made with gr_resolve() sits beside the screener's
+  # reason and quote, so the row says who decided and what the screener said.
   keep <- c("document", "decision", "criterion", "criterion_valid", "reason", "quote",
-            "verified", "error")
+            "verified", "error",
+            intersect(c("screener_decision", "resolved_by", "resolved_at", "resolved_reason"),
+                      names(t)))
   c("<h2>Screening decisions</h2>",
     sprintf("<p class='sub'>One model call per document.%s</p>",
             if (any(t$truncated, na.rm = TRUE))
@@ -896,7 +900,8 @@ audit_cost <- function(screening = NULL, extraction = NULL, synthesis = NULL, re
   # Named for the reader, not after the class. "gr_screening" is what the object
   # is called in the code and means nothing to the person the report is for.
   stages <- list(screening = screening, extraction = extraction,
-                 claims = claims_cost_stage(claims), synthesis = synthesis, answer = reading)
+                 claims = claims_cost_stage(claims, synthesis$outline_trace),
+                 synthesis = synthesis, answer = reading)
   traces <- Filter(function(x) inherits(x$trace, "gr_trace"), stages)
   if (!length(traces)) return(NULL)
   rows <- lapply(names(traces), function(nm) {
@@ -917,27 +922,43 @@ audit_cost <- function(screening = NULL, extraction = NULL, synthesis = NULL, re
   if (any(!is.na(effort))) tab$effort <- ifelse(is.na(effort), "none", unname(effort))
   c("<h2>What the run cost</h2>",
     if ("claims" %in% names(traces))
-      paste0("<p class='sub'>The claims row is the calls gr_claims() made and, where it ",
-             "recorded them on the claims' trace, those gr_outline() made.</p>"),
+      paste0("<p class='sub'>The claims row is the calls gr_claims() made and, when the ",
+             "write-up's outline came from gr_outline(), those it made.</p>"),
     "<p class='sub'>Only requests that were sent are counted. A reply served from a cache",
     "cost nothing, however large its prompt.</p>",
     html_table(tab, numeric_cols = c("calls", "cached", "tokens_in", "tokens_out", "usd")))
 }
 
-#' The claims stage of the cost table, as a stage audit_cost() can read: its
-#' own requests only, from the claims' trace, or NULL when there are none.
+#' The claims stage of the cost table, as a stage audit_cost() can read: the
+#' requests gr_claims() and gr_outline() made, or NULL when there are none.
 #'
-#' gr_claims() and gr_outline() record their calls on `claims$trace`, and
-#' gr_synthesise() keeps a trace of its own, so a claims-based review's
-#' drawing, reconciling and outlining were in no row of the table. Not the
-#' trace's own counters: gr_claims(trace = tr) records on `tr` itself, which
-#' also holds whatever else the caller ran on it -- a screening or write-up
-#' already in the table, counted twice. Its steps are picked out by label.
+#' Each records on a trace of its own: `claims$trace`, and the outline's,
+#' which gr_synthesise() keeps as `$outline_trace`. Steps are still picked out
+#' by label, because a gr_claims result made before that rule recorded on the
+#' caller's trace, which also held whatever else ran on it: a screening or
+#' write-up already in the table, counted twice.
+#'
+#' With an outline trace, the outline's steps are read from it alone. A caller
+#' who passes `trace = claims$trace` to gr_outline() folds the outline's calls
+#' into the claims' trace as well, and that trace has a run id of its own, so
+#' reading `outline.` steps from both would count them twice.
 #' @noRd
-claims_cost_stage <- function(claims) {
-  if (!inherits(claims, "gr_claims") || !inherits(claims$trace, "gr_trace")) return(NULL)
-  mine <- Filter(function(st) grepl("^(claims|outline)\\.", as_chr1(st$label, "")),
-                 claims$trace$steps)
+claims_cost_stage <- function(claims, outline_trace = NULL) {
+  claims_trace <- if (inherits(claims, "gr_claims") && inherits(claims$trace, "gr_trace")) {
+    claims$trace
+  }
+  labelled <- function(t, pattern) {
+    if (is.null(t)) return(list())
+    Filter(function(st) grepl(pattern, as_chr1(st$label, "")), t$steps)
+  }
+  mine <- if (inherits(outline_trace, "gr_trace") &&
+              !identical(outline_trace$run_id, claims_trace$run_id)) {
+    c(labelled(claims_trace, "^claims\\."), labelled(outline_trace, "^outline\\."))
+  } else {
+    # No outline trace (a result made before the outline kept one), or the
+    # claims' own trace given again: both labels come from the claims' trace.
+    labelled(claims_trace, "^(claims|outline)\\.")
+  }
   req <- Filter(function(st) !identical(st$kind, "local") && !is.null(st$tokens), mine)
   if (!length(req)) return(NULL)
   tr <- gr_trace(meta = list(stage = "claims"))
@@ -1057,8 +1078,50 @@ audit_calibration <- function(calibration) {
               calibration$n_positives, format(calibration$min_positives))
     }
   }
-  kap <- if (!is.na(calibration$kappa))
-    sprintf("<p><b>Cohen's kappa:</b> %.2f</p>", calibration$kappa)
+  # Kappa beside PABAK and AC1, never alone: at screening prevalence it moves
+  # with the marginals, and printed on its own it read as the verdict. A
+  # calibration saved before the agreement set existed has only `kappa`, which
+  # was the three-label figure, and is shown as that.
+  ag <- calibration[["agreement", exact = TRUE]]
+  kap <- if (is.list(ag) && !is.null(ag$kept)) {
+    one <- function(a, label) {
+      st <- a$stats
+      st <- st[st$statistic %in% c("kappa", "PABAK", "AC1", "prevalence index", "bias index",
+                                   "sensitivity", "specificity", "PPV", "NPV"), ]
+      data.frame(table = label, statistic = st$statistic,
+                 estimate = ifelse(is.na(st$estimate), "--", sprintf("%.2f", st$estimate)),
+                 interval = ifelse(is.na(st$lower) | is.na(st$upper), "--",
+                                   sprintf("%.2f to %.2f", st$lower, st$upper)),
+                 stringsAsFactors = FALSE)
+    }
+    rows <- rbind(one(ag$kept, "kept (include + unclear) vs excluded"),
+                  if (!is.null(ag$strict)) one(ag$strict, "strict include vs the rest"))
+    notes <- unique(stats::na.omit(vapply(list(ag$kept, ag$strict), function(a) {
+      n <- if (is.list(a)) a[["note", exact = TRUE]]
+      if (is.character(n) && length(n) == 1L) n else NA_character_
+    }, "")))
+    c("<p><b>Agreement with the person</b></p>", html_table(rows),
+      if (length(notes))
+        sprintf("<p class='sub'>No kappa or AC1 interval: %s</p>", esc(paste(notes, collapse = " "))),
+      if (isTRUE(ag$kept$paradox))
+        paste0("<p class='flag'>The prevalence index is above 0.8 in absolute value, so ",
+               "kappa here reflects prevalence as much as agreement. Read it beside PABAK ",
+               "and AC1.</p>"))
+  } else if (!is.na(calibration$kappa %||% NA_real_)) {
+    sprintf("<p><b>Cohen's kappa (include, unclear and exclude against eligible):</b> %.2f</p>",
+            calibration$kappa)
+  }
+  # The 3x2 counts every rate and agreement figure above is made from, shown
+  # on every sample, one stratum included.
+  d <- calibration[["decisions", exact = TRUE]]
+  counts <- if (!is.null(d) && length(dim(d)) == 2L) {
+    c("<p><b>The screener's decisions against the person's</b></p>",
+      html_table(data.frame(screener = rownames(d),
+                            eligible = as.integer(d[, "eligible"]),
+                            `not eligible` = as.integer(d[, "not eligible"]),
+                            check.names = FALSE, stringsAsFactors = FALSE),
+                 numeric_cols = c("eligible", "not eligible")))
+  }
   proj <- if (!is.null(calibration$projected)) {
     pr <- calibration$projected
     sprintf(paste0("<p class='flag'>Across all %s excluded record(s), that rate implies about ",
@@ -1070,7 +1133,7 @@ audit_calibration <- function(calibration) {
     "<p class='flag'>%d eligible stud%s excluded by the screener: %s.</p>",
     nrow(calibration$missed), if (nrow(calibration$missed) == 1L) "y was" else "ies were",
     esc(paste(report_url(utils::head(calibration$missed$document, 8)), collapse = ", ")))
-  c("<h2>How good the screening is</h2>", head, html_table(tab), kap, proj, warn, miss)
+  c("<h2>How good the screening is</h2>", head, html_table(tab), counts, kap, proj, warn, miss)
 }
 
 #' The search, as the review has to report it.

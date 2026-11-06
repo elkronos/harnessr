@@ -58,8 +58,10 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
       # Cut to leave room for its tags, which the truncation does not count.
       big <- pieces[over]
       room <- pmax(1, bud$input - (pts[over] - gr_count_tokens(big)))
-      pieces[over] <- vapply(seq_along(big), function(k) gr_truncate_tokens(big[k], n = room[k]),
-                             character(1), USE.NAMES = FALSE)
+      pieces[over] <- vapply(seq_along(big), function(k) {
+        truncate_logged(big[k], room[k], paste0(label, ".input"), trace,
+                        level = level, piece = which(over)[k])$text
+      }, character(1), USE.NAMES = FALSE)
       truncated <- truncated + sum(over)
       pts <- sized(pieces)
     }
@@ -89,13 +91,13 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
         # return unbounded concatenation, an "answer" the size of every
         # finding put together, while the failure path below was carefully
         # capped. Same degradation, same bound, and not counted as a failure.
-        return(list(text = merge_giveup(pieces, spec), ok = FALSE, levels = level,
+        return(list(text = merge_giveup(pieces, spec, trace, label), ok = FALSE, levels = level,
                     truncated = truncated, truncated_calls = cut, failed = failed,
                     error = res$error))
       }
       if (!res$ok) {
         # Concatenation is a documented, visible degradation -- not a silent one.
-        return(list(text = merge_giveup(pieces, spec), ok = FALSE, levels = level,
+        return(list(text = merge_giveup(pieces, spec, trace, label), ok = FALSE, levels = level,
                     truncated = truncated, truncated_calls = cut, failed = failed + 1L,
                     error = res$error))
       }
@@ -119,7 +121,7 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
         list(role = "user", content = paste0("Question: ", question))
       ), model = spec$model, max_output = spec$max_answer_tokens, temperature = spec$temperature,
          trace = trace, label = paste0(label, ".level", level), effort = spec$effort)
-      if (is_refused(res)) return(list(text = merge_giveup(g, spec), cut = FALSE, failed = FALSE))
+      if (is_refused(res)) return(list(text = merge_giveup(g, spec, trace, label), cut = FALSE, failed = FALSE))
       # A failed group goes up unmerged, which keeps its findings and says
       # nothing of the failure, so it is counted.
       if (res$ok) list(text = res$text, cut = reply_cut_off(res), failed = FALSE)
@@ -138,7 +140,7 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
                                      truncated = truncated, truncated_calls = cut,
                                      failed = failed))
     if (length(pieces) >= prev_n || level > 6L) {
-      return(list(text = merge_giveup(pieces, spec), ok = FALSE, levels = level,
+      return(list(text = merge_giveup(pieces, spec, trace, label), ok = FALSE, levels = level,
                   truncated = truncated, truncated_calls = cut, failed = failed,
                   error = if (level > 6L) "merge depth cap reached" else "merge made no progress"))
     }
@@ -150,10 +152,11 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
 #'
 #' Returning `paste(pieces, collapse=)` unbounded handed the caller an "answer"
 #' that could be the size of the whole document. Cap it at a generous multiple of
-#' the answer budget and mark the cut.
+#' the answer budget and mark the cut. The cut is written to `trace` as
+#' `<label>.giveup`, since the text returned stands in for the merged answer.
 #' @noRd
-merge_giveup <- function(pieces, spec) {
+merge_giveup <- function(pieces, spec, trace = NULL, label = "merge") {
   cap <- as.integer(clamp((spec$max_answer_tokens %||% 800L) * 3L, 200L, 8000L))
-  gr_truncate_tokens(paste(pieces, collapse = "\n\n---\n\n"), cap,
-                     "\n\n...[merge failed; findings above are truncated]")
+  truncate_logged(paste(pieces, collapse = "\n\n---\n\n"), cap, paste0(label, ".giveup"),
+                  trace, marker = "\n\n...[merge failed; findings above are truncated]")$text
 }

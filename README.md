@@ -835,9 +835,14 @@ makes it safe. When the frame supports them, two sensitivities are reported (as
 deployed, and strict), and the gap between them is the reading you still have to
 do.
 
-**Accuracy is not reported.** At a realistic inclusion rate a screener that
-excluded everything scores about 95% accurate and finds nothing. Cohen's kappa is
-reported instead, because it is the statistic that notices.
+**Accuracy is not reported, and kappa is not reported alone.** At a realistic
+inclusion rate a screener that excluded everything scores about 95% accurate and
+finds nothing. When the frame supports it, agreement is taken on the same
+decision sensitivity uses, kept (include or unclear) against excluded, with
+strict include against the rest beside it. Each table gives Cohen's kappa next to
+PABAK and Gwet's AC1, with intervals, and the prevalence and bias indices,
+because at a few eligible records in a hundred kappa moves with prevalence as
+much as with agreement.
 
 **A rate from three observations is not a finding.** The intervals are Wilson
 score intervals, which stay sensible at zero and one where the textbook interval
@@ -913,9 +918,13 @@ remove a source before one is recorded; a file that could not be read gets
 `status = "failed"` and *no* decision rather than a silent exclusion; and
 `"unclear"` is an answer rather than a forced guess, because forcing a binary
 call on an excerpt that does not settle it is how automated screening loses
-studies. Hand `screened` itself to `gr_extract()`. `screened$included` works
-too, but a character vector of paths cannot carry the search forward, so the
-audit's search section and the bibliographic columns are lost with it. And
+studies. `screened$forward` holds the included and unclear records, the set to
+read at full text, and `screened$deferred` the unclear ones, for a person to
+settle with `gr_resolve()`. Hand `screened` itself to `gr_extract()`. In this
+release that reads the included records only, and warns when it leaves unclear
+ones out. `screened$included` works too, but a character vector of paths cannot
+carry the search forward, so the audit's search section and the bibliographic
+columns are lost with it. And
 `table(screened$table$criterion)` is the breakdown a flow diagram asks for.
 
 **Extraction gives you a typed table, not prose.** A paragraph about one paper

@@ -26,6 +26,14 @@ The numbers a flow diagram is made of, from what a run already recorded.
 Every source is accounted for at every stage it reached, so the arithmetic
 closes: nothing leaves the count without a row saying why.
 }
+\details{
+For a screening, the records screened split into include, exclude, unclear,
+could not be read (no screening call was made) and screening call failed,
+and those five rows sum to "screened". "resolved by a person" counts the
+decisions above that a person made with \code{\link[=gr_resolve]{gr_resolve()}}. "kept for full
+text" is \verb{$forward} (include and unclear), and "deferred to full text" the
+unclear part of it, \verb{$deferred}.
+}
 \examples{
 cl <- gr_mock_client(function(messages, params) {
   '{"decision":"include","reason":"Reports a revenue figure.",

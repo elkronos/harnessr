@@ -80,3 +80,48 @@ gr_truncate_tokens <- function(text, n, marker = " ...[truncated]") {
   if (gr_count_tokens(out) > n) out <- substr(text, 1L, cut)
   out
 }
+
+#' Write a cut to the trace: where it was made and how many tokens it dropped.
+#'
+#' `before` is the text as it was and `after` what was kept. Nothing is written
+#' when the two are identical. `marker` is the text the cut appended, if any; it
+#' is left out of the kept count, so `tokens_dropped` is the source text lost
+#' and not the source text lost less the marker. `where` names the cut site in
+#' the dotted style of call labels ("refine.draft"), and `...` adds detail such
+#' as the chunk or the round. Returns the tokens dropped, invisibly; 0 for no
+#' cut.
+#'
+#' A cut used to be visible only as a partial flag or a count of cuts, so a
+#' trace could not say which text had been shortened or by how much, and a
+#' decline caused by a cut could not be told from one caused by the model.
+#' @noRd
+trace_truncation <- function(trace, where, before, after, limit = NA_integer_,
+                             marker = "", ...) {
+  before <- as_chr1(before, "")
+  after <- as_chr1(after, "")
+  if (identical(before, after)) return(invisible(0L))
+  kept <- after
+  if (nzchar(marker) && endsWith(kept, marker)) {
+    kept <- substr(kept, 1L, nchar(kept) - nchar(marker))
+  }
+  had <- as.integer(gr_count_tokens(before))
+  left <- as.integer(gr_count_tokens(kept))
+  dropped <- max(had - left, 0L)
+  trace_note(trace, "truncate", c(list(where = as_chr1(where),
+                                       limit = as_int1(limit, NA_integer_),
+                                       tokens_before = had, tokens_kept = left,
+                                       tokens_dropped = dropped), list(...)))
+  invisible(dropped)
+}
+
+#' gr_truncate_tokens(), with the cut written to the trace.
+#'
+#' The text returned is exactly what gr_truncate_tokens() returns, so a caller
+#' that switches to this sends the same request it sent before. Returns a list:
+#' `text`, and `dropped`, the tokens the cut removed (0 when the text fit).
+#' @noRd
+truncate_logged <- function(text, n, where, trace = NULL, marker = " ...[truncated]", ...) {
+  out <- gr_truncate_tokens(text, n, marker)
+  dropped <- trace_truncation(trace, where, text, out, limit = n, marker = marker, ...)
+  list(text = out, dropped = dropped)
+}

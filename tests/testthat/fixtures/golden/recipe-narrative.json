@@ -164,6 +164,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 0,
+          "tokens_out": 26
+        },
         "step": 4,
         "tokens": {
           "input": 611,
