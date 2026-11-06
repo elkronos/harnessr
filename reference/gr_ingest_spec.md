@@ -100,7 +100,7 @@ Other ingest functions:
 ``` r
 # What each preset costs you, on a real document, before any model call.
 vapply(c("none", "minimal", "standard", "academic", "scan"),
-       function(p) gr_ingest(readgpt_example(), gr_ingest_spec(clean = p))$stats$chars,
+       function(p) gr_ingest(gr_example(), gr_ingest_spec(clean = p))$stats$chars,
        integer(1))
 #> Using cached ingestion for this document + settings.
 #> Extracting 'annual_report.md' with the 'md' extractor.

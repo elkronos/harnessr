@@ -1,8 +1,8 @@
-# A tour of readgpt
+# A tour of harnessr
 
 This is a short tour of the whole package, for readers who already know
 the ideas. If you are new to language models, start with
-[`vignette("readgpt")`](https://elkronos.github.io/readgpt/articles/readgpt.md),
+[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md),
 which explains them;
 [`vignette("ingest")`](https://elkronos.github.io/readgpt/articles/ingest.md)
 and
@@ -22,7 +22,7 @@ segmenter × any reader composes.
 
 ``` r
 
-library(readgpt)
+library(harnessr)
 ```
 
 ## Running this vignette without an API key
@@ -57,7 +57,7 @@ it. The bundled example is a short annual report.
 
 ``` r
 
-ans <- answer_document(readgpt_example(), "What was revenue?", "thorough",
+ans <- answer_document(gr_example(), "What was revenue?", "thorough",
                        client = cl)
 ans$answer
 #> [1] "Revenue was 45.2 million dollars."
@@ -205,7 +205,7 @@ spending anything on reading:
 
 ``` r
 
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"), function(m)
   gr_chunk_stats(gr_segment(doc, list(method = m, max_tokens = 120)))))
 #>       method n total_tokens min median  mean max over_cap
@@ -280,7 +280,7 @@ refuses to bill you twice for them.
 
 ``` r
 
-cmp <- gr_compare(readgpt_example(), "What was revenue?",
+cmp <- gr_compare(gr_example(), "What was revenue?",
                   c("fast", "precise", "thorough"), client = cl)
 cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "chunks_used", "not_found")]
 #>     recipe segmenter chunks     reader chunks_used not_found
@@ -416,12 +416,12 @@ so a repeat is free and identical:
 
 ``` r
 
-cache <- gr_cache(dir = file.path(tempdir(), "readgpt-vignette-cache"))
+cache <- gr_cache(dir = file.path(tempdir(), "harnessr-vignette-cache"))
 cached_cl <- gr_cache_client(cl, cache)
 
-first  <- answer_document(readgpt_example(), "What was revenue?", "fast",
+first  <- answer_document(gr_example(), "What was revenue?", "fast",
                           client = cached_cl)
-second <- answer_document(readgpt_example(), "What was revenue?", "fast",
+second <- answer_document(gr_example(), "What was revenue?", "fast",
                           client = cached_cl)
 
 gr_trace_summary(second$trace)[, c("calls", "cached")]
@@ -442,7 +442,7 @@ exactly, with no key, no network and no spend:
 f <- file.path(tempdir(), "run.json")
 gr_trace_save(first$trace, f)
 
-replayed <- answer_document(readgpt_example(), "What was revenue?", "fast",
+replayed <- answer_document(gr_example(), "What was revenue?", "fast",
                             client = gr_replay_client(f))
 identical(replayed$answer, first$answer)
 #> [1] TRUE
@@ -814,7 +814,10 @@ Everything above used a mock. In production you need a client:
 # An OpenAI-compatible endpoint:
 cl <- gr_client(model = "gpt-4o")          # key from OPENAI_API_KEY
 
-# Or any provider ellmer speaks to, such as Anthropic, Google, Bedrock or Ollama:
+# Or any provider ellmer speaks to, such as Anthropic, Google, Bedrock or Ollama.
+# The chat is billed as its own model: register that model's prices with
+# gr_register_model() so the spending limit can hold, or allow it to run
+# unpriced with gr_options(allow_unpriced = TRUE).
 cl <- gr_ellmer_client(ellmer::chat_anthropic())
 
 # Or anything at all:

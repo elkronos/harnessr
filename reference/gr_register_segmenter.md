@@ -18,7 +18,8 @@ gr_register_segmenter(
   fn,
   description = "",
   cost = c("free", "embedding", "llm"),
-  needs_client = FALSE
+  needs_client = FALSE,
+  calls = NULL
 )
 ```
 
@@ -67,6 +68,14 @@ gr_register_segmenter(
   it survives into
   [`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md).
 
+- calls:
+
+  The stems of the trace labels the segmenter's model calls carry, such
+  as `"mine.rewrite"`; `character(0)` for one that makes none. An
+  `effort` map may only name declared stems (see
+  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)).
+  `NULL` (the default) declares the segmenter's name.
+
 ## Value
 
 Invisibly, `name`.
@@ -81,6 +90,7 @@ to build the return value,
 [`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md)
 
 Other segmentation functions:
+[`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md),
 [`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
 [`gr_chunks`](https://elkronos.github.io/readgpt/reference/gr_chunks.md),
 [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
@@ -99,6 +109,6 @@ gr_register_segmenter("by_bullet", description = "one chunk per bullet",
     new_chunks(units, "by_bullet", spec)
   })
 subset(gr_segmenters(), name == "by_bullet")
-#>        name cost needs_client          description
-#> 1 by_bullet free        FALSE one chunk per bullet
+#>        name cost needs_client          description     calls
+#> 1 by_bullet free        FALSE one chunk per bullet by_bullet
 ```

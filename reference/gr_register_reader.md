@@ -11,7 +11,15 @@ the built-ins.
 ## Usage
 
 ``` r
-gr_register_reader(name, fn, signature, description = "", cost_calls = "")
+gr_register_reader(
+  name,
+  fn,
+  signature,
+  description = "",
+  cost_calls = "",
+  calls = NULL,
+  cost = NULL
+)
 ```
 
 ## Arguments
@@ -48,6 +56,34 @@ gr_register_reader(name, fn, signature, description = "", cost_calls = "")
   Human-readable call count in terms of N chunks (`"N + 1"`,
   `"1 + embeddings"`), shown by
   [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md).
+  For people only: the pre-flight check counts with `cost`.
+
+- calls:
+
+  The stems of the trace labels your reader's calls carry, such as
+  `c("longest.answer")`. A label is covered by a stem it equals or
+  starts with followed by a dot. An `effort` map in
+  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
+  may only name declared stems, or parts of them up to a dot, so declare
+  every label your reader sends. `NULL` (the default) declares the
+  reader's name, which covers labels such as `"longest.answer"` for a
+  reader called `"longest"`.
+
+- cost:
+
+  `NULL`, or a function of `(input_stats, params)` returning
+  [`hr_cost()`](https://elkronos.github.io/readgpt/reference/hr_cost.md):
+  how many requests one run of your reader makes, expected and at worst.
+  `params` is the
+  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md);
+  `input_stats` has `n_chunks`, `tokens` (of all chunks), `texts`,
+  `question`, `out_cap` (the largest reply cap a request to
+  `params$model` is sent), `embed_api` (whether embeddings go to the
+  endpoint at all), and the helpers `reply_cap(model, cap)`,
+  `room(system, restate)` and `embed_requests(texts)`. The pre-flight
+  check sums these to refuse a run that cannot fit the call cap or
+  spending limit before it starts. `NULL` counts one request per chunk
+  and, for a signature whose `select` is `"all"`, every chunk sent once.
 
 ## Value
 
@@ -85,15 +121,20 @@ Your function receives:
   Pass `effort = spec$effort` to every
   [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md),
   which resolves a setting by stage against the call's `label`, so give
-  each call a label of its own; a call without it is sent no effort.
+  each call a label of its own and declare its stem in `calls`; a call
+  without a label is sent no effort.
 
 - `trace`:
 
   Pass it to every
   [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
-  so your calls are counted and priced, and check
-  `readgpt:::trace_can_call(trace)` before each one so the run's call
-  and spending limits are respected.
+  so your calls are counted, priced and held to the run's limits: a
+  request that would pass `max_calls` or `max_cost_usd` is not sent, and
+  comes back with `refused = TRUE` (see
+  [`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md)).
+  Stop or degrade when one does. A reader that still checks
+  `harnessr:::trace_can_call(trace)` first, as earlier versions advised,
+  keeps working.
 
 Return
 [`new_answer()`](https://elkronos.github.io/readgpt/reference/new_answer.md).
@@ -113,6 +154,7 @@ to build the return value,
 
 Other reading functions:
 [`gr_answer`](https://elkronos.github.io/readgpt/reference/gr_answer.md),
+[`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md),
 [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
 [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
 [`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md),
@@ -126,6 +168,7 @@ Other reading functions:
 # A reader that answers from the single longest chunk.
 gr_register_reader("longest", signature = "one|1|none", cost_calls = "1",
   description = "answer from the longest chunk only",
+  calls = "longest.answer", cost = function(input_stats, params) hr_cost(calls = 1),
   fn = function(chunks, question, client, spec, trace) {
     d <- chunks$chunks
     i <- which.max(d$tokens)
@@ -136,7 +179,7 @@ gr_register_reader("longest", signature = "one|1|none", cost_calls = "1",
     new_answer(res$text, "longest", question, d$chunk_id[i], trace)
   })
 
-ch <- gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 120))
+ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'sentence' (cap 120 tokens, overlap 0).
 gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million"),

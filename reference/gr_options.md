@@ -126,7 +126,7 @@ changing an option mid-session affects subsequent runs.
   stores model responses in. `NULL` means a per-session directory under
   [`tempdir()`](https://rdrr.io/r/base/tempfile.html), which costs
   nothing and disappears with the session. Set it to a real path, such
-  as `tools::R_user_dir("readgpt", "cache")`, to keep responses across
+  as `tools::R_user_dir("harnessr", "cache")`, to keep responses across
   sessions and make a long run resumable.
 
 - `parallel` (FALSE):
@@ -142,39 +142,86 @@ changing an option mid-session affects subsequent runs.
 
   Spending limit per run, in USD. A run whose reader sends every chunk
   is refused before it starts when sending them would cost more than
-  this. Every run is checked again before each request, and stops with a
-  `partial` answer once what it has spent reaches the limit. The cost of
-  a request is known only once it is made, so a run can pass the limit
-  by one request. With `parallel = TRUE` requests go out in batches that
-  cannot be stopped part way, so a reader that sends batches is also
-  refused before it starts when its worst case, every reply at its token
-  cap and the price of the dearest model it uses, would pass the limit.
-  Needs a model with a registered price (see
-  [`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md)).
-  Under a limit of 0 a model registered at no cost runs and one with a
-  price is refused. `NULL` removes the limit.
+  this. Every request is then checked before it is sent, against what
+  the run has spent plus the most the request could cost (its prompt,
+  and its reply at the output cap), and one that could pass the limit is
+  not sent (see
+  [`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md)),
+  so a run ends at or under the limit with a `partial` answer. With
+  `parallel = TRUE` a reader that sends batches is also refused before
+  it starts when its worst case, every reply at its token cap and the
+  price of the dearest model it uses, would pass the limit, and each
+  worker is held to its share of what is left. A chat model with no
+  registered price (see
+  [`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md))
+  is refused under a limit unless `allow_unpriced` is `TRUE`. Under a
+  limit of 0 a model registered at no cost runs and one with a price is
+  refused. `NULL` removes the limit.
 
 - `max_calls` (400):
 
-  Hard cap on model calls per run, checked before the first call and
-  again before every subsequent one. A request to an embeddings endpoint
-  (the built-in `"api"` embedder) counts as one, and is checked and
-  priced against `max_cost_usd` the same way; an embedding served from
-  the session cache is free. `NULL` removes the cap.
+  Hard cap on model calls per run, checked before every request. A
+  request to an embeddings endpoint (the built-in `"api"` embedder)
+  counts as one, and is checked and priced against `max_cost_usd` the
+  same way; an embedding served from the session cache is free. A
+  request a
+  [`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+  answers counts. `NULL` removes the cap.
+
+- `max_tokens_total` (NULL):
+
+  Most tokens one run may use: the prompt and reply tokens of every
+  call, cache hits included, and the text sent to be embedded. A request
+  is refused when what the run has used plus its prompt and its reply at
+  the cap would pass it. The limit that still bounds a run on a model
+  with no price under `allow_unpriced = TRUE`. `NULL` for no limit.
+
+- `max_output_tokens` (NULL):
+
+  The largest output cap one request may be sent with. A request with a
+  larger cap (for a reasoning model, the raised cap
+  [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+  sends) is refused rather than cut down. `NULL` for no ceiling.
+
+- `allowed_models` (NULL):
+
+  Character vector of the model ids a run may call, chat and embedding
+  models alike. A request to any other is refused. `NULL` for any model.
+
+- `allow_unpriced` (FALSE):
+
+  Whether a chat model with no registered price may be called while
+  `max_cost_usd` is set. Off, such a request is refused with a condition
+  of class `hr_unpriced_model`; on, it is sent and its cost is recorded
+  as unknown (`NA`).
 
 - `unknown_model_action` ("warn"):
 
   `"warn"` or `"error"` when a model id is not in the registry.
+
+- `actor` (none):
+
+  A named list (or character vector) of the actor fields every
+  [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+  records: `system`, `owner`, `run_by`, `purpose` and `approved_by`,
+  each one string. A field named here is recorded on each new trace
+  unless
+  [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+  is given its own; one named nowhere is `NA`. Other names are refused
+  with an error of class `gr_bad_option`.
 
 ## Checked values
 
 Numeric options are checked when they are set, and the two kinds are
 treated differently because a wrong value costs different things.
 
-The ceilings, `max_cost_usd` and `max_calls`, refuse anything that is
-not a single number of zero or more, with an error of class
+The ceilings, `max_cost_usd`, `max_calls`, `max_tokens_total` and
+`max_output_tokens`, refuse anything that is not a single number of zero
+or more (one or more for `max_output_tokens`), with an error of class
 `gr_bad_option`: a limit that cannot be compared is not a limit, and
 ignoring it spends money. `NULL` and `Inf` both mean "no limit".
+`allowed_models` must be `NULL` or a character vector of ids, and
+`allow_unpriced` `TRUE` or `FALSE`.
 
 The tuning settings (`safety_margin` \[0, 0.5\], `min_output_tokens`
 \[0, 1e6\], `max_retries` \[0, 10\], `retry_pause_base` \[0, 60\],

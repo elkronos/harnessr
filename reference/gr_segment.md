@@ -57,6 +57,7 @@ own with page `NA`, and warns.
 [gr_chunks](https://elkronos.github.io/readgpt/reference/gr_chunks.md)
 
 Other segmentation functions:
+[`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md),
 [`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
 [`gr_chunks`](https://elkronos.github.io/readgpt/reference/gr_chunks.md),
 [`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md),
@@ -67,7 +68,7 @@ Other segmentation functions:
 ## Examples
 
 ``` r
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 #> Using cached ingestion for this document + settings.
 
 # The same document, three boundary hypotheses. No API calls.

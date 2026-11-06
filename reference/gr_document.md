@@ -37,7 +37,7 @@ Returned by
 
 - `warnings`:
 
-  Character. What readgpt warned about while extracting and cleaning,
+  Character. What harnessr warned about while extracting and cleaning,
   named by the warning's class. Kept with the document, so a copy served
   from the ingestion cache still carries them.
 
@@ -75,7 +75,7 @@ Other ingest functions:
 ## Examples
 
 ``` r
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 #> Using cached ingestion for this document + settings.
 doc$stats$tokens
 #> [1] 574

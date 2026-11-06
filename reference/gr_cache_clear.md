@@ -32,7 +32,7 @@ The number of entries removed, invisibly.
 ## Examples
 
 ``` r
-cache <- gr_cache(file.path(tempdir(), "readgpt-clear-cache"))
+cache <- gr_cache(file.path(tempdir(), "harnessr-clear-cache"))
 cl <- gr_cache_client(gr_mock_client(function(m, p) "hi"), cache)
 invisible(gr_call(cl, "something"))
 gr_cache_clear(cache)

@@ -106,6 +106,27 @@ An object of class `gr_screening`:
   `gr_extract(screened)` keeps it and `gr_extract(screened$included)`
   does not.
 
+- `forward`:
+
+  The distinct sources kept for full text: `"include"` and `"unclear"`.
+  An unclear record is a deferral, not an exclusion, so this is the set
+  a review should read next. In this release `gr_extract(screened)`
+  still reads `included`, and warns (class `gr_unclear_dropped`) when
+  that leaves unclear records out; from the next release it reads
+  `forward`.
+
+- `deferred`:
+
+  The distinct sources whose decision was `"unclear"`: the ones a person
+  still has to decide, with
+  [`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md).
+
+- `sources`:
+
+  Every source, one per row of `table`, so that
+  [`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md)
+  can rebuild the sets above.
+
 - `records`:
 
   The
@@ -183,12 +204,12 @@ writeLines("We randomly assigned participants to two groups.", f)
 
 s <- gr_screen(f, question = "Does the treatment work?",
                include = "Reports a randomised comparison", client = cl)
-#> [1/1] file1cef4cea8231.txt
-#> Extracting 'file1cef4cea8231.txt' with the 'txt' extractor.
+#> [1/1] file1d8628bfa3d5.txt
+#> Extracting 'file1d8628bfa3d5.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~15 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'screen' (head|1|none) over 1 chunk(s).
 s$table[, c("document", "decision", "reason")]
 #>               document decision                           reason
-#> 1 file1cef4cea8231.txt  include Reports a randomised comparison.
+#> 1 file1d8628bfa3d5.txt  include Reports a randomised comparison.
 ```

@@ -61,7 +61,7 @@ Other v1 compatibility:
 
 ``` r
 cl <- gr_mock_client(function(m, p) "45.2 million dollars")
-chunks <- suppressWarnings(parse_text(readgpt_example(), chunk_token_limit = 200))
+chunks <- suppressWarnings(parse_text(gr_example(), chunk_token_limit = 200))
 #> Extracting 'annual_report.md' with the 'md' extractor.
 #> Ingested 17 block(s), ~574 tokens (12 chars removed by cleaning).
 #> Segmenting with 'paragraph' (cap 200 tokens, overlap 0).
@@ -72,7 +72,7 @@ suppressWarnings(gpt_read_chunked(chunks, "What was revenue?", client = cl))
 #> [1] "45.2 million dollars"
 
 # The modern equivalent, which also reports what it did.
-ch <- gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 200))
+ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 200 tokens, overlap 0).
 gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million dollars"),

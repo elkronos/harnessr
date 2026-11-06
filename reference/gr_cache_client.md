@@ -39,7 +39,7 @@ The client, with the cache attached.
 ``` r
 calls <- 0
 cl <- gr_mock_client(function(m, p) { calls <<- calls + 1; "42" })
-cl <- gr_cache_client(cl, gr_cache(file.path(tempdir(), "readgpt-doc-cache")))
+cl <- gr_cache_client(cl, gr_cache(file.path(tempdir(), "harnessr-doc-cache")))
 
 gr_call(cl, "What is the answer?")$text
 #> [1] "42"

@@ -3,7 +3,7 @@
 ### Guides
 
 - [Get started with
-  readgpt](https://elkronos.github.io/readgpt/articles/readgpt.md):
+  harnessr](https://elkronos.github.io/readgpt/articles/harnessr.md):
 - [Getting text out of
   files](https://elkronos.github.io/readgpt/articles/ingest.md):
 - [Choosing how the model
@@ -12,4 +12,4 @@
 ### Overview
 
 - [A tour of
-  readgpt](https://elkronos.github.io/readgpt/articles/tour.md):
+  harnessr](https://elkronos.github.io/readgpt/articles/tour.md):

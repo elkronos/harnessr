@@ -126,6 +126,7 @@ Other corpus functions:
 [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md),
 [`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md),
 [`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md),
+[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md),
 [`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
 
 ## Examples
@@ -137,7 +138,7 @@ writeLines(c("TY  - JOUR", "AU  - Smith, J.", "TI  - A trial of spacing",
 recs <- gr_records(ris)
 recs
 #> <gr_records> 1 record(s) from 1 export(s)
-#>   file1cef3ed3369.ris 1
+#>   file1d8628f2f00d.ris 1
 #>   records identified       1
 #>   duplicates removed       0
 #>   records screened         1

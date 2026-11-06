@@ -62,7 +62,12 @@ gr_outline(
 
   A
   [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
-  to record into.
+  to add this stage's calls to, or `NULL`. The calls are recorded on a
+  trace of the stage's own, attached as `attr(, "trace")`, and folded
+  into `trace` when the stage ends. The trace of `claims` is left as it
+  was. Its requests are held to the governor of `trace`, if it has one,
+  less what `trace` has already spent (see
+  [`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md)).
 
 - max_outline_tokens:
 
@@ -94,9 +99,10 @@ gr_outline(
 A named character vector shaped exactly like the `outline` argument of
 [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
 (headings as names, briefs as values), carrying `attr(, "claims")` (a
-`section`/`claim_id` frame), `attr(, "rationale")`, `attr(, "closing")`
-and `attr(, "claims_fingerprint")`, a hash of the claims' numbers and
-texts. A claim number means something only within one
+`section`/`claim_id` frame), `attr(, "rationale")`, `attr(, "closing")`,
+`attr(, "trace")` (the calls made here) and
+`attr(, "claims_fingerprint")`, a hash of the claims' numbers and texts.
+A claim number means something only within one
 [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
 result, so
 [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
@@ -198,6 +204,12 @@ o
 #> [1] "What is missing"
 #> attr(,"claims_fingerprint")
 #> [1] "28ca983a36369f10"
+#> attr(,"trace")
+#> <gr_trace run_20261106065725.633_16005c>  1 steps, 1 model calls, 240 in / 72 out tokens, 0 error(s)
+#>   steps: outline.derive x1 
+#>   cost: $0.0000 across mock-model
+#>   usage: estimated locally for 100% of requests (the provider reported none)
+#>   started: 2026-11-06T06:57:25.633Z 
 attr(o, "claims")
 #>         section claim_id
 #> 1 What it finds        1

@@ -74,8 +74,8 @@ combine their answers. Both send every chunk, so the choice changes the
 number of requests and the cost, not how much of the document is read.
 
 The room is measured for the model that answers: the one passed as
-`model` in `...`, or else the client's. A model whose limits readgpt has
-to guess (see
+`model` in `...`, or else the client's. A model whose limits harnessr
+has to guess (see
 [`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md))
 always gets `"thorough"`; register its real limits with
 [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md).

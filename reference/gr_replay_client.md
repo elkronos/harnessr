@@ -8,7 +8,7 @@ key, no network and no spend.
 ## Usage
 
 ``` r
-gr_replay_client(source, strict = TRUE)
+gr_replay_client(source, strict = TRUE, on_exhausted = c("error", "flag"))
 ```
 
 ## Arguments
@@ -35,6 +35,15 @@ gr_replay_client(source, strict = TRUE)
   [gr_result](https://elkronos.github.io/readgpt/reference/gr_result.md)
   instead, so a partially recorded trace still runs.
 
+- on_exhausted:
+
+  What a call does when the recording holds fewer replies to its request
+  than the replay has asked for. `"error"` (the default) raises an
+  `hr_replay_exhausted` error: the replay is making more calls than the
+  run it reproduces did. `"flag"` returns the last recorded reply again
+  and counts it in `$stats()$repeats`, which is what every replay did
+  before this argument existed.
+
 ## Value
 
 An object of class `gr_replay_client`, usable anywhere a
@@ -51,13 +60,17 @@ re-runnable recording of exactly what went wrong.
 ## Matching
 
 A response is matched on the exact prompt messages plus the model id the
-call asked for, and the reasoning effort it was sent with when it had
-one (see `effort` in
+call asked for, the reasoning effort it was sent with when it had one
+(see `effort` in
 [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)),
-so a replay under another effort misses rather than passing for the
-recording. A replay under the same effort matches even where this
-session's registry does not list a model as a reasoning model and the
-recording session's did (a gateway model registered with
+the temperature it was made with once the session default was filled in
+(none for a model that takes none), the output cap it asked for, and its
+JSON schema. These make up the key `harnessr-replay-v2`, which each step
+of a trace records as `replay_key`. So a replay under another effort,
+temperature, cap or schema misses rather than passing for the recording.
+A replay under the same effort matches even where this session's
+registry does not list a model as a reasoning model and the recording
+session's did (a gateway model registered with
 [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
 there and not here), and a call through an ellmer chat, which sends no
 effort, is matched on the one it asked for. The model id can differ from
@@ -65,6 +78,14 @@ the model the trace records as answering: a
 [`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
 answers with its chat's model whatever the recipe asked for, and its
 runs replay all the same.
+
+A step recorded before `replay_key` existed (readgpt 0.6.0, and harnessr
+before this key) is matched on the old key, `readgpt-replay-v1`: the
+messages, the model and the effort only. A call that finds nothing under
+the new key is looked up there, and a reply found that way is used, with
+an `hr_legacy_key` warning once per recording in a session, since the
+replay cannot then show that the temperature, cap and schema were the
+recorded ones. `$stats()$legacy_hits` counts these replies.
 
 The replay client's own model, which a read that names none asks for, is
 the model the recorded reads asked for. One trace can hold reads through
@@ -74,11 +95,20 @@ model everywhere else; a call that asks for the replay client's model
 and finds nothing under it is answered from the one other such model
 that holds the same prompt. A model the recorded settings named
 (`model`, `skim_model`, `summary_model`) is never used that way, so a
-replay that leaves one out misses. When a run issued the same prompt
-more than once (which happens at a temperature above zero, and in
-readers that revisit a chunk), the recorded responses are returned in
-the order they were produced. Once they are exhausted the last one
-repeats.
+replay that leaves one out misses.
+
+## Repeated calls and draws
+
+When a run issued the same request more than once (which happens at a
+temperature above zero, and in readers that revisit a chunk), the
+recorded responses are returned in the order they were produced. A call
+with a `draw_index` above 0 (see
+[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md))
+is answered with the reply recorded for that draw; in a recording that
+holds no draw indexes, draw k is the k-th reply recorded for the
+request. A call past the end of what was recorded, or for a draw that
+was never recorded, raises `hr_replay_exhausted` unless
+`on_exhausted = "flag"`.
 
 ## Embeddings
 
@@ -131,8 +161,10 @@ and a different choice would send prompts the recording does not have.
 
 ## What does not replay
 
-Traces do not record the JSON schema a call requested, so two calls that
-differ only by schema share a recording.
+Traces do not store the JSON schema a call requested, only a hash of it
+in the step's key. In a recording made before `replay_key` existed, two
+calls that differ only by schema, temperature or output cap share a
+reply.
 
 ## See also
 
@@ -147,14 +179,14 @@ for invented answers rather than recorded ones
 ``` r
 # A run.
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
+ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
 
 # The same run, from the recording, with no client and no key.
 rp <- gr_replay_client(ans$trace)
-again <- answer_document(readgpt_example(), "What was revenue?", "fast", client = rp)
+again <- answer_document(gr_example(), "What was revenue?", "fast", client = rp)
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
@@ -162,13 +194,13 @@ identical(again$answer, ans$answer)
 #> [1] TRUE
 
 rp$stats()
-#>   recorded distinct hits repeats misses
-#> 1        1        1    1       0      0
+#>   recorded distinct hits repeats misses legacy_hits
+#> 1        1        1    1       0      0           0
 
 # Through a file, which is how a run reaches someone else.
 f <- tempfile(fileext = ".json")
 gr_trace_save(ans$trace, f)
-answer_document(readgpt_example(), "What was revenue?", "fast",
+answer_document(gr_example(), "What was revenue?", "fast",
                 client = gr_replay_client(f))$answer
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).

@@ -62,7 +62,15 @@ gr_claims(
 
   A
   [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
-  to record into.
+  to add this stage's calls to, or `NULL`. The calls are recorded on a
+  trace of the stage's own, returned as `$trace`, and folded into
+  `trace` when the stage ends, as in
+  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+  and
+  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md).
+  Its requests are held to the governor of `trace`, if it has one, less
+  what `trace` has already spent (see
+  [`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md)).
 
 - bib:
 

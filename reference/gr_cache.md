@@ -48,8 +48,11 @@ The default location is under
 nothing and disappears with the session. That is the right default for a
 package (it writes nothing to your filesystem you did not ask for), but
 it is not what you want for a long experiment. Pass a real directory, or
-`tools::R_user_dir("readgpt", "cache")`, to keep entries across sessions
-and make a run resumable after a crash.
+`tools::R_user_dir("harnessr", "cache")`, to keep entries across
+sessions and make a run resumable after a crash. With that directory,
+entries that readgpt stored in `tools::R_user_dir("readgpt", "cache")`
+are read too, after it; new entries go only to the harnessr directory,
+and the old one is never cleared.
 
 Cross-session reuse needs a client that can say what it is.
 [`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
@@ -84,8 +87,28 @@ author chose, so treat a shared cache as you would its author's results.
 
 At a temperature above zero a cache hit replays one sample rather than
 drawing a new one. That is the point: it is what makes a run
-reproducible. But it means a cached sweep does not explore. Use a fresh
-cache directory, or `read = FALSE`, when you want new draws.
+reproducible. But it means N identical calls are one draw N times. To
+keep N draws, give each call its own `draw_index` (see
+[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)):
+it is part of the key when it is above 0, so draws 1 to N are N entries,
+and a rerun gets the same N replies back in the same order. A call with
+the default `draw_index = 0` keys as an unsampled call always has. Use a
+fresh cache directory, or `read = FALSE`, when you want new replies for
+draws already stored.
+
+## Keys and older caches
+
+An entry is keyed by a SHA-256 hash under the version string
+`harnessr-cache-v3`. Entries written before that (by readgpt 0.6.0, and
+by harnessr before this key: `readgpt-cache-v2` under xxhash64) are
+still read. A call with no draw index that finds nothing under its key
+is looked up under the old key too, and a reply found there is used. The
+first such hit in a session warns once for the cache, with class
+`hr_legacy_key`, and
+[`gr_cache_stats()`](https://elkronos.github.io/readgpt/reference/gr_cache_stats.md)
+counts them as `legacy_hits`. Old entries are never rewritten, and new
+ones are written under the new key only, so a cache directory stays
+readable by the version that wrote it.
 
 ## See also
 
@@ -99,9 +122,9 @@ for reproducing a recorded run
 ## Examples
 
 ``` r
-cache <- gr_cache(dir = file.path(tempdir(), "readgpt-example-cache"))
+cache <- gr_cache(dir = file.path(tempdir(), "harnessr-example-cache"))
 cache
-#> <gr_cache> /tmp/RtmpNP8Tfa/readgpt-example-cache
+#> <gr_cache> /tmp/Rtmp46iCAp/harnessr-example-cache
 #>   0 entries, 0.0 B on disk; 0 hit(s), 0 miss(es), 0 write(s)
 
 # Nothing is written until a call is cached.

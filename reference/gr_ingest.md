@@ -27,7 +27,7 @@ gr_ingest(source, spec = NULL, cache = NULL, trace = NULL)
   address on this machine or a private network (localhost, 10.x,
   172.16/12, 192.168.x, 169.254.x, the IPv6 local ranges), and a host
   name that resolves to one, is refused (`gr_url_error`), after a
-  redirect too, unless `options(readgpt.allow_local_urls = TRUE)`;
+  redirect too, unless `options(harnessr.allow_local_urls = TRUE)`;
   behind a proxy that looks names up itself, a name that cannot be
   looked up here is not checked. The request uses the address in full,
   but the document's `source`, the messages and the errors show it
@@ -92,7 +92,7 @@ Other ingest functions:
 ## Examples
 
 ``` r
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 #> Extracting 'annual_report.md' with the 'md' extractor.
 #> Ingested 17 block(s), ~574 tokens (12 chars removed by cleaning).
 
@@ -112,7 +112,7 @@ vapply(doc$stats$clean_log, function(s) s$chars_removed, integer(1))
 #>                   0 
 
 # Cleaning is a choice, not a default. Compare before committing to it.
-raw <- gr_ingest(readgpt_example(), gr_ingest_spec(clean = "none"))
+raw <- gr_ingest(gr_example(), gr_ingest_spec(clean = "none"))
 #> Extracting 'annual_report.md' with the 'md' extractor.
 #> Ingested 19 block(s), ~586 tokens (0 chars removed by cleaning).
 c(standard = doc$stats$chars, none = raw$stats$chars)

@@ -3,17 +3,17 @@
 Before a model can read a document, the text has to come out of the
 file. That step, *ingestion*, is easy to overlook and hard to undo. Text
 lost here, or damaged by too much clean-up, is text no model will see,
-however good the rest of the pipeline is. This guide covers what readgpt
-can read, what it keeps, what it removes, and how to check a folder
-before spending anything on it.
+however good the rest of the pipeline is. This guide covers what
+harnessr can read, what it keeps, what it removes, and how to check a
+folder before spending anything on it.
 
-New to readgpt?
-[`vignette("readgpt")`](https://elkronos.github.io/readgpt/articles/readgpt.md)
+New to harnessr?
+[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md)
 introduces the package and the ideas used here.
 
 ``` r
 
-library(readgpt)
+library(harnessr)
 old <- gr_options(verbose = FALSE)
 ```
 
@@ -22,13 +22,13 @@ old <- gr_options(verbose = FALSE)
 [`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
 reads a file and returns a *document*: the text split into *blocks*,
 which are the paragraphs, headings and list items as the file has them.
-readgpt includes a short example, an annual report written in Markdown:
+harnessr includes a short example, an annual report written in Markdown:
 
 ``` r
 
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 doc
-#> <gr_document> /home/runner/work/_temp/Library/readgpt/extdata/annual_report.md
+#> <gr_document> /home/runner/work/_temp/Library/harnessr/extdata/annual_report.md
 #>   17 blocks, ~574 tokens, 1846 chars (12 removed by cleaning)
 #>   cleaners: page_numbers, hyphenation, control_chars, ligatures, collapse_whitespace
 #>   first block: # Northwind Instruments — Annual Report 2024
@@ -70,7 +70,7 @@ yourself, since
 [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
 does it for you. Calling it directly shows you what the model will get.
 
-## What readgpt can read
+## What harnessr can read
 
 Each file type is handled by an *extractor*, chosen by the file’s
 extension. `available` says whether the packages it needs are installed:
@@ -133,8 +133,8 @@ that follows would be about a file name:
 typo <- gr_ingest("reports/2024/annual-report.pfd")
 #> Warning in gr_ingest("reports/2024/annual-report.pfd"):
 #> 'reports/2024/annual-report.pfd' is not an existing file, and '.pfd' is not an
-#> extension readgpt reads, so the string itself is being read as the document. If
-#> it is a path, check it; readgpt reads .bmp, .csv, .docx, .dotx, .gif, .htm,
+#> extension harnessr reads, so the string itself is being read as the document.
+#> If it is a path, check it; harnessr reads .bmp, .csv, .docx, .dotx, .gif, .htm,
 #> .html, .jpeg, .jpg, .log, .markdown, .md, .pdf, .png, .qmd, .rmd, .text, .tif,
 #> .tiff, .tsv, .txt, .xhtml.
 typo$text
@@ -212,7 +212,7 @@ report$blocks[, c("page", "section", "kind", "text")]
 ```
 
 A PDF’s text comes out as the page looks, which is not always the order
-a person reads in, so readgpt puts it back in reading order:
+a person reads in, so harnessr puts it back in reading order:
 
 - A page set in two columns is read one column after the other. Without
   this, each line would join the start of a line from each column.
@@ -234,7 +234,7 @@ can still come out in an order that reads oddly, so check a few pages of
 A scanned PDF is a picture of text, with no text inside it to extract.
 Reading it needs *optical character recognition* (OCR), which turns the
 picture back into text. OCR is slow (seconds per page) and never
-perfect, so readgpt uses it only where it is needed:
+perfect, so harnessr uses it only where it is needed:
 
 ``` r
 
@@ -253,7 +253,7 @@ gr_ingest("scan.pdf", gr_ingest_spec(ocr_lang = "deu", ocr_dpi = 400))
 ```
 
 OCR on PDFs needs both `tesseract` and `magick`. Without them a scanned
-page comes back nearly empty and readgpt warns (`gr_ocr_unavailable`).
+page comes back nearly empty and harnessr warns (`gr_ocr_unavailable`).
 The document lists those pages in `doc$stats$unread_pages`, and an
 answer drawn from it is marked partial. The same holds with
 `ocr = "never"`: a page with no text, or only a stamp or a running head,
@@ -265,8 +265,8 @@ for this kind of document.
 
 Extracted text is rarely clean. PDFs break words across lines with
 hyphens, repeat the page number on every page, and use typographic
-ligatures (“ﬁ” for “fi”). readgpt tidies this with *cleaners*. Each does
-one job and can be turned on or off:
+ligatures (“ﬁ” for “fi”). harnessr tidies this with *cleaners*. Each
+does one job and can be turned on or off:
 
 ``` r
 
@@ -324,7 +324,7 @@ Here is how much text each leaves of the example report:
 ``` r
 
 presets <- c("none", "minimal", "standard", "academic", "scan", "legacy")
-vapply(presets, function(p) gr_ingest(readgpt_example(), gr_ingest_spec(clean = p))$stats$chars,
+vapply(presets, function(p) gr_ingest(gr_example(), gr_ingest_spec(clean = p))$stats$chars,
        integer(1))
 #>     none  minimal standard academic     scan   legacy 
 #>     1858     1858     1846     1765     1846     1659
@@ -334,7 +334,7 @@ Or name the cleaners yourself:
 
 ``` r
 
-tidy <- gr_ingest(readgpt_example(),
+tidy <- gr_ingest(gr_example(),
                   gr_ingest_spec(clean = c("page_numbers", "hyphenation", "collapse_whitespace")))
 tidy$stats$chars
 #> [1] 1846
@@ -413,7 +413,7 @@ API key:
 
 inbox <- file.path(tempdir(), "inbox")
 dir.create(inbox, showWarnings = FALSE)
-invisible(file.copy(readgpt_example(), file.path(inbox, "annual_report.md"),
+invisible(file.copy(gr_example(), file.path(inbox, "annual_report.md"),
                     overwrite = TRUE))
 writeLines("Headcount grew to 1,204 employees across nine sites.",
            file.path(inbox, "notes.txt"))
@@ -422,7 +422,7 @@ invisible(file.create(file.path(inbox, "empty.txt")))
 
 inv <- gr_inventory(inbox)
 inv
-#> <gr_inventory> /tmp/RtmpKYgUrR/inbox
+#> <gr_inventory> /tmp/RtmpbyQMwK/inbox
 #>   4 file(s), 1.9 KB; 2 readable
 #>   2 ready, 1 no_extractor, 1 empty
 #>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)
@@ -470,7 +470,7 @@ unlist(inv$totals[c("readable", "tokens", "cost_floor_usd")])
 
 ## Adding your own
 
-A format readgpt does not know, or a clean-up step your documents need,
+A format harnessr does not know, or a clean-up step your documents need,
 can be added and then used exactly like a built-in one. A cleaner that
 drops lines marked “CONFIDENTIAL”:
 

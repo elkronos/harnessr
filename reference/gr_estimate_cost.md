@@ -5,7 +5,12 @@ Estimate the USD cost of a set of calls
 ## Usage
 
 ``` r
-gr_estimate_cost(model, input_tokens, output_tokens = 0)
+gr_estimate_cost(
+  model,
+  input_tokens,
+  output_tokens = 0,
+  cached_input_tokens = 0
+)
 ```
 
 ## Arguments
@@ -17,6 +22,12 @@ gr_estimate_cost(model, input_tokens, output_tokens = 0)
 - input_tokens, output_tokens:
 
   Token counts (scalars or vectors; vectors are summed).
+
+- cached_input_tokens:
+
+  How many of `input_tokens` the provider served from its prompt cache.
+  They are priced at the model's `cached_input_usd` when it has one, and
+  as other input tokens when it does not.
 
 ## Value
 

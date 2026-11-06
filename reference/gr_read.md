@@ -51,6 +51,7 @@ Check `$partial` before trusting `$answer`.
 
 Other reading functions:
 [`gr_answer`](https://elkronos.github.io/readgpt/reference/gr_answer.md),
+[`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md),
 [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
 [`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md),
 [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
@@ -61,7 +62,7 @@ Other reading functions:
 ## Examples
 
 ``` r
-ch <- gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 120))
+ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'sentence' (cap 120 tokens, overlap 0).
 

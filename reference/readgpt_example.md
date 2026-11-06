@@ -1,8 +1,9 @@
-# Path to the bundled example document
+# Deprecated: path to the bundled example document
 
-A short Markdown report with headings, figures and dates, used by the
-examples in this package so they run without an API key or a file of
-your own.
+`readgpt_example()` is the name
+[`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md)
+had before the package was renamed. It returns the same path, with one
+`gr_deprecated` warning per session naming the new function.
 
 ## Usage
 
@@ -12,15 +13,17 @@ readgpt_example()
 
 ## Value
 
-Absolute path to the file.
+Absolute path to the file, as
+[`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md)
+returns it.
+
+## See also
+
+[`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md)
 
 ## Examples
 
 ``` r
-gr_ingest(readgpt_example())
-#> Using cached ingestion for this document + settings.
-#> <gr_document> /home/runner/work/_temp/Library/readgpt/extdata/annual_report.md
-#>   17 blocks, ~574 tokens, 1846 chars (12 removed by cleaning)
-#>   cleaners: page_numbers, hyphenation, control_chars, ligatures, collapse_whitespace
-#>   first block: # Northwind Instruments — Annual Report 2024
+identical(suppressWarnings(readgpt_example()), gr_example())
+#> [1] TRUE
 ```

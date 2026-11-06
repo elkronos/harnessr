@@ -152,6 +152,7 @@ Other corpus functions:
 [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md),
 [`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md),
 [`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md),
+[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md),
 [`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
 
 ## Examples
@@ -163,7 +164,7 @@ writeLines("notes", file.path(d, "notes.doc"))   # no extractor claims .doc
 
 inv <- gr_inventory(d)
 inv
-#> <gr_inventory> /tmp/RtmpNP8Tfa/file1cef6262704c
+#> <gr_inventory> /tmp/Rtmp46iCAp/file1d865dd0f3cf
 #>   2 file(s), 44.0 B; 1 readable
 #>   1 ready, 1 no_extractor
 #>   tokens: 16   cost floor: $0.01 (gpt-5.6-terra, one call per document)

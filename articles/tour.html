@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>A tour of readgpt • readgpt</title>
+<title>A tour of harnessr • harnessr</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="A tour of readgpt">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="A tour of harnessr">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -18,9 +18,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">readgpt</a>
+    <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,7 +29,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../articles/readgpt.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/harnessr.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -40,7 +40,7 @@
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Overview</h6></li>
-    <li><a class="dropdown-item" href="../articles/tour.html">A tour of readgpt</a></li>
+    <li><a class="dropdown-item" href="../articles/tour.html">A tour of harnessr</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -63,7 +63,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>A tour of readgpt</h1>
+      <h1>A tour of harnessr</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/elkronos/readgpt/blob/main/vignettes/tour.Rmd" class="external-link"><code>vignettes/tour.Rmd</code></a></small>
@@ -74,7 +74,7 @@
     
 <p>This is a short tour of the whole package, for readers who already
 know the ideas. If you are new to language models, start with
-<code><a href="../articles/readgpt.html">vignette("readgpt")</a></code>, which explains them;
+<code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>, which explains them;
 <code><a href="../articles/ingest.html">vignette("ingest")</a></code> and <code><a href="../articles/readers.html">vignette("readers")</a></code>
 cover two of the decisions below in depth.</p>
 <p>Asking a language model a question about a document involves three
@@ -94,7 +94,7 @@ pieces to an answer</li>
 <p>Each is a registry you can list, swap and extend. Any ingest × any
 segmenter × any reader composes.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/readgpt" class="external-link">readgpt</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/readgpt" class="external-link">harnessr</a></span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="running-this-vignette-without-an-api-key">Running this vignette without an API key<a class="anchor" aria-label="anchor" href="#running-this-vignette-without-an-api-key"></a>
 </h2>
@@ -121,7 +121,7 @@ reproducible. <code><a href="../reference/gr_embedders.html">gr_embedders()</a><
 one reader into a pipeline and runs it. The bundled example is a short
 annual report.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"thorough"</span>,</span>
+<code class="sourceCode R"><span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"thorough"</span>,</span>
 <span>                       client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span>
 <span><span class="va">ans</span><span class="op">$</span><span class="va">answer</span></span>
 <span><span class="co">#&gt; [1] "Revenue was 45.2 million dollars."</span></span></code></pre></div>
@@ -243,7 +243,7 @@ and is <code>partial</code>.</p>
 involves no model calls at all, so you can compare strategies for
 nothing before spending anything on reading:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">doc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">doc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fixed"</span>, <span class="st">"paragraph"</span>, <span class="st">"sentence"</span>, <span class="st">"structural"</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="../reference/gr_chunk_stats.html">gr_chunk_stats</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="va">doc</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="va">m</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       method n total_tokens min median  mean max over_cap</span></span>
@@ -305,7 +305,7 @@ resolve to the same ingestion, the same segmentation and the same read
 settings are the same work, and <code><a href="../reference/gr_compare.html">gr_compare()</a></code> refuses to
 bill you twice for them.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_compare.html">gr_compare</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>,</span>
+<code class="sourceCode R"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_compare.html">gr_compare</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>,</span>
 <span>                  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fast"</span>, <span class="st">"precise"</span>, <span class="st">"thorough"</span><span class="op">)</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span>
 <span><span class="va">cmp</span><span class="op">$</span><span class="va">summary</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"recipe"</span>, <span class="st">"segmenter"</span>, <span class="st">"chunks"</span>, <span class="st">"reader"</span>, <span class="st">"chunks_used"</span>, <span class="st">"not_found"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;     recipe segmenter chunks     reader chunks_used not_found</span></span>
@@ -411,12 +411,12 @@ features follow from that.</p>
 <p>A <strong>cache</strong> stores each successful response against the
 exact request, so a repeat is free and identical:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cache</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_cache.html">gr_cache</a></span><span class="op">(</span>dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"readgpt-vignette-cache"</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">cache</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_cache.html">gr_cache</a></span><span class="op">(</span>dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"harnessr-vignette-cache"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">cached_cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_cache_client.html">gr_cache_client</a></span><span class="op">(</span><span class="va">cl</span>, <span class="va">cache</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">first</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"fast"</span>,</span>
+<span><span class="va">first</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"fast"</span>,</span>
 <span>                          client <span class="op">=</span> <span class="va">cached_cl</span><span class="op">)</span></span>
-<span><span class="va">second</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"fast"</span>,</span>
+<span><span class="va">second</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"fast"</span>,</span>
 <span>                          client <span class="op">=</span> <span class="va">cached_cl</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/gr_trace_summary.html">gr_trace_summary</a></span><span class="op">(</span><span class="va">second</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"cached"</span><span class="op">)</span><span class="op">]</span></span>
@@ -432,7 +432,7 @@ reproduce the run exactly, with no key, no network and no spend:</p>
 <code class="sourceCode R"><span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"run.json"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/gr_trace_save.html">gr_trace_save</a></span><span class="op">(</span><span class="va">first</span><span class="op">$</span><span class="va">trace</span>, <span class="va">f</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">replayed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"fast"</span>,</span>
+<span><span class="va">replayed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"fast"</span>,</span>
 <span>                            client <span class="op">=</span> <span class="fu"><a href="../reference/gr_replay_client.html">gr_replay_client</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">replayed</span><span class="op">$</span><span class="va">answer</span>, <span class="va">first</span><span class="op">$</span><span class="va">answer</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
@@ -744,7 +744,10 @@ to walk.</p>
 <code class="sourceCode R"><span><span class="co"># An OpenAI-compatible endpoint:</span></span>
 <span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_client.html">gr_client</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"gpt-4o"</span><span class="op">)</span>          <span class="co"># key from OPENAI_API_KEY</span></span>
 <span></span>
-<span><span class="co"># Or any provider ellmer speaks to, such as Anthropic, Google, Bedrock or Ollama:</span></span>
+<span><span class="co"># Or any provider ellmer speaks to, such as Anthropic, Google, Bedrock or Ollama.</span></span>
+<span><span class="co"># The chat is billed as its own model: register that model's prices with</span></span>
+<span><span class="co"># gr_register_model() so the spending limit can hold, or allow it to run</span></span>
+<span><span class="co"># unpriced with gr_options(allow_unpriced = TRUE).</span></span>
 <span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_ellmer_client.html">gr_ellmer_client</a></span><span class="op">(</span><span class="fu">ellmer</span><span class="fu">::</span><span class="fu"><a href="https://ellmer.tidyverse.org/reference/chat_anthropic.html" class="external-link">chat_anthropic</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Or anything at all:</span></span>

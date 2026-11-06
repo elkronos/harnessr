@@ -104,6 +104,7 @@ Other corpus functions:
 [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md),
 [`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md),
 [`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md),
+[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md),
 [`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
 
 ## Examples

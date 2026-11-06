@@ -52,7 +52,7 @@ and still degrades, like any other.
 [`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md),
 [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md),
 [gr_result](https://elkronos.github.io/readgpt/reference/gr_result.md),
-[`readgpt_example()`](https://elkronos.github.io/readgpt/reference/readgpt_example.md)
+[`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md)
 for a document to run against
 
 ## Examples
@@ -65,7 +65,7 @@ gr_call(cl, list(list(role = "user", content = "hi")))$text
 # `$calls()` is how you prove two reading strategies differ: it records the
 # exact prompts each one sent.
 cl$reset()
-ch <- gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 150))
+ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 150 tokens, overlap 0).
 invisible(gr_read(ch, "What was revenue?", cl, "skim"))

@@ -32,6 +32,7 @@ gr_read_spec(
   on_overflow = c("warn", "error"),
   effort = NULL,
   premise = FALSE,
+  verify = FALSE,
   ...
 )
 ```
@@ -215,9 +216,15 @@ gr_read_spec(
   each call whose trace label is that name or starts with it and a dot;
   the longest name that covers a label wins; an unnamed element, or one
   named `"default"`, covers the labels no name does, and a label nothing
-  covers is sent no effort. It reaches the segmenters that call a model
-  too, when the spec is part of a recipe. See the section on reasoning
-  effort.
+  covers is sent no effort. A name must cover a stem some registered
+  reader, segmenter or stage declares (the `calls` column of
+  [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
+  and
+  [`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md)),
+  or a label under one, so a misspelt name is an error of class
+  `hr_unknown_effort_key` that lists the stems, not a setting that
+  reaches no call. It reaches the segmenters that call a model too, when
+  the spec is part of a recipe. See the section on reasoning effort.
 
 - premise:
 
@@ -236,12 +243,35 @@ gr_read_spec(
   is `FALSE` for it. Excerpts that are merely silent are still
   `NOT_IN_DOCUMENT`. See "Checking the premise" below for how each
   reader combines what its requests report. The verdict is the model's
-  reading of the excerpts, not a check readgpt makes, so weigh it as you
-  would any answer. Off by default because it changes what is sent: the
-  prompts are longer, so a cache, a recorded replay or a
+  reading of the excerpts, not a check harnessr makes, so weigh it as
+  you would any answer. Off by default because it changes what is sent:
+  the prompts are longer, so a cache, a recorded replay or a
   [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
   store made without it does not answer a run with it, and the reverse.
   `screen` and `extract`, which answer no question, ignore it.
+
+- verify:
+
+  Check the answer's quotations against the chunks they come from, and
+  let the check decide what is accepted. `FALSE` (the default) sends the
+  same requests and accepts answers as before; the `quote_*` shadow
+  columns are still recorded on checked evidence (see "Verifying
+  quotations"). With `TRUE`,
+  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+  runs
+  [`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md)
+  on every answer, writes its columns onto `$evidence`, marks the answer
+  partial when a quotation is not found, and records a `read.verify`
+  step in the trace. The `iterative` reader also asks each step that
+  says it can answer for the passages it rests on, word for word with
+  their chunk numbers, and stops only when every one is found in the
+  chunk it names; a refused step is told which quotations were not
+  found, and a run that ends with none accepted answers
+  `NOT_IN_DOCUMENT`. Its evidence is then the quotations, not every
+  chunk it was shown. A step that reports the premise false
+  (`premise = TRUE`) is not asked for quotations and is not refused for
+  lacking them: its verdict stops the loop as it does without `verify`.
+  See "Verifying quotations" below.
 
 - ...:
 
@@ -285,6 +315,27 @@ add a `premise` column to their summaries,
 [`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
 say when the model reported the premise false, and the trace has a
 `read.premise` step with the outcome.
+
+## Verifying quotations
+
+A reader that puts the chunks it read into `$evidence` has quoted them
+by construction, so for `stuff`, `retrieve`, `rerank` and the default
+`iterative` a passing check says only that the chunks were the ones
+sent. The check means something where a model chose what to quote:
+`skim`, `extract`, `screen`, and `iterative` under `verify = TRUE`.
+
+Two matchers score each quotation. The one that decides `verified` is
+the check described in
+[`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md),
+unchanged. Beside it the answer carries `quote_status`, `quote_sim`,
+`quote_coverage`, `quote_edits` and `quote_critical_ok` from an
+edit-distance matcher that tolerates ligatures, line-break hyphens and
+OCR letter errors while requiring numbers, units and negations to be
+identical. It is recorded only, and decides nothing in this release.
+
+`verify = TRUE` changes what `iterative` sends (its schema and
+instructions), so a cache or recording made without it does not answer a
+run with it. The other readers send exactly what they sent before.
 
 ## Out-of-range values
 
@@ -383,6 +434,7 @@ for the available readers and their call costs,
 
 Other reading functions:
 [`gr_answer`](https://elkronos.github.io/readgpt/reference/gr_answer.md),
+[`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md),
 [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
 [`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md),
 [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
@@ -402,7 +454,7 @@ suppressWarnings(gr_read_spec("hierarchical", fan_in = 999)$fan_in)
 
 # Reasoning effort by stage: little for the per-chunk calls, more for the
 # merge. The trace says which request carried which.
-ch <- gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 150))
+ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 150 tokens, overlap 0).
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
@@ -419,7 +471,7 @@ unique(as.data.frame(tr)[, c("stage", "effort")])
 # that finds the excerpts contradict it.
 cl <- gr_mock_client(function(m, p)
   "FALSE_PREMISE: Revenue rose 12% in 2023, to 45.2 million.")
-ch <- gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 400))
+ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 400))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'sentence' (cap 400 tokens, overlap 0).
 ans <- gr_read(ch, "Why did revenue fall in 2023?", cl,

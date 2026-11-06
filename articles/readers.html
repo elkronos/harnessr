@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Choosing how the model reads • readgpt</title>
+<title>Choosing how the model reads • harnessr</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -18,9 +18,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">readgpt</a>
+    <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,7 +29,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../articles/readgpt.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/harnessr.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -40,7 +40,7 @@
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Overview</h6></li>
-    <li><a class="dropdown-item" href="../articles/tour.html">A tour of readgpt</a></li>
+    <li><a class="dropdown-item" href="../articles/tour.html">A tour of harnessr</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -76,12 +76,12 @@
 model works through them. Send everything at once? Ask each chunk
 separately and combine the answers? Find the few chunks most like the
 question and ignore the rest? These are <em>reading strategies</em>,
-which readgpt calls <em>readers</em>. They decide most of the cost of a
+which harnessr calls <em>readers</em>. They decide most of the cost of a
 run and much of the quality of its answer. The same chunks read two ways
 can take one request or dozens, and can find a fact or miss it.</p>
 <p>This guide explains each reader in plain terms, shows how they differ
-on the same document, and gives a way to choose. New to readgpt? Start
-with <code><a href="../articles/readgpt.html">vignette("readgpt")</a></code>.</p>
+on the same document, and gives a way to choose. New to harnessr? Start
+with <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>.</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
@@ -91,7 +91,7 @@ an excerpt when asked to score and quotes when asked to quote, so every
 reader can do its normal work. You do not need to follow its details; it
 plays the part of the model.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/readgpt" class="external-link">readgpt</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/readgpt" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">stand_in</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
@@ -124,7 +124,7 @@ similar text use simple word matching instead of a paid embedding
 service; more on that below.</p>
 <p>Now the document, cut into chunks along its section headings:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">chunks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<code class="sourceCode R"><span><span class="va">chunks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                     <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/gr_chunk_stats.html">gr_chunk_stats</a></span><span class="op">(</span><span class="va">chunks</span><span class="op">)</span></span>
 <span><span class="co">#&gt;       method n total_tokens min median mean max over_cap</span></span>
@@ -284,7 +284,7 @@ run in parallel, and the running answer can drift.</p>
 </h3>
 <p>For each chunk, asks the model to copy out any passages that bear on
 the question, then answers once from those passages alone. The final
-answer rests on quotations, which readgpt checks against the text (see
+answer rests on quotations, which harnessr checks against the text (see
 below). It costs N + 1 requests; the per-chunk step can use a cheaper
 model through <code>skim_model</code>.</p>
 <p><strong>Use it for</strong> questions where you want the answer tied
@@ -525,7 +525,7 @@ rather than assume.</p>
 </h2>
 <p><code>retrieve</code>, <code>iterative</code> and the
 <code>semantic</code> way of cutting chunks need <em>embeddings</em>. By
-default readgpt asks the model provider for them, which costs a little
+default harnessr asks the model provider for them, which costs a little
 and needs an internet connection.
 <code>gr_options(embedder = "lexical")</code> uses word-matching vectors
 computed locally instead: free, offline and exactly repeatable, but they
@@ -549,7 +549,7 @@ billed as output and counts against the same cap as the reply, so it is
 part of what every request costs. <code>effort</code> in
 <code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code> sets how much of it to do: one value, such
 as <code>"low"</code>, for every request, or a vector named by stage. It
-is sent only to models readgpt lists as reasoning models
+is sent only to models harnessr lists as reasoning models
 (<code>gr_model_info(model)$reasoning</code>). By default nothing is
 sent, and each request goes out at the provider’s default.</p>
 <p>Every request a reader makes carries a label naming its stage:</p>
@@ -720,8 +720,8 @@ reader:</p>
 </table>
 <p>Chunks sent word for word are true copies of the document by
 construction. The passages <code>skim</code> collects are what the model
-<em>says</em> the document contains, so readgpt checks every one against
-the chunk it came from:</p>
+<em>says</em> the document contains, so harnessr checks every one
+against the chunk it came from:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">skimmed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span>, <span class="st">"skim"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/gr_verify_evidence.html">gr_verify_evidence</a></span><span class="op">(</span><span class="va">skimmed</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"chunk_id"</span>, <span class="st">"verified"</span>, <span class="st">"match"</span><span class="op">)</span><span class="op">]</span></span>
@@ -778,8 +778,8 @@ the model is asked to open such a reply:</p>
 <span><span class="va">ans</span><span class="op">$</span><span class="va">notes</span><span class="op">$</span><span class="va">premise_chunks</span></span>
 <span><span class="co">#&gt; [1] 2</span></span></code></pre></div>
 <p>The verdict is the model’s reading of the excerpts, not something
-readgpt checks, so weigh it as you would any answer. The check is off by
-default because it makes the prompts longer, so a cache or a recorded
+harnessr checks, so weigh it as you would any answer. The check is off
+by default because it makes the prompts longer, so a cache or a recorded
 run made without it does not answer a run with it. <code>extract</code>
 and <code>screen</code> ignore it.</p>
 </div>
@@ -791,7 +791,7 @@ already know the answer. <code><a href="../reference/gr_compare.html">gr_compare
 configurations on one document, extracting the text once and sharing
 chunks between configurations that cut them the same way:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_compare.html">gr_compare</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_compare.html">gr_compare</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/gr_recipe.html">gr_recipe</a></span><span class="op">(</span><span class="st">"narrow"</span>, segment <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span>,</span>
 <span>            read <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"retrieve"</span>, top_k <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="../reference/gr_recipe.html">gr_recipe</a></span><span class="op">(</span><span class="st">"wide"</span>, segment <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span>,</span>

@@ -121,6 +121,7 @@ for the available methods and their costs,
 [`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md)
 
 Other segmentation functions:
+[`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md),
 [`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
 [`gr_chunks`](https://elkronos.github.io/readgpt/reference/gr_chunks.md),
 [`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md),

@@ -24,7 +24,7 @@ and, with three extra fields, by
   question; otherwise the sentence in which it said what the document
   states instead, which is then `answer` as well, so
   [`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
-  is `FALSE`. It is the model's verdict, not a check readgpt made.
+  is `FALSE`. It is the model's verdict, not a check harnessr made.
   Absent (`NULL`) for a spec that did not ask, and for `screen` and
   `extract`, which answer no question.
 
@@ -48,7 +48,7 @@ and, with three extra fields, by
 
 - `warnings`:
 
-  Character. What readgpt warned about while the document was ingested,
+  Character. What harnessr warned about while the document was ingested,
   cut and read, named by the warning's class. The warnings still print
   as they happen; this copy stays with the answer, including when the
   document came from the ingestion cache and nothing was raised again.
@@ -160,6 +160,7 @@ to build one in a custom reader
 [`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
 
 Other reading functions:
+[`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md),
 [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
 [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
 [`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md),
@@ -172,7 +173,7 @@ Other reading functions:
 
 ``` r
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
+ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).

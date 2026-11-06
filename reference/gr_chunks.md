@@ -86,6 +86,7 @@ to build one in a custom segmenter
 [`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md)
 
 Other segmentation functions:
+[`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md),
 [`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
 [`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md),
 [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
@@ -96,7 +97,7 @@ Other segmentation functions:
 ## Examples
 
 ``` r
-ch <- gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 120))
+ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'sentence' (cap 120 tokens, overlap 0).
 ch$method

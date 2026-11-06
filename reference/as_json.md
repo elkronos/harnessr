@@ -60,7 +60,7 @@ cleaning steps an ingest ran), which are arrays at every length.
 
 ``` r
 cl <- gr_mock_client(function(m, p) "45.2 million dollars")
-ans <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl)
+ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).

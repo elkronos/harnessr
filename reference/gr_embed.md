@@ -133,7 +133,7 @@ round(e %*% t(e), 3)
 
 # The semantic segmenter records the same thing, so a degraded run stays
 # visible after the fact.
-gr_segment(readgpt_example(), list(method = "semantic", max_tokens = 200),
+gr_segment(gr_example(), list(method = "semantic", max_tokens = 200),
            client = cl)$extra$embedding_source
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'semantic' (cap 200 tokens, overlap 0).

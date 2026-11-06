@@ -1,6 +1,6 @@
 # Clear the session's document and embedding caches
 
-readgpt keeps two caches in memory for the life of the R session: the
+harnessr keeps two caches in memory for the life of the R session: the
 documents
 [`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
 has already extracted and cleaned, keyed on the file and every setting
@@ -59,7 +59,7 @@ for `cache_documents` and `cache_embeddings`,
 ## Examples
 
 ``` r
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 #> Using cached ingestion for this document + settings.
 gr_flush_caches("documents")
 gr_flush_caches()

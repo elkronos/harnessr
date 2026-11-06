@@ -1,7 +1,8 @@
 # Resolve the API key
 
-Looks in `key`, then the `readgpt.api_key` option, then
-`OPENAI_API_KEY`. Never prints or logs the key.
+Looks in `key`, then the `harnessr.api_key` option (or, failing that,
+the deprecated `readgpt.api_key`), then `OPENAI_API_KEY`. Never prints
+or logs the key.
 
 ## Usage
 
@@ -62,7 +63,7 @@ gr_api_key("sk-explicit-wins")
 # request; see the section above.
 Sys.unsetenv("OPENAI_API_KEY")
 tryCatch(gr_api_key(), gr_auth_error = function(e) conditionMessage(e))
-#> [1] "No API key. Set OPENAI_API_KEY, or options(readgpt.api_key = '...'), or pass `api_key` to gr_client()."
+#> [1] "No API key. Set OPENAI_API_KEY, or options(harnessr.api_key = '...'), or pass `api_key` to gr_client()."
 
 # Restore. Sys.setenv(x = NA) would leave the variable set to "NA", not unset.
 if (!is.na(previous)) Sys.setenv(OPENAI_API_KEY = previous)

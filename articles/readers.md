@@ -4,13 +4,14 @@ Once a document is cut into chunks, something has to decide how the
 model works through them. Send everything at once? Ask each chunk
 separately and combine the answers? Find the few chunks most like the
 question and ignore the rest? These are *reading strategies*, which
-readgpt calls *readers*. They decide most of the cost of a run and much
+harnessr calls *readers*. They decide most of the cost of a run and much
 of the quality of its answer. The same chunks read two ways can take one
 request or dozens, and can find a fact or miss it.
 
 This guide explains each reader in plain terms, shows how they differ on
-the same document, and gives a way to choose. New to readgpt? Start with
-[`vignette("readgpt")`](https://elkronos.github.io/readgpt/articles/readgpt.md).
+the same document, and gives a way to choose. New to harnessr? Start
+with
+[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md).
 
 ## Setting up
 
@@ -22,7 +23,7 @@ plays the part of the model.
 
 ``` r
 
-library(readgpt)
+library(harnessr)
 old <- gr_options(verbose = FALSE, embedder = "lexical")
 
 stand_in <- function(messages, params) {
@@ -60,7 +61,7 @@ Now the document, cut into chunks along its section headings:
 
 ``` r
 
-chunks <- gr_segment(gr_ingest(readgpt_example()),
+chunks <- gr_segment(gr_ingest(gr_example()),
                      list(method = "structural", max_tokens = 120))
 gr_chunk_stats(chunks)
 #>       method n total_tokens min median mean max over_cap
@@ -214,7 +215,7 @@ in parallel, and the running answer can drift.
 
 For each chunk, asks the model to copy out any passages that bear on the
 question, then answers once from those passages alone. The final answer
-rests on quotations, which readgpt checks against the text (see below).
+rests on quotations, which harnessr checks against the text (see below).
 It costs N + 1 requests; the per-chunk step can use a cheaper model
 through `skim_model`.
 
@@ -386,8 +387,8 @@ documents and model; test them rather than assume.
 ## Embeddings
 
 `retrieve`, `iterative` and the `semantic` way of cutting chunks need
-*embeddings*. By default readgpt asks the model provider for them, which
-costs a little and needs an internet connection.
+*embeddings*. By default harnessr asks the model provider for them,
+which costs a little and needs an internet connection.
 `gr_options(embedder = "lexical")` uses word-matching vectors computed
 locally instead: free, offline and exactly repeatable, but they match
 words rather than meaning, so “turnover” will not find “revenue”. Use
@@ -412,7 +413,7 @@ as output and counts against the same cap as the reply, so it is part of
 what every request costs. `effort` in
 [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
 sets how much of it to do: one value, such as `"low"`, for every
-request, or a vector named by stage. It is sent only to models readgpt
+request, or a vector named by stage. It is sent only to models harnessr
 lists as reasoning models (`gr_model_info(model)$reasoning`). By default
 nothing is sent, and each request goes out at the provider’s default.
 
@@ -501,8 +502,8 @@ than chunks.
 
 Chunks sent word for word are true copies of the document by
 construction. The passages `skim` collects are what the model *says* the
-document contains, so readgpt checks every one against the chunk it came
-from:
+document contains, so harnessr checks every one against the chunk it
+came from:
 
 ``` r
 
@@ -567,8 +568,8 @@ ans$notes$premise_chunks
 ```
 
 The verdict is the model’s reading of the excerpts, not something
-readgpt checks, so weigh it as you would any answer. The check is off by
-default because it makes the prompts longer, so a cache or a recorded
+harnessr checks, so weigh it as you would any answer. The check is off
+by default because it makes the prompts longer, so a cache or a recorded
 run made without it does not answer a run with it. `extract` and
 `screen` ignore it.
 
@@ -582,7 +583,7 @@ and sharing chunks between configurations that cut them the same way:
 
 ``` r
 
-cmp <- gr_compare(readgpt_example(), "What was revenue in 2024?", list(
+cmp <- gr_compare(gr_example(), "What was revenue in 2024?", list(
   gr_recipe("narrow", segment = list(method = "structural", max_tokens = 120),
             read = list(reader = "retrieve", top_k = 2)),
   gr_recipe("wide", segment = list(method = "structural", max_tokens = 120),

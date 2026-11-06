@@ -71,6 +71,28 @@ An object of class `gr_calibration`:
 
   One row per statistic: `estimate`, `lower`, `upper`, `n`.
 
+- `kappa`:
+
+  Cohen's kappa on kept against excluded; `NA` for a sample of one
+  stratum.
+
+- `agreement`:
+
+  `kept` (the primary table) and `strict` (include against the rest),
+  each a list of `table`, `n`, `stats` (one row per statistic:
+  `statistic`, `estimate`, `lower`, `upper`) and `paradox`. `NULL` for a
+  sample of one stratum.
+
+- `kappa_legacy`:
+
+  Deprecated: the 0.6.0 kappa on the screener's three labels against the
+  person's two. Removed in the next release.
+
+- `decisions`:
+
+  The 3x2 counts: the screener's include, unclear and exclude by the
+  person's eligible and not.
+
 - `missed`:
 
   The eligible studies the screener excluded: the rows themselves,
@@ -113,8 +135,53 @@ screener that defers everything.
 ## Why accuracy is not reported
 
 Inclusion rates run at a few per cent, so a screener that excluded every
-record would score around 95% accurate and find nothing. Cohen's kappa
-is reported instead, because it is the statistic that notices.
+record would score around 95% accurate and find nothing.
+Chance-corrected agreement is reported instead, and never as one number.
+
+## Agreement, on the decision that matters
+
+The primary agreement table is the one sensitivity uses: kept
+(`"include"` or `"unclear"`) against excluded, by the person's eligible
+against not. An `"unclear"` on an eligible record is agreement there,
+since the record was kept. The secondary table is strict: `"include"`
+against everything else.
+
+Each table reports Cohen's kappa beside the statistics that say whether
+it can be read: the prevalence index (PI) and bias index (BI) of Byrt et
+al. (1993), the prevalence- and bias-adjusted kappa (PABAK, 2 po - 1)
+and Gwet's AC1, with intervals, and the class-wise sensitivity,
+specificity, PPV and NPV. At a few eligible records in a hundred, kappa
+moves with the marginals as much as with agreement, and can sit near
+zero where the two raters agree on almost every record;
+`$agreement$kept$paradox` is `TRUE` when abs(PI) is above 0.8, a
+heuristic threshold that marks such a table. AC1 has the opposite
+weakness, a value near 1 from records both raters left out, so it is not
+read alone either.
+
+The kappa interval is a percentile bootstrap that resamples documents, B
+= 2000, under a fixed seed so the same sample gives the same interval
+(`$agreement$kept$bootstrap` holds B and the seed; the session's random
+stream is left as it was). The AC1 interval uses the variance of Gwet
+(2008), as the irrCAC package does, with a t quantile on n - 1 degrees
+of freedom. The PABAK interval is the Wilson interval on the observed
+agreement, mapped onto the same scale. Where the two raters agree on
+every record, disagree on every record, or the sample has fewer than 10
+records, the kappa and AC1 intervals would be a point or close to one,
+so they are left empty and `$agreement$kept$note` says why.
+
+0.6.0 computed kappa on the screener's three labels against the person's
+two, so every `"unclear"` counted as a disagreement. That figure is kept
+as `$kappa_legacy` for this release only, so a number already quoted can
+be traced; it is not the screener's agreement with a person.
+
+The rate of `"unclear"` decisions is the metric
+`"deferred to a person"`, with its interval, and the 3x2 counts behind
+both tables are in `$decisions`.
+
+A decision a person settled with
+[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md)
+is not the screener's, so the comparison uses the screener's own
+decision, from `screener_decision`, wherever the table has one.
 
 ## What a small sample cannot do
 
@@ -160,6 +227,7 @@ Other corpus functions:
 [`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md),
 [`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md),
 [`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md),
+[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md),
 [`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
 
 ## Examples
@@ -182,7 +250,22 @@ gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref)
 #>   specificity                     75.0%  [30.1%, 95.4%]  n=4
 #>   deferred to a person            12.5%  [2.2%, 47.1%]  n=8
 #>   reading avoided                 50.0%  [21.5%, 78.5%]  n=8
-#>   Cohen's kappa                   0.33
+#>   screener    eligible  not eligible
+#>   include            2             1
+#>   unclear            1             0
+#>   exclude            1             3
+#>   agreement, kept (include + unclear) vs excluded:
+#>     kappa     0.50  [--, --]
+#>     PABAK     0.50  [-0.18, 0.86]
+#>     AC1       0.50  [--, --]
+#>     PI 0.00, BI 0.00
+#>     (no kappa or AC1 interval: Only 8 record(s); the kappa and AC1 intervals need at least 10.)
+#>   agreement, strict include vs the rest:
+#>     kappa     0.25  [--, --]
+#>     PABAK     0.25  [-0.39, 0.73]
+#>     AC1       0.26  [--, --]
+#>     PI -0.12, BI -0.12
+#>     (no kappa or AC1 interval: Only 8 record(s); the kappa and AC1 intervals need at least 10.)
 #>   ! 1 eligible study was excluded by the screener:
 #>       d6.pdf
 #>   ! only 4 eligible studies in the sample. Every rate above rests on

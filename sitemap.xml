@@ -1,10 +1,10 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://elkronos.github.io/readgpt/404.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/LICENSE-text.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/articles/harnessr.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/articles/index.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/articles/ingest.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/articles/readers.html</loc></url>
-<url><loc>https://elkronos.github.io/readgpt/articles/readgpt.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/articles/tour.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/authors.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/index.html</loc></url>
@@ -27,6 +27,8 @@
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_cache_stats.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_calibrate.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_call.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/reference/gr_check_reader.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/reference/gr_check_segmenter.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_chunk_stats.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_chunks.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_claims.html</loc></url>
@@ -40,6 +42,7 @@
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_embed.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_embedders.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_estimate_cost.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/reference/gr_example.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_extract.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_extractors.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_field.html</loc></url>
@@ -77,6 +80,7 @@
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_register_reader.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_register_segmenter.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_replay_client.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/reference/gr_resolve.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_result.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_screen.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_search.html</loc></url>
@@ -92,12 +96,18 @@
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_trace_summary.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_truncate_tokens.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/gr_verify_evidence.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/reference/harnessr-package.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/reference/hr_check_module.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/reference/hr_cost.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/reference/hr_governor.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/reference/hr_param.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/reference/hr_schema.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/reference/hr_validate.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/index.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/is_not_found.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/new_answer.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/new_chunks.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/parse_text.html</loc></url>
-<url><loc>https://elkronos.github.io/readgpt/reference/readgpt-package.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/readgpt_example.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/reference/sub-.gr_reference_frame.html</loc></url>
 </urlset>

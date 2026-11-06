@@ -16,7 +16,8 @@ gr_register_model(
   reasoning = FALSE,
   supports_temperature = TRUE,
   kind = c("chat", "embedding"),
-  dimensions = NA_integer_
+  dimensions = NA_integer_,
+  cached_input_usd = NA_real_
 )
 ```
 
@@ -57,6 +58,12 @@ gr_register_model(
 
   Embedding dimensionality, for `kind = "embedding"`.
 
+- cached_input_usd:
+
+  Price per 1M input tokens the provider served from its prompt cache,
+  where that is billed at its own rate. `NA` (the default) prices them
+  as other input tokens, which never undercounts.
+
 ## Value
 
 Invisibly, `id`.
@@ -96,7 +103,7 @@ gr_model_info("my-local-llama")[c("context_window", "source", "certain")]
 #> [1] TRUE
 #> 
 
-# Without prices, the cost cap cannot be checked; readgpt says so rather
+# Without prices, the cost cap cannot be checked; harnessr says so rather
 # than assuming the run is free.
 is.na(gr_estimate_cost("my-local-llama", 1000, 500))
 #> [1] TRUE

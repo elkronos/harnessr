@@ -17,7 +17,7 @@ answer says what it rests on and whether anything went wrong.
   : The result of one reading run
 - [`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
   : Did the model report that the document does not contain the answer?
-- [`readgpt_example()`](https://elkronos.github.io/readgpt/reference/readgpt_example.md)
+- [`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md)
   : Path to the bundled example document
 
 ## Connect to a model
@@ -133,6 +133,8 @@ hand-screened sample.
   : Draw a sample to screen by hand
 - [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
   : Measure the screener against a hand-screened sample
+- [`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md)
+  : Record a person's decision on screened records
 - [`` `[`( ``*`<gr_reference_frame>`*`)`](https://elkronos.github.io/readgpt/reference/sub-.gr_reference_frame.md)
   : Subsetting a reference frame gives a plain data frame.
 - [`gr_fields()`](https://elkronos.github.io/readgpt/reference/gr_fields.md)
@@ -160,6 +162,9 @@ hand-screened sample.
 
 - [`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
   : Get or set package options
+
+- [`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md)
+  : Limits on what a run may send
 
 - [`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md)
   : Estimate the USD cost of a set of calls
@@ -212,7 +217,7 @@ hand-screened sample.
 - [`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
   : A client that answers from a recorded run
 
-## Extending readgpt
+## Extending harnessr
 
 Every axis is a registry. An addition is used exactly like a built-in.
 
@@ -241,14 +246,37 @@ Every axis is a registry. An addition is used exactly like a built-in.
 
   Build a `gr_answer`, the object every reader must return
 
+- [`hr_cost()`](https://elkronos.github.io/readgpt/reference/hr_cost.md)
+  : What one run of a module can cost
+
+- [`hr_schema()`](https://elkronos.github.io/readgpt/reference/hr_schema.md)
+  : Collect parameters into a schema
+
+- [`hr_param()`](https://elkronos.github.io/readgpt/reference/hr_param.md)
+  : Declare one parameter of a module or spec
+
+- [`hr_validate()`](https://elkronos.github.io/readgpt/reference/hr_validate.md)
+  : Validate and resolve settings against a schema
+
+- [`hr_check_module()`](https://elkronos.github.io/readgpt/reference/hr_check_module.md)
+  : Check a module against a set of rules
+
+- [`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md)
+  : Check a reader against the reader contract
+
+- [`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md)
+  : Check a segmenter against the segmenter contract
+
 ## Superseded
 
-The entry points of the first version. They still work and warn once;
-new code should use
+The entry points of the first version, and the old name of
+[`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md).
+They still work and warn once; new code should use
 [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
+[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
 and
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md).
+[`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md).
 
 - [`answer_question()`](https://elkronos.github.io/readgpt/reference/answer_question.md)
   : Deprecated: answer a question using v1 mode names
@@ -262,3 +290,5 @@ and
   : Deprecated: multi-pass reading
 - [`gpt_read_retrieval()`](https://elkronos.github.io/readgpt/reference/gpt_read_retrieval.md)
   : Deprecated: evidence-extraction reading
+- [`readgpt_example()`](https://elkronos.github.io/readgpt/reference/readgpt_example.md)
+  : Deprecated: path to the bundled example document

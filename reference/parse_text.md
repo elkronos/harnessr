@@ -64,14 +64,14 @@ Other v1 compatibility:
 
 ``` r
 # v1 style, still works, warns once.
-length(suppressWarnings(parse_text(readgpt_example(), chunk_token_limit = 200)))
+length(suppressWarnings(parse_text(gr_example(), chunk_token_limit = 200)))
 #> Extracting 'annual_report.md' with the 'md' extractor.
 #> Ingested 17 block(s), ~574 tokens (12 chars removed by cleaning).
 #> Segmenting with 'paragraph' (cap 200 tokens, overlap 0).
 #> [1] 4
 
 # The modern equivalent, which also reports what it did.
-gr_chunk_stats(gr_segment(gr_ingest(readgpt_example()),
+gr_chunk_stats(gr_segment(gr_ingest(gr_example()),
                           list(method = "paragraph", max_tokens = 200)))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 200 tokens, overlap 0).

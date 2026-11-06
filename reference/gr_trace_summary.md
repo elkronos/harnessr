@@ -17,7 +17,8 @@ gr_trace_summary(trace)
 ## Value
 
 A one-row data frame: `run_id`, `calls`, `cached`, `steps`, `tokens_in`,
-`tokens_out`, `errors`, `elapsed_s`, `embed_calls`, `embed_tokens`.
+`tokens_out`, `errors`, `elapsed_s`, `embed_calls`, `embed_tokens`,
+`tokens_reasoning`, `tokens_cached_in`, `usage_estimated`.
 
 `calls` counts every request, including the `embed_calls` of them made
 to an embeddings endpoint. `tokens_in` and `tokens_out` are the size of
@@ -45,6 +46,15 @@ gives you what the run *would* have cost, not what it did.
 from (see `errors` in
 [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)).
 
+`tokens_reasoning` and `tokens_cached_in` are the reasoning tokens and
+cached input tokens the provider reported for the model calls, 0 where
+it reported none. They are parts of `tokens_out` and `tokens_in`, not
+additions to them. `usage_estimated` is the share of requests whose
+token counts were estimated locally because the provider reported none
+(see `tokens` under "Steps" in
+[`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)),
+from 0 to 1, or `NA` when no request says.
+
 ## See also
 
 [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md),
@@ -57,21 +67,25 @@ from (see `errors` in
 
 ``` r
 cl <- gr_mock_client(function(m, p) "45.2 million dollars")
-ans <- answer_document(readgpt_example(), "What was revenue?", "thorough", client = cl)
+ans <- answer_document(gr_example(), "What was revenue?", "thorough", client = cl)
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 1200 tokens, overlap 120).
 #> Reading with 'map_reduce' (all|N+logN|tree) over 1 chunk(s).
 gr_trace_summary(ans$trace)
 #>                          run_id calls cached steps tokens_in tokens_out errors
-#> 1 run_20261012050035.313_b52be0     1      0     4       607         10      0
-#>   elapsed_s embed_calls embed_tokens
-#> 1      0.02           0            0
+#> 1 run_20261106065734.576_f38771     1      0     4       607         10      0
+#>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in
+#> 1      0.03           0            0                0                0
+#>   usage_estimated
+#> 1               1
 
 # What the run cost, each request priced at its own model (nothing, for a
 # mock), and what its model calls would cost at another model's prices.
 gr_trace_cost(ans$trace)
-#>        model calls paid_calls paid_in paid_out usd
-#> 1 mock-model     1          1     607       10   0
+#>        model calls paid_calls paid_in paid_out usd paid_reasoning
+#> 1 mock-model     1          1     607       10   0              0
+#>   paid_cached_in
+#> 1              0
 gr_estimate_cost("gpt-4o", ans$trace$tokens_in, ans$trace$tokens_out)
 #> [1] 0.0016175
 ```

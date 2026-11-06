@@ -127,7 +127,7 @@ cl <- gr_backend_client(function(messages, params) {
 
 gr_call(cl, "What was revenue?", max_output = 128L)$text
 #> Warning: Model 'my-backend' is not in the registry. Falling back to a conservative 128000-token context with a 4096-token output reserve. Register the real limits with gr_register_model('my-backend', context_window = ..., max_output = ...) so budgets and cost estimates are correct.
-#> [1] "I was asked 1 thing(s) with a 128-token cap."
+#> [1] ""
 
 # It composes with everything else: caching, tracing, cost accounting.
 tr <- gr_trace()
@@ -135,5 +135,5 @@ invisible(gr_call(cl, "again", trace = tr))
 #> Warning: Model 'my-backend' is not in the registry. Falling back to a conservative 128000-token context with a 4096-token output reserve. Register the real limits with gr_register_model('my-backend', context_window = ..., max_output = ...) so budgets and cost estimates are correct.
 gr_trace_summary(tr)[c("calls", "tokens_in", "tokens_out")]
 #>   calls tokens_in tokens_out
-#> 1     1         5         24
+#> 1     0         0          0
 ```

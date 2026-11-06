@@ -1,2692 +1,676 @@
 # Changelog
 
-## readgpt 0.6.0
+## harnessr 0.6.0.9000
 
-### New
+### Renamed
 
-- **Reasoning effort, set stage by stage.** The default models reason
-  before they answer, and that reasoning is billed as output and counted
-  inside the reply’s cap. Nothing in a read, a corpus run or a write-up
-  said how much of it to do, so every call went out at the provider’s
-  default: the hundreds of per-chunk extraction calls of a corpus
-  reasoned as long as the one call that drew its claims. The only lever
-  was a client’s `extra_body`, which set one effort for every request
-  and was invisible to recipes, store keys, comparisons and traces.
+- **The package is now called harnessr.** readgpt grew a general core
+  for model calls (clients, spending limits, a response cache,
+  recordings that replay offline, traces) under its document-reading
+  layer, and the new name says so. Load it with
+  [`library(harnessr)`](https://github.com/elkronos/readgpt). The GitHub
+  repository is still `elkronos/readgpt`, so
+  `remotes::install_github("elkronos/readgpt")` installs harnessr. No
+  exported function, class, argument or prompt changes name in this
+  release except
+  [`readgpt_example()`](https://elkronos.github.io/readgpt/reference/readgpt_example.md),
+  below.
 
-  `effort` sets it. One string applies to every call. A character vector
-  named by call label sets it per stage, such as
-  `c(extract = "low", "synthesise.section" = "high")`: a name covers a
-  label equal to it or starting with it and a dot, the longest matching
-  name wins, and an unnamed or `"default"` element covers the rest. It
-  is a
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
-  setting, so it reaches
-  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
-  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
+- **[`readgpt_example()`](https://elkronos.github.io/readgpt/reference/readgpt_example.md)
+  is now
+  [`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md)**,
+  which returns the same path to the bundled example document.
+  [`readgpt_example()`](https://elkronos.github.io/readgpt/reference/readgpt_example.md)
+  still works, with one `gr_deprecated` warning per session naming the
+  new function.
+
+- **Requests, cache keys and recordings are unchanged by the rename.**
+  Every request is sent as 0.6.0 sent it, and the corpus store key is
+  the one 0.6.0 computed. The response-cache and replay keys change
+  later in this release (see “Cache and replay keys” below), and the
+  keys 0.6.0 computed are still looked up, so a warm cache, a recording
+  made for
+  [`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+  and a
+  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+  store all keep answering.
+
+- **Two options are renamed**: `readgpt.api_key` is now
+  `harnessr.api_key`, and `readgpt.allow_local_urls` is now
+  `harnessr.allow_local_urls`. The old names are still read when the new
+  ones are not set, with one `gr_deprecated` warning per session naming
+  the new option.
+
+- The help pages now suggest `tools::R_user_dir("harnessr", "cache")`
+  for a cache that lasts. With that directory set, entries readgpt kept
+  in `tools::R_user_dir("readgpt", "cache")` are read too, after it; new
+  entries are written only to the new directory, and the old one is
+  never cleared. The per-session default is now
+  `file.path(tempdir(), "harnessr-cache")`.
+
+- Text that named the package now says harnessr: the URL fetcher’s user
+  agent (`harnessr/<version>`), the audit report’s title and footer,
+  messages, and the Shiny app’s title. A trace’s `meta` still records
+  the version under `readgpt`, so traces written before and after the
+  rename read the same way.
+
+### Traces record what was sent and what came back
+
+- **Each request step records `params_sent`**, the request as it went
+  out with every default resolved: the model, `api`, `base_url`, the
+  output cap actually sent (a reasoning model’s small cap goes out
+  raised to 2048), the temperature (filled from
+  `gr_options("temperature")`, or `NA` when none was sent), the effort,
+  the schema name, and SHA-256 hashes of the schema and of the extra
+  body fields. For a
+  [`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
+  it is read from the request body itself. `params` keeps what the
+  caller asked for, as before. Requests, response-cache keys and replay
+  keys are unchanged.
+
+- **Steps record `served_model`, `response_id` and `fingerprint`** where
+  the provider returns them, beside `model`, which stays the model asked
+  for and is what a step is priced and replayed by. None of them enters
+  a cache or replay key.
+  [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+  results carry the same three fields.
+
+- **Steps record `attempts`**, the number of requests sent, retries
+  included (0 for a reply from a cache or a recording), and
+  `started_utc` and `ended_utc` as ISO 8601 in UTC with a trailing `Z`.
+  A saved trace’s `started` is now written in UTC with a `Z` too; it was
+  local time with no offset.
+
+- **Token records say where they came from.** A step’s `tokens` gains
+  `provenance`: `"reported"` by the provider, `"counted"` here with the
+  `"tiktoken"` tokenizer, or `"estimated"` with another one. Reasoning
+  and cached input tokens the provider reports are kept as
+  `tokens$reasoning` and `tokens$cached_input`, parts of `output` and
+  `input` rather than additions.
+  [`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md)
+  gains `tokens_reasoning`, `tokens_cached_in` and `usage_estimated`,
+  the share of requests whose counts were estimated, and
+  [`print()`](https://rdrr.io/r/base/print.html) on a trace says that
+  share when it is above zero. A request that failed before the provider
+  sent any usage records a `"counted"` zero, and a handler’s
+  [`gr_result()`](https://elkronos.github.io/readgpt/reference/gr_result.md)
+  built with no usage is counted here rather than taken as a reported 0
+  in and 0 out.
+
+- **Embeddings requests record `attempts`, `served_model` and a
+  provenance** like any other request; `attempts` was always `NA`
+  although they are retried, and a failed one had no provenance.
+  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) on a
+  trace gains `tokens_reasoning`, `tokens_cached_in` and `served_model`
+  columns when some request has them, and
+  [`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)
+  gains `paid_reasoning` and `paid_cached_in`.
+
+- **Cached input can be priced at its own rate.**
+  [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+  takes `cached_input_usd`,
+  [`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md)
+  takes `cached_input_tokens`, and
+  [`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md)
+  shows `cached_input_usd_per_1m`. A model with no cached rate prices
+  cached input as other input, so every built-in model costs what it
+  did.
+
+- **Runs record who they are for.**
+  [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+  takes `system`, `owner`, `run_by`, `purpose` and `approved_by`, and
+  the new option `gr_options(actor = list(...))` sets them for every
+  trace; a field named nowhere is `NA`. They are written to a saved
+  trace under `actor` and shown by
+  [`print()`](https://rdrr.io/r/base/print.html) when set.
+
+- **Runs record the options in force** when the trace was made, under
+  `config`, with the R version. The values of `api_headers` are left
+  out, since they can hold credentials.
+
+- [`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+  given one named argument whose value is a list now sets that option.
+  It used to read the list as a set of options to restore, which only an
+  unnamed list should be.
+
+### Cache and replay keys
+
+- **[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+  takes a `draw_index`** for the draws of a sampled request: 0, the
+  default, for an ordinary call, and 1, 2, … for repeated draws. Above 0
+  it is part of the response-cache key, so N identical calls with draw
+  indexes 1 to N are N cached replies; before, a cache returned the
+  first reply N times and anything that compared them saw perfect
+  agreement. A handler finds it in `params$draw_index` and the trace
+  records it in the step’s `params`; at 0 neither carries it, so an
+  ordinary call is unchanged.
+
+- **The response-cache key is now `harnessr-cache-v3`**, a SHA-256 hash
+  (64 hex digits) in place of xxhash64. Entries written under the old
+  key (`readgpt-cache-v2`, by readgpt 0.6.0 and earlier builds of
+  harnessr) are still read for calls with no draw index: a call that
+  finds nothing under its new key is looked up under the old one. The
+  first reply found that way in a session warns once for the cache, with
+  class `hr_legacy_key`, and
+  [`gr_cache_stats()`](https://elkronos.github.io/readgpt/reference/gr_cache_stats.md)
+  has a new column, `legacy_hits`, that counts them. Old entries are
+  never rewritten, new ones are written under the new key only, and
+  [`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md)
+  removes both.
+
+- **The replay key is now `harnessr-replay-v2`**, and covers the
+  temperature (once the session default is filled in), the output cap
+  asked for and the JSON schema as well as the messages, model and
+  effort. A replay under another temperature, cap or schema now misses
+  instead of being answered with the recorded replies. Each model step
+  of a trace records its key as `replay_key`. A step recorded before
+  that is looked up by the old key (`readgpt-replay-v1`: messages, model
+  and effort), with one `hr_legacy_key` warning per recording in a
+  session and a count in `$stats()$legacy_hits`. A replay’s own trace
+  records a reply found that way, or one repeated under
+  `on_exhausted = "flag"`, without a `replay_key`, so a replay of that
+  trace still goes through the old key, or still runs out of replies. A
+  miss on a prompt recorded for the model at the effort asked for says
+  the temperature, output cap or schema differ, names the recorded
+  settings next to the ones this call asks for, and says which of them
+  differ. Where the schema differs, the recorded cap is given as the cap
+  that was sent, which may be the model’s limit rather than the cap
+  asked for.
+
+- **A replay that runs out of recorded replies is an error.** A call
+  past the last reply recorded for its request, or for a draw that was
+  never recorded, raises `hr_replay_exhausted`. It used to repeat the
+  last reply, so a replay making more calls than the recorded run looked
+  like an exact reproduction. `gr_replay_client(on_exhausted = "flag")`
+  keeps the old behaviour, counted in `$stats()$repeats`. A call with a
+  `draw_index` above 0 is answered with the reply recorded for that
+  draw, or the k-th reply to the request in a recording made without
+  draw indexes.
+
+### Limits checked before every request
+
+- **`max_calls` and `max_cost_usd` now hold exactly.** Every request is
+  checked before it is sent, by the call path itself, against what the
+  run has spent plus the most the request could cost: its prompt at the
+  input price and its output cap (for a reasoning model, the raised cap
+  [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+  sends) at the output price. The prompt is counted with the JSON schema
+  and extra body fields the request carries and a few tokens of framing
+  per message, then raised by `safety_margin`, since the provider bills
+  for all of that. A request that could take the run past a limit is not
+  sent. Runs used to stop only once what they had spent reached the
+  limit, so they ended up to one request over it; they now end at or
+  under it, as long as the provider stops each reply at its cap and
+  counts the prompt within that margin of the local tokenizer. A run
+  that leaves its output caps at the model’s limit stops while it still
+  has headroom a smaller cap would have used.
+
+- **A refused request is not a call.** It comes back from
+  [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+  as a failed result with `refused = TRUE` and an error naming the
+  limit, after a condition of class `hr_budget_refused` is signalled
+  (catch it to stop instead). It adds nothing to the trace’s calls,
+  steps or spend; the trace lists it in a new `refusals` field, sets
+  `budget_stop` and names the limit in `stop_reason`. Readers and review
+  stages treat it as they treated reaching a limit before: the answer or
+  section is marked partial, and the request is not counted as failed.
+
+- **Every request is checked, not only the ones a reader asked about.**
+  Judges, the ensemble’s adjudication, conflict resolution in `extract`,
+  context and proposition segmentation, claims, outlines, screening,
+  synthesis and embeddings requests all go through the same check, as
+  does any request a custom reader or a script makes with
+  [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md).
+  The readers no longer check `trace_can_call()` themselves. It is kept
+  for custom readers written to the 0.6.0 help page, which still work.
+
+- **A chat model with no registered price is refused while a spending
+  limit is set**, with a condition of class `hr_unpriced_model`. Such a
+  model added nothing to the spend, so the limit never stopped it.
+  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+  stops before its first request with an `hr_unpriced_model` error.
+  Register the model’s prices with
+  [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
+  or set `gr_options(allow_unpriced = TRUE)`; then its requests are
+  sent, still count against `max_calls` and `max_tokens_total`, and are
+  priced `NA` in the trace.
+  [`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+  and replays are never refused for this, and neither are embedding
+  models with no price. An ellmer chat is priced as the model it was
+  built with, whatever a spec names, so a chat on a model with no
+  registered price is refused too; the README and the
+  [`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
+  example now register its price, and allow a local model to run
+  unpriced.
+
+- **New option `max_tokens_total`** (`NULL`, off) limits the tokens a
+  run may use: prompts and replies of every call, and text sent to be
+  embedded. A request whose prompt and reply at its cap would pass it is
+  refused with `stop_reason` `"tokens"`. It is the limit that still
+  bounds a run on an unpriced model under `allow_unpriced = TRUE`.
+  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+  holds the whole comparison to it, as it does to `max_cost_usd`.
+
+- **New
+  [`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md)**
+  holds a run’s limits: `max_calls`, `max_cost_usd`, `max_tokens_total`,
+  `max_output_tokens` (the largest output cap one request may carry; a
+  request with a larger one is refused, not cut down), `allowed_models`
+  and `allow_unpriced`. Attach one with the new `gr_trace(governor = )`
+  argument; a trace without one reads the limits from
+  [`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md),
+  as before. The new limits are also options, `max_tokens_total`,
+  `max_output_tokens`, `allowed_models` (all `NULL`, off) and
+  `allow_unpriced` (`FALSE`), so every trace’s config snapshot now lists
+  them.
+  [`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
+  writes a trace’s `refusals` and `governor` when it has any, with
+  `allowed_models` always as an array.
   [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
-  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
-  and the segmenters that call a model.
   [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
   [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
   and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-  take it as a new argument at the end, and
-  [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
-  takes it after `...`. The help for
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
-  lists every label and suggests a profile: low for the many mechanical
-  stages, high for the few that judge.
-
-  It is sent as `reasoning = {effort}` on the Responses API and as
-  `reasoning_effort` on Chat Completions (replacing an effort a client’s
-  own `reasoning` object carries), and only to a model the registry
-  lists as a reasoning model, since others refuse the field. A mock or
-  backend handler sees it as `params$effort`. An ellmer chat cannot take
-  it per call, so it is not sent there, and a warning says so once
-  (`gr_effort_unsupported`); its trace steps keep the effort asked for
-  as `params$unsent_effort`, so the trace and
-  [`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
-  do not count it as sent. Unset, nothing changes: no body field, no
-  handler parameter, no key part, so every cache, recording and corpus
-  store made before still answers. Set, it is part of the response-cache
-  key, the corpus store key, what
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  counts as a different recipe (recipes whose segmenter is sent the same
-  effort still share their chunks), and the key a replay matches on; a
-  replay under another effort misses and says it was recorded at a
-  different one, and one under the same effort matches even in a session
-  that has not registered the recording’s model as a reasoning model.
-  Each request’s effort is on its trace step and in an `effort` column
-  of `as.data.frame(trace)`, and
-  [`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
-  shows it beside what each stage cost.
-
-- **A question the document contradicts gets a correction, not an
-  answer.** Asked “Why did revenue fall in 2023?” of a report in which
-  revenue rose, a reader either answered on the question’s terms,
-  offering a cause for a fall that did not happen, or replied
-  `NOT_IN_DOCUMENT` because the report gives no reason for a fall.
-  Either way the one thing the document does say about the question was
-  lost, and the second reported silence where the document contradicted
-  the question.
-
-  `gr_read_spec(premise = TRUE)` adds a third outcome. The prompts that
-  answer the question tell the model that when the excerpts state the
-  contrary of an assumption in it, it is to say so in one sentence
-  giving what they state instead. That sentence is `$answer` and
-  `$premise`, and
-  [`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
-  is `FALSE` for it. Excerpts that are merely silent are still
-  `NOT_IN_DOCUMENT`. `map_reduce` drops a chunk that lacked the answer,
-  as before, but passes a chunk that contradicts the question to its
-  merge as a finding, and the merge may report the premise false itself;
-  `notes$premise_chunks` keeps which chunks said so whatever it decides.
-  Every answering reader handles the outcome, `iterative` through its
-  schema.
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  and
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
-  gain a `premise` column, and
-  [`print()`](https://rdrr.io/r/base/print.html) and the audit report
-  say the model reported it, because the verdict is the model’s reading
-  of the excerpts and nothing checks it against the document. It is off
-  by default because it changes what is sent: a run without it sends
-  exactly what it sent before, so caches, recorded replays and corpus
-  stores still answer it. Screening and extraction ignore it.
-
-- **The figures in a review are checked against the rows they cite.**
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-  checked that every `[study N]` pointed at a row the section was given,
-  and nothing checked what the sentence said that row found. “d = 0.61
-  \[study 3\]” over a row reporting 0.41, or “1,240 participants” over a
-  row of 1,204, was a clean, fully cited sentence. A revision pass could
-  also change 0.41 to 0.61 after the fact with every guard passing it,
-  because the markers, the hedges and the claims were all where they had
-  been.
-
-  Every number in every sentence is now looked for in what the writer
-  was shown for that sentence: the rows it cites as the prompt showed
-  them, the question and the brief, and with claims the claims resting
-  on those rows. This runs on the draft and again on a kept revision
-  that changed it. A figure found nowhere is listed in `$figures`,
-  counted in `$sections$n_unbacked`, shown by
-  [`print()`](https://rdrr.io/r/base/print.html) and the audit report,
-  and warned about (`gr_synth_unbacked_figures`). It does not mark a
-  section partial, which is about citations. The check sends nothing, so
-  it is always on.
-
-  It is forgiving about form and strict about precision. `.61`, `1204`,
-  `12 450`, `45.2 million` and `45%` are found as 0.61, 1,204, 12,450,
-  45,200,000 and 0.45, and a field the writer was shown as `1e+05` backs
-  “100,000”, but a figure is compared at the places it was written to,
-  so “30%” is not a row’s 0.32 rounded. Totals of a numeric field over
-  the cited rows, arithmetic shown in the sentence (“120 of 1,020
-  (11.8%)”, or “HR 0.78, a 22% lower hazard”), differences in points
-  between two figures of one finding, years, counts of studies (“10 of
-  the 12 were randomised trials”) and qualified figures (“about 1,200”,
-  “c. 1,200”) are allowed. Ids written bare in prose (“studies 12 to
-  15”), significance thresholds (“p value below 0.05”, “at the 5%
-  level”) and age decades (“in their 60s”) are not read as figures. A
-  revision pass that writes a figure its draft did not have, in any
-  form, is now discarded (`gr_revision_new_figure`), because the passes
-  may not add anything.
-
-- **`gr_outline(alternatives =)`: more than one way to organise the
-  review, compared by counting and chosen by you.**
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
-  made one call and handed back one grouping of the claims into
-  sections. The grouping is the review’s argument, and a single proposal
-  gave nothing to weigh it against. Asking again could not help: the
-  default model takes no temperature, and the response cache answers an
-  identical request with the reply it stored, so the second outline was
-  the first.
-
-  With `alternatives = 3`, each further outline is a request of its own,
-  shown the groupings kept so far and asked to group the claims by a
-  different organising principle. The first request is unchanged, so a
-  run without alternatives sends the same request, caches the same way
-  and still replays. Each alternative is verified as the first is. How
-  far apart two outlines are is counted, not asked: the share of pairs
-  of claims grouped together in one and apart in the other. One that
-  groups the claims exactly as an earlier one did is dropped, as is one
-  whose call failed or was cut off or none of whose sections held a
-  claim once verified, and a warning (`gr_outline_alternatives_short`)
-  says why. The first proposal comes back as before, with
-  `attr(, "comparison")` laying the outlines side by side: sections,
-  claims and contested claims per section, and distance from the first.
-  No model picks the winner.
-  [`gr_outline_pick()`](https://elkronos.github.io/readgpt/reference/gr_outline_pick.md)
-  hands back the one you choose with its own claim assignment, and
   [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md),
-  its print method, its trace and
-  [`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
-  say which outline the review was written from, unless you have since
-  moved claims between its sections, which makes it an outline of your
-  own (renaming its headings does not).
+  which keep a trace of their own and fold it into the one they are
+  given, hold their requests to that trace’s governor, less what it has
+  already spent and used in tokens; `max_calls` stays a limit per
+  document and per stage.
 
-- **A `cut` pass that cut nothing is no longer kept as a cut.** Every
-  check `gr_synthesise(coherence = )` made on a revision asked whether
-  it was safe: the same studies cited, as often, on the same sentences,
-  claiming no more than the draft did. None asked whether the pass had
-  done its job, so a `cut` handed back as long as it went out (polished
-  instead, returned as it was, or longer) passed them all and was
-  reported as a kept cut. The `cut` pass must now return strictly fewer
-  words of prose than the text it was given, or it is discarded with a
-  `gr_revision_uncut` warning and a reason such as “the cut pass did not
-  shorten the review: 812 words before, 815 after”. Headings, list
-  markers and citation markers are not counted, so deleting a heading,
-  turning a numbered list into bullets or writing three markers as a
-  range is not a cut. The count is in words rather than tokens because a
-  token count follows whichever tokenizer the session has set and moves
-  with markup a reader never sees. There is no minimum: a tight draft
-  may have nothing to lose but a filler phrase.
+- **A parallel batch cannot pass a limit.** Each worker’s items are held
+  to an equal share of the calls and dollars the run has left, and an
+  item its share refused before it sent anything runs again in the
+  calling process, against the run. A batch that the run’s limits cannot
+  cover still runs in the calling process, as before. Batch items make
+  one request each; an item that made more and had a later one refused
+  by its share warns (`gr_parallel_share`) and does not mark the run as
+  stopped.
 
-  The `structure` and `register` passes are not held to a length. A
-  sentence-by-sentence polish of padded prose removed half its words
-  while keeping every claim and hedge, more than a reply that dropped a
-  whole section removed, so no bound could tell their job from cutting.
-  Instead `$coherence` gains integer `words_before` and `words_after`
-  columns, shown in the audit report’s table of revision passes, so a
-  pass that halved the review can be seen.
+### JSON replies checked against their schema
 
-- **`.csv` and `.tsv` are readable.** An extractor claims them, so a
-  folder of exported tables is read rather than skipped.
-
-- **`headers`: reaching an endpoint that does not authenticate with a
-  bearer token.** `base_url` was enough only for a gateway that speaks
-  the OpenAI shape and takes `Authorization: Bearer`, because that
-  header was hardcoded. Most gateways standing in front of a company’s
-  OpenAI and Anthropic tokens are somewhere else: Azure OpenAI
-  authenticates with `api-key`, API Management adds a subscription key,
-  and many want a cost-centre or correlation id. There was no way to
-  express any of it.
-
-  `gr_client(headers = )` takes a named character vector, and
-  `gr_options(api_headers = )` sets one for every client, the form that
-  belongs in a project’s `.Rprofile`. Two rules make it predictable. A
-  header you name replaces the automatic `Authorization` rather than
-  joining it, matched without regard to case, because HTTP field names
-  are case-insensitive and curl is not: given both spellings it sends
-  two headers and leaves the gateway to pick. And naming any header
-  makes the API key optional, because nothing here can tell which of a
-  stranger’s headers is the credential. `NA` as a value suppresses a
-  header instead of sending it, which is how an `OPENAI_API_KEY` left
-  set for another client in the same session is kept off the company
-  gateway.
-
-  The embeddings endpoint takes the same headers as the chat endpoint.
-  They were two copies of the same three lines, which is how one of them
-  ends up a release behind the other.
-
-  Three things are refused rather than repaired. A name that is not a
-  legal HTTP field name is a typo, not a header. A value carrying a
-  control character is request splitting: CR/LF ends the header and
-  starts one the caller never wrote, and these values come from
-  environment variables and config files, which is exactly where a stray
-  line ending comes from. And an empty value is refused because curl
-  drops the header entirely, so
-  `c("api-key" = Sys.getenv("GATEWAY_KEY"))` with that variable unset
-  would otherwise leave without the credential and come back a 401 that
-  looks like a wrong key rather than a missing one.
-
-  Headers are excluded from the cache key, for the same reason the API
-  key is: a rotating token or a per-request correlation id would make
-  every lookup a miss. A header that changes *which* model answers
-  belongs in `base_url` or `model`, where the cache can see it.
-
-  [`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
-  also prints now. It had no print method, so a client echoed at the
-  console printed as a plain list with `api_key` in it, in full. Header
-  values would have joined it there. Names are shown; values never are.
-
-- **The `claims` protocol: a schema coded so studies can be compared,
-  not only read.** The first step of a claims-level synthesis, and the
-  constraint it removes is the one everything downstream was capped by:
-  a synthesis can only relate studies on dimensions the extraction table
-  holds.
-
-  `evidence_table` records the design “in the paper’s own words”, which
-  is right for a table a person reads and wrong for one that gets
-  crosstabbed: “RCT”, “randomised trial” and “randomized controlled
-  trial” become three designs, so a gap analysis reports a design as
-  absent while three of them sit in the table. So `claims` codes
-  `design` and `finding` as enums and pairs each with the paper’s own
-  wording (`design_note`, `effect`), which is the same bargain the
-  evidence quotes already make for values: the coding can be checked
-  rather than trusted. `effect` stays a string deliberately, because
-  effect metrics are not commensurable across studies, and coercing “d =
-  0.42 (0.11, 0.73)” to a number is the shape of fault that turned “120
-  (60 per arm)” into 12060.
-
-  Two fields the other templates lack, because they are what a synthesis
-  argues from. `measure` is how the construct was measured, which is
-  what surfaces the strongest thing a review can say: that a
-  disagreement about effect size is a disagreement about measurement.
-  `limitation` is the one the *authors* state, in their words, so it is
-  quotable and therefore checkable, unlike a limitation a model infers.
-
-  `finding` is coded relative to **your** question rather than to an
-  intervention (`supports` / `contradicts` / `mixed` /
-  `no clear finding` / `not applicable`), which is what lets a
-  non-interventional literature have contradictions at all, and it is
-  why an unedited template is now refused. A run could previously screen
-  a whole corpus against “REPLACE: the population the review is about”
-  and extract against “REPLACE THIS with your review question”, paying
-  in full for a table framed by an instruction to supply the framing.
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
+- **A JSON reply must fit the schema the request sent.** Every call that
+  asks for JSON (screening, claims, outlines, preview plans, rerank,
+  iterative reading, model segmentation, extraction) now checks the
+  reply’s types, `enum` values and `required` fields, through nested
+  objects and arrays, before using it. A reply that fails is treated as
+  a reply that did not parse: the reader takes its failure path, and the
+  reply is not cached, so running again asks again. A cached reply that
+  fails is asked again too. It used to be enough for a reply to be a
+  named object, so `{"decision": "probably"}` was a screening reply and
+  was stored as one. Some replies that used to be read leniently are now
+  failed calls: a screening decision outside `include`, `exclude` and
+  `unclear` (it was read as “unclear”), a text field sent as an array or
+  object in `iterative`, `rerank` and
   [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
-  and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-  now refuse a protocol whose question or criteria still begin with
-  `REPLACE`, before anything is spent. The check is anchored on the
-  whole word: there are real trials called REPLACE, and a review of one
-  is not a template.
-
-- **[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
-  and
-  [`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md):
-  a review written from an argument instead of from rows.**
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)’s
-  unit was the section, and sections came from an `outline` fixed before
-  the reading; each was then drafted independently from the whole study
-  table. Three things followed that no downstream editing could repair.
-  The structure was the author’s hypothesis rather than a finding, and
-  the strongest sentence a review contains is often structural. Studies
-  arrived as rows, so the model wrote row by row: “Smith
-
-  2019. found X. Garcia (2022) found Y.” And nothing computed relations
-        between studies, which is what synthesis *is*.
-
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
-  turns the extraction table into statements about the literature, each
-  naming the studies that support it, the studies that contradict it,
-  and the field that distinguishes them. Every number is verified
-  against the table, the check `cited_ids()` already makes on finished
-  prose, moved one link earlier: an id that is not there is dropped and
-  counted, a claim left with no supporting study is dropped entirely,
-  and a `moderator` naming a column the table does not have is cleared,
-  because an invented explanation for a real disagreement is the most
-  convincing error this layer can make. `$dropped` records all of it, so
-  a claims table that looks thin can be told from a literature that is.
-
-  The study numbers are the ones
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-  cites, because both derive them from one function, and passing claims
-  drawn from a different table is refused rather than trusted. Nothing
-  downstream could detect that on its own: the numbers would all be
-  valid and all mean other studies.
-
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
-  derives the sections from the claims and hands them back as an
-  ordinary `outline` you can accept or replace, verifying that every
-  claim lands in exactly one section. `gr_synthesise(claims = )` then
-  gives each section its own claims and only the studies those claims
-  rest on, ordered by breadth so a twelve-person pilot stops getting the
-  same space as a two-thousand-person trial, and marks a section partial
-  if it was handed a claim and did not write it up.
-  [`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md)
-  computes what the corpus does not contain (a declared category nobody
-  studied, a dimension with no variation, an unreplicated claim, a
-  disagreement nothing explains) in R, with no model call, so the gap
-  list is a fact that can be checked by counting rather than an
-  impression.
-
-  The `claims` protocol from earlier in this release is the schema this
-  wants as input, and
-  [`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
-  gained a claims section so one document reads claim → studies → quotes
-  → pages. Its new `claims` and `records` arguments come after all of
-  0.5.0’s, so a positional call written against 0.5.0 binds as it did.
-
-  Ordering studies for emphasis deliberately does **not** rank designs.
-  That would assert a cohort study beats a qualitative one, which is a
-  methodological claim this package has no standing to make, and adding
-  per-item scores into a total is what Cochrane says plainly is
-  discouraged. Design is a grouping variable: what distinguishes the
-  sides of a disagreement, and what
-  [`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md)
-  crosstabs. A principled weighting waits on an appraisal instrument.
-
-- **Three revision passes, and a guard the citation check cannot make.**
-  A revision must not change the citations and must not arrive
-  truncated. Both checks are necessary and neither is sufficient,
-  because the most damaging thing an editing pass does leaves the
-  citations exactly where they were. Editing for impact means deleting
-  hedges, and the hedges are where the uncertainty lives: “three small
-  trials suggest a modest benefit” comes back as “trials show a
-  benefit”, same markers, same studies, a claim the evidence does not
-  carry.
-
-  So revision is three passes (`"structure"`, `"cut"`, `"register"`),
-  each forbidden from doing the others’ job, each run on what survived
-  the last, and each measured for escalation. A revision is discarded if
-  it introduces a universal quantifier that was not there, uses a
-  booster stem more often than the draft did, or carries fewer hedges
-  than the draft’s rate implies.
-
-  All three are matched on whole words, so “outcomes improved” is not
-  the booster “prove”, and the hedge “unproven” is not a booster at all.
-  Boosters are compared by count, not by which stems are present, so
-  saying “demonstrates” three times where the draft said it once is
-  introducing it.
-
-  The hedge test scales with how much claim-bearing prose survived, so a
-  shorter revision may carry fewer hedges, but never none if the draft
-  had any. What it does not promise is that every legitimate cut passes:
-  removing the most heavily hedged sentence lowers the rate and is
-  refused, leaving the draft standing. Hedges and universals are
-  measured on sentences carrying a citation; boosters on all the prose
-  except headings, because uncited framing between the claims is where
-  “the evidence demonstrates a clear benefit” actually gets written.
-  `coherence = TRUE` runs all three; name them to run fewer. A draft too
-  long to leave room for its own rewrite is skipped rather than sent.
-
-- **`iterative` was cutting the wrong end of what it had gathered, and
-  never fitted its final prompt at all.** Two faults in the one reader
-  that accumulates context across rounds.
-
-  It pasted everything gathered and called
-  [`gr_truncate_tokens()`](https://elkronos.github.io/readgpt/reference/gr_truncate_tokens.md)
-  on the result, which keeps the head, so the chunks from the *most
-  recent* round were the ones dropped. In a reader whose whole premise
-  is “that did not answer it, go and get more”, it discarded the
-  material it had just decided it needed. And it cut mid-chunk, which
-  breaks the audit chain: a chunk cut in half no longer contains the
-  sentence an answer quotes from it, so `verified` comes back false for
-  a reason that has nothing to do with the document. Now it keeps whole
-  chunks, ranked by the score that justified taking each one, so
-  everything reaching the prompt is intact and still checkable.
-
-  Worse, `chunks_used` and the evidence table were built from everything
-  *seen*, including chunks truncation had removed from the prompt. The
-  answer claimed support from text no model had been shown. Only what
-  reached the prompt is reported now, `notes$chunks_dropped` says how
-  much did not, and a run that dropped anything is partial.
-
-  And the final answer call was never budgeted. Every other reader sizes
-  its prompt to the context window; this one rendered everything
-  gathered, so several rounds of `top_k` chunks went out over the window
-  and the provider rejected the call after the entire loop had been paid
-  for. When no gathered chunk fits one prompt, the loop stops and the
-  reader returns `NOT_IN_DOCUMENT` marked partial.
-
-- **The question is repeated at both ends of a long prompt.**
-  `answer_messages()` already asked last, which is the position that
-  gets followed, but over several thousand tokens of excerpt an
-  instruction that appears once at the bottom is a long way from the
-  top. It now also appears before the body when the body is long enough
-  to bury it, inside the existing message rather than as a new one so
-  nothing indexing those positions shifts. The `iterative` step prompt
-  and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)’s
-  section prompt asked *first* and then handed over the bulk; both now
-  ask again at the far end.
-
-  `restate` is a \[gr_read_spec()\] setting (`"auto"`, `"always"`,
-  `"never"`) rather than a rule, because whether repeating the question
-  helps is a question about a particular corpus and model.
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  can take two recipes differing only in it and measure the difference,
-  which is the honest way to settle it. The same goes for
-  `context_order = "edges"`, which has been in the package since 0.4 on
-  the strength of a published finding and has never been measured here.
-
-- **Every prompt is now budgeted against the prompt that is actually
-  sent.** The readers size their excerpts with
-  `gr_budget(overhead = ...)`, and parts of the prompts were not in that
-  arithmetic: `cite = TRUE` sends a longer system prompt than
-  `cite = FALSE` and every cited read budgeted for the short one, and
-  the `iterative` step prompt adds 88 tokens of instruction to the
-  answer system prompt and budgeted for the answer prompt alone. The
-  prompt then overran the window by exactly the amount nobody counted,
-  and the provider refused the call after the run had been paid for.
-
-  The system prompt is now built once and used for both the budget and
-  the call wherever the two could drift, and `prompt_overhead()` counts
-  the question twice unless restatement is off, because the question is
-  restated at the far end of a long prompt (above). Reserving room that
-  goes unused costs a little context; under-reserving cost the answer.
-
-- **Six connections between the stages of a review.**
-
-  *The run has its own ceiling.* `gr_options(max_calls =)` is per
-  document by design (one enormous document must not starve the rest),
-  and on its own that left the run unbounded: five documents under a
-  30-call ceiling made 125 calls, and the only corpus ceiling,
-  `max_total_usd`, is unenforceable against a model with no registered
-  price and is checked only after a document has been paid for.
-  `max_total_calls` is checked *before* each document, so the overshoot
-  is bounded by one document’s own ceiling. With neither ceiling set,
-  the run now says once what its worst case is instead of leaving you to
-  multiply.
-
-  *[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-  stops when the ceiling says so.* One model call per section, and
-  neither it nor the batched path checked `trace_can_call()`, so a run
-  that had already spent its ceiling kept writing sections, one call
-  each. A section the ceiling stops is marked partial and says why,
-  rather than appearing as empty prose.
-
-  *A folder and its file list behave the same.* `gr_read_many(dir)`
-  skipped the files no extractor claims; `gr_read_many(list.files(dir))`
-  handed each of them to an extractor and recorded a failed row. Every
-  pipeline uses the second form (`gr_extract(screened$included)` is a
-  character vector), so the stage that reads the most documents was
-  getting the worse behaviour. Both forms now skip those files and warn,
-  as described above. The filter applies only when every element is a
-  file that exists, so raw text, a mixed vector and a
-  [`list()`](https://rdrr.io/r/base/list.html) of sources are all
-  untouched, and a `gr_records` still produces a failed row per
-  unreadable file rather than dropping it. A record that was retrieved
-  and could not be read is a fact a PRISMA count needs to keep. When the
-  filter removes *everything*, the run aborts and says so.
-
-  *The search travels with the corpus it produced.* `gr_screening` and
-  `gr_extraction` carry the
-  [`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md)
-  they were run over, and
-  [`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
-  picks it up, so the report’s search section and flow diagram do not
-  depend on handing the same object over a second time.
+  (it was joined into one string), and a proposition list sent as an
+  array of arrays (the batch is kept as written). Where a reader reports
+  why a call failed, it now says where the reply broke the schema, as in
+  `$.groups[0]: expected array, got 1`.
   [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
-  also takes the screening object itself, which is what carries the
-  search across the hand-off: a character vector of paths cannot, so
-  `gr_extract(screened)` keeps the search and the bibliographic fields
-  while `gr_extract(screened$included)` keeps neither.
+  still reads each field’s value itself, so “1,204” in an integer field
+  is still 1204 and an undeclared value is still reported as one it
+  could not read; only the shape of its replies is checked.
 
-  *A review can be one trace.*
-  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+### Embedding scores
+
+- **Comparing vectors of different lengths is an error.** Cosine
+  similarity cut both vectors to the shorter length, so a lexical
+  fallback vector scored against an API embedding gave a plausible
+  number from two unrelated spaces. It now stops with an error of class
+  `hr_dim_mismatch`. The readers already kept the query and the chunks
+  in one space; `iterative` now also falls back to word overlap for a
+  round whose query came back with no vector.
+
+- **BM25 scoring is faster on many chunks.** Document frequency is
+  counted once per query term instead of once per term for every chunk,
+  so the `rerank` prefilter and the offline `retrieve` path no longer
+  slow down with the square of the number of chunks. Scores are
+  unchanged.
+
+### Parameter schemas, declared calls and reader costs
+
+- **New
+  [`hr_schema()`](https://elkronos.github.io/readgpt/reference/hr_schema.md),
+  [`hr_param()`](https://elkronos.github.io/readgpt/reference/hr_param.md)
   and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-  take a `trace =`, so the stages of one review add up to one figure.
-  Each used to start its own, and nothing said what the review cost.
-
-  The argument is a **parent**, not the stage’s own counter, and that
-  distinction is the whole design: a `gr_trace` is both the ledger of
-  what a run did and the counter `max_calls` is measured against, and
-  those want opposite things. Each stage runs on its own trace (so
-  `max_calls` limits each stage as it always has, and each stage’s
-  `$trace` reports that stage alone) and folds into the parent at the
-  end, exactly as each document inside
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
-  does.
-
-  *How good the screening is reaches the report.*
-  `gr_audit_report(calibration = )` writes what
-  [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
-  measured (sensitivity, specificity, kappa and the list of eligible
-  studies the screener threw away) as a section.
-
-  Not done, and said plainly rather than left to look like an oversight:
-  the corpus loop still reads documents one at a time. The reason given
-  for that, that a trace does not survive being sent to a worker, was
-  stale, since the parallel helper already builds a trace per worker and
-  absorbs them in order. The real obstacle is that duplicate detection,
-  the resume store and both run-level ceilings are order-dependent, and
-  a parallel loop would have to serialise on each. Within a document,
-  `gr_options(parallel = TRUE)` already applies.
-
-- **[`print()`](https://rdrr.io/r/base/print.html) says why an answer is
-  partial, and what it cost.** Printing an answer showed “(PARTIAL)”
-  with no reason, and the evidence only as chunk numbers. It now names
-  what went wrong (requests that failed, with the first error; chunks
-  that did not fit; pages never read; a fallback), shows the cost beside
-  the token counts, gives each piece of evidence with its page and
-  section, and says “Not found in the document” in words. `print(trace)`
-  shows the cost too. `ans$answer` still holds the `NOT_IN_DOCUMENT`
-  sentinel for code to test.
-
-- **Warnings stay with the result.** A warning printed at the console is
-  gone once a script moves on, and in a run over a folder it cannot be
-  tied to a document. The warnings raised while a document is ingested,
-  cut and read are now kept in `doc$warnings` and `ans$warnings`, named
-  by class. A document served from the ingestion cache still carries
-  them,
-  [`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
-  writes them, and
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)’s
-  summary has a new last column, `warnings`, filled for failed documents
-  too. They still print as before.
-
-- **[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md)
-  says what this installation can read**, in two new columns: `needs`,
-  the packages an extractor cannot run without, and `available`, whether
-  they are installed.
-
-- **PDFs are read in reading order.**
-  [`pdftools::pdf_text()`](https://docs.ropensci.org/pdftools//reference/pdftools.html)
-  returns a page as it looks, so a page in two columns came out with
-  every line joining the two columns, the running head and foot landed
-  in the text at each page break, and a PDF had no sections. The PDF
-  extractor now reads two columns one after the other, drops short lines
-  repeated at the top or bottom of many pages, and marks headings, taken
-  from the PDF’s bookmarks or recognised as a line that is only a
-  standard section name (“Introduction”, “2. Methods”). `structural`
-  chunking, `preview` and evidence locations now have sections to work
-  with. `gr_ingest_spec(layout = "raw")` keeps each page as it is laid
-  out. The setting is stored only when it is not the default, so the
-  cache and store keys of existing specs do not change.
-
-- **[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
-  picks a recipe from the document’s length.** The default recipe is now
-  `"auto"`. A document of at most 50,000 tokens that fills no more than
-  half of the room one request leaves for it is read with `"fast"`,
-  which sends the whole document at once; the limit is lower on a model
-  with a small context window. A longer document is read with
-  `"thorough"`, as every document was before. `"thorough"` sends each
-  chunk in a request of its own, so a 60-page report took some 30
-  requests where one would do. Both send every chunk, so the choice
-  changes the number of requests and the cost, not how much of the
-  document is read. The room is measured for the recipe’s model and for
-  the client’s, and a model whose limits are a guess always gets
-  `"thorough"`. `ans$recipe` names the recipe used,
-  `ans$notes$auto_recipe` records that `"auto"` chose it, the trace
-  records the token count and the limit, and a replay repeats the
-  recorded choice. Pass `"thorough"` to keep the old behaviour.
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  and the review functions refuse `"auto"` (class `gr_bad_recipe`): a
-  corpus read with a different recipe per document has no one
-  configuration to report. `"auto"` is reserved as a reader name for the
-  same reason.
-
-- **The spending limit is checked against what a run spends.**
-  `max_cost_usd` was checked once, before the first request, against an
-  estimate that priced every reply at its maximum length: a run was
-  refused at an estimate of \$5.54 that cost \$0.11, and a run that did
-  start was never checked again. Now each request is priced as it is
-  recorded, and a run stops once what it has spent reaches the limit,
-  returning a partial answer with
-  \`notes\$cost_cap_reached`, which prints as "stopped at the $5 spending limit". The cost of a request is known only once it is made, so a run can pass the limit by one request. This applies wherever the call cap is checked: every reader, and the review stages that call a model, which now warn when a limit stopped them (`gr_claims_capped\`).
-
-  A run is refused before it starts only when it cannot finish under the
-  limit: when its reader sends every chunk and sending them once already
-  costs more, priced at the model that receives them, `skim_model` and
-  `summary_model` included. Under a limit of 0, a run whose model has a
-  price is refused and a model registered at no cost runs. A parallel
-  read that sends batches is the exception: a batch cannot be stopped
-  part way, so the read is still held to its worst case before it
-  starts, priced at the dearest model it uses, and no batch is sent once
-  the run has reached a limit.
-
-  In
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
-  and so in
-  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
-  and
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
-  a document a limit stopped before it was read in full is `"failed"`,
-  with the limit in `error` and the partial answer in `$answers`. It is
-  not written to `store`, so a resumed run with a higher limit reads it
-  again, and an extraction table does not report the fields in its
-  unread part as absent.
-
-  `trace$stop_reason` says which limit stopped a run, `"calls"` or
-  `"cost"`, and `trace$spent_usd` holds what it has spent. A stop
-  belongs to the read it happened in, so a later read on the same trace
-  is not marked partial for it. Requests a limit stopped are no longer
-  counted in `notes$failed_calls`: a run that spent its budget is not
-  reported as having had its requests fail.
-
-- **Word files keep their tables, notes and headings.** The Word
-  extractor read every paragraph element in the document, so each table
-  cell became a paragraph of its own and footnotes and endnotes were
-  never read. It never found a heading either: the style was read
-  without its namespace, which always gave nothing, so no Word file had
-  sections, and the style ID it meant to match is one Word translates
-  (“berschrift1” in a German document). A table row is now one block of
-  kind `"table"`, its cells joined by ” \| “, including rows a content
-  control wraps; a table inside a cell is read as rows of its own. A
-  footnote or endnote is a block of kind `"footnote"` placed after the
-  paragraph that cites it and numbered as the text cites them. Headings
-  are found by style name, which Word does not translate, or by outline
-  level, so a custom heading style based on a built-in one counts too;
-  `structural` chunking and `preview` now have sections to work with.
-  Text in a text box is read once, where it could appear four times,
-  twice glued to the paragraph beside it; text a tracked change moved is
-  read once rather than twice; and a non-breaking hyphen or a symbol
-  inserted from the Symbol font is kept, so”10-15%” and “p ≤ 0.05” no
-  longer lose their hyphen and sign.
-
-- **A web address is a document.**
-  [`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-  and so
-  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
-  and
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
-  now download an address starting `http://` or `https://` and read it
-  with the extractor for what came back: a specific type the server
-  declares, else the extension in the address, else the file’s first
-  bytes, which settle a PDF, a Word file or an HTML page however they
-  were labelled. A download no extractor reads is refused
-  (`gr_unsupported_format`) rather than read as text, and a failed
-  download is an error of class `gr_url_error`. The document’s `source`
-  is the address and a corpus row is labelled with it. An address ending
-  in `.pdf` used to be reported as a missing file, and any other address
-  was read as a one-line document about itself.
-
-- **Long reads show how far they have got.** In an interactive session
-  with `verbose` on, a reader that sends a request per chunk keeps one
-  line up to date with how many chunks it has read and what the run has
-  spent, and removes the line when it finishes. `refine` does the same.
-  A model with no registered price makes the line say the cost is
-  unknown rather than show a figure that is too low.
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
-  gives what the run has spent before each document. Scripts and knitted
-  documents print nothing new.
-
-- **One row per request.**
-  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) on a
-  trace returns a row for each request: the document and recipe it
-  belonged to, its stage, model, whether it succeeded and whether it
-  came from a cache, tokens in and out, what it cost, how long it took,
-  any error, and the prompt and reply. The trace now records each
-  request’s time as `seconds`, and the `usd` column adds up to the total
-  in
-  [`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md).
-
-- **The passages behind an answer, on one page.**
-  [`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
-  takes a `gr_answer` from
-  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-  or a `gr_corpus` from
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
-  as `answer`. The page gives the question, the answer or that it was
-  not found, whether it is partial and why, the cost, and the passages
-  in document order with page, section and chunk. A quotation is
-  highlighted where it stands in its chunk and flagged when it is not
-  there; in a chunk sent whole, the answer’s numbers are highlighted; an
-  answer written for one chunk is labelled as the model’s words. A long
-  passage is cut to the text around what is highlighted. A corpus gets
-  one row per document, then each answer. A new argument, `open`, shows
-  any report once it is written, in the RStudio viewer or a browser; it
-  is on by default in an interactive session.
-
-- **A website.** The README, the guides, the reference for every
-  function (grouped by task, with the first version’s entry points under
-  “Superseded”) and this changelog are built into
-  <https://elkronos.github.io/readgpt/> by a new workflow on every push
-  to main. Pull requests build the site without publishing it, so a
-  guide that fails to knit is caught before it is merged.
-
-- **Guides that start from the beginning.**
-  [`vignette("readgpt")`](https://elkronos.github.io/readgpt/articles/readgpt.md)
-  is now a getting-started guide that assumes no experience with
-  language models: tokens, context windows and chunks explained,
-  installing, connecting to a provider, and a first question checked
-  from start to finish.
-  [`vignette("ingest")`](https://elkronos.github.io/readgpt/articles/ingest.md)
-  covers every file format, OCR, each cleaner and preset, and surveying
-  a folder with
-  [`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md);
-  [`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md)
-  explains every reading strategy, compares them on one document, and
-  gives a way to choose. The previous vignette continues as
-  [`vignette("tour")`](https://elkronos.github.io/readgpt/articles/tour.md),
-  and all of them run offline.
-
-- **The README describes what the package now does.** The revision
-  passes and the claim-strength guard, the claims layer, `restate`, and
-  a short section on the registries you can query without spending
-  anything
-  ([`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md),
-  [`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
-  [`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md)
-  and the rest; fourteen exported functions appeared in neither the
-  README nor the vignette) are documented there for the first time, and
-  the detail on ingestion and reading strategies has moved into the
-  guides.
-
-- **Plain punctuation in the help pages and messages.** The help pages,
-  and the errors, warnings and printed summaries, no longer use a double
-  hyphen as a dash. The prompts sent to models are unchanged, so
-  recorded runs still replay.
-
-### Fixed
-
-- **A reply is only ever parsed, never fetched or opened.** When a
-  model’s reply was a web address or a file path instead of JSON,
-  [`jsonlite::fromJSON()`](https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html)
-  treated it as a location: it downloaded the address or read the file,
-  and the package used what came back as the model’s answer. A document
-  could steer a model into this, which leaked the question in the
-  request, let a server decide a screening, or hung the run on a special
-  file. Replies now go through
-  [`jsonlite::parse_json()`](https://jeroen.r-universe.dev/jsonlite/reference/read_json.html),
-  and one that is not JSON counts as a reply that could not be read. The
-  same applies when
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
-  rebuilds a table from a stored answer.
-
-- **Spending limits hold in parallel, in segmentation, and across a
-  comparison.**
-
-  - A parallel batch now goes to workers only when the run has room for
-    all of it under `max_calls` and, where the most one request can cost
-    is known, under `max_cost_usd`; otherwise it runs one request at a
-    time, each checked. Each worker used to count from zero, so a
-    parallel `proposition` or `contextual` segmentation sent its whole
-    batch whatever the limits were (40 calls under a limit of 20), and
-    later levels of a parallel read went past the cap. Every reader’s
-    batches (map, summary, scoring, skim, merge, extraction) now carry
-    that per-request price. A batch that passes a limit anyway sets
-    `budget_stop`.
-  - The worst case a parallel read is held to counts every level:
-    `hierarchical` up to `max_levels`, and the merge trees of
-    `map_reduce` and `skim`. A parallel read whose worst case passes
-    `max_calls` is refused before it starts, as one passing
-    `max_cost_usd` already was. A model without a price no longer
-    switches the check off for the models that have one.
-  - [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
-    makes its own trace when none is passed, so an LLM segmenter’s calls
-    are limited and recorded, and returns it as `$trace`. The Shiny
-    chunking preview applies the cost field to segmenters that call a
-    model, says so, and no longer calls itself free.
-  - [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-    holds the whole comparison to `max_cost_usd`. Each recipe started
-    from zero, so four recipes could spend four times the limit.
-  - Requests to an embeddings endpoint count toward `max_calls`,
-    `max_cost_usd` and
-    [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)‘s
-    `max_total_calls`, are priced in the trace and
-    [`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md),
-    and are included in the pre-flight estimate. They used to be sent
-    outside every limit, even `max_calls = 0`. Their tokens are counted
-    apart, in `embed_tokens` (and `embed_calls` in
-    [`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md)),
-    so `tokens_in` and `tokens_out` stay the model calls’ own.
-    `text-embedding-ada-002` is now in the model registry with its
-    price. An embedding model with no price leaves
-    `gr_read_many(max_total_usd =)` checked against the priced spend,
-    with a `gr_corpus_cost_floor` warning naming the model, instead of
-    switching the ceiling off.
-  - An ellmer chat is priced as the model it answers with, and a chat
-    whose model has no price raises `gr_cost_uncheckable`. The recipe’s
-    model was priced instead, so the chat’s calls were never counted.
-
-- **A client’s model is the model a read uses.** Every reader ignored
-  `gr_client(model = "gpt-4o-mini")`, `gr_backend_client(model = )` and
-  an ellmer chat’s model, and sent, sized and billed each request as
-  `gr_options("model")`.
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
-  now leaves `model` unset unless you name one, and
-  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md),
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
-  and
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
-  take it from the client. A model named in the spec, the recipe or
-  `model =` still wins.
-
-- **Calls the mock accepted and real providers refused now go through.**
-
-  - With `api = "chat"`, reasoning models, the default model included,
-    are sent `max_completion_tokens`; OpenAI rejected `max_tokens` for
-    them on every call. A limit field you set in `extra_body` is used
-    instead of the automatic one.
-  - The claims and outline schemas list every property as required, as
-    OpenAI’s strict structured outputs demand. Every
-    [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
-    call on the default client was refused with HTTP 400, and
-    [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
-    always fell back to one section.
-  - With
-    [`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md),
-    schemas with optional fields and nested lists now translate.
-    Screening, extraction and claims went out without their structure,
-    so every document was screened “unclear” and extraction filled
-    nothing. Structured replies keep every digit and their array
-    nesting, and an optional enum sent to an OpenAI-family chat can
-    still be null.
-
-- **A reply cut off at the output cap is reported as cut off,
-  everywhere.** Providers say this in different ways (`length`,
-  `max_tokens`, `incomplete`, `MAX_TOKENS`, …), and only `length` was
-  recognised, so on the default Responses API a truncated answer,
-  section or revision passed as whole, and a cut-off coherence revision
-  replaced the draft. `finish_reason` is now `"length"` whatever the
-  provider’s spelling, ellmer chats report their stop reason (a
-  structured reply ellmer rejects as truncated comes back failed with
-  `finish_reason = "length"`), and a truncated reply is not saved in the
-  response cache. Every reader, including its intermediate map, summary,
-  extraction and merge steps, marks the answer partial, counts
-  `notes$truncated_calls` and prints the reason. A write-up section is
-  marked partial and counted in `$sections$n_truncated`;
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
-  results carry `$partial` and `$lost`, and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-  warns (`gr_claims_partial`) when written from them;
-  [`print()`](https://rdrr.io/r/base/print.html),
-  [`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)
-  and the audit report count the studies lost. ellmer chats also receive
-  the per-call output cap (ellmer 0.5.0 or later; older versions warn
-  once).
-
-- **A failed request is never recorded as a finding.**
-
-  - A screening request that failed is status `"failed"` with no
-    decision and the error in `error`. It used to be the decision
-    “unclear” with status “ok”, so
-    [`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)
-    counted an outage as the model deferring to a person and
-    [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
-    counted it as screener behaviour.
-  - An extraction whose requests partly failed has status
-    `"incomplete"`: its values are real, an empty cell is unknown, and
-    `error` says how many requests failed. All failed is `"failed"`.
-    Fields lost to a failed request used to read “not reported” with
-    status “ok”.
-    [`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)
-    and the audit report give these documents their own “read in part”
-    row. Both kinds of row keep their `document_id`.
-  - With a `store`, a document whose requests failed is kept out of the
-    store and read again next run. It used to be saved and “restored” on
-    every later run, long after the provider had recovered. A failure
-    the pipeline recovered from without losing input does not count: an
-    embeddings request replaced by the lexical fallback, or a failed
-    conflict adjudication that kept the first value, leaves the document
-    “ok” (partial where the fallback degrades it) and stored, as before.
-
-- **Quotations and citations are checked more strictly.**
-
-  - Quotes match whole words and whole numbers: “5%” no longer verifies
-    as a quotation of “25%”, nor “82” of “482”, nor “200” of “1 200”
-    grouped with a thin or no-break space. Chinese, Japanese and Thai
-    put no spaces between words, so a quoted clause may start and end
-    anywhere in them. An em dash, a superscript reference glued to a
-    word, a footnote number after a year, a decimal without its leading
-    zero (“.45”), combining accents, full-width digits, guillemets and
-    corner brackets do not make a faithful quote fail. A number or word
-    that continues a range or compound broken at a line end (“aged 18-”
-    then “65 years”) is not a quotation of “65 years”.
-  - An extracted value is verified only when its quote states it, in
-    digits or in words and in the notations papers use (“Twenty-four”,
-    “two and a half”, “1 204”, “0,45”, “0·84”, “3.2 x 10^-5”, “1.2
-    million”, “\$1.2 bn”), with the number words of Spanish, Portuguese,
-    French, Italian, German and Dutch read too; a count word verifies a
-    value only where it counts something. A quote in a script whose
-    number words are not read, and that states no readable number, is
-    only checked for being in the chunk.
-    [`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md)
-    agrees with the extract reader, and a placeholder such as “N/A” is
-    never taken over a real value.
-  - Quotes are checked against a chunk’s new `source_text` column when a
-    segmenter recorded one, so text a model wrote (a `contextual`
-    header, a `proposition` rewrite) no longer verifies as the
-    document’s.
-  - A quotation made of several passages (paragraphs, a list, separate
-    quote marks, or passages joined by “…”) is checked passage by
-    passage, in
-    [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
-    too; faithful extractions like these used to fail. A line break
-    inside a sentence is a line wrap, even before a capital; passages
-    the quotation separates may not leave words out of one source
-    sentence; the parts either side of an elision must come in order;
-    and an elision may not drop a negation, in the major European
-    languages, Russian, Greek, Turkish, Arabic, Hebrew, Hindi and
-    Bengali, or in Chinese, Japanese, Korean and Thai by the characters
-    and endings that negate. An elision within a sentence in a script
-    none of these cover is refused. Markdown bold is not text, in the
-    quotation or the document.
-  - Citation checks read lists and ranges as models write them
-    (`[studies 1, 2, and 7]`, `[studies 1-7]`), so a made-up id in those
-    forms no longer passes. A citation bracket that cannot be read makes
-    an answer or section partial (`notes$cited_unparsed`,
-    `$sections$n_unparsed`).
-  - With `claims =`, and in a section drafted in batches, a citation to
-    a study the call that wrote it was never shown makes the section
-    partial. It is counted in `$sections$n_unsupplied`, flagged in the
-    audit report, left as a `[study N]` marker (in revised text too) and
-    kept out of the reference list, while an honest citation of the same
-    study elsewhere is still rendered. Where a revision makes the two
-    impossible to tell apart, the honest one is left too, listed in
-    `$unrendered` and warned about (`gr_synth_unrendered`).
-  - When several chunks give the same extracted value, the best quote
-    any of them gave is used, so `require_quote = TRUE` no longer
-    deletes a supported value.
-
-- **Cleaning and extraction keep the text.**
-
-  - The default hyphenation cleaner no longer joins a number range
-    broken at a line end (“aged 18-” then “65”) into one number
-    (“1865”); it rejoins only letters, including in text set in capitals
-    and at Windows line ends.
-  - Document-wide cleaners (the `scan` and `academic` presets) remove
-    only the lines they target, not every block they touch. A cleaner of
-    your own that removes lines and cuts the text short, even inside a
-    line, keeps the rest of each block.
-  - Running-foot removal no longer deletes the edge rows of a table that
-    runs across pages, nor a source or note line set under two tables or
-    charts of a short paper, and still removes page numbers and
-    section-page feet (“Page 2-3”).
-  - HTML is read in full: text directly in `<div>` or `<span>`, table
-    headers, `<h5>`/`<h6>`, one block per row of a data table (even when
-    its cells hold headings or paragraphs), and no doubled nested
-    blocks. A table used to lay out a page (the page in one cell, or a
-    banner row, a navigation-and-content row and a footer row) is read
-    as the page, headings and paragraphs included; a grid layout with no
-    heading cell is still read row by row.
-  - Two-column PDFs: most full-width tables are read row by row, rows
-    set one space apart are split, columns are found when their rows do
-    not line up, and more running heads are removed, while reference
-    lists, most code listings and two tables set side by side are no
-    longer glued across the gutter, and full-width abstracts, author
-    blocks and headings keep their place. A full-width table of two
-    plain text columns, two blocks of code with no figures set on the
-    same rows of both columns, and pages where pdftotext moves the right
-    column within the page, are still read imperfectly.
-  - OCR works with `parallel = TRUE`, and a page whose OCR fails keeps
-    its text layer.
-  - `structural` groups blocks by unbroken runs of a section, so two
-    sections with the same heading are no longer merged out of order,
-    and a heading it finds keeps its leading number (“2023 Results”).
-
-- **Caches and stores return the right answer, and only their own
-  files.**
-
-  - [`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md)
-    removes only cache entries. It deleted every `.rds` file under the
-    cache directory, including a store and your own files.
-  - Cache and store entries are used only when they hold plain data, and
-    are rebuilt from it; an entry planted in a shared directory could
-    run code when read.
-  - Re-registering a fixed cleaner or extractor takes effect at once,
-    even when the fix is in a helper it calls; every function hashed the
-    same, so the document cache kept the old output.
-  - The ellmer cache identity covers temperature, output limit, other
-    settings and the system prompt; the store key covers `extra_body`,
-    the embedding model and the embedder.
-  - Replay works for ellmer runs, and a replay under `parallel = TRUE`
-    hands out its recording in order and reports its misses.
-  - [`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md),
-    extraction answer text and values extracted through
-    [`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
-    keep full numeric precision; a p-value of 0.00003 was written as 0.
-  - A replay asks for the model the recorded read asked for, so a run
-    that used `skim_model` or `summary_model` replays, including one
-    recorded by 0.5.0.
-
-- **Word matching works in every script.** The `rerank` prefilter, BM25
-  and the `lexical` embedder dropped every letter outside A-Z, so a
-  Russian, Greek, Arabic or Chinese document scored zero everywhere.
-  Chinese, Japanese and Thai are matched on character pairs. When no
-  chunk shares a word with the question, `rerank` ranks by embeddings,
-  or scores an evenly spread sample and marks the answer partial, and
-  warns `gr_rerank_prefilter`.
-
-- **Reference records are matched and de-duplicated correctly.**
-
-  - The title fallback keeps letters in every script, never merges
-    titles under 12 letters on title alone, and requires the first
-    authors’ surnames to agree as whole names (“Li” is not “Lin”) and
-    their first initials not to differ (“Wang, L.” is not “Wang, H.”),
-    read from the first author alone so a group author later in the list
-    does not hide it. An organisation agrees with its acronym (WHO and
-    World Health Organization). “PPARα” and “PPARγ” merged, and
-    different Chinese titles reduced to “2”.
-  - A record without a DOI is recognised as a duplicate of the same
-    paper exported with one, and the kept record takes the DOI, journal
-    and other fields it lacks from its copies.
-  - BibTeX fields are read at the right brace depth, so accented authors
-    (`M{\"{u}}ller`) no longer truncate the author list; LaTeX accents
-    are decoded, and a bare value keeps all its words.
-  - Files are matched across the whole export, strongest route first,
-    with surnames as whole words (McKay2019.pdf is not Kay’s); a file
-    two works match goes to the one whose title or author list the
-    filename shows, and otherwise to neither. A document attached only
-    to a duplicate counts for the kept record, and a record and its
-    duplicate that each carry a copy keep theirs.
-  - [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
-    refuses samples stacked with
-    [`rbind()`](https://rdrr.io/r/base/cbind.html) as mixed frames, and
-    samples whose rows the run did not exclude (or keep).
-
-- **Results are the same on every machine.** Folders, record exports and
-  inventories are listed in byte order, so `[study N]` numbering no
-  longer depends on the locale and a shipped trace replays, under a C
-  locale too. The reference list and the names inside a citation follow
-  one fixed alphabetical rule that files an accented Latin letter with
-  its base letter; same-author, same-year papers are lettered by title.
-
-- **Author names are cited correctly, or the review falls back to
-  markers.** Vancouver/PubMed lists (“Smith JA, Okafor AB”), APA lists
-  with “, &” and short first names are cited by the right surnames; a
-  list ending “et al.” (however spelt) or cut off with an ellipsis is
-  cited as et al.; one organisation or several by acronym (“WHO and
-  UNICEF”) are cited by name; degrees in a byline are dropped; and a
-  list that cannot be read with confidence falls back to `[study N]`
-  markers instead of printing “(JA & AB, 2019)”. A few shapes cannot be
-  told apart without a list of given names: “Smith, Okafor” reads as one
-  author, as “Chen, Wei” must.
-
-- **Workspace functions work in parallel workers.** A backend or mock
-  handler, or a tokenizer, that calls your own helpers used to fail on
-  every chunk with “could not find function”. What they need is now sent
-  along, once. A batch larger than `options(future.globals.maxSize =)`
-  runs sequentially with a `gr_parallel_unavailable` warning instead of
-  aborting the run.
-
-- **Readers say when they read less than all of it.**
-
-  - `ensemble` is partial when a member it adjudicated was, and names
-    the member; `hierarchical` counts a failed summary at every level
-    and carries that group’s text up instead of dropping it;
-    `map_reduce` counts a merge request that failed below the final
-    level; `skim` is partial when its consolidation fails or is cut
-    short, and checks citations against the labels that survived it.
-  - `iterative` no longer returns an empty answer, or a confident
-    `NOT_IN_DOCUMENT`, when the model says it can answer and gives none;
-    it ranks a query whose embedding fell back in the same space as the
-    chunks; and it asks for citations on the step that usually writes
-    the answer.
-  - `rerank` is partial when relevant chunks did not fit, `retrieve`
-    over no chunks returns `NOT_IN_DOCUMENT` without asking the model,
-    and `preview` fits its whole prompt, skimmed evidence included, and
-    flags citations of sections its plan skipped. `preview` also plans a
-    document with no headings by blocks rather than as one section, and
-    a skimmed section whose excerpt had to be cut reports
-    `tokens_truncated` and marks the answer partial.
-  - [`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
-    recognises the sentinel followed by an explanation or decorated with
-    another script’s punctuation, and `skim` and `preview` do the same
-    for NONE.
-  - `mmr` below 1 picks the same chunks whatever the length of the
-    vectors an embed function returns.
-  - [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-    keeps the spend of a recipe that failed after making requests,
-    counts each recipe’s segmentation against that recipe alone, and its
-    summary names a recipe’s first failure.
-  - The v1 `gpt_read_*()` shims read chunk text as given, never as a
-    source to open or fetch.
-
-- **An answer, a trace and a report describe their own run.**
-  [`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md),
-  [`print()`](https://rdrr.io/r/base/print.html) and the audit report on
-  an answer count only that answer’s requests when a trace is shared,
-  `answer_document(trace = )` records its whole run, and
-  [`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
-  writes list fields as arrays at every length and works on every result
-  class. A saved trace records whether a limit cut the run short, and a
-  replay of a run the spending limit stopped stops at the same call,
-  including in
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  and
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
-  [`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
-  accepts JSON text and says how to read a file jsonlite simplified.
-
-- **The client, models and prices.**
-
-  - Malformed or cut-off structured replies are not saved in the
-    response cache. A key with a trailing newline works; one with a line
-    break inside is refused. Chat content sent as a list of parts is
-    read. A broken character in a reply no longer crashes the run.
-  - Short internal calls to a reasoning model are sent with room for its
-    reasoning, and spending bounds price them at the cap they are sent
-    with.
-  - A model registered with one price but not the other is refused, and
-    `unknown_model_action = "error"` also stops on an id that only
-    matches a family pattern. Aliases use your registered correction of
-    their target. Backend and ellmer calls that fail after reaching the
-    provider are billed.
-  - Out-of-quota errors are not retried. `gr_call(max_output = NA)`
-    warns and uses the model’s limit instead of capping the reply at one
-    token. `gr_cache(dir = "")` stops instead of pointing at the
-    filesystem root.
-
-- **Text in any encoding and locale.** Questions, criteria, field
-  descriptions, headings and prompts reach the model and the saved trace
-  intact under a C locale; CP1252 questions and token counts no longer
-  fail with “invalid UTF-8”; UTF-16 text files, Windows-1252 web pages,
-  record exports and inventories, and Arabic-Indic, Persian and
-  full-width digits are read.
-
-- **Embeddings.** Requests are retried after a rate limit or server
-  error, matched to their texts by the index the API returns, and a
-  degenerate reply (missing, empty or zero vectors) falls back instead
-  of being used. An error in one item of a parallel batch no longer
-  discards the others’ records, and `parallel = TRUE` no longer moves
-  the session’s random number stream.
-
-- **Segmentation and cleaning.**
-
-  - The token cap always holds, overlap works for text without spaces
-    and no longer repeats sentences after a runt merge, and chunks that
-    run across a page break report no single page. `fixed` keeps its
-    last window and is fast with large caps, `recursive` no longer glues
-    words together, `page` keeps blocks without a page number,
-    `contextual` holds room for its header and warns when chunks were
-    left without one, and `structural` finds headings written in any
-    script.
-  - Sentence splitting recognises sentence ends in Cyrillic, Greek,
-    Arabic, Chinese and Japanese text and before accented capitals.
-  - The `page_numbers` cleaner keeps a number that ends a sentence on a
-    line of its own; `captions` removes caption lines only, not
-    sentences that begin “Table 2 shows”; `headers_footers` finds
-    running heads by where they stand on the page; `hyphenation` keeps
-    the hyphen of a compound the document writes whole elsewhere;
-    `ligatures` keeps en and em dashes. A line of no-break or
-    ideographic spaces separates paragraphs.
-
-- **Extraction and corpora.** An empty array for a field no longer fails
-  the document; booleans and numbers that could be read more than one
-  way are left empty and counted in `n_unverified`; conflicts that
-  differ only in case or a trailing full stop cost nothing; a rejected
-  or failed adjudication is marked as such; `reader =` is refused. A
-  store is found when a run resumes in another time zone, a file
-  rewritten in the same second is read again, documents already stored
-  are restored after a ceiling is reached, and a restored row is never a
-  duplicate of a document outside the run.
-
-- **Screening and calibration.** An exclusion that names a criterion
-  outside the protocol is “unclear” for a person to decide (new
-  `criterion_valid` column), a quote is attributed to the chunk that
-  holds it, and a tiny `screen_tokens` screens the first chunk cut to
-  fit.
-  [`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md)
-  writes a blind sheet whose frame is an opaque key, as UTF-8 with a
-  byte-order mark, reads `n` as a number and no longer needs withr;
-  [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
-  reads decisions case-insensitively, treats unread rows as unread,
-  validates `of`, judges a one-stratum sample by its interval, and
-  refuses a document judged twice with different decisions.
-
-- **Claims, synthesis and the audit report.**
-
-  - [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
-    gains `bib`, reports batches it could not reconcile (`$unmerged`),
-    keeps distinct claims apart when a reconcile reply is flat, clears a
-    moderator that does not separate the two sides, and notes the
-    wordings a merged claim absorbed.
-    [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
-    gains `max_outline_tokens` and records the claims it was drawn from.
-  - [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-    stops with a clear message when claims or an outline do not match
-    its table, writes a section whose claims do not fit a few at a time,
-    marks batched sections partial when a draft was cut or a batch lost,
-    records `$claim_sections`, and writes the closing section from the
-    gaps alone. A coherence pass is discarded if it cites a study more
-    often or takes a citation off a claim, and a draft not in English is
-    not revised (`gr_revision_unguarded`). Columns named date, source,
-    url, published or publication are findings unless `bib` names them,
-    a `citation` key starts its reference entry, and keys that do not
-    end in a year are lettered.
-  - [`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md)
-    gains `bib` and no longer reports bibliographic columns as gaps.
-  - The audit report checks the protocol against what the run recorded,
-    shows the published text of a kept revision and its draft, flags
-    partial sections and why, redacts credentials in web addresses,
-    counts claims and outline calls in its cost, and no longer calls a
-    failed request “not found” or a duplicate’s evidence twice.
-
-- **Records, protocols and inventories.**
-  [`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md)
-  reads PubMed’s .nbib export and Windows-1252 files, keeps a wrapped
-  abstract line that looks like a RIS tag, keeps a double-braced
-  corporate author whole, reads a folder among export paths, is fast on
-  large BibTeX libraries, and gives a numbered download such as `2.pdf`
-  to no record.
-  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md)
-  gains `search`, and protocols are saved and read as UTF-8.
-  [`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md)
-  samples PDF pages across the document, extracts only the pages it
-  samples, labels files relative to their common folder and adds a
-  `path` column.
-
-- **Web addresses and Word files are handled safely.** A download is
-  limited to 512 MB, and addresses on this machine or a private network
-  are refused, including after a redirect
-  (`options(readgpt.allow_local_urls = TRUE)` allows an intranet
-  server). A presigned address keeps its credentials out of `source`,
-  messages, errors, traces, labels and the audit report, shown as
-  `[query hidden 1a2b3c]`. A Word file unpacks only the parts it reads
-  and is refused past 512 MB; its equations are read. Markdown headings
-  followed by text are found, and `#` comments in code chunks are not
-  headings.
-
-- **Caches in memory are bounded.** The document cache (about 256 MB)
-  and the embedding cache (128 MB) drop what was used least recently,
-  and the new
-  [`gr_flush_caches()`](https://elkronos.github.io/readgpt/reference/gr_flush_caches.md)
-  clears both. Two clients made in the same millisecond no longer share
-  an identity.
-
-- **The Shiny app, the demo and the tooling.** The app ignores a second
-  click on Ask while a run is going, keeps the session’s spending limit
-  when the cost field is cleared, applies no cleaning when every step is
-  unticked, says why an answer is partial, refuses a crafted path before
-  touching the filesystem and no longer offers the extract and screen
-  readers. The offline demo runs to the end, `run-tests.sh` installs
-  everything it needs, and CI’s vignette check fails when a vignette’s
-  chunks error.
-
-- **A missing API key no longer looks like an answer.** Without a key
-  every request failed on its own, and the answer came back as
-  `NOT_IN_DOCUMENT` marked partial, which reads as “the document does
-  not say”. The reason was only in the trace.
-  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
-  and
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  now check for a credential before reading the document and stop with a
-  `gr_auth_error` that says how to set `OPENAI_API_KEY`. Anything else
-  stops at its first request, including the embeddings path, which used
-  to fall back to lexical vectors. A client that authenticates through
-  `headers`, mock, backend and replay clients, and a client with a
-  response cache attached are not stopped up front.
-
-- **Text that never reached a model makes the answer partial.** A PDF
-  page that needed OCR and did not get it (the OCR packages missing, or
-  OCR failing on that page) only raised a warning, once, and not at all
-  when the document came from the cache, so the answer was not partial.
-  Those pages are now listed in `doc$stats$unread_pages` and
-  `ans$notes$unread_pages` and make the answer partial, and
-  `stats$pages` counts them. `hierarchical` cutting its summaries to
-  fit, and `refine` cutting an excerpt or its draft, now mark the answer
-  partial too, as `preview` already did for a cut skim. A custom
-  extractor can report its own unread pages in
-  `attr(result, "gr_unread_pages")`.
-
-- **A path with a mistyped extension is flagged.**
-  `"reports/2024/annual-report.pfd"` is read as text, because the
-  extension is not one readgpt reads, and the answer that followed was
-  about a file name with nothing to say so. A one-line string with a
-  directory separator and an unknown extension now raises
-  `gr_path_as_text`.
-
-- **A segmenter’s fallback gives one warning.**
-  [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
-  decided before a segmenter ran whether to add its own
-  `gr_segment_fallback` warning, from a list of built-in names. A
-  registered segmenter that warned about its own fallback, as
-  [`?gr_register_segmenter`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md)
-  advises, got a second warning, and a silent one registered under a
-  built-in’s name got none. The generic warning now comes after the
-  segmenter has run, and only when it raised no warning of that class
-  itself.
-
-- **[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  answers carry what
-  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
-  answers carry.** They had no `$document` and did not resolve evidence
-  to pages. All three entry points now finish an answer the same way.
-
-- **A reader reports no evidence for an answer it did not get.**
-  `stuff`, `retrieve`, `skim`, `rerank`, `iterative` and `preview`
-  listed the chunks they had gathered as the evidence even when the
-  answer request failed, so a failed run printed “Evidence: chunk 1”
-  under “Not found”.
-
-- **`hierarchical` keeps the summaries it has paid for.** When a level
-  of summarising produced nothing, because every request in it failed,
-  the reader answered from nothing. It now answers from the previous
-  level’s summaries, cut to fit if they must be.
-
-- **`rerank` could answer with no document in front of it.** The
-  relevance score was coerced with
-  [`as.numeric()`](https://rdrr.io/r/base/numeric.html), and
-  `as.numeric("high")` is `NA`. An `NA` comparison used as a subscript
-  selects rather than drops, so the “nothing scored high enough” guard
-  did not fire, `[chunk NA]` reached the prompt, and the model answered
-  from its own prior with `partial = FALSE`. A failed scoring call, or a
-  reply with no score, counted as a score of 0, which passes
-  `rerank_min_score = 0` as if a model had judged the chunk. Now a
-  failed call, or a score that is missing or unusable, judges nothing:
-  if no candidate was judged, the reader falls back to the BM25 ranking
-  and warns `gr_rerank_degraded`, as it already did when every call
-  failed; if only some were, the answer (`NOT_IN_DOCUMENT` included) is
-  marked partial.
-
-- **A ceiling that cannot be compared no longer means no ceiling.**
-  [`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
-  checked names only, and each consumer made up its own mind about a bad
-  value. `is.finite(max_cost_usd)` as a guard meant that `NA`, or `"5"`
-  read from a config file, removed the cost cap entirely, and
-  `max_calls = "400"` was enforced by the pre-flight estimate and
-  ignored by the per-call check. Values are now checked where they are
-  set. `max_cost_usd` and `max_calls` refuse anything that is not a
-  single non-negative number (`NULL` and `Inf` still mean no limit). The
-  tuning settings (`safety_margin`, `min_output_tokens`, `max_retries`,
-  `retry_pause_base`, `request_timeout`, `workers` and `temperature`)
-  read a number written as text as that number, warn and keep their
-  current value for one they cannot read, and clamp one outside the
-  range the package can use, with a warning. The Shiny app checks its
-  cost-cap field before setting it.
-
-- **A missing setting falls back to its default, not to the end of its
-  range that does harm.** `clamp()` maps `NA` to the bottom of a range,
-  and for several settings the bottom is what the setting exists to
-  prevent: `gr_budget(safety_margin = NA)` budgeted with no headroom at
-  all, an `overhead` of `NA` counted the system prompt as free and
-  pushed the input budget up, and `semantic_percentile`,
-  `semantic_window` and `proposition_batch_tokens` fell to their
-  minimums. A missing percentile cut at the median boundary rather than
-  the 90th, multiplying the chunks and the calls, and
-  `gr_budget(reserve_output = NA)` left the answer one token. These now
-  take their default, with a warning;
-  [`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md)
-  takes the session’s `safety_margin`, and refuses an overhead it cannot
-  read as a single number, since no default is safe there.
-  `gr_segment_spec(max_tokens = NA)` and
-  `gr_synthesise(max_section_tokens = NA)` fall back to their documented
-  default of 1200, rather than 800 and 1500.
-  `gr_ingest_spec(min_chars = NA)` failed every document with “missing
-  value where TRUE/FALSE needed”. And `as_int1()` tested its range after
-  the coercion that creates the `NA`, so
-  `gr_screen(screen_tokens = 3e9)` marked every document failed.
-
-- **A model’s reply is read by its exact keys.** The readers read parsed
-  replies with `$`, which partial-matches: a reply carrying `decisions`
-  satisfied a read of `decision` and the screener recorded an “include”
-  from a key the schema never defined, `can_answer_now` ended the
-  `iterative` loop with its answer taken as final, and `choices`
-  answered for the conflict resolver’s `choice`. Replies are now read
-  through one accessor that matches exactly and copes with the shapes
-  `jsonlite` gives the same JSON on different days: a two-element score
-  crashed `rerank`, and an array of arrays of propositions was flattened
-  column by column and so written into the document transposed.
-
-- **Proposition segmentation no longer loses text.** A batch whose call
-  failed, or whose reply held nothing usable, was dropped: one bad batch
-  in ten silently removed a tenth of the document from everything
-  downstream, and only a run in which every batch failed noticed. Such a
-  batch is now kept as written, with a `gr_segment_fallback` warning,
-  and counted in `$extra$batches_kept_as_written`. A reply shaped as a
-  list of objects was written into the document as the literal R
-  expression `c("A.", "B.")`. Each object is now read through its text
-  key when it has one and through every string when it has none, so an
-  `id` or a page label beside a proposition does not become one.
-
-- **Two values that differ past the seventh digit are two values.**
-  Conflicts between parts of one document were found by comparing
-  [`format()`](https://rdrr.io/r/base/format.html)ed values, which keep
-  seven significant digits, so 3000000001 and 3000000002, or 0.123456789
-  and 0.123456781, were one value and the conflict went unreported.
-  Values are compared, and shown to the model that adjudicates a
-  conflict, in full.
-
-- **An integer above 2^31 is stored, not lost.** An `integer` field
-  holding a value above `.Machine$integer.max` (a count of person-days,
-  say) became `NA`, so the table said the document had not reported a
-  figure it stated plainly. Such a value is stored as a double.
-
-- **A `NULL` override is refused rather than silently replaced.**
-  `answer_document(f, q, "fast", max_tokens = NULL)` deleted the
-  recipe’s value, so the constructor’s default replaced it (segmenting
-  at 1200 tokens instead of the recipe’s 4000) with no warning, and the
-  trace’s `settings` no longer recorded which value was used. `NULL` is
-  accepted only for a setting whose default is `NULL` (`model`,
-  `temperature`, `skim_model` and the like) and is otherwise refused
-  with `gr_bad_override` before anything is read.
-
-- **The citation check did not recognise the form the prompt asks for.**
-  The synthesis prompt asks the model to “cite more than one where more
-  than one supports it”, and the check matched only `[study 1]`. So a
-  section citing studies as `[studies 1 and 2]` was reported as citing
-  nothing (an audit report printed its prose above the line “This
-  section cites nothing.”), and `[studies 1 and 99]` over three studies
-  passed as clean, where `[study 99]` is correctly flagged. A fabricated
-  citation slipping past the fabrication check is the exact failure this
-  pipeline exists to prevent. The check and the new citation renderer
-  share one grammar, `cite_pattern()`, and a drift test asserts that
-  anything the renderer rewrites, the check has seen.
-
-- **A number that appears in no paper could pass the evidence check.**
-  Coercing a value to `integer` or `number` stripped every character
-  that was not a digit, which deleted the separators along with the
-  words: “120 (60 per arm)” became **12060**, “482 (Table 1)” became
-  4821, and “1,204 randomised; 1,180 analysed” became 12041180. The
-  quote these arrived with was verbatim, so the evidence check passed,
-  `n_unverified` stayed 0, and the audit report certified the figure. A
-  value carrying more than one number is now a miss, which is counted
-  and reported; there is no reading of “120 (60 per arm)” under which
-  12060 is better than nothing.
-
-- **Three cache keys could return another request’s answer.**
-  `gr_hash()` was blind to any list name nested below the third level:
-  `str(max.level = 3L)` stops printing there, and
-  [`as.character()`](https://rdrr.io/r/base/character.html) drops names,
-  so `use.names = TRUE` was inert. Two JSON schemas differing only in a
-  leaf’s name hashed identically, and the schema is part of the
-  response-cache key: asking for `{result:{headcount}}` after
-  `{result:{revenue}}` returned the revenue figure, marked
-  `cached = TRUE`. `temperature` was hashed before it was resolved from
-  [`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md),
-  so a temperature sweep through one cache directory explored nothing
-  and reported the first sample’s answer for every setting. And
-  `embed_cache_key()` omitted the endpoint, so two clients with
-  different `base_url` and the same model id shared one vector space,
-  the failure the embedder name was added to prevent, one field over.
-  The corpus store gained the tokenizer, which is what turns
-  `max_tokens` into an actual chunk boundary. All four keys are
-  versioned, so old entries are not mixed with new ones.
-
-- **A replay reports the `finish_reason` the live call returned.** The
-  trace did not record it, and
-  [`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
-  hard-coded it to `NA`, so anything that decides on it decided
-  differently on replay: `gr_synthesise(coherence = TRUE)`, which
-  discards a revision that stopped for “length”, would keep it on
-  replay, produce a different review, and report 0 misses, certifying
-  itself as an exact reproduction of a run it had not reproduced.
-
-- **The “running sequentially instead” fallback aborted one line
-  later.** `gr_lapply()` called `fn(item)` without the trace on that
-  branch, and lazy evaluation hid it until the worker’s first line, so
-  `parallel = TRUE` without the `future` packages, which is a default
-  install, died after ingestion, segmentation and any calls already paid
-  for. Workers also now receive the registries: `future.packages`
-  re-runs `.onLoad()`, which registers the built-ins only, so a model
-  registered with
-  [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
-  was unknown in the worker and the parallel run used a different output
-  ceiling from the sequential one.
-
-- **A failed batch was dropped from a section that then reported itself
-  complete.** With more studies than fit one prompt,
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-  drafts in batches and merges; `tree_merge()` strips empty pieces, so a
-  merge over the survivors read exactly like a merge over everything,
-  and with one survivor it returned that piece unchanged with
-  `ok = TRUE`. The studies in the failed batch were simply absent. The
-  section is marked partial now and says so.
-
-- **Three constructs that did not mean what they said.**
-  `sprintf("%d", median(tokens))`:
-  [`median()`](https://rdrr.io/r/stats/median.html) returns a double on
-  an even-length vector, and
-  [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
-  auto-prints, so the canonical interactive call failed on about one
-  document in four. `clamp()`’s `length(x) == 0L || is.na(x)` reached a
-  vectorised [`is.na()`](https://rdrr.io/r/base/NA.html) for any setting
-  that was not one number, stopping every read in the session with a
-  message naming neither the setting nor the function. And
-  [`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
-  gated [`file.exists()`](https://rdrr.io/r/base/files.html) behind a
-  no-newlines test, so a file whose name contains a newline was never
-  looked for and the path string itself became the document: status
-  “ok”, `partial = FALSE`, the model answering about a filename.
-
-- **Six tests were passing without testing anything.** Each is now
-  written so that deleting what it names makes it fail:
-  `on_error = "stop"` asserted only that *an* error was raised, against
-  a fixture that always fails, and survived the feature being replaced
-  by an unconditional [`stop()`](https://rdrr.io/r/base/stop.html); the
-  ingest cache-key test used inputs with different content, so it would
-  have passed with the key collision restored;
-  `expect_error(class = "gr_error")` passes on every condition this
-  package raises, because that is the base class; the `as_json`
-  round-trip survived both methods being replaced by the string `"{}"`;
-  “writing leaves no temporary files” was satisfied by an empty
-  directory; and the v1 compatibility shims were checked only for
-  returning a string, so pointing all four at one reader left the suite
-  green.
-
-### Behaviour
-
-- With `coherence` on, a `cut` pass that did not shorten the review and
-  a revision pass that wrote a figure its draft did not have are now
-  discarded. Neither check sends anything, but a refused pass means the
-  next pass is sent the text before it, so a strict replay of a run
-  recorded before this change, in which such a pass was kept, misses at
-  that next pass.
-
-- [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)’s
-  settings column shows a named setting with its names
-  (`effort=map:low+high`) rather than its values alone.
-
-- Stored results written by earlier versions are read again once: the
-  store key now covers the client’s `extra_body`, embedding model and
-  embedder. Response cache entries made through an ellmer chat are not
-  reused either, since the chat’s settings are now part of its identity.
-
-- [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)’s
-  `model` defaults to `NULL`, meaning the client’s model. Code that
-  relied on the default model being used with a client set to another
-  model will now use the client’s.
-
-- Screening and extraction tables can hold the new statuses `"failed"`
-  (for a screening request that failed) and `"incomplete"` (for a partly
-  read extraction). Neither is used by
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-  or
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md).
-
-- Answers that were cut off at the output cap, or that quote text a
-  model wrote, are now partial where they were not before.
-
-- URL ingestion refuses addresses on this machine or a private network,
-  and downloads over 512 MB; set
-  `options(readgpt.allow_local_urls = TRUE)` for an intranet server. A
-  corpus read from presigned addresses labels its documents without
-  their credentials, so store entries for such sources are read again
-  once.
-
-- A screening exclusion that names a criterion outside the protocol is
-  now “unclear”, and screening tables gain a `criterion_valid` column.
-
-- In
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md),
-  columns named date, source, url, published or publication are no
-  longer taken as bibliographic by name, so a table that relied on them
-  for author-year citations falls back to markers unless `bib` names
-  them. A draft not in English is no longer revised.
-
-- The `ligatures` cleaner keeps en and em dashes, and the
-  `headers_footers` and `captions` cleaners remove less, so the text of
-  documents cleaned with them changes and the document cache is refilled
-  once.
-
-- Extracted numbers and booleans that could be read more than one way
-  are now left empty and counted in `n_unverified` rather than stored.
-
-- A chat model registered with only one of its two prices is refused.
-
-## readgpt 0.5.1
-
-### New
-
-- **A review that reads like a review: citations by name, a reference
-  list, and a coherence pass.**
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-  produced prose citing `[study 3]`, with no reference list and no
-  connective tissue between sections. It is now capable of the thing
-  people need to publish.
-
-  `cite_style` renders the markers as `(Smith & Okafor, 2019)`, merging
-  adjacent markers into one citation, disambiguating a shared
-  author-year as 2019a and 2019b, and handling the author-list shapes
-  that turn up, including the lowercase particles (`van der Berg`,
-  `de la Cruz`) that a requires-a-capital rule drops silently.
-  `references = TRUE` appends a list built from the studies the finished
-  text actually cites, alphabetical under author-year and numbered by
-  study otherwise, because the list has to be labelled by whatever the
-  prose uses to point into it.
-
-  The writing model is never shown who wrote a study. Adding
-  bibliographic fields to a schema put “authors: Smith, J., Okafor, A.”
-  in front of a model asked to cite `[study 1]`, and a model that can
-  see a name will write “Smith and Okafor (2019) found…” instead of the
-  marker: a citation checked by nothing and rendered by nothing, which
-  is the model asserting an attribution and the one thing this design
-  exists to prevent. The document filename went the same way and for the
-  same reason: academic PDFs are routinely called
-  `Smith2019_CognitiveLoad.pdf`, which leaks an author and a year
-  through the one field nobody thinks of as bibliographic. Both are
-  withheld from the writing prompt and applied afterwards, so a model
-  cannot misattribute a study whose authors it was never told. If a
-  bibliographic value is also a finding, extract it a second time under
-  a name of its own.
-
-  The model still writes `[study 3]`, always, and rendering happens
-  afterwards from the table. A marker can be checked exactly against the
-  rows that exist; verifying “Smith & Okafor (2019)” would mean matching
-  a name the model wrote against a name in the table, and near-misses
-  (Smith for Smyth, 2019 for
-
-  2018. are both the errors that matter and the ones fuzzy matching
-        forgives. A rendered citation is therefore a fact about the
-        extraction, and `$text_marked` keeps the marker form so the
-        check can be re-run on what was published. A study that cannot
-        be named makes the whole run fall back to markers rather than
-        mixing names and numbers or inventing “n.d.”.
-
-  `coherence = TRUE` runs one further call over the assembled draft, so
-  the independently-written sections read as one argument. Its output is
-  checked rather than trusted, because this is the one step that could
-  quietly undo the guarantee the rest of the pipeline exists to give: a
-  revision that added a citation, dropped one, or ran into the model’s
-  output limit is discarded with a warning and `$draft` is what you get.
-  It is budgeted for the whole document, which is what it rewrites,
-  rather than for a section.
-
-  `style` carries a register
-  (`"formal academic; hedge claims; past tense for findings"`) into both
-  the section and coherence prompts, appended rather than substituted,
-  so the rules about citing every claim and inventing nothing hold
-  whatever voice is asked for.
-
-- **[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md):
-  what is in a folder, before you read any of it.** Every other pre-run
-  check here is per document and happens once the run is already going:
-  `preflight()` estimates a document’s cost as
-  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
-  is called, and `extract_pdf()` decides a page needs OCR while
-  extracting that page. Both are the right check in the wrong place for
-  a corpus. Point
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
-  at four hundred PDFs and you learn that a hundred and eighty are
-  scans, and that tesseract is not installed, after paying for the two
-  hundred and twenty that were not. This is the same discipline one
-  level up, and deliberately not an LLM step: whether a page carries a
-  text layer is a character count, whether a file has an extractor is a
-  lookup, and asking a model either would be slower, cost money and be
-  less accurate than the answer already on disk.
-
-  One row per file **including** the ones that will not be read, because
-  “180 of your files were skipped” is the finding and a table of
-  survivors cannot report it. A file whose extractor’s package is absent
-  is `needs_package`, not `ready`, and is left out of the token total
-  and the cost floor, because sizing a run that cannot happen is worse
-  than not sizing it. A file reachable by two paths (a `latest -> v3`
-  symlink beside the versions it points at) is surveyed once. No file
-  can stop the survey either: a corrupt PDF, a binary file wearing a
-  `.txt` extension, a broken symlink or anything unforeseen becomes a
-  row saying so, which is the contract
-  \[[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)\]
-  has always given a corpus run.
-
-  It chooses nothing for you: no automatic routing of files to recipes,
-  because a router that reads one document with `retrieve` and another
-  with `stuff` returns a plausible answer built on part of a file with
-  nothing saying so, and it makes
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  meaningless: the corpus no longer had *a* configuration.
-
-- **Three ways a directory could quietly read as less than you gave
-  it.** Found while writing the above, all in `corpus_sources()` and all
-  silent.
-
-  Files whose extension no extractor claims were **dropped without a
-  word**, so a folder of `.doc` files (not `.docx`) read as an empty
-  corpus and a mixed folder read as however much of it happened to be
-  supported. It now warns, counts them by extension, and carries the
-  list on the result.
-
-  A document **lost the folder it came from**:
-  [`basename()`](https://rdrr.io/r/base/basename.html) turned
-  `2019/report.txt` and `2020/report.txt` into one name, and
-  [`make.unique()`](https://rdrr.io/r/base/make.unique.html) then
-  separated them as `report.txt` and `report.txt#1`, discarding the
-  meaningful half and replacing it with an index that depends on sort
-  order. Somebody who had filed by year could not tell their own rows
-  apart. Labels are now relative to the directory, so the folder
-  survives into `$summary` and into the extraction table.
-
-  And the empty-directory error **never mentioned `recursive`**, which
-  is the commonest cause by far: the default does not descend, so a
-  folder of subfolders looks empty. It now counts the readable files
-  sitting below and says so.
-
-- **`preview`: the reader that decides how to read before reading.**
-  Every other reader treats all chunks alike: `stuff` sends them all,
-  `map_reduce` answers from each in turn, `retrieve` ranks them by
-  similarity. None of them plans. `preview` builds an outline from
-  section labels, sizes and short excerpts, asks once which sections
-  must be read in full, which are worth scanning, and which cannot bear
-  on the question, then reads accordingly and answers. Its traversal
-  signature is `planned|1+s+1|none` (`planned` is a selection mode no
-  other reader has), and the plan comes back in `ans$notes$plan`, so
-  “sections 3 and 5 were not read” is a finding you can see rather than
-  a silent economy.
-
-  Three things keep the planner honest, because it is itself an LLM call
-  about a long document and so prone to exactly the degradation this
-  package exists to manage. Its outline is built from metadata and
-  excerpts, never the full text, and is capped by the new
-  `preview_tokens` setting; per-section excerpts shrink until the whole
-  outline fits, so no section is hidden from it by truncation. Its
-  output is a fixed schema. And a section the plan does not mention
-  defaults to **read**, never to skip, because silence must not be able
-  to lose a document’s contents. When no usable plan comes back at all,
-  the reader reads everything, warns `gr_preview_degraded`, and marks
-  the answer partial.
-
-  A plan that marks every section skip reads nothing, rather than the
-  whole document, which is what an empty plan used to read.
-
-  It is called `preview` and not `survey` because a recipe already owns
-  `survey`, and `as_recipe()` resolves recipes before readers, so a
-  reader of that name would have been silently unreachable by string. A
-  name owned by both now warns (`gr_ambiguous_name`) instead of quietly
-  resolving to one of its two meanings.
-
-- **A trace records the configuration that produced it.** Trace meta
-  carried the recipe’s *name* and nothing about how it was set up, so
-  two runs of `"thorough"` with `top_k = 3` and `top_k = 8` produced
-  traces (and a
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  summary) that could not be told apart. For a package whose point is
-  comparing configurations, the configuration has to be in the record.
-  The preflight and segment steps now carry whatever differs from the
-  defaults, `gr_compare()$summary` gains a `settings` column naming it,
-  and every trace stamps the readgpt version that wrote it. A run that
-  changed nothing reports nothing: the record says what the run did, not
-  thirty defaults.
-
-- **[`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md)
-  and
-  [`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md):
-  the review starts at the search, not at a folder.** Reads RIS and
-  BibTeX exports from any number of databases, deduplicates by DOI,
-  matches the surviving records to documents on disk, and reports the
-  counts PRISMA item 16 asks for: identified, duplicates removed,
-  screened, sought, retrieved, not retrieved.
-  [`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)
-  and the audit report now begin at identification rather than at
-  “sources given”, which was already past the step that decides whether
-  a review can be repeated.
-  [`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
-  carries the databases, queries, dates, limits and registration (items
-  6, 7 and 24), so what was searched travels with the run instead of
-  living in a lab notebook.
-
-  The records also supply the author and year that `cite_style` renders.
-  From an export they are data, joined onto the extraction table by file
-  path, rather than values a model read off a title page, which is the
-  loosest guarantee in the pipeline, for the one part of a citation that
-  must be exactly right. The writing model is still never shown them.
-
-  No model is called. Which paper a record is, and whether two records
-  are one paper, are questions a DOI answers exactly. Everything is base
-  R: the parsing is not the hard part, the dialect drift between
-  databases is, and a dependency would only move that somewhere this
-  package cannot see it. `DP` alone is “database provider” in the RIS
-  specification and “date of publication” in what PubMed exports; read
-  as the former, every PubMed record loses its year.
-
-  Two judgements can attribute one paper’s findings to another, and both
-  refuse rather than guess. Two records that both carry DOIs are never
-  merged on a title match. And a document is matched by the path the
-  export gave, the DOI in the filename, the title, or
-  first-author-and-year, but an author and year shared by two records
-  matches nothing, so two Smith 2019 papers and one `smith2019.pdf`
-  claim nothing at all.
-
-- **[`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md)
-  and
-  [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md):
-  how often the screener is wrong, measured rather than assumed.** Draw
-  a sample of a screening run for a person to judge blind, read the
-  completed CSV back, and get the rates that sample supports, each with
-  a Wilson interval and each refused when the sample is too small. It is
-  what turns “we used an LLM” into a claim with a number attached, and
-  it is the number a methods section needs.
-
-  Agreement between two model passes is not a substitute. Two passes
-  share weights, priors and blind spots, so their errors are correlated:
-  they agree most confidently where they are both wrong, and the figure
-  would read as reliability while meaning self-consistency.
-
-  **Which rows the sample came from decides which questions it can
-  answer**, and computing the rest anyway is worse than computing
-  nothing. A sample of exclusions contains no kept records, so
-  sensitivity comes out 0% and specificity 100%, artifacts of the frame
-  that look exactly like findings. That frame reports the false omission
-  rate instead, projected across the whole discarded pile: “about 17
-  eligible studies lost, 6 to 47”. The frame is written as a column in
-  the CSV, because an attribute does not survive
-  [`write.csv()`](https://rdrr.io/r/utils/write.table.html), Excel and a
-  fortnight.
-
-  `"unclear"` counts as kept, not as a miss. A deferral goes to a
-  person, and penalising it would punish the behaviour that makes the
-  screener safe. Two sensitivities are reported where the frame allows,
-  as deployed and strict, and the gap is the human reading left.
-  Accuracy is not reported at all: at a realistic inclusion rate a
-  screener that excluded everything would score ~95%, so Cohen’s kappa
-  is given instead. Intervals are Wilson rather than normal, because
-  screening proportions sit at the ends of the scale where the textbook
-  interval returns \[1, 1\] from five observations.
-
-### Fixed
-
-- **A provider that omits its usage block no longer makes the call
-  free.** `parse_response()` collapsed a missing, null or non-numeric
-  `usage` (several OpenAI-compatible local servers omit it, and a
-  gateway can strip it) to 0 tokens in and 0 out, so a real call was
-  recorded and costed as nothing. That is the same fault 0.5.0 fixed in
-  `ellmer_usage()` and
-  [`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md),
-  still alive on the path every HTTP user takes. The parser now reports
-  NA and the call settles NA against the local count, as the ellmer
-  adapter already did: the prompt was measured before it was sent and
-  the reply is in hand, and the local tokenizer is biased to over-count,
-  so the substitute errs towards charging too much. A figure the
-  provider did report is kept as reported, including a genuine zero.
-
-  Two neighbours of the same shape: a handler-built `gr_result` that
-  left `usage` out took `list(0, 0)` where a bare-string reply from the
-  same handler was counted locally, and
-  [`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)
-  turned an unknown step count into 0 before summing, so a trace read
-  back from a file with one unknown step reported a confident, too-small
-  dollar figure beside an NA token total. Both now say unknown; the
-  report renders that as a dash, where zero rendered as a price.
-
-- **The two readers whose distinctness is a loop were never tested
-  looping.** Line coverage over the whole suite found every line after
-  `iterative`’s retrieve-assess loop dead, and `hierarchical`’s
-  reduction body never executed once. The cause was the shared test
-  client: it answers the iterative prompt with `can_answer: true` on
-  round one, so the loop always stopped immediately, and every fixture
-  document was small enough that one summarise pass always fit. Under
-  those conditions the two readers claiming the most in their registered
-  signatures (`topk|rounds*2|forward` and `all|N+tree+1|tree`) behaved
-  as `retrieve` and `map_reduce`. The existing call-count assertion for
-  `hierarchical` was `n + 1`, which is the arithmetic of the
-  non-recursive case: the expectation had been written around what the
-  fixtures happened to produce.
-
-  Driven by hand both paths were correct, so nothing shipped broken. But
-  a signature is a claim about behaviour, and nothing was checking that
-  the behaviour happened. Two steering clients now do: one that refuses
-  to answer so the loop runs, one whose summaries stay over a small
-  context window so the tree has to fan in. The new tests assert rounds,
-  distinct queries, accumulated chunks, tree depth, the `max_levels` cap
-  and its warning. Each was confirmed to fail against a deliberately
-  broken build before being kept.
-
-  Sweeping the same way found three settings that no test ever set to a
-  non-default value: `skim_model` and `summary_model` (the routing that
-  sends the cheap per-chunk pass to a cheaper model, which is a headline
-  cost feature) and `rerank_min_score`. All three are now checked, and
-  reader coverage rose from 75.1% to 82.5%.
-
-## readgpt 0.5.0
-
-### New
-
-- **[`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md):
-  the run, written out so somebody else can check it.** One
-  self-contained HTML file: the protocol as fixed in advance, what
-  happened to every document, every extracted value with the sentence
-  and page it came from and whether that sentence is really there, what
-  was written and which rows each claim rests on, and what the whole
-  thing cost. No new dependencies; pass whichever stages you ran.
-
-  Everything in it was already recorded, across four objects and half a
-  dozen data frames, which is why in practice nobody looked at it. This
-  is not for the person who ran the review, who can index into
-  `$evidence`. It is for the reviewer, co-author or regulator who did
-  not, and whose question is “how do you know?”
-
-  **It does not flatter the run.** Unverified quotes, documents that
-  could not be read, screening calls the model declined to make, fields
-  nothing supported and citations pointing at rows that do not exist are
-  all counted near the top. An audit that showed only what worked would
-  look like diligence and be the opposite of it.
-
-  **And it says what the checking does not establish.** That a quoted
-  sentence occurs in the chunk it was credited to is not evidence that
-  it supports the value taken from it, nor that the value is right. What
-  the check rules out is the quote having been invented, which is the
-  failure that is otherwise invisible. A verification column a reader
-  over-reads is worse than no column.
-
-### Fixed
-
-- **An unknown token count is no longer costed as a free one.**
-  [`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md)
-  summed with `na.rm = TRUE`, so `gr_estimate_cost(model, NA, NA)`
-  returned `0`: a run whose size nobody knew, reported as having cost
-  nothing. That is the defect
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
-  was fixed for in 0.3.0, in a different function. Unknown now comes
-  back `NA`, so a total cannot quietly omit it; `NULL` still means none,
-  because a length-zero sum really is zero.
-
-- **A provider that reports no usable token count falls back instead of
-  reporting zero.**
-  [`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
-  reads `chat$get_tokens()`, whose shape varies by provider. A column
-  that was present but held `NA` (or text, which some providers give)
-  summed with `na.rm = TRUE` to `0`, which is finite, so the fallback to
-  the local estimate never fired and a real call went into the trace as
-  having spent no tokens.
-
-  Its two tests were also the only ones in the suite that always
-  skipped, because CI never installed `ellmer`. It does now, and the
-  first time they ran, one failed: its stub carried three of the five
-  methods the adapter requires and its own comment said “the three
-  methods”, a drift nothing could catch while the test skipped
-  everywhere. The stub is now built against the requirement list, and a
-  new test asks the real
-  [`ellmer::Chat`](https://ellmer.tidyverse.org/reference/Chat.html)
-  whether it has those methods rather than asking a stub written to
-  match.
-
-  Running it then surfaced a second fault in the same stub: its
-  `clone()` copied the bindings but not the closures, so the copied
-  methods still wrote to the *original*. `clone$set_turns()` emptied the
-  caller’s turns and left the clone’s untouched. That is exactly
-  backwards, and it made the adapter look as though it mutates a chat it
-  does not. The stub is a factory now, so a clone is a new object whose
-  methods close over itself, and it checks that isolation as it is built
-  rather than leaving it to surface as a confusing expectation later.
-
-- **Two more fixtures that could drift from the source, now guarded.**
-  Sweeping for the same shape found the shared test mock branching on
-  phrases lifted from three real prompts. Reword one and the mock
-  silently stops matching, returns its generic answer, and the `rerank`
-  and `iterative` tests keep passing against the *degraded* path,
-  because both fall back gracefully on output they cannot parse. A test
-  that quietly changes what it tests is worse than one that fails. The
-  guard reads the phrases out of the fixture rather than repeating them,
-  so it cannot fall behind what it guards.
-
-  And `.gr_evidence_kind`, which decides whether a reader’s quotes are
-  checked at all: a reader missing from it falls back to “verbatim”,
-  meaning text copied out of the document and so never verified. Every
-  reader was present, but nothing said so; now something does. A stale
-  entry for `page`, which is a segmenter rather than a reader, is gone.
-
-- **[`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)**
-  returns the same counts as a data frame: sources given, duplicates
-  removed, screened, included, excluded, unclear, unreadable, extracted,
-  and values with no verbatim span. Every source is accounted for at
-  every stage it reached, so the arithmetic closes.
-
-## readgpt 0.4.2
-
-### Fixed
-
-- **A misspelt reader or segmenter setting is no longer swallowed in
-  silence.**
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
-  and
-  [`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md)
-  keep a `...` so a custom reader has somewhere for its own settings:
-  `fields`, `include`, `screen_tokens` and the rest all arrive that way.
-  A typo landed there too: `gr_read_spec("retrieve", topk = 8)` was
-  accepted in full, stored a `topk` nothing reads, and left `top_k` at
-  its default of 6. The run then worked perfectly and answered a
-  different question.
-
-  A `...` name one edit from a real setting, or the same name in
-  different case or punctuation, now warns and says which setting it
-  looks like. It still goes through, because the escape hatch has to
-  stay open for a field that is new, and
-  [`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
-  continues to refuse an unknown name outright, since it has no such
-  escape hatch to keep. R’s own partial matching already resolved the
-  prefix cases (`cit` finds `cite`); this covers the rest.
-
-## readgpt 0.4.1
-
-### Fixed
-
-- **`parallel = TRUE` no longer under-reports the run it speeds up.** A
-  worker is a separate process, so the trace it was handed was a copy
-  and every call it recorded was thrown away with it. A six-chunk
-  `map_reduce` reported one call instead of seven;
-  [`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)
-  under-reported the bill in proportion to how parallel the run was. The
-  answers were correct throughout, which is what made it hard to notice.
-
-  Each worker now keeps its own trace and the parent absorbs them, in
-  input order rather than completion order, so a parallel run reports
-  exactly what the same run made sequentially reports: the same calls,
-  steps, tokens and cost.
-
-  Two things still do not cross the process boundary, and both are now
-  documented: `gr_options(max_calls =)` is checked per worker while a
-  fan-out is in flight, so the pre-flight estimate is what bounds a
-  parallel run; and a client that keeps its own log in a closure, such
-  as
-  [`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md),
-  only sees the calls made in this process. Ask the trace.
-
-  There were no tests for `parallel = TRUE` in the suite at all, and CI
-  did not install `future`, so any that had existed would have skipped.
-  Both fixed.
-
-## readgpt 0.4.0
-
-Reading a corpus for an answer and reading it for a *table* are
-different jobs. This release is the second one.
-
-### New
-
-- **Extraction schemas.**
-  [`gr_fields()`](https://elkronos.github.io/readgpt/reference/gr_fields.md)
-  describes what you want out of a document as typed fields rather than
-  as a sentence
-  (`gr_field("Number of participants randomised, not the number analysed", type = "integer")`),
-  and
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
-  applies one schema to a whole corpus, returning one tidy row per
-  document and one column per field, of that field’s type.
-
-  The point is joinability. A paragraph about one paper cannot be
-  compared with a paragraph about two hundred others; a table can be
-  sorted, counted, filtered and published.
-
-- **A new reader, `extract`.** Traversal signature
-  `all|N+conflicts|none`: every chunk is asked to fill what it can and
-  to leave the rest null, and the per-chunk answers are then reconciled.
-  Reconciliation is arithmetic when the chunks agree, so it costs a call
-  only where a document contradicts itself. `resolve = "model"`
-  adjudicates those, `resolve = "first"` (the default) takes the earlier
-  value and records the disagreement.
-
-- **Every filled cell carries its provenance.** Each value is asked for
-  the sentence it came from, and that sentence is checked against the
-  chunk it was attributed to. `$evidence` is the long form of that (one
-  row per supported cell, with `verified` and `match`), and
-  `n_unverified` in the table counts the values that could not be tied
-  to a verbatim span, whether because no quote was given or because the
-  quote is not in the document. Nothing is discarded for failing;
-  `require_quote = TRUE` makes it a policy for a protocol that needs
-  one.
-
-- **Protocols.**
-  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md)
-  writes down the three decisions a review must not make while it reads:
-  which documents count (`include`/`exclude`), what to collect from them
-  (a
-  [`gr_fields()`](https://elkronos.github.io/readgpt/reference/gr_fields.md)
-  schema), and what the write-up has to cover (`outline`). Not because a
-  model cannot infer them, but because a criterion invented while
-  reading is a criterion fitted to what was found.
-
-  It is the seventh registry:
-  [`gr_protocols()`](https://elkronos.github.io/readgpt/reference/gr_protocols.md)
-  lists what is available,
-  [`gr_register_protocol()`](https://elkronos.github.io/readgpt/reference/gr_register_protocol.md)
-  adds your own, and
-  [`gr_protocol_save()`](https://elkronos.github.io/readgpt/reference/gr_protocol_save.md)
-  /
-  [`gr_protocol_read()`](https://elkronos.github.io/readgpt/reference/gr_protocol_save.md)
-  round-trip one through a JSON file so it can be shared, diffed and
-  cited alongside the results. Three templates ship (`bibliography`,
-  `evidence_table` and `systematic_review`) as starting points, not
-  standards: the package knows the shape a protocol has, not what your
-  criteria should be.
-
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
-  takes a protocol wherever it takes a schema, using its question and
-  recipe unless you say otherwise.
-
-- **Screening.**
-  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
-  is the stage before extraction: one model call per document, a
-  decision and a reason for every one, and nothing dropped on the way.
-  Two hundred candidate papers extracted in full is two hundred times
-  twenty calls; screened, it is two hundred calls, and most of them end
-  the document’s involvement.
-
-  Three properties it is built around. Every document gets a decision:
-  there is no retrieval step or relevance prefilter that could quietly
-  remove a source before one is recorded, and a document that could not
-  be read is `status = "failed"` with no decision rather than a silent
-  absence. `"unclear"` is an answer, not a failure: forcing a binary
-  decision out of an excerpt that does not settle the question is how
-  automated screening loses studies, and those documents are for a
-  person. And every decision names the criterion that produced it,
-  because `table(x$table$criterion)` is what a flow diagram asks for.
-
-  `screen_tokens =` caps what the model is shown, counted from the start
-  of the document, so title-and-abstract screening is available
-  deliberately rather than by accident; `truncated` and `seen_tokens`
-  always say what was actually read. `x$included` is the argument to
-  hand to
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
-
-  The reader behind it is `screen`, traversal `head|1|none`.
-
-- **Synthesis.**
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
-  writes the review up from the extraction table, one section per call,
-  against the outline the protocol fixed in advance, so the structure is
-  not shaped by whatever happened to be found, and a section can be
-  rewritten without redoing the rest.
-
-  Every section is written with `[study 3]` markers, and the markers are
-  parsed back out and checked against the rows that exist. A citation to
-  a row that is not there is reported and marks the section partial. It
-  is the same check
-  [`new_answer()`](https://elkronos.github.io/readgpt/reference/new_answer.md)
-  runs on `[chunk 3]`, for the same reason. `$citations` resolves every
-  marker to its `document` and `document_id`.
-
-  Duplicates and unread rows never reach the write-up: a study counted
-  twice is the error the rest of this release exists to prevent, and it
-  is easiest to make here, where the rows all look alike. A table too
-  large for one prompt is written in batches and merged rather than
-  truncated.
-
-  That completes the chain: a sentence cites a study, the study’s row
-  cites a quote, and the quote was checked against the page it is
-  attributed to. None of it proves the sentence is true. It makes every
-  step of the way back to the document short enough to walk.
-
-- **The same document is read once.** A source whose cleaned text
-  repeats one already read this run is not read again: its row is filled
-  in from the first copy, `status` is `"duplicate"` and the new
-  `duplicate_of` column names the row it repeats. Nothing is dropped
-  (every source you passed still has a row), so
-  `subset(x$summary, is.na(duplicate_of))` is the deduplicated set and
-  `sum(!is.na(x$summary$duplicate_of))` is the number to report as
-  removed.
-
-  A response cache already made the second copy’s calls free. What it
-  could not do was stop the duplicate appearing in the results as a
-  second, independent document, which is how one study gets counted
-  twice in a synthesis. The hash travels in the `store`, so a resumed
-  run does not pay to rediscover it.
-
-- **A citable document id.** `document_id` is the hash of a document’s
-  cleaned text, in the corpus summary, the extraction table and the
-  evidence table. `document` is a filename: it changes when the file is
-  renamed, collides between folders, and does not exist for a document
-  passed as text. The id is the same string for the same document in
-  every run and on every machine, and identical for two copies of it,
-  which is the same fact as the duplicate detection above.
-
-### Fixed
-
-- **A quote now cites the page it is on.** A chunk is packed from
-  several units, and a chunk packed from two pages reported the *first*
-  one: right for its opening sentence, wrong for everything after it,
-  and wrong in the most expensive way, because a citation that names a
-  page is checked by turning to that page. Two changes: a chunk whose
-  units disagree about the page (or the section) now reports `NA` rather
-  than picking one, and an evidence span is located in the document’s
-  own blocks, so it gets the page of the block that contains it rather
-  than the page of the chunk that carried it. A span found on several
-  pages, or not found at all, is left alone, since the first hit would
-  be a guess dressed as a fact.
-
-  Same for a runt paragraph absorbed into the previous chunk, which used
-  to keep only the host’s page.
-
-### Behaviour
-
-- `gr_call_json()` gains `allow_empty`, used only by `extract`, where a
-  JSON object with no keys is a real answer (this excerpt supports none
-  of the fields) rather than a broken one.
-
-- A field cannot be named `document`, `document_id`, `status`,
-  `duplicate_of`, `error`, `n_filled`, `n_unverified`, `conflicts`,
-  `field`, `chunk_id`, `page`, `section`, `quote`, `verified` or
-  `match`: those are the extraction table’s own columns, and a field
-  with one of those names would be silently overwritten. Nor may a name
-  end in `__quote`, which collides with the companion span every field
-  gets.
-
-- [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
-  returns `$sources`: the sources as they were read, aligned row for row
-  with `summary`. `summary$document` is a display label (a basename,
-  made unique with a suffix when two folders hold the same filename),
-  and there is no way back from it to a file, which is what any caller
-  feeding part of a corpus into the next stage needs.
-
-- [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)’s
-  summary gains `document_id` and `duplicate_of`. A `store` written by
-  0.3.0 still resumes; its rows have neither, and both are filled with
-  `NA` rather than being invented.
-
-- A field a document does not report comes back `NA` with `status`
-  `"ok"`, not `"failed"`. “Not reported” is a finding; the `status`
-  column is what separates it from a document that was never read.
-
-## readgpt 0.3.0
-
-Two additions, one theme: the model call is the only part of this
-package that costs money or fails to repeat itself, and neither of those
-had to be true twice.
-
-### New
-
-- **A response cache.**
-  [`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
-  stores each successful model response, keyed on the exact request, and
-  [`gr_cache_client()`](https://elkronos.github.io/readgpt/reference/gr_cache_client.md)
-  attaches it to any client. A repeated request is free and
-  byte-identical, so iterating on a prompt, resuming after a crash, or
-  re-running an analysis whose last step changed no longer re-bills
-  every earlier call. The key covers the messages, model, output cap,
-  temperature, JSON schema, API shape and base URL, and nothing else,
-  because nothing else reaches the model. Failures are never cached: a
-  rate limit or a refusal is a property of the moment, and storing one
-  would make a blip permanent.
-  [`gr_cache_stats()`](https://elkronos.github.io/readgpt/reference/gr_cache_stats.md)
-  and
-  [`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md)
-  report on and empty a cache.
-
-  The default directory is under
-  [`tempdir()`](https://rdrr.io/r/base/tempfile.html), so a cache costs
-  nothing and disappears with the session; set
-  `gr_options(cache_dir = ...)` to keep entries across sessions and make
-  a long run resumable.
-
-- **Quoted evidence is checked against the document.** `ans$evidence` is
-  what an answer rests on, and for most readers those spans are verbatim
-  chunk text, true because the package put them there. For `skim` they
-  are what the model wrote when asked to extract the relevant passages:
-  *presented* as quotations, with nothing checking that they were.
-
-  Now they are checked, on every run. A span that is not in the chunk it
-  is attributed to sets `notes$unverified_evidence` and makes the answer
-  `partial`, like any other degradation.
-  [`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md)
-  reports the detail: `chunk_id`, `kind`, `verified`, `match` and the
-  span.
-
-  The comparison is forgiving about typography and unforgiving about
-  content. Whitespace, curly quotes, dashes, case and the punctuation a
-  model wraps a quotation in are folded away, because none of that is
-  fabrication and flagging it would make `partial` mean nothing. A
-  changed number is not folded away. Below an exact match, `match` is
-  the fraction of the span carried by its longest consecutive run in the
-  source. It is a run measure rather than word overlap, because overlap
-  cannot tell a quotation from a paraphrase built out of the same
-  vocabulary, which is the whole distinction.
-
-  Citations are checked too, for every reader: an answer citing a chunk
-  that was never sent to it sets `notes$cited_unknown` and is `partial`.
-  A fabricated citation is more convincing than a fabricated answer,
-  because it looks like the thing that would let you check.
-
-  Both checks are local string operations on text already in hand. They
-  cost nothing, so there is no option to turn them off.
-
-- **A vignette**,
-  [`vignette("readgpt")`](https://elkronos.github.io/readgpt/articles/readgpt.md).
-  It walks through the three axes and the decision each one represents,
-  then through comparing recipes, the cost rails, caching, replay and
-  reading a corpus. It builds against
-  [`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
-  with `gr_options(embedder = "lexical")`, so it compiles offline,
-  deterministically and with no API key, on your machine and on CRAN’s
-  alike.
-
-- **`mmr` and `context_order` on the read spec**, both off by default.
-
-  `mmr` below 1 selects chunks by maximal marginal relevance (relevance
-  traded against redundancy with what is already selected), so three
-  paragraphs saying the same thing do not take all three top-k slots and
-  pay for each other. It costs nothing, the vectors are already
-  computed, and it applies to `retrieve` and `iterative`. `mmr = 1` is
-  exactly top-k, bit for bit.
-
-  `context_order` decides where the selected chunks sit in the prompt:
-  `"relevance"` (default), `"document"`, or `"edges"`, which puts the
-  strongest first and second-strongest last and buries the weakest in
-  the middle, because transformers attend measurably better to the
-  beginning and end of a long context than to its middle. Selection is
-  unaffected: this is placement only, for `retrieve` and `rerank`. It is
-  not the primacy/recency effect it resembles: those come from rehearsal
-  and interference in human memory, which a transformer does not have.
-
-- **An embedder registry.**
-  [`gr_register_embedder()`](https://elkronos.github.io/readgpt/reference/gr_register_embedder.md)
-  and
-  [`gr_embedders()`](https://elkronos.github.io/readgpt/reference/gr_embedders.md)
-  make embedding the sixth registry, alongside extractors, cleaners,
-  segmenters, readers and models. It was the one axis that was a chain
-  of [`inherits()`](https://rdrr.io/r/base/class.html) branches, so
-  adding a local model meant editing the package and there was no way to
-  ask what was available. `gr_options(embedder = )` switches every part
-  of the package that embeds; two built-ins are registered, `"api"` and
-  `"lexical"`.
-
-  The registry carries something a branch cannot: whether an embedder is
-  **deterministic**. That closes the replay gap. A replay now reproduces
-  a run’s chunk ranking exactly when the recording used a deterministic
-  embedder *and* the replay uses the same one. Both conditions are
-  checked against the embedder the trace recorded. Determinism alone is
-  not enough: replaying an API-embedded run with a deterministic local
-  embedder would compute vectors the original never saw while reporting
-  itself exact.
-
-  The embedding cache key now includes the embedder. Without it,
-  switching embedders returned the previous one’s vectors for the same
-  text and model: two vector spaces silently mixed in one matrix, and a
-  cosine similarity across them means nothing.
-
-- **One question, many documents.**
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
-  runs one recipe over a vector of files, or a directory expanded by the
-  extractor registry, and returns one row per document: `answer`,
-  `not_found`, `partial`, `chunks_used`, `calls`, `cached`, tokens,
-  `cost_usd`, `seconds`, `status` and `error`. It is the counterpart to
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md),
-  which runs several recipes over one document.
-
-  It does four things a loop does not. One unreadable document costs one
-  row rather than the run. Budgets are per document (each gets its own
-  trace, so `max_calls` applies as if it had been read alone and one
-  enormous file cannot starve the rest), under an optional corpus-wide
-  `max_total_usd` ceiling, past which documents are marked `"skipped"`
-  rather than quietly dropped. A `store =` directory makes a run
-  resumable: each result is written as it completes and restored later,
-  keyed on the document’s path, size and mtime, the question, the whole
-  pipeline and the model, so an edited document is a new job and not a
-  stale hit. And every document’s cost is recorded.
-
-- **[`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)**
-  prices a run using each step’s own model and counts only the calls
-  that were issued. A call served from a cache or a replay spent nothing
-  however large its prompt was. One row per model; an unpriced model
-  contributes `NA` rather than zero, so a total cannot quietly omit it.
-  This is the missing half of the `cached` accounting added alongside
-  the cache: token totals describe a run’s shape, and this describes its
-  bill.
-
-- **A swappable transport.**
-  [`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
-  makes any function of `(messages, params)` the model transport, and
-  [`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
-  plugs in an `ellmer` chat, so Anthropic, Google, Bedrock, Azure,
-  Ollama and Hugging Face work with every reading strategy here. Nothing
-  about ingesting, segmenting or reading a document depends on one HTTP
-  dialect, and the package should not be reimplementing a transport
-  layer R already has. Everything built around the call is unchanged:
-  context budgeting, cost and call rails, provenance, traces, caching,
-  replay and
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md).
-
-  Backends may also supply an embedding function; without one, readers
-  that embed fall back to lexical vectors and warn
-  (`gr_backend_no_embeddings`). A supplied embedder is checked for one
-  row per input before its output reaches the ranking maths. A
-  wrong-shaped matrix would associate every chunk with another chunk’s
-  vector and the answer would look fine.
-
-  Two ellmer limits are documented rather than papered over: sampling
-  parameters belong to the chat object, so a per-call `temperature` is
-  ignored and warned about once (`gr_ellmer_temperature`); and each call
-  runs against a fresh deep clone with its turns cleared, so no history
-  leaks between chunks and the caller’s chat is never mutated.
-
-- **Reproducible replay.**
-  [`gr_trace_save()`](https://elkronos.github.io/readgpt/reference/gr_trace_save.md)
-  writes a run’s trace to a file and
-  [`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
-  answers from it, so a recorded run can be re-run exactly by someone
-  with no API key and no budget. A trace already held every prompt and
-  every response; it was write-only. Now a published result is something
-  a reader can check rather than trust, and a bug report can be a
-  re-runnable recording instead of a description.
-
-  A prompt with no recorded response raises `gr_replay_miss` rather than
-  inventing an answer. Silent divergence would produce a result that
-  looks like the original and is not. Embeddings are not model calls and
-  are not recorded, so `retrieve` and the `semantic` segmenter fall back
-  to lexical vectors under replay and warn (`gr_replay_no_embeddings`).
-
-- **Cached calls are accounted separately.** `gr_trace` gains a `cached`
-  counter, and
-  [`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md)
-  a `cached` column, so `calls - cached` is what a run actually paid
-  for. `gr_result` gains `$cached`. Without this a fully cached run
-  reported the same token totals as a fully paid one and
-  [`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md)
-  quietly overstated the bill.
-
-### Fixes
-
-- [`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md)
-  was two different functions. An internal helper of that name in
-  `R/core-state.R` cleared the in-memory document and embedding caches,
-  and R collates that file after `R/core-cache.R`, so the internal
-  definition silently replaced the exported one. The package would have
-  shipped the wrong implementation under the right documentation. The
-  internal helper is now
-  [`gr_flush_caches()`](https://elkronos.github.io/readgpt/reference/gr_flush_caches.md),
-  and a test asserts the shadowing has not returned.
-
-- **A trace could not survive being written to a file.** `jsonlite`
-  escapes bytes it cannot interpret in the *current locale*, so an
-  unmarked string holding UTF-8 bytes came out of
-  [`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
-  as the literal text `"caf<c3><a9>"` on any machine whose locale is not
-  UTF-8. The bytes were always right; nothing had told R what they were.
-  `trace_record()` now labels prompt, response and error text with
-  `mark_utf8()`, which labels and converts nothing, never
-  [`enc2utf8()`](https://rdrr.io/r/base/Encoding.html), which corrupts
-  valid UTF-8 in exactly this situation. This was present in 0.2.0 and
-  is the same defect class as the locale-dependent tokenizer fixed
-  there: correct bytes, absent label, one locale in the test matrix.
-
-- **`gr_result$text` is now always labelled.** An unlabelled response
-  was at the mercy of the session locale the moment anything serialised,
-  compared or counted characters in it, so two runs that produced
-  identical bytes could compare unequal. Both cache and replay keys
-  normalise text the same way, which is what lets a saved trace replay
-  on a different machine.
-
-- **A missing or unusable setting falls back to its documented
-  default**, rather than to whichever end of its range happens to be the
-  lower bound. `gr_read_spec(max_answer_tokens = NA)` used to give 16,
-  truncating every answer, and `top_k = NA` gave 1, because `clamp()`
-  maps an unusable value to `lo`. That is right for a bound and wrong
-  for a setting. Applies to `mmr`, `top_k`, the three token caps,
-  `rerank_candidates`, `rerank_min_score`, `fan_in`, `max_levels`,
-  `max_rounds` and the segmenter’s `max_tokens`, and to anything
-  unusable, not only `NA`.
-
-- **An embedding that *fell back* now sets `partial`.** The
-  documentation says to check `partial` before trusting an answer and
-  lists a lexical fallback as a degradation; it was recorded in `$notes`
-  but not in the one flag readers are told to look at. A fallback is a
-  degradation, and `gr_options(embedder = "lexical")` is a choice. The
-  two are now distinguished, and only the first sets the flag.
-
-- **A citation of a chunk that was sent but did not contribute is no
-  longer reported as a fabrication.** `notes$cited_unknown` compared
-  citations against `chunks_used`, which for a per-chunk reader holds
-  only the chunks that *answered*, so a model faithfully citing a chunk
-  that had replied “not in this excerpt” was flagged as inventing it,
-  and the answer was silently downgraded to `partial`. A false positive
-  in a hallucination check is the one place a false positive is least
-  affordable.
-
-- **`context_order = "document"` was a silent no-op below three
-  chunks**, the common case for a top-k reader. Only `"edges"` needs a
-  middle to bury the weakest chunk in.
-
-- **Warnings raised while evaluating a setting were silently
-  swallowed.** `clamp()` did `x <- suppressWarnings(as.numeric(x))`, and
-  `x` arrives as a promise, so forcing it inside
-  [`suppressWarnings()`](https://rdrr.io/r/base/warning.html) discarded
-  everything raised while *evaluating the argument*, not merely the
-  coercion warning that call exists to quiet. Every `clamp(f(...))` in
-  the package lost `f()`’s warnings, across
+  [`hr_validate()`](https://elkronos.github.io/readgpt/reference/hr_validate.md)**
+  state a spec’s parameters once: type, default, range and choices.
   [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
   [`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md)
   and
-  [`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md).
-  The argument is now forced first. Present in 0.2.0.
+  [`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md)
+  now check their arguments through schemas instead of code of their
+  own. They accept the same values and return the same specs, with the
+  same clamps, defaults and warnings; a clamp warning now also has class
+  `hr_param_clamped` beside `gr_clamped`.
 
-- **[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
-  did not compose with
-  [`on.exit()`](https://rdrr.io/r/base/on.exit.html), which is the one
-  thing its documentation promised.** The “old” value it returns was
-  built with [`modifyList()`](https://rdrr.io/r/utils/modifyList.html),
-  which deletes a key whose value is `NULL`, so once an option had been
-  *stored* as `NULL`, which is exactly what restoring a saved list does
-  for `temperature`, `max_cost_usd`, `cache_dir` and `embedder`, the
-  returned name came back as `NA` and the next `gr_options(old)` failed
-  with “Unknown option(s): NA”. The second use of the documented
-  pattern, in a function already fixed once for this same `NULL` trap in
-  its setter.
+- A value outside the choices of `context_order`, `restate`,
+  `on_overflow`, `context_source`, `ocr` or `layout` is still an error,
+  which now names the setting and has class `gr_bad_setting`, where it
+  used to be a plain
+  [`match.arg()`](https://rdrr.io/r/base/match.arg.html) error that said
+  `'arg'`.
 
-- `ensemble` combined its members’ evidence with a plain
-  [`rbind()`](https://rdrr.io/r/base/cbind.html), which requires every
-  member to produce the same columns. It does not (only readers whose
-  evidence is model-written carry verification columns), so an ensemble
-  of `skim` and `map_reduce` failed with “numbers of columns of
-  arguments do not match” the moment verification was added. Evidence
-  tables are now unioned.
-
-- [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
-  had two exits, each recording its own trace entry. Anything that
-  needed to sit between a request and its response had to be written
-  twice and kept in step by hand. It now dispatches once and records
-  once, and the normalisation that enforces the `gr_result` invariants
-  on whatever a handler returned is shared by the mock and backend paths
-  rather than duplicated.
-
-### Behaviour changes
-
-- [`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md)
-  returns an extra `cached` column, between `calls` and `steps`. Code
-  that indexes its result by position rather than by name will need
-  updating.
-
-- `min_score` is applied to `retrieve` *before* selection rather than
-  after. Applied after, a chunk below the floor could displace one above
-  it in the top-k and then be dropped, quietly returning fewer chunks
-  than `top_k` asked for and giving no way to see why. A run with a
-  finite `min_score` may now use more chunks than it did.
-
-## readgpt 0.2.0
-
-A rewrite. The package is now a proper R package with three independent,
-registry-based axes (**ingest**, **segment**, **read**) instead of five
-entangled “modes”. Old entry points still work and warn once.
-
-### Why the rewrite
-
-The five reading modes were not five methodologies. `Chunked` and
-`Semantic` called the same function with the same arguments on the same
-chunk object and returned byte-identical answers while billing twice;
-`MultiPass` re-ran two of the others verbatim; `Hierarchical` was
-single-level map-reduce that overflowed the context window past roughly
-32 chunks. The “semantic” ordering came from
-`set.seed(nchar(text)); runif(768)`, so the embedding was a function of
-string length alone and two 48-character strings scored a cosine
-similarity of 1.0.
-
-Distinctness is now a property the package can **check**. Every reader
-declares a traversal signature (`select|calls|state`), and
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-refuses to bill you twice for two recipes that resolve to the same work.
-
-### New
-
-- **Three axes, each a registry.** 6 extractors, 14 individually
-  toggleable cleaners, 9 segmenters and 9 readers, in any combination.
-  [`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md)
-  binds one of each;
-  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
-  runs one;
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  runs several over one document and reports how they differ.
-- **A public extension API.**
-  [`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md),
-  [`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-  [`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md),
+- **Readers and segmenters declare the labels their calls carry.**
   [`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md)
   and
-  [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
-  with
-  [`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)
+  [`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md)
+  take a new `calls` argument, the stems of their calls’ trace labels
+  (`"stuff.answer"`, `c("map.answer", "reduce")`).
+  [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
   and
-  [`new_answer()`](https://elkronos.github.io/readgpt/reference/new_answer.md)
-  to build what a custom segmenter or reader must return. Additions get
-  the same token-cap enforcement, provenance handling, cost caps and
-  reporting as the built-ins.
-- **Overlap and minimum chunk size**, on every segmenter. The previous
-  release had neither, so an answer straddling a boundary was lost by
-  both chunks.
-- **Provenance.** Extraction returns blocks carrying page, section and
-  block id, and that survives cleaning and chunking, so `ans$evidence`
-  can point back at where an answer came from.
-- **A run trace.** One trace per run records every prompt, response,
-  token count and local step, so the trace always explains the answer
-  next to it. The previous Shiny app ran the pipeline twice per question
-  and displayed the reasoning of a *different* generation.
-- **Pre-flight cost and call caps**, checked before the first request:
-  `gr_options(max_cost_usd =, max_calls =)`.
-- **A pluggable, script-aware tokenizer**, biased to over-count, with an
-  exact `tiktoken` backend when reticulate and Python `tiktoken` are
-  available.
-- **A data-driven model registry** with explicit match precedence and an
-  `as_of` stamp, extensible with
-  [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
-  for compatible endpoints.
-- **[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md)**,
-  so you can compare chunkings for free before spending anything on
-  reading.
+  [`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md)
+  list them in a new `calls` column. A reader or segmenter registered
+  without `calls` declares its own name, which covers labels such as
+  `"longest.answer"` for a reader called `"longest"`.
 
-### Behaviour changes that will alter results
-
-Three are deliberate. If you need the old behaviour for comparison, the
-`"legacy"` recipe reproduces it.
-
-- `mode` no longer defaults to running all five modes.
-  `answer_question(f, q)` ran 41 API calls; it now runs one pipeline.
-- Modes no longer share a chunk object, so selecting a second one cannot
-  change the first one’s answer.
-- **Digits are no longer stripped from documents by default.**
-  `remove_numbers` was `TRUE` and unreachable from the public entry
-  point, so every figure, date and percentage was deleted before the
-  model saw the document.
-
-### Deprecated
-
-[`answer_question()`](https://elkronos.github.io/readgpt/reference/answer_question.md),
-[`parse_text()`](https://elkronos.github.io/readgpt/reference/parse_text.md),
-[`gpt_read_chunked()`](https://elkronos.github.io/readgpt/reference/gpt_read_chunked.md),
-[`gpt_read_retrieval()`](https://elkronos.github.io/readgpt/reference/gpt_read_retrieval.md),
-[`gpt_read_hierarchical()`](https://elkronos.github.io/readgpt/reference/gpt_read_hierarchical.md)
-and
-[`gpt_read_multipass()`](https://elkronos.github.io/readgpt/reference/gpt_read_multipass.md)
-still work and warn once per session. Each help page names its
-replacement.
-
-### Fixes
-
-Too many to list individually; `REVIEW.md` documents each with a
-reproduction. The ones most likely to have affected real runs:
-
-- An unrecognised model id produced a **negative** token budget, which
-  turned a 10,000-word document into roughly 10,001 API calls and fed it
-  to the model backwards.
-  [`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md)
-  is now the single arithmetic chokepoint and cannot return a
-  non-positive value; it raises an actionable error instead.
-- `grepl("gpt-4", model)` matched `gpt-4o`, treating a 128k-context
-  model as 8k and over-chunking by ~26x.
-- The boilerplate filters were dead code: digit removal ran before the
-  page/figure patterns that need digits to match. Cleaning steps are now
-  staged so structure-aware steps always precede destructive ones.
-- The reference-section cleaner deleted a body sentence and kept the
-  whole bibliography.
-- The ingestion cache key was the file path alone, so the first settings
-  used in a session won for the rest of it, which made fine-grained
-  control, the point of the package, unreachable.
-- A failed API call was spliced into the next prompt as the literal
-  string `"NULL"`; an empty completion crashed every mode.
-- `refine = TRUE` could never work: it called a function that was not
-  defined anywhere in the repository.
-- The Shiny app stored the API key process-wide, so two browser sessions
-  in one R process billed each other, and exposed the entire filesystem
-  to the browser.
-- **The same document produced different results on different
-  machines.** [`enc2utf8()`](https://rdrr.io/r/base/Encoding.html)
-  treats an *unmarked* string as native, so in a non-UTF-8 locale it
-  re-encoded bytes that were already valid UTF-8. Downstream, the
-  ligature and smart-quote cleaners stopped matching and
-  [`utf8ToInt()`](https://rdrr.io/r/base/utf8Conversion.html) fell back
-  to counting bytes, charging a one-codepoint character as three, a 50%
-  token swing on the affected line. Token counts, chunk boundaries,
-  budgets and cost estimates all varied with the locale R happened to
-  start in. Text is now labelled before any conversion, and a test
-  asserts that ingestion and segmentation are byte-identical under a C
-  locale.
-- [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+- **An `effort` map that names no declared call is an error.** A name in
+  `gr_read_spec(effort =)` (and the `effort` of
+  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
+  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
   and
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  called [`basename()`](https://rdrr.io/r/base/basename.html) on
-  whatever was passed as `source`. Raw document text is a length-1
-  character vector, so the whole document went to
-  [`basename()`](https://rdrr.io/r/base/basename.html), which is bounded
-  by `PATH_MAX` and warns past it on macOS (1024 bytes, so most
-  documents), and which put a mangled fragment of the document into the
-  trace where the filename belongs.
+  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md))
+  must be a declared stem, a part of one up to a dot (`"synthesise"`,
+  `"segment"`), or a label under one (`"reduce.level1"`). Anything else
+  stops with an error of class `hr_unknown_effort_key` that lists the
+  stems. Such a name used to be accepted and matched no call, so a
+  misspelt `c(extrac = "low")` sent every extraction call at the
+  provider’s default with nothing said. An effort map that names the
+  calls of a reader or segmenter of your own needs that module
+  registered first, with its labels in `calls`.
 
-### Testing
+- **A reader states its cost as a function.**
+  [`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md)
+  takes a new `cost` argument, a function of `(input_stats, params)`
+  returning the new
+  [`hr_cost()`](https://elkronos.github.io/readgpt/reference/hr_cost.md):
+  requests expected and at worst, embedding requests, and what the
+  reader must send. The pre-flight check of
+  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+  adds up these functions instead of repeating each built-in reader’s
+  call pattern, and the governor decides from the sum whether the run
+  fits its limits before the first request. The built-in readers’
+  estimates, the trace’s `preflight` step and the refusals are
+  unchanged. A registered reader without `cost` is counted as before,
+  one request per chunk. `cost_calls` is kept for display only, as the
+  description
+  [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
+  shows; the pre-flight check never reads it, and it will be retired in
+  a later phase. A cost function may also return a plain list with
+  `calls_max` and no `calls`, which is read as both.
+  [`hr_cost()`](https://elkronos.github.io/readgpt/reference/hr_cost.md)
+  has a `tokens_out_max` for a reader whose replies can be billed beyond
+  the reply cap; the check prices every request at
+  `input_stats$out_cap`, the largest cap the run’s model is sent, and
+  uses `tokens_out_max` when it is larger.
 
-627 tests, all offline against a recording mock client, plus GitHub
-Actions running `R CMD check` on three platforms and a fast suite that
-also executes every README code block and diffs its documented output
-against real output.
+- [`hr_param()`](https://elkronos.github.io/readgpt/reference/hr_param.md)
+  with a `type` or `tier` it does not know is an error of class
+  `gr_bad_setting` that names the parameter. A `named_map` parameter
+  takes a character vector or a list whose elements are all named.
+
+### Screening
+
+- **[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+  computes kappa on kept against excluded.** 0.6.0 took kappa over the
+  screener’s three labels (include, unclear, exclude) against the
+  person’s two, so every `"unclear"` counted as a disagreement, while
+  sensitivity in the same object counted an unclear record as kept. The
+  primary table is now kept (include or unclear) against excluded, the
+  definition sensitivity uses, and `$agreement$strict` holds strict
+  include against the rest as a secondary table. On the eight-record
+  example in
+  [`?gr_calibrate`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+  kappa moves from 0.33 to 0.50. The old figure is `$kappa_legacy` for
+  this release only, and is removed in the next.
+
+- **Kappa is no longer reported alone.** Each agreement table carries
+  Cohen’s kappa, PABAK and Gwet’s AC1 with intervals, the prevalence and
+  bias indices, and the class-wise sensitivity, specificity, PPV and
+  NPV; `$agreement$kept$paradox` flags a table whose prevalence index is
+  above 0.8 in absolute value, where kappa says more about prevalence
+  than agreement. `$decisions` holds the 3x2 counts, and
+  [`print()`](https://rdrr.io/r/base/print.html) and the audit report
+  show them with the agreement set. The rate of `"unclear"` decisions is
+  the existing `"deferred to a person"` metric, with its interval.
+
+- **The kappa interval is a bootstrap over documents.** It is a
+  percentile bootstrap with B = 2000 under a fixed seed, so the same
+  sample gives the same interval and the session’s random stream is
+  untouched; B and the seed are in `$agreement$kept$bootstrap`. AC1
+  keeps Gwet’s (2008) variance. Where the screener and the person agree
+  on every record, disagree on every record, or the sample holds fewer
+  than 10 records, the kappa and AC1 intervals are left empty (NA) with
+  a `$note` saying why, instead of a zero-width interval such as \[1.00,
+  1.00\].
+
+- [`print()`](https://rdrr.io/r/base/print.html) on a calibration now
+  shows the 3x2 counts on every sample, including one drawn from a
+  single stratum. The audit report’s calibration section shows the same
+  counts, and sensitivity, specificity, PPV and NPV with intervals
+  beside kappa, PABAK and AC1.
+
+- **Unclear records no longer leave a review without a word.** A
+  `gr_screening` gains `$forward` (the included and unclear records, the
+  set a review reads at full text) and `$deferred` (the unclear ones).
+  `gr_extract(screening)` still reads only `$included` in this release
+  and now warns (class `gr_unclear_dropped`) when that leaves unclear
+  records out; from the next release it reads `$forward`. Pass
+  `screening$forward` to read them now. Passing the vector
+  `screening$included` gives no such warning: `$included` stays a plain
+  character vector in this release, and a warning on that path is left
+  to a later release.
+
+- **New
+  [`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md)**
+  records a person’s decision on a deferred or failed record: who
+  decided, when (in UTC) and why, in the table and as a
+  `"screen.resolve"` step in the trace. `forward`, `deferred` and
+  `included` are rebuilt, the screener’s own decision is kept in
+  `screener_decision`, and
+  [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+  compares against that one, so a person’s correction is not credited to
+  the screener. Duplicates of a resolved record take the same decision.
+  The audit report’s screening table shows the screener’s decision and
+  who resolved each record, when and why.
+
+- **[`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)
+  accounts for every screened record.** A record with no decision is now
+  counted as “could not be read” only when no screening call was made;
+  one whose call failed, or whose reply was not the form asked for, has
+  a row of its own, “screening call failed”. New rows count the records
+  resolved by a person, the records kept for full text (`$forward`) and,
+  of those, the ones deferred (`$deferred`).
+
+### Claims and outline
+
+- **[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+  and
+  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+  record their calls the way the other review stages do.** Each records
+  on a trace of its own and, given `trace =`, adds its calls to that
+  trace when it finishes, as
+  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
+  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
+  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+  and
+  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+  already did. Before, both recorded straight onto the trace they were
+  given, so a review trace that an earlier stage had taken past
+  `gr_options(max_calls =)` or `max_cost_usd =` stopped them before they
+  sent a request, and
+  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+  returned no claims, marked partial. Pass one trace to every stage and
+  its totals are the sum of the stages’, with each request counted once.
+
+- **[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+  no longer adds to `claims$trace`.** Given no `trace`, it recorded its
+  calls on the trace of the claims it was handed, which changed a
+  finished
+  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+  result and made `claims$trace` report the outline’s cost as the
+  claims’. Its calls are now on `attr(outline, "trace")`, which
+  [`gr_outline_pick()`](https://elkronos.github.io/readgpt/reference/gr_outline_pick.md)
+  keeps and
+  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+  keeps as `$outline_trace`. Scripts that totalled a review’s cost from
+  `claims$trace` after
+  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+  should pass one `trace` to both, or add `attr(outline, "trace")`. The
+  audit report’s claims row still includes the outline’s calls, read
+  from the synthesis, and counts them once when a script passes
+  `trace = claims$trace` to
+  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md).
+
+### Comparing recipes
+
+- **[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+  says what each recipe cost.** `summary` gains `calls`, `tokens_in`,
+  `tokens_out` and `usd`, priced from the requests on the trace at each
+  model’s registered price, and `usd_estimated`, the share of those
+  dollars spent on requests whose token counts were estimated locally
+  because the provider reported none (`NA` for a trace whose requests do
+  not record how their counts were obtained, such as one saved by an
+  earlier version). A recipe is charged for a segmentation it shares
+  with an earlier recipe, as it would be run alone, so the column can
+  add up to more than `gr_trace_cost(cmp$trace)`. `usd` is `NA` when a
+  model has no registered price. The columns come after `error` and
+  before `premise`.
+
+- **`gr_compare(correct =)`** takes strings that a right answer contains
+  (ignoring case and white space) or a function of each `gr_answer`
+  returning `TRUE`, `FALSE` or `NA`, and adds `correct` and
+  `usd_per_correct`, the cost of a right answer: `usd` when the answer
+  is right, `Inf` when it is wrong and cost something. Without it the
+  summary has no such columns. A recipe a limit stopped before it found
+  anything is `NA`, not wrong: the spending, token or call limit, the
+  model allow-list, the output ceiling, or a spending limit refusing a
+  model with no price. A `correct` function that fails or returns
+  something other than one logical gives a `gr_bad_correct` warning and
+  `NA` for that recipe, so the paid results still come back; an invalid
+  `correct` argument is an error of the same class.
+
+### Checking quotations
+
+- **`gr_read_spec(verify = TRUE)`** checks an answer’s quotations
+  against the chunks they come from and lets the check decide what is
+  accepted.
+  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+  runs
+  [`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md)
+  on the answer, writes its columns onto `$evidence`, marks the answer
+  partial when a quotation is not found (`notes$unverified_evidence`),
+  notes how many it checked (`notes$quotes_checked`) and records a
+  `read.verify` step in the trace. The `iterative` reader’s step must
+  then list the passages its answer rests on, word for word with their
+  chunk numbers, and the loop stops only when every one is found in the
+  chunk it names, among those the step was shown. A refused step is told
+  which quotations were not found; a run that ends with none accepted
+  answers `NOT_IN_DOCUMENT`, keeps the refused answer in
+  `notes$unverified_answer` and makes no final answer request. Its
+  evidence is the quoted passages, not every chunk it was shown. A
+  refusal is sent back even when retrieval has no unseen chunks left, so
+  the next step can quote what it already has. With `premise = TRUE`, a
+  step that reports the premise false is not held to quotations in this
+  release and stops the loop as it does without `verify`.
+  `verify = FALSE`, the default, sends every request as before, and the
+  field is in the spec only when `TRUE`, so cache, replay and corpus
+  store keys are unchanged.
+
+- **A second quote matcher is recorded beside `verified`.** Evidence
+  tables that are checked (`skim`, `extract`, `screen`, `iterative` with
+  `verify = TRUE`) and
+  [`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md)
+  gain `quote_status`, `quote_sim`, `quote_coverage`, `quote_edits` and
+  `quote_critical_ok`, from a matcher that expands ligatures, joins
+  words broken across a line with a hyphen, undoes JSON escapes and
+  scores the closest window of the source by character edits, with
+  numbers (in digits or in words, with any comparison sign before them
+  and the unit after), and negations required to be identical. A passage
+  too long to score (its length times the source’s over 5e7 characters)
+  is `not_checked`. Its statuses are `verbatim`, `near_verbatim`
+  (similarity at least 0.90, or 0.95 under 40 characters, five words or
+  more), `unverified` and `not_checked`. It decides nothing in this
+  release: `verified` and `match` are the existing check’s, as before.
+  On a labelled set of 343 true and 162 false quotations it rejects 1.2%
+  of true ones (95% CI 0.3% to 3.0%) against 36.4% (31.3% to 41.8%) for
+  the existing check, and accepts none of the 52 with a changed digit, 8
+  with a changed number word, 3 with a changed comparison sign, 37 with
+  a flipped negation or 16 invented sentences; it does accept 25 of 46
+  quotations with one content word swapped as `near_verbatim`, which is
+  why that status is not `verified`. `Rscript dev/quote-matcher-rates.R`
+  prints the full table.
+
+### Trace records of state and cuts
+
+- **`refine` and `hierarchical` write the length of the state they
+  carry.** Each `refine.draft` and `refine.revise` step in the trace
+  gains `state$tokens_in` (the draft the request carried) and
+  `state$tokens_out` (the draft carried on from it, which is the old one
+  when the reply was unusable). Each `hier.summarise.L<k>` step gains
+  the length of the text it summarised and of the summary it returned,
+  the `hier.answer` step the length of the summaries it was sent, and
+  each level adds a local `hier.state.L<k>` step with the number of
+  summaries handed on and their combined length. A draft that shrinks
+  sharply in one revision can now be seen in the trace.
+
+- **Every cut writes a `truncate` step to the trace** with where it was
+  made (`detail$where`: `refine.excerpt`, `refine.draft`,
+  `hier.summaries`, `preview.skim`, `preview.outline`, `<label>.input`
+  for a finding cut to fit a merge, `<label>.giveup` for the capped
+  findings a failed merge returns, `segment.contextual.header`,
+  `segment.contextual.document`, `screen.opening`, `synthesise.gaps`,
+  `embed.input`), the token limit, and the tokens before, kept and
+  dropped (the truncation marker is not counted as kept). For
+  `screen.opening` the limit is the screening cap on the opening with
+  its heading; for `segment.contextual.header` it is the room the header
+  was cut to. A `preview.skim` cut lists the cut section’s `chunk_ids`,
+  always as a JSON array. `refine` and `hierarchical` answers also gain
+  `notes$tokens_truncated`, and their printed answer now says how many
+  tokens were cut (“N token(s) cut to fit”) when a cut happened. The
+  `preview` reader’s `notes$tokens_truncated` is now the tokens a cut
+  dropped rather than the overshoot over the cap, a correction to a
+  count that measured the wrong thing. Requests, cache keys and replay
+  keys are unchanged; the trace of a run that cut nothing gains only the
+  state lengths above.
+
+### Conformance checks
+
+- **New
+  [`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md)
+  and
+  [`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md)**
+  run one registered reader or segmenter on
+  [`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md)
+  through an offline mock client and report which rules of its contract
+  it breaks. A reader is checked for finishing without an error,
+  returning a `gr_answer` with the fields
+  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+  documents and a single string as its answer, evidence and
+  `chunks_used` that name only chunks of the input, call labels covered
+  by the stems it declared in `calls`, and no more requests than its
+  `cost` function’s worst case for that input. A segmenter is checked
+  for finishing without an error, returning a `gr_chunks` with the
+  documented columns, text in every chunk, unique chunk ids, no chunk
+  over `max_tokens` that
+  [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+  had to split, and call labels covered by its declared stems. Every
+  built-in reader and segmenter passes them.
+
+- **New
+  [`hr_check_module()`](https://elkronos.github.io/readgpt/reference/hr_check_module.md)**
+  is the core helper both use: it runs a closure that calls a module in
+  a temporary working directory, catches its error and warnings, asks a
+  named list of rule functions about what came back, and returns an
+  `hr_conformance` data frame with a `rule`, `ok` and `detail` for each.
+  `ok` is `NA` for a rule that could not be checked.
+  [`print()`](https://rdrr.io/r/base/print.html) lists the broken rules
+  first, says “passes all N rules” when every rule passes, and says
+  “passes all N rules checked; M not checked” when some rules could not
+  be checked.
+
+- The checks are reports only.
+  [`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md)
+  and
+  [`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md)
+  still check only that `fn` is a function, and register a module that
+  breaks a rule as before.

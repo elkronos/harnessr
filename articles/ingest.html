@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Getting text out of files • readgpt</title>
+<title>Getting text out of files • harnessr</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -18,9 +18,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">readgpt</a>
+    <a class="navbar-brand me-2" href="../index.html">harnessr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,7 +29,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../articles/readgpt.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/harnessr.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -40,7 +40,7 @@
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Overview</h6></li>
-    <li><a class="dropdown-item" href="../articles/tour.html">A tour of readgpt</a></li>
+    <li><a class="dropdown-item" href="../articles/tour.html">A tour of harnessr</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -76,24 +76,24 @@
 file. That step, <em>ingestion</em>, is easy to overlook and hard to
 undo. Text lost here, or damaged by too much clean-up, is text no model
 will see, however good the rest of the pipeline is. This guide covers
-what readgpt can read, what it keeps, what it removes, and how to check
+what harnessr can read, what it keeps, what it removes, and how to check
 a folder before spending anything on it.</p>
-<p>New to readgpt? <code><a href="../articles/readgpt.html">vignette("readgpt")</a></code> introduces the
+<p>New to harnessr? <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduces the
 package and the ideas used here.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/readgpt" class="external-link">readgpt</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/readgpt" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="what-ingestion-produces">What ingestion produces<a class="anchor" aria-label="anchor" href="#what-ingestion-produces"></a>
 </h2>
 <p><code><a href="../reference/gr_ingest.html">gr_ingest()</a></code> reads a file and returns a
 <em>document</em>: the text split into <em>blocks</em>, which are the
-paragraphs, headings and list items as the file has them. readgpt
+paragraphs, headings and list items as the file has them. harnessr
 includes a short example, an annual report written in Markdown:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">doc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">doc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">doc</span></span>
-<span><span class="co">#&gt; &lt;gr_document&gt; /home/runner/work/_temp/Library/readgpt/extdata/annual_report.md</span></span>
+<span><span class="co">#&gt; &lt;gr_document&gt; /home/runner/work/_temp/Library/harnessr/extdata/annual_report.md</span></span>
 <span><span class="co">#&gt;   17 blocks, ~574 tokens, 1846 chars (12 removed by cleaning)</span></span>
 <span><span class="co">#&gt;   cleaners: page_numbers, hyphenation, control_chars, ligatures, collapse_whitespace</span></span>
 <span><span class="co">#&gt;   first block: # Northwind Instruments — Annual Report 2024</span></span></code></pre></div>
@@ -123,7 +123,7 @@ here because Markdown has no pages; a PDF fills it in.</p>
 shows you what the model will get.</p>
 </div>
 <div class="section level2">
-<h2 id="what-readgpt-can-read">What readgpt can read<a class="anchor" aria-label="anchor" href="#what-readgpt-can-read"></a>
+<h2 id="what-harnessr-can-read">What harnessr can read<a class="anchor" aria-label="anchor" href="#what-harnessr-can-read"></a>
 </h2>
 <p>Each file type is handled by an <em>extractor</em>, chosen by the
 file’s extension. <code>available</code> says whether the packages it
@@ -221,8 +221,8 @@ the answer that follows would be about a file name:</p>
 <code class="sourceCode R"><span><span class="va">typo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="st">"reports/2024/annual-report.pfd"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning in gr_ingest("reports/2024/annual-report.pfd"):</span></span>
 <span><span class="co">#&gt; 'reports/2024/annual-report.pfd' is not an existing file, and '.pfd' is not an</span></span>
-<span><span class="co">#&gt; extension readgpt reads, so the string itself is being read as the document. If</span></span>
-<span><span class="co">#&gt; it is a path, check it; readgpt reads .bmp, .csv, .docx, .dotx, .gif, .htm,</span></span>
+<span><span class="co">#&gt; extension harnessr reads, so the string itself is being read as the document.</span></span>
+<span><span class="co">#&gt; If it is a path, check it; harnessr reads .bmp, .csv, .docx, .dotx, .gif, .htm,</span></span>
 <span><span class="co">#&gt; .html, .jpeg, .jpg, .log, .markdown, .md, .pdf, .png, .qmd, .rmd, .text, .tif,</span></span>
 <span><span class="co">#&gt; .tiff, .tsv, .txt, .xhtml.</span></span>
 <span><span class="va">typo</span><span class="op">$</span><span class="va">text</span></span>
@@ -289,7 +289,7 @@ That is what lets a quotation be traced to “page 12” rather than to
 <span><span class="co">#&gt; 3    2 Summary    body                                                  Outlook</span></span>
 <span><span class="co">#&gt; 4    2 Summary    body The board expects revenue of 50 million dollars in 2025.</span></span></code></pre></div>
 <p>A PDF’s text comes out as the page looks, which is not always the
-order a person reads in, so readgpt puts it back in reading order:</p>
+order a person reads in, so harnessr puts it back in reading order:</p>
 <ul>
 <li>A page set in two columns is read one column after the other.
 Without this, each line would join the start of a line from each
@@ -314,7 +314,7 @@ kind of PDF.</p>
 <p>A scanned PDF is a picture of text, with no text inside it to
 extract. Reading it needs <em>optical character recognition</em> (OCR),
 which turns the picture back into text. OCR is slow (seconds per page)
-and never perfect, so readgpt uses it only where it is needed:</p>
+and never perfect, so harnessr uses it only where it is needed:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># The default: OCR any page with fewer than 40 characters of text.</span></span>
 <span><span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="st">"scan.pdf"</span>, <span class="fu"><a href="../reference/gr_ingest_spec.html">gr_ingest_spec</a></span><span class="op">(</span>ocr <span class="op">=</span> <span class="st">"auto"</span><span class="op">)</span><span class="op">)</span></span>
@@ -330,7 +330,7 @@ and never perfect, so readgpt uses it only where it is needed:</p>
 <span><span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="st">"scan.pdf"</span>, <span class="fu"><a href="../reference/gr_ingest_spec.html">gr_ingest_spec</a></span><span class="op">(</span>ocr_lang <span class="op">=</span> <span class="st">"deu"</span>, ocr_dpi <span class="op">=</span> <span class="fl">400</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>OCR on PDFs needs both <code>tesseract</code> and
 <code>magick</code>. Without them a scanned page comes back nearly empty
-and readgpt warns (<code>gr_ocr_unavailable</code>). The document lists
+and harnessr warns (<code>gr_ocr_unavailable</code>). The document lists
 those pages in <code>doc$stats$unread_pages</code>, and an answer drawn
 from it is marked partial. The same holds with
 <code>ocr = "never"</code>: a page with no text, or only a stamp or a
@@ -343,7 +343,7 @@ is refused outright, as the next section shows. The
 </h2>
 <p>Extracted text is rarely clean. PDFs break words across lines with
 hyphens, repeat the page number on every page, and use typographic
-ligatures (“ﬁ” for “fi”). readgpt tidies this with <em>cleaners</em>.
+ligatures (“ﬁ” for “fi”). harnessr tidies this with <em>cleaners</em>.
 Each does one job and can be turned on or off:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_cleaners.html">gr_cleaners</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"stage"</span>, <span class="st">"default_on"</span><span class="op">)</span><span class="op">]</span></span>
@@ -431,13 +431,13 @@ included; for comparison only</td>
 <p>Here is how much text each leaves of the example report:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">presets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"minimal"</span>, <span class="st">"standard"</span>, <span class="st">"academic"</span>, <span class="st">"scan"</span>, <span class="st">"legacy"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">presets</span>, <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/gr_ingest_spec.html">gr_ingest_spec</a></span><span class="op">(</span>clean <span class="op">=</span> <span class="va">p</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">stats</span><span class="op">$</span><span class="va">chars</span>,</span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">presets</span>, <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/gr_ingest_spec.html">gr_ingest_spec</a></span><span class="op">(</span>clean <span class="op">=</span> <span class="va">p</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">stats</span><span class="op">$</span><span class="va">chars</span>,</span>
 <span>       <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;     none  minimal standard academic     scan   legacy </span></span>
 <span><span class="co">#&gt;     1858     1858     1846     1765     1846     1659</span></span></code></pre></div>
 <p>Or name the cleaners yourself:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tidy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<code class="sourceCode R"><span><span class="va">tidy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>                  <span class="fu"><a href="../reference/gr_ingest_spec.html">gr_ingest_spec</a></span><span class="op">(</span>clean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"page_numbers"</span>, <span class="st">"hyphenation"</span>, <span class="st">"collapse_whitespace"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">tidy</span><span class="op">$</span><span class="va">stats</span><span class="op">$</span><span class="va">chars</span></span>
 <span><span class="co">#&gt; [1] 1846</span></span></code></pre></div>
@@ -504,7 +504,7 @@ calling a model and without an API key:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">inbox</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"inbox"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">inbox</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="fu"><a href="../reference/readgpt_example.html">readgpt_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">inbox</span>, <span class="st">"annual_report.md"</span><span class="op">)</span>,</span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">inbox</span>, <span class="st">"annual_report.md"</span><span class="op">)</span>,</span>
 <span>                    overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"Headcount grew to 1,204 employees across nine sites."</span>,</span>
 <span>           <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">inbox</span>, <span class="st">"notes.txt"</span><span class="op">)</span><span class="op">)</span></span>
@@ -513,7 +513,7 @@ calling a model and without an API key:</p>
 <span></span>
 <span><span class="va">inv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_inventory.html">gr_inventory</a></span><span class="op">(</span><span class="va">inbox</span><span class="op">)</span></span>
 <span><span class="va">inv</span></span>
-<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/RtmpKYgUrR/inbox</span></span>
+<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/RtmpbyQMwK/inbox</span></span>
 <span><span class="co">#&gt;   4 file(s), 1.9 KB; 2 readable</span></span>
 <span><span class="co">#&gt;   2 ready, 1 no_extractor, 1 empty</span></span>
 <span><span class="co">#&gt;   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)</span></span>
@@ -580,7 +580,7 @@ until they are read by OCR are not in the total;
 <div class="section level2">
 <h2 id="adding-your-own">Adding your own<a class="anchor" aria-label="anchor" href="#adding-your-own"></a>
 </h2>
-<p>A format readgpt does not know, or a clean-up step your documents
+<p>A format harnessr does not know, or a clean-up step your documents
 need, can be added and then used exactly like a built-in one. A cleaner
 that drops lines marked “CONFIDENTIAL”:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">

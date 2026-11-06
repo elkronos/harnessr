@@ -16,7 +16,8 @@ gr_call(
   trace = NULL,
   label = "call",
   ...,
-  effort = NULL
+  effort = NULL,
+  draw_index = 0L
 )
 ```
 
@@ -91,6 +92,23 @@ gr_call(
   handler finds it in `params$effort`. Must be named in full, since it
   follows `...`.
 
+- draw_index:
+
+  Which draw of a sampled request this is: 0 (the default) for an
+  ordinary call, or 1, 2, ... for repeated draws of the same request.
+  Above 0 it is part of the
+  [`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+  key, so N identical calls with draw indexes 1 to N are N cached
+  replies rather than one reply N times, and a
+  [`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+  answers draw k with the k-th recorded reply to the request. A
+  [`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+  or
+  [`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
+  handler finds it in `params$draw_index`, and the trace records it in
+  the step's `params`; at 0 neither carries it, so an unsampled call is
+  unchanged. Must be named in full, since it follows `...`.
+
 ## Value
 
 A
@@ -110,6 +128,16 @@ instead of the network. A reply cut off at the output cap keeps
 `"incomplete"`); check for it wherever a complete reply matters. Such a
 reply is not written to a
 [`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md).
+`$served_model`, `$response_id` and `$fingerprint` are what the provider
+said about its reply (`NA` where it said nothing; `$model` stays the
+model asked for), and `$attempts` is how many requests were sent for it,
+retries included, 0 for a reply from a cache or a recording. A request
+that would pass one of the run's limits (see
+[`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md))
+is not sent: it comes back with `ok = FALSE`, `$refused = TRUE`, an
+`$error` naming the limit and the condition in `$refusal`, after a
+condition of class `hr_budget_refused` is signalled. It is not recorded
+as a step of the trace.
 
 ## See also
 
@@ -143,4 +171,13 @@ gr_call(seen, "hi", model = "gpt-5.6-luna", effort = "low")$text
 #> [1] "effort: low"
 gr_call(seen, "hi", model = "gpt-4o", effort = "low")$text   # not a reasoning model
 #> [1] "effort: none"
+
+# Draws of one request, each cached under its own key.
+n <- 0
+sampler <- gr_mock_client(function(m, p) { n <<- n + 1; paste("draw", n) })
+sampler <- gr_cache_client(sampler, gr_cache(file.path(tempdir(), "harnessr-draws")))
+vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")
+#> [1] "draw 1" "draw 2" "draw 3"
+vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")  # cached
+#> [1] "draw 1" "draw 2" "draw 3"
 ```

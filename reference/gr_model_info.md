@@ -19,8 +19,8 @@ gr_model_info(model = NULL)
 
 ## Value
 
-A named list: `id`, `context_window`, `max_output`, `input_usd` and
-`output_usd` (per 1M tokens, used by
+A named list: `id`, `context_window`, `max_output`, `input_usd`,
+`output_usd` and `cached_input_usd` (per 1M tokens, used by
 [`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md)),
 `reasoning`, `supports_temperature`, `kind`, `dimensions`, `as_of`,
 `certain`, and `source` (`"registered"`, `"builtin"`, `"alias"`,
