@@ -447,6 +447,27 @@ test_that("a public name for a private address is refused, and a checked name is
   expect_identical(pinned, "example.org:443:93.184.215.14,[2606:2800:21f:cb07::1]")
 })
 
+test_that("curl's own size refusal is the same refusal, in either wording", {
+  # The write callback and curl's maxfilesize race; which fires first depends
+  # on how the body arrives. curl's refusal reads "Maximum file size exceeded"
+  # in older releases and "Exceeded the maximum allowed file size" in newer
+  # ones, and either must come back as gr_too_large with its advice, not as a
+  # failed fetch.
+  dest <- withr::local_tempfile()
+  for (said in c("Maximum file size exceeded",
+                 "Exceeded the maximum allowed file size (1000000) with 1000000 bytes")) {
+    local_mocked_bindings(GET = function(...) stop(said), .package = "httr")
+    expect_error(harnessr:::url_download("http://127.0.0.1:9/big", dest, max_bytes = 1e6,
+                                        allow_local = TRUE),
+                 class = "gr_too_large", regexp = "Download it yourself")
+  }
+  # Any other failure is still reported as it came.
+  local_mocked_bindings(GET = function(...) stop("Couldn't connect to server"), .package = "httr")
+  err <- expect_error(harnessr:::url_download("http://127.0.0.1:9/big", dest, max_bytes = 1e6,
+                                             allow_local = TRUE))
+  expect_false(inherits(err, "gr_too_large"))
+})
+
 test_that("a download is refused once it passes the size limit", {
   skip_on_cran()
   # A server in another R process, on a free port of this machine: it serves

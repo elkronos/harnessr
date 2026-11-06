@@ -222,8 +222,14 @@ url_download <- function(url, dest, max_bytes = .gr_max_download_bytes,
         }),
       error = function(e) {
         close(out)
+        # Two limits race: this callback, and curl's own maxfilesize, which
+        # curl 8.4 and later also checks while the body arrives. curl words
+        # its refusal "Maximum file size exceeded" in older releases and
+        # "Exceeded the maximum allowed file size" in newer ones; either is the
+        # same refusal as the callback's.
         if (inherits(e, "gr_too_large") ||
-            any(grepl("maximum file size", c(why, conditionMessage(e)), ignore.case = TRUE))) {
+            any(grepl("maximum (allowed )?file size", c(why, conditionMessage(e)),
+                      ignore.case = TRUE))) {
           too_big()
         }
         if (length(why)) stop(simpleError(why[length(why)]))
