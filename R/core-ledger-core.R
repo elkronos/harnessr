@@ -310,7 +310,8 @@ usd12 <- function(x) {
 #' marked `kind = "embedding"`.
 #' @noRd
 trace_record <- function(trace, label, messages, result, params = list(), seconds = NA_real_,
-                         embedding = FALSE, sent = NULL, started = NULL, ended = NULL) {
+                         embedding = FALSE, sent = NULL, started = NULL, ended = NULL,
+                         replay_key = NULL) {
   if (is.null(trace) || !inherits(trace, "gr_trace")) return(invisible(NULL))
   trace$calls <- trace$calls + 1L
   if (isTRUE(result$cached)) trace$cached <- trace$cached + 1L
@@ -404,6 +405,12 @@ trace_record <- function(trace, label, messages, result, params = list(), second
   # The request as it went out (see client_sent_params()); `params` above is
   # what the caller asked for.
   if (is.list(sent)) step$params_sent <- sent
+  # The harnessr-replay-v2 key of the call (see replay_key()). A replay of this
+  # trace looks each step up by it. A step without one was recorded before the
+  # key existed and is looked up by the old key, which covers less.
+  if (is.character(replay_key) && length(replay_key) == 1L && !is.na(replay_key)) {
+    step$replay_key <- replay_key
+  }
   trace$steps <- c(trace$steps, list(step))
   invisible(NULL)
 }

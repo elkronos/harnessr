@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "1a2eba44b530cb5a",
+      "cache_key": "686a72ff24d12cb2f4a709db8cb20ca9c9ab91fa6d9d95ecd3c970d601784726",
       "chars": [149, 35, 1899],
       "label": "rerank.score",
       "messages": "e8b9bf9bf8e0500a",
@@ -18,7 +18,7 @@
       "schema": "7a1cd830c8644fd8"
     },
     {
-      "cache_key": "27cad5832add3be7",
+      "cache_key": "a91e460daa851f1927483dde89f13567e6b7b2538c15813108ab12954d46ddd6",
       "chars": [216, 1911, 35],
       "label": "rerank.answer",
       "messages": "55368e83687aca33",
@@ -175,6 +175,7 @@
         },
         "prompt": "e8b9bf9bf8e0500a",
         "recipe": "scanned",
+        "replay_key": "8fd13789ff7483563b1f99fff9047055ea836cddea4ff10a00cdafd97c68dcfa",
         "response": "e6b32de151f23d28",
         "response_id": null,
         "served_model": null,
@@ -234,6 +235,7 @@
         },
         "prompt": "55368e83687aca33",
         "recipe": "scanned",
+        "replay_key": "106f91dca169a391fbb6ffdae63e27ea740e6a6192d0831b71dd45d196dd2313",
         "response": "5e372c1edd7906c1",
         "response_id": null,
         "served_model": null,

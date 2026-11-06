@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "a47cfadd553a40c5",
+      "cache_key": "5ea51c363c149380d230b59ba45cf875373d814ddddb5b11d5a2196145e1b719",
       "chars": [216, 1976, 35],
       "label": "retrieve.answer",
       "messages": "2149c885201358aa",
@@ -190,6 +190,7 @@
         },
         "prompt": "2149c885201358aa",
         "recipe": "golden-retrieve",
+        "replay_key": "cd6d8c331994163f4e151b735e810c0e1ab49bee41ef1e57dd5df07c863751b6",
         "response": "5e372c1edd7906c1",
         "response_id": null,
         "served_model": null,

@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "e93955d6e0e2632d",
+      "cache_key": "ffd20bae807333701ba050a7ea4ffcc6942766aafa38b7ab325e62f0fd3950ae",
       "chars": [642, 35, 1686, 65],
       "label": "preview.plan",
       "messages": "558315efcf21e51c",
@@ -18,7 +18,7 @@
       "schema": "a55797ddbe3dbb32"
     },
     {
-      "cache_key": "31edac5fac42dac2",
+      "cache_key": "2efabd006c8729440a1893925cb3997fd48eb17d3c3dc62f317cf8b62beb13af",
       "chars": [196, 35, 482],
       "label": "preview.skim",
       "messages": "58d8608f7b3b288a",
@@ -35,7 +35,7 @@
       "schema": null
     },
     {
-      "cache_key": "f01cd8971d1307ff",
+      "cache_key": "f3987e69dc897040c83e3232e134062bf9e180dee4d979274f4748d2ee363ef4",
       "chars": [216, 1602, 35],
       "label": "preview.answer",
       "messages": "200a278ebc69e3f4",
@@ -189,6 +189,7 @@
         },
         "prompt": "558315efcf21e51c",
         "recipe": "golden-preview",
+        "replay_key": "c182090c18178b2b57078ad682871180eca3ec618a00a313f7bd9f1ddb1a54e3",
         "response": "c3777ed6eb996c30",
         "response_id": null,
         "served_model": null,
@@ -230,6 +231,7 @@
         },
         "prompt": "58d8608f7b3b288a",
         "recipe": "golden-preview",
+        "replay_key": "e23f257358e819ce22c993e683c08c2c9e21b44e2da50a64fedcb688b8cd89ed",
         "response": "4b04db10f8ef9f51",
         "response_id": null,
         "served_model": null,
@@ -289,6 +291,7 @@
         },
         "prompt": "200a278ebc69e3f4",
         "recipe": "golden-preview",
+        "replay_key": "b1bd37f2acda5d69b5256da0565404c11f5216ff82609460a4aacb78e98a2eb2",
         "response": "5e372c1edd7906c1",
         "response_id": null,
         "served_model": null,

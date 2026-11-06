@@ -70,8 +70,25 @@ so treat a shared cache as you would its author's results.
 
 At a temperature above zero a cache hit replays one sample rather than
 drawing a new one. That is the point: it is what makes a run reproducible.
-But it means a cached sweep does not explore. Use a fresh cache directory,
-or \code{read = FALSE}, when you want new draws.
+But it means N identical calls are one draw N times. To keep N draws, give
+each call its own \code{draw_index} (see \code{\link[=gr_call]{gr_call()}}): it is part of the key when
+it is above 0, so draws 1 to N are N entries, and a rerun gets the same N
+replies back in the same order. A call with the default \code{draw_index = 0}
+keys as an unsampled call always has. Use a fresh cache directory, or
+\code{read = FALSE}, when you want new replies for draws already stored.
+}
+
+\section{Keys and older caches}{
+
+An entry is keyed by a SHA-256 hash under the version string
+\code{harnessr-cache-v3}. Entries written before that (by readgpt 0.6.0, and by
+harnessr before this key: \code{readgpt-cache-v2} under xxhash64) are still
+read. A call with no draw index that finds nothing under its key is looked
+up under the old key too, and a reply found there is used. The first such
+hit in a session warns once for the cache, with class \code{hr_legacy_key}, and
+\code{\link[=gr_cache_stats]{gr_cache_stats()}} counts them as \code{legacy_hits}. Old entries are never
+rewritten, and new ones are written under the new key only, so a cache
+directory stays readable by the version that wrote it.
 }
 
 \examples{

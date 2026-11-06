@@ -173,6 +173,15 @@ print.gr_result <- function(x, ...) {
 #'   {effort}` on the Responses API and `reasoning_effort` on Chat Completions;
 #'   a [gr_mock_client()] or [gr_backend_client()] handler finds it in
 #'   `params$effort`. Must be named in full, since it follows `...`.
+#' @param draw_index Which draw of a sampled request this is: 0 (the default)
+#'   for an ordinary call, or 1, 2, ... for repeated draws of the same request.
+#'   Above 0 it is part of the [gr_cache()] key, so N identical calls with
+#'   draw indexes 1 to N are N cached replies rather than one reply N times,
+#'   and a [gr_replay_client()] answers draw k with the k-th recorded reply to
+#'   the request. A [gr_mock_client()] or [gr_backend_client()] handler finds
+#'   it in `params$draw_index`, and the trace records it in the step's
+#'   `params`; at 0 neither carries it, so an unsampled call is unchanged.
+#'   Must be named in full, since it follows `...`.
 #' @return A [gr_result]. **Never** `NULL`; `$text` is always a single string,
 #'   `""` on failure. A successful HTTP call that returned no text (a refusal, a
 #'   content filter) is reported as `ok = FALSE`, so an empty completion is never
@@ -205,9 +214,16 @@ print.gr_result <- function(x, ...) {
 #' })
 #' gr_call(seen, "hi", model = "gpt-5.6-luna", effort = "low")$text
 #' gr_call(seen, "hi", model = "gpt-4o", effort = "low")$text   # not a reasoning model
+#'
+#' # Draws of one request, each cached under its own key.
+#' n <- 0
+#' sampler <- gr_mock_client(function(m, p) { n <<- n + 1; paste("draw", n) })
+#' sampler <- gr_cache_client(sampler, gr_cache(file.path(tempdir(), "harnessr-draws")))
+#' vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")
+#' vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")  # cached
 gr_call <- function(client, messages, model = NULL, max_output = NULL,
                     temperature = NULL, schema = NULL, schema_name = "result",
-                    trace = NULL, label = "call", ..., effort = NULL) {
+                    trace = NULL, label = "call", ..., effort = NULL, draw_index = 0L) {
   # Checked here too, so the error names the function the user called.
   if (!inherits(client, "gr_client")) gr_abort("`client` must come from gr_client() or gr_mock_client().")
   # After `...`, so it is matched only by its full name: `...` is the request
@@ -215,7 +231,22 @@ gr_call <- function(client, messages, model = NULL, max_output = NULL,
   # go to the gateway.
   model_call(client, messages, model = model, max_output = max_output,
              temperature = temperature, schema = schema, schema_name = schema_name,
-             trace = trace, label = label, extra = list(...), effort = check_effort(effort))
+             trace = trace, label = label, extra = list(...), effort = check_effort(effort),
+             draw_index = check_draw_index(draw_index))
+}
+
+#' A draw index as one non-negative integer, or a classed error.
+#' @noRd
+check_draw_index <- function(draw_index) {
+  ok <- is.numeric(draw_index) && length(draw_index) == 1L && !is.na(draw_index) &&
+    is.finite(draw_index) && draw_index >= 0 && draw_index == round(draw_index) &&
+    draw_index <= .Machine$integer.max
+  if (!ok) {
+    gr_abort(paste0("`draw_index` must be one whole number, 0 for an ordinary call or 1, 2, ... ",
+                    "for the draws of a sampled request."),
+             class = "gr_bad_setting")
+  }
+  as.integer(draw_index)
 }
 
 #' gr_call(), with a test a reply must pass before it is cached.
@@ -231,7 +262,7 @@ gr_call <- function(client, messages, model = NULL, max_output = NULL,
 model_call <- function(client, messages, model = NULL, max_output = NULL,
                        temperature = NULL, schema = NULL, schema_name = "result",
                        trace = NULL, label = "call", extra = list(), accept = NULL,
-                       effort = NULL) {
+                       effort = NULL, draw_index = 0L) {
   if (!inherits(client, "gr_client")) gr_abort("`client` must come from gr_client() or gr_mock_client().")
   messages <- normalise_messages(messages)
   model <- as_chr1(model %||% client$model)
@@ -240,7 +271,6 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   # Counted in the model's own encoding where the tokenizer has one (tiktoken).
   prompt_tokens <- sum(gr_count_tokens(vapply(messages, function(m) as_chr1(m$content), character(1)),
                                        model = model))
-  headroom <- info$context_window - prompt_tokens - 32L
   # A cap that cannot be read is the model's cap, as NULL is. clamp() maps NA
   # to its floor, so max_output = NA -- a spec field left unset, text that is
   # not a number -- sent every request capped at ONE token (below the
@@ -253,8 +283,9 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
             class = "gr_bad_setting")
     max_output <- NULL
   }
-  max_output <- as.integer(clamp(max_output %||% info$max_output, 1, info$max_output))
-  if (headroom < max_output) max_output <- as.integer(max(headroom, 0L))
+  # The cap as asked, for a replay key worked out for another model.
+  asked_cap <- max_output
+  max_output <- call_cap(max_output, info, prompt_tokens)
 
   if (max_output <= 0L) {
     res <- gr_result(FALSE, error = sprintf(
@@ -278,6 +309,10 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   effort_map <- effort
   effort <- effort_to_send(effort, label, info)
   if (!is.null(effort)) params$effort <- effort
+  # Added only above 0, as the effort is only when there is one: an unsampled
+  # call gives a handler and the trace exactly the params it always did.
+  draw_index <- as_int1(draw_index, 0L)
+  if (draw_index > 0L) params$draw_index <- draw_index
 
   # One dispatch, one exit, one trace entry. The mock and HTTP paths each used
   # to `return()` after recording their own trace entry, so every feature that
@@ -286,7 +321,11 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   req <- list(messages = messages, model = model, max_output = max_output,
               temperature = temperature, schema = schema, schema_name = schema_name,
               info = info, params = params, label = label, extra = extra,
-              accept = accept, effort_map = effort_map)
+              accept = accept, effort_map = effort_map, draw_index = draw_index,
+              asked_cap = asked_cap)
+  # The replay key of this call, recorded on its step so a replay of the trace
+  # looks it up by the same key (see replay_lookup()).
+  rkey <- request_replay_key(req, model, params$effort)
   # What the request carries once every default is resolved, worked out from
   # the same function that builds it. `params` stays what the caller asked for
   # and a handler is given, which a replay reads; this is the record of what
@@ -314,8 +353,50 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   }
   trace_record(trace, label, messages, res, params,
                seconds = as.numeric(difftime(ended, started, units = "secs")),
-               sent = sent, started = started, ended = ended)
+               sent = sent, started = started, ended = ended, replay_key = rkey)
   res
+}
+
+#' The output cap a call is made with: the one asked for, or the model's, held
+#' to the model's limit and to what the context window leaves after the prompt.
+#' Zero or less when the prompt leaves no room.
+#' @noRd
+call_cap <- function(max_output, info, prompt_tokens) {
+  cap <- as.integer(clamp(max_output %||% info$max_output, 1, info$max_output))
+  headroom <- info$context_window - prompt_tokens - 32L
+  if (headroom < cap) cap <- as.integer(max(headroom, 0L))
+  cap
+}
+
+#' The temperature a request carries: the one asked for or the session
+#' default, and none for a model that does not take one.
+#' @noRd
+call_temperature <- function(temperature, info) {
+  temperature <- temperature %||% gr_options("temperature")
+  if (isTRUE(info$reasoning) || !isTRUE(info$supports_temperature)) NULL else temperature
+}
+
+#' The harnessr-replay-v2 key of a prepared request, for `model` at `effort`.
+#'
+#' The temperature is resolved under `model`'s profile, as a call that asked
+#' for it would have been (replay_lookup() also tries the recording's other
+#' models). `sent_effort = TRUE` is for an effort this session's registry would
+#' not send but the recording may have: a model that was sent an effort was a
+#' reasoning model there, and so was sent no temperature.
+#'
+#' The cap is the one the call asked for, before it is held to the model's
+#' limit and context window. Those come from the model's profile, which can
+#' differ between the session that recorded a run and the one replaying it
+#' (a gateway model registered in one and not the other), and the model id is
+#' already in the key.
+#' @noRd
+request_replay_key <- function(req, model, effort, sent_effort = FALSE) {
+  info <- if (identical(model, req$model)) req$info
+          else tryCatch(suppressWarnings(gr_model_info(model)), error = function(e) NULL)
+  if (is.null(info)) return(NA_character_)
+  temperature <- if (isTRUE(sent_effort)) NULL else call_temperature(req$temperature, info)
+  replay_key(req$messages, model, effort, temperature = temperature, max_output = req$asked_cap,
+             schema = req$schema, schema_name = req$schema_name)
 }
 
 #' Where a prepared request actually goes.
@@ -354,7 +435,7 @@ client_dispatch <- function(client, req) UseMethod("client_dispatch")
 
 #' @noRd
 client_dispatch.gr_replay_client <- function(client, req) {
-  replay_lookup(client, req$messages, req$model, req$params, req$label, req$effort_map)
+  replay_lookup(client, req)
 }
 
 #' @noRd
@@ -367,9 +448,7 @@ client_dispatch.gr_client <- function(client, req) {
   # reported the first sample's answer for every setting. The reasoning-model
   # drop moves here for the mirror-image reason -- the body does not carry a
   # temperature for those models, so the key must not vary with one.
-  info <- req$info
-  temperature <- req$temperature %||% gr_options("temperature")
-  if (isTRUE(info$reasoning) || !isTRUE(info$supports_temperature)) temperature <- NULL
+  temperature <- call_temperature(req$temperature, req$info)
   req["temperature"] <- list(temperature)
 
   accept <- req$accept
@@ -377,16 +456,26 @@ client_dispatch.gr_client <- function(client, req) {
   key <- NULL
   usable <- function(r) is.null(accept) || isTRUE(tryCatch(accept(r$text), error = function(e) FALSE))
   if (inherits(cache, "gr_cache")) {
+    draw <- as_int1(req$draw_index, 0L)
     key <- cache_key(client, req$messages, req$model, req$max_output, temperature,
-                     req$schema, req$schema_name, req$extra, effort = req$params$effort)
-    hit <- cache_get(cache, key)
+                     req$schema, req$schema_name, req$extra, effort = req$params$effort,
+                     draw_index = draw)
+    # The key this request had before harnessr-cache-v3, for an entry written
+    # then. Only for draw 0: there were no draws, so every old entry is one.
+    # A function, so the second hash is paid only when the new key misses.
+    legacy <- if (draw == 0L) function() {
+      legacy_cache_key_v2(client, req$messages, req$model, req$max_output, temperature,
+                          req$schema, req$schema_name, req$extra, effort = req$params$effort)
+    }
+    hit <- cache_get(cache, key, legacy)
     if (!is.null(hit) && !usable(hit)) {
-      # Stored before the caller's test existed. Asked again, and overwritten
-      # below if the new reply passes.
-      cache_unhit(cache)
+      # Stored before the caller's test existed. Asked again, and written
+      # below under the new key if the new reply passes.
+      cache_unhit(cache, hit)
       hit <- NULL
     }
     if (!is.null(hit)) {
+      attr(hit, "legacy_key") <- NULL
       # Entries are stored as built. One written before the truncation
       # spellings were unified can still say "incomplete" or "max_tokens".
       hit$finish_reason <- normalise_finish_reason(hit$finish_reason)
@@ -726,11 +815,11 @@ gr_call_json <- function(client, messages, schema, schema_name = "result",
   # gr_call()'s own arguments, so `...` is matched exactly as it was.
   send <- function(client, messages, model = NULL, max_output = NULL, temperature = NULL,
                    schema = NULL, schema_name = "result", trace = NULL, label = "call", ...,
-                   effort = NULL) {
+                   effort = NULL, draw_index = 0L) {
     model_call(client, messages, model = model, max_output = max_output,
                temperature = temperature, schema = schema, schema_name = schema_name,
                trace = trace, label = label, extra = list(...), accept = accept,
-               effort = effort)
+               effort = effort, draw_index = check_draw_index(draw_index))
   }
   res <- send(client, messages, schema = schema, schema_name = schema_name, ...)
   if (!res$ok) return(list(ok = FALSE, value = NULL, result = res))

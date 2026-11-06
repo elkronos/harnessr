@@ -4,7 +4,7 @@
 \alias{gr_replay_client}
 \title{A client that answers from a recorded run}
 \usage{
-gr_replay_client(source, strict = TRUE)
+gr_replay_client(source, strict = TRUE, on_exhausted = c("error", "flag"))
 }
 \arguments{
 \item{source}{A \code{gr_trace}; a path to a file written by \code{\link[=gr_trace_save]{gr_trace_save()}};
@@ -19,6 +19,13 @@ a \code{gr_replay_miss} error. That is usually what you want: a miss means the
 replay has diverged from the recording, and continuing would produce a
 result that looks like the original but is not. With \code{FALSE} a miss returns
 a failed \link{gr_result} instead, so a partially recorded trace still runs.}
+
+\item{on_exhausted}{What a call does when the recording holds fewer replies
+to its request than the replay has asked for. \code{"error"} (the default)
+raises an \code{hr_replay_exhausted} error: the replay is making more calls
+than the run it reproduces did. \code{"flag"} returns the last recorded reply
+again and counts it in \verb{$stats()$repeats}, which is what every replay did
+before this argument existed.}
 }
 \value{
 An object of class \code{gr_replay_client}, usable anywhere a
@@ -39,9 +46,13 @@ recording of exactly what went wrong.
 \section{Matching}{
 
 A response is matched on the exact prompt messages plus the model id the
-call asked for, and the reasoning effort it was sent with when it had one
-(see \code{effort} in \code{\link[=gr_read_spec]{gr_read_spec()}}), so a replay under another effort misses
-rather than passing for the recording. A replay under the same effort
+call asked for, the reasoning effort it was sent with when it had one
+(see \code{effort} in \code{\link[=gr_read_spec]{gr_read_spec()}}), the temperature it was made with once
+the session default was filled in (none for a model that takes none), the
+output cap it asked for, and its JSON schema. These make up the key
+\code{harnessr-replay-v2}, which each step of a trace records as \code{replay_key}.
+So a replay under another effort, temperature, cap or schema misses rather
+than passing for the recording. A replay under the same effort
 matches even where this session's registry does not list a model as a
 reasoning model and the recording session's did (a gateway model
 registered with \code{\link[=gr_register_model]{gr_register_model()}} there and not here), and a call
@@ -51,6 +62,14 @@ model the trace records as
 answering: a \code{\link[=gr_ellmer_client]{gr_ellmer_client()}} answers with its chat's model whatever the
 recipe asked for, and its runs replay all the same.
 
+A step recorded before \code{replay_key} existed (readgpt 0.6.0, and harnessr
+before this key) is matched on the old key, \code{readgpt-replay-v1}: the
+messages, the model and the effort only. A call that finds nothing under the
+new key is looked up there, and a reply found that way is used, with an
+\code{hr_legacy_key} warning once per recording in a session, since the replay
+cannot then show that the temperature, cap and schema were the recorded
+ones. \verb{$stats()$legacy_hits} counts these replies.
+
 The replay client's own model, which a read that names none asks for, is
 the model the recorded reads asked for. One trace can hold reads through
 clients built for different models, and a recording made by readgpt 0.5.0
@@ -59,11 +78,19 @@ everywhere else; a call that asks for the replay client's model and finds
 nothing under it is answered from the one other such model that holds the
 same prompt. A model the recorded settings named (\code{model}, \code{skim_model},
 \code{summary_model}) is never used that way, so a replay that leaves one out
-misses. When a
-run issued the same prompt more than once (which happens at a temperature
-above zero, and in readers that revisit a chunk), the recorded responses are
-returned in the order they were produced. Once they are exhausted the last
-one repeats.
+misses.
+}
+
+\section{Repeated calls and draws}{
+
+When a run issued the same request more than once (which happens at a
+temperature above zero, and in readers that revisit a chunk), the recorded
+responses are returned in the order they were produced. A call with a
+\code{draw_index} above 0 (see \code{\link[=gr_call]{gr_call()}}) is answered with the reply recorded
+for that draw; in a recording that holds no draw indexes, draw k is the
+k-th reply recorded for the request. A call past the end of what was
+recorded, or for a draw that was never recorded, raises
+\code{hr_replay_exhausted} unless \code{on_exhausted = "flag"}.
 }
 
 \section{Embeddings}{
@@ -117,8 +144,9 @@ not have.
 
 \section{What does not replay}{
 
-Traces do not record the JSON schema a call requested, so two calls that
-differ only by schema share a recording.
+Traces do not store the JSON schema a call requested, only a hash of it in
+the step's key. In a recording made before \code{replay_key} existed, two calls
+that differ only by schema, temperature or output cap share a reply.
 }
 
 \examples{

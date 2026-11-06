@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "5f12fc9f44de366f",
+      "cache_key": "b71c2a01c2214364adde57b366cd87001d705b646fedad578b933abc33cbe1c8",
       "chars": [216, 1976, 35],
       "label": "stuff.answer",
       "messages": "1933ad4182815d5a",
@@ -155,6 +155,7 @@
         },
         "prompt": "1933ad4182815d5a",
         "recipe": "golden-stuff",
+        "replay_key": "2198d8620171e5d2c56f81eab63a1b582ff25b14eac0440950e1f60af7d546ce",
         "response": "5e372c1edd7906c1",
         "response_id": null,
         "served_model": null,

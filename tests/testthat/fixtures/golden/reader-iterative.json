@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "0c1ea072fb711e47",
+      "cache_key": "881937ef26d6d90a448714fc5ddaf5d4077e00d6811687ec251e29d328ef613d",
       "chars": [514, 35, 1976],
       "label": "iterative.step",
       "messages": "ed830feda4eb3bdc",
@@ -181,6 +181,7 @@
         },
         "prompt": "ed830feda4eb3bdc",
         "recipe": "golden-iterative",
+        "replay_key": "b59e644b58284b3fb597bde085de4a6d56e48104313f883ea7331726f7768839",
         "response": "9a095d0f912f5e21",
         "response_id": null,
         "served_model": null,

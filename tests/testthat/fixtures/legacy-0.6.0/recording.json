@@ -1,0 +1,357 @@
+{
+  "run_id": "legacy-keys-fixture",
+  "started": "2026-11-06T01:03:28.252Z",
+  "meta": {
+    "readgpt": "0.6.0.9000"
+  },
+  "actor": {
+    "system": null,
+    "owner": null,
+    "run_by": null,
+    "purpose": null,
+    "approved_by": null
+  },
+  "config": {
+    "options": {
+      "verbose": false,
+      "tokenizer": "heuristic",
+      "model": "gpt-5.6-terra",
+      "embedding_model": "text-embedding-3-small",
+      "api_base": "https://api.openai.com/v1",
+      "api_headers": [],
+      "api": "responses",
+      "temperature": null,
+      "max_retries": 4,
+      "retry_pause_base": 2,
+      "request_timeout": 120,
+      "safety_margin": 0.1,
+      "min_output_tokens": 256,
+      "cache_documents": true,
+      "cache_embeddings": true,
+      "cache_dir": null,
+      "embedder": null,
+      "parallel": false,
+      "workers": 4,
+      "max_cost_usd": 5,
+      "max_calls": 400,
+      "unknown_model_action": "warn",
+      "actor": []
+    },
+    "r_version": "R version 4.3.3 (2024-02-29)"
+  },
+  "summary": {
+    "run_id": "legacy-keys-fixture",
+    "calls": 6,
+    "cached": 0,
+    "steps": 6,
+    "tokens_in": 70,
+    "tokens_out": 101,
+    "errors": 0,
+    "elapsed_s": 0.01,
+    "embed_calls": 0,
+    "embed_tokens": 0,
+    "tokens_reasoning": 0,
+    "tokens_cached_in": 0,
+    "usage_estimated": 1
+  },
+  "steps": [
+    {
+      "step": 1,
+      "label": "call",
+      "at": "2026-11-06T01:03:28.258",
+      "started_utc": "2026-11-06T01:03:28.257Z",
+      "ended_utc": "2026-11-06T01:03:28.257Z",
+      "model": "gpt-4o-mini",
+      "ok": true,
+      "cached": false,
+      "prompt": [
+        {
+          "role": "user",
+          "content": "What was revenue in 2024?"
+        }
+      ],
+      "response": "Reply to 25 characters at default temperature, effort none.",
+      "error": null,
+      "tokens": {
+        "input": 12,
+        "output": 18,
+        "provenance": "estimated"
+      },
+      "seconds": 0,
+      "attempts": 1,
+      "served_model": null,
+      "response_id": null,
+      "fingerprint": null,
+      "finish_reason": null,
+      "params": {
+        "model": "gpt-4o-mini",
+        "max_output": 16384,
+        "temperature": null,
+        "schema_name": "result",
+        "prompt_tokens": 12
+      },
+      "budget_usd": 1.26e-05,
+      "params_sent": {
+        "model": "gpt-4o-mini",
+        "api": "backend",
+        "base_url": "backend://",
+        "max_output": 16384,
+        "temperature": null,
+        "effort": null,
+        "schema_name": null,
+        "schema_hash": null,
+        "extra_body_hash": null
+      }
+    },
+    {
+      "step": 2,
+      "label": "call",
+      "at": "2026-11-06T01:03:28.260",
+      "started_utc": "2026-11-06T01:03:28.259Z",
+      "ended_utc": "2026-11-06T01:03:28.259Z",
+      "model": "gpt-4o-mini",
+      "ok": true,
+      "cached": false,
+      "prompt": [
+        {
+          "role": "system",
+          "content": "Answer in one sentence."
+        },
+        {
+          "role": "user",
+          "content": "Summarise the outlook."
+        }
+      ],
+      "response": "Reply to 22 characters at 0.3, effort none.",
+      "error": null,
+      "tokens": {
+        "input": 18,
+        "output": 18,
+        "provenance": "estimated"
+      },
+      "seconds": 0,
+      "attempts": 1,
+      "served_model": null,
+      "response_id": null,
+      "fingerprint": null,
+      "finish_reason": null,
+      "params": {
+        "model": "gpt-4o-mini",
+        "max_output": 200,
+        "temperature": 0.3,
+        "schema_name": "result",
+        "prompt_tokens": 18
+      },
+      "budget_usd": 1.35e-05,
+      "params_sent": {
+        "model": "gpt-4o-mini",
+        "api": "backend",
+        "base_url": "backend://",
+        "max_output": 200,
+        "temperature": 0.3,
+        "effort": null,
+        "schema_name": null,
+        "schema_hash": null,
+        "extra_body_hash": null
+      }
+    },
+    {
+      "step": 3,
+      "label": "call",
+      "at": "2026-11-06T01:03:28.261",
+      "started_utc": "2026-11-06T01:03:28.260Z",
+      "ended_utc": "2026-11-06T01:03:28.261Z",
+      "model": "gpt-4o-mini",
+      "ok": true,
+      "cached": false,
+      "prompt": [
+        {
+          "role": "user",
+          "content": "Give revenue as JSON."
+        }
+      ],
+      "response": "{\"revenue\": 45.2}",
+      "error": null,
+      "tokens": {
+        "input": 11,
+        "output": 11,
+        "provenance": "estimated"
+      },
+      "seconds": 0,
+      "attempts": 1,
+      "served_model": null,
+      "response_id": null,
+      "fingerprint": null,
+      "finish_reason": null,
+      "params": {
+        "model": "gpt-4o-mini",
+        "max_output": 16384,
+        "temperature": null,
+        "schema_name": "result",
+        "prompt_tokens": 11
+      },
+      "budget_usd": 8.25e-06,
+      "params_sent": {
+        "model": "gpt-4o-mini",
+        "api": "backend",
+        "base_url": "backend://",
+        "max_output": 16384,
+        "temperature": null,
+        "effort": null,
+        "schema_name": "result",
+        "schema_hash": "ab227a7357552f5b3367252f2beb0964dae0ef835fa17c0001b38267789b7043",
+        "extra_body_hash": null
+      }
+    },
+    {
+      "step": 4,
+      "label": "call",
+      "at": "2026-11-06T01:03:28.262",
+      "started_utc": "2026-11-06T01:03:28.262Z",
+      "ended_utc": "2026-11-06T01:03:28.262Z",
+      "model": "gpt-5-mini",
+      "ok": true,
+      "cached": false,
+      "prompt": [
+        {
+          "role": "user",
+          "content": "Weigh the risks."
+        }
+      ],
+      "response": "Reply to 16 characters at default temperature, effort low.",
+      "error": null,
+      "tokens": {
+        "input": 7,
+        "output": 18,
+        "provenance": "estimated"
+      },
+      "seconds": 0,
+      "attempts": 1,
+      "served_model": null,
+      "response_id": null,
+      "fingerprint": null,
+      "finish_reason": null,
+      "params": {
+        "model": "gpt-5-mini",
+        "max_output": 128000,
+        "temperature": null,
+        "schema_name": "result",
+        "prompt_tokens": 7,
+        "effort": "low"
+      },
+      "budget_usd": 3.775e-05,
+      "params_sent": {
+        "model": "gpt-5-mini",
+        "api": "backend",
+        "base_url": "backend://",
+        "max_output": 128000,
+        "temperature": null,
+        "effort": "low",
+        "schema_name": null,
+        "schema_hash": null,
+        "extra_body_hash": null
+      }
+    },
+    {
+      "step": 5,
+      "label": "call",
+      "at": "2026-11-06T01:03:28.264",
+      "started_utc": "2026-11-06T01:03:28.263Z",
+      "ended_utc": "2026-11-06T01:03:28.264Z",
+      "model": "gpt-4o-mini",
+      "ok": true,
+      "cached": false,
+      "prompt": [
+        {
+          "role": "user",
+          "content": "Café revenue in €?"
+        }
+      ],
+      "response": "Reply to 18 characters at default temperature, effort none.",
+      "error": null,
+      "tokens": {
+        "input": 10,
+        "output": 18,
+        "provenance": "estimated"
+      },
+      "seconds": 0,
+      "attempts": 1,
+      "served_model": null,
+      "response_id": null,
+      "fingerprint": null,
+      "finish_reason": null,
+      "params": {
+        "model": "gpt-4o-mini",
+        "max_output": 16384,
+        "temperature": null,
+        "schema_name": "result",
+        "prompt_tokens": 10
+      },
+      "budget_usd": 1.23e-05,
+      "params_sent": {
+        "model": "gpt-4o-mini",
+        "api": "backend",
+        "base_url": "backend://",
+        "max_output": 16384,
+        "temperature": null,
+        "effort": null,
+        "schema_name": null,
+        "schema_hash": null,
+        "extra_body_hash": null
+      }
+    },
+    {
+      "step": 6,
+      "label": "call",
+      "at": "2026-11-06T01:03:28.265",
+      "started_utc": "2026-11-06T01:03:28.264Z",
+      "ended_utc": "2026-11-06T01:03:28.265Z",
+      "model": "gpt-4o-mini",
+      "ok": true,
+      "cached": false,
+      "prompt": [
+        {
+          "role": "user",
+          "content": "What was revenue in 2024?"
+        }
+      ],
+      "response": "Reply to 25 characters at default temperature, effort none.",
+      "error": null,
+      "tokens": {
+        "input": 12,
+        "output": 18,
+        "provenance": "estimated"
+      },
+      "seconds": 0,
+      "attempts": 1,
+      "served_model": null,
+      "response_id": null,
+      "fingerprint": null,
+      "finish_reason": null,
+      "params": {
+        "model": "gpt-4o-mini",
+        "max_output": 16384,
+        "temperature": null,
+        "schema_name": "result",
+        "prompt_tokens": 12
+      },
+      "budget_usd": 1.26e-05,
+      "params_sent": {
+        "model": "gpt-4o-mini",
+        "api": "backend",
+        "base_url": "backend://",
+        "max_output": 16384,
+        "temperature": null,
+        "effort": null,
+        "schema_name": null,
+        "schema_hash": null,
+        "extra_body_hash": null
+      }
+    }
+  ],
+  "errors": [],
+  "budget_stop": false,
+  "stop_reason": null,
+  "spent_usd": 9.7e-05,
+  "replayed_usd": 0
+}

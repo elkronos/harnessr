@@ -66,6 +66,12 @@ gr_trace_save <- function(trace, path) {
 #'   with `jsonlite::fromJSON(path, simplifyVector = FALSE)`: the default
 #'   simplification turns the steps into a data frame, which loses what a
 #'   replay needs, and is refused with a message that says so.
+#' @param on_exhausted What a call does when the recording holds fewer replies
+#'   to its request than the replay has asked for. `"error"` (the default)
+#'   raises an `hr_replay_exhausted` error: the replay is making more calls
+#'   than the run it reproduces did. `"flag"` returns the last recorded reply
+#'   again and counts it in `$stats()$repeats`, which is what every replay did
+#'   before this argument existed.
 #' @param strict If `TRUE` (default), a prompt with no recorded response raises
 #'   a `gr_replay_miss` error. That is usually what you want: a miss means the
 #'   replay has diverged from the recording, and continuing would produce a
@@ -76,9 +82,13 @@ gr_trace_save <- function(trace, path) {
 #'
 #' @section Matching:
 #' A response is matched on the exact prompt messages plus the model id the
-#' call asked for, and the reasoning effort it was sent with when it had one
-#' (see `effort` in [gr_read_spec()]), so a replay under another effort misses
-#' rather than passing for the recording. A replay under the same effort
+#' call asked for, the reasoning effort it was sent with when it had one
+#' (see `effort` in [gr_read_spec()]), the temperature it was made with once
+#' the session default was filled in (none for a model that takes none), the
+#' output cap it asked for, and its JSON schema. These make up the key
+#' `harnessr-replay-v2`, which each step of a trace records as `replay_key`.
+#' So a replay under another effort, temperature, cap or schema misses rather
+#' than passing for the recording. A replay under the same effort
 #' matches even where this session's registry does not list a model as a
 #' reasoning model and the recording session's did (a gateway model
 #' registered with [gr_register_model()] there and not here), and a call
@@ -88,6 +98,14 @@ gr_trace_save <- function(trace, path) {
 #' answering: a [gr_ellmer_client()] answers with its chat's model whatever the
 #' recipe asked for, and its runs replay all the same.
 #'
+#' A step recorded before `replay_key` existed (readgpt 0.6.0, and harnessr
+#' before this key) is matched on the old key, `readgpt-replay-v1`: the
+#' messages, the model and the effort only. A call that finds nothing under the
+#' new key is looked up there, and a reply found that way is used, with an
+#' `hr_legacy_key` warning once per recording in a session, since the replay
+#' cannot then show that the temperature, cap and schema were the recorded
+#' ones. `$stats()$legacy_hits` counts these replies.
+#'
 #' The replay client's own model, which a read that names none asks for, is
 #' the model the recorded reads asked for. One trace can hold reads through
 #' clients built for different models, and a recording made by readgpt 0.5.0
@@ -96,11 +114,17 @@ gr_trace_save <- function(trace, path) {
 #' nothing under it is answered from the one other such model that holds the
 #' same prompt. A model the recorded settings named (`model`, `skim_model`,
 #' `summary_model`) is never used that way, so a replay that leaves one out
-#' misses. When a
-#' run issued the same prompt more than once (which happens at a temperature
-#' above zero, and in readers that revisit a chunk), the recorded responses are
-#' returned in the order they were produced. Once they are exhausted the last
-#' one repeats.
+#' misses.
+#'
+#' @section Repeated calls and draws:
+#' When a run issued the same request more than once (which happens at a
+#' temperature above zero, and in readers that revisit a chunk), the recorded
+#' responses are returned in the order they were produced. A call with a
+#' `draw_index` above 0 (see [gr_call()]) is answered with the reply recorded
+#' for that draw; in a recording that holds no draw indexes, draw k is the
+#' k-th reply recorded for the request. A call past the end of what was
+#' recorded, or for a draw that was never recorded, raises
+#' `hr_replay_exhausted` unless `on_exhausted = "flag"`.
 #'
 #' @section Embeddings:
 #' A trace records each request to an embeddings endpoint (a step labelled
@@ -146,8 +170,9 @@ gr_trace_save <- function(trace, path) {
 #' not have.
 #'
 #' @section What does not replay:
-#' Traces do not record the JSON schema a call requested, so two calls that
-#' differ only by schema share a recording.
+#' Traces do not store the JSON schema a call requested, only a hash of it in
+#' the step's key. In a recording made before `replay_key` existed, two calls
+#' that differ only by schema, temperature or output cap share a reply.
 #'
 #' @seealso [gr_trace_save()], [gr_cache()] for making future runs cheap,
 #'   [gr_mock_client()] for invented answers rather than recorded ones
@@ -169,7 +194,8 @@ gr_trace_save <- function(trace, path) {
 #' gr_trace_save(ans$trace, f)
 #' answer_document(gr_example(), "What was revenue?", "fast",
 #'                 client = gr_replay_client(f))$answer
-gr_replay_client <- function(source, strict = TRUE) {
+gr_replay_client <- function(source, strict = TRUE, on_exhausted = c("error", "flag")) {
+  on_exhausted <- match.arg(on_exhausted)
   # Read once: a file is parsed, and a trace listed, a single time for all the
   # lookups below.
   source <- replay_read(source)
@@ -184,21 +210,29 @@ gr_replay_client <- function(source, strict = TRUE) {
   }
 
   idx <- new.env(parent = emptyenv())
-  idx$full <- list()      # prompt + model  -> recorded responses, in order
+  idx$v2 <- list()        # harnessr-replay-v2 key -> recorded responses, in order
+  idx$full <- list()      # readgpt-replay-v1 key  -> the same, for steps without a v2 key
   idx$prompt <- list()    # prompt only     -> models seen, for diagnostics
   idx$cursor <- list()
   idx$hits <- 0L
   idx$repeats <- 0L
+  idx$legacy_hits <- 0L
   idx$misses <- list()
   idx$auto_used <- rep(FALSE, nrow(auto_choices))
 
   idx$effort <- list()    # prompt + model  -> efforts seen, for diagnostics
 
   for (st in steps) {
-    kf <- replay_key(st$prompt, st$model, st$effort)
-    kp <- replay_key(st$prompt, NULL)
-    km <- replay_key(st$prompt, st$model)
-    idx$full[[kf]] <- c(idx$full[[kf]], list(st))
+    # The diagnostic tables are keyed with the v1 function because it can
+    # leave out the model or the effort; they are never matched to a step.
+    kp <- legacy_replay_key_v1(st$prompt, NULL)
+    km <- legacy_replay_key_v1(st$prompt, st$model)
+    if (!is.na(st$key)) {
+      idx$v2[[st$key]] <- c(idx$v2[[st$key]], list(st))
+    } else {
+      kf <- legacy_replay_key_v1(st$prompt, st$model, st$effort)
+      idx$full[[kf]] <- c(idx$full[[kf]], list(st))
+    }
     idx$prompt[[kp]] <- unique(c(idx$prompt[[kp]], as_chr1(st$model, "?")))
     idx$effort[[km]] <- unique(c(idx$effort[[km]], as_chr1(st$effort, "<none>")))
   }
@@ -227,7 +261,7 @@ gr_replay_client <- function(source, strict = TRUE) {
     model = default_model, api = "replay", base_url = "replay://",
     embedding_model = "replay-embed", max_retries = 0L, retry_pause_base = 0,
     timeout = 1, extra_body = list(),
-    strict = isTRUE(strict), .idx = idx,
+    strict = isTRUE(strict), on_exhausted = on_exhausted, .idx = idx,
     .alt_models = defaults$alts,
     # Derived from the recording, not from this object: two replays of the same
     # trace are the same thing and should share a store, while replays of
@@ -266,8 +300,9 @@ gr_replay_client <- function(source, strict = TRUE) {
     },
     n_recorded = length(steps),
     stats = function() data.frame(
-      recorded = length(steps), distinct = length(idx$full),
+      recorded = length(steps), distinct = length(idx$v2) + length(idx$full),
       hits = idx$hits, repeats = idx$repeats, misses = length(idx$misses),
+      legacy_hits = idx$legacy_hits,
       stringsAsFactors = FALSE
     ),
     missed = function() idx$misses
@@ -279,7 +314,8 @@ print.gr_replay_client <- function(x, ...) {
   s <- x$stats()
   cat(sprintf("<gr_replay_client> %d recorded call(s), %d distinct prompt(s), model=%s%s\n",
               s$recorded, s$distinct, x$model, if (x$strict) "" else " [non-strict]"))
-  cat(sprintf("  %d hit(s), %d repeat(s), %d miss(es)\n", s$hits, s$repeats, s$misses))
+  cat(sprintf("  %d hit(s), %d repeat(s), %d miss(es)%s\n", s$hits, s$repeats, s$misses,
+              if (s$legacy_hits > 0L) sprintf(", %d under the old key", s$legacy_hits) else ""))
   invisible(x)
 }
 
@@ -393,10 +429,16 @@ replay_steps <- function(source) {
       # reproduction of a run it had not reproduced.
       finish_reason = as_chr1(st$finish_reason, NA_character_),
       label = as_chr1(st$label, "call"),
+      # The harnessr-replay-v2 key the call recorded, or NA for a step made
+      # before it existed, which is looked up by readgpt-replay-v1 instead.
+      key = replay_step_key(st$replay_key),
+      # Which draw of a sampled request the call was; 0 for an ordinary call.
+      draw = max(as_int1(params[["draw_index", exact = TRUE]], 0L), 0L),
       # The reasoning effort the request was sent with, or NULL for none, which
-      # is every step recorded without the setting. Part of the key a replayed
-      # call is looked up by: see replay_key(). And whether it was only asked
-      # for, by a call through an ellmer chat, which its replay records again.
+      # is every step recorded without the setting. Part of the old key a
+      # replayed call is looked up by: see legacy_replay_key_v1(). And whether
+      # it was only asked for, by a call through an ellmer chat, which its
+      # replay records again.
       effort = replay_step_effort(params),
       unsent_effort = replay_step_effort(params, unsent = TRUE),
       # What the call counted against max_cost_usd when it was recorded, which
@@ -578,24 +620,47 @@ replay_prompt <- function(p) {
   Filter(Negate(is.null), out)
 }
 
+#' The harnessr-replay-v2 key of a call.
+#'
+#' Everything about the call that changes the reply and that a recording can
+#' be checked against: the messages, the model asked for, the reasoning effort
+#' sent, the temperature once the default is filled in (call_temperature()),
+#' the output cap asked for (NULL for the model's own; see
+#' request_replay_key() for why not the clamped one), and the JSON schema with
+#' its name. The readgpt-replay-v1 key (legacy_replay_key_v1()) had the first three only, so
+#' a replay at another temperature, cap or schema was answered with the
+#' recorded replies and reported 0 misses. The draw index is not in it: the
+#' draws of one request share a key and are told apart by the index each step
+#' records (see replay_lookup()).
+#'
+#' key_text() is what makes a trace replayable from a FILE: jsonlite does not
+#' necessarily hand back a string labelled the way the original was. See the
+#' note on key_text() in core-transport-cache.R.
 #' @noRd
-replay_key <- function(messages, model, effort = NULL) {
-  # key_text() is what makes a trace replayable from a FILE. A saved trace comes
-  # back through jsonlite, which does not necessarily hand back a string labelled
-  # the way the original was, and `digest()` hashes the label along with the
-  # bytes -- so before this every non-ASCII prompt missed on replay-from-file
-  # while every ASCII one hit. See the note on key_text() in core-cache.R.
-  #
-  # The reasoning effort, when the call has one, for the reason the model is
-  # here: it is part of what the call asked for. Left out, a run replayed at
-  # another effort would be answered with the recorded replies and report 0
-  # misses, certifying a run it had not reproduced. Only when there is one, so
-  # every recording made without it keeps the keys it was made with.
-  gr_hash(c("readgpt-replay-v1",
-            if (is.null(model)) "<any-model>" else as_chr1(model, "?"),
+replay_key <- function(messages, model, effort = NULL, temperature = NULL, max_output = NULL,
+                       schema = NULL, schema_name = "result") {
+  hr_hash(c("harnessr-replay-v2",
+            as_chr1(model, "?"),
             if (!is.null(effort)) paste0("effort:", as_chr1(effort)),
+            paste0("temperature:",
+                   if (is.null(temperature)) "<null>" else format(temperature, digits = 15L)),
+            paste0("max_output:",
+                   if (is.null(max_output)) "<model>"
+                   else format(as.numeric(max_output), digits = 15L)),
+            if (is.null(schema)) "schema:<none>"
+            else paste0("schema:", as_chr1(schema_name, "result"), ":", hr_hash(schema)),
             key_text(unlist(lapply(messages, function(m) c(as_chr1(m$role), as_chr1(m$content))),
                             use.names = FALSE))))
+}
+
+#' A step's recorded replay_key, when it is one; NA otherwise.
+#'
+#' Anything else in the field (a hand-edited trace, a damaged file) is treated
+#' as a step with no key, which the old key still finds.
+#' @noRd
+replay_step_key <- function(x) {
+  k <- as_chr1(x, NA_character_)
+  if (!is.na(k) && grepl("^[0-9a-f]{64}$", k)) k else NA_character_
 }
 
 #' The effort a recorded step's request carried, or NULL.
@@ -619,6 +684,7 @@ replay_step_effort <- function(params, unsent = FALSE) {
 
 #' Answer one call from the recording.
 #'
+#' `req` is the request model_call() prepared (see client_dispatch()). Its
 #' `label` and `effort_map` are the call's own label and `effort` setting.
 #' `params$effort` is that setting resolved for this call and sent only to a
 #' model this session's registry says reasons, and the recording was made
@@ -629,41 +695,61 @@ replay_step_effort <- function(params, unsent = FALSE) {
 #' nothing, the effort the call asked for is tried, and each of the
 #' recording's other models is looked up at the effort it would be sent, not
 #' the one resolved for this client's model.
+#'
+#' Every one of those lookups is made under the harnessr-replay-v2 key first,
+#' and only when none finds anything, under the readgpt-replay-v1 key of steps
+#' recorded before the new key existed.
 #' @noRd
-replay_lookup <- function(client, messages, model, params, label = "call", effort_map = NULL) {
+replay_lookup <- function(client, req) {
   idx <- client$.idx
+  messages <- req$messages
+  model <- req$model
+  params <- req$params
+  label <- req$label %||% "call"
+  draw <- as_int1(req$draw_index, 0L)
   effort <- params[["effort", exact = TRUE]]
-  effort_map <- effort_map %||% effort
+  effort_map <- req$effort_map %||% effort
   asked <- effort_for(effort_map, label)
-  held <- function(m, e) {
-    k <- replay_key(messages, m, e)
-    if (!is.null(idx$full[[k]])) k
+  # The key a lookup of model `m` at effort `e` uses under one scheme, and the
+  # table it is looked up in.
+  find <- function(v2) {
+    tab <- if (v2) idx$v2 else idx$full
+    if (!length(tab)) return(NULL)
+    held <- function(m, e, sent_effort = FALSE) {
+      k <- if (v2) request_replay_key(req, m, e, sent_effort)
+           else legacy_replay_key_v1(messages, m, e)
+      if (!is.na(k) && !is.null(tab[[k]])) k
+    }
+    kf <- held(model, effort)
+    if (is.null(kf) && is.null(effort) && !is.null(asked)) kf <- held(model, asked, TRUE)
+    # The recording's other models that calls following a client asked for
+    # (see replay_default_models()), for a call that asked for this client's
+    # model. Only when exactly one holds the prompt: two would be a guess
+    # between two recorded answers, and that is reported as the miss it is.
+    alts <- as.character(client[[".alt_models", exact = TRUE]] %||% character(0))
+    if (is.null(kf) && length(alts) &&
+        identical(as_chr1(model, ""), as_chr1(client$model, ""))) {
+      ka <- unlist(lapply(alts, function(a) {
+        # Only looked up, never called, so a model this session does not know
+        # is not warned about, nor refused under unknown_model_action = "error".
+        info <- tryCatch(suppressWarnings(gr_model_info(a)), error = function(e) NULL)
+        ea <- effort_to_send(effort_map, label, info)
+        held(a, ea) %||% (if (is.null(ea) && !is.null(asked)) held(a, asked, TRUE))
+      }))
+      if (length(ka) == 1L) kf <- ka[[1]]
+    }
+    kf
   }
-  kf <- held(model, effort)
-  if (is.null(kf) && is.null(effort) && !is.null(asked)) kf <- held(model, asked)
-  # The recording's other models that calls following a client asked for (see
-  # replay_default_models()), for a call that asked for this client's model.
-  # Only when exactly one holds the prompt: two would be a guess between two
-  # recorded answers, and that is reported as the miss it is.
-  alts <- as.character(client[[".alt_models", exact = TRUE]] %||% character(0))
-  if (is.null(kf) && length(alts) &&
-      identical(as_chr1(model, ""), as_chr1(client$model, ""))) {
-    ka <- unlist(lapply(alts, function(a) {
-      # Only looked up, never called, so a model this session does not know is
-      # not warned about, nor refused under unknown_model_action = "error".
-      info <- tryCatch(suppressWarnings(gr_model_info(a)), error = function(e) NULL)
-      ea <- effort_to_send(effort_map, label, info)
-      held(a, ea) %||% (if (is.null(ea) && !is.null(asked)) held(a, asked))
-    }))
-    if (length(ka) == 1L) kf <- ka[[1]]
-  }
-  recorded <- if (!is.null(kf)) idx$full[[kf]]
+  kf <- find(TRUE)
+  legacy <- is.null(kf)
+  if (legacy) kf <- find(FALSE)
+  recorded <- if (!is.null(kf)) (if (legacy) idx$full else idx$v2)[[kf]]
 
   if (is.null(recorded)) {
-    other <- idx$prompt[[replay_key(messages, NULL)]]
+    other <- idx$prompt[[legacy_replay_key_v1(messages, NULL)]]
     # The same prompt for the same model at another effort: said first, since
     # "replay the run with that model" would name the model it already asked.
-    efforts <- if (is.list(idx$effort)) idx$effort[[replay_key(messages, model)]] else NULL
+    efforts <- if (is.list(idx$effort)) idx$effort[[legacy_replay_key_v1(messages, model)]] else NULL
     detail <- if (!is.null(efforts)) {
       say <- function(e) if (identical(e, "<none>")) "no effort" else sprintf("effort '%s'", e)
       # What the call asked for, which this session's registry may not send.
@@ -677,7 +763,7 @@ replay_lookup <- function(client, messages, model, params, label = "call", effor
     } else {
       paste0(sprintf(paste0(" The recording holds %d distinct prompt(s); this is not one of them, ",
                             "so the replay has diverged from the run that produced it"),
-                     length(idx$full)),
+                     length(idx$v2) + length(idx$full)),
              replay_miss_causes(client))
     }
     idx$misses <- c(idx$misses, list(list(model = as_chr1(model, "?"), messages = messages)))
@@ -686,17 +772,46 @@ replay_lookup <- function(client, messages, model, params, label = "call", effor
     return(gr_result(FALSE, error = msg, status = 0L, model = model, cached = TRUE))
   }
 
-  pos <- (idx$cursor[[kf]] %||% 0L) + 1L
-  if (pos > length(recorded)) {
-    # More calls than the recording holds. Repeating the last response keeps the
-    # run going and is counted, so `$stats()` says the replay was not exact.
-    pos <- length(recorded)
+  # The replies recorded for this draw. A step recorded with the new key
+  # carries its own draw index. One recorded before had none, and its draws
+  # are numbered in the order they were recorded, which is what a replay of
+  # repeated calls has always handed back.
+  cand <- if (!legacy) Filter(function(s) identical(s$draw, draw), recorded)
+          else if (draw == 0L) recorded
+          else if (draw <= length(recorded)) recorded[draw]
+          else list()
+  ck <- paste(if (legacy) "v1" else "v2", kf, draw)
+  pos <- (idx$cursor[[ck]] %||% 0L) + 1L
+  if (pos > length(cand)) {
+    if (!identical(client$on_exhausted, "flag")) {
+      have <- if (legacy) length(recorded) else length(unique(vapply(recorded, function(s) s$draw, 1L)))
+      gr_abort(paste0(
+        if (!length(cand)) {
+          sprintf(paste0("The recording holds no reply for draw %d of this request; it holds %d ",
+                         "draw(s) of it."), draw, have)
+        } else {
+          sprintf("The recording holds %d repl%s to %s, and this is call %d for it.",
+                  length(cand), if (length(cand) == 1L) "y" else "ies",
+                  if (draw > 0L) sprintf("draw %d of this request", draw) else "this request", pos)
+        },
+        " The replay is making more calls than the recorded run did, so it is not reproducing ",
+        "that run. Pass on_exhausted = \"flag\" to gr_replay_client() to repeat the last ",
+        "recorded reply instead, counted in $stats()$repeats."),
+        class = "hr_replay_exhausted")
+    }
+    # Flagged: the last reply repeats, and `$stats()` says the replay was not
+    # exact.
+    st <- if (length(cand)) cand[[length(cand)]] else recorded[[length(recorded)]]
     idx$repeats <- idx$repeats + 1L
   } else {
-    idx$cursor[[kf]] <- pos
+    idx$cursor[[ck]] <- pos
+    st <- cand[[pos]]
   }
   idx$hits <- idx$hits + 1L
-  st <- recorded[[pos]]
+  if (legacy) {
+    idx$legacy_hits <- idx$legacy_hits + 1L
+    legacy_key_warn("replay", as_chr1(client$.client_id, "replay"))
+  }
 
   res <- gr_result(
     ok = st$ok, text = st$response, error = st$error, status = NA_integer_,

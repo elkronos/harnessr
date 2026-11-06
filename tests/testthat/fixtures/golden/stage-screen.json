@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "ce1396f8623953f6",
+      "cache_key": "a55a987e64574f92e84c5c0045a7f35e534c1b98a2e577ded00ff4bbf10e2489",
       "chars": [601, 40, 70, 1980],
       "label": "screen.decide",
       "messages": "71f66221b7ee3b0a",
@@ -163,6 +163,7 @@
         },
         "prompt": "71f66221b7ee3b0a",
         "recipe": "research+screen",
+        "replay_key": "ee4cf66f60d6660eb632a27537e54180557b8cd0ef567f398361dc8ed1bb5cc1",
         "response": "40cca6177efa0bcc",
         "response_id": null,
         "served_model": null,
