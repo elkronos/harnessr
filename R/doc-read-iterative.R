@@ -90,8 +90,11 @@ read_iterative <- function(chunks, question, client, spec, trace) {
     # compared the first 512 of each, two unrelated spaces, and the round took
     # whatever that picked with partial = FALSE. `retrieve` embeds the question
     # with the chunks, in one request, and cannot mix them. Here both go onto
-    # word overlap for the round, and the answer says so.
-    if (nrow(d) && (!identical(attr(q_emb, "embedding_source") %||% "api", src) ||
+    # word overlap for the round, and the answer says so. A query that came
+    # back with no vector at all goes the same way: cosine_against() now
+    # refuses vectors of different lengths instead of scoring them 0.
+    if (nrow(d) && (!nrow(q_emb) ||
+                    !identical(attr(q_emb, "embedding_source") %||% "api", src) ||
                     NCOL(q_emb) != NCOL(emb))) {
       if (is.null(lex_emb)) lex_emb <- lexical_embed(d$text)
       rank_emb <- lex_emb
@@ -110,7 +113,6 @@ read_iterative <- function(chunks, question, client, spec, trace) {
     seen <- c(seen, take)
     seen_score <- c(seen_score, sc[take])
 
-    if (!trace_can_call(trace)) { done_reason <- cap_name(trace); break }
     obud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens,
                       overhead = prompt_overhead(question, step_system, spec$restate))
     step <- iterative_fit(d, seen, seen_score, obud$input, spec$context_order)
@@ -135,6 +137,8 @@ read_iterative <- function(chunks, question, client, spec, trace) {
     ), schema = schema, schema_name = "iterative_step", model = spec$model,
        max_output = spec$max_answer_tokens, temperature = spec$temperature,
        trace = trace, label = "iterative.step", effort = spec$effort)
+    # A limit ends the loop; what was gathered is answered from below.
+    if (is_refused(out$result)) { done_reason <- cap_name(trace); break }
 
     if (!out$ok) {
       # A reply cut off at the cap is not parsable JSON, and saying so is more
@@ -215,13 +219,13 @@ read_iterative <- function(chunks, question, client, spec, trace) {
   sub <- d[final$rows, , drop = FALSE]
   res <- if (!nrow(sub)) {
     gr_result(FALSE, error = "no gathered chunk fits the context window")
-  } else if (trace_can_call(trace)) {
+  } else {
     gr_call(client, answer_messages(question, final$body, cite = spec$cite,
                                     restate = spec$restate, premise = spec$premise),
             model = spec$model, max_output = spec$max_answer_tokens,
             temperature = spec$temperature, trace = trace, label = "iterative.final",
             effort = spec$effort)
-  } else gr_result(FALSE, error = paste(cap_name(trace), "reached before the answer step"))
+  }
   # Partial already, since the loop did not finish; the count says why as well.
   cut <- as.integer(res$ok && reply_cut_off(res))
   out <- premise_reply(if (res$ok) res$text else .NOT_FOUND, spec$premise)

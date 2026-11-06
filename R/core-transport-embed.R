@@ -235,11 +235,21 @@ embed_api <- function(texts, params) {
       # max_calls and max_cost_usd (even `max_calls = 0` sent them), and the
       # trace and gr_trace_cost() said the run cost nothing. A refusal raises
       # like any other failure here, so gr_embed()'s `fallback` decides what
-      # happens next; cache hits never get this far and stay free.
-      if (!trace_can_call(trace)) {
-        gr_abort(embed_cap_message(trace, b, length(starts)),
-                 class = c(if (identical(cap_name(trace), "spending limit")) "gr_cost_cap"
-                           else "gr_call_cap", "gr_embed_error"))
+      # happens next; cache hits never get this far and stay free. The
+      # governor checks it as it checks a model call, against its worst case:
+      # every input token at the model's price (an embedding has no reply). An
+      # embedding model with no price is not refused: it costs about a
+      # hundredth of a chat model, and gr_read_many() already says when its
+      # spend is left out of the ceiling.
+      refusal <- governor_check(trace, list(
+        model = model, label = "embed.request", input_tokens = sum(gr_count_tokens(texts_b)),
+        output_tokens = 0, unpriced_ok = TRUE), "both")
+      if (!is.null(refusal)) {
+        governor_refuse(trace, refusal)
+        gr_abort(embed_cap_message(refusal, b, length(starts)),
+                 class = c(if (refusal$limit %in% c("cost", "unpriced")) "gr_cost_cap"
+                           else if (identical(refusal$limit, "calls")) "gr_call_cap",
+                           "gr_embed_error"))
       }
       started <- Sys.time()
       resp <- embed_post(client, paste0(client$base_url, "/embeddings"), headers, body)
@@ -282,7 +292,8 @@ embed_api <- function(texts, params) {
 #' `max_retries` promised otherwise, and the next call, made a moment later,
 #' got real vectors. The statuses retried, the backoff and a server's
 #' Retry-After are http_call()'s. Returns the last response, or the transport
-#' error once the retries are spent.
+#' error once the retries are spent, with the number of requests sent as its
+#' `attempts` attribute, so the ledger can say how many were billed.
 #' @noRd
 embed_post <- function(client, url, headers, body) {
   retries <- as_int1(client$max_retries, 0L)
@@ -297,12 +308,14 @@ embed_post <- function(client, url, headers, body) {
                  body = body, encode = "json"),
       error = function(e) e)
     if (inherits(resp, "condition")) {
-      if (attempt > retries) return(resp)
+      if (attempt > retries) return(structure(resp, attempts = attempt))
       Sys.sleep(backoff_delay(as_num1(client$retry_pause_base, 0), attempt))
       next
     }
     status <- httr::status_code(resp)
-    if (!(status %in% .retryable_status) || attempt > retries) return(resp)
+    if (!(status %in% .retryable_status) || attempt > retries) {
+      return(structure(resp, attempts = attempt))
+    }
     wait <- retry_after(resp) %||% backoff_delay(as_num1(client$retry_pause_base, 0), attempt)
     gr_msg(sprintf("Embeddings request: HTTP %d; retrying in %.1fs (attempt %d/%d).",
                    status, wait, attempt, retries + 1L))
@@ -393,6 +406,7 @@ embed_record <- function(trace, model, texts, resp, parsed, problem = NULL, seco
   status <- if (inherits(resp, "condition")) 0L
             else if (inherits(resp, "response")) as_int1(httr::status_code(resp), NA_integer_)
             else NA_integer_
+  attempts <- as_int1(attr(resp, "attempts", exact = TRUE), NA_integer_)
   res <- if (is.list(parsed) && !is.null(parsed[["data"]])) {
     ug <- if (is.list(parsed[["usage"]])) parsed[["usage"]] else list()
     usage <- settle_usage(list(input = ug[["prompt_tokens"]] %||% ug[["input_tokens"]],
@@ -400,11 +414,18 @@ embed_record <- function(trace, model, texts, resp, parsed, problem = NULL, seco
                           sum(gr_count_tokens(texts)), "")
     # A reply that held embeddings the checks refused was still answered, and
     # billed, so its tokens stay on the step; only its vectors are unusable.
-    if (is.null(problem)) gr_result(TRUE, model = model, usage = usage)
-    else gr_result(FALSE, model = model, status = status, usage = usage,
-                   error = sprintf("Embeddings request to '%s' failed: %s", model, problem))
+    served <- as_chr1(parsed[["model"]], NA_character_)
+    if (is.null(problem)) {
+      gr_result(TRUE, model = model, usage = usage, served_model = served, attempts = attempts)
+    } else {
+      gr_result(FALSE, model = model, status = status, usage = usage,
+                served_model = served, attempts = attempts,
+                error = sprintf("Embeddings request to '%s' failed: %s", model, problem))
+    }
   } else {
-    gr_result(FALSE, model = model, status = status, error = sprintf(
+    # Nothing was read from the provider, so the zero is ours: "counted".
+    gr_result(FALSE, model = model, status = status, attempts = attempts,
+              usage = usage_record(0L, 0L, "counted"), error = sprintf(
       "Embeddings request to '%s' failed: %s", model,
       problem %||% embed_http_problem(resp)))
   }
@@ -413,18 +434,12 @@ embed_record <- function(trace, model, texts, resp, parsed, problem = NULL, seco
                embedding = TRUE)
 }
 
-#' Why an embeddings request was not sent, naming the limit and its setting.
+#' Why an embeddings request was not sent: the governor's reason, and which
+#' request of the batch it was.
 #' @noRd
-embed_cap_message <- function(trace, i, n) {
+embed_cap_message <- function(refusal, i, n) {
   what <- if (n > 1L) sprintf("embeddings request %d of %d", i, n) else "the embeddings request"
-  if (identical(cap_name(trace), "spending limit")) {
-    sprintf(paste0("the run has spent $%s, which reaches the $%s spending limit, so %s was ",
-                   "not sent; raise gr_options(max_cost_usd =)"),
-            fmt_usd(budget_spent(trace)), format(gr_options("max_cost_usd"), scientific = FALSE), what)
-  } else {
-    sprintf("%s would pass the run's %s-call cap, so it was not sent; raise gr_options(max_calls =)",
-            what, format(gr_options("max_calls"), scientific = FALSE))
-  }
+  sprintf("%s: %s", what, conditionMessage(refusal))
 }
 
 #' Key for one cached embedding.

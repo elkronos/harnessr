@@ -11,8 +11,10 @@ gr_cache_stats(cache)
 }
 \value{
 A one-row data frame: \code{dir}, \code{entries}, \code{bytes}, \code{hits}, \code{misses},
-\code{writes}. \code{entries} and \code{bytes} are read from disk, so they include entries
-written by earlier sessions; the three counters cover this session only.
+\code{writes} and \code{legacy_hits}. \code{entries} and \code{bytes} are read from disk, so
+they include entries written by earlier sessions; the counters cover this
+session only. \code{legacy_hits} is how many of the hits were found under the
+old \code{readgpt-cache-v2} key (see \code{\link[=gr_cache]{gr_cache()}}).
 }
 \description{
 Cache statistics

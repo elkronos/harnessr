@@ -13,7 +13,11 @@
 #'
 #' @param trace A `gr_trace`.
 #' @return A data frame with one row per model: `model`, `calls`, `paid_calls`,
-#'   `paid_in`, `paid_out`, `usd`. `sum(x$usd)` is the run's cost. A model with
+#'   `paid_in`, `paid_out`, `usd`, `paid_reasoning`, `paid_cached_in`.
+#'   `sum(x$usd)` is the run's cost. `paid_reasoning` and `paid_cached_in` are
+#'   the reasoning and cached input tokens the provider reported among
+#'   `paid_out` and `paid_in`; cached input is priced at the model's cached
+#'   input rate where [gr_register_model()] gave it one. A model with
 #'   no registered price contributes `NA`, so a total that silently omitted an
 #'   unpriced model is impossible. The exception is a model whose every request
 #'   failed without sending a token (an embeddings request to an endpoint that
@@ -41,6 +45,7 @@ gr_trace_cost <- function(trace) {
   if (!length(steps)) {
     return(data.frame(model = character(0), calls = integer(0), paid_calls = integer(0),
                       paid_in = integer(0), paid_out = integer(0), usd = numeric(0),
+                      paid_reasoning = integer(0), paid_cached_in = integer(0),
                       stringsAsFactors = FALSE))
   }
   model <- vapply(steps, function(s) as_chr1(s$model, "unknown"), character(1))
@@ -50,6 +55,10 @@ gr_trace_cost <- function(trace) {
   # NA, which the report renders as a dash. Zero would render as free.
   tin  <- vapply(steps, function(s) as_int1(s$tokens$input, NA_integer_), integer(1))
   tout <- vapply(steps, function(s) as_int1(s$tokens$output, NA_integer_), integer(1))
+  # Breakdowns the provider did not report are none, not unknown: they only
+  # move part of a known count to another rate.
+  treas <- vapply(steps, function(s) as_int1(s$tokens$reasoning, 0L), integer(1))
+  tcach <- vapply(steps, function(s) as_int1(s$tokens$cached_input, 0L), integer(1))
   # A request that failed and sent no tokens cost nothing whatever its model, as
   # as.data.frame.gr_trace() prices it. An embeddings request to a gateway
   # without embeddings fails like that, usually for an embedding model with no
@@ -61,16 +70,19 @@ gr_trace_cost <- function(trace) {
 
   do.call(rbind, lapply(sort(unique(model)), function(m) {
     i <- model == m
-    pin <- sum(tin[i & paid]); pout <- sum(tout[i & paid])
+    pin <- sum(tin[i & paid]); pout <- sum(tout[i & paid]); pcach <- sum(tcach[i & paid])
     data.frame(
       model = m, calls = sum(i), paid_calls = sum(i & paid),
       paid_in = as.integer(pin), paid_out = as.integer(pout),
       # Priced over the rest, cached requests included, so a cached request of
       # a model with no price is still NA. Nothing left, nothing to price.
       usd = if (!any(i & !free)) 0
-            else tryCatch(as.numeric(gr_estimate_cost(m, pin, pout)),
+            else tryCatch(as.numeric(gr_estimate_cost(m, pin, pout,
+                                                      cached_input_tokens = pcach)),
                           error = function(e) NA_real_,
                           warning = function(w) NA_real_),
+      paid_reasoning = as.integer(sum(treas[i & paid])),
+      paid_cached_in = as.integer(pcach),
       stringsAsFactors = FALSE)
   }))
 }

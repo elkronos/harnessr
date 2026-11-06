@@ -10,9 +10,10 @@ gr_model_info(model = NULL)
 \item{model}{Model id.}
 }
 \value{
-A named list: \code{id}, \code{context_window}, \code{max_output}, \code{input_usd} and
-\code{output_usd} (per 1M tokens, used by \code{\link[=gr_estimate_cost]{gr_estimate_cost()}}), \code{reasoning},
-\code{supports_temperature}, \code{kind}, \code{dimensions}, \code{as_of}, \code{certain}, and
+A named list: \code{id}, \code{context_window}, \code{max_output}, \code{input_usd},
+\code{output_usd} and \code{cached_input_usd} (per 1M tokens, used by
+\code{\link[=gr_estimate_cost]{gr_estimate_cost()}}), \code{reasoning}, \code{supports_temperature}, \code{kind},
+\code{dimensions}, \code{as_of}, \code{certain}, and
 \code{source} (\code{"registered"}, \code{"builtin"}, \code{"alias"}, \code{"pattern:..."} or
 \code{"default"}). \code{certain} is \code{FALSE} when the answer came from a family regex
 or the fallback; verify before relying on it for cost control.

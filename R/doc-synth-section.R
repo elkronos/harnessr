@@ -107,8 +107,8 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
 
   body <- paste(rendered, collapse = "\n\n")
   lost_batches <- 0L
-  # A latch of this function's own, not `trace$budget_stop`. tree_merge() calls
-  # trace_can_call() too, and sets budget_stop while still returning usable text
+  # A latch of this function's own, not `trace$budget_stop`. A refused merge
+  # request in tree_merge() sets budget_stop while still returning usable text
   # -- so a run whose merge tripped the ceiling suppressed the warning for every
   # section after it, and those sections came back empty in silence.
   capped <- capped %||% new.env(parent = emptyenv())
@@ -134,21 +134,21 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
   # merged section is checked against below.
   batch_rows <- list()
   batch_read <- logical(0)
-  text <- if (!trace_can_call(trace)) {
-    # Every other stage checks the run's ceiling before it spends -- gr_claims(),
-    # gr_outline(), revise_once() and every reader do. Synthesis did not, so a
-    # run that had already hit `max_calls` kept writing sections, one call each.
-    # An empty section is already marked partial below, which is the right
-    # outcome: the ceiling was the user's instruction.
+  # A section a limit stopped before any of it was written. Synthesis once
+  # kept writing sections, one call each, after a run had hit `max_calls`; the
+  # governor now refuses those requests, and an empty section is marked partial
+  # below, which is the right outcome: the ceiling was the user's instruction.
+  not_written <- function() {
     if (first_stop) {
       capped$warned <- TRUE
-      gr_warn(sprintf(paste0("Section '%s' was not written, nor is any section after it: the run ",
-                             "reached its call or cost ceiling first. They are marked partial."),
-                      heading),
+      gr_warn(sprintf(paste0("Section '%s' was not written: the run reached its call or cost ",
+                             "ceiling first. It is marked partial, as is any later section the ",
+                             "ceiling stops."), heading),
               class = "gr_synth_capped")
     }
     ""
-  } else if (!is.null(bud) && gr_count_tokens(body) <= bud$input) {
+  }
+  text <- if (!is.null(bud) && gr_count_tokens(body) <= bud$input) {
     msgs <- list(
       list(role = "system", content = system_prompt),
       list(role = "user", content = ask))
@@ -163,8 +163,10 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
     res <- gr_call(client, msgs, model = spec$model, max_output = spec$max_answer_tokens,
                    temperature = spec$temperature, trace = trace, label = "synthesise.section",
                    effort = spec$effort)
-    if (usable_text(res) && reply_cut_off(res)) cut_off <- cut_off + 1L
-    if (usable_text(res)) res$text else ""
+    if (is_refused(res)) not_written() else {
+      if (usable_text(res) && reply_cut_off(res)) cut_off <- cut_off + 1L
+      if (usable_text(res)) res$text else ""
+    }
   } else {
     # Too many studies for one prompt: draft the section from batches and merge.
     # Cheaper alternatives -- take the first N rows, or summarise the table first
@@ -198,7 +200,6 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
       # but "2 batches of studies failed" points at the model or the network,
       # and the cause here is the ceiling the caller set. `<<-` is right in this
       # nested function: it targets synth_section()'s frame, not the global one.
-      if (!trace_can_call(trace)) { capped_batches <<- capped_batches + 1L; return("") }
       res <- gr_call(client, list(
         list(role = "system", content = system_prompt),
         list(role = "user", content = j$ask),
@@ -207,6 +208,7 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
       ), model = spec$model, max_output = spec$max_answer_tokens,
          temperature = spec$temperature, trace = trace, label = "synthesise.batch",
          effort = spec$effort)
+      if (is_refused(res)) { capped_batches <<- capped_batches + 1L; return("") }
       # Kept for the merge, as the one-call section keeps its text: part of a
       # batch's draft beats none of it. Counted, so the section says it.
       if (usable_text(res) && reply_cut_off(res)) cut_off <<- cut_off + 1L
@@ -349,9 +351,9 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
   }
   if (capped_batches > 0L && first_stop) {
     capped$warned <- TRUE
-    gr_warn(sprintf(paste0("Section '%s': %d batch(es) of studies were not read, nor is any ",
-                           "section after this one: the run reached its call or cost ceiling. ",
-                           "They are marked partial."),
+    gr_warn(sprintf(paste0("Section '%s': %d batch(es) of studies were not read: the run ",
+                           "reached its call or cost ceiling. The section is marked partial, as ",
+                           "is any later section the ceiling stops."),
                     heading, capped_batches), class = "gr_synth_capped")
   }
   if (cut_off > 0L) {

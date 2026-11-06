@@ -124,9 +124,11 @@ test_that("a short call to a reasoning model is sent with room for its reasoning
   expect_identical(seen$max_output_tokens, 5000L)
   invisible(gr_call(cl, "Short", model = "gpt-4o", max_output = 90L))
   expect_identical(seen$max_output_tokens, 90L)
-  # Never beyond the model's own limit.
+  # Never beyond the model's own limit. Priced, so the spending limit lets it
+  # be sent.
   gr_register_model("small-reasoner", context_window = 8000L, max_output = 1000L,
-                    reasoning = TRUE, supports_temperature = FALSE)
+                    reasoning = TRUE, supports_temperature = FALSE,
+                    input_usd = 1, output_usd = 1)
   invisible(gr_call(cl, "Short", model = "small-reasoner", max_output = 90L))
   expect_identical(seen$max_output_tokens, 1000L)
 })

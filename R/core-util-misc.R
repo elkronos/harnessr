@@ -185,14 +185,14 @@ seq_between <- function(from, to) {
 #' backwards. Every spec constructor clamps through this, so an out-of-range
 #' setting is always reported rather than quietly replaced.
 #' @noRd
-clamp_warn <- function(x, lo, hi, what, integer = TRUE) {
+clamp_warn <- function(x, lo, hi, what, integer = TRUE, class = "gr_clamped") {
   out <- clamp(x, lo, hi)
   if (integer) out <- as.integer(out)
   same <- tryCatch(isTRUE(all.equal(as.numeric(x), as.numeric(out))), error = function(e) FALSE)
   if (!same) {
     gr_warn(sprintf("`%s` %s is outside [%s, %s]; using %s.",
                     what, format(x), format(lo), format(hi), format(out)),
-            class = "gr_clamped")
+            class = class)
   }
   out
 }
@@ -410,15 +410,32 @@ words_of <- function(text) {
 
 #' Cosine similarity between two numeric vectors. Returns 0 (not NaN) for
 #' zero-norm inputs.
+#'
+#' Vectors of different lengths raise `hr_dim_mismatch`. Both used to be cut
+#' to the shorter length, so a 512-dimension lexical vector against a
+#' 1536-dimension API one gave a plausible score from two unrelated spaces,
+#' and retrieval ranked on it without a word.
 #' @noRd
 cosine_similarity <- function(a, b) {
   if (is.null(a) || is.null(b)) return(0)
-  n <- min(length(a), length(b))
+  check_same_dim(length(a), length(b))
+  n <- length(a)
   if (n == 0L) return(0)
-  a <- as.numeric(a[seq_len(n)]); b <- as.numeric(b[seq_len(n)])
+  a <- as.numeric(a); b <- as.numeric(b)
   da <- sqrt(sum(a * a)); db <- sqrt(sum(b * b))
   if (!is.finite(da) || !is.finite(db) || da == 0 || db == 0) return(0)
   as.numeric(sum(a * b) / (da * db))
+}
+
+#' Stop with `hr_dim_mismatch` unless two vector lengths agree.
+#' @noRd
+check_same_dim <- function(n_a, n_b) {
+  if (n_a != n_b) {
+    gr_abort(sprintf(paste0("Cannot compare vectors of %d and %d dimensions: they come from ",
+                            "different embedding spaces."), n_a, n_b),
+             class = "hr_dim_mismatch", dims = c(n_a, n_b))
+  }
+  invisible(TRUE)
 }
 
 #' Generate a run identifier without touching the global RNG stream.

@@ -159,7 +159,11 @@ to every call. A character vector named by stage sets it per stage:
 call whose trace label is that name or starts with it and a dot; the
 longest name that covers a label wins; an unnamed element, or one named
 \code{"default"}, covers the labels no name does, and a label nothing covers is
-sent no effort. It reaches the segmenters that call a model too, when the
+sent no effort. A name must cover a stem some registered reader,
+segmenter or stage declares (the \code{calls} column of \code{\link[=gr_readers]{gr_readers()}} and
+\code{\link[=gr_segmenters]{gr_segmenters()}}), or a label under one, so a misspelt name is an error
+of class \code{hr_unknown_effort_key} that lists the stems, not a setting that
+reaches no call. It reaches the segmenters that call a model too, when the
 spec is part of a recipe. See the section on reasoning effort.}
 
 \item{premise}{Check the question's assumptions against the document. A

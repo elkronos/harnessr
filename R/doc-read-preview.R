@@ -120,17 +120,15 @@ read_preview <- function(chunks, question, client, spec, trace) {
                                                    enum = list("read", "skim", "skip")),
                                   reason = list(type = "string"))))))
 
-  plan <- if (trace_can_call(trace)) {
-    gr_call_json(client, list(
-      list(role = "system", content = .gr_prompts$preview_system),
-      list(role = "user", content = paste0("Question: ", question)),
-      list(role = "user", content = paste0("<outline>\n", outline, "\n</outline>")),
-      list(role = "user", content = sprintf(
-        "Return one entry for each of the %d sections, using the ids shown.", n_units))
-    ), schema = schema, schema_name = "reading_plan", model = spec$model,
-       max_output = spec$max_answer_tokens, temperature = spec$temperature,
-       trace = trace, label = "preview.plan", effort = spec$effort)
-  } else list(ok = FALSE, value = NULL)
+  plan <- gr_call_json(client, list(
+    list(role = "system", content = .gr_prompts$preview_system),
+    list(role = "user", content = paste0("Question: ", question)),
+    list(role = "user", content = paste0("<outline>\n", outline, "\n</outline>")),
+    list(role = "user", content = sprintf(
+      "Return one entry for each of the %d sections, using the ids shown.", n_units))
+  ), schema = schema, schema_name = "reading_plan", model = spec$model,
+     max_output = spec$max_answer_tokens, temperature = spec$temperature,
+     trace = trace, label = "preview.plan", effort = spec$effort)
 
   # The default is READ, not skip. An unplanned section is one the planner did
   # not speak about, and the safe reading of silence is "look at it", not "throw
@@ -215,7 +213,6 @@ read_preview <- function(chunks, question, client, spec, trace) {
                             spec$max_chunk_tokens)
     res <- gr_lapply(skim_units, function(i, trace) {
       rows <- units[[i]]
-      if (!trace_can_call(trace)) return(list(ok = FALSE, text = "", rows = rows, capped = TRUE))
       body <- render_chunks(d[rows, , drop = FALSE])
       # What the truncation costs is reported, not swallowed. A skimmed unit
       # too big for one call used to lose its tail silently, so the run said it
@@ -230,6 +227,7 @@ read_preview <- function(chunks, question, client, spec, trace) {
       ), model = skim_model, max_output = spec$max_chunk_tokens,
          temperature = spec$temperature, trace = trace, label = "preview.skim",
          effort = spec$effort)
+      if (is_refused(r)) return(list(ok = FALSE, text = "", rows = rows, capped = TRUE))
       list(ok = usable_text(r), text = r$text, rows = rows, lost = lost, cut = reply_cut_off(r))
     }, parallel = spec$parallel, label = "preview section", trace = trace,
        client = client, item_usd = worst)
@@ -328,13 +326,11 @@ read_preview <- function(chunks, question, client, spec, trace) {
                                    reason = "the plan skipped every section, or every skim failed")))
   }
 
-  res2 <- if (trace_can_call(trace)) {
-    gr_call(client, answer_messages(question, body, cite = spec$cite, restate = spec$restate,
-                                    premise = spec$premise),
-            model = spec$model, max_output = spec$max_answer_tokens,
-            temperature = spec$temperature, trace = trace, label = "preview.answer",
-            effort = spec$effort)
-  } else gr_result(FALSE, error = paste(cap_name(trace), "reached before the answer step"))
+  res2 <- gr_call(client, answer_messages(question, body, cite = spec$cite, restate = spec$restate,
+                                          premise = spec$premise),
+                  model = spec$model, max_output = spec$max_answer_tokens,
+                  temperature = spec$temperature, trace = trace, label = "preview.answer",
+                  effort = spec$effort)
   if (usable_text(res2) && reply_cut_off(res2)) cut <- cut + 1L
 
   used <- unique(c(d$chunk_id[keep_rows], if (!is.null(ev_skim)) ev_skim$chunk_id))

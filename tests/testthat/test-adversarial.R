@@ -1186,11 +1186,13 @@ test_that("a proposition list keeps its order whatever shape it arrived in", {
   shapes <- c('{"propositions":["A1.","A2.","B1.","B2."]}',
               '{"propositions":[["A1.","A2."],["B1.","B2."]]}')
   flat <- function(cs) paste(trimws(unlist(strsplit(cs$chunks$text, "\n"))), collapse = " ")
+  # The matrix shape used to come out transposed: "A1. B1. A2. B2." An array
+  # of arrays now breaks the schema (items are strings), so the batch is kept
+  # as written, in its own order, as any batch with no usable reply is.
   for (j in shapes) {
     cl <- gr_mock_client(function(messages, params) j)
     cs <- quiet(gr_segment(quiet(gr_ingest(src)), list(method = "proposition"), client = cl))
-    # The matrix shape used to come out transposed: "A1. B1. A2. B2."
-    expect_equal(flat(cs), "A1. A2. B1. B2.", info = j)
+    expect_equal(flat(cs), if (grepl("[[", j, fixed = TRUE)) src else "A1. A2. B1. B2.", info = j)
   }
   cl <- gr_mock_client(function(messages, params)
     '{"propositions":[{"text":"A1."},{"text":"A2."}]}')
@@ -1430,9 +1432,12 @@ test_that("a NULL override does not silently reset a recipe field", {
   expect_error(quiet(answer_document(f, "q", "fast", client = mock_echo(), skim_model = NULL)), NA)
 })
 
-test_that("a text field that arrives as an array is joined, not discarded", {
+test_that("a text field that arrives as an array fails the call, not the document", {
   # A scalar-only read of `answer` returned NULL for ["...", "..."], and the
   # iterative reader then reported NOT_IN_DOCUMENT for a document that answered.
+  # The arrays were then joined. They break the schema (each of these fields
+  # is a string), so the call is now a failed one: the answer is partial and
+  # says the step failed, rather than reading a reply the schema rules out.
   doc <- paste(rep(paste("The cohort comprised 482 participants across nine sites.",
                          "Adherence exceeded 91 percent in the treatment arm."), 20),
                collapse = "\n\n")
@@ -1444,10 +1449,9 @@ test_that("a text field that arrives as an array is joined, not discarded", {
     "x"
   })
   a <- quiet(gr_read(ch, "How many?", cl, gr_read_spec("iterative", max_rounds = 3)))
-  expect_identical(a$answer, "The sample size was 482.\nNine sites.")
-  expect_false(a$partial)
-  # The same for the next search: an array of terms is one query, not the end
-  # of the loop.
+  expect_true(a$partial)
+  expect_identical(a$notes$stop_reason, "step failed")
+  # The same for the next search: an array of terms is not a query.
   k <- new.env(); k$n <- 0L
   cl2 <- gr_mock_client(function(messages, params) {
     if (grepl("reading iteratively", messages[[1]]$content, fixed = TRUE)) {
@@ -1458,7 +1462,8 @@ test_that("a text field that arrives as an array is joined, not discarded", {
     "x"
   })
   a <- quiet(gr_read(ch, "How many?", cl2, gr_read_spec("iterative", max_rounds = 3)))
-  expect_identical(a$notes$queries, c("How many?", "nine sites\ncohort"))
+  expect_identical(a$notes$queries, "How many?")
+  expect_identical(a$notes$stop_reason, "step failed")
 
   # json_text() itself: exact key, NAs dropped, nothing usable is the default.
   jt <- harnessr:::json_text
@@ -1482,8 +1487,9 @@ test_that("a text field that arrives as an array is joined, not discarded", {
     }
     "x"
   })
-  expect_identical(quiet(gr_read(ch, "How many?", obj,
-                                 gr_read_spec("iterative", max_rounds = 3)))$answer, "482")
+  a <- quiet(gr_read(ch, "How many?", obj, gr_read_spec("iterative", max_rounds = 3)))
+  expect_true(a$partial)
+  expect_identical(a$notes$stop_reason, "step failed")
 
   # And the screener's reason and criterion, which are what the flow diagram
   # counts exclusions by. An "include": an exclusion whose criterion is not one
@@ -1496,9 +1502,9 @@ test_that("a text field that arrives as an array is joined, not discarded", {
            '"criterion":["Randomised comparison","Adults"],',
            '"quote":["A randomised trial of 482 adults found a benefit."]}'))
   sc <- quiet(gr_screen(d, question = "Q?", include = "Randomised comparison", client = sc_cl))
-  expect_identical(sc$table$reason, "Not randomised.\nNo control group.")
-  expect_identical(sc$table$criterion, "Randomised comparison\nAdults")
-  expect_true(sc$table$verified)
+  expect_true(is.na(sc$table$decision))
+  expect_identical(sc$table$status, "failed")
+  expect_match(sc$table$error, "$.reason: expected string, got an array", fixed = TRUE)
 })
 
 test_that("a proposition batch that cannot be decomposed is kept as written", {
@@ -1596,10 +1602,13 @@ test_that("a rerank score that was never given is not a score", {
   expect_true(r$partial)
 
   # Every candidate judged and every score low is a CORRECT negative.
-  none <- scorer(function(ex) '{"score":1,"reason":["no","nothing here"]}')
+  none <- scorer(function(ex) '{"score":1,"reason":"nothing here"}')
   r <- quiet(gr_read(ch, "What colour?", none, spec()))
   expect_identical(r$answer, "NOT_IN_DOCUMENT")
   expect_false(r$partial)
+  # A reason sent as an array breaks the schema, so that score was never given.
+  arr <- scorer(function(ex) '{"score":1,"reason":["no","nothing here"]}')
+  expect_true(quiet(gr_read(ch, "What colour?", arr, spec()))$partial)
   # Whatever the model's own `reason` says: outcomes are counted from what
   # happened to the call, not from words a model wrote.
   odd <- scorer(function(ex) '{"score":1,"reason":"unscorable"}')
@@ -1793,25 +1802,22 @@ test_that("every setting's missing-value fallback is its formal default", {
   # The fallback is written out by hand, apart from the signature, and the two
   # drifted: gr_segment_spec(max_tokens = NA) cut 800-token chunks while leaving
   # the argument out cut 1200-token ones.
-  found <- list()
-  walk <- function(e) {
-    if (!is.call(e)) return(invisible())
-    if (identical(e[[1]], as.name("na_default")) && is.name(e[[2]])) {
-      found[[length(found) + 1L]] <<- e
-    }
-    invisible(lapply(as.list(e)[-1], function(x) if (!missing(x)) walk(x)))
-  }
+  # The spec constructors take the fallback from their schemas, where every
+  # number's default is the one hr_validate() falls back to.
   checked <- character(0)
-  for (fn in c("gr_ingest_spec", "gr_segment_spec", "gr_read_spec")) {
+  schemas <- c(gr_ingest_spec = ".gr_ingest_schema", gr_segment_spec = ".gr_segment_schema",
+               gr_read_spec = ".gr_read_schema")
+  for (fn in names(schemas)) {
     f <- get(fn, envir = asNamespace("harnessr"))
-    found <- list()
-    walk(body(f))
-    for (cl in found) {
-      arg <- as.character(cl[[2]])
-      if (!arg %in% names(formals(f))) next
-      expect_equal(as.numeric(eval(cl[[3]])), as.numeric(eval(formals(f)[[arg]])),
-                   info = paste0(fn, "(", arg, ")"))
-      checked <- c(checked, paste0(fn, "(", arg, ")"))
+    schema <- get(schemas[[fn]], envir = asNamespace("harnessr"))
+    for (p in schema) {
+      if (!p$type %in% c("integer", "number") || !is.null(p$resolve)) next
+      expect_equal(as.numeric(p$default), as.numeric(eval(formals(f)[[p$name]])),
+                   info = paste0(fn, "(", p$name, ")"))
+      fallback <- suppressWarnings(hr_validate(schema, stats::setNames(list(NA), p$name)))
+      expect_equal(as.numeric(fallback[[p$name]]), as.numeric(eval(formals(f)[[p$name]])),
+                   info = paste0(fn, "(", p$name, ") with NA"))
+      checked <- c(checked, paste0(fn, "(", p$name, ")"))
     }
   }
   expect_gte(length(checked), 20L)
@@ -1819,7 +1825,15 @@ test_that("every setting's missing-value fallback is its formal default", {
   # And the functions that hand a token count on to gr_read_spec() settle an
   # NA against their OWN default, and range-check it, under their own name:
   # gr_read_spec() would warn about `max_answer_tokens`, which the caller never
-  # passed.
+  # passed. These two still settle their fallbacks in code, so their bodies
+  # are scanned for na_default() calls.
+  walk <- function(e) {
+    if (!is.call(e)) return(invisible())
+    if (identical(e[[1]], as.name("na_default")) && is.name(e[[2]])) {
+      found[[length(found) + 1L]] <<- e
+    }
+    invisible(lapply(as.list(e)[-1], function(x) if (!missing(x)) walk(x)))
+  }
   for (fn in c("gr_claims", "gr_synthesise")) {
     f <- get(fn, envir = asNamespace("harnessr"))
     found <- list()

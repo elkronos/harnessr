@@ -141,12 +141,12 @@ seg_contextual <- function(doc, spec, client, trace) {
     worst <- seg_call_usd(client, sum(gr_count_tokens(c(sys_prompt, ask("")))) + max(d$tokens), 90L)
     mark <- seg_trace_mark(trace)
     res <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
-      if (!trace_can_call(trace)) return(list(text = "", why = "limit"))
       r <- gr_call(client, list(
         list(role = "system", content = sys_prompt),
         list(role = "user", content = ask(d$text[i]))
       ), max_output = 90L, trace = trace, label = "segment.context",
          effort = spec$effort)
+      if (is_refused(r)) return(list(text = "", why = "limit"))
       if (!isTRUE(r$ok)) return(list(text = "", why = "failed"))
       txt <- trimws(as_chr1(r$text, ""))
       list(text = txt, why = if (nzchar(txt)) "" else "empty")
@@ -250,7 +250,7 @@ seg_proposition <- function(doc, spec, client, trace) {
                           max(c(0L, gr_count_tokens(batches$text))), 2000L)
   mark <- seg_trace_mark(trace)
   res <- gr_lapply(seq_along(batches$text), function(i, trace) {
-    if (!trace_can_call(trace)) return(keep(i))
+    # A request a limit refused keeps its batch as written, as a failed one does.
     out <- gr_call_json(client, list(
       list(role = "system", content = sys_prompt),
       list(role = "user", content = batches$text[i])

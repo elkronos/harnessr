@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "3f287d0f8b2499ed",
+      "cache_key": "7fc25e6129af562a94623be6ba9af9ec7c568914157c8c56d5193bd518cd7a30",
       "chars": [216, 330, 35],
       "label": "refine.draft",
       "messages": "25615d2319c42eec",
@@ -18,7 +18,7 @@
       "schema": null
     },
     {
-      "cache_key": "429d2cefd1827cd5",
+      "cache_key": "641c53587f83be11550981554ed8bd8e5ef81d693d5bf9ffd9c07ecdb83887b7",
       "chars": [214, 35, 87, 365, 174],
       "label": "refine.revise",
       "messages": "8ab503c70fb0ab7e",
@@ -35,7 +35,7 @@
       "schema": null
     },
     {
-      "cache_key": "cc6637754d14a311",
+      "cache_key": "403d3388e074ce48386114d1104e3b3f6b47a61297d88c02938d97120ad6531e",
       "chars": [214, 35, 87, 337, 174],
       "label": "refine.revise",
       "messages": "6310c666ee221f13",
@@ -52,7 +52,7 @@
       "schema": null
     },
     {
-      "cache_key": "af8ab775eb63f65f",
+      "cache_key": "a0d09f2b59e7aba811500473625d39d480dc719f721729c96dfff846ebfb93f3",
       "chars": [214, 35, 87, 490, 174],
       "label": "refine.revise",
       "messages": "7bc1b7acb9e83e81",
@@ -69,7 +69,7 @@
       "schema": null
     },
     {
-      "cache_key": "1ea0a10130fdc116",
+      "cache_key": "5c003896365eafc7cbe3ef0e27dda4f9eeee13b29e4fb4f8b5e3e2ffbef5a192",
       "chars": [214, 35, 87, 400, 174],
       "label": "refine.revise",
       "messages": "9054de41fe63cf3d",
@@ -86,7 +86,7 @@
       "schema": null
     },
     {
-      "cache_key": "0d297095db8eaff5",
+      "cache_key": "d9ba8822b97a5a84e567e129af0f648e50443fb7acae9682420408d8f8e997c6",
       "chars": [214, 35, 87, 189, 174],
       "label": "refine.revise",
       "messages": "fc83943f3140710c",
@@ -105,7 +105,45 @@
   ],
   "result": "a34ad3f0c8e88f77",
   "trace": {
+    "actor": {
+      "approved_by": null,
+      "owner": null,
+      "purpose": null,
+      "run_by": null,
+      "system": null
+    },
     "budget_stop": false,
+    "config": {
+      "options": {
+        "actor": [],
+        "allow_unpriced": false,
+        "allowed_models": null,
+        "api": "responses",
+        "api_base": "https://api.openai.com/v1",
+        "api_headers": [],
+        "cache_dir": null,
+        "cache_documents": true,
+        "cache_embeddings": true,
+        "embedder": null,
+        "embedding_model": "text-embedding-3-small",
+        "max_calls": 400,
+        "max_cost_usd": 5,
+        "max_output_tokens": null,
+        "max_retries": 4,
+        "max_tokens_total": null,
+        "min_output_tokens": 256,
+        "model": "gpt-5.6-terra",
+        "parallel": false,
+        "request_timeout": 120,
+        "retry_pause_base": 2,
+        "safety_margin": 0.1,
+        "temperature": null,
+        "tokenizer": "heuristic",
+        "unknown_model_action": "warn",
+        "verbose": false,
+        "workers": 4
+      }
+    },
     "errors": [],
     "meta": {
       "question": "What was revenue in 2024?",
@@ -177,9 +215,11 @@
         "step": 3
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.draft",
         "model": "mock-model",
@@ -191,20 +231,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "25615d2319c42eec",
         "recipe": "golden-refine",
+        "replay_key": "d3b17647983602f5a85ae117e977ab2232d7763100f6f06fc7ee65dd1b1c42dc",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 4,
         "tokens": {
           "input": 179,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.revise",
         "model": "mock-model",
@@ -216,20 +273,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "8ab503c70fb0ab7e",
         "recipe": "golden-refine",
+        "replay_key": "b736b8c42a42cecdcb3396ea2cd321001f3f4c855e57f01bbf595d062146337b",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 5,
         "tokens": {
           "input": 271,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.revise",
         "model": "mock-model",
@@ -241,20 +315,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "6310c666ee221f13",
         "recipe": "golden-refine",
+        "replay_key": "054740087c887067a1a62eb8d17046a11a2580e254ee96edacd352ee43e1130c",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 6,
         "tokens": {
           "input": 261,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.revise",
         "model": "mock-model",
@@ -266,20 +357,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "7bc1b7acb9e83e81",
         "recipe": "golden-refine",
+        "replay_key": "8f681e352fa495f57f1da4aa94d329a3821214dad176a7c5c29a2c229195e211",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 7,
         "tokens": {
           "input": 298,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.revise",
         "model": "mock-model",
@@ -291,20 +399,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "9054de41fe63cf3d",
         "recipe": "golden-refine",
+        "replay_key": "b80c45717224550171588225c005746f8816f5a465bcc084774225671b0b37bc",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 8,
         "tokens": {
           "input": 285,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.revise",
         "model": "mock-model",
@@ -316,14 +441,29 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "fc83943f3140710c",
         "recipe": "golden-refine",
+        "replay_key": "19fda87328724043ca4040bd88f421e0c048293118da21ba2a3337deb08e7ad0",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 9,
         "tokens": {
           "input": 226,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       }
     ],
@@ -335,8 +475,11 @@
       "embed_tokens": 0,
       "errors": 0,
       "steps": 9,
+      "tokens_cached_in": 0,
       "tokens_in": 1520,
-      "tokens_out": 156
+      "tokens_out": 156,
+      "tokens_reasoning": 0,
+      "usage_estimated": 1
     }
   }
 }

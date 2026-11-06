@@ -10,7 +10,9 @@ gr_segmenters()
 A data frame with one row per registered segmenter: \code{name}, \code{cost}
 (\code{"free"}, \code{"embedding"} or \code{"llm"}), \code{needs_client} (\code{"TRUE"}/\code{"FALSE"};
 when \code{TRUE} and no client is supplied, \code{\link[=gr_segment]{gr_segment()}} warns and the
-segmenter falls back) and \code{description}.
+segmenter falls back), \code{description}, and \code{calls}, the stems of the
+labels its model calls carry, joined by commas (empty for one that makes
+none).
 }
 \description{
 The catalogue for axis 2. Use it to see which strategies are free, which

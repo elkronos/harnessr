@@ -240,14 +240,16 @@ test_that("a parallel merge level runs where each request is checked when it cou
   spec <- gr_read_spec("map_reduce", model = "priced-merge", max_answer_tokens = 300,
                        parallel = TRUE)
   pieces <- rep(paste(rep("finding text words", 200), collapse = " "), 8)
-  # Close enough to the limit that one merge request reaches it. Sent to
-  # workers, the whole level went out: three requests past the limit.
+  # Close enough to the limit that one merge request could pass it. Sent to
+  # workers, the whole level went out: three requests past the limit. Run here,
+  # one request used to go out and pass it; now none is sent.
   tr <- gr_trace()
   tr$spent_usd <- 0.045
   msgs <- testthat::capture_messages(out <- harnessr:::tree_merge(cl, "q", pieces, spec, tr))
   expect_true(any(grepl("one at a time", msgs)))
   expect_false(out$ok)
-  expect_identical(tr$calls, 1L)
+  expect_identical(tr$calls, 0L)
+  expect_lte(tr$spent_usd, 0.05)
   expect_true(tr$budget_stop)
   expect_identical(tr$stop_reason, "cost")
 })

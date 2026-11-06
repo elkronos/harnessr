@@ -15,7 +15,6 @@ read_skim <- function(chunks, question, client, spec, trace) {
                             prompt_overhead(question, .gr_prompts$extract_system, "never"),
                           spec$max_chunk_tokens)
   res <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
-    if (!trace_can_call(trace)) return(list(ok = FALSE, text = "", capped = TRUE))
     r <- gr_call(client, list(
       list(role = "system", content = .gr_prompts$extract_system),
       list(role = "user", content = paste0("Question: ", question)),
@@ -23,6 +22,7 @@ read_skim <- function(chunks, question, client, spec, trace) {
                                            "\n</excerpt>"))
     ), model = skim_model, max_output = spec$max_chunk_tokens,
        temperature = spec$temperature, trace = trace, label = "skim.extract", effort = spec$effort)
+    if (is_refused(r)) return(list(ok = FALSE, text = "", capped = TRUE))
     if (spec$delay_between_calls > 0) Sys.sleep(spec$delay_between_calls)
     list(ok = usable_text(r), text = r$text, cut = reply_cut_off(r))
   }, parallel = spec$parallel, label = "skim chunk", trace = trace,
@@ -86,13 +86,11 @@ read_skim <- function(chunks, question, client, spec, trace) {
     sent <- intersect(ev$chunk_id, cited_chunks(body))
     cite <- isTRUE(spec$cite) && length(sent) > 0L
   }
-  res2 <- if (trace_can_call(trace)) {
-    gr_call(client, answer_messages(question, body, cite = cite, label = "Evidence",
-                                    restate = spec$restate, premise = spec$premise),
-            model = spec$model, max_output = spec$max_answer_tokens,
-            temperature = spec$temperature, trace = trace, label = "skim.answer",
-            effort = spec$effort)
-  } else gr_result(FALSE, error = paste(cap_name(trace), "reached before the synthesis step"))
+  res2 <- gr_call(client, answer_messages(question, body, cite = cite, label = "Evidence",
+                                          restate = spec$restate, premise = spec$premise),
+                  model = spec$model, max_output = spec$max_answer_tokens,
+                  temperature = spec$temperature, trace = trace, label = "skim.answer",
+                  effort = spec$effort)
   if (usable_text(res2) && reply_cut_off(res2)) cut <- cut + 1L
   out <- premise_reply(if (usable_text(res2)) res2$text else .NOT_FOUND, spec$premise)
   # No answer, no evidence; see stuff. The passages found are counted in the

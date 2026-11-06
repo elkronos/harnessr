@@ -24,15 +24,17 @@ read_refine <- function(chunks, question, client, spec, trace) {
   p <- progress_start(nrow(d), "chunk", trace)
   with_progress(p, for (i in seq_len(nrow(d))) {
     if (i > 1L) progress_tick(p, i - 1L)
-    if (!trace_can_call(trace)) break
     excerpt <- render_chunks(d[i, , drop = FALSE])
     # Halve the budget between the running draft and the incoming excerpt.
+    # The cuts are counted once the request is known to have gone out.
     half <- max(as.integer(bud$input / 2), 64L)
+    cuts <- 0L
+    kept_draft <- draft
     if (gr_count_tokens(excerpt) > half) {
-      excerpt <- gr_truncate_tokens(excerpt, half); truncated <- truncated + 1L
+      excerpt <- gr_truncate_tokens(excerpt, half); cuts <- cuts + 1L
     }
     if (!is.null(draft) && gr_count_tokens(draft) > half) {
-      draft <- gr_truncate_tokens(draft, half); truncated <- truncated + 1L
+      draft <- gr_truncate_tokens(draft, half); cuts <- cuts + 1L
     }
     msgs <- if (is.null(draft)) {
       answer_messages(question, excerpt, cite = spec$cite, restate = spec$restate,
@@ -54,6 +56,9 @@ read_refine <- function(chunks, question, client, spec, trace) {
                    temperature = spec$temperature, trace = trace,
                    label = if (is.null(draft)) "refine.draft" else "refine.revise",
                    effort = spec$effort)
+    # A limit ends the pass, with the draft as it was before this chunk.
+    if (is_refused(res)) { draft <- kept_draft; break }
+    truncated <- truncated + cuts
     if (!usable_text(res)) { failures <- failures + 1L; next }
     # A draft cut off at the output cap is carried forward as the draft, so
     # whatever it lost is lost from every revision after it.

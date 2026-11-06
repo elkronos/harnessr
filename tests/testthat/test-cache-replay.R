@@ -371,10 +371,101 @@ test_that("repeated identical prompts replay in the order they were recorded", {
   expect_identical(gr_call(rp, "same prompt")$text, "answer 2")
   expect_identical(gr_call(rp, "same prompt")$text, "answer 3")
 
-  # A fourth call has nothing left. The last response repeats, and `$stats()`
-  # says so rather than pretending the replay was exact.
-  expect_identical(gr_call(rp, "same prompt")$text, "answer 3")
-  expect_identical(rp$stats()$repeats, 1L)
+  # A fourth call has nothing left: the replay is making a call the recorded
+  # run did not make, which is an error rather than a fourth copy of a reply.
+  expect_error(gr_call(rp, "same prompt"), class = "hr_replay_exhausted")
+  expect_identical(rp$stats()$repeats, 0L)
+
+  # on_exhausted = "flag" keeps the old behaviour: the last response repeats,
+  # and `$stats()` says so rather than pretending the replay was exact.
+  flag <- gr_replay_client(tr, on_exhausted = "flag")
+  for (i in 1:3) invisible(gr_call(flag, "same prompt"))
+  expect_identical(gr_call(flag, "same prompt")$text, "answer 3")
+  expect_identical(flag$stats()$repeats, 1L)
+})
+
+test_that("N identical calls with draw indexes 1 to N are N cache entries", {
+  local_registries()
+  n <- 0L
+  cl <- gr_mock_client(function(m, p) { n <<- n + 1L; paste("draw", p$draw_index, "reply", n) })
+  cache <- gr_cache(withr::local_tempdir())
+  cl <- gr_cache_client(cl, cache)
+  first <- vapply(1:4, function(k) gr_call(cl, "Pick one.", draw_index = k)$text, "")
+  expect_identical(first, sprintf("draw %d reply %d", 1:4, 1:4))
+  expect_identical(gr_cache_stats(cache)$entries, 4L)
+  # A rerun is the same four replies, in the same order, from the cache.
+  again <- vapply(1:4, function(k) gr_call(cl, "Pick one.", draw_index = k)$text, "")
+  expect_identical(again, first)
+  expect_identical(n, 4L)
+  expect_identical(gr_cache_stats(cache)[c("hits", "misses", "writes", "legacy_hits")],
+                   data.frame(hits = 4L, misses = 4L, writes = 4L, legacy_hits = 0L))
+  # Without a draw index the four are one call, as an unsampled call always was.
+  for (i in 1:4) invisible(gr_call(cl, "Pick again."))
+  expect_identical(n, 5L)
+})
+
+test_that("draw 0 keys without a draw part, and the key is a SHA-256", {
+  cl <- gr_mock_client()
+  msgs <- list(list(role = "user", content = "hi"))
+  key <- function(d) harnessr:::cache_key(cl, msgs, "mock-model", 100L, NULL, NULL, "result",
+                                          list(), draw_index = d)
+  expect_identical(key(0L), harnessr:::cache_key(cl, msgs, "mock-model", 100L, NULL, NULL,
+                                                 "result", list()))
+  expect_match(key(0L), "^[0-9a-f]{64}$")
+  expect_false(identical(key(1L), key(0L)))
+  expect_false(identical(key(1L), key(2L)))
+
+  # A handler is not given a draw index for an ordinary call, and the trace
+  # does not record one.
+  seen <- NULL
+  cl <- gr_mock_client(function(m, p) { seen <<- p; "ok" })
+  tr <- gr_trace()
+  gr_call(cl, "hi", trace = tr)
+  expect_false("draw_index" %in% names(seen))
+  expect_false("draw_index" %in% names(tr$steps[[1]]$params))
+  gr_call(cl, "hi", trace = tr, draw_index = 2)
+  expect_identical(seen$draw_index, 2L)
+  expect_identical(tr$steps[[2]]$params$draw_index, 2L)
+
+  for (bad in list(-1, 1.5, NA, "1", c(1, 2))) {
+    expect_error(gr_call(cl, "hi", draw_index = bad), class = "gr_bad_setting")
+  }
+})
+
+test_that("a replay answers each recorded draw and raises past the last one", {
+  local_registries()
+  tr <- gr_trace()
+  cl <- gr_mock_client(function(m, p) paste("draw", p$draw_index))
+  for (k in 1:3) invisible(gr_call(cl, "Pick one.", draw_index = k, trace = tr))
+
+  rp <- gr_replay_client(tr)
+  # Asked for out of order, each draw gets its own reply.
+  expect_identical(gr_call(rp, "Pick one.", draw_index = 2)$text, "draw 2")
+  expect_identical(gr_call(rp, "Pick one.", draw_index = 1)$text, "draw 1")
+  expect_identical(gr_call(rp, "Pick one.", draw_index = 3)$text, "draw 3")
+  expect_error(gr_call(rp, "Pick one.", draw_index = 4), class = "hr_replay_exhausted")
+  expect_identical(rp$stats()[c("hits", "misses", "legacy_hits")],
+                   data.frame(hits = 3L, misses = 0L, legacy_hits = 0L))
+})
+
+test_that("a replay misses at another temperature, output cap or schema", {
+  local_registries()
+  tr <- gr_trace()
+  cl <- gr_mock_client(function(m, p) if (is.null(p$schema)) "recorded" else '{"a": 1}')
+  invisible(gr_call(cl, "Say it.", temperature = 0.2, max_output = 500, trace = tr))
+  schema <- list(type = "object", properties = list(a = list(type = "number")))
+  invisible(gr_call(cl, "Say it as JSON.", schema = schema, trace = tr))
+
+  rp <- gr_replay_client(tr)
+  expect_error(gr_call(rp, "Say it.", temperature = 0.7, max_output = 500),
+               class = "gr_replay_miss")
+  expect_error(gr_call(rp, "Say it.", temperature = 0.2, max_output = 900),
+               class = "gr_replay_miss")
+  other <- list(type = "object", properties = list(b = list(type = "number")))
+  expect_error(gr_call(rp, "Say it as JSON.", schema = other), class = "gr_replay_miss")
+  expect_identical(gr_call(rp, "Say it.", temperature = 0.2, max_output = 500)$text, "recorded")
+  expect_identical(gr_call(rp, "Say it as JSON.", schema = schema)$text, '{"a": 1}')
+  expect_identical(rp$stats()$legacy_hits, 0L)
 })
 
 test_that("an unrecorded prompt is a loud failure by default", {

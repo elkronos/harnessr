@@ -184,13 +184,11 @@ gr_outline <- function(claims, question = NULL, client = NULL, model = NULL,
     list(role = "user", content = paste0("Review question: ", question)),
     list(role = "user", content = paste0("<claims>\n", listed, "\n</claims>")),
     list(role = "user", content = sprintf("Use at most %d sections.", as.integer(max_sections))))
-  capped <- !trace_can_call(trace)
-  res <- if (!capped) {
-    gr_call_json(client, msgs, schema = .gr_outline_schema, schema_name = "outline",
-                 model = spec$model, max_output = spec$max_answer_tokens,
-                 temperature = spec$temperature, trace = trace, label = "outline.derive",
-                 effort = spec$effort)
-  } else list(ok = FALSE, value = NULL)
+  res <- gr_call_json(client, msgs, schema = .gr_outline_schema, schema_name = "outline",
+                      model = spec$model, max_output = spec$max_answer_tokens,
+                      temperature = spec$temperature, trace = trace, label = "outline.derive",
+                      effort = spec$effort)
+  capped <- is_refused(res$result)
 
   secs <- if (isTRUE(res$ok)) outline_rows(json_field(res$value, "sections", scalar = FALSE)) else NULL
   derived <- !is.null(secs) && nrow(secs) > 0L

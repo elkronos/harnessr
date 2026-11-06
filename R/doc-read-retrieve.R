@@ -54,15 +54,13 @@ read_retrieve <- function(chunks, question, client, spec, trace) {
              list(k = k, kept = nrow(sub), embedding_source = src,
                   mmr = lambda, context_order = as_chr1(spec$context_order, "relevance"),
                   top_scores = round(utils::head(sort(scores, decreasing = TRUE), 5), 4)))
-  # Checked, as every request is: as an ensemble member this can run after
-  # another member has spent the budget.
-  res <- if (trace_can_call(trace)) {
-    gr_call(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
-                                    restate = spec$restate, premise = spec$premise),
-            model = spec$model, max_output = spec$max_answer_tokens,
-            temperature = spec$temperature, trace = trace, label = "retrieve.answer",
-            effort = spec$effort)
-  } else gr_result(FALSE, error = paste(cap_name(trace), "reached before the answer step"))
+  # Checked by the governor, as every request is: as an ensemble member this
+  # can run after another member has spent the budget.
+  res <- gr_call(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
+                                         restate = spec$restate, premise = spec$premise),
+                 model = spec$model, max_output = spec$max_answer_tokens,
+                 temperature = spec$temperature, trace = trace, label = "retrieve.answer",
+                 effort = spec$effort)
   cut <- as.integer(res$ok && reply_cut_off(res))
   out <- premise_reply(if (res$ok) res$text else .NOT_FOUND, spec$premise)
   new_answer(out$text, "retrieve", question, sub$chunk_id, trace, premise = out$premise,

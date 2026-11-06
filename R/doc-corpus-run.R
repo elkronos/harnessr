@@ -367,8 +367,11 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
   # below was gated on it as well, a silently unenforced ceiling also silenced
   # the line that would have said the run was uncapped.
   max_total_usd <- as_usd_ceiling(max_total_usd)
+  # Held to the given trace's governor, less what that trace has spent, so a
+  # user's hr_governor() covers this run as it covers a single read.
   trace <- gr_trace(meta = list(recipe = rec$name, question = question,
-                                documents = length(sources)))
+                                documents = length(sources)),
+                    governor = fork_governor(parent))
   # on.exit, not a line at the end: a run that aborts part-way -- a cost cap, an
   # unreadable file under on_error = "stop" -- has still spent whatever it spent,
   # and a parent that loses it reports a review as cheaper than it was.
@@ -520,7 +523,10 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     # parent outright would make `max_calls` count earlier documents against
     # later ones, so the same document would answer differently depending on
     # its position in the corpus -- the bug gr_compare() had between recipes.
-    sub <- gr_trace(meta = list(recipe = rec$name, question = question, source = lab))
+    # The run's governor, with its spending and token limits less what the
+    # documents before this one used; `max_calls` stays per document.
+    sub <- gr_trace(meta = list(recipe = rec$name, question = question, source = lab),
+                    governor = fork_governor(trace))
     # What the run spent before this document, so the progress line gives the
     # run's total and not this document's. NA when that is unknown.
     sub$spent_before <- spent

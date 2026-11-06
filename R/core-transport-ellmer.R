@@ -560,8 +560,8 @@ ellmer_split_messages <- function(messages) {
 #' package's own tokenizer is deliberately biased to over-count.
 #' @noRd
 ellmer_usage <- function(chat, params, txt) {
-  local <- list(input = as_int1(params$prompt_tokens, 0L),
-                output = sum(gr_count_tokens(as_chr1(txt))))
+  local <- usage_record(as_int1(params$prompt_tokens, 0L), sum(gr_count_tokens(as_chr1(txt))),
+                        local_provenance())
   tk <- tryCatch(chat$get_tokens(), error = function(e) NULL)
   if (!is.data.frame(tk) || !nrow(tk)) return(local)
   pick <- function(pattern) {
@@ -579,8 +579,12 @@ ellmer_usage <- function(chat, params, txt) {
   }
   inp <- pick("^input|prompt")
   out <- pick("^output|completion")
-  list(input = if (is.na(inp)) local$input else inp,
-       output = if (is.na(out)) local$output else out)
+  # Both from ellmer: plain counts, which settle_usage() records as reported.
+  # Either one counted here says so, as the whole local record does above.
+  if (!is.na(inp) && !is.na(out)) return(list(input = inp, output = out))
+  usage_record(input = if (is.na(inp)) local$input else inp,
+               output = if (is.na(out)) local$output else out,
+               provenance = local$provenance)
 }
 
 #' Convert a JSON Schema object to an ellmer type.

@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "a47cfadd553a40c5",
+      "cache_key": "5ea51c363c149380d230b59ba45cf875373d814ddddb5b11d5a2196145e1b719",
       "chars": [216, 1976, 35],
       "label": "retrieve.answer",
       "messages": "2149c885201358aa",
@@ -18,7 +18,7 @@
       "schema": null
     },
     {
-      "cache_key": "404ae38bb898247f",
+      "cache_key": "ce3849d7c5d4bffde8bc3eac45b29fb4f6969f79f751fa402120783702dd03c8",
       "chars": [216, 330, 35],
       "label": "map.answer",
       "messages": "25615d2319c42eec",
@@ -35,7 +35,7 @@
       "schema": null
     },
     {
-      "cache_key": "dc51667a90056a01",
+      "cache_key": "df936d0eaa1d1d19c1427845bdb8e9a5b6a0b87910e62856312318f12c4e218a",
       "chars": [216, 359, 35],
       "label": "map.answer",
       "messages": "7ce45ccf91259c63",
@@ -52,7 +52,7 @@
       "schema": null
     },
     {
-      "cache_key": "7bd0a79a2b928c11",
+      "cache_key": "9ba8eb1d426e71510b547b34cd269ff8d54b09c53b085fea088316c9b1d0de13",
       "chars": [216, 331, 35],
       "label": "map.answer",
       "messages": "a0c33345af41d56d",
@@ -69,7 +69,7 @@
       "schema": null
     },
     {
-      "cache_key": "4eaf86f2d92c63f2",
+      "cache_key": "8a7ff220e287b962399a0b555e612739acc4a94c0c884de04400084f7261bc8a",
       "chars": [216, 484, 35],
       "label": "map.answer",
       "messages": "3f8c7cb29f76a217",
@@ -86,7 +86,7 @@
       "schema": null
     },
     {
-      "cache_key": "236c6099802c134b",
+      "cache_key": "7b4909a663e8c6fc6f12f6e4712435022c37a86f1ae04fd4630166d32b07f440",
       "chars": [216, 394, 35],
       "label": "map.answer",
       "messages": "dd4b33e8fa580723",
@@ -103,7 +103,7 @@
       "schema": null
     },
     {
-      "cache_key": "7c3afade5d95ec33",
+      "cache_key": "2f14cc7d6153bd25e999841daeba061b73377bd3735f63a8bf3d62999e76ca3b",
       "chars": [216, 183, 35],
       "label": "map.answer",
       "messages": "86fd1fd0c44b8b9b",
@@ -120,7 +120,7 @@
       "schema": null
     },
     {
-      "cache_key": "04658cdccb6e2433",
+      "cache_key": "08147b7814d85d7b026a610915e89ead27cc82bffcdd2dbb8799437688a3674e",
       "chars": [295, 592, 35],
       "label": "reduce",
       "messages": "d279294b0daddd0b",
@@ -137,7 +137,7 @@
       "schema": null
     },
     {
-      "cache_key": "3f287d0f8b2499ed",
+      "cache_key": "7fc25e6129af562a94623be6ba9af9ec7c568914157c8c56d5193bd518cd7a30",
       "chars": [216, 330, 35],
       "label": "refine.draft",
       "messages": "25615d2319c42eec",
@@ -154,7 +154,7 @@
       "schema": null
     },
     {
-      "cache_key": "429d2cefd1827cd5",
+      "cache_key": "641c53587f83be11550981554ed8bd8e5ef81d693d5bf9ffd9c07ecdb83887b7",
       "chars": [214, 35, 87, 365, 174],
       "label": "refine.revise",
       "messages": "8ab503c70fb0ab7e",
@@ -171,7 +171,7 @@
       "schema": null
     },
     {
-      "cache_key": "cc6637754d14a311",
+      "cache_key": "403d3388e074ce48386114d1104e3b3f6b47a61297d88c02938d97120ad6531e",
       "chars": [214, 35, 87, 337, 174],
       "label": "refine.revise",
       "messages": "6310c666ee221f13",
@@ -188,7 +188,7 @@
       "schema": null
     },
     {
-      "cache_key": "af8ab775eb63f65f",
+      "cache_key": "a0d09f2b59e7aba811500473625d39d480dc719f721729c96dfff846ebfb93f3",
       "chars": [214, 35, 87, 490, 174],
       "label": "refine.revise",
       "messages": "7bc1b7acb9e83e81",
@@ -205,7 +205,7 @@
       "schema": null
     },
     {
-      "cache_key": "1ea0a10130fdc116",
+      "cache_key": "5c003896365eafc7cbe3ef0e27dda4f9eeee13b29e4fb4f8b5e3e2ffbef5a192",
       "chars": [214, 35, 87, 400, 174],
       "label": "refine.revise",
       "messages": "9054de41fe63cf3d",
@@ -222,7 +222,7 @@
       "schema": null
     },
     {
-      "cache_key": "0d297095db8eaff5",
+      "cache_key": "d9ba8822b97a5a84e567e129af0f648e50443fb7acae9682420408d8f8e997c6",
       "chars": [214, 35, 87, 189, 174],
       "label": "refine.revise",
       "messages": "fc83943f3140710c",
@@ -239,7 +239,7 @@
       "schema": null
     },
     {
-      "cache_key": "6ea0188e0efeadfa",
+      "cache_key": "9d38c1db5347640f646f4f5df1fe3aca0e1dcd931b7e3104bdc39544f17b139f",
       "chars": [504, 331, 35],
       "label": "ensemble.adjudicate",
       "messages": "62e4bee59a3bbfbe",
@@ -258,7 +258,45 @@
   ],
   "result": "a34ad3f0c8e88f77",
   "trace": {
+    "actor": {
+      "approved_by": null,
+      "owner": null,
+      "purpose": null,
+      "run_by": null,
+      "system": null
+    },
     "budget_stop": false,
+    "config": {
+      "options": {
+        "actor": [],
+        "allow_unpriced": false,
+        "allowed_models": null,
+        "api": "responses",
+        "api_base": "https://api.openai.com/v1",
+        "api_headers": [],
+        "cache_dir": null,
+        "cache_documents": true,
+        "cache_embeddings": true,
+        "embedder": null,
+        "embedding_model": "text-embedding-3-small",
+        "max_calls": 400,
+        "max_cost_usd": 5,
+        "max_output_tokens": null,
+        "max_retries": 4,
+        "max_tokens_total": null,
+        "min_output_tokens": 256,
+        "model": "gpt-5.6-terra",
+        "parallel": false,
+        "request_timeout": 120,
+        "retry_pause_base": 2,
+        "safety_margin": 0.1,
+        "temperature": null,
+        "tokenizer": "heuristic",
+        "unknown_model_action": "warn",
+        "verbose": false,
+        "workers": 4
+      }
+    },
     "errors": [],
     "meta": {
       "question": "What was revenue in 2024?",
@@ -371,9 +409,11 @@
         "step": 5
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "retrieve.answer",
         "model": "mock-model",
@@ -385,20 +425,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "2149c885201358aa",
         "recipe": "golden-ensemble",
+        "replay_key": "cd6d8c331994163f4e151b735e810c0e1ab49bee41ef1e57dd5df07c863751b6",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 6,
         "tokens": {
           "input": 640,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "map.answer",
         "model": "mock-model",
@@ -410,20 +467,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "25615d2319c42eec",
         "recipe": "golden-ensemble",
+        "replay_key": "5924b0134705cd06dae7514f4fc3b238472363b9f46d886e9380f7e779d2def9",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 7,
         "tokens": {
           "input": 179,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "map.answer",
         "model": "mock-model",
@@ -435,20 +509,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "7ce45ccf91259c63",
         "recipe": "golden-ensemble",
+        "replay_key": "a77e1971f47834f266104fdeca59d2f2bbdf30096e6069324d2cf8361744626a",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 8,
         "tokens": {
           "input": 180,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "map.answer",
         "model": "mock-model",
@@ -460,20 +551,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "a0c33345af41d56d",
         "recipe": "golden-ensemble",
+        "replay_key": "2c0146e90db845d712b4d8240d5959650fee9c0e31b602035d7670ba2e41c53c",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 9,
         "tokens": {
           "input": 172,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "map.answer",
         "model": "mock-model",
@@ -485,20 +593,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "3f8c7cb29f76a217",
         "recipe": "golden-ensemble",
+        "replay_key": "7ffa4e8eef7625ac5a201235ab3a4e3f31dad766e8dadbbb4dcb66bd2b18d4fb",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 10,
         "tokens": {
           "input": 208,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "map.answer",
         "model": "mock-model",
@@ -510,20 +635,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "dd4b33e8fa580723",
         "recipe": "golden-ensemble",
+        "replay_key": "5560a381efda80023dfa55924e9c5bbdd4e14406308f098ea18f7f2a4c9eac06",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 11,
         "tokens": {
           "input": 195,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "map.answer",
         "model": "mock-model",
@@ -535,20 +677,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "86fd1fd0c44b8b9b",
         "recipe": "golden-ensemble",
+        "replay_key": "0fbf0b49812e182f4a2c5738fe0d0465588c67005dd8b0756f2c429436e71cc7",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 12,
         "tokens": {
           "input": 136,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "reduce",
         "model": "mock-model",
@@ -560,20 +719,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "d279294b0daddd0b",
         "recipe": "golden-ensemble",
+        "replay_key": "dfd239f1f77c731ce50c8ac2ae6cfc2c81d73687ea955b9fcd67f1c38967c4b9",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 13,
         "tokens": {
           "input": 298,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.draft",
         "model": "mock-model",
@@ -585,20 +761,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "25615d2319c42eec",
         "recipe": "golden-ensemble",
+        "replay_key": "d3b17647983602f5a85ae117e977ab2232d7763100f6f06fc7ee65dd1b1c42dc",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 14,
         "tokens": {
           "input": 179,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.revise",
         "model": "mock-model",
@@ -610,20 +803,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "8ab503c70fb0ab7e",
         "recipe": "golden-ensemble",
+        "replay_key": "b736b8c42a42cecdcb3396ea2cd321001f3f4c855e57f01bbf595d062146337b",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 15,
         "tokens": {
           "input": 271,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.revise",
         "model": "mock-model",
@@ -635,20 +845,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "6310c666ee221f13",
         "recipe": "golden-ensemble",
+        "replay_key": "054740087c887067a1a62eb8d17046a11a2580e254ee96edacd352ee43e1130c",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 16,
         "tokens": {
           "input": 261,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.revise",
         "model": "mock-model",
@@ -660,20 +887,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "7bc1b7acb9e83e81",
         "recipe": "golden-ensemble",
+        "replay_key": "8f681e352fa495f57f1da4aa94d329a3821214dad176a7c5c29a2c229195e211",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 17,
         "tokens": {
           "input": 298,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.revise",
         "model": "mock-model",
@@ -685,20 +929,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "9054de41fe63cf3d",
         "recipe": "golden-ensemble",
+        "replay_key": "b80c45717224550171588225c005746f8816f5a465bcc084774225671b0b37bc",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 18,
         "tokens": {
           "input": 285,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "refine.revise",
         "model": "mock-model",
@@ -710,20 +971,37 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "fc83943f3140710c",
         "recipe": "golden-ensemble",
+        "replay_key": "19fda87328724043ca4040bd88f421e0c048293118da21ba2a3337deb08e7ad0",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 19,
         "tokens": {
           "input": 226,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "ensemble.adjudicate",
         "model": "mock-model",
@@ -735,14 +1013,29 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "62e4bee59a3bbfbe",
         "recipe": "golden-ensemble",
+        "replay_key": "e606e321848d270e5e017a2e185081aaad0189be9d001e80db97e98a9b372f11",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 20,
         "tokens": {
           "input": 268,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       }
     ],
@@ -754,8 +1047,11 @@
       "embed_tokens": 0,
       "errors": 0,
       "steps": 20,
+      "tokens_cached_in": 0,
       "tokens_in": 3796,
-      "tokens_out": 390
+      "tokens_out": 390,
+      "tokens_reasoning": 0,
+      "usage_estimated": 1
     }
   }
 }
