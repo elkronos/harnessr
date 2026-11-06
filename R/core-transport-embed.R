@@ -246,16 +246,7 @@ embed_api <- function(texts, params) {
       # embedding model with no price is not refused: it costs about a
       # hundredth of a chat model, and gr_read_many() already says when its
       # spend is left out of the ceiling.
-      refusal <- governor_check(trace, list(
-        model = model, label = "embed.request", input_tokens = sum(gr_count_tokens(texts_b)),
-        output_tokens = 0, unpriced_ok = TRUE), "both")
-      if (!is.null(refusal)) {
-        governor_refuse(trace, refusal)
-        gr_abort(embed_cap_message(refusal, b, length(starts)),
-                 class = c(if (refusal$limit %in% c("cost", "unpriced")) "gr_cost_cap"
-                           else if (identical(refusal$limit, "calls")) "gr_call_cap",
-                           "gr_embed_error"))
-      }
+      embed_governor_check(trace, model, texts_b, b, length(starts))
       started <- Sys.time()
       resp <- embed_post(client, paste0(client$base_url, "/embeddings"), headers, body)
       parsed <- if (inherits(resp, "condition") || httr::status_code(resp) >= 300) NULL else
@@ -437,6 +428,29 @@ embed_record <- function(trace, model, texts, resp, parsed, problem = NULL, seco
   trace_record(trace, "embed.request", list(), res,
                params = list(model = model, texts = length(texts)), seconds = seconds,
                embedding = TRUE)
+}
+
+#' Check one embeddings request against the governor, and raise if it is
+#' refused.
+#'
+#' The prompt is counted as governor_input_tokens() counts a request's prompt,
+#' with `safety_margin` on top: the provider bills the prompt tokens it
+#' counts, and a batch counted at the local figure alone could be admitted
+#' and leave the run over its limit. A refusal raises with the classes
+#' gr_embed() expects, so its `fallback` decides what happens next.
+#' @noRd
+embed_governor_check <- function(trace, model, texts, i = 1L, n = 1L) {
+  margin <- max(as_num1(gr_options("safety_margin"), 0.1), 0)
+  tokens <- ceiling(sum(gr_count_tokens(texts)) * (1 + margin))
+  refusal <- governor_check(trace, list(
+    model = model, label = "embed.request", input_tokens = tokens,
+    output_tokens = 0, unpriced_ok = TRUE), "both")
+  if (is.null(refusal)) return(invisible(NULL))
+  governor_refuse(trace, refusal)
+  gr_abort(embed_cap_message(refusal, i, n),
+           class = c(if (refusal$limit %in% c("cost", "unpriced")) "gr_cost_cap"
+                     else if (identical(refusal$limit, "calls")) "gr_call_cap",
+                     "gr_embed_error"))
 }
 
 #' Why an embeddings request was not sent: the governor's reason, and which

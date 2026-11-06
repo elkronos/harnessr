@@ -21,10 +21,11 @@
 #' `sum(gr_trace_cost(trace)$usd)`. Give `correct` and each row also says
 #' whether the answer was right and what a right answer cost.
 #'
-#' A comparison is one run for the spending limit: `max_cost_usd` in
-#' [gr_options()] is checked against what every recipe and every segmentation
-#' has spent so far, so a recipe that reaches it stops `partial` and the ones
-#' after it are refused and recorded as failed. `max_calls` is counted for
+#' A comparison is one run for the spending and token limits: `max_cost_usd`
+#' and `max_tokens_total` in [gr_options()] are checked against what every
+#' recipe and every segmentation has spent and used so far, so a recipe that
+#' reaches either limit stops `partial` and the ones after it are refused and
+#' recorded as failed. `max_calls` is counted for
 #' each recipe on its own, its segmentation included, so a recipe's answer
 #' does not depend on its position in the list. A segmentation that a limit
 #' cut short is not shared with a later recipe.
@@ -42,8 +43,9 @@
 #'   character vector marks an answer right when its text contains any of the
 #'   strings, ignoring case and runs of white space; an answer that found
 #'   nothing, or a recipe that failed, is wrong, and one that found nothing
-#'   because a spending or call limit stopped it is `NA`. A function is called
-#'   with each recipe's [gr_answer] and returns `TRUE`, `FALSE` or `NA` (not
+#'   because a limit stopped it is `NA`: the spending, token or call limit,
+#'   the model allow-list or the output ceiling. A function is called with
+#'   each recipe's [gr_answer] and returns `TRUE`, `FALSE` or `NA` (not
 #'   known); when it fails or returns anything else, a warning of class
 #'   `gr_bad_correct` names the recipe and its `correct` is `NA`. An invalid
 #'   `correct` argument is an error of the same class.
@@ -180,6 +182,7 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
     start <- length(trace$steps)
     seed <- 0
     rseed <- 0
+    tseed <- c(tokens_in = 0, tokens_out = 0, embed_tokens = 0)
     seeded_calls <- 0L
     seg_steps <- 0L
     skey <- NULL
@@ -200,6 +203,12 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
       # recipe where the recording did, rather than going past the stop.
       rseed <- as_num1(trace$replayed_usd, 0)
       sub$replayed_usd <- rseed
+      # And the tokens, for `max_tokens_total`, which is a limit on the run in
+      # the same way: started from zero, each recipe could use the whole limit.
+      for (k in names(tseed)) {
+        tseed[[k]] <- as_num1(trace[[k]], 0)
+        sub[[k]] <- as.integer(tseed[[k]])
+      }
       # What the comparison had spent beyond that, for the progress line, which
       # adds this trace's own spend. NA, when a cost is unknown, stays NA.
       sub$spent_before <- sum(gr_trace_cost(trace)$usd) - seed
@@ -247,8 +256,14 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
       # A limit that refused the recipe before it read anything is noted as
       # gr_read() notes one that stops it part way, so `correct` can tell a
       # recipe that was not tried from one that got it wrong.
-      if (inherits(e, "gr_cost_cap")) notes$cost_cap_reached <- gr_options("max_cost_usd")
+      # An unpriced model under a spending limit is stopped by that limit too.
+      if (inherits(e, c("gr_cost_cap", "hr_unpriced_model"))) {
+        notes$cost_cap_reached <- gr_options("max_cost_usd")
+      }
       if (inherits(e, "gr_call_cap")) notes$call_cap_reached <- gr_options("max_calls")
+      if (inherits(e, "hr_budget_refused") && is.null(notes$cost_cap_reached)) {
+        notes$limit_refused <- TRUE
+      }
       a <- new_answer(.NOT_FOUND, r$read$reader, question, integer(0), trace,
                       partial = TRUE, notes = notes)
       a$recipe <- nm
@@ -258,6 +273,7 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
     # already there.
     sub$spent_usd <- sub$spent_usd - seed
     sub$replayed_usd <- as_num1(sub$replayed_usd, 0) - rseed
+    for (k in names(tseed)) sub[[k]] <- as.integer(as_num1(sub[[k]], 0) - tseed[[k]])
     sub$calls <- sub$calls - seeded_calls
     off <- length(trace$steps)
     own <- off + seq_along(sub$steps)
@@ -373,7 +389,11 @@ answer_correct <- function(a, correct, recipe) {
   if (is_not_found(txt)) {
     # A limit that stopped the recipe before it found anything says nothing
     # about whether the recipe gets it right: it was not tried.
-    if (!is.null(a$notes$cost_cap_reached) || !is.null(a$notes$call_cap_reached)) return(NA)
+    # That includes a request another limit refused (the token limit, the
+    # allowed models, the output ceiling), which gr_read() notes as
+    # `limit_refused`.
+    if (!is.null(a$notes$cost_cap_reached) || !is.null(a$notes$call_cap_reached) ||
+        !is.null(a$notes$limit_refused)) return(NA)
     # A recipe that failed is answered not-found (gr_compare()), so this covers it.
     return(FALSE)
   }

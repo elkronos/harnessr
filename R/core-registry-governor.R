@@ -68,14 +68,14 @@
 #'
 #' A governor is attached to a run with `gr_trace(governor = )`, and then
 #' governs the requests recorded into that trace. A stage that keeps a trace
-#' of its own and folds it into the one it is given ([gr_read_many()], and
-#' [gr_synthesise()]) holds its requests to that trace's governor, less what
-#' the given trace has already spent and used in tokens; `max_calls` stays a
-#' limit per document for [gr_read_many()] and per stage for
-#' [gr_synthesise()], as with the options. A trace made without one,
-#' including those the package makes for itself, reads the limits from
-#' [gr_options()] each time it checks, so changing an option affects runs
-#' that are already going, as it always has.
+#' of its own and folds it into the one it is given ([gr_read_many()],
+#' [gr_claims()], [gr_outline()] and [gr_synthesise()]) holds its requests to
+#' that trace's governor, less what the given trace has already spent and
+#' used in tokens; `max_calls` stays a limit per document for
+#' [gr_read_many()] and per stage for the others, as with the options. A
+#' trace made without one, including those the package makes for itself,
+#' reads the limits from [gr_options()] each time it checks, so changing an
+#' option affects runs that are already going, as it always has.
 #'
 #' @param max_calls Most requests the run may make, cache hits and embeddings
 #'   requests included. `NULL` or `Inf` for no limit.

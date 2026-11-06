@@ -111,7 +111,25 @@ resolve_embedder <- function(client, embedder = NULL) {
     # client-supplied embedder is on the semantic side of it.
     return(list(name = "api", deterministic = FALSE,
                 fn = function(texts, params) {
-                  m <- client$embed_handler(texts, list(model = params$model))
+                  # A client's embed function is a request like any other, so
+                  # it answers to the run's limits and goes in the ledger. It
+                  # used to be called with no check at all, so `max_calls = 0`
+                  # and `allowed_models` did not stop it. A mock makes no
+                  # requests and is left out.
+                  mock <- inherits(client, "gr_mock_client")
+                  if (!mock) embed_governor_check(params$trace, params$model, texts)
+                  started <- Sys.time()
+                  m <- tryCatch(client$embed_handler(texts, list(model = params$model)),
+                                error = function(e) e)
+                  if (!mock) {
+                    failed <- inherits(m, "condition")
+                    embed_record(params$trace, params$model, texts, NULL,
+                                 if (!failed) list(data = list()),
+                                 problem = if (failed) conditionMessage(m),
+                                 seconds = as.numeric(difftime(Sys.time(), started,
+                                                               units = "secs")))
+                  }
+                  if (inherits(m, "condition")) stop(m)
                   if (!is.null(client$.log)) {
                     client$.log$embeds <- c(client$.log$embeds,
                                             list(list(texts = texts, model = params$model)))

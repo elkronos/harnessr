@@ -184,7 +184,8 @@
   may use: prompts and replies of every call, and text sent to be embedded.
   A request whose prompt and reply at its cap would pass it is refused with
   `stop_reason` `"tokens"`. It is the limit that still bounds a run on an
-  unpriced model under `allow_unpriced = TRUE`.
+  unpriced model under `allow_unpriced = TRUE`. `gr_compare()` holds the whole
+  comparison to it, as it does to `max_cost_usd`.
 
 * **New `hr_governor()`** holds a run's limits: `max_calls`, `max_cost_usd`,
   `max_tokens_total`, `max_output_tokens` (the largest output cap one request may carry; a
@@ -195,10 +196,11 @@
   `allowed_models` (all `NULL`, off) and `allow_unpriced` (`FALSE`), so every
   trace's config snapshot now lists them. `as_json()` writes a trace's
   `refusals` and `governor` when it has any, with `allowed_models` always as
-  an array. `gr_read_many()` and `gr_synthesise()`, which keep a trace of
-  their own and fold it into the one they are given, hold their requests to
-  that trace's governor, less what it has already spent; `max_calls` stays a
-  limit per document and per stage.
+  an array. `gr_read_many()`, `gr_claims()`, `gr_outline()` and
+  `gr_synthesise()`, which keep a trace of their own and fold it into the one
+  they are given, hold their requests to that trace's governor, less what it
+  has already spent and used in tokens; `max_calls` stays a limit per
+  document and per stage.
 
 * **A parallel batch cannot pass a limit.** Each worker's items are held to
   an equal share of the calls and dollars the run has left, and an item its
@@ -401,11 +403,12 @@
   `TRUE`, `FALSE` or `NA`, and adds `correct` and `usd_per_correct`, the cost
   of a right answer: `usd` when the answer is right, `Inf` when it is wrong
   and cost something. Without it the summary has no such columns. A recipe
-  a spending or call limit stopped before it found anything is `NA`, not
-  wrong. A `correct` function that fails or returns something other than one
-  logical gives a `gr_bad_correct` warning and `NA` for that recipe, so the
-  paid results still come back; an invalid `correct` argument is an error of
-  the same class.
+  a limit stopped before it found anything is `NA`, not wrong: the spending,
+  token or call limit, the model allow-list, the output ceiling, or a
+  spending limit refusing a model with no price. A `correct` function that
+  fails or returns something other than one logical gives a `gr_bad_correct`
+  warning and `NA` for that recipe, so the paid results still come back; an
+  invalid `correct` argument is an error of the same class.
 
 ## Checking quotations
 

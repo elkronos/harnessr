@@ -137,7 +137,8 @@
 #' @param trace A [gr_trace()] to add this stage's calls to, or `NULL`. The
 #'   calls are recorded on a trace of the stage's own, returned as `$trace`,
 #'   and folded into `trace` when the stage ends, as in [gr_read_many()] and
-#'   [gr_synthesise()].
+#'   [gr_synthesise()]. Its requests are held to the governor of `trace`, if
+#'   it has one, less what `trace` has already spent (see [hr_governor()]).
 #' @param bib Which columns carry bibliographic identity, as in
 #'   [gr_synthesise()]: a named list of `citation`, `authors`, `year`, `title`,
 #'   `venue`, `doi`. Those columns are withheld from the model, so a claim
@@ -232,8 +233,13 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   # screening came back empty and marked partial, and `$trace` reported the
   # whole review's cost as the claims'.
   parent <- as_parent_trace(trace)
+  # Held to the parent's governor, less what the parent has spent, as in
+  # gr_read_many() and gr_synthesise(). Without it the stage read the limits
+  # from gr_options() and a governor's allowed models, spending limit and
+  # token limit did not hold for its requests.
   trace <- gr_trace(meta = list(stage = "claims", question = question,
-                                studies = nrow(used)))
+                                studies = nrow(used)),
+                    governor = fork_governor(parent))
   # on.exit, so calls made before an error still reach the parent.
   if (!is.null(parent)) on.exit(trace_absorb(parent, trace), add = TRUE)
 
