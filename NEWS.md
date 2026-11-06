@@ -35,6 +35,67 @@
   the Shiny app's title. A trace's `meta` still records the version under
   `readgpt`, so traces written before and after the rename read the same way.
 
+## Screening
+
+* **`gr_calibrate()` computes kappa on kept against excluded.** 0.6.0 took
+  kappa over the screener's three labels (include, unclear, exclude) against
+  the person's two, so every `"unclear"` counted as a disagreement, while
+  sensitivity in the same object counted an unclear record as kept. The
+  primary table is now kept (include or unclear) against excluded, the
+  definition sensitivity uses, and `$agreement$strict` holds strict include
+  against the rest as a secondary table. On the eight-record example in
+  `?gr_calibrate` kappa moves from 0.33 to 0.50. The old figure is
+  `$kappa_legacy` for this release only, and is removed in the next.
+
+* **Kappa is no longer reported alone.** Each agreement table carries Cohen's
+  kappa, PABAK and Gwet's AC1 with intervals, the prevalence and bias indices,
+  and the class-wise sensitivity, specificity, PPV and NPV; `$agreement$kept$paradox`
+  flags a table whose prevalence index is above 0.8 in absolute value, where
+  kappa says more about prevalence than agreement. `$decisions` holds the 3x2
+  counts, and `print()` and the audit report show them with the agreement
+  set. The rate of `"unclear"` decisions is the existing `"deferred to a
+  person"` metric, with its interval.
+
+* **The kappa interval is a bootstrap over documents.** It is a percentile
+  bootstrap with B = 2000 under a fixed seed, so the same sample gives the
+  same interval and the session's random stream is untouched; B and the seed
+  are in `$agreement$kept$bootstrap`. AC1 keeps Gwet's (2008) variance. Where
+  the screener and the person agree on every record, disagree on every
+  record, or the sample holds fewer than 10 records, the kappa and AC1
+  intervals are left empty (NA) with a `$note` saying why, instead of a
+  zero-width interval such as [1.00, 1.00].
+
+* `print()` on a calibration now shows the 3x2 counts on every sample,
+  including one drawn from a single stratum. The audit report's calibration
+  section shows the same counts, and sensitivity, specificity, PPV and NPV
+  with intervals beside kappa, PABAK and AC1.
+
+* **Unclear records no longer leave a review without a word.** A
+  `gr_screening` gains `$forward` (the included and unclear records, the set a
+  review reads at full text) and `$deferred` (the unclear ones).
+  `gr_extract(screening)` still reads only `$included` in this release and now
+  warns (class `gr_unclear_dropped`) when that leaves unclear records out;
+  from the next release it reads `$forward`. Pass `screening$forward` to read
+  them now. Passing the vector `screening$included` gives no such warning:
+  `$included` stays a plain character vector in this release, and a warning on
+  that path is left to a later release.
+
+* **New `gr_resolve()`** records a person's decision on a deferred or failed
+  record: who decided, when (in UTC) and why, in the table and as a
+  `"screen.resolve"` step in the trace. `forward`, `deferred` and `included`
+  are rebuilt, the screener's own decision is kept in `screener_decision`, and
+  `gr_calibrate()` compares against that one, so a person's correction is not
+  credited to the screener. Duplicates of a resolved record take the same
+  decision. The audit report's screening table shows the screener's decision
+  and who resolved each record, when and why.
+
+* **`gr_flow()` accounts for every screened record.** A record with no
+  decision is now counted as "could not be read" only when no screening call
+  was made; one whose call failed, or whose reply was not the form asked for,
+  has a row of its own, "screening call failed". New rows count the records
+  resolved by a person, the records kept for full text (`$forward`) and, of
+  those, the ones deferred (`$deferred`).
+
 # readgpt 0.6.0
 
 ## New

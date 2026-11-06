@@ -498,8 +498,12 @@ audit_screening <- function(screening) {
   # `criterion_valid` FALSE is a criterion the protocol does not list: an
   # exclusion on one was held back for a person, and the report showed the
   # criterion with nothing to say it was not the protocol's.
+  # A decision a person made with gr_resolve() sits beside the screener's
+  # reason and quote, so the row says who decided and what the screener said.
   keep <- c("document", "decision", "criterion", "criterion_valid", "reason", "quote",
-            "verified", "error")
+            "verified", "error",
+            intersect(c("screener_decision", "resolved_by", "resolved_at", "resolved_reason"),
+                      names(t)))
   c("<h2>Screening decisions</h2>",
     sprintf("<p class='sub'>One model call per document.%s</p>",
             if (any(t$truncated, na.rm = TRUE))
@@ -1057,8 +1061,50 @@ audit_calibration <- function(calibration) {
               calibration$n_positives, format(calibration$min_positives))
     }
   }
-  kap <- if (!is.na(calibration$kappa))
-    sprintf("<p><b>Cohen's kappa:</b> %.2f</p>", calibration$kappa)
+  # Kappa beside PABAK and AC1, never alone: at screening prevalence it moves
+  # with the marginals, and printed on its own it read as the verdict. A
+  # calibration saved before the agreement set existed has only `kappa`, which
+  # was the three-label figure, and is shown as that.
+  ag <- calibration[["agreement", exact = TRUE]]
+  kap <- if (is.list(ag) && !is.null(ag$kept)) {
+    one <- function(a, label) {
+      st <- a$stats
+      st <- st[st$statistic %in% c("kappa", "PABAK", "AC1", "prevalence index", "bias index",
+                                   "sensitivity", "specificity", "PPV", "NPV"), ]
+      data.frame(table = label, statistic = st$statistic,
+                 estimate = ifelse(is.na(st$estimate), "--", sprintf("%.2f", st$estimate)),
+                 interval = ifelse(is.na(st$lower) | is.na(st$upper), "--",
+                                   sprintf("%.2f to %.2f", st$lower, st$upper)),
+                 stringsAsFactors = FALSE)
+    }
+    rows <- rbind(one(ag$kept, "kept (include + unclear) vs excluded"),
+                  if (!is.null(ag$strict)) one(ag$strict, "strict include vs the rest"))
+    notes <- unique(stats::na.omit(vapply(list(ag$kept, ag$strict), function(a) {
+      n <- if (is.list(a)) a[["note", exact = TRUE]]
+      if (is.character(n) && length(n) == 1L) n else NA_character_
+    }, "")))
+    c("<p><b>Agreement with the person</b></p>", html_table(rows),
+      if (length(notes))
+        sprintf("<p class='sub'>No kappa or AC1 interval: %s</p>", esc(paste(notes, collapse = " "))),
+      if (isTRUE(ag$kept$paradox))
+        paste0("<p class='flag'>The prevalence index is above 0.8 in absolute value, so ",
+               "kappa here reflects prevalence as much as agreement. Read it beside PABAK ",
+               "and AC1.</p>"))
+  } else if (!is.na(calibration$kappa %||% NA_real_)) {
+    sprintf("<p><b>Cohen's kappa (include, unclear and exclude against eligible):</b> %.2f</p>",
+            calibration$kappa)
+  }
+  # The 3x2 counts every rate and agreement figure above is made from, shown
+  # on every sample, one stratum included.
+  d <- calibration[["decisions", exact = TRUE]]
+  counts <- if (!is.null(d) && length(dim(d)) == 2L) {
+    c("<p><b>The screener's decisions against the person's</b></p>",
+      html_table(data.frame(screener = rownames(d),
+                            eligible = as.integer(d[, "eligible"]),
+                            `not eligible` = as.integer(d[, "not eligible"]),
+                            check.names = FALSE, stringsAsFactors = FALSE),
+                 numeric_cols = c("eligible", "not eligible")))
+  }
   proj <- if (!is.null(calibration$projected)) {
     pr <- calibration$projected
     sprintf(paste0("<p class='flag'>Across all %s excluded record(s), that rate implies about ",
@@ -1070,7 +1116,7 @@ audit_calibration <- function(calibration) {
     "<p class='flag'>%d eligible stud%s excluded by the screener: %s.</p>",
     nrow(calibration$missed), if (nrow(calibration$missed) == 1L) "y was" else "ies were",
     esc(paste(report_url(utils::head(calibration$missed$document, 8)), collapse = ", ")))
-  c("<h2>How good the screening is</h2>", head, html_table(tab), kap, proj, warn, miss)
+  c("<h2>How good the screening is</h2>", head, html_table(tab), counts, kap, proj, warn, miss)
 }
 
 #' The search, as the review has to report it.

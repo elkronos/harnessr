@@ -65,6 +65,7 @@ Other corpus functions:
 \code{\link{gr_calibrate}()},
 \code{\link{gr_inventory}()},
 \code{\link{gr_records}()},
-\code{\link{gr_reference}()}
+\code{\link{gr_reference}()},
+\code{\link{gr_resolve}()}
 }
 \concept{corpus functions}

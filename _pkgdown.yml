@@ -99,6 +99,7 @@ reference:
   - gr_screen
   - gr_reference
   - gr_calibrate
+  - gr_resolve
   - '`[.gr_reference_frame`'
   - gr_fields
   - gr_field
