@@ -11,12 +11,12 @@ r7_source_file <- function(...) {
   if (file.exists(f)) normalizePath(f) else NULL
 }
 
-# One `\item{`name`}{...}` of the roxygen in R/readgpt-package.R, as one line of
+# One `\item{`name`}{...}` of the roxygen in R/harnessr-package.R, as one line of
 # text: the comment markers dropped and the white space run together, so a
 # phrase may be matched across a line break. From the item's start to the next
 # item, or to the end of the block's `\describe{}`.
 r7_doc_item <- function(name) {
-  f <- r7_source_file("R", "readgpt-package.R")
+  f <- r7_source_file("R", "harnessr-package.R")
   skip_if(is.null(f), "the package source is not available")
   x <- readLines(f, warn = FALSE, encoding = "UTF-8")
   x <- sub("^#' ?", "", x[startsWith(x, "#'")])
@@ -105,7 +105,7 @@ test_that("the app's history download keeps non-ASCII text in a C locale", {
   local_registries()
   local_clean_cache()
   gr_options(verbose = FALSE)
-  app <- system.file("shiny", "app.R", package = "readgpt")
+  app <- system.file("shiny", "app.R", package = "harnessr")
   skip_if(!nzchar(app), "the Shiny app is not available")
   dir <- withr::local_tempdir()
   writeLines(c("Revenue was 45.2 million dollars in fiscal 2024.", "",

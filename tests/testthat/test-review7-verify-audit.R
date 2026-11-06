@@ -15,7 +15,7 @@ r7_files <- function(texts, env = parent.frame()) {
   file.path(d, names(texts))
 }
 
-r7_verified <- function(quote, source) isTRUE(readgpt:::span_match(quote, source)$verified)
+r7_verified <- function(quote, source) isTRUE(harnessr:::span_match(quote, source)$verified)
 
 # ---------------------------------------------------------------------------
 # h6-verify-linebreak-range: a hyphen or en dash at a line end was read as
@@ -62,10 +62,10 @@ test_that("a compound broken across a line does not verify either half alone", {
 })
 
 test_that("the text the boundary test reads still lines up with the normalised text", {
-  ms <- readgpt:::match_source
+  ms <- harnessr:::match_source
   for (s in c("aged 18-\n65 years", "aged 18– \r\n 65", "end -\n", "Anglo-\nSaxon ÉTÉ")) {
     got <- ms(s)
-    expect_identical(got$text, readgpt:::normalise_for_match(s), label = s)
+    expect_identical(got$text, harnessr:::normalise_for_match(s), label = s)
     expect_identical(got$memo$lc, utf8ToInt(got$text), label = s)
     expect_identical(got$n, nchar(got$text), label = s)
   }
@@ -82,7 +82,7 @@ test_that("a quotation that keeps a hyphen the cleaner took out verifies", {
   expect_match(doc, "investigatorblinded", fixed = TRUE)
   # Was FALSE, 0.75.
   expect_true(r7_verified("The trial was investigator-blinded", doc))
-  expect_identical(readgpt:::span_match("investigator-blinded", doc)$match, 1)
+  expect_identical(harnessr:::span_match("investigator-blinded", doc)$match, 1)
   # Where the source keeps one hyphen and loses another.
   expect_true(r7_verified("a double-blind, investigator-blinded trial",
                           "It was a double-blind, investigatorblinded trial."))
@@ -107,7 +107,7 @@ test_that("taking hyphens out never lets an elision drop a negation", {
 })
 
 test_that("a quotation found with its hyphens taken out is given its page", {
-  rp <- readgpt:::resolve_evidence_pages
+  rp <- harnessr:::resolve_evidence_pages
   blocks <- data.frame(text = c("Page one says revenue was 45.2 million dollars in total.",
                                 "The trial was investigatorblinded and ran for two years."),
                        page = c(1L, 2L), section = c("Intro", "Methods"),
@@ -159,7 +159,7 @@ test_that("the report on one answer counts only its own run's requests", {
   page <- r7_page(answer = a1)
   # Was the whole trace's count, both runs.
   expect_match(page, sprintf("<th>Requests</th><td>%d</td>", calls1), fixed = TRUE)
-  own <- as.data.frame(readgpt:::answer_trace(a1))
+  own <- as.data.frame(harnessr:::answer_trace(a1))
   expect_match(page, sprintf("%d request(s),", nrow(own)), fixed = TRUE)
   expect_false(grepl(sprintf("%d request(s),", nrow(as.data.frame(tr))), page, fixed = TRUE))
   # And the cost table's row for it.
@@ -332,7 +332,7 @@ r7_batched <- function(reconcile) {
 
 test_that("claims left unreconciled are counted in the flow and flagged in the report", {
   tab <- r7_claims_table()
-  cl <- r7_batched(function(p) readgpt:::gr_result(TRUE, '{"groups":[[1,2', finish_reason = "length"))
+  cl <- r7_batched(function(p) harnessr:::gr_result(TRUE, '{"groups":[[1,2', finish_reason = "length"))
   cm <- quiet(gr_claims(tab, question = "Q?", client = cl, max_claim_tokens = 440))
   expect_true(cm$unmerged)
   fl <- gr_flow(claims = cm)
@@ -340,7 +340,7 @@ test_that("claims left unreconciled are counted in the flow and flagged in the r
   expect_identical(fl$n[fl$stage == stage], 1L)
   expect_match(fl$note[fl$stage == stage], "one finding may appear as more than one claim",
                fixed = TRUE)
-  html <- paste(readgpt:::audit_claims(NULL, cm), collapse = " ")
+  html <- paste(harnessr:::audit_claims(NULL, cm), collapse = " ")
   expect_match(html, "<p class='flag'>The claims from different batches of studies were not reconciled",
                fixed = TRUE)
   # A reconcile that ran: counted 0, and nothing flagged.
@@ -348,7 +348,7 @@ test_that("claims left unreconciled are counted in the flow and flagged in the r
   cm2 <- quiet(gr_claims(tab, question = "Q?", client = cl, max_claim_tokens = 440))
   expect_false(cm2$unmerged)
   expect_identical(gr_flow(claims = cm2)$n[gr_flow(claims = cm2)$stage == stage], 0L)
-  expect_false(grepl("not reconciled", paste(readgpt:::audit_claims(NULL, cm2), collapse = " "),
+  expect_false(grepl("not reconciled", paste(harnessr:::audit_claims(NULL, cm2), collapse = " "),
                      fixed = TRUE))
   # A claims table saved before the field existed.
   cm2$unmerged <- NULL

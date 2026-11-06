@@ -34,30 +34,41 @@ test_that("without an effort, a request is built, keyed and recorded exactly as 
   info <- gr_model_info(reasoner)
   for (api in c("responses", "chat")) {
     cl <- gr_client(api = api, extra_body = list(seed = 7L))
-    a <- readgpt:::build_request_body(cl, msgs, reasoner, 2048L, NULL, NULL, "result", info,
+    a <- harnessr:::build_request_body(cl, msgs, reasoner, 2048L, NULL, NULL, "result", info,
                                       list(store = FALSE))
-    b <- readgpt:::build_request_body(cl, msgs, reasoner, 2048L, NULL, NULL, "result", info,
+    b <- harnessr:::build_request_body(cl, msgs, reasoner, 2048L, NULL, NULL, "result", info,
                                       list(store = FALSE), effort = NULL)
     expect_identical(a, b)
     expect_false(any(c("reasoning", "reasoning_effort") %in% names(a)))
   }
 
-  # The cache key, against the formula it had before the setting existed. A
-  # change here would turn every stored reply into a miss.
+  # The old cache key, which the legacy lookup computes, against the formula it
+  # had before the setting existed. A change here would turn every reply
+  # stored before harnessr-cache-v3 into a miss.
   cl <- gr_mock_client()
-  as_chr1 <- readgpt:::as_chr1
-  old_cache <- readgpt:::gr_hash(c(
+  as_chr1 <- harnessr:::as_chr1
+  old_cache <- harnessr:::gr_hash(c(
     "readgpt-cache-v2", as_chr1(cl$api, "?"), as_chr1(cl$base_url, "?"),
     as_chr1(cl$.client_id, "<url-addressed>"), reasoner, format(100L), "<null>", "result",
-    "<no-schema>", readgpt:::gr_hash(list()), readgpt:::gr_hash(list()),
-    readgpt:::key_text(c("system", "Be brief.", "user", "What was revenue?"))))
-  expect_identical(readgpt:::cache_key(cl, msgs, reasoner, 100L, NULL, NULL, "result", list()),
+    "<no-schema>", harnessr:::gr_hash(list()), harnessr:::gr_hash(list()),
+    harnessr:::key_text(c("system", "Be brief.", "user", "What was revenue?"))))
+  expect_identical(harnessr:::legacy_cache_key_v2(cl, msgs, reasoner, 100L, NULL, NULL, "result",
+                                                  list()),
                    old_cache)
-  # And the replay key, which a recording made by 0.5.1 is looked up by.
-  old_replay <- readgpt:::gr_hash(c("readgpt-replay-v1", reasoner,
-    readgpt:::key_text(c("system", "Be brief.", "user", "What was revenue?"))))
-  expect_identical(readgpt:::replay_key(msgs, reasoner), old_replay)
-  expect_identical(readgpt:::replay_key(msgs, reasoner, NULL), old_replay)
+  expect_identical(harnessr:::legacy_cache_key_v2(cl, msgs, reasoner, 100L, NULL, NULL, "result",
+                                                  list(), effort = NULL),
+                   old_cache)
+  # The current key has no effort part without one, and no draw part at 0.
+  key <- harnessr:::cache_key(cl, msgs, reasoner, 100L, NULL, NULL, "result", list())
+  expect_identical(harnessr:::cache_key(cl, msgs, reasoner, 100L, NULL, NULL, "result", list(),
+                                        effort = NULL, draw_index = 0L), key)
+  # And the old replay key, which a recording made by 0.5.1 is looked up by.
+  old_replay <- harnessr:::gr_hash(c("readgpt-replay-v1", reasoner,
+    harnessr:::key_text(c("system", "Be brief.", "user", "What was revenue?"))))
+  expect_identical(harnessr:::legacy_replay_key_v1(msgs, reasoner), old_replay)
+  expect_identical(harnessr:::legacy_replay_key_v1(msgs, reasoner, NULL), old_replay)
+  expect_identical(harnessr:::replay_key(msgs, reasoner, NULL, NULL, 100L),
+                   harnessr:::replay_key(msgs, reasoner, max_output = 100L))
 
   # A handler is given the params it always was, and the trace records them.
   seen <- NULL
@@ -72,17 +83,17 @@ test_that("without an effort, a request is built, keyed and recorded exactly as 
   # A spec carries no entry for it, so a corpus store's key is unchanged.
   expect_false("effort" %in% names(gr_read_spec()))
   rec <- as_recipe("fast")
-  same <- readgpt:::apply_overrides(rec, list(effort = NULL))
+  same <- harnessr:::apply_overrides(rec, list(effort = NULL))
   expect_false("effort" %in% names(same$read))
-  expect_identical(readgpt:::corpus_key("some text", "Q?", rec, cl),
-                   readgpt:::corpus_key("some text", "Q?", same, cl))
+  expect_identical(harnessr:::corpus_key("some text", "Q?", rec, cl),
+                   harnessr:::corpus_key("some text", "Q?", same, cl))
 })
 
 test_that("an effort goes in the field each API reads, over the client's default", {
   msgs <- list(list(role = "user", content = "What was revenue?"))
   info <- gr_model_info(reasoner)
   body <- function(api, extra_body = list(), extra = list(), effort = "low") {
-    readgpt:::build_request_body(gr_client(api = api, extra_body = extra_body), msgs, reasoner,
+    harnessr:::build_request_body(gr_client(api = api, extra_body = extra_body), msgs, reasoner,
                                  2048L, NULL, NULL, "result", info, extra, effort = effort)
   }
   # Exact names: `$reasoning` partial-matches `reasoning_effort`.
@@ -115,7 +126,7 @@ test_that("an effort goes in the field each API reads, over the client's default
 
 test_that("a map is resolved per label: longest name, whole dotted parts, then the default", {
   e <- c(extract = "low", "synthesise" = "medium", "synthesise.section" = "high", "xhigh")
-  f <- function(label) readgpt:::effort_for(e, label)
+  f <- function(label) harnessr:::effort_for(e, label)
   expect_identical(f("extract.chunk"), "low")
   expect_identical(f("extract"), "low")
   expect_identical(f("synthesise.section"), "high")
@@ -125,11 +136,11 @@ test_that("a map is resolved per label: longest name, whole dotted parts, then t
   expect_identical(f("map.answer"), "xhigh")
   # "default" is the unnamed element by another name; with neither, a label
   # nothing names is sent nothing.
-  expect_identical(readgpt:::effort_for(c(default = "low", reduce = "high"), "reduce.level3"), "high")
-  expect_identical(readgpt:::effort_for(c(default = "low", reduce = "high"), "map.answer"), "low")
-  expect_null(readgpt:::effort_for(c(reduce = "high"), "map.answer"))
-  expect_identical(readgpt:::effort_for("medium", "anything.at.all"), "medium")
-  expect_null(readgpt:::effort_for(NULL, "map.answer"))
+  expect_identical(harnessr:::effort_for(c(default = "low", reduce = "high"), "reduce.level3"), "high")
+  expect_identical(harnessr:::effort_for(c(default = "low", reduce = "high"), "map.answer"), "low")
+  expect_null(harnessr:::effort_for(c(reduce = "high"), "map.answer"))
+  expect_identical(harnessr:::effort_for("medium", "anything.at.all"), "medium")
+  expect_null(harnessr:::effort_for(NULL, "map.answer"))
 })
 
 test_that("an effort reaches a reasoning model and never one that would refuse it", {
@@ -158,7 +169,7 @@ test_that("an effort reaches a reasoning model and never one that would refuse i
 })
 
 test_that("a read sends each stage the effort its label resolves to", {
-  ch <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 150)))
+  ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150)))
   cl <- effort_client()
   quiet(gr_read(ch, "What was revenue?", cl,
                 gr_read_spec("map_reduce", model = reasoner,
@@ -178,7 +189,7 @@ test_that("a read sends each stage the effort its label resolves to", {
   long <- paste(rep("Revenue was 45.2 million dollars in the year under review.", 60),
                 collapse = " ")
   cl <- gr_mock_client(function(m, p) long)
-  ch2 <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 60)))
+  ch2 <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 60)))
   quiet(gr_read(ch2, "What was revenue?", cl,
                 gr_read_spec("map_reduce", model = "tiny-thinker", max_answer_tokens = 1500L,
                              effort = c(map = "low", reduce = "high"))))
@@ -200,13 +211,13 @@ test_that("a read sends each stage the effort its label resolves to", {
 test_that("calls made in parallel workers resolve the same effort", {
   skip_if_not_installed("future")
   skip_if_not_installed("future.apply")
-  # A worker loads readgpt from the library, not from this source tree, so
+  # A worker loads harnessr from the library, not from this source tree, so
   # under load_all() it runs whatever version was installed last.
   installed <- tryCatch(system2(file.path(R.home("bin"), "Rscript"),
-    c("-e", shQuote("cat('effort' %in% names(formals(readgpt::gr_call)))")),
+    c("-e", shQuote("cat('effort' %in% names(formals(harnessr::gr_call)))")),
     stdout = TRUE, stderr = FALSE), error = function(e) "FALSE", warning = function(w) "FALSE")
   skip_if_not(identical(utils::tail(installed, 1L), "TRUE"),
-              "the installed readgpt, which workers load, predates `effort`")
+              "the installed harnessr, which workers load, predates `effort`")
   local_registries()
   # Registered in this session only: a worker knows it is a reasoning model
   # because the model registry is sent with the batch.
@@ -214,7 +225,7 @@ test_that("calls made in parallel workers resolve the same effort", {
                     input_usd = 0, output_usd = 0, reasoning = TRUE,
                     supports_temperature = FALSE)
   gr_options(workers = 2)
-  ch <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 150)))
+  ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150)))
   cl <- gr_mock_client(function(m, p) sprintf("pid %d", Sys.getpid()))
   quiet(gr_read(ch, "What was revenue?", cl,
                 gr_read_spec("map_reduce", model = "par-thinker", parallel = TRUE,
@@ -228,7 +239,7 @@ test_that("calls made in parallel workers resolve the same effort", {
 })
 
 test_that("effort passes through answer_document() and gr_read_many(), into the store key", {
-  f <- readgpt_example()
+  f <- gr_example()
   cl <- effort_client()
   ans <- quiet(answer_document(f, "What was revenue?", "fast", client = cl, model = reasoner,
                                effort = "low"))
@@ -238,9 +249,9 @@ test_that("effort passes through answer_document() and gr_read_many(), into the 
   expect_identical(pre$detail$settings$effort, "low")
 
   rec <- as_recipe("fast")
-  k0 <- readgpt:::corpus_key(f, "Q?", rec, cl)
-  k1 <- readgpt:::corpus_key(f, "Q?", readgpt:::apply_overrides(rec, list(effort = "low")), cl)
-  k2 <- readgpt:::corpus_key(f, "Q?", readgpt:::apply_overrides(rec, list(effort = "high")), cl)
+  k0 <- harnessr:::corpus_key(f, "Q?", rec, cl)
+  k1 <- harnessr:::corpus_key(f, "Q?", harnessr:::apply_overrides(rec, list(effort = "low")), cl)
+  k2 <- harnessr:::corpus_key(f, "Q?", harnessr:::apply_overrides(rec, list(effort = "high")), cl)
   expect_false(k0 == k1)
   expect_false(k1 == k2)
 
@@ -264,13 +275,13 @@ test_that("gr_compare() keeps recipes apart that differ only in effort, and says
                    read = gr_read_spec("stuff", model = reasoner, effort = "low"))
   high <- gr_recipe("high", segment = list(method = "paragraph", max_tokens = 150),
                     read = gr_read_spec("stuff", model = reasoner, effort = "high"))
-  cmp <- quiet(gr_compare(readgpt_example(), "What was revenue?", list(low = low, high = high),
+  cmp <- quiet(gr_compare(gr_example(), "What was revenue?", list(low = low, high = high),
                           client = cl))
   expect_setequal(unname(efforts_by_label(cl)), c("low", "high"))
   expect_match(cmp$summary$settings[cmp$summary$recipe == "low"], "effort=low", fixed = TRUE)
   expect_match(cmp$summary$settings[cmp$summary$recipe == "high"], "effort=high", fixed = TRUE)
   # A map prints with its stages.
-  expect_identical(readgpt:::format_settings(list(effort = c(map = "low", "high"))),
+  expect_identical(harnessr:::format_settings(list(effort = c(map = "low", "high"))),
                    "effort=map:low+high")
 })
 
@@ -278,7 +289,7 @@ test_that("the segmenters that call a model are sent the run's effort", {
   # A segmenter asks the client's model, so the client's model is the
   # reasoning one here.
   cl <- gr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
-  quiet(answer_document(readgpt_example(), "What was revenue?",
+  quiet(answer_document(gr_example(), "What was revenue?",
                         gr_recipe("ctx", segment = gr_segment_spec("contextual", max_tokens = 200,
                                                                    context_source = "llm"),
                                   read = "stuff"),
@@ -297,12 +308,12 @@ test_that("gr_compare() shares chunks between recipes whose segmenter is sent th
   }
   context_calls <- function(ea, eb) {
     cl <- gr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
-    quiet(gr_compare(readgpt_example(), "What was revenue?", pair(ctx, ea, eb), client = cl))
+    quiet(gr_compare(gr_example(), "What was revenue?", pair(ctx, ea, eb), client = cl))
     e <- efforts_by_label(cl)
     e[names(e) == "segment.context"]
   }
   cl <- gr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
-  quiet(answer_document(readgpt_example(), "What was revenue?",
+  quiet(answer_document(gr_example(), "What was revenue?",
                         gr_recipe("one", segment = ctx, read = "stuff"), client = cl))
   n <- sum(names(efforts_by_label(cl)) == "segment.context")
   expect_gt(n, 0L)
@@ -329,12 +340,12 @@ test_that("gr_compare() shares chunks between recipes whose segmenter is sent th
                             cbind(nchar(texts), seq_along(texts), 1)
                           })
   sem <- gr_segment_spec("semantic", max_tokens = 200)
-  quiet(answer_document(readgpt_example(), "What was revenue?",
+  quiet(answer_document(gr_example(), "What was revenue?",
                         gr_recipe("one", segment = sem, read = "stuff"), client = cl))
   once <- embedded
   expect_gt(once, 0L)
   embedded <- 0L
-  quiet(gr_compare(readgpt_example(), "What was revenue?", pair(sem, "low", "high"), client = cl))
+  quiet(gr_compare(gr_example(), "What was revenue?", pair(sem, "low", "high"), client = cl))
   expect_identical(embedded, once)
 })
 
@@ -342,28 +353,28 @@ test_that("a segment spec carries only the effort its segmenter's requests resol
   read <- gr_read_spec("stuff", effort = c(segment = "minimal", stuff = "high"))
   for (m in c("fixed", "paragraph", "sentence", "recursive", "structural", "page", "semantic")) {
     seg <- gr_segment_spec(m)
-    expect_identical(readgpt:::segment_effort(seg, read), seg)
+    expect_identical(harnessr:::segment_effort(seg, read), seg)
   }
   seg <- gr_segment_spec("contextual")                     # the metadata blurb: no request
-  expect_identical(readgpt:::segment_effort(seg, read), seg)
+  expect_identical(harnessr:::segment_effort(seg, read), seg)
   seg <- gr_segment_spec("contextual", context_source = "llm")
-  expect_identical(readgpt:::segment_effort(seg, read)$effort, "minimal")
+  expect_identical(harnessr:::segment_effort(seg, read)$effort, "minimal")
   seg <- gr_segment_spec("proposition")
-  expect_identical(readgpt:::segment_effort(seg, read)$effort, "minimal")
+  expect_identical(harnessr:::segment_effort(seg, read)$effort, "minimal")
   # Nothing covers the segmenter's label: nothing is added.
-  expect_identical(readgpt:::segment_effort(seg, gr_read_spec("stuff", effort = c(stuff = "low"))),
+  expect_identical(harnessr:::segment_effort(seg, gr_read_spec("stuff", effort = c(stuff = "low"))),
                    seg)
   # Unset, the spec is what it always was.
-  expect_identical(readgpt:::segment_effort(seg, gr_read_spec("stuff")), seg)
+  expect_identical(harnessr:::segment_effort(seg, gr_read_spec("stuff")), seg)
 
   # A segmenter of the user's, or another function under a built-in's name,
   # is given the whole map, since the labels its calls carry are its own.
   local_registries()
   mine <- function(doc, spec, client, trace) new_chunks(doc$text, "mine", spec)
   gr_register_segmenter("mine", mine)
-  expect_identical(readgpt:::segment_effort(gr_segment_spec("mine"), read)$effort, read$effort)
+  expect_identical(harnessr:::segment_effort(gr_segment_spec("mine"), read)$effort, read$effort)
   gr_register_segmenter("paragraph", mine)
-  expect_identical(readgpt:::segment_effort(gr_segment_spec("paragraph"), read)$effort,
+  expect_identical(harnessr:::segment_effort(gr_segment_spec("paragraph"), read)$effort,
                    read$effort)
 })
 
@@ -441,7 +452,7 @@ test_that("a cache keeps replies at different efforts apart", {
 })
 
 test_that("a replay matches on the effort it was recorded with", {
-  doc <- readgpt_example()
+  doc <- gr_example()
   cl <- effort_client()
   rec <- gr_recipe("r", segment = list(method = "paragraph", max_tokens = 150),
                    read = gr_read_spec("map_reduce", model = reasoner))
@@ -492,7 +503,7 @@ test_that("a replay does not need the recording session's reasoning-model regist
 })
 
 test_that("a replay looks up the recording's other models at the effort each is sent", {
-  ch <- quiet(gr_segment(readgpt_example(), list(method = "paragraph", max_tokens = 150)))
+  ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150)))
   sp <- gr_read_spec("stuff", effort = "low")
   # A reasoning model and one that is sent no effort, each as the replay
   # client's own model and as the other one.
@@ -543,7 +554,7 @@ test_that("a call through an ellmer chat is not recorded as sent at the effort i
   expect_identical(seen, c("low", "high"))
   # The trace and the audit do not count it as sent, and keep what was asked.
   expect_false("effort" %in% names(as.data.frame(tr)))
-  expect_identical(readgpt:::trace_effort_text(tr), NA_character_)
+  expect_identical(harnessr:::trace_effort_text(tr), NA_character_)
   expect_null(tr$steps[[1]]$params$effort)
   expect_identical(tr$steps[[1]]$params$unsent_effort, "low")
 
@@ -560,7 +571,7 @@ test_that("a call through an ellmer chat is not recorded as sent at the effort i
 
 test_that("the audit report shows what effort each stage ran at", {
   cl <- effort_client()
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl,
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                                model = reasoner, effort = "low"))
   html <- paste(readLines(quiet(gr_audit_report(tempfile(fileext = ".html"), answer = ans,
                                                 open = FALSE)), warn = FALSE), collapse = "\n")
@@ -568,7 +579,7 @@ test_that("the audit report shows what effort each stage ran at", {
   expect_match(html, ">effort<", fixed = TRUE)
   # Not for a run without it.
   cl <- effort_client()
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl,
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                                model = reasoner))
   html <- paste(readLines(quiet(gr_audit_report(tempfile(fileext = ".html"), answer = ans,
                                                 open = FALSE)), warn = FALSE), collapse = "\n")
@@ -636,7 +647,7 @@ test_that("the help's custom reader and suggested profile do what the help says"
   tools::Rd2ex(file.path(man, "gr_register_reader.Rd"), ex)
   utils::capture.output(quiet(source(ex, local = new.env())))
   cl <- effort_client()
-  quiet(gr_read(quiet(gr_segment(readgpt_example(), list(method = "sentence", max_tokens = 120))),
+  quiet(gr_read(quiet(gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))),
                 "What was revenue?", cl, gr_read_spec("longest", model = reasoner, effort = "low")))
   expect_identical(unname(efforts_by_label(cl)), "low")
 
@@ -646,7 +657,7 @@ test_that("the help's custom reader and suggested profile do what the help says"
   code <- regmatches(rd, regexpr("effort = c\\(\"extract\\.chunk\"[^)]*\\)", rd))
   expect_length(code, 1L)
   profile <- eval(parse(text = sub("^effort = ", "", code)))
-  f <- function(label) readgpt:::effort_for(profile, label) %||% "default"
+  f <- function(label) harnessr:::effort_for(profile, label) %||% "default"
   for (l in c("skim.extract", "extract.chunk", "rerank.score", "segment.context", "map.answer")) {
     expect_identical(f(l), "low")
   }

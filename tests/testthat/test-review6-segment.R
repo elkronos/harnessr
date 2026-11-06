@@ -272,7 +272,7 @@ test_that("an over-cap word inside a sentence is split, not passed over the cap"
   expect_identical(gr_chunk_stats(ch)$over_cap, 0L)
   # The blob is cut, not lost: its pieces, in order, are the blob.
   expect_true(grepl(blob, gsub("\\s", "", paste(ch$chunks$text, collapse = "")), fixed = TRUE))
-  pieces <- readgpt:::hard_split(paste("See the attached file. The attachment was", blob,
+  pieces <- harnessr:::hard_split(paste("See the attached file. The attachment was", blob,
                                        "and nothing else."), 500)
   expect_true(all(gr_count_tokens(pieces) <= 500L))
   expect_true(any(grepl(substr(blob, 1, 40), pieces, fixed = TRUE)))
@@ -288,7 +288,7 @@ test_that("a tokenizer that counts joining spaces still gets chunks within the c
     # Packed within the cap by the segmenter itself, not re-cut afterwards.
     expect_null(ch$extra$cap_enforced, info = m)
   }
-  expect_true(all(gr_count_tokens(readgpt:::hard_split(yes, 64)) <= 64L))
+  expect_true(all(gr_count_tokens(harnessr:::hard_split(yes, 64)) <= 64L))
   # And overlap still fits beside the unit it is carried to.
   ch <- quiet(gr_segment(yes, list(method = "sentence", max_tokens = 64, overlap_tokens = 16)))
   expect_true(all(ch$chunks$tokens <= 64L))
@@ -384,15 +384,15 @@ test_that("overlap is carried for Chinese text", {
     }
     expect_true(all(ch$chunks$tokens <= 300L))
   }
-  tail <- readgpt:::tail_by_tokens(zh_para(1), 30)
+  tail <- harnessr:::tail_by_tokens(zh_para(1), 30)
   expect_true(nzchar(tail))
   expect_true(gr_count_tokens(tail) <= 30L)
   expect_true(endsWith(zh_para(1), tail))
 })
 
 test_that("overlap for Latin text still carries whole words only", {
-  expect_identical(readgpt:::tail_by_tokens("the internationalization", 5), "")
-  expect_identical(readgpt:::tail_by_tokens("alpha beta gamma delta epsilon", 5), "epsilon")
+  expect_identical(harnessr:::tail_by_tokens("the internationalization", 5), "")
+  expect_identical(harnessr:::tail_by_tokens("alpha beta gamma delta epsilon", 5), "epsilon")
 })
 
 # ---------------------------------------------------------------------------

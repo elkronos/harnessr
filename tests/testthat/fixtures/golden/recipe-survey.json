@@ -1,0 +1,584 @@
+{
+  "calls": [
+    {
+      "cache_key": "f3d8523bbcb94eec71c5ccbf90b1a29e434c28df8dac9da2298a0c9db6f53865",
+      "chars": [202, 35, 59],
+      "label": "hier.summarise.L1",
+      "messages": "aa8cb898463b9f68",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 86,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "835df50693bf1580",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "57ce8a4aa18522d44b4107c032fb8e4b62d337902068124cae8f72d52a06a2f2",
+      "chars": [202, 35, 347],
+      "label": "hier.summarise.L1",
+      "messages": "c1a7e865b2106363",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 170,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "7d64f9c8b126756c",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "75f05049e7f013a38c4f4fc850d903b394cb0cd2ff69fecc4323a3abbf64b962",
+      "chars": [202, 35, 543],
+      "label": "hier.summarise.L1",
+      "messages": "3d761fa21d0958f4",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 213,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "7ab9f6de42dbc2e4",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "b7dcca46f46e64075a7135f3a003411b981bfb4d88d34f8b8abeb1918125ecd4",
+      "chars": [202, 35, 585],
+      "label": "hier.summarise.L1",
+      "messages": "223597a38602cb02",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 224,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "685bf179c1049157",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "e2d73439ae316b05d055c8babe877a707217fed9dd25ff713f0193a6762e17b9",
+      "chars": [202, 35, 297],
+      "label": "hier.summarise.L1",
+      "messages": "99e4fe65d9dec7b4",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 153,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "6845b3ffd6194c18",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "69eed652368e39575e5ca429c48e109f91321202eb262d1ed75cfe86ba361dd4",
+      "chars": [202, 35, 127],
+      "label": "hier.summarise.L1",
+      "messages": "c0c0ea4354b469c7",
+      "model": "mock-model",
+      "params": {
+        "max_output": 500,
+        "model": "mock-model",
+        "prompt_tokens": 108,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "2081b020a8f487cb",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "a4634dd6b1f3c532d4350dba19597089c2180a31312b1009c1263fa45b16303f",
+      "chars": [216, 455, 35],
+      "label": "hier.answer",
+      "messages": "aaef03a88ca03e56",
+      "model": "mock-model",
+      "params": {
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 223,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "5302652317f68043",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    }
+  ],
+  "result": "a34ad3f0c8e88f77",
+  "trace": {
+    "actor": {
+      "approved_by": null,
+      "owner": null,
+      "purpose": null,
+      "run_by": null,
+      "system": null
+    },
+    "budget_stop": false,
+    "config": {
+      "options": {
+        "actor": [],
+        "allow_unpriced": false,
+        "allowed_models": null,
+        "api": "responses",
+        "api_base": "https://api.openai.com/v1",
+        "api_headers": [],
+        "cache_dir": null,
+        "cache_documents": true,
+        "cache_embeddings": true,
+        "embedder": null,
+        "embedding_model": "text-embedding-3-small",
+        "max_calls": 400,
+        "max_cost_usd": 5,
+        "max_output_tokens": null,
+        "max_retries": 4,
+        "max_tokens_total": null,
+        "min_output_tokens": 256,
+        "model": "gpt-5.6-terra",
+        "parallel": false,
+        "request_timeout": 120,
+        "retry_pause_base": 2,
+        "safety_margin": 0.1,
+        "temperature": null,
+        "tokenizer": "heuristic",
+        "unknown_model_action": "warn",
+        "verbose": false,
+        "workers": 4
+      }
+    },
+    "errors": [],
+    "meta": {
+      "question": "What was revenue in 2024?",
+      "recipe": "survey",
+      "source": "annual_report.md"
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "detail": {
+          "blocks": 17,
+          "cached": false,
+          "clean_steps": [
+            "page_numbers",
+            "hyphenation",
+            "control_chars",
+            "ligatures",
+            "collapse_whitespace"
+          ],
+          "source": "annual_report.md",
+          "tokens": 574
+        },
+        "kind": "local",
+        "label": "ingest",
+        "ok": true,
+        "recipe": "survey",
+        "source": "annual_report.md",
+        "step": 1
+      },
+      {
+        "detail": {
+          "max": 155,
+          "mean": 89.8,
+          "median": 92.5,
+          "method": "structural",
+          "min": 16,
+          "n": 6,
+          "over_cap": 0,
+          "settings": {
+            "max_tokens": 1500
+          },
+          "total_tokens": 539
+        },
+        "kind": "local",
+        "label": "segment",
+        "ok": true,
+        "recipe": "survey",
+        "source": "annual_report.md",
+        "step": 2
+      },
+      {
+        "detail": {
+          "chunks": 6,
+          "embed_calls": 0,
+          "est_calls": 9,
+          "est_cost_usd": 0,
+          "est_input_usd": 0,
+          "model": "mock-model",
+          "reader": "hierarchical",
+          "settings": [],
+          "worst_calls": 9
+        },
+        "kind": "local",
+        "label": "preflight",
+        "ok": true,
+        "recipe": "survey",
+        "source": "annual_report.md",
+        "step": 3
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 86,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
+        "prompt": "aa8cb898463b9f68",
+        "recipe": "survey",
+        "replay_key": "fc753b613b1c5b2027feac5f2f890d380ca0789c681b699b81e74904811be949",
+        "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "state": {
+          "tokens_in": 16,
+          "tokens_out": 26
+        },
+        "step": 4,
+        "tokens": {
+          "input": 86,
+          "output": 26,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 170,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
+        "prompt": "c1a7e865b2106363",
+        "recipe": "survey",
+        "replay_key": "a1b318a463fa073db2d6ab082621cb8db683db2e98fccd7d3b1ae42b065e69dc",
+        "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "state": {
+          "tokens_in": 101,
+          "tokens_out": 26
+        },
+        "step": 5,
+        "tokens": {
+          "input": 170,
+          "output": 26,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 213,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
+        "prompt": "3d761fa21d0958f4",
+        "recipe": "survey",
+        "replay_key": "e7f0c6d896c8ddc8f9c93bf7737d2b22265cf57fa333e8078247ea9680c6b6a8",
+        "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "state": {
+          "tokens_in": 144,
+          "tokens_out": 26
+        },
+        "step": 6,
+        "tokens": {
+          "input": 213,
+          "output": 26,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 224,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
+        "prompt": "223597a38602cb02",
+        "recipe": "survey",
+        "replay_key": "6e23040a5eb706d4ed13a119c66ddc06fe25e836c3f752bfe5e24bb00966f9a0",
+        "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "state": {
+          "tokens_in": 155,
+          "tokens_out": 26
+        },
+        "step": 7,
+        "tokens": {
+          "input": 224,
+          "output": 26,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 153,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
+        "prompt": "99e4fe65d9dec7b4",
+        "recipe": "survey",
+        "replay_key": "18f8240f31a181a27cc24c5e6a1a819f9de06813251bb403a0fd80a98e574f96",
+        "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "state": {
+          "tokens_in": 84,
+          "tokens_out": 26
+        },
+        "step": 8,
+        "tokens": {
+          "input": 153,
+          "output": 26,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "hier.summarise.L1",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 500,
+          "model": "mock-model",
+          "prompt_tokens": 108,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
+        "prompt": "c0c0ea4354b469c7",
+        "recipe": "survey",
+        "replay_key": "365d6032028ae55d16243c9e376e619a0586be2127467e4f73059b0ec1d16034",
+        "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "state": {
+          "tokens_in": 39,
+          "tokens_out": 26
+        },
+        "step": 9,
+        "tokens": {
+          "input": 108,
+          "output": 26,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "detail": {
+          "level": 1,
+          "summaries": 6,
+          "tokens": 140
+        },
+        "kind": "local",
+        "label": "hier.state.L1",
+        "ok": true,
+        "recipe": "survey",
+        "source": "annual_report.md",
+        "step": 10
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "hier.answer",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 1500,
+          "model": "mock-model",
+          "prompt_tokens": 223,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
+        "prompt": "aaef03a88ca03e56",
+        "recipe": "survey",
+        "replay_key": "1b5a57f7049af1b5ab1ec67e5a362566a3b2d72754e77c58046d04ad98007ff2",
+        "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "state": {
+          "tokens_in": 140
+        },
+        "step": 11,
+        "tokens": {
+          "input": 223,
+          "output": 26,
+          "provenance": "estimated"
+        }
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 7,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 11,
+      "tokens_cached_in": 0,
+      "tokens_in": 1177,
+      "tokens_out": 182,
+      "tokens_reasoning": 0,
+      "usage_estimated": 1
+    }
+  }
+}

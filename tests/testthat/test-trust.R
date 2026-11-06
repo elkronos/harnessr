@@ -7,7 +7,7 @@
 
 no_key <- function(env = parent.frame()) {
   withr::local_envvar(OPENAI_API_KEY = NA, .local_envir = env)
-  withr::local_options(readgpt.api_key = NULL, .local_envir = env)
+  withr::local_options(harnessr.api_key = NULL, .local_envir = env)
 }
 
 # An extractor for a made-up extension that counts how often it runs, so a test
@@ -71,24 +71,24 @@ test_that("a cached client is let through, and stops at the first request the ca
   local_clean_cache()
   no_key()
   cc <- gr_cache_client(gr_client(max_retries = 0L), gr_cache(tempfile("cache-")))
-  expect_true(readgpt:::stop_if_no_credentials(cc))
+  expect_true(harnessr:::stop_if_no_credentials(cc))
   # on_error = "continue" records a failed document and moves on. A missing key
   # is not one document's failure, so it stops the run all the same.
-  expect_error(gr_read_many(c(readgpt_example(), write_doc("txt")), "What was revenue?",
+  expect_error(gr_read_many(c(gr_example(), write_doc("txt")), "What was revenue?",
                             client = cc, on_error = "continue"),
                class = "gr_auth_error")
-  expect_error(gr_compare(readgpt_example(), "What was revenue?", c("fast", "needle"),
+  expect_error(gr_compare(gr_example(), "What was revenue?", c("fast", "needle"),
                           client = cc, on_error = "continue"),
                class = "gr_auth_error")
 })
 
 test_that("clients that carry their credential some other way are not stopped", {
   no_key()
-  expect_true(readgpt:::stop_if_no_credentials(gr_client(headers = c("api-key" = "corp"))))
-  expect_true(readgpt:::stop_if_no_credentials(mock_echo()))
-  expect_true(readgpt:::stop_if_no_credentials(
+  expect_true(harnessr:::stop_if_no_credentials(gr_client(headers = c("api-key" = "corp"))))
+  expect_true(harnessr:::stop_if_no_credentials(mock_echo()))
+  expect_true(harnessr:::stop_if_no_credentials(
     gr_backend_client(function(messages, params) "ok", model = "any-model", id = "trust-test")))
-  expect_error(readgpt:::stop_if_no_credentials(gr_client()), class = "gr_auth_error")
+  expect_error(harnessr:::stop_if_no_credentials(gr_client()), class = "gr_auth_error")
 })
 
 # ---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ test_that("the reasons are read by exact name, not by prefix", {
   # fallback the reader never took.
   a <- new_answer("An answer.", "rerank", "q", 1L, gr_trace(), partial = TRUE,
                   notes = list(degraded_to_bm25 = TRUE))
-  why <- readgpt:::partial_reasons(a)
+  why <- harnessr:::partial_reasons(a)
   expect_true("relevance scoring fell back to word matching" %in% why)
   expect_false("fell back to a simpler method" %in% why)
 })
@@ -239,7 +239,7 @@ test_that("a folder run ties each warning to its document, including one that fa
 test_that("a store written before the warnings column still restores", {
   local_clean_cache()
   store <- tempfile("store-")
-  docs <- c(readgpt_example(), write_doc("txt"))
+  docs <- c(gr_example(), write_doc("txt"))
   cl <- mock_echo("Revenue was 45.2 million dollars.")
   quiet(gr_read_many(docs, "What was revenue?", "fast", client = cl, store = store))
 
@@ -260,7 +260,7 @@ test_that("a string that looks like a path is read as text, with a warning that 
   expect_warning(doc <- gr_ingest("reports/2024/annual-report.pfd"), class = "gr_path_as_text")
   expect_identical(doc$source, "<inline text>")
   expect_identical(names(doc$warnings), "gr_path_as_text")
-  # Prose is not a path, and a missing file with an extension readgpt reads is
+  # Prose is not a path, and a missing file with an extension harnessr reads is
   # still an error rather than a document.
   expect_no_warning(gr_ingest("Growth reached 3/4 of the target in fiscal 2024."))
   expect_no_warning(gr_ingest("Revenue rose to 45.2 million dollars in the year."))
@@ -354,10 +354,10 @@ test_that("refine marks the answer partial when it cuts an excerpt to fit", {
 
 test_that("gr_compare() answers carry the document and page-resolved evidence too", {
   local_clean_cache()
-  cmp <- gr_compare(readgpt_example(), "What was revenue?", c("fast", "needle"),
+  cmp <- gr_compare(gr_example(), "What was revenue?", c("fast", "needle"),
                     client = mock_echo("Revenue was 45.2 million dollars."))
   for (a in cmp$answers) {
-    expect_identical(a$document$source, normalizePath(readgpt_example(), winslash = "/"))
+    expect_identical(a$document$source, normalizePath(gr_example(), winslash = "/"))
     expect_true(is.character(a$warnings))
   }
 })
@@ -376,22 +376,22 @@ test_that("a run whose documents are all in the store needs no key", {
   # request is answered here, and every later request goes to the dead address.
   withr::with_envvar(c(OPENAI_API_KEY = "sk-test-first-run"),
     testthat::with_mocked_bindings(
-      first <- quiet(gr_read_many(readgpt_example(), "What was revenue?", "fast", client = dead(),
+      first <- quiet(gr_read_many(gr_example(), "What was revenue?", "fast", client = dead(),
                                   store = store)),
       http_call = function(client, url, body) {
         gr_result(TRUE, text = "Revenue was 45.2 million dollars.", status = 200L,
                   model = as_chr1(body$model, "gpt-4o-mini"))
       },
-      .package = "readgpt"))
+      .package = "harnessr"))
   expect_identical(first$summary$status, "ok")
   no_key()
-  again <- gr_read_many(readgpt_example(), "What was revenue?", "fast", client = dead(),
+  again <- gr_read_many(gr_example(), "What was revenue?", "fast", client = dead(),
                         store = store)
   expect_identical(again$summary$status, "restored")
 
   # A document that is not in the store still stops the run before it is read.
   hits <- counting_extractor()
-  expect_error(gr_read_many(c(readgpt_example(), write_doc("rgx")), "What was revenue?", "fast",
+  expect_error(gr_read_many(c(gr_example(), write_doc("rgx")), "What was revenue?", "fast",
                             client = dead(), store = store),
                class = "gr_auth_error")
   expect_identical(hits$n, 0L)
@@ -509,7 +509,7 @@ test_that("print() copes with what a custom reader can hand back", {
 })
 
 test_that("a warning whose message is not one clean string is still recorded as one", {
-  rec <- readgpt:::warning_recorder()
+  rec <- harnessr:::warning_recorder()
   raise <- function(msg) withCallingHandlers(
     gr_style_warning(msg, "test_odd_message"),
     warning = function(w) { rec$record(w); invokeRestart("muffleWarning") })

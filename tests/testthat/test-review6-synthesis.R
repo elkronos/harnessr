@@ -169,9 +169,9 @@ test_that("finding columns named source and date are shown to the writer, not ma
   expect_match(seen[1], "publication: preprint", fixed = TRUE)
   expect_null(s$references)
   expect_false(grepl("References", s$text, fixed = TRUE))
-  expect_identical(readgpt:::bib_columns(tab), list())
+  expect_identical(harnessr:::bib_columns(tab), list())
   # Named in `bib`, a column is bibliographic as before.
-  cols <- readgpt:::bib_columns(tab, list(year = "date", venue = "source"))
+  cols <- harnessr:::bib_columns(tab, list(year = "date", venue = "source"))
   expect_identical(cols, list(year = "date", venue = "source"))
 })
 
@@ -180,12 +180,12 @@ test_that("a role given as NA keeps a conventionally named column as a finding",
   tab$authors <- c("Smith, J.", "Garcia, M.")
   tab$year <- c(2019L, 2020L)
   tab$journal <- c("Lancet", "BMJ")
-  expect_identical(readgpt:::bib_columns(tab)$venue, "journal")
-  expect_null(readgpt:::bib_columns(tab, list(venue = NA))$venue)
-  expect_null(readgpt:::bib_columns(tab, list(venue = ""))$venue)
+  expect_identical(harnessr:::bib_columns(tab)$venue, "journal")
+  expect_null(harnessr:::bib_columns(tab, list(venue = NA))$venue)
+  expect_null(harnessr:::bib_columns(tab, list(venue = ""))$venue)
   # A named character vector works as the list does, and one that does not
   # carry a role leaves that role to the conventional names.
-  expect_identical(readgpt:::bib_columns(tab, c(venue = "journal"))$authors, "authors")
+  expect_identical(harnessr:::bib_columns(tab, c(venue = "journal"))$authors, "authors")
   seen <- character(0)
   cl <- gr_mock_client(function(m, p) { seen <<- c(seen, sent_text(m)); "A trial [study 1]." })
   s <- quiet(gr_synthesise(tab, outline = c(Findings = "f"), question = "Q?", client = cl,
@@ -245,7 +245,7 @@ test_that("two in-press papers by the same authors are lettered, not merged into
   expect_match(s$text, "(Smith & Okafor, in press-a; Smith & Okafor, in press-b)", fixed = TRUE)
   expect_identical(s$references, c("- Smith, J., Okafor, A. (in press-a). First paper.",
                                    "- Smith, J., Okafor, A. (in press-b). Second paper."))
-  f <- readgpt:::bib_keys
+  f <- harnessr:::bib_keys
   cols <- list(citation = "citation")
   # A letter that would repeat a key another row has is skipped.
   k <- f(data.frame(citation = c("Smith, 2019", "Smith, 2019", "Smith, 2019a")), cols)
@@ -260,7 +260,7 @@ test_that("two in-press papers by the same authors are lettered, not merged into
   expect_identical(nar2, c("Smith (in press-a)", "Smith (in press-b)"))
   # The letter a reference entry shows is the one the key was given, read off
   # the key rather than matched: a year printed "2019a" is not a letter.
-  g <- readgpt:::bib_key_letter
+  g <- harnessr:::bib_key_letter
   expect_identical(g("Smith, 2019b", "2019"), "b")
   expect_identical(g("Smith, 2019", "2019"), "")
   expect_identical(g("Smith, in press-a", "in press"), "-a")
@@ -279,14 +279,14 @@ test_that("co-authors whose surnames start with a non-ASCII letter are not dropp
   # At eeff205: "Smith, J., Ångström, K., Lee, A." gave the surnames
   # Smith and Lee, cited "(Smith & Lee, 2019)"; "Smith, J., Öztürk, E."
   # gave "(Smith, 2019)".
-  f <- readgpt:::bib_surnames
+  f <- harnessr:::bib_surnames
   expect_identical(f("Smith, J., Ångström, K., Lee, A."),
                    c("Smith", "Ångström", "Lee"))
   expect_identical(f("Smith, J., Öztürk, E."), c("Smith", "Öztürk"))
   expect_identical(f("Álvarez, M., Østergaard, J."),
                    c("Álvarez", "Østergaard"))
   cols <- list(authors = "authors", year = "year")
-  key <- function(a) readgpt:::bib_key(data.frame(authors = a, year = 2019L), cols)
+  key <- function(a) harnessr:::bib_key(data.frame(authors = a, year = 2019L), cols)
   expect_identical(key("Smith, J., Öztürk, E."), "Smith & Öztürk, 2019")
   expect_identical(key("Smith, J., Ångström, K., Lee, A."), "Smith et al., 2019")
 })
@@ -494,7 +494,7 @@ test_that("an outline stamped with other claims is refused", {
                                          r6s_claim("Trials work.", c(1, 3))))
   cm2 <- quiet(gr_claims(r6s_table(), question = "Q?", client = swapped))
   o <- p$o
-  attr(o, "claims_fingerprint") <- readgpt:::claims_fingerprint(p$cm$claims)
+  attr(o, "claims_fingerprint") <- harnessr:::claims_fingerprint(p$cm$claims)
   expect_error(quiet(gr_synthesise(r6s_table(), outline = o, question = "Q?", client = cl,
                                    claims = cm2)), class = "gr_claims_mismatch")
   expect_s3_class(quiet(gr_synthesise(r6s_table(), outline = o, question = "Q?", client = cl,

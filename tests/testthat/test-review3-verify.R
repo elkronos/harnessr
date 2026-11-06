@@ -3,7 +3,7 @@
 # still let through, and what it cost; plus the replay record and the parallel
 # help text.
 
-sm <- function(span, src) readgpt:::span_match(span, src)
+sm <- function(span, src) harnessr:::span_match(span, src)
 verified <- function(span, src) isTRUE(sm(span, src)$verified)
 
 skim_client <- function(quote, answer = "The answer.") {
@@ -112,10 +112,10 @@ test_that("verbatim rows are compared whole, not as a model's list of passages",
   # Text a reader copied out of the chunk is the chunk's own: its markers are
   # the document's, not a model's formatting.
   src <- "- Item one costs 5 dollars.\n- **Item** two costs 7 dollars."
-  expect_identical(readgpt:::span_match(src, src, whole = TRUE), list(verified = TRUE, match = 1))
-  expect_true(is.na(readgpt:::span_match("...", src, whole = TRUE)$verified))
+  expect_identical(harnessr:::span_match(src, src, whole = TRUE), list(verified = TRUE, match = 1))
+  expect_true(is.na(harnessr:::span_match("...", src, whole = TRUE)$verified))
   # A chunk set that does not match still reports the evidence unverified.
-  expect_false(readgpt:::span_match("Revenue rose 12%.", "Costs were flat.", whole = TRUE)$verified)
+  expect_false(harnessr:::span_match("Revenue rose 12%.", "Costs were flat.", whole = TRUE)$verified)
 })
 
 # ---------------------------------------------------------------------------
@@ -264,8 +264,8 @@ test_that("a dropped digit group is caught when digits are grouped with a thin s
 # ---------------------------------------------------------------------------
 
 test_that("the source the boundary test reads lines up with the normalised text", {
-  ms <- readgpt:::match_source
-  nm <- readgpt:::normalise_for_match
+  ms <- harnessr:::match_source
+  nm <- harnessr:::normalise_for_match
   x <- c("  A\u00a0 b\t\tc\u2014d \u2013 e\u202f1\u2009200  ", "\u00a0lead", "trail\u202f",
          "\u201cQ\u201d \u2018q\u2019 x\u2212y", "", " ", "\u00a0", "\u00a0 ", "\u0130STANBUL \u00c9T\u00c9",
          "\u5171\u7eb3\u5165 120\u540d", "a\n\nb\r\nc")
@@ -286,11 +286,11 @@ test_that("a short word inside many longer ones is checked without rescanning th
   expect_false(m$verified)
   expect_equal(m$match, 0.5)
   expect_lt(t, 2)
-  expect_identical(readgpt:::found_at("in the trial", src), nchar(src) - 11L)
+  expect_identical(harnessr:::found_at("in the trial", src), nchar(src) - 11L)
   # Occurrences that overlap one another are all tried.
-  expect_identical(readgpt:::found_at("1 1", "11 1 1"), 4L)
-  expect_identical(readgpt:::found_at("aa", "aaa aa"), 5L)
-  expect_identical(readgpt:::found_at("the", "the trial and the", from = 2L), 15L)
+  expect_identical(harnessr:::found_at("1 1", "11 1 1"), 4L)
+  expect_identical(harnessr:::found_at("aa", "aaa aa"), 5L)
+  expect_identical(harnessr:::found_at("the", "the trial and the", from = 2L), 15L)
 })
 
 # ---------------------------------------------------------------------------

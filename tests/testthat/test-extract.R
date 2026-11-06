@@ -69,7 +69,7 @@ test_that("field names that would break the table are refused, not renamed", {
     two_para_file("A trial was run here.", "It then ended here."),
     gr_fields(zzz = "anything"), client = mock_form(list()),
     recipe = "thorough", max_tokens = 40))$table)
-  expect_true(all(setdiff(tab_cols, "zzz") %in% readgpt:::.gr_reserved_fields))
+  expect_true(all(setdiff(tab_cols, "zzz") %in% harnessr:::.gr_reserved_fields))
   expect_error(gr_fields(a = "x", a = "y"), class = "gr_bad_field")
   expect_error(gr_fields(), class = "gr_bad_field")
   expect_error(gr_fields("unnamed"), class = "gr_bad_field")
@@ -85,7 +85,7 @@ test_that("every field is nullable in the schema, and each gets a quote companio
   # `null` in the type union a strict-schema endpoint forces a value, which is
   # how extraction pipelines invent numbers.
   f <- gr_fields(a = "alpha", b = gr_field("beta", type = "integer"))
-  sch <- readgpt:::fields_schema(f)
+  sch <- harnessr:::fields_schema(f)
   expect_true(all(c("a", "b", "a__quote", "b__quote") %in% names(sch$properties)))
   expect_true("null" %in% sch$properties$a$type)
   expect_true("null" %in% sch$properties$b$type)
@@ -93,11 +93,11 @@ test_that("every field is nullable in the schema, and each gets a quote companio
   expect_false(sch$additionalProperties)
 
   e <- gr_fields(x = gr_field("x", type = "enum", values = c("p", "q")))
-  expect_true("p" %in% unlist(readgpt:::fields_schema(e)$properties$x$enum))
+  expect_true("p" %in% unlist(harnessr:::fields_schema(e)$properties$x$enum))
 })
 
 test_that("values are coerced to the type the field declares", {
-  cf <- readgpt:::coerce_field
+  cf <- harnessr:::coerce_field
   expect_identical(cf("1,204", gr_field("n", type = "integer")), 1204L)
   expect_identical(cf(1204, gr_field("n", type = "integer")), 1204L)
   expect_identical(cf("about 1,200 people", gr_field("n", type = "integer")), 1200L)
@@ -261,15 +261,15 @@ test_that("a record survives a store written before notes carried it", {
                  n = gr_field("Participants", type = "integer"))
   ans <- structure(list(answer = '{"design":"cohort","n":"1,204","other":"ignored"}',
                         notes = list()), class = "gr_answer")
-  rec <- readgpt:::answer_record(ans, f)
+  rec <- harnessr:::answer_record(ans, f)
   expect_identical(rec$design, "cohort")
   expect_identical(rec$n, 1204L)
 
   # An answer that is not readable at all yields an empty record, never a
   # partially-populated one.
   bad <- structure(list(answer = "not json", notes = list()), class = "gr_answer")
-  expect_true(all(vapply(readgpt:::answer_record(bad, f), is.null, logical(1))))
-  expect_true(all(vapply(readgpt:::answer_record(NULL, f), is.null, logical(1))))
+  expect_true(all(vapply(harnessr:::answer_record(bad, f), is.null, logical(1))))
+  expect_true(all(vapply(harnessr:::answer_record(NULL, f), is.null, logical(1))))
 
   # The invariant everything downstream leans on: one entry per field, in schema
   # order, whatever went in. `out[[nm]] <- NULL` would silently drop entries and
@@ -277,7 +277,7 @@ test_that("a record survives a store written before notes carried it", {
   for (a in list(ans, bad, NULL,
                  structure(list(answer = "{}", notes = list()), class = "gr_answer"),
                  structure(list(answer = '{"n":7}', notes = list()), class = "gr_answer"))) {
-    expect_named(readgpt:::answer_record(a, f), c("design", "n"))
+    expect_named(harnessr:::answer_record(a, f), c("design", "n"))
   }
 })
 
@@ -298,7 +298,7 @@ test_that("the table is rebuilt from a stored answer, not from its notes", {
   summary <- data.frame(document = "d.txt", status = "ok", error = NA_character_,
                         stringsAsFactors = FALSE)
 
-  tab <- readgpt:::extraction_table("d.txt", list(d.txt = ans), f, summary)
+  tab <- harnessr:::extraction_table("d.txt", list(d.txt = ans), f, summary)
   expect_identical(tab$n, 1204L)
   expect_type(tab$n, "integer")
   expect_identical(tab$design, "cohort")
@@ -433,7 +433,7 @@ test_that("evidence keeps its field label when an empty quote is dropped", {
   # evidence_table() filters out rows whose span is blank. Attaching the field
   # names after that filter would line them up against the wrong rows -- the
   # reason `extra =` exists at all.
-  et <- readgpt:::evidence_table
+  et <- harnessr:::evidence_table
   out <- et(chunk_ids = c(1L, 2L, 3L), texts = c("alpha", "  ", "gamma"),
             source_text = c("alpha here", "beta here", "gamma here"),
             kind = "extracted", extra = list(field = c("a", "b", "c")))

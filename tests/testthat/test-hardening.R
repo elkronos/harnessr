@@ -244,15 +244,15 @@ test_that("min_tokens merges runt chunks instead of billing for them", {
   # once put at exactly 30 by charging its paragraph break nothing. Counting
   # the break (review6 tokenize-embed-06) makes it 31, so at 30 there was
   # nothing left to demonstrate.
-  loose <- readgpt:::pack_units(units, max_tokens = 32, min_tokens = 0)
-  tight <- readgpt:::pack_units(units, max_tokens = 32, min_tokens = 10)
+  loose <- harnessr:::pack_units(units, max_tokens = 32, min_tokens = 0)
+  tight <- harnessr:::pack_units(units, max_tokens = 32, min_tokens = 10)
   expect_lt(length(tight$text), length(loose$text))
   expect_lte(max(gr_count_tokens(tight$text)), 32)
 
   # The invariant, not just the one example: a chunk may sit below the minimum
   # only when absorbing it would have broken the cap.
   for (mt in c(30L, 45L, 60L)) {
-    out <- readgpt:::pack_units(units, max_tokens = mt, min_tokens = as.integer(mt / 2))
+    out <- harnessr:::pack_units(units, max_tokens = mt, min_tokens = as.integer(mt / 2))
     toks <- gr_count_tokens(out$text)
     expect_lte(max(toks), mt)
     for (i in seq_along(toks)[-1]) {
@@ -331,7 +331,7 @@ test_that("an ensemble refuses members that share a signature", {
   # methodology under two names -- exactly the Chunked/Semantic collapse v1 had.
   gr_register_reader("clone_of_stuff",
     function(chunks, question, client, spec, trace) {
-      readgpt:::registry_get("readers", "stuff", "readers")$fn(chunks, question, client, spec, trace)
+      harnessr:::registry_get("readers", "stuff", "readers", state = harnessr:::gr_state)$fn(chunks, question, client, spec, trace)
     }, signature = "all|1|none")
   expect_error(
     quiet(gr_read(ch, "q", mock_echo(),
@@ -455,7 +455,7 @@ test_that("merging a finding larger than the whole budget terminates and stays b
   big <- paste(rep("The quarterly revenue figure was reported in the filing.", 20000),
                collapse = " ")
   cl <- mock_dead()
-  out <- quiet(readgpt:::tree_merge(cl, "What was revenue?",
+  out <- quiet(harnessr:::tree_merge(cl, "What was revenue?",
                                     c(big, "Small finding one.", "Small finding two."),
                                     spec, gr_trace()))
   expect_lte(out$levels, 3L)
@@ -466,7 +466,7 @@ test_that("merging a finding larger than the whole budget terminates and stays b
 test_that("merging a single finding short-circuits without a call", {
   spec <- gr_read_spec(model = "gpt-4o-mini")
   cl <- mock_echo()
-  out <- readgpt:::tree_merge(cl, "q", "the only finding", spec, gr_trace())
+  out <- harnessr:::tree_merge(cl, "q", "the only finding", spec, gr_trace())
   expect_identical(out$text, "the only finding")
   expect_equal(length(cl$calls()), 0L)
 })
@@ -527,7 +527,7 @@ test_that("as_json survives every object that embeds a trace", {
     expect_true(any(grepl("readgpt", names(flat), fixed = TRUE)) ||
                   any(grepl("revenue", as.character(flat), ignore.case = TRUE)))
   }
-  j <- quiet(answer_question(readgpt_example(), "What was revenue?", mode = "Chunked",
+  j <- quiet(answer_question(gr_example(), "What was revenue?", mode = "Chunked",
                              return_json = TRUE, client = mock_echo()))
   parsed <- jsonlite::fromJSON(as.character(j), simplifyVector = FALSE)
   expect_true(all(c("answers", "summary", "trace") %in% names(parsed)))
@@ -542,23 +542,23 @@ test_that("as_json preserves an explicit null rather than dropping the field", {
 })
 
 test_that("a deprecation warning survives a handler that turns it into an error", {
-  readgpt:::.warn_once_reset()
-  on.exit(readgpt:::.warn_once_reset(), add = TRUE)
+  harnessr:::.warn_once_reset()
+  on.exit(harnessr:::.warn_once_reset(), add = TRUE)
   # Marking the id BEFORE emitting meant options(warn = 2) consumed the one and
   # only notice: the user saw a failure, fixed the handler, and got silence.
-  expect_error(withr::with_options(list(warn = 2), readgpt:::.warn_once("t", "boom")))
-  expect_warning(readgpt:::.warn_once("t", "boom"), class = "gr_deprecated")
-  expect_silent(readgpt:::.warn_once("t", "boom"))
+  expect_error(withr::with_options(list(warn = 2), harnessr:::.warn_once("t", "boom")))
+  expect_warning(harnessr:::.warn_once("t", "boom"), class = "gr_deprecated")
+  expect_silent(harnessr:::.warn_once("t", "boom"))
 })
 
 test_that("every v1 shim runs and does not reproduce the v1 bug it replaced", {
   # Mutation survivor: the whole of compat.R could be deleted without a failure.
-  readgpt:::.warn_once_reset()
-  on.exit(readgpt:::.warn_once_reset(), add = TRUE)
-  expect_warning(answer_question(readgpt_example(), "What was revenue?",
+  harnessr:::.warn_once_reset()
+  on.exit(harnessr:::.warn_once_reset(), add = TRUE)
+  expect_warning(answer_question(gr_example(), "What was revenue?",
                                  mode = "Chunked", client = mock_echo()),
                  class = "gr_deprecated")
-  a <- quiet(answer_question(readgpt_example(), "What was revenue?",
+  a <- quiet(answer_question(gr_example(), "What was revenue?",
                              mode = "Chunked", client = mock_echo()))
   expect_type(a, "character")
 
@@ -568,8 +568,8 @@ test_that("every v1 shim runs and does not reproduce the v1 bug it replaced", {
   # thing. The call labels are the traversal, which is what a shim promises.
   labels <- function(fn, ...) {
     cl <- mock_echo()
-    readgpt:::.warn_once_reset()
-    invisible(quiet(suppressWarnings(fn(readgpt_example(), "What was revenue?",
+    harnessr:::.warn_once_reset()
+    invisible(quiet(suppressWarnings(fn(gr_example(), "What was revenue?",
                                         client = cl, ...))))
     paste(sort(unique(vapply(cl$calls(), function(x) as_chr1(x$label), character(1)))),
           collapse = ",")
@@ -582,7 +582,7 @@ test_that("every v1 shim runs and does not reproduce the v1 bug it replaced", {
 
   # v1 stripped every digit by default, so no question about a figure could be
   # answered. parse_text() must not do that any more.
-  chunks <- quiet(parse_text(readgpt_example(), chunk_token_limit = 200))
+  chunks <- quiet(parse_text(gr_example(), chunk_token_limit = 200))
   expect_type(chunks, "character")
   expect_gt(length(chunks), 1L)
   expect_true(any(grepl("[0-9]", chunks)))
@@ -702,7 +702,7 @@ test_that("merging is bounded on the call-cap path too, not only on failure", {
   pieces <- vapply(1:5, function(i)
     paste(rep(sprintf("Finding %d about the quarterly revenue figure.", i), 120), collapse = " "),
     character(1))
-  out <- quiet(readgpt:::tree_merge(mock_echo(), "q", pieces, spec, tr))
+  out <- quiet(harnessr:::tree_merge(mock_echo(), "q", pieces, spec, tr))
   expect_false(out$ok)
   expect_lt(gr_count_tokens(out$text), sum(gr_count_tokens(pieces)))
   expect_lte(gr_count_tokens(out$text), 3L * 300L + 50L)
@@ -894,23 +894,23 @@ test_that("backoff delays are actually jittered across processes", {
   # The seed was a pure function of `attempt`, so every client retrying attempt
   # N slept for the identical duration -- labelled jitter, with none, so a
   # rate-limited fleet re-collided on every round.
-  d <- vapply(1:200, function(i) readgpt:::backoff_delay(1, 3), numeric(1))
+  d <- vapply(1:200, function(i) harnessr:::backoff_delay(1, 3), numeric(1))
   expect_gt(length(unique(d)), 1L)
   expect_true(all(d >= 0 & d <= 60))
   # Still exponential, and still capped.
-  expect_lt(mean(vapply(1:50, function(i) readgpt:::backoff_delay(1, 1), numeric(1))),
-            mean(vapply(1:50, function(i) readgpt:::backoff_delay(1, 4), numeric(1))))
-  expect_lte(max(vapply(1:50, function(i) readgpt:::backoff_delay(1, 30), numeric(1))), 60)
+  expect_lt(mean(vapply(1:50, function(i) harnessr:::backoff_delay(1, 1), numeric(1))),
+            mean(vapply(1:50, function(i) harnessr:::backoff_delay(1, 4), numeric(1))))
+  expect_lte(max(vapply(1:50, function(i) harnessr:::backoff_delay(1, 30), numeric(1))), 60)
 })
 
 test_that("gr_hash does not shadow utils::str for the rest of the package", {
   # A `str()` shim in the package namespace would resolve every internal call to
   # it, not just gr_hash's one use.
-  expect_null(readgpt:::gr_state$str)
-  expect_false("str" %in% ls(asNamespace("readgpt")))
+  expect_null(harnessr:::gr_state$str)
+  expect_false("str" %in% ls(asNamespace("harnessr")))
   # And the hash still works, and still distinguishes.
-  expect_false(identical(readgpt:::gr_hash(list(a = 1)), readgpt:::gr_hash(list(a = 2))))
-  expect_identical(readgpt:::gr_hash(list(a = 1)), readgpt:::gr_hash(list(a = 1)))
+  expect_false(identical(harnessr:::gr_hash(list(a = 1)), harnessr:::gr_hash(list(a = 2))))
+  expect_identical(harnessr:::gr_hash(list(a = 1)), harnessr:::gr_hash(list(a = 1)))
 })
 
 test_that("every export has a help topic with an example", {
@@ -918,10 +918,10 @@ test_that("every export has a help topic with an example", {
   # run from the installed package, where there is no source NAMESPACE two
   # directories up. Reading the file passed in a checkout and failed in check --
   # the one place this test actually needs to run.
-  all_exp <- getNamespaceExports("readgpt")
+  all_exp <- getNamespaceExports("harnessr")
   exports <- grep("^(print|as_json)\\.", all_exp, value = TRUE, invert = TRUE)
   skip_if(!length(exports))
-  rd <- tools::Rd_db("readgpt")
+  rd <- tools::Rd_db("harnessr")
   # Alias -> topic, built one topic at a time. The obvious `unlist(lapply(rd, ...))`
   # makes the names unique when a topic has SEVERAL aliases, so a topic
   # documenting two exports (any `@rdname` pair) came back as "x.Rd1"/"x.Rd2" --
@@ -977,10 +977,10 @@ test_that("a document passed as text is never handed to basename()", {
 test_that("source_label refuses anything that is not a real, short path", {
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("hello", f)
-  expect_identical(readgpt:::source_label(f), basename(f))
+  expect_identical(harnessr:::source_label(f), basename(f))
   for (x in list(strrep("a", 2000), "two\nlines", NA_character_, character(0),
                  c("a", "b"), 42, NULL, "/no/such/file.txt")) {
-    expect_identical(readgpt:::source_label(x), "<inline text>")
+    expect_identical(harnessr:::source_label(x), "<inline text>")
   }
 })
 
@@ -1014,7 +1014,7 @@ test_that("token counts depend on the bytes, not on the encoding label", {
 test_that("to_utf8 labels valid UTF-8 instead of re-encoding it", {
   s <- "Northwind Instruments — Annual Report 2024"
   raw_bytes <- s; Encoding(raw_bytes) <- "unknown"
-  out <- readgpt:::to_utf8(raw_bytes)
+  out <- harnessr:::to_utf8(raw_bytes)
   expect_identical(Encoding(out), "UTF-8")
   expect_true(validUTF8(out))
   # The bytes must survive untouched -- this is where they were being corrupted.
@@ -1027,17 +1027,17 @@ test_that("ingestion and segmentation are identical under a C locale", {
   on.exit(suppressWarnings(Sys.setlocale("LC_CTYPE", old)), add = TRUE)
 
   measure <- function() {
-    d <- gr_ingest(readgpt_example())
+    d <- gr_ingest(gr_example())
     ch <- gr_segment(d, list(method = "structural", max_tokens = 120))
     list(tokens = d$stats$tokens, chars = d$stats$chars,
          text = d$text, totals = sum(ch$chunks$tokens))
   }
-  readgpt:::gr_flush_caches()
+  harnessr:::gr_flush_caches()
   utf8 <- measure()
 
   ok <- suppressWarnings(Sys.setlocale("LC_CTYPE", "C"))
   skip_if(!nzchar(ok), "cannot switch to the C locale here")
-  readgpt:::gr_flush_caches()
+  harnessr:::gr_flush_caches()
   c_loc <- measure()
 
   expect_identical(c_loc$tokens, utf8$tokens)
@@ -1087,7 +1087,7 @@ test_that("a misspelt setting is not silently parked in `...`", {
 })
 
 test_that("the near-miss check is exact about what counts as near", {
-  wn <- readgpt:::warn_near_miss
+  wn <- harnessr:::warn_near_miss
   expect_silent(wn(list(), c("top_k", "cite"), "read"))
   expect_silent(wn(list(1), c("top_k"), "read"))              # unnamed: nothing to compare
   expect_silent(wn(list(top_k = 1), c("top_k"), "read"))      # exact: not a miss
@@ -1126,7 +1126,7 @@ test_that("a provider that reports no usable token count falls back, not to zero
   # text, which some providers give -- summed with na.rm = TRUE to 0, which is
   # finite, so the NA fallback never fired: a real call recorded as having spent
   # no tokens and costed at nothing.
-  eu <- readgpt:::ellmer_usage
+  eu <- harnessr:::ellmer_usage
   chat <- function(df) list(get_tokens = function() df)
   txt <- "a reply with several words in it"
 
@@ -1159,7 +1159,7 @@ test_that("an HTTP provider that omits its usage block is counted, not zeroed", 
   body <- function(usage) sprintf(
     '{"choices":[{"message":{"content":"%s"},"finish_reason":"stop"}]%s}',
     reply, usage)
-  parse <- readgpt:::parse_response
+  parse <- harnessr:::parse_response
 
   # The parser: reported figures kept as reported, a genuine zero included;
   # a missing, null or non-numeric block is NA, never 0.
@@ -1181,7 +1181,7 @@ test_that("an HTTP provider that omits its usage block is counted, not zeroed", 
   cl <- gr_client(api_key = "sk-not-real", model = "priced-model", base_url = "https://x.invalid")
   testthat::local_mocked_bindings(
     http_call = function(client, url, body) parse(fake_resp(body("")), "chat"),
-    .package = "readgpt")
+    .package = "harnessr")
   tr <- gr_trace()
   res <- gr_call(cl, "How many participants were recruited?", model = "priced-model",
                  trace = tr, label = "probe")
@@ -1272,11 +1272,11 @@ test_that("a trace records the configuration that produced it, not just the reci
   expect_length(pf[[1]]$detail$settings, 0L)
 
   # And the version, on every trace, through a save and back.
-  expect_identical(a$trace$meta$readgpt, as.character(utils::packageVersion("readgpt")))
+  expect_identical(a$trace$meta$readgpt, as.character(utils::packageVersion("harnessr")))
   f <- withr::local_tempfile(fileext = ".json")
   gr_trace_save(a$trace, f)
   back <- jsonlite::fromJSON(f, simplifyVector = FALSE)
-  expect_identical(back$meta$readgpt, as.character(utils::packageVersion("readgpt")))
+  expect_identical(back$meta$readgpt, as.character(utils::packageVersion("harnessr")))
   expect_identical(back$steps[[which(vapply(back$steps, function(s) identical(s$label, "preflight"),
                                             logical(1)))[1]]]$detail$reader, "stuff")
 })
@@ -1288,7 +1288,7 @@ test_that("every reader declares what kind of thing its evidence is", {
   # its quotes silently exempted from verification, which is the one guarantee
   # the evidence table exists to give. Nothing else notices, because the answer
   # still looks right.
-  kinds <- readgpt:::.gr_evidence_kind
+  kinds <- harnessr:::.gr_evidence_kind
   readers <- gr_readers()$name
   expect_setequal(setdiff(readers, names(kinds)), character(0))
   # And in the other direction: an entry for something that is not a reader is a
@@ -1308,7 +1308,7 @@ test_that("the shared mock still recognises the prompts it branches on", {
   #
   # The phrases are read out of the helper rather than repeated here, so this
   # guard cannot itself fall behind the fixture it guards.
-  helper <- readLines(test_path("helper-readgpt.R"), warn = FALSE)
+  helper <- readLines(test_path("helper-harnessr.R"), warn = FALSE)
   hits <- regmatches(helper, gregexpr('grepl\\("[^"]{10,}"', helper))
   phrases <- unique(sub('^grepl\\("', "", unlist(hits)))
   phrases <- sub('"$', "", phrases)
@@ -1318,8 +1318,8 @@ test_that("the shared mock still recognises the prompts it branches on", {
   # inline ones inside reader and segmenter bodies. Taken from the NAMESPACE,
   # not from R/*.R -- under `R CMD check` the tests run from the installed
   # package and there is no source tree to read.
-  ns <- asNamespace("readgpt")
-  corpus <- paste(c(unlist(readgpt:::.gr_prompts),
+  ns <- asNamespace("harnessr")
+  corpus <- paste(c(unlist(harnessr:::.gr_prompts),
                     unlist(lapply(ls(ns, all.names = TRUE), function(n) {
                       f <- get(n, envir = ns)
                       if (is.function(f)) paste(deparse(body(f)), collapse = " ") else NULL

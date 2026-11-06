@@ -16,16 +16,19 @@ local_priced_model <- function(env = parent.frame()) {
 
 priced_spec <- function(reader, ...) list(reader = reader, model = "price-test", ...)
 
+# The same with every reply capped at 16 tokens. The governor sends a request
+# only when its worst case, the reply at its cap, fits under the limit, and at
+# the default caps one reply of this model could cost several dollars. Capped,
+# a request's worst case is about 16 cents and a short mock reply costs a few.
+capped_spec <- function(reader, ...) {
+  priced_spec(reader, max_answer_tokens = 16L, max_chunk_tokens = 16L,
+              max_summary_tokens = 16L, ...)
+}
+
 test_chunks <- function() {
   ch <- quiet(gr_segment(sample_doc(6, 6), list(method = "paragraph", max_tokens = 120)))
   stopifnot(nrow(ch$chunks) >= 10L)
   ch
-}
-
-last_call_usd <- function(tr, model = "price-test") {
-  calls <- Filter(function(s) !identical(s$kind, "local") && !is.null(s$tokens), tr$steps)
-  last <- calls[[length(calls)]]
-  gr_estimate_cost(model, last$tokens$input, last$tokens$output)
 }
 
 # ---------------------------------------------------------------------------
@@ -35,7 +38,7 @@ last_call_usd <- function(tr, model = "price-test") {
 test_that("answer_document() reads a short document in one request by default", {
   local_clean_cache()
   cl <- mock_echo("Revenue was 45.2 million dollars.")
-  a <- quiet(answer_document(readgpt_example(), "What was revenue?", client = cl))
+  a <- quiet(answer_document(gr_example(), "What was revenue?", client = cl))
   expect_identical(a$recipe, "fast")
   expect_identical(a$reader, "stuff")
   expect_identical(a$notes$auto_recipe, "fast")
@@ -44,11 +47,11 @@ test_that("answer_document() reads a short document in one request by default", 
   step <- Filter(function(s) identical(s$label, "auto_recipe"), a$trace$steps)
   expect_length(step, 1L)
   expect_identical(step[[1]]$detail$chose, "fast")
-  expect_equal(step[[1]]$detail$tokens, gr_count_tokens(quiet(gr_ingest(readgpt_example()))$text))
+  expect_equal(step[[1]]$detail$tokens, gr_count_tokens(quiet(gr_ingest(gr_example()))$text))
   expect_equal(step[[1]]$detail$limit, 50000)
 
   # A recipe named outright is used as given, and "auto" leaves no mark.
-  b <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough",
+  b <- quiet(answer_document(gr_example(), "What was revenue?", "thorough",
                              client = mock_echo()))
   expect_identical(b$reader, "map_reduce")
   expect_null(b$notes[["auto_recipe", exact = TRUE]])
@@ -79,8 +82,8 @@ test_that("'auto' sends in one request only what sits well inside one request", 
   local_registries()
   fast <- gr_recipes("fast")
   pick <- function(tokens, model = NULL) {
-    f <- if (is.null(model)) fast else readgpt:::apply_overrides(fast, list(model = model))
-    readgpt:::pick_auto_recipe(tokens, f)
+    f <- if (is.null(model)) fast else harnessr:::apply_overrides(fast, list(model = model))
+    harnessr:::pick_auto_recipe(tokens, f)
   }
   expect_identical(pick(50000), "fast")
   expect_identical(pick(50001), "thorough")
@@ -96,9 +99,9 @@ test_that("'auto' sends in one request only what sits well inside one request", 
   expect_identical(pick(floor(room / 2), "small-window"), "fast")
   expect_identical(pick(floor(room / 2) + 1, "small-window"), "thorough")
   # Every model named must have room: the smallest decides.
-  expect_identical(readgpt:::pick_auto_recipe(floor(room / 2) + 1, fast,
+  expect_identical(harnessr:::pick_auto_recipe(floor(room / 2) + 1, fast,
                                               c(fast$read$model, "small-window")), "thorough")
-  expect_identical(readgpt:::pick_auto_recipe(floor(room / 2), fast,
+  expect_identical(harnessr:::pick_auto_recipe(floor(room / 2), fast,
                                               c(fast$read$model, "small-window")), "fast")
   # A model whose limits are a guess is no basis for sending everything at once.
   expect_identical(suppressWarnings(pick(1000, "a-model-from-next-year")), "thorough")
@@ -165,7 +168,7 @@ test_that("a replay repeats the recorded choice", {
 test_that("overrides apply to the recipe 'auto' picks, and warn only for that one", {
   local_clean_cache()
   # fast's own cap would make this one chunk; the override makes it several.
-  a <- quiet(answer_document(readgpt_example(), "Q?", client = mock_echo(), max_tokens = 100))
+  a <- quiet(answer_document(gr_example(), "Q?", client = mock_echo(), max_tokens = 100))
   expect_identical(a$recipe, "fast")
   expect_gt(a$segmentation$n, 1L)
   expect_lte(a$segmentation$max, 100L)
@@ -173,10 +176,10 @@ test_that("overrides apply to the recipe 'auto' picks, and warn only for that on
   # max_tokens = 100 puts thorough's 120-token overlap out of range. A run that
   # reads with fast has nothing to warn about.
   expect_no_warning(suppressMessages(
-    answer_document(readgpt_example(), "Q?", client = mock_echo(), max_tokens = 100)))
+    answer_document(gr_example(), "Q?", client = mock_echo(), max_tokens = 100)))
   # One that reads with thorough does. A small window makes this document long.
   local_registries()
-  readgpt:::gr_flush_caches()
+  harnessr:::gr_flush_caches()
   gr_register_model("small-window", context_window = 4000, max_output = 1000,
                     input_usd = 0, output_usd = 0)
   w <- NULL
@@ -195,9 +198,9 @@ test_that("overrides apply to the recipe 'auto' picks, and warn only for that on
 test_that("an override that applies to neither recipe fails before the document is read", {
   local_clean_cache()
   cl <- mock_echo()
-  expect_error(answer_document(readgpt_example(), "Q?", client = cl, not_a_setting = 1),
+  expect_error(answer_document(gr_example(), "Q?", client = cl, not_a_setting = 1),
                class = "gr_unknown_override")
-  expect_length(ls(readgpt:::gr_state$doc_cache), 0L)
+  expect_length(ls(harnessr:::gr_state$doc_cache), 0L)
   expect_length(cl$calls(), 0L)
 })
 
@@ -215,7 +218,7 @@ test_that("a warning both recipes raise is shown before the document is read", {
   # Shown once, not again when the chosen recipe's own warnings are replayed.
   seen <- character(0)
   withCallingHandlers(
-    suppressMessages(answer_document(readgpt_example(), "Q?", client = mock_echo(),
+    suppressMessages(answer_document(gr_example(), "Q?", client = mock_echo(),
                                      max_answer_tokens = 5)),
     gr_clamped = function(w) {
       seen <<- c(seen, conditionMessage(w))
@@ -227,10 +230,10 @@ test_that("a warning both recipes raise is shown before the document is read", {
 test_that("choosing a recipe adds no warning of its own", {
   local_registries()
   n_unknown <- function(...) {
-    readgpt:::gr_flush_caches()
+    harnessr:::gr_flush_caches()
     n <- 0L
     suppressWarnings(withCallingHandlers(
-      suppressMessages(answer_document(readgpt_example(), "Q?", ..., client = mock_echo(),
+      suppressMessages(answer_document(gr_example(), "Q?", ..., client = mock_echo(),
                                        model = "a-model-from-next-year")),
       gr_unknown_model = function(w) {
         n <<- n + 1L
@@ -238,7 +241,7 @@ test_that("choosing a recipe adds no warning of its own", {
       }))
     n
   }
-  # A model readgpt does not know has guessed limits, so "auto" reads with
+  # A model harnessr does not know has guessed limits, so "auto" reads with
   # thorough; it should warn exactly as often as thorough named outright.
   expect_gt(n_unknown("thorough"), 0L)
   expect_identical(n_unknown(), n_unknown("thorough"))
@@ -246,11 +249,11 @@ test_that("choosing a recipe adds no warning of its own", {
 
 test_that("functions that need one fixed recipe refuse 'auto'", {
   cl <- mock_echo()
-  expect_error(quiet(gr_read_many(readgpt_example(), "Q?", "auto", client = cl)),
+  expect_error(quiet(gr_read_many(gr_example(), "Q?", "auto", client = cl)),
                class = "gr_bad_recipe")
-  expect_error(quiet(gr_compare(readgpt_example(), "Q?", c("auto", "fast"), client = cl)),
+  expect_error(quiet(gr_compare(gr_example(), "Q?", c("auto", "fast"), client = cl)),
                class = "gr_bad_recipe")
-  expect_error(readgpt:::as_recipe("auto"), class = "gr_bad_recipe")
+  expect_error(harnessr:::as_recipe("auto"), class = "gr_bad_recipe")
   expect_error(gr_recipes("auto"), "not a recipe")
   expect_length(cl$calls(), 0L)
   # Nor can a reader take the name: answer_document() would never reach it.
@@ -266,22 +269,26 @@ test_that("functions that need one fixed recipe refuse 'auto'", {
 # The spending limit
 # ---------------------------------------------------------------------------
 
-test_that("a run stops once what it has spent reaches the spending limit", {
+test_that("a run stops before a request could take it past the spending limit", {
   model <- local_priced_model()
   local_clean_cache()
   gr_options(max_cost_usd = 0.2, max_calls = 1000)
   ch <- test_chunks()
   cl <- mock_echo("Some answer.")
   tr <- gr_trace()
-  a <- quiet(gr_read(ch, "Q?", cl, priced_spec("map_reduce"), trace = tr))
+  a <- quiet(gr_read(ch, "Q?", cl, capped_spec("map_reduce"), trace = tr))
 
   expect_true(tr$budget_stop)
   expect_identical(tr$stop_reason, "cost")
   # It stopped before reading everything...
+  expect_gt(length(cl$calls()), 0L)
   expect_lt(length(cl$calls()), nrow(ch$chunks))
-  # ...once it had reached the limit, and it passed it by one request at most.
-  expect_gte(tr$spent_usd, 0.2)
-  expect_lt(tr$spent_usd - last_call_usd(tr), 0.2)
+  # ...at the limit and not past it. It used to pass the limit by up to one
+  # request; now the request that could take it past is not sent.
+  expect_lte(tr$spent_usd, 0.2)
+  first <- tr$refusals[[1]]
+  expect_identical(first$limit, "cost")
+  expect_gt(first$spent_usd + first$worst_usd, 0.2)
   expect_equal(tr$spent_usd, sum(gr_trace_cost(tr)$usd))
 
   expect_true(a$partial)
@@ -297,7 +304,7 @@ test_that("requests a limit stopped are not counted as failed", {
   gr_options(max_cost_usd = 0.2, max_calls = 1000)
   ch <- test_chunks()
 
-  mr <- quiet(gr_read(ch, "Q?", mock_echo("Some answer."), priced_spec("map_reduce")))
+  mr <- quiet(gr_read(ch, "Q?", mock_echo("Some answer."), capped_spec("map_reduce")))
   expect_identical(mr$notes$failed_calls, 0L)
   expect_false(grepl("failed", paste(utils::capture.output(print(mr)), collapse = "\n")))
 
@@ -310,7 +317,7 @@ test_that("requests a limit stopped are not counted as failed", {
   expect_true(sk0$partial)
   expect_identical(sk0$notes$failed_calls, 0L)
 
-  hi <- quiet(gr_read(ch, "Q?", mock_echo("A summary."), priced_spec("hierarchical")))
+  hi <- quiet(gr_read(ch, "Q?", mock_echo("A summary."), capped_spec("hierarchical")))
   expect_true(hi$partial)
   expect_identical(hi$notes$failed_summaries, 0L)
 
@@ -333,23 +340,24 @@ test_that("requests a limit stopped are not counted as failed", {
     if (n == 1L) stop("simulated transport failure")
     "Some answer."
   })
-  mr2 <- quiet(gr_read(ch, "Q?", flaky, priced_spec("map_reduce")))
+  mr2 <- quiet(gr_read(ch, "Q?", flaky, capped_spec("map_reduce")))
   expect_identical(mr2$notes$failed_calls, 1L)
 })
 
 test_that("a run is not refused for what its replies might cost", {
   model <- local_priced_model()
   local_clean_cache()
-  # Every reply at its cap would cost far more than this; the input does not,
-  # and neither do the replies this run gets.
-  gr_options(max_cost_usd = 5, max_calls = 1000)
+  # Every reply at its cap would cost more than this; the input does not, and
+  # neither do the replies this run gets. Each request's own worst case fits
+  # what is left when it is sent, so the governor sends them all.
+  gr_options(max_cost_usd = 2, max_calls = 1000)
   ch <- test_chunks()
   tr <- gr_trace()
-  a <- quiet(gr_read(ch, "Q?", mock_echo("x"), priced_spec("map_reduce"), trace = tr))
+  a <- quiet(gr_read(ch, "Q?", mock_echo("x"), capped_spec("map_reduce"), trace = tr))
   pf <- Filter(function(s) identical(s$label, "preflight"), tr$steps)[[1]]$detail
-  expect_gt(pf$est_cost_usd, 5)
-  expect_lt(pf$est_input_usd, 5)
-  expect_lt(tr$spent_usd, 5)
+  expect_gt(pf$est_cost_usd, 2)
+  expect_lt(pf$est_input_usd, 2)
+  expect_lt(tr$spent_usd, 2)
   expect_false(a$partial)
   expect_false(tr$budget_stop)
   expect_true(is.na(tr$stop_reason))
@@ -371,8 +379,10 @@ test_that("a run that cannot finish under the limit is refused before its first 
   expect_length(cl$calls(), 0L)
 
   # A reader that picks chunks is not refused on the size of the whole document:
-  # it sends a few, and its spending is checked as it goes.
-  a <- quiet(gr_read(ch, "Q?", cl, priced_spec("retrieve", top_k = 2)))
+  # it sends a few, and each request is checked as it goes. The limit here
+  # leaves room for one capped request.
+  gr_options(max_cost_usd = 0.5)
+  a <- quiet(gr_read(ch, "Q?", cl, capped_spec("retrieve", top_k = 2)))
   expect_length(cl$calls(), 1L)
   expect_false(a$partial)
 })
@@ -399,7 +409,7 @@ test_that("what a run has already spent counts against the limit", {
 
   # And what one read spends, the next on the same trace inherits.
   tr3 <- gr_trace()
-  quiet(gr_read(ch, "Q?", mock_echo("x"), priced_spec("stuff"), trace = tr3))
+  quiet(gr_read(ch, "Q?", mock_echo("x"), capped_spec("stuff"), trace = tr3))
   expect_gt(tr3$spent_usd, 0)
   gr_options(max_cost_usd = tr3$spent_usd + input / 2)
   expect_error(quiet(gr_read(ch, "Q?", cl, priced_spec("map_reduce"), trace = tr3)),
@@ -430,7 +440,7 @@ test_that("each request is priced by its own model, and one with no price adds n
   gr_register_model("unpriced", 100000, 1000)
   tr <- gr_trace()
   record <- function(model, cached = FALSE) {
-    readgpt:::trace_record(tr, "x", list(list(role = "user", content = "hi")),
+    harnessr:::trace_record(tr, "x", list(list(role = "user", content = "hi")),
                            gr_result(TRUE, text = "a", usage = list(input = 1000L, output = 1000L),
                                      model = model, cached = cached))
   }
@@ -451,7 +461,7 @@ test_that("a parent trace adds up what its children spent and why one stopped", 
   child$spent_usd <- 0.5
   child$budget_stop <- TRUE
   child$stop_reason <- "cost"
-  readgpt:::trace_absorb(parent, child)
+  harnessr:::trace_absorb(parent, child)
   expect_equal(parent$spent_usd, 0.75)
   expect_true(parent$budget_stop)
   expect_identical(parent$stop_reason, "cost")
@@ -461,22 +471,22 @@ test_that("each limit stops a run for its own reason", {
   local_registries()
   gr_options(max_calls = 2, max_cost_usd = 1)
   tr <- gr_trace()
-  expect_true(readgpt:::trace_can_call(tr))
+  expect_true(harnessr:::trace_can_call(tr))
   tr$calls <- 2L
-  expect_false(readgpt:::trace_can_call(tr))
+  expect_false(harnessr:::trace_can_call(tr))
   expect_identical(tr$stop_reason, "calls")
 
   spent <- gr_trace()
   spent$spent_usd <- 0.99
-  expect_true(readgpt:::trace_can_call(spent))
+  expect_true(harnessr:::trace_can_call(spent))
   spent$spent_usd <- 1
-  expect_false(readgpt:::trace_can_call(spent))
+  expect_false(harnessr:::trace_can_call(spent))
   expect_identical(spent$stop_reason, "cost")
   # NULL and Inf both mean no limit.
   gr_options(max_cost_usd = NULL)
-  expect_true(readgpt:::trace_can_call(spent))
+  expect_true(harnessr:::trace_can_call(spent))
   gr_options(max_cost_usd = Inf)
-  expect_true(readgpt:::trace_can_call(spent))
+  expect_true(harnessr:::trace_can_call(spent))
 })
 
 test_that("the answer names the limit that stopped the run", {
@@ -487,7 +497,7 @@ test_that("the answer names the limit that stopped the run", {
   gr_register_reader("greedy", signature = "some|N|none", cost_calls = "N",
     fn = function(chunks, question, client, spec, trace) {
       n <- 0L
-      while (readgpt:::trace_can_call(trace) && n < 50L) {
+      while (harnessr:::trace_can_call(trace) && n < 50L) {
         gr_call(client, list(list(role = "user", content = "more")), model = spec$model,
                 trace = trace, label = "greedy")
         n <- n + 1L
@@ -521,14 +531,16 @@ test_that("messages left by a stopped reader name the limit", {
   expect_identical(it$notes$stop_reason, "spending limit")
 
   tr <- gr_trace()
-  expect_identical(readgpt:::cap_name(tr), "call cap")
+  expect_identical(harnessr:::cap_name(tr), "call cap")
   tr$stop_reason <- "cost"
   tr$spent_usd <- 2
-  expect_identical(readgpt:::cap_name(tr), "spending limit")
-  expect_warning(readgpt:::warn_capped_batch(tr, "map_reduce", 10L, "reduce the chunk count"),
+  expect_identical(harnessr:::cap_name(tr), "spending limit")
+  # The batch warning reads the run's limits, not the last stop it recorded.
+  expect_warning(harnessr:::warn_capped_batch(tr, "map_reduce", 10L, "reduce the chunk count"),
                  class = "gr_cost_cap", regexp = "spending limit")
-  tr$stop_reason <- "calls"
-  expect_warning(readgpt:::warn_capped_batch(tr, "map_reduce", 10L, "reduce the chunk count"),
+  tr$spent_usd <- 0
+  gr_options(max_calls = 5)
+  expect_warning(harnessr:::warn_capped_batch(tr, "map_reduce", 10L, "reduce the chunk count"),
                  class = "gr_call_cap", regexp = "run cap is")
 })
 
@@ -541,9 +553,9 @@ test_that("a parallel batch is not sent once the run has reached a limit", {
   tr$spent_usd <- 2
   ran_here <- new.env(parent = emptyenv())
   ran_here$n <- 0L
-  out <- readgpt:::gr_lapply(1:4, function(i, trace) {
+  out <- harnessr:::gr_lapply(1:4, function(i, trace) {
     ran_here$n <- ran_here$n + 1L
-    readgpt:::trace_can_call(trace)
+    harnessr:::trace_can_call(trace)
   }, parallel = TRUE, workers = 2, trace = tr)
   # Run in this process against the run's own trace, where every item finds the
   # limit reached, rather than in workers that each start a count of their own.
@@ -561,11 +573,16 @@ test_that("a parallel read is held to its worst case before it starts", {
   gr_options(max_cost_usd = 5, max_calls = 1000, workers = 2)
   cl <- mock_echo("x")
   # Every reply at its cap is far above $5; the chunks and the real replies are
-  # not, so the same read made in sequence runs.
+  # not. Read in sequence, it is not refused before it starts, but the
+  # governor holds each request to its own worst case, which alone is above
+  # the limit, so none is sent.
   expect_error(quiet(gr_read(ch, "Q?", cl, priced_spec("map_reduce", parallel = TRUE))),
                class = "gr_cost_cap", regexp = "parallel")
+  n0 <- length(cl$calls())
   a <- quiet(gr_read(ch, "Q?", cl, priced_spec("map_reduce", parallel = FALSE)))
-  expect_false(a$partial)
+  expect_true(a$partial)
+  expect_identical(a$notes$cost_cap_reached, 5)
+  expect_identical(length(cl$calls()), n0)
 
   # Priced at the dearest model the run uses: here the per-chunk one.
   gr_register_model("free-main", context_window = 200000, max_output = 8000,
@@ -575,7 +592,7 @@ test_that("a parallel read is held to its worst case before it starts", {
                class = "gr_cost_cap", regexp = "parallel")
 
   # A reader that makes one request sends no batch, so it is not held to it.
-  one <- quiet(gr_read(ch, "Q?", cl, priced_spec("stuff", parallel = TRUE)))
+  one <- quiet(gr_read(ch, "Q?", cl, capped_spec("stuff", parallel = TRUE)))
   expect_false(one$partial)
 })
 
@@ -692,7 +709,30 @@ test_that("the review stages say when a limit stopped them", {
   gr_register_model("claims-small", context_window = 1060, max_output = 500,
                     input_usd = 1, output_usd = 10000)
   cl <- claims_by_batch()
-  gr_options(max_cost_usd = 0.5)
+  # What each batch costs, from a run with no limit. The governor sends a
+  # batch only when its worst case fits what is left.
+  gr_options(max_cost_usd = NULL)
+  free_run <- suppressWarnings(suppressMessages(
+    gr_claims(claims_studies(), question = "Does it work?", client = cl,
+              model = "claims-small", max_claim_tokens = 500)))
+  draws <- Filter(function(s) identical(s$label, "claims.draw"), free_run$trace$steps)
+  usd <- vapply(draws, function(s) gr_estimate_cost("claims-small", s$tokens$input,
+                                                    s$tokens$output), numeric(1))
+  expect_length(usd, 2L)
+  # A batch's worst case as the governor prices it, which counts the schema
+  # and message framing the provider bills on top of the text: read from the
+  # refusal of a run that can afford nothing.
+  draw_worst <- function(tr) {
+    r <- Filter(function(x) identical(x$label, "claims.draw"), tr$refusals)
+    r[[1]]$worst_usd
+  }
+  gr_options(max_cost_usd = 1e-12)
+  none <- suppressWarnings(suppressMessages(
+    gr_claims(claims_studies(), question = "Does it work?", client = cl,
+              model = "claims-small", max_claim_tokens = 500)))
+  worst <- draw_worst(none$trace)
+  # Room for the first batch at its worst, not for the second after it.
+  gr_options(max_cost_usd = worst[1])
   seen <- character(0)
   cm <- withCallingHandlers(
     suppressMessages(gr_claims(claims_studies(), question = "Does it work?", client = cl,
@@ -705,17 +745,10 @@ test_that("the review stages say when a limit stopped them", {
   expect_true(any(grepl("were not sent: the run reached its spending limit", seen, fixed = TRUE)))
   # One batch's claims have nothing to be merged with.
   expect_false(any(grepl("were not merged", seen, fixed = TRUE)))
+  worst[2] <- draw_worst(cm$trace)
 
   # Both batches sent, and the limit reached before their claims are merged.
-  gr_options(max_cost_usd = NULL)
-  free_run <- suppressWarnings(suppressMessages(
-    gr_claims(claims_studies(), question = "Does it work?", client = cl,
-              model = "claims-small", max_claim_tokens = 500)))
-  usd <- vapply(Filter(function(s) identical(s$label, "claims.draw"), free_run$trace$steps),
-                function(s) gr_estimate_cost("claims-small", s$tokens$input, s$tokens$output),
-                numeric(1))
-  expect_length(usd, 2L)
-  gr_options(max_cost_usd = usd[1] + usd[2] / 2)
+  gr_options(max_cost_usd = usd[1] + worst[2])
   merged <- character(0)
   withCallingHandlers(
     suppressMessages(gr_claims(claims_studies(), question = "Does it work?", client = cl,
@@ -725,16 +758,22 @@ test_that("the review stages say when a limit stopped them", {
       invokeRestart("muffleWarning")
     })
   expect_true(any(grepl("were not merged", merged, fixed = TRUE)))
-  gr_options(max_cost_usd = 0.5)
-
-  said <- NULL
-  withCallingHandlers(
-    suppressMessages(gr_outline(cm, client = cl, model = "claims-small")),
-    gr_outline_failed = function(w) {
-      said <<- conditionMessage(w)
-      invokeRestart("muffleWarning")
-    })
-  expect_match(said, "not requested: the run had reached its spending limit", fixed = TRUE)
+  # The outline is a stage of its own: what the claims spent is not charged
+  # to it, so its first request is sent, and the limit stops the alternative
+  # it would have paid for after that. Its worst case is read from the refusal
+  # of an outline that can afford nothing, as for the batches above.
+  gr_options(max_cost_usd = 1e-12)
+  o0 <- suppressWarnings(suppressMessages(
+    gr_outline(cm, client = cl, model = "claims-small", alternatives = 2)))
+  gr_options(max_cost_usd = attr(o0, "trace")$refusals[[1]]$worst_usd)
+  spent <- cm$trace$spent_usd
+  o <- suppressWarnings(suppressMessages(
+    gr_outline(cm, client = cl, model = "claims-small", alternatives = 2)))
+  expect_identical(cm$trace$spent_usd, spent)
+  expect_identical(attr(o, "trace")$calls, 1L)
+  expect_identical(attr(o, "trace")$stop_reason, "cost")
+  expect_match(attr(o, "comparison")$note[2],
+               "not requested, as the run had reached its spending limit", fixed = TRUE)
 })
 
 test_that("the up-front check prices chunks at the model that receives them", {
@@ -764,7 +803,10 @@ test_that("the up-front check prices chunks at the model that receives them", {
                     input_usd = 30, output_usd = 60)
   room <- gr_budget("pricey-small", reserve_output = 1500)$input
   expect_lt(room, sum(ch$chunks$tokens))
-  gr_options(max_cost_usd = gr_estimate_cost("pricey-small", room, 0) * 1.5)
+  # Room for what fits, with its reply at the cap and the prompt around it,
+  # and less than sending the whole document would cost.
+  gr_options(max_cost_usd = gr_estimate_cost("pricey-small", room + 200, 500))
+  expect_lt(gr_options("max_cost_usd"), gr_estimate_cost("pricey-small", sum(ch$chunks$tokens), 0))
   tr3 <- gr_trace()
   quiet(gr_read(ch, "Q?", cl, list(reader = "stuff", model = "pricey-small",
                                    on_overflow = "warn"), trace = tr3))

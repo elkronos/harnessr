@@ -86,7 +86,7 @@ test_that("a document whose every extraction request failed is a failed read", {
 test_that("a declared enum value is kept whatever it spells", {
   # The documented schema uses "null" for a null result. It was read as a
   # missing value, so every null study dropped out as "not reported".
-  cf <- readgpt:::coerce_field
+  cf <- harnessr:::coerce_field
   e <- gr_field("Direction", type = "enum", values = c("positive", "null", "NA", "none"))
   expect_identical(cf("null", e), "null")
   expect_identical(cf("NA", e), "NA")
@@ -211,7 +211,7 @@ test_that("a quote that does not carry the value does not verify it", {
   expect_identical(ok$table$n, 120L)
   expect_identical(ok$table$n_unverified, 0L)
   expect_true(all(ok$evidence$verified))
-  bq <- readgpt:::quote_backs_value
+  bq <- harnessr:::quote_backs_value
   expect_true(bq(1204L, "A total of 1,204 were randomised.", "A total of 1,204 were randomised.",
                  gr_field("n", type = "integer")))
   expect_true(bq(0.05, "significant at p < .05 overall", "It was significant at p < .05 overall.",
@@ -264,7 +264,7 @@ test_that("the answer text keeps every digit of an extracted number", {
   # The store fallback rebuilds the table from that text, so it must agree.
   ans <- x$answers[[1]]
   ans$notes$record <- NULL
-  rec <- readgpt:::answer_record(ans, f)
+  rec <- harnessr:::answer_record(ans, f)
   expect_identical(rec$p, 3e-05)
   expect_identical(rec$effect, 0.84321)
 })
@@ -274,9 +274,9 @@ test_that("the stored-answer fallback never opens a file or URL the text names",
   js <- tempfile(fileext = ".json")
   writeLines('{"design":"read from a file, not the answer"}', js)
   ans <- structure(list(answer = js, notes = list()), class = "gr_answer")
-  rec <- readgpt:::answer_record(ans, f)
+  rec <- harnessr:::answer_record(ans, f)
   expect_null(rec$design)
   url <- structure(list(answer = "http://127.0.0.1:9/never.json", notes = list()),
                    class = "gr_answer")
-  expect_null(readgpt:::answer_record(url, f)$design)
+  expect_null(harnessr:::answer_record(url, f)$design)
 })

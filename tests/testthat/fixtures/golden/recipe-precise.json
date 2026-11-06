@@ -1,0 +1,311 @@
+{
+  "calls": [
+    {
+      "cache_key": "e7d380cbb80cdbbe50b98fe7b6cafb704617508842f63554a35a20485b0377f0",
+      "chars": [196, 35, 1795],
+      "label": "skim.extract",
+      "messages": "4b24414b1c472863",
+      "model": "mock-model",
+      "params": {
+        "max_output": 700,
+        "model": "mock-model",
+        "prompt_tokens": 562,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "a322cf1ee4e64b3c",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "09d10f70fb3c5f8d17e98c5eb23452e0c7bb0d08dcbb8e8d3d2da93e8c30fe77",
+      "chars": [196, 35, 302],
+      "label": "skim.extract",
+      "messages": "37afa5ca9fa3e8bf",
+      "model": "mock-model",
+      "params": {
+        "max_output": 700,
+        "model": "mock-model",
+        "prompt_tokens": 156,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "f52654ccd2aa2faf",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "1d1805839eb5187b0cfaa02f9e54d35241f12cd43feac1810722fba13e25621d",
+      "chars": [302, 199, 35],
+      "label": "skim.answer",
+      "messages": "8a6824dd5d2a4c39",
+      "model": "mock-model",
+      "params": {
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 164,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "9a66f8e3402ac07a",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    }
+  ],
+  "result": "a34ad3f0c8e88f77",
+  "trace": {
+    "actor": {
+      "approved_by": null,
+      "owner": null,
+      "purpose": null,
+      "run_by": null,
+      "system": null
+    },
+    "budget_stop": false,
+    "config": {
+      "options": {
+        "actor": [],
+        "allow_unpriced": false,
+        "allowed_models": null,
+        "api": "responses",
+        "api_base": "https://api.openai.com/v1",
+        "api_headers": [],
+        "cache_dir": null,
+        "cache_documents": true,
+        "cache_embeddings": true,
+        "embedder": null,
+        "embedding_model": "text-embedding-3-small",
+        "max_calls": 400,
+        "max_cost_usd": 5,
+        "max_output_tokens": null,
+        "max_retries": 4,
+        "max_tokens_total": null,
+        "min_output_tokens": 256,
+        "model": "gpt-5.6-terra",
+        "parallel": false,
+        "request_timeout": 120,
+        "retry_pause_base": 2,
+        "safety_margin": 0.1,
+        "temperature": null,
+        "tokenizer": "heuristic",
+        "unknown_model_action": "warn",
+        "verbose": false,
+        "workers": 4
+      }
+    },
+    "errors": [],
+    "meta": {
+      "question": "What was revenue in 2024?",
+      "recipe": "precise",
+      "source": "annual_report.md"
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "detail": {
+          "blocks": 17,
+          "cached": false,
+          "clean_steps": [
+            "page_numbers",
+            "hyphenation",
+            "control_chars",
+            "ligatures",
+            "collapse_whitespace"
+          ],
+          "source": "annual_report.md",
+          "tokens": 574
+        },
+        "kind": "local",
+        "label": "ingest",
+        "ok": true,
+        "recipe": "precise",
+        "source": "annual_report.md",
+        "step": 1
+      },
+      {
+        "detail": {
+          "max": 484,
+          "mean": 281.5,
+          "median": 281.5,
+          "method": "sentence",
+          "min": 79,
+          "n": 2,
+          "over_cap": 0,
+          "settings": {
+            "max_tokens": 600,
+            "overlap_tokens": 60
+          },
+          "total_tokens": 563
+        },
+        "kind": "local",
+        "label": "segment",
+        "ok": true,
+        "recipe": "precise",
+        "source": "annual_report.md",
+        "step": 2
+      },
+      {
+        "detail": {
+          "chunks": 2,
+          "embed_calls": 0,
+          "est_calls": 3,
+          "est_cost_usd": 0,
+          "est_input_usd": 0,
+          "model": "mock-model",
+          "reader": "skim",
+          "settings": {
+            "cite": true
+          },
+          "worst_calls": 3
+        },
+        "kind": "local",
+        "label": "preflight",
+        "ok": true,
+        "recipe": "precise",
+        "source": "annual_report.md",
+        "step": 3
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "skim.extract",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 700,
+          "model": "mock-model",
+          "prompt_tokens": 562,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
+        "prompt": "4b24414b1c472863",
+        "recipe": "precise",
+        "replay_key": "615f3be439003f81a5d5dca1bea4dac1e14f9bf3107904f34febf3a514af159c",
+        "response": "4b04db10f8ef9f51",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "step": 4,
+        "tokens": {
+          "input": 562,
+          "output": 25,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "skim.extract",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 700,
+          "model": "mock-model",
+          "prompt_tokens": 156,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 700,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
+        "prompt": "37afa5ca9fa3e8bf",
+        "recipe": "precise",
+        "replay_key": "f243f705c6f04c0f239d5ab5459807ccfb6ca12fa534fc34f82187c61ea850d8",
+        "response": "4b04db10f8ef9f51",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "step": 5,
+        "tokens": {
+          "input": 156,
+          "output": 25,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "skim.answer",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 1500,
+          "model": "mock-model",
+          "prompt_tokens": 164,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
+        "prompt": "8a6824dd5d2a4c39",
+        "recipe": "precise",
+        "replay_key": "3623a83bad73b6b280ccb11608c76e680004da902b6b0f3ddfe48362f6009bb2",
+        "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "step": 6,
+        "tokens": {
+          "input": 164,
+          "output": 26,
+          "provenance": "estimated"
+        }
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 3,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 6,
+      "tokens_cached_in": 0,
+      "tokens_in": 882,
+      "tokens_out": 76,
+      "tokens_reasoning": 0,
+      "usage_estimated": 1
+    }
+  }
+}

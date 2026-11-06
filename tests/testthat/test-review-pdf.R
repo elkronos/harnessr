@@ -9,9 +9,9 @@
 # from pdftotext's output for them.
 
 reordered <- function(lines) {
-  g <- readgpt:::column_gutter(lines)
+  g <- harnessr:::column_gutter(lines)
   expect_false(is.na(g))
-  out <- trimws(readgpt:::reorder_columns(lines, g))
+  out <- trimws(harnessr:::reorder_columns(lines, g))
   out[nzchar(out)]
 }
 
@@ -48,7 +48,7 @@ test_that("rows of a table continued across pages are not taken for running line
     c(sprintf("Table B1 (continued). Annual incidence of disease X, part %s", letters[p]), "",
       "Year    Rate    SE     Cases", rows, "", sprintf("Page %d of 5", p))
   })
-  out <- unlist(readgpt:::drop_running_lines(pages))
+  out <- unlist(harnessr:::drop_running_lines(pages))
   # Every data row is kept, the first and last of each page included...
   expect_identical(sum(grepl("^(19|20)[0-9]{2} ", out)), 60L)
   for (y in c(1972, 1983, 1984, 1995, 2020)) expect_true(any(startsWith(out, as.character(y))))
@@ -59,26 +59,26 @@ test_that("rows of a table continued across pages are not taken for running line
   # too, however short.
   totals <- lapply(1:5, function(p) c(body(p), sprintf("Total %d %d", sample(100:999, 1),
                                                        sample(100:999, 1))))
-  expect_identical(readgpt:::drop_running_lines(totals), totals)
+  expect_identical(harnessr:::drop_running_lines(totals), totals)
 })
 
 test_that("a running head is dropped when its page number is set at one end of a long line", {
   heads <- lapply(1:5, function(p) c(
     paste0("IEEE TRANSACTIONS ON EVIDENCE SYNTHESIS, VOL. 14, NO. 8, AUGUST 2026",
            strrep(" ", 40), p), body(p)))
-  expect_identical(readgpt:::drop_running_lines(heads), lapply(1:5, body))
+  expect_identical(harnessr:::drop_running_lines(heads), lapply(1:5, body))
 
   # The same with the number first, as on the even pages of a two-sided paper.
   springer <- lapply(1:6, function(p) c(
     if (p %% 2 == 0) paste0(p, strrep(" ", 50), "Journal of Evidence Synthesis 14 (2026) 101-118"),
     body(p)))
-  expect_identical(readgpt:::drop_running_lines(springer), lapply(1:6, body))
+  expect_identical(harnessr:::drop_running_lines(springer), lapply(1:6, body))
 
   # A long line whose changing number sits inside it is still content.
   inside <- lapply(1:5, function(p) c(
     sprintf("In cluster %d the investigators documented the outcome of the trial.", p + 40),
     body(p)))
-  expect_identical(readgpt:::drop_running_lines(inside), inside)
+  expect_identical(harnessr:::drop_running_lines(inside), inside)
 })
 
 test_that("alternating heads, and heads after a title page, are dropped from a short paper", {
@@ -87,17 +87,17 @@ test_that("alternating heads, and heads after a title page, are dropped from a s
   alt <- lapply(1:5, function(p) c(
     if (p == 2 || p == 4) "Alice Smith, Bao Lee, and Chidi Okafor",
     if (p == 3 || p == 5) "Effects of widgets: a randomised trial", body(p)))
-  expect_identical(readgpt:::drop_running_lines(alt), lapply(1:5, body))
+  expect_identical(harnessr:::drop_running_lines(alt), lapply(1:5, body))
 
   # Three pages whose first is a title page: the head is on two pages.
   three <- lapply(1:3, function(p) c(
     if (p > 1) "Journal of Testing 12(3)                      Smith et al.", body(p)))
-  expect_identical(readgpt:::drop_running_lines(three), lapply(1:3, body))
+  expect_identical(harnessr:::drop_running_lines(three), lapply(1:3, body))
 
   # Two pages that fit no pattern (the second and third of five) are chance.
   chance <- lapply(1:5, function(p) c(
     if (p %in% 2:3) "A line that happens to open two pages", body(p)))
-  expect_identical(readgpt:::drop_running_lines(chance), chance)
+  expect_identical(harnessr:::drop_running_lines(chance), chance)
 })
 
 test_that("a running head left on a two-column page is not split into the body", {
@@ -116,11 +116,11 @@ test_that("a word hyphenated from the left column's foot to the right column's h
              col_line("feedback to the multicomponent intervention team. Out-", right_text(6)),
              paste0(strrep(" ", 57), right_text(7:8)), "", "")
   lines[1] <- col_line(left_text(1), "comes for cluster 34 were analysed by intention to treat")
-  g <- readgpt:::column_gutter(lines)
-  out <- trimws(readgpt:::reorder_columns(lines, g))
+  g <- harnessr:::column_gutter(lines)
+  out <- trimws(harnessr:::reorder_columns(lines, g))
   at <- match("feedback to the multicomponent intervention team. Out-", out)
   expect_identical(out[at + 1L], "comes for cluster 34 were analysed by intention to treat")
-  b <- readgpt:::pdf_page_blocks(list(out), readgpt:::heading_matcher())
+  b <- harnessr:::pdf_page_blocks(list(out), harnessr:::heading_matcher())
   expect_true(any(grepl("team. Out-\ncomes for cluster 34", b$text, fixed = TRUE)))
 })
 
@@ -286,13 +286,13 @@ test_that("a gutter is found when the columns' rows do not line up", {
                    "rioration in renal function across geographically dispersed re-")
   # Lines of one column that alternated with the other's are one paragraph
   # again, so a word broken across them can be rejoined.
-  raw <- trimws(readgpt:::reorder_columns(lines, readgpt:::column_gutter(lines)))
+  raw <- trimws(harnessr:::reorder_columns(lines, harnessr:::column_gutter(lines)))
   from <- match("In cluster 145 the investigators reported methodologically", raw)
   expect_identical(raw[from + 1:3],
                    c("rigorous randomisation procedures following independent ver-",
                      "ification of electronic health records. In cluster 146 the data",
                      "monitoring board characterised longitudinal deterioration in re-"))
-  b <- readgpt:::pdf_page_blocks(list(raw), readgpt:::heading_matcher())
+  b <- harnessr:::pdf_page_blocks(list(raw), harnessr:::heading_matcher())
   expect_identical(b$text[b$kind == "heading"], c("4.1. Limitations", "5. Conclusion"))
 })
 
@@ -304,7 +304,7 @@ test_that("a gutter is found when the right column is only a few lines long", {
   # A single-column page with a few indented lines is still not two columns.
   prose <- rep(paste("The cohort comprised 482 participants recruited across nine clinical",
                      "sites, and adherence was high."), 12)
-  expect_true(is.na(readgpt:::column_gutter(c(prose, paste0(strrep(" ", 57), right_text(1:3))))))
+  expect_true(is.na(harnessr:::column_gutter(c(prose, paste0(strrep(" ", 57), right_text(1:3))))))
 })
 
 # ---------------------------------------------------------------------------

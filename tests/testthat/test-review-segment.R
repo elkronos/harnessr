@@ -75,8 +75,8 @@ test_that("a batch that could pass the call cap runs where each item is checked"
   gr_options(max_calls = 10, max_cost_usd = NULL)
   tr <- gr_trace()
   tr$calls <- 8L
-  out <- readgpt:::gr_lapply(1:4, function(i, trace) {
-    if (!readgpt:::trace_can_call(trace)) return(NA_integer_)
+  out <- harnessr:::gr_lapply(1:4, function(i, trace) {
+    if (!harnessr:::trace_can_call(trace)) return(NA_integer_)
     trace$calls <- trace$calls + 1L
     Sys.getpid()
   }, parallel = TRUE, workers = 2, trace = tr)
@@ -92,13 +92,13 @@ test_that("a batch that could pass the spending limit at its worst runs here", {
   local_registries()
   gr_options(max_calls = 100, max_cost_usd = 0.05)
   spend <- function(each) function(i, trace) {
-    if (!readgpt:::trace_can_call(trace)) return(NA_integer_)
+    if (!harnessr:::trace_can_call(trace)) return(NA_integer_)
     trace$calls <- trace$calls + 1L
     trace$spent_usd <- trace$spent_usd + each
     Sys.getpid()
   }
   tr <- gr_trace()
-  out <- readgpt:::gr_lapply(1:4, spend(0.02), parallel = TRUE, workers = 2, trace = tr,
+  out <- harnessr:::gr_lapply(1:4, spend(0.02), parallel = TRUE, workers = 2, trace = tr,
                              item_usd = 0.02)
   expect_identical(unlist(out), c(rep(Sys.getpid(), 3), NA_integer_))
   expect_true(tr$budget_stop)
@@ -107,7 +107,7 @@ test_that("a batch that could pass the spending limit at its worst runs here", {
   # Running here is not itself a stop: items that turn out cheap all run, and
   # the run does not claim a limit stopped it.
   tr2 <- gr_trace()
-  out2 <- readgpt:::gr_lapply(1:4, spend(0.001), parallel = TRUE, workers = 2, trace = tr2,
+  out2 <- harnessr:::gr_lapply(1:4, spend(0.001), parallel = TRUE, workers = 2, trace = tr2,
                               item_usd = 0.02)
   expect_false(anyNA(unlist(out2)))
   expect_false(tr2$budget_stop)
@@ -118,7 +118,7 @@ test_that("a batch that fits every limit still goes to workers", {
   local_registries()
   gr_options(max_calls = 100, max_cost_usd = 1)
   tr <- gr_trace()
-  pids <- unlist(readgpt:::gr_lapply(1:4, function(i, trace) Sys.getpid(),
+  pids <- unlist(harnessr:::gr_lapply(1:4, function(i, trace) Sys.getpid(),
                                      parallel = TRUE, workers = 2, trace = tr, item_usd = 0.01))
   expect_true(all(pids != Sys.getpid()))
   expect_false(tr$budget_stop)
@@ -130,7 +130,7 @@ test_that("a batch that passed a limit anyway is recorded as having done so", {
   gr_options(max_calls = 100, max_cost_usd = 0.05)
   tr <- gr_trace()
   # No item price: the caller vouched for the batch, and was wrong.
-  readgpt:::gr_lapply(1:4, function(i, trace) {
+  harnessr:::gr_lapply(1:4, function(i, trace) {
     trace$calls <- trace$calls + 1L
     trace$spent_usd <- trace$spent_usd + 0.02
     i
@@ -201,13 +201,15 @@ test_that("an LLM segmenter run without a trace is held to the run's limits", {
   # What was not decomposed is kept, not lost.
   expect_gt(ch$extra$batches_kept_as_written, 0L)
 
-  # The spending limit too.
+  # The spending limit too. One request with its reply at the cap could cost
+  # more than $0.001, so none is sent; one used to go out and pass it.
   gr_options(max_calls = 1000, max_cost_usd = 0.001)
   cl$reset()
   ch <- quiet(gr_segment(doc, list(method = "proposition", max_tokens = 400,
                                    proposition_batch_tokens = 200), client = cl))
-  expect_identical(length(cl$calls()), 1L)
+  expect_identical(length(cl$calls()), 0L)
   expect_identical(ch$trace$stop_reason, "cost")
+  expect_lte(ch$trace$spent_usd, 0.001)
 
   # A trace the caller passed is the one used, and is not copied onto the chunks.
   tr <- gr_trace()
@@ -218,7 +220,7 @@ test_that("an LLM segmenter run without a trace is held to the run's limits", {
 
 test_that("the Shiny chunking preview applies the cost cap and does not claim to be free", {
   skip_if_not_installed("shiny")
-  app <- system.file("shiny", "app.R", package = "readgpt")
+  app <- system.file("shiny", "app.R", package = "harnessr")
   skip_if(!nzchar(app), "the Shiny app is not available")
   dir <- withr::local_tempdir()
   writeLines(numbered_paragraphs(60), file.path(dir, "long.txt"))
@@ -242,12 +244,12 @@ test_that("the Shiny chunking preview applies the cost cap and does not claim to
                       segmenter = "proposition", max_tokens = 400, overlap = 0,
                       min_tokens = 0, parallel = FALSE, max_cost = 0.001)
     expect_match(output$chunk_help, "makes model calls")
-    # The cap stops the run after one request, and what was not decomposed is
-    # kept as written, which the segmenter says.
-    expect_warning(session$setInputs(preview = 1), "kept as written")
+    # The cap stops the run before its first request, whose reply at the cap
+    # could cost more than $0.001, and the segmenter falls back to sentences.
+    expect_warning(session$setInputs(preview = 1), "falling back to 'sentence'")
     # It sent one paid request per batch of the document, the cost field
-    # ignored, under a button that said it was free.
-    expect_identical(length(cl$calls()), 1L)
+    # ignored, under a button that said it was free; then one past the cap.
+    expect_identical(length(cl$calls()), 0L)
     session$setInputs(segmenter = "paragraph")
     expect_match(output$chunk_help, "No model calls are made")
   })

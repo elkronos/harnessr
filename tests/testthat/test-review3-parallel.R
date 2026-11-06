@@ -65,16 +65,16 @@ test_that("a workspace object no batch uses is not sent to workers", {
   expect_identical(length(cl$calls()), ch$trace$calls)
 
   # What a worker runs is the client's handler and the tokenizer in use.
-  st <- readgpt:::gr_state
+  st <- harnessr:::hr_state
   old <- st$tokenizers
   withr::defer(st$tokenizers <- old)
   tok <- function(x) nchar(x)
   st$tokenizers <- list(review3_tok = tok)
-  got <- readgpt:::worker_functions(cl, list(tokenizer = "review3_tok"))
+  got <- harnessr:::worker_functions(cl, list(tokenizer = "review3_tok"))
   expect_identical(got$handler, cl$handler)
   expect_identical(got$tokenizer, tok)
-  expect_null(readgpt:::worker_functions(cl, list(tokenizer = "heuristic"))$tokenizer)
-  expect_null(readgpt:::worker_functions(NULL, list(tokenizer = "heuristic"))$handler)
+  expect_null(harnessr:::worker_functions(cl, list(tokenizer = "heuristic"))$tokenizer)
+  expect_null(harnessr:::worker_functions(NULL, list(tokenizer = "heuristic"))$handler)
 })
 
 test_that("what a handler needs from the workspace is sent once", {
@@ -99,12 +99,13 @@ test_that("what a handler needs from the workspace is sent once", {
   pids <- as.integer(sub(".* in process ([0-9]+)\\.$", "\\1", txt))
   expect_false(any(pids == Sys.getpid()))
 
-  # The function a worker runs holds only what an item needs: that, and the
-  # one flag that stops a worker's share of the batch after an item fails
-  # (review6 tokenize-embed-11).
-  wrapped <- readgpt:::worker_item(function(item, trace) item, "", list(), list(), list(), NULL)
+  # The function a worker runs holds only what an item needs: that, the
+  # governor holding the item's share of the run's limits, and the one flag
+  # that stops a worker's share of the batch after an item fails (review6
+  # tokenize-embed-11).
+  wrapped <- harnessr:::worker_item(function(item, trace) item, "", list(), list(), list(), NULL)
   expect_setequal(ls(environment(wrapped)),
-                  c("fn", "key", "opts", "regs", "parent_meta", "state", "failed"))
+                  c("fn", "key", "opts", "regs", "parent_meta", "state", "governor", "failed"))
   expect_identical(get("failed", environment(wrapped)), FALSE)
 })
 
@@ -152,7 +153,7 @@ test_that("only future's size refusal is turned into a sequential run", {
   local_registries()
   gr_options(max_calls = 100, max_cost_usd = NULL)
   cancel <- function() warning("Caught FutureError. Canceling all iterations ...", call. = FALSE)
-  run <- function() readgpt:::gr_lapply(1:3, function(i, trace) i * 2, parallel = TRUE,
+  run <- function() harnessr:::gr_lapply(1:3, function(i, trace) i * 2, parallel = TRUE,
                                         workers = 2, trace = gr_trace())
   testthat::local_mocked_bindings(
     future_lapply = function(...) {
@@ -218,7 +219,7 @@ test_that("with one worker a mock's calls and a cache's counts are not doubled",
   fake <- structure(list(.log = log), class = "gr_client")
   testthat::local_mocked_bindings(
     future_lapply = function(X, FUN, ...) lapply(X, FUN), .package = "future.apply")
-  out <- suppressMessages(readgpt:::gr_lapply(1:3, function(i, trace) {
+  out <- suppressMessages(harnessr:::gr_lapply(1:3, function(i, trace) {
     log$calls <- c(log$calls, list(list(label = paste("item", i))))
     i
   }, parallel = TRUE, workers = 2, trace = gr_trace(), client = fake))

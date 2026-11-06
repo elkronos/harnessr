@@ -87,7 +87,7 @@ test_that("an answer restored from before the check is checked when the table is
   ans <- list(notes = list(decision = "exclude", reason = "Outside Europe.",
                            criterion = "Conducted outside Europe", seen_tokens = 10L,
                            document_tokens = 10L, truncated = FALSE))
-  tab <- readgpt:::screening_table("a.txt", list(a.txt = ans),
+  tab <- harnessr:::screening_table("a.txt", list(a.txt = ans),
                                    data.frame(document = "a.txt", status = "restored",
                                               error = NA_character_, stringsAsFactors = FALSE),
                                    include = "Reports a randomised comparison",
@@ -115,7 +115,7 @@ test_that("a blind sheet does not say which of the model's decisions it was draw
     expect_false(any(c("frame_n", "screened_n", "model_decision") %in% names(d)), info = of)
     expect_length(unique(d$sampled_from), 1L)
     # The frame and its sizes still come back.
-    back <- readgpt:::read_reference(f)
+    back <- harnessr:::read_reference(f)
     expect_identical(attr(back, "of"), of)
     expect_identical(attr(back, "screened_n"), 6L)
   }
@@ -155,14 +155,14 @@ test_that("an unblinded sheet names its frame in plain words, as before", {
 })
 
 test_that("a key that is not one this package wrote is not read as a frame", {
-  key <- readgpt:::frame_key("excluded", 40L, 50L, "salt")
-  expect_identical(readgpt:::frame_unkey(key), list(of = "excluded", frame_n = 40L,
+  key <- harnessr:::frame_key("excluded", 40L, 50L, "salt")
+  expect_identical(harnessr:::frame_unkey(key), list(of = "excluded", frame_n = 40L,
                                                    screened_n = 50L))
   broken <- paste0(substr(key, 1, 12), if (substr(key, 13, 13) == "0") "1" else "0",
                    substring(key, 14))
-  expect_null(readgpt:::frame_unkey(broken))
-  expect_null(readgpt:::frame_unkey("excluded"))
-  expect_null(readgpt:::frame_unkey(NA))
+  expect_null(harnessr:::frame_unkey(broken))
+  expect_null(harnessr:::frame_unkey("excluded"))
+  expect_null(harnessr:::frame_unkey(NA))
 })
 
 # ---------------------------------------------------------------------------
@@ -407,7 +407,7 @@ test_that("the sheet is UTF-8 with a byte-order mark, and reads back after Excel
     expect_identical(cal$n, 2L, info = enc)
   }
   # A name mangled on the way is matched by its document_id.
-  ref <- readgpt:::read_reference(r6_fill(p))
+  ref <- harnessr:::read_reference(r6_fill(p))
   ref$document <- c("?vora.txt", "M?laga.txt")
   expect_identical(quiet(gr_calibrate(scr, ref))$n, 2L)
 })
@@ -513,9 +513,9 @@ test_that("the screening quote is attributed to the chunk it is in", {
 test_that("the screening print counts model calls and embeddings requests apart", {
   tr <- gr_trace()
   ok <- gr_result(TRUE, text = "x", usage = list(input = 5L, output = 1L), model = "gpt-4o")
-  readgpt:::trace_record(tr, "screen.decide", list(), ok)
+  harnessr:::trace_record(tr, "screen.decide", list(), ok)
   for (i in 1:3) {
-    readgpt:::trace_record(tr, "embed.request", list(),
+    harnessr:::trace_record(tr, "embed.request", list(),
                            gr_result(TRUE, text = "", usage = list(input = 5L, output = 0L),
                                      model = "text-embedding-3-small"),
                            embedding = TRUE)

@@ -43,7 +43,7 @@ r5_refused <- function(cs) {
 }
 
 r5_bq <- function(value, quote, source = quote, type = "integer") {
-  readgpt:::quote_backs_value(value, quote, source, gr_field("x", type = type))
+  harnessr:::quote_backs_value(value, quote, source, gr_field("x", type = type))
 }
 
 # ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ test_that("an English sentence with a foreign word, a Greek letter or an accent 
   )
   for (cs in cases) r5_refused(cs)
 
-  ql <- readgpt:::quote_language
+  ql <- harnessr:::quote_language
   for (s in c("Mean (SE) scores improved", "resected en bloc", "de novo lesions",
               "von Willebrand disease", "para-aminosalicylic acid",
               "TNF-\u03b1 levels fell", "Sj\u00f6gren syndrome", "ethics board of the H\u00f4pital")) {
@@ -82,7 +82,7 @@ test_that("a quotation in another language is read in that language, not waved t
   # both.
   r5_verified(list("Se incluyeron veinticuatro pacientes en el estudio.", 24))
   r5_refused(list("Se incluyeron veinticuatro pacientes en el estudio.", 999))
-  expect_identical(readgpt:::quote_language("Se incluyeron veinticuatro pacientes en el estudio."),
+  expect_identical(harnessr:::quote_language("Se incluyeron veinticuatro pacientes en el estudio."),
                    "es")
   # A script whose number words nothing here reads keeps the span check when
   # no number can be read from the quote, as before.
@@ -90,7 +90,7 @@ test_that("a quotation in another language is read in that language, not waved t
               "\u0432\u043a\u043b\u044e\u0447\u0438\u043b\u0438",
               "\u0434\u0432\u0430\u0434\u0446\u0430\u0442\u044c",
               "\u0447\u0435\u0442\u044b\u0440\u0435 \u043f\u0430\u0446\u0438\u0435\u043d\u0442\u0430.")
-  expect_identical(readgpt:::quote_language(ru), "script")
+  expect_identical(harnessr:::quote_language(ru), "script")
   expect_true(r5_bq(24L, ru))
   # But not when a number it can read says otherwise.
   expect_false(r5_bq(24L, paste(ru, "120")))
@@ -132,7 +132,7 @@ test_that("the words that do count still verify the count they state", {
     list("One patient died during follow-up.", 1)
   )
   for (cs in cases) r5_verified(cs)
-  qn <- function(s) sort(readgpt:::quote_numbers(readgpt:::normalise_for_match(s)))
+  qn <- function(s) sort(harnessr:::quote_numbers(harnessr:::normalise_for_match(s)))
   # A compound ordinal is still read, as before; a lone one is a position.
   expect_identical(qn("twenty-first"), 21)
   expect_identical(qn("the first and second years"), numeric(0))
@@ -229,7 +229,7 @@ test_that("a number word in another language verifies beside a digit or an Engli
   )
   for (cs in refused) r5_refused(cs)
 
-  qn <- function(s) sort(readgpt:::quote_numbers(readgpt:::normalise_for_match(s)))
+  qn <- function(s) sort(harnessr:::quote_numbers(harnessr:::normalise_for_match(s)))
   expect_identical(qn("quatre-vingt-dix-sept patients ont \u00e9t\u00e9 inclus"), 97)
   expect_identical(qn("dos mil trescientos cuarenta y cinco pacientes fueron incluidos"), 2345)
   expect_identical(qn("zweihundertvierundf\u00fcnfzig Patienten wurden eingeschlossen"), 254)
@@ -276,7 +276,7 @@ test_that("words with a percent sign, halves, fractions and a spaced bn are read
 # ---------------------------------------------------------------------------
 
 test_that("a long run of grouped digits is read without enumerating every stretch", {
-  qn <- function(s) readgpt:::quote_numbers(readgpt:::normalise_for_match(s))
+  qn <- function(s) harnessr:::quote_numbers(harnessr:::normalise_for_match(s))
   expect_true(all(c(120, 118, 120118) %in% qn("A table row 120 118 follows.")))
   six <- qn("1 204 305 406 507 608")
   expect_true(all(c(1204, 1204305406507, 204305406507608) %in% six))

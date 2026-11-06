@@ -1,0 +1,229 @@
+# helper-harnessr.R
+#
+# The v1 test suite mocked by writing over globals -- `process_api_call <<- fake`
+# and `assign(..., envir = .GlobalEnv)` -- and never restored them. testthat runs
+# every file in one session, so a fake installed in test_chunked_mode.R was still
+# installed when test_main_api.R ran, and the "real API" tests silently asserted
+# against fakes. One file even set OPENAI_API_KEY="dummy" and left it set for the
+# next file, which was a live-API file.
+#
+# Here, every fake is a locally-scoped mock client passed as an argument. Nothing
+# is assigned into the global environment, so nothing can leak between files.
+
+# Deterministic client that echoes which prompt it saw, so tests can assert on
+# the exact call pattern a strategy produced.
+mock_echo <- function(answer = "MOCK ANSWER") {
+  gr_mock_client(function(messages, params) {
+    sys <- messages[[1]]$content
+    if (grepl("Rate how useful", sys, fixed = TRUE)) {
+      return('{"score": 8, "reason": "relevant"}')
+    }
+    if (grepl("reading iteratively", sys, fixed = TRUE)) {
+      return(sprintf('{"can_answer": true, "answer": %s, "next_query": ""}',
+                     jsonlite::toJSON(answer, auto_unbox = TRUE)))
+    }
+    if (grepl("You plan how to read a document", sys, fixed = TRUE)) {
+      # Read everything: the neutral plan, so the shared mock does not quietly
+      # decide what `survey` skips. Tests that care drive it with mock_planner().
+      # The section count is taken from the prompt the reader builds, so the
+      # plan is the right length for whatever document it is reading.
+      last <- messages[[length(messages)]]$content
+      n <- suppressWarnings(as.integer(sub(".*each of the ([0-9]+) sections.*", "\\1", last)))
+      return(preview_plan_json(rep("read", if (is.na(n)) 1L else max(1L, n))))
+    }
+    if (grepl("Decompose text into standalone propositions", sys, fixed = TRUE)) {
+      return('{"propositions": ["Alpha is one.", "Beta is two."]}')
+    }
+    answer
+  })
+}
+
+# Client that fails every call, for exercising error paths.
+mock_dead <- function(msg = "simulated transport failure") {
+  gr_mock_client(function(messages, params) stop(msg))
+}
+
+# Client that returns an empty completion -- the `content: null` case that made
+# v1 crash with "missing value where TRUE/FALSE needed".
+mock_empty <- function() {
+  gr_mock_client(function(messages, params) {
+    gr_result_for_test(ok = FALSE, text = "", error = "no content")
+  })
+}
+
+# Exposed so the helper can build a failure result without reaching into internals.
+gr_result_for_test <- function(ok, text = "", error = NULL) {
+  structure(list(ok = ok, text = text, error = error, status = 200L,
+                 usage = list(input = 0L, output = 0L), model = "mock",
+                 finish_reason = NA_character_, retryable = FALSE, raw = NULL),
+            class = "gr_result")
+}
+
+# A document big enough that segmenters actually diverge and readers make more
+# than one call. Roughly 55 tokens per paragraph, so sample_doc(4, 4) is about
+# 900 tokens across 16 body paragraphs in 4 sections.
+sample_doc <- function(sections = 4, paras = 4) {
+  lines <- c("The cohort comprised 482 participants recruited across nine clinical sites.",
+             "Adherence exceeded 91 percent in the treatment arm throughout the study.",
+             "We fitted a mixed-effects model with study site as a random intercept.",
+             "The primary endpoint was reached at week 24 in both randomised groups.",
+             "Costs per averted event were estimated at 3,140 dollars in the base case.",
+             "Baseline characteristics were balanced between the two randomised arms.",
+             "Sensitivity analyses excluded every participant lost to follow-up early.",
+             "Adverse events were mild and self-limiting in the large majority of cases.")
+  paste(unlist(lapply(seq_len(sections), function(s) {
+    c(sprintf("## Section %d", s),
+      vapply(seq_len(paras), function(p) {
+        idx <- ((s * 3L + p * 2L) %% length(lines)) + seq_len(4L)
+        paste(lines[((idx - 1L) %% length(lines)) + 1L], collapse = " ")
+      }, character(1)))
+  })), collapse = "\n\n")
+}
+
+call_labels <- function(client) {
+  vapply(client$calls(), function(x) x$label, character(1))
+}
+
+quiet <- function(expr) suppressWarnings(suppressMessages(force(expr)))
+
+# Base R gained `%||%` in 4.4.0 and this package supports 4.1.0, so tests cannot
+# rely on it being there. The package's own copy is not exported.
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+# ---------------------------------------------------------------------------
+# Registry and option isolation.
+#
+# The registries live in two package-level environments, the core's (models)
+# and the document layer's (modules), so a test that registers a cleaner, a
+# segmenter or a model changes what every later test sees, including counts
+# (`nrow(gr_cleaners())`) that other tests assert on. That makes the suite
+# order-dependent: it passes when run as a whole and fails when a single file
+# is run, or vice versa. Anything that mutates global state calls this first.
+# ---------------------------------------------------------------------------
+.gr_registry_slots <- c("extractors", "cleaners", "segmenters", "readers",
+                        "embedders", "protocols")
+.hr_registry_slots <- c("models", "model_patterns")
+
+# Every registry slot with the environment it lives in.
+registry_snapshot <- function() {
+  # `harnessr:::gr_state[[s]] <- v` is a REPLACEMENT call on `harnessr`, not on
+  # the state environment, and fails with "object 'harnessr' not found". Bind the
+  # environments to local names and assign into those.
+  envs <- list(doc = harnessr:::gr_state, core = harnessr:::hr_state)
+  slots <- list(doc = .gr_registry_slots, core = .hr_registry_slots)
+  lapply(stats::setNames(names(envs), names(envs)), function(layer) {
+    st <- envs[[layer]]
+    list(env = st, values = stats::setNames(lapply(slots[[layer]], function(s) st[[s]]),
+                                            slots[[layer]]))
+  })
+}
+
+registry_restore <- function(snap) {
+  for (layer in snap) for (s in names(layer$values)) layer$env[[s]] <- layer$values[[s]]
+}
+
+local_registries <- function(env = parent.frame()) {
+  snap <- registry_snapshot()
+  opts <- gr_options()
+  withr::defer({
+    registry_restore(snap)
+    gr_options(opts)
+    harnessr:::.warn_once_reset()
+  }, envir = env)
+  invisible(snap)
+}
+
+# Caches are global too: a document cached under one ingest spec must not decide
+# what a later test sees.
+local_clean_cache <- function(env = parent.frame()) {
+  harnessr:::gr_flush_caches()
+  withr::defer(harnessr:::gr_flush_caches(), envir = env)
+}
+
+# Strip a string's encoding label without touching its bytes.
+#
+# Source literals written with \u escapes are labelled UTF-8 by the parser, so a
+# fixture built that way is already in the state an encoding fix produces and
+# proves nothing. Text that reaches a user's session from readLines() without an
+# `encoding=`, from a command-line argument, or from a connection carries no
+# label at all -- that is the string that breaks serialisation and cache keys,
+# and this is how a test gets one deterministically in any locale.
+unmarked <- function(x) {
+  x <- as.character(x)
+  Encoding(x) <- "unknown"
+  x
+}
+
+# Clients for the paths the shared `mock_echo()` cannot reach.
+#
+# `mock_echo()` answers the iterative prompt with `can_answer: true`, so every
+# test using it stops `iterative` on round one. That is a real case but it is
+# the degenerate one -- it never iterates, which is the only thing separating it
+# from `retrieve`. This one refuses instead, so the loop runs.
+#
+# `refuse` distinct queries come back before it repeats the last, which is how
+# the run leaves through the query-loop guard rather than through max_rounds.
+# Passing `refuse` >= max_rounds exits on rounds instead.
+mock_iterative_loop <- function(refuse = 3L, answer = "FROM GATHERED") {
+  round <- 0L
+  gr_mock_client(function(messages, params) {
+    if (grepl("reading iteratively", messages[[1]]$content, fixed = TRUE)) {
+      round <<- round + 1L
+      nq <- sprintf("missing detail %d", min(round, refuse))
+      return(sprintf('{"can_answer": false, "answer": "", "next_query": "%s"}', nq))
+    }
+    answer
+  })
+}
+
+# Summaries long enough to stay over a small context window, so `hierarchical`
+# has to fan them in instead of answering from the first pass. `mock_echo()`
+# returns a short string, which collapses under any budget and takes the
+# recursion out of the recursive reader.
+mock_bulky <- function(sentences = 12L) {
+  body <- paste(rep("Summary sentence about the cohort and the primary endpoint.", sentences),
+                collapse = " ")
+  gr_mock_client(function(messages, params) body)
+}
+
+
+# A reading plan as the survey planner would return it, one treatment per
+# section in order. `mock_echo()` uses this to answer "read" for everything;
+# `mock_planner()` is how a test says which sections get skipped.
+preview_plan_json <- function(treatments) {
+  jsonlite::toJSON(list(sections = data.frame(
+    id = seq_along(treatments), treatment = as.character(treatments),
+    reason = paste("because", seq_along(treatments)), stringsAsFactors = FALSE)),
+    auto_unbox = TRUE)
+}
+
+mock_planner <- function(treatments, answer = "PLANNED ANSWER") {
+  gr_mock_client(function(messages, params) {
+    sys <- messages[[1]]$content
+    if (grepl("You plan how to read a document", sys, fixed = TRUE)) {
+      return(preview_plan_json(treatments))
+    }
+    if (grepl("extract evidence, not answers", sys, fixed = TRUE)) {
+      return("The cohort comprised 482 participants recruited across nine clinical sites.")
+    }
+    answer
+  })
+}
+
+# A planner whose reply is not a usable plan, for the degraded path.
+mock_planner_broken <- function() {
+  gr_mock_client(function(messages, params) {
+    if (grepl("You plan how to read a document", messages[[1]]$content, fixed = TRUE)) {
+      return("I would read the whole thing, personally.")
+    }
+    "FALLBACK ANSWER"
+  })
+}
+
+
+#' A plan that speaks about only some sections, to exercise the default.
+preview_plan_json_ids <- function(ids, treatment) {
+  jsonlite::toJSON(list(sections = data.frame(
+    id = as.integer(ids), treatment = rep(as.character(treatment), length(ids)),
+    reason = rep("stated", length(ids)), stringsAsFactors = FALSE)), auto_unbox = TRUE)
+}

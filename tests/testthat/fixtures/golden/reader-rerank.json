@@ -1,0 +1,567 @@
+{
+  "calls": [
+    {
+      "cache_key": "cdddf9fa02870c4a555a4334fc48bd717039ee40425a84488c4c8e3aaeb0dc1e",
+      "chars": [149, 35, 318],
+      "label": "rerank.score",
+      "messages": "12b2ff6ddff5184b",
+      "model": "mock-model",
+      "params": {
+        "max_output": 200,
+        "model": "mock-model",
+        "prompt_tokens": 152,
+        "schema_name": "relevance",
+        "temperature": null
+      },
+      "request": "654e821ddd928c97",
+      "roles": ["system", "user", "user"],
+      "schema": "7a1cd830c8644fd8"
+    },
+    {
+      "cache_key": "8fe2aef4a251e0b3dba5271f0f6c63126a42fa2cda1c6fd93851a274f8cf9551",
+      "chars": [149, 35, 382],
+      "label": "rerank.score",
+      "messages": "e13cf8f69743e710",
+      "model": "mock-model",
+      "params": {
+        "max_output": 200,
+        "model": "mock-model",
+        "prompt_tokens": 169,
+        "schema_name": "relevance",
+        "temperature": null
+      },
+      "request": "a625b6e235dc9872",
+      "roles": ["system", "user", "user"],
+      "schema": "7a1cd830c8644fd8"
+    },
+    {
+      "cache_key": "af578ed02999342c5bb960ba143fe16392525b4e7c79c4875d47928b5e3b2a2f",
+      "chars": [149, 35, 347],
+      "label": "rerank.score",
+      "messages": "f00a054025b70384",
+      "model": "mock-model",
+      "params": {
+        "max_output": 200,
+        "model": "mock-model",
+        "prompt_tokens": 154,
+        "schema_name": "relevance",
+        "temperature": null
+      },
+      "request": "f7d182fd1c567a6a",
+      "roles": ["system", "user", "user"],
+      "schema": "7a1cd830c8644fd8"
+    },
+    {
+      "cache_key": "91cd0e72f8e679f5cc9e4f49fca0de56b403a2dbf7e15b6ab184ff93500a6578",
+      "chars": [149, 35, 319],
+      "label": "rerank.score",
+      "messages": "8a8ba9553cf7ceea",
+      "model": "mock-model",
+      "params": {
+        "max_output": 200,
+        "model": "mock-model",
+        "prompt_tokens": 145,
+        "schema_name": "relevance",
+        "temperature": null
+      },
+      "request": "13cdeebda52eed41",
+      "roles": ["system", "user", "user"],
+      "schema": "7a1cd830c8644fd8"
+    },
+    {
+      "cache_key": "dabe13426f6b263967a5e074cde0d1b8c795462849d960c127957cf98d5fef71",
+      "chars": [149, 35, 457],
+      "label": "rerank.score",
+      "messages": "76be80193f7731c1",
+      "model": "mock-model",
+      "params": {
+        "max_output": 200,
+        "model": "mock-model",
+        "prompt_tokens": 177,
+        "schema_name": "relevance",
+        "temperature": null
+      },
+      "request": "bebc4b3b81bfb0bf",
+      "roles": ["system", "user", "user"],
+      "schema": "7a1cd830c8644fd8"
+    },
+    {
+      "cache_key": "f3a433937b48b084e73b9a5e0d095b6c3afe15221536380941a132035d543948",
+      "chars": [149, 35, 171],
+      "label": "rerank.score",
+      "messages": "6c9cb4fe62c0be86",
+      "model": "mock-model",
+      "params": {
+        "max_output": 200,
+        "model": "mock-model",
+        "prompt_tokens": 109,
+        "schema_name": "relevance",
+        "temperature": null
+      },
+      "request": "9e782e9efabb854e",
+      "roles": ["system", "user", "user"],
+      "schema": "7a1cd830c8644fd8"
+    },
+    {
+      "cache_key": "72edaf7bd571e6b3725c5e895ab1370f4c6dee068a38734d5ecb4fb7bd82e1bc",
+      "chars": [216, 1976, 35],
+      "label": "rerank.answer",
+      "messages": "7dbe1d5f98ae203d",
+      "model": "mock-model",
+      "params": {
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 640,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "810bce99b45f859f",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    }
+  ],
+  "result": "a34ad3f0c8e88f77",
+  "trace": {
+    "actor": {
+      "approved_by": null,
+      "owner": null,
+      "purpose": null,
+      "run_by": null,
+      "system": null
+    },
+    "budget_stop": false,
+    "config": {
+      "options": {
+        "actor": [],
+        "allow_unpriced": false,
+        "allowed_models": null,
+        "api": "responses",
+        "api_base": "https://api.openai.com/v1",
+        "api_headers": [],
+        "cache_dir": null,
+        "cache_documents": true,
+        "cache_embeddings": true,
+        "embedder": null,
+        "embedding_model": "text-embedding-3-small",
+        "max_calls": 400,
+        "max_cost_usd": 5,
+        "max_output_tokens": null,
+        "max_retries": 4,
+        "max_tokens_total": null,
+        "min_output_tokens": 256,
+        "model": "gpt-5.6-terra",
+        "parallel": false,
+        "request_timeout": 120,
+        "retry_pause_base": 2,
+        "safety_margin": 0.1,
+        "temperature": null,
+        "tokenizer": "heuristic",
+        "unknown_model_action": "warn",
+        "verbose": false,
+        "workers": 4
+      }
+    },
+    "errors": [],
+    "meta": {
+      "question": "What was revenue in 2024?",
+      "recipe": "golden-rerank",
+      "source": "annual_report.md"
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "detail": {
+          "blocks": 17,
+          "cached": false,
+          "clean_steps": [
+            "page_numbers",
+            "hyphenation",
+            "control_chars",
+            "ligatures",
+            "collapse_whitespace"
+          ],
+          "source": "annual_report.md",
+          "tokens": 574
+        },
+        "kind": "local",
+        "label": "ingest",
+        "ok": true,
+        "recipe": "golden-rerank",
+        "source": "annual_report.md",
+        "step": 1
+      },
+      {
+        "detail": {
+          "max": 116,
+          "mean": 89.8,
+          "median": 92,
+          "method": "paragraph",
+          "min": 48,
+          "n": 6,
+          "over_cap": 0,
+          "settings": {
+            "max_tokens": 120
+          },
+          "total_tokens": 539
+        },
+        "kind": "local",
+        "label": "segment",
+        "ok": true,
+        "recipe": "golden-rerank",
+        "source": "annual_report.md",
+        "step": 2
+      },
+      {
+        "detail": {
+          "chunks": 6,
+          "embed_calls": 0,
+          "est_calls": 7,
+          "est_cost_usd": 0,
+          "est_input_usd": 0,
+          "model": "mock-model",
+          "reader": "rerank",
+          "settings": [],
+          "worst_calls": 7
+        },
+        "kind": "local",
+        "label": "preflight",
+        "ok": true,
+        "recipe": "golden-rerank",
+        "source": "annual_report.md",
+        "step": 3
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "rerank.score",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 200,
+          "model": "mock-model",
+          "prompt_tokens": 152,
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 200,
+          "model": "mock-model",
+          "schema_hash": "8baebf0c58fa3d7f468c1cacc82c08f4bf6cdf28143b009041ea5c03af415ef6",
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "prompt": "12b2ff6ddff5184b",
+        "recipe": "golden-rerank",
+        "replay_key": "f2c992943ea760097d44eb81f21dec1c3e3b93d11c211e7ed0a6a53a4cf9fde2",
+        "response": "e6b32de151f23d28",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "step": 4,
+        "tokens": {
+          "input": 152,
+          "output": 16,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "rerank.score",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 200,
+          "model": "mock-model",
+          "prompt_tokens": 169,
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 200,
+          "model": "mock-model",
+          "schema_hash": "8baebf0c58fa3d7f468c1cacc82c08f4bf6cdf28143b009041ea5c03af415ef6",
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "prompt": "e13cf8f69743e710",
+        "recipe": "golden-rerank",
+        "replay_key": "291731e53b7f91906fb5972e6a10ee8ecdff7236cb4fe340865cd74bb67830db",
+        "response": "e6b32de151f23d28",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "step": 5,
+        "tokens": {
+          "input": 169,
+          "output": 16,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "rerank.score",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 200,
+          "model": "mock-model",
+          "prompt_tokens": 154,
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 200,
+          "model": "mock-model",
+          "schema_hash": "8baebf0c58fa3d7f468c1cacc82c08f4bf6cdf28143b009041ea5c03af415ef6",
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "prompt": "f00a054025b70384",
+        "recipe": "golden-rerank",
+        "replay_key": "4c969c42b0ec1ea7dab4f26e7a41510cef34fec792c98aae52df60144629b9db",
+        "response": "e6b32de151f23d28",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "step": 6,
+        "tokens": {
+          "input": 154,
+          "output": 16,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "rerank.score",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 200,
+          "model": "mock-model",
+          "prompt_tokens": 145,
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 200,
+          "model": "mock-model",
+          "schema_hash": "8baebf0c58fa3d7f468c1cacc82c08f4bf6cdf28143b009041ea5c03af415ef6",
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "prompt": "8a8ba9553cf7ceea",
+        "recipe": "golden-rerank",
+        "replay_key": "c7dc3ddc6262fcb362ecb2bf49edfdcdc91b67f19ddf2aac7e1e3d2bba1c282d",
+        "response": "e6b32de151f23d28",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "step": 7,
+        "tokens": {
+          "input": 145,
+          "output": 16,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "rerank.score",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 200,
+          "model": "mock-model",
+          "prompt_tokens": 177,
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 200,
+          "model": "mock-model",
+          "schema_hash": "8baebf0c58fa3d7f468c1cacc82c08f4bf6cdf28143b009041ea5c03af415ef6",
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "prompt": "76be80193f7731c1",
+        "recipe": "golden-rerank",
+        "replay_key": "c05dc6707f89486675a081da1f043b86132d69c87cf14e666e00c0155c5aed91",
+        "response": "e6b32de151f23d28",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "step": 8,
+        "tokens": {
+          "input": 177,
+          "output": 16,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "rerank.score",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 200,
+          "model": "mock-model",
+          "prompt_tokens": 109,
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 200,
+          "model": "mock-model",
+          "schema_hash": "8baebf0c58fa3d7f468c1cacc82c08f4bf6cdf28143b009041ea5c03af415ef6",
+          "schema_name": "relevance",
+          "temperature": null
+        },
+        "prompt": "6c9cb4fe62c0be86",
+        "recipe": "golden-rerank",
+        "replay_key": "82078528d1836339ab451e4b5dcc5df8c5820b0127d2831032bc22692211f722",
+        "response": "e6b32de151f23d28",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "step": 9,
+        "tokens": {
+          "input": 109,
+          "output": 16,
+          "provenance": "estimated"
+        }
+      },
+      {
+        "detail": {
+          "candidates": 6,
+          "context_order": "relevance",
+          "degraded_to_bm25": false,
+          "kept": 6,
+          "prefilter": "bm25",
+          "scores": [
+            8,
+            8,
+            8,
+            8,
+            8,
+            8
+          ]
+        },
+        "kind": "local",
+        "label": "rerank.select",
+        "ok": true,
+        "recipe": "golden-rerank",
+        "source": "annual_report.md",
+        "step": 10
+      },
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "rerank.answer",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 1500,
+          "model": "mock-model",
+          "prompt_tokens": 640,
+          "schema_name": "result",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
+        "prompt": "7dbe1d5f98ae203d",
+        "recipe": "golden-rerank",
+        "replay_key": "70e7c72b9c2a18c6db84964c6efe1d2acb3d19c1a13edd63227828384b90e558",
+        "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
+        "source": "annual_report.md",
+        "step": 11,
+        "tokens": {
+          "input": 640,
+          "output": 26,
+          "provenance": "estimated"
+        }
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 7,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 11,
+      "tokens_cached_in": 0,
+      "tokens_in": 1546,
+      "tokens_out": 122,
+      "tokens_reasoning": 0,
+      "usage_estimated": 1
+    }
+  }
+}

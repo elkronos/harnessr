@@ -185,13 +185,13 @@ test_that("a page with a short line of text is still read, not unread", {
 # ---------------------------------------------------------------------------
 
 test_that("a paragraph's last line is not a heading, even when it is a section name", {
-  m <- readgpt:::heading_matcher()
+  m <- harnessr:::heading_matcher()
   expect_true(is.na(m("findings.")))
   expect_true(is.na(m("Results,")))
   expect_identical(m("Findings"), "Findings")
   expect_identical(m("Results:"), "Results:")
   # A bookmark that ends in a question mark still matches its line.
-  q <- readgpt:::heading_matcher(c("Why does it matter?"))
+  q <- harnessr:::heading_matcher(c("Why does it matter?"))
   expect_identical(q("Why does it matter?"), "Why does it matter?")
 
   page <- c("Introduction", "",
@@ -199,7 +199,7 @@ test_that("a paragraph's last line is not a heading, even when it is a section n
             "findings.", "The trial ran in 12 centres.", "",
             "We also looked at the change in the rate of", "findings", "over the two years.", "",
             "Methods", "Participants were randomised centrally.")
-  b <- readgpt:::pdf_page_blocks(list(page), readgpt:::heading_matcher())
+  b <- harnessr:::pdf_page_blocks(list(page), harnessr:::heading_matcher())
   expect_identical(b$kind, c("heading", "body", "body", "heading", "body"))
   expect_identical(b$section, c("Introduction", "Introduction", "Introduction", "Methods", "Methods"))
   expect_match(b$text[2], "with earlier\nfindings.\nThe trial", fixed = TRUE)
@@ -233,7 +233,7 @@ test_that("a PDF whose paragraph wraps onto a section name keeps one section", {
 
 test_that("lettered subsections and small-caps titles match the PDF's bookmarks", {
   titles <- c("Introduction", "Methods", "Participants", "Outcomes", "Discussion", "Conclusion")
-  m <- readgpt:::heading_matcher(titles)
+  m <- harnessr:::heading_matcher(titles)
   expect_identical(m("I. I NTRODUCTION"), "Introduction")
   expect_identical(m("II. M ETHODS"), "Methods")
   expect_identical(m("A. Participants"), "Participants")
@@ -242,7 +242,7 @@ test_that("lettered subsections and small-caps titles match the PDF's bookmarks"
   expect_identical(m("V. C ONCLUSION"), "Conclusion")
   expect_true(is.na(m("A. Smith and B. Jones")))
   # Without bookmarks, a small-caps standard name is still a heading.
-  plain <- readgpt:::heading_matcher()
+  plain <- harnessr:::heading_matcher()
   expect_identical(plain("IV. D ISCUSSION"), "IV. D ISCUSSION")
   expect_identical(plain("B. Methods"), "B. Methods")
 })
@@ -256,7 +256,7 @@ test_that("a word hyphenated across a page break or a spaced-out column is rejoi
     c("Participants were allocated to the multi-"),
     c("component intervention. It ran for a year.", "", "Outcomes were adjusted for charac-", "",
       "teristics of the sites."))
-  b <- readgpt:::pdf_page_blocks(pages, readgpt:::heading_matcher())
+  b <- harnessr:::pdf_page_blocks(pages, harnessr:::heading_matcher())
   # The rest of the word moves back to its page; the rest of the text keeps
   # its own.
   expect_identical(b$text, c("Participants were allocated to the multi-\ncomponent",
@@ -264,10 +264,10 @@ test_that("a word hyphenated across a page break or a spaced-out column is rejoi
                              "Outcomes were adjusted for charac-\nteristics of the sites."))
   expect_identical(b$page, c(1L, 2L, 2L))
   # A hyphen before a capital is a compound, and is left.
-  kept <- readgpt:::pdf_page_blocks(list("The Anglo-", c("Saxon charters survive.")),
-                                    readgpt:::heading_matcher())
+  kept <- harnessr:::pdf_page_blocks(list("The Anglo-", c("Saxon charters survive.")),
+                                    harnessr:::heading_matcher())
   expect_identical(kept$text, c("The Anglo-", "Saxon charters survive."))
-  cleaned <- readgpt:::gr_clean(b$text, steps = "hyphenation")
+  cleaned <- harnessr:::gr_clean(b$text, steps = "hyphenation")
   expect_identical(as.character(cleaned)[1], "Participants were allocated to the multicomponent")
 })
 
@@ -307,7 +307,7 @@ test_that("the charset in a server's Content-Type is used for the page", {
   local_mocked_bindings(url_download = function(url, dest) {
     file.copy(body, dest, overwrite = TRUE)
     list(status = 200L, type = "text/html; charset=windows-1252")
-  }, .package = "readgpt")
+  }, .package = "harnessr")
   doc <- quiet(gr_ingest("https://example.org/latin", gr_ingest_spec(clean = "none"),
                          cache = FALSE))
   expect_identical(doc$text, r6_latin)
@@ -343,12 +343,12 @@ test_that("a download declared as UTF-16 text is read, not refused", {
   local_clean_cache()
   body <- withr::local_tempfile()
   writeBin(c(as.raw(c(0xff, 0xfe)), iconv(r6_table, "UTF-8", "UTF-16LE", toRaw = TRUE)[[1]]), body)
-  expect_identical(readgpt:::url_extension("text/plain; charset=utf-16", "https://x.org/t", body),
+  expect_identical(harnessr:::url_extension("text/plain; charset=utf-16", "https://x.org/t", body),
                    "txt")
   local_mocked_bindings(url_download = function(url, dest) {
     file.copy(body, dest, overwrite = TRUE)
     list(status = 200L, type = "text/plain; charset=utf-16")
-  }, .package = "readgpt")
+  }, .package = "harnessr")
   doc <- quiet(gr_ingest("https://example.org/utf16", gr_ingest_spec(clean = "none"),
                          cache = FALSE))
   expect_identical(doc$text, sub("\n$", "", r6_table))
@@ -367,18 +367,18 @@ test_that("only the parts of a Word file that are read are unpacked, and within 
                             "customXml/item1.xml" = "<a/>"))
   expect_lt(file.size(f), 1024^2)
   dir <- withr::local_tempdir()
-  took <- readgpt:::docx_unzip(f, dir)
+  took <- harnessr:::docx_unzip(f, dir)
   expect_identical(took, "word/document.xml")
   expect_identical(list.files(dir, recursive = TRUE), "word/document.xml")
   expect_match(quiet(gr_ingest(f, cache = FALSE))$text, "482 participants", fixed = TRUE)
   # Text parts that unpack to more than the limit are refused.
-  expect_error(readgpt:::docx_unzip(f, withr::local_tempdir(), max_bytes = 100),
+  expect_error(harnessr:::docx_unzip(f, withr::local_tempdir(), max_bytes = 100),
                class = "gr_too_large")
   # Images past the limit are left out of OCR, with a warning.
   g <- r6_docx(r6_wp(r6_wr("Figure text.")),
                extra = list("word/media/a.png" = raw(2000), "word/media/b.png" = raw(2000)))
   d2 <- withr::local_tempdir()
-  expect_warning(took <- readgpt:::docx_unzip(g, d2, media = TRUE, max_bytes = 3000),
+  expect_warning(took <- harnessr:::docx_unzip(g, d2, media = TRUE, max_bytes = 3000),
                  class = "gr_docx_media_skipped")
   expect_identical(took, c("word/document.xml", "word/media/a.png"))
 })
@@ -397,13 +397,13 @@ test_that("addresses on this machine or a private network are recognised", {
              "http://metadata.google.internal/computeMetadata/v1/", "http://127.0.0.1./")
   public <- c("https://example.org/a", "http://8.8.8.8/", "http://172.32.0.1/",
               "http://[2001:4860:4860::8888]/", "http://100.128.0.1/", "http://10.example.com/")
-  expect_true(all(vapply(local, readgpt:::url_is_local, logical(1))))
-  expect_false(any(vapply(public, readgpt:::url_is_local, logical(1))))
+  expect_true(all(vapply(local, harnessr:::url_is_local, logical(1))))
+  expect_false(any(vapply(public, harnessr:::url_is_local, logical(1))))
 })
 
 test_that("a local address is refused before anything is fetched", {
   local_clean_cache()
-  withr::local_options(readgpt.allow_local_urls = NULL)
+  withr::local_options(harnessr.allow_local_urls = NULL)
   fetched <- FALSE
   local_mocked_bindings(GET = function(...) { fetched <<- TRUE; stop("fetched") },
                         .package = "httr")
@@ -420,7 +420,7 @@ test_that("a redirect is checked before it is followed", {
     structure(list(url = url, status_code = 302L, headers = list(location = loc)),
               class = "response")
   }, .package = "httr")
-  expect_error(readgpt:::url_download("https://example.org/start", withr::local_tempfile(),
+  expect_error(harnessr:::url_download("https://example.org/start", withr::local_tempfile(),
                                       allow_local = FALSE, lookup = function(host) NULL),
                class = "gr_url_error", regexp = "169.254.169.254")
   expect_identical(asked, c("https://example.org/start", "https://example.org/next"))
@@ -433,18 +433,39 @@ test_that("a public name for a private address is refused, and a checked name is
     structure(list(url = url, status_code = 200L, headers = list(`content-type` = "text/plain")),
               class = "response")
   }, .package = "httr")
-  expect_error(readgpt:::url_download("http://169.254.169.254.nip.io/latest/", withr::local_tempfile(),
+  expect_error(harnessr:::url_download("http://169.254.169.254.nip.io/latest/", withr::local_tempfile(),
                                       allow_local = FALSE,
                                       lookup = function(host) "169.254.169.254"),
                class = "gr_url_error", regexp = "resolves to 169.254.169.254")
   expect_null(pinned)
   # A name that resolves to public addresses is fetched from those addresses
   # and no others, so it cannot be pointed elsewhere after the check.
-  got <- readgpt:::url_download("https://Example.org/report", withr::local_tempfile(),
+  got <- harnessr:::url_download("https://Example.org/report", withr::local_tempfile(),
                                 allow_local = FALSE,
                                 lookup = function(host) c("93.184.215.14", "2606:2800:21f:cb07::1"))
   expect_identical(got$status, 200L)
   expect_identical(pinned, "example.org:443:93.184.215.14,[2606:2800:21f:cb07::1]")
+})
+
+test_that("curl's own size refusal is the same refusal, in either wording", {
+  # The write callback and curl's maxfilesize race; which fires first depends
+  # on how the body arrives. curl's refusal reads "Maximum file size exceeded"
+  # in older releases and "Exceeded the maximum allowed file size" in newer
+  # ones, and either must come back as gr_too_large with its advice, not as a
+  # failed fetch.
+  dest <- withr::local_tempfile()
+  for (said in c("Maximum file size exceeded",
+                 "Exceeded the maximum allowed file size (1000000) with 1000000 bytes")) {
+    local_mocked_bindings(GET = function(...) stop(said), .package = "httr")
+    expect_error(harnessr:::url_download("http://127.0.0.1:9/big", dest, max_bytes = 1e6,
+                                        allow_local = TRUE),
+                 class = "gr_too_large", regexp = "Download it yourself")
+  }
+  # Any other failure is still reported as it came.
+  local_mocked_bindings(GET = function(...) stop("Couldn't connect to server"), .package = "httr")
+  err <- expect_error(harnessr:::url_download("http://127.0.0.1:9/big", dest, max_bytes = 1e6,
+                                             allow_local = TRUE))
+  expect_false(inherits(err, "gr_too_large"))
 })
 
 test_that("a download is refused once it passes the size limit", {
@@ -480,18 +501,18 @@ test_that("a download is refused once it passes the size limit", {
   withr::defer(tools::pskill(as.integer(info[2])))
   base <- sprintf("http://127.0.0.1:%s", info[1])
   dest <- withr::local_tempfile()
-  expect_error(readgpt:::url_download(paste0(base, "/declared"), dest, max_bytes = 1e6,
+  expect_error(harnessr:::url_download(paste0(base, "/declared"), dest, max_bytes = 1e6,
                                       allow_local = TRUE),
                class = "gr_too_large")
   # Refused from the declared length, before anything was written.
   expect_true(!file.exists(dest) || file.size(dest) == 0)
-  expect_error(readgpt:::url_download(paste0(base, "/endless"), dest, max_bytes = 2e6,
+  expect_error(harnessr:::url_download(paste0(base, "/endless"), dest, max_bytes = 2e6,
                                       allow_local = TRUE),
                class = "gr_too_large")
   expect_lt(file.size(dest), 4e6)
   # Through gr_ingest the partial file is removed, and the error says so.
-  withr::local_options(readgpt.allow_local_urls = TRUE)
-  local_mocked_bindings(.gr_max_download_bytes = 1e6, .package = "readgpt")
+  withr::local_options(harnessr.allow_local_urls = TRUE)
+  local_mocked_bindings(.gr_max_download_bytes = 1e6, .package = "harnessr")
   expect_error(quiet(gr_ingest(paste0(base, "/endless"), cache = FALSE)),
                class = "gr_too_large", regexp = "Download it yourself")
 })

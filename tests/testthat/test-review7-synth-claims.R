@@ -99,7 +99,7 @@ test_that("under a C locale the question, headings, register and gaps are sent i
     # Written from rows, the section's heading (from the model, labelled) is
     # in the system prompt beside the register.
     s2 <- quiet(gr_synthesise(tab, outline = o[1:2], question = q, client = cl, style = style))
-    gl <- readgpt:::render_gaps(g)
+    gl <- harnessr:::render_gaps(g)
     list(cm = cm, o = o, s = s, s2 = s2, gl = gl, enc = Encoding(cm$question))
   }, error = function(e) e)
   suppressWarnings(Sys.setlocale("LC_CTYPE", old))
@@ -131,7 +131,7 @@ test_that("a gap line quoting the table is not escaped beside one quoting a clai
                   n = c(4L, 1L), stringsAsFactors = FALSE)
   ok <- suppressWarnings(Sys.setlocale("LC_CTYPE", "C"))
   skip_if(!nzchar(ok) || isTRUE(l10n_info()[["UTF-8"]]), "cannot switch to the C locale here")
-  out <- readgpt:::render_gaps(g)
+  out <- harnessr:::render_gaps(g)
   suppressWarnings(Sys.setlocale("LC_CTYPE", old))
   expect_false(grepl("<c3>", out, fixed = TRUE, useBytes = TRUE))
   expect_true(grepl("Montr\u00e9al", out, fixed = TRUE))
@@ -176,7 +176,7 @@ test_that("gr_outline() stamps its claims, and an outline from other claims is r
   cl <- r7_client()
   cm <- quiet(gr_claims(r7_table(), question = "Q?", client = cl))
   o <- quiet(gr_outline(cm, client = cl))
-  expect_identical(attr(o, "claims_fingerprint"), readgpt:::claims_fingerprint(cm$claims))
+  expect_identical(attr(o, "claims_fingerprint"), harnessr:::claims_fingerprint(cm$claims))
   swapped <- r7_client(claims = sprintf('{"claims":[%s,%s]}', r7_claim("Surveys show harm.", c(2, 4)),
                                          r7_claim("Trials work.", c(1, 3))))
   cm2 <- quiet(gr_claims(r7_table(), question = "Q?", client = swapped))
@@ -188,7 +188,7 @@ test_that("gr_outline() stamps its claims, and an outline from other claims is r
                                       claims = cm)), "gr_synthesis")
   broken <- gr_mock_client(function(messages, params) stop("down"))
   o2 <- quiet(gr_outline(cm, client = broken))
-  expect_identical(attr(o2, "claims_fingerprint"), readgpt:::claims_fingerprint(cm$claims))
+  expect_identical(attr(o2, "claims_fingerprint"), harnessr:::claims_fingerprint(cm$claims))
   expect_error(quiet(gr_synthesise(r7_table(), outline = o2, question = "Q?", client = cl,
                                    claims = cm2)), class = "gr_claims_mismatch")
 })
@@ -209,7 +209,7 @@ test_that("a synthesis from claims records which section each claim went to, and
   expect_identical(s$claim_sections,
                    data.frame(section = c("Trials", "Surveys"), claim_id = 1:2,
                               stringsAsFactors = FALSE))
-  html <- paste(readgpt:::audit_claims(s), collapse = "\n")
+  html <- paste(harnessr:::audit_claims(s), collapse = "\n")
   expect_false(grepl("was not recorded with this synthesis", html, fixed = TRUE))
   expect_match(html, "<th>section</th>", fixed = TRUE)
   expect_match(html, "<td>Surveys</td>", fixed = TRUE)
@@ -254,7 +254,7 @@ test_that("a section row counts its failed, unsent and unmerged batches, and the
   run <- function(cl) r7_warns(gr_synthesise(r7_big(), outline = c(Findings = "what"),
                                              question = "Q?", client = cl, model = "r7-small",
                                              max_section_tokens = 300))
-  audit <- function(s) paste(readgpt:::audit_synthesis(s), collapse = "\n")
+  audit <- function(s) paste(harnessr:::audit_synthesis(s), collapse = "\n")
 
   # A clean run records zeroes, not NA.
   r <- run(gr_mock_client(function(m, p) r7_batch_reply(m)))
@@ -302,7 +302,7 @@ test_that("a section row counts its failed, unsent and unmerged batches, and the
 
   # A section that could not be sent at all carries the columns too, so the
   # rows still bind.
-  u <- suppressWarnings(readgpt:::synth_unwritten("S", "b", 1:2, "too large"))
+  u <- suppressWarnings(harnessr:::synth_unwritten("S", "b", 1:2, "too large"))
   expect_identical(u$row$lost_batches, 0L)
   expect_identical(u$row$merge_failed, FALSE)
 })
@@ -361,7 +361,7 @@ test_that("claims drawn with a column the write-up withholds as bibliographic ar
 # ---------------------------------------------------------------------------
 
 test_that("the gr_synthesise() help lists every reason a revision is discarded or not sent", {
-  f <- r7_source("R", "synthesise.R")
+  f <- r7_source("R", "doc-synth-batch.R")
   skip_if(is.null(f), "the package source is not available")
   src <- readLines(f, warn = FALSE)
   doc <- gsub("\\s+", " ", paste(sub("^#' ?", "", src[startsWith(src, "#'")]), collapse = " "))
@@ -380,7 +380,7 @@ test_that("the gr_synthesise() help lists every reason a revision is discarded o
   expect_match(doc, "\\item{`claim_sections`}", fixed = TRUE)
   expect_match(doc, "`lost_batches`", fixed = TRUE)
 
-  f <- r7_source("R", "claims.R")
+  f <- r7_source("R", "doc-claims-outline.R")
   skip_if(is.null(f), "the package source is not available")
   src <- readLines(f, warn = FALSE)
   doc <- gsub("\\s+", " ", paste(sub("^#' ?", "", src[startsWith(src, "#'")]), collapse = " "))

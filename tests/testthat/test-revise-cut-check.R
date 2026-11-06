@@ -17,7 +17,7 @@ cc_warns <- function(expr) {
 # One pass, straight through revise_once(), with `revision` as the reply.
 cc_revise <- function(draft, revision, pass = "cut", trace = gr_trace()) {
   cl <- gr_mock_client(function(m, p) revision)
-  cc_warns(readgpt:::revise_once(draft, "Q?", cl, gr_read_spec("stuff", model = "mock-model"),
+  cc_warns(harnessr:::revise_once(draft, "Q?", cl, gr_read_spec("stuff", model = "mock-model"),
                                  trace, NULL, pass))
 }
 
@@ -55,7 +55,7 @@ cc_synth <- function(cl, coherence = TRUE) {
 drop_filler <- function(d) sub("It is important to note that two", "Two", d, fixed = TRUE)
 
 test_that("prose is counted in words a reader reads, without headings or markers", {
-  f <- readgpt:::prose_words
+  f <- harnessr:::prose_words
   expect_identical(f("## Findings\n\nTwo trials suggest a benefit [study 1] [study 2]."), 5L)
   # Writing the markers as a range, or deleting the heading, is not cutting.
   expect_identical(f("Two trials suggest a benefit [studies 1-2]."), 5L)
@@ -199,7 +199,7 @@ test_that("$coherence carries the counts, and the next pass runs on what the cut
   calls <- Filter(function(x) grepl("<draft>", x$messages[[3]]$content %||% "", fixed = TRUE),
                   cl$calls())
   expect_length(calls, 3L)
-  expect_identical(calls[[2]]$messages[[1]]$content, readgpt:::.gr_revise_prompts[["cut"]])
+  expect_identical(calls[[2]]$messages[[1]]$content, harnessr:::.gr_revise_prompts[["cut"]])
   # The cut was discarded, so the register pass was given the structure pass's text.
   expect_identical(calls[[3]]$messages[[3]]$content, calls[[2]]$messages[[3]]$content)
 
@@ -214,7 +214,7 @@ test_that("$coherence carries the counts, and the next pass runs on what the cut
 })
 
 test_that("a pass not sent, or refused before it was measured, has no counts", {
-  empty <- readgpt:::synth_revise(cc_draft, "Q?", gr_mock_client(function(m, p) "x"),
+  empty <- harnessr:::synth_revise(cc_draft, "Q?", gr_mock_client(function(m, p) "x"),
                                   gr_read_spec("stuff", model = "mock-model"), gr_trace(),
                                   passes = character(0))$report
   expect_identical(nrow(empty), 0L)
@@ -222,7 +222,7 @@ test_that("a pass not sent, or refused before it was measured, has no counts", {
   expect_identical(empty$words_after, integer(0))
   fr <- paste0("Trois petits essais suggèrent un bénéfice modeste ",
                "[study 1] [study 2]. Une cohorte pourrait montrer un risque [study 3].")
-  r <- cc_warns(readgpt:::synth_revise(fr, "Q?", gr_mock_client(function(m, p) fr),
+  r <- cc_warns(harnessr:::synth_revise(fr, "Q?", gr_mock_client(function(m, p) fr),
                                        gr_read_spec("stuff", model = "mock-model"), gr_trace(),
                                        passes = "cut"))
   expect_identical(r$value$report$words_before, NA_integer_)
@@ -252,7 +252,7 @@ test_that("the audit report shows the counts beside each pass", {
 })
 
 test_that("the gr_synthesise() help names the new reason, its class and the counts", {
-  f <- testthat::test_path("..", "..", "R", "synthesise.R")
+  f <- testthat::test_path("..", "..", "R", "doc-synth-batch.R")
   skip_if(!file.exists(f), "the package source is not available")
   src <- readLines(f, warn = FALSE)
   doc <- gsub("\\s+", " ", paste(sub("^#' ?", "", src[startsWith(src, "#'")]), collapse = " "))

@@ -84,7 +84,7 @@ test_that("a kept revision leaves a study the section was not given as a marker"
   expect_match(s$text, "It replicated (Lee & Petrov, 2021).", fixed = TRUE)
   expect_true(any(grepl("Lee, K. and Petrov", s$references, fixed = TRUE)))
   expect_identical(s$text_marked, sub("A benefit", "There was a benefit",
-                                      readgpt:::synth_document(data.frame(
+                                      harnessr:::synth_document(data.frame(
                                         section = s$sections$section,
                                         text = s$sections$text_marked)), fixed = TRUE))
   # All three passes, as the README's claims example runs them.
@@ -118,8 +118,8 @@ test_that("render_revised() follows the sections by heading, and leaves unattrib
   used <- data.frame(study = 1:3, authors = c("Smith, J.", "Garcia, M.", "Lee, K."),
                      year = c("2019", "2020", "2021"), document = paste0(1:3, ".pdf"),
                      stringsAsFactors = FALSE)
-  keys <- readgpt:::bib_keys(used, readgpt:::bib_columns(used))
-  render <- function(x, leave) readgpt:::render_citations(x, used, keys, "author-year", leave = leave)
+  keys <- harnessr:::bib_keys(used, harnessr:::bib_columns(used))
+  render <- function(x, leave) harnessr:::render_citations(x, used, keys, "author-year", leave = leave)
   heads <- c("A", "B")
   marked <- c("Honest [study 1]. Invented [study 3].", "Honest [study 3].")
   uns <- list(3L, integer(0))
@@ -127,18 +127,18 @@ test_that("render_revised() follows the sections by heading, and leaves unattrib
   # leaves the reported study, each section keeps its own exceptions.
   txt <- paste0("Intro [study 3].\n\n## A\n\nHonest [study 1]. Invented [study 3].\n\n",
                 "## B\n\nHonest [study 3].")
-  r <- readgpt:::render_revised(txt, heads, marked, uns, render)
+  r <- harnessr:::render_revised(txt, heads, marked, uns, render)
   expect_identical(r$text, paste0("Intro [study 3].\n\n## A\n\nHonest (Smith, 2019). Invented ",
                                   "[study 3].\n\n## B\n\nHonest (Lee, 2021)."))
   expect_identical(r$left, integer(0))
   # Nothing reported: rendered as one text, as before.
-  r0 <- readgpt:::render_revised(txt, heads, marked, list(integer(0), integer(0)), render)
+  r0 <- harnessr:::render_revised(txt, heads, marked, list(integer(0), integer(0)), render)
   expect_identical(r0$text, render(txt, integer(0)))
   # A heading renamed: the reported sentence is under no heading of the draft
   # and is left; section B's sentence is the one B wrote, word for word, so it
   # is rendered. (Pass 3 left study 3 everywhere and dropped its reference.)
   ren <- paste0("## Trials\n\nHonest [study 1]. Invented [study 3].\n\n## B\n\nHonest [study 3].")
-  r2 <- readgpt:::render_revised(ren, heads, marked, uns, render)
+  r2 <- harnessr:::render_revised(ren, heads, marked, uns, render)
   expect_match(r2$text, "Honest (Smith, 2019). Invented [study 3].", fixed = TRUE)
   expect_match(r2$text, "## B\n\nHonest (Lee, 2021).", fixed = TRUE)
   expect_identical(r2$left, integer(0))
@@ -261,7 +261,7 @@ test_that("a lone acronym author is cited by name, not read as initials", {
   # Before: bib_is_initials() took any one to four capitals as initials, so
   # "WHO" gave no surname and the whole review fell back to markers:
   # "A trial [study 1], the guideline [study 2] and a cohort [study 3]."
-  f <- readgpt:::bib_surnames
+  f <- harnessr:::bib_surnames
   for (a in c("WHO", "CDC", "NICE", "OECD", "AHRQ")) expect_identical(f(a), a)
   expect_identical(f("WHO."), "WHO")
   # Initials with anything else are still initials, and an organisation mixed
@@ -276,7 +276,7 @@ test_that("a lone acronym author is cited by name, not read as initials", {
   grp <- data.frame(authors = c("Smith, J., Okafor, A., Lee, K., & the ABC Study Group",
                                 "Horby P, Lim WS, Emberson JR; RECOVERY Collaborative Group"),
                     year = c(2021L, 2020L), stringsAsFactors = FALSE)
-  expect_identical(readgpt:::bib_keys(grp, readgpt:::bib_columns(grp)),
+  expect_identical(harnessr:::bib_keys(grp, harnessr:::bib_columns(grp)),
                    c("Smith et al., 2021", "Horby et al., 2020"))
   expect_identical(as.character(f("Horby P, Lim WS, Emberson JR, et al; RECOVERY Collaborative Group")),
                    c("Horby", "Lim", "Emberson"))
@@ -305,23 +305,23 @@ test_that("an author list ending in et al. is cited as et al., never as one or t
   # "Smith et al." rendered "(Smith, 2020)" and "Smith J, Okafor A, et al."
   # "(Smith & Okafor, 2021)": a multi-author paper cited as a one- or
   # two-author one.
-  s <- readgpt:::bib_surnames("Smith et al.")
+  s <- harnessr:::bib_surnames("Smith et al.")
   expect_identical(as.character(s), "Smith")
   expect_true(isTRUE(attr(s, "et_al")))
-  expect_null(attr(readgpt:::bib_surnames("Smith, J. and Okafor, A."), "et_al"))
+  expect_null(attr(harnessr:::bib_surnames("Smith, J. and Okafor, A."), "et_al"))
   tab <- data.frame(document = c("a.pdf", "b.pdf", "c.pdf", "d.pdf"), status = "ok",
                     duplicate_of = NA_character_, n_filled = 2L,
                     authors = c("Smith et al.", "Smith J, Okafor A, et al.",
                                 "Garcia, R., Lee, K., et al.", "Chen, W. and Wu, X."),
                     year = c(2020L, 2021L, 2022L, 2023L), design = "RCT",
                     stringsAsFactors = FALSE)
-  cols <- readgpt:::bib_columns(tab)
-  expect_identical(readgpt:::bib_keys(tab, cols),
+  cols <- harnessr:::bib_columns(tab)
+  expect_identical(harnessr:::bib_keys(tab, cols),
                    c("Smith et al., 2020", "Smith et al., 2021", "Garcia et al., 2022",
                      "Chen & Wu, 2023"))
-  expect_identical(readgpt:::bib_keys(tab, cols, form = "narrative")[1], "Smith et al. (2020)")
+  expect_identical(harnessr:::bib_keys(tab, cols, form = "narrative")[1], "Smith et al. (2020)")
   # An et al. list the rest of which cannot be read still falls back.
-  expect_null(readgpt:::bib_surnames("Smith, Jones, Lee, et al."))
+  expect_null(harnessr:::bib_surnames("Smith, Jones, Lee, et al."))
   cl <- gr_mock_client(function(messages, params) "One [study 1] and another [study 2].")
   syn <- quiet(gr_synthesise(tab[1:2, ], outline = c(Findings = "what"), question = "Q?", client = cl))
   expect_match(syn$text, "One (Smith et al., 2020) and another (Smith et al., 2021).", fixed = TRUE)
@@ -334,7 +334,7 @@ test_that("an author list ending in et al. is cited as et al., never as one or t
 test_that("a byline's degrees are taken out, not printed as surnames", {
   # Before: '(John Smith & Aisha Okafor, 2019)' -- given names printed as
   # surnames -- and 'John Smith MD, Aisha Okafor PhD' as '(John Smith & PhD, 2019)'.
-  f <- function(x) as.character(readgpt:::bib_surnames(x))
+  f <- function(x) as.character(harnessr:::bib_surnames(x))
   expect_identical(f("John Smith, MD; Aisha Okafor, PhD"), c("Smith", "Okafor"))
   expect_identical(f("John Smith, MD, and Aisha Okafor, PhD"), c("Smith", "Okafor"))
   expect_identical(f("John Smith, MD, Aisha Okafor, PhD"), c("Smith", "Okafor"))
@@ -370,7 +370,7 @@ test_that("Vietnamese, pinyin and other accented names file with their base lett
   # Before: only Latin-1 and Latin Extended-A were folded, so these letters
   # sorted after every ASCII letter: "Tran, Trinh, Tran-with-accents",
   # "Lu ... Luo, Lu-with-caron", "Nguyen A, Nguyen Z, Nguyen-with-accents".
-  o <- function(x) x[readgpt:::bib_order(x)]
+  o <- function(x) x[harnessr:::bib_order(x)]
   tran <- "Trần, V."
   expect_identical(o(c("Tran, B.", "Trinh, H.", tran)), c("Tran, B.", tran, "Trinh, H."))
   dang <- "Đặng"
@@ -382,16 +382,16 @@ test_that("Vietnamese, pinyin and other accented names file with their base lett
   hc <- "Ơn, T."   # O with horn
   expect_identical(o(c("Zhou, L.", hc, "Oakes, P.", "Owen, R.")),
                    c("Oakes, P.", hc, "Owen, R.", "Zhou, L."))
-  expect_identical(readgpt:::bib_sort_key(c(tran, "Ọ", "ərdəm")),
+  expect_identical(harnessr:::bib_sort_key(c(tran, "Ọ", "ərdəm")),
                    c("tran, v.", "o", "erdem"))
   # The same under the C collation, and through the reference list.
   withr::local_collate("C")
   used <- data.frame(study = 1:3, authors = c("Trinh, H.", tran, "Tran, B."),
                      year = c("1999", "2001", "2000"), document = paste0(1:3, ".pdf"),
                      stringsAsFactors = FALSE)
-  cols <- readgpt:::bib_columns(used)
-  keys <- readgpt:::bib_keys(used, cols)
-  refs <- readgpt:::reference_list(used, keys, 1:3, cols, "author-year")
+  cols <- harnessr:::bib_columns(used)
+  keys <- harnessr:::bib_keys(used, cols)
+  refs <- harnessr:::reference_list(used, keys, 1:3, cols, "author-year")
   expect_identical(sub("^- ([^,]+),.*", "\\1", refs), c("Tran", "Trần", "Trinh"))
 })
 
@@ -410,7 +410,7 @@ test_that("unlabelled UTF-8 author names give the same surnames under a C locale
   a2 <- "García JA, Pérez Á"
   want1 <- c("Åberg", "Lindqvist")
   want2 <- c("García", "Pérez")
-  f <- function(x) as.character(readgpt:::bib_surnames(x))
+  f <- function(x) as.character(harnessr:::bib_surnames(x))
   expect_identical(f(unmarked(a1)), want1)
   expect_identical(f(unmarked(a2)), want2)
   ok <- suppressWarnings(Sys.setlocale("LC_CTYPE", "C"))
@@ -446,7 +446,7 @@ test_that("studies lost to a claims batch are counted in the flow, the report an
     if (grepl("turn a table of studies", sys, fixed = TRUE)) {
       ids <- as.integer(regmatches(txt, gregexpr("(?<=\\[study )[0-9]+(?=\\])", txt, perl = TRUE))[[1]])
       if (1L %in% ids || 31L %in% ids) {   # the first two batches are cut off
-        return(readgpt:::gr_result(TRUE, '{"claims":[{"claim":"It wor', finish_reason = "length"))
+        return(harnessr:::gr_result(TRUE, '{"claims":[{"claim":"It wor', finish_reason = "length"))
       }
       return(sprintf(paste0('{"claims":[{"claim":"It works.","kind":"finding","supported_by":[%s],',
                             '"contradicted_by":[],"moderator":null,"scope":null}]}'),
@@ -464,14 +464,14 @@ test_that("studies lost to a claims batch are counted in the flow, the report an
                  class = "gr_claims_partial")
   out <- capture.output(print(syn))
   expect_true(any(grepl("PARTIAL: written from claims that 60 of 90 studies", out, fixed = TRUE)))
-  html <- paste(readgpt:::audit_claims(syn), collapse = "\n")
+  html <- paste(harnessr:::audit_claims(syn), collapse = "\n")
   expect_match(html, "1 claim(s) over 30 of 90 study/studies", fixed = TRUE)
   expect_match(html, "60 of the 90 studies contributed nothing", fixed = TRUE)
-  expect_match(paste(readgpt:::audit_synthesis(syn), collapse = "\n"),
+  expect_match(paste(harnessr:::audit_synthesis(syn), collapse = "\n"),
                "Written from claims that 60 of the 90 studies contributed nothing", fixed = TRUE)
   # A complete claims table reads as it did.
   full <- cm; full$lost <- integer(0); full$partial <- FALSE
   expect_identical(gr_flow(claims = full)$n[1], 0L)
   expect_false(grepl("contributed nothing",
-                     paste(readgpt:::audit_claims(NULL, full), collapse = "\n"), fixed = TRUE))
+                     paste(harnessr:::audit_claims(NULL, full), collapse = "\n"), fixed = TRUE))
 })

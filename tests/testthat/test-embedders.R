@@ -125,7 +125,7 @@ test_that("the embedding cache is keyed on the embedder, not only the model", {
   # embedders, and that is checkable here. The first version of this test called
   # gr_embed() with two toy embedders and passed whatever the key did, because
   # toy embedders never touch the cache at all.
-  key <- readgpt:::embed_cache_key
+  key <- harnessr:::embed_cache_key
   expect_false(identical(key("eight", "m", "the same text"),
                          key("four",  "m", "the same text")))
   expect_false(identical(key("e", "model-a", "t"), key("e", "model-b", "t")))
@@ -154,17 +154,17 @@ replay_round_trip <- function(recorded_with, replayed_with) {
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   if (!is.null(recorded_with)) gr_options(embedder = recorded_with)
   original <- suppressMessages(suppressWarnings(
-    answer_document(readgpt_example(), "What was revenue?", "needle", client = cl)))
+    answer_document(gr_example(), "What was revenue?", "needle", client = cl)))
   if (!is.null(replayed_with)) gr_options(embedder = replayed_with)
   warned <- character(0)
   out <- withCallingHandlers(
     tryCatch(suppressMessages(
-               answer_document(readgpt_example(), "What was revenue?", "needle",
+               answer_document(gr_example(), "What was revenue?", "needle",
                                client = gr_replay_client(original$trace))),
              gr_replay_miss = function(e) "MISS"),
     warning = function(w) { warned <<- c(warned, class(w)[1]); invokeRestart("muffleWarning") })
   list(original = original, replayed = out, warned = unique(warned),
-       recorded_source = readgpt:::replay_embed_source(original$trace))
+       recorded_source = harnessr:::replay_embed_source(original$trace))
 }
 
 test_that("a run recorded and replayed with the same deterministic embedder is exact", {

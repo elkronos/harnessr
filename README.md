@@ -1,10 +1,16 @@
-# readgpt
+# harnessr
 
 [![R-CMD-check](https://github.com/elkronos/readgpt/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/elkronos/readgpt/actions/workflows/R-CMD-check.yaml)
 [![tests](https://github.com/elkronos/readgpt/actions/workflows/tests.yaml/badge.svg)](https://github.com/elkronos/readgpt/actions/workflows/tests.yaml)
 
-Fine-grained control over how a language model ingests, segments, and reads a
-document.
+Compose, budget, cache, record and check model calls. On top of that core sits
+a document layer: fine-grained control over how a language model ingests,
+segments, and reads a document, and over screening, extracting from and
+synthesising across a corpus.
+
+harnessr was called readgpt up to version 0.6.0. The GitHub repository keeps
+the old name. Requests, cache keys and recordings are unchanged by the rename;
+the `readgpt.*` options are still read, with a warning (see `NEWS.md`).
 
 The premise is that *how* you break a document up and *how* you make the model
 read it are separate decisions worth experimenting with. This package makes them
@@ -33,7 +39,7 @@ Ollama and Hugging Face all work with every strategy below.
 offline, so you can follow them without a key. They are also on the website,
 <https://elkronos.github.io/readgpt/>, with the reference for every function:
 
-- `vignette("readgpt")`: get started. The ideas you need, installing, and a
+- `vignette("harnessr")`: get started. The ideas you need, installing, and a
   first question checked from start to finish.
 - `vignette("ingest")`: getting text out of PDFs, Word files, web pages and
   scans, and cleaning it.
@@ -75,7 +81,8 @@ install.packages(c("remotes", "knitr", "rmarkdown"))
 remotes::install_github("elkronos/readgpt", build_vignettes = TRUE)
 ```
 
-`build_vignettes = TRUE` installs the guides, so `vignette("readgpt")` works.
+The repository is still called readgpt; the package it installs is harnessr.
+`build_vignettes = TRUE` installs the guides, so `vignette("harnessr")` works.
 Building them needs `knitr`, `rmarkdown` and Pandoc. Pandoc comes with RStudio;
 without RStudio, install it from <https://pandoc.org/installing.html> first, or
 leave out `build_vignettes = TRUE`.
@@ -89,7 +96,7 @@ remotes::install_local("path/to/readgpt")
 ## Quick start
 
 ```r
-library(readgpt)
+library(harnessr)
 
 ans <- answer_document("report.pdf", "What was Q3 revenue?", recipe = "needle")
 ans$answer
@@ -97,7 +104,7 @@ ans$partial
 ```
 
 `answer_document()` treats its first argument as a path when the file exists.
-A missing file whose name ends in an extension readgpt reads (`.pdf`, `.docx`,
+A missing file whose name ends in an extension harnessr reads (`.pdf`, `.docx`,
 `.md`, …) is an error. Any other string is read as the document's text,
 including a path with a mistyped extension, and `ans$document$source` then
 shows `<inline text>`.
@@ -107,7 +114,7 @@ extraction is shared across all of them:
 
 ```r
 cl  <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-cmp <- gr_compare(readgpt_example(), "What was revenue in fiscal 2024?",
+cmp <- gr_compare(gr_example(), "What was revenue in fiscal 2024?",
                   c("fast", "needle", "thorough", "survey"), client = cl)
 cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "settings")]
 #>     recipe  segmenter chunks       reader         signature
@@ -146,11 +153,11 @@ ans <- answer_document("thesis.pdf", "How was the sample recruited?", rec)
 
 ```r
 Sys.setenv(OPENAI_API_KEY = "sk-...")   # or
-options(readgpt.api_key = "sk-...")     # or
+options(harnessr.api_key = "sk-...")     # or
 cl <- gr_client(api_key = "sk-...")     # per-client, for multi-user Shiny
 ```
 
-Resolution order is explicit argument → `readgpt.api_key` option →
+Resolution order is explicit argument → `harnessr.api_key` option →
 `OPENAI_API_KEY`.
 
 Behind a company gateway, a bearer token is often not what authenticates. Azure
@@ -194,12 +201,22 @@ covers roughly twenty providers including local models through Ollama:
 ```r
 library(ellmer)
 
+# A spending limit can hold only for a model with a registered price, and a
+# chat is billed as the model it was built with. Register that model at your
+# provider's current prices, in US dollars per million tokens:
+gr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 64000,
+                  input_usd = 3, output_usd = 15)
 cl <- gr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
 answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
 
-# Or locally, for nothing:
+# Or locally, for nothing. A local model has no price to register, so let it
+# run unpriced:
+gr_options(allow_unpriced = TRUE)
 gr_ellmer_client(chat_ollama(model = "llama3.1"))
 ```
+
+Without a registered price, a run under `max_cost_usd` (on by default) stops
+before its first request with an `hr_unpriced_model` error that says so.
 
 Two things do not carry over, both by ellmer's design rather than by omission.
 Sampling parameters belong to the chat object, so a `temperature` in a read spec
@@ -290,7 +307,7 @@ merges across section boundaries.
 Compare chunkings for free, before spending anything on reading:
 
 ```r
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"),
   function(m) gr_chunk_stats(gr_segment(doc, list(method = m, max_tokens = 120)))))
 #>       method n total_tokens min median  mean max over_cap
@@ -306,7 +323,7 @@ do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"),
 What overlap costs, in duplicated tokens:
 
 ```r
-doc <- gr_ingest(readgpt_example())
+doc <- gr_ingest(gr_example())
 do.call(rbind, lapply(c(0, 30, 60), function(ov)
   gr_chunk_stats(gr_segment(doc, list(method = "sentence", max_tokens = 120,
                                       overlap_tokens = ov)))))
@@ -435,7 +452,7 @@ cause:
 | every chunk is the whole document | `nrow(doc$blocks)` | the file has no blank lines between paragraphs, so there is nothing to split on. Use `method = "sentence"` or `"fixed"` |
 | the run costs far more than expected | `gr_readers()$cost_calls` | the reader is `O(N)` in chunks and your `max_tokens` is small. `gr_chunk_stats()` first; it is free |
 | answers change between identical runs | `gr_read_spec()$temperature` | set `temperature = 0`, and note that reasoning models ignore it (see `gr_model_info(m)$supports_temperature`) |
-| `NOT_IN_DOCUMENT` for a question that assumes something the document contradicts ("why did revenue fall?" when it rose) | `gr_read_spec(premise = TRUE)`, then `ans$premise` | the readers can only answer or say the excerpts are silent. With the check on they can say the premise is false and give what the document states instead; that is the model's reading, not a check readgpt makes |
+| `NOT_IN_DOCUMENT` for a question that assumes something the document contradicts ("why did revenue fall?" when it rose) | `gr_read_spec(premise = TRUE)`, then `ans$premise` | the readers can only answer or say the excerpts are silent. With the check on they can say the premise is false and give what the document states instead; that is the model's reading, not a check harnessr makes |
 
 Two habits make all of this cheaper: run `gr_chunk_stats()` before you spend
 anything, and keep `gr_options(max_cost_usd = ...)` set to something you would
@@ -512,7 +529,7 @@ label, and is sent only to reasoning models:
 
 ```r
 # Little reasoning for each chunk's request, more for the merge that answers.
-ans <- answer_document(readgpt_example(), "What was revenue?", "thorough",
+ans <- answer_document(gr_example(), "What was revenue?", "thorough",
                        client = cl, effort = c(map = "low", reduce = "high"))
 
 # In a review: the writing at high effort. gr_screen() and gr_extract() take
@@ -639,7 +656,7 @@ response cache, restarting a four-hour job costs approximately nothing:
 
 ```r
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-durable <- gr_cache_client(cl, gr_cache(tools::R_user_dir("readgpt", "cache")))
+durable <- gr_cache_client(cl, gr_cache(tools::R_user_dir("harnessr", "cache")))
 gr_read_many(file.path(tempdir(), "reports"), "What was revenue?", "thorough",
              client = durable, store = file.path(tempdir(), "run-store"))
 ```
@@ -674,11 +691,11 @@ named to show a bill:
 
 ```r
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-run <- answer_document(readgpt_example(), "What was revenue?", "fast", client = cl,
+run <- answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                        model = "gpt-5.6-terra")
 gr_trace_cost(run$trace)
-#>           model calls paid_calls paid_in paid_out     usd
-#> 1 gpt-5.6-terra     1          1     607       13 0.00137
+#>           model calls paid_calls paid_in paid_out     usd paid_reasoning
+#> 1 gpt-5.6-terra     1          1     607       13 0.00137              0
 ```
 
 This is why the token totals on `gr_trace_summary()` are not a bill. They say
@@ -828,9 +845,14 @@ makes it safe. When the frame supports them, two sensitivities are reported (as
 deployed, and strict), and the gap between them is the reading you still have to
 do.
 
-**Accuracy is not reported.** At a realistic inclusion rate a screener that
-excluded everything scores about 95% accurate and finds nothing. Cohen's kappa is
-reported instead, because it is the statistic that notices.
+**Accuracy is not reported, and kappa is not reported alone.** At a realistic
+inclusion rate a screener that excluded everything scores about 95% accurate and
+finds nothing. When the frame supports it, agreement is taken on the same
+decision sensitivity uses, kept (include or unclear) against excluded, with
+strict include against the rest beside it. Each table gives Cohen's kappa next to
+PABAK and Gwet's AC1, with intervals, and the prevalence and bias indices,
+because at a few eligible records in a hundred kappa moves with prevalence as
+much as with agreement.
 
 **A rate from three observations is not a finding.** The intervals are Wilson
 score intervals, which stay sensible at zero and one where the textbook interval
@@ -906,9 +928,13 @@ remove a source before one is recorded; a file that could not be read gets
 `status = "failed"` and *no* decision rather than a silent exclusion; and
 `"unclear"` is an answer rather than a forced guess, because forcing a binary
 call on an excerpt that does not settle it is how automated screening loses
-studies. Hand `screened` itself to `gr_extract()`. `screened$included` works
-too, but a character vector of paths cannot carry the search forward, so the
-audit's search section and the bibliographic columns are lost with it. And
+studies. `screened$forward` holds the included and unclear records, the set to
+read at full text, and `screened$deferred` the unclear ones, for a person to
+settle with `gr_resolve()`. Hand `screened` itself to `gr_extract()`. In this
+release that reads the included records only, and warns when it leaves unclear
+ones out. `screened$included` works too, but a character vector of paths cannot
+carry the search forward, so the audit's search section and the bibliographic
+columns are lost with it. And
 `table(screened$table$criterion)` is the breakdown a flow diagram asks for.
 
 **Extraction gives you a typed table, not prose.** A paragraph about one paper
@@ -1194,11 +1220,11 @@ not return the same thing twice.
 repeat is free and *identical*:
 
 ```r
-cache  <- gr_cache(file.path(tempdir(), "readgpt-cache"))
+cache  <- gr_cache(file.path(tempdir(), "harnessr-cache"))
 cached <- gr_cache_client(cl, cache)
 
-first  <- answer_document(readgpt_example(), "What was revenue?", "thorough", client = cached)
-second <- answer_document(readgpt_example(), "What was revenue?", "thorough", client = cached)
+first  <- answer_document(gr_example(), "What was revenue?", "thorough", client = cached)
+second <- answer_document(gr_example(), "What was revenue?", "thorough", client = cached)
 
 gr_trace_summary(second$trace)[c("calls", "cached", "tokens_in")]
 #>   calls cached tokens_in
@@ -1225,7 +1251,7 @@ becomes resumable. Restart after a crash and every completed call is already
 paid for:
 
 ```r
-gr_options(cache_dir = tools::R_user_dir("readgpt", "cache"))
+gr_options(cache_dir = tools::R_user_dir("harnessr", "cache"))
 ```
 
 ## Replaying a run
@@ -1236,10 +1262,10 @@ trace plus the source document is enough to reproduce a run exactly, with no key
 and no spend:
 
 ```r
-run <- answer_document(readgpt_example(), "What was revenue?", "thorough", client = cl)
+run <- answer_document(gr_example(), "What was revenue?", "thorough", client = cl)
 gr_trace_save(run$trace, file.path(tempdir(), "run.json"))
 
-replayed <- answer_document(readgpt_example(), "What was revenue?", "thorough",
+replayed <- answer_document(gr_example(), "What was revenue?", "thorough",
                             client = gr_replay_client(file.path(tempdir(), "run.json")))
 identical(replayed$answer, run$answer)
 #> [1] TRUE
@@ -1273,9 +1299,9 @@ own embedder registered as `deterministic = TRUE`:
 
 ```r
 old <- gr_options(embedder = "lexical")
-run <- answer_document(readgpt_example(), "What was revenue?", "needle", client = cl)
+run <- answer_document(gr_example(), "What was revenue?", "needle", client = cl)
 identical(
-  answer_document(readgpt_example(), "What was revenue?", "needle",
+  answer_document(gr_example(), "What was revenue?", "needle",
                   client = gr_replay_client(run$trace))$chunks_used,
   run$chunks_used)
 #> [1] TRUE
@@ -1299,7 +1325,7 @@ gr_model_limits("gpt-4o")
 
 gr_tokenizer()           # which counter is in use
 
-cache <- gr_cache(file.path(tempdir(), "readgpt-cache"))
+cache <- gr_cache(file.path(tempdir(), "harnessr-cache"))
 gr_cache_stats(cache)    # entries, bytes, hits, misses, writes
 gr_cache_clear(cache)
 gr_reader_signature("skim")    # select|calls|state: how a reader traverses a document
@@ -1387,7 +1413,7 @@ gr_register_reader("longest", signature = "one|1|none", cost_calls = "1",
 ## Shiny app
 
 ```r
-shiny::runApp(system.file("shiny", package = "readgpt"))
+shiny::runApp(system.file("shiny", package = "harnessr"))
 ```
 
 Every axis is exposed as a control: cleaning preset or individual cleaners,
@@ -1437,7 +1463,7 @@ bash run-tests.sh --deps       # list the R packages it needs, then stop
 Works from the package directory or the repository root. It uses a personal R
 library, so it will not fail on a read-only system library.
 
-Running the suite needs the packages readgpt imports (`digest`, `httr`,
+Running the suite needs the packages harnessr imports (`digest`, `httr`,
 `jsonlite`) and `testthat` and `withr`; `--check` also needs `knitr`,
 `rmarkdown` and pandoc to build the vignettes. The script installs the R
 packages it finds missing. Add `knitr` for the vignette check and `future` +
@@ -1453,7 +1479,7 @@ requests are made**. By hand:
 
 ```bash
 R CMD INSTALL . --no-byte-compile
-Rscript -e 'library(readgpt); testthat::test_dir("tests/testthat", package = "readgpt")'
+Rscript -e 'library(harnessr); testthat::test_dir("tests/testthat", package = "harnessr")'
 ```
 
 ## Continuous integration

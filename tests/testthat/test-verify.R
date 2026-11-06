@@ -6,10 +6,10 @@
 # meaning anything. Too loose and a changed number passes, which is the entire
 # thing it exists to catch.
 
-nm  <- function(...) readgpt:::normalise_for_match(...)
-tqe <- function(...) readgpt:::trim_quote_edges(...)
-sm  <- function(...) readgpt:::span_match(...)
-cc  <- function(...) readgpt:::cited_chunks(...)
+nm  <- function(...) harnessr:::normalise_for_match(...)
+tqe <- function(...) harnessr:::trim_quote_edges(...)
+sm  <- function(...) harnessr:::span_match(...)
+cc  <- function(...) harnessr:::cited_chunks(...)
 
 test_that("normalisation folds typography and nothing else", {
   # The differences a faithful quotation introduces.
@@ -77,7 +77,7 @@ test_that("an invented quotation does not verify, and the number says how far of
 })
 
 test_that("the run measure separates quotation from paraphrase", {
-  run <- readgpt:::longest_quoted_run
+  run <- harnessr:::longest_quoted_run
   src <- nm("the cohort comprised 482 participants recruited across nine sites")
   expect_identical(run(strsplit(nm("comprised 482 participants"), " ")[[1]], src), 3L)
   expect_identical(run(strsplit(nm("482 participants were recruited"), " ")[[1]], src), 2L)
@@ -100,7 +100,7 @@ test_that("empty and degenerate inputs are NA, not TRUE", {
   expect_true(is.na(sm("a span", NA_character_)$match))
   expect_true(is.na(sm(NA, "some source")$verified))
   expect_true(is.na(sm("...", "some source")$verified))    # nothing left after trimming
-  expect_identical(nrow(readgpt:::verify_spans(character(0), character(0))), 0L)
+  expect_identical(nrow(harnessr:::verify_spans(character(0), character(0))), 0L)
 })
 
 test_that("citations are parsed out of an answer", {
@@ -229,7 +229,10 @@ test_that("gr_verify_evidence validates and handles nothing to verify", {
   v <- gr_verify_evidence(none)
   expect_s3_class(v, "data.frame")
   expect_identical(nrow(v), 0L)
-  expect_identical(names(v), c("chunk_id", "kind", "verified", "match", "span"))
+  # The shadow matcher's columns sit between the old score and the span.
+  expect_identical(names(v), c("chunk_id", "kind", "verified", "match", "quote_status",
+                               "quote_sim", "quote_coverage", "quote_edits",
+                               "quote_critical_ok", "span"))
 })
 
 # ---------------------------------------------------------------------------
@@ -313,7 +316,7 @@ test_that("a span that cannot be placed is not given a page anyway", {
               "A running footer appears on every page of this document."),
     pages = c(1L, 2L, 2L, 3L, 3L))
   doc <- gr_ingest(f)
-  rp <- readgpt:::resolve_evidence_pages
+  rp <- harnessr:::resolve_evidence_pages
 
   ev <- data.frame(chunk_id = c(1L, 1L, 1L), page = c(NA_integer_, NA_integer_, 9L),
                    section = NA_character_,
@@ -328,7 +331,7 @@ test_that("a span that cannot be placed is not given a page anyway", {
 })
 
 test_that("resolving pages is inert when there are no pages to resolve", {
-  rp <- readgpt:::resolve_evidence_pages
+  rp <- harnessr:::resolve_evidence_pages
   ev <- data.frame(chunk_id = 1L, page = NA_integer_, section = NA_character_,
                    text = "Some sentence.", stringsAsFactors = FALSE)
   expect_identical(rp(ev, NULL), ev)
@@ -345,7 +348,7 @@ test_that("a runt merged into its neighbour folds in its provenance", {
   # merge then absorbs it, because the JOINED text does not. That second path
   # has its own provenance handling, and keeping only the host chunk's meta made
   # the merged chunk name a page it now only partly comes from.
-  pack <- readgpt:::pack_units
+  pack <- harnessr:::pack_units
   meta <- data.frame(page = c(1L, 1L, 2L), section = NA_character_,
                      stringsAsFactors = FALSE)
   units <- c(paste(rep("alpha", 4), collapse = " "),

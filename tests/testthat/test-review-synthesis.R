@@ -75,7 +75,7 @@ test_that("a claims-mode section citing a study it was not given is partial, and
   expect_false(any(grepl("Petrov", syn$references, fixed = TRUE)))
   expect_false(3L %in% syn$citations$study)
   # The marked text keeps it, so re-running the check finds it again.
-  expect_true(3L %in% readgpt:::cited_ids(tr$text_marked, "study"))
+  expect_true(3L %in% harnessr:::cited_ids(tr$text_marked, "study"))
   expect_output(print(syn), "1 TO A STUDY IT WAS NOT GIVEN")
   # The other section is untouched.
   su <- syn$sections[syn$sections$section == "Surveys", ]
@@ -147,7 +147,7 @@ test_that("a claim may only rest on studies its own batch was shown", {
 # ---------------------------------------------------------------------------
 
 test_that("common author-list formats give the right surnames, or none", {
-  f <- readgpt:::bib_surnames
+  f <- harnessr:::bib_surnames
   # Vancouver / PubMed: the initials were taken as the surname.
   expect_identical(f("Smith JA, Okafor AB"), c("Smith", "Okafor"))
   expect_identical(f("Garcia R, Lee K, Wu X"), c("Garcia", "Lee", "Wu"))
@@ -267,7 +267,7 @@ rs_claims_model <- function(cut_if = function(ids) FALSE) {
       '"moderator":"design","scope":"Trials and cohorts of adults in primary care."}'),
       paste(g, collapse = ",")), ""), collapse = ","))
     if (cut_if(ids) || sum(gr_count_tokens(full)) > params$max_output) {
-      r <- gr_result_for_test(TRUE, text = readgpt:::gr_truncate_tokens(
+      r <- gr_result_for_test(TRUE, text = harnessr:::gr_truncate_tokens(
         full, min(params$max_output, sum(gr_count_tokens(full)) - 5L), ""))
       r$finish_reason <- "length"
       return(r)
@@ -300,7 +300,7 @@ test_that("a batch lost to the reply limit is reported with the studies it held"
       invokeRestart("muffleWarning")
     })
   expect_length(msgs, 1L)
-  held <- min(readgpt:::claims_per_batch(1600L), 120L)   # study 1 is in the first batch
+  held <- min(harnessr:::claims_per_batch(1600L), 120L)   # study 1 is in the first batch
   expect_match(msgs, sprintf("holding %d of 120 studies", held), fixed = TRUE)
   expect_match(msgs, "max_claim_tokens", fixed = TRUE)
   expect_false(1L %in% cm$support$study)
@@ -372,8 +372,8 @@ test_that("every schema the claims layer sends obeys the strict-mode rules", {
   # claims (per batch), claim_groups (the reconcile pass) and outline.
   expect_gte(length(unique(sent)), 3L)
   for (s in unique(sent)) expect_identical(strict_problems(s), character(0))
-  for (s in list(readgpt:::.gr_claims_schema, readgpt:::.gr_reconcile_schema,
-                 readgpt:::.gr_outline_schema)) {
+  for (s in list(harnessr:::.gr_claims_schema, harnessr:::.gr_reconcile_schema,
+                 harnessr:::.gr_outline_schema)) {
     expect_identical(strict_problems(s), character(0))
   }
 })

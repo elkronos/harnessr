@@ -1,0 +1,75 @@
+Efficacy and safety of a once-weekly inhaled corticosteroid
+in adults with moderate asthma
+
+Methods
+
+We conducted a multicentre, double-blind, placebo-controlled
+trial at 14 sites in three countries. Adults aged 18 to 65
+years with a confirmed diagnosis of asthma and at least two exacer-
+bations in the previous year were eligible. Adults with a
+body mass index of ≥ 40 or a smoking history of more than 10
+pack-years were excluded. Participants were randomly assi-
+gned in a 1:1 ratio to the inhaled corticosteroid or to a matc-
+hing placebo. The first dose was given in the clinic office
+under supervision, and later doses were taken at home.
+
+The primary outcome was the rate of severe exacerbations
+over 52 weeks. Secondary outcomes were the change in forced expir-
+atory volume in one second, peak expiratory flow, and the
+score on the Asthma Control Questionnaire. Sufficient power
+was defined as 90 percent to detect a 30 percent reduction
+in the exacerbation rate.
+
+Results
+
+A total of 412 participants were randomised, of whom 206 rece-
+ived the active drug and 206 received placebo. The mean age
+was 44.7 years and 58 percent of participants were women. Base-
+line lung function was similar in the two groups, with a
+mean forced expiratory volume of 2.31 litres.
+
+The rate of severe exacerbations was 0.42 per
+participant-year in the active group and 0.71 in the placebo
+group, a rate ratio of 0.59. The difference was statis-
+tically significant and was consistent across the prespe-
+cified subgroups. Peak expiratory flow improved by 21 litres
+per minute more with the active drug than with placebo. The propo-
+rtion of participants with at least one severe exacerbation
+was lower with the active drug (p = 0.003), and rescue inh-
+aler use fell in both groups (p < 0.001).
+
+The effect on the Asthma Control Questionnaire did not reach
+the minimal clinically important difference of 0.5 points. Partic-
+ipants in the active group reported fewer nights affected by
+symptoms, but the difference was small and difficult to
+interpret.
+
+Safety
+
+Adverse events were reported by 61 percent of participants
+in the active group and 57 percent in the placebo group.
+Oral candidiasis occurred in 9 participants receiving the
+active drug and in 2 participants receiving placebo. No
+deaths occurred during the trial, and no participant was with-
+drawn because of a serious adverse event.
+
+Fluid retention was not observed in either group. Three partic-
+ipants in the active group had a transient rise in blood
+glucose, all of whom had diabetes at baseline. The official
+safety review found no specific signal that would affect the
+benefit-risk profile.
+
+Discussion
+
+The once-weekly regimen reduced severe exacerbations by
+about 41 percent without a clear effect on day-to-day sym-
+ptom control. The trial was not designed to compare the drug
+with daily inhaled corticosteroids, and the findings should
+not be extended to children. Financial support came from a
+public research council, which had no role in the analysis.
+
+Adherence was measured with electronic counters fitted to
+each inhaler. Mean adherence was 93 percent in both groups,
+so the difference in effect is unlikely to reflect diffe-
+rences in use. Staff at each site were trained to check inh-
+aler technique at every visit.

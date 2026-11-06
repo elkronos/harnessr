@@ -129,14 +129,14 @@ test_that("recovered steps are found by label when a batch's errors come from wo
   # numbers its steps from 1, so an error's `step` does not locate the step in
   # the run's trace. What is marked is the failed step the batch added.
   tr <- gr_trace()
-  readgpt:::trace_note(tr, "ingest")
-  mark <- readgpt:::seg_trace_mark(tr)
+  harnessr:::trace_note(tr, "ingest")
+  mark <- harnessr:::seg_trace_mark(tr)
   sub <- gr_trace()
   cl <- gr_mock_client(function(messages, params) stop("HTTP 503"))
   invisible(gr_call(cl, list(list(role = "user", content = "x")), trace = sub,
                     label = "segment.context"))
-  readgpt:::trace_absorb(tr, sub)
-  readgpt:::seg_mark_recovered(tr, mark, "segment.context")
+  harnessr:::trace_absorb(tr, sub)
+  harnessr:::seg_mark_recovered(tr, mark, "segment.context")
   expect_true(isTRUE(tr$errors[[1]]$recovered))
   expect_false(isTRUE(tr$steps[[1]]$recovered))
   expect_true(isTRUE(tr$steps[[2]]$recovered))
@@ -151,7 +151,7 @@ test_that("a parallel contextual segmentation marks its failed call recovered", 
   gr_options(workers = 2)
   doc <- quiet(gr_ingest(paste(r4_trial_text(), collapse = "\n")))
   tr <- gr_trace()
-  readgpt:::trace_note(tr, "before")
+  harnessr:::trace_note(tr, "before")
   ch <- quiet(gr_segment(doc, r4_contextual(parallel = TRUE), client = r4_client(), trace = tr))
   e <- r4_errors(tr)
   expect_identical(e$label, "segment.context")

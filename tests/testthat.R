@@ -1,4 +1,4 @@
 library(testthat)
-library(readgpt)
+library(harnessr)
 
-test_check("readgpt")
+test_check("harnessr")

@@ -69,15 +69,19 @@ test_that("gr_flow() accounts for every source at every stage it reached", {
   expect_identical(n("sources given"), 4L)
   expect_identical(n("screened"), 4L)
   # The arithmetic has to close: every screened source is in exactly one bucket.
-  expect_identical(n("include") + n("exclude") + n("unclear") + n("could not be read"),
-                   n("screened"))
+  expect_identical(n("include") + n("exclude") + n("unclear") + n("could not be read") +
+                     n("screening call failed"), n("screened"))
   expect_identical(n("include"), 2L)
   expect_identical(n("exclude"), 1L)
   expect_identical(n("could not be read"), 1L)   # and it is COUNTED, not dropped
   expect_identical(n("extracted from"), 2L)
 
   # Either object alone works, and neither is an error.
-  expect_equal(nrow(gr_flow(s)), 7L)
+  # The five decision rows, then who resolved what and what goes on to full
+  # text: kept (include and unclear) and, of those, the deferred.
+  expect_equal(nrow(gr_flow(s)), 11L)
+  expect_identical(n("screening call failed"), 0L)
+  expect_identical(n("kept for full text"), n("include") + n("unclear"))
   expect_gt(nrow(gr_flow(extraction = x)), 0L)
   expect_equal(nrow(gr_flow()), 0L)
 })
@@ -154,9 +158,9 @@ test_that("text from the document cannot escape into the markup", {
   expect_false(grepl("was <5%", h, fixed = TRUE))
 
   # `&` must be escaped FIRST or the escapes escape each other.
-  expect_identical(readgpt:::esc("a & b < c"), "a &amp; b &lt; c")
-  expect_identical(readgpt:::esc("&lt;"), "&amp;lt;")
-  expect_identical(readgpt:::esc(NA), "")
+  expect_identical(harnessr:::esc("a & b < c"), "a &amp; b &lt; c")
+  expect_identical(harnessr:::esc("&lt;"), "&amp;lt;")
+  expect_identical(harnessr:::esc(NA), "")
 })
 
 test_that("the file is complete and is UTF-8 whatever the locale", {
@@ -206,4 +210,51 @@ test_that("the cost table is named for the reader, not after the class", {
   h <- read_report(extraction = x)
   expect_match(h, "<td>extraction</td>")
   expect_false(grepl("gr_extraction<", h, fixed = TRUE))
+})
+
+test_that("a resolved screening shows who decided and what the screener said", {
+  f <- audit_fixture()
+  s <- quiet(gr_screen(f$sources, protocol = audit_protocol(), client = audit_client()))
+  noise <- basename(f$sources[grepl("noise", f$sources)])
+  expect_identical(s$table$decision[s$table$document == noise], "exclude")
+  r <- gr_resolve(s, noise, "include", by = "AB <script>", reason = "x & y",
+                  at = as.POSIXct("2026-03-01 09:30:00", tz = "UTC"))
+  h <- read_report(screening = r)
+  expect_match(h, "screener_decision", fixed = TRUE)
+  expect_match(h, "resolved_by", fixed = TRUE)
+  expect_match(h, "AB &lt;script&gt;", fixed = TRUE)
+  expect_match(h, "x &amp; y", fixed = TRUE)
+  expect_match(h, "2026-03-01T09:30:00Z", fixed = TRUE)
+  expect_false(grepl("AB <script>", h, fixed = TRUE))
+  # The screener's own call is in the row beside the person's.
+  row <- regmatches(h, regexpr(sprintf("<tr>[^\n]*%s[^\n]*</tr>", noise), h))
+  expect_length(row, 1L)
+  expect_match(row, "exclude", fixed = TRUE)
+  expect_match(row, "include", fixed = TRUE)
+})
+
+test_that("the calibration section shows the 3x2 counts and the class-wise rates", {
+  scr <- structure(list(table = data.frame(
+    document = paste0("d", 1:12, ".pdf"),
+    decision = c("include", "include", "unclear", "unclear", rep("exclude", 8)),
+    reason = "because", stringsAsFactors = FALSE)), class = "gr_screening")
+  ref <- data.frame(document = paste0("d", 1:12, ".pdf"),
+                    human_decision = c("include", "exclude", "include", "exclude",
+                                       "include", rep("exclude", 7)),
+                    stringsAsFactors = FALSE)
+  cal <- gr_calibrate(scr, ref, of = "all", min_positives = 1L)
+  h <- paste(harnessr:::audit_calibration(cal), collapse = "\n")
+  expect_match(h, "The screener's decisions against the person's", fixed = TRUE)
+  expect_match(h, "not eligible", fixed = TRUE)
+  for (s in c("kappa", "PABAK", "AC1", "sensitivity", "specificity", "PPV", "NPV")) {
+    expect_match(h, sprintf(">%s<", s), info = s)
+  }
+  # PPV on the kept table is 2 of 4 and NPV 7 of 8.
+  expect_match(h, ">0.50<", fixed = TRUE)
+  expect_match(h, ">0.88<", fixed = TRUE)
+
+  # One stratum: no agreement set, but the counts are still there.
+  one <- suppressWarnings(gr_calibrate(scr, ref[1:4, ], of = "kept", min_positives = 1L))
+  h1 <- paste(harnessr:::audit_calibration(one), collapse = "\n")
+  expect_match(h1, "The screener's decisions against the person's", fixed = TRUE)
 })

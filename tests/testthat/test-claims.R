@@ -93,7 +93,7 @@ test_that("as_id_list() survives every shape jsonlite makes of an array of array
   # unequal lengths a list, a single element a bare vector. A caller that assumes
   # one of the three is broken by the other two, and silently -- the ids come out
   # transposed or recycled rather than missing.
-  f <- readgpt:::as_id_list
+  f <- harnessr:::as_id_list
   expect_identical(f(matrix(c(1L, 2L, 3L, 4L), nrow = 2, byrow = TRUE), 2L),
                    list(1:2, 3:4))
   expect_identical(f(list(c(1L, 2L), 3L), 2L), list(1:2, 3L))
@@ -109,7 +109,7 @@ test_that("claim numbers and [study N] markers mean the same row", {
   tab <- claims_table()
   tab$status[2] <- "failed"
   cm <- quiet(gr_claims(tab, question = "Q?", client = claims_client(claims = one_claim)))
-  syn_studies <- readgpt:::synth_studies(tab, FALSE)
+  syn_studies <- harnessr:::synth_studies(tab, FALSE)
   expect_identical(cm$studies$document_id, syn_studies$document_id)
   expect_identical(cm$studies$study, syn_studies$study)
 })
@@ -124,11 +124,11 @@ test_that("claims from different batches are reconciled, and none is lost", {
     '{"claim":"Something else entirely.","kind":"method","supported_by":[1],',
     '"contradicted_by":[],"moderator":null,"scope":null}]}')
   cl <- claims_client(claims = per_batch, groups = '{"groups":[[1,3],[2]]}')
-  got <- readgpt:::claims_reconcile(
-    readgpt:::claims_verify(
-      rbind(readgpt:::claim_rows(jsonlite::fromJSON(per_batch)$claims),
-            readgpt:::claim_rows(jsonlite::fromJSON(per_batch)$claims)),
-      readgpt:::synth_studies(claims_table(), FALSE))$claims,
+  got <- harnessr:::claims_reconcile(
+    harnessr:::claims_verify(
+      rbind(harnessr:::claim_rows(jsonlite::fromJSON(per_batch)$claims),
+            harnessr:::claim_rows(jsonlite::fromJSON(per_batch)$claims)),
+      harnessr:::synth_studies(claims_table(), FALSE))$claims,
     "Q?", cl, gr_read_spec("stuff"), gr_trace())
   # Four claims in, three groups named, but claim 4 was never placed -- and it
   # keeps its own group rather than disappearing.
@@ -138,13 +138,13 @@ test_that("claims from different batches are reconciled, and none is lost", {
 
 test_that("the reconcile pass cannot invent a claim or use a number that was not listed", {
   cl <- claims_client(groups = '{"groups":[[1,99],[2]]}')
-  claims <- readgpt:::claims_verify(
-    readgpt:::claim_rows(jsonlite::fromJSON(paste0(
+  claims <- harnessr:::claims_verify(
+    harnessr:::claim_rows(jsonlite::fromJSON(paste0(
       '{"claims":[{"claim":"One.","kind":"finding","supported_by":[1],"contradicted_by":[],',
       '"moderator":null,"scope":null},{"claim":"Two.","kind":"finding","supported_by":[2],',
       '"contradicted_by":[],"moderator":null,"scope":null}]}'))$claims),
-    readgpt:::synth_studies(claims_table(), FALSE))$claims
-  got <- readgpt:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace())
+    harnessr:::synth_studies(claims_table(), FALSE))$claims
+  got <- harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace())
   expect_equal(nrow(got), 2L)
   expect_setequal(unlist(got$.support), c(1L, 2L))
   # Indexing `claims[c(1, 99), ]` does not error -- it produces a row of NAs, so
@@ -178,17 +178,17 @@ test_that("gr_claims needs a question, because a claim is relative to one", {
 # ---------------------------------------------------------------------------
 
 test_that("study_weight orders by size and completeness, and not by design", {
-  st <- readgpt:::synth_studies(claims_table(), FALSE)
-  w <- readgpt:::study_weight(st)
+  st <- harnessr:::synth_studies(claims_table(), FALSE)
+  w <- harnessr:::study_weight(st)
   expect_gt(w[["3"]], w[["4"]])           # 900 participants over 25
   # Ranking designs would assert that a cohort beats a qualitative study, which
   # is a methodological claim this package has no standing to make. Design is a
   # grouping variable here, not a score, so changing it changes nothing.
   st2 <- st; st2$design <- rev(st2$design)
-  expect_identical(unname(w), unname(readgpt:::study_weight(st2)))
+  expect_identical(unname(w), unname(harnessr:::study_weight(st2)))
   # An unverified value costs the row something.
   st3 <- st; st3$n_unverified <- c(0L, 0L, 2L, 0L)
-  expect_lt(readgpt:::study_weight(st3)[["3"]], w[["3"]])
+  expect_lt(harnessr:::study_weight(st3)[["3"]], w[["3"]])
 })
 
 test_that("claim_order puts the broader claim first", {
@@ -197,7 +197,7 @@ test_that("claim_order puts the broader claim first", {
     '"contradicted_by":[],"moderator":null,"scope":null},',
     '{"claim":"Broad.","kind":"finding","supported_by":[1,2,3],',
     '"contradicted_by":[],"moderator":null,"scope":null}]}'))))
-  ord <- readgpt:::claim_order(cm$claims, cm$support, readgpt:::study_weight(cm$studies))
+  ord <- harnessr:::claim_order(cm$claims, cm$support, harnessr:::study_weight(cm$studies))
   expect_identical(cm$claims$claim[ord][1], "Broad.")
 })
 
@@ -400,7 +400,7 @@ test_that("the gaps a section may state are the ones that were computed", {
   cl <- claims_client(claims = one_claim)
   cm <- quiet(gr_claims(claims_table(), question = "Q?", client = cl))
   g <- gr_gaps(cm)
-  lines <- readgpt:::render_gaps(g)
+  lines <- harnessr:::render_gaps(g)
   expect_true(is.null(lines) || grepl("- ", lines, fixed = TRUE))
 })
 
@@ -413,7 +413,7 @@ test_that("a revision that introduces a universal quantifier is refused", {
   # edit. Same citations either way, so the citation check sees nothing.
   before <- "Two trials suggest a benefit [study 1] [study 2]."
   after  <- "All trials suggest a benefit [study 1] [study 2]."
-  g <- readgpt:::strength_guard(before, after)
+  g <- harnessr:::strength_guard(before, after)
   expect_false(g$ok)
   expect_match(g$reason, "all")
 })
@@ -421,7 +421,7 @@ test_that("a revision that introduces a universal quantifier is refused", {
 test_that("a revision that introduces a booster is refused", {
   before <- "Two small trials suggest a benefit [study 1] [study 2]."
   after  <- "Two small trials demonstrate a benefit [study 1] [study 2]."
-  g <- readgpt:::strength_guard(before, after)
+  g <- harnessr:::strength_guard(before, after)
   expect_false(g$ok)
   expect_match(g$reason, "demonstrat")
 })
@@ -431,7 +431,7 @@ test_that("stripping the hedges off the sentences that survive is refused", {
                   "A small survey may agree [study 2].")
   after  <- paste("Two trials found a benefit [study 1].",
                   "A survey agreed [study 2].")
-  expect_false(readgpt:::strength_guard(before, after)$ok)
+  expect_false(harnessr:::strength_guard(before, after)$ok)
 })
 
 test_that("cutting a whole hedged sentence is allowed, because that is the job", {
@@ -440,7 +440,7 @@ test_that("cutting a whole hedged sentence is allowed, because that is the job",
   before <- paste("Two trials suggest a possible benefit [study 1].",
                   "A small survey may agree [study 2].")
   after  <- "Two trials suggest a possible benefit [study 1]."
-  expect_true(readgpt:::strength_guard(before, after)$ok)
+  expect_true(harnessr:::strength_guard(before, after)$ok)
 })
 
 test_that("prose that makes no claim can be rewritten freely", {
@@ -448,7 +448,7 @@ test_that("prose that makes no claim can be rewritten freely", {
   # transitions are exactly what an editing pass is supposed to be free to touch.
   before <- "This section is organised by design. Two trials suggest a benefit [study 1]."
   after  <- "We now turn to the evidence, all of which is clearly relevant. Two trials suggest a benefit [study 1]."
-  expect_true(readgpt:::strength_guard(before, after)$ok)
+  expect_true(harnessr:::strength_guard(before, after)$ok)
 })
 
 test_that("an escalating revision is discarded and the draft is what you get", {
@@ -505,23 +505,23 @@ test_that("a malformed claims reply returns nothing rather than erroring", {
   # character vector is an error -- so gr_claims() died with "$ operator is
   # invalid for atomic vectors" instead of warning that no claims came back.
   for (bad in list(list("a", "b"), 1:3, "a string", list(list()), character(0))) {
-    expect_silent(got <- readgpt:::claim_rows(bad))
+    expect_silent(got <- harnessr:::claim_rows(bad))
     expect_null(got)
   }
   for (bad in list(list("A", "B"), 1:2, list(list()))) {
-    expect_silent(got <- readgpt:::outline_rows(bad))
+    expect_silent(got <- harnessr:::outline_rows(bad))
     expect_null(got)
   }
   # A well-formed entry beside a malformed one survives; the malformed one goes.
-  expect_equal(nrow(readgpt:::claim_rows(list(list(claim = "x", supported_by = 1L), "b"))), 1L)
-  expect_equal(nrow(readgpt:::outline_rows(list(list(heading = "A", brief = "b"), "B"))), 1L)
+  expect_equal(nrow(harnessr:::claim_rows(list(list(claim = "x", supported_by = 1L), "b"))), 1L)
+  expect_equal(nrow(harnessr:::outline_rows(list(list(heading = "A", brief = "b"), "B"))), 1L)
 })
 
 test_that("a claim with no text is not a claim", {
   # It used to reach claims_verify(), which drops a claim only when it also has
   # no supporting study -- so an entry that was all ids and no sentence became a
   # row in `$claims`, and gr_outline() wrote a section arguing it.
-  expect_null(readgpt:::claim_rows(list(list(claim = "   ", supported_by = list(1L)))))
+  expect_null(harnessr:::claim_rows(list(list(claim = "   ", supported_by = list(1L)))))
 })
 
 test_that("a merge that moves a contradiction onto the supporting side says so", {
@@ -537,11 +537,11 @@ test_that("a merge that moves a contradiction onto the supporting side says so",
     if (grepl("Group the ones", messages[[1]]$content, fixed = TRUE)) return('{"groups":[[1,2]]}')
     "x"
   })
-  before <- readgpt:::claims_verify(
-    rbind(readgpt:::claim_rows(jsonlite::fromJSON(A)$claims),
-          readgpt:::claim_rows(jsonlite::fromJSON(B)$claims)),
-    readgpt:::synth_studies(claims_table(), FALSE))$claims
-  got <- quiet(readgpt:::claims_reconcile(before, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  before <- harnessr:::claims_verify(
+    rbind(harnessr:::claim_rows(jsonlite::fromJSON(A)$claims),
+          harnessr:::claim_rows(jsonlite::fromJSON(B)$claims)),
+    harnessr:::synth_studies(claims_table(), FALSE))$claims
+  got <- quiet(harnessr:::claims_reconcile(before, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
   expect_equal(nrow(got), 1L)
   expect_equal(got$.support[[1]], c(1L, 2L, 3L))
   expect_equal(got$.contradict[[1]], 4L)
@@ -558,7 +558,7 @@ test_that("two sections with the same heading are one section", {
   secs$.claims <- list(1L, 2L, 3L)
   cw <- data.frame(claim_id = 1:3, kind = "finding", claim = c("a", "b", "c"),
                    stringsAsFactors = FALSE)
-  ol <- quiet(readgpt:::finish_outline(secs, cw, NULL, 10L))
+  ol <- quiet(harnessr:::finish_outline(secs, cw, NULL, 10L))
   expect_equal(names(ol), c("Findings", "Other"))
   map <- attr(ol, "claims")
   expect_equal(nrow(map), 3L)
@@ -594,14 +594,14 @@ test_that("study_weight() reads an `n` that is written out in words", {
   # claim_order() put the small study's claim first.
   chr <- data.frame(study = 1:2, n = c("900 participants", "25"), stringsAsFactors = FALSE)
   num <- data.frame(study = 1:2, n = c(900, 25))
-  expect_equal(unname(readgpt:::study_weight(chr)), unname(readgpt:::study_weight(num)))
-  expect_gt(readgpt:::study_weight(chr)[["1"]], readgpt:::study_weight(chr)[["2"]])
+  expect_equal(unname(harnessr:::study_weight(chr)), unname(harnessr:::study_weight(num)))
+  expect_gt(harnessr:::study_weight(chr)[["1"]], harnessr:::study_weight(chr)[["2"]])
   # A cell holding two numbers is a cell this column did not get -- 12060 is not
   # a better reading of "120 (60 per arm)" than a miss -- and an unknown `n` sits
   # at the mean of what IS known rather than at the bottom of the scale.
   mixed <- data.frame(study = 1:4, n = c("900", "25", "120 (60 per arm)", NA),
                       stringsAsFactors = FALSE)
-  w <- readgpt:::study_weight(mixed)
+  w <- harnessr:::study_weight(mixed)
   expect_equal(w[["3"]], w[["4"]])
   expect_lt(w[["3"]], w[["1"]])
   expect_gt(w[["3"]], w[["2"]])
@@ -638,7 +638,7 @@ test_that("gr_gaps() does not describe the reporters as the whole table", {
 # ---------------------------------------------------------------------------
 
 test_that("booster stems match whole words, not substrings", {
-  sg <- readgpt:::strength_guard
+  sg <- harnessr:::strength_guard
   # "improved" contains "prove", so the draft appeared to already use the
   # booster and the revision's "proves" was not new.
   expect_false(sg("Outcomes improved in a small subgroup [study 1].",
@@ -655,7 +655,7 @@ test_that("saying a booster more often is introducing it", {
   # set was unchanged however many times the revision said it. The revision below
   # keeps the hedging rate up deliberately, so the only rule that can reject it
   # is the booster count -- otherwise the test passes for the wrong reason.
-  r <- readgpt:::strength_guard(
+  r <- harnessr:::strength_guard(
     "Study one demonstrates a benefit [study 1]. Mortality may fall [study 2].",
     paste("Study one demonstrates a benefit [study 1].",
           "It demonstrates it in trials, which may matter [study 2].",
@@ -667,7 +667,7 @@ test_that("saying a booster more often is introducing it", {
 test_that("merging two hedged sentences into one unhedged sentence is refused", {
   # floor(1/2 * 1) = 0, so the revision had to carry no hedges at all. This is
   # the exact edit the guard exists to catch.
-  expect_false(readgpt:::strength_guard(
+  expect_false(harnessr:::strength_guard(
     "Mortality may be reduced [study 1]. Readmission was lower [study 2].",
     "Mortality is reduced [study 1] and readmission is lower [study 2].")$ok)
 })
@@ -676,11 +676,11 @@ test_that("a booster in uncited framing prose is still a booster", {
   # Boosters are measured over all prose except headings: "the evidence
   # demonstrates a clear benefit" carries no marker, and an editing pass has no
   # business writing it anywhere.
-  expect_false(readgpt:::strength_guard(
+  expect_false(harnessr:::strength_guard(
     "The effect may be small [study 1].",
     "The evidence demonstrates a clear benefit. The effect may be small [study 1].")$ok)
   # Universals are not, because they have ordinary non-claim uses in framing.
-  expect_true(readgpt:::strength_guard(
+  expect_true(harnessr:::strength_guard(
     "This section is organised by design. Two trials suggest a benefit [study 1].",
     paste("We now turn to the evidence, all of which is clearly relevant.",
           "Two trials suggest a benefit [study 1]."))$ok)
@@ -690,12 +690,12 @@ test_that("an abbreviation does not end a sentence, and a heading is not part of
   # "(e.g. those over 65)" was split after "e.g.", so the half carrying the hedge
   # was discarded and the guard measured "those over 65) [study 1]."
   s <- "It is possible that the effect holds in adults (e.g. those over 65) [study 1]."
-  expect_equal(readgpt:::claim_sentences(s), s)
-  expect_true(readgpt:::strength_guard(
+  expect_equal(harnessr:::claim_sentences(s), s)
+  expect_true(harnessr:::strength_guard(
     "It is possible that the effect holds in older adults [study 1].", s)$ok)
   # A heading has no terminator, so it used to glue onto the first sentence of
   # its section.
-  expect_equal(readgpt:::claim_sentences("## Findings\nThe effect may be small [study 1]."),
+  expect_equal(harnessr:::claim_sentences("## Findings\nThe effect may be small [study 1]."),
                "The effect may be small [study 1].")
 })
 
@@ -709,10 +709,36 @@ test_that("a draft with no room for its own rewrite is skipped, not sent", {
   need <- as.integer(ceiling(gr_count_tokens(draft) * 1.15) + 64L)
   expect_lt(need, 3900L)   # the output-limit guard is NOT what catches this
   cl <- gr_mock_client(function(messages, params) draft)
-  r <- quiet(readgpt:::revise_once(
+  r <- quiet(harnessr:::revise_once(
     draft, "Q?", cl, gr_read_spec("stuff", model = "revise-tight", max_answer_tokens = 300L),
     gr_trace(), NULL, "cut"))
   expect_false(r$ran)
   expect_length(cl$calls(), 0L)
   expect_equal(r$reason, "draft exceeds the context window")
+})
+
+test_that("gr_claims() and gr_outline() hold their requests to the given trace's governor", {
+  f <- outline_fixture(paste0(
+    '{"sections":[{"heading":"A","brief":"first","claims":[1,2,3],"rationale":null}]}'))
+  p <- gr_trace(governor = hr_governor(allowed_models = "nothing-allowed"))
+  cm <- quiet(gr_claims(claims_table(), question = "Q?", client = f$client, trace = p))
+  expect_identical(p$calls, 0L)
+  expect_true(any(vapply(p$refusals, function(r) identical(r$limit, "model"), logical(1))))
+  expect_identical(nrow(cm$claims), 0L)
+  p2 <- gr_trace(governor = hr_governor(allowed_models = "nothing-allowed"))
+  quiet(gr_outline(f$claims, client = f$client, trace = p2))
+  expect_identical(p2$calls, 0L)
+  expect_true(any(vapply(p2$refusals, function(r) identical(r$label, "outline.derive"), logical(1))))
+})
+
+test_that("max_calls on the given trace's governor stays a limit per stage for claims and outline", {
+  f <- outline_fixture(paste0(
+    '{"sections":[{"heading":"A","brief":"first","claims":[1,2,3],"rationale":null}]}'))
+  p <- gr_trace(governor = hr_governor(max_calls = 1))
+  quiet(gr_claims(claims_table(), question = "Q?", client = f$client, trace = p))
+  quiet(gr_claims(claims_table(), question = "Q?", client = f$client, trace = p))
+  o <- quiet(gr_outline(f$claims, client = f$client, trace = p))
+  expect_identical(p$calls, 3L)
+  expect_length(p$refusals, 0L)
+  expect_false(isTRUE(attr(o, "partial")))
 })

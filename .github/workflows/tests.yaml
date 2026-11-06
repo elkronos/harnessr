@@ -66,9 +66,9 @@ jobs:
       - name: Run test suite
         run: |
           Rscript -e '
-            suppressPackageStartupMessages({library(readgpt); library(testthat)})
+            suppressPackageStartupMessages({library(harnessr); library(testthat)})
             gr_options(verbose = FALSE)
-            res <- as.data.frame(test_dir("tests/testthat", package = "readgpt",
+            res <- as.data.frame(test_dir("tests/testthat", package = "harnessr",
                                           reporter = "summary", stop_on_failure = FALSE))
             cat(sprintf("\nPASS %d  FAIL %d  ERROR %d\n",
                         sum(res$passed), sum(res$failed), sum(res$error)))
@@ -89,19 +89,22 @@ jobs:
           Rscript -e '
             lines  <- readLines("README.md", warn = FALSE)
             fences <- grep("^```", lines)
-            suppressPackageStartupMessages(library(readgpt))
+            suppressPackageStartupMessages(library(harnessr))
             gr_options(verbose = FALSE, max_cost_usd = NULL,
                        api_base = Sys.getenv("GPTREAD_API_BASE"), max_retries = 0L)
             # The plain answer every block expects, except that the claims-layer
-            # calls are answered in the shape they ask for -- so the review
-            # walkthrough runs offline, the way the quick start does.
+            # calls are answered in the shape they ask for, every required field
+            # included, since replies are checked against their schema. So the
+            # review walkthrough runs offline, the way the quick start does.
             reply <- function(m, p) {
               if (identical(p$schema_name, "claims"))
                 return(paste0("{\"claims\":[{\"claim\":\"Revenue was higher in the south.\",",
-                              "\"kind\":\"finding\",\"supported_by\":[1,2]}]}"))
+                              "\"kind\":\"finding\",\"supported_by\":[1,2],",
+                              "\"contradicted_by\":[],\"moderator\":null,\"scope\":null}]}"))
               if (identical(p$schema_name, "outline"))
                 return(paste0("{\"sections\":[{\"heading\":\"Findings\",",
-                              "\"brief\":\"How revenue compares\",\"claims\":[1]}]}"))
+                              "\"brief\":\"How revenue compares\",\"claims\":[1],",
+                              "\"rationale\":null}]}"))
               "Revenue was 45.2 million dollars."
             }
             ran <- 0; skipped <- 0; failed <- character(0)
@@ -132,7 +135,7 @@ jobs:
               assign("cl", gr_mock_client(reply), envir = env)
               # Lazy: only the blocks that actually reference `ans` pay for it.
               delayedAssign("ans", {
-                answer_document(readgpt_example(), "What was revenue?", "needle",
+                answer_document(gr_example(), "What was revenue?", "needle",
                                 client = gr_mock_client(function(m, p) "Revenue was 45.2 million dollars."))
               }, assign.env = env)
               # The review walkthrough continues from a run of your own, as the
@@ -186,7 +189,7 @@ jobs:
       - name: Verify README output blocks still match real output
         run: |
           Rscript -e '
-            suppressPackageStartupMessages(library(readgpt))
+            suppressPackageStartupMessages(library(harnessr))
             gr_options(verbose = FALSE, max_cost_usd = NULL)
             lines <- readLines("README.md", warn = FALSE); fences <- grep("^```", lines)
             starts <- fences[grepl("^```[rR]$", lines[fences])]
@@ -277,7 +280,7 @@ jobs:
       - name: Verify documented counts match the registries
         run: |
           Rscript -e '
-            suppressPackageStartupMessages(library(readgpt))
+            suppressPackageStartupMessages(library(harnessr))
             readme <- paste(readLines("README.md", warn = FALSE), collapse = "\n")
             claims <- list(extractors = nrow(gr_extractors()),
                            cleaners   = nrow(gr_cleaners()),

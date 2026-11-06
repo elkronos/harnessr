@@ -148,7 +148,7 @@ test_that("the ellmer model warning names the caller's model and does not say re
   # A built-in recipe names no model, so it reads with the chat's and there is
   # nothing to warn about.
   said <- character(0)
-  collect(suppressMessages(answer_document(readgpt_example(), "What was revenue?", "fast",
+  collect(suppressMessages(answer_document(gr_example(), "What was revenue?", "fast",
                                            client = gr_ellmer_client(m2_stub_chat()))))
   expect_length(said, 0L)
 })
@@ -187,7 +187,7 @@ test_that("the extract reader hands gr_lapply its client and the most one reques
   m2_price()
   ch <- m2_chunks()
   seen <- list()
-  real <- readgpt:::gr_lapply
+  real <- harnessr:::gr_lapply
   local_mocked_bindings(gr_lapply = function(x, fn, ..., client = NULL, item_usd = NULL) {
     seen[[length(seen) + 1L]] <<- list(client = client, item_usd = item_usd)
     real(x, fn, ..., client = client, item_usd = item_usd)
@@ -226,12 +226,12 @@ test_that("an extraction through an ellmer chat is priced as the chat's model", 
   # client_billed_model() goes by class, so a bare list stands in for the client.
   ellmer_like <- structure(list(model = "mock-model"),
                            class = c("gr_ellmer_client", "gr_backend_client", "gr_client"))
-  expect_equal(readgpt:::extract_item_usd(ellmer_like, "cheap-model", 1000, 100),
+  expect_equal(harnessr:::extract_item_usd(ellmer_like, "cheap-model", 1000, 100),
                gr_estimate_cost("mock-model", 1000, 100))
   # The reply is priced at no more than the model can write.
   gr_register_model("short-model", context_window = 8000, max_output = 50,
                     input_usd = 1, output_usd = 10)
-  expect_equal(readgpt:::extract_item_usd(gr_mock_client(function(m, p) "x"), "short-model",
+  expect_equal(harnessr:::extract_item_usd(gr_mock_client(function(m, p) "x"), "short-model",
                                           1000, 700),
                gr_estimate_cost("short-model", 1000, 50))
 })
@@ -275,11 +275,11 @@ test_that("the audit report flags unreadable citations and cut-off section repli
                           n_unparsed = c(2L, 0L), n_truncated = c(0L, 1L), n_cited = 1L,
                           stringsAsFactors = FALSE),
     citations = NULL), class = "gr_synthesis")
-  html <- paste(readgpt:::audit_synthesis(s), collapse = "\n")
+  html <- paste(harnessr:::audit_synthesis(s), collapse = "\n")
   expect_match(html, "2 citation(s) could not be read", fixed = TRUE)
   expect_match(html, "1 response(s) for this section were cut off at the output cap", fixed = TRUE)
   # A synthesis saved before these columns existed still renders.
   s$sections$n_unparsed <- NULL
   s$sections$n_truncated <- NULL
-  expect_no_error(readgpt:::audit_synthesis(s))
+  expect_no_error(harnessr:::audit_synthesis(s))
 })

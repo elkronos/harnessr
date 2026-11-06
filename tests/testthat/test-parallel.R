@@ -120,8 +120,8 @@ test_that("the assembled trace reads in input order, not completion order", {
 test_that("gr_lapply() hands the trace to its function either way", {
   # The sequential path must pass it through too, or the two paths diverge in
   # the one respect this whole change is about.
-  gl <- readgpt:::gr_lapply
-  tr <- readgpt:::gr_trace()
+  gl <- harnessr:::gr_lapply
+  tr <- harnessr:::gr_trace()
   got <- gl(1:3, function(i, trace) identical(trace, tr), parallel = FALSE, trace = tr)
   expect_true(all(unlist(got)))
 
@@ -132,11 +132,11 @@ test_that("gr_lapply() hands the trace to its function either way", {
 
 test_that("gr_lapply() absorbs worker traces, and is harmless without one", {
   skip_if_no_future()
-  gl <- readgpt:::gr_lapply
-  tr <- readgpt:::gr_trace()
+  gl <- harnessr:::gr_lapply
+  tr <- harnessr:::gr_trace()
   res <- gl(1:4, function(i, trace) {
-    readgpt:::trace_record(trace, sprintf("w%d", i), list(),
-                           readgpt:::gr_result(TRUE, "x", model = "mock-model",
+    harnessr:::trace_record(trace, sprintf("w%d", i), list(),
+                           harnessr:::gr_result(TRUE, "x", model = "mock-model",
                                                usage = list(input = 10L, output = 2L)))
     i * 2L
   }, parallel = TRUE, workers = 2, trace = tr)
@@ -157,9 +157,31 @@ test_that("a budget stop inside a worker is not lost", {
   # `budget_stop` is what marks an answer partial when the call cap bites. It is
   # set on the worker's trace, so it has to travel back with everything else.
   skip_if_no_future()
-  gl <- readgpt:::gr_lapply
-  tr <- readgpt:::gr_trace()
+  gl <- harnessr:::gr_lapply
+  tr <- harnessr:::gr_trace()
   gl(1:2, function(i, trace) { if (i == 2L) trace$budget_stop <- TRUE; i },
      parallel = TRUE, workers = 2, trace = tr)
   expect_true(tr$budget_stop)
+})
+
+test_that("workers see modules registered in the parent session", {
+  skip_if_no_future()
+  local_registries()
+  gr_register_segmenter("seg", function(doc, spec, client, trace) list(doc))
+  gr_register_reader("rd", function(chunks, question, client, spec, trace) "x",
+                     signature = "all|1|none")
+  # A worker loads the package afresh, so it knows these two only if the
+  # document layer's worker hook handed its registries over.
+  seen <- harnessr:::gr_lapply(1:2, function(i, trace) {
+    c("seg" %in% harnessr::gr_segmenters()$name, "rd" %in% harnessr::gr_readers()$name)
+  }, parallel = TRUE, workers = 2)
+  expect_true(all(unlist(seen)))
+})
+
+test_that("the document layer hands its module registries to workers", {
+  layers <- harnessr:::worker_state()$layers
+  expect_true("doc" %in% names(layers))
+  expect_true(all(c("extractors", "cleaners", "segmenters", "readers", "embedders",
+                    "protocols") %in% names(layers$doc$values)))
+  expect_true(is.function(layers$doc$restore))
 })

@@ -22,40 +22,40 @@ test_that("a segmenter's request to a reasoning model is priced at the cap it is
   local_registries()
   cl <- gr_mock_client(function(m, p) "x")
   cl$model <- r7_reasoner()
-  expect_equal(readgpt:::seg_call_usd(cl, 1000, 90L),
+  expect_equal(harnessr:::seg_call_usd(cl, 1000, 90L),
                gr_estimate_cost("r7-reasoner", 1000, 2048))
-  expect_equal(readgpt:::seg_call_usd(cl, 1000, 2000L),
+  expect_equal(harnessr:::seg_call_usd(cl, 1000, 2000L),
                gr_estimate_cost("r7-reasoner", 1000, 2048))
   # A cap at or above the floor is sent, and priced, as it is.
-  expect_equal(readgpt:::seg_call_usd(cl, 1000, 3000L),
+  expect_equal(harnessr:::seg_call_usd(cl, 1000, 3000L),
                gr_estimate_cost("r7-reasoner", 1000, 3000))
   # Within what the context window leaves after the prompt.
   cl$model <- r7_reasoner("r7-tight", context_window = 1500L, max_output = 1000L)
-  expect_equal(readgpt:::seg_call_usd(cl, 1000, 90L),
+  expect_equal(harnessr:::seg_call_usd(cl, 1000, 90L),
                gr_estimate_cost("r7-tight", 1000, 1500 - 1000 - 32))
   # A model that does not reason is priced at the cap it was asked for.
   gr_register_model("r7-plain", context_window = 128000L, max_output = 16384L,
                     input_usd = 1, output_usd = 10)
   cl$model <- "r7-plain"
-  expect_equal(readgpt:::seg_call_usd(cl, 1000, 90L), gr_estimate_cost("r7-plain", 1000, 90))
+  expect_equal(harnessr:::seg_call_usd(cl, 1000, 90L), gr_estimate_cost("r7-plain", 1000, 90))
 })
 
 test_that("an extraction request to a reasoning model is priced at the cap it is sent", {
   local_registries()
   cl <- gr_mock_client(function(m, p) "x")
   r7_reasoner()
-  expect_equal(readgpt:::extract_item_usd(cl, "r7-reasoner", 1000, 100L),
+  expect_equal(harnessr:::extract_item_usd(cl, "r7-reasoner", 1000, 100L),
                gr_estimate_cost("r7-reasoner", 1000, 2048))
   # Never above the model's own ceiling.
   r7_reasoner("r7-short", max_output = 500L)
-  expect_equal(readgpt:::extract_item_usd(cl, "r7-short", 1000, 100L),
+  expect_equal(harnessr:::extract_item_usd(cl, "r7-short", 1000, 100L),
                gr_estimate_cost("r7-short", 1000, 500))
   # An ellmer chat bills as its own model, and is priced as that model reasons.
   ellmer_like <- structure(list(model = "r7-reasoner"),
                            class = c("gr_ellmer_client", "gr_backend_client", "gr_client"))
   gr_register_model("r7-plain", context_window = 128000L, max_output = 16384L,
                     input_usd = 1, output_usd = 10)
-  expect_equal(readgpt:::extract_item_usd(ellmer_like, "r7-plain", 1000, 100L),
+  expect_equal(harnessr:::extract_item_usd(ellmer_like, "r7-plain", 1000, 100L),
                gr_estimate_cost("r7-reasoner", 1000, 2048))
 })
 
@@ -65,7 +65,7 @@ test_that("contextual segmentation on a reasoning model holds its batch to the c
   cl <- gr_mock_client(function(m, p) "Where this excerpt sits.")
   cl$model <- r7_reasoner()
   seen <- list()
-  real <- readgpt:::gr_lapply
+  real <- harnessr:::gr_lapply
   local_mocked_bindings(gr_lapply = function(x, fn, ..., client = NULL, item_usd = NULL) {
     seen[[length(seen) + 1L]] <<- item_usd
     real(x, fn, ..., client = client, item_usd = item_usd)
@@ -95,7 +95,7 @@ test_that("a saved trace keeps an unlabelled question intact under a C locale", 
     tr <- gr_trace(meta = list(question = q, recipes = q))
     # Filled after the trace was made, as callers do.
     tr$meta$source <- q
-    readgpt:::trace_note(tr, "segment.local", list(section = q))
+    harnessr:::trace_note(tr, "segment.local", list(section = q))
     gr_trace_save(tr, f)
     txt <- as.character(as_json(tr, pretty = FALSE))
   })
@@ -115,7 +115,7 @@ test_that("as_json() labels strings, names and factor levels, and leaves the obj
             latin = iconv("caf\u00e9", "UTF-8", "latin1"),
             f = factor(unmarked("\u00e9t\u00e9")), na = NA_character_)
   names(x)[2] <- unmarked("\u00c9vora")
-  y <- readgpt:::label_utf8(stats::setNames(unmarked(c("caf\u00e9", NA)), unmarked(c("\u00e9", "b"))))
+  y <- harnessr:::label_utf8(stats::setNames(unmarked(c("caf\u00e9", NA)), unmarked(c("\u00e9", "b"))))
   expect_identical(Encoding(y), c("UTF-8", "unknown"))
   expect_identical(Encoding(names(y)), c("UTF-8", "unknown"))
   expect_true(is.na(y[[2]]))
@@ -149,8 +149,8 @@ test_that("an enum value typed under a C locale matches the reply that gives it"
   withr::with_locale(c(LC_CTYPE = "C"), {
     skip_if(isTRUE(l10n_info()[["UTF-8"]]), "could not switch to a non-UTF-8 locale")
     f <- gr_field(unmarked("Direction de l'\u00e9ffet"), type = "enum", values = c(v, "stable"))
-    got <- readgpt:::coerce_field(list("r\u00e9duit"), f)
-    schema <- as.character(jsonlite::toJSON(readgpt:::fields_schema(gr_fields(dir = f)),
+    got <- harnessr:::coerce_field(list("r\u00e9duit"), f)
+    schema <- as.character(jsonlite::toJSON(harnessr:::fields_schema(gr_fields(dir = f)),
                                             auto_unbox = TRUE))
   })
   expect_identical(Encoding(f$values[1]), "UTF-8")
@@ -175,7 +175,7 @@ r7_screen_c <- function(protocol = FALSE) {
     s <- if (protocol) quiet(gr_screen(f, protocol = p, client = cl)) else
       quiet(gr_screen(f, question = q, include = unmarked(crit), client = cl))
     out <- list(crit = crit, p = p, s = s, json = as.character(as_json(s, pretty = FALSE)),
-                drift = readgpt:::protocol_drift(p, s))
+                drift = harnessr:::protocol_drift(p, s))
   })
   out
 }
@@ -238,7 +238,7 @@ test_that("an ellmer structured reply that cannot be read is charged what ellmer
   })
   cl <- gr_ellmer_client(ellmer::chat_anthropic(model = "claude-test", credentials = function() "k"))
   tr <- gr_trace()
-  res <- quiet(readgpt:::gr_call_json(cl, "Question?", schema = r7_schema, trace = tr))
+  res <- quiet(harnessr:::gr_call_json(cl, "Question?", schema = r7_schema, trace = tr))
   expect_false(res$ok)
   step <- tr$steps[[1]]
   expect_false(step$ok)
@@ -258,7 +258,7 @@ test_that("an ellmer request that failed before any reply is still charged its p
   httr2::local_mocked_responses(function(req) r7_anthropic(NULL, status = 400L))
   cl <- gr_ellmer_client(ellmer::chat_anthropic(model = "claude-test", credentials = function() "k"))
   tr <- gr_trace()
-  res <- quiet(readgpt:::gr_call_json(cl, "Question?", schema = r7_schema, trace = tr))
+  res <- quiet(harnessr:::gr_call_json(cl, "Question?", schema = r7_schema, trace = tr))
   expect_false(res$ok)
   step <- tr$steps[[1]]
   expect_match(step$error, "400", fixed = TRUE)

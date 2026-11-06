@@ -1,0 +1,127 @@
+{
+  "calls": [
+    {
+      "cache_key": "c4834f3039fa4b215abcbc1df3eca797591140cdd30af068ee69dcd620b0ef3d",
+      "chars": [767, 40, 60, 23],
+      "label": "outline.derive",
+      "messages": "ae9eec7d05ad9b9b",
+      "model": "mock-model",
+      "params": {
+        "max_output": 1200,
+        "model": "mock-model",
+        "prompt_tokens": 245,
+        "schema_name": "outline",
+        "temperature": null
+      },
+      "request": "ca290b57987e3884",
+      "roles": ["system", "user", "user", "user"],
+      "schema": "23acec2b5d74dc13"
+    }
+  ],
+  "result": "702653372e4f83c1",
+  "trace": {
+    "actor": {
+      "approved_by": null,
+      "owner": null,
+      "purpose": null,
+      "run_by": null,
+      "system": null
+    },
+    "budget_stop": false,
+    "config": {
+      "options": {
+        "actor": [],
+        "allow_unpriced": false,
+        "allowed_models": null,
+        "api": "responses",
+        "api_base": "https://api.openai.com/v1",
+        "api_headers": [],
+        "cache_dir": null,
+        "cache_documents": true,
+        "cache_embeddings": true,
+        "embedder": null,
+        "embedding_model": "text-embedding-3-small",
+        "max_calls": 400,
+        "max_cost_usd": 5,
+        "max_output_tokens": null,
+        "max_retries": 4,
+        "max_tokens_total": null,
+        "min_output_tokens": 256,
+        "model": "gpt-5.6-terra",
+        "parallel": false,
+        "request_timeout": 120,
+        "retry_pause_base": 2,
+        "safety_margin": 0.1,
+        "temperature": null,
+        "tokenizer": "heuristic",
+        "unknown_model_action": "warn",
+        "verbose": false,
+        "workers": 4
+      }
+    },
+    "errors": [],
+    "meta": {
+      "claims": 1,
+      "question": "How did revenue change?",
+      "stage": "outline"
+    },
+    "replayed_usd": 0,
+    "spent_usd": 0,
+    "steps": [
+      {
+        "attempts": 1,
+        "budget_usd": 0,
+        "cached": false,
+        "error": null,
+        "fingerprint": null,
+        "finish_reason": null,
+        "label": "outline.derive",
+        "model": "mock-model",
+        "ok": true,
+        "params": {
+          "max_output": 1200,
+          "model": "mock-model",
+          "prompt_tokens": 245,
+          "schema_name": "outline",
+          "temperature": null
+        },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1200,
+          "model": "mock-model",
+          "schema_hash": "ed20c6da8281850816b8bbc62c4aa617a1489d33e0b8aa48f55f4d48d32d3f29",
+          "schema_name": "outline",
+          "temperature": null
+        },
+        "prompt": "ae9eec7d05ad9b9b",
+        "replay_key": "cf2f50679efc632d1c97388ee0f0b16b3c35461f1a1a9e3fcae44bbc664442a4",
+        "response": "b4d3eb79da47aa55",
+        "response_id": null,
+        "served_model": null,
+        "step": 1,
+        "tokens": {
+          "input": 245,
+          "output": 74,
+          "provenance": "estimated"
+        }
+      }
+    ],
+    "stop_reason": null,
+    "summary": {
+      "cached": 0,
+      "calls": 1,
+      "embed_calls": 0,
+      "embed_tokens": 0,
+      "errors": 0,
+      "steps": 1,
+      "tokens_cached_in": 0,
+      "tokens_in": 245,
+      "tokens_out": 74,
+      "tokens_reasoning": 0,
+      "usage_estimated": 1
+    }
+  }
+}

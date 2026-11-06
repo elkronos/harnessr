@@ -287,6 +287,8 @@ test_that("cost counts only the calls that were actually issued", {
 
 test_that("cost is reported per model, and an unpriced model is NA rather than free", {
   local_registries()
+  # A chat model with no price is sent only when the run allows it.
+  gr_options(allow_unpriced = TRUE)
   gr_register_model("cheap", context_window = 100000L, max_output = 4096L,
                     input_usd = 1, output_usd = 1)
   gr_register_model("unpriced", context_window = 100000L, max_output = 4096L)
@@ -456,14 +458,14 @@ test_that("a store written by an older version still resumes", {
   b <- tempfile(fileext = ".txt"); writeLines("A wholly different document here.", b)
   store <- withr::local_tempdir()
 
-  rec <- readgpt:::as_recipe("fast")
-  key <- readgpt:::corpus_key(a, "Q?", rec, cl)
-  legacy <- readgpt:::corpus_row("old.txt", status = "ok")
+  rec <- harnessr:::as_recipe("fast")
+  key <- harnessr:::corpus_key(a, "Q?", rec, cl)
+  legacy <- harnessr:::corpus_row("old.txt", status = "ok")
   legacy$answer <- "A restored answer."
   legacy[c("document_id", "duplicate_of")] <- NULL          # the 0.3.0 shape
   expect_false("document_id" %in% names(legacy))
   saveRDS(list(format = 1L, key = key, created = Sys.time(), row = legacy, answer = NULL),
-          readgpt:::corpus_store_path(store, key))
+          harnessr:::corpus_store_path(store, key))
 
   out <- quiet(gr_read_many(c(a, b), "Q?", "fast", client = cl, store = store))
   expect_identical(out$summary$status, c("restored", "ok"))

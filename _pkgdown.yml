@@ -7,7 +7,7 @@ articles:
 - title: Guides
   navbar: Guides
   contents:
-  - readgpt
+  - harnessr
   - ingest
   - readers
 - title: Overview
@@ -27,7 +27,7 @@ reference:
   - gr_recipe
   - gr_answer
   - is_not_found
-  - readgpt_example
+  - gr_example
 
 - title: Connect to a model
   desc: >
@@ -99,6 +99,7 @@ reference:
   - gr_screen
   - gr_reference
   - gr_calibrate
+  - gr_resolve
   - '`[.gr_reference_frame`'
   - gr_fields
   - gr_field
@@ -114,6 +115,7 @@ reference:
 - title: Cost, tokens and tracing
   contents:
   - gr_options
+  - hr_governor
   - gr_estimate_cost
   - gr_count_tokens
   - gr_tokenizer
@@ -135,7 +137,7 @@ reference:
   - gr_flush_caches
   - gr_replay_client
 
-- title: Extending readgpt
+- title: Extending harnessr
   desc: >
     Every axis is a registry. An addition is used exactly like a built-in.
   contents:
@@ -146,11 +148,19 @@ reference:
   - gr_register_embedder
   - new_chunks
   - new_answer
+  - hr_cost
+  - hr_schema
+  - hr_param
+  - hr_validate
+  - hr_check_module
+  - gr_check_reader
+  - gr_check_segmenter
 
 - title: Superseded
   desc: >
-    The entry points of the first version. They still work and warn once;
-    new code should use `answer_document()`, `gr_ingest()` and `gr_segment()`.
+    The entry points of the first version, and the old name of `gr_example()`.
+    They still work and warn once; new code should use `answer_document()`,
+    `gr_ingest()`, `gr_segment()` and `gr_example()`.
   contents:
   - answer_question
   - parse_text
@@ -158,3 +168,4 @@ reference:
   - gpt_read_hierarchical
   - gpt_read_multipass
   - gpt_read_retrieval
+  - readgpt_example

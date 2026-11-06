@@ -42,7 +42,7 @@ register_404_embedder <- function(recovered = TRUE) {
   gr_register_embedder("gone-404", function(texts, params) {
     tr <- params$trace
     if (inherits(tr, "gr_trace")) {
-      readgpt:::trace_record(tr, "embed.request", list(),
+      harnessr:::trace_record(tr, "embed.request", list(),
                              gr_result(FALSE, model = "bad-embed", status = 404L,
                                        error = "Embeddings request to 'bad-embed' failed: HTTP 404"),
                              params = list(model = "bad-embed"))
@@ -168,7 +168,7 @@ test_that("a document a limit stopped keeps its document_id, and a copy of it is
   gr_register_reader("greedy3", signature = "some|N|none", cost_calls = "N",
     fn = function(chunks, question, client, spec, trace) {
       n <- 0L
-      while (readgpt:::trace_can_call(trace) && n < 50L) {
+      while (harnessr:::trace_can_call(trace) && n < 50L) {
         gr_call(client, list(list(role = "user", content = "more")), model = spec$model,
                 trace = trace, label = "greedy")
         n <- n + 1L
@@ -236,11 +236,11 @@ test_that("a folder's documents come out in the same order under a C character t
 # embedding model on the step, and embeds lexically.
 register_recording_embedder <- function(model) {
   gr_register_embedder("recorded", function(texts, params) {
-    readgpt:::trace_record(params$trace, "embed.request", list(),
+    harnessr:::trace_record(params$trace, "embed.request", list(),
                            gr_result(TRUE, model = model,
                                      usage = list(input = 7L * length(texts), output = 0L)),
                            params = list(model = model, texts = length(texts)))
-    readgpt:::lexical_embed(texts)
+    harnessr:::lexical_embed(texts)
   })
   gr_options(embedder = "recorded")
 }
@@ -323,7 +323,7 @@ test_that("corpus_cost() splits unpriced embedding models from the rest", {
                     kind = "embedding")
   tr <- gr_trace()
   rec <- function(label, model, input, output = 0L) {
-    readgpt:::trace_record(tr, label, list(),
+    harnessr:::trace_record(tr, label, list(),
                            gr_result(TRUE, model = model, usage = list(input = input,
                                                                         output = output)),
                            params = list(model = model))
@@ -349,6 +349,8 @@ test_that("corpus_cost() splits unpriced embedding models from the rest", {
 test_that("a store entry written by 0.5.0 is read again once, then restored", {
   local_registries()
   local_clean_cache()
+  # The backend's model has no price, so the run has to allow that.
+  gr_options(allow_unpriced = TRUE)
   dir <- withr::local_tempdir()
   doc <- file.path(dir, "a.txt")
   writeLines("Revenue was 45.2 million dollars.", doc)

@@ -62,9 +62,9 @@ test_that("a step folded in twice keeps its recipe", {
   doc <- gr_trace(meta = list(recipe = "thorough", source = "c.txt"))
   gr_call(cl, "q", trace = doc)
   stage <- gr_trace(meta = list(stage = "synthesise"))
-  readgpt:::trace_absorb(stage, doc)
+  harnessr:::trace_absorb(stage, doc)
   top <- gr_trace()
-  readgpt:::trace_absorb(top, stage)
+  harnessr:::trace_absorb(top, stage)
   df <- as.data.frame(top)
   expect_identical(df$recipe, "thorough")
   expect_identical(df$document, "c.txt")
@@ -73,7 +73,7 @@ test_that("a step folded in twice keeps its recipe", {
   bare <- gr_trace()
   gr_call(cl, "q2", trace = bare)
   named <- gr_trace(meta = list(recipe = "fast"))
-  readgpt:::trace_absorb(named, bare)
+  harnessr:::trace_absorb(named, bare)
   expect_identical(as.data.frame(named)$recipe, "fast")
 })
 
@@ -172,32 +172,41 @@ test_that("a replayed batch makes every call the recorded batch made", {
   gr_register_model("r6-batch", context_window = 8000L, max_output = 1000L,
                     input_usd = 0, output_usd = 1e5)
   client <- gr_mock_client(function(m, p) "two words")
+  # Each reply is counted at 6 tokens, $0.60, which is also its cap, so a
+  # limit of $1 has room for one call and not two.
   fn <- function(i, trace) {
-    if (!readgpt:::trace_can_call(trace)) return(NA_character_)
-    gr_call(client, sprintf("item %d", i), model = "r6-batch", trace = trace)$text
+    res <- gr_call(client, sprintf("item %d", i), model = "r6-batch", max_output = 6L,
+                   trace = trace)
+    if (isTRUE(res$refused)) NA_character_ else res$text
   }
-  gr_options(max_cost_usd = Inf)
+  # A batch used to go out whole and pass the limit, and its replay had to
+  # make every call it made. Now the batch stops where the limit does, and
+  # the replay makes the same calls and stops at the same one.
+  gr_options(max_cost_usd = 1)
   rec <- gr_trace()
-  readgpt:::gr_lapply(1:4, fn, parallel = FALSE, trace = rec)
-  # What a batch sent to workers leaves when it passes the limit: every call
-  # made, and the stop recorded after them.
-  rec$budget_stop <- TRUE
-  rec$stop_reason <- "cost"
-  expect_gt(rec$spent_usd, 0.5)
-  gr_options(max_cost_usd = 0.5)
+  live <- quiet(harnessr:::gr_lapply(1:4, fn, parallel = TRUE, workers = 2, trace = rec,
+                                     item_usd = 0.01))
+  expect_lte(rec$spent_usd, 1)
+  expect_true(rec$budget_stop)
+  expect_identical(rec$stop_reason, "cost")
+  made <- rec$calls
+  expect_gt(made, 0L)
+  expect_lt(made, 4L)
+
   client <- gr_replay_client(rec)
   tr <- gr_trace()
-  got <- quiet(readgpt:::gr_lapply(1:4, fn, parallel = TRUE, workers = 2, trace = tr,
+  got <- quiet(harnessr:::gr_lapply(1:4, fn, parallel = TRUE, workers = 2, trace = tr,
                                    item_usd = 0.01))
-  expect_identical(unlist(got), rep("two words", 4L))
-  expect_identical(client$stats()$hits, 4L)
+  expect_identical(got, live)
+  expect_identical(client$stats()$hits, made)
+  expect_identical(client$stats()$misses, 0L)
   expect_true(tr$budget_stop)
   expect_identical(tr$stop_reason, "cost")
 })
 
 test_that("a recording whose steps do not carry their cost still replays to the stop", {
   run <- r6_costcap_run()
-  obj <- readgpt:::trace_as_list(run$tr)
+  obj <- harnessr:::trace_as_list(run$tr)
   obj$steps <- lapply(obj$steps, function(st) { st$budget_usd <- NULL; st })
   rp <- gr_replay_client(obj)
   again <- quiet(gr_read(run$ch, "What rose?", rp, run$spec))
@@ -208,19 +217,19 @@ test_that("a recording whose steps do not carry their cost still replays to the 
 test_that("a cache hit counts nothing against the limit, a replayed call its cost", {
   local_registries()
   tr <- gr_trace()
-  readgpt:::trace_record(tr, "hit", list(list(role = "user", content = "q")),
-                         readgpt:::gr_result(TRUE, "a", model = "gpt-4o", cached = TRUE,
+  harnessr:::trace_record(tr, "hit", list(list(role = "user", content = "q")),
+                         harnessr:::gr_result(TRUE, "a", model = "gpt-4o", cached = TRUE,
                                    usage = list(input = 1000L, output = 10L)))
   expect_identical(tr$replayed_usd, 0)
-  res <- readgpt:::gr_result(TRUE, "a", model = "gpt-4o", cached = TRUE,
+  res <- harnessr:::gr_result(TRUE, "a", model = "gpt-4o", cached = TRUE,
                    usage = list(input = 1000L, output = 10L))
   res$replay_usd <- 0.25
-  readgpt:::trace_record(tr, "replayed", list(list(role = "user", content = "q")), res)
+  harnessr:::trace_record(tr, "replayed", list(list(role = "user", content = "q")), res)
   expect_identical(tr$spent_usd, 0)
   expect_identical(tr$replayed_usd, 0.25)
   expect_identical(tr$steps[[2]]$budget_usd, 0.25)
   gr_options(max_cost_usd = 0.25)
-  expect_false(readgpt:::trace_can_call(tr))
+  expect_false(harnessr:::trace_can_call(tr))
   expect_identical(tr$stop_reason, "cost")
 })
 
@@ -230,11 +239,11 @@ test_that("what a request counts is saved exactly in 15 digits, so a trace is wr
                     input_usd = 2.5, output_usd = 10)
   tr <- gr_trace()
   for (i in 1:40) {
-    readgpt:::trace_record(tr, "call", list(list(role = "user", content = "q")),
-                           readgpt:::gr_result(TRUE, "a", model = "r6-odd",
+    harnessr:::trace_record(tr, "call", list(list(role = "user", content = "q")),
+                           harnessr:::gr_result(TRUE, "a", model = "r6-odd",
                                      usage = list(input = 1234L + i, output = 56L + i)))
   }
-  expect_false(readgpt:::needs_more_digits(readgpt:::trace_as_list(tr)))
+  expect_false(harnessr:::needs_more_digits(harnessr:::trace_as_list(tr)))
 })
 
 # ---------------------------------------------------------------------------
@@ -270,7 +279,7 @@ test_that("a miss caused by embeddings a replay cannot reproduce says so", {
 })
 
 test_that("the replay help no longer promises answers it cannot reproduce", {
-  path <- testthat::test_path("..", "..", "R", "core-replay.R")
+  path <- testthat::test_path("..", "..", "R", "core-transport-replay.R")
   if (!file.exists(path)) skip("package source not available")
   src <- paste(sub("^#'\\s*", "", readLines(path, warn = FALSE)), collapse = " ")
   expect_false(grepl("every recorded answer is still reproduced", src, fixed = TRUE))
@@ -412,7 +421,7 @@ test_that("an embedder that returns no dimensions or holes has failed", {
 
 test_that("as_json() writes any object that holds a trace or an answer", {
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  cmp <- quiet(gr_compare(readgpt_example(), "What was revenue?", c("fast", "thorough"),
+  cmp <- quiet(gr_compare(gr_example(), "What was revenue?", c("fast", "thorough"),
                           client = cl))
   j <- jsonlite::parse_json(as_json(cmp))
   expect_identical(j$trace$run_id, cmp$trace$run_id)
@@ -457,14 +466,14 @@ test_that("an object with nothing to replace is written as before", {
 
 test_that("a trace's fields that list things are arrays at every length", {
   cl <- gr_mock_client(function(m, p) "45.2 million")
-  cmp <- quiet(gr_compare(readgpt_example(), "What was revenue?", "fast", client = cl,
+  cmp <- quiet(gr_compare(gr_example(), "What was revenue?", "fast", client = cl,
                           allow_duplicates = TRUE))
   j <- jsonlite::parse_json(as_json(cmp$trace))
   expect_identical(j$meta$recipes, list("fast"))
 
   tr <- gr_trace()
-  readgpt:::trace_note(tr, "retrieve.rank", list(k = 1L, top_scores = 0.5))
-  readgpt:::trace_note(tr, "ingest", list(blocks = 3L, clean_steps = "unicode"))
+  harnessr:::trace_note(tr, "retrieve.rank", list(k = 1L, top_scores = 0.5))
+  harnessr:::trace_note(tr, "ingest", list(blocks = 3L, clean_steps = "unicode"))
   j <- jsonlite::parse_json(as_json(tr))
   expect_identical(j$steps[[1]]$detail$top_scores, list(0.5))
   expect_identical(j$steps[[1]]$detail$k, 1L)
@@ -480,7 +489,7 @@ test_that("a trace's fields that list things are arrays at every length", {
 
 test_that("a trace parsed with jsonlite's defaults is refused, saying why", {
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough", client = cl))
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "thorough", client = cl))
   f <- withr::local_tempfile(fileext = ".json")
   gr_trace_save(ans$trace, f)
   parsed <- jsonlite::fromJSON(f)
@@ -490,19 +499,19 @@ test_that("a trace parsed with jsonlite's defaults is refused, saying why", {
   expect_match(conditionMessage(err), "simplifyVector = FALSE", fixed = TRUE)
   expect_false(grepl("no recorded model calls", conditionMessage(err), fixed = TRUE))
   # Parsed as the message says, it replays.
-  again <- quiet(answer_document(readgpt_example(), "What was revenue?", "thorough",
+  again <- quiet(answer_document(gr_example(), "What was revenue?", "thorough",
                                  client = gr_replay_client(jsonlite::fromJSON(f, simplifyVector = FALSE))))
   expect_identical(again$answer, ans$answer)
 })
 
 test_that("the JSON text of a trace or an answer replays", {
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl))
-  js <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl,
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl))
+  js <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                               return = "json"))
   for (src in list(as_json(ans$trace), js, as.character(js))) {
     rp <- gr_replay_client(src)
-    again <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = rp))
+    again <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = rp))
     expect_identical(again$answer, ans$answer)
     expect_identical(rp$stats()$misses, 0L)
   }
@@ -523,7 +532,7 @@ test_that("gr_embed()'s help gives the order the code uses", {
   e <- gr_embed(cl, c("a b", "c d"))
   expect_identical(attr(e, "embedding_source"), "lexical")
   expect_length(cl$embeds(), 0L)
-  path <- testthat::test_path("..", "..", "R", "core-embed.R")
+  path <- testthat::test_path("..", "..", "R", "core-transport-embed.R")
   if (!file.exists(path)) skip("package source not available")
   src <- paste(sub("^#'\\s*", "", readLines(path, warn = FALSE)), collapse = " ")
   expect_false(grepl("Defaults to the embed function supplied with", src, fixed = TRUE))
@@ -539,7 +548,7 @@ test_that("gr_embed()'s help gives the order the code uses", {
 test_that("a parallel batch leaves the caller's random numbers alone", {
   skip_if_no_future6()
   set.seed(42)
-  quiet(readgpt:::gr_lapply(1:3, function(i, trace) i, parallel = TRUE, workers = 2,
+  quiet(harnessr:::gr_lapply(1:3, function(i, trace) i, parallel = TRUE, workers = 2,
                             trace = gr_trace()))
   after <- stats::runif(1)
   set.seed(42)
@@ -556,9 +565,9 @@ test_that("an item that fails in a parallel batch keeps every trace", {
   skip_if_no_future6()
   run <- function(parallel) {
     tr <- gr_trace()
-    err <- tryCatch(quiet(readgpt:::gr_lapply(1:6, function(i, trace) {
-      readgpt:::trace_record(trace, sprintf("item%d", i), list(),
-                             readgpt:::gr_result(TRUE, "x", model = "mock-model",
+    err <- tryCatch(quiet(harnessr:::gr_lapply(1:6, function(i, trace) {
+      harnessr:::trace_record(trace, sprintf("item%d", i), list(),
+                             harnessr:::gr_result(TRUE, "x", model = "mock-model",
                                                  usage = list(input = 10L, output = 2L)))
       if (i == 4L) stop(structure(class = c("r6_boom", "error", "condition"),
                                   list(message = "boom on item 4", call = NULL)))

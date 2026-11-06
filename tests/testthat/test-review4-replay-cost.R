@@ -52,10 +52,10 @@ r4_doc <- function(n = 40L) {
 # unregistered model that failed with nothing sent, as gr_embed() records a 404.
 r4_trace_with_free_failure <- function() {
   tr <- gr_trace()
-  readgpt:::trace_record(tr, "map.answer", list(list(role = "user", content = "q")),
+  harnessr:::trace_record(tr, "map.answer", list(list(role = "user", content = "q")),
                          gr_result(TRUE, text = "a", model = "gpt-4o",
                                    usage = list(input = 1000L, output = 10L)))
-  readgpt:::trace_record(tr, "embed.request", list(list(role = "user", content = "one")),
+  harnessr:::trace_record(tr, "embed.request", list(list(role = "user", content = "one")),
                          gr_result(FALSE, error = "HTTP 404: no such model", status = 404L,
                                    model = "bad-embed"),
                          embedding = TRUE)
@@ -104,7 +104,7 @@ test_that("a recording without the note, or with conflicting notes, takes the re
   ch <- quiet(gr_segment(gr_ingest(sample_doc(3, 3)), list(method = "paragraph", max_tokens = 120)))
   live <- quiet(gr_read(ch, "How many participants?", mock_echo(),
                         list(reader = "skim", skim_model = "gpt-4o-mini")))
-  obj <- readgpt:::trace_as_list(live$trace)
+  obj <- harnessr:::trace_as_list(live$trace)
   pf <- which(vapply(obj$steps, function(s) identical(s$label, "preflight"), logical(1)))
   expect_length(pf, 1L)
 
@@ -157,8 +157,8 @@ test_that("a request that failed without sending tokens costs nothing in gr_trac
   expect_equal(sum(cost$usd), gr_estimate_cost("gpt-4o", 1000L, 10L))
   # The two accounts agree.
   expect_equal(sum(cost$usd), sum(as.data.frame(tr)$usd))
-  expect_match(readgpt:::format_trace_cost(tr), "^\\$0\\.0026 across")
-  cc <- readgpt:::corpus_cost(tr)
+  expect_match(harnessr:::format_trace_cost(tr), "^\\$0\\.0026 across")
+  cc <- harnessr:::corpus_cost(tr)
   expect_false(is.na(cc$usd))
   expect_length(cc$unpriced_embed, 0L)
   expect_length(cc$unpriced, 0L)
@@ -169,7 +169,7 @@ test_that("an unpriced model is still unknown whenever it may have cost somethin
   msg <- list(list(role = "user", content = "q"))
   # A failed request that DID send tokens.
   tr <- r4_trace_with_free_failure()
-  readgpt:::trace_record(tr, "embed.request", msg,
+  harnessr:::trace_record(tr, "embed.request", msg,
                          gr_result(FALSE, error = "HTTP 500", status = 500L, model = "bad-embed",
                                    usage = list(input = 12L, output = 0L)),
                          embedding = TRUE)
@@ -178,7 +178,7 @@ test_that("an unpriced model is still unknown whenever it may have cost somethin
   # A cached request of an unpriced model, beside a free failure of it: the
   # cached request is NA as it always was.
   tr <- r4_trace_with_free_failure()
-  readgpt:::trace_record(tr, "embed.request", msg,
+  harnessr:::trace_record(tr, "embed.request", msg,
                          gr_result(TRUE, text = "", model = "bad-embed", cached = TRUE,
                                    usage = list(input = 5L, output = 0L)),
                          embedding = TRUE)
@@ -192,7 +192,7 @@ test_that("an unpriced model is still unknown whenever it may have cost somethin
 
   # A free failure of a PRICED model costs 0, as before.
   tr <- gr_trace()
-  readgpt:::trace_record(tr, "map.answer", msg,
+  harnessr:::trace_record(tr, "map.answer", msg,
                          gr_result(FALSE, error = "HTTP 503", status = 503L, model = "gpt-4o"))
   expect_identical(gr_trace_cost(tr)$usd, 0)
 })
@@ -251,25 +251,25 @@ test_that("the progress line keeps the spend through a failed empty request", {
   local_registries()
   local_mocked_bindings(progress_wanted = function() TRUE)
   tr <- r4_trace_with_free_failure()
-  p <- readgpt:::progress_start(3L, "item", trace = tr)
+  p <- harnessr:::progress_start(3L, "item", trace = tr)
   expect_false(is.null(p))
-  expect_identical(readgpt:::progress_cost(p),
+  expect_identical(harnessr:::progress_cost(p),
                    sprintf(", $%.4f spent", gr_estimate_cost("gpt-4o", 1000L, 10L)))
 
   # A request that sent tokens to an unpriced model still makes it unknown.
-  readgpt:::trace_record(tr, "map.answer", list(list(role = "user", content = "q2")),
+  harnessr:::trace_record(tr, "map.answer", list(list(role = "user", content = "q2")),
                          gr_result(TRUE, text = "a", model = "no-such-model",
                                    usage = list(input = 5L, output = 1L)))
-  expect_identical(readgpt:::progress_cost(p), ", cost unknown")
+  expect_identical(harnessr:::progress_cost(p), ", cost unknown")
 
   # And so does a failed request that sent tokens, from a fresh line.
   tr2 <- r4_trace_with_free_failure()
-  readgpt:::trace_record(tr2, "embed.request", list(list(role = "user", content = "two")),
+  harnessr:::trace_record(tr2, "embed.request", list(list(role = "user", content = "two")),
                          gr_result(FALSE, error = "HTTP 500", status = 500L, model = "bad-embed",
                                    usage = list(input = 3L, output = 0L)),
                          embedding = TRUE)
-  p2 <- readgpt:::progress_start(3L, "item", trace = tr2)
-  expect_identical(readgpt:::progress_cost(p2), ", cost unknown")
+  p2 <- harnessr:::progress_start(3L, "item", trace = tr2)
+  expect_identical(harnessr:::progress_cost(p2), ", cost unknown")
 })
 
 # ---------------------------------------------------------------------------
@@ -280,11 +280,11 @@ test_that("the progress line keeps the spend through a failed empty request", {
 
 test_that("the gr_trace_cost() example describes what it shows", {
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl))
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl))
   cost <- gr_trace_cost(ans$trace)
   expect_identical(cost$model, "mock-model")
   expect_identical(cost$usd, 0)
-  path <- testthat::test_path("..", "..", "R", "corpus.R")
+  path <- testthat::test_path("..", "..", "R", "core-ledger-cost.R")
   if (!file.exists(path)) skip("package source not available")
   src <- readLines(path, warn = FALSE)
   expect_false(any(grepl("the recipe's model", src, fixed = TRUE)))

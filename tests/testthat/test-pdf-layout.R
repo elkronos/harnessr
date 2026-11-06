@@ -17,7 +17,7 @@ two_column_lines <- function(n = 8L, page = 1L) {
 }
 
 test_that("a gutter is found on a two-column page and not on a single-column one", {
-  g <- readgpt:::column_gutter(two_column_lines())
+  g <- harnessr:::column_gutter(two_column_lines())
   expect_false(is.na(g))
   # Between the end of the longest left text and the start of the right one.
   expect_gt(g, nchar("Left 1.1: the spacing effect was studied."))
@@ -25,27 +25,27 @@ test_that("a gutter is found on a two-column page and not on a single-column one
 
   prose <- rep(paste("The cohort comprised 482 participants recruited across nine clinical",
                      "sites, and adherence exceeded 91 percent."), 8)
-  expect_true(is.na(readgpt:::column_gutter(prose)))
+  expect_true(is.na(harnessr:::column_gutter(prose)))
   # Justified text puts double spaces here and there, but not in one place.
   justified <- vapply(1:8, function(i) {
     words <- strsplit(prose[1], " ")[[1]]
     words[i + 2L] <- paste0(words[i + 2L], " ")
     paste(words, collapse = " ")
   }, character(1))
-  expect_true(is.na(readgpt:::column_gutter(justified)))
-  expect_true(is.na(readgpt:::column_gutter(c("Short.", "Lines.", "Only.", "Here.", "Now."))))
+  expect_true(is.na(harnessr:::column_gutter(justified)))
+  expect_true(is.na(harnessr:::column_gutter(c("Short.", "Lines.", "Only.", "Here.", "Now."))))
   # Lines that line up are not a gutter when most lines run straight through
   # the same place...
   mostly_prose <- c(prose, prose, prose[1:3], two_column_lines(6L))
-  expect_true(is.na(readgpt:::column_gutter(mostly_prose)))
+  expect_true(is.na(harnessr:::column_gutter(mostly_prose)))
   # ...but a full-width abstract above two columns does not hide them.
   first_page <- c(prose, two_column_lines(10L))
-  expect_false(is.na(readgpt:::column_gutter(first_page)))
+  expect_false(is.na(harnessr:::column_gutter(first_page)))
   # And a page that is mostly a table is still read row by row.
   table_page <- c(prose[1:2], vapply(1:12, function(i)
     pad(sprintf("Site %d, clinic %s", i, LETTERS[i]), sprintf("%d participants", 40 + i)),
     character(1)))
-  expect_true(is.na(readgpt:::column_gutter(table_page)))
+  expect_true(is.na(harnessr:::column_gutter(table_page)))
 })
 
 test_that("a two-column page is read left column first, in bands around full-width lines", {
@@ -53,8 +53,8 @@ test_that("a two-column page is read left column first, in bands around full-wid
              two_column_lines(3L),
              "Figure 1. A caption set across both columns of the page, full width.",
              two_column_lines(2L, page = 2L))
-  g <- readgpt:::column_gutter(lines)
-  out <- trimws(readgpt:::reorder_columns(lines, g))
+  g <- harnessr:::column_gutter(lines)
+  out <- trimws(harnessr:::reorder_columns(lines, g))
   out <- out[nzchar(out)]
   expect_identical(substr(out, 1, 9), c(
     "A Title T",
@@ -70,7 +70,7 @@ test_that("running heads and feet are dropped from page edges, and only there", 
                         sprintf("More body text for page %d.", i),
                         sprintf("Page %d of 5", i))
   pages <- lapply(1:5, page)
-  out <- readgpt:::drop_running_lines(pages)
+  out <- harnessr:::drop_running_lines(pages)
   flat <- unlist(out)
   expect_false(any(grepl("Journal of Learning Studies", flat)))
   expect_false(any(grepl("^Page [0-9] of 5$", flat)))
@@ -78,21 +78,21 @@ test_that("running heads and feet are dropped from page edges, and only there", 
   expect_identical(sum(flat == "Repeated line in the body."), 5L)
   expect_identical(sum(grepl("^Body text of page", flat)), 5L)
   # Too few pages to tell a running head from a coincidence.
-  expect_identical(readgpt:::drop_running_lines(pages[1:2]), pages[1:2])
+  expect_identical(harnessr:::drop_running_lines(pages[1:2]), pages[1:2])
   # A long line at the foot of every page is content, even when its numbers
   # are the only thing that changes.
   long <- lapply(1:5, function(i) c(sprintf("Opening sentence of page %d, which is content.", i),
     sprintf("Total assets at the end of quarter %d were %d thousand dollars across all sites.", i, i * 7)))
-  expect_identical(readgpt:::drop_running_lines(long), long)
+  expect_identical(harnessr:::drop_running_lines(long), long)
   # The same long line on every page is furniture: a notice, not content.
   notice <- "This report is confidential and intended only for the board; do not forward or copy it."
   noted <- lapply(1:5, function(i) c(sprintf("Opening sentence of page %d, which is content.", i),
                                      notice))
-  expect_false(notice %in% unlist(readgpt:::drop_running_lines(noted)))
+  expect_false(notice %in% unlist(harnessr:::drop_running_lines(noted)))
 })
 
 test_that("headings come from the bookmarks, or from a standard section name", {
-  m <- readgpt:::heading_matcher(c("1 Introduction", "Study Design and Setting"))
+  m <- harnessr:::heading_matcher(c("1 Introduction", "Study Design and Setting"))
   expect_identical(m("1. Introduction"), "1 Introduction")
   expect_identical(m("  study design and setting  "), "Study Design and Setting")
   expect_identical(m("2.1 Results"), "2.1 Results")
@@ -106,7 +106,7 @@ test_that("headings come from the bookmarks, or from a standard section name", {
 test_that("blocks carry the heading they fall under, across pages", {
   pages <- list(c("Introduction", "First paragraph.", "", "Second paragraph."),
                 c("Continued on page two.", "", "2. Methods", "How it was done."))
-  b <- readgpt:::pdf_page_blocks(pages, readgpt:::heading_matcher())
+  b <- harnessr:::pdf_page_blocks(pages, harnessr:::heading_matcher())
   expect_identical(b$kind, c("heading", "body", "body", "body", "heading", "body"))
   expect_identical(b$section, c("Introduction", "Introduction", "Introduction",
                                 "Introduction", "2. Methods", "2. Methods"))
@@ -118,7 +118,7 @@ test_that("the layout setting is kept out of a default spec, so keys do not move
   expect_identical(gr_ingest_spec(layout = "raw")$layout, "raw")
   expect_error(gr_ingest_spec(layout = "columns"))
   # Accepted as an override, like any other ingestion setting.
-  rec <- readgpt:::apply_overrides(readgpt:::as_recipe("fast"), list(layout = "raw"))
+  rec <- harnessr:::apply_overrides(harnessr:::as_recipe("fast"), list(layout = "raw"))
   expect_identical(rec$ingest$layout, "raw")
 })
 

@@ -13,9 +13,10 @@
 # them. Nothing here installs anything.
 
 .onLoad <- function(libname, pkgname) {
-  gr_state$seed_models <- stats::setNames(.gr_seed_models(),
+  hr_state$seed_models <- stats::setNames(.gr_seed_models(),
                                           vapply(.gr_seed_models(), `[[`, character(1), "id"))
-  gr_state$model_patterns <- .gr_seed_patterns()
+  hr_state$model_patterns <- .gr_seed_patterns()
+  register_doc_layer()
   register_builtin_extractors()
   register_builtin_cleaners()
   register_builtin_segmenters()
@@ -30,15 +31,15 @@
                     c("pdftools", "tesseract", "magick", "xml2"))
   if (length(missing)) {
     packageStartupMessage(sprintf(
-      "readgpt: optional packages not installed: %s. PDF, OCR and HTML ingestion need them; everything else works without them.",
+      "harnessr: optional packages not installed: %s. PDF, OCR and HTML ingestion need them; everything else works without them.",
       paste(missing, collapse = ", ")))
   }
 }
 
 # Development helper: source every R file in dependency order, for working on a
 # checkout without installing. Deliberately NOT exported -- a user who has the
-# package installed should use `library(readgpt)`, and a developer working from
-# a checkout can reach this as `readgpt:::gr_load_all()`. It exists because the
+# package installed should use `library(harnessr)`, and a developer working from
+# a checkout can reach this as `harnessr:::gr_load_all()`. It exists because the
 # v1 repository was a set of `source()`d scripts with hard-coded `../R/...`
 # paths that resolved from exactly one working directory.
 #' @noRd
@@ -48,6 +49,6 @@ gr_load_all <- function(dir = "R") {
   files <- c(file.path(dir, order_first[file.exists(file.path(dir, order_first))]),
              setdiff(files, file.path(dir, order_first)))
   for (f in files) source(f, local = FALSE)
-  .onLoad(NULL, "readgpt")
+  .onLoad(NULL, "harnessr")
   invisible(files)
 }

@@ -1,0 +1,101 @@
+name: pr-checks
+
+# Checks on what a pull request changes, as opposed to whether the package
+# works. Each one is a step of dev/ci/pr-checks.R, which runs the same way
+# locally against any two refs:
+#
+#   Rscript dev/ci/pr-checks.R tests origin/main HEAD
+#
+# tests  A pull request may not drop an expect_*() call from tests/ or add a
+#        skip(), skip_if*() or skip_on_*() call without the label
+#        tests-reviewed. An expect_ line that is edited counts as removed.
+# deps   A pull request may not add a package to Depends, Imports, LinkingTo
+#        or Suggests without the label deps-reviewed, and every package it
+#        adds must be on CRAN.
+# lint   lintr, with the repository's .lintr, on the files under R/ that the
+#        pull request changes.
+#
+# Adding or removing a label reruns the checks, so a label added after review
+# turns a red check green without a new push.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+  PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+
+jobs:
+  tests:
+    name: no weakened tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The diff is taken from the merge base, which needs the history.
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Check removed expectations and added skips
+        run: Rscript dev/ci/pr-checks.R tests "$BASE_SHA" "$HEAD_SHA"
+        shell: bash
+
+  deps:
+    name: no unreviewed dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Check packages added to DESCRIPTION
+        run: Rscript dev/ci/pr-checks.R deps "$BASE_SHA" "$HEAD_SHA"
+        shell: bash
+
+  lint:
+    name: lint changed R files
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          # Only lintr. None of the linters in .lintr need the package itself
+          # installed, so its dependencies are not. lintr is pinned to the
+          # version R/ was checked against with zero lints; newer releases
+          # widen some linters, so raise it on purpose and fix what it finds.
+          packages: lintr@3.1.1
+
+      - name: Lint changed files under R/
+        run: Rscript dev/ci/pr-checks.R lint "$BASE_SHA" "$HEAD_SHA"
+        shell: bash

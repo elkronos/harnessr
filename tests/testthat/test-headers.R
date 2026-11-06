@@ -12,7 +12,7 @@
 # what a header is allowed to contain, and what is never printed.
 
 test_that("normalise_headers() takes a vector or a list, and trims", {
-  nh <- readgpt:::normalise_headers
+  nh <- harnessr:::normalise_headers
 
   h <- nh(c("api-key" = "abc", "X-Team" = "ml"))
   expect_identical(h, c("api-key" = "abc", "X-Team" = "ml"))
@@ -30,13 +30,13 @@ test_that("normalise_headers() takes a vector or a list, and trims", {
 })
 
 test_that("normalise_headers() keeps NA, which is the suppression marker", {
-  h <- readgpt:::normalise_headers(c("api-key" = "abc", Authorization = NA))
+  h <- harnessr:::normalise_headers(c("api-key" = "abc", Authorization = NA))
   expect_true(is.na(h[["Authorization"]]))
   expect_identical(h[["api-key"]], "abc")
 })
 
 test_that("normalise_headers() refuses what is not a header", {
-  nh <- readgpt:::normalise_headers
+  nh <- harnessr:::normalise_headers
 
   expect_error(nh(c("abc")), class = "gr_header_error")
   expect_error(nh(c("api-key" = "abc", "def")), class = "gr_header_error")
@@ -63,17 +63,17 @@ test_that("an empty header value is refused, because curl would drop it", {
   # likeliest way to get here, and curl sends no header at all for an empty
   # value -- so the request leaves without the credential and returns a 401
   # that looks like a wrong key rather than a missing one.
-  err <- tryCatch(readgpt:::normalise_headers(c("api-key" = Sys.getenv("NOT_SET_ANYWHERE"))),
+  err <- tryCatch(harnessr:::normalise_headers(c("api-key" = Sys.getenv("NOT_SET_ANYWHERE"))),
                   gr_header_error = function(e) e)
   expect_s3_class(err, "gr_header_error")
   expect_match(conditionMessage(err), "Sys.getenv")
 
   # Whitespace only is the same thing after trimming.
-  expect_error(readgpt:::normalise_headers(c("api-key" = "   ")),
+  expect_error(harnessr:::normalise_headers(c("api-key" = "   ")),
                class = "gr_header_error")
 
   # NA is how you suppress a header on purpose, and stays legal.
-  expect_silent(readgpt:::normalise_headers(c("api-key" = NA)))
+  expect_silent(harnessr:::normalise_headers(c("api-key" = NA)))
 })
 
 test_that("a control character in a header value is refused, and not echoed", {
@@ -81,7 +81,7 @@ test_that("a control character in a header value is refused, and not echoed", {
   # and starts one the caller never wrote. These values come from environment
   # variables and config files, which is exactly where a stray line ending
   # comes from.
-  err <- tryCatch(readgpt:::normalise_headers(c("api-key" = "secret\r\nX-Evil: 1")),
+  err <- tryCatch(harnessr:::normalise_headers(c("api-key" = "secret\r\nX-Evil: 1")),
                   gr_header_error = function(e) e)
   expect_s3_class(err, "gr_header_error")
   expect_match(conditionMessage(err), "api-key")
@@ -89,7 +89,7 @@ test_that("a control character in a header value is refused, and not echoed", {
   # message is the one place a credential is guaranteed to be printed.
   expect_false(grepl("secret", conditionMessage(err), fixed = TRUE))
 
-  expect_error(readgpt:::normalise_headers(c("api-key" = "a\tb")),
+  expect_error(harnessr:::normalise_headers(c("api-key" = "a\tb")),
                class = "gr_header_error")
 })
 
@@ -97,7 +97,7 @@ test_that("duplicate header names collapse case-insensitively, last wins", {
   # HTTP field names are case-insensitive but curl is not: given both
   # `Authorization` and `authorization` it sends two headers, and which one the
   # gateway honours is its business rather than ours.
-  h <- readgpt:::normalise_headers(c("X-Key" = "first", "x-key" = "second"))
+  h <- harnessr:::normalise_headers(c("X-Key" = "first", "x-key" = "second"))
   expect_length(h, 1L)
   expect_identical(unname(h), "second")
   expect_identical(names(h), "x-key")
@@ -105,14 +105,14 @@ test_that("duplicate header names collapse case-insensitively, last wins", {
 
 test_that("request_headers() sends a bearer when only a key is set", {
   cl <- gr_client(api_key = "sk-test", base_url = "https://x.invalid")
-  h <- readgpt:::request_headers(cl)
+  h <- harnessr:::request_headers(cl)
   expect_identical(h, c(Authorization = "Bearer sk-test"))
 })
 
 test_that("request_headers() keeps the bearer alongside extra headers", {
   cl <- gr_client(api_key = "sk-test", base_url = "https://x.invalid",
                   headers = c("X-Correlation-Id" = "run-7", "X-Cost-Centre" = "1234"))
-  h <- readgpt:::request_headers(cl)
+  h <- harnessr:::request_headers(cl)
   expect_identical(h[["Authorization"]], "Bearer sk-test")
   expect_identical(h[["X-Correlation-Id"]], "run-7")
   expect_identical(h[["X-Cost-Centre"]], "1234")
@@ -122,7 +122,7 @@ test_that("request_headers() keeps the bearer alongside extra headers", {
 test_that("a named Authorization replaces the automatic one, whatever its case", {
   cl <- gr_client(api_key = "sk-test", base_url = "https://x.invalid",
                   headers = c(authorization = "Token other"))
-  h <- readgpt:::request_headers(cl)
+  h <- harnessr:::request_headers(cl)
   # Exactly one authorization header, and it is the caller's. Two would leave
   # the gateway to pick, and it would pick the one being replaced.
   expect_length(h, 1L)
@@ -132,18 +132,18 @@ test_that("a named Authorization replaces the automatic one, whatever its case",
 
 test_that("headers make the API key optional", {
   withr::local_envvar(OPENAI_API_KEY = NA)
-  withr::local_options(readgpt.api_key = NULL)
+  withr::local_options(harnessr.api_key = NULL)
 
   # A gateway authenticated by `api-key` needs no bearer, and nothing here can
   # tell which of a stranger's headers is the credential.
   cl <- gr_client(base_url = "https://gw.invalid", headers = c("api-key" = "abc"))
-  h <- readgpt:::request_headers(cl)
+  h <- harnessr:::request_headers(cl)
   expect_identical(h, c("api-key" = "abc"))
   expect_false("Authorization" %in% names(h))
 
   # No key and no headers is still the fast local failure it always was.
   bare <- gr_client(base_url = "https://gw.invalid")
-  expect_null(readgpt:::request_headers(bare))
+  expect_null(harnessr:::request_headers(bare))
 })
 
 test_that("NA suppresses the bearer even when a key would resolve", {
@@ -152,7 +152,7 @@ test_that("NA suppresses the bearer even when a key would resolve", {
   withr::local_envvar(OPENAI_API_KEY = "sk-personal")
   cl <- gr_client(base_url = "https://gw.invalid",
                   headers = c("api-key" = "corp", Authorization = NA))
-  h <- readgpt:::request_headers(cl)
+  h <- harnessr:::request_headers(cl)
   expect_identical(h, c("api-key" = "corp"))
   expect_false(any(grepl("sk-personal", h, fixed = TRUE)))
 })
@@ -208,7 +208,7 @@ test_that("http_call() puts the client's headers on the request", {
                   headers = c("api-key" = "corp", "X-Correlation-Id" = "run-7"))
   seen <- capture_post_headers()
 
-  res <- readgpt:::http_call(cl, "https://gw.invalid/chat/completions", list())
+  res <- harnessr:::http_call(cl, "https://gw.invalid/chat/completions", list())
   expect_false(res$ok)                       # no network; that is not the point
 
   expect_identical(seen$headers[["api-key"]], "corp")
@@ -219,12 +219,12 @@ test_that("http_call() puts the client's headers on the request", {
 
 test_that("http_call() reaches the network on headers alone, with no key", {
   withr::local_envvar(OPENAI_API_KEY = NA)
-  withr::local_options(readgpt.api_key = NULL)
+  withr::local_options(harnessr.api_key = NULL)
   cl <- gr_client(base_url = "https://gw.invalid", api = "chat", max_retries = 0L,
                   headers = c("api-key" = "corp"))
   seen <- capture_post_headers()
 
-  res <- readgpt:::http_call(cl, "https://gw.invalid/chat/completions", list())
+  res <- harnessr:::http_call(cl, "https://gw.invalid/chat/completions", list())
   # It got as far as the request. Before `headers`, this returned "No API key
   # available." without one.
   expect_identical(seen$url, "https://gw.invalid/chat/completions")
@@ -235,13 +235,13 @@ test_that("http_call() reaches the network on headers alone, with no key", {
 
 test_that("http_call() stops locally when there is no auth at all", {
   withr::local_envvar(OPENAI_API_KEY = NA)
-  withr::local_options(readgpt.api_key = NULL)
+  withr::local_options(harnessr.api_key = NULL)
   cl <- gr_client(base_url = "https://gw.invalid", max_retries = 0L)
   seen <- capture_post_headers()
 
   # An error, not a failed result: every request would fail the same way, and a
   # failed result per call turned a missing key into "NOT_IN_DOCUMENT".
-  expect_error(readgpt:::http_call(cl, "https://gw.invalid/chat/completions", list()),
+  expect_error(harnessr:::http_call(cl, "https://gw.invalid/chat/completions", list()),
                class = "gr_auth_error", regexp = "OPENAI_API_KEY")
   expect_null(seen$url)                      # not one request spent
 })
@@ -251,7 +251,7 @@ test_that("the embeddings endpoint uses the same headers as the chat endpoint", 
   # were two copies of the same three lines, which is how one of them ends up a
   # release behind the other.
   withr::local_envvar(OPENAI_API_KEY = NA)
-  withr::local_options(readgpt.api_key = NULL)
+  withr::local_options(harnessr.api_key = NULL)
   # No retries: an embeddings request that fails in transport is retried like
   # a model call now (review6 tokenize-embed-04), and this one always fails.
   cl <- gr_client(base_url = "https://gw.invalid", headers = c("api-key" = "corp"),
@@ -259,7 +259,7 @@ test_that("the embeddings endpoint uses the same headers as the chat endpoint", 
   seen <- capture_post_headers()
 
   expect_error(
-    readgpt:::embed_api(c("one", "two"),
+    harnessr:::embed_api(c("one", "two"),
                         list(client = cl, model = "text-embedding-3-small",
                              cache = FALSE, embedder = "api", batch_size = 8L)),
     class = "gr_embed_error")
@@ -297,6 +297,6 @@ test_that("headers are not part of the cache key", {
   msgs <- list(list(role = "user", content = "hello"))
   args <- list(msgs, "gpt-4o", 64L, NULL, NULL, "result", list())
 
-  expect_identical(do.call(readgpt:::cache_key, c(list(a), args)),
-                   do.call(readgpt:::cache_key, c(list(b), args)))
+  expect_identical(do.call(harnessr:::cache_key, c(list(a), args)),
+                   do.call(harnessr:::cache_key, c(list(b), args)))
 })

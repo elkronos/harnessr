@@ -59,10 +59,12 @@ test_that("a screening call that failed leaves no decision, and the run says so"
   expect_true(a$partial)
   expect_match(paste(partial_reasons(a), collapse = "; "), "HTTP 500")
 
-  # The flow diagram counts them as unread, not as the model deferring.
+  # The flow diagram counts them as failed calls, not as the model deferring,
+  # and apart from documents that never reached the model.
   fl <- gr_flow(s)
   expect_identical(fl$n[fl$stage == "  unclear"], 0L)
-  expect_identical(fl$n[fl$stage == "  could not be read"], 2L)
+  expect_identical(fl$n[fl$stage == "  screening call failed"], 2L)
+  expect_identical(fl$n[fl$stage == "  could not be read"], 0L)
   expect_output(print(s), "could not be read and have NO decision")
 })
 
@@ -77,14 +79,23 @@ test_that("a failed screening call is not a model deferral in a calibration", {
   expect_error(quiet(gr_calibrate(s, ref, of = "all")), class = "gr_bad_reference")
 })
 
-test_that("a real 'unclear' is still a decision, and a new label still reads as one", {
+test_that("a real 'unclear' is still a decision, and a label outside the schema is not", {
   d <- review_docs()
   cl <- gr_mock_client(function(m, p) {
-    '{"decision":"maybe","reason":"Hard to say.","criterion":null,"quote":null}'
+    '{"decision":"unclear","reason":"Hard to say.","criterion":null,"quote":null}'
   })
   s <- quiet(gr_screen(d, question = "Q?", include = "A randomised trial", client = cl))
   expect_identical(s$table$decision, c("unclear", "unclear"))
   expect_identical(s$table$status, c("ok", "ok"))
+  # "maybe" used to be read as "unclear". It is not one of the schema's
+  # values, so the reply is refused: no decision, and the call counts as
+  # failed rather than as the model deferring to a person.
+  cl <- gr_mock_client(function(m, p) {
+    '{"decision":"maybe","reason":"Hard to say.","criterion":null,"quote":null}'
+  })
+  s <- quiet(gr_screen(d, question = "Q?", include = "A randomised trial", client = cl))
+  expect_true(all(is.na(s$table$decision)))
+  expect_identical(s$table$status, c("failed", "failed"))
 })
 
 test_that("a screening quote is checked against source_text, not a model-written header", {
@@ -242,6 +253,8 @@ test_that("the store key changes with extra_body, the embedding model and the em
 test_that("a rerun with a different extra_body is read again, not restored", {
   local_registries()
   local_clean_cache()
+  # The backend's model has no price, so the run has to allow that.
+  gr_options(allow_unpriced = TRUE)
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("Revenue in 2023 was 12 million dollars.", f)
   st <- withr::local_tempdir()

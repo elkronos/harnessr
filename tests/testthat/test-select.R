@@ -7,8 +7,8 @@
 # only the arrangement and never the selection -- if it changed the set, it
 # would be a retrieval feature wearing a formatting feature's name.
 
-mmr <- function(...) readgpt:::mmr_select(...)
-arr <- function(...) readgpt:::arrange_context(...)
+mmr <- function(...) harnessr:::mmr_select(...)
+arr <- function(...) harnessr:::arrange_context(...)
 
 # Four unit vectors: the first three nearly parallel, the fourth orthogonal.
 redundant_emb <- function() {

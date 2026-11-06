@@ -134,7 +134,7 @@ test_that("a valid entry still reads back as a fresh gr_result", {
 })
 
 test_that("is_plain_data() accepts data and refuses code and references", {
-  plain <- readgpt:::is_plain_data
+  plain <- harnessr:::is_plain_data
   expect_true(plain(list(a = 1L, b = "x", c = list(d = NULL, e = c(TRUE, NA)))))
   expect_true(plain(data.frame(x = 1:2, y = c("a", "b"))))
   expect_true(plain(Sys.time()))
@@ -152,7 +152,9 @@ test_that("is_plain_data() accepts data and refuses code and references", {
 test_that("a run whose backend reports its own model replays", {
   local_registries()
   local_clean_cache()
-  doc <- readgpt_example()
+  # The backend's model has no price, so the run has to allow that.
+  gr_options(allow_unpriced = TRUE)
+  doc <- gr_example()
   q <- "What was revenue?"
   bk <- gr_backend_client(function(messages, params) {
     gr_result(TRUE, text = "Revenue was 45.2 million dollars.", model = "provider-model-2026-01")
@@ -197,7 +199,11 @@ test_that("an ellmer run, the documented example, replays", {
     self$get_tokens <- function() data.frame(input = 5, output = 3)
     self
   }
-  doc <- readgpt_example()
+  # As the documented example now does: a spending limit holds only for a
+  # model with a registered price, and the chat bills as this one.
+  gr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 8000,
+                    input_usd = 3, output_usd = 15)
+  doc <- gr_example()
   q <- "What was revenue?"
   for (recipe in c("fast", "thorough")) {
     ans <- quiet(answer_document(doc, q, recipe, client = gr_ellmer_client(make_chat())))
@@ -212,11 +218,11 @@ test_that("a trace without params is still keyed on the model it recorded", {
   local_registries()
   local_clean_cache()
   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  ans <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = cl))
+  ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl))
   parsed <- jsonlite::fromJSON(as.character(as_json(ans$trace)), simplifyVector = FALSE)
   parsed$steps <- lapply(parsed$steps, function(s) { s$params <- NULL; s })
   rp <- gr_replay_client(parsed)
-  again <- quiet(answer_document(readgpt_example(), "What was revenue?", "fast", client = rp))
+  again <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = rp))
   expect_identical(again$answer, ans$answer)
   expect_identical(rp$stats()$misses, 0L)
 })
@@ -226,7 +232,7 @@ test_that("a trace without params is still keyed on the model it recorded", {
 # ---------------------------------------------------------------------------
 
 test_that("lexical terms keep letters outside ASCII, and ASCII text is unchanged", {
-  terms <- readgpt:::lexical_terms
+  terms <- harnessr:::lexical_terms
   expect_identical(terms("Müller über Größe", 2L), c("müller", "über", "größe"))
   expect_identical(terms("Выручка компании выросла.", 2L), c("выручка", "компании", "выросла"))
   expect_identical(terms("हिन्दी भाषा", 2L), c("हिन्दी", "भाषा"))   # combining marks stay in the word
@@ -236,7 +242,7 @@ test_that("lexical terms keep letters outside ASCII, and ASCII text is unchanged
 
   # For ASCII the new normaliser is exactly the old one.
   x <- "The CAT, sat_on the mat! 3.14 x -- e-mail (twice) twice."
-  old <- tolower(readgpt:::words_of(gsub("[^[:alnum:][:space:]]", " ", x, perl = TRUE)))
+  old <- tolower(harnessr:::words_of(gsub("[^[:alnum:][:space:]]", " ", x, perl = TRUE)))
   expect_identical(terms(x, 2L), old[nchar(old) > 1L])
   expect_identical(terms(x, 3L), old[nchar(old) > 2L])
 })
@@ -245,16 +251,16 @@ test_that("BM25 and lexical vectors score non-Latin text", {
   ru <- c("Выручка компании выросла до пяти миллиардов рублей.",
           "Компания открыла новый завод в Казани.",
           "Совет директоров утвердил дивиденды.")
-  s <- readgpt:::bm25_scores(ru, "выручка компании")
+  s <- harnessr:::bm25_scores(ru, "выручка компании")
   expect_gt(s[1], 0)
   expect_identical(which.max(s), 1L)
-  expect_equal(rowSums(readgpt:::lexical_embed(ru)^2), c(1, 1, 1))
+  expect_equal(rowSums(harnessr:::lexical_embed(ru)^2), c(1, 1, 1))
 
   zh <- c("公司的收入增长了百分之十", "公司在上海开了新工厂", "董事会批准了股息")
-  s <- readgpt:::bm25_scores(zh, "收入增长")
+  s <- harnessr:::bm25_scores(zh, "收入增长")
   expect_identical(which.max(s), 1L)
   expect_gt(s[1], 0)
-  expect_equal(rowSums(readgpt:::lexical_embed(zh)^2), c(1, 1, 1))
+  expect_equal(rowSums(harnessr:::lexical_embed(zh)^2), c(1, 1, 1))
 })
 
 test_that("rerank on a Russian document scores the chunk that holds the answer", {
@@ -350,7 +356,7 @@ test_that("each embeddings request is recorded in the trace and priced", {
   expect_equal(cost$usd, 300 / 1e6)
   expect_identical(as.data.frame(tr)$stage, c("embed.request", "embed.request"))
   # Not model calls: a replay has nothing of them to answer.
-  expect_length(readgpt:::replay_steps(tr), 0L)
+  expect_length(harnessr:::replay_steps(tr), 0L)
 })
 
 test_that("max_calls = 0 sends no embeddings request, and says so", {
