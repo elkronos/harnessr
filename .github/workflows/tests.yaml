@@ -93,15 +93,18 @@ jobs:
             gr_options(verbose = FALSE, max_cost_usd = NULL,
                        api_base = Sys.getenv("GPTREAD_API_BASE"), max_retries = 0L)
             # The plain answer every block expects, except that the claims-layer
-            # calls are answered in the shape they ask for -- so the review
-            # walkthrough runs offline, the way the quick start does.
+            # calls are answered in the shape they ask for, every required field
+            # included, since replies are checked against their schema. So the
+            # review walkthrough runs offline, the way the quick start does.
             reply <- function(m, p) {
               if (identical(p$schema_name, "claims"))
                 return(paste0("{\"claims\":[{\"claim\":\"Revenue was higher in the south.\",",
-                              "\"kind\":\"finding\",\"supported_by\":[1,2]}]}"))
+                              "\"kind\":\"finding\",\"supported_by\":[1,2],",
+                              "\"contradicted_by\":[],\"moderator\":null,\"scope\":null}]}"))
               if (identical(p$schema_name, "outline"))
                 return(paste0("{\"sections\":[{\"heading\":\"Findings\",",
-                              "\"brief\":\"How revenue compares\",\"claims\":[1]}]}"))
+                              "\"brief\":\"How revenue compares\",\"claims\":[1],",
+                              "\"rationale\":null}]}"))
               "Revenue was 45.2 million dollars."
             }
             ran <- 0; skipped <- 0; failed <- character(0)

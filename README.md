@@ -694,8 +694,8 @@ cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 run <- answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                        model = "gpt-5.6-terra")
 gr_trace_cost(run$trace)
-#>           model calls paid_calls paid_in paid_out     usd
-#> 1 gpt-5.6-terra     1          1     607       13 0.00137
+#>           model calls paid_calls paid_in paid_out     usd paid_reasoning
+#> 1 gpt-5.6-terra     1          1     607       13 0.00137              0
 ```
 
 This is why the token totals on `gr_trace_summary()` are not a bill. They say
