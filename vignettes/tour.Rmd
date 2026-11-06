@@ -591,7 +591,10 @@ Everything above used a mock. In production you need a client:
 # An OpenAI-compatible endpoint:
 cl <- gr_client(model = "gpt-4o")          # key from OPENAI_API_KEY
 
-# Or any provider ellmer speaks to, such as Anthropic, Google, Bedrock or Ollama:
+# Or any provider ellmer speaks to, such as Anthropic, Google, Bedrock or Ollama.
+# The chat is billed as its own model: register that model's prices with
+# gr_register_model() so the spending limit can hold, or allow it to run
+# unpriced with gr_options(allow_unpriced = TRUE).
 cl <- gr_ellmer_client(ellmer::chat_anthropic())
 
 # Or anything at all:

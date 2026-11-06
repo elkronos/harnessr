@@ -201,12 +201,22 @@ covers roughly twenty providers including local models through Ollama:
 ```r
 library(ellmer)
 
+# A spending limit can hold only for a model with a registered price, and a
+# chat is billed as the model it was built with. Register that model at your
+# provider's current prices, in US dollars per million tokens:
+gr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 64000,
+                  input_usd = 3, output_usd = 15)
 cl <- gr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
 answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
 
-# Or locally, for nothing:
+# Or locally, for nothing. A local model has no price to register, so let it
+# run unpriced:
+gr_options(allow_unpriced = TRUE)
 gr_ellmer_client(chat_ollama(model = "llama3.1"))
 ```
+
+Without a registered price, a run under `max_cost_usd` (on by default) stops
+before its first request with an `hr_unpriced_model` error that says so.
 
 Two things do not carry over, both by ellmer's design rather than by omission.
 Sampling parameters belong to the chat object, so a `temperature` in a read spec

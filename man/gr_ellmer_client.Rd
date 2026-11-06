@@ -96,11 +96,16 @@ session.
 \dontrun{
 library(ellmer)
 
-# Any provider ellmer speaks to, with any reading strategy here.
+# Any provider ellmer speaks to, with any reading strategy here. The chat
+# is billed as its own model, which needs a registered price for a
+# spending limit to hold; use your provider's current prices.
+gr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 64000,
+                  input_usd = 3, output_usd = 15)
 cl <- gr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
 ans <- answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
 
-# Locally, for nothing:
+# Locally, for nothing. A local model has no price, so let it run unpriced:
+gr_options(allow_unpriced = TRUE)
 local <- gr_ellmer_client(chat_ollama(model = "llama3.1"))
 gr_compare("report.pdf", "What was revenue?",
            c("fast", "thorough"), client = local)$summary

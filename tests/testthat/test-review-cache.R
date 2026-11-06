@@ -199,6 +199,10 @@ test_that("an ellmer run, the documented example, replays", {
     self$get_tokens <- function() data.frame(input = 5, output = 3)
     self
   }
+  # As the documented example now does: a spending limit holds only for a
+  # model with a registered price, and the chat bills as this one.
+  gr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 8000,
+                    input_usd = 3, output_usd = 15)
   doc <- gr_example()
   q <- "What was revenue?"
   for (recipe in c("fast", "thorough")) {
