@@ -37,10 +37,13 @@
 <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
+    <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
+    <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Overview</h6></li>
-    <li><a class="dropdown-item" href="../articles/tour.html">A tour of harnessr</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -86,9 +89,9 @@ so you can follow along for free.</p>
 </h2>
 <p><strong>The model runs somewhere else.</strong> A large language
 model (an <em>LLM</em>) such as GPT is a program run by a
-<em>provider</em>: OpenAI, Anthropic, Google, or a model on your own
-computer. harnessr sends it text over the internet and reads the reply.
-Commercial providers charge for each request.</p>
+<em>provider</em>: OpenAI, Google, or a model on your own computer.
+harnessr sends it text over the internet and reads the reply. Commercial
+providers charge for each request.</p>
 <p><strong>Text is measured in tokens.</strong> Models do not read
 characters or words; they read <em>tokens</em>, pieces of words. In
 English a token is roughly four characters, so a page of text is several
@@ -120,8 +123,9 @@ it.</li>
 chunks. It can take all of them in one request, each one separately,
 only the most relevant few, and so on.</li>
 </ol>
-<p>A fourth choice, which model answers, is independent of all
-three.</p>
+<p>A fourth choice, which model answers, is independent of all three.
+<code><a href="../articles/ingest.html">vignette("ingest")</a></code>, <code><a href="../articles/segment.html">vignette("segment")</a></code> and
+<code><a href="../articles/readers.html">vignette("readers")</a></code> cover the three steps in depth.</p>
 <p><strong>Models can make things up.</strong> A model may state
 something the document never says, and it can do so fluently. harnessr
 cannot prevent that. It records which text each answer rests on, checks
@@ -162,7 +166,8 @@ you use:</p>
 </tr>
 <tr class="even">
 <td>read Word documents and web pages</td>
-<td><code>xml2</code></td>
+<td>
+<code>xml2</code> (or <code>readtext</code>, for Word only)</td>
 </tr>
 <tr class="odd">
 <td>read scanned pages and images (OCR)</td>
@@ -215,8 +220,20 @@ explanation if it cannot:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_api_key.html">gr_api_key</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>If the key is missing, a run stops before it reads your document and
 gives the same explanation.</p>
-<p>The README’s “Other providers” section covers Anthropic, Google,
-Azure, company gateways, and free models running on your own machine
+<p>Behind a company gateway, <code>gr_client(headers = )</code> sends
+the headers it wants, such as Azure’s <code>api-key</code>:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_client.html">gr_client</a></span><span class="op">(</span></span>
+<span>  base_url <span class="op">=</span> <span class="st">"https://gateway.example.com/openai/v1"</span>, api <span class="op">=</span> <span class="st">"chat"</span>,</span>
+<span>  headers  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"api-key"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"GATEWAY_KEY"</span><span class="op">)</span>, Authorization <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Naming a header replaces the automatic <code>Authorization</code>,
+and <code>NA</code> suppresses one, which keeps a personal
+<code>OPENAI_API_KEY</code> off the gateway. Naming any header makes the
+key optional, so a client that authenticates through headers needs no
+key. <code>gr_options(api_headers = )</code> sets the same headers for
+every client, the form for a project’s <code>.Rprofile</code>.</p>
+<p>The README’s “Connecting a model” section covers other providers
+through the ellmer package and free models running on your own machine
 through Ollama.</p>
 </div>
 <div class="section level2">
@@ -227,7 +244,7 @@ through Ollama.</p>
 whatever an R function returns, and it can be used anywhere a real model
 can. This one always gives the same answer, which is enough to see how
 everything else works:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <p><code>verbose = FALSE</code> stops harnessr printing a line for each
@@ -242,13 +259,13 @@ the settings it replaced, so they can be restored later with
 </h2>
 <p><code><a href="../reference/answer_document.html">answer_document()</a></code> does all three steps in one call.
 harnessr includes a short example document, an annual report:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue in 2024?"</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span>
 <span><span class="va">ans</span><span class="op">$</span><span class="va">answer</span></span>
 <span><span class="co">#&gt; [1] "Revenue was 45.2 million dollars."</span></span></code></pre></div>
 <p>With a real model you would leave out <code>client =</code> and point
 it at your own file:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="st">"annual-report.pdf"</span>, <span class="st">"What was revenue in 2024?"</span><span class="op">)</span></span></code></pre></div>
 <p>The first argument can be a path to a file, a web address, or the
 text itself. A missing file whose name ends in an extension harnessr
@@ -271,13 +288,13 @@ were left out because they did not fit, if a limit on requests or
 spending stopped the run early, if a reading strategy fell back to a
 simpler method, or if pages of the document never became text (a scanned
 page read without OCR, for example):</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ans</span><span class="op">$</span><span class="va">partial</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
 <p>When it is <code>TRUE</code>, printing the answer says why, and
 <code>ans$notes</code> holds the details. Here is a “model” that fails
 every request, as a network outage would:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">broken</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"no connection"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">bad</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue in 2024?"</span>,</span>
 <span>                       client <span class="op">=</span> <span class="va">broken</span><span class="op">)</span></span>
@@ -299,7 +316,7 @@ answer at all.</strong> Every reading strategy tells the model to reply
 with a fixed marker when the text it was shown does not answer the
 question, so “the document does not say” can be told apart from an
 answer:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/is_not_found.html">is_not_found</a></span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">answer</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span>
 <span><span class="fu"><a href="../reference/is_not_found.html">is_not_found</a></span><span class="op">(</span><span class="va">bad</span><span class="op">$</span><span class="va">answer</span><span class="op">)</span></span>
@@ -321,7 +338,7 @@ on.</strong> Each row is a chunk the answer drew on, with where it came
 from: the page, for a PDF, and the heading it sits under. This short
 report fitted in a single chunk spanning several headings, so there is
 one row and both are empty:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ans</span><span class="op">$</span><span class="va">evidence</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"chunk_id"</span>, <span class="st">"page"</span>, <span class="st">"section"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   chunk_id page section</span></span>
 <span><span class="co">#&gt; 1        1   NA      NA</span></span></code></pre></div>
@@ -337,7 +354,7 @@ every quotation against the text and marks the answer
 the cost, and each passage with its page and section, with the quotation
 or the answer’s numbers highlighted. In an interactive session it opens
 the page for you:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="st">"answer.html"</span>, answer <span class="op">=</span> <span class="va">ans</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -345,7 +362,7 @@ the page for you:</p>
 </h2>
 <p>Every result carries a <em>trace</em>: each request sent, each reply,
 and the tokens both used.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_trace_summary.html">gr_trace_summary</a></span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   calls tokens_in tokens_out</span></span>
 <span><span class="co">#&gt; 1     1       611         13</span></span>
@@ -355,7 +372,7 @@ and the tokens both used.</p>
 <p><code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> gives one row per request, with its cost
 and how long it took. The <code>prompt</code> and <code>reply</code>
 columns hold exactly what was sent and what came back:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stage"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span>, <span class="st">"usd"</span>, <span class="st">"seconds"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;          stage tokens_in tokens_out usd seconds</span></span>
 <span><span class="co">#&gt; 1 stuff.answer       611         13   0   0.001</span></span></code></pre></div>
@@ -363,22 +380,25 @@ columns hold exactly what was sent and what came back:</p>
 (<code><a href="../reference/gr_models.html">gr_models()</a></code>). A model it does not know is priced as
 unknown rather than free. You can also estimate before sending anything.
 Here is a 120,000-token document with a 4,000-token answer:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_estimate_cost.html">gr_estimate_cost</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span><span class="st">"model"</span><span class="op">)</span>, input_tokens <span class="op">=</span> <span class="fl">120000</span>, output_tokens <span class="op">=</span> <span class="fl">4000</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0.288</span></span></code></pre></div>
-<p>Two safety limits are on from the start. harnessr stops reading a
-document once it has spent $5 or made 400 requests. Each request is
-priced as it is made, so a run can pass $5 by the cost of one request.
-The answer is then marked partial, and printing it says which limit
-stopped the run. A run that could not finish inside the limits is
-refused before the first request: one that would need more than 400
-requests, or one whose chunks would cost more than $5 to send once:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<p>Two safety limits are on from the start: $5 and 400 requests per
+document. Each request is checked before it is sent, against what the
+run has spent plus the most that request could cost, and one that could
+pass a limit is not sent. A run stopped that way is marked partial, and
+printing it says which limit stopped it. A run that could not finish
+inside the limits is refused before the first request: one that would
+need more than 400 requests, or one whose chunks would cost more than $5
+to send once:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"max_cost_usd"</span>, <span class="st">"max_calls"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt; max_cost_usd    max_calls </span></span>
 <span><span class="co">#&gt;            5          400</span></span></code></pre></div>
 <p>Change them with <code><a href="../reference/gr_options.html">gr_options()</a></code>, for example
-<code>gr_options(max_cost_usd = 20)</code>.</p>
+<code>gr_options(max_cost_usd = 20)</code>.
+<code><a href="../articles/runs.html">vignette("runs")</a></code> covers the other limits, and how to cache
+a run so it is paid for once.</p>
 <p>The default models also <em>reason</em> before they answer: they work
 through the question in text you never see, and it is charged as text
 the model writes back. <code>effort</code> sets how much, for example
@@ -386,7 +406,7 @@ the model writes back. <code>effort</code> sets how much, for example
 sent and the provider’s default applies. harnessr sends it only to a
 model it knows reasons. The mock is not one, so here it is given the
 default model’s name to stand in for it:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">low</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue in 2024?"</span>,</span>
 <span>                       client <span class="op">=</span> <span class="va">cl</span>, model <span class="op">=</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span><span class="st">"model"</span><span class="op">)</span>, effort <span class="op">=</span> <span class="st">"low"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">low</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stage"</span>, <span class="st">"model"</span>, <span class="st">"effort"</span><span class="op">)</span><span class="op">]</span></span>
@@ -410,11 +430,11 @@ point.</p>
 up to 50,000 tokens (less on a model with a small context window), and
 <code>"thorough"</code>, one request per chunk, for anything longer.
 <code>ans$recipe</code> says which it picked:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ans</span><span class="op">$</span><span class="va">recipe</span></span>
 <span><span class="co">#&gt; [1] "fast"</span></span></code></pre></div>
 <p>The built-in recipes:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_recipes.html">gr_recipes</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_recipes.html">gr_recipes</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>recipe <span class="op">=</span> <span class="va">n</span>, chunks <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">segment</span><span class="op">$</span><span class="va">method</span>, reading <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">read</span><span class="op">$</span><span class="va">reader</span><span class="op">)</span></span>
@@ -472,7 +492,7 @@ up to 50,000 tokens (less on a model with a small context window), and
 </tbody>
 </table>
 <p>Pass the name as the third argument:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fast</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="st">"fast"</span>,</span>
 <span>                        client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span>
 <span><span class="va">fast</span><span class="op">$</span><span class="va">reader</span></span>
@@ -481,7 +501,7 @@ up to 50,000 tokens (less on a model with a small context window), and
 every chunk to the model separately, so a long document means many
 requests; <code>"fast"</code> and <code>"needle"</code> make one.
 <code><a href="../articles/readers.html">vignette("readers")</a></code> explains each reading strategy and when
-to use it.</p>
+to use it, and how to change a recipe’s settings or build your own.</p>
 </div>
 <div class="section level2">
 <h2 id="more-than-one-document">More than one document<a class="anchor" aria-label="anchor" href="#more-than-one-document"></a>
@@ -492,7 +512,7 @@ review, <code><a href="../reference/gr_screen.html">gr_screen()</a></code> decid
 criteria, <code><a href="../reference/gr_extract.html">gr_extract()</a></code> builds a table of the details you
 ask for, and <code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code> writes up the findings with
 each statement citing the study it came from.
-<code><a href="../articles/tour.html">vignette("tour")</a></code> shows each of these briefly.</p>
+<code><a href="../articles/review.html">vignette("review")</a></code> covers each of these.</p>
 </div>
 <div class="section level2">
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
@@ -502,12 +522,20 @@ each statement citing the study it came from.
 <code><a href="../articles/ingest.html">vignette("ingest")</a></code>: getting text out of PDFs, Word
 files, web pages and scans, and cleaning it.</li>
 <li>
-<code><a href="../articles/readers.html">vignette("readers")</a></code>: the reading strategies, what each
-costs, and how to choose.</li>
+<code><a href="../articles/segment.html">vignette("segment")</a></code>: cutting documents into chunks, and
+comparing chunkings before you spend anything.</li>
 <li>
-<code><a href="../articles/tour.html">vignette("tour")</a></code>: everything else, briefly. It covers
-chunking, caching and replaying runs, many documents, reviews, and
-extending the package.</li>
+<code><a href="../articles/readers.html">vignette("readers")</a></code>: the reading strategies and
+recipes, what each costs, and how to choose.</li>
+<li>
+<code><a href="../articles/review.html">vignette("review")</a></code>: many documents and literature
+reviews, from a search export to a written review.</li>
+<li>
+<code><a href="../articles/runs.html">vignette("runs")</a></code>: cost, limits, the trace, caching and
+replaying a run.</li>
+<li>
+<code><a href="../articles/extending.html">vignette("extending")</a></code>: adding your own extractors,
+cleaners, segmenters, readers and embedders.</li>
 <li>
 <code><a href="../reference/gr_options.html">?gr_options</a></code>: every setting, with its default.</li>
 </ul>

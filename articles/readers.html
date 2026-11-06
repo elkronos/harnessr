@@ -37,10 +37,13 @@
 <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
+    <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
+    <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Overview</h6></li>
-    <li><a class="dropdown-item" href="../articles/tour.html">A tour of harnessr</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -80,8 +83,9 @@ which harnessr calls <em>readers</em>. They decide most of the cost of a
 run and much of the quality of its answer. The same chunks read two ways
 can take one request or dozens, and can find a fact or miss it.</p>
 <p>This guide explains each reader in plain terms, shows how they differ
-on the same document, and gives a way to choose. New to harnessr? Start
-with <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>.</p>
+on the same document, and gives a way to choose.
+<code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduces the package and its
+ideas.</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
@@ -384,8 +388,8 @@ a second opinion.</p>
 </h3>
 <p><code>extract</code> fills in a table of details (a <em>schema</em>)
 from every chunk, and <code>screen</code> decides whether a document
-meets a set of criteria. Both belong to the literature-review workflow,
-shown in <code><a href="../articles/tour.html">vignette("tour")</a></code>.</p>
+meets a set of criteria. Both belong to the literature-review workflow
+in <code><a href="../articles/review.html">vignette("review")</a></code>.</p>
 </div>
 </div>
 <div class="section level2">
@@ -393,65 +397,78 @@ shown in <code><a href="../articles/tour.html">vignette("tour")</a></code>.</p>
 </h2>
 <table class="table">
 <colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
 </colgroup>
 <thead><tr class="header">
 <th>your situation</th>
 <th>reader</th>
+<th>recipe</th>
 <th>cost grows with document length?</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td>the document fits comfortably in one request</td>
 <td><code>stuff</code></td>
+<td><code>"fast"</code></td>
 <td>yes, though it is one request</td>
 </tr>
 <tr class="even">
 <td>one specific fact, long document</td>
 <td><code>retrieve</code></td>
+<td><code>"needle"</code></td>
 <td>no (embeddings aside)</td>
 </tr>
 <tr class="odd">
-<td>one fact, and word matching picks badly</td>
+<td>one fact, and word matching picks badly; scanned pages</td>
 <td><code>rerank</code></td>
+<td><code>"scanned"</code></td>
 <td>no, fixed by <code>rerank_candidates</code>
 </td>
 </tr>
 <tr class="even">
 <td>every mention must be found</td>
 <td><code>map_reduce</code></td>
+<td><code>"thorough"</code></td>
 <td>yes</td>
 </tr>
 <tr class="odd">
-<td>the answer must rest on exact quotations</td>
+<td>the answer must rest on exact quotations; a short document with
+every sentence weighed</td>
 <td><code>skim</code></td>
+<td><code>"precise"</code></td>
 <td>yes</td>
 </tr>
 <tr class="even">
 <td>an overview of a long document</td>
 <td><code>hierarchical</code></td>
+<td><code>"survey"</code></td>
 <td>yes</td>
 </tr>
 <tr class="odd">
 <td>an argument that develops through the text</td>
 <td><code>refine</code></td>
+<td><code>"narrative"</code></td>
 <td>yes</td>
 </tr>
 <tr class="even">
 <td>several facts combined from different places</td>
 <td><code>iterative</code></td>
+<td><code>"research"</code></td>
 <td>no, up to <code>max_rounds</code> (embeddings aside)</td>
 </tr>
 <tr class="odd">
 <td>long document, most sections irrelevant</td>
 <td><code>preview</code></td>
+<td>none</td>
 <td>depends on the plan</td>
 </tr>
 <tr class="even">
 <td>a wrong answer would be costly</td>
 <td><code>ensemble</code></td>
+<td><code>"consensus"</code></td>
 <td>as its members</td>
 </tr>
 </tbody>
@@ -459,6 +476,51 @@ shown in <code><a href="../articles/tour.html">vignette("tour")</a></code>.</p>
 <p>If unsure, run two or three on a document where you already know the
 answer and compare (see “Trying readers on your own documents”
 below).</p>
+</div>
+<div class="section level2">
+<h2 id="recipes">Recipes<a class="anchor" aria-label="anchor" href="#recipes"></a>
+</h2>
+<p>A <em>recipe</em> names an ingestion, a segmentation and a reader
+together, with their settings. The table above gives the recipe built on
+each reader. <code><a href="../reference/gr_recipes.html">gr_recipes()</a></code> returns them all:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_recipes.html">gr_recipes</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_recipes.html">gr_recipes</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>recipe <span class="op">=</span> <span class="va">n</span>, segment <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">segment</span><span class="op">$</span><span class="va">method</span>, reader <span class="op">=</span> <span class="va">r</span><span class="op">$</span><span class="va">read</span><span class="op">$</span><span class="va">reader</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       recipe    segment       reader</span></span>
+<span><span class="co">#&gt; 1       fast  paragraph        stuff</span></span>
+<span><span class="co">#&gt; 2    precise   sentence         skim</span></span>
+<span><span class="co">#&gt; 3     needle   semantic     retrieve</span></span>
+<span><span class="co">#&gt; 4   thorough  paragraph   map_reduce</span></span>
+<span><span class="co">#&gt; 5     survey structural hierarchical</span></span>
+<span><span class="co">#&gt; 6  narrative  paragraph       refine</span></span>
+<span><span class="co">#&gt; 7    scanned       page       rerank</span></span>
+<span><span class="co">#&gt; 8   research structural    iterative</span></span>
+<span><span class="co">#&gt; 9  consensus  recursive     ensemble</span></span>
+<span><span class="co">#&gt; 10    legacy  paragraph   map_reduce</span></span></code></pre></div>
+<p><code><a href="../reference/answer_document.html">answer_document()</a></code> defaults to <code>"auto"</code>, which
+reads a document of up to 50,000 tokens (less on a model with a small
+context window) with <code>"fast"</code>, in one request, and a longer
+one with <code>"thorough"</code>, one request per chunk. Both send every
+chunk. <code>ans$recipe</code> says which was used.
+<code><a href="../reference/gr_read_many.html">gr_read_many()</a></code>, <code><a href="../reference/gr_compare.html">gr_compare()</a></code> and the review
+functions take one fixed recipe and refuse <code>"auto"</code>.</p>
+<p>Printing a recipe shows every setting on all three steps:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_recipes.html">gr_recipes</a></span><span class="op">(</span><span class="st">"thorough"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;gr_recipe 'thorough'&gt;</span></span>
+<span><span class="co">#&gt;   ingest  : clean=standard ocr=auto</span></span>
+<span><span class="co">#&gt;   segment : paragraph (max 1200 tok, overlap 120, min 0)</span></span>
+<span><span class="co">#&gt;   read    : map_reduce [all|N+logN|tree] model=(the client's)</span></span></code></pre></div>
+<p>A recipe is a starting point. Any of its settings can be overridden
+by name in the call, as in
+<code>answer_document(file, question, "needle", top_k = 3)</code>, and
+<code><a href="../reference/gr_recipe.html">gr_recipe()</a></code> builds one from scratch (there is an example
+under “Trying readers on your own documents” below).</p>
+<p><code>"legacy"</code> reproduces the previous release’s behaviour
+(digit stripping, 3000-token paragraph chunks, no overlap), so you can
+measure the difference rather than assume it.</p>
 </div>
 <div class="section level2">
 <h2 id="choosing-and-placing-chunks">Choosing and placing chunks<a class="anchor" aria-label="anchor" href="#choosing-and-placing-chunks"></a>
@@ -482,7 +544,7 @@ Plain top-k picks the chunks most like the question; if three paragraphs
 say the same thing, all three get in. Below 1, <code>mmr</code> balances
 relevance against similarity to what is already picked (0.7 is a
 reasonable start):</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">repetitive</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>  <span class="st">"Revenue was 45.2 million dollars in fiscal 2024."</span>,</span>
 <span>  <span class="st">"Total revenue reached 45.2 million dollars in the 2024 fiscal year."</span>,</span>
@@ -509,7 +571,8 @@ chunks sit in the prompt. Models attend best to the beginning and end of
 a long prompt, so <code>"edges"</code> puts the best chunk first and the
 second-best last; <code>"document"</code> keeps the order they appear in
 the document, which reads more naturally when chunks are consecutive;
-the default <code>"relevance"</code> puts the best first.</p>
+the default <code>"relevance"</code> puts the best first. It never
+changes which chunks were chosen, only where they sit.</p>
 <p><strong><code>restate</code></strong> (every reader but
 <code>extract</code> and <code>screen</code>) repeats the question
 before the excerpts as well as after them, because a question asked
@@ -524,15 +587,16 @@ rather than assume.</p>
 <h2 id="embeddings">Embeddings<a class="anchor" aria-label="anchor" href="#embeddings"></a>
 </h2>
 <p><code>retrieve</code>, <code>iterative</code> and the
-<code>semantic</code> way of cutting chunks need <em>embeddings</em>. By
-default harnessr asks the model provider for them, which costs a little
-and needs an internet connection.
+<code>semantic</code> way of cutting chunks
+(<code><a href="../articles/segment.html">vignette("segment")</a></code>) need <em>embeddings</em>. By default
+harnessr asks the model provider for them, which costs a little and
+needs an internet connection.
 <code>gr_options(embedder = "lexical")</code> uses word-matching vectors
 computed locally instead: free, offline and exactly repeatable, but they
 match words rather than meaning, so “turnover” will not find “revenue”.
 Use lexical vectors for practice and testing, and real embeddings for
 real work.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_embedders.html">gr_embedders</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"deterministic"</span>, <span class="st">"description"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;      name deterministic</span></span>
 <span><span class="co">#&gt; 1     api         FALSE</span></span>
@@ -639,7 +703,7 @@ starts with it and a dot, so <code>map</code> covers
 <p><code><a href="../reference/gr_trace.html">gr_trace()</a></code> records every request a run makes. Here
 <code>map_reduce</code> reads the eight chunks at low effort and merges
 at high:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read_spec.html">gr_read_spec</a></span><span class="op">(</span><span class="st">"map_reduce"</span>, model <span class="op">=</span> <span class="st">"gpt-5.6-luna"</span>,</span>
 <span>                     effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>map <span class="op">=</span> <span class="st">"low"</span>, reduce <span class="op">=</span> <span class="st">"high"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_trace.html">gr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -656,7 +720,8 @@ stand-in’s own model nothing would be sent, and the trace would have no
 the whole output cap reasoning and come back cut off, so give it room
 with <code>max_answer_tokens</code>. <code><a href="../reference/gr_compare.html">gr_compare()</a></code> (below)
 counts recipes that differ only in effort as different, so you can test
-what a lower effort costs.</p>
+what a lower effort costs. <code><a href="../articles/runs.html">vignette("runs")</a></code> covers effort
+across a literature review and what each trace step records.</p>
 </div>
 <div class="section level2">
 <h2 id="asking-for-citations">Asking for citations<a class="anchor" aria-label="anchor" href="#asking-for-citations"></a>
@@ -664,7 +729,7 @@ what a lower effort costs.</p>
 <p>With <code>cite = TRUE</code> the model is asked to cite the chunks
 it used, as <code>[chunk 3]</code>. Each chunk id leads back to a page
 and section through <code>ans$evidence</code>:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">citing</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span></span>
 <span>  <span class="st">"Revenue was 45.2 million dollars [chunk 2]."</span><span class="op">)</span></span>
 <span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="va">citing</span>,</span>
@@ -722,17 +787,84 @@ reader:</p>
 construction. The passages <code>skim</code> collects are what the model
 <em>says</em> the document contains, so harnessr checks every one
 against the chunk it came from:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">skimmed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span>, <span class="st">"skim"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/gr_verify_evidence.html">gr_verify_evidence</a></span><span class="op">(</span><span class="va">skimmed</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"chunk_id"</span>, <span class="st">"verified"</span>, <span class="st">"match"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   chunk_id verified match</span></span>
 <span><span class="co">#&gt; 1        2     TRUE     1</span></span></code></pre></div>
-<p><code>match</code> is 1 for an exact quotation (ignoring spacing,
-capitals and quote marks). A quotation that is not in the document, such
-as a changed figure or an invented sentence, scores lower and is marked
-<code>verified = FALSE</code>.
-<code>ans$notes$unverified_evidence</code> counts such quotations, and
-any one of them makes the answer partial.</p>
+<p>Here is a model that invents one. The passage is fluent, on topic,
+attributed to a real chunk, and not in the document, so it cannot be
+caught by eye:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">memo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="st">"Revenue rose to 45.2 million dollars.\n\nHeadcount grew to 1,204."</span><span class="op">)</span>,</span>
+<span>                   <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"paragraph"</span>, max_tokens <span class="op">=</span> <span class="fl">40</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">inventing</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"You extract evidence"</span>, <span class="va">messages</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="st">"Revenue rose to 88.9 billion dollars on record demand."</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="st">"Revenue was 88.9 billion dollars."</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">invented</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">memo</span>, <span class="st">"What was revenue?"</span>, <span class="va">inventing</span>, <span class="st">"skim"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/gr_verify_evidence.html">gr_verify_evidence</a></span><span class="op">(</span><span class="va">invented</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"kind"</span>, <span class="st">"verified"</span>, <span class="st">"match"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;        kind verified match</span></span>
+<span><span class="co">#&gt; 1 extracted    FALSE 0.333</span></span>
+<span><span class="va">invented</span><span class="op">$</span><span class="va">partial</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p><code>match</code> is 1 for an exact quotation once spacing, quote
+marks, dashes and capitals are folded away, since a faithful quotation
+can differ in those. A changed figure is not folded away. Below 1,
+<code>match</code> is the fraction of the passage carried by its longest
+consecutive run in the source, so where a change falls matters as much
+as how much changed: a changed last word leaves a run of nine in ten and
+scores 0.9, while a changed word in the middle splits the passage and
+scores about 0.5. Below about 0.3 there is no quotation left, only
+shared vocabulary. A run is used rather than word overlap because
+overlap cannot tell a quotation from a paraphrase built from the same
+words. A passage that does not verify is marked
+<code>verified = FALSE</code> and counted in
+<code>ans$notes$unverified_evidence</code>, and any one of them makes
+the answer partial.</p>
+<p><code>gr_read_spec(verify = TRUE)</code> runs the same check inside
+<code><a href="../reference/gr_read.html">gr_read()</a></code>: it writes the check’s columns onto
+<code>$evidence</code>, marks the answer partial when a quotation is not
+found, counts the quotations it checked in
+<code>notes$quotes_checked</code>, and records a
+<code>read.verify</code> step in the trace. It also holds
+<code>iterative</code> to quoting: each step must list the passages its
+answer rests on, word for word with their chunk numbers, and the loop
+stops only when every one is found in the chunk it names. A run that
+ends with none accepted keeps the refused answer in
+<code>notes$unverified_answer</code> and reports the answer as not in
+the document.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">vspec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read_spec.html">gr_read_spec</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"skim"</span>, verify <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span>, <span class="va">vspec</span><span class="op">)</span></span>
+<span><span class="va">checked</span><span class="op">$</span><span class="va">notes</span><span class="op">$</span><span class="va">quotes_checked</span></span>
+<span><span class="co">#&gt; [1] 1</span></span>
+<span><span class="va">checked</span><span class="op">$</span><span class="va">evidence</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"verified"</span>, <span class="st">"match"</span>, <span class="st">"quote_status"</span>, <span class="st">"quote_sim"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   verified match quote_status quote_sim</span></span>
+<span><span class="co">#&gt; 1     TRUE     1     verbatim         1</span></span></code></pre></div>
+<p>The last columns come from a second matcher, recorded beside
+<code>verified</code>: <code>quote_status</code>,
+<code>quote_sim</code>, <code>quote_coverage</code>,
+<code>quote_edits</code> and <code>quote_critical_ok</code>. It expands
+ligatures, joins words hyphenated across a line, and scores the closest
+window of the source by character edits, with numbers and negations
+required to be identical. Its statuses are <code>verbatim</code>,
+<code>near_verbatim</code>, <code>unverified</code>, and
+<code>not_checked</code> for a passage too long to score. On a labelled
+set of 343 true and 162 false quotations it rejects 1.2% of true ones,
+against 36.4% for the existing check, and accepts none with a changed
+digit, number word, comparison sign or negation. It does accept 25 of 46
+quotations with one content word swapped as <code>near_verbatim</code>,
+so it decides nothing in this release: <code>verified</code> and
+<code>match</code> still decide.</p>
+<p>The other columns of <code>ans$evidence</code> are <code>page</code>,
+filled in only for a PDF, <code>section</code>, <code>kind</code>, and
+<code>score</code>, which only <code>retrieve</code> (similarity) and
+<code>rerank</code> (the model’s 0 to 10) set. This check and the
+citation check above are string comparisons on text you already have, so
+they cost nothing and always run.</p>
 </div>
 <div class="section level2">
 <h2 id="questions-that-assume-something-false">Questions that assume something false<a class="anchor" aria-label="anchor" href="#questions-that-assume-something-false"></a>
@@ -760,7 +892,7 @@ members (<code>ans$notes$premise_members</code>).
 <p>This stand-in plays a model that finds the summary contradicts the
 question and the other chunks silent. <code>FALSE_PREMISE:</code> is how
 the model is asked to open such a reply:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">loaded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">sent</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">messages</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="va">m</span><span class="op">$</span><span class="va">content</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                collapse <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
@@ -790,7 +922,7 @@ and <code>screen</code> ignore it.</p>
 already know the answer. <code><a href="../reference/gr_compare.html">gr_compare()</a></code> runs several
 configurations on one document, extracting the text once and sharing
 chunks between configurations that cut them the same way:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_compare.html">gr_compare</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/gr_recipe.html">gr_recipe</a></span><span class="op">(</span><span class="st">"narrow"</span>, segment <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span>,</span>
 <span>            read <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"retrieve"</span>, top_k <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -820,18 +952,163 @@ partial: <code>rerank</code> to word-matching order,
 <code>iterative</code> to a single retrieval, <code>preview</code> to
 reading everything. The answer is still produced; <code>partial</code>
 tells you it came by the fallback.</p>
+<p>Every call that asks for JSON (these three, model segmentation,
+screening, claims, outlines and extraction) checks the reply’s types,
+<code>enum</code> values and <code>required</code> fields, through
+nested objects and arrays, before using it. A reply that fails is
+treated as one that did not parse: the reader takes its failure path,
+the reply is not cached, and the reason says where the reply broke the
+schema, as in <code>$.groups[0]: expected array, got 1</code>.
+<code><a href="../reference/gr_extract.html">gr_extract()</a></code> still reads each field’s value itself, so
+“1,204” in an integer field is still 1204; only the shape of its replies
+is checked.</p>
+</div>
+<div class="section level2">
+<h2 id="when-the-answer-is-not-what-you-expected">When the answer is not what you expected<a class="anchor" aria-label="anchor" href="#when-the-answer-is-not-what-you-expected"></a>
+</h2>
+<p>The answer object and its trace record enough to find the cause
+without guessing. In order of how often each is the cause:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>symptom</th>
+<th>check</th>
+<th>likely cause</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>
+<code>NOT_IN_DOCUMENT</code>, but you can see the answer in the
+file</td>
+<td>
+<code>nrow(ans$evidence)</code>, then
+<code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code>
+</td>
+<td>the chunk holding it never reached the model. Lower
+<code>max_tokens</code>, raise <code>top_k</code>, or switch to a reader
+whose <code>signature</code> starts <code>all\|</code>
+</td>
+</tr>
+<tr class="even">
+<td>the answer is right but thin</td>
+<td>
+<code>ans$notes$chunks</code> against
+<code>length(ans$chunks_used)</code>
+</td>
+<td>most chunks answered <code>NOT_IN_DOCUMENT</code>. That is usually
+correct; if not, the chunk boundaries are cutting the evidence in half,
+so add <code>overlap_tokens</code>
+(<code><a href="../articles/segment.html">vignette("segment")</a></code>)</td>
+</tr>
+<tr class="odd">
+<td>
+<code>ans$partial</code> is <code>TRUE</code>
+</td>
+<td>
+<code>print(ans)</code>, then <code>ans$notes</code> and
+<code>print(ans$trace)</code>
+</td>
+<td>
+<code>failed_calls</code> (transport), <code>dropped_chunks</code>
+(did not fit), <code>call_cap_reached</code> or
+<code>cost_cap_reached</code> (<code><a href="../articles/runs.html">vignette("runs")</a></code>),
+<code>unread_pages</code> (no text layer and no OCR), or a merge that
+fell back to joining the answers</td>
+</tr>
+<tr class="even">
+<td>
+<code>ans$notes$unverified_evidence</code> is set</td>
+<td><code>gr_verify_evidence(ans)</code></td>
+<td>the model wrote a quotation that is not in the chunk it is
+attributed to. <code>match</code> says how far off: near 1 is a typo,
+near 0 is invention</td>
+</tr>
+<tr class="odd">
+<td>
+<code>ans$notes$cited_unknown</code> is set</td>
+<td>that value against <code>ans$chunks_used</code>
+</td>
+<td>the answer cited a chunk that was never sent to it</td>
+</tr>
+<tr class="even">
+<td>figures, dates or percentages are missing</td>
+<td><code>doc$stats$clean_log</code></td>
+<td>a cleaning step removed them. <code>remove_numbers</code> is off by
+default; the <code>legacy</code> preset turns it on
+(<code><a href="../articles/ingest.html">vignette("ingest")</a></code>)</td>
+</tr>
+<tr class="odd">
+<td>a scanned PDF comes back nearly empty</td>
+<td>
+<code>doc$stats$chars</code> and
+<code>doc$stats$unread_pages</code>, and any
+<code>gr_ocr_unavailable</code> warning</td>
+<td>OCR did not run or is not installed. Force it with
+<code>gr_ingest_spec(ocr = "always")</code>, and check
+<code>tesseract</code> and <code>magick</code> are present</td>
+</tr>
+<tr class="even">
+<td>every chunk is the whole document</td>
+<td><code>nrow(doc$blocks)</code></td>
+<td>the file has no blank lines between paragraphs, so there is nothing
+to split on. Use <code>method = "sentence"</code> or
+<code>"fixed"</code>
+</td>
+</tr>
+<tr class="odd">
+<td>the run costs far more than expected</td>
+<td><code>gr_readers()$cost_calls</code></td>
+<td>the reader makes one request per chunk and <code>max_tokens</code>
+is small. Run <code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code> first; it is free</td>
+</tr>
+<tr class="even">
+<td>answers change between identical runs</td>
+<td>the <code>temperature</code> setting, unset by default</td>
+<td>set <code>temperature = 0</code>. Reasoning models ignore it
+(<code>gr_model_info(m)$supports_temperature</code>)</td>
+</tr>
+<tr class="odd">
+<td>
+<code>NOT_IN_DOCUMENT</code> for a question that assumes something
+the document contradicts</td>
+<td>
+<code>ans$premise</code>, with <code>premise = TRUE</code>
+</td>
+<td>without the check a reader can only answer or say the excerpts are
+silent; see “Questions that assume something false” above</td>
+</tr>
+</tbody>
+</table>
+<p>Test for the marker with <code>is_not_found(ans$answer)</code> rather
+than <code>grepl("NOT_IN_DOCUMENT", ...)</code>: a real answer can quote
+the marker, and models decorate it
+(<code>**NOT_IN_DOCUMENT.**</code>).</p>
+<p>Two habits make all of this cheaper: run
+<code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code> before you spend anything, and keep
+<code>gr_options(max_cost_usd = ...)</code> set to something you would
+not mind paying by accident.</p>
 </div>
 <div class="section level2">
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>
 </h2>
 <ul>
 <li>
-<code><a href="../articles/ingest.html">vignette("ingest")</a></code>: getting the text out of files in
-the first place.</li>
+<code><a href="../articles/segment.html">vignette("segment")</a></code>: cutting documents into chunks, and
+comparing chunkings for nothing before you read.</li>
 <li>
-<code><a href="../articles/tour.html">vignette("tour")</a></code>: the ways of cutting documents into
-chunks, caching and replaying runs, reading many documents, and
-literature reviews.</li>
+<code><a href="../articles/review.html">vignette("review")</a></code>: reading many documents, and
+literature reviews with <code>extract</code> and
+<code>screen</code>.</li>
+<li>
+<code><a href="../articles/runs.html">vignette("runs")</a></code>: limits, the trace, caching and
+replaying a run.</li>
+<li>
+<code><a href="../articles/extending.html">vignette("extending")</a></code>: registering a reader of your
+own.</li>
 <li>
 <code><a href="../reference/gr_read_spec.html">?gr_read_spec</a></code>: every reading setting, with its default
 and allowed range.</li>

@@ -37,10 +37,13 @@
 <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
+    <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
+    <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Overview</h6></li>
-    <li><a class="dropdown-item" href="../articles/tour.html">A tour of harnessr</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -78,8 +81,8 @@ undo. Text lost here, or damaged by too much clean-up, is text no model
 will see, however good the rest of the pipeline is. This guide covers
 what harnessr can read, what it keeps, what it removes, and how to check
 a folder before spending anything on it.</p>
-<p>New to harnessr? <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduces the
-package and the ideas used here.</p>
+<p><code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduces the package and the
+ideas used here.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/readgpt" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
@@ -260,10 +263,10 @@ found). The example report has these sections:</p>
 <span><span class="co">#&gt; [5] "Outlook"                                   </span></span>
 <span><span class="co">#&gt; [6] "References"</span></span></code></pre></div>
 <p>Sections matter later. The <code>structural</code> way of cutting a
-document into chunks never lets a chunk straddle two sections, and the
-<code>preview</code> reading strategy plans its reading section by
-section. A plain text file has no headings, so its blocks have no
-section.</p>
+document into chunks never lets a chunk straddle two sections
+(<code><a href="../articles/segment.html">vignette("segment")</a></code>), and the <code>preview</code> reading
+strategy plans its reading section by section. A plain text file has no
+headings, so its blocks have no section.</p>
 </div>
 <div class="section level2">
 <h2 id="pdfs">PDFs<a class="anchor" aria-label="anchor" href="#pdfs"></a>
@@ -363,7 +366,7 @@ Each does one job and can be turned on or off:</p>
 <span><span class="co">#&gt; 13      remove_numbers  late      FALSE</span></span>
 <span><span class="co">#&gt; 14  remove_punctuation  late      FALSE</span></span></code></pre></div>
 <p>The five marked <code>default_on</code> run unless you say otherwise.
-Note what is <strong>off</strong> by default, and why:</p>
+The ones below are off by default, for these reasons:</p>
 <ul>
 <li>
 <code>remove_numbers</code> replaces every digit with a space, which
@@ -513,7 +516,7 @@ calling a model and without an API key:</p>
 <span></span>
 <span><span class="va">inv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_inventory.html">gr_inventory</a></span><span class="op">(</span><span class="va">inbox</span><span class="op">)</span></span>
 <span><span class="va">inv</span></span>
-<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/RtmpbyQMwK/inbox</span></span>
+<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/RtmptOmiiQ/inbox</span></span>
 <span><span class="co">#&gt;   4 file(s), 1.9 KB; 2 readable</span></span>
 <span><span class="co">#&gt;   2 ready, 1 no_extractor, 1 empty</span></span>
 <span><span class="co">#&gt;   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)</span></span>
@@ -565,6 +568,44 @@ before the run:</p>
 </tr>
 </tbody>
 </table>
+<p>It shows three things a corpus run would otherwise hide:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>what it shows</th>
+<th>why it matters</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>files no extractor claims</td>
+<td>they were dropped without appearing anywhere, so a folder of
+<code>.doc</code> files read as an empty corpus</td>
+</tr>
+<tr class="even">
+<td>PDFs with no text layer</td>
+<td>they extract to nothing, then answer <code>NOT_IN_DOCUMENT</code>,
+which looks the same as a document that does not say</td>
+</tr>
+<tr class="odd">
+<td>files in subfolders</td>
+<td>they are listed with their <code>folder</code>, so a subfolder you
+forgot is visible; <code>recursive = FALSE</code> scans one level
+only</td>
+</tr>
+</tbody>
+</table>
+<p><code>folder</code> is a column, so
+<code>split(inv$files, inv$files$folder)</code> gives you the piles.
+<code><a href="../reference/gr_inventory.html">gr_inventory()</a></code> does not choose a recipe for you. A router
+that quietly reads one document with <code>retrieve</code> and another
+with <code>stuff</code> hands you a plausible answer built on part of a
+file with nothing saying so. It also makes <code><a href="../reference/gr_compare.html">gr_compare()</a></code>
+meaningless, because the corpus no longer had one configuration. Group
+the rows yourself and pass each group the recipe you picked; reading a
+whole folder is in <code><a href="../articles/review.html">vignette("review")</a></code>.</p>
 <p><code>inv$totals</code> adds up the tokens and prices one request per
 readable file with your model: its tokens in, and an assumed 500-token
 answer out. Treat <code>cost_floor_usd</code> as a rough guide rather
@@ -591,16 +632,18 @@ that drops lines marked “CONFIDENTIAL”:</p>
 <span><span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="st">"CONFIDENTIAL - internal only\n\nRevenue rose to 45.2 million dollars."</span>,</span>
 <span>          <span class="fu"><a href="../reference/gr_ingest_spec.html">gr_ingest_spec</a></span><span class="op">(</span>clean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"drop_confidential"</span>, <span class="st">"collapse_whitespace"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">text</span></span>
 <span><span class="co">#&gt; [1] "Revenue rose to 45.2 million dollars."</span></span></code></pre></div>
-<p><code><a href="../reference/gr_register_extractor.html">?gr_register_extractor</a></code> shows how to add a file
-format.</p>
+<p><code><a href="../reference/gr_register_extractor.html">?gr_register_extractor</a></code> shows how to add a file format,
+and <code><a href="../articles/extending.html">vignette("extending")</a></code> covers every kind of
+addition.</p>
 </div>
 <div class="section level2">
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>
 </h2>
-<p>Once the text is out, the next decision is how to cut it into chunks
-and how the model should read them. <code><a href="../articles/readers.html">vignette("readers")</a></code>
-covers the reading strategies; <code><a href="../articles/tour.html">vignette("tour")</a></code> shows the
-chunking methods.</p>
+<p>Once the text is out, the next decisions are how to cut it into
+chunks, covered in <code><a href="../articles/segment.html">vignette("segment")</a></code>, and how the model
+should read them, covered in <code><a href="../articles/readers.html">vignette("readers")</a></code>. To read a
+whole folder once <code><a href="../reference/gr_inventory.html">gr_inventory()</a></code> has checked it, see
+<code><a href="../articles/review.html">vignette("review")</a></code>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

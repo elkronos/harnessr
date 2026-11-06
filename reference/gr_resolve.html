@@ -32,10 +32,13 @@ rebuilt from the new decisions."></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
+    <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
+    <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Overview</h6></li>
-    <li><a class="dropdown-item" href="../articles/tour.html">A tour of harnessr</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -141,18 +144,18 @@ records would otherwise credit the screener with the person's calls.
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"Participants were adults."</span>, <span class="va">f</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_screen.html">gr_screen</a></span><span class="op">(</span><span class="va">f</span>, question <span class="op">=</span> <span class="st">"Does the treatment work?"</span>,</span></span>
 <span class="r-in"><span>               include <span class="op">=</span> <span class="st">"Reports a randomised comparison"</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1d863b0e0b70.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1d863b0e0b70.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1c0c472d5e48.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1c0c472d5e48.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~9 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'structural' (cap 900 tokens, overlap 90).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'screen' (head|1|none) over 1 chunk(s).</span>
 <span class="r-in"><span><span class="va">s</span><span class="op">$</span><span class="va">deferred</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/Rtmp46iCAp/file1d863b0e0b70.txt"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpMcWAVZ/file1c0c472d5e48.txt"</span>
 <span class="r-in"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu">gr_resolve</span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span>, <span class="st">"include"</span>, by <span class="op">=</span> <span class="st">"A. Reviewer"</span>,</span></span>
 <span class="r-in"><span>                reason <span class="op">=</span> <span class="st">"Methods section describes randomisation."</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">s</span><span class="op">$</span><span class="va">table</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"decision"</span>, <span class="st">"screener_decision"</span>, <span class="st">"resolved_by"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               document decision screener_decision resolved_by</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1d863b0e0b70.txt  include           unclear A. Reviewer</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1c0c472d5e48.txt  include           unclear A. Reviewer</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

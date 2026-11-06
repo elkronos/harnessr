@@ -3,27 +3,31 @@
 ## Ask a question
 
 Start here. One call reads a document and answers a question, and the
-answer says what it rests on and whether anything went wrong.
+answer says what it rests on and whether anything went wrong. See
+[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md).
 
 - [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
   : Answer a question about a document
-- [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
-  : Run several recipes over one document and compare them
-- [`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md)
-  : Ready-made recipes
-- [`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md)
-  : Bind an ingestion, segmentation and reading configuration together
 - [`gr_answer`](https://elkronos.github.io/readgpt/reference/gr_answer.md)
   : The result of one reading run
 - [`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
   : Did the model report that the document does not contain the answer?
 - [`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md)
   : Path to the bundled example document
+- [`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md)
+  : Ready-made recipes
+- [`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md)
+  : Bind an ingestion, segmentation and reading configuration together
+- [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+  : Run several recipes over one document and compare them
 
 ## Connect to a model
 
 Clients for OpenAI-compatible endpoints, any provider ellmer supports,
 any function you write, and an offline stand-in for practice and tests.
+See
+[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md)
+and the README.
 
 - [`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
   : Construct a model client
@@ -71,6 +75,10 @@ See
 
 ## Cut documents into chunks
 
+The segmenters, their settings, and the free statistics for comparing
+chunkings. See
+[`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md).
+
 - [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
   : Segment a document into chunks
 - [`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md)
@@ -103,17 +111,15 @@ the check on quoted evidence. See
 - [`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md)
   : Check that quoted evidence really is in the document
 
-## Many documents
+## Many documents and literature reviews
+
+One question over many documents, and a review from a search export to
+screened studies, an extraction table, a written review and an audit
+report, with the screening measured against a hand-screened sample. See
+[`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md).
 
 - [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
   : Ask one question of many documents
-
-## Systematic and literature reviews
-
-From a search export to screened studies, an extraction table, a written
-review and an audit report, with the screening measured against a
-hand-screened sample.
-
 - [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md)
   : Write down what a review is looking for
 - [`gr_protocols()`](https://elkronos.github.io/readgpt/reference/gr_protocols.md)
@@ -158,7 +164,11 @@ hand-screened sample.
 - [`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
   : Write the run out as an auditable report
 
-## Cost, tokens and tracing
+## Cost, limits and tracing
+
+Settings and spending limits, token counts and cost estimates, and the
+trace every run records. See
+[`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md).
 
 - [`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
   : Get or set package options
@@ -204,6 +214,10 @@ hand-screened sample.
 
 ## Caching and replaying runs
 
+Paying for a request once, and replaying a recorded run without a model.
+See
+[`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md).
+
 - [`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
   : A response cache
 - [`gr_cache_client()`](https://elkronos.github.io/readgpt/reference/gr_cache_client.md)
@@ -219,7 +233,9 @@ hand-screened sample.
 
 ## Extending harnessr
 
-Every axis is a registry. An addition is used exactly like a built-in.
+Every axis is a registry, and an addition is used exactly like a
+built-in. See
+[`vignette("extending")`](https://elkronos.github.io/readgpt/articles/extending.md).
 
 - [`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
   : Register a document extractor
@@ -277,6 +293,7 @@ They still work and warn once; new code should use
 [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
 and
 [`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md).
+The README’s “Migrating from v1” section maps each one.
 
 - [`answer_question()`](https://elkronos.github.io/readgpt/reference/answer_question.md)
   : Deprecated: answer a question using v1 mode names

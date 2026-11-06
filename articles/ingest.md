@@ -7,7 +7,6 @@ however good the rest of the pipeline is. This guide covers what
 harnessr can read, what it keeps, what it removes, and how to check a
 folder before spending anything on it.
 
-New to harnessr?
 [`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md)
 introduces the package and the ideas used here.
 
@@ -181,9 +180,10 @@ unique(doc$blocks$section)
 ```
 
 Sections matter later. The `structural` way of cutting a document into
-chunks never lets a chunk straddle two sections, and the `preview`
-reading strategy plans its reading section by section. A plain text file
-has no headings, so its blocks have no section.
+chunks never lets a chunk straddle two sections
+([`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md)),
+and the `preview` reading strategy plans its reading section by section.
+A plain text file has no headings, so its blocks have no section.
 
 ## PDFs
 
@@ -288,8 +288,8 @@ gr_cleaners()[, c("name", "stage", "default_on")]
 #> 14  remove_punctuation  late      FALSE
 ```
 
-The five marked `default_on` run unless you say otherwise. Note what is
-**off** by default, and why:
+The five marked `default_on` run unless you say otherwise. The ones
+below are off by default, for these reasons:
 
 - `remove_numbers` replaces every digit with a space, which makes any
   question about a figure, date or percentage unanswerable.
@@ -422,7 +422,7 @@ invisible(file.create(file.path(inbox, "empty.txt")))
 
 inv <- gr_inventory(inbox)
 inv
-#> <gr_inventory> /tmp/RtmpbyQMwK/inbox
+#> <gr_inventory> /tmp/RtmptOmiiQ/inbox
 #>   4 file(s), 1.9 KB; 2 readable
 #>   2 ready, 1 no_extractor, 1 empty
 #>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)
@@ -453,6 +453,26 @@ The statuses:
 | `no_extractor` | no extractor reads this kind of file |
 | `empty` | nothing to read |
 | `unreadable` | it could not be opened; `note` says why |
+
+It shows three things a corpus run would otherwise hide:
+
+| what it shows | why it matters |
+|----|----|
+| files no extractor claims | they were dropped without appearing anywhere, so a folder of `.doc` files read as an empty corpus |
+| PDFs with no text layer | they extract to nothing, then answer `NOT_IN_DOCUMENT`, which looks the same as a document that does not say |
+| files in subfolders | they are listed with their `folder`, so a subfolder you forgot is visible; `recursive = FALSE` scans one level only |
+
+`folder` is a column, so `split(inv$files, inv$files$folder)` gives you
+the piles.
+[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md)
+does not choose a recipe for you. A router that quietly reads one
+document with `retrieve` and another with `stuff` hands you a plausible
+answer built on part of a file with nothing saying so. It also makes
+[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+meaningless, because the corpus no longer had one configuration. Group
+the rows yourself and pass each group the recipe you picked; reading a
+whole folder is in
+[`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md).
 
 `inv$totals` adds up the tokens and prices one request per readable file
 with your model: its tokens in, and an assumed 500-token answer out.
@@ -486,13 +506,18 @@ gr_ingest("CONFIDENTIAL - internal only\n\nRevenue rose to 45.2 million dollars.
 ```
 
 [`?gr_register_extractor`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
-shows how to add a file format.
+shows how to add a file format, and
+[`vignette("extending")`](https://elkronos.github.io/readgpt/articles/extending.md)
+covers every kind of addition.
 
 ## Next
 
-Once the text is out, the next decision is how to cut it into chunks and
-how the model should read them.
-[`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md)
-covers the reading strategies;
-[`vignette("tour")`](https://elkronos.github.io/readgpt/articles/tour.md)
-shows the chunking methods.
+Once the text is out, the next decisions are how to cut it into chunks,
+covered in
+[`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md),
+and how the model should read them, covered in
+[`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md).
+To read a whole folder once
+[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md)
+has checked it, see
+[`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md).

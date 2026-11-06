@@ -30,10 +30,13 @@ chunking, not five."></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
+    <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
+    <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Overview</h6></li>
-    <li><a class="dropdown-item" href="../articles/tour.html">A tour of harnessr</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -218,9 +221,9 @@ cut short is not shared with a later recipe.</p>
 <span class="r-in"><span><span class="co"># One trace covers all three, so this is the cost of the whole comparison.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="gr_trace_summary.html">gr_trace_summary</a></span><span class="op">(</span><span class="va">cmp</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                          run_id calls cached steps tokens_in tokens_out errors</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261106065720.632_c36688     5      0    16      2122         65      0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261106091711.652_ae893c     5      0    16      2122         65      0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      0.32           0            0                0                0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      0.12           0            0                0                0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   usage_estimated</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1               1</span>
 <span class="r-in"><span></span></span>

@@ -1,11 +1,14 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://elkronos.github.io/readgpt/404.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/LICENSE-text.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/articles/extending.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/articles/harnessr.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/articles/index.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/articles/ingest.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/articles/readers.html</loc></url>
-<url><loc>https://elkronos.github.io/readgpt/articles/tour.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/articles/review.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/articles/runs.html</loc></url>
+<url><loc>https://elkronos.github.io/readgpt/articles/segment.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/authors.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/index.html</loc></url>
 <url><loc>https://elkronos.github.io/readgpt/news/index.html</loc></url>

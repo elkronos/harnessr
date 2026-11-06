@@ -22,10 +22,13 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
+    <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
+    <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Overview</h6></li>
-    <li><a class="dropdown-item" href="../articles/tour.html">A tour of harnessr</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -45,7 +48,7 @@
     <div class="section level2">
       <h2 id="ask-a-question">Ask a question<a class="anchor" aria-label="anchor" href="#ask-a-question"></a></h2>
 
-      <div class="section-desc"><p>Start here. One call reads a document and answers a question, and the answer says what it rests on and whether anything went wrong.</p></div>
+      <div class="section-desc"><p>Start here. One call reads a document and answers a question, and the answer says what it rests on and whether anything went wrong. See <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -58,27 +61,6 @@
 
         </dt>
         <dd>Answer a question about a document</dd>
-
-        <dt>
-
-          <code><a href="gr_compare.html">gr_compare()</a></code>
-
-        </dt>
-        <dd>Run several recipes over one document and compare them</dd>
-
-        <dt>
-
-          <code><a href="gr_recipes.html">gr_recipes()</a></code>
-
-        </dt>
-        <dd>Ready-made recipes</dd>
-
-        <dt>
-
-          <code><a href="gr_recipe.html">gr_recipe()</a></code>
-
-        </dt>
-        <dd>Bind an ingestion, segmentation and reading configuration together</dd>
 
         <dt>
 
@@ -100,10 +82,31 @@
 
         </dt>
         <dd>Path to the bundled example document</dd>
+
+        <dt>
+
+          <code><a href="gr_recipes.html">gr_recipes()</a></code>
+
+        </dt>
+        <dd>Ready-made recipes</dd>
+
+        <dt>
+
+          <code><a href="gr_recipe.html">gr_recipe()</a></code>
+
+        </dt>
+        <dd>Bind an ingestion, segmentation and reading configuration together</dd>
+
+        <dt>
+
+          <code><a href="gr_compare.html">gr_compare()</a></code>
+
+        </dt>
+        <dd>Run several recipes over one document and compare them</dd>
       </dl></div><div class="section level2">
       <h2 id="connect-to-a-model">Connect to a model<a class="anchor" aria-label="anchor" href="#connect-to-a-model"></a></h2>
 
-      <div class="section-desc"><p>Clients for OpenAI-compatible endpoints, any provider ellmer supports, any function you write, and an offline stand-in for practice and tests.</p></div>
+      <div class="section-desc"><p>Clients for OpenAI-compatible endpoints, any provider ellmer supports, any function you write, and an offline stand-in for practice and tests. See <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> and the README.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -247,7 +250,7 @@
       </dl></div><div class="section level2">
       <h2 id="cut-documents-into-chunks">Cut documents into chunks<a class="anchor" aria-label="anchor" href="#cut-documents-into-chunks"></a></h2>
 
-
+      <div class="section-desc"><p>The segmenters, their settings, and the free statistics for comparing chunkings. See <code><a href="../articles/segment.html">vignette("segment")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -347,9 +350,9 @@
         </dt>
         <dd>Check that quoted evidence really is in the document</dd>
       </dl></div><div class="section level2">
-      <h2 id="many-documents">Many documents<a class="anchor" aria-label="anchor" href="#many-documents"></a></h2>
+      <h2 id="many-documents-and-literature-reviews">Many documents and literature reviews<a class="anchor" aria-label="anchor" href="#many-documents-and-literature-reviews"></a></h2>
 
-
+      <div class="section-desc"><p>One question over many documents, and a review from a search export to screened studies, an extraction table, a written review and an audit report, with the screening measured against a hand-screened sample. See <code><a href="../articles/review.html">vignette("review")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -362,17 +365,8 @@
 
         </dt>
         <dd>Ask one question of many documents</dd>
-      </dl></div><div class="section level2">
-      <h2 id="systematic-and-literature-reviews">Systematic and literature reviews<a class="anchor" aria-label="anchor" href="#systematic-and-literature-reviews"></a></h2>
 
-      <div class="section-desc"><p>From a search export to screened studies, an extraction table, a written review and an audit report, with the screening measured against a hand-screened sample.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
+        <dt>
 
           <code><a href="gr_protocol.html">gr_protocol()</a></code>
 
@@ -519,9 +513,9 @@
         </dt>
         <dd>Write the run out as an auditable report</dd>
       </dl></div><div class="section level2">
-      <h2 id="cost-tokens-and-tracing">Cost, tokens and tracing<a class="anchor" aria-label="anchor" href="#cost-tokens-and-tracing"></a></h2>
+      <h2 id="cost-limits-and-tracing">Cost, limits and tracing<a class="anchor" aria-label="anchor" href="#cost-limits-and-tracing"></a></h2>
 
-
+      <div class="section-desc"><p>Settings and spending limits, token counts and cost estimates, and the trace every run records. See <code><a href="../articles/runs.html">vignette("runs")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -621,7 +615,7 @@
       </dl></div><div class="section level2">
       <h2 id="caching-and-replaying-runs">Caching and replaying runs<a class="anchor" aria-label="anchor" href="#caching-and-replaying-runs"></a></h2>
 
-
+      <div class="section-desc"><p>Paying for a request once, and replaying a recorded run without a model. See <code><a href="../articles/runs.html">vignette("runs")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -672,7 +666,7 @@
       </dl></div><div class="section level2">
       <h2 id="extending-harnessr">Extending harnessr<a class="anchor" aria-label="anchor" href="#extending-harnessr"></a></h2>
 
-      <div class="section-desc"><p>Every axis is a registry. An addition is used exactly like a built-in.</p></div>
+      <div class="section-desc"><p>Every axis is a registry, and an addition is used exactly like a built-in. See <code><a href="../articles/extending.html">vignette("extending")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -779,7 +773,7 @@
       </dl></div><div class="section level2">
       <h2 id="superseded">Superseded<a class="anchor" aria-label="anchor" href="#superseded"></a></h2>
 
-      <div class="section-desc"><p>The entry points of the first version, and the old name of <code><a href="../reference/gr_example.html">gr_example()</a></code>. They still work and warn once; new code should use <code><a href="../reference/answer_document.html">answer_document()</a></code>, <code><a href="../reference/gr_ingest.html">gr_ingest()</a></code>, <code><a href="../reference/gr_segment.html">gr_segment()</a></code> and <code><a href="../reference/gr_example.html">gr_example()</a></code>.</p></div>
+      <div class="section-desc"><p>The entry points of the first version, and the old name of <code><a href="../reference/gr_example.html">gr_example()</a></code>. They still work and warn once; new code should use <code><a href="../reference/answer_document.html">answer_document()</a></code>, <code><a href="../reference/gr_ingest.html">gr_ingest()</a></code>, <code><a href="../reference/gr_segment.html">gr_segment()</a></code> and <code><a href="../reference/gr_example.html">gr_example()</a></code>. The README’s “Migrating from v1” section maps each one.</p></div>
 
       <dl></dl></div><div class="section level2">
 

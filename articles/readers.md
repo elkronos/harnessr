@@ -9,9 +9,9 @@ of the quality of its answer. The same chunks read two ways can take one
 request or dozens, and can find a fact or miss it.
 
 This guide explains each reader in plain terms, shows how they differ on
-the same document, and gives a way to choose. New to harnessr? Start
-with
-[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md).
+the same document, and gives a way to choose.
+[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md)
+introduces the package and its ideas.
 
 ## Setting up
 
@@ -301,26 +301,84 @@ running the same method twice is not a second opinion.
 
 `extract` fills in a table of details (a *schema*) from every chunk, and
 `screen` decides whether a document meets a set of criteria. Both belong
-to the literature-review workflow, shown in
-[`vignette("tour")`](https://elkronos.github.io/readgpt/articles/tour.md).
+to the literature-review workflow in
+[`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md).
 
 ## Choosing a reader
 
-| your situation | reader | cost grows with document length? |
-|----|----|----|
-| the document fits comfortably in one request | `stuff` | yes, though it is one request |
-| one specific fact, long document | `retrieve` | no (embeddings aside) |
-| one fact, and word matching picks badly | `rerank` | no, fixed by `rerank_candidates` |
-| every mention must be found | `map_reduce` | yes |
-| the answer must rest on exact quotations | `skim` | yes |
-| an overview of a long document | `hierarchical` | yes |
-| an argument that develops through the text | `refine` | yes |
-| several facts combined from different places | `iterative` | no, up to `max_rounds` (embeddings aside) |
-| long document, most sections irrelevant | `preview` | depends on the plan |
-| a wrong answer would be costly | `ensemble` | as its members |
+| your situation | reader | recipe | cost grows with document length? |
+|----|----|----|----|
+| the document fits comfortably in one request | `stuff` | `"fast"` | yes, though it is one request |
+| one specific fact, long document | `retrieve` | `"needle"` | no (embeddings aside) |
+| one fact, and word matching picks badly; scanned pages | `rerank` | `"scanned"` | no, fixed by `rerank_candidates` |
+| every mention must be found | `map_reduce` | `"thorough"` | yes |
+| the answer must rest on exact quotations; a short document with every sentence weighed | `skim` | `"precise"` | yes |
+| an overview of a long document | `hierarchical` | `"survey"` | yes |
+| an argument that develops through the text | `refine` | `"narrative"` | yes |
+| several facts combined from different places | `iterative` | `"research"` | no, up to `max_rounds` (embeddings aside) |
+| long document, most sections irrelevant | `preview` | none | depends on the plan |
+| a wrong answer would be costly | `ensemble` | `"consensus"` | as its members |
 
 If unsure, run two or three on a document where you already know the
 answer and compare (see “Trying readers on your own documents” below).
+
+## Recipes
+
+A *recipe* names an ingestion, a segmentation and a reader together,
+with their settings. The table above gives the recipe built on each
+reader.
+[`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md)
+returns them all:
+
+``` r
+
+do.call(rbind, lapply(names(gr_recipes()), function(n) {
+  r <- gr_recipes(n)
+  data.frame(recipe = n, segment = r$segment$method, reader = r$read$reader)
+}))
+#>       recipe    segment       reader
+#> 1       fast  paragraph        stuff
+#> 2    precise   sentence         skim
+#> 3     needle   semantic     retrieve
+#> 4   thorough  paragraph   map_reduce
+#> 5     survey structural hierarchical
+#> 6  narrative  paragraph       refine
+#> 7    scanned       page       rerank
+#> 8   research structural    iterative
+#> 9  consensus  recursive     ensemble
+#> 10    legacy  paragraph   map_reduce
+```
+
+[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+defaults to `"auto"`, which reads a document of up to 50,000 tokens
+(less on a model with a small context window) with `"fast"`, in one
+request, and a longer one with `"thorough"`, one request per chunk. Both
+send every chunk. `ans$recipe` says which was used.
+[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
+[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+and the review functions take one fixed recipe and refuse `"auto"`.
+
+Printing a recipe shows every setting on all three steps:
+
+``` r
+
+gr_recipes("thorough")
+#> <gr_recipe 'thorough'>
+#>   ingest  : clean=standard ocr=auto
+#>   segment : paragraph (max 1200 tok, overlap 120, min 0)
+#>   read    : map_reduce [all|N+logN|tree] model=(the client's)
+```
+
+A recipe is a starting point. Any of its settings can be overridden by
+name in the call, as in
+`answer_document(file, question, "needle", top_k = 3)`, and
+[`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md)
+builds one from scratch (there is an example under “Trying readers on
+your own documents” below).
+
+`"legacy"` reproduces the previous release’s behaviour (digit stripping,
+3000-token paragraph chunks, no overlap), so you can measure the
+difference rather than assume it.
 
 ## Choosing and placing chunks
 
@@ -373,7 +431,8 @@ the chosen chunks sit in the prompt. Models attend best to the beginning
 and end of a long prompt, so `"edges"` puts the best chunk first and the
 second-best last; `"document"` keeps the order they appear in the
 document, which reads more naturally when chunks are consecutive; the
-default `"relevance"` puts the best first.
+default `"relevance"` puts the best first. It never changes which chunks
+were chosen, only where they sit.
 
 **`restate`** (every reader but `extract` and `screen`) repeats the
 question before the excerpts as well as after them, because a question
@@ -386,8 +445,9 @@ documents and model; test them rather than assume.
 
 ## Embeddings
 
-`retrieve`, `iterative` and the `semantic` way of cutting chunks need
-*embeddings*. By default harnessr asks the model provider for them,
+`retrieve`, `iterative` and the `semantic` way of cutting chunks
+([`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md))
+need *embeddings*. By default harnessr asks the model provider for them,
 which costs a little and needs an internet connection.
 `gr_options(embedder = "lexical")` uses word-matching vectors computed
 locally instead: free, offline and exactly repeatable, but they match
@@ -464,6 +524,9 @@ and come back cut off, so give it room with `max_answer_tokens`.
 [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
 (below) counts recipes that differ only in effort as different, so you
 can test what a lower effort costs.
+[`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md)
+covers effort across a literature review and what each trace step
+records.
 
 ## Asking for citations
 
@@ -513,11 +576,82 @@ gr_verify_evidence(skimmed)[, c("chunk_id", "verified", "match")]
 #> 1        2     TRUE     1
 ```
 
-`match` is 1 for an exact quotation (ignoring spacing, capitals and
-quote marks). A quotation that is not in the document, such as a changed
-figure or an invented sentence, scores lower and is marked
-`verified = FALSE`. `ans$notes$unverified_evidence` counts such
-quotations, and any one of them makes the answer partial.
+Here is a model that invents one. The passage is fluent, on topic,
+attributed to a real chunk, and not in the document, so it cannot be
+caught by eye:
+
+``` r
+
+memo <- gr_segment(gr_ingest("Revenue rose to 45.2 million dollars.\n\nHeadcount grew to 1,204."),
+                   list(method = "paragraph", max_tokens = 40))
+inventing <- gr_mock_client(function(messages, params) {
+  if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) {
+    return("Revenue rose to 88.9 billion dollars on record demand.")
+  }
+  "Revenue was 88.9 billion dollars."
+})
+invented <- gr_read(memo, "What was revenue?", inventing, "skim")
+gr_verify_evidence(invented)[, c("kind", "verified", "match")]
+#>        kind verified match
+#> 1 extracted    FALSE 0.333
+invented$partial
+#> [1] TRUE
+```
+
+`match` is 1 for an exact quotation once spacing, quote marks, dashes
+and capitals are folded away, since a faithful quotation can differ in
+those. A changed figure is not folded away. Below 1, `match` is the
+fraction of the passage carried by its longest consecutive run in the
+source, so where a change falls matters as much as how much changed: a
+changed last word leaves a run of nine in ten and scores 0.9, while a
+changed word in the middle splits the passage and scores about 0.5.
+Below about 0.3 there is no quotation left, only shared vocabulary. A
+run is used rather than word overlap because overlap cannot tell a
+quotation from a paraphrase built from the same words. A passage that
+does not verify is marked `verified = FALSE` and counted in
+`ans$notes$unverified_evidence`, and any one of them makes the answer
+partial.
+
+`gr_read_spec(verify = TRUE)` runs the same check inside
+[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md):
+it writes the check’s columns onto `$evidence`, marks the answer partial
+when a quotation is not found, counts the quotations it checked in
+`notes$quotes_checked`, and records a `read.verify` step in the trace.
+It also holds `iterative` to quoting: each step must list the passages
+its answer rests on, word for word with their chunk numbers, and the
+loop stops only when every one is found in the chunk it names. A run
+that ends with none accepted keeps the refused answer in
+`notes$unverified_answer` and reports the answer as not in the document.
+
+``` r
+
+vspec <- gr_read_spec(reader = "skim", verify = TRUE)
+checked <- gr_read(chunks, "What was revenue in 2024?", gr_mock_client(stand_in), vspec)
+checked$notes$quotes_checked
+#> [1] 1
+checked$evidence[, c("verified", "match", "quote_status", "quote_sim")]
+#>   verified match quote_status quote_sim
+#> 1     TRUE     1     verbatim         1
+```
+
+The last columns come from a second matcher, recorded beside `verified`:
+`quote_status`, `quote_sim`, `quote_coverage`, `quote_edits` and
+`quote_critical_ok`. It expands ligatures, joins words hyphenated across
+a line, and scores the closest window of the source by character edits,
+with numbers and negations required to be identical. Its statuses are
+`verbatim`, `near_verbatim`, `unverified`, and `not_checked` for a
+passage too long to score. On a labelled set of 343 true and 162 false
+quotations it rejects 1.2% of true ones, against 36.4% for the existing
+check, and accepts none with a changed digit, number word, comparison
+sign or negation. It does accept 25 of 46 quotations with one content
+word swapped as `near_verbatim`, so it decides nothing in this release:
+`verified` and `match` still decide.
+
+The other columns of `ans$evidence` are `page`, filled in only for a
+PDF, `section`, `kind`, and `score`, which only `retrieve` (similarity)
+and `rerank` (the model’s 0 to 10) set. This check and the citation
+check above are string comparisons on text you already have, so they
+cost nothing and always run.
 
 ## Questions that assume something false
 
@@ -613,12 +747,56 @@ order, `iterative` to a single retrieval, `preview` to reading
 everything. The answer is still produced; `partial` tells you it came by
 the fallback.
 
+Every call that asks for JSON (these three, model segmentation,
+screening, claims, outlines and extraction) checks the reply’s types,
+`enum` values and `required` fields, through nested objects and arrays,
+before using it. A reply that fails is treated as one that did not
+parse: the reader takes its failure path, the reply is not cached, and
+the reason says where the reply broke the schema, as in
+`$.groups[0]: expected array, got 1`.
+[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+still reads each field’s value itself, so “1,204” in an integer field is
+still 1204; only the shape of its replies is checked.
+
+## When the answer is not what you expected
+
+The answer object and its trace record enough to find the cause without
+guessing. In order of how often each is the cause:
+
+| symptom | check | likely cause |
+|----|----|----|
+| `NOT_IN_DOCUMENT`, but you can see the answer in the file | `nrow(ans$evidence)`, then [`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md) | the chunk holding it never reached the model. Lower `max_tokens`, raise `top_k`, or switch to a reader whose `signature` starts `all\|` |
+| the answer is right but thin | `ans$notes$chunks` against `length(ans$chunks_used)` | most chunks answered `NOT_IN_DOCUMENT`. That is usually correct; if not, the chunk boundaries are cutting the evidence in half, so add `overlap_tokens` ([`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md)) |
+| `ans$partial` is `TRUE` | `print(ans)`, then `ans$notes` and `print(ans$trace)` | `failed_calls` (transport), `dropped_chunks` (did not fit), `call_cap_reached` or `cost_cap_reached` ([`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md)), `unread_pages` (no text layer and no OCR), or a merge that fell back to joining the answers |
+| `ans$notes$unverified_evidence` is set | `gr_verify_evidence(ans)` | the model wrote a quotation that is not in the chunk it is attributed to. `match` says how far off: near 1 is a typo, near 0 is invention |
+| `ans$notes$cited_unknown` is set | that value against `ans$chunks_used` | the answer cited a chunk that was never sent to it |
+| figures, dates or percentages are missing | `doc$stats$clean_log` | a cleaning step removed them. `remove_numbers` is off by default; the `legacy` preset turns it on ([`vignette("ingest")`](https://elkronos.github.io/readgpt/articles/ingest.md)) |
+| a scanned PDF comes back nearly empty | `doc$stats$chars` and `doc$stats$unread_pages`, and any `gr_ocr_unavailable` warning | OCR did not run or is not installed. Force it with `gr_ingest_spec(ocr = "always")`, and check `tesseract` and `magick` are present |
+| every chunk is the whole document | `nrow(doc$blocks)` | the file has no blank lines between paragraphs, so there is nothing to split on. Use `method = "sentence"` or `"fixed"` |
+| the run costs far more than expected | `gr_readers()$cost_calls` | the reader makes one request per chunk and `max_tokens` is small. Run [`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md) first; it is free |
+| answers change between identical runs | the `temperature` setting, unset by default | set `temperature = 0`. Reasoning models ignore it (`gr_model_info(m)$supports_temperature`) |
+| `NOT_IN_DOCUMENT` for a question that assumes something the document contradicts | `ans$premise`, with `premise = TRUE` | without the check a reader can only answer or say the excerpts are silent; see “Questions that assume something false” above |
+
+Test for the marker with `is_not_found(ans$answer)` rather than
+`grepl("NOT_IN_DOCUMENT", ...)`: a real answer can quote the marker, and
+models decorate it (`**NOT_IN_DOCUMENT.**`).
+
+Two habits make all of this cheaper: run
+[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md)
+before you spend anything, and keep `gr_options(max_cost_usd = ...)` set
+to something you would not mind paying by accident.
+
 ## Next
 
-- [`vignette("ingest")`](https://elkronos.github.io/readgpt/articles/ingest.md):
-  getting the text out of files in the first place.
-- [`vignette("tour")`](https://elkronos.github.io/readgpt/articles/tour.md):
-  the ways of cutting documents into chunks, caching and replaying runs,
-  reading many documents, and literature reviews.
+- [`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md):
+  cutting documents into chunks, and comparing chunkings for nothing
+  before you read.
+- [`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md):
+  reading many documents, and literature reviews with `extract` and
+  `screen`.
+- [`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md):
+  limits, the trace, caching and replaying a run.
+- [`vignette("extending")`](https://elkronos.github.io/readgpt/articles/extending.md):
+  registering a reader of your own.
 - [`?gr_read_spec`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md):
   every reading setting, with its default and allowed range.
