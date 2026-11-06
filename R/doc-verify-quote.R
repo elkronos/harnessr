@@ -1494,15 +1494,36 @@ hyphens_rejoined <- function(span, txt) {
   length(plain) == 1L && found_whole(plain, match_source(strip_bold(t)))
 }
 
+#' Check spans against their sources, by both matchers.
+#'
+#' `verified` and `match` are span_match()'s, and they are what every caller
+#' acts on. The `quote_*` columns are match_span()'s status and score for the
+#' same span, recorded beside them in shadow mode: they gate nothing until a
+#' later release compares the two on graded runs. A source that is missing
+#' leaves the shadow status `not_checked`, as span_match() leaves `verified`
+#' NA.
 #' @noRd
 verify_spans <- function(spans, sources, whole = FALSE) {
   n <- length(spans)
-  if (!n) return(data.frame(verified = logical(0), match = numeric(0)))
+  if (!n) return(data.frame(verified = logical(0), match = numeric(0),
+                            quote_status = character(0), quote_sim = numeric(0),
+                            quote_coverage = numeric(0), quote_edits = integer(0),
+                            quote_critical_ok = logical(0), stringsAsFactors = FALSE))
   sources <- rep(sources, length.out = n)
   whole <- rep(whole, length.out = n)
   out <- lapply(seq_len(n), function(i) span_match(spans[[i]], sources[[i]], whole = whole[[i]]))
+  shadow <- lapply(seq_len(n), function(i) {
+    if (is.na(sources[[i]])) return(match_span("", ""))
+    match_span(spans[[i]], sources[[i]])
+  })
+  pick <- function(f, type) vapply(shadow, function(x) type(x[[f]]), type(NA))
   data.frame(verified = vapply(out, function(x) as.logical(x$verified), logical(1)),
              match = vapply(out, function(x) as.numeric(x$match), numeric(1)),
+             quote_status = pick("status", as.character),
+             quote_sim = pick("sim", as.numeric),
+             quote_coverage = pick("coverage", as.numeric),
+             quote_edits = pick("n_edits", as.integer),
+             quote_critical_ok = pick("critical_ok", as.logical),
              stringsAsFactors = FALSE)
 }
 
@@ -1676,6 +1697,10 @@ cited_chunks <- function(text) cited_ids(text, "chunk")
 #'   reason stays `FALSE` here, with a `match` of 1 when the sentence itself is
 #'   in the document. It is there, and it does not say this.
 #'
+#'   The `quote_*` columns come from a second matcher, recorded beside
+#'   `verified` and `match` and deciding nothing yet; see "The edit-distance
+#'   score" below.
+#'
 #' @section What the numbers mean:
 #' `match` is 1 for an exact quotation once whitespace, quote marks, dashes and
 #' case are folded away. These are the differences a faithful quotation introduces.
@@ -1733,6 +1758,34 @@ cited_chunks <- function(text) cited_ids(text, "chunk")
 #' vocabulary. A run measure is still the right one: word overlap cannot tell a
 #' quotation from a paraphrase assembled out of the same words.
 #'
+#' @section The edit-distance score:
+#' The run measure above cannot be given a threshold, because the same edit
+#' scores differently by where it falls. A second matcher is recorded next to
+#' it for every span, so the two can be compared on real runs before the
+#' default changes. It normalises both sides further than the check above:
+#' ligatures and the long s expanded, JSON escapes undone, soft hyphens and
+#' zero-width characters dropped, every full-width ASCII form folded, and a
+#' word broken across a line with a hyphen joined, as is any hyphen between
+#' two letters. It then finds the window of the source that the fewest
+#' character edits turn the quotation into.
+#'
+#' `quote_sim` is 1 minus those edits over the longer of the quotation and
+#' the window, so it falls by the same step for each edit wherever it falls.
+#' `quote_coverage` is the share of the quotation's words found in order in
+#' the window, `quote_edits` the count, and `quote_critical_ok` whether its
+#' numbers (with sign, a comparison sign before them and unit, such as
+#' "-12%", "< 0.05" or "45.2 million"), numbers written in words ("twelve")
+#' and negations are the window's, exactly. `quote_status` is `"verbatim"`
+#' for no edit; `"near_verbatim"` for a similarity of at least 0.90 (0.95
+#' under 40 characters) with the critical tokens identical and five words or
+#' more; `"unverified"` otherwise; and `"not_checked"` where there was nothing
+#' to compare, or where a passage was too long to score: the edit table has a
+#' cell for each pair of characters, and a passage whose length times the
+#' source's is over 5e7 is skipped. A quotation split by an elision or a blank line takes the worst
+#' of its passages. `near_verbatim` is not verified: a changed word that is
+#' not a number or a negation ("Sheffield" for "Leipzig") can stay above the
+#' threshold.
+#'
 #' @section Citations:
 #' With `cite = TRUE` a reader asks the model to mark its sources as
 #' `[chunk 3]`. Every answer is checked for citations pointing at chunks that
@@ -1774,7 +1827,10 @@ gr_verify_evidence <- function(answer, chunks = NULL) {
   if (!inherits(answer, "gr_answer")) gr_abort("`answer` must be a gr_answer.")
   ev <- answer$evidence
   empty <- data.frame(chunk_id = integer(0), kind = character(0), verified = logical(0),
-                      match = numeric(0), span = character(0), stringsAsFactors = FALSE)
+                      match = numeric(0), quote_status = character(0), quote_sim = numeric(0),
+                      quote_coverage = numeric(0), quote_edits = integer(0),
+                      quote_critical_ok = logical(0), span = character(0),
+                      stringsAsFactors = FALSE)
   if (is.null(ev) || !nrow(ev)) return(empty)
 
   # Per row, falling back to the reader only for an answer built before evidence
@@ -1801,7 +1857,11 @@ gr_verify_evidence <- function(answer, chunks = NULL) {
   }
   if (all(is.na(sources))) sources <- NULL
 
-  res <- data.frame(verified = rep(NA, nrow(ev)), match = rep(NA_real_, nrow(ev)))
+  res <- data.frame(verified = rep(NA, nrow(ev)), match = rep(NA_real_, nrow(ev)),
+                    quote_status = rep("not_checked", nrow(ev)),
+                    quote_sim = rep(NA_real_, nrow(ev)), quote_coverage = rep(NA_real_, nrow(ev)),
+                    quote_edits = rep(NA_integer_, nrow(ev)), quote_critical_ok = rep(NA, nrow(ev)),
+                    stringsAsFactors = FALSE)
   # "answer" rows are that chunk's answer, not a quotation from it. Asking
   # whether one appears in the chunk is a category error, and reporting FALSE
   # would mark every correct run unverified.
@@ -1817,6 +1877,7 @@ gr_verify_evidence <- function(answer, chunks = NULL) {
                         whole = kind[checkable] == "verbatim")
     res$verified[checkable] <- got$verified
     res$match[checkable] <- got$match
+    for (nm in grep("^quote_", names(got), value = TRUE)) res[[nm]][checkable] <- got[[nm]]
   }
   # A quote cited for an extracted value has to carry that value as well as
   # occur in the chunk. The extract reader checks both (quote_backs_value())
@@ -1832,6 +1893,9 @@ gr_verify_evidence <- function(answer, chunks = NULL) {
 
   data.frame(chunk_id = ev$chunk_id, kind = kind,
              verified = res$verified, match = res$match,
+             quote_status = res$quote_status, quote_sim = res$quote_sim,
+             quote_coverage = res$quote_coverage, quote_edits = res$quote_edits,
+             quote_critical_ok = res$quote_critical_ok,
              span = paste0(substr(ev$text, 1, 60),
                            ifelse(nchar(ev$text) > 60, "...", "")),
              stringsAsFactors = FALSE)
@@ -1951,4 +2015,41 @@ resolve_evidence_pages <- function(evidence, blocks) {
     if (length(got$sc) == 1L) evidence$section[[i]] <- got$sc
   }
   evidence
+}
+
+#' The quotation check of `verify = TRUE`, run on an answer gr_read() is
+#' about to return.
+#'
+#' gr_verify_evidence() on the answer and the chunks it was read from, its
+#' columns written onto the evidence rows, and the answer partial when a
+#' quotation it could check was not found. The trace gets a `read.verify`
+#' step with the counts and the shadow matcher's statuses. Nothing at all
+#' when the spec did not ask, so a default run is the run it always was.
+#' @noRd
+verify_record <- function(out, chunks, spec, trace) {
+  if (!isTRUE(spec$verify)) return(out)
+  ev <- out$evidence
+  checked <- if (is.data.frame(ev) && nrow(ev)) gr_verify_evidence(out, chunks) else NULL
+  failed <- 0L
+  n_checked <- 0L
+  statuses <- list()
+  if (!is.null(checked) && nrow(checked)) {
+    for (nm in c("verified", "match", grep("^quote_", names(checked), value = TRUE))) {
+      ev[[nm]] <- checked[[nm]]
+    }
+    out$evidence <- ev
+    n_checked <- sum(!is.na(checked$verified))
+    failed <- sum(checked$verified %in% FALSE)
+    tab <- table(checked$quote_status)
+    statuses <- as.list(stats::setNames(as.integer(tab), names(tab)))
+  }
+  out$notes$quotes_checked <- n_checked
+  if (failed > 0L) {
+    out$notes$unverified_evidence <- failed
+    out$partial <- TRUE
+  }
+  trace_note(trace, "read.verify",
+             list(reader = as_chr1(spec$reader, ""), checked = n_checked, failed = failed,
+                  shadow_status = statuses))
+  out
 }

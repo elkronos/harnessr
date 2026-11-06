@@ -144,6 +144,50 @@
   paid results still come back; an invalid `correct` argument is an error of
   the same class.
 
+## Checking quotations
+
+* **`gr_read_spec(verify = TRUE)`** checks an answer's quotations against the
+  chunks they come from and lets the check decide what is accepted.
+  `gr_read()` runs `gr_verify_evidence()` on the answer, writes its columns
+  onto `$evidence`, marks the answer partial when a quotation is not found
+  (`notes$unverified_evidence`), notes how many it checked
+  (`notes$quotes_checked`) and records a `read.verify` step in the trace. The
+  `iterative` reader's step must then list the passages its answer rests on,
+  word for word with their chunk numbers, and the loop stops only when every
+  one is found in the chunk it names, among those the step was shown. A
+  refused step is told which quotations were not found; a run that ends with
+  none accepted answers `NOT_IN_DOCUMENT`, keeps the refused answer in
+  `notes$unverified_answer` and makes no final answer request. Its evidence
+  is the quoted passages, not every chunk it was shown. A refusal is sent
+  back even when retrieval has no unseen chunks left, so the next step can
+  quote what it already has. With `premise = TRUE`, a step that reports the
+  premise false is not held to quotations in this release and stops the
+  loop as it does without `verify`. `verify = FALSE`, the default, sends
+  every request as before, and the field is in the spec only when `TRUE`,
+  so cache, replay and corpus store keys are unchanged.
+
+* **A second quote matcher is recorded beside `verified`.** Evidence tables
+  that are checked (`skim`, `extract`, `screen`, `iterative` with
+  `verify = TRUE`) and `gr_verify_evidence()` gain `quote_status`,
+  `quote_sim`, `quote_coverage`, `quote_edits` and `quote_critical_ok`, from
+  a matcher that expands ligatures, joins words broken across a line with a
+  hyphen, undoes JSON escapes and scores the closest window of the source by
+  character edits, with numbers (in digits or in words, with any comparison
+  sign before them and the unit after), and negations required to be
+  identical. A passage too long to score (its length times the source's
+  over 5e7 characters) is `not_checked`. Its statuses are `verbatim`, `near_verbatim` (similarity at
+  least 0.90, or 0.95 under 40 characters, five words or more),
+  `unverified` and `not_checked`. It decides nothing in this release:
+  `verified` and `match` are the existing check's, as before. On a labelled
+  set of 343 true and 162 false quotations it rejects 1.2% of true ones
+  (95% CI 0.3% to 3.0%) against 36.4% (31.3% to 41.8%) for the existing
+  check, and accepts none of the 52 with a changed digit, 8 with a changed
+  number word, 3 with a changed comparison sign, 37 with a flipped negation
+  or 16 invented sentences; it does accept 25 of 46 quotations with one
+  content word swapped as `near_verbatim`, which is why that status is not
+  `verified`.
+  `Rscript dev/quote-matcher-rates.R` prints the full table.
+
 # readgpt 0.6.0
 
 ## New
