@@ -69,38 +69,68 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
                             semantic_window = 2L, semantic_percentile = 90,
                             context_source = c("metadata", "llm"),
                             proposition_batch_tokens = 900L, parallel = NULL, ...) {
-  context_source <- match.arg(context_source)
   warn_near_miss(list(...), names(formals(gr_segment_spec)), "segment")
   # Out-of-range settings are clamped rather than accepted, but the clamp is
   # ANNOUNCED. Silently rewriting a user's parameter is how v1 ended up feeding
   # documents to the model backwards: a negative token limit went straight into
-  # `split(tokens, ceiling(seq_along(tokens) / limit))` with nothing said.
-  # 1200L, the formal default. This said 800L, so NA and omission gave
-  # different segmentations -- the one mismatch of its kind in the package, and
-  # the reason a test now checks every one of these against formals().
-  max_tokens <- clamp_warn(na_default(max_tokens, 1200L, "max_tokens"), 32, 1e6, "max_tokens")
-  # na_default() on every one of these, as max_tokens above already had.
-  # clamp_warn() maps NA to `lo`, so a missing semantic_percentile became 50 --
-  # splitting at the MEDIAN boundary rather than the 90th percentile, which
-  # multiplies the chunk count and therefore the calls and the cost.
-  overlap_tokens <- clamp_warn(na_default(overlap_tokens, 0L, "overlap_tokens"),
-                               0, max_tokens - 1L, "overlap_tokens")
-  min_tokens <- clamp_warn(na_default(min_tokens, 0L, "min_tokens"), 0, max_tokens, "min_tokens")
-  structure(c(list(method = method, max_tokens = max_tokens,
-                   overlap_tokens = overlap_tokens, min_tokens = min_tokens,
-                   separators = separators, prefix_section = isTRUE(prefix_section),
-                   semantic_window = clamp_warn(na_default(semantic_window, 2L, "semantic_window"),
-                                                1, 10, "semantic_window"),
-                   semantic_percentile = clamp_warn(na_default(semantic_percentile, 90,
-                                                               "semantic_percentile"),
-                                                    50, 99.5,
-                                                    "semantic_percentile", integer = FALSE),
-                   context_source = context_source,
-                   proposition_batch_tokens = clamp_warn(
-                     na_default(proposition_batch_tokens, 900L, "proposition_batch_tokens"),
-                     200, 4000, "proposition_batch_tokens"),
-                   parallel = parallel), list(...)),
+  # `split(tokens, ceiling(seq_along(tokens) / limit))` with nothing said. The
+  # ranges are in the schema (.gr_segment_schema).
+  p <- hr_validate(.gr_segment_schema, mget(names(.gr_segment_schema), environment()))
+  structure(c(list(method = p$method, max_tokens = p$max_tokens,
+                   overlap_tokens = p$overlap_tokens, min_tokens = p$min_tokens,
+                   separators = p$separators, prefix_section = p$prefix_section,
+                   semantic_window = p$semantic_window,
+                   semantic_percentile = p$semantic_percentile,
+                   context_source = p$context_source,
+                   proposition_batch_tokens = p$proposition_batch_tokens,
+                   parallel = p$parallel), list(...)),
             class = "gr_segment_spec")
+}
+
+#' The schema of gr_segment_spec(), in the order the constructor resolved its
+#' arguments before the schema existed. The overlap and the smallest chunk are
+#' bounded by `max_tokens`, so they come after it.
+#'
+#' NA and anything that is not a number fall back to the default of each
+#' setting, never the bottom of its range: a missing semantic_percentile once
+#' became 50, splitting at the median boundary rather than the 90th
+#' percentile, which multiplies the chunk count and the cost. The defaults
+#' match the formals; max_tokens once fell back to 800 while its formal said
+#' 1200, and a test now checks every one.
+#' @noRd
+.gr_segment_schema <- hr_schema(
+  hr_param("context_source", "enum", choices = c("metadata", "llm"), cost_class = "per_unit",
+           help = "For contextual: where the context line comes from.", tier = "advanced"),
+  hr_param("max_tokens", "integer", default = 1200L, min = 32, max = 1e6,
+           help = "Hard cap on chunk size, in tokens.", cost_class = "per_unit"),
+  hr_param("overlap_tokens", "integer", default = 0L, min = 0,
+           max = function(p) p$max_tokens - 1L,
+           help = "Tokens of trailing context copied into the start of the next chunk."),
+  hr_param("min_tokens", "integer", default = 0L, min = 0, max = function(p) p$max_tokens,
+           help = "A smaller chunk is merged into the one before it.", tier = "advanced"),
+  hr_param("method", "module_ref", default = "paragraph", kind = "segmenter",
+           help = "The segmentation strategy.", resolve = param_as_given),
+  hr_param("separators", "string_vector", default = NULL, tier = "advanced",
+           help = "For recursive: the separator cascade, strongest first.",
+           resolve = param_as_given),
+  hr_param("prefix_section", "boolean", default = TRUE, strict = FALSE, tier = "advanced",
+           help = "For structural: prepend the heading."),
+  hr_param("semantic_window", "integer", default = 2L, min = 1, max = 10, tier = "advanced",
+           help = "For semantic: sentences embedded together."),
+  hr_param("semantic_percentile", "number", default = 90, min = 50, max = 99.5,
+           tier = "advanced", help = "For semantic: how extreme a distance counts as a boundary."),
+  hr_param("proposition_batch_tokens", "integer", default = 900L, min = 200, max = 4000,
+           cost_class = "per_unit", tier = "advanced",
+           help = "For proposition: the size of each batch sent to the model."),
+  hr_param("parallel", "boolean", default = NULL, affects_output = FALSE, tier = "advanced",
+           help = "Parallelise per-chunk model work.", resolve = param_as_given)
+)
+
+#' The settings of a segment spec that differ from its defaults, as
+#' read_settings() does for a read spec.
+#' @noRd
+segment_settings <- function(spec) {
+  spec_settings(spec, suppressWarnings(gr_segment_spec(method = spec$method)), drop = "method")
 }
 
 #' Segment a document into chunks
@@ -284,6 +314,10 @@ segment_effort_label <- function(segment) {
 #'   `warning(warningCondition("No client; using 'paragraph'.", class =
 #'   "gr_segment_fallback"))`. Record the downgrade in the returned `method`
 #'   (`"mine->paragraph"`) so it survives into `gr_chunk_stats()`.
+#' @param calls The stems of the trace labels the segmenter's model calls
+#'   carry, such as `"mine.rewrite"`; `character(0)` for one that makes none.
+#'   An `effort` map may only name declared stems (see [gr_read_spec()]).
+#'   `NULL` (the default) declares the segmenter's name.
 #' @return Invisibly, `name`.
 #' @seealso [new_chunks()] to build the return value, [gr_segmenters()],
 #'   [gr_segment()], [gr_segment_spec()], [gr_recipe()]
@@ -300,11 +334,13 @@ segment_effort_label <- function(segment) {
 #' subset(gr_segmenters(), name == "by_bullet")
 gr_register_segmenter <- function(name, fn, description = "",
                                   cost = c("free", "embedding", "llm"),
-                                  needs_client = FALSE) {
+                                  needs_client = FALSE, calls = NULL) {
   cost <- match.arg(cost)
   if (!is.function(fn)) gr_abort("`fn` must be a function of (doc, spec, client, trace).")
+  calls <- check_calls(calls, as_chr1(name, ""))
   registry_set("segmenters", name, list(name = name, fn = fn, description = description,
-                                        cost = cost, needs_client = needs_client), state = gr_state)
+                                        cost = cost, needs_client = needs_client,
+                                        calls = calls), state = gr_state)
 }
 
 #' List registered segmentation strategies
@@ -317,7 +353,9 @@ gr_register_segmenter <- function(name, fn, description = "",
 #' @return A data frame with one row per registered segmenter: `name`, `cost`
 #'   (`"free"`, `"embedding"` or `"llm"`), `needs_client` (`"TRUE"`/`"FALSE"`;
 #'   when `TRUE` and no client is supplied, [gr_segment()] warns and the
-#'   segmenter falls back) and `description`.
+#'   segmenter falls back), `description`, and `calls`, the stems of the
+#'   labels its model calls carry, joined by commas (empty for one that makes
+#'   none).
 #' @seealso [gr_segment()], [gr_segment_spec()], [gr_register_segmenter()],
 #'   [gr_chunk_stats()] to compare what they produce
 #' @family segmentation functions
@@ -328,5 +366,6 @@ gr_register_segmenter <- function(name, fn, description = "",
 #' # The ones that cost money, and the ones that need a client to work at all.
 #' subset(gr_segmenters(), cost != "free" | needs_client == "TRUE")[, 1:3]
 gr_segmenters <- function() {
-  registry_table("segmenters", c("cost", "needs_client", "description"), state = gr_state)
+  with_calls(registry_table("segmenters", c("cost", "needs_client", "description"),
+                            state = gr_state), gr_state$segmenters)
 }

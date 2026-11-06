@@ -410,3 +410,68 @@ governor_exhausted <- function(trace) {
   room$calls < 1 || (is.finite(room$usd) && room$usd <= 0 && budget_spent(trace) > 0) ||
     room$tokens <= 0
 }
+
+#' Check the estimate for a whole run against the governor before it starts.
+#'
+#' The request check above holds each request to the limits as it goes out.
+#' This one runs once, before the first, on the summed cost of the modules a
+#' run uses (cost_sum() of their hr_cost()), and says which limit the run as
+#' a whole cannot fit, so it is refused before anything is spent rather than
+#' stopped part way:
+#'
+#' - "calls": the expected requests pass `max_calls`.
+#' - "calls_worst": a run sent in parallel batches, which cannot be stopped
+#'   part way, could pass `max_calls` at worst.
+#' - "unpriced": a model has no price and unpriced models are not allowed.
+#'   `exempt` is TRUE for a client that sends nothing paid for (a mock) or
+#'   prices what it answers itself (a replay).
+#' - "spent": the run has already spent its limit.
+#' - "zero": the limit is $0 and a model has a price.
+#' - "floor": what the run must send at least (`floor_usd`; NULL or NA for
+#'   none) passes the limit.
+#' - "worst": a parallel run's worst case (`worst_usd`) passes the limit.
+#'
+#' With `calls_only = TRUE` only the first two are checked, so a caller can
+#' refuse a run on its call count before pricing it. `unit_usd` is the price
+#' of one input and one output token for each model the run may use, named by
+#' model, NA for a model with no price. The caller
+#' words the refusal, since it knows what the run is. `unpriced` lists the
+#' unpriced models whatever the outcome, for a warning that their cost is not
+#' counted.
+#' @noRd
+governor_run_check <- function(trace, calls, calls_max, parallel = FALSE, calls_only = FALSE,
+                               unit_usd = NULL, exempt = FALSE, floor_usd = NULL,
+                               worst_usd = NA_real_) {
+  gov <- trace_governor(trace)
+  cap <- as_num1(gov$max_calls, Inf)
+  already <- if (inherits(trace, "gr_trace")) trace$calls else 0L
+  out <- list(limit = NA_character_, cap = cap, already = already, budget = gov$max_cost_usd,
+              spent = 0, unpriced = character(0), zero_model = NA_character_)
+  done <- function(limit) {
+    out$limit <- limit
+    out
+  }
+  if (is.finite(cap) && (already + calls) > cap) return(done("calls"))
+  if (is.finite(cap) && isTRUE(parallel) && (already + calls_max) > cap) {
+    return(done("calls_worst"))
+  }
+  budget <- gov$max_cost_usd
+  if (isTRUE(calls_only) || is.null(budget) || !is.finite(budget)) return(out)
+  out$unpriced <- names(unit_usd)[is.na(unit_usd)]
+  if (length(out$unpriced) && !isTRUE(gov$allow_unpriced) && !isTRUE(exempt)) {
+    return(done("unpriced"))
+  }
+  spent <- budget_spent(trace)
+  out$spent <- spent
+  if (spent > 0 && spent >= budget) return(done("spent"))
+  priced <- !is.na(unit_usd) & unit_usd > 0
+  if (budget <= 0 && any(priced)) {
+    out$zero_model <- names(unit_usd)[priced][1]
+    return(done("zero"))
+  }
+  if (!is.null(floor_usd) && !is.na(floor_usd) && spent + floor_usd > budget) {
+    return(done("floor"))
+  }
+  if (isTRUE(parallel) && !is.na(worst_usd) && spent + worst_usd > budget) return(done("worst"))
+  out
+}

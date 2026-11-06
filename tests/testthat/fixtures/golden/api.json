@@ -257,11 +257,11 @@
       "type": "function"
     },
     "gr_register_reader": {
-      "formals": ["name", "fn", "signature", "description = \"\"", "cost_calls = \"\""],
+      "formals": ["name", "fn", "signature", "description = \"\"", "cost_calls = \"\"", "calls = NULL", "cost = NULL"],
       "type": "function"
     },
     "gr_register_segmenter": {
-      "formals": ["name", "fn", "description = \"\"", "cost = c(\"free\", \"embedding\", \"llm\")", "needs_client = FALSE"],
+      "formals": ["name", "fn", "description = \"\"", "cost = c(\"free\", \"embedding\", \"llm\")", "needs_client = FALSE", "calls = NULL"],
       "type": "function"
     },
     "gr_replay_client": {
@@ -324,8 +324,24 @@
       "formals": ["answer", "chunks = NULL"],
       "type": "function"
     },
+    "hr_cost": {
+      "formals": ["calls", "calls_max = calls", "tokens_in_max = 0", "tokens_out_max = 0", "embed_max = 0", "sends = list()", "batched = TRUE"],
+      "type": "function"
+    },
     "hr_governor": {
       "formals": ["max_calls = gr_options(\"max_calls\")", "max_cost_usd = gr_options(\"max_cost_usd\")", "max_tokens_total = gr_options(\"max_tokens_total\")", "max_output_tokens = gr_options(\"max_output_tokens\")", "allowed_models = gr_options(\"allowed_models\")", "allow_unpriced = gr_options(\"allow_unpriced\")"],
+      "type": "function"
+    },
+    "hr_param": {
+      "formals": ["name", "type = c(\"integer\", \"number\", \"string\", \"boolean\", \"enum\", \"string_vector\", \"named_map\", \"module_ref\", \"file\")", "default = NULL", "min = NULL", "max = NULL", "choices = NULL", "required = FALSE", "help = \"\"", "cost_class = \"none\"", "affects_output = TRUE", "tier = c(\"basic\", \"advanced\")", "evidence = NULL", "depends_on = NULL", "since = NULL", "kind = NULL", "strict = TRUE", "resolve = NULL"],
+      "type": "function"
+    },
+    "hr_schema": {
+      "formals": ["..."],
+      "type": "function"
+    },
+    "hr_validate": {
+      "formals": ["schema", "values = list()"],
       "type": "function"
     },
     "is_not_found": {
@@ -562,6 +578,11 @@
     },
     "print.hr_governor": {
       "class": "hr_governor",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_schema": {
+      "class": "hr_schema",
       "formals": ["x", "..."],
       "generic": "print"
     }

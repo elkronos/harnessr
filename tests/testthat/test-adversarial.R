@@ -1802,25 +1802,22 @@ test_that("every setting's missing-value fallback is its formal default", {
   # The fallback is written out by hand, apart from the signature, and the two
   # drifted: gr_segment_spec(max_tokens = NA) cut 800-token chunks while leaving
   # the argument out cut 1200-token ones.
-  found <- list()
-  walk <- function(e) {
-    if (!is.call(e)) return(invisible())
-    if (identical(e[[1]], as.name("na_default")) && is.name(e[[2]])) {
-      found[[length(found) + 1L]] <<- e
-    }
-    invisible(lapply(as.list(e)[-1], function(x) if (!missing(x)) walk(x)))
-  }
+  # The spec constructors take the fallback from their schemas, where every
+  # number's default is the one hr_validate() falls back to.
   checked <- character(0)
-  for (fn in c("gr_ingest_spec", "gr_segment_spec", "gr_read_spec")) {
+  schemas <- c(gr_ingest_spec = ".gr_ingest_schema", gr_segment_spec = ".gr_segment_schema",
+               gr_read_spec = ".gr_read_schema")
+  for (fn in names(schemas)) {
     f <- get(fn, envir = asNamespace("harnessr"))
-    found <- list()
-    walk(body(f))
-    for (cl in found) {
-      arg <- as.character(cl[[2]])
-      if (!arg %in% names(formals(f))) next
-      expect_equal(as.numeric(eval(cl[[3]])), as.numeric(eval(formals(f)[[arg]])),
-                   info = paste0(fn, "(", arg, ")"))
-      checked <- c(checked, paste0(fn, "(", arg, ")"))
+    schema <- get(schemas[[fn]], envir = asNamespace("harnessr"))
+    for (p in schema) {
+      if (!p$type %in% c("integer", "number") || !is.null(p$resolve)) next
+      expect_equal(as.numeric(p$default), as.numeric(eval(formals(f)[[p$name]])),
+                   info = paste0(fn, "(", p$name, ")"))
+      fallback <- suppressWarnings(hr_validate(schema, stats::setNames(list(NA), p$name)))
+      expect_equal(as.numeric(fallback[[p$name]]), as.numeric(eval(formals(f)[[p$name]])),
+                   info = paste0(fn, "(", p$name, ") with NA"))
+      checked <- c(checked, paste0(fn, "(", p$name, ")"))
     }
   }
   expect_gte(length(checked), 20L)
@@ -1828,7 +1825,15 @@ test_that("every setting's missing-value fallback is its formal default", {
   # And the functions that hand a token count on to gr_read_spec() settle an
   # NA against their OWN default, and range-check it, under their own name:
   # gr_read_spec() would warn about `max_answer_tokens`, which the caller never
-  # passed.
+  # passed. These two still settle their fallbacks in code, so their bodies
+  # are scanned for na_default() calls.
+  walk <- function(e) {
+    if (!is.call(e)) return(invisible())
+    if (identical(e[[1]], as.name("na_default")) && is.name(e[[2]])) {
+      found[[length(found) + 1L]] <<- e
+    }
+    invisible(lapply(as.list(e)[-1], function(x) if (!missing(x)) walk(x)))
+  }
   for (fn in c("gr_claims", "gr_synthesise")) {
     f <- get(fn, envir = asNamespace("harnessr"))
     found <- list()

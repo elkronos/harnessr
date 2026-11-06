@@ -62,21 +62,48 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
                            ocr_lang = "eng", ocr_dpi = 300, ocr_min_chars = 40L,
                            min_chars = 20L, extractor = NULL, parallel = NULL,
                            cleaner_opts = list(), layout = c("auto", "raw")) {
-  ocr <- match.arg(ocr)
-  layout <- match.arg(layout)
-  spec <- structure(list(clean = clean, ocr = ocr, ocr_lang = ocr_lang, ocr_dpi = ocr_dpi,
-                 # Not bare as.integer(): NA and 3e9 both became NA_integer_, and
-                 # `sum(nchar(text)) < NA` then failed EVERY document with "missing
-                 # value where TRUE/FALSE needed". The OCR threshold is read by
-                 # ocr_threshold(), which gr_inventory() uses too, so the survey
-                 # predicts what ingestion then does.
-                 ocr_min_chars = ocr_threshold(ocr_min_chars),
-                 min_chars = as_int1(na_default(min_chars, 20L, "min_chars"), 20L),
-                 extractor = extractor, parallel = parallel, cleaner_opts = cleaner_opts),
-            class = "gr_ingest_spec")
-  if (!identical(layout, "auto")) spec$layout <- layout
+  p <- hr_validate(.gr_ingest_schema, mget(names(.gr_ingest_schema), environment()))
+  spec <- structure(list(clean = p$clean, ocr = p$ocr, ocr_lang = p$ocr_lang,
+                         ocr_dpi = p$ocr_dpi, ocr_min_chars = p$ocr_min_chars,
+                         min_chars = p$min_chars, extractor = p$extractor,
+                         parallel = p$parallel, cleaner_opts = p$cleaner_opts),
+                    class = "gr_ingest_spec")
+  if (!identical(p$layout, "auto")) spec$layout <- p$layout
   spec
 }
+
+#' The schema of gr_ingest_spec(). Most settings are stored as given, as they
+#' always were; the extractors and cleaners that read them check them.
+#' @noRd
+.gr_ingest_schema <- hr_schema(
+  hr_param("ocr", "enum", choices = c("auto", "always", "never"), cost_class = "local",
+           help = "When to OCR a page: with no text layer, always, or never."),
+  hr_param("layout", "enum", choices = c("auto", "raw"),
+           help = "How a PDF page's text is put in reading order.", tier = "advanced"),
+  hr_param("clean", "string_vector", default = "standard",
+           help = "A cleaning preset, or cleaner names.", resolve = param_as_given),
+  hr_param("ocr_lang", "string", default = "eng", tier = "advanced",
+           help = "Tesseract language code.", resolve = param_as_given),
+  hr_param("ocr_dpi", "number", default = 300, tier = "advanced", cost_class = "local",
+           help = "Render density for PDF OCR.", resolve = param_as_given),
+  # Not bare as.integer(): NA and 3e9 both became NA_integer_, and
+  # `sum(nchar(text)) < NA` then failed EVERY document with "missing value
+  # where TRUE/FALSE needed". The OCR threshold is read by ocr_threshold(),
+  # which gr_inventory() uses too, so the survey predicts what ingestion then
+  # does.
+  hr_param("ocr_min_chars", "number", default = 40L, tier = "advanced",
+           help = "A page with fewer characters is OCRed under ocr = 'auto'.",
+           resolve = function(x, p, params) ocr_threshold(x)),
+  hr_param("min_chars", "integer", default = 20L,
+           help = "Refuse the document if less text than this survives."),
+  hr_param("extractor", "module_ref", default = NULL, kind = "extractor", tier = "advanced",
+           help = "Force an extractor instead of choosing by file type.",
+           resolve = param_as_given),
+  hr_param("parallel", "boolean", default = NULL, affects_output = FALSE, tier = "advanced",
+           help = "Parallelise page-level OCR.", resolve = param_as_given),
+  hr_param("cleaner_opts", "named_map", default = list(), tier = "advanced",
+           help = "Extra options passed to individual cleaners.", resolve = param_as_given)
+)
 
 #' Ingest a document into cleaned, provenance-bearing text blocks
 #'

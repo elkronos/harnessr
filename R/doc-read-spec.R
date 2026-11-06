@@ -20,7 +20,26 @@
 #'   its first request.
 #' @param description One-line description, shown by [gr_readers()].
 #' @param cost_calls Human-readable call count in terms of N chunks (`"N + 1"`,
-#'   `"1 + embeddings"`), shown by [gr_readers()].
+#'   `"1 + embeddings"`), shown by [gr_readers()]. For people only: the
+#'   pre-flight check counts with `cost`.
+#' @param calls The stems of the trace labels your reader's calls carry, such
+#'   as `c("longest.answer")`. A label is covered by a stem it equals or
+#'   starts with followed by a dot. An `effort` map in [gr_read_spec()] may
+#'   only name declared stems, or parts of them up to a dot, so declare every
+#'   label your reader sends. `NULL` (the default) declares the reader's name,
+#'   which covers labels such as `"longest.answer"` for a reader called
+#'   `"longest"`.
+#' @param cost `NULL`, or a function of `(input_stats, params)` returning
+#'   [hr_cost()]: how many requests one run of your reader makes, expected and
+#'   at worst. `params` is the [gr_read_spec()]; `input_stats` has `n_chunks`,
+#'   `tokens` (of all chunks), `texts`, `question`, `out_cap` (the largest
+#'   reply cap a request to `params$model` is sent), `embed_api` (whether
+#'   embeddings go to the endpoint at all), and the helpers
+#'   `reply_cap(model, cap)`, `room(system, restate)` and
+#'   `embed_requests(texts)`. The pre-flight check sums these to refuse a run
+#'   that cannot fit the call cap or spending limit before it starts. `NULL`
+#'   counts one request per chunk and, for a signature whose `select` is
+#'   `"all"`, every chunk sent once.
 #' @return Invisibly, `name`.
 #'
 #' @section Writing a reader:
@@ -35,7 +54,8 @@
 #'     filled `model` from the client when the spec named none. Pass
 #'     `effort = spec$effort` to every [gr_call()], which resolves a setting
 #'     by stage against the call's `label`, so give each call a label of its
-#'     own; a call without it is sent no effort.}
+#'     own and declare its stem in `calls`; a call without a label is sent no
+#'     effort.}
 #'   \item{`trace`}{Pass it to every [gr_call()] so your calls are counted,
 #'     priced and held to the run's limits: a request that would pass
 #'     `max_calls` or `max_cost_usd` is not sent, and comes back with
@@ -54,6 +74,7 @@
 #' # A reader that answers from the single longest chunk.
 #' gr_register_reader("longest", signature = "one|1|none", cost_calls = "1",
 #'   description = "answer from the longest chunk only",
+#'   calls = "longest.answer", cost = function(input_stats, params) hr_cost(calls = 1),
 #'   fn = function(chunks, question, client, spec, trace) {
 #'     d <- chunks$chunks
 #'     i <- which.max(d$tokens)
@@ -67,7 +88,8 @@
 #' ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
 #' gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million"),
 #'         "longest")$answer
-gr_register_reader <- function(name, fn, signature, description = "", cost_calls = "") {
+gr_register_reader <- function(name, fn, signature, description = "", cost_calls = "",
+                               calls = NULL, cost = NULL) {
   if (!is.function(fn)) gr_abort("`fn` must be a function of (chunks, question, client, spec, trace).")
   # answer_document(recipe = "auto") would never reach a reader of that name.
   if (identical(as_chr1(name, ""), "auto")) {
@@ -77,8 +99,14 @@ gr_register_reader <- function(name, fn, signature, description = "", cost_calls
   if (!grepl("^[^|]+\\|[^|]+\\|[^|]+$", as_chr1(signature))) {
     gr_abort("`signature` must have the form 'select|calls|state', e.g. 'topk|1|none'.")
   }
+  if (!is.null(cost) && !is.function(cost)) {
+    gr_abort("`cost` must be NULL or a function of (input_stats, params) returning hr_cost().",
+             class = "gr_bad_setting")
+  }
+  calls <- check_calls(calls, as_chr1(name, ""))
   registry_set("readers", name, list(name = name, fn = fn, signature = signature,
-                                     description = description, cost_calls = cost_calls), state = gr_state)
+                                     description = description, cost_calls = cost_calls,
+                                     calls = calls, cost = cost), state = gr_state)
 }
 
 #' List registered reading strategies
@@ -89,7 +117,9 @@ gr_register_reader <- function(name, fn, signature, description = "", cost_calls
 #'
 #' @return A data frame with one row per registered reader: `name`, `signature`
 #'   (see [gr_reader_signature()]), `cost_calls` (a formula in N, the number
-#'   of chunks, not a number) and `description`.
+#'   of chunks, not a number), `description`, and `calls`, the stems of the
+#'   labels its calls carry, joined by commas: the names an `effort` map can
+#'   use.
 #' @seealso [gr_read()], [gr_reader_signature()], [gr_register_reader()],
 #'   [gr_read_spec()], [gr_compare()] to run several and compare
 #' @family reading functions
@@ -99,7 +129,20 @@ gr_register_reader <- function(name, fn, signature, description = "", cost_calls
 #' # `all|...` readers see every chunk, `topk|...` readers see a selection.
 #' r <- gr_readers()
 #' r[order(r$signature), c("name", "signature", "cost_calls")]
-gr_readers <- function() registry_table("readers", c("signature", "cost_calls", "description"), state = gr_state)
+gr_readers <- function() {
+  with_calls(registry_table("readers", c("signature", "cost_calls", "description"),
+                            state = gr_state), gr_state$readers)
+}
+
+#' A registry table with each module's declared call stems added, joined by
+#' commas.
+#' @noRd
+with_calls <- function(df, reg) {
+  df$calls <- vapply(df$name, function(nm) paste(reg[[nm]]$calls %||% character(0),
+                                                 collapse = ", "),
+                     character(1), USE.NAMES = FALSE)
+  df
+}
 
 #' The traversal signature of a reader
 #'
@@ -242,7 +285,11 @@ gr_reader_signature <- function(reader) {
 #'   call whose trace label is that name or starts with it and a dot; the
 #'   longest name that covers a label wins; an unnamed element, or one named
 #'   `"default"`, covers the labels no name does, and a label nothing covers is
-#'   sent no effort. It reaches the segmenters that call a model too, when the
+#'   sent no effort. A name must cover a stem some registered reader,
+#'   segmenter or stage declares (the `calls` column of [gr_readers()] and
+#'   [gr_segmenters()]), or a label under one, so a misspelt name is an error
+#'   of class `hr_unknown_effort_key` that lists the stems, not a setting that
+#'   reaches no call. It reaches the segmenters that call a model too, when the
 #'   spec is part of a recipe. See the section on reasoning effort.
 #' @param premise Check the question's assumptions against the document. A
 #'   question can take for granted something the document contradicts ("Why
@@ -401,66 +448,47 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
                          parallel = NULL, delay_between_calls = 0,
                          on_overflow = c("warn", "error"), effort = NULL, premise = FALSE,
                          ...) {
-  on_overflow <- match.arg(on_overflow)
-  context_order <- match.arg(context_order)
-  restate <- match.arg(restate)
-  # Refused rather than read with isTRUE(): premise = "yes" or NA would turn a
-  # check the caller asked for into none, and nothing in the answer would say.
-  if (!is.logical(premise) || length(premise) != 1L || is.na(premise)) {
-    gr_abort("`premise` must be TRUE or FALSE.", class = "gr_bad_setting")
-  }
   warn_near_miss(list(...), names(formals(gr_read_spec)), "read")
-  effort <- check_effort(effort)
+  # Every argument but `...` is checked and resolved by the schema
+  # (.gr_read_schema): ranges clamped with a warning, a missing number taken
+  # from its default, the choices matched.
+  p <- hr_validate(.gr_read_schema, mget(names(.gr_read_schema), environment()))
   spec <- structure(c(list(
-    reader = reader,
-    # NULL is kept, not filled from gr_options("model"): filled here, every
-    # reader passed a model to gr_call(), which only falls back to the client's
-    # when given none, so a client built for another model was never the one
-    # asked, budgeted for or billed. gr_read() fills it from the client.
-    model = if (is.null(model)) NULL else as_chr1(model),
-    temperature = temperature %||% gr_options("temperature"),
-    max_answer_tokens = clamp_warn(na_default(max_answer_tokens, 1500L, "max_answer_tokens"), 16, 1e6, "max_answer_tokens"),
-    max_chunk_tokens = clamp_warn(na_default(max_chunk_tokens, 700L, "max_chunk_tokens"), 16, 1e6, "max_chunk_tokens"),
-    max_summary_tokens = clamp_warn(na_default(max_summary_tokens, 500L, "max_summary_tokens"), 16, 1e6, "max_summary_tokens"),
-    top_k = clamp_warn(na_default(top_k, 6L, "top_k"), 1, 1e4, "top_k"),
-    # -Inf is the documented "no floor", so a value that cannot be compared has
-    # to be refused rather than silently becoming one: a relevance floor that is
-    # not applied is the same failure as a cost ceiling that is not enforced.
-    min_score = if (identical(min_score, -Inf)) -Inf else
-      na_default(min_score, -Inf, "min_score"),
-    # NA falls back to the DEFAULT, not to the bottom of the range. clamp_warn()
-    # maps NA to `lo`, which for this setting is 0 -- pure diversity, documented
-    # as "will happily pick irrelevant chunks because they are different". A
-    # missing value must not select the most destructive end of a scale.
-    mmr = clamp_warn(na_default(mmr, 1, "mmr"), 0, 1, "mmr", integer = FALSE),
-    context_order = context_order,
-    restate = restate,
-    rerank_candidates = clamp_warn(na_default(rerank_candidates, 20L, "rerank_candidates"), 1, 1e4, "rerank_candidates"),
-    rerank_min_score = clamp_warn(na_default(rerank_min_score, 4, "rerank_min_score"), 0, 10, "rerank_min_score", integer = FALSE),
-    fan_in = clamp_warn(na_default(fan_in, 5L, "fan_in"), 2, 32, "fan_in"),
-    max_levels = clamp_warn(na_default(max_levels, 5L, "max_levels"), 1, 12, "max_levels"),
-    max_rounds = clamp_warn(na_default(max_rounds, 4L, "max_rounds"), 1, 20, "max_rounds"),
-    preview_tokens = clamp_warn(na_default(preview_tokens, 1200L, "preview_tokens"), 100, 1e5,
-                               "preview_tokens"),
-    members = members,
-    cite = isTRUE(cite),
-    skim_model = skim_model,
-    summary_model = summary_model,
-    parallel = parallel %||% gr_options("parallel"),
-    delay_between_calls = clamp_warn(na_default(delay_between_calls, 0, "delay_between_calls"),
-                                     0, 600, "delay_between_calls", integer = FALSE),
-    on_overflow = on_overflow
+    reader = p$reader,
+    model = p$model,
+    temperature = p$temperature,
+    max_answer_tokens = p$max_answer_tokens,
+    max_chunk_tokens = p$max_chunk_tokens,
+    max_summary_tokens = p$max_summary_tokens,
+    top_k = p$top_k,
+    min_score = p$min_score,
+    mmr = p$mmr,
+    context_order = p$context_order,
+    restate = p$restate,
+    rerank_candidates = p$rerank_candidates,
+    rerank_min_score = p$rerank_min_score,
+    fan_in = p$fan_in,
+    max_levels = p$max_levels,
+    max_rounds = p$max_rounds,
+    preview_tokens = p$preview_tokens,
+    members = p$members,
+    cite = p$cite,
+    skim_model = p$skim_model,
+    summary_model = p$summary_model,
+    parallel = p$parallel,
+    delay_between_calls = p$delay_between_calls,
+    on_overflow = p$on_overflow
   ),
   # Only when set. A spec is hashed whole into a corpus store's key and into
   # gr_compare()'s check that two recipes differ, and an `effort = NULL` entry
   # would be a new element in every spec, so every store made before the
   # setting existed would have missed and every document been paid for again.
-  if (!is.null(effort)) list(effort = effort),
+  if (!is.null(p$effort)) list(effort = p$effort),
   # In the spec only when it is TRUE. The whole spec is hashed into the keys a
   # corpus store files answers under (corpus_key()) and gr_compare() tells
   # recipes apart by, so a field present in every spec, FALSE or not, would
   # have moved every store entry ever written to a key no run asks for.
-  if (isTRUE(premise)) list(premise = TRUE),
+  if (isTRUE(p$premise)) list(premise = TRUE),
   list(...)), class = "gr_read_spec")
   registry_get("readers", spec$reader, "readers", state = gr_state)   # fail fast on a typo
   # Asked of a reader that answers no question, the check would silently do
@@ -480,4 +508,93 @@ as_read_spec <- function(spec) {
   if (is.character(spec) && length(spec) == 1L) return(gr_read_spec(reader = spec))
   if (is.list(spec)) return(do.call(gr_read_spec, spec))
   gr_abort("`read` must be a gr_read_spec, a reader name, or a named list.")
+}
+
+#' The schema of gr_read_spec(): every argument but `...`, in the order the
+#' constructor resolved them before the schema existed, so a run of warnings
+#' comes out in the same order. Ranges and defaults are the ones documented
+#' under "Out-of-range values"; the defaults must match the formals, which a
+#' test checks.
+#' @noRd
+.gr_read_schema <- hr_schema(
+  hr_param("on_overflow", "enum", choices = c("warn", "error"),
+           help = "For stuff: truncate with a warning, or stop, when the document does not fit.",
+           tier = "advanced"),
+  hr_param("context_order", "enum", choices = c("relevance", "document", "edges"),
+           help = "Where the selected chunks sit in the prompt."),
+  hr_param("restate", "enum", choices = c("auto", "always", "never"),
+           help = "Whether to repeat the question before the excerpts as well as after.",
+           tier = "advanced"),
+  # Refused rather than read with isTRUE(): premise = "yes" or NA would turn a
+  # check the caller asked for into none, and nothing in the answer would say.
+  hr_param("premise", "boolean", default = FALSE, strict = TRUE,
+           help = "Check the question's assumptions against the document."),
+  hr_param("effort", "named_map", default = NULL, cost_class = "per_call_constant",
+           help = "Reasoning effort, one level or a map named by call stem.",
+           tier = "advanced",
+           resolve = function(x, p, params) check_effort_stems(check_effort(x),
+                                                               declared_call_stems())),
+  hr_param("reader", "module_ref", default = "map_reduce", kind = "reader",
+           help = "The reading strategy.", cost_class = "per_unit", resolve = param_as_given),
+  # NULL is kept, not filled from gr_options("model"): filled here, every
+  # reader passed a model to gr_call(), which only falls back to the client's
+  # when given none, so a client built for another model was never the one
+  # asked, budgeted for or billed. gr_read() fills it from the client.
+  hr_param("model", "string", default = NULL, help = "Chat model id; NULL means the client's.",
+           resolve = function(x, p, params) if (is.null(x)) NULL else as_chr1(x)),
+  hr_param("temperature", "number", default = NULL, help = "Sampling temperature.",
+           tier = "advanced",
+           resolve = function(x, p, params) x %||% gr_options("temperature")),
+  hr_param("max_answer_tokens", "integer", default = 1500L, min = 16, max = 1e6,
+           help = "Output cap for final answers and merges.", tier = "advanced"),
+  hr_param("max_chunk_tokens", "integer", default = 700L, min = 16, max = 1e6,
+           help = "Output cap for per-chunk calls.", tier = "advanced"),
+  hr_param("max_summary_tokens", "integer", default = 500L, min = 16, max = 1e6,
+           help = "Output cap for summarisation calls.", tier = "advanced"),
+  hr_param("top_k", "integer", default = 6L, min = 1, max = 1e4,
+           help = "Chunks to use, for retrieve, rerank and iterative."),
+  # -Inf is the documented "no floor", so a value that cannot be compared has
+  # to be refused rather than silently becoming one: a relevance floor that is
+  # not applied is the same failure as a cost ceiling that is not enforced.
+  hr_param("min_score", "number", default = -Inf,
+           help = "For retrieve: chunks scoring below this are dropped.", tier = "advanced"),
+  # NA falls back to the default, not to the bottom of the range, which for
+  # this setting is pure diversity and picks irrelevant chunks.
+  hr_param("mmr", "number", default = 1, min = 0, max = 1,
+           help = "Relevance against diversity when selecting chunks; 1 is plain top-k."),
+  hr_param("rerank_candidates", "integer", default = 20L, min = 1, max = 1e4,
+           help = "For rerank: how many chunks to score.", cost_class = "per_unit"),
+  hr_param("rerank_min_score", "number", default = 4, min = 0, max = 10,
+           help = "For rerank: the score below which a chunk is discarded.", tier = "advanced"),
+  hr_param("fan_in", "integer", default = 5L, min = 2, max = 32,
+           help = "For hierarchical: summaries combined per call.", tier = "advanced"),
+  hr_param("max_levels", "integer", default = 5L, min = 1, max = 12,
+           help = "For hierarchical: the recursion depth cap.", tier = "advanced"),
+  hr_param("max_rounds", "integer", default = 4L, min = 1, max = 20,
+           help = "For iterative: retrieve-assess cycles.", cost_class = "per_round"),
+  hr_param("preview_tokens", "integer", default = 1200L, min = 100, max = 1e5,
+           help = "For preview: the cap on the outline the planner sees.", tier = "advanced"),
+  hr_param("members", "string_vector", default = NULL, cost_class = "per_unit",
+           help = "For ensemble: the reader names to combine.", resolve = param_as_given),
+  hr_param("cite", "boolean", default = FALSE, strict = FALSE,
+           help = "Ask for chunk-level citations in the answer."),
+  hr_param("skim_model", "string", default = NULL, tier = "advanced",
+           help = "A cheaper model for skim's extraction and rerank's scoring.",
+           resolve = param_as_given),
+  hr_param("summary_model", "string", default = NULL, tier = "advanced",
+           help = "A cheaper model for hierarchical's summaries.", resolve = param_as_given),
+  hr_param("parallel", "boolean", default = NULL, affects_output = FALSE, tier = "advanced",
+           help = "Run per-chunk calls in parallel.",
+           resolve = function(x, p, params) x %||% gr_options("parallel")),
+  hr_param("delay_between_calls", "number", default = 0, min = 0, max = 600,
+           affects_output = FALSE, tier = "advanced",
+           help = "Seconds to sleep between sequential calls.")
+)
+
+#' The settings of a read spec that differ from its defaults, for the trace
+#' and gr_compare(). Defaults come from gr_read_spec() itself, so a model or
+#' `parallel` that merely follows gr_options() is not reported as a setting.
+#' @noRd
+read_settings <- function(spec) {
+  spec_settings(spec, suppressWarnings(gr_read_spec(reader = spec$reader)), drop = "reader")
 }

@@ -77,6 +77,35 @@ check_effort <- function(effort, arg = "effort") {
   effort
 }
 
+#' Check that every name in an effort map covers a declared call stem.
+#'
+#' A name is matched against call labels by prefix (effort_for()), so a
+#' misspelt one ("extrac") covered no call and the stage it was meant for went
+#' out at the provider's default with nothing said. Every module declares the
+#' stems of the labels its calls carry, and a name is accepted when it is a
+#' stem, a part of one up to a dot ("synthesise" for "synthesise.section"),
+#' or a label under one ("reduce.level1" under "reduce"). The unnamed and
+#' "default" elements cover whatever no name does and are always accepted.
+#' `stems` is every stem declared by the modules registered now.
+#' @noRd
+check_effort_stems <- function(effort, stems, arg = "effort") {
+  if (is.null(effort)) return(NULL)
+  keys <- effort_keys(effort)
+  stems <- unique(stems[!is.na(stems) & nzchar(stems)])
+  known <- function(k) any(k == stems | startsWith(stems, paste0(k, ".")) |
+                             startsWith(k, paste0(stems, ".")))
+  bad <- keys[nzchar(keys) & !vapply(keys, known, logical(1))]
+  if (length(bad)) {
+    gr_abort(sprintf(paste0("`%s` names %s, which no call is labelled with, so the setting ",
+                            "would reach no request. Name a call stem, or a part of one up to ",
+                            "a dot: %s."),
+                     arg, paste0("'", unique(bad), "'", collapse = ", "),
+                     paste(sort(stems), collapse = ", ")),
+             class = c("hr_unknown_effort_key", "gr_bad_setting"))
+  }
+  effort
+}
+
 #' The label prefix each element of an effort map is for; "" for the default.
 #' @noRd
 effort_keys <- function(effort) {

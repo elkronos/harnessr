@@ -185,14 +185,14 @@ seq_between <- function(from, to) {
 #' backwards. Every spec constructor clamps through this, so an out-of-range
 #' setting is always reported rather than quietly replaced.
 #' @noRd
-clamp_warn <- function(x, lo, hi, what, integer = TRUE) {
+clamp_warn <- function(x, lo, hi, what, integer = TRUE, class = "gr_clamped") {
   out <- clamp(x, lo, hi)
   if (integer) out <- as.integer(out)
   same <- tryCatch(isTRUE(all.equal(as.numeric(x), as.numeric(out))), error = function(e) FALSE)
   if (!same) {
     gr_warn(sprintf("`%s` %s is outside [%s, %s]; using %s.",
                     what, format(x), format(lo), format(hi), format(out)),
-            class = "gr_clamped")
+            class = class)
   }
   out
 }
