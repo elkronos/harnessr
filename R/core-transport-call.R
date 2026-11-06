@@ -903,12 +903,17 @@ handler_result <- function(out, model, prompt_tokens) {
 }
 
 #' Call a model and parse a JSON-schema response into a list
+#'
+#' A reply is usable only if it parses to an object that meets `schema` (see
+#' json_reply()); one that does not comes back with `ok = FALSE` and the
+#' reason in `problem`, and is not cached. `own_scalars` is for a caller that
+#' reads each scalar value itself (see schema_problem()).
 #' @noRd
 gr_call_json <- function(client, messages, schema, schema_name = "result",
-                         allow_empty = FALSE, ...) {
+                         allow_empty = FALSE, own_scalars = FALSE, ...) {
   # The same test decides what is cached, so a reply this function would call
   # a failure is never stored as a success (see model_call()).
-  accept <- function(txt) json_reply(txt, schema, allow_empty)$ok
+  accept <- function(txt) json_reply(txt, schema, allow_empty, own_scalars)$ok
   # gr_call()'s own arguments, so `...` is matched exactly as it was.
   send <- function(client, messages, model = NULL, max_output = NULL, temperature = NULL,
                    schema = NULL, schema_name = "result", trace = NULL, label = "call", ...,
@@ -919,7 +924,7 @@ gr_call_json <- function(client, messages, schema, schema_name = "result",
                effort = effort, draw_index = check_draw_index(draw_index))
   }
   res <- send(client, messages, schema = schema, schema_name = schema_name, ...)
-  if (!res$ok) return(list(ok = FALSE, value = NULL, result = res))
-  out <- json_reply(res$text, schema, allow_empty)
-  list(ok = out$ok, value = out$value, result = res)
+  if (!res$ok) return(list(ok = FALSE, value = NULL, result = res, problem = NULL))
+  out <- json_reply(res$text, schema, allow_empty, own_scalars)
+  list(ok = out$ok, value = out$value, result = res, problem = out$problem)
 }

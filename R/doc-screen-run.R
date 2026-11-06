@@ -121,7 +121,8 @@ read_screen <- function(chunks, question, client, spec, trace) {
   error <- if (!failed) NA_character_ else {
     res <- out$result
     if (!is.null(res) && !isTRUE(res$ok)) as_chr1(res$error, "the request failed")
-    else "the reply was not the JSON object the screening schema asks for"
+    else paste0("the reply was not the JSON object the screening schema asks for",
+                if (length(out$problem)) sprintf(" (%s)", out$problem) else "")
   }
   quote <- as_chr1(json_text(v, "quote"), "")
   # Checked against the document's words, not a model's. A segmenter that puts

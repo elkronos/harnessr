@@ -77,14 +77,23 @@ test_that("a failed screening call is not a model deferral in a calibration", {
   expect_error(quiet(gr_calibrate(s, ref, of = "all")), class = "gr_bad_reference")
 })
 
-test_that("a real 'unclear' is still a decision, and a new label still reads as one", {
+test_that("a real 'unclear' is still a decision, and a label outside the schema is not", {
   d <- review_docs()
   cl <- gr_mock_client(function(m, p) {
-    '{"decision":"maybe","reason":"Hard to say.","criterion":null,"quote":null}'
+    '{"decision":"unclear","reason":"Hard to say.","criterion":null,"quote":null}'
   })
   s <- quiet(gr_screen(d, question = "Q?", include = "A randomised trial", client = cl))
   expect_identical(s$table$decision, c("unclear", "unclear"))
   expect_identical(s$table$status, c("ok", "ok"))
+  # "maybe" used to be read as "unclear". It is not one of the schema's
+  # values, so the reply is refused: no decision, and the call counts as
+  # failed rather than as the model deferring to a person.
+  cl <- gr_mock_client(function(m, p) {
+    '{"decision":"maybe","reason":"Hard to say.","criterion":null,"quote":null}'
+  })
+  s <- quiet(gr_screen(d, question = "Q?", include = "A randomised trial", client = cl))
+  expect_true(all(is.na(s$table$decision)))
+  expect_identical(s$table$status, c("failed", "failed"))
 })
 
 test_that("a screening quote is checked against source_text, not a model-written header", {

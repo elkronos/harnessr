@@ -57,6 +57,10 @@ read_extract <- function(chunks, question, client, spec, trace) {
   got <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
     out <- gr_call_json(client, c(fixed, list(list(role = "user", content = excerpts[i]))),
                         schema = schema, schema_name = "extraction", allow_empty = TRUE,
+                        # coerce_field() reads each value and reports one it
+                        # cannot use, so a wrong-typed value is that field's
+                        # problem, not the whole excerpt's.
+                        own_scalars = TRUE,
                         model = model, max_output = spec$max_chunk_tokens,
                         temperature = spec$temperature, trace = trace, label = "extract.chunk",
                         effort = spec$effort)
