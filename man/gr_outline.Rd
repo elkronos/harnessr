@@ -32,7 +32,10 @@ gr_outline(
 \item{closing}{The heading of the closing section, which receives gap claims
 and anything unplaced. \code{NULL} for no closing section.}
 
-\item{trace}{A \code{\link[=gr_trace]{gr_trace()}} to record into.}
+\item{trace}{A \code{\link[=gr_trace]{gr_trace()}} to add this stage's calls to, or \code{NULL}. The
+calls are recorded on a trace of the stage's own, attached as
+\code{attr(, "trace")}, and folded into \code{trace} when the stage ends. The trace
+of \code{claims} is left as it was.}
 
 \item{max_outline_tokens}{The reply limit for the outline call. The reply
 names every claim and writes a heading, brief and rationale per section,
@@ -57,7 +60,8 @@ one outline".}
 A named character vector shaped exactly like the \code{outline} argument of
 \code{\link[=gr_synthesise]{gr_synthesise()}} (headings as names, briefs as values), carrying
 \code{attr(, "claims")} (a \code{section}/\code{claim_id} frame), \code{attr(, "rationale")},
-\code{attr(, "closing")} and \code{attr(, "claims_fingerprint")}, a hash of the
+\code{attr(, "closing")}, \code{attr(, "trace")} (the calls made here) and
+\code{attr(, "claims_fingerprint")}, a hash of the
 claims' numbers and texts. A claim number means something only within one
 \code{\link[=gr_claims]{gr_claims()}} result, so \code{\link[=gr_synthesise]{gr_synthesise()}} refuses the outline
 (\code{gr_claims_mismatch}) when the \code{claims} it is given are not the ones the

@@ -201,7 +201,11 @@ as_screening_table <- function(screening) {
   # `missed` as studies the screener threw away.
   # to_utf8() first: lower_text() needs text it can decode, and it turns NA
   # into "", which is then NA again below.
-  dec <- lower_text(trimws(to_utf8(tab$decision)))
+  # The screener's decision, not a person's. Once gr_resolve() has settled a
+  # record, `decision` holds what the person said and `screener_decision` what
+  # the model said; calibrated on the first, the screener was credited with
+  # every call a person had already corrected.
+  dec <- lower_text(trimws(to_utf8(tab$screener_decision %||% tab$decision)))
   dec[!nzchar(dec)] <- NA_character_
   bad <- !is.na(dec) & !dec %in% c("include", "exclude", "unclear")
   if (any(bad)) {
@@ -248,8 +252,49 @@ as_screening_table <- function(screening) {
 #'
 #' @section Why accuracy is not reported:
 #' Inclusion rates run at a few per cent, so a screener that excluded every
-#' record would score around 95% accurate and find nothing. Cohen's kappa is
-#' reported instead, because it is the statistic that notices.
+#' record would score around 95% accurate and find nothing. Chance-corrected
+#' agreement is reported instead, and never as one number.
+#'
+#' @section Agreement, on the decision that matters:
+#' The primary agreement table is the one sensitivity uses: kept (`"include"`
+#' or `"unclear"`) against excluded, by the person's eligible against not. An
+#' `"unclear"` on an eligible record is agreement there, since the record was
+#' kept. The secondary table is strict: `"include"` against everything else.
+#'
+#' Each table reports Cohen's kappa beside the statistics that say whether it
+#' can be read: the prevalence index (PI) and bias index (BI) of Byrt et al.
+#' (1993), the prevalence- and bias-adjusted kappa (PABAK, 2 po - 1) and
+#' Gwet's AC1, with intervals, and the class-wise sensitivity, specificity,
+#' PPV and NPV. At a few eligible records in a hundred, kappa moves with the
+#' marginals as much as with agreement, and can sit near zero where the two
+#' raters agree on almost every record; `$agreement$kept$paradox` is `TRUE`
+#' when abs(PI) is above 0.8, a heuristic threshold that marks such a table.
+#' AC1 has the opposite weakness, a value near 1 from records both raters
+#' left out, so it is not read alone either.
+#'
+#' The kappa interval is a percentile bootstrap that resamples documents,
+#' B = 2000, under a fixed seed so the same sample gives the same interval
+#' (`$agreement$kept$bootstrap` holds B and the seed; the session's random
+#' stream is left as it was). The AC1 interval uses the variance of Gwet
+#' (2008), as the irrCAC package does, with a t quantile on n - 1 degrees of
+#' freedom. The PABAK interval is the Wilson interval on the observed
+#' agreement, mapped onto the same scale. Where the two raters agree on every
+#' record, disagree on every record, or the sample has fewer than 10 records,
+#' the kappa and AC1 intervals would be a point or close to one, so they are
+#' left empty and `$agreement$kept$note` says why.
+#'
+#' 0.6.0 computed kappa on the screener's three labels against the person's
+#' two, so every `"unclear"` counted as a disagreement. That figure is kept as
+#' `$kappa_legacy` for this release only, so a number already quoted can be
+#' traced; it is not the screener's agreement with a person.
+#'
+#' The rate of `"unclear"` decisions is the metric `"deferred to a person"`,
+#' with its interval, and the 3x2 counts behind both tables are in
+#' `$decisions`.
+#'
+#' A decision a person settled with [gr_resolve()] is not the screener's, so
+#' the comparison uses the screener's own decision, from
+#' `screener_decision`, wherever the table has one.
 #'
 #' @section What a small sample cannot do:
 #' Sensitivity is estimated from the eligible studies in the sample and from
@@ -302,6 +347,16 @@ as_screening_table <- function(screening) {
 #'   \describe{
 #'     \item{`counts`}{The confusion matrix, as kept/excluded by eligible/not.}
 #'     \item{`metrics`}{One row per statistic: `estimate`, `lower`, `upper`, `n`.}
+#'     \item{`kappa`}{Cohen's kappa on kept against excluded; `NA` for a
+#'       sample of one stratum.}
+#'     \item{`agreement`}{`kept` (the primary table) and `strict` (include
+#'       against the rest), each a list of `table`, `n`, `stats` (one row per
+#'       statistic: `statistic`, `estimate`, `lower`, `upper`) and `paradox`.
+#'       `NULL` for a sample of one stratum.}
+#'     \item{`kappa_legacy`}{Deprecated: the 0.6.0 kappa on the screener's
+#'       three labels against the person's two. Removed in the next release.}
+#'     \item{`decisions`}{The 3x2 counts: the screener's include, unclear and
+#'       exclude by the person's eligible and not.}
 #'     \item{`missed`}{The eligible studies the screener excluded: the rows
 #'       themselves, because a list of the misses says more than a rate.}
 #'     \item{`disagreements`}{Every row where the two differ, in either
@@ -510,11 +565,30 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
   metrics$lower <- round(metrics$lower, 4); metrics$upper <- round(metrics$upper, 4)
 
   n_pos <- sum(eligible)
-  # Kappa needs both kinds of decision from both raters to mean anything. On a
-  # single-stratum sample the model said one thing throughout, so it is not
+  # Agreement needs both kinds of decision from both raters to mean anything. On
+  # a single-stratum sample the model said one thing throughout, so it is not
   # chance-corrected agreement, it is arithmetic on a constant.
-  kappa <- if (of %in% c("excluded", "kept")) NA_real_ else
+  #
+  # The primary table is kept (include or unclear) against excluded, the same
+  # definition of a positive decision that sensitivity uses. Kappa used to be
+  # taken over the screener's three labels against the person's two, so every
+  # "unclear" on an eligible record counted as a disagreement while the
+  # sensitivity above counted the same record as kept. The strict table
+  # (include against the rest) is the secondary one: its gap from the primary is
+  # the deferral, as with the two sensitivities.
+  one_stratum <- of %in% c("excluded", "kept")
+  agreement <- if (one_stratum) NULL else list(
+    kept = agreement_binary(kept, eligible),
+    strict = agreement_binary(strict, eligible))
+  kappa <- if (one_stratum) NA_real_ else
+    agreement$kept$stats$estimate[agreement$kept$stats$statistic == "kappa"]
+  # The 3x2 figure 0.6.0 reported, kept for one release so a number already
+  # quoted can be traced. It is not the screener's agreement with a person.
+  kappa_legacy <- if (one_stratum) NA_real_ else
     cohen_kappa(model, ifelse(eligible, "include", "exclude"))
+  decisions <- table(screener = factor(model, levels = c("include", "unclear", "exclude")),
+                     person = factor(ifelse(eligible, "eligible", "not eligible"),
+                                     levels = c("eligible", "not eligible")))
   # A number, compared as a number. `4 >= "10"` is TRUE because R compares as
   # STRINGS, and as_int1() then turned Inf and anything above 2^31 into the
   # default of 10 -- so asking for more eligible studies than the sample could
@@ -561,6 +635,9 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
     counts = counts,
     metrics = metrics,
     kappa = kappa,
+    kappa_legacy = kappa_legacy,
+    agreement = agreement,
+    decisions = decisions,
     missed = rows[eligible & !kept, , drop = FALSE],
     disagreements = rows[(eligible & !kept) | (!eligible & strict), , drop = FALSE],
     n = length(model),
@@ -799,7 +876,10 @@ print.gr_calibration <- function(x, ...) {
                 if (is.na(m$lower)) "--" else sprintf("%.1f%%", 100 * m$lower),
                 if (is.na(m$upper)) "--" else sprintf("%.1f%%", 100 * m$upper), m$n))
   }
-  if (!is.na(x$kappa)) cat(sprintf("  %-30s %5.2f\n", "Cohen's kappa", x$kappa))
+  # The 3x2 counts on every sample, one stratum included: they are what the
+  # rates above and any agreement below are made from.
+  if (!is.null(x$decisions)) print_calibration_decisions(x$decisions)
+  if (!is.null(x$agreement)) print_calibration_agreement(x)
   if (!is.null(x$projected)) {
     p <- x$projected
     cat(sprintf(paste0("  -> across all %d excluded record(s) that rate implies about %.0f\n",
@@ -839,4 +919,47 @@ print.gr_calibration <- function(x, ...) {
                 else sprintf("those %d observations", x$n_positives)))
   }
   invisible(x)
+}
+
+#' The 3x2 counts of a calibration's print: the screener's three labels
+#' against the person's two.
+#' @noRd
+print_calibration_decisions <- function(d) {
+  cat(sprintf("  %-10s %9s %13s\n", "screener", "eligible", "not eligible"))
+  for (r in rownames(d)) {
+    cat(sprintf("  %-10s %9d %13d\n", r, d[r, "eligible"], d[r, "not eligible"]))
+  }
+  invisible(NULL)
+}
+
+#' The agreement part of a calibration's print: each table's kappa beside
+#' PABAK and AC1, never alone.
+#' @noRd
+print_calibration_agreement <- function(x) {
+  fmt <- function(v) if (is.na(v)) "  --" else sprintf("%5.2f", v)
+  for (nm in c("kept", "strict")) {
+    a <- x$agreement[[nm]]
+    if (is.null(a)) next
+    st <- a$stats
+    g <- function(s) st[st$statistic == s, ]
+    cat(sprintf("  agreement, %s:\n",
+                if (nm == "kept") "kept (include + unclear) vs excluded"
+                else "strict include vs the rest"))
+    for (s in c("kappa", "PABAK", "AC1")) {
+      r <- g(s)
+      cat(sprintf("    %-8s %s  [%s, %s]\n", s, fmt(r$estimate),
+                  trimws(fmt(r$lower)), trimws(fmt(r$upper))))
+    }
+    cat(sprintf("    PI %s, BI %s\n", trimws(fmt(g("prevalence index")$estimate)),
+                trimws(fmt(g("bias index")$estimate))))
+    note <- a[["note", exact = TRUE]]
+    if (is.character(note) && length(note) == 1L && !is.na(note)) {
+      cat(sprintf("    (no kappa or AC1 interval: %s)\n", note))
+    }
+    if (isTRUE(a$paradox)) {
+      cat("    ! abs(PI) is above 0.8: kappa here reflects prevalence as much as\n")
+      cat("      agreement; read it beside PABAK and AC1, not against another kappa\n")
+    }
+  }
+  invisible(NULL)
 }

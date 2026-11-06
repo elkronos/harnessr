@@ -15,7 +15,12 @@ print.gr_screening <- function(x, ...) {
   }
   if (sum(tab$decision == "unclear", na.rm = TRUE)) {
     cat("  'unclear' means the excerpt did not settle it; those are for a person\n")
+    cat("  (they are in $forward with the included ones, and listed in $deferred)\n")
   }
+  # Records, not rows: a duplicate takes its first copy's resolution, and
+  # gr_flow() counts the first copy alone.
+  resolved <- sum(!is.na(tab$resolved_by %||% rep(NA, nrow(tab))) & is.na(tab$duplicate_of))
+  if (resolved) cat(sprintf("  %d decided by a person with gr_resolve()\n", resolved))
   dup <- sum(!is.na(tab$duplicate_of))
   if (dup) cat(sprintf("  %d were duplicates of a document already screened\n", dup))
   trunc <- sum(tab$truncated, na.rm = TRUE)

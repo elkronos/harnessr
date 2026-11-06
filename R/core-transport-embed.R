@@ -214,8 +214,13 @@ embed_api <- function(texts, params) {
 
   if (length(todo)) {
     limit <- gr_model_info(model)$context_window
-    payload <- vapply(texts[todo], function(t) gr_truncate_tokens(t, max(limit - 16L, 16L), ""),
-                      character(1), USE.NAMES = FALSE)
+    # A text longer than the embedding model's window is cut to fit, and the
+    # cut goes into the trace: a vector of the opening alone ranks the chunk
+    # by its opening alone.
+    payload <- vapply(seq_along(todo), function(k) {
+      truncate_logged(texts[todo[k]], max(limit - 16L, 16L), "embed.input", params$trace,
+                      marker = "", input = todo[k])$text
+    }, character(1), USE.NAMES = FALSE)
     batch <- as.integer(clamp(params$batch_size %||% 64L, 1, 2048))
     starts <- seq(1, length(todo), by = batch)
     trace <- params$trace

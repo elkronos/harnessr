@@ -266,6 +266,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 91,
+          "tokens_out": 26
+        },
         "step": 4,
         "tokens": {
           "input": 160,
@@ -308,6 +312,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 93,
+          "tokens_out": 26
+        },
         "step": 5,
         "tokens": {
           "input": 162,
@@ -350,6 +358,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 83,
+          "tokens_out": 26
+        },
         "step": 6,
         "tokens": {
           "input": 153,
@@ -392,6 +404,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 116,
+          "tokens_out": 26
+        },
         "step": 7,
         "tokens": {
           "input": 185,
@@ -434,6 +450,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 108,
+          "tokens_out": 26
+        },
         "step": 8,
         "tokens": {
           "input": 177,
@@ -476,12 +496,29 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
+        "state": {
+          "tokens_in": 48,
+          "tokens_out": 26
+        },
         "step": 9,
         "tokens": {
           "input": 117,
           "output": 26,
           "provenance": "estimated"
         }
+      },
+      {
+        "detail": {
+          "level": 1,
+          "summaries": 6,
+          "tokens": 140
+        },
+        "kind": "local",
+        "label": "hier.state.L1",
+        "ok": true,
+        "recipe": "golden-hierarchical",
+        "source": "annual_report.md",
+        "step": 10
       },
       {
         "attempts": 1,
@@ -518,7 +555,10 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
-        "step": 10,
+        "state": {
+          "tokens_in": 140
+        },
+        "step": 11,
         "tokens": {
           "input": 223,
           "output": 26,
@@ -533,7 +573,7 @@
       "embed_calls": 0,
       "embed_tokens": 0,
       "errors": 0,
-      "steps": 10,
+      "steps": 11,
       "tokens_cached_in": 0,
       "tokens_in": 1177,
       "tokens_out": 182,

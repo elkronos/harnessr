@@ -576,6 +576,35 @@ usable_text <- function(res) {
   isTRUE(res$ok) && nzchar(trimws(as_chr1(res$text)))
 }
 
+#' Write on a reader's request step how long the state it carried was.
+#'
+#' For the readers that carry a running state from one request to the next:
+#' refine's draft and hierarchical's summaries. `from` is the length of
+#' `trace$steps` before the request, and the step written to is the first
+#' request after it with `label`. A request refused before it was sent records
+#' no step, and then nothing is written. `tokens_in` is the state the request
+#' carried and `tokens_out` the state handed on from it; either may be NULL.
+#'
+#' Kept on the request's own step, not as a step of its own, so a state length
+#' sits next to the request it describes. Without it a state that grew, or
+#' collapsed after one rewrite, could only be guessed at from the token totals.
+#' @noRd
+trace_state <- function(trace, from, label, tokens_in = NULL, tokens_out = NULL) {
+  if (!inherits(trace, "gr_trace")) return(invisible(NULL))
+  n <- length(trace$steps)
+  if (n <= from) return(invisible(NULL))
+  state <- Filter(Negate(is.null), list(tokens_in = if (!is.null(tokens_in)) as.integer(tokens_in),
+                                        tokens_out = if (!is.null(tokens_out)) as.integer(tokens_out)))
+  for (k in seq.int(from + 1L, n)) {
+    st <- trace$steps[[k]]
+    if (identical(as_chr1(st$label), label) && !identical(st$kind, "local")) {
+      trace$steps[[k]]$state <- state
+      break
+    }
+  }
+  invisible(NULL)
+}
+
 #' Turn per-chunk extraction results into an evidence table.
 #' Stack evidence tables that need not have the same columns.
 #'
@@ -634,6 +663,9 @@ evidence_table <- function(chunk_ids, texts, pages = NA_integer_, sections = NA_
     v <- verify_spans(df$text, df$source_text)
     df$verified <- v$verified
     df$match <- v$match
+    # The edit-distance matcher's verdict beside the one acted on (shadow
+    # mode; see verify_spans()).
+    for (nm in grep("^quote_", names(v), value = TRUE)) df[[nm]] <- v[[nm]]
   }
   # Per-row labels that have to survive the filter below. `extract` puts the
   # FIELD each span supports here; attaching it after the fact would line the

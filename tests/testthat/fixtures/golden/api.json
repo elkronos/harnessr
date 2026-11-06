@@ -89,7 +89,7 @@
       "type": "function"
     },
     "gr_compare": {
-      "formals": ["source", "question", "recipes = c(\"fast\", \"needle\", \"thorough\")", "client = NULL", "allow_duplicates = FALSE", "on_error = c(\"continue\", \"stop\")", "..."],
+      "formals": ["source", "question", "recipes = c(\"fast\", \"needle\", \"thorough\")", "client = NULL", "allow_duplicates = FALSE", "on_error = c(\"continue\", \"stop\")", "correct = NULL", "..."],
       "type": "function"
     },
     "gr_count_tokens": {
@@ -209,7 +209,7 @@
       "type": "function"
     },
     "gr_read_spec": {
-      "formals": ["reader = \"map_reduce\"", "model = NULL", "temperature = NULL", "max_answer_tokens = 1500L", "max_chunk_tokens = 700L", "max_summary_tokens = 500L", "top_k = 6L", "min_score = -Inf", "mmr = 1", "context_order = c(\"relevance\", \"document\", \"edges\")", "rerank_candidates = 20L", "rerank_min_score = 4", "fan_in = 5L", "max_levels = 5L", "max_rounds = 4L", "preview_tokens = 1200L", "restate = c(\"auto\", \"always\", \"never\")", "members = NULL", "cite = FALSE", "skim_model = NULL", "summary_model = NULL", "parallel = NULL", "delay_between_calls = 0", "on_overflow = c(\"warn\", \"error\")", "effort = NULL", "premise = FALSE", "..."],
+      "formals": ["reader = \"map_reduce\"", "model = NULL", "temperature = NULL", "max_answer_tokens = 1500L", "max_chunk_tokens = 700L", "max_summary_tokens = 500L", "top_k = 6L", "min_score = -Inf", "mmr = 1", "context_order = c(\"relevance\", \"document\", \"edges\")", "rerank_candidates = 20L", "rerank_min_score = 4", "fan_in = 5L", "max_levels = 5L", "max_rounds = 4L", "preview_tokens = 1200L", "restate = c(\"auto\", \"always\", \"never\")", "members = NULL", "cite = FALSE", "skim_model = NULL", "summary_model = NULL", "parallel = NULL", "delay_between_calls = 0", "on_overflow = c(\"warn\", \"error\")", "effort = NULL", "premise = FALSE", "verify = FALSE", "..."],
       "type": "function"
     },
     "gr_reader_signature": {
@@ -266,6 +266,10 @@
     },
     "gr_replay_client": {
       "formals": ["source", "strict = TRUE", "on_exhausted = c(\"error\", \"flag\")"],
+      "type": "function"
+    },
+    "gr_resolve": {
+      "formals": ["screening", "document", "decision", "by", "reason = NA_character_", "at = Sys.time()"],
       "type": "function"
     },
     "gr_screen": {

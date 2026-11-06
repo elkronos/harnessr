@@ -298,6 +298,191 @@
   `gr_bad_setting` that names the parameter. A `named_map` parameter takes a
   character vector or a list whose elements are all named.
 
+## Screening
+
+* **`gr_calibrate()` computes kappa on kept against excluded.** 0.6.0 took
+  kappa over the screener's three labels (include, unclear, exclude) against
+  the person's two, so every `"unclear"` counted as a disagreement, while
+  sensitivity in the same object counted an unclear record as kept. The
+  primary table is now kept (include or unclear) against excluded, the
+  definition sensitivity uses, and `$agreement$strict` holds strict include
+  against the rest as a secondary table. On the eight-record example in
+  `?gr_calibrate` kappa moves from 0.33 to 0.50. The old figure is
+  `$kappa_legacy` for this release only, and is removed in the next.
+
+* **Kappa is no longer reported alone.** Each agreement table carries Cohen's
+  kappa, PABAK and Gwet's AC1 with intervals, the prevalence and bias indices,
+  and the class-wise sensitivity, specificity, PPV and NPV; `$agreement$kept$paradox`
+  flags a table whose prevalence index is above 0.8 in absolute value, where
+  kappa says more about prevalence than agreement. `$decisions` holds the 3x2
+  counts, and `print()` and the audit report show them with the agreement
+  set. The rate of `"unclear"` decisions is the existing `"deferred to a
+  person"` metric, with its interval.
+
+* **The kappa interval is a bootstrap over documents.** It is a percentile
+  bootstrap with B = 2000 under a fixed seed, so the same sample gives the
+  same interval and the session's random stream is untouched; B and the seed
+  are in `$agreement$kept$bootstrap`. AC1 keeps Gwet's (2008) variance. Where
+  the screener and the person agree on every record, disagree on every
+  record, or the sample holds fewer than 10 records, the kappa and AC1
+  intervals are left empty (NA) with a `$note` saying why, instead of a
+  zero-width interval such as [1.00, 1.00].
+
+* `print()` on a calibration now shows the 3x2 counts on every sample,
+  including one drawn from a single stratum. The audit report's calibration
+  section shows the same counts, and sensitivity, specificity, PPV and NPV
+  with intervals beside kappa, PABAK and AC1.
+
+* **Unclear records no longer leave a review without a word.** A
+  `gr_screening` gains `$forward` (the included and unclear records, the set a
+  review reads at full text) and `$deferred` (the unclear ones).
+  `gr_extract(screening)` still reads only `$included` in this release and now
+  warns (class `gr_unclear_dropped`) when that leaves unclear records out;
+  from the next release it reads `$forward`. Pass `screening$forward` to read
+  them now. Passing the vector `screening$included` gives no such warning:
+  `$included` stays a plain character vector in this release, and a warning on
+  that path is left to a later release.
+
+* **New `gr_resolve()`** records a person's decision on a deferred or failed
+  record: who decided, when (in UTC) and why, in the table and as a
+  `"screen.resolve"` step in the trace. `forward`, `deferred` and `included`
+  are rebuilt, the screener's own decision is kept in `screener_decision`, and
+  `gr_calibrate()` compares against that one, so a person's correction is not
+  credited to the screener. Duplicates of a resolved record take the same
+  decision. The audit report's screening table shows the screener's decision
+  and who resolved each record, when and why.
+
+* **`gr_flow()` accounts for every screened record.** A record with no
+  decision is now counted as "could not be read" only when no screening call
+  was made; one whose call failed, or whose reply was not the form asked for,
+  has a row of its own, "screening call failed". New rows count the records
+  resolved by a person, the records kept for full text (`$forward`) and, of
+  those, the ones deferred (`$deferred`).
+
+## Claims and outline
+
+* **`gr_claims()` and `gr_outline()` record their calls the way the other
+  review stages do.** Each records on a trace of its own and, given `trace =`,
+  adds its calls to that trace when it finishes, as `gr_screen()`,
+  `gr_extract()`, `gr_read_many()` and `gr_synthesise()` already did. Before,
+  both recorded straight onto the trace they were given, so a review trace
+  that an earlier stage had taken past `gr_options(max_calls =)` or
+  `max_cost_usd =` stopped them before they sent a request, and
+  `gr_claims()` returned no claims, marked partial. Pass one trace to every
+  stage and its totals are the sum of the stages', with each request counted
+  once.
+
+* **`gr_outline()` no longer adds to `claims$trace`.** Given no `trace`, it
+  recorded its calls on the trace of the claims it was handed, which changed
+  a finished `gr_claims()` result and made `claims$trace` report the
+  outline's cost as the claims'. Its calls are now on `attr(outline, "trace")`,
+  which `gr_outline_pick()` keeps and `gr_synthesise()` keeps as
+  `$outline_trace`. Scripts that totalled a review's cost from `claims$trace`
+  after `gr_outline()` should pass one `trace` to both, or add
+  `attr(outline, "trace")`. The audit report's claims row still includes the
+  outline's calls, read from the synthesis, and counts them once when a
+  script passes `trace = claims$trace` to `gr_outline()`.
+
+## Comparing recipes
+
+* **`gr_compare()` says what each recipe cost.** `summary` gains `calls`,
+  `tokens_in`, `tokens_out` and `usd`, priced from the requests on the trace
+  at each model's registered price, and `usd_estimated`, the share of those
+  dollars spent on requests whose token counts were estimated locally because
+  the provider reported none (`NA` for a trace whose requests do not
+  record how their counts were obtained, such as one saved by an earlier
+  version). A recipe is charged for a segmentation it shares with an
+  earlier recipe, as it would be run alone, so the column can add up to more
+  than `gr_trace_cost(cmp$trace)`. `usd` is `NA` when a model has no
+  registered price. The columns come after `error` and before `premise`.
+
+* **`gr_compare(correct =)`** takes strings that a right answer contains
+  (ignoring case and white space) or a function of each `gr_answer` returning
+  `TRUE`, `FALSE` or `NA`, and adds `correct` and `usd_per_correct`, the cost
+  of a right answer: `usd` when the answer is right, `Inf` when it is wrong
+  and cost something. Without it the summary has no such columns. A recipe
+  a spending or call limit stopped before it found anything is `NA`, not
+  wrong. A `correct` function that fails or returns something other than one
+  logical gives a `gr_bad_correct` warning and `NA` for that recipe, so the
+  paid results still come back; an invalid `correct` argument is an error of
+  the same class.
+
+## Checking quotations
+
+* **`gr_read_spec(verify = TRUE)`** checks an answer's quotations against the
+  chunks they come from and lets the check decide what is accepted.
+  `gr_read()` runs `gr_verify_evidence()` on the answer, writes its columns
+  onto `$evidence`, marks the answer partial when a quotation is not found
+  (`notes$unverified_evidence`), notes how many it checked
+  (`notes$quotes_checked`) and records a `read.verify` step in the trace. The
+  `iterative` reader's step must then list the passages its answer rests on,
+  word for word with their chunk numbers, and the loop stops only when every
+  one is found in the chunk it names, among those the step was shown. A
+  refused step is told which quotations were not found; a run that ends with
+  none accepted answers `NOT_IN_DOCUMENT`, keeps the refused answer in
+  `notes$unverified_answer` and makes no final answer request. Its evidence
+  is the quoted passages, not every chunk it was shown. A refusal is sent
+  back even when retrieval has no unseen chunks left, so the next step can
+  quote what it already has. With `premise = TRUE`, a step that reports the
+  premise false is not held to quotations in this release and stops the
+  loop as it does without `verify`. `verify = FALSE`, the default, sends
+  every request as before, and the field is in the spec only when `TRUE`,
+  so cache, replay and corpus store keys are unchanged.
+
+* **A second quote matcher is recorded beside `verified`.** Evidence tables
+  that are checked (`skim`, `extract`, `screen`, `iterative` with
+  `verify = TRUE`) and `gr_verify_evidence()` gain `quote_status`,
+  `quote_sim`, `quote_coverage`, `quote_edits` and `quote_critical_ok`, from
+  a matcher that expands ligatures, joins words broken across a line with a
+  hyphen, undoes JSON escapes and scores the closest window of the source by
+  character edits, with numbers (in digits or in words, with any comparison
+  sign before them and the unit after), and negations required to be
+  identical. A passage too long to score (its length times the source's
+  over 5e7 characters) is `not_checked`. Its statuses are `verbatim`, `near_verbatim` (similarity at
+  least 0.90, or 0.95 under 40 characters, five words or more),
+  `unverified` and `not_checked`. It decides nothing in this release:
+  `verified` and `match` are the existing check's, as before. On a labelled
+  set of 343 true and 162 false quotations it rejects 1.2% of true ones
+  (95% CI 0.3% to 3.0%) against 36.4% (31.3% to 41.8%) for the existing
+  check, and accepts none of the 52 with a changed digit, 8 with a changed
+  number word, 3 with a changed comparison sign, 37 with a flipped negation
+  or 16 invented sentences; it does accept 25 of 46 quotations with one
+  content word swapped as `near_verbatim`, which is why that status is not
+  `verified`.
+  `Rscript dev/quote-matcher-rates.R` prints the full table.
+
+## Trace records of state and cuts
+
+* **`refine` and `hierarchical` write the length of the state they carry.**
+  Each `refine.draft` and `refine.revise` step in the trace gains
+  `state$tokens_in` (the draft the request carried) and `state$tokens_out`
+  (the draft carried on from it, which is the old one when the reply was
+  unusable). Each `hier.summarise.L<k>` step gains the length of the text it
+  summarised and of the summary it returned, the `hier.answer` step the length
+  of the summaries it was sent, and each level adds a local
+  `hier.state.L<k>` step with the number of summaries handed on and their
+  combined length. A draft that shrinks sharply in one revision can now be
+  seen in the trace.
+
+* **Every cut writes a `truncate` step to the trace** with where it was made
+  (`detail$where`: `refine.excerpt`, `refine.draft`, `hier.summaries`,
+  `preview.skim`, `preview.outline`, `<label>.input` for a finding cut to fit
+  a merge, `<label>.giveup` for the capped findings a failed merge returns,
+  `segment.contextual.header`, `segment.contextual.document`,
+  `screen.opening`, `synthesise.gaps`, `embed.input`), the token limit, and
+  the tokens before, kept and dropped (the truncation marker is not counted
+  as kept). For `screen.opening` the limit is the screening cap on the
+  opening with its heading; for `segment.contextual.header` it is the room
+  the header was cut to. A `preview.skim` cut lists the cut section's
+  `chunk_ids`, always as a JSON array. `refine` and `hierarchical` answers
+  also gain `notes$tokens_truncated`, and their printed answer now says how
+  many tokens were cut ("N token(s) cut to fit") when a cut happened. The
+  `preview` reader's `notes$tokens_truncated` is now the tokens a cut dropped
+  rather than the overshoot over the cap, a correction to a count that
+  measured the wrong thing. Requests, cache keys and replay
+  keys are unchanged; the trace of a run that cut nothing gains only the state
+  lengths above.
+
 # readgpt 0.6.0
 
 ## New

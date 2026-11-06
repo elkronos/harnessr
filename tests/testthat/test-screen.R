@@ -45,6 +45,9 @@ test_that("every source gets a row, and every decision has a reason", {
   expect_false(anyNA(s$table$reason))
   expect_identical(s$table$criterion[2], "Not a primary research report")
   expect_identical(s$included, a)                   # the path, not the label
+  # The unclear one is deferred, not dropped: it goes on with the included.
+  expect_identical(s$forward, c(a, c3))
+  expect_identical(s$deferred, c3)
   expect_identical(length(cl$calls()), 3L)          # one call per document
 
   # The quote behind a decision is checked against what the model was shown,
@@ -290,6 +293,8 @@ test_that("screening feeds extraction, and duplicates are screened once", {
   # field. And it is the DISTINCT set: a duplicate is the same study.
   expect_identical(s$included, a)
   expect_true(all(file.exists(s$included)))
+  expect_identical(s$forward, a)                    # distinct here too
+  expect_length(s$deferred, 0L)
 
   fields <- gr_fields(n = gr_field("Participants", type = "integer"))
   ex <- gr_mock_client(function(messages, params) {
@@ -340,4 +345,101 @@ test_that("the screen reader is a distinct traversal", {
   # Distinctness is what gr_compare() checks; two readers sharing a signature
   # would be reported as corroborating each other when they cannot.
   expect_false(anyDuplicated(r$signature) > 0L)
+})
+
+test_that("unclear records go forward, and the flow accounts for every record", {
+  # 3 include, 2 unclear, 5 exclude. `forward` holds the five kept for full
+  # text; gr_extract(screened) still reads only the included three in this
+  # release, and says so instead of dropping the other two silently.
+  inc <- vapply(1:3, function(i) txt_file(paste("We randomly assigned group", i)), "")
+  unc <- vapply(1:2, function(i) txt_file(paste("Participants were adults, cohort", i)), "")
+  exc <- vapply(1:5, function(i) txt_file(paste("This editorial comments, number", i)), "")
+  s <- quiet(gr_screen(c(inc, unc, exc), question = "Does the drug work?",
+                       include = "Reports a randomised comparison",
+                       exclude = "Not a primary research report",
+                       client = screen_client(basic_rules)))
+  expect_identical(table(s$table$decision)[c("include", "unclear", "exclude")],
+                   table(c(rep("include", 3), rep("unclear", 2), rep("exclude", 5)))[
+                     c("include", "unclear", "exclude")])
+  expect_length(s$forward, 5L)
+  expect_identical(s$forward, c(inc, unc))
+  expect_identical(s$deferred, unc)
+  expect_identical(s$included, inc)
+
+  fields <- gr_fields(n = gr_field("Participants", type = "integer"))
+  ex <- gr_mock_client(function(messages, params) '{"n":null,"n__quote":null}')
+  expect_warning(x <- suppressMessages(gr_extract(s, fields, client = ex, recipe = "fast")),
+                 class = "gr_unclear_dropped")
+  expect_equal(nrow(x$table), 3L)
+
+  fl <- gr_flow(s)
+  n <- function(stage) fl$n[trimws(fl$stage) == stage]
+  # The five decision rows sum to the records screened, which is all ten.
+  expect_identical(n("screened"), 10L)
+  expect_identical(n("include") + n("exclude") + n("unclear") + n("could not be read") +
+                     n("screening call failed"), 10L)
+  expect_identical(n("kept for full text"), 5L)
+  expect_identical(n("deferred to full text"), 2L)
+  expect_identical(n("resolved by a person"), 0L)
+})
+
+test_that("gr_resolve() records who settled a deferred record, and when", {
+  a <- txt_file(trial_txt); u <- txt_file("Participants were adults.")
+  s <- quiet(gr_screen(c(a, u), question = "Q?", include = "Reports a randomised comparison",
+                       client = screen_client(basic_rules)))
+  expect_identical(s$deferred, u)
+  steps_before <- length(s$trace$steps)
+  at <- as.POSIXct("2026-03-01 09:30:00", tz = "UTC")
+  r <- gr_resolve(s, basename(u), "include", by = "AB", reason = "Methods say randomised.",
+                  at = at)
+  expect_identical(r$table$decision, c("include", "include"))
+  expect_identical(r$table$screener_decision, c("include", "unclear"))
+  expect_identical(r$table$resolved_by, c(NA, "AB"))
+  expect_identical(r$table$resolved_at, c(NA, "2026-03-01T09:30:00Z"))
+  expect_identical(r$included, c(a, u))
+  expect_identical(r$forward, c(a, u))
+  expect_length(r$deferred, 0L)
+  # In the trace as a step of its own, with the person and the time.
+  st <- r$trace$steps[[length(r$trace$steps)]]
+  expect_identical(length(r$trace$steps), steps_before + 1L)
+  expect_identical(st$label, "screen.resolve")
+  expect_identical(st$detail$by, "AB")
+  expect_identical(st$detail$from, "unclear")
+
+  fl <- gr_flow(r)
+  n <- function(stage) fl$n[trimws(fl$stage) == stage]
+  expect_identical(n("resolved by a person"), 1L)
+  expect_identical(n("include"), 2L)
+  expect_identical(n("unclear"), 0L)
+  expect_output(print(r), "1 decided by a person")
+
+  # A calibration measures the screener, not the person who corrected it.
+  ref <- data.frame(document = basename(c(a, u)), human_decision = c("include", "include"),
+                    stringsAsFactors = FALSE)
+  cal <- suppressWarnings(gr_calibrate(r, ref, of = "all", min_positives = 1L))
+  expect_identical(unname(cal$decisions["unclear", "eligible"]), 1L)
+
+  # A duplicate of the resolved record takes the person's decision too, and
+  # keeps the screener's own.
+  a2 <- txt_file(trial_txt); u2 <- txt_file("Participants were adults.")
+  e <- txt_file(edit_txt)
+  sd <- quiet(gr_screen(c(a, a2, u, u2, e), question = "Q?",
+                        include = "Reports a randomised comparison",
+                        exclude = "Not a primary research report",
+                        client = screen_client(basic_rules)))
+  expect_identical(sd$table$duplicate_of[4], basename(u))
+  r2 <- gr_resolve(sd, basename(u), "exclude", by = "AB", at = at)
+  expect_identical(r2$table$decision[3:4], c("exclude", "exclude"))
+  expect_identical(r2$table$screener_decision[3:4], c("unclear", "unclear"))
+  expect_identical(r2$table$resolved_by[3:4], c("AB", "AB"))
+  expect_identical(r2$table$resolved_at[4], "2026-03-01T09:30:00Z")
+  expect_length(r2$deferred, 0L)
+  out <- paste(capture.output(print(r2)), collapse = "\n")
+  expect_match(out, "0 unclear")
+  expect_match(out, "1 decided by a person")
+
+  expect_error(gr_resolve(s, basename(u), "include"), class = "gr_bad_setting")
+  expect_error(gr_resolve(s, basename(u), "maybe", by = "AB"), class = "gr_bad_setting")
+  expect_error(gr_resolve(s, "not-a-document.txt", "exclude", by = "AB"),
+               class = "gr_reference_mismatch")
 })

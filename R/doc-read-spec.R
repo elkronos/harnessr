@@ -308,6 +308,23 @@ gr_reader_signature <- function(reader) {
 #'   prompts are longer, so a cache, a recorded replay or a [gr_read_many()]
 #'   store made without it does not answer a run with it, and the reverse.
 #'   `screen` and `extract`, which answer no question, ignore it.
+#' @param verify Check the answer's quotations against the chunks they come
+#'   from, and let the check decide what is accepted. `FALSE` (the default)
+#'   sends the same requests and accepts answers as before; the `quote_*`
+#'   shadow columns are still recorded on checked evidence (see "Verifying
+#'   quotations"). With `TRUE`, [gr_read()] runs
+#'   [gr_verify_evidence()] on every answer, writes its columns onto
+#'   `$evidence`, marks the answer partial when a quotation is not found, and
+#'   records a `read.verify` step in the trace. The `iterative` reader also
+#'   asks each step that says it can answer for the passages it rests on,
+#'   word for word with their chunk numbers, and stops only when every one is
+#'   found in the chunk it names; a refused step is told which quotations
+#'   were not found, and a run that ends with none accepted answers
+#'   `NOT_IN_DOCUMENT`. Its evidence is then the quotations, not every chunk
+#'   it was shown. A step that reports the premise false (`premise = TRUE`)
+#'   is not asked for quotations and is not refused for lacking them: its
+#'   verdict stops the loop as it does without `verify`. See "Verifying
+#'   quotations" below.
 #' @param ... Extra fields for custom readers.
 #' @return A list of class `gr_read_spec`.
 #'
@@ -339,6 +356,25 @@ gr_reader_signature <- function(reader) {
 #' [gr_read_many()] add a `premise` column to their summaries, `print()` and
 #' [gr_audit_report()] say when the model reported the premise false, and the
 #' trace has a `read.premise` step with the outcome.
+#'
+#' @section Verifying quotations:
+#' A reader that puts the chunks it read into `$evidence` has quoted them by
+#' construction, so for `stuff`, `retrieve`, `rerank` and the default
+#' `iterative` a passing check says only that the chunks were the ones sent.
+#' The check means something where a model chose what to quote: `skim`,
+#' `extract`, `screen`, and `iterative` under `verify = TRUE`.
+#'
+#' Two matchers score each quotation. The one that decides `verified` is the
+#' check described in [gr_verify_evidence()], unchanged. Beside it the answer
+#' carries `quote_status`, `quote_sim`, `quote_coverage`, `quote_edits` and
+#' `quote_critical_ok` from an edit-distance matcher that tolerates ligatures,
+#' line-break hyphens and OCR letter errors while requiring numbers, units
+#' and negations to be identical. It is recorded only, and decides nothing in
+#' this release.
+#'
+#' `verify = TRUE` changes what `iterative` sends (its schema and
+#' instructions), so a cache or recording made without it does not answer a
+#' run with it. The other readers send exactly what they sent before.
 #'
 #' @section Out-of-range values:
 #' Numeric arguments are clamped into a usable range and the change is warned
@@ -447,7 +483,7 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
                          skim_model = NULL, summary_model = NULL,
                          parallel = NULL, delay_between_calls = 0,
                          on_overflow = c("warn", "error"), effort = NULL, premise = FALSE,
-                         ...) {
+                         verify = FALSE, ...) {
   warn_near_miss(list(...), names(formals(gr_read_spec)), "read")
   # Every argument but `...` is checked and resolved by the schema
   # (.gr_read_schema): ranges clamped with a warning, a missing number taken
@@ -489,11 +525,13 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
   # recipes apart by, so a field present in every spec, FALSE or not, would
   # have moved every store entry ever written to a key no run asks for.
   if (isTRUE(p$premise)) list(premise = TRUE),
+  # Only when TRUE, for the same reason as `premise`.
+  if (isTRUE(p$verify)) list(verify = TRUE),
   list(...)), class = "gr_read_spec")
   registry_get("readers", spec$reader, "readers", state = gr_state)   # fail fast on a typo
   # Asked of a reader that answers no question, the check would silently do
   # nothing; say so once, where the spec is made.
-  if (isTRUE(premise) && as_chr1(reader, "") %in% c("screen", "extract")) {
+  if (isTRUE(p$premise) && as_chr1(p$reader, "") %in% c("screen", "extract")) {
     gr_warn(sprintf(paste0("premise = TRUE has no effect on '%s', which answers no question. ",
                            "It applies to the readers that do; see gr_readers()."), reader),
             class = "gr_read_premise_ignored")
@@ -529,6 +567,8 @@ as_read_spec <- function(spec) {
   # check the caller asked for into none, and nothing in the answer would say.
   hr_param("premise", "boolean", default = FALSE, strict = TRUE,
            help = "Check the question's assumptions against the document."),
+  hr_param("verify", "boolean", default = FALSE, strict = TRUE,
+           help = "Check the answer's quotations against the chunks they cite."),
   hr_param("effort", "named_map", default = NULL, cost_class = "per_call_constant",
            help = "Reasoning effort, one level or a map named by call stem.",
            tier = "advanced",

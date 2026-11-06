@@ -367,9 +367,10 @@ test_that("the cost table has the claims and outline calls, and only those", {
   ol <- quiet(gr_outline(cm, client = cl))
   syn <- quiet(gr_synthesise(r6_table(), outline = ol, question = "Q?", client = cl,
                              claims = cm, cite_style = "marker"))
-  mine <- sum(vapply(tr$steps, function(st) grepl("^(claims|outline)\\.", st$label %||% ""),
-                     logical(1)))
-  expect_gt(tr$calls, mine)
+  # Each stage records on a trace of its own; the outline's reaches the audit
+  # through the synthesis.
+  mine <- cm$trace$calls + attr(ol, "trace")$calls
+  expect_gt(tr$calls, cm$trace$calls)
   h <- r6_page(screening = s, synthesis = syn, claims = cm)
   expect_match(h, sprintf("<tr><td>claims</td><td class=\"num\">%d</td>", mine), fixed = TRUE)
   expect_match(h, sprintf("<tr><td>synthesis</td><td class=\"num\">%d</td>", syn$trace$calls),

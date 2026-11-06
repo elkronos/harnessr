@@ -11,6 +11,7 @@ read_refine <- function(chunks, question, client, spec, trace) {
   d <- chunks$chunks
   draft <- NULL; used <- integer(0); revisions <- 0L; failures <- 0L; truncated <- 0L
   cut <- 0L
+  dropped <- 0L
   # The draft grows with every revision, so unlike the other readers this one
   # can outgrow the context window mid-run. Budget for it explicitly.
   # Two different system prompts go out of this reader -- answer_messages() for
@@ -28,14 +29,23 @@ read_refine <- function(chunks, question, client, spec, trace) {
     # Halve the budget between the running draft and the incoming excerpt.
     # The cuts are counted once the request is known to have gone out.
     half <- max(as.integer(bud$input / 2), 64L)
+    # Each cut goes into the trace with the tokens it dropped: the draft's cut
+    # loses its end, which no later revision can see again. The counts on the
+    # answer are added only once the request is known to have gone out.
     cuts <- 0L
+    cut_tokens <- 0L
     kept_draft <- draft
     if (gr_count_tokens(excerpt) > half) {
-      excerpt <- gr_truncate_tokens(excerpt, half); cuts <- cuts + 1L
+      t <- truncate_logged(excerpt, half, "refine.excerpt", trace, chunk_id = d$chunk_id[i])
+      excerpt <- t$text; cuts <- cuts + 1L; cut_tokens <- cut_tokens + t$dropped
     }
     if (!is.null(draft) && gr_count_tokens(draft) > half) {
-      draft <- gr_truncate_tokens(draft, half); cuts <- cuts + 1L
+      t <- truncate_logged(draft, half, "refine.draft", trace, chunk_id = d$chunk_id[i])
+      draft <- t$text; cuts <- cuts + 1L; cut_tokens <- cut_tokens + t$dropped
     }
+    # The draft as this request carries it, for the state length below.
+    state_in <- if (is.null(draft)) 0L else gr_count_tokens(draft)
+    from <- length(trace$steps)
     msgs <- if (is.null(draft)) {
       answer_messages(question, excerpt, cite = spec$cite, restate = spec$restate,
                       premise = spec$premise)
@@ -52,13 +62,19 @@ read_refine <- function(chunks, question, client, spec, trace) {
           "If neither the draft nor the excerpt answers the question, return exactly ", .NOT_FOUND, "."))
       )
     }
+    step_label <- if (is.null(draft)) "refine.draft" else "refine.revise"
     res <- gr_call(client, msgs, model = spec$model, max_output = spec$max_answer_tokens,
                    temperature = spec$temperature, trace = trace,
-                   label = if (is.null(draft)) "refine.draft" else "refine.revise",
-                   effort = spec$effort)
+                   label = step_label, effort = spec$effort)
     # A limit ends the pass, with the draft as it was before this chunk.
     if (is_refused(res)) { draft <- kept_draft; break }
     truncated <- truncated + cuts
+    dropped <- dropped + cut_tokens
+    # The state length at every step: the draft sent and the draft carried on,
+    # which is the old one when the reply was unusable. A draft that shrinks
+    # sharply in one revision is the collapse a whole rewrite can cause.
+    trace_state(trace, from, step_label, tokens_in = state_in,
+                tokens_out = if (usable_text(res)) gr_count_tokens(res$text) else state_in)
     if (!usable_text(res)) { failures <- failures + 1L; next }
     # A draft cut off at the output cap is carried forward as the draft, so
     # whatever it lost is lost from every revision after it.
@@ -79,6 +95,7 @@ read_refine <- function(chunks, question, client, spec, trace) {
              partial = failures > 0 || length(used) < nrow(d) || truncated > 0L || cut > 0L,
              notes = list(chunks = nrow(d), visited = length(used),
                           revisions = revisions, failed_calls = failures,
-                          truncated_calls = cut, truncations = truncated),
+                          truncated_calls = cut, truncations = truncated,
+                          tokens_truncated = dropped),
              premise = out$premise)
 }

@@ -76,6 +76,8 @@ gr_read <- function(chunks, question, client, spec = NULL, trace = NULL) {
   # trace (read-premise.R). Before `trace_steps` is set, so the step is this
   # run's. Nothing at all when the spec did not ask.
   out <- premise_record(out, spec, trace)
+  # The quotation check, when the spec asks for it (verify_record()).
+  out <- verify_record(out, chunks, spec, trace)
   # Only for an answer on this trace: a custom reader that kept a trace of its
   # own has steps numbered in that one.
   if (inherits(trace, "gr_trace") && identical(out[["trace", exact = TRUE]], trace)) {

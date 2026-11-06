@@ -70,7 +70,7 @@ preview_label <- function(d, rows) {
 
 #' One line per unit: what it is, how big, and enough text to judge it by.
 #' @noRd
-preview_outline <- function(d, units, budget) {
+preview_outline <- function(d, units, budget, trace = NULL) {
   first_words <- function(x, n) {
     w <- strsplit(trimws(as_chr1(x)), "[[:space:]]+")[[1]]
     paste(utils::head(w, n), collapse = " ")
@@ -98,7 +98,7 @@ preview_outline <- function(d, units, budget) {
     body <- paste(lines, collapse = "\n")
     if (gr_count_tokens(body) <= budget) return(body)
   }
-  gr_truncate_tokens(body, budget)
+  truncate_logged(body, budget, "preview.outline", trace)$text
 }
 
 #' @noRd
@@ -107,7 +107,8 @@ read_preview <- function(chunks, question, client, spec, trace) {
   units <- preview_units(d)
   n_units <- length(units)
 
-  outline <- preview_outline(d, units, as.integer(clamp(spec$preview_tokens %||% 1200L, 100, 1e5)))
+  outline <- preview_outline(d, units, as.integer(clamp(spec$preview_tokens %||% 1200L, 100, 1e5)),
+                              trace)
   schema <- list(type = "object", additionalProperties = FALSE,
                  required = list("sections"),
                  properties = list(sections = list(
@@ -217,9 +218,11 @@ read_preview <- function(chunks, question, client, spec, trace) {
       # What the truncation costs is reported, not swallowed. A skimmed unit
       # too big for one call used to lose its tail silently, so the run said it
       # had looked at a section it had seen half of.
-      had <- gr_count_tokens(body)
       lost <- 0L
-      if (had > cap) { body <- gr_truncate_tokens(body, cap); lost <- as.integer(had - cap) }
+      if (gr_count_tokens(body) > cap) {
+        t <- truncate_logged(body, cap, "preview.skim", trace, chunk_ids = d$chunk_id[rows])
+        body <- t$text; lost <- t$dropped
+      }
       r <- gr_call(client, list(
         list(role = "system", content = .gr_prompts$extract_system),
         list(role = "user", content = paste0("Question: ", question)),

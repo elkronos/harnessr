@@ -39,6 +39,10 @@ well as appear in the chunk, and only the reader can check the first: it
 knows the value. A row the reader marked \code{verified = FALSE} for that
 reason stays \code{FALSE} here, with a \code{match} of 1 when the sentence itself is
 in the document. It is there, and it does not say this.
+
+The \verb{quote_*} columns come from a second matcher, recorded beside
+\code{verified} and \code{match} and deciding nothing yet; see "The edit-distance
+score" below.
 }
 \description{
 \code{ans$evidence} says what an answer rests on. For most readers those spans are
@@ -109,6 +113,36 @@ in the middle splits the span and scores about 0.5. So a mid-sentence change
 near 0.9. Below roughly 0.3 there is no quotation left at all, only shared
 vocabulary. A run measure is still the right one: word overlap cannot tell a
 quotation from a paraphrase assembled out of the same words.
+}
+
+\section{The edit-distance score}{
+
+The run measure above cannot be given a threshold, because the same edit
+scores differently by where it falls. A second matcher is recorded next to
+it for every span, so the two can be compared on real runs before the
+default changes. It normalises both sides further than the check above:
+ligatures and the long s expanded, JSON escapes undone, soft hyphens and
+zero-width characters dropped, every full-width ASCII form folded, and a
+word broken across a line with a hyphen joined, as is any hyphen between
+two letters. It then finds the window of the source that the fewest
+character edits turn the quotation into.
+
+\code{quote_sim} is 1 minus those edits over the longer of the quotation and
+the window, so it falls by the same step for each edit wherever it falls.
+\code{quote_coverage} is the share of the quotation's words found in order in
+the window, \code{quote_edits} the count, and \code{quote_critical_ok} whether its
+numbers (with sign, a comparison sign before them and unit, such as
+"-12\%", "< 0.05" or "45.2 million"), numbers written in words ("twelve")
+and negations are the window's, exactly. \code{quote_status} is \code{"verbatim"}
+for no edit; \code{"near_verbatim"} for a similarity of at least 0.90 (0.95
+under 40 characters) with the critical tokens identical and five words or
+more; \code{"unverified"} otherwise; and \code{"not_checked"} where there was nothing
+to compare, or where a passage was too long to score: the edit table has a
+cell for each pair of characters, and a passage whose length times the
+source's is over 5e7 is skipped. A quotation split by an elision or a blank line takes the worst
+of its passages. \code{near_verbatim} is not verified: a changed word that is
+not a number or a negation ("Sheffield" for "Leipzig") can stay above the
+threshold.
 }
 
 \section{Citations}{
