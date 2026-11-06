@@ -360,9 +360,11 @@ reconcile_reply_tokens <- function(n) {
 #' Three causes that need three different remedies. gr_call() shrinks the reply
 #' to whatever the context window leaves after the prompt, so a long prompt is
 #' cut off BELOW the limit it asked for, and "raise the limit" was advice that
-#' could not help. `knob` names the argument that raises `cap`.
+#' could not help. `knob` names the argument that raises `cap`. `problem` is
+#' gr_call_json()'s reason for refusing a reply that did arrive, which says
+#' what to look at where "failed" alone does not.
 #' @noRd
-call_failure <- function(result, messages, model, cap, knob) {
+call_failure <- function(result, messages, model, cap, knob, problem = NULL) {
   if (reply_cut_off(result)) {
     info <- gr_model_info(model)
     prompt <- sum(gr_count_tokens(vapply(messages, function(m) as_chr1(m$content), character(1))))
@@ -374,6 +376,14 @@ call_failure <- function(result, messages, model, cap, knob) {
     }
     return(sprintf("stopped at the %d-token reply limit (raise %s)",
                    as.integer(min(cap, info$max_output)), knob))
+  }
+  # After the cut-off test: a reply stopped at the cap is also not JSON, and
+  # the remedy for it is the limit, not the schema.
+  if (isTRUE(result$ok) && length(problem)) {
+    problem <- as_chr1(problem)
+    return(if (problem %in% c("not JSON", "not an object")) "returned a reply that was not a JSON object"
+           else sprintf("returned a reply that does not fit its schema (%s)",
+                        substr(problem, 1L, 200L)))
   }
   err <- as_chr1(result$error, "")
   if (nzchar(err)) sprintf("failed (%s)", substr(err, 1L, 200L)) else "failed"
@@ -542,12 +552,14 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
     # Said, as the capped case above is. Batches sized by their reply make this
     # pass the normal route for a large corpus, and its reply names every claim.
     return(unmerged(sprintf("the reconcile call %s", call_failure(res$result, msgs, spec$model, cap,
-                                                                  "`max_claim_tokens`"))))
+                                                                  "`max_claim_tokens`",
+                                                                  res$problem))))
   }
 
   raw <- json_field(res$value, "groups", scalar = FALSE)
   # A flat array, `{"groups":[1,2,3]}`, is not one group of three: it is a reply
-  # that ignored the schema (gr_call_json() does not enforce it). Read as one
+  # that ignored the schema. gr_call_json() now refuses such a reply, so this
+  # guards only against the schema and this reader drifting apart. Read as one
   # group it merged every claim into the longest one's wording and handed it
   # every study, opposite findings included. Equal-length groups arrive as a
   # matrix and ragged ones as a list, so a bare vector is only ever this.

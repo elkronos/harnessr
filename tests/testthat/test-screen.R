@@ -93,6 +93,20 @@ test_that("an unreadable answer is 'unclear', never a guess in either direction"
   expect_true(s$answers[[1]]$partial)               # the call did not work
 })
 
+test_that("a decision outside the schema's enum is a failed call, not a decision", {
+  # Valid JSON that names no allowed decision used to be accepted and cached,
+  # and re-running served the same reply. Now it is refused before either.
+  cl <- screen_client(list(), default = paste0(
+    '{"decision":"probably","reason":"It looks relevant.",',
+    '"criterion":null,"quote":null}'))
+  a <- txt_file(trial_txt)
+  s <- quiet(gr_screen(a, question = "Q?", include = "Reports a randomised comparison",
+                       client = cl, keep_answers = TRUE))
+  expect_true(is.na(s$table$decision))
+  expect_identical(s$table$status, "failed")
+  expect_match(s$table$error, "$.decision", fixed = TRUE)
+})
+
 test_that("'unclear' is an answer, not a partial one", {
   # A correct "we cannot tell from this" and a broken call must not land in the
   # same bucket: one is for a person to read, the other is for the run to redo.

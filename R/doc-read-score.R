@@ -24,13 +24,16 @@ lexical_embed <- function(texts, dim = 512L) {
 }
 
 #' Cosine similarity of one vector against every row of a matrix.
+#'
+#' A vector whose length is not the matrix's width raises `hr_dim_mismatch`,
+#' as cosine_similarity() does, rather than comparing the first columns of two
+#' different spaces.
 #' @noRd
 cosine_against <- function(mat, vec) {
   if (!is.matrix(mat) || nrow(mat) == 0L) return(numeric(0))
   vec <- as.numeric(vec)
-  n <- min(ncol(mat), length(vec))
-  if (n == 0L) return(rep(0, nrow(mat)))
-  mat <- mat[, seq_len(n), drop = FALSE]; vec <- vec[seq_len(n)]
+  check_same_dim(ncol(mat), length(vec))
+  if (!length(vec)) return(rep(0, nrow(mat)))
   dv <- sqrt(sum(vec^2))
   dm <- sqrt(rowSums(mat^2))
   out <- as.numeric(mat %*% vec)
@@ -54,16 +57,19 @@ bm25_scores <- function(docs, query, k1 = 1.5, b = 0.75) {
   lens <- vapply(dt, length, integer(1))
   avg <- mean(lens[lens > 0]); if (!is.finite(avg) || avg == 0) avg <- 1
   N <- length(dt)
+  # Document frequency once per query term, before the loop over documents.
+  # It was counted inside that loop, so every document scanned the whole set
+  # again for each of its terms, and the work grew with the square of the
+  # number of chunks. The scores are the same.
+  n_q <- vapply(q, function(term) sum(vapply(dt, function(dd) term %in% dd, logical(1))),
+                integer(1))
+  idf <- log(1 + (N - n_q + 0.5) / (n_q + 0.5))
   vapply(seq_along(dt), function(i) {
     d <- dt[[i]]
     if (!length(d)) return(0)
-    tf <- table(d)
-    sum(vapply(q, function(term) {
-      f <- as.numeric(tf[term]); if (is.na(f)) return(0)
-      n_q <- sum(vapply(dt, function(dd) term %in% dd, logical(1)))
-      idf <- log(1 + (N - n_q + 0.5) / (n_q + 0.5))
-      idf * (f * (k1 + 1)) / (f + k1 * (1 - b + b * lens[i] / avg))
-    }, numeric(1)))
+    f <- tabulate(match(d, q), nbins = length(q))
+    hit <- f > 0
+    sum(idf[hit] * (f[hit] * (k1 + 1)) / (f[hit] + k1 * (1 - b + b * lens[i] / avg)))
   }, numeric(1))
 }
 

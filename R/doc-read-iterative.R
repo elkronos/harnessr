@@ -90,8 +90,11 @@ read_iterative <- function(chunks, question, client, spec, trace) {
     # compared the first 512 of each, two unrelated spaces, and the round took
     # whatever that picked with partial = FALSE. `retrieve` embeds the question
     # with the chunks, in one request, and cannot mix them. Here both go onto
-    # word overlap for the round, and the answer says so.
-    if (nrow(d) && (!identical(attr(q_emb, "embedding_source") %||% "api", src) ||
+    # word overlap for the round, and the answer says so. A query that came
+    # back with no vector at all goes the same way: cosine_against() now
+    # refuses vectors of different lengths instead of scoring them 0.
+    if (nrow(d) && (!nrow(q_emb) ||
+                    !identical(attr(q_emb, "embedding_source") %||% "api", src) ||
                     NCOL(q_emb) != NCOL(emb))) {
       if (is.null(lex_emb)) lex_emb <- lexical_embed(d$text)
       rank_emb <- lex_emb

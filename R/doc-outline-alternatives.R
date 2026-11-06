@@ -241,7 +241,7 @@ outline_alternatives <- function(first, k, reply, msgs, cw, closing, max_section
           "dropped, as the reply held no usable sections" else
             sprintf("dropped, as the call %s",
                     call_failure(res$result, ask, spec$model, spec$max_answer_tokens,
-                                 "`max_outline_tokens`")))
+                                 "`max_outline_tokens`", res$problem)))
         next
       }
       # finish_outline()'s messages name no outline, and after the first's they

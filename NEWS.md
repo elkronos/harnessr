@@ -208,6 +208,42 @@
   that made more and had a later one refused by its share warns
   (`gr_parallel_share`) and does not mark the run as stopped.
 
+## JSON replies checked against their schema
+
+* **A JSON reply must fit the schema the request sent.** Every call that asks
+  for JSON (screening, claims, outlines, preview plans, rerank, iterative
+  reading, model segmentation, extraction) now checks the reply's types,
+  `enum` values and `required` fields, through nested objects and arrays,
+  before using it. A reply that fails is treated as a reply that did not
+  parse: the reader takes its failure path, and the reply is not cached, so
+  running again asks again. A cached reply that fails is asked again too. It
+  used to be enough for a reply to be a named object, so
+  `{"decision": "probably"}` was a screening reply and was stored as one.
+  Some replies that used to be read leniently are now failed calls: a
+  screening decision outside `include`, `exclude` and `unclear` (it was read
+  as "unclear"), a text field sent as an array or object in `iterative`,
+  `rerank` and `gr_screen()` (it was joined into one string), and a
+  proposition list sent as an array of arrays (the batch is kept as written).
+  Where a reader reports why a call failed, it now says where the reply broke
+  the schema, as in `$.groups[0]: expected array, got 1`. `gr_extract()` still
+  reads each field's value itself, so "1,204" in an integer field is still
+  1204 and an undeclared value is still reported as one it could not read;
+  only the shape of its replies is checked.
+
+## Embedding scores
+
+* **Comparing vectors of different lengths is an error.** Cosine similarity
+  cut both vectors to the shorter length, so a lexical fallback vector scored
+  against an API embedding gave a plausible number from two unrelated spaces.
+  It now stops with an error of class `hr_dim_mismatch`. The readers already
+  kept the query and the chunks in one space; `iterative` now also falls back
+  to word overlap for a round whose query came back with no vector.
+
+* **BM25 scoring is faster on many chunks.** Document frequency is counted
+  once per query term instead of once per term for every chunk, so the
+  `rerank` prefilter and the offline `retrieve` path no longer slow down with
+  the square of the number of chunks. Scores are unchanged.
+
 # readgpt 0.6.0
 
 ## New
