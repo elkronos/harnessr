@@ -249,6 +249,9 @@ several \code{\link[=gr_outline]{gr_outline()}} compared (\code{alternatives} ab
 it was, as \code{alternative}, \code{of} (how many were asked for), \code{distinct}
 (how many came back distinct) and \code{distance} from the first proposal.
 The trace's meta records \code{outline_alternative} and \code{outline_of} too.}
+\item{\code{outline_trace}}{Present only when \code{outline} came from
+\code{\link[=gr_outline]{gr_outline()}}: the trace of the calls that derived it, which this
+stage's \code{trace} does not include.}
 \item{\code{trace}}{As \code{\link[=gr_extract]{gr_extract()}}.}
 }
 }

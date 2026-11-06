@@ -96,6 +96,30 @@
   resolved by a person, the records kept for full text (`$forward`) and, of
   those, the ones deferred (`$deferred`).
 
+## Claims and outline
+
+* **`gr_claims()` and `gr_outline()` record their calls the way the other
+  review stages do.** Each records on a trace of its own and, given `trace =`,
+  adds its calls to that trace when it finishes, as `gr_screen()`,
+  `gr_extract()`, `gr_read_many()` and `gr_synthesise()` already did. Before,
+  both recorded straight onto the trace they were given, so a review trace
+  that an earlier stage had taken past `gr_options(max_calls =)` or
+  `max_cost_usd =` stopped them before they sent a request, and
+  `gr_claims()` returned no claims, marked partial. Pass one trace to every
+  stage and its totals are the sum of the stages', with each request counted
+  once.
+
+* **`gr_outline()` no longer adds to `claims$trace`.** Given no `trace`, it
+  recorded its calls on the trace of the claims it was handed, which changed
+  a finished `gr_claims()` result and made `claims$trace` report the
+  outline's cost as the claims'. Its calls are now on `attr(outline, "trace")`,
+  which `gr_outline_pick()` keeps and `gr_synthesise()` keeps as
+  `$outline_trace`. Scripts that totalled a review's cost from `claims$trace`
+  after `gr_outline()` should pass one `trace` to both, or add
+  `attr(outline, "trace")`. The audit report's claims row still includes the
+  outline's calls, read from the synthesis, and counts them once when a
+  script passes `trace = claims$trace` to `gr_outline()`.
+
 # readgpt 0.6.0
 
 ## New

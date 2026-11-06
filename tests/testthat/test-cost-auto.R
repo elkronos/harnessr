@@ -725,16 +725,18 @@ test_that("the review stages say when a limit stopped them", {
       invokeRestart("muffleWarning")
     })
   expect_true(any(grepl("were not merged", merged, fixed = TRUE)))
-  gr_options(max_cost_usd = 0.5)
-
-  said <- NULL
-  withCallingHandlers(
-    suppressMessages(gr_outline(cm, client = cl, model = "claims-small")),
-    gr_outline_failed = function(w) {
-      said <<- conditionMessage(w)
-      invokeRestart("muffleWarning")
-    })
-  expect_match(said, "not requested: the run had reached its spending limit", fixed = TRUE)
+  # The outline is a stage of its own: what the claims spent is not charged
+  # to it, so its first request is sent, and the limit stops the alternative
+  # it would have paid for after that.
+  gr_options(max_cost_usd = 0.01)
+  spent <- cm$trace$spent_usd
+  o <- suppressWarnings(suppressMessages(
+    gr_outline(cm, client = cl, model = "claims-small", alternatives = 2)))
+  expect_identical(cm$trace$spent_usd, spent)
+  expect_identical(attr(o, "trace")$calls, 1L)
+  expect_identical(attr(o, "trace")$stop_reason, "cost")
+  expect_match(attr(o, "comparison")$note[2],
+               "not requested, as the run had reached its spending limit", fixed = TRUE)
 })
 
 test_that("the up-front check prices chunks at the model that receives them", {

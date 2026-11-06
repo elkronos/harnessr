@@ -85,15 +85,16 @@ as_chr_label <- function(x) if (is.null(x)) "" else as.character(x)
 # The default is today's request, and the first outline is today's outline.
 # ---------------------------------------------------------------------------
 
-test_that("alternatives = 1 sends the one request it always sent, and attaches nothing", {
+test_that("alternatives = 1 sends the one request it always sent, and attaches no alternatives", {
   f <- oa_setup()
   o1 <- quiet(gr_outline(f$claims, client = f$client))
   calls1 <- outline_calls(f$client)
   expect_length(calls1, 1L)
   expect_identical(calls1[[1]]$label, "outline.derive")
-  # Nothing new on the object: a run that never asked for alternatives gets
-  # the object it always got.
-  expect_named(attributes(o1), c("names", "claims", "rationale", "closing", "claims_fingerprint"))
+  # Only the trace that recorded the call is new: a run that never asked for
+  # alternatives carries none of their attributes.
+  expect_named(attributes(o1), c("names", "claims", "rationale", "closing", "claims_fingerprint",
+                                 "trace"))
 
   f$client$reset()
   o3 <- quiet(gr_outline(f$claims, client = f$client, alternatives = 3))
@@ -107,7 +108,8 @@ test_that("alternatives = 1 sends the one request it always sent, and attaches n
 
   # And the outline returned is the first proposal, exactly as it comes alone.
   bare <- o3
-  for (a in c("alternative", "comparison", "alternatives")) attr(bare, a) <- NULL
+  for (a in c("alternative", "comparison", "alternatives", "trace")) attr(bare, a) <- NULL
+  attr(o1, "trace") <- NULL
   expect_identical(bare, o1)
 })
 
@@ -165,13 +167,23 @@ test_that("the response cache cannot hand back one sample as every alternative",
 test_that("a run with alternatives replays from its recording with no model", {
   local_registries()
   f <- oa_setup(oa_client(replies = list(oa_first, oa_renamed, oa_by_design)))
-  o <- suppressWarnings(quiet(gr_outline(f$claims, client = f$client, alternatives = 3)))
-  rp <- gr_replay_client(f$claims$trace)
+  # The claims and the outline each record on a trace of their own; the
+  # review's trace is the parent both fold into, and it is what is replayed.
+  review <- gr_trace()
+  harnessr:::trace_absorb(review, f$claims$trace)
+  o <- suppressWarnings(quiet(gr_outline(f$claims, client = f$client, alternatives = 3,
+                                         trace = review)))
+  rp <- gr_replay_client(review)
   cm2 <- quiet(gr_claims(oa_table(), question = "Does it work?", client = rp))
   o2 <- suppressWarnings(quiet(gr_outline(cm2, client = rp, alternatives = 3)))
   expect_identical(rp$stats()$misses, 0L)
   expect_identical(attr(o2, "comparison"), attr(o, "comparison"))
-  expect_identical(gr_outline_pick(o2, 3), gr_outline_pick(o, 3))
+  # The same outline, apart from the trace that recorded each run.
+  untraced <- function(x) {
+    attr(x, "trace") <- NULL
+    x
+  }
+  expect_identical(untraced(gr_outline_pick(o2, 3)), untraced(gr_outline_pick(o, 3)))
 })
 
 # ---------------------------------------------------------------------------
@@ -238,7 +250,7 @@ test_that("a grouping that repeats an earlier one is dropped, and the comparison
   expect_identical(attr(alts[[1]], "alternative")$alternative, 3L)
   expect_identical(names(alts[[1]]), c("Trials", "Others", "What is missing"))
   # Recorded on the trace as a local step, so it costs nothing.
-  st <- Filter(function(s) identical(s$label, "outline.compare"), f$claims$trace$steps)
+  st <- Filter(function(s) identical(s$label, "outline.compare"), attr(o, "trace")$steps)
   expect_length(st, 1L)
   expect_identical(st[[1]]$kind, "local")
   expect_identical(st[[1]]$detail$kept, "1, 3")
@@ -378,17 +390,19 @@ test_that("nothing is asked for when none of the first outline's sections held a
   expect_match(cmp$note[2], "none of the first outline's sections held a claim", fixed = TRUE)
   # The first outline is what `alternatives = 1` makes of the same reply.
   bare <- o
-  for (a in c("alternative", "comparison", "alternatives")) attr(bare, a) <- NULL
+  for (a in c("alternative", "comparison", "alternatives", "trace")) attr(bare, a) <- NULL
   f$client$reset()
-  expect_identical(bare, quiet(gr_outline(f$claims, client = f$client)))
+  alone <- quiet(gr_outline(f$claims, client = f$client))
+  attr(alone, "trace") <- NULL
+  expect_identical(bare, alone)
 })
 
 test_that("no alternative is asked for once the run reaches its call cap", {
   local_registries()
   f <- oa_setup()
-  # One call drew the claims; the cap leaves room for the first outline and
-  # one alternative.
-  gr_options(max_calls = 3L)
+  # The outline counts its own calls only, not the one that drew the claims:
+  # the cap leaves room for the first outline and one alternative.
+  gr_options(max_calls = 2L)
   o <- NULL
   expect_warning(o <- suppressMessages(gr_outline(f$claims, client = f$client, alternatives = 3)),
                  class = "gr_outline_alternatives_short")

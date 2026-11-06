@@ -81,7 +81,10 @@
 #' @param max_sections Upper bound on sections, before the closing one.
 #' @param closing The heading of the closing section, which receives gap claims
 #'   and anything unplaced. `NULL` for no closing section.
-#' @param trace A [gr_trace()] to record into.
+#' @param trace A [gr_trace()] to add this stage's calls to, or `NULL`. The
+#'   calls are recorded on a trace of the stage's own, attached as
+#'   `attr(, "trace")`, and folded into `trace` when the stage ends. The trace
+#'   of `claims` is left as it was.
 #' @param max_outline_tokens The reply limit for the outline call. The reply
 #'   names every claim and writes a heading, brief and rationale per section,
 #'   so by default it grows with both: `400 + 8` per claim `+ 60` per section,
@@ -101,7 +104,8 @@
 #' @return A named character vector shaped exactly like the `outline` argument of
 #'   [gr_synthesise()] (headings as names, briefs as values), carrying
 #'   `attr(, "claims")` (a `section`/`claim_id` frame), `attr(, "rationale")`,
-#'   `attr(, "closing")` and `attr(, "claims_fingerprint")`, a hash of the
+#'   `attr(, "closing")`, `attr(, "trace")` (the calls made here) and
+#'   `attr(, "claims_fingerprint")`, a hash of the
 #'   claims' numbers and texts. A claim number means something only within one
 #'   [gr_claims()] result, so [gr_synthesise()] refuses the outline
 #'   (`gr_claims_mismatch`) when the `claims` it is given are not the ones the
@@ -170,7 +174,15 @@ gr_outline <- function(claims, question = NULL, client = NULL, model = NULL,
   # Clamped to what the model can emit, as gr_call() would, so that the limit a
   # warning names is the limit the request carried.
   spec$max_answer_tokens <- min(as.integer(max_outline_tokens), as.integer(info$max_output))
-  trace <- trace %||% claims$trace %||% gr_trace(meta = list(stage = "outline"))
+  # Its own trace, folded into a given one, as every corpus stage does (see
+  # as_parent_trace()). It used to record on `claims$trace` when no trace was
+  # given, which changed a finished gr_claims result, and on a given trace
+  # directly, which counted every earlier stage's calls against this one's
+  # limit.
+  parent <- as_parent_trace(trace)
+  trace <- gr_trace(meta = list(stage = "outline", question = question,
+                                claims = nrow(cw)))
+  if (!is.null(parent)) on.exit(trace_absorb(parent, trace), add = TRUE)
 
   # Labelled, so that a claim edited by hand, unlabelled under a non-UTF-8
   # locale, is not escaped by paste() for sitting beside the model's claims.
@@ -216,9 +228,27 @@ gr_outline <- function(claims, question = NULL, client = NULL, model = NULL,
     secs$.claims <- list(cw$claim_id)
   }
   out <- finish_outline(secs, cw, closing, max_sections)
-  if (alternatives < 2L) return(out)
-  outline_alternatives(out, alternatives, if (derived) secs, msgs, cw, closing, max_sections,
-                       client, spec, trace)
+  if (alternatives >= 2L) {
+    out <- outline_alternatives(out, alternatives, if (derived) secs, msgs, cw, closing,
+                                max_sections, client, spec, trace)
+  }
+  outline_with_trace(out, trace)
+}
+
+#' Attach the trace that recorded an outline's calls, to the outline and to
+#' each alternative it carries, so the one gr_outline_pick() hands back still
+#' says what it cost. gr_synthesise() keeps it as `$outline_trace`.
+#' @noRd
+outline_with_trace <- function(out, trace) {
+  alts <- attr(out, "alternatives")
+  if (length(alts)) {
+    attr(out, "alternatives") <- lapply(alts, function(a) {
+      attr(a, "trace") <- trace
+      a
+    })
+  }
+  attr(out, "trace") <- trace
+  out
 }
 
 #' The default reply limit for an outline of `n` claims, on the model `info`
