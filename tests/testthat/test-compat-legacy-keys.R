@@ -106,16 +106,38 @@ test_that("an old recording replays strictly through the old key, each hit warni
                    data.frame(recorded = 6L, hits = 6L, repeats = 0L, misses = 0L,
                               legacy_hits = 6L))
 
-  # The replay's own trace records the new keys, so a replay of it needs no
-  # old key.
+  # A reply found by the old key was not checked against the temperature, cap
+  # or schema, so the replay's own trace records it without a new key, and a
+  # replay of that trace goes through the old key again.
+  expect_true(all(vapply(tr$steps, function(st) is.null(st$replay_key), logical(1))))
   rp2 <- gr_replay_client(tr, strict = TRUE)
   again <- legacy_keys_run(rp2, trace = NULL)
-  expect_identical(again$warned, 0L)
+  expect_identical(again$warned, 6L)
   expect_identical(legacy_keys_text(again$out), legacy_keys_recorded())
-  expect_identical(rp2$stats()$legacy_hits, 0L)
+  expect_identical(rp2$stats()$legacy_hits, 6L)
 
   # The old recording holds two replies to the repeated prompt and no more.
   expect_error(gr_call(rp, "What was revenue in 2024?"), class = "hr_replay_exhausted")
+})
+
+test_that("a reply found by the old key at another temperature keeps no new key", {
+  local_registries()
+  harnessr::gr_options(verbose = FALSE)
+  rp <- gr_replay_client(file.path(legacy_keys_dir(), "recording.json"), strict = TRUE)
+  tr <- gr_trace()
+  res <- withCallingHandlers(
+    gr_call(rp, "What was revenue in 2024?", temperature = 0.9, trace = tr),
+    hr_legacy_key = function(w) invokeRestart("muffleWarning"))
+  expect_match(res$text, "default temperature", fixed = TRUE)
+  expect_null(tr$steps[[1]]$replay_key)
+
+  # Replayed at the same temperature, the reply is still one found by the old
+  # key, and says so.
+  rp2 <- gr_replay_client(tr, strict = TRUE)
+  expect_warning(again <- gr_call(rp2, "What was revenue in 2024?", temperature = 0.9),
+                 class = "hr_legacy_key")
+  expect_identical(again$text, res$text)
+  expect_identical(rp2$stats()$legacy_hits, 1L)
 })
 
 test_that("the old cache key names this package's functions as readgpt's", {

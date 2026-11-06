@@ -468,6 +468,89 @@ test_that("a replay misses at another temperature, output cap or schema", {
   expect_identical(rp$stats()$legacy_hits, 0L)
 })
 
+test_that("a miss on the temperature or output cap names them, not the effort", {
+  local_registries()
+  tr <- gr_trace()
+  cl <- gr_backend_client(function(m, p) "recorded", model = "gpt-4o-mini")
+  invisible(gr_call(cl, "Q?", temperature = 0.2, max_output = 100, trace = tr))
+
+  rp <- gr_replay_client(tr, strict = FALSE)
+  res <- gr_call(rp, "Q?", temperature = 0.7, max_output = 100)
+  expect_false(res$ok)
+  expect_match(res$error, "another temperature, output cap or JSON schema", fixed = TRUE)
+  expect_match(res$error, "asked for temperature 0.2, output cap 100", fixed = TRUE)
+  expect_match(res$error, "asks for temperature 0.7, output cap 100", fixed = TRUE)
+  expect_match(res$error, "They differ in the temperature.", fixed = TRUE)
+  expect_no_match(res$error, "`effort`", fixed = TRUE)
+  res <- gr_call(rp, "Q?", temperature = 0.2, max_output = 50)
+  expect_match(res$error, "asks for temperature 0.2, output cap 50", fixed = TRUE)
+  expect_match(res$error, "They differ in the output cap asked for.", fixed = TRUE)
+
+  # A miss on the effort still says so.
+  tr <- gr_trace()
+  cl <- gr_backend_client(function(m, p) "recorded", model = "gpt-5-mini")
+  invisible(gr_call(cl, "Q?", effort = "low", trace = tr))
+  res <- gr_call(gr_replay_client(tr, strict = FALSE), "Q?", effort = "high")
+  expect_match(res$error, "at reasoning effort 'low'", fixed = TRUE)
+})
+
+test_that("a miss names the asked cap and a schema body, not what was sent", {
+  local_registries()
+  # Recorded with no cap: the cap sent is the model's limit, and a replay that
+  # asks for that limit by number still misses on the cap it asked for.
+  tr <- gr_trace()
+  cl <- gr_backend_client(function(m, p) "r", model = "gpt-4o-mini")
+  invisible(gr_call(cl, "Q?", trace = tr))
+  limit <- gr_model_info("gpt-4o-mini")$max_output
+  res <- gr_call(gr_replay_client(tr, strict = FALSE), "Q?", max_output = limit)
+  expect_false(res$ok)
+  expect_match(res$error, "asked for temperature none, no output cap and no schema",
+               fixed = TRUE)
+  expect_match(res$error, sprintf("asks for temperature none, output cap %s", format(limit)),
+               fixed = TRUE)
+  expect_match(res$error, "They differ in the output cap asked for.", fixed = TRUE)
+
+  # A schema that keeps its name and changes its body.
+  tr <- gr_trace()
+  cl <- gr_backend_client(function(m, p) "{}", model = "gpt-4o-mini")
+  invisible(gr_call(cl, "Q?", schema = list(type = "object"), schema_name = "ans", trace = tr))
+  res <- gr_call(gr_replay_client(tr, strict = FALSE), "Q?",
+                 schema = list(type = "object", x = 1), schema_name = "ans")
+  expect_false(res$ok)
+  expect_match(res$error, paste0("this call asks for temperature none, no output cap and ",
+                                 "schema 'ans' with another body"), fixed = TRUE)
+  expect_match(res$error, "They differ in the JSON schema.", fixed = TRUE)
+
+  # An integer temperature is the same temperature as the double recorded.
+  tr <- gr_trace()
+  cl <- gr_backend_client(function(m, p) "{}", model = "gpt-4o-mini")
+  invisible(gr_call(cl, "Q?", temperature = 1, schema = list(type = "object"), trace = tr))
+  res <- gr_call(gr_replay_client(tr, strict = FALSE), "Q?", temperature = 1L,
+                 schema = list(type = "array"))
+  expect_false(res$ok)
+  expect_match(res$error, "They differ in the JSON schema.", fixed = TRUE)
+  expect_no_match(res$error, "the temperature", fixed = TRUE)
+})
+
+test_that("a repeated reply is recorded without a replay key", {
+  local_registries()
+  tr <- gr_trace()
+  cl <- gr_mock_client(function(m, p) "only reply")
+  invisible(gr_call(cl, "same prompt", trace = tr))
+
+  flag <- gr_replay_client(tr, on_exhausted = "flag")
+  tr2 <- gr_trace()
+  for (i in 1:2) invisible(gr_call(flag, "same prompt", trace = tr2))
+  expect_identical(flag$stats()$repeats, 1L)
+  expect_match(tr2$steps[[1]]$replay_key, "^[0-9a-f]{64}$")
+  expect_null(tr2$steps[[2]]$replay_key)
+
+  # A replay of that trace is not exact where the first was not.
+  rp <- gr_replay_client(tr2)
+  expect_identical(gr_call(rp, "same prompt")$text, "only reply")
+  expect_error(gr_call(rp, "same prompt"), class = "hr_replay_exhausted")
+})
+
 test_that("an unrecorded prompt is a loud failure by default", {
   local_registries()
   tr <- gr_trace()

@@ -126,6 +126,14 @@
   `replay_key`. A step recorded before that is looked up by the old key
   (`readgpt-replay-v1`: messages, model and effort), with one `hr_legacy_key`
   warning per recording in a session and a count in `$stats()$legacy_hits`.
+  A replay's own trace records a reply found that way, or one repeated under
+  `on_exhausted = "flag"`, without a `replay_key`, so a replay of that trace
+  still goes through the old key, or still runs out of replies. A miss on a
+  prompt recorded for the model at the effort asked for says the temperature,
+  output cap or schema differ, names the recorded settings next to the ones
+  this call asks for, and says which of them differ. Where the schema differs,
+  the recorded cap is given as the cap that was sent, which may be the model's
+  limit rather than the cap asked for.
 
 * **A replay that runs out of recorded replies is an error.** A call past
   the last reply recorded for its request, or for a draw that was never

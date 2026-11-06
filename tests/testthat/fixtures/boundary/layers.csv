@@ -272,6 +272,7 @@
 "replay_prompt","core","function"
 "replay_read","core","function"
 "replay_sent_params","core","function"
+"replay_settings_miss","core","function"
 "replay_source_list","core","function"
 "replay_step_budget","core","function"
 "replay_step_effort","core","function"
