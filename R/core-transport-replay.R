@@ -750,13 +750,18 @@ replay_lookup <- function(client, req) {
     # The same prompt for the same model at another effort: said first, since
     # "replay the run with that model" would name the model it already asked.
     efforts <- if (is.list(idx$effort)) idx$effort[[legacy_replay_key_v1(messages, model)]] else NULL
-    detail <- if (!is.null(efforts)) {
+    ask <- as_chr1(effort %||% asked, "<none>")
+    detail <- if (!is.null(efforts) && ask %in% efforts) {
+      # Recorded for this model at this effort, so the v2 key missed on the
+      # temperature, the output cap or the schema.
+      replay_settings_miss(idx, req, ask)
+    } else if (!is.null(efforts)) {
       say <- function(e) if (identical(e, "<none>")) "no effort" else sprintf("effort '%s'", e)
       # What the call asked for, which this session's registry may not send.
       sprintf(paste0(" The same prompt IS recorded for this model at reasoning %s, and this call ",
                      "asked for %s; replay the run with the `effort` it was recorded with."),
               paste(vapply(efforts, say, character(1)), collapse = " or "),
-              say(as_chr1(effort %||% asked, "<none>")))
+              say(ask))
     } else if (!is.null(other)) {
       sprintf(" The same prompt IS recorded under model %s; replay the run with that model.",
               paste(sprintf("'%s'", other), collapse = " or "))
@@ -803,9 +808,11 @@ replay_lookup <- function(client, req) {
     # exact.
     st <- if (length(cand)) cand[[length(cand)]] else recorded[[length(recorded)]]
     idx$repeats <- idx$repeats + 1L
+    repeated <- TRUE
   } else {
     idx$cursor[[ck]] <- pos
     st <- cand[[pos]]
+    repeated <- FALSE
   }
   idx$hits <- idx$hits + 1L
   if (legacy) {
@@ -838,7 +845,92 @@ replay_lookup <- function(client, req) {
   # A recorded call that asked for an effort it did not send (an ellmer chat's)
   # is traced the same way when replayed (see model_call()).
   if (isTRUE(st$unsent_effort)) res$unsent_effort <- TRUE
+  # A reply found by the old key was matched on the messages, model and effort
+  # only, and a repeated one is not the reply recorded for this call. Neither
+  # is given a harnessr-replay-v2 key in the replay's own trace (see
+  # model_call()), so a replay of that trace still goes through the old key,
+  # or still runs out of replies, instead of counting as exact.
+  if (legacy || repeated) res$unkeyed <- TRUE
   res
+}
+
+#' The detail of a gr_replay_miss for a prompt recorded for this model at the
+#' effort the call asked for: the temperature, output cap or schema differ.
+#'
+#' Names what the first such recorded step asked for next to what this call
+#' asks for, and which of the three differ. The step's params_sent holds the
+#' cap after it was held to the model's limit, while the key holds the cap
+#' the call asked for, so that one is found by trying the likely values
+#' against the step's key. A schema is compared by the hash of its body as
+#' well as its name. A step with neither a key nor a params_sent is only said
+#' to differ.
+#' @noRd
+replay_settings_miss <- function(idx, req, ask) {
+  km <- legacy_replay_key_v1(req$messages, req$model)
+  steps <- Filter(function(st) {
+    identical(legacy_replay_key_v1(st$prompt, st$model), km) &&
+      identical(as_chr1(st$effort, "<none>"), ask)
+  }, c(unlist(unname(idx$v2), recursive = FALSE), unlist(unname(idx$full), recursive = FALSE)))
+  intro <- paste0(" The same prompt IS recorded for this model at the effort this call asked ",
+                 "for, but with another temperature, output cap or JSON schema.")
+  advice <- " Replay the run with the settings it was recorded with."
+  if (!length(steps)) return(paste0(intro, advice))
+  st <- steps[[1]]
+  sent <- st[["params_sent", exact = TRUE]]
+  num <- function(x) if (is.null(x) || !length(x) || is.na(x)) NULL else as.numeric(x)
+
+  # This call, as its key was made.
+  temp_now <- num(call_temperature(req$temperature, req$info))
+  cap_now <- num(req$asked_cap)
+  name_now <- if (!is.null(req$schema)) as_chr1(req$schema_name, "result") else NA_character_
+  hash_now <- json_sha256(req$schema)
+
+  # The recorded call, from params_sent and, where it says more, its key.
+  temp_rec <- if (is.list(sent)) num(sent$temperature)
+  cap_sent <- if (is.list(sent)) num(sent$max_output)
+  name_rec <- if (is.list(sent)) as_chr1(sent$schema_name, NA_character_) else NA_character_
+  hash_rec <- if (is.list(sent)) as_chr1(sent$schema_hash, NA_character_) else NA_character_
+  schema_same <- if (is.list(sent)) identical(name_rec, name_now) && identical(hash_rec, hash_now)
+  cap_rec <- NULL
+  cap_known <- FALSE
+  if (!is.na(st$key) && (isTRUE(schema_same) || (is.list(sent) && is.na(hash_rec)))) {
+    sc <- if (isTRUE(schema_same)) req$schema
+    for (e in unique(list(st$effort, NULL))) for (t in unique(list(temp_now, temp_rec, NULL)))
+      for (cap in unique(list(cap_now, cap_sent, NULL))) {
+        if (cap_known) next
+        k <- replay_key(st$prompt, st$model, e, temperature = t, max_output = cap,
+                        schema = sc, schema_name = if (!is.null(sc)) name_now else "result")
+        if (identical(k, st$key)) {
+          temp_rec <- t
+          cap_rec <- cap
+          cap_known <- TRUE
+        }
+      }
+  }
+  if (!is.list(sent) && !cap_known) return(paste0(intro, advice))
+
+  fmt_temp <- function(t) sprintf("temperature %s", if (is.null(t)) "none" else format(t))
+  fmt_cap <- function(cap) if (is.null(cap)) "no output cap" else sprintf("output cap %s", format(cap))
+  fmt_schema <- function(name, other_body = FALSE) {
+    if (is.na(name)) "no schema"
+    else sprintf("schema '%s'%s", name, if (other_body) " with another body" else "")
+  }
+  rec_cap <- if (cap_known) fmt_cap(cap_rec)
+             else if (is.null(cap_sent)) "an output cap it did not record"
+             else sprintf("an output cap it sent as %s once held to the model's limit", format(cap_sent))
+  rec <- sprintf("%s, %s and %s", fmt_temp(temp_rec), rec_cap,
+                 if (is.list(sent)) fmt_schema(name_rec) else "the schema this call has")
+  now <- sprintf("%s, %s and %s", fmt_temp(temp_now), fmt_cap(cap_now),
+                 fmt_schema(name_now, identical(name_rec, name_now) && !identical(hash_rec, hash_now)))
+
+  temp_diff <- !identical(temp_rec, temp_now)
+  schema_diff <- is.list(sent) && !isTRUE(schema_same)
+  cap_diff <- if (cap_known) !identical(cap_rec, cap_now) else !temp_diff && !schema_diff
+  causes <- c(if (temp_diff) "the temperature", if (cap_diff) "the output cap asked for",
+              if (schema_diff) "the JSON schema")
+  paste0(intro, sprintf(" The recorded call asked for %s; this call asks for %s.", rec, now),
+         if (length(causes)) sprintf(" They differ in %s.", paste(causes, collapse = " and ")),
+         advice)
 }
 
 #' Why a prompt the replay asked for may be missing from the recording, for the

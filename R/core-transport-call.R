@@ -355,6 +355,13 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
     governor_refuse(trace, res$refusal)
     return(res)
   }
+  # A reply a replay found by the old key, or repeated, is recorded without
+  # a replay key, so a replay of this trace is not exact where this one was
+  # not (see replay_lookup()).
+  if (isTRUE(res[["unkeyed", exact = TRUE]])) {
+    rkey <- NA_character_
+    res$unkeyed <- NULL
+  }
   # A replay hands back the record of what the recorded call sent.
   if (!is.null(res[["params_sent", exact = TRUE]])) {
     sent <- res$params_sent
