@@ -35,7 +35,9 @@ and anything unplaced. \code{NULL} for no closing section.}
 \item{trace}{A \code{\link[=gr_trace]{gr_trace()}} to add this stage's calls to, or \code{NULL}. The
 calls are recorded on a trace of the stage's own, attached as
 \code{attr(, "trace")}, and folded into \code{trace} when the stage ends. The trace
-of \code{claims} is left as it was.}
+of \code{claims} is left as it was. Its requests are held to the governor of
+\code{trace}, if it has one, less what \code{trace} has already spent (see
+\code{\link[=hr_governor]{hr_governor()}}).}
 
 \item{max_outline_tokens}{The reply limit for the outline call. The reply
 names every claim and writes a heading, brief and rationale per section,

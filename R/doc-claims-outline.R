@@ -84,7 +84,9 @@
 #' @param trace A [gr_trace()] to add this stage's calls to, or `NULL`. The
 #'   calls are recorded on a trace of the stage's own, attached as
 #'   `attr(, "trace")`, and folded into `trace` when the stage ends. The trace
-#'   of `claims` is left as it was.
+#'   of `claims` is left as it was. Its requests are held to the governor of
+#'   `trace`, if it has one, less what `trace` has already spent (see
+#'   [hr_governor()]).
 #' @param max_outline_tokens The reply limit for the outline call. The reply
 #'   names every claim and writes a heading, brief and rationale per section,
 #'   so by default it grows with both: `400 + 8` per claim `+ 60` per section,
@@ -180,8 +182,12 @@ gr_outline <- function(claims, question = NULL, client = NULL, model = NULL,
   # directly, which counted every earlier stage's calls against this one's
   # limit.
   parent <- as_parent_trace(trace)
+  # Held to the parent's governor, less what the parent has spent, as in
+  # gr_claims() and gr_synthesise(), so the alternatives' capped and
+  # governor_exhausted() checks see the run's limits too.
   trace <- gr_trace(meta = list(stage = "outline", question = question,
-                                claims = nrow(cw)))
+                                claims = nrow(cw)),
+                    governor = fork_governor(parent))
   if (!is.null(parent)) on.exit(trace_absorb(parent, trace), add = TRUE)
 
   # Labelled, so that a claim edited by hand, unlabelled under a non-UTF-8

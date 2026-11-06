@@ -236,6 +236,54 @@ test_that("an embeddings request is held to the same limits", {
   expect_identical(tr$stop_reason, "calls")
 })
 
+test_that("a client's embed function is held to the same limits and recorded", {
+  local_registries()
+  seen <- new.env(parent = emptyenv())
+  seen$n <- 0L
+  embed <- function(texts, params) {
+    seen$n <- seen$n + 1L
+    matrix(1, nrow = length(texts), ncol = 3)
+  }
+  cl <- gr_backend_client(function(m, p) "ok", embed = embed)
+  tr <- gr_trace(governor = hr_governor(max_calls = 0, allowed_models = "none"))
+  emb <- quiet(gr_embed(cl, c("a b", "c d"), trace = tr))
+  expect_identical(seen$n, 0L)
+  expect_true(isTRUE(attr(emb, "embedding_fallback")))
+  expect_identical(tr$calls, 0L)
+  expect_identical(tr$refusals[[1]]$label, "embed.request")
+  # Allowed, it counts as a request and its text as embedded tokens.
+  ok <- gr_trace(governor = hr_governor(max_calls = 1))
+  emb <- quiet(gr_embed(cl, c("a b", "c d"), trace = ok))
+  expect_identical(seen$n, 1L)
+  expect_false(isTRUE(attr(emb, "embedding_fallback")))
+  expect_identical(ok$calls, 1L)
+  expect_gt(ok$embed_tokens, 0L)
+  # A second request passes max_calls and is refused.
+  quiet(gr_embed(cl, c("e f"), trace = ok))
+  expect_identical(seen$n, 1L)
+  expect_identical(ok$stop_reason, "calls")
+})
+
+test_that("an embeddings request is counted with the safety margin on top", {
+  local_registries()
+  seen <- new.env(parent = emptyenv())
+  seen$n <- 0L
+  testthat::local_mocked_bindings(
+    POST = function(url, ...) { seen$n <- seen$n + 1L; stop("should not be sent") },
+    .package = "httr")
+  old <- gr_options("safety_margin")
+  on.exit(gr_options(safety_margin = old), add = TRUE)
+  gr_options(safety_margin = 0.1)
+  cl <- gr_client(api_key = "sk-test", base_url = "https://governor.invalid/v1", max_retries = 0L)
+  texts <- rep(paste(rep("word", 40), collapse = " "), 2)
+  counted <- sum(gr_count_tokens(texts))
+  # Room for the local count, not for the count and its margin.
+  tr <- gr_trace(governor = hr_governor(max_tokens_total = counted))
+  emb <- quiet(gr_embed(cl, texts, trace = tr, cache = FALSE))
+  expect_identical(seen$n, 0L)
+  expect_identical(tr$stop_reason, "tokens")
+})
+
 test_that("a parallel batch never passes the run's limits", {
   skip_if_not_installed("future")
   skip_if_not_installed("future.apply")

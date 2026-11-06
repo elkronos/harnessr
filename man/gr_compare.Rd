@@ -35,8 +35,9 @@ and \code{usd_per_correct} columns. \code{NULL} (the default) adds neither. A
 character vector marks an answer right when its text contains any of the
 strings, ignoring case and runs of white space; an answer that found
 nothing, or a recipe that failed, is wrong, and one that found nothing
-because a spending or call limit stopped it is \code{NA}. A function is called
-with each recipe's \link{gr_answer} and returns \code{TRUE}, \code{FALSE} or \code{NA} (not
+because a limit stopped it is \code{NA}: the spending, token or call limit,
+the model allow-list or the output ceiling. A function is called with
+each recipe's \link{gr_answer} and returns \code{TRUE}, \code{FALSE} or \code{NA} (not
 known); when it fails or returns anything else, a warning of class
 \code{gr_bad_correct} names the recipe and its \code{correct} is \code{NA}. An invalid
 \code{correct} argument is an error of the same class.}
@@ -96,10 +97,11 @@ earlier recipe is charged to both, as \code{max_calls} counts it for both, so
 \code{sum(gr_trace_cost(trace)$usd)}. Give \code{correct} and each row also says
 whether the answer was right and what a right answer cost.
 
-A comparison is one run for the spending limit: \code{max_cost_usd} in
-\code{\link[=gr_options]{gr_options()}} is checked against what every recipe and every segmentation
-has spent so far, so a recipe that reaches it stops \code{partial} and the ones
-after it are refused and recorded as failed. \code{max_calls} is counted for
+A comparison is one run for the spending and token limits: \code{max_cost_usd}
+and \code{max_tokens_total} in \code{\link[=gr_options]{gr_options()}} are checked against what every
+recipe and every segmentation has spent and used so far, so a recipe that
+reaches either limit stops \code{partial} and the ones after it are refused and
+recorded as failed. \code{max_calls} is counted for
 each recipe on its own, its segmentation included, so a recipe's answer
 does not depend on its position in the list. A segmentation that a limit
 cut short is not shared with a later recipe.

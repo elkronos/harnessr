@@ -93,14 +93,14 @@ its own worst case (prompt as above, reply at its cap) would pass it.
 
 A governor is attached to a run with \code{gr_trace(governor = )}, and then
 governs the requests recorded into that trace. A stage that keeps a trace
-of its own and folds it into the one it is given (\code{\link[=gr_read_many]{gr_read_many()}}, and
-\code{\link[=gr_synthesise]{gr_synthesise()}}) holds its requests to that trace's governor, less what
-the given trace has already spent and used in tokens; \code{max_calls} stays a
-limit per document for \code{\link[=gr_read_many]{gr_read_many()}} and per stage for
-\code{\link[=gr_synthesise]{gr_synthesise()}}, as with the options. A trace made without one,
-including those the package makes for itself, reads the limits from
-\code{\link[=gr_options]{gr_options()}} each time it checks, so changing an option affects runs
-that are already going, as it always has.
+of its own and folds it into the one it is given (\code{\link[=gr_read_many]{gr_read_many()}},
+\code{\link[=gr_claims]{gr_claims()}}, \code{\link[=gr_outline]{gr_outline()}} and \code{\link[=gr_synthesise]{gr_synthesise()}}) holds its requests to
+that trace's governor, less what the given trace has already spent and
+used in tokens; \code{max_calls} stays a limit per document for
+\code{\link[=gr_read_many]{gr_read_many()}} and per stage for the others, as with the options. A
+trace made without one, including those the package makes for itself,
+reads the limits from \code{\link[=gr_options]{gr_options()}} each time it checks, so changing an
+option affects runs that are already going, as it always has.
 }
 \examples{
 cl <- gr_mock_client(function(m, p) "ok")

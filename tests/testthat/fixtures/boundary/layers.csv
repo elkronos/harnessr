@@ -116,6 +116,7 @@
 "embed_cache_key","core","function"
 "embed_cache_put","core","function"
 "embed_cap_message","core","function"
+"embed_governor_check","core","function"
 "embed_http_problem","core","function"
 "embed_post","core","function"
 "embed_record","core","function"

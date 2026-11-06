@@ -252,3 +252,47 @@ test_that("the estimated share is of the dollars, over requests that say how the
   expect_equal(empty$usd, 0)
   expect_identical(empty$usd_estimated, NA_real_)
 })
+
+test_that("max_tokens_total holds across the comparison, not per recipe", {
+  local_registries()
+  old <- gr_options("max_tokens_total")
+  on.exit(gr_options(max_tokens_total = old), add = TRUE)
+  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  recs <- two_readers()
+  recs$mapped <- gr_recipe("again", segment = recs$stuffed$segment,
+                           read = list(reader = "stuff", temperature = 0.5))
+  tokens <- function(t) t$tokens_in + t$tokens_out + t$embed_tokens
+  one <- quiet(gr_compare(cost_doc(), "What was revenue?", recs[1], client = cl))
+  used <- tokens(one$trace)
+  # The worst case of the recipe's one request, read from the refusal of a run
+  # that cannot afford it.
+  gr_options(max_tokens_total = used)
+  probe <- quiet(gr_compare(cost_doc(), "What was revenue?", recs[1], client = cl))
+  msg <- probe$trace$refusals[[1]]$message
+  worst <- as.numeric(sub(".*could use up to ([0-9]+) tokens.*", "\\1", msg))
+  expect_gt(worst, used)
+  # Room for either recipe alone, not for both.
+  limit <- worst + used %/% 2
+  gr_options(max_tokens_total = limit)
+  cmp <- quiet(gr_compare(cost_doc(), "What was revenue?", recs, client = cl,
+                          correct = "45.2 million"))
+  expect_lte(tokens(cmp$trace), limit)
+  expect_false(cmp$summary$partial[1])
+  expect_true(cmp$summary$partial[2])
+  expect_identical(cmp$summary$correct, c(TRUE, NA))
+  expect_identical(cmp$trace$stop_reason, "tokens")
+})
+
+test_that("a recipe on an unpriced model under a spending limit is not known, not wrong", {
+  local_registries()
+  old <- gr_options("max_cost_usd")
+  on.exit(gr_options(max_cost_usd = old), add = TRUE)
+  gr_options(max_cost_usd = 1)
+  # A mock is never refused as unpriced; a backend client is.
+  cl <- gr_backend_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cmp <- quiet(gr_compare(cost_doc(), "What was revenue?", two_readers()[1], client = cl,
+                          model = "cmp-unpriced-model", correct = "45.2 million"))
+  expect_identical(cmp$summary$calls, 0L)
+  expect_identical(cmp$summary$correct, NA)
+  expect_false(is.null(cmp$answers$stuffed$notes$cost_cap_reached))
+})
