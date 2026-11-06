@@ -8,9 +8,7 @@
 #' @noRd
 read_map_reduce <- function(chunks, question, client, spec, trace) {
   d <- chunks$chunks
-  if (!trace_can_call(trace, nrow(d))) {
-    warn_capped_batch(trace, "map_reduce", nrow(d), "reduce the chunk count")
-  }
+  warn_capped_batch(trace, "map_reduce", nrow(d), "reduce the chunk count")
   # The largest chunk with its reply at the cap: what gr_lapply() holds a
   # parallel batch to, since the workers cannot see what the run spends.
   worst <- batch_item_usd(client, spec$model, max_tokens_of(d$tokens) +
@@ -18,13 +16,13 @@ read_map_reduce <- function(chunks, question, client, spec, trace) {
                                             spec$restate),
                           spec$max_chunk_tokens)
   res <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
-    if (!trace_can_call(trace)) return(list(ok = FALSE, text = "", capped = TRUE))
     r <- gr_call(client, answer_messages(question, render_chunks(d[i, , drop = FALSE]),
                                          cite = spec$cite, restate = spec$restate,
                                          premise = spec$premise),
                  model = spec$model, max_output = spec$max_chunk_tokens,
                  temperature = spec$temperature, trace = trace, label = "map.answer",
                  effort = spec$effort)
+    if (is_refused(r)) return(list(ok = FALSE, text = "", capped = TRUE))
     if (spec$delay_between_calls > 0) Sys.sleep(spec$delay_between_calls)
     list(ok = usable_text(r), text = r$text, capped = FALSE, cut = reply_cut_off(r))
   }, parallel = spec$parallel, label = "chunk", trace = trace, client = client, item_usd = worst)

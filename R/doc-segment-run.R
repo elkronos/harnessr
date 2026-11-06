@@ -136,7 +136,7 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
 #' do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"),
 #'   function(m) gr_chunk_stats(gr_segment(doc, list(method = m, max_tokens = 120)))))
 gr_segment <- function(doc, spec = NULL, client = NULL, trace = NULL) {
-  # The run's limits are counted on a trace. With none, trace_can_call() had
+  # The run's limits are counted on a trace. With none, the limit check had
   # nothing to count against and let every request through, and nothing was
   # recorded: a proposition segmentation under max_calls = 2 made nine calls
   # and left no account of them, and the Shiny preview did exactly that.

@@ -235,11 +235,21 @@ embed_api <- function(texts, params) {
       # max_calls and max_cost_usd (even `max_calls = 0` sent them), and the
       # trace and gr_trace_cost() said the run cost nothing. A refusal raises
       # like any other failure here, so gr_embed()'s `fallback` decides what
-      # happens next; cache hits never get this far and stay free.
-      if (!trace_can_call(trace)) {
-        gr_abort(embed_cap_message(trace, b, length(starts)),
-                 class = c(if (identical(cap_name(trace), "spending limit")) "gr_cost_cap"
-                           else "gr_call_cap", "gr_embed_error"))
+      # happens next; cache hits never get this far and stay free. The
+      # governor checks it as it checks a model call, against its worst case:
+      # every input token at the model's price (an embedding has no reply). An
+      # embedding model with no price is not refused: it costs about a
+      # hundredth of a chat model, and gr_read_many() already says when its
+      # spend is left out of the ceiling.
+      refusal <- governor_check(trace, list(
+        model = model, label = "embed.request", input_tokens = sum(gr_count_tokens(texts_b)),
+        output_tokens = 0, unpriced_ok = TRUE), "both")
+      if (!is.null(refusal)) {
+        governor_refuse(trace, refusal)
+        gr_abort(embed_cap_message(refusal, b, length(starts)),
+                 class = c(if (refusal$limit %in% c("cost", "unpriced")) "gr_cost_cap"
+                           else if (identical(refusal$limit, "calls")) "gr_call_cap",
+                           "gr_embed_error"))
       }
       started <- Sys.time()
       resp <- embed_post(client, paste0(client$base_url, "/embeddings"), headers, body)
@@ -424,18 +434,12 @@ embed_record <- function(trace, model, texts, resp, parsed, problem = NULL, seco
                embedding = TRUE)
 }
 
-#' Why an embeddings request was not sent, naming the limit and its setting.
+#' Why an embeddings request was not sent: the governor's reason, and which
+#' request of the batch it was.
 #' @noRd
-embed_cap_message <- function(trace, i, n) {
+embed_cap_message <- function(refusal, i, n) {
   what <- if (n > 1L) sprintf("embeddings request %d of %d", i, n) else "the embeddings request"
-  if (identical(cap_name(trace), "spending limit")) {
-    sprintf(paste0("the run has spent $%s, which reaches the $%s spending limit, so %s was ",
-                   "not sent; raise gr_options(max_cost_usd =)"),
-            fmt_usd(budget_spent(trace)), format(gr_options("max_cost_usd"), scientific = FALSE), what)
-  } else {
-    sprintf("%s would pass the run's %s-call cap, so it was not sent; raise gr_options(max_calls =)",
-            what, format(gr_options("max_calls"), scientific = FALSE))
-  }
+  sprintf("%s: %s", what, conditionMessage(refusal))
 }
 
 #' Key for one cached embedding.

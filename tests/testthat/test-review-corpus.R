@@ -242,6 +242,8 @@ test_that("the store key changes with extra_body, the embedding model and the em
 test_that("a rerun with a different extra_body is read again, not restored", {
   local_registries()
   local_clean_cache()
+  # The backend's model has no price, so the run has to allow that.
+  gr_options(allow_unpriced = TRUE)
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("Revenue in 2023 was 12 million dollars.", f)
   st <- withr::local_tempdir()

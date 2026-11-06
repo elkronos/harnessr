@@ -20,11 +20,15 @@
 #'   system, the person who ran it, what it was for, and who approved it. Each
 #'   is one string. One left `NULL` is taken from `gr_options("actor")`, and is
 #'   `NA` when that does not name it either.
+#' @param governor An [hr_governor()] holding the limits every request recorded
+#'   into this trace is checked against before it is sent, or `NULL` (the
+#'   default) to read them from [gr_options()] at each check.
 #' @return A `gr_trace`. It is an environment, so it accumulates by reference:
 #'   pass the same trace to several calls and they all record into it. Fields:
 #'   `run_id`, `started`, `meta`, `actor`, `config`, `steps`, `calls`,
 #'   `cached`, `tokens_in`, `tokens_out`, `embed_tokens`, `errors`,
-#'   `budget_stop`, `stop_reason`, `spent_usd`, `replayed_usd`.
+#'   `budget_stop`, `stop_reason`, `spent_usd`, `replayed_usd`, `refusals`,
+#'   `governor`.
 #'
 #'   `actor` holds the five fields above. `config` is a snapshot of the
 #'   options in force when the trace was made ([gr_options()], with the values
@@ -51,19 +55,25 @@
 #'   at all, and this entry is the record of it.
 #'
 #'   `budget_stop` is `TRUE` once a limit stopped the run, and `stop_reason`
-#'   says which: `"calls"` for `max_calls`, `"cost"` for `max_cost_usd` (see
-#'   [gr_options()]). `spent_usd` is what the calls so far cost. A call to a
-#'   model with no registered price adds nothing to it, so [gr_trace_cost()] is
-#'   the full account. `replayed_usd` is what the calls a [gr_replay_client()]
-#'   answered cost when they were recorded, counted when the spending limit
-#'   stopped the recorded run: nothing was paid for them, but `max_cost_usd`
-#'   is checked against `spent_usd + replayed_usd`, so the replay stops at the
-#'   same call. A call answered from a [gr_cache()] adds to neither, so a
+#'   says which: `"calls"` for `max_calls`, `"cost"` for `max_cost_usd`,
+#'   `"tokens"` for `max_tokens_total`, and `"output"`, `"model"` or
+#'   `"unpriced"` for the other limits of [hr_governor()] (see [gr_options()]).
+#'   `refusals` has one entry per request the governor did not send: its
+#'   `label`, `model`, the `limit` it would have passed, its worst-case cost
+#'   `worst_usd`, the run's `calls` and `spent_usd` at that moment, and the
+#'   `message`. A refused request is not a call and has no step. `spent_usd`
+#'   is what the calls so far cost. A call to a model with no registered price
+#'   (sent under `allow_unpriced = TRUE`) adds nothing to it, so
+#'   [gr_trace_cost()] is the full account. `replayed_usd` is what the calls a
+#'   [gr_replay_client()] answered cost when they were recorded, counted when
+#'   the spending limit stopped the recorded run: nothing was paid for them,
+#'   but `max_cost_usd` is checked against `spent_usd + replayed_usd`, so the
+#'   replay stops at the same call. A call answered from a [gr_cache()] adds to neither, so a
 #'   re-run through a warm cache under the same limit reads further than the
 #'   run that filled it.
 #'   [as_json()] and [gr_trace_save()] write `budget_stop`, `stop_reason`,
 #'   `spent_usd` and `replayed_usd`, so a saved run says whether it was cut
-#'   short.
+#'   short, and `refusals` and `governor` when there are any.
 #'
 #'   `as.data.frame()` on a trace returns one row per request; see below.
 #'
@@ -149,7 +159,10 @@
 #' reqs <- as.data.frame(tr)
 #' reqs[, c("step", "stage", "tokens_in", "tokens_out", "usd", "seconds")]
 gr_trace <- function(run_id = NULL, meta = list(), system = NULL, owner = NULL, run_by = NULL,
-                     purpose = NULL, approved_by = NULL) {
+                     purpose = NULL, approved_by = NULL, governor = NULL) {
+  if (!is.null(governor) && !inherits(governor, "hr_governor")) {
+    gr_abort("`governor` must come from hr_governor(), or be NULL.", class = "gr_bad_setting")
+  }
   e <- new.env(parent = emptyenv())
   e$run_id <- as_chr1(run_id %||% gr_new_id("run"))
   e$started <- Sys.time()
@@ -198,8 +211,13 @@ gr_trace <- function(run_id = NULL, meta = list(), system = NULL, owner = NULL, 
   # that did not count it never reached the limit that stopped the recorded
   # run, and went on to ask for calls the recording never made.
   e$replayed_usd <- 0
-  # "calls" or "cost": which limit set `budget_stop`.
+  # Which limit set `budget_stop`: "calls", "cost", "tokens", "output",
+  # "model" or "unpriced".
   e$stop_reason <- NA_character_
+  # The requests the governor did not send. None of them is a call or a step.
+  e$refusals <- list()
+  # NULL: the limits are read from gr_options() at each check.
+  e$governor <- governor
   structure(e, class = "gr_trace")
 }
 
@@ -484,6 +502,7 @@ trace_absorb <- function(parent, child) {
   }))
   parent$spent_usd <- (parent$spent_usd %||% 0) + (child$spent_usd %||% 0)
   parent$replayed_usd <- as_num1(parent$replayed_usd, 0) + as_num1(child$replayed_usd, 0)
+  parent$refusals <- c(parent$refusals, child$refusals)
   if (isTRUE(child$budget_stop)) {
     parent$budget_stop <- TRUE
     parent$stop_reason <- child$stop_reason %||% NA_character_
@@ -511,7 +530,7 @@ trace_stamp <- function(trace, from, source = NULL, recipe = NULL) {
 #' A parent trace to fold a stage into, validated.
 #'
 #' `trace` does two jobs at once: it is the ledger of what a run did, and it is
-#' the counter `trace_can_call()` measures `max_calls` against. Those want
+#' the counter the governor measures `max_calls` against. Those want
 #' opposite things when several stages of one review share it -- the ledger
 #' should accumulate, the counter must not, or screening's calls are charged
 #' against the write-up's per-stage ceiling and every section comes back blank.

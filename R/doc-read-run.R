@@ -83,10 +83,15 @@ gr_read <- function(chunks, question, client, spec = NULL, trace = NULL) {
   }
   if (isTRUE(trace$budget_stop)) {
     out$partial <- TRUE
-    if (identical(trace$stop_reason, "cost")) {
-      out$notes$cost_cap_reached <- gr_options("max_cost_usd")
+    gov <- trace_governor(trace)
+    why <- as_chr1(trace$stop_reason, "calls")
+    if (why %in% c("cost", "unpriced")) {
+      out$notes$cost_cap_reached <- gov$max_cost_usd
+    } else if (identical(why, "calls")) {
+      out$notes$call_cap_reached <- gov$max_calls
     } else {
-      out$notes$call_cap_reached <- gr_options("max_calls")
+      # The output ceiling or the model allow-list refused a request.
+      out$notes$limit_refused <- why
     }
   }
   # Pages that never became text are missing from every chunk, so nothing this
@@ -130,8 +135,8 @@ read_run_start <- function(trace) {
 #' replies will cost is not known, and neither is which chunks a top-k reader
 #' will pick. The old check priced every reply at its token cap and refused a
 #' run at an estimate of $5.54 that cost $0.11. Now a run is refused before it
-#' starts only when it cannot finish under `max_cost_usd`, and
-#' `trace_can_call()` stops any run once its spending reaches the limit. The
+#' starts only when it cannot finish under `max_cost_usd`, and the governor
+#' refuses any request whose worst case would pass the limit. The
 #' worst case is still recorded in the trace, and still refuses a parallel
 #' read: a batch sent to workers cannot be stopped part way through.
 #'
@@ -234,7 +239,9 @@ preflight <- function(chunks, spec, trace, client = NULL, question = "",
   # NULL is genuinely storable. `is.finite(NULL)` is logical(0), so the `if`
   # below failed with "argument is of length zero" -- every read aborted with an
   # internal error the moment a user turned the cap off.
-  cap <- as_num1(gr_options("max_calls"), Inf)
+  # The run's governor holds the limits: the one on the trace, or the options.
+  gov <- trace_governor(trace)
+  cap <- as_num1(gov$max_calls, Inf)
   # The cap applies to the RUN, so calls already made in this trace count --
   # otherwise a comparison of six recipes could pass six individually-fine
   # pre-flight checks and still blow the budget.
@@ -336,14 +343,29 @@ preflight <- function(chunks, spec, trace, client = NULL, question = "",
   # refusal for the members whose share is known.
   input_cost <- if (!every_chunk) 0 else if (all(is.na(floors))) NA_real_
                 else sum(floors, na.rm = TRUE)
-  budget <- gr_options("max_cost_usd")
+  budget <- gov$max_cost_usd
   if (!is.null(budget) && is.finite(budget)) {
     limit <- format(budget, scientific = FALSE)
-    # No pricing for a model, so what its requests cost is not counted. Say so
-    # rather than silently running with no spending guard at all.
     unit <- vapply(models, function(m) as.numeric(quiet_model(gr_estimate_cost(m, 1, 1))),
                    numeric(1))
     unpriced <- models[is.na(unit)]
+    # No pricing for a model, so the governor would refuse every request to
+    # it. Stopped here, before the first, rather than read as a run of refused
+    # calls. A mock sends nothing that is paid for and a replay costs what its
+    # recording says, so neither is stopped.
+    exempt <- inherits(client, "gr_mock_client") || inherits(client, "gr_replay_client")
+    if (length(unpriced) && !isTRUE(gov$allow_unpriced) && !exempt) {
+      gr_abort(sprintf(paste0("%s no registered price, so what %s requests cost cannot be held to ",
+                              "the $%s max_cost_usd limit, and the run was not started. Register ",
+                              "prices with gr_register_model(input_usd =, output_usd =), or allow ",
+                              "unpriced models with gr_options(allow_unpriced = TRUE)."),
+                       if (length(unpriced) == 1L) sprintf("Model '%s' has", unpriced)
+                       else sprintf("Models %s have", paste0("'", unpriced, "'", collapse = ", ")),
+                       if (length(unpriced) == 1L) "its" else "their", limit),
+               class = c("hr_unpriced_model", "hr_budget_refused"))
+    }
+    # Allowed unpriced, or a mock: what its requests cost is not counted. Say
+    # so rather than silently running with no spending guard at all.
     if (length(unpriced)) {
       gr_warn(sprintf(paste0("%s no pricing in the registry, so what %s requests cost cannot be ",
                              "counted against the $%s max_cost_usd limit. Register prices with ",
@@ -355,11 +377,12 @@ preflight <- function(chunks, spec, trace, client = NULL, question = "",
     }
     # What this run has spent already counts, as calls already made count
     # against the call cap: several readers on one trace are one run.
-    # budget_spent(): with what a replay's recorded calls cost, as
-    # trace_can_call() counts it, so a replay of a run the limit stopped makes
-    # the decisions here that the recording made.
+    # budget_spent(): with what a replay's recorded calls cost, as the
+    # governor counts it, so a replay of a run the limit stopped makes the
+    # decisions here that the recording made. Spending nothing never reaches a
+    # limit, so under a limit of 0 a model registered at no cost still runs.
     spent <- budget_spent(trace)
-    if (limit_reached(spent, budget)) {
+    if (spent > 0 && spent >= budget) {
       gr_abort(sprintf(paste0("This run has already spent $%s, which reaches the $%s limit. ",
                               "Raise it with gr_options(max_cost_usd = ...)."),
                        fmt_usd(spent), limit),
