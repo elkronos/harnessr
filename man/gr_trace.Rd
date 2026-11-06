@@ -5,7 +5,16 @@
 \alias{as.data.frame.gr_trace}
 \title{Create a run trace}
 \usage{
-gr_trace(run_id = NULL, meta = list())
+gr_trace(
+  run_id = NULL,
+  meta = list(),
+  system = NULL,
+  owner = NULL,
+  run_by = NULL,
+  purpose = NULL,
+  approved_by = NULL,
+  governor = NULL
+)
 
 \method{as.data.frame}{gr_trace}(x, row.names = NULL, optional = FALSE, ...)
 }
@@ -13,6 +22,16 @@ gr_trace(run_id = NULL, meta = list())
 \item{run_id}{Optional identifier; generated when omitted.}
 
 \item{meta}{Named list of run-level metadata.}
+
+\item{system, owner, run_by, purpose, approved_by}{Who the run is for and who
+ran it: the system it belongs to, the person or team accountable for that
+system, the person who ran it, what it was for, and who approved it. Each
+is one string. One left \code{NULL} is taken from \code{gr_options("actor")}, and is
+\code{NA} when that does not name it either.}
+
+\item{governor}{An \code{\link[=hr_governor]{hr_governor()}} holding the limits every request recorded
+into this trace is checked against before it is sent, or \code{NULL} (the
+default) to read them from \code{\link[=gr_options]{gr_options()}} at each check.}
 
 \item{x}{A \code{gr_trace}.}
 
@@ -23,9 +42,16 @@ gr_trace(run_id = NULL, meta = list())
 \value{
 A \code{gr_trace}. It is an environment, so it accumulates by reference:
 pass the same trace to several calls and they all record into it. Fields:
-\code{run_id}, \code{started}, \code{meta}, \code{steps}, \code{calls}, \code{cached}, \code{tokens_in},
-\code{tokens_out}, \code{embed_tokens}, \code{errors}, \code{budget_stop}, \code{stop_reason},
-\code{spent_usd}, \code{replayed_usd}.
+\code{run_id}, \code{started}, \code{meta}, \code{actor}, \code{config}, \code{steps}, \code{calls},
+\code{cached}, \code{tokens_in}, \code{tokens_out}, \code{embed_tokens}, \code{errors},
+\code{budget_stop}, \code{stop_reason}, \code{spent_usd}, \code{replayed_usd}, \code{refusals},
+\code{governor}.
+
+\code{actor} holds the five fields above. \code{config} is a snapshot of the
+options in force when the trace was made (\code{\link[=gr_options]{gr_options()}}, with the values
+of \code{api_headers} left out, since they can hold credentials) and the R
+version, so a saved trace says what it ran under. \code{\link[=as_json]{as_json()}} writes
+\code{started} in UTC, as ISO 8601 with a trailing \code{Z}.
 \code{cached} counts the calls answered from a \code{\link[=gr_cache]{gr_cache()}} or a
 \code{\link[=gr_replay_client]{gr_replay_client()}} rather than the network, so \code{calls - cached} is what
 the run paid for. \code{calls} includes requests to an embeddings endpoint,
@@ -46,25 +72,67 @@ contextual header that could not be written leaves no mark on the answer
 at all, and this entry is the record of it.
 
 \code{budget_stop} is \code{TRUE} once a limit stopped the run, and \code{stop_reason}
-says which: \code{"calls"} for \code{max_calls}, \code{"cost"} for \code{max_cost_usd} (see
-\code{\link[=gr_options]{gr_options()}}). \code{spent_usd} is what the calls so far cost. A call to a
-model with no registered price adds nothing to it, so \code{\link[=gr_trace_cost]{gr_trace_cost()}} is
-the full account. \code{replayed_usd} is what the calls a \code{\link[=gr_replay_client]{gr_replay_client()}}
-answered cost when they were recorded, counted when the spending limit
-stopped the recorded run: nothing was paid for them, but \code{max_cost_usd}
-is checked against \code{spent_usd + replayed_usd}, so the replay stops at the
-same call. A call answered from a \code{\link[=gr_cache]{gr_cache()}} adds to neither, so a
+says which: \code{"calls"} for \code{max_calls}, \code{"cost"} for \code{max_cost_usd},
+\code{"tokens"} for \code{max_tokens_total}, and \code{"output"}, \code{"model"} or
+\code{"unpriced"} for the other limits of \code{\link[=hr_governor]{hr_governor()}} (see \code{\link[=gr_options]{gr_options()}}).
+\code{refusals} has one entry per request the governor did not send: its
+\code{label}, \code{model}, the \code{limit} it would have passed, its worst-case cost
+\code{worst_usd}, the run's \code{calls} and \code{spent_usd} at that moment, and the
+\code{message}. A refused request is not a call and has no step. \code{spent_usd}
+is what the calls so far cost. A call to a model with no registered price
+(sent under \code{allow_unpriced = TRUE}) adds nothing to it, so
+\code{\link[=gr_trace_cost]{gr_trace_cost()}} is the full account. \code{replayed_usd} is what the calls a
+\code{\link[=gr_replay_client]{gr_replay_client()}} answered cost when they were recorded, counted when
+the spending limit stopped the recorded run: nothing was paid for them,
+but \code{max_cost_usd} is checked against \code{spent_usd + replayed_usd}, so the
+replay stops at the same call. A call answered from a \code{\link[=gr_cache]{gr_cache()}} adds to neither, so a
 re-run through a warm cache under the same limit reads further than the
 run that filled it.
 \code{\link[=as_json]{as_json()}} and \code{\link[=gr_trace_save]{gr_trace_save()}} write \code{budget_stop}, \code{stop_reason},
 \code{spent_usd} and \code{replayed_usd}, so a saved run says whether it was cut
-short.
+short, and \code{refusals} and \code{governor} when there are any.
 
 \code{as.data.frame()} on a trace returns one row per request; see below.
 }
 \description{
 Create a run trace
 }
+\section{Steps}{
+
+Each request is one entry in \code{steps}. Besides its label, prompt, reply and
+the model it asked for (\code{model}), a step records:
+\describe{
+\item{\code{params}}{What the call asked for: the parameters a
+\code{\link[=gr_mock_client]{gr_mock_client()}} or \code{\link[=gr_backend_client]{gr_backend_client()}} handler is given, which is
+also what a \code{\link[=gr_replay_client]{gr_replay_client()}} looks a call up by.}
+\item{\code{params_sent}}{The request as it went out, every default resolved:
+\code{model}, \code{api}, \code{base_url}, \code{max_output} (for a reasoning model, the
+larger cap its request is sent with; see \code{\link[=gr_call]{gr_call()}}), \code{temperature}
+(\code{NA} when none was sent), \code{effort}, \code{schema_name}, and SHA-256 hashes
+of the JSON schema (\code{schema_hash}) and of the extra body fields the
+client and the call added (\code{extra_body_hash}). For a \code{\link[=gr_client]{gr_client()}} it
+is read from the request body; for a handler, from the parameters the
+handler was given, which carry no extra body fields. A call answered
+from a \code{\link[=gr_cache]{gr_cache()}} records what would have been sent, and one a replay
+answered records what the recorded call sent.}
+\item{\code{tokens}}{\code{input} and \code{output}, plus \code{reasoning} and
+\code{cached_input} when the provider reported them (they are parts of
+\code{output} and \code{input}, not additions), and \code{provenance}: \code{"reported"}
+when the provider gave the counts, \code{"counted"} when they were counted
+here with the \code{"tiktoken"} tokenizer, \code{"estimated"} when they were
+estimated with another one, and \code{NA} for a reply cached or recorded
+before provenance was kept.}
+\item{\code{served_model}, \code{response_id}, \code{fingerprint}}{The model the
+provider said answered, its response id and its system fingerprint,
+where it returned them, else \code{NA}. None of them is part of a cache or
+replay key.}
+\item{\code{attempts}}{How many requests were sent for this one, retries
+included: 0 when a cache or a recording answered it.}
+\item{\code{started_utc}, \code{ended_utc}}{When the request started and ended,
+ISO 8601 in UTC with a trailing \code{Z}.}
+}
+}
+
 \section{One row per request}{
 
 \code{as.data.frame(trace)} has one row for each request the run made, in the
@@ -90,7 +158,14 @@ the text that came back.}
 \item{\code{effort}}{The reasoning effort the request was sent with, \code{NA} for
 one sent none. Present only when some request in the trace carried one
 (see \code{effort} in \code{\link[=gr_read_spec]{gr_read_spec()}}).}
+\item{\code{tokens_reasoning}, \code{tokens_cached_in}, \code{served_model}}{The
+reasoning and cached input tokens the provider reported and the model
+it said answered, \code{NA} where it did not. Each is present only when some
+request in the trace has it.}
 }
+A request's \code{usd} prices its cached input tokens at the model's cached
+input rate when \code{\link[=gr_register_model]{gr_register_model()}} gave it one, and at the input rate
+otherwise.
 }
 
 \examples{

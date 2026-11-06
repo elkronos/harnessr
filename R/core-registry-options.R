@@ -44,7 +44,20 @@ gr_defaults <- list(
   max_cost_usd        = 5,
   # Refuse to issue more than this many model calls in one run.
   max_calls           = 400L,
-  unknown_model_action = "warn"        # "warn" | "error"
+  # Most tokens one run may use, prompts, replies and embedded text. NULL =
+  # off. The limit that still holds a model with no price.
+  max_tokens_total    = NULL,
+  # The largest output cap one request may carry. NULL = off.
+  max_output_tokens   = NULL,
+  # The models a run may call. NULL = any.
+  allowed_models      = NULL,
+  # Whether a model with no registered price may be called under a spending
+  # limit. Off: a limit that cannot see what a request costs is not a limit.
+  allow_unpriced      = FALSE,
+  unknown_model_action = "warn",       # "warn" | "error"
+  # Who runs are for and who runs them, recorded on every trace (see
+  # gr_trace()). Empty: every field NA unless gr_trace() is given it.
+  actor               = list()
 )
 
 #' What each numeric option is allowed to be, checked where it is SET.
@@ -52,7 +65,7 @@ gr_defaults <- list(
 #' Every consumer used to invent its own opinion of a bad value, and the
 #' opinions pointed the wrong way. `is.finite(max_cost_usd)` as a guard meant NA
 #' or a value read from a config file as text silently removed the cost cap --
-#' $710 spent against a $5 ceiling, no warning. `trace_can_call()` did the same
+#' $710 spent against a $5 ceiling, no warning. The old call-cap check did the same
 #' for `max_calls`, and disagreed with `preflight()`, which parsed a character
 #' cap and enforced it: one option, two answers. `as.integer(min_output_tokens)`
 #' turned 1e10 into NA and `gr_budget()` then raised a bare simpleError.
@@ -84,11 +97,31 @@ gr_defaults <- list(
   max_cost_usd      = list(kind = "ceiling", lo = 0, whole = FALSE),
   # lo = 0: "make no calls at all" is a meaningful instruction, and the tests
   # that assert a reader degrades rather than spending use it.
-  max_calls         = list(kind = "ceiling", lo = 0, whole = TRUE)
+  max_calls         = list(kind = "ceiling", lo = 0, whole = TRUE),
+  # lo = 1: a ceiling of 0 tokens would refuse every request, which
+  # max_calls = 0 says more plainly.
+  max_output_tokens = list(kind = "ceiling", lo = 1, whole = TRUE),
+  # lo = 0, as for max_calls: a run that may use no tokens sends nothing.
+  max_tokens_total  = list(kind = "ceiling", lo = 0, whole = TRUE)
 )
 
 #' @noRd
 check_option <- function(name, value) {
+  if (identical(name, "actor")) return(check_actor(value))
+  if (identical(name, "allowed_models")) {
+    if (is.null(value)) return(NULL)
+    if (!is.character(value) || !length(value) || anyNA(value) || any(!nzchar(value))) {
+      gr_abort(paste0("gr_options(allowed_models = ) must be a character vector of model ids, ",
+                      "or NULL for any model."), class = "gr_bad_option")
+    }
+    return(unique(unname(value)))
+  }
+  if (identical(name, "allow_unpriced")) {
+    if (!is.logical(value) || length(value) != 1L || is.na(value)) {
+      gr_abort("gr_options(allow_unpriced = ) must be TRUE or FALSE.", class = "gr_bad_option")
+    }
+    return(value)
+  }
   rule <- .gr_option_rules[[name]]
   if (is.null(rule)) return(value)
   what <- function(v) if (is.null(v)) "NULL" else if (length(v) != 1L)
@@ -105,8 +138,12 @@ check_option <- function(name, value) {
                class = "gr_bad_option")
     }
     if (value < rule$lo) {
-      gr_abort(sprintf("gr_options(%s = ) cannot be negative; got %s.", name, format(value)),
-               class = "gr_bad_option")
+      gr_abort(if (rule$lo == 0) {
+        sprintf("gr_options(%s = ) cannot be negative; got %s.", name, format(value))
+      } else {
+        sprintf("gr_options(%s = ) must be at least %s; got %s.", name, format(rule$lo),
+                format(value))
+      }, class = "gr_bad_option")
     }
     if (!is.finite(value)) return(Inf)
     # A whole number kept as a DOUBLE. as.integer() is what turned 1e10 into NA.
@@ -206,33 +243,62 @@ check_option <- function(name, value) {
 #'   \item{`workers` (4)}{Worker processes when `parallel` is TRUE.}
 #'   \item{`max_cost_usd` (5)}{Spending limit per run, in USD. A run whose
 #'     reader sends every chunk is refused before it starts when sending them
-#'     would cost more than this. Every run is checked again before each
-#'     request, and stops with a `partial` answer once what it has spent reaches
-#'     the limit. The cost of a request is known only once it is made, so a run
-#'     can pass the limit by one request. With `parallel = TRUE` requests go out
-#'     in batches that cannot be stopped part way, so a reader that sends
-#'     batches is also refused before it starts when its worst case, every reply
-#'     at its token cap and the price of the dearest model it uses, would pass
-#'     the limit. Needs a model with a registered price (see [gr_models()]).
-#'     Under a limit of 0 a model registered at no cost runs and one with a
-#'     price is refused. `NULL` removes the limit.}
+#'     would cost more than this. Every request is then checked before it is
+#'     sent, against what the run has spent plus the most the request could
+#'     cost (its prompt, and its reply at the output cap), and one that could
+#'     pass the limit is not sent (see [hr_governor()]), so a run ends at or
+#'     under the limit with a `partial` answer. With `parallel = TRUE` a reader
+#'     that sends batches is also refused before it starts when its worst case,
+#'     every reply at its token cap and the price of the dearest model it uses,
+#'     would pass the limit, and each worker is held to its share of what is
+#'     left. A chat model with no registered price (see [gr_models()]) is
+#'     refused under a limit unless `allow_unpriced` is `TRUE`. Under a limit of 0 a
+#'     model registered at no cost runs and one with a price is refused. `NULL`
+#'     removes the limit.}
 #'   \item{`max_calls` (400)}{Hard cap on model calls per run, checked before
-#'     the first call and again before every subsequent one. A request to an
-#'     embeddings endpoint (the built-in `"api"` embedder) counts as one, and
-#'     is checked and priced against `max_cost_usd` the same way; an embedding
-#'     served from the session cache is free. `NULL` removes the cap.}
+#'     every request. A request to an embeddings endpoint (the built-in `"api"`
+#'     embedder) counts as one, and is checked and priced against
+#'     `max_cost_usd` the same way; an embedding served from the session cache
+#'     is free. A request a [gr_cache()] answers counts. `NULL` removes the
+#'     cap.}
+#'   \item{`max_tokens_total` (NULL)}{Most tokens one run may use: the
+#'     prompt and reply tokens of every call, cache hits included, and the
+#'     text sent to be embedded. A request is refused when what the run has
+#'     used plus its prompt and its reply at the cap would pass it. The limit
+#'     that still bounds a run on a model with no price under
+#'     `allow_unpriced = TRUE`. `NULL` for no limit.}
+#'   \item{`max_output_tokens` (NULL)}{The largest output cap one request may
+#'     be sent with. A request with a larger cap (for a reasoning model, the
+#'     raised cap [gr_call()] sends) is refused rather than cut down. `NULL`
+#'     for no ceiling.}
+#'   \item{`allowed_models` (NULL)}{Character vector of the model ids a run
+#'     may call, chat and embedding models alike. A request to any other is
+#'     refused. `NULL` for any model.}
+#'   \item{`allow_unpriced` (FALSE)}{Whether a chat model with no registered price
+#'     may be called while `max_cost_usd` is set. Off, such a request is
+#'     refused with a condition of class `hr_unpriced_model`; on, it is sent
+#'     and its cost is recorded as unknown (`NA`).}
 #'   \item{`unknown_model_action` ("warn")}{`"warn"` or `"error"` when a model id
 #'     is not in the registry.}
+#'   \item{`actor` (none)}{A named list (or character vector) of the actor
+#'     fields every [gr_trace()] records: `system`, `owner`, `run_by`,
+#'     `purpose` and `approved_by`, each one string. A field named here is
+#'     recorded on each new trace unless [gr_trace()] is given its own; one
+#'     named nowhere is `NA`. Other names are refused with an error of class
+#'     `gr_bad_option`.}
 #' }
 #'
 #' @section Checked values:
 #' Numeric options are checked when they are set, and the two kinds are treated
 #' differently because a wrong value costs different things.
 #'
-#' The ceilings, `max_cost_usd` and `max_calls`, refuse anything that is not a
-#' single number of zero or more, with an error of class `gr_bad_option`: a
-#' limit that cannot be compared is not a limit, and ignoring it spends money.
-#' `NULL` and `Inf` both mean "no limit".
+#' The ceilings, `max_cost_usd`, `max_calls`, `max_tokens_total` and
+#' `max_output_tokens`, refuse anything that is not a single number of zero or
+#' more (one or more for `max_output_tokens`), with an error of class
+#' `gr_bad_option`: a limit that cannot be compared is not a limit, and
+#' ignoring it spends money. `NULL` and `Inf` both mean "no limit".
+#' `allowed_models` must be `NULL` or a character
+#' vector of ids, and `allow_unpriced` `TRUE` or `FALSE`.
 #'
 #' The tuning settings (`safety_margin` \[0, 0.5\], `min_output_tokens`
 #' \[0, 1e6\], `max_retries` \[0, 10\], `retry_pause_base` \[0, 60\],
@@ -259,7 +325,10 @@ gr_options <- function(...) {
     out
   }
   if (length(args) == 0L) return(merged())
-  if (length(args) == 1L && is.list(args[[1]]) && !is.null(names(args[[1]]))) {
+  # Unnamed only: `gr_options(actor = list(owner = "x"))` sets one option
+  # whose value is a list, and is not a list of options to restore.
+  if (length(args) == 1L && is.null(names(args)) && is.list(args[[1]]) &&
+      !is.null(names(args[[1]]))) {
     args <- args[[1]]
   } else if (length(args) == 1L && is.character(args[[1]]) && is.null(names(args))) {
     nm <- args[[1]]

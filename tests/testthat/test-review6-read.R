@@ -153,7 +153,10 @@ test_that("iterative treats 'can answer' with no answer as a failed step", {
     expect_identical(call_labels(cl), c("iterative.step", "iterative.final"), info = ans)
     expect_identical(a$answer, "The cohort comprised 482 participants.", info = ans)
     expect_true(a$partial, info = ans)
-    expect_identical(a$notes$stop_reason, "step gave no answer", info = ans)
+    # A null answer breaks the schema (answer is a string), so that step is a
+    # failed call; a blank string is a step that gave no answer.
+    expect_identical(a$notes$stop_reason,
+                     if (ans == "null") "step failed" else "step gave no answer", info = ans)
   }
 })
 

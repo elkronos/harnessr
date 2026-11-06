@@ -14,10 +14,12 @@
   the bundled example document. `readgpt_example()` still works, with one
   `gr_deprecated` warning per session naming the new function.
 
-* **Requests, cache keys and recordings are unchanged.** Every request is sent
-  as 0.6.0 sent it, and every response-cache key, replay key and corpus store
-  key is the one 0.6.0 computed, so a warm cache, a recording made for
-  `gr_replay_client()` and a `gr_read_many()` store all keep answering.
+* **Requests, cache keys and recordings are unchanged by the rename.** Every
+  request is sent as 0.6.0 sent it, and the corpus store key is the one 0.6.0
+  computed. The response-cache and replay keys change later in this release
+  (see "Cache and replay keys" below), and the keys 0.6.0 computed are still
+  looked up, so a warm cache, a recording made for `gr_replay_client()` and a
+  `gr_read_many()` store all keep answering.
 
 * **Two options are renamed**: `readgpt.api_key` is now `harnessr.api_key`, and
   `readgpt.allow_local_urls` is now `harnessr.allow_local_urls`. The old names
@@ -34,6 +36,267 @@
   (`harnessr/<version>`), the audit report's title and footer, messages, and
   the Shiny app's title. A trace's `meta` still records the version under
   `readgpt`, so traces written before and after the rename read the same way.
+
+## Traces record what was sent and what came back
+
+* **Each request step records `params_sent`**, the request as it went out with
+  every default resolved: the model, `api`, `base_url`, the output cap
+  actually sent (a reasoning model's small cap goes out raised to 2048), the
+  temperature (filled from `gr_options("temperature")`, or `NA` when none was
+  sent), the effort, the schema name, and SHA-256 hashes of the schema and of
+  the extra body fields. For a `gr_client()` it is read from the request body
+  itself. `params` keeps what the caller asked for, as before. Requests,
+  response-cache keys and replay keys are unchanged.
+
+* **Steps record `served_model`, `response_id` and `fingerprint`** where the
+  provider returns them, beside `model`, which stays the model asked for and
+  is what a step is priced and replayed by. None of them enters a cache or
+  replay key. `gr_call()` results carry the same three fields.
+
+* **Steps record `attempts`**, the number of requests sent, retries included
+  (0 for a reply from a cache or a recording), and `started_utc` and
+  `ended_utc` as ISO 8601 in UTC with a trailing `Z`. A saved trace's
+  `started` is now written in UTC with a `Z` too; it was local time with no
+  offset.
+
+* **Token records say where they came from.** A step's `tokens` gains
+  `provenance`: `"reported"` by the provider, `"counted"` here with the
+  `"tiktoken"` tokenizer, or `"estimated"` with another one. Reasoning and
+  cached input tokens the provider reports are kept as `tokens$reasoning` and
+  `tokens$cached_input`, parts of `output` and `input` rather than additions.
+  `gr_trace_summary()` gains `tokens_reasoning`, `tokens_cached_in` and
+  `usage_estimated`, the share of requests whose counts were estimated, and
+  `print()` on a trace says that share when it is above zero. A request that
+  failed before the provider sent any usage records a `"counted"` zero, and a
+  handler's `gr_result()` built with no usage is counted here rather than
+  taken as a reported 0 in and 0 out.
+
+* **Embeddings requests record `attempts`, `served_model` and a provenance**
+  like any other request; `attempts` was always `NA` although they are
+  retried, and a failed one had no provenance.
+  `as.data.frame()` on a trace gains `tokens_reasoning`, `tokens_cached_in`
+  and `served_model` columns when some request has them, and
+  `gr_trace_cost()` gains `paid_reasoning` and `paid_cached_in`.
+
+* **Cached input can be priced at its own rate.** `gr_register_model()` takes
+  `cached_input_usd`, `gr_estimate_cost()` takes `cached_input_tokens`, and
+  `gr_models()` shows `cached_input_usd_per_1m`. A model with no cached rate
+  prices cached input as other input, so every built-in model costs what it
+  did.
+
+* **Runs record who they are for.** `gr_trace()` takes `system`, `owner`,
+  `run_by`, `purpose` and `approved_by`, and the new option
+  `gr_options(actor = list(...))` sets them for every trace; a field named
+  nowhere is `NA`. They are written to a saved trace under `actor` and shown
+  by `print()` when set.
+
+* **Runs record the options in force** when the trace was made, under
+  `config`, with the R version. The values of `api_headers` are left out,
+  since they can hold credentials.
+
+* `gr_options()` given one named argument whose value is a list now sets that
+  option. It used to read the list as a set of options to restore, which only
+  an unnamed list should be.
+
+## Cache and replay keys
+
+* **`gr_call()` takes a `draw_index`** for the draws of a sampled request: 0,
+  the default, for an ordinary call, and 1, 2, ... for repeated draws. Above 0
+  it is part of the response-cache key, so N identical calls with draw
+  indexes 1 to N are N cached replies; before, a cache returned the first
+  reply N times and anything that compared them saw perfect agreement. A
+  handler finds it in `params$draw_index` and the trace records it in the
+  step's `params`; at 0 neither carries it, so an ordinary call is unchanged.
+
+* **The response-cache key is now `harnessr-cache-v3`**, a SHA-256 hash (64
+  hex digits) in place of xxhash64. Entries written under the old key
+  (`readgpt-cache-v2`, by readgpt 0.6.0 and earlier builds of harnessr) are
+  still read for calls with no draw index: a call that finds nothing under
+  its new key is looked up under the old one. The first reply found that way
+  in a session warns once for the cache, with class `hr_legacy_key`, and
+  `gr_cache_stats()` has a new column, `legacy_hits`, that counts them. Old
+  entries are never rewritten, new ones are written under the new key only,
+  and `gr_cache_clear()` removes both.
+
+* **The replay key is now `harnessr-replay-v2`**, and covers the temperature
+  (once the session default is filled in), the output cap asked for and the
+  JSON schema as well as the messages, model and effort. A replay under
+  another temperature, cap or schema now misses instead of being answered
+  with the recorded replies. Each model step of a trace records its key as
+  `replay_key`. A step recorded before that is looked up by the old key
+  (`readgpt-replay-v1`: messages, model and effort), with one `hr_legacy_key`
+  warning per recording in a session and a count in `$stats()$legacy_hits`.
+
+* **A replay that runs out of recorded replies is an error.** A call past
+  the last reply recorded for its request, or for a draw that was never
+  recorded, raises `hr_replay_exhausted`. It used to repeat the last reply,
+  so a replay making more calls than the recorded run looked like an exact
+  reproduction. `gr_replay_client(on_exhausted = "flag")` keeps the old
+  behaviour, counted in `$stats()$repeats`. A call with a `draw_index` above
+  0 is answered with the reply recorded for that draw, or the k-th reply to
+  the request in a recording made without draw indexes.
+
+## Limits checked before every request
+
+* **`max_calls` and `max_cost_usd` now hold exactly.** Every request is
+  checked before it is sent, by the call path itself, against what the run
+  has spent plus the most the request could cost: its prompt at the input
+  price and its output cap (for a reasoning model, the raised cap `gr_call()`
+  sends) at the output price. The prompt is counted with the JSON schema and
+  extra body fields the request carries and a few tokens of framing per
+  message, then raised by `safety_margin`, since the provider bills for all
+  of that. A request that could take the run past a limit is not sent. Runs
+  used to stop only once what they had spent reached the limit, so they
+  ended up to one request over it; they now end at or under it, as long as
+  the provider stops each reply at its cap and counts the prompt within that
+  margin of the local tokenizer. A run that leaves its output caps at the
+  model's limit stops while it still has headroom a smaller cap would have
+  used.
+
+* **A refused request is not a call.** It comes back from `gr_call()` as a
+  failed result with `refused = TRUE` and an error naming the limit, after a
+  condition of class `hr_budget_refused` is signalled (catch it to stop
+  instead). It adds nothing to the trace's calls, steps or spend; the trace
+  lists it in a new `refusals` field, sets `budget_stop` and names the limit
+  in `stop_reason`. Readers and review stages treat it as they treated
+  reaching a limit before: the answer or section is marked partial, and the
+  request is not counted as failed.
+
+* **Every request is checked, not only the ones a reader asked about.**
+  Judges, the ensemble's adjudication, conflict resolution in `extract`,
+  context and proposition segmentation, claims, outlines, screening,
+  synthesis and embeddings requests all go through the same check, as does
+  any request a custom reader or a script makes with `gr_call()`. The
+  readers no longer check `trace_can_call()` themselves. It is kept for
+  custom readers written to the 0.6.0 help page, which still work.
+
+* **A chat model with no registered price is refused while a spending limit
+  is set**, with a condition of class `hr_unpriced_model`. Such a model added
+  nothing to the spend, so the limit never stopped it. `gr_read()` stops
+  before its first request with an `hr_unpriced_model` error. Register the
+  model's prices with `gr_register_model()`, or set
+  `gr_options(allow_unpriced = TRUE)`; then its requests are sent, still
+  count against `max_calls` and `max_tokens_total`, and are priced `NA` in
+  the trace. `gr_mock_client()` and replays are never refused for this, and
+  neither are embedding models with no price.
+
+* **New option `max_tokens_total`** (`NULL`, off) limits the tokens a run
+  may use: prompts and replies of every call, and text sent to be embedded.
+  A request whose prompt and reply at its cap would pass it is refused with
+  `stop_reason` `"tokens"`. It is the limit that still bounds a run on an
+  unpriced model under `allow_unpriced = TRUE`.
+
+* **New `hr_governor()`** holds a run's limits: `max_calls`, `max_cost_usd`,
+  `max_tokens_total`, `max_output_tokens` (the largest output cap one request may carry; a
+  request with a larger one is refused, not cut down), `allowed_models` and
+  `allow_unpriced`. Attach one with the new `gr_trace(governor = )` argument;
+  a trace without one reads the limits from `gr_options()`, as before. The
+  new limits are also options, `max_tokens_total`, `max_output_tokens`,
+  `allowed_models` (all `NULL`, off) and `allow_unpriced` (`FALSE`), so every
+  trace's config snapshot now lists them. `as_json()` writes a trace's
+  `refusals` and `governor` when it has any, with `allowed_models` always as
+  an array. `gr_read_many()` and `gr_synthesise()`, which keep a trace of
+  their own and fold it into the one they are given, hold their requests to
+  that trace's governor, less what it has already spent; `max_calls` stays a
+  limit per document and per stage.
+
+* **A parallel batch cannot pass a limit.** Each worker's items are held to
+  an equal share of the calls and dollars the run has left, and an item its
+  share refused before it sent anything runs again in the calling process,
+  against the run. A batch that the run's limits cannot cover still runs in
+  the calling process, as before. Batch items make one request each; an item
+  that made more and had a later one refused by its share warns
+  (`gr_parallel_share`) and does not mark the run as stopped.
+
+## JSON replies checked against their schema
+
+* **A JSON reply must fit the schema the request sent.** Every call that asks
+  for JSON (screening, claims, outlines, preview plans, rerank, iterative
+  reading, model segmentation, extraction) now checks the reply's types,
+  `enum` values and `required` fields, through nested objects and arrays,
+  before using it. A reply that fails is treated as a reply that did not
+  parse: the reader takes its failure path, and the reply is not cached, so
+  running again asks again. A cached reply that fails is asked again too. It
+  used to be enough for a reply to be a named object, so
+  `{"decision": "probably"}` was a screening reply and was stored as one.
+  Some replies that used to be read leniently are now failed calls: a
+  screening decision outside `include`, `exclude` and `unclear` (it was read
+  as "unclear"), a text field sent as an array or object in `iterative`,
+  `rerank` and `gr_screen()` (it was joined into one string), and a
+  proposition list sent as an array of arrays (the batch is kept as written).
+  Where a reader reports why a call failed, it now says where the reply broke
+  the schema, as in `$.groups[0]: expected array, got 1`. `gr_extract()` still
+  reads each field's value itself, so "1,204" in an integer field is still
+  1204 and an undeclared value is still reported as one it could not read;
+  only the shape of its replies is checked.
+
+## Embedding scores
+
+* **Comparing vectors of different lengths is an error.** Cosine similarity
+  cut both vectors to the shorter length, so a lexical fallback vector scored
+  against an API embedding gave a plausible number from two unrelated spaces.
+  It now stops with an error of class `hr_dim_mismatch`. The readers already
+  kept the query and the chunks in one space; `iterative` now also falls back
+  to word overlap for a round whose query came back with no vector.
+
+* **BM25 scoring is faster on many chunks.** Document frequency is counted
+  once per query term instead of once per term for every chunk, so the
+  `rerank` prefilter and the offline `retrieve` path no longer slow down with
+  the square of the number of chunks. Scores are unchanged.
+
+## Parameter schemas, declared calls and reader costs
+
+* **New `hr_schema()`, `hr_param()` and `hr_validate()`** state a spec's
+  parameters once: type, default, range and choices. `gr_read_spec()`,
+  `gr_segment_spec()` and `gr_ingest_spec()` now check their arguments
+  through schemas instead of code of their own. They accept the same values
+  and return the same specs, with the same clamps, defaults and warnings; a
+  clamp warning now also has class `hr_param_clamped` beside `gr_clamped`.
+
+* A value outside the choices of `context_order`, `restate`, `on_overflow`,
+  `context_source`, `ocr` or `layout` is still an error, which now names the
+  setting and has class `gr_bad_setting`, where it used to be a plain
+  `match.arg()` error that said `'arg'`.
+
+* **Readers and segmenters declare the labels their calls carry.**
+  `gr_register_reader()` and `gr_register_segmenter()` take a new `calls`
+  argument, the stems of their calls' trace labels (`"stuff.answer"`,
+  `c("map.answer", "reduce")`). `gr_readers()` and `gr_segmenters()` list
+  them in a new `calls` column. A reader or segmenter registered without
+  `calls` declares its own name, which covers labels such as
+  `"longest.answer"` for a reader called `"longest"`.
+
+* **An `effort` map that names no declared call is an error.** A name in
+  `gr_read_spec(effort =)` (and the `effort` of `gr_claims()`, `gr_outline()`
+  and `gr_synthesise()`) must be a declared stem, a part of one up to a dot
+  (`"synthesise"`, `"segment"`), or a label under one (`"reduce.level1"`).
+  Anything else stops with an error of class `hr_unknown_effort_key` that
+  lists the stems. Such a name used to be accepted and matched no call, so a
+  misspelt `c(extrac = "low")` sent every extraction call at the provider's
+  default with nothing said. An effort map that names the calls of a reader
+  or segmenter of your own needs that module registered first, with its
+  labels in `calls`.
+
+* **A reader states its cost as a function.** `gr_register_reader()` takes a
+  new `cost` argument, a function of `(input_stats, params)` returning the
+  new `hr_cost()`: requests expected and at worst, embedding requests, and
+  what the reader must send. The pre-flight check of `gr_read()` adds up
+  these functions instead of repeating each built-in reader's call pattern,
+  and the governor decides from the sum whether the run fits its limits
+  before the first request. The built-in readers' estimates, the trace's
+  `preflight` step and the refusals are unchanged. A registered reader
+  without `cost` is counted as before, one request per chunk. `cost_calls`
+  is kept for display only, as the description `gr_readers()` shows; the
+  pre-flight check never reads it, and it will be retired in a later phase.
+  A cost function may also return a plain list with `calls_max` and no
+  `calls`, which is read as both. `hr_cost()` has a `tokens_out_max` for a
+  reader whose replies can be billed beyond the reply cap; the check prices
+  every request at `input_stats$out_cap`, the largest cap the run's model is
+  sent, and uses `tokens_out_max` when it is larger.
+
+* `hr_param()` with a `type` or `tier` it does not know is an error of class
+  `gr_bad_setting` that names the parameter. A `named_map` parameter takes a
+  character vector or a list whose elements are all named.
 
 # readgpt 0.6.0
 

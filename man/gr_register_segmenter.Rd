@@ -9,7 +9,8 @@ gr_register_segmenter(
   fn,
   description = "",
   cost = c("free", "embedding", "llm"),
-  needs_client = FALSE
+  needs_client = FALSE,
+  calls = NULL
 )
 }
 \arguments{
@@ -35,6 +36,11 @@ so one fallback gives one warning. Raising your own is better, because it
 can name what \code{fn} fell back \emph{to}:
 \code{warning(warningCondition("No client; using 'paragraph'.", class = "gr_segment_fallback"))}. Record the downgrade in the returned \code{method}
 (\code{"mine->paragraph"}) so it survives into \code{gr_chunk_stats()}.}
+
+\item{calls}{The stems of the trace labels the segmenter's model calls
+carry, such as \code{"mine.rewrite"}; \code{character(0)} for one that makes none.
+An \code{effort} map may only name declared stems (see \code{\link[=gr_read_spec]{gr_read_spec()}}).
+\code{NULL} (the default) declares the segmenter's name.}
 }
 \value{
 Invisibly, \code{name}.

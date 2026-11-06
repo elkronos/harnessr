@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "6d5d06f10af350f8",
+      "cache_key": "c39a87a7ba3c9b28154c3ea76665ff224b45d7bf77afd73b2b66ef6b432b98c1",
       "chars": [815, 230, 75],
       "label": "synthesise.section",
       "messages": "f4fd440f10890f8f",
@@ -20,7 +20,45 @@
   ],
   "result": "8f9d58e8d1809505",
   "trace": {
+    "actor": {
+      "approved_by": null,
+      "owner": null,
+      "purpose": null,
+      "run_by": null,
+      "system": null
+    },
     "budget_stop": false,
+    "config": {
+      "options": {
+        "actor": [],
+        "allow_unpriced": false,
+        "allowed_models": null,
+        "api": "responses",
+        "api_base": "https://api.openai.com/v1",
+        "api_headers": [],
+        "cache_dir": null,
+        "cache_documents": true,
+        "cache_embeddings": true,
+        "embedder": null,
+        "embedding_model": "text-embedding-3-small",
+        "max_calls": 400,
+        "max_cost_usd": 5,
+        "max_output_tokens": null,
+        "max_retries": 4,
+        "max_tokens_total": null,
+        "min_output_tokens": 256,
+        "model": "gpt-5.6-terra",
+        "parallel": false,
+        "request_timeout": 120,
+        "retry_pause_base": 2,
+        "safety_margin": 0.1,
+        "temperature": null,
+        "tokenizer": "heuristic",
+        "unknown_model_action": "warn",
+        "verbose": false,
+        "workers": 4
+      }
+    },
     "errors": [],
     "meta": {
       "question": "How did revenue change?",
@@ -32,9 +70,11 @@
     "spent_usd": 0,
     "steps": [
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "synthesise.section",
         "model": "mock-model",
@@ -46,12 +86,27 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1200,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "f4fd440f10890f8f",
+        "replay_key": "205204080bdd144bf36227d00e9dae1619b7ddbbaca5236b0212207d392272ed",
         "response": "df22233877e91797",
+        "response_id": null,
+        "served_model": null,
         "step": 1,
         "tokens": {
           "input": 303,
-          "output": 18
+          "output": 18,
+          "provenance": "estimated"
         }
       },
       {
@@ -74,8 +129,11 @@
       "embed_tokens": 0,
       "errors": 0,
       "steps": 2,
+      "tokens_cached_in": 0,
       "tokens_in": 303,
-      "tokens_out": 18
+      "tokens_out": 18,
+      "tokens_reasoning": 0,
+      "usage_estimated": 1
     }
   }
 }

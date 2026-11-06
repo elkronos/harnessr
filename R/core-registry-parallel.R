@@ -43,12 +43,17 @@ worker_state <- function() {
 #' Falls back to sequential -- with a warning, not silently -- when the future
 #' packages are unavailable.
 #'
-#' `fn(item, trace)` is expected to make at most one model request per item,
-#' which every caller does. `client` is the client those requests go to; when
+#' `fn(item, trace)` must make at most one model request per item, which every
+#' caller does: each item is held to an equal share of what the run has left,
+#' and an item whose second request its share refuses comes back incomplete
+#' (see batch_collect()). `client` is the client those requests go to; when
 #' it is not given it is looked for in the frames `fn` was written in, where
 #' every caller's `client` is. `item_usd` is the most one item can cost, its
-#' prompt with the reply at its cap. Without it, a spending limit is the
-#' caller's to check before the batch, as preflight() does for a read.
+#' prompt with the reply at its cap. With it, a batch that could pass the
+#' spending limit runs in this process instead. Either way each worker's items
+#' are checked by a governor holding that worker's share of what the run has
+#' left (see batch_share()), so a batch cannot pass a limit, and an item its
+#' share refused before it sent anything is run again here, against the run.
 #'
 #' An item that raises an error in a worker stops that worker's share of the
 #' batch, and the error is raised once every item's trace is in the run's, so
@@ -72,19 +77,14 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   }
   parallel <- isTRUE(parallel %||% gr_options("parallel"))
   if (!parallel || length(x) <= 1L) return(sequential())
-  # A run that has reached a limit sends no batch. Run in this process, each
-  # item checks the run's own trace and returns without a request; handed to
-  # workers, each of which starts a count of its own, every item would be sent.
-  # Inside a batch the workers cannot see what the run spends, which is why
-  # preflight() holds a parallel read to its worst case.
-  if (inherits(trace, "gr_trace") && !trace_can_call(trace)) return(sequential())
-  # Room for one more call is not room for the batch. This used to be the only
+  # Room for one more call is not room for the batch. That used to be the only
   # check, so a batch went out whole whenever the run had any headroom at all:
   # a parallel proposition segmentation under max_calls = 20 and a $0.02 limit
   # made 40 calls and spent $0.41, and a hierarchical read's later levels went
   # 13% past max_calls. Workers cannot see what the run spends, so the whole
   # batch has to fit before it is sent; when it does not, it runs here, where
-  # every item is checked and the run stops where the sequential one would.
+  # every request is checked against the run and the run stops where the
+  # sequential one would.
   if (inherits(trace, "gr_trace")) {
     short <- batch_shortfall(trace, length(x), item_usd)
     if (!is.null(short)) {
@@ -95,6 +95,13 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
     }
   }
   client <- client %||% closure_client(fn)
+  # What each item may spend and how many calls it may make, out of what the
+  # run has left. The workers' governors hold these, so the batch as a whole
+  # stays within the run's limits whatever the items turn out to cost.
+  share <- batch_share(trace, length(x))
+  # An item its share refused before it sent anything is run again here,
+  # where the run's own trace decides.
+  rerun <- function(i) fn(x[[i]], trace)
   # A replay hands out the responses recorded for a prompt in the order they
   # were recorded, and counts its hits and misses as it goes. Each worker got a
   # copy of the cursor and threw its moves away, so a prompt recorded twice
@@ -102,18 +109,18 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   # with no misses. A replay makes no requests, so running it here costs
   # nothing but the illusion of speed.
   #
-  # Here, but as the workers ran it: each item with a trace of its own, folded
-  # in afterwards. A worker checks no limit against what the rest of the run
-  # has spent, so a recorded batch that went past the spending limit made
-  # every one of its calls; checked against the run's trace, its replay
-  # stopped part way through, short of the recording, and said nothing of it.
+  # Here, but as the workers ran it: each item with a trace of its own, held to
+  # its share of the run's limits and folded in afterwards, with the items a
+  # share refused run again against the run. Checked against the run's trace
+  # alone, a replay of a recorded batch stopped at a different item from the
+  # recording, and said nothing of it.
   if (inherits(client, "gr_replay_client")) {
     if (as.integer(clamp(workers %||% gr_options("workers"), 1, 32)) <= 1L) return(sequential())
     gr_msg(sprintf("Running %d %s(s) one at a time: a replay hands out its recording in order.",
                    length(x), label))
     parent_meta <- if (inherits(trace, "gr_trace")) trace$meta else list()
-    wrapped <- worker_item(fn, "", list(), list(), parent_meta, NULL)
-    return(batch_collect(lapply(x, wrapped), trace, NULL))
+    wrapped <- worker_item(fn, "", list(), list(), parent_meta, NULL, share)
+    return(batch_collect(lapply(x, wrapped), trace, NULL, rerun))
   }
 
   if (!requireNamespace("future", quietly = TRUE) ||
@@ -200,7 +207,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
          stats = if (inherits(cache, "gr_cache") && is.environment(cache$.stats)) cache$.stats)
   }
   state <- client_state(client)
-  wrapped <- worker_item(fn, key, opts, regs, parent_meta, state)
+  wrapped <- worker_item(fn, key, opts, regs, parent_meta, state, share)
   # A limit on what a future may carry (future.globals.maxSize) is checked as
   # each future is made and launched: a FutureError from the plan, or a plain
   # error from measuring the globals, as future versions differ. Every future
@@ -244,7 +251,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
             class = "gr_parallel_unavailable")
     return(sequential())
   }
-  batch_collect(out, trace, state)
+  batch_collect(out, trace, state, rerun)
 }
 
 #' Fold what each item of a batch returned (see worker_item()) into the run,
@@ -252,10 +259,30 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
 #'
 #' `state` is the client's log and cache counters, to which only what a worker
 #' process did is added: an item run in this process has updated them already.
+#'
+#' An item whose share of the run's limits refused its request before it made
+#' any is not folded in: its trace holds nothing but the refusal, which the
+#' run's own limits may not have made. `rerun(i)` runs it again in this
+#' process, against the run's trace, once the rest of the batch is in.
+#'
+#' An item that made a request and then had a later one refused by its share
+#' cannot be run again without paying for the first twice. Its calls are
+#' folded in, but its share's refusals are not: they say nothing of the run's
+#' own limits, and copied in they marked a run with headroom left as stopped.
+#' A warning says the item's result is short of what the run would have
+#' given it. No caller makes two requests per item (see gr_lapply()).
 #' @noRd
-batch_collect <- function(out, trace, state) {
+batch_collect <- function(out, trace, state, rerun = NULL) {
   me <- Sys.getpid()
-  for (r in out) {
+  again <- integer(0)
+  cut <- 0L
+  for (i in seq_along(out)) {
+    r <- out[[i]]
+    if (is.function(rerun) && share_refused(r$trace)) {
+      again <- c(again, i)
+      next
+    }
+    if (drop_share_refusals(r$trace)) cut <- cut + 1L
     trace_absorb(trace, r$trace)
     # (A one-worker batch no longer goes to workers, but future decides where a
     # future runs, not gr_lapply().)
@@ -270,16 +297,24 @@ batch_collect <- function(out, trace, state) {
       state$stats$writes <- state$stats$writes + as.integer(r$cache[3])
     }
   }
-  # A batch that passed a limit anyway -- one whose caller vouched for its
-  # spending and was wrong -- is recorded as having done so. The workers'
-  # traces never stop anything, so absorbing them could not say it.
-  if (inherits(trace, "gr_trace")) {
-    cap <- gr_options("max_calls")
-    limit <- gr_options("max_cost_usd")
-    if (!is.null(cap) && is.finite(cap) && trace$calls > cap) {
+  for (i in again) out[[i]]$value <- rerun(i)
+  if (cut > 0L) {
+    gr_warn(sprintf(paste0("%d item(s) of a parallel batch made more than one request and had a ",
+                           "later one refused by their share of the run's limits; their results ",
+                           "are incomplete. Run the batch with parallel = FALSE."), cut),
+            class = "gr_parallel_share")
+  }
+  # Every request an item makes is held to its share, so a batch cannot pass
+  # a limit through the call path. An item that spends some other way can,
+  # and a run that passed a limit says so.
+  if (inherits(trace, "gr_trace") && !isTRUE(trace$budget_stop)) {
+    gov <- trace_governor(trace)
+    cap <- finite_limit(gov$max_calls)
+    limit <- finite_limit(gov$max_cost_usd)
+    if (!is.null(cap) && trace$calls > cap) {
       trace$budget_stop <- TRUE
       trace$stop_reason <- "calls"
-    } else if (!is.null(limit) && is.finite(limit) && budget_spent(trace) > limit) {
+    } else if (!is.null(limit) && budget_spent(trace) > limit) {
       trace$budget_stop <- TRUE
       trace$stop_reason <- "cost"
     }
@@ -318,8 +353,9 @@ keep_caller_rng <- function(expr) {
 #' for the batch, which future_lapply() sends as globals as well, so each of
 #' them reached every worker twice. This frame holds only what an item needs.
 #' @noRd
-worker_item <- function(fn, key, opts, regs, parent_meta, state) {
+worker_item <- function(fn, key, opts, regs, parent_meta, state, governor = NULL) {
   force(fn); force(key); force(opts); force(regs); force(parent_meta); force(state)
+  force(governor)
   # Set once an item fails. A worker runs its share of the batch in order, in
   # its own copy of this frame, and the items after a failure are not run, as
   # a sequential run would not run them.
@@ -332,7 +368,8 @@ worker_item <- function(fn, key, opts, regs, parent_meta, state) {
       if (!is.null(regs$core[[nm]])) assign(nm, regs$core[[nm]], envir = hr_state)
     }
     for (layer in regs$layers) layer$restore(layer$values)
-    sub <- gr_trace(meta = parent_meta)
+    # Held to the item's share of the run's limits (batch_share()).
+    sub <- gr_trace(meta = parent_meta, governor = governor)
     n_calls <- length(state$log$calls)
     n_embeds <- length(state$log$embeds)
     counts <- function() c(state$stats$hits %||% 0L, state$stats$misses %||% 0L,
@@ -372,21 +409,70 @@ worker_functions <- function(client, opts) {
 #' Which limit a batch of `n` items could pass, or NULL when it fits.
 #'
 #' Measured without recording a stop: the batch then runs in this process,
-#' where it is the items that are refused, and only a refusal stops a run.
-#' Each item makes at most one request, so `n` more calls is the most a batch
-#' adds; `item_usd`, when known, prices each at its worst.
+#' where each request is checked against the run, and only a refusal stops a
+#' run. Each item makes at most one request, so `n` more calls is the most a
+#' batch adds; `item_usd`, when known, prices each at its worst. A run with
+#' nothing left to spend sends no batch either: every worker's share would be
+#' nothing.
 #' @noRd
 batch_shortfall <- function(trace, n, item_usd = NULL) {
-  cap <- gr_options("max_calls")
-  if (!is.null(cap) && is.finite(cap) && trace$calls + n > cap) return("call cap")
-  limit <- gr_options("max_cost_usd")
-  if (is.null(limit) || !is.finite(limit) || is.null(item_usd)) return(NULL)
-  # A model with no price adds nothing to what the trace has spent, so the
-  # limit cannot see it in this process either; it is counted as the trace
-  # counts it.
+  room <- governor_headroom(trace)
+  if (n > room$calls) return("call cap")
+  if (room$tokens <= 0) return("token ceiling")
+  if (!is.finite(room$usd)) return(NULL)
+  if (room$usd <= 0) return("spending limit")
+  if (is.null(item_usd)) return(NULL)
+  # A model with no price is refused or allowed by the governor request by
+  # request; here it counts as nothing.
   per <- as_num1(item_usd, 0)
-  if (budget_spent(trace) + n * max(per, 0) > limit) return("spending limit")
+  if (n * max(per, 0) > room$usd) return("spending limit")
   NULL
+}
+
+#' The governor each item of a batch of `n` is held to: an equal share of the
+#' calls and dollars the run has left, with the run's other limits. NULL when
+#' there is no run trace, so the items read the options as the run does.
+#' @noRd
+batch_share <- function(trace, n) {
+  if (!inherits(trace, "gr_trace")) return(NULL)
+  gov <- trace_governor(trace)
+  room <- governor_headroom(trace)
+  n <- max(as.integer(n), 1L)
+  hr_governor(max_calls = if (is.finite(room$calls)) floor(room$calls / n) else Inf,
+              max_cost_usd = if (is.finite(room$usd)) room$usd / n else Inf,
+              max_tokens_total = if (is.finite(room$tokens)) floor(room$tokens / n) else Inf,
+              max_output_tokens = gov$max_output_tokens, allowed_models = gov$allowed_models,
+              allow_unpriced = gov$allow_unpriced)
+}
+
+# The limits batch_share() narrows. A refusal for any other is the run's own.
+.gr_share_limits <- c("calls", "cost", "tokens")
+
+#' Whether an item's trace shows only that its share refused it: no call made,
+#' and a refusal for one of the limits a share narrows.
+#' @noRd
+share_refused <- function(sub) {
+  inherits(sub, "gr_trace") && as_int1(sub$calls, 0L) == 0L && length(sub$refusals) > 0L &&
+    all(vapply(sub$refusals, function(r) as_chr1(r$limit, "") %in% .gr_share_limits,
+               logical(1)))
+}
+
+#' Take the share's refusals off the trace of an item that made calls before
+#' its share refused it, and the stop they set. TRUE when there were any.
+#' @noRd
+drop_share_refusals <- function(sub) {
+  if (!inherits(sub, "gr_trace") || !length(sub$refusals)) return(FALSE)
+  mine <- vapply(sub$refusals, function(r) as_chr1(r$limit, "") %in% .gr_share_limits,
+                 logical(1))
+  if (!any(mine)) return(FALSE)
+  sub$refusals <- sub$refusals[!mine]
+  if (length(sub$refusals)) {
+    sub$stop_reason <- as_chr1(sub$refusals[[length(sub$refusals)]]$limit, NA_character_)
+  } else {
+    sub$budget_stop <- FALSE
+    sub$stop_reason <- NA_character_
+  }
+  TRUE
 }
 
 #' The client a batch's function calls, found in the frames it was written in.

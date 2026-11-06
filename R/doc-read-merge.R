@@ -78,21 +78,21 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
     if (length(groups) == 1L && length(groups[[1]]) == length(pieces)) {
       body <- paste(sprintf("<%s %d>\n%s\n</%s %d>", kind, seq_along(pieces), pieces,
                             kind, seq_along(pieces)), collapse = "\n\n")
-      if (!trace_can_call(trace)) {
-        # A limit stopped us before the final merge. This path used to
-        # return unbounded concatenation -- an "answer" the size of every
-        # finding put together -- while the failure path two lines down was
-        # carefully capped. Same degradation, same bound.
-        return(list(text = merge_giveup(pieces, spec), ok = FALSE, levels = level,
-                    truncated = truncated, truncated_calls = cut, failed = failed,
-                    error = paste(cap_name(trace), "reached before merging")))
-      }
       res <- gr_call(client, list(
         list(role = "system", content = system_prompt),
         list(role = "user", content = body),
         list(role = "user", content = paste0("Question: ", question))
       ), model = spec$model, max_output = spec$max_answer_tokens, temperature = spec$temperature,
          trace = trace, label = label, effort = spec$effort)
+      if (is_refused(res)) {
+        # A limit stopped us before the final merge. This path used to
+        # return unbounded concatenation, an "answer" the size of every
+        # finding put together, while the failure path below was carefully
+        # capped. Same degradation, same bound, and not counted as a failure.
+        return(list(text = merge_giveup(pieces, spec), ok = FALSE, levels = level,
+                    truncated = truncated, truncated_calls = cut, failed = failed,
+                    error = res$error))
+      }
       if (!res$ok) {
         # Concatenation is a documented, visible degradation -- not a silent one.
         return(list(text = merge_giveup(pieces, spec), ok = FALSE, levels = level,
@@ -112,9 +112,6 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
                             spec$max_answer_tokens)
     got <- gr_lapply(groups, function(g, trace) {
       if (length(g) == 1L) return(list(text = g, cut = FALSE, failed = FALSE))
-      if (!trace_can_call(trace)) {
-        return(list(text = merge_giveup(g, spec), cut = FALSE, failed = FALSE))
-      }
       body <- paste(sprintf("<%s>\n%s\n</%s>", kind, g, kind), collapse = "\n\n")
       res <- gr_call(client, list(
         list(role = "system", content = system_prompt),
@@ -122,6 +119,7 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
         list(role = "user", content = paste0("Question: ", question))
       ), model = spec$model, max_output = spec$max_answer_tokens, temperature = spec$temperature,
          trace = trace, label = paste0(label, ".level", level), effort = spec$effort)
+      if (is_refused(res)) return(list(text = merge_giveup(g, spec), cut = FALSE, failed = FALSE))
       # A failed group goes up unmerged, which keeps its findings and says
       # nothing of the failure, so it is counted.
       if (res$ok) list(text = res$text, cut = reply_cut_off(res), failed = FALSE)

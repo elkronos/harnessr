@@ -252,13 +252,13 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   cut_off <- integer(0)
   for (g in seq_along(groups)) {
     if (length(groups) > 1L) gr_msg(sprintf("Claims from batch %d of %d.", g, length(groups)))
+    b <- claims_batch(groups[[g]], question, client, spec, trace, shown = used$study[index[[g]]])
     # A batch a limit stopped is not a batch the model found nothing in.
-    if (!trace_can_call(trace)) {
+    if (identical(b$status, "not_sent")) {
       not_sent <- not_sent + 1L
       unsent <- c(unsent, g)
       next
     }
-    b <- claims_batch(groups[[g]], question, client, spec, trace, shown = used$study[index[[g]]])
     if (identical(b$status, "cut_off")) cut_off <- c(cut_off, g)
     if (identical(b$status, "failed")) failed <- c(failed, g)
     raw[[g]] <- b$rows
@@ -360,9 +360,11 @@ reconcile_reply_tokens <- function(n) {
 #' Three causes that need three different remedies. gr_call() shrinks the reply
 #' to whatever the context window leaves after the prompt, so a long prompt is
 #' cut off BELOW the limit it asked for, and "raise the limit" was advice that
-#' could not help. `knob` names the argument that raises `cap`.
+#' could not help. `knob` names the argument that raises `cap`. `problem` is
+#' gr_call_json()'s reason for refusing a reply that did arrive, which says
+#' what to look at where "failed" alone does not.
 #' @noRd
-call_failure <- function(result, messages, model, cap, knob) {
+call_failure <- function(result, messages, model, cap, knob, problem = NULL) {
   if (reply_cut_off(result)) {
     info <- gr_model_info(model)
     prompt <- sum(gr_count_tokens(vapply(messages, function(m) as_chr1(m$content), character(1))))
@@ -374,6 +376,14 @@ call_failure <- function(result, messages, model, cap, knob) {
     }
     return(sprintf("stopped at the %d-token reply limit (raise %s)",
                    as.integer(min(cap, info$max_output)), knob))
+  }
+  # After the cut-off test: a reply stopped at the cap is also not JSON, and
+  # the remedy for it is the limit, not the schema.
+  if (isTRUE(result$ok) && length(problem)) {
+    problem <- as_chr1(problem)
+    return(if (problem %in% c("not JSON", "not an object")) "returned a reply that was not a JSON object"
+           else sprintf("returned a reply that does not fit its schema (%s)",
+                        substr(problem, 1L, 200L)))
   }
   err <- as_chr1(result$error, "")
   if (nzchar(err)) sprintf("failed (%s)", substr(err, 1L, 200L)) else "failed"
@@ -388,7 +398,6 @@ call_failure <- function(result, messages, model, cap, knob) {
 #' `shown` is the study numbers in the batch, which is what its claims may cite.
 #' @noRd
 claims_batch <- function(block, question, client, spec, trace, shown = NULL) {
-  if (!trace_can_call(trace)) return(list(rows = NULL, status = "not_sent"))
   res <- gr_call_json(client, list(
     list(role = "system", content = .gr_prompts$claims_system),
     list(role = "user", content = paste0("Review question: ", question)),
@@ -397,6 +406,7 @@ claims_batch <- function(block, question, client, spec, trace, shown = NULL) {
   ), schema = .gr_claims_schema, schema_name = "claims", model = spec$model,
      max_output = spec$max_answer_tokens, temperature = spec$temperature,
      trace = trace, label = "claims.draw", effort = spec$effort)
+  if (is_refused(res$result)) return(list(rows = NULL, status = "not_sent"))
   if (!isTRUE(res$ok)) {
     return(list(rows = NULL, status = if (reply_cut_off(res$result)) "cut_off" else "failed"))
   }
@@ -523,9 +533,6 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
     attr(out, "unmerged") <- TRUE
     out
   }
-  if (!trace_can_call(trace)) {
-    return(unmerged(sprintf("the run reached its %s", cap_name(trace)), class = "gr_claims_capped"))
-  }
   listed <- paste(sprintf("%d. %s", seq_len(n), claims$claim), collapse = "\n")
   # Sized by the claims, as the draw is sized by its studies: the reply names
   # every claim once, so a fixed limit cut off the reply for a large corpus and
@@ -538,16 +545,21 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
   res <- gr_call_json(client, msgs, schema = .gr_reconcile_schema, schema_name = "claim_groups",
                       model = spec$model, max_output = cap, temperature = spec$temperature,
                       trace = trace, label = "claims.reconcile", effort = spec$effort)
+  if (is_refused(res$result)) {
+    return(unmerged(sprintf("the run reached its %s", cap_name(trace)), class = "gr_claims_capped"))
+  }
   if (!isTRUE(res$ok)) {
     # Said, as the capped case above is. Batches sized by their reply make this
     # pass the normal route for a large corpus, and its reply names every claim.
     return(unmerged(sprintf("the reconcile call %s", call_failure(res$result, msgs, spec$model, cap,
-                                                                  "`max_claim_tokens`"))))
+                                                                  "`max_claim_tokens`",
+                                                                  res$problem))))
   }
 
   raw <- json_field(res$value, "groups", scalar = FALSE)
   # A flat array, `{"groups":[1,2,3]}`, is not one group of three: it is a reply
-  # that ignored the schema (gr_call_json() does not enforce it). Read as one
+  # that ignored the schema. gr_call_json() now refuses such a reply, so this
+  # guards only against the schema and this reader drifting apart. Read as one
   # group it merged every claim into the longest one's wording and handed it
   # every study, opposite findings included. Equal-length groups arrive as a
   # matrix and ragged ones as a list, so a bare vector is only ever this.

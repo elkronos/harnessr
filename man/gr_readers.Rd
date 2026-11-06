@@ -9,7 +9,9 @@ gr_readers()
 \value{
 A data frame with one row per registered reader: \code{name}, \code{signature}
 (see \code{\link[=gr_reader_signature]{gr_reader_signature()}}), \code{cost_calls} (a formula in N, the number
-of chunks, not a number) and \code{description}.
+of chunks, not a number), \code{description}, and \code{calls}, the stems of the
+labels its calls carry, joined by commas: the names an \code{effort} map can
+use.
 }
 \description{
 The catalogue for axis 3, and the cheapest way to choose one: the \code{signature}

@@ -4,13 +4,22 @@
 \alias{gr_estimate_cost}
 \title{Estimate the USD cost of a set of calls}
 \usage{
-gr_estimate_cost(model, input_tokens, output_tokens = 0)
+gr_estimate_cost(
+  model,
+  input_tokens,
+  output_tokens = 0,
+  cached_input_tokens = 0
+)
 }
 \arguments{
 \item{model}{Model id.}
 
 \item{input_tokens, output_tokens}{Token counts (scalars or vectors; vectors
 are summed).}
+
+\item{cached_input_tokens}{How many of \code{input_tokens} the provider served
+from its prompt cache. They are priced at the model's \code{cached_input_usd}
+when it has one, and as other input tokens when it does not.}
 }
 \value{
 A single numeric USD figure, or \code{NA_real_} when the model has no

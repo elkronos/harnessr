@@ -13,7 +13,8 @@ gr_register_model(
   reasoning = FALSE,
   supports_temperature = TRUE,
   kind = c("chat", "embedding"),
-  dimensions = NA_integer_
+  dimensions = NA_integer_,
+  cached_input_usd = NA_real_
 )
 }
 \arguments{
@@ -35,6 +36,10 @@ model needs only \code{input_usd}.}
 \item{kind}{\code{"chat"} or \code{"embedding"}.}
 
 \item{dimensions}{Embedding dimensionality, for \code{kind = "embedding"}.}
+
+\item{cached_input_usd}{Price per 1M input tokens the provider served from
+its prompt cache, where that is billed at its own rate. \code{NA} (the
+default) prices them as other input tokens, which never undercounts.}
 }
 \value{
 Invisibly, \code{id}.

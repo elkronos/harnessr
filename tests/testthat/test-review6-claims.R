@@ -44,7 +44,9 @@ r6c_warns <- function(expr) {
 
 test_that("a flat groups array leaves the claims unmerged, with a warning", {
   # Before: {"groups":[1,2,3]} was read as ONE group of three. Opposite claims
-  # collapsed into the longest one's wording, supported by every study.
+  # collapsed into the longest one's wording, supported by every study. It
+  # breaks the schema (each group is an array), so gr_call_json() refuses it
+  # and the warning says where.
   claims <- r6c_rows(r6c_claim("Trials in adults found a benefit.", 1),
                      r6c_claim("Surveys of children found no effect.", 2),
                      r6c_claim("Harms were rare.", 3))
@@ -53,7 +55,8 @@ test_that("a flat groups array leaves the claims unmerged, with a warning", {
   expect_identical(nrow(r$value), 3L)
   expect_identical(lengths(r$value$.support), c(1L, 1L, 1L))
   expect_true("gr_claims_unmerged" %in% r$classes)
-  expect_match(r$messages[r$classes == "gr_claims_unmerged"], "not a list of groups", fixed = TRUE)
+  expect_match(r$messages[r$classes == "gr_claims_unmerged"],
+               "does not fit its schema ($.groups[0]: expected array", fixed = TRUE)
   expect_true(isTRUE(attr(r$value, "unmerged")))
   # A real single group of three still merges: it arrives as a 1 x 3 matrix.
   cl <- gr_mock_client(function(m, p) '{"groups":[[1,2,3]]}')

@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "1a2eba44b530cb5a",
+      "cache_key": "686a72ff24d12cb2f4a709db8cb20ca9c9ab91fa6d9d95ecd3c970d601784726",
       "chars": [149, 35, 1899],
       "label": "rerank.score",
       "messages": "e8b9bf9bf8e0500a",
@@ -18,7 +18,7 @@
       "schema": "7a1cd830c8644fd8"
     },
     {
-      "cache_key": "27cad5832add3be7",
+      "cache_key": "a91e460daa851f1927483dde89f13567e6b7b2538c15813108ab12954d46ddd6",
       "chars": [216, 1911, 35],
       "label": "rerank.answer",
       "messages": "55368e83687aca33",
@@ -37,7 +37,45 @@
   ],
   "result": "a34ad3f0c8e88f77",
   "trace": {
+    "actor": {
+      "approved_by": null,
+      "owner": null,
+      "purpose": null,
+      "run_by": null,
+      "system": null
+    },
     "budget_stop": false,
+    "config": {
+      "options": {
+        "actor": [],
+        "allow_unpriced": false,
+        "allowed_models": null,
+        "api": "responses",
+        "api_base": "https://api.openai.com/v1",
+        "api_headers": [],
+        "cache_dir": null,
+        "cache_documents": true,
+        "cache_embeddings": true,
+        "embedder": null,
+        "embedding_model": "text-embedding-3-small",
+        "max_calls": 400,
+        "max_cost_usd": 5,
+        "max_output_tokens": null,
+        "max_retries": 4,
+        "max_tokens_total": null,
+        "min_output_tokens": 256,
+        "model": "gpt-5.6-terra",
+        "parallel": false,
+        "request_timeout": 120,
+        "retry_pause_base": 2,
+        "safety_margin": 0.1,
+        "temperature": null,
+        "tokenizer": "heuristic",
+        "unknown_model_action": "warn",
+        "verbose": false,
+        "workers": 4
+      }
+    },
     "errors": [],
     "meta": {
       "question": "What was revenue in 2024?",
@@ -112,9 +150,11 @@
         "step": 3
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "rerank.score",
         "model": "mock-model",
@@ -126,14 +166,29 @@
           "schema_name": "relevance",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 200,
+          "model": "mock-model",
+          "schema_hash": "8baebf0c58fa3d7f468c1cacc82c08f4bf6cdf28143b009041ea5c03af415ef6",
+          "schema_name": "relevance",
+          "temperature": null
+        },
         "prompt": "e8b9bf9bf8e0500a",
         "recipe": "scanned",
+        "replay_key": "8fd13789ff7483563b1f99fff9047055ea836cddea4ff10a00cdafd97c68dcfa",
         "response": "e6b32de151f23d28",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 4,
         "tokens": {
           "input": 584,
-          "output": 16
+          "output": 16,
+          "provenance": "estimated"
         }
       },
       {
@@ -155,9 +210,11 @@
         "step": 5
       },
       {
+        "attempts": 1,
         "budget_usd": 0,
         "cached": false,
         "error": null,
+        "fingerprint": null,
         "finish_reason": null,
         "label": "rerank.answer",
         "model": "mock-model",
@@ -169,14 +226,29 @@
           "schema_name": "result",
           "temperature": null
         },
+        "params_sent": {
+          "api": "mock",
+          "base_url": "mock://",
+          "effort": null,
+          "extra_body_hash": null,
+          "max_output": 1500,
+          "model": "mock-model",
+          "schema_hash": null,
+          "schema_name": null,
+          "temperature": null
+        },
         "prompt": "55368e83687aca33",
         "recipe": "scanned",
+        "replay_key": "106f91dca169a391fbb6ffdae63e27ea740e6a6192d0831b71dd45d196dd2313",
         "response": "5e372c1edd7906c1",
+        "response_id": null,
+        "served_model": null,
         "source": "annual_report.md",
         "step": 6,
         "tokens": {
           "input": 611,
-          "output": 26
+          "output": 26,
+          "provenance": "estimated"
         }
       }
     ],
@@ -188,8 +260,11 @@
       "embed_tokens": 0,
       "errors": 0,
       "steps": 6,
+      "tokens_cached_in": 0,
       "tokens_in": 1195,
-      "tokens_out": 42
+      "tokens_out": 42,
+      "tokens_reasoning": 0,
+      "usage_estimated": 1
     }
   }
 }

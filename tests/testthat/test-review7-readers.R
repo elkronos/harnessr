@@ -289,7 +289,9 @@ test_that("a replay of a comparison the limit stopped stops each recipe where it
   live <- quiet(gr_compare(doc, "What rose?", recs, client = cl))
   expect_true(live$trace$budget_stop)
   expect_true(live$answers$a$partial)
-  expect_match(live$summary$error[2], "already spent", fixed = TRUE)
+  # Held under the limit: the run used to pass it by the request that reached
+  # it, and recipe b was then refused as having already spent it.
+  expect_lte(live$trace$spent_usd, 0.5)
   f <- withr::local_tempfile(fileext = ".json")
   gr_trace_save(live$trace, f)
 

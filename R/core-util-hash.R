@@ -2,7 +2,11 @@
 
 #' Deterministic content hash, with a pure-R fallback when digest is absent.
 #'
-#' Used for cache keys. Never returns NA.
+#' xxhash64 of the serialised parts, with the package's functions named as
+#' readgpt's (see env_identity()). Frozen: the old response-cache and replay
+#' keys in core-legacy-keys.R are made with it, and so are the keys that have
+#' not yet moved to hr_hash() (the ingest cache, the embedding cache, the
+#' corpus store). Changing it would orphan every one of them. Never returns NA.
 #' @noRd
 gr_hash <- function(x) {
   s <- paste(hash_parts(x), collapse = "\u0001")
@@ -10,6 +14,23 @@ gr_hash <- function(x) {
     return(digest::digest(s, algo = "xxhash64"))
   }
   hash_fallback(s)
+}
+
+#' The hash of the current key versions: SHA-256, 64 hex digits.
+#'
+#' The parts are those gr_hash() joins, with two differences. A function's
+#' environment goes in under its own name, so the package's functions hash as
+#' harnessr's (env_name() rather than env_identity()). And the digest is of the
+#' UTF-8 bytes of the joined parts rather than of the serialised string, so a
+#' string's declared encoding cannot change a key whatever path it took.
+#' xxhash64 is a 64-bit checksum; a response cache and a replay are looked up
+#' by their key alone, so a collision would serve one request's reply for
+#' another, and 64 bits was too few to rule that out over a long-lived cache.
+#' @noRd
+hr_hash <- function(x) {
+  s <- paste(hash_parts(x, envid = env_name), collapse = "\u0001")
+  if (!requireNamespace("digest", quietly = TRUE)) return(hash_fallback(s))
+  digest::digest(charToRaw(enc2utf8(s)), algo = "sha256", serialize = FALSE)
 }
 
 #' A deterministic serialisation that carries names at EVERY depth.
@@ -24,8 +45,11 @@ gr_hash <- function(x) {
 #' figure under the headcount question, marked `cached = TRUE`. The same
 #' primitive keys the ingest cache, the corpus store and gr_compare()'s
 #' distinctness check, so the blindness was latent in all of them.
+#'
+#' `envid` names a function's environment: env_identity() for gr_hash(),
+#' env_name() for hr_hash().
 #' @noRd
-hash_parts <- function(x, prefix = "", depth = 0L) {
+hash_parts <- function(x, prefix = "", depth = 0L, envid = env_identity) {
   if (depth > 32L) return(paste0(prefix, "=<depth>"))
   if (is.null(x)) return(paste0(prefix, "=<null>"))
   if (is.list(x)) {
@@ -37,7 +61,7 @@ hash_parts <- function(x, prefix = "", depth = 0L) {
              unlist(lapply(seq_along(x), function(i) {
                hash_parts(x[[i]],
                           paste0(prefix, "/", if (nzchar(nms[i])) nms[i] else i),
-                          depth + 1L)
+                          depth + 1L, envid)
              }), use.names = FALSE)))
   }
   if (is.function(x)) {
@@ -50,7 +74,7 @@ hash_parts <- function(x, prefix = "", depth = 0L) {
     # named environment (the global one, a package) goes in by name, so a key
     # built from one is the same in every session; any other by identity.
     return(paste0(prefix, "=function:", paste(deparse(x), collapse = "\n"),
-                  "@", env_identity(environment(x))))
+                  "@", envid(environment(x))))
   }
   v <- hash_escape(tryCatch(as.character(x), error = function(e) class(x)[1]))
   nms <- hash_escape(names(x))
@@ -85,17 +109,25 @@ hash_escape <- function(v) {
   v
 }
 
+#' What a function's environment is, for gr_hash(): env_name(), with this
+#' package named readgpt.
+#'
+#' The package was called readgpt when the gr_hash() keys were made, and every
+#' one that hashes one of its functions includes this name. Hashing the old
+#' name keeps them stable: the old cache and replay keys, which the legacy
+#' lookup recomputes exactly, and the keys not yet moved to hr_hash().
+#' @noRd
+env_identity <- function(env) {
+  nm <- env_name(env)
+  if (identical(nm, "harnessr")) "readgpt" else nm
+}
+
 #' What a function's environment is, for a hash: its name when it has one,
 #' otherwise its address.
 #' @noRd
-env_identity <- function(env) {
+env_name <- function(env) {
   if (is.null(env)) return("<primitive>")
   nm <- environmentName(env)
-  # The package was called readgpt when today's keys were made, and every key
-  # that hashes one of its functions includes this name. Hashing the old name
-  # keeps those keys stable until the planned key-version change, which will
-  # carry a lookup of the old keys.
-  if (identical(nm, "harnessr")) return("readgpt")
   if (nzchar(nm)) return(nm)
   utils::capture.output(print.default(env))[1]
 }

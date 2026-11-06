@@ -577,9 +577,6 @@ revise_once <- function(drafted, question, client, spec, trace, style, pass) {
             class = "gr_coherence_skipped")
     return(list(ran = FALSE, kept = FALSE, reason = "draft exceeds the context window"))
   }
-  if (!trace_can_call(trace)) {
-    return(list(ran = FALSE, kept = FALSE, reason = paste(cap_name(trace), "reached")))
-  }
   res <- gr_call(client, list(
     list(role = "system", content = sys),
     list(role = "user", content = paste0("Review question: ", question)),
@@ -587,6 +584,9 @@ revise_once <- function(drafted, question, client, spec, trace, style, pass) {
   ), model = spec$model, max_output = need, temperature = spec$temperature,
      trace = trace, label = paste0("synthesise.revise.", pass),
      effort = spec$effort)
+  if (is_refused(res)) {
+    return(list(ran = FALSE, kept = FALSE, reason = paste(cap_name(trace), "reached")))
+  }
 
   # Before usable_text(): a reply cut off at the limit is truncated whether or
   # not the client counts it as a success, and saying "the call failed" about it

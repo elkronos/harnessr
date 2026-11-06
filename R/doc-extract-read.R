@@ -30,9 +30,7 @@ read_extract <- function(chunks, question, client, spec, trace) {
   schema <- fields_schema(fields)
   listing <- fields_prompt(fields)
 
-  if (!trace_can_call(trace, nrow(d))) {
-    warn_capped_batch(trace, "extract", nrow(d), "segment more coarsely")
-  }
+  warn_capped_batch(trace, "extract", nrow(d), "segment more coarsely")
 
   model <- spec[["skim_model"]] %||% spec[["model"]]
   fixed <- list(
@@ -57,12 +55,16 @@ read_extract <- function(chunks, question, client, spec, trace) {
                             spec$max_chunk_tokens)
 
   got <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
-    if (!trace_can_call(trace)) return(list(ok = FALSE, value = NULL, capped = TRUE))
     out <- gr_call_json(client, c(fixed, list(list(role = "user", content = excerpts[i]))),
                         schema = schema, schema_name = "extraction", allow_empty = TRUE,
+                        # coerce_field() reads each value and reports one it
+                        # cannot use, so a wrong-typed value is that field's
+                        # problem, not the whole excerpt's.
+                        own_scalars = TRUE,
                         model = model, max_output = spec$max_chunk_tokens,
                         temperature = spec$temperature, trace = trace, label = "extract.chunk",
                         effort = spec$effort)
+    if (is_refused(out$result)) return(list(ok = FALSE, value = NULL, capped = TRUE))
     if (spec$delay_between_calls > 0) Sys.sleep(spec$delay_between_calls)
     list(ok = isTRUE(out$ok), value = out$value, chunk = i)
   }, parallel = spec$parallel, label = "extract chunk", trace = trace,
@@ -274,13 +276,8 @@ reconcile_fields <- function(got, fields, d, client, spec, trace) {
     if (length(reps) > 1L) {
       conflicts[[nm]] <- vapply(reps, function(h) value_key(h$value), character(1))
       if (identical(resolve, "model")) {
-        # Not trace_can_call(): at the per-document limit it sets the trace's
-        # budget_stop, and gr_read_many() then called a document whose every
-        # chunk had been read "failed ... before the document was read in
-        # full", kept it out of the store and re-read it on every run.
-        pick <- if (extract_can_adjudicate(trace)) {
-          resolve_conflict(nm, fields[[nm]], reps, client, spec, trace)
-        } else "limit"
+        # "limit" when the governor refused the request; see resolve_conflict().
+        pick <- resolve_conflict(nm, fields[[nm]], reps, client, spec, trace)
         if (is.character(pick)) unresolved[[nm]] <- pick else chosen <- pick
       }
     }
@@ -297,21 +294,6 @@ reconcile_fields <- function(got, fields, d, client, spec, trace) {
   list(record = record, conflicts = conflicts, evidence_chunk = ev_chunk,
        evidence_quote = ev_quote, evidence_field = ev_field,
        unreadable = unreadable, unresolved = unresolved)
-}
-
-#' Could one more request be made on `trace`?
-#'
-#' trace_can_call() without its record: that sets `budget_stop` when the
-#' answer is no, which says the read was cut short. An adjudication skipped at
-#' the limit cuts nothing short; every excerpt has been read by then.
-#' @noRd
-extract_can_adjudicate <- function(trace) {
-  if (!inherits(trace, "gr_trace")) return(TRUE)
-  was <- list(stop = trace$budget_stop, why = trace$stop_reason)
-  if (trace_can_call(trace)) return(TRUE)
-  trace$budget_stop <- was$stop
-  trace$stop_reason <- was$why
-  FALSE
 }
 
 #' The pieces of a quotation, in the order they are quoted.
@@ -519,6 +501,7 @@ resolve_conflict <- function(nm, field, hits, client, spec, trace) {
             hits[[i]]$chunk, substr(hits[[i]]$quote, 1, 200)),
     character(1))
   before <- if (inherits(trace, "gr_trace")) length(trace$errors) else 0L
+  was <- if (inherits(trace, "gr_trace")) list(stop = trace$budget_stop, why = trace$stop_reason)
   out <- gr_call_json(client, list(
     list(role = "system", content = paste0(
       "Two or more parts of one document give different values for the same field. Choose the ",
@@ -533,6 +516,18 @@ resolve_conflict <- function(nm, field, hits, client, spec, trace) {
      schema_name = "conflict", model = spec$model, max_output = 100L,
      temperature = spec$temperature, trace = trace, label = "extract.resolve",
      effort = spec$effort)
+  if (is_refused(out$result)) {
+    # An adjudication a limit refused cuts nothing short: every excerpt has
+    # been read by then. Left marked, the trace's budget_stop made
+    # gr_read_many() call a document whose every chunk had been read "failed
+    # ... before the document was read in full", keep it out of the store and
+    # re-read it on every run. The refusal itself stays in `refusals`.
+    if (!is.null(was)) {
+      trace$budget_stop <- was$stop
+      trace$stop_reason <- was$why
+    }
+    return("limit")
+  }
   if (!isTRUE(out$ok)) {
     # The field falls back to the first value, as with resolve = "first", and
     # every excerpt was still read: the failure is recovered. Counted as a

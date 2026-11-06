@@ -21,10 +21,10 @@
 # WHAT IS AND IS NOT IN THE KEY
 # In: the messages, the model, the resolved `max_output`, the temperature, the
 # JSON schema and its name, the API shape and base URL, any extra body fields,
-# and the reasoning effort when the request carries one. Out: the API key, the
-# timeout, the retry policy, the trace and the label -- none of which can change
-# what the model returns. (A label can choose an effort; the effort it chose is
-# what goes in.)
+# the reasoning effort when the request carries one, and the draw index when it
+# is above 0. Out: the API key, the timeout, the retry policy, the trace and
+# the label -- none of which can change what the model returns. (A label can
+# choose an effort; the effort it chose is what goes in.)
 #
 # FAILURES ARE NEVER CACHED. A transport error, a rate limit or a refusal is a
 # property of the moment, not of the request. Caching one would turn a blip into
@@ -89,8 +89,23 @@
 #' @section Caching a stochastic call:
 #' At a temperature above zero a cache hit replays one sample rather than
 #' drawing a new one. That is the point: it is what makes a run reproducible.
-#' But it means a cached sweep does not explore. Use a fresh cache directory,
-#' or `read = FALSE`, when you want new draws.
+#' But it means N identical calls are one draw N times. To keep N draws, give
+#' each call its own `draw_index` (see [gr_call()]): it is part of the key when
+#' it is above 0, so draws 1 to N are N entries, and a rerun gets the same N
+#' replies back in the same order. A call with the default `draw_index = 0`
+#' keys as an unsampled call always has. Use a fresh cache directory, or
+#' `read = FALSE`, when you want new replies for draws already stored.
+#'
+#' @section Keys and older caches:
+#' An entry is keyed by a SHA-256 hash under the version string
+#' `harnessr-cache-v3`. Entries written before that (by readgpt 0.6.0, and by
+#' harnessr before this key: `readgpt-cache-v2` under xxhash64) are still
+#' read. A call with no draw index that finds nothing under its key is looked
+#' up under the old key too, and a reply found there is used. The first such
+#' hit in a session warns once for the cache, with class `hr_legacy_key`, and
+#' [gr_cache_stats()] counts them as `legacy_hits`. Old entries are never
+#' rewritten, and new ones are written under the new key only, so a cache
+#' directory stays readable by the version that wrote it.
 #'
 #' @seealso [gr_cache_client()] to attach one, [gr_cache_stats()],
 #'   [gr_cache_clear()], [gr_replay_client()] for reproducing a recorded run
@@ -120,6 +135,7 @@ gr_cache <- function(dir = NULL, read = TRUE, write = TRUE) {
   st$hits <- 0L
   st$misses <- 0L
   st$writes <- 0L
+  st$legacy_hits <- 0L
   structure(list(
     dir   = as_chr1(dir),
     read  = isTRUE(read),
@@ -179,8 +195,10 @@ gr_cache_client <- function(client, cache = gr_cache()) {
 #'
 #' @param cache A [gr_cache()].
 #' @return A one-row data frame: `dir`, `entries`, `bytes`, `hits`, `misses`,
-#'   `writes`. `entries` and `bytes` are read from disk, so they include entries
-#'   written by earlier sessions; the three counters cover this session only.
+#'   `writes` and `legacy_hits`. `entries` and `bytes` are read from disk, so
+#'   they include entries written by earlier sessions; the counters cover this
+#'   session only. `legacy_hits` is how many of the hits were found under the
+#'   old `readgpt-cache-v2` key (see [gr_cache()]).
 #' @seealso [gr_cache()], [gr_cache_clear()]
 #' @export
 #' @examples
@@ -199,6 +217,9 @@ gr_cache_stats <- function(cache) {
     hits = cache$.stats$hits,
     misses = cache$.stats$misses,
     writes = cache$.stats$writes,
+    # A cache object made before the counter existed (one restored with
+    # readRDS()) has no such field.
+    legacy_hits = as_int1(cache$.stats$legacy_hits, 0L),
     stringsAsFactors = FALSE
   )
 }
@@ -227,6 +248,7 @@ gr_cache_clear <- function(cache) {
   cache$.stats$hits <- 0L
   cache$.stats$misses <- 0L
   cache$.stats$writes <- 0L
+  cache$.stats$legacy_hits <- 0L
   invisible(length(files))
 }
 
@@ -264,7 +286,8 @@ legacy_cache_dir <- function(dir) {
 #' Every entry file under a cache directory.
 #'
 #' Only files in the layout cache_path() writes: `<shard>/<key>.rds`, where the
-#' key is 16 hex digits and the shard is its first two. gr_cache_clear() unlinks
+#' key is 64 hex digits (harnessr-cache-v3) or 16 (readgpt-cache-v2, still read
+#' and still cleared) and the shard is its first two. gr_cache_clear() unlinks
 #' whatever this returns, and a cache directory is often a real project folder
 #' (the documentation suggests passing one) that also holds a gr_read_many()
 #' store, saved results or anything else ending in `.rds`. Matching on the
@@ -275,7 +298,8 @@ cache_files <- function(dir) {
   shards <- list.files(dir, pattern = "^[0-9a-f]{2}$", full.names = TRUE)
   shards <- shards[dir.exists(shards)]
   out <- unlist(lapply(shards, function(s) {
-    list.files(s, pattern = paste0("^", basename(s), "[0-9a-f]{14}\\.rds$"), full.names = TRUE)
+    list.files(s, pattern = paste0("^", basename(s), "([0-9a-f]{14}|[0-9a-f]{62})\\.rds$"),
+               full.names = TRUE)
   }), use.names = FALSE)
   if (!length(out)) return(character(0))
   out[utils::file_test("-f", out)]
@@ -284,17 +308,18 @@ cache_files <- function(dir) {
 #' The key for one request.
 #'
 #' Everything that can change the response goes in; nothing else does. The
-#' leading version string is what lets a future change to the key scheme
-#' invalidate old entries instead of silently mixing two schemes in one
-#' directory.
+#' leading version string is what lets a change to the key scheme invalidate
+#' old entries instead of silently mixing two schemes in one directory. The
+#' previous scheme is still read: see legacy_cache_key_v2() and cache_get().
 #' @noRd
 cache_key <- function(client, messages, model, max_output, temperature,
-                      schema, schema_name, extra, effort = NULL) {
+                      schema, schema_name, extra, effort = NULL, draw_index = 0L) {
+  draw_index <- as_int1(draw_index, 0L)
   parts <- c(
-    # v2: gr_hash() now carries names at every depth, and `temperature` reaches
-    # this function resolved. Both change what a key is, so old entries must not
-    # be mixed with new ones -- which is what this string is for.
-    "readgpt-cache-v2",
+    # v3: SHA-256 through hr_hash() in place of xxhash64, and the draw index.
+    # The v2 key is looked up after this one, so entries written under it
+    # still answer.
+    "harnessr-cache-v3",
     as_chr1(client$api, "?"),
     as_chr1(client$base_url, "?"),
     # Present only on clients whose behaviour is an R closure rather than a URL.
@@ -305,20 +330,23 @@ cache_key <- function(client, messages, model, max_output, temperature,
     format(as.integer(max_output)),
     if (is.null(temperature)) "<null>" else format(temperature, digits = 15L),
     as_chr1(schema_name, "result"),
-    if (is.null(schema)) "<no-schema>" else gr_hash(schema),
-    gr_hash(client$extra_body %||% list()),
-    gr_hash(extra %||% list()),
+    if (is.null(schema)) "<no-schema>" else hr_hash(schema),
+    hr_hash(client$extra_body %||% list()),
+    hr_hash(extra %||% list()),
     # The reasoning effort the request carries, which changes the reply as a
-    # temperature does. A part only when there is one: a request without an
-    # effort keys as it always has, so a cache filled before the setting
-    # existed still answers, and two runs at different efforts never trade
-    # replies. The prefix keeps it apart from a message's role, which is the
-    # part that comes next in a key without one.
+    # temperature does. A part only when there is one, so two runs at
+    # different efforts never trade replies. The prefix keeps it apart from a
+    # message's role, which is the part that comes next in a key without one.
     if (!is.null(effort)) paste0("effort:", as_chr1(effort)),
+    # Which draw of a sampled request this is. Without it N identical calls
+    # were one cached reply N times, and anything that compared them measured
+    # perfect agreement. A part only above 0, as effort is only when set: an
+    # unsampled call has no draw, and keys as such.
+    if (draw_index > 0L) paste0("draw:", draw_index),
     key_text(unlist(lapply(messages, function(m) c(as_chr1(m$role), as_chr1(m$content))),
                     use.names = FALSE))
   )
-  gr_hash(parts)
+  hr_hash(parts)
 }
 
 #' Normalise text before it is hashed into a key.
@@ -352,16 +380,28 @@ cache_path <- function(dir, key) {
 #' truncated or half-written file is a miss, not a failure. Returning the error
 #' would mean a corrupted byte on disk could stop a run that has nothing wrong
 #' with it.
+#'
+#' `legacy` is a function returning the request's readgpt-cache-v2 key, or
+#' NULL when it has none (a call with a draw index). It is called and looked up
+#' only when `key` finds nothing, so a hit under the new key costs one hash,
+#' and a reply found under it is counted and warned about (legacy_key_warn()).
 #' @noRd
-cache_get <- function(cache, key) {
+cache_get <- function(cache, key, legacy = NULL) {
   # No directory is no cache: file.path("", ...) is the filesystem root.
   if (!isTRUE(cache$read) || !nzchar(as_chr1(cache$dir))) return(NULL)
-  path <- cache_path(cache$dir, key)
-  if (!file.exists(path)) {
-    old <- legacy_cache_dir(cache$dir)
-    if (nzchar(old)) path <- cache_path(old, key)
+  old <- legacy_cache_dir(cache$dir)
+  find <- function(k) {
+    path <- cache_path(cache$dir, k)
+    if (!file.exists(path) && nzchar(old)) path <- cache_path(old, k)
+    if (file.exists(path)) path
   }
-  if (!file.exists(path)) {
+  path <- find(key)
+  was_legacy <- FALSE
+  if (is.null(path) && is.function(legacy)) {
+    path <- find(legacy())
+    was_legacy <- !is.null(path)
+  }
+  if (is.null(path)) {
     cache$.stats$misses <- cache$.stats$misses + 1L
     return(NULL)
   }
@@ -372,6 +412,13 @@ cache_get <- function(cache, key) {
     return(NULL)
   }
   cache$.stats$hits <- cache$.stats$hits + 1L
+  if (was_legacy) {
+    cache$.stats$legacy_hits <- as_int1(cache$.stats$legacy_hits, 0L) + 1L
+    legacy_key_warn("cache", cache$dir)
+    # So that cache_unhit() can take the count back when the caller cannot
+    # use the reply.
+    attr(res, "legacy_key") <- TRUE
+  }
   res
 }
 
@@ -380,8 +427,11 @@ cache_get <- function(cache, key) {
 #' client_dispatch() asks again when a stored reply fails the caller's test of
 #' a usable one (see model_call()); the statistics should say it was asked.
 #' @noRd
-cache_unhit <- function(cache) {
+cache_unhit <- function(cache, hit = NULL) {
   cache$.stats$hits <- max(cache$.stats$hits - 1L, 0L)
+  if (isTRUE(attr(hit, "legacy_key", exact = TRUE))) {
+    cache$.stats$legacy_hits <- max(as_int1(cache$.stats$legacy_hits, 0L) - 1L, 0L)
+  }
   cache$.stats$misses <- cache$.stats$misses + 1L
   invisible(NULL)
 }
@@ -408,14 +458,24 @@ cache_entry_result <- function(entry) {
   if (!isTRUE(.subset2(r, "ok"))) return(NULL)
   u <- .subset2(r, "usage")
   if (!is.list(u)) u <- list()
+  # The provenance and breakdown the reply was stored with. An entry written
+  # before they were kept has neither, and its provenance reads as NA.
+  prov <- as_chr1(.subset2(u, "provenance"), NA_character_)
+  if (!prov %in% .gr_usage_provenance) prov <- NA_character_
+  chr <- function(nm) as_chr1(.subset2(r, nm), NA_character_)
   gr_result(TRUE,
             text = as_chr1(.subset2(r, "text")),
             status = as_int1(.subset2(r, "status"), NA_integer_),
-            usage = list(input = as_int1(.subset2(u, "input"), 0L),
-                         output = as_int1(.subset2(u, "output"), 0L)),
-            model = as_chr1(.subset2(r, "model"), NA_character_),
-            finish_reason = as_chr1(.subset2(r, "finish_reason"), NA_character_),
-            cached = TRUE)
+            usage = usage_record(as_int1(.subset2(u, "input"), 0L),
+                                 as_int1(.subset2(u, "output"), 0L), prov,
+                                 reasoning = as_int1(.subset2(u, "reasoning"), NA_integer_),
+                                 cached_input = as_int1(.subset2(u, "cached_input"),
+                                                        NA_integer_)),
+            model = chr("model"),
+            finish_reason = chr("finish_reason"),
+            cached = TRUE,
+            served_model = chr("served_model"), response_id = chr("response_id"),
+            fingerprint = chr("fingerprint"))
 }
 
 #' Is `x` plain data all the way down?
