@@ -42,8 +42,9 @@ test_that("without an effort, a request is built, keyed and recorded exactly as 
     expect_false(any(c("reasoning", "reasoning_effort") %in% names(a)))
   }
 
-  # The cache key, against the formula it had before the setting existed. A
-  # change here would turn every stored reply into a miss.
+  # The old cache key, which the legacy lookup computes, against the formula it
+  # had before the setting existed. A change here would turn every reply
+  # stored before harnessr-cache-v3 into a miss.
   cl <- gr_mock_client()
   as_chr1 <- harnessr:::as_chr1
   old_cache <- harnessr:::gr_hash(c(
@@ -51,13 +52,23 @@ test_that("without an effort, a request is built, keyed and recorded exactly as 
     as_chr1(cl$.client_id, "<url-addressed>"), reasoner, format(100L), "<null>", "result",
     "<no-schema>", harnessr:::gr_hash(list()), harnessr:::gr_hash(list()),
     harnessr:::key_text(c("system", "Be brief.", "user", "What was revenue?"))))
-  expect_identical(harnessr:::cache_key(cl, msgs, reasoner, 100L, NULL, NULL, "result", list()),
+  expect_identical(harnessr:::legacy_cache_key_v2(cl, msgs, reasoner, 100L, NULL, NULL, "result",
+                                                  list()),
                    old_cache)
-  # And the replay key, which a recording made by 0.5.1 is looked up by.
+  expect_identical(harnessr:::legacy_cache_key_v2(cl, msgs, reasoner, 100L, NULL, NULL, "result",
+                                                  list(), effort = NULL),
+                   old_cache)
+  # The current key has no effort part without one, and no draw part at 0.
+  key <- harnessr:::cache_key(cl, msgs, reasoner, 100L, NULL, NULL, "result", list())
+  expect_identical(harnessr:::cache_key(cl, msgs, reasoner, 100L, NULL, NULL, "result", list(),
+                                        effort = NULL, draw_index = 0L), key)
+  # And the old replay key, which a recording made by 0.5.1 is looked up by.
   old_replay <- harnessr:::gr_hash(c("readgpt-replay-v1", reasoner,
     harnessr:::key_text(c("system", "Be brief.", "user", "What was revenue?"))))
-  expect_identical(harnessr:::replay_key(msgs, reasoner), old_replay)
-  expect_identical(harnessr:::replay_key(msgs, reasoner, NULL), old_replay)
+  expect_identical(harnessr:::legacy_replay_key_v1(msgs, reasoner), old_replay)
+  expect_identical(harnessr:::legacy_replay_key_v1(msgs, reasoner, NULL), old_replay)
+  expect_identical(harnessr:::replay_key(msgs, reasoner, NULL, NULL, 100L),
+                   harnessr:::replay_key(msgs, reasoner, max_output = 100L))
 
   # A handler is given the params it always was, and the trace records them.
   seen <- NULL

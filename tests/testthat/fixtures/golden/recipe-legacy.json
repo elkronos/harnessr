@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "4bb6824c9ceb36ea",
+      "cache_key": "500eabdbaeb74cb4099dc2bcba8e090c6d652c65f2f9f4e8fa4111ccdd769d16",
       "chars": [216, 1720, 35],
       "label": "map.answer",
       "messages": "20a7b604956fcf26",
@@ -157,6 +157,7 @@
         },
         "prompt": "20a7b604956fcf26",
         "recipe": "legacy",
+        "replay_key": "af8143e2e27a661c02d9051db944432716b0ce79ae523e99b579fd39a364e01e",
         "response": "5e372c1edd7906c1",
         "response_id": null,
         "served_model": null,

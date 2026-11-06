@@ -15,7 +15,8 @@ gr_call(
   trace = NULL,
   label = "call",
   ...,
-  effort = NULL
+  effort = NULL,
+  draw_index = 0L
 )
 }
 \arguments{
@@ -56,6 +57,16 @@ resolved against \code{label} as \code{\link[=gr_read_spec]{gr_read_spec()}} des
 \code{model} is a reasoning model (see \code{\link[=gr_model_info]{gr_model_info()}}), as \code{reasoning = {effort}} on the Responses API and \code{reasoning_effort} on Chat Completions;
 a \code{\link[=gr_mock_client]{gr_mock_client()}} or \code{\link[=gr_backend_client]{gr_backend_client()}} handler finds it in
 \code{params$effort}. Must be named in full, since it follows \code{...}.}
+
+\item{draw_index}{Which draw of a sampled request this is: 0 (the default)
+for an ordinary call, or 1, 2, ... for repeated draws of the same request.
+Above 0 it is part of the \code{\link[=gr_cache]{gr_cache()}} key, so N identical calls with
+draw indexes 1 to N are N cached replies rather than one reply N times,
+and a \code{\link[=gr_replay_client]{gr_replay_client()}} answers draw k with the k-th recorded reply to
+the request. A \code{\link[=gr_mock_client]{gr_mock_client()}} or \code{\link[=gr_backend_client]{gr_backend_client()}} handler finds
+it in \code{params$draw_index}, and the trace records it in the step's
+\code{params}; at 0 neither carries it, so an unsampled call is unchanged.
+Must be named in full, since it follows \code{...}.}
 }
 \value{
 A \link{gr_result}. \strong{Never} \code{NULL}; \verb{$text} is always a single string,
@@ -91,6 +102,13 @@ seen <- gr_mock_client(function(m, p) {
 })
 gr_call(seen, "hi", model = "gpt-5.6-luna", effort = "low")$text
 gr_call(seen, "hi", model = "gpt-4o", effort = "low")$text   # not a reasoning model
+
+# Draws of one request, each cached under its own key.
+n <- 0
+sampler <- gr_mock_client(function(m, p) { n <<- n + 1; paste("draw", n) })
+sampler <- gr_cache_client(sampler, gr_cache(file.path(tempdir(), "harnessr-draws")))
+vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")
+vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")  # cached
 }
 \seealso{
 \code{\link[=gr_client]{gr_client()}}, \code{\link[=gr_mock_client]{gr_mock_client()}}, \link{gr_result}, \code{\link[=gr_budget]{gr_budget()}},

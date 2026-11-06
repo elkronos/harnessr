@@ -14,10 +14,12 @@
   the bundled example document. `readgpt_example()` still works, with one
   `gr_deprecated` warning per session naming the new function.
 
-* **Requests, cache keys and recordings are unchanged.** Every request is sent
-  as 0.6.0 sent it, and every response-cache key, replay key and corpus store
-  key is the one 0.6.0 computed, so a warm cache, a recording made for
-  `gr_replay_client()` and a `gr_read_many()` store all keep answering.
+* **Requests, cache keys and recordings are unchanged by the rename.** Every
+  request is sent as 0.6.0 sent it, and the corpus store key is the one 0.6.0
+  computed. The response-cache and replay keys change later in this release
+  (see "Cache and replay keys" below), and the keys 0.6.0 computed are still
+  looked up, so a warm cache, a recording made for `gr_replay_client()` and a
+  `gr_read_many()` store all keep answering.
 
 * **Two options are renamed**: `readgpt.api_key` is now `harnessr.api_key`, and
   `readgpt.allow_local_urls` is now `harnessr.allow_local_urls`. The old names
@@ -95,6 +97,44 @@
 * `gr_options()` given one named argument whose value is a list now sets that
   option. It used to read the list as a set of options to restore, which only
   an unnamed list should be.
+
+## Cache and replay keys
+
+* **`gr_call()` takes a `draw_index`** for the draws of a sampled request: 0,
+  the default, for an ordinary call, and 1, 2, ... for repeated draws. Above 0
+  it is part of the response-cache key, so N identical calls with draw
+  indexes 1 to N are N cached replies; before, a cache returned the first
+  reply N times and anything that compared them saw perfect agreement. A
+  handler finds it in `params$draw_index` and the trace records it in the
+  step's `params`; at 0 neither carries it, so an ordinary call is unchanged.
+
+* **The response-cache key is now `harnessr-cache-v3`**, a SHA-256 hash (64
+  hex digits) in place of xxhash64. Entries written under the old key
+  (`readgpt-cache-v2`, by readgpt 0.6.0 and earlier builds of harnessr) are
+  still read for calls with no draw index: a call that finds nothing under
+  its new key is looked up under the old one. The first reply found that way
+  in a session warns once for the cache, with class `hr_legacy_key`, and
+  `gr_cache_stats()` has a new column, `legacy_hits`, that counts them. Old
+  entries are never rewritten, new ones are written under the new key only,
+  and `gr_cache_clear()` removes both.
+
+* **The replay key is now `harnessr-replay-v2`**, and covers the temperature
+  (once the session default is filled in), the output cap asked for and the
+  JSON schema as well as the messages, model and effort. A replay under
+  another temperature, cap or schema now misses instead of being answered
+  with the recorded replies. Each model step of a trace records its key as
+  `replay_key`. A step recorded before that is looked up by the old key
+  (`readgpt-replay-v1`: messages, model and effort), with one `hr_legacy_key`
+  warning per recording in a session and a count in `$stats()$legacy_hits`.
+
+* **A replay that runs out of recorded replies is an error.** A call past
+  the last reply recorded for its request, or for a draw that was never
+  recorded, raises `hr_replay_exhausted`. It used to repeat the last reply,
+  so a replay making more calls than the recorded run looked like an exact
+  reproduction. `gr_replay_client(on_exhausted = "flag")` keeps the old
+  behaviour, counted in `$stats()$repeats`. A call with a `draw_index` above
+  0 is answered with the reply recorded for that draw, or the k-th reply to
+  the request in a recording made without draw indexes.
 
 # readgpt 0.6.0
 

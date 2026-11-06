@@ -65,7 +65,7 @@
       "type": "function"
     },
     "gr_call": {
-      "formals": ["client", "messages", "model = NULL", "max_output = NULL", "temperature = NULL", "schema = NULL", "schema_name = \"result\"", "trace = NULL", "label = \"call\"", "...", "effort = NULL"],
+      "formals": ["client", "messages", "model = NULL", "max_output = NULL", "temperature = NULL", "schema = NULL", "schema_name = \"result\"", "trace = NULL", "label = \"call\"", "...", "effort = NULL", "draw_index = 0L"],
       "type": "function"
     },
     "gr_chunk_stats": {
@@ -265,7 +265,7 @@
       "type": "function"
     },
     "gr_replay_client": {
-      "formals": ["source", "strict = TRUE"],
+      "formals": ["source", "strict = TRUE", "on_exhausted = c(\"error\", \"flag\")"],
       "type": "function"
     },
     "gr_screen": {

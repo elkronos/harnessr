@@ -1,7 +1,7 @@
 {
   "calls": [
     {
-      "cache_key": "ae421003ba44a5cf",
+      "cache_key": "a7902a9718ff7804a580b9129471d27d7fe659cebbf3c8355bf4e44b04edf413",
       "chars": [302, 2080, 35],
       "label": "retrieve.answer",
       "messages": "dd0360d6e8997255",
@@ -218,6 +218,7 @@
         },
         "prompt": "dd0360d6e8997255",
         "recipe": "needle",
+        "replay_key": "4c91e428acd2cbe3096c3c07885b17dddfe2cea491f12c47cf31726111b9b31d",
         "response": "5e372c1edd7906c1",
         "response_id": null,
         "served_model": null,
