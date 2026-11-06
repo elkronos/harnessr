@@ -152,6 +152,8 @@ test_that("is_plain_data() accepts data and refuses code and references", {
 test_that("a run whose backend reports its own model replays", {
   local_registries()
   local_clean_cache()
+  # The backend's model has no price, so the run has to allow that.
+  gr_options(allow_unpriced = TRUE)
   doc <- gr_example()
   q <- "What was revenue?"
   bk <- gr_backend_client(function(messages, params) {

@@ -301,7 +301,7 @@
       "type": "function"
     },
     "gr_trace": {
-      "formals": ["run_id = NULL", "meta = list()", "system = NULL", "owner = NULL", "run_by = NULL", "purpose = NULL", "approved_by = NULL"],
+      "formals": ["run_id = NULL", "meta = list()", "system = NULL", "owner = NULL", "run_by = NULL", "purpose = NULL", "approved_by = NULL", "governor = NULL"],
       "type": "function"
     },
     "gr_trace_cost": {
@@ -322,6 +322,10 @@
     },
     "gr_verify_evidence": {
       "formals": ["answer", "chunks = NULL"],
+      "type": "function"
+    },
+    "hr_governor": {
+      "formals": ["max_calls = gr_options(\"max_calls\")", "max_cost_usd = gr_options(\"max_cost_usd\")", "max_tokens_total = gr_options(\"max_tokens_total\")", "max_output_tokens = gr_options(\"max_output_tokens\")", "allowed_models = gr_options(\"allowed_models\")", "allow_unpriced = gr_options(\"allow_unpriced\")"],
       "type": "function"
     },
     "is_not_found": {
@@ -553,6 +557,11 @@
     },
     "print.gr_trace": {
       "class": "gr_trace",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_governor": {
+      "class": "hr_governor",
       "formals": ["x", "..."],
       "generic": "print"
     }

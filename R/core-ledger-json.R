@@ -243,7 +243,7 @@ trace_as_list <- function(x) {
     if (is.list(st) && is.list(st$detail)) st$detail <- json_arrays(st$detail, .gr_trace_arrays)
     st
   })
-  list(
+  out <- list(
     run_id = x$run_id,
     # In UTC and marked so: a local time with no offset cannot be placed.
     started = utc_stamp(x$started),
@@ -261,6 +261,18 @@ trace_as_list <- function(x) {
     spent_usd = usd12(as_num1(x$spent_usd, 0)),
     replayed_usd = usd12(as_num1(x$replayed_usd, 0))
   )
+  # Only when there is something to say, so a run that was never refused and
+  # ran under the session's options is written as it always was.
+  if (length(x$refusals)) out$refusals <- x$refusals
+  if (inherits(x$governor, "hr_governor")) {
+    out$governor <- unclass(x$governor)
+    # Always an array, so a reader of saved traces need not handle one model
+    # written as a bare string.
+    if (!is.null(out$governor$allowed_models)) {
+      out$governor$allowed_models <- I(out$governor$allowed_models)
+    }
+  }
+  out
 }
 
 #' @export

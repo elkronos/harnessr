@@ -477,7 +477,10 @@ test_that("a store entry is found from another time zone, and a same-second edit
   Sys.setFileTime(f, as.POSIXct("2026-02-01 00:00:00", tz = "UTC"))
   expect_identical(k4, harnessr:::corpus_key(f, "q", rec, cl))
 
-  # End to end: a run resumed under another TZ pays for nothing.
+  # End to end: a run resumed under another TZ pays for nothing. The backend's
+  # model has no price, so the run has to allow that.
+  local_registries()
+  gr_options(allow_unpriced = TRUE)
   store <- withr::local_tempdir()
   calls <- 0L
   bc <- gr_backend_client(function(m, p) { calls <<- calls + 1L; "Revenue was 51.8 million." },

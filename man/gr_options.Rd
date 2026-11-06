@@ -74,21 +74,41 @@ sequentially.}
 \item{\code{workers} (4)}{Worker processes when \code{parallel} is TRUE.}
 \item{\code{max_cost_usd} (5)}{Spending limit per run, in USD. A run whose
 reader sends every chunk is refused before it starts when sending them
-would cost more than this. Every run is checked again before each
-request, and stops with a \code{partial} answer once what it has spent reaches
-the limit. The cost of a request is known only once it is made, so a run
-can pass the limit by one request. With \code{parallel = TRUE} requests go out
-in batches that cannot be stopped part way, so a reader that sends
-batches is also refused before it starts when its worst case, every reply
-at its token cap and the price of the dearest model it uses, would pass
-the limit. Needs a model with a registered price (see \code{\link[=gr_models]{gr_models()}}).
-Under a limit of 0 a model registered at no cost runs and one with a
-price is refused. \code{NULL} removes the limit.}
+would cost more than this. Every request is then checked before it is
+sent, against what the run has spent plus the most the request could
+cost (its prompt, and its reply at the output cap), and one that could
+pass the limit is not sent (see \code{\link[=hr_governor]{hr_governor()}}), so a run ends at or
+under the limit with a \code{partial} answer. With \code{parallel = TRUE} a reader
+that sends batches is also refused before it starts when its worst case,
+every reply at its token cap and the price of the dearest model it uses,
+would pass the limit, and each worker is held to its share of what is
+left. A chat model with no registered price (see \code{\link[=gr_models]{gr_models()}}) is
+refused under a limit unless \code{allow_unpriced} is \code{TRUE}. Under a limit of 0 a
+model registered at no cost runs and one with a price is refused. \code{NULL}
+removes the limit.}
 \item{\code{max_calls} (400)}{Hard cap on model calls per run, checked before
-the first call and again before every subsequent one. A request to an
-embeddings endpoint (the built-in \code{"api"} embedder) counts as one, and
-is checked and priced against \code{max_cost_usd} the same way; an embedding
-served from the session cache is free. \code{NULL} removes the cap.}
+every request. A request to an embeddings endpoint (the built-in \code{"api"}
+embedder) counts as one, and is checked and priced against
+\code{max_cost_usd} the same way; an embedding served from the session cache
+is free. A request a \code{\link[=gr_cache]{gr_cache()}} answers counts. \code{NULL} removes the
+cap.}
+\item{\code{max_tokens_total} (NULL)}{Most tokens one run may use: the
+prompt and reply tokens of every call, cache hits included, and the
+text sent to be embedded. A request is refused when what the run has
+used plus its prompt and its reply at the cap would pass it. The limit
+that still bounds a run on a model with no price under
+\code{allow_unpriced = TRUE}. \code{NULL} for no limit.}
+\item{\code{max_output_tokens} (NULL)}{The largest output cap one request may
+be sent with. A request with a larger cap (for a reasoning model, the
+raised cap \code{\link[=gr_call]{gr_call()}} sends) is refused rather than cut down. \code{NULL}
+for no ceiling.}
+\item{\code{allowed_models} (NULL)}{Character vector of the model ids a run
+may call, chat and embedding models alike. A request to any other is
+refused. \code{NULL} for any model.}
+\item{\code{allow_unpriced} (FALSE)}{Whether a chat model with no registered price
+may be called while \code{max_cost_usd} is set. Off, such a request is
+refused with a condition of class \code{hr_unpriced_model}; on, it is sent
+and its cost is recorded as unknown (\code{NA}).}
 \item{\code{unknown_model_action} ("warn")}{\code{"warn"} or \code{"error"} when a model id
 is not in the registry.}
 \item{\code{actor} (none)}{A named list (or character vector) of the actor
@@ -105,10 +125,13 @@ named nowhere is \code{NA}. Other names are refused with an error of class
 Numeric options are checked when they are set, and the two kinds are treated
 differently because a wrong value costs different things.
 
-The ceilings, \code{max_cost_usd} and \code{max_calls}, refuse anything that is not a
-single number of zero or more, with an error of class \code{gr_bad_option}: a
-limit that cannot be compared is not a limit, and ignoring it spends money.
-\code{NULL} and \code{Inf} both mean "no limit".
+The ceilings, \code{max_cost_usd}, \code{max_calls}, \code{max_tokens_total} and
+\code{max_output_tokens}, refuse anything that is not a single number of zero or
+more (one or more for \code{max_output_tokens}), with an error of class
+\code{gr_bad_option}: a limit that cannot be compared is not a limit, and
+ignoring it spends money. \code{NULL} and \code{Inf} both mean "no limit".
+\code{allowed_models} must be \code{NULL} or a character
+vector of ids, and \code{allow_unpriced} \code{TRUE} or \code{FALSE}.
 
 The tuning settings (\code{safety_margin} [0, 0.5], \code{min_output_tokens}
 [0, 1e6], \code{max_retries} [0, 10], \code{retry_pause_base} [0, 60],

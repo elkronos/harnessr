@@ -252,23 +252,31 @@ test_that("gr_compare holds all its recipes to one spending limit", {
                     input_usd = 1, output_usd = 10000)
   txt <- sample_doc(6, 6)
   q <- "What was the cohort size?"
-  cl <- mock_echo("The cohort comprised 482 participants recruited across nine sites.")
   seg <- list(method = "paragraph", max_tokens = 120)
+  # Replies capped at 16 tokens, so each request's worst case is about 16
+  # cents and the governor sends requests until the next one could pass.
   mk <- function(reader) gr_recipe(name = reader, segment = seg,
-                                   read = gr_read_spec(reader = reader, model = "price-test"))
+                                   read = gr_read_spec(reader = reader, model = "price-test",
+                                                       max_answer_tokens = 16L,
+                                                       max_chunk_tokens = 16L,
+                                                       max_summary_tokens = 16L))
+  # A reply shorter than that cap, as a provider's would be.
+  cl <- mock_echo("The cohort comprised 482 participants.")
   gr_options(max_calls = 1000, max_cost_usd = NULL)
   one <- quiet(gr_compare(txt, q, list(mk("map_reduce")), client = cl))
   lim <- one$trace$spent_usd * 1.2
   gr_options(max_cost_usd = lim)
   cmp <- quiet(gr_compare(txt, q, list(mk("map_reduce"), mk("refine"), mk("skim"),
                                        mk("hierarchical")), client = cl))
-  # Past the limit by at most the request that reached it, not by three more
-  # recipes' worth.
-  expect_lt(cmp$trace$spent_usd, lim * 1.2)
+  # Not past the limit at all: it used to be passed by the request that
+  # reached it, and before that by three more recipes' worth.
+  expect_lte(cmp$trace$spent_usd, lim)
   expect_true(cmp$trace$budget_stop)
   expect_true(all(cmp$summary$partial[-1]))
-  # The recipes refused outright say why.
-  expect_true(any(grepl("already spent", cmp$summary$error)))
+  # Every request held back was held back by the spending limit.
+  expect_gt(length(cmp$trace$refusals), 0L)
+  expect_true(all(vapply(cmp$trace$refusals, function(r) identical(r$limit, "cost"),
+                         logical(1))))
   # The shared trace still adds up to its steps.
   expect_equal(cmp$trace$spent_usd, sum(gr_trace_cost(cmp$trace)$usd))
 })

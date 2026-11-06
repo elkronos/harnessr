@@ -503,14 +503,15 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   # the revision passes all size for, and ask, the same model.
   spec <- resolve_read_model(spec, client)
   # The parent, not the counter -- see as_parent_trace(). Running the write-up on
-  # a trace that screening had already spent meant `trace_can_call()` refused
+  # a trace that screening had already spent meant the call cap refused
   # every section and the review came back as a list of empty headings.
   parent <- as_parent_trace(trace)
   trace <- gr_trace(meta = c(list(stage = "synthesise", question = question,
                                   sections = length(outline), studies = nrow(used)),
                              if (!is.null(chosen))
                                list(outline_alternative = chosen$alternative,
-                                    outline_of = chosen$of)))
+                                    outline_of = chosen$of)),
+                    governor = fork_governor(parent))
   if (!is.null(parent)) on.exit(trace_absorb(parent, trace), add = TRUE)
 
   # The writing model is NOT shown who wrote each study. Adding bibliographic

@@ -214,22 +214,22 @@ outline_alternatives <- function(first, k, reply, msgs, cw, closing, max_section
     # with no sections under it, the next request was asked to differ from
     # nothing. And what most often stops the first -- the cap, or a reply
     # limit the claims overrun -- would stop a longer request just the same.
-    skip(2L, if (!trace_can_call(trace)) capped() else if (is.null(reply))
+    skip(2L, if (governor_exhausted(trace)) capped() else if (is.null(reply))
       "not requested, as the first outline did not come back and there was nothing to differ from"
       else paste0("not requested, as none of the first outline's sections held a claim once ",
                   "verified, and there was nothing to differ from"))
   } else {
     for (j in seq.int(2L, k)) {
-      if (!trace_can_call(trace)) {
-        skip(j, capped())
-        break
-      }
       ask <- c(msgs, list(list(role = "user", content = sprintf(
         .gr_outline_alt_prompt, render_earlier_outlines(kept, kept_no), j))))
       res <- gr_call_json(client, ask, schema = .gr_outline_schema, schema_name = "outline",
                           model = spec$model, max_output = spec$max_answer_tokens,
                           temperature = spec$temperature, trace = trace,
                           label = sprintf("outline.derive.alt%d", j), effort = spec$effort)
+      if (is_refused(res$result)) {
+        skip(j, capped())
+        break
+      }
       secs <- if (isTRUE(res$ok)) outline_rows(json_field(res$value, "sections", scalar = FALSE))
       if (!outline_places_any(secs, cw, closing, max_sections)) {
         # No stand-in, unlike the first: one section holding every claim is

@@ -19,8 +19,6 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
                               prompt_overhead(question, .gr_prompts$summarise_system, "never"),
                             spec$max_summary_tokens)
     got <- gr_lapply(seq_along(texts), function(i, trace) {
-      # Not sent is not failed; see map_reduce.
-      if (!trace_can_call(trace)) return(list(text = "", capped = TRUE))
       r <- gr_call(client, list(
         list(role = "system", content = .gr_prompts$summarise_system),
         list(role = "user", content = paste0("Question: ", question)),
@@ -28,6 +26,8 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
       ), model = summary_model, max_output = spec$max_summary_tokens,
          temperature = spec$temperature, trace = trace,
          label = sprintf("hier.summarise.L%d", level), effort = spec$effort)
+      # Not sent is not failed; see map_reduce.
+      if (is_refused(r)) return(list(text = "", capped = TRUE))
       list(text = if (usable_text(r)) r$text else "", capped = FALSE,
            cut = usable_text(r) && reply_cut_off(r))
     }, parallel = spec$parallel, label = sprintf("summary L%d", level), trace = trace,
@@ -94,17 +94,16 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
     gr_warn(sprintf("Hierarchical summaries still exceed the budget after %d level(s); truncating.", level),
             class = "gr_overflow")
   }
-  res <- if (trace_can_call(trace)) {
-    # cite = FALSE, always. This reader answers from SUMMARIES, which carry no
-    # [chunk N] ids -- asking for citations here asks the model to invent ids
-    # that are not in front of it, which is how a citing reader starts citing
-    # chunks it never saw.
-    gr_call(client, answer_messages(question, body, cite = FALSE, label = "Summaries",
-                                    restate = spec$restate, premise = spec$premise),
-            model = spec$model, max_output = spec$max_answer_tokens,
-            temperature = spec$temperature, trace = trace, label = "hier.answer",
-            effort = spec$effort)
-  } else gr_result(FALSE, error = paste(cap_name(trace), "reached before the answer step"))
+  # cite = FALSE, always. This reader answers from SUMMARIES, which carry no
+  # [chunk N] ids. Asking for citations here asks the model to invent ids that
+  # are not in front of it, which is how a citing reader starts citing chunks
+  # it never saw. A limit refuses the request, and the summaries are handed
+  # back below.
+  res <- gr_call(client, answer_messages(question, body, cite = FALSE, label = "Summaries",
+                                         restate = spec$restate, premise = spec$premise),
+                 model = spec$model, max_output = spec$max_answer_tokens,
+                 temperature = spec$temperature, trace = trace, label = "hier.answer",
+                 effort = spec$effort)
   if (usable_text(res) && reply_cut_off(res)) cut <- cut + 1L
   # Summaries handed back in place of an answer are no reply to classify.
   out <- if (usable_text(res)) premise_reply(res$text, spec$premise)

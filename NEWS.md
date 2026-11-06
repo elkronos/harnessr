@@ -136,6 +136,78 @@
   0 is answered with the reply recorded for that draw, or the k-th reply to
   the request in a recording made without draw indexes.
 
+## Limits checked before every request
+
+* **`max_calls` and `max_cost_usd` now hold exactly.** Every request is
+  checked before it is sent, by the call path itself, against what the run
+  has spent plus the most the request could cost: its prompt at the input
+  price and its output cap (for a reasoning model, the raised cap `gr_call()`
+  sends) at the output price. The prompt is counted with the JSON schema and
+  extra body fields the request carries and a few tokens of framing per
+  message, then raised by `safety_margin`, since the provider bills for all
+  of that. A request that could take the run past a limit is not sent. Runs
+  used to stop only once what they had spent reached the limit, so they
+  ended up to one request over it; they now end at or under it, as long as
+  the provider stops each reply at its cap and counts the prompt within that
+  margin of the local tokenizer. A run that leaves its output caps at the
+  model's limit stops while it still has headroom a smaller cap would have
+  used.
+
+* **A refused request is not a call.** It comes back from `gr_call()` as a
+  failed result with `refused = TRUE` and an error naming the limit, after a
+  condition of class `hr_budget_refused` is signalled (catch it to stop
+  instead). It adds nothing to the trace's calls, steps or spend; the trace
+  lists it in a new `refusals` field, sets `budget_stop` and names the limit
+  in `stop_reason`. Readers and review stages treat it as they treated
+  reaching a limit before: the answer or section is marked partial, and the
+  request is not counted as failed.
+
+* **Every request is checked, not only the ones a reader asked about.**
+  Judges, the ensemble's adjudication, conflict resolution in `extract`,
+  context and proposition segmentation, claims, outlines, screening,
+  synthesis and embeddings requests all go through the same check, as does
+  any request a custom reader or a script makes with `gr_call()`. The
+  readers no longer check `trace_can_call()` themselves. It is kept for
+  custom readers written to the 0.6.0 help page, which still work.
+
+* **A chat model with no registered price is refused while a spending limit
+  is set**, with a condition of class `hr_unpriced_model`. Such a model added
+  nothing to the spend, so the limit never stopped it. `gr_read()` stops
+  before its first request with an `hr_unpriced_model` error. Register the
+  model's prices with `gr_register_model()`, or set
+  `gr_options(allow_unpriced = TRUE)`; then its requests are sent, still
+  count against `max_calls` and `max_tokens_total`, and are priced `NA` in
+  the trace. `gr_mock_client()` and replays are never refused for this, and
+  neither are embedding models with no price.
+
+* **New option `max_tokens_total`** (`NULL`, off) limits the tokens a run
+  may use: prompts and replies of every call, and text sent to be embedded.
+  A request whose prompt and reply at its cap would pass it is refused with
+  `stop_reason` `"tokens"`. It is the limit that still bounds a run on an
+  unpriced model under `allow_unpriced = TRUE`.
+
+* **New `hr_governor()`** holds a run's limits: `max_calls`, `max_cost_usd`,
+  `max_tokens_total`, `max_output_tokens` (the largest output cap one request may carry; a
+  request with a larger one is refused, not cut down), `allowed_models` and
+  `allow_unpriced`. Attach one with the new `gr_trace(governor = )` argument;
+  a trace without one reads the limits from `gr_options()`, as before. The
+  new limits are also options, `max_tokens_total`, `max_output_tokens`,
+  `allowed_models` (all `NULL`, off) and `allow_unpriced` (`FALSE`), so every
+  trace's config snapshot now lists them. `as_json()` writes a trace's
+  `refusals` and `governor` when it has any, with `allowed_models` always as
+  an array. `gr_read_many()` and `gr_synthesise()`, which keep a trace of
+  their own and fold it into the one they are given, hold their requests to
+  that trace's governor, less what it has already spent; `max_calls` stays a
+  limit per document and per stage.
+
+* **A parallel batch cannot pass a limit.** Each worker's items are held to
+  an equal share of the calls and dollars the run has left, and an item its
+  share refused before it sent anything runs again in the calling process,
+  against the run. A batch that the run's limits cannot cover still runs in
+  the calling process, as before. Batch items make one request each; an item
+  that made more and had a later one refused by its share warns
+  (`gr_parallel_share`) and does not mark the run as stopped.
+
 # readgpt 0.6.0
 
 ## New

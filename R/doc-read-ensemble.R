@@ -96,18 +96,18 @@ read_ensemble <- function(chunks, question, client, spec, trace) {
   }, character(1))
   body <- paste(sprintf("<finding source=\"%s\">\n%s\n</finding>", members[usable], findings),
                 collapse = "\n\n")
-  res <- if (trace_can_call(trace)) {
-    gr_call(client, list(
-      list(role = "system", content = paste0(
-        merge_system_prompt(spec$premise),
-        " These findings come from different reading strategies over the same document. Where they ",
-        "agree, state it once. Where they conflict, say which strategy found what and which claim ",
-        "has the more specific support.")),
-      list(role = "user", content = body),
-      list(role = "user", content = paste0("Question: ", question))
-    ), model = spec$model, max_output = spec$max_answer_tokens, temperature = spec$temperature,
-       trace = trace, label = "ensemble.adjudicate", effort = spec$effort)
-  } else gr_result(FALSE, error = paste(cap_name(trace), "reached before adjudication"))
+  # The adjudication is a request like the members' own, checked by the
+  # governor before it is sent.
+  res <- gr_call(client, list(
+    list(role = "system", content = paste0(
+      merge_system_prompt(spec$premise),
+      " These findings come from different reading strategies over the same document. Where they ",
+      "agree, state it once. Where they conflict, say which strategy found what and which claim ",
+      "has the more specific support.")),
+    list(role = "user", content = body),
+    list(role = "user", content = paste0("Question: ", question))
+  ), model = spec$model, max_output = spec$max_answer_tokens, temperature = spec$temperature,
+     trace = trace, label = "ensemble.adjudicate", effort = spec$effort)
 
   ev <- rbind_evidence(lapply(results[usable], function(r) r$evidence))
 

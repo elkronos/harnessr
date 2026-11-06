@@ -36,9 +36,12 @@
 #'     `effort = spec$effort` to every [gr_call()], which resolves a setting
 #'     by stage against the call's `label`, so give each call a label of its
 #'     own; a call without it is sent no effort.}
-#'   \item{`trace`}{Pass it to every [gr_call()] so your calls are counted and
-#'     priced, and check `harnessr:::trace_can_call(trace)` before each one so
-#'     the run's call and spending limits are respected.}
+#'   \item{`trace`}{Pass it to every [gr_call()] so your calls are counted,
+#'     priced and held to the run's limits: a request that would pass
+#'     `max_calls` or `max_cost_usd` is not sent, and comes back with
+#'     `refused = TRUE` (see [hr_governor()]). Stop or degrade when one does.
+#'     A reader that still checks `harnessr:::trace_can_call(trace)` first, as
+#'     earlier versions advised, keeps working.}
 #' }
 #' Return [new_answer()]. Budget your prompt with [gr_budget()] rather than
 #' assuming the document fits.

@@ -349,6 +349,8 @@ test_that("corpus_cost() splits unpriced embedding models from the rest", {
 test_that("a store entry written by 0.5.0 is read again once, then restored", {
   local_registries()
   local_clean_cache()
+  # The backend's model has no price, so the run has to allow that.
+  gr_options(allow_unpriced = TRUE)
   dir <- withr::local_tempdir()
   doc <- file.path(dir, "a.txt")
   writeLines("Revenue was 45.2 million dollars.", doc)

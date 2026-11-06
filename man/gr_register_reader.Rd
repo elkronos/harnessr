@@ -49,9 +49,12 @@ filled \code{model} from the client when the spec named none. Pass
 \code{effort = spec$effort} to every \code{\link[=gr_call]{gr_call()}}, which resolves a setting
 by stage against the call's \code{label}, so give each call a label of its
 own; a call without it is sent no effort.}
-\item{\code{trace}}{Pass it to every \code{\link[=gr_call]{gr_call()}} so your calls are counted and
-priced, and check \code{harnessr:::trace_can_call(trace)} before each one so
-the run's call and spending limits are respected.}
+\item{\code{trace}}{Pass it to every \code{\link[=gr_call]{gr_call()}} so your calls are counted,
+priced and held to the run's limits: a request that would pass
+\code{max_calls} or \code{max_cost_usd} is not sent, and comes back with
+\code{refused = TRUE} (see \code{\link[=hr_governor]{hr_governor()}}). Stop or degrade when one does.
+A reader that still checks \code{harnessr:::trace_can_call(trace)} first, as
+earlier versions advised, keeps working.}
 }
 Return \code{\link[=new_answer]{new_answer()}}. Budget your prompt with \code{\link[=gr_budget]{gr_budget()}} rather than
 assuming the document fits.

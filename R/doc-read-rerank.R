@@ -81,8 +81,6 @@ read_rerank <- function(chunks, question, client, spec, trace) {
   # "unscorable" -- so counting outcomes by matching it counted a judged chunk
   # as an unjudged one.
   scored <- gr_lapply(cand, function(i, trace) {
-    # A call that was never made judged nothing: NA, like a failed one.
-    if (!trace_can_call(trace)) return(list(i = i, score = NA_real_, status = "capped"))
     out <- gr_call_json(client, list(
       list(role = "system", content = score_system),
       list(role = "user", content = paste0("Question: ", question)),
@@ -90,6 +88,8 @@ read_rerank <- function(chunks, question, client, spec, trace) {
     ), schema = schema, schema_name = "relevance",
        model = score_model, max_output = 200L,
        temperature = spec$temperature, trace = trace, label = "rerank.score", effort = spec$effort)
+    # A call that was never made judged nothing: NA, like a failed one.
+    if (is_refused(out$result)) return(list(i = i, score = NA_real_, status = "capped"))
     # NA, not 0. A failed call judged nothing, and scoring it 0 put it through
     # the threshold at rerank_min_score = 0 as a model-judged score for a chunk
     # no model had read -- and kept it out of the "was anything judged?" test
@@ -190,13 +190,11 @@ read_rerank <- function(chunks, question, client, spec, trace) {
                                           degraded_to_bm25 = degraded,
                                           context_order = as_chr1(spec$context_order, "relevance"),
                                           scores = round(utils::head(keep_sc, 10), 2)))
-  res <- if (trace_can_call(trace)) {
-    gr_call(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
-                                    restate = spec$restate, premise = spec$premise),
-            model = spec$model, max_output = spec$max_answer_tokens,
-            temperature = spec$temperature, trace = trace, label = "rerank.answer",
-            effort = spec$effort)
-  } else gr_result(FALSE, error = paste(cap_name(trace), "reached before the answer step"))
+  res <- gr_call(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
+                                         restate = spec$restate, premise = spec$premise),
+                 model = spec$model, max_output = spec$max_answer_tokens,
+                 temperature = spec$temperature, trace = trace, label = "rerank.answer",
+                 effort = spec$effort)
   cut <- as.integer(res$ok && reply_cut_off(res))
   out <- premise_reply(if (res$ok) res$text else .NOT_FOUND, spec$premise)
   # No answer, no evidence; see stuff.

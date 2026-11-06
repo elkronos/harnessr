@@ -196,6 +196,11 @@ print.gr_result <- function(x, ...) {
 #'   said about its reply (`NA` where it said nothing; `$model` stays the model
 #'   asked for), and `$attempts` is how many requests were sent for it,
 #'   retries included, 0 for a reply from a cache or a recording.
+#'   A request that would pass one of the run's limits (see [hr_governor()])
+#'   is not sent: it comes back with `ok = FALSE`, `$refused = TRUE`, an
+#'   `$error` naming the limit and the condition in `$refusal`, after a
+#'   condition of class `hr_budget_refused` is signalled. It is not recorded
+#'   as a step of the trace.
 #' @seealso [gr_client()], [gr_mock_client()], [gr_result], [gr_budget()],
 #'   [gr_cache_client()], [gr_replay_client()]
 #' @export
@@ -331,9 +336,25 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   # and a handler is given, which a replay reads; this is the record of what
   # went out, and is kept out of every key.
   sent <- client_sent_params(client, req)
-  started <- Sys.time()
-  res <- client_dispatch(client, req)
-  ended <- Sys.time()
+  # The governor sees the request before the client does. What holds whoever
+  # answers (the call count, the output ceiling, the allowed models) is
+  # checked here; what only a paid request can pass (the spending limit, a
+  # model with no price) is checked by the client's dispatch once a cache has
+  # missed, through `admit`. A refused request is not sent and is no step.
+  gate <- governor_request(client, req, sent)
+  refusal <- governor_check(trace, gate, "call")
+  if (is.null(refusal)) {
+    req$admit <- function() governor_check(trace, gate, "send")
+    started <- Sys.time()
+    res <- client_dispatch(client, req)
+    ended <- Sys.time()
+  } else {
+    res <- refused_result(refusal, model)
+  }
+  if (is_refused(res)) {
+    governor_refuse(trace, res$refusal)
+    return(res)
+  }
   # A replay hands back the record of what the recorded call sent.
   if (!is.null(res[["params_sent", exact = TRUE]])) {
     sent <- res$params_sent
@@ -356,6 +377,76 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
                sent = sent, started = started, ended = ended, replay_key = rkey)
   res
 }
+
+#' What the governor is told about a prepared request: its model and label, the
+#' most prompt tokens it can be billed for (see governor_input_tokens()), and
+#' the output cap it goes out with. That is the cap the
+#' request carries (for a reasoning model over HTTP the raised one), or for a
+#' replay the cap an HTTP request would have carried. A mock makes no paid
+#' request, so its model needs no price. A replay costs nothing unless its
+#' recording was stopped by the spending limit, in which case each request
+#' counts what it would cost here, so the replay is refused where the
+#' recording was. An ellmer chat answers, and is billed, as the model it was
+#' built with whatever the request names, so that is the model checked.
+#' @noRd
+governor_request <- function(client, req, sent) {
+  cap <- if (is.list(sent)) as_num1(sent$max_output, NA_real_) else NA_real_
+  if (is.na(cap)) {
+    cap <- reasoning_output_cap(req$max_output, req$info, as_num1(req$params$prompt_tokens, 0))
+  }
+  prompt <- governor_input_tokens(client, req)
+  model <- req$model
+  if (inherits(client, "gr_ellmer_client")) {
+    built <- as_chr1(client[["model", exact = TRUE]], "")
+    if (nzchar(built)) model <- built
+  }
+  out <- list(model = model, label = req$label, input_tokens = prompt, output_tokens = cap,
+              unpriced_ok = inherits(client, "gr_mock_client"))
+  if (inherits(client, "gr_replay_client")) {
+    worst <- if (isTRUE(client[[".replay_costs", exact = TRUE]])) {
+      worst_case_usd(model, prompt, cap)
+    } else 0
+    out$worst_usd <- if (is.na(worst)) 0 else worst
+  }
+  out
+}
+
+#' The most prompt tokens a request can be billed for.
+#'
+#' The trace counts the text of the messages, but a provider bills for more:
+#' a few tokens of framing per message and for the reply, the JSON schema a
+#' structured call sends, and any extra body fields. The governor checked the
+#' message count alone while the spend was charged on the provider's figure,
+#' so a run whose replies reached their cap ended above its limit. So the
+#' schema and the extra fields are counted as JSON, each message is given
+#' `.gr_message_overhead` tokens and the reply `.gr_reply_overhead`, and the
+#' sum is raised by `safety_margin`, the slack the context budget already
+#' leaves for tokenizer error. It is a bound on what a tokenizer can count,
+#' not a promise about what a provider reports.
+#' @noRd
+governor_input_tokens <- function(client, req) {
+  counted <- as_num1(req$params$prompt_tokens, 0)
+  json_tokens <- function(x) {
+    if (is.null(x) || (is.list(x) && !length(x))) return(0)
+    json <- jsonlite::toJSON(x, auto_unbox = TRUE, digits = NA, null = "null", na = "null")
+    sum(gr_count_tokens(as.character(json), model = req$model))
+  }
+  schema <- if (!is.null(req$schema)) list(name = req$schema_name, schema = req$schema)
+  # Only an HTTP client puts the extra body fields on the request; a handler
+  # is never given them.
+  extra <- if (!inherits(client, c("gr_backend_client", "gr_mock_client", "gr_replay_client"))) {
+    utils::modifyList(client$extra_body %||% list(), req$extra %||% list())
+  }
+  framing <- .gr_message_overhead * length(req$messages) + .gr_reply_overhead
+  margin <- as_num1(gr_options("safety_margin"), 0.1)
+  ceiling((counted + framing + json_tokens(schema) + json_tokens(extra)) * (1 + max(margin, 0)))
+}
+
+# Tokens a chat provider adds to each message for its role and delimiters, and
+# to prime the reply. OpenAI documents 3 and 3 for its chat models; one more
+# per message covers a `name` field.
+.gr_message_overhead <- 4
+.gr_reply_overhead <- 3
 
 #' The output cap a call is made with: the one asked for, or the model's, held
 #' to the model's limit and to what the context window leaves after the prompt.
@@ -435,6 +526,8 @@ client_dispatch <- function(client, req) UseMethod("client_dispatch")
 
 #' @noRd
 client_dispatch.gr_replay_client <- function(client, req) {
+  refusal <- if (is.function(req$admit)) req$admit()
+  if (!is.null(refusal)) return(refused_result(refusal, req$model))
   replay_lookup(client, req)
 }
 
@@ -485,6 +578,10 @@ client_dispatch.gr_client <- function(client, req) {
     }
   }
 
+  # Past the cache, so about to be sent: the spending limit and the unpriced
+  # rule are checked now, and a request either refuses is not sent.
+  refusal <- if (is.function(req$admit)) req$admit()
+  if (!is.null(refusal)) return(refused_result(refusal, req$model))
   res <- client_send(client, req)
 
   # A reply cut off at the cap is not stored either. It is an incomplete answer,

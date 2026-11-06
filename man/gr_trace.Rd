@@ -12,7 +12,8 @@ gr_trace(
   owner = NULL,
   run_by = NULL,
   purpose = NULL,
-  approved_by = NULL
+  approved_by = NULL,
+  governor = NULL
 )
 
 \method{as.data.frame}{gr_trace}(x, row.names = NULL, optional = FALSE, ...)
@@ -28,6 +29,10 @@ system, the person who ran it, what it was for, and who approved it. Each
 is one string. One left \code{NULL} is taken from \code{gr_options("actor")}, and is
 \code{NA} when that does not name it either.}
 
+\item{governor}{An \code{\link[=hr_governor]{hr_governor()}} holding the limits every request recorded
+into this trace is checked against before it is sent, or \code{NULL} (the
+default) to read them from \code{\link[=gr_options]{gr_options()}} at each check.}
+
 \item{x}{A \code{gr_trace}.}
 
 \item{row.names}{Optional row names for the result.}
@@ -39,7 +44,8 @@ A \code{gr_trace}. It is an environment, so it accumulates by reference:
 pass the same trace to several calls and they all record into it. Fields:
 \code{run_id}, \code{started}, \code{meta}, \code{actor}, \code{config}, \code{steps}, \code{calls},
 \code{cached}, \code{tokens_in}, \code{tokens_out}, \code{embed_tokens}, \code{errors},
-\code{budget_stop}, \code{stop_reason}, \code{spent_usd}, \code{replayed_usd}.
+\code{budget_stop}, \code{stop_reason}, \code{spent_usd}, \code{replayed_usd}, \code{refusals},
+\code{governor}.
 
 \code{actor} holds the five fields above. \code{config} is a snapshot of the
 options in force when the trace was made (\code{\link[=gr_options]{gr_options()}}, with the values
@@ -66,19 +72,25 @@ contextual header that could not be written leaves no mark on the answer
 at all, and this entry is the record of it.
 
 \code{budget_stop} is \code{TRUE} once a limit stopped the run, and \code{stop_reason}
-says which: \code{"calls"} for \code{max_calls}, \code{"cost"} for \code{max_cost_usd} (see
-\code{\link[=gr_options]{gr_options()}}). \code{spent_usd} is what the calls so far cost. A call to a
-model with no registered price adds nothing to it, so \code{\link[=gr_trace_cost]{gr_trace_cost()}} is
-the full account. \code{replayed_usd} is what the calls a \code{\link[=gr_replay_client]{gr_replay_client()}}
-answered cost when they were recorded, counted when the spending limit
-stopped the recorded run: nothing was paid for them, but \code{max_cost_usd}
-is checked against \code{spent_usd + replayed_usd}, so the replay stops at the
-same call. A call answered from a \code{\link[=gr_cache]{gr_cache()}} adds to neither, so a
+says which: \code{"calls"} for \code{max_calls}, \code{"cost"} for \code{max_cost_usd},
+\code{"tokens"} for \code{max_tokens_total}, and \code{"output"}, \code{"model"} or
+\code{"unpriced"} for the other limits of \code{\link[=hr_governor]{hr_governor()}} (see \code{\link[=gr_options]{gr_options()}}).
+\code{refusals} has one entry per request the governor did not send: its
+\code{label}, \code{model}, the \code{limit} it would have passed, its worst-case cost
+\code{worst_usd}, the run's \code{calls} and \code{spent_usd} at that moment, and the
+\code{message}. A refused request is not a call and has no step. \code{spent_usd}
+is what the calls so far cost. A call to a model with no registered price
+(sent under \code{allow_unpriced = TRUE}) adds nothing to it, so
+\code{\link[=gr_trace_cost]{gr_trace_cost()}} is the full account. \code{replayed_usd} is what the calls a
+\code{\link[=gr_replay_client]{gr_replay_client()}} answered cost when they were recorded, counted when
+the spending limit stopped the recorded run: nothing was paid for them,
+but \code{max_cost_usd} is checked against \code{spent_usd + replayed_usd}, so the
+replay stops at the same call. A call answered from a \code{\link[=gr_cache]{gr_cache()}} adds to neither, so a
 re-run through a warm cache under the same limit reads further than the
 run that filled it.
 \code{\link[=as_json]{as_json()}} and \code{\link[=gr_trace_save]{gr_trace_save()}} write \code{budget_stop}, \code{stop_reason},
 \code{spent_usd} and \code{replayed_usd}, so a saved run says whether it was cut
-short.
+short, and \code{refusals} and \code{governor} when there are any.
 
 \code{as.data.frame()} on a trace returns one row per request; see below.
 }

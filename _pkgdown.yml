@@ -114,6 +114,7 @@ reference:
 - title: Cost, tokens and tracing
   contents:
   - gr_options
+  - hr_governor
   - gr_estimate_cost
   - gr_count_tokens
   - gr_tokenizer

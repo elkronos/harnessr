@@ -83,6 +83,11 @@ reply is not written to a \code{\link[=gr_cache]{gr_cache()}}.
 said about its reply (\code{NA} where it said nothing; \verb{$model} stays the model
 asked for), and \verb{$attempts} is how many requests were sent for it,
 retries included, 0 for a reply from a cache or a recording.
+A request that would pass one of the run's limits (see \code{\link[=hr_governor]{hr_governor()}})
+is not sent: it comes back with \code{ok = FALSE}, \verb{$refused = TRUE}, an
+\verb{$error} naming the limit and the condition in \verb{$refusal}, after a
+condition of class \code{hr_budget_refused} is signalled. It is not recorded
+as a step of the trace.
 }
 \description{
 Call a model

@@ -252,13 +252,13 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   cut_off <- integer(0)
   for (g in seq_along(groups)) {
     if (length(groups) > 1L) gr_msg(sprintf("Claims from batch %d of %d.", g, length(groups)))
+    b <- claims_batch(groups[[g]], question, client, spec, trace, shown = used$study[index[[g]]])
     # A batch a limit stopped is not a batch the model found nothing in.
-    if (!trace_can_call(trace)) {
+    if (identical(b$status, "not_sent")) {
       not_sent <- not_sent + 1L
       unsent <- c(unsent, g)
       next
     }
-    b <- claims_batch(groups[[g]], question, client, spec, trace, shown = used$study[index[[g]]])
     if (identical(b$status, "cut_off")) cut_off <- c(cut_off, g)
     if (identical(b$status, "failed")) failed <- c(failed, g)
     raw[[g]] <- b$rows
@@ -388,7 +388,6 @@ call_failure <- function(result, messages, model, cap, knob) {
 #' `shown` is the study numbers in the batch, which is what its claims may cite.
 #' @noRd
 claims_batch <- function(block, question, client, spec, trace, shown = NULL) {
-  if (!trace_can_call(trace)) return(list(rows = NULL, status = "not_sent"))
   res <- gr_call_json(client, list(
     list(role = "system", content = .gr_prompts$claims_system),
     list(role = "user", content = paste0("Review question: ", question)),
@@ -397,6 +396,7 @@ claims_batch <- function(block, question, client, spec, trace, shown = NULL) {
   ), schema = .gr_claims_schema, schema_name = "claims", model = spec$model,
      max_output = spec$max_answer_tokens, temperature = spec$temperature,
      trace = trace, label = "claims.draw", effort = spec$effort)
+  if (is_refused(res$result)) return(list(rows = NULL, status = "not_sent"))
   if (!isTRUE(res$ok)) {
     return(list(rows = NULL, status = if (reply_cut_off(res$result)) "cut_off" else "failed"))
   }
@@ -523,9 +523,6 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
     attr(out, "unmerged") <- TRUE
     out
   }
-  if (!trace_can_call(trace)) {
-    return(unmerged(sprintf("the run reached its %s", cap_name(trace)), class = "gr_claims_capped"))
-  }
   listed <- paste(sprintf("%d. %s", seq_len(n), claims$claim), collapse = "\n")
   # Sized by the claims, as the draw is sized by its studies: the reply names
   # every claim once, so a fixed limit cut off the reply for a large corpus and
@@ -538,6 +535,9 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
   res <- gr_call_json(client, msgs, schema = .gr_reconcile_schema, schema_name = "claim_groups",
                       model = spec$model, max_output = cap, temperature = spec$temperature,
                       trace = trace, label = "claims.reconcile", effort = spec$effort)
+  if (is_refused(res$result)) {
+    return(unmerged(sprintf("the run reached its %s", cap_name(trace)), class = "gr_claims_capped"))
+  }
   if (!isTRUE(res$ok)) {
     # Said, as the capped case above is. Batches sized by their reply make this
     # pass the normal route for a large corpus, and its reply names every claim.

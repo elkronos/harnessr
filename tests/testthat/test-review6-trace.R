@@ -172,25 +172,34 @@ test_that("a replayed batch makes every call the recorded batch made", {
   gr_register_model("r6-batch", context_window = 8000L, max_output = 1000L,
                     input_usd = 0, output_usd = 1e5)
   client <- gr_mock_client(function(m, p) "two words")
+  # Each reply is counted at 6 tokens, $0.60, which is also its cap, so a
+  # limit of $1 has room for one call and not two.
   fn <- function(i, trace) {
-    if (!harnessr:::trace_can_call(trace)) return(NA_character_)
-    gr_call(client, sprintf("item %d", i), model = "r6-batch", trace = trace)$text
+    res <- gr_call(client, sprintf("item %d", i), model = "r6-batch", max_output = 6L,
+                   trace = trace)
+    if (isTRUE(res$refused)) NA_character_ else res$text
   }
-  gr_options(max_cost_usd = Inf)
+  # A batch used to go out whole and pass the limit, and its replay had to
+  # make every call it made. Now the batch stops where the limit does, and
+  # the replay makes the same calls and stops at the same one.
+  gr_options(max_cost_usd = 1)
   rec <- gr_trace()
-  harnessr:::gr_lapply(1:4, fn, parallel = FALSE, trace = rec)
-  # What a batch sent to workers leaves when it passes the limit: every call
-  # made, and the stop recorded after them.
-  rec$budget_stop <- TRUE
-  rec$stop_reason <- "cost"
-  expect_gt(rec$spent_usd, 0.5)
-  gr_options(max_cost_usd = 0.5)
+  live <- quiet(harnessr:::gr_lapply(1:4, fn, parallel = TRUE, workers = 2, trace = rec,
+                                     item_usd = 0.01))
+  expect_lte(rec$spent_usd, 1)
+  expect_true(rec$budget_stop)
+  expect_identical(rec$stop_reason, "cost")
+  made <- rec$calls
+  expect_gt(made, 0L)
+  expect_lt(made, 4L)
+
   client <- gr_replay_client(rec)
   tr <- gr_trace()
   got <- quiet(harnessr:::gr_lapply(1:4, fn, parallel = TRUE, workers = 2, trace = tr,
                                    item_usd = 0.01))
-  expect_identical(unlist(got), rep("two words", 4L))
-  expect_identical(client$stats()$hits, 4L)
+  expect_identical(got, live)
+  expect_identical(client$stats()$hits, made)
+  expect_identical(client$stats()$misses, 0L)
   expect_true(tr$budget_stop)
   expect_identical(tr$stop_reason, "cost")
 })

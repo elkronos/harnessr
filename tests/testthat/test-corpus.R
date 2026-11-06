@@ -287,6 +287,8 @@ test_that("cost counts only the calls that were actually issued", {
 
 test_that("cost is reported per model, and an unpriced model is NA rather than free", {
   local_registries()
+  # A chat model with no price is sent only when the run allows it.
+  gr_options(allow_unpriced = TRUE)
   gr_register_model("cheap", context_window = 100000L, max_output = 4096L,
                     input_usd = 1, output_usd = 1)
   gr_register_model("unpriced", context_window = 100000L, max_output = 4096L)
