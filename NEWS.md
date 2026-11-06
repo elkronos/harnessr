@@ -244,6 +244,60 @@
   `rerank` prefilter and the offline `retrieve` path no longer slow down with
   the square of the number of chunks. Scores are unchanged.
 
+## Parameter schemas, declared calls and reader costs
+
+* **New `hr_schema()`, `hr_param()` and `hr_validate()`** state a spec's
+  parameters once: type, default, range and choices. `gr_read_spec()`,
+  `gr_segment_spec()` and `gr_ingest_spec()` now check their arguments
+  through schemas instead of code of their own. They accept the same values
+  and return the same specs, with the same clamps, defaults and warnings; a
+  clamp warning now also has class `hr_param_clamped` beside `gr_clamped`.
+
+* A value outside the choices of `context_order`, `restate`, `on_overflow`,
+  `context_source`, `ocr` or `layout` is still an error, which now names the
+  setting and has class `gr_bad_setting`, where it used to be a plain
+  `match.arg()` error that said `'arg'`.
+
+* **Readers and segmenters declare the labels their calls carry.**
+  `gr_register_reader()` and `gr_register_segmenter()` take a new `calls`
+  argument, the stems of their calls' trace labels (`"stuff.answer"`,
+  `c("map.answer", "reduce")`). `gr_readers()` and `gr_segmenters()` list
+  them in a new `calls` column. A reader or segmenter registered without
+  `calls` declares its own name, which covers labels such as
+  `"longest.answer"` for a reader called `"longest"`.
+
+* **An `effort` map that names no declared call is an error.** A name in
+  `gr_read_spec(effort =)` (and the `effort` of `gr_claims()`, `gr_outline()`
+  and `gr_synthesise()`) must be a declared stem, a part of one up to a dot
+  (`"synthesise"`, `"segment"`), or a label under one (`"reduce.level1"`).
+  Anything else stops with an error of class `hr_unknown_effort_key` that
+  lists the stems. Such a name used to be accepted and matched no call, so a
+  misspelt `c(extrac = "low")` sent every extraction call at the provider's
+  default with nothing said. An effort map that names the calls of a reader
+  or segmenter of your own needs that module registered first, with its
+  labels in `calls`.
+
+* **A reader states its cost as a function.** `gr_register_reader()` takes a
+  new `cost` argument, a function of `(input_stats, params)` returning the
+  new `hr_cost()`: requests expected and at worst, embedding requests, and
+  what the reader must send. The pre-flight check of `gr_read()` adds up
+  these functions instead of repeating each built-in reader's call pattern,
+  and the governor decides from the sum whether the run fits its limits
+  before the first request. The built-in readers' estimates, the trace's
+  `preflight` step and the refusals are unchanged. A registered reader
+  without `cost` is counted as before, one request per chunk. `cost_calls`
+  is kept for display only, as the description `gr_readers()` shows; the
+  pre-flight check never reads it, and it will be retired in a later phase.
+  A cost function may also return a plain list with `calls_max` and no
+  `calls`, which is read as both. `hr_cost()` has a `tokens_out_max` for a
+  reader whose replies can be billed beyond the reply cap; the check prices
+  every request at `input_stats$out_cap`, the largest cap the run's model is
+  sent, and uses `tokens_out_max` when it is larger.
+
+* `hr_param()` with a `type` or `tier` it does not know is an error of class
+  `gr_bad_setting` that names the parameter. A `named_map` parameter takes a
+  character vector or a list whose elements are all named.
+
 # readgpt 0.6.0
 
 ## New

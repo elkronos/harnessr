@@ -147,6 +147,10 @@ reference:
   - gr_register_embedder
   - new_chunks
   - new_answer
+  - hr_cost
+  - hr_schema
+  - hr_param
+  - hr_validate
 
 - title: Superseded
   desc: >

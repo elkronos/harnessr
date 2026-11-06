@@ -111,35 +111,59 @@ doc_worker_restore <- function(values) {
 
 #' @noRd
 register_builtin_readers <- function() {
-  gr_register_reader("stuff", read_stuff, signature = "all|1|none", cost_calls = "1",
+  gr_register_reader("stuff", read_stuff,
+    calls = "stuff.answer", cost = cost_stuff,
+    signature = "all|1|none", cost_calls = "1",
     description = "Whole document in one prompt. The baseline; errors or truncates if it does not fit.")
-  gr_register_reader("map_reduce", read_map_reduce, signature = "all|N+logN|tree", cost_calls = "N + merges",
+  gr_register_reader("map_reduce", read_map_reduce,
+    calls = c("map.answer", "reduce"), cost = cost_map_reduce,
+    signature = "all|N+logN|tree", cost_calls = "N + merges",
     description = "Answer each chunk independently, then tree-reduce. Parallel, order-independent.")
-  gr_register_reader("refine", read_refine, signature = "all|N|forward", cost_calls = "N",
+  gr_register_reader("refine", read_refine,
+    calls = c("refine.draft", "refine.revise"), cost = cost_refine,
+    signature = "all|N|forward", cost_calls = "N",
     description = "Sequential draft-and-revise down the document. Order matters; not parallelisable.")
-  gr_register_reader("skim", read_skim, signature = "all|N+1|none", cost_calls = "N + 1",
+  gr_register_reader("skim", read_skim,
+    calls = c("skim.extract", "skim.consolidate", "skim.answer"), cost = cost_skim,
+    signature = "all|N+1|none", cost_calls = "N + 1",
     description = "Extract verbatim evidence per chunk, then answer once from the evidence.")
-  gr_register_reader("retrieve", read_retrieve, signature = "topk|1|none", cost_calls = "1 + embeddings",
+  gr_register_reader("retrieve", read_retrieve,
+    calls = "retrieve.answer", cost = cost_retrieve,
+    signature = "topk|1|none", cost_calls = "1 + embeddings",
     description = "Embed, rank by cosine similarity, answer from the top k. Cost independent of length.")
-  gr_register_reader("rerank", read_rerank, signature = "topk|m+1|none", cost_calls = "m + 1",
+  gr_register_reader("rerank", read_rerank,
+    calls = c("rerank.score", "rerank.answer"), cost = cost_rerank,
+    signature = "topk|m+1|none", cost_calls = "m + 1",
     description = "BM25 prefilter, then the model scores candidates, then answer from the winners.")
-  gr_register_reader("hierarchical", read_hierarchical, signature = "all|N+tree+1|tree",
+  gr_register_reader("hierarchical", read_hierarchical,
+    calls = c("hier.summarise", "hier.answer"), cost = cost_hierarchical,
+    signature = "all|N+tree+1|tree",
     cost_calls = "N + fan-in levels + 1",
     description = "Recursively summarise until the summaries fit, then answer. Truly recursive.")
-  gr_register_reader("iterative", read_iterative, signature = "topk|rounds*2|forward",
+  gr_register_reader("iterative", read_iterative,
+    calls = c("iterative.step", "iterative.final"), cost = cost_iterative,
+    signature = "topk|rounds*2|forward",
     cost_calls = "up to 2 x max_rounds",
     description = "Agentic loop: the model names what it still needs and that drives the next retrieval.")
-  gr_register_reader("extract", read_extract, signature = "all|N+conflicts|none",
+  gr_register_reader("extract", read_extract,
+    calls = c("extract.chunk", "extract.resolve"), cost = cost_extract,
+    signature = "all|N+conflicts|none",
     cost_calls = "N (+1 per conflict with resolve = 'model')",
     description = "Fill a typed schema from every chunk, then reconcile. Needs `fields`.")
-  gr_register_reader("screen", read_screen, signature = "head|1|none", cost_calls = "1",
+  gr_register_reader("screen", read_screen,
+    calls = "screen.decide", cost = cost_screen,
+    signature = "head|1|none", cost_calls = "1",
     description = paste0("Decide whether one document meets a review's criteria, from its ",
                          "opening. Needs `include`/`exclude`."))
-  gr_register_reader("preview", read_preview, signature = "planned|1+s+1|none",
+  gr_register_reader("preview", read_preview,
+    calls = c("preview.plan", "preview.skim", "preview.answer"), cost = cost_preview,
+    signature = "planned|1+s+1|none",
     cost_calls = "1 + skimmed sections + 1",
     description = paste0("Plan from an outline first, then read only what the plan says to. ",
                          "Sections it skips are named."))
-  gr_register_reader("ensemble", read_ensemble, signature = "ensemble|sum+1|none",
+  gr_register_reader("ensemble", read_ensemble,
+    calls = "ensemble.adjudicate", cost = cost_ensemble,
+    signature = "ensemble|sum+1|none",
     cost_calls = "sum of members + 1",
     description = "Run several distinct readers and adjudicate. Members must have different signatures.")
   invisible(NULL)
@@ -147,26 +171,67 @@ register_builtin_readers <- function() {
 
 #' @noRd
 register_builtin_segmenters <- function() {
-  gr_register_segmenter("fixed", seg_fixed, cost = "free",
+  gr_register_segmenter("fixed", seg_fixed, calls = character(0), cost = "free",
     description = "Uniform token windows, ignoring structure. The control condition.")
-  gr_register_segmenter("paragraph", seg_paragraph, cost = "free",
+  gr_register_segmenter("paragraph", seg_paragraph, calls = character(0), cost = "free",
     description = "Greedy packing of the author's paragraphs up to the cap.")
-  gr_register_segmenter("sentence", seg_sentence, cost = "free",
+  gr_register_segmenter("sentence", seg_sentence, calls = character(0), cost = "free",
     description = "Sentence-boundary packing; tighter, more chunks, cleaner edges.")
-  gr_register_segmenter("recursive", seg_recursive, cost = "free",
+  gr_register_segmenter("recursive", seg_recursive, calls = character(0), cost = "free",
     description = "Cascade through separators, using the strongest one that fits.")
-  gr_register_segmenter("structural", seg_structural, cost = "free",
+  gr_register_segmenter("structural", seg_structural, calls = character(0), cost = "free",
     description = "Never merge across headings; each chunk keeps its section title.")
-  gr_register_segmenter("page", seg_page, cost = "free",
+  gr_register_segmenter("page", seg_page, calls = character(0), cost = "free",
     description = "One chunk per page. For forms, invoices and scanned records.")
   # needs_client = TRUE because seg_semantic falls back to `paragraph` without
   # one. Declaring FALSE made `gr_segmenters()` disagree with the behaviour, so
   # the one column a UI would check before offering the strategy was wrong.
-  gr_register_segmenter("semantic", seg_semantic, cost = "embedding", needs_client = TRUE,
+  gr_register_segmenter("semantic", seg_semantic, calls = character(0), cost = "embedding",
+    needs_client = TRUE,
     description = "Cut where consecutive embeddings diverge most. One embedding pass.")
-  gr_register_segmenter("contextual", seg_contextual, cost = "free", needs_client = FALSE,
+  gr_register_segmenter("contextual", seg_contextual, calls = "segment.context", cost = "free",
+    needs_client = FALSE,
     description = "Paragraph chunks prefixed with where they sit; context_source='llm' writes it per chunk.")
-  gr_register_segmenter("proposition", seg_proposition, cost = "llm", needs_client = TRUE,
+  gr_register_segmenter("proposition", seg_proposition, calls = "segment.proposition",
+    cost = "llm", needs_client = TRUE,
     description = "Rewrite into standalone factual statements. Expensive; best for dense factual recall.")
   invisible(NULL)
+}
+
+# The call stems of the document layer's stages that are not registered as
+# modules yet: gr_claims(), gr_outline() and gr_synthesise() make their own
+# calls under these labels. "outline.derive.alt2", "synthesise.merge.level1"
+# and "synthesise.revise.cut" are labels under them.
+.gr_stage_calls <- list(
+  claims = c("claims.draw", "claims.reconcile"),
+  outline = "outline.derive",
+  synthesise = c("synthesise.section", "synthesise.batch", "synthesise.merge",
+                 "synthesise.revise"))
+
+#' Every call stem declared by a registered reader or segmenter, or by one of
+#' the stages above: the names an effort map may use (check_effort_stems()).
+#' Read from the registries when asked, so a reader registered in this session
+#' adds its stems, and a parallel worker, which is sent the registries, sees
+#' the same ones.
+#' @noRd
+declared_call_stems <- function() {
+  of <- function(reg) unlist(lapply(reg, function(e) e$calls), use.names = FALSE)
+  unique(c(of(gr_state$readers), of(gr_state$segmenters),
+           unlist(.gr_stage_calls, use.names = FALSE)))
+}
+
+#' Check the call stems a module declares: a character vector of labels, none
+#' blank. NULL means the module declared none, and its name stands in, since
+#' a reader or segmenter registered before stems were declared labels its
+#' calls after itself as the built-ins do ("longest.answer" for "longest").
+#' @noRd
+check_calls <- function(calls, name) {
+  if (is.null(calls)) return(name)
+  if (!is.character(calls) || anyNA(calls) || !all(has_visible(calls)) ||
+      any(grepl("\\s", calls))) {
+    gr_abort(paste0("`calls` must be a character vector of call label stems, such as ",
+                    "c(\"mine.score\", \"mine.answer\"), with no blanks or spaces."),
+             class = "gr_bad_setting")
+  }
+  unique(calls)
 }

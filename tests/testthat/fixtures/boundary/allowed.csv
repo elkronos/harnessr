@@ -1,6 +1,4 @@
 "caller","callee","reason"
 "gr_embed","lexical_embed","Removed in Phase 3 of the refactor plan, when embedders become a registered module kind and the lexical embedder registers itself."
 "gr_embed","resolve_embedder","Removed in Phase 3 of the refactor plan, when embedders become a registered module kind and the core looks them up in the registry."
-"read_settings","gr_read_spec","Removed in Phase 1 of the refactor plan, when module parameters are declared as schemas and validated in the core."
 "segment_effort","segment_effort_label","Removed in Phase 3 of the refactor plan, when each segmenter declares its own call stems and the label function is deleted."
-"segment_settings","gr_segment_spec","Removed in Phase 1 of the refactor plan, when module parameters are declared as schemas and validated in the core."
