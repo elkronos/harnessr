@@ -3,7 +3,7 @@
 # run-tests.sh -- install harnessr and run its test suite.
 #
 # Works from the package directory or from the repository root (it finds
-# DESCRIPTION either here or in ./readgpt). Nothing it does touches the network
+# DESCRIPTION either here or in ./harnessr or ./readgpt). Nothing it does touches the network
 # except installing missing R packages, and it asks before doing that.
 #
 #   bash run-tests.sh              # install deps if needed, install pkg, run tests
@@ -28,9 +28,10 @@ done
 
 # --- locate the package ----------------------------------------------------
 if   [ -f DESCRIPTION ];         then PKG="$PWD"
+elif [ -f harnessr/DESCRIPTION ]; then PKG="$PWD/harnessr"
 elif [ -f readgpt/DESCRIPTION ]; then PKG="$PWD/readgpt"
 else
-  echo "ERROR: no DESCRIPTION here or in ./readgpt." >&2
+  echo "ERROR: no DESCRIPTION here or in ./harnessr or ./readgpt." >&2
   echo "       Run this from the package directory or the repository root." >&2
   exit 1
 fi

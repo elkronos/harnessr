@@ -74,11 +74,10 @@ harnessr needs R 4.1 or later. Install it from GitHub:
 
 ```{r eval = FALSE}
 install.packages(c("remotes", "knitr", "rmarkdown"))
-remotes::install_github("elkronos/readgpt", build_vignettes = TRUE)
+remotes::install_github("elkronos/harnessr", build_vignettes = TRUE)
 ```
 
-The repository is still called readgpt, the package's name up to version 0.6.0;
-the package it installs is harnessr.
+The package and its repository were called readgpt up to version 0.6.0.
 
 `build_vignettes = TRUE` also installs these guides, so `vignette()` can open
 them. Building them needs `knitr`, `rmarkdown` and Pandoc. Pandoc comes with

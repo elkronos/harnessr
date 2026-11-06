@@ -1,7 +1,7 @@
 # harnessr
 
-[![R-CMD-check](https://github.com/elkronos/readgpt/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/elkronos/readgpt/actions/workflows/R-CMD-check.yaml)
-[![tests](https://github.com/elkronos/readgpt/actions/workflows/tests.yaml/badge.svg)](https://github.com/elkronos/readgpt/actions/workflows/tests.yaml)
+[![R-CMD-check](https://github.com/elkronos/harnessr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/elkronos/harnessr/actions/workflows/R-CMD-check.yaml)
+[![tests](https://github.com/elkronos/harnessr/actions/workflows/tests.yaml/badge.svg)](https://github.com/elkronos/harnessr/actions/workflows/tests.yaml)
 
 For one document, `answer_document()` picks an ingest, a segmentation and a
 reading strategy, and returns an answer with a trace of everything it did. For
@@ -10,13 +10,13 @@ typed schema across all of them, and `gr_synthesise()` writes the result up
 with every claim citing the row it rests on. Every model call is budgeted,
 recorded and checked, and can be cached.
 
-harnessr was called readgpt up to version 0.6.0. The GitHub repository keeps
-the old name. Requests, cache keys and recordings are unchanged by the rename;
+harnessr was called readgpt up to version 0.6.0, and so was its GitHub
+repository. Requests, cache keys and recordings are unchanged by the rename;
 the `readgpt.*` options are still read, with a warning (see `NEWS.md`).
 
 The [guides](#guides) explain each part in depth and all run offline, without a
 key. Start with `vignette("harnessr")`. They are also on the website,
-<https://elkronos.github.io/readgpt/>, with the reference for every function.
+<https://elkronos.github.io/harnessr/>, with the reference for every function.
 
 ## Install
 
@@ -25,14 +25,14 @@ Requires R 4.1 or later. The only non-base hard dependencies are `digest`,
 
 ```r
 install.packages(c("remotes", "knitr", "rmarkdown"))
-remotes::install_github("elkronos/readgpt", build_vignettes = TRUE)
+remotes::install_github("elkronos/harnessr", build_vignettes = TRUE)
 ```
 
 `build_vignettes = TRUE` installs the guides, so `vignette("harnessr")` works.
 Building them needs `knitr`, `rmarkdown` and Pandoc. Pandoc comes with RStudio;
 without RStudio, install it from <https://pandoc.org/installing.html> first, or
 leave out `build_vignettes = TRUE`. From a local checkout,
-`remotes::install_local("path/to/readgpt")` does the same.
+`remotes::install_local("path/to/harnessr")` does the same.
 
 Other packages (pdftools, tesseract and magick, xml2, future, ellmer, shiny)
 are checked when a feature needs them; a missing one is an error naming it,
@@ -273,13 +273,13 @@ Each guide is on the website and, once installed, in R as `vignette("name")`.
 
 | guide | what it covers |
 |---|---|
-| [Get started](https://elkronos.github.io/readgpt/articles/harnessr.html) (`harnessr`) | The ideas, installing, connecting, a first question checked from start to finish, cost, a glossary |
-| [Getting text out of files](https://elkronos.github.io/readgpt/articles/ingest.html) (`ingest`) | PDFs, Word files, web pages and scans, every cleaner, and surveying a folder |
-| [Cutting documents into chunks](https://elkronos.github.io/readgpt/articles/segment.html) (`segment`) | The segmenters, overlap, minimum size, context, and comparing chunkings |
-| [Choosing how the model reads](https://elkronos.github.io/readgpt/articles/readers.html) (`readers`) | The reading strategies, recipes, what each costs, and how to choose |
-| [Many documents and literature reviews](https://elkronos.github.io/readgpt/articles/review.html) (`review`) | Search, screening, calibration, extraction, claims, synthesis, the audit report |
-| [Cost, limits and reproducible runs](https://elkronos.github.io/readgpt/articles/runs.html) (`runs`) | The governor, effort, traces, caching, replay |
-| [Extending harnessr](https://elkronos.github.io/readgpt/articles/extending.html) (`extending`) | Registering your own extractors, cleaners, segmenters, readers and embedders, and checking them |
+| [Get started](https://elkronos.github.io/harnessr/articles/harnessr.html) (`harnessr`) | The ideas, installing, connecting, a first question checked from start to finish, cost, a glossary |
+| [Getting text out of files](https://elkronos.github.io/harnessr/articles/ingest.html) (`ingest`) | PDFs, Word files, web pages and scans, every cleaner, and surveying a folder |
+| [Cutting documents into chunks](https://elkronos.github.io/harnessr/articles/segment.html) (`segment`) | The segmenters, overlap, minimum size, context, and comparing chunkings |
+| [Choosing how the model reads](https://elkronos.github.io/harnessr/articles/readers.html) (`readers`) | The reading strategies, recipes, what each costs, and how to choose |
+| [Many documents and literature reviews](https://elkronos.github.io/harnessr/articles/review.html) (`review`) | Search, screening, calibration, extraction, claims, synthesis, the audit report |
+| [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`) | The governor, effort, traces, caching, replay |
+| [Extending harnessr](https://elkronos.github.io/harnessr/articles/extending.html) (`extending`) | Registering your own extractors, cleaners, segmenters, readers and embedders, and checking them |
 
 ## Development
 

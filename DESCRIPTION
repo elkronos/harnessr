@@ -15,8 +15,8 @@ Description: A toolkit for composing calls to large language models and
     question, and screens, extracts from and synthesises across a corpus.
     Every stage is registry-based, so users can add their own extractors,
     cleaners, segmenters and readers without editing the package.
-URL: https://github.com/elkronos/readgpt, https://elkronos.github.io/readgpt/
-BugReports: https://github.com/elkronos/readgpt/issues
+URL: https://github.com/elkronos/harnessr, https://elkronos.github.io/harnessr/
+BugReports: https://github.com/elkronos/harnessr/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends:

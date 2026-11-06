@@ -5,10 +5,13 @@
 * **The package is now called harnessr.** readgpt grew a general core for
   model calls (clients, spending limits, a response cache, recordings that
   replay offline, traces) under its document-reading layer, and the new name
-  says so. Load it with `library(harnessr)`. The GitHub repository is still
-  `elkronos/readgpt`, so `remotes::install_github("elkronos/readgpt")` installs
-  harnessr. No exported function, class, argument or prompt changes name in
-  this release except `readgpt_example()`, below.
+  says so. Load it with `library(harnessr)`. The GitHub repository is renamed
+  to `elkronos/harnessr` too, and GitHub sends the old address there, so
+  `remotes::install_github("elkronos/harnessr")` installs it and the old
+  `elkronos/readgpt` still works. The website moves to
+  <https://elkronos.github.io/harnessr/>. No exported function, class,
+  argument or prompt changes name in this release except `readgpt_example()`,
+  below.
 
 * **`readgpt_example()` is now `gr_example()`**, which returns the same path to
   the bundled example document. `readgpt_example()` still works, with one
