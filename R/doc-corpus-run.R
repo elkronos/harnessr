@@ -857,6 +857,21 @@ corpus_sources <- function(sources, recursive = FALSE, quiet = FALSE) {
   if (inherits(sources, "gr_screening")) {
     rs <- sources$records
     inc <- as.character(sources$included %||% character(0))
+    # Unclear records are a deferral, and this reads only the included ones, as
+    # 0.6.0 did. Said every time it happens, so the drop is never silent; the
+    # next release reads `forward` here instead.
+    t <- sources$table
+    n_unclear <- if (is.data.frame(t)) {
+      sum(!is.na(t$decision) & t$decision == "unclear" & is.na(t$duplicate_of))
+    } else 0L
+    if (!quiet && n_unclear) {
+      gr_warn(sprintf(paste0("%d record(s) screened as 'unclear' are not read: a screening ",
+                             "hands on only its `included` records in this release. Pass ",
+                             "`screening$forward` to read them too, or settle them with ",
+                             "gr_resolve() first. From the next release `forward` is the ",
+                             "default."), n_unclear),
+              class = "gr_unclear_dropped")
+    }
     # Explicitly, not by falling through: the file-vector branch below requires
     # every path to exist, so one moved or deleted file dropped the record set
     # and the search vanished from the audit.

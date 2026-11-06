@@ -59,10 +59,12 @@ test_that("a screening call that failed leaves no decision, and the run says so"
   expect_true(a$partial)
   expect_match(paste(partial_reasons(a), collapse = "; "), "HTTP 500")
 
-  # The flow diagram counts them as unread, not as the model deferring.
+  # The flow diagram counts them as failed calls, not as the model deferring,
+  # and apart from documents that never reached the model.
   fl <- gr_flow(s)
   expect_identical(fl$n[fl$stage == "  unclear"], 0L)
-  expect_identical(fl$n[fl$stage == "  could not be read"], 2L)
+  expect_identical(fl$n[fl$stage == "  screening call failed"], 2L)
+  expect_identical(fl$n[fl$stage == "  could not be read"], 0L)
   expect_output(print(s), "could not be read and have NO decision")
 })
 
