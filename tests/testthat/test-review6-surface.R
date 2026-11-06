@@ -352,8 +352,17 @@ test_that("an answer from gr_compare carries its recipe's read, and the help say
 })
 
 # ---------------------------------------------------------------------------
-# contracts-11: the README says what a conflict costs.
+# contracts-11: the README and the review guide say what a conflict costs.
 # ---------------------------------------------------------------------------
+
+test_that("the review guide says a conflict keeps the first value unless resolve = 'model'", {
+  f <- source_file("vignettes", "review.Rmd")
+  skip_if(is.null(f), "vignettes/review.Rmd is not available")
+  txt <- gsub("\\s+", " ", paste(readLines(f, warn = FALSE), collapse = " "))
+  expect_false(grepl("costs one call where the document contradicts itself", txt, fixed = TRUE))
+  expect_match(txt, "the earliest chunk's value is kept", fixed = TRUE)
+  expect_match(txt, "`resolve = \"model\"` spends one call per disagreeing field", fixed = TRUE)
+})
 
 test_that("the README says a conflict keeps the first value unless resolve = 'model'", {
   f <- source_file("README.md")

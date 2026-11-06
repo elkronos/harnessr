@@ -4,35 +4,45 @@ template:
   bootstrap: 5
 
 articles:
-- title: Guides
-  navbar: Guides
+- title: Get started
+  desc: >
+    The ideas, installing, connecting a model, and a first question checked
+    from start to finish.
   contents:
   - harnessr
-  - ingest
-  - readers
-- title: Overview
-  navbar: Overview
+
+- title: Guides
+  navbar: Guides
+  desc: >
+    One guide per topic, in the order a run uses them.
   contents:
-  - tour
+  - ingest
+  - segment
+  - readers
+  - review
+  - runs
+  - extending
 
 reference:
 - title: Ask a question
   desc: >
     Start here. One call reads a document and answers a question, and the
-    answer says what it rests on and whether anything went wrong.
+    answer says what it rests on and whether anything went wrong. See
+    `vignette("harnessr")`.
   contents:
   - answer_document
-  - gr_compare
-  - gr_recipes
-  - gr_recipe
   - gr_answer
   - is_not_found
   - gr_example
+  - gr_recipes
+  - gr_recipe
+  - gr_compare
 
 - title: Connect to a model
   desc: >
     Clients for OpenAI-compatible endpoints, any provider ellmer supports, any
-    function you write, and an offline stand-in for practice and tests.
+    function you write, and an offline stand-in for practice and tests. See
+    `vignette("harnessr")` and the README.
   contents:
   - gr_client
   - gr_api_key
@@ -60,6 +70,9 @@ reference:
   - gr_inventory
 
 - title: Cut documents into chunks
+  desc: >
+    The segmenters, their settings, and the free statistics for comparing
+    chunkings. See `vignette("segment")`.
   contents:
   - gr_segment
   - gr_segment_spec
@@ -80,16 +93,14 @@ reference:
   - gr_embedders
   - gr_verify_evidence
 
-- title: Many documents
+- title: Many documents and literature reviews
+  desc: >
+    One question over many documents, and a review from a search export to
+    screened studies, an extraction table, a written review and an audit
+    report, with the screening measured against a hand-screened sample. See
+    `vignette("review")`.
   contents:
   - gr_read_many
-
-- title: Systematic and literature reviews
-  desc: >
-    From a search export to screened studies, an extraction table, a written
-    review and an audit report, with the screening measured against a
-    hand-screened sample.
-  contents:
   - gr_protocol
   - gr_protocols
   - gr_protocol_save
@@ -112,7 +123,10 @@ reference:
   - gr_flow
   - gr_audit_report
 
-- title: Cost, tokens and tracing
+- title: Cost, limits and tracing
+  desc: >
+    Settings and spending limits, token counts and cost estimates, and the
+    trace every run records. See `vignette("runs")`.
   contents:
   - gr_options
   - hr_governor
@@ -129,6 +143,9 @@ reference:
   - as_json
 
 - title: Caching and replaying runs
+  desc: >
+    Paying for a request once, and replaying a recorded run without a model.
+    See `vignette("runs")`.
   contents:
   - gr_cache
   - gr_cache_client
@@ -139,7 +156,8 @@ reference:
 
 - title: Extending harnessr
   desc: >
-    Every axis is a registry. An addition is used exactly like a built-in.
+    Every axis is a registry, and an addition is used exactly like a
+    built-in. See `vignette("extending")`.
   contents:
   - gr_register_extractor
   - gr_register_cleaner
@@ -160,7 +178,8 @@ reference:
   desc: >
     The entry points of the first version, and the old name of `gr_example()`.
     They still work and warn once; new code should use `answer_document()`,
-    `gr_ingest()`, `gr_segment()` and `gr_example()`.
+    `gr_ingest()`, `gr_segment()` and `gr_example()`. The README's "Migrating
+    from v1" section maps each one.
   contents:
   - answer_question
   - parse_text

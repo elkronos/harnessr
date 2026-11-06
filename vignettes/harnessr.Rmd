@@ -24,8 +24,8 @@ follow along for free.
 ## A few ideas first
 
 **The model runs somewhere else.** A large language model (an *LLM*) such as
-GPT is a program run by a *provider*: OpenAI, Anthropic, Google, or a model on
-your own computer. harnessr sends it text over the internet and reads the reply.
+GPT is a program run by a *provider*: OpenAI, Google, or a model on your own
+computer. harnessr sends it text over the internet and reads the reply.
 Commercial providers charge for each request.
 
 **Text is measured in tokens.** Models do not read characters or words; they
@@ -60,6 +60,8 @@ change each one:
    on.
 
 A fourth choice, which model answers, is independent of all three.
+`vignette("ingest")`, `vignette("segment")` and `vignette("readers")` cover the
+three steps in depth.
 
 **Models can make things up.** A model may state something the document never
 says, and it can do so fluently. harnessr cannot prevent that. It records which
@@ -90,7 +92,7 @@ you use:
 | to do this | install |
 |---|---|
 | read PDFs | `pdftools` |
-| read Word documents and web pages | `xml2` |
+| read Word documents and web pages | `xml2` (or `readtext`, for Word only) |
 | read scanned pages and images (OCR) | `tesseract` and `magick` |
 | use a provider other than OpenAI | `ellmer` |
 | run many requests at once | `future` and `future.apply` |
@@ -126,8 +128,23 @@ gr_api_key()
 If the key is missing, a run stops before it reads your document and gives the
 same explanation.
 
-The README's "Other providers" section covers Anthropic, Google, Azure, company
-gateways, and free models running on your own machine through Ollama.
+Behind a company gateway, `gr_client(headers = )` sends the headers it wants,
+such as Azure's `api-key`:
+
+```{r eval = FALSE}
+cl <- gr_client(
+  base_url = "https://gateway.example.com/openai/v1", api = "chat",
+  headers  = c("api-key" = Sys.getenv("GATEWAY_KEY"), Authorization = NA))
+```
+
+Naming a header replaces the automatic `Authorization`, and `NA` suppresses one,
+which keeps a personal `OPENAI_API_KEY` off the gateway. Naming any header makes
+the key optional, so a client that authenticates through headers needs no key.
+`gr_options(api_headers = )` sets the same headers for every client, the form
+for a project's `.Rprofile`.
+
+The README's "Connecting a model" section covers other providers through the
+ellmer package and free models running on your own machine through Ollama.
 
 ## Practising without a key
 
@@ -143,8 +160,9 @@ old <- gr_options(verbose = FALSE)
 
 `verbose = FALSE` stops harnessr printing a line for each stage; leave it on in
 your own work while you are learning. In an interactive session it also keeps a
-line up to date with how far a long read has got and what it has spent. `gr_options()` returns the settings it
-replaced, so they can be restored later with `gr_options(old)`.
+line up to date with how far a long read has got and what it has spent.
+`gr_options()` returns the settings it replaced, so they can be restored later
+with `gr_options(old)`.
 
 ## Your first question
 
@@ -272,18 +290,21 @@ answer:
 gr_estimate_cost(gr_options("model"), input_tokens = 120000, output_tokens = 4000)
 ```
 
-Two safety limits are on from the start. harnessr stops reading a document once
-it has spent $5 or made 400 requests. Each request is priced as it is made, so a
-run can pass $5 by the cost of one request. The answer is then marked partial,
-and printing it says which limit stopped the run. A run that could not finish
-inside the limits is refused before the first request: one that would need more
-than 400 requests, or one whose chunks would cost more than $5 to send once:
+Two safety limits are on from the start: $5 and 400 requests per document. Each
+request is checked before it is sent, against what the run has spent plus the
+most that request could cost, and one that could pass a limit is not sent. A run
+stopped that way is marked partial, and printing it says which limit stopped it.
+A run that could not finish inside the limits is refused before the first
+request: one that would need more than 400 requests, or one whose chunks would
+cost more than $5 to send once:
 
 ```{r}
 unlist(gr_options()[c("max_cost_usd", "max_calls")])
 ```
 
 Change them with `gr_options()`, for example `gr_options(max_cost_usd = 20)`.
+`vignette("runs")` covers the other limits, and how to cache a run so it is paid
+for once.
 
 The default models also *reason* before they answer: they work through the
 question in text you never see, and it is charged as text the model writes back.
@@ -349,7 +370,8 @@ fast$reader
 
 Recipes differ a great deal in cost. `"thorough"` sends every chunk to the model
 separately, so a long document means many requests; `"fast"` and `"needle"` make
-one. `vignette("readers")` explains each reading strategy and when to use it.
+one. `vignette("readers")` explains each reading strategy and when to use it,
+and how to change a recipe's settings or build your own.
 
 ## More than one document
 
@@ -357,7 +379,7 @@ For a folder of documents, `gr_read_many()` asks the same question of each file
 and returns one row per document. For a literature review, `gr_screen()` decides
 which documents meet your criteria, `gr_extract()` builds a table of the details
 you ask for, and `gr_synthesise()` writes up the findings with each statement
-citing the study it came from. `vignette("tour")` shows each of these briefly.
+citing the study it came from. `vignette("review")` covers each of these.
 
 ```{r include = FALSE}
 gr_options(old)
@@ -367,10 +389,15 @@ gr_options(old)
 
 - `vignette("ingest")`: getting text out of PDFs, Word files, web pages and
   scans, and cleaning it.
-- `vignette("readers")`: the reading strategies, what each costs, and how to
-  choose.
-- `vignette("tour")`: everything else, briefly. It covers chunking, caching and
-  replaying runs, many documents, reviews, and extending the package.
+- `vignette("segment")`: cutting documents into chunks, and comparing chunkings
+  before you spend anything.
+- `vignette("readers")`: the reading strategies and recipes, what each costs,
+  and how to choose.
+- `vignette("review")`: many documents and literature reviews, from a search
+  export to a written review.
+- `vignette("runs")`: cost, limits, the trace, caching and replaying a run.
+- `vignette("extending")`: adding your own extractors, cleaners, segmenters,
+  readers and embedders.
 - `?gr_options`: every setting, with its default.
 
 `browseVignettes("harnessr")` lists all the guides.
