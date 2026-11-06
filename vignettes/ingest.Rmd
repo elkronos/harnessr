@@ -18,8 +18,7 @@ damaged by too much clean-up, is text no model will see, however good the rest
 of the pipeline is. This guide covers what harnessr can read, what it keeps, what
 it removes, and how to check a folder before spending anything on it.
 
-New to harnessr? `vignette("harnessr")` introduces the package and the ideas used
-here.
+`vignette("harnessr")` introduces the package and the ideas used here.
 
 ```{r message = FALSE}
 library(harnessr)
@@ -135,9 +134,9 @@ unique(doc$blocks$section)
 ```
 
 Sections matter later. The `structural` way of cutting a document into chunks
-never lets a chunk straddle two sections, and the `preview` reading strategy
-plans its reading section by section. A plain text file has no headings, so its
-blocks have no section.
+never lets a chunk straddle two sections (`vignette("segment")`), and the
+`preview` reading strategy plans its reading section by section. A plain text
+file has no headings, so its blocks have no section.
 
 ## PDFs
 
@@ -201,10 +200,10 @@ gr_ingest("scan.pdf", gr_ingest_spec(ocr_lang = "deu", ocr_dpi = 400))
 OCR on PDFs needs both `tesseract` and `magick`. Without them a scanned page
 comes back nearly empty and harnessr warns (`gr_ocr_unavailable`). The document
 lists those pages in `doc$stats$unread_pages`, and an answer drawn from it is
-marked partial. The same holds with `ocr = "never"`: a page with no text, or only
-a stamp or a running head, is listed as unread. A document with too little text left is refused outright, as the
-next section shows. The `"scanned"` recipe is set up for this kind of
-document.
+marked partial. The same holds with `ocr = "never"`: a page with no text, or
+only a stamp or a running head, is listed as unread. A document with too little
+text left is refused outright, as the next section shows. The `"scanned"` recipe
+is set up for this kind of document.
 
 ## Cleaning
 
@@ -217,8 +216,8 @@ off:
 gr_cleaners()[, c("name", "stage", "default_on")]
 ```
 
-The five marked `default_on` run unless you say otherwise. Note what is **off** by
-default, and why:
+The five marked `default_on` run unless you say otherwise. The ones below are off
+by default, for these reasons:
 
 - `remove_numbers` replaces every digit with a space, which makes any question
   about a figure, date or percentage unanswerable.
@@ -348,6 +347,22 @@ The statuses:
 | `empty` | nothing to read |
 | `unreadable` | it could not be opened; `note` says why |
 
+It shows three things a corpus run would otherwise hide:
+
+| what it shows | why it matters |
+|---|---|
+| files no extractor claims | they were dropped without appearing anywhere, so a folder of `.doc` files read as an empty corpus |
+| PDFs with no text layer | they extract to nothing, then answer `NOT_IN_DOCUMENT`, which looks the same as a document that does not say |
+| files in subfolders | they are listed with their `folder`, so a subfolder you forgot is visible; `recursive = FALSE` scans one level only |
+
+`folder` is a column, so `split(inv$files, inv$files$folder)` gives you the
+piles. `gr_inventory()` does not choose a recipe for you. A router that quietly
+reads one document with `retrieve` and another with `stuff` hands you a
+plausible answer built on part of a file with nothing saying so. It also makes
+`gr_compare()` meaningless, because the corpus no longer had one configuration.
+Group the rows yourself and pass each group the recipe you picked; reading a
+whole folder is in `vignette("review")`.
+
 `inv$totals` adds up the tokens and prices one request per readable file with
 your model: its tokens in, and an assumed 500-token answer out. Treat
 `cost_floor_usd` as a rough guide rather than a bound. Reading strategies that
@@ -374,7 +389,8 @@ gr_ingest("CONFIDENTIAL - internal only\n\nRevenue rose to 45.2 million dollars.
           gr_ingest_spec(clean = c("drop_confidential", "collapse_whitespace")))$text
 ```
 
-`?gr_register_extractor` shows how to add a file format.
+`?gr_register_extractor` shows how to add a file format, and
+`vignette("extending")` covers every kind of addition.
 
 ```{r include = FALSE}
 gr_options(old)
@@ -382,6 +398,7 @@ gr_options(old)
 
 ## Next
 
-Once the text is out, the next decision is how to cut it into chunks and how the
-model should read them. `vignette("readers")` covers the reading strategies;
-`vignette("tour")` shows the chunking methods.
+Once the text is out, the next decisions are how to cut it into chunks,
+covered in `vignette("segment")`, and how the model should read them, covered
+in `vignette("readers")`. To read a whole folder once `gr_inventory()` has
+checked it, see `vignette("review")`.
