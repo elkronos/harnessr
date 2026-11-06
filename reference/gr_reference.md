@@ -1,10 +1,10 @@
 # Draw a sample to screen by hand
 
 Picks documents out of a
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 run for a person to judge without seeing what the model said, and writes
 them to a CSV to fill in. Feeding the completed file back to
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
 is what turns "we used an LLM" into a claim with a number attached.
 
 ## Usage
@@ -25,7 +25,7 @@ gr_reference(
 - screening:
 
   A `gr_screening` from
-  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md).
+  [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md).
 
 - n:
 
@@ -55,7 +55,7 @@ gr_reference(
   measures nothing. A blind sheet does not name its frame either, since
   "excluded" on every row says what the model decided: `sampled_from`
   holds an opaque key that
-  [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+  [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
   reads back as the frame and its size. With `blind = FALSE` the file
   has `model_decision`, `model_reason`, and the frame in plain words
   (`sampled_from`, `frame_n`, `screened_n`).
@@ -81,7 +81,7 @@ The design that matches how people actually work is to judge *every*
 record the screener kept, plus a sample of what it discarded:
 `of = "kept"` with `n = Inf`, and `of = "excluded"` with whatever
 hand-screening effort you have.
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
 knows which frame it was given and will not compute a corpus-wide figure
 from a sample that cannot support one.
 
@@ -90,22 +90,22 @@ from a sample that cannot support one.
 The CSV is written as UTF-8 with a byte-order mark, which is what makes
 Excel open accented names and titles correctly; save it back as "CSV
 UTF-8".
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
 reads it the same way in any locale, reads a sheet a spreadsheet
 re-saved as Windows-1252 as that, and matches a row whose name still
 does not agree by its `document_id`.
 
 ## See also
 
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md),
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 
 Other corpus functions:
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md),
-[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md),
-[`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md),
-[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md),
-[`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md),
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
+[`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md),
+[`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
 
 ## Examples
 

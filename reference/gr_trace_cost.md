@@ -2,9 +2,9 @@
 
 Costs a trace using each step's own model and counting only the calls
 that were issued: a call served from a
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 or a
-[`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
 spent nothing, however many tokens its prompt contained.
 
 ## Usage
@@ -27,7 +27,7 @@ A data frame with one row per model: `model`, `calls`, `paid_calls`,
 are the reasoning and cached input tokens the provider reported among
 `paid_out` and `paid_in`; cached input is priced at the model's cached
 input rate where
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
 gave it one. A model with no registered price contributes `NA`, so a
 total that silently omitted an unpriced model is impossible. The
 exception is a model whose every request failed without sending a token
@@ -37,17 +37,17 @@ nothing, priced or not, so it contributes 0.
 ## Details
 
 This is why the token totals on
-[`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md)
+[`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md)
 are not a bill. They report how large the prompts and replies were,
 which is the right measure of a run's *shape*; a fully cached re-run has
 the same shape as the original and cost nothing at all.
 
 ## See also
 
-[`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md),
-[`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md),
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md),
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md),
+[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md),
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md),
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 
 ## Examples
 

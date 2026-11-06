@@ -2,12 +2,12 @@
 
 Wraps an arbitrary R function as a client. `handler` receives
 `(messages, params)` and returns a string or a
-[gr_result](https://elkronos.github.io/readgpt/reference/gr_result.md);
+[gr_result](https://elkronos.github.io/harnessr/reference/gr_result.md);
 everything else the package does (context budgeting, cost and call caps,
 provenance, the run trace,
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md),
-[`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md),
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md))
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md),
+[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md),
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md))
 works exactly as it does for the built-in HTTP client.
 
 ## Usage
@@ -33,9 +33,9 @@ gr_backend_client(
   or `"assistant"`. `params` carries `model`, `max_output`,
   `temperature`, `schema`, `schema_name` and `prompt_tokens`, and
   `effort` when the call has a reasoning effort to send (see `effort` in
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md));
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md));
   passing it on is the handler's business. Return a single string, or a
-  [gr_result](https://elkronos.github.io/readgpt/reference/gr_result.md)
+  [gr_result](https://elkronos.github.io/harnessr/reference/gr_result.md)
   for full control over token usage and failure reporting.
 
 - embed:
@@ -49,20 +49,20 @@ gr_backend_client(
   Model ids reported to the rest of the package. If `model` is not in
   the model registry you will get the usual unknown-model warning and a
   conservative context window;
-  [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+  [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
   fixes that, and getting it right matters because it is what sizes your
   chunks.
 
 - id:
 
   Stable identity for this backend, used by
-  [`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
   and by
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)'s
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)'s
   `store`. **Read this before setting up a durable cache.**
 
   For
-  [`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
+  [`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
   a cache key can be built from the API shape, base URL and model,
   because those completely describe what will answer: two clients with
   the same three give the same answers today and next month, which is
@@ -88,20 +88,20 @@ gr_backend_client(
 ## Value
 
 An object of class `gr_backend_client`, usable anywhere a
-[`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
+[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
 is, with `$calls()` recording every request made through it.
 
 ## Details
 
 Use it to reach a provider this package does not speak to, a company
 proxy, a local model, or another R package's client.
-[`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
+[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
 is this function with an `ellmer` chat object plugged in.
 
 ## Failure is data, not an exception
 
 A handler that raises is caught and reported as a failed
-[gr_result](https://elkronos.github.io/readgpt/reference/gr_result.md),
+[gr_result](https://elkronos.github.io/harnessr/reference/gr_result.md),
 the same as an HTTP error, so one bad chunk does not abort a run. A
 handler that returns `""` is treated as an empty completion, which this
 package reports as `ok = FALSE` rather than passing `""` downstream as
@@ -109,11 +109,11 @@ evidence.
 
 ## See also
 
-[`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md),
-[`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md),
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md),
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
-[`gr_cache_client()`](https://elkronos.github.io/readgpt/reference/gr_cache_client.md)
+[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md),
+[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md),
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md),
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
+[`gr_cache_client()`](https://elkronos.github.io/harnessr/reference/gr_cache_client.md)
 
 ## Examples
 

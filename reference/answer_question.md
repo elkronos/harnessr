@@ -56,7 +56,7 @@ answer_question(
 - ...:
 
   Passed to
-  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md).
+  [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md).
 
 ## Value
 
@@ -64,16 +64,16 @@ A string, or a named list of strings when several modes are given.
 
 ## See also
 
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md),
-[`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
+[`gr_recipes()`](https://elkronos.github.io/harnessr/reference/gr_recipes.md)
 
 Other v1 compatibility:
-[`gpt_read_chunked()`](https://elkronos.github.io/readgpt/reference/gpt_read_chunked.md),
-[`gpt_read_hierarchical()`](https://elkronos.github.io/readgpt/reference/gpt_read_hierarchical.md),
-[`gpt_read_multipass()`](https://elkronos.github.io/readgpt/reference/gpt_read_multipass.md),
-[`gpt_read_retrieval()`](https://elkronos.github.io/readgpt/reference/gpt_read_retrieval.md),
-[`parse_text()`](https://elkronos.github.io/readgpt/reference/parse_text.md)
+[`gpt_read_chunked()`](https://elkronos.github.io/harnessr/reference/gpt_read_chunked.md),
+[`gpt_read_hierarchical()`](https://elkronos.github.io/harnessr/reference/gpt_read_hierarchical.md),
+[`gpt_read_multipass()`](https://elkronos.github.io/harnessr/reference/gpt_read_multipass.md),
+[`gpt_read_retrieval()`](https://elkronos.github.io/harnessr/reference/gpt_read_retrieval.md),
+[`parse_text()`](https://elkronos.github.io/harnessr/reference/parse_text.md)
 
 ## Examples
 

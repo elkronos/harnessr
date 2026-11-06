@@ -1,7 +1,7 @@
 # Decide which documents a review should read
 
 The stage before
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
 One model call per document, a decision and a reason for every one, and
 nothing dropped on the way.
 
@@ -33,13 +33,13 @@ gr_screen(
 - sources:
 
   As
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md):
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md):
   file paths, a directory, or raw text.
 
 - protocol:
 
   A
-  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md)
+  [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md)
   carrying the criteria and the review question. Give this, or
   `include`/`exclude` directly.
 
@@ -53,7 +53,7 @@ gr_screen(
   keep_answers:
 
   As
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
 
 - screen_tokens:
 
@@ -72,18 +72,18 @@ gr_screen(
 - max_total_calls, trace:
 
   As
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
   Pass the same `trace` to
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
   and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
   and it accumulates the whole review, while each stage keeps its own
   for its own cost and its own ceiling.
 
 - ...:
 
   Recipe overrides, as in
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
 
 ## Value
 
@@ -100,7 +100,7 @@ An object of class `gr_screening`:
   The distinct sources whose decision was `"include"` (the paths, not
   the display labels). Duplicates are left out; they are the same study,
   and `table` still has their rows.
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
   takes this, but prefer handing it the whole screening object: a
   character vector of paths cannot carry the search, so
   `gr_extract(screened)` keeps it and `gr_extract(screened$included)`
@@ -119,24 +119,24 @@ An object of class `gr_screening`:
 
   The distinct sources whose decision was `"unclear"`: the ones a person
   still has to decide, with
-  [`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md).
+  [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md).
 
 - `sources`:
 
   Every source, one per row of `table`, so that
-  [`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md)
+  [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md)
   can rebuild the sets above.
 
 - `records`:
 
   The
-  [`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md)
+  [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
   the run was made over, or `NULL`.
 
 - `summary`,`answers`,`trace`,`store`:
 
   As
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
 
 ## Three decisions, not two
 
@@ -182,13 +182,13 @@ breakdown of exclusions by criterion, which is what a flow diagram asks
 for; every one names a criterion of the protocol. Duplicates were
 removed before screening, so `sum(!is.na(x$table$duplicate_of))` is the
 "duplicates removed" count and every one of them still has a row; see
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
 
 ## See also
 
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md),
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 
 ## Examples
 
@@ -204,12 +204,12 @@ writeLines("We randomly assigned participants to two groups.", f)
 
 s <- gr_screen(f, question = "Does the treatment work?",
                include = "Reports a randomised comparison", client = cl)
-#> [1/1] file1c0c57a8ac8a.txt
-#> Extracting 'file1c0c57a8ac8a.txt' with the 'txt' extractor.
+#> [1/1] file1df6686899ff.txt
+#> Extracting 'file1df6686899ff.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~15 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'screen' (head|1|none) over 1 chunk(s).
 s$table[, c("document", "decision", "reason")]
 #>               document decision                           reason
-#> 1 file1c0c57a8ac8a.txt  include Reports a randomised comparison.
+#> 1 file1df6686899ff.txt  include Reports a randomised comparison.
 ```

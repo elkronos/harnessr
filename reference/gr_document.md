@@ -1,7 +1,7 @@
 # An ingested document
 
 Returned by
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md).
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md).
 
 ## Fields
 
@@ -24,7 +24,7 @@ Returned by
 - `spec`:
 
   The
-  [`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md)
+  [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
   used.
 
 - `stats`:
@@ -45,32 +45,32 @@ Returned by
 
 [`print()`](https://rdrr.io/r/base/print.html) shows the source, block
 count and token total;
-[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
+[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
 serialises the stats and every block with its provenance.
 
 ## See also
 
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
 which returns one,
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
-[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
-[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md),
-[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md),
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
+[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md),
+[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md),
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 for the next axis
 
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
-[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md)
 
 Other ingest functions:
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md),
-[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md),
-[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md),
+[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md),
+[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
+[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
 
 ## Examples
 

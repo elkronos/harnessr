@@ -36,25 +36,25 @@ in the registry, or no output price and `output_tokens` above zero (an
 embedding model's missing output price counts as zero, since it produces
 no output tokens). Pricing is seeded from the registry's `as_of`
 snapshot. Treat it as an estimate, and use
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
 to correct it.
 
 ## See also
 
-[`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md),
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
-[`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md)
+[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md),
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
+[`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md)
 
 Other cost and token functions:
-[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md),
-[`gr_count_tokens()`](https://elkronos.github.io/readgpt/reference/gr_count_tokens.md),
-[`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md),
-[`gr_model_limits()`](https://elkronos.github.io/readgpt/reference/gr_model_limits.md),
-[`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md),
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
-[`gr_set_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_set_tokenizer.md),
-[`gr_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_tokenizer.md),
-[`gr_truncate_tokens()`](https://elkronos.github.io/readgpt/reference/gr_truncate_tokens.md)
+[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md),
+[`gr_count_tokens()`](https://elkronos.github.io/harnessr/reference/gr_count_tokens.md),
+[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md),
+[`gr_model_limits()`](https://elkronos.github.io/harnessr/reference/gr_model_limits.md),
+[`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md),
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
+[`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md),
+[`gr_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_tokenizer.md),
+[`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md)
 
 ## Examples
 

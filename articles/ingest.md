@@ -7,7 +7,7 @@ however good the rest of the pipeline is. This guide covers what
 harnessr can read, what it keeps, what it removes, and how to check a
 folder before spending anything on it.
 
-[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md)
+[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 introduces the package and the ideas used here.
 
 ``` r
@@ -18,7 +18,7 @@ old <- gr_options(verbose = FALSE)
 
 ## What ingestion produces
 
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
 reads a file and returns a *document*: the text split into *blocks*,
 which are the paragraphs, headings and list items as the file has them.
 harnessr includes a short example, an annual report written in Markdown:
@@ -64,9 +64,9 @@ unlist(doc$stats[c("blocks", "chars", "tokens", "chars_removed")])
 ```
 
 You rarely need to call
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
 yourself, since
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 does it for you. Calling it directly shows you what the model will get.
 
 ## What harnessr can read
@@ -97,7 +97,7 @@ gr_extractors()[, c("name", "extensions", "available")]
 
 A file whose extension no extractor claims, such as an old `.doc` or a
 spreadsheet, is not read.
-[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md),
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md),
 below, finds those before a run rather than during one.
 
 You can also pass text directly. A string that is not the path of an
@@ -181,7 +181,7 @@ unique(doc$blocks$section)
 
 Sections matter later. The `structural` way of cutting a document into
 chunks never lets a chunk straddle two sections
-([`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md)),
+([`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md)),
 and the `preview` reading strategy plans its reading section by section.
 A plain text file has no headings, so its blocks have no section.
 
@@ -357,7 +357,7 @@ A negative number means a cleaner added characters, for example by
 expanding “ﬁ” to “fi”. If a cleaner removed far more than you expected,
 turn it off and compare.
 
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md)
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md)
 runs cleaners on any text, so you can try a configuration on a few of
 your own lines first. Cleaners always run in two stages, `early` before
 `late`, whatever order you list them in; otherwise number removal would
@@ -389,7 +389,7 @@ gr_ingest("Tiny.")
 ```
 
 The limit is `min_chars` (20 characters by default) in
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md).
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md).
 
 ## Reading the same file twice
 
@@ -405,7 +405,7 @@ when any ingestion setting changes. Turn it off with
 A folder of documents hides problems that a single file makes obvious: a
 few old `.doc` files nobody can read, scanned PDFs without text, an
 empty file, or a subfolder you forgot about.
-[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md)
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md)
 finds all of these in seconds, without calling a model and without an
 API key:
 
@@ -422,7 +422,7 @@ invisible(file.create(file.path(inbox, "empty.txt")))
 
 inv <- gr_inventory(inbox)
 inv
-#> <gr_inventory> /tmp/RtmptOmiiQ/inbox
+#> <gr_inventory> /tmp/Rtmp9ACc8O/inbox
 #>   4 file(s), 1.9 KB; 2 readable
 #>   2 ready, 1 no_extractor, 1 empty
 #>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)
@@ -464,15 +464,15 @@ It shows three things a corpus run would otherwise hide:
 
 `folder` is a column, so `split(inv$files, inv$files$folder)` gives you
 the piles.
-[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md)
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md)
 does not choose a recipe for you. A router that quietly reads one
 document with `retrieve` and another with `stuff` hands you a plausible
 answer built on part of a file with nothing saying so. It also makes
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 meaningless, because the corpus no longer had one configuration. Group
 the rows yourself and pass each group the recipe you picked; reading a
 whole folder is in
-[`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md).
+[`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md).
 
 `inv$totals` adds up the tokens and prices one request per readable file
 with your model: its tokens in, and an assumed 500-token answer out.
@@ -505,19 +505,19 @@ gr_ingest("CONFIDENTIAL - internal only\n\nRevenue rose to 45.2 million dollars.
 #> [1] "Revenue rose to 45.2 million dollars."
 ```
 
-[`?gr_register_extractor`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
+[`?gr_register_extractor`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
 shows how to add a file format, and
-[`vignette("extending")`](https://elkronos.github.io/readgpt/articles/extending.md)
+[`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)
 covers every kind of addition.
 
 ## Next
 
 Once the text is out, the next decisions are how to cut it into chunks,
 covered in
-[`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md),
+[`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md),
 and how the model should read them, covered in
-[`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md).
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md).
 To read a whole folder once
-[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md)
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md)
 has checked it, see
-[`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md).
+[`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md).

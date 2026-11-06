@@ -11,19 +11,19 @@ This guide covers what harnessr does about that: what a run records, the
 limits every request is checked against before it is sent, the cache
 that makes a repeat free, and the replay that reproduces a run from its
 trace with no key and no spend.
-[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md)
+[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 introduces the package and its ideas.
 
 ## Setting up
 
 The examples run offline.
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
 plays the part of the model, and `embedder = "lexical"` gives free,
 deterministic word-overlap vectors in place of an embeddings endpoint.
 
 A mock costs nothing, which would leave every limit below with nothing
 to count. So the examples give it a price:
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
 registers a model id at \$2 per million input tokens and \$8 per million
 output tokens, and each run names that model, so every request is priced
 at those rates.
@@ -65,9 +65,9 @@ Check `ans$partial` first. `TRUE` means something degraded, and
 every warning raised while the document was read.
 
 The trace holds every request the run made.
-[`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md)
+[`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md)
 gives the totals,
-[`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)
+[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
 the bill by model, and
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) one row
 per request with its stage, tokens, cost, time, prompt and reply:
@@ -97,7 +97,7 @@ as.data.frame(ans$trace)[, c("step", "stage", "tokens_in", "tokens_out", "usd")]
 
 The token totals are the size of the prompts and replies, which is the
 shape of a run, not its bill.
-[`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)
+[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
 counts only the calls that were issued: a call answered from a cache or
 a recording spent nothing, however long its prompt. A model with no
 registered price contributes `NA`, never 0, so a total cannot quietly
@@ -141,7 +141,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 #> List of 4
 #>  $ label      : chr "reduce"
 #>  $ attempts   : int 1
-#>  $ started_utc: chr "2026-11-06T09:17:44.968Z"
+#>  $ started_utc: chr "2026-11-06T10:36:10.499Z"
 #>  $ tokens     :List of 3
 #>   ..$ input     : int 296
 #>   ..$ output    : int 13
@@ -160,7 +160,7 @@ str(step$params_sent)
 ```
 
 A mock reports no usage, so its counts are estimated.
-[`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md)
+[`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md)
 gives the share of requests whose counts were estimated as
 `usage_estimated`, and [`print()`](https://rdrr.io/r/base/print.html) on
 a trace says so when it is above zero.
@@ -213,7 +213,7 @@ failed merge returns, `segment.contextual.header`,
 `embed.input`.
 
 A trace also records who the run is for and what it ran under.
-[`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+[`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
 takes `system`, `owner`, `run_by`, `purpose` and `approved_by`, and
 `gr_options(actor = list(...))` sets them for every trace; a field named
 nowhere is `NA`. `trace$config` is a snapshot of the options in force
@@ -224,17 +224,17 @@ are left out, since they can hold credentials.
 
 tr <- gr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
-#> <gr_trace run_20261106091745.338_fd68b9>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261106103610.866_9583db>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   cost: no cost recorded
 #>   actor: owner = finance team, run_by = ana, purpose = Q3 check 
-#>   started: 2026-11-06T09:17:45.338Z
+#>   started: 2026-11-06T10:36:10.866Z
 names(tr$config)
 #> [1] "options"   "r_version"
 ```
 
 `as_json(ans)` writes the answer with every prompt and response from the
 same run, and
-[`gr_trace_save()`](https://elkronos.github.io/readgpt/reference/gr_trace_save.md)
+[`gr_trace_save()`](https://elkronos.github.io/harnessr/reference/gr_trace_save.md)
 writes the trace alone, which is what a replay reads.
 
 ### Errors and warnings by class
@@ -245,7 +245,7 @@ Errors are classed, so you can catch a specific failure:
 `gr_budget_error`, `gr_unknown_model`, `gr_unknown_override`,
 `gr_no_recipes`, `gr_bad_ensemble`, `gr_missing_dep`, `gr_bad_setting`
 for a setting outside its choices
-([`vignette("extending")`](https://elkronos.github.io/readgpt/articles/extending.md)),
+([`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)),
 `hr_unknown_effort_key` and `hr_unpriced_model` (both below), and
 `hr_dim_mismatch` when two vectors of different lengths are compared,
 such as a lexical fallback vector against an API embedding. Degradations
@@ -254,18 +254,18 @@ are classed warnings: `gr_segment_fallback`, `gr_embed_fallback`,
 `gr_duplicate_recipe`, `gr_deprecated`, `gr_ocr_unavailable`,
 `gr_clamped` with `hr_param_clamped` for a parameter moved to its
 nearest bound
-([`vignette("extending")`](https://elkronos.github.io/readgpt/articles/extending.md)),
+([`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)),
 `gr_parallel_share` for a parallel item whose share refused a later
 request (below), `gr_bad_correct` for a
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 `correct` function that fails (below), and `gr_unclear_dropped` when
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 leaves unclear screening records out
-([`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md)).
+([`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)).
 
 In an interactive session a long read keeps one line up to date with how
 many chunks it has read and what it has spent, and
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 gives the spend so far before each document.
 
 ## Limits
@@ -348,7 +348,7 @@ data.frame(calls = tr$calls, spent_usd = tr$spent_usd)
 
 A refused request is not a call. It adds nothing to the trace’s calls,
 steps or spend.
-[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
 returns it as a failed result with `refused = TRUE` and an error naming
 the limit, after signalling a condition of class `hr_budget_refused`,
 which you can catch to stop instead. The trace lists it in `refusals`,
@@ -359,18 +359,18 @@ request as failed.
 
 The check sits on the call path itself, so it covers every request:
 readers, judges, the ensemble’s adjudication, conflict resolution in
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
 context and proposition segmentation, claims, outlines, screening,
 synthesis, embeddings, and any request a custom reader or a script makes
 with
-[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md).
+[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md).
 
 ### A governor for one run
 
-[`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md)
+[`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)
 holds a run’s limits. Attach one with `gr_trace(governor = )`; a trace
 without one reads the limits from
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 each time it checks. It has six:
 
 | limit | what it holds | default |
@@ -405,16 +405,16 @@ data.frame(refused = res$refused, stop_reason = tr$stop_reason)
 #> 1    TRUE       model
 ```
 
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
-[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
+[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 and
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 keep a trace of their own and fold it into the one they are given. They
 hold their requests to that trace’s governor, less what it has already
 spent and used in tokens; `max_calls` stays a limit per document and per
 stage.
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 holds the whole comparison to `max_cost_usd` and `max_tokens_total`.
 
 ### Models with no price
@@ -423,9 +423,9 @@ A language model with no registered price adds nothing to the spend, so
 a spending limit could never stop it. While `max_cost_usd` is set, a
 request to one is refused with a condition of class `hr_unpriced_model`,
 and
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
 stops before its first request.
-[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
+[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
 wraps an R function as a paying client, so it shows the refusal offline:
 
 ``` r
@@ -441,17 +441,17 @@ res$error
 ```
 
 Register the model’s prices with
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
 or set `gr_options(allow_unpriced = TRUE)`. Then its requests are sent,
 still count against `max_calls` and `max_tokens_total`, and are priced
 `NA` in the trace. `max_tokens_total` is the limit that still bounds
 such a run.
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
 and replays are never refused for this, and neither are embedding models
 with no price.
 
 A
-[`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
+[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
 is priced as the model its ellmer object was built with, whatever a
 recipe names, so one built on a model with no registered price is
 refused too. Register that model at your provider’s current prices, or
@@ -477,31 +477,31 @@ is not marked as stopped.
 ### How much the model reasons
 
 `effort` sets how much a reasoning model reasons on each call, by stage;
-[`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md)
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
 explains how it is billed, which models it is sent to, and the label
 each stage’s calls carry. In a review, the same vector goes to each
 stage:
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 and
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 take it as a recipe override, and
-[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 and
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 take it as an argument, so
 `effort = c(extract = "low", synthesise = "high")` keeps the per-chunk
 extraction cheap and spends on the writing. A name that matches no
 declared call stops with an error of class `hr_unknown_effort_key` that
 lists the stems, so a misspelt `c(extrac = "low")` cannot send every
 extraction at the provider’s default unnoticed.
-[`?gr_read_spec`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
+[`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
 lists every label and suggests a profile: low for the many per-chunk
 calls, high for the few that judge.
 
 ## Paying once
 
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 stores each successful response, keyed on the exact request. A repeat is
 free and identical:
 
@@ -527,7 +527,7 @@ gr_trace_cost(second$trace)[, c("calls", "paid_calls", "usd")]
 network, so `calls - cached` is what the run paid for. The token counts
 stay, since that is how big the prompts were, but a run with
 `cached == calls` cost nothing, so do not hand its totals to
-[`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md)
+[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md)
 and call the result a bill.
 
 The key covers everything that can change the reply: the messages, the
@@ -552,9 +552,9 @@ every completed call is already paid for:
 gr_options(cache_dir = tools::R_user_dir("harnessr", "cache"))
 ```
 
-[`gr_cache_stats()`](https://elkronos.github.io/readgpt/reference/gr_cache_stats.md)
+[`gr_cache_stats()`](https://elkronos.github.io/harnessr/reference/gr_cache_stats.md)
 reports entries, bytes, hits, misses and writes, and
-[`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md)
+[`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md)
 empties a cache. Set `write = FALSE` to run against a frozen cache, or
 `read = FALSE` to refresh entries already stored.
 
@@ -591,9 +591,9 @@ written under the old key (`readgpt-cache-v2`, by readgpt 0.6.0 and
 earlier builds of harnessr) are still read for calls with no draw index.
 The first reply found that way in a session warns once, with class
 `hr_legacy_key`, and
-[`gr_cache_stats()`](https://elkronos.github.io/readgpt/reference/gr_cache_stats.md)
+[`gr_cache_stats()`](https://elkronos.github.io/harnessr/reference/gr_cache_stats.md)
 counts them as `legacy_hits`. Old entries are never rewritten, and
-[`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md)
+[`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md)
 removes both. With `tools::R_user_dir("harnessr", "cache")` set, entries
 readgpt kept in `tools::R_user_dir("readgpt", "cache")` are read too,
 after it.
@@ -706,7 +706,7 @@ reply.
 
 ## Comparing what recipes cost
 
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 runs several recipes over one document on one trace. Its `summary` says
 what each recipe cost: `calls`, `tokens_in`, `tokens_out` and `usd`,
 priced at each model’s registered price, and `usd_estimated`, the share
@@ -736,15 +736,15 @@ be run alone, so the column can add up to more than
 
 ## Models, prices and token counts
 
-[`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md)
+[`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md)
 lists the context windows and prices harnessr knows, and
-[`gr_model_limits()`](https://elkronos.github.io/readgpt/reference/gr_model_limits.md)
+[`gr_model_limits()`](https://elkronos.github.io/harnessr/reference/gr_model_limits.md)
 and
-[`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md)
+[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md)
 look one model up. Check them before a long run: an unregistered model
 falls back to a conservative 128k window with no price, so its cost
 shows as `NA` rather than a wrong figure.
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
 fixes that in one line, and its `cached_input_usd` prices input the
 provider served from its prompt cache at its own rate. A model with no
 cached rate prices cached input as other input.
@@ -760,7 +760,7 @@ gr_models()[gr_models()$id %in% c("priced-mock", "priced-reasoner"),
 #> 20 priced-reasoner         128000      TRUE                2                 8
 ```
 
-[`gr_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_tokenizer.md)
+[`gr_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_tokenizer.md)
 says which counter is in use. The default, `"heuristic"`, needs nothing
 installed. `gr_set_tokenizer("tiktoken")` switches to OpenAI’s own
 tokenizer where the reticulate package and Python’s `tiktoken` are
@@ -770,24 +770,24 @@ and `o200k_base`. For a model that is not OpenAI’s it is an estimate.
 Without those packages it stops rather than falling back, because a
 silent fallback would change every budget calculation.
 
-[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md)
+[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
 does the context arithmetic for every request. It cannot return a
 non-positive input budget; it raises an error that says what to change
 instead.
-[`?gr_options`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`?gr_options`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 documents every setting.
 
 ## Next
 
-- [`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md):
+- [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md):
   how each reader spends its calls, and choosing one.
-- [`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md):
+- [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md):
   limits and caching across many documents and a literature review.
-- [`vignette("extending")`](https://elkronos.github.io/readgpt/articles/extending.md):
+- [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md):
   declaring a reader’s calls and its `cost` function, so the check
   before the first request counts it correctly.
-- [`?hr_governor`](https://elkronos.github.io/readgpt/reference/hr_governor.md),
-  [`?gr_cache`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+- [`?hr_governor`](https://elkronos.github.io/harnessr/reference/hr_governor.md),
+  [`?gr_cache`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
   and
-  [`?gr_replay_client`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md):
+  [`?gr_replay_client`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md):
   the full rules.

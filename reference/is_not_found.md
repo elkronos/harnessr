@@ -50,19 +50,19 @@ contain one of those phrases.
 
 ## See also
 
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md),
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
 whose `summary$not_found` column is this predicate applied per recipe
 
 Other reading functions:
-[`gr_answer`](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md),
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
-[`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md),
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md),
-[`new_answer()`](https://elkronos.github.io/readgpt/reference/new_answer.md)
+[`gr_answer`](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+[`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
 
 ## Examples
 

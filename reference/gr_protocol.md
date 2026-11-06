@@ -3,7 +3,7 @@
 A protocol fixes the three decisions that must not be made while
 reading: which documents count, what to collect from them, and what the
 write-up has to cover. Pass one to
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 in place of a schema.
 
 ## Usage
@@ -44,7 +44,7 @@ gr_protocol(
 - fields:
 
   A
-  [`gr_fields()`](https://elkronos.github.io/readgpt/reference/gr_fields.md)
+  [`gr_fields()`](https://elkronos.github.io/harnessr/reference/gr_fields.md)
   schema: what to extract from an included document.
 
 - outline:
@@ -55,17 +55,17 @@ gr_protocol(
 - recipe:
 
   The reading pipeline to default to, as in
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
 
 - description:
 
   One line, for
-  [`gr_protocols()`](https://elkronos.github.io/readgpt/reference/gr_protocols.md).
+  [`gr_protocols()`](https://elkronos.github.io/harnessr/reference/gr_protocols.md).
 
 - search:
 
   A
-  [`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md):
+  [`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md):
   how the search was run. Optional, and kept with the criteria so that a
   saved protocol states what was searched as well as what was eligible.
 
@@ -83,12 +83,12 @@ review will ask for.
 
 ## See also
 
-[`gr_protocols()`](https://elkronos.github.io/readgpt/reference/gr_protocols.md)
+[`gr_protocols()`](https://elkronos.github.io/harnessr/reference/gr_protocols.md)
 for the built-ins,
-[`gr_register_protocol()`](https://elkronos.github.io/readgpt/reference/gr_register_protocol.md),
-[`gr_protocol_save()`](https://elkronos.github.io/readgpt/reference/gr_protocol_save.md),
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
-[`gr_fields()`](https://elkronos.github.io/readgpt/reference/gr_fields.md)
+[`gr_register_protocol()`](https://elkronos.github.io/harnessr/reference/gr_register_protocol.md),
+[`gr_protocol_save()`](https://elkronos.github.io/harnessr/reference/gr_protocol_save.md),
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+[`gr_fields()`](https://elkronos.github.io/harnessr/reference/gr_fields.md)
 
 ## Examples
 

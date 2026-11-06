@@ -58,7 +58,7 @@ gr_client(
   Named list merged into every request body. A reasoning effort set here
   (`list(reasoning = list(effort = "low"))`) is the client's default;
   the `effort` setting of
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
   replaces it for the calls it covers.
 
 - headers:
@@ -73,7 +73,7 @@ gr_client(
 An object of class `gr_client`: a list of the settings above.
 Constructing one makes no request and does not require a key; the key is
 resolved at call time by
-[`gr_api_key()`](https://elkronos.github.io/readgpt/reference/gr_api_key.md).
+[`gr_api_key()`](https://elkronos.github.io/harnessr/reference/gr_api_key.md).
 
 ## Endpoints behind a company gateway
 
@@ -95,7 +95,7 @@ its own scheme needs no `OPENAI_API_KEY` set at all:
 
 Headers are credentials and routing metadata, not part of what answers,
 so they are excluded from the
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 key for the same reason `api_key` is. A rotating bearer or a per-request
 correlation id would otherwise make every cache lookup miss. If a header
 changes *which* model answers, give that client its own `base_url` or
@@ -103,19 +103,19 @@ changes *which* model answers, give that client its own `base_url` or
 
 ## See also
 
-[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
 to use it,
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
 to work offline,
-[`gr_cache_client()`](https://elkronos.github.io/readgpt/reference/gr_cache_client.md)
+[`gr_cache_client()`](https://elkronos.github.io/harnessr/reference/gr_cache_client.md)
 to make repeat calls free,
-[`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
 to re-run a recorded run,
-[`gr_api_key()`](https://elkronos.github.io/readgpt/reference/gr_api_key.md)
+[`gr_api_key()`](https://elkronos.github.io/harnessr/reference/gr_api_key.md)
 for key resolution,
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 for the defaults,
-[gr_result](https://elkronos.github.io/readgpt/reference/gr_result.md)
+[gr_result](https://elkronos.github.io/harnessr/reference/gr_result.md)
 for what a call returns
 
 ## Examples

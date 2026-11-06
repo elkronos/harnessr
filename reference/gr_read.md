@@ -4,7 +4,7 @@ The third axis. Reading is a separate decision from segmentation because
 the call pattern (which chunks reach the model, in how many requests,
 and whether anything flows between them) is where both cost and answer
 quality are actually decided. The same chunk set can be read many ways;
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
 lists them with what each costs.
 
 ## Usage
@@ -18,7 +18,7 @@ gr_read(chunks, question, client, spec = NULL, trace = NULL)
 - chunks:
 
   A `gr_chunks` object from
-  [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md).
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md).
 
 - question:
 
@@ -39,25 +39,25 @@ gr_read(chunks, question, client, spec = NULL, trace = NULL)
 ## Value
 
 A
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md).
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md).
 Check `$partial` before trusting `$answer`.
 
 ## See also
 
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 
 Other reading functions:
-[`gr_answer`](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md),
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
-[`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md),
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md),
-[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md),
-[`new_answer()`](https://elkronos.github.io/readgpt/reference/new_answer.md)
+[`gr_answer`](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+[`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md),
+[`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
 
 ## Examples
 

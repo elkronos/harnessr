@@ -15,14 +15,14 @@ gr_cache_client(client, cache = gr_cache())
 - client:
 
   A
-  [`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
+  [`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
   or
-  [`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md).
+  [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md).
 
 - cache:
 
   A
-  [`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md).
+  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md).
   Pass `NULL` to detach.
 
 ## Value
@@ -31,8 +31,8 @@ The client, with the cache attached.
 
 ## See also
 
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md),
-[`gr_cache_stats()`](https://elkronos.github.io/readgpt/reference/gr_cache_stats.md)
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md),
+[`gr_cache_stats()`](https://elkronos.github.io/harnessr/reference/gr_cache_stats.md)
 
 ## Examples
 

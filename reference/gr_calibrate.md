@@ -1,7 +1,7 @@
 # Measure the screener against a hand-screened sample
 
 Compares
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)'s
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)'s
 decisions with a person's on the same documents, and reports what that
 sample supports: how much of the eligible literature the screener kept,
 how much of the irrelevant literature it removed, and how much reading
@@ -25,7 +25,7 @@ gr_calibrate(
 - screening:
 
   A `gr_screening` from
-  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
+  [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
   or a data frame shaped like its `$table`, for instance read back from
   a CSV. Its `decision` must be `"include"`, `"exclude"`, `"unclear"` or
   empty (never read), in any case; a row whose `status` says it was not
@@ -34,7 +34,7 @@ gr_calibrate(
 - reference:
 
   The completed frame from
-  [`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md),
+  [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
   a path to the filled-in CSV, or any data frame with `document` and
   `human_decision`.
 
@@ -54,7 +54,7 @@ gr_calibrate(
   Which part of the screening run the reference was drawn from:
   `"excluded"`, `"kept"` or `"all"`; anything else is an error. Normally
   recovered from the file
-  [`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md)
+  [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
   wrote; give it explicitly for a reference built by hand. Given over a
   file that records a different frame, it wins with a warning, and the
   file's frame size is not used.
@@ -179,7 +179,7 @@ The rate of `"unclear"` decisions is the metric
 both tables are in `$decisions`.
 
 A decision a person settled with
-[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md)
+[`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md)
 is not the screener's, so the comparison uses the screener's own
 decision, from `screener_decision`, wherever the table has one.
 
@@ -219,16 +219,16 @@ into one consensus decision per document first.
 
 ## See also
 
-[`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md),
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
-[`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
+[`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
+[`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
 
 Other corpus functions:
-[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md),
-[`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md),
-[`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md),
-[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md),
-[`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md),
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
+[`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
+[`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md),
+[`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
 
 ## Examples
 

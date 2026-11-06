@@ -29,7 +29,7 @@ gr_field(description, type = "string", values = NULL)
   lone zero ("1,5"; "1,204" and "0,85" are read), a fraction in an
   integer field, and a boolean that is not a plain yes or no
   ("unclear").
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
   counts such a value in `n_unverified` rather than reporting the field
   as not reported. Digits of other scripts (Arabic-Indic, Persian,
   full-width) and a typeset minus sign are read as they are meant.
@@ -46,8 +46,8 @@ A `gr_field`.
 
 ## See also
 
-[`gr_fields()`](https://elkronos.github.io/readgpt/reference/gr_fields.md),
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_fields()`](https://elkronos.github.io/harnessr/reference/gr_fields.md),
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 
 ## Examples
 

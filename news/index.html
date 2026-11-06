@@ -33,7 +33,7 @@
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/elkronos/readgpt/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/elkronos/harnessr/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -43,14 +43,14 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/elkronos/readgpt/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/elkronos/harnessr/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.6.0.9000" id="harnessr-0609000">harnessr 0.6.0.9000<a class="anchor" aria-label="anchor" href="#harnessr-0609000"></a></h2>
 <div class="section level3">
 <h3 id="renamed-0-6-0-9000">Renamed<a class="anchor" aria-label="anchor" href="#renamed-0-6-0-9000"></a></h3>
-<ul><li><p><strong>The package is now called harnessr.</strong> readgpt grew a general core for model calls (clients, spending limits, a response cache, recordings that replay offline, traces) under its document-reading layer, and the new name says so. Load it with <code><a href="https://github.com/elkronos/readgpt" class="external-link">library(harnessr)</a></code>. The GitHub repository is still <code>elkronos/readgpt</code>, so <code>remotes::install_github("elkronos/readgpt")</code> installs harnessr. No exported function, class, argument or prompt changes name in this release except <code><a href="../reference/readgpt_example.html">readgpt_example()</a></code>, below.</p></li>
+<ul><li><p><strong>The package is now called harnessr.</strong> readgpt grew a general core for model calls (clients, spending limits, a response cache, recordings that replay offline, traces) under its document-reading layer, and the new name says so. Load it with <code><a href="https://github.com/elkronos/harnessr" class="external-link">library(harnessr)</a></code>. The GitHub repository is renamed to <code>elkronos/harnessr</code> too, and GitHub sends the old address there, so <code>remotes::install_github("elkronos/harnessr")</code> installs it and the old <code>elkronos/readgpt</code> still works. The website moves to <a href="https://elkronos.github.io/harnessr/" class="uri">https://elkronos.github.io/harnessr/</a>. No exported function, class, argument or prompt changes name in this release except <code><a href="../reference/readgpt_example.html">readgpt_example()</a></code>, below.</p></li>
 <li><p><strong><code><a href="../reference/readgpt_example.html">readgpt_example()</a></code> is now <code><a href="../reference/gr_example.html">gr_example()</a></code></strong>, which returns the same path to the bundled example document. <code><a href="../reference/readgpt_example.html">readgpt_example()</a></code> still works, with one <code>gr_deprecated</code> warning per session naming the new function.</p></li>
 <li><p><strong>Requests, cache keys and recordings are unchanged by the rename.</strong> Every request is sent as 0.6.0 sent it, and the corpus store key is the one 0.6.0 computed. The response-cache and replay keys change later in this release (see “Cache and replay keys” below), and the keys 0.6.0 computed are still looked up, so a warm cache, a recording made for <code><a href="../reference/gr_replay_client.html">gr_replay_client()</a></code> and a <code><a href="../reference/gr_read_many.html">gr_read_many()</a></code> store all keep answering.</p></li>
 <li><p><strong>Two options are renamed</strong>: <code>readgpt.api_key</code> is now <code>harnessr.api_key</code>, and <code>readgpt.allow_local_urls</code> is now <code>harnessr.allow_local_urls</code>. The old names are still read when the new ones are not set, with one <code>gr_deprecated</code> warning per session naming the new option.</p></li>

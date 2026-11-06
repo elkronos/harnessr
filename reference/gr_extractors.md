@@ -17,17 +17,17 @@ are not in `needs`: a PDF with a text layer reads without them.
 
 ## See also
 
-[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md),
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md),
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
 
 Other ingest functions:
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md),
-[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md),
-[`gr_document`](https://elkronos.github.io/readgpt/reference/gr_document.md),
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md),
+[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md),
+[`gr_document`](https://elkronos.github.io/harnessr/reference/gr_document.md),
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
+[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
 
 ## Examples
 

@@ -8,19 +8,21 @@
   for model calls (clients, spending limits, a response cache,
   recordings that replay offline, traces) under its document-reading
   layer, and the new name says so. Load it with
-  [`library(harnessr)`](https://github.com/elkronos/readgpt). The GitHub
-  repository is still `elkronos/readgpt`, so
-  `remotes::install_github("elkronos/readgpt")` installs harnessr. No
-  exported function, class, argument or prompt changes name in this
-  release except
-  [`readgpt_example()`](https://elkronos.github.io/readgpt/reference/readgpt_example.md),
+  [`library(harnessr)`](https://github.com/elkronos/harnessr). The
+  GitHub repository is renamed to `elkronos/harnessr` too, and GitHub
+  sends the old address there, so
+  `remotes::install_github("elkronos/harnessr")` installs it and the old
+  `elkronos/readgpt` still works. The website moves to
+  <https://elkronos.github.io/harnessr/>. No exported function, class,
+  argument or prompt changes name in this release except
+  [`readgpt_example()`](https://elkronos.github.io/harnessr/reference/readgpt_example.md),
   below.
 
-- **[`readgpt_example()`](https://elkronos.github.io/readgpt/reference/readgpt_example.md)
+- **[`readgpt_example()`](https://elkronos.github.io/harnessr/reference/readgpt_example.md)
   is now
-  [`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md)**,
+  [`gr_example()`](https://elkronos.github.io/harnessr/reference/gr_example.md)**,
   which returns the same path to the bundled example document.
-  [`readgpt_example()`](https://elkronos.github.io/readgpt/reference/readgpt_example.md)
+  [`readgpt_example()`](https://elkronos.github.io/harnessr/reference/readgpt_example.md)
   still works, with one `gr_deprecated` warning per session naming the
   new function.
 
@@ -30,9 +32,9 @@
   later in this release (see “Cache and replay keys” below), and the
   keys 0.6.0 computed are still looked up, so a warm cache, a recording
   made for
-  [`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+  [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
   and a
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
   store all keep answering.
 
 - **Two options are renamed**: `readgpt.api_key` is now
@@ -63,7 +65,7 @@
   `gr_options("temperature")`, or `NA` when none was sent), the effort,
   the schema name, and SHA-256 hashes of the schema and of the extra
   body fields. For a
-  [`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
+  [`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
   it is read from the request body itself. `params` keeps what the
   caller asked for, as before. Requests, response-cache keys and replay
   keys are unchanged.
@@ -72,7 +74,7 @@
   the provider returns them, beside `model`, which stays the model asked
   for and is what a step is priced and replayed by. None of them enters
   a cache or replay key.
-  [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
   results carry the same three fields.
 
 - **Steps record `attempts`**, the number of requests sent, retries
@@ -87,13 +89,13 @@
   and cached input tokens the provider reports are kept as
   `tokens$reasoning` and `tokens$cached_input`, parts of `output` and
   `input` rather than additions.
-  [`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md)
+  [`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md)
   gains `tokens_reasoning`, `tokens_cached_in` and `usage_estimated`,
   the share of requests whose counts were estimated, and
   [`print()`](https://rdrr.io/r/base/print.html) on a trace says that
   share when it is above zero. A request that failed before the provider
   sent any usage records a `"counted"` zero, and a handler’s
-  [`gr_result()`](https://elkronos.github.io/readgpt/reference/gr_result.md)
+  [`gr_result()`](https://elkronos.github.io/harnessr/reference/gr_result.md)
   built with no usage is counted here rather than taken as a reported 0
   in and 0 out.
 
@@ -103,21 +105,21 @@
   [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) on a
   trace gains `tokens_reasoning`, `tokens_cached_in` and `served_model`
   columns when some request has them, and
-  [`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)
+  [`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
   gains `paid_reasoning` and `paid_cached_in`.
 
 - **Cached input can be priced at its own rate.**
-  [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+  [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
   takes `cached_input_usd`,
-  [`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md)
+  [`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md)
   takes `cached_input_tokens`, and
-  [`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md)
+  [`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md)
   shows `cached_input_usd_per_1m`. A model with no cached rate prices
   cached input as other input, so every built-in model costs what it
   did.
 
 - **Runs record who they are for.**
-  [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+  [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
   takes `system`, `owner`, `run_by`, `purpose` and `approved_by`, and
   the new option `gr_options(actor = list(...))` sets them for every
   trace; a field named nowhere is `NA`. They are written to a saved
@@ -128,14 +130,14 @@
   `config`, with the R version. The values of `api_headers` are left
   out, since they can hold credentials.
 
-- [`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+- [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
   given one named argument whose value is a list now sets that option.
   It used to read the list as a set of options to restore, which only an
   unnamed list should be.
 
 ### Cache and replay keys
 
-- **[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+- **[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
   takes a `draw_index`** for the draws of a sampled request: 0, the
   default, for an ordinary call, and 1, 2, … for repeated draws. Above 0
   it is part of the response-cache key, so N identical calls with draw
@@ -152,10 +154,10 @@
   finds nothing under its new key is looked up under the old one. The
   first reply found that way in a session warns once for the cache, with
   class `hr_legacy_key`, and
-  [`gr_cache_stats()`](https://elkronos.github.io/readgpt/reference/gr_cache_stats.md)
+  [`gr_cache_stats()`](https://elkronos.github.io/harnessr/reference/gr_cache_stats.md)
   has a new column, `legacy_hits`, that counts them. Old entries are
   never rewritten, new ones are written under the new key only, and
-  [`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md)
+  [`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md)
   removes both.
 
 - **The replay key is now `harnessr-replay-v2`**, and covers the
@@ -193,7 +195,7 @@
   checked before it is sent, by the call path itself, against what the
   run has spent plus the most the request could cost: its prompt at the
   input price and its output cap (for a reasoning model, the raised cap
-  [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
   sends) at the output price. The prompt is counted with the JSON schema
   and extra body fields the request carries and a few tokens of framing
   per message, then raised by `safety_margin`, since the provider bills
@@ -206,7 +208,7 @@
   has headroom a smaller cap would have used.
 
 - **A refused request is not a call.** It comes back from
-  [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
   as a failed result with `refused = TRUE` and an error naming the
   limit, after a condition of class `hr_budget_refused` is signalled
   (catch it to stop instead). It adds nothing to the trace’s calls,
@@ -220,26 +222,26 @@
   context and proposition segmentation, claims, outlines, screening,
   synthesis and embeddings requests all go through the same check, as
   does any request a custom reader or a script makes with
-  [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md).
+  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md).
   The readers no longer check `trace_can_call()` themselves. It is kept
   for custom readers written to the 0.6.0 help page, which still work.
 
 - **A chat model with no registered price is refused while a spending
   limit is set**, with a condition of class `hr_unpriced_model`. Such a
   model added nothing to the spend, so the limit never stopped it.
-  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+  [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
   stops before its first request with an `hr_unpriced_model` error.
   Register the model’s prices with
-  [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
+  [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
   or set `gr_options(allow_unpriced = TRUE)`; then its requests are
   sent, still count against `max_calls` and `max_tokens_total`, and are
   priced `NA` in the trace.
-  [`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+  [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
   and replays are never refused for this, and neither are embedding
   models with no price. An ellmer chat is priced as the model it was
   built with, whatever a spec names, so a chat on a model with no
   registered price is refused too; the README and the
-  [`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
+  [`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
   example now register its price, and allow a local model to run
   unpriced.
 
@@ -248,29 +250,29 @@
   embedded. A request whose prompt and reply at its cap would pass it is
   refused with `stop_reason` `"tokens"`. It is the limit that still
   bounds a run on an unpriced model under `allow_unpriced = TRUE`.
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
   holds the whole comparison to it, as it does to `max_cost_usd`.
 
 - **New
-  [`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md)**
+  [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)**
   holds a run’s limits: `max_calls`, `max_cost_usd`, `max_tokens_total`,
   `max_output_tokens` (the largest output cap one request may carry; a
   request with a larger one is refused, not cut down), `allowed_models`
   and `allow_unpriced`. Attach one with the new `gr_trace(governor = )`
   argument; a trace without one reads the limits from
-  [`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md),
+  [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md),
   as before. The new limits are also options, `max_tokens_total`,
   `max_output_tokens`, `allowed_models` (all `NULL`, off) and
   `allow_unpriced` (`FALSE`), so every trace’s config snapshot now lists
   them.
-  [`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
+  [`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
   writes a trace’s `refusals` and `governor` when it has any, with
   `allowed_models` always as an array.
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
+  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
   and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md),
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md),
   which keep a trace of their own and fold it into the one they are
   given, hold their requests to that trace’s governor, less what it has
   already spent and used in tokens; `max_calls` stays a limit per
@@ -300,12 +302,12 @@
   failed calls: a screening decision outside `include`, `exclude` and
   `unclear` (it was read as “unclear”), a text field sent as an array or
   object in `iterative`, `rerank` and
-  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+  [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
   (it was joined into one string), and a proposition list sent as an
   array of arrays (the batch is kept as written). Where a reader reports
   why a call failed, it now says where the reply broke the schema, as in
   `$.groups[0]: expected array, got 1`.
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
   still reads each field’s value itself, so “1,204” in an integer field
   is still 1204 and an undeclared value is still reported as one it
   could not read; only the shape of its replies is checked.
@@ -329,15 +331,15 @@
 ### Parameter schemas, declared calls and reader costs
 
 - **New
-  [`hr_schema()`](https://elkronos.github.io/readgpt/reference/hr_schema.md),
-  [`hr_param()`](https://elkronos.github.io/readgpt/reference/hr_param.md)
+  [`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md),
+  [`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md)
   and
-  [`hr_validate()`](https://elkronos.github.io/readgpt/reference/hr_validate.md)**
+  [`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md)**
   state a spec’s parameters once: type, default, range and choices.
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
-  [`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md)
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+  [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md)
   and
-  [`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md)
+  [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
   now check their arguments through schemas instead of code of their
   own. They accept the same values and return the same specs, with the
   same clamps, defaults and warnings; a clamp warning now also has class
@@ -351,24 +353,24 @@
   `'arg'`.
 
 - **Readers and segmenters declare the labels their calls carry.**
-  [`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md)
+  [`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md)
   and
-  [`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md)
+  [`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md)
   take a new `calls` argument, the stems of their calls’ trace labels
   (`"stuff.answer"`, `c("map.answer", "reduce")`).
-  [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
+  [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
   and
-  [`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md)
+  [`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md)
   list them in a new `calls` column. A reader or segmenter registered
   without `calls` declares its own name, which covers labels such as
   `"longest.answer"` for a reader called `"longest"`.
 
 - **An `effort` map that names no declared call is an error.** A name in
   `gr_read_spec(effort =)` (and the `effort` of
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
   and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md))
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md))
   must be a declared stem, a part of one up to a dot (`"synthesise"`,
   `"segment"`), or a label under one (`"reduce.level1"`). Anything else
   stops with an error of class `hr_unknown_effort_key` that lists the
@@ -379,13 +381,13 @@
   registered first, with its labels in `calls`.
 
 - **A reader states its cost as a function.**
-  [`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md)
+  [`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md)
   takes a new `cost` argument, a function of `(input_stats, params)`
   returning the new
-  [`hr_cost()`](https://elkronos.github.io/readgpt/reference/hr_cost.md):
+  [`hr_cost()`](https://elkronos.github.io/harnessr/reference/hr_cost.md):
   requests expected and at worst, embedding requests, and what the
   reader must send. The pre-flight check of
-  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+  [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
   adds up these functions instead of repeating each built-in reader’s
   call pattern, and the governor decides from the sum whether the run
   fits its limits before the first request. The built-in readers’
@@ -393,24 +395,24 @@
   unchanged. A registered reader without `cost` is counted as before,
   one request per chunk. `cost_calls` is kept for display only, as the
   description
-  [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
+  [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
   shows; the pre-flight check never reads it, and it will be retired in
   a later phase. A cost function may also return a plain list with
   `calls_max` and no `calls`, which is read as both.
-  [`hr_cost()`](https://elkronos.github.io/readgpt/reference/hr_cost.md)
+  [`hr_cost()`](https://elkronos.github.io/harnessr/reference/hr_cost.md)
   has a `tokens_out_max` for a reader whose replies can be billed beyond
   the reply cap; the check prices every request at
   `input_stats$out_cap`, the largest cap the run’s model is sent, and
   uses `tokens_out_max` when it is larger.
 
-- [`hr_param()`](https://elkronos.github.io/readgpt/reference/hr_param.md)
+- [`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md)
   with a `type` or `tier` it does not know is an error of class
   `gr_bad_setting` that names the parameter. A `named_map` parameter
   takes a character vector or a list whose elements are all named.
 
 ### Screening
 
-- **[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+- **[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
   computes kappa on kept against excluded.** 0.6.0 took kappa over the
   screener’s three labels (include, unclear, exclude) against the
   person’s two, so every `"unclear"` counted as a disagreement, while
@@ -419,7 +421,7 @@
   definition sensitivity uses, and `$agreement$strict` holds strict
   include against the rest as a secondary table. On the eight-record
   example in
-  [`?gr_calibrate`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+  [`?gr_calibrate`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
   kappa moves from 0.33 to 0.50. The old figure is `$kappa_legacy` for
   this release only, and is removed in the next.
 
@@ -461,19 +463,19 @@
   to a later release.
 
 - **New
-  [`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md)**
+  [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md)**
   records a person’s decision on a deferred or failed record: who
   decided, when (in UTC) and why, in the table and as a
   `"screen.resolve"` step in the trace. `forward`, `deferred` and
   `included` are rebuilt, the screener’s own decision is kept in
   `screener_decision`, and
-  [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+  [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
   compares against that one, so a person’s correction is not credited to
   the screener. Duplicates of a resolved record take the same decision.
   The audit report’s screening table shows the screener’s decision and
   who resolved each record, when and why.
 
-- **[`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)
+- **[`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
   accounts for every screened record.** A record with no decision is now
   counted as “could not be read” only when no screening call was made;
   one whose call failed, or whose reply was not the form asked for, has
@@ -483,47 +485,47 @@
 
 ### Claims and outline
 
-- **[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+- **[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
   and
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
   record their calls the way the other review stages do.** Each records
   on a trace of its own and, given `trace =`, adds its calls to that
   trace when it finishes, as
-  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+  [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
   and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
   already did. Before, both recorded straight onto the trace they were
   given, so a review trace that an earlier stage had taken past
   `gr_options(max_calls =)` or `max_cost_usd =` stopped them before they
   sent a request, and
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
   returned no claims, marked partial. Pass one trace to every stage and
   its totals are the sum of the stages’, with each request counted once.
 
-- **[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+- **[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
   no longer adds to `claims$trace`.** Given no `trace`, it recorded its
   calls on the trace of the claims it was handed, which changed a
   finished
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
   result and made `claims$trace` report the outline’s cost as the
   claims’. Its calls are now on `attr(outline, "trace")`, which
-  [`gr_outline_pick()`](https://elkronos.github.io/readgpt/reference/gr_outline_pick.md)
+  [`gr_outline_pick()`](https://elkronos.github.io/harnessr/reference/gr_outline_pick.md)
   keeps and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
   keeps as `$outline_trace`. Scripts that totalled a review’s cost from
   `claims$trace` after
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
   should pass one `trace` to both, or add `attr(outline, "trace")`. The
   audit report’s claims row still includes the outline’s calls, read
   from the synthesis, and counts them once when a script passes
   `trace = claims$trace` to
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md).
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md).
 
 ### Comparing recipes
 
-- **[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+- **[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
   says what each recipe cost.** `summary` gains `calls`, `tokens_in`,
   `tokens_out` and `usd`, priced from the requests on the trace at each
   model’s registered price, and `usd_estimated`, the share of those
@@ -554,9 +556,9 @@
 - **`gr_read_spec(verify = TRUE)`** checks an answer’s quotations
   against the chunks they come from and lets the check decide what is
   accepted.
-  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+  [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
   runs
-  [`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md)
+  [`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md)
   on the answer, writes its columns onto `$evidence`, marks the answer
   partial when a quotation is not found (`notes$unverified_evidence`),
   notes how many it checked (`notes$quotes_checked`) and records a
@@ -579,7 +581,7 @@
 - **A second quote matcher is recorded beside `verified`.** Evidence
   tables that are checked (`skim`, `extract`, `screen`, `iterative` with
   `verify = TRUE`) and
-  [`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md)
+  [`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md)
   gain `quote_status`, `quote_sim`, `quote_coverage`, `quote_edits` and
   `quote_critical_ok`, from a matcher that expands ligatures, joins
   words broken across a line with a hyphen, undoes JSON escapes and
@@ -636,15 +638,15 @@
 ### Conformance checks
 
 - **New
-  [`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md)
+  [`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md)
   and
-  [`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md)**
+  [`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md)**
   run one registered reader or segmenter on
-  [`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md)
+  [`gr_example()`](https://elkronos.github.io/harnessr/reference/gr_example.md)
   through an offline mock client and report which rules of its contract
   it breaks. A reader is checked for finishing without an error,
   returning a `gr_answer` with the fields
-  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+  [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
   documents and a single string as its answer, evidence and
   `chunks_used` that name only chunks of the input, call labels covered
   by the stems it declared in `calls`, and no more requests than its
@@ -652,12 +654,12 @@
   for finishing without an error, returning a `gr_chunks` with the
   documented columns, text in every chunk, unique chunk ids, no chunk
   over `max_tokens` that
-  [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
   had to split, and call labels covered by its declared stems. Every
   built-in reader and segmenter passes them.
 
 - **New
-  [`hr_check_module()`](https://elkronos.github.io/readgpt/reference/hr_check_module.md)**
+  [`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md)**
   is the core helper both use: it runs a closure that calls a module in
   a temporary working directory, catches its error and warnings, asks a
   named list of rule functions about what came back, and returns an
@@ -669,8 +671,8 @@
   be checked.
 
 - The checks are reports only.
-  [`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md)
+  [`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md)
   and
-  [`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md)
+  [`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md)
   still check only that `fn` is a function, and register a module that
   breaks a rule as before.

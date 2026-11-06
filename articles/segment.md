@@ -9,9 +9,9 @@ reading.
 
 Six of the nine segmenters make no model calls, and a seventh makes none
 by default, so you can try them for nothing.
-[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md)
+[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 introduces the package and the ideas used here, and
-[`vignette("ingest")`](https://elkronos.github.io/readgpt/articles/ingest.md)
+[`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md)
 covers the step before this one.
 
 ``` r
@@ -27,11 +27,11 @@ time.
 
 ## What segmentation produces
 
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 takes a document from
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
 (or anything
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
 accepts) and a segmentation, and returns a chunk set:
 
 ``` r
@@ -47,7 +47,7 @@ ch
 ```
 
 The segmentation can be a segmenter’s name, a named list as above, or a
-[`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md).
+[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md).
 Each chunk records where it came from:
 
 ``` r
@@ -72,9 +72,9 @@ first place it touches. This provenance is what `ans$evidence` reports
 for every chunk an answer rests on.
 
 You rarely call
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 yourself.
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 does it, using the `segment` part of a recipe:
 
 ``` r
@@ -92,7 +92,7 @@ gr_recipe("survey")$segment[c("method", "max_tokens", "overlap_tokens")]
 
 To change it, build a recipe of your own with
 `gr_recipe(segment = list(...))`;
-[`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md)
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
 covers recipes.
 
 ## The nine segmenters
@@ -182,7 +182,7 @@ pg$method
 without one falls back to `sentence`. The fallback shows in `$method`
 (`"semantic->paragraph"`, `"proposition->sentence"`) and in the `method`
 column of
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md),
 so a comparison never reports a chunking that did not run. `contextual`
 keeps its name when `context_source = "llm"` has no client, because only
 the source of its context lines changed; `$extra$context_source` records
@@ -195,13 +195,13 @@ is carried onto the answer of any read that uses the chunks.
 
 `max_tokens` is the cap on a chunk’s size, and every segmenter is held
 to it, including one you register yourself. After a segmenter returns,
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 splits any chunk over the cap (at sentences, then words, then
 characters) and counts how many it had to split in
 `$extra$cap_enforced`. The pieces keep the page, section and block of
 the chunk they came from. If the active tokenizer counts a single
 character as more than the cap,
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 stops with an error of class `gr_cap_unenforceable` rather than send a
 chunk the model will reject.
 
@@ -221,7 +221,7 @@ What the right size is depends on the reader. A reader that sends every
 chunk pays for each request, so small chunks multiply the bill; one that
 picks the best few chunks needs chunks small enough that the best few
 hold the answer and little else.
-[`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md)
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
 compares them.
 
 ## Overlap
@@ -229,7 +229,7 @@ compares them.
 Without overlap, an answer that straddles a boundary is split between
 two chunks and may be lost by both. `overlap_tokens` copies the end of
 each chunk into the start of the next. It costs duplicated tokens, which
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md)
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
 shows as a larger `total_tokens`:
 
 ``` r
@@ -384,7 +384,7 @@ words, not meaning. With a real embeddings endpoint it is `"api"`.
 These requests count against the run’s limits,
 `gr_options(max_calls =, max_cost_usd =)`, like any other. Called
 without a `trace`,
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 makes its own and returns it as `$trace`, so you can see what segmenting
 cost:
 
@@ -395,12 +395,12 @@ gr_trace_summary(ctx_llm$trace)[, c("calls", "tokens_in", "tokens_out")]
 #> 1    14      8639        196
 ```
 
-[`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md)
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 covers limits and traces.
 
 ## Comparing segmentations
 
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md)
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
 sums a chunk set up in one row, so comparing chunkings is an
 [`rbind()`](https://rdrr.io/r/base/cbind.html):
 
@@ -419,12 +419,12 @@ do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"),
 reader that sends every chunk. `total_tokens` grows with overlap and
 with text a segmenter adds, such as the headings `structural` puts at
 the top of its chunks. `over_cap` is 0 for anything
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 returns, since the cap is enforced; it is there for chunk sets built
 some other way. `method` names any fallback.
 
 To compare what different chunkings do to an answer, give
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 recipes that differ only in their `segment`. It extracts the document
 once and reuses a segmentation across recipes whose segment settings
 match, so only the reading is paid for more than once:
@@ -461,20 +461,20 @@ home directory, so set it before exposing the app to anyone else. The
 app opens only the PDF, Word, text, Markdown, HTML and image files under
 those folders, never hidden files or hidden folders. `extract` and
 `screen` are not offered, since they read against a protocol; use
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 and
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
-([`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md)).
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+([`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)).
 A blank cost cap leaves `gr_options("max_cost_usd")` in force rather
 than lifting the limit.
 
 ## Your own segmenter
 
-[`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md)
+[`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md)
 adds a segmenter that behaves like the built-ins: it appears in
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md),
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md),
 can be named in a recipe, and is held to the same cap.
-[`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)
+[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
 builds the object it must return.
-[`vignette("extending")`](https://elkronos.github.io/readgpt/articles/extending.md)
+[`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)
 has a worked example.

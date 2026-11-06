@@ -33,7 +33,7 @@
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/elkronos/readgpt/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/elkronos/harnessr/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -43,7 +43,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Create a run trace</h1>
-      <small class="dont-index">Source: <a href="https://github.com/elkronos/readgpt/blob/main/R/core-ledger-core.R" class="external-link"><code>R/core-ledger-core.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/elkronos/harnessr/blob/main/R/core-ledger-core.R" class="external-link"><code>R/core-ledger-core.R</code></a></small>
       <div class="d-none name"><code>gr_trace.Rd</code></div>
     </div>
 
@@ -278,22 +278,22 @@ otherwise.</p>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="fu"><a href="gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">ch</span>, <span class="st">"What was revenue?"</span>, <span class="va">cl</span>, <span class="st">"map_reduce"</span>, trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'map_reduce' (all|N+logN|tree) over 5 chunk(s).</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">tr</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;gr_trace run_20261106091721.747_f8de41&gt;  7 steps, 6 model calls, 1118 in / 36 out tokens, 0 error(s)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;gr_trace run_20261106103547.855_999cdf&gt;  7 steps, 6 model calls, 1118 in / 36 out tokens, 0 error(s)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   steps: map.answer x5, preflight x1, reduce x1 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   cost: $0.0000 across mock-model</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   usage: estimated locally for 100% of requests (the provider reported none)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   started: 2026-11-06T09:17:21.747Z </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   started: 2026-11-06T10:35:47.855Z </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># One row per request, with what each cost and how long it took.</span></span></span>
 <span class="r-in"><span><span class="va">reqs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">tr</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">reqs</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"step"</span>, <span class="st">"stage"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span>, <span class="st">"usd"</span>, <span class="st">"seconds"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   step      stage tokens_in tokens_out usd seconds</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1    2 map.answer       201          6   0   0.001</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    3 map.answer       210          6   0   0.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3    4 map.answer       187          6   0   0.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4    5 map.answer       193          6   0   0.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5    6 map.answer       163          6   0   0.000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6    7     reduce       164          6   0   0.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1    2 map.answer       201          6   0       0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    3 map.answer       210          6   0       0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3    4 map.answer       187          6   0       0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4    5 map.answer       193          6   0       0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5    6 map.answer       163          6   0       0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6    7     reduce       164          6   0       0</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

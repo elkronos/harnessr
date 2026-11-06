@@ -51,7 +51,7 @@ changing an option mid-session affects subsequent runs.
   Token counter: `"heuristic"` (conservative, no dependencies),
   `"words"`, `"chars"`, `"tiktoken"` (needs reticulate), or a name
   registered via
-  [`gr_set_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_set_tokenizer.md).
+  [`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md).
 
 - `api` ("responses"):
 
@@ -66,7 +66,7 @@ changing an option mid-session affects subsequent runs.
   Named character vector of extra HTTP headers sent with every request,
   for gateways that do not authenticate with a bearer token. Inherited
   by every
-  [`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
+  [`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
   that does not name its own; see that function's `headers` argument for
   the rules.
 
@@ -96,7 +96,7 @@ changing an option mid-session affects subsequent runs.
 - `min_output_tokens` (256):
 
   Floor on the completion room
-  [`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md)
+  [`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
   reserves *when `reserve_output` is not given explicitly*. An explicit
   `reserve_output` is honoured down to 1.
 
@@ -114,15 +114,15 @@ changing an option mid-session affects subsequent runs.
   Which registered embedder to use. `NULL` means the one the client
   carries, if any, and otherwise `"api"`. Naming one here overrides
   both. See
-  [`gr_embedders()`](https://elkronos.github.io/readgpt/reference/gr_embedders.md);
+  [`gr_embedders()`](https://elkronos.github.io/harnessr/reference/gr_embedders.md);
   recording a run with a *deterministic* embedder is what lets a
-  [`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+  [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
   reproduce its chunk ranking.
 
 - `cache_dir` (NULL):
 
   Directory
-  [`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
   stores model responses in. `NULL` means a per-session directory under
   [`tempdir()`](https://rdrr.io/r/base/tempfile.html), which costs
   nothing and disappears with the session. Set it to a real path, such
@@ -146,14 +146,14 @@ changing an option mid-session affects subsequent runs.
   the run has spent plus the most the request could cost (its prompt,
   and its reply at the output cap), and one that could pass the limit is
   not sent (see
-  [`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md)),
+  [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)),
   so a run ends at or under the limit with a `partial` answer. With
   `parallel = TRUE` a reader that sends batches is also refused before
   it starts when its worst case, every reply at its token cap and the
   price of the dearest model it uses, would pass the limit, and each
   worker is held to its share of what is left. A chat model with no
   registered price (see
-  [`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md))
+  [`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md))
   is refused under a limit unless `allow_unpriced` is `TRUE`. Under a
   limit of 0 a model registered at no cost runs and one with a price is
   refused. `NULL` removes the limit.
@@ -165,7 +165,7 @@ changing an option mid-session affects subsequent runs.
   counts as one, and is checked and priced against `max_cost_usd` the
   same way; an embedding served from the session cache is free. A
   request a
-  [`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
   answers counts. `NULL` removes the cap.
 
 - `max_tokens_total` (NULL):
@@ -180,7 +180,7 @@ changing an option mid-session affects subsequent runs.
 
   The largest output cap one request may be sent with. A request with a
   larger cap (for a reasoning model, the raised cap
-  [`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
   sends) is refused rather than cut down. `NULL` for no ceiling.
 
 - `allowed_models` (NULL):
@@ -202,11 +202,11 @@ changing an option mid-session affects subsequent runs.
 - `actor` (none):
 
   A named list (or character vector) of the actor fields every
-  [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+  [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
   records: `system`, `owner`, `run_by`, `purpose` and `approved_by`,
   each one string. A field named here is recorded on each new trace
   unless
-  [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+  [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
   is given its own; one named nowhere is `NA`. Other names are refused
   with an error of class `gr_bad_option`.
 
@@ -234,11 +234,11 @@ it, with the same warning. Whole-number settings are rounded down.
 
 ## See also
 
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
 to correct a model's limits,
-[`gr_set_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_set_tokenizer.md),
-[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md),
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+[`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md),
+[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md),
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 
 ## Examples
 

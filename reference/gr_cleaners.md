@@ -22,25 +22,25 @@ hyphen ("placebo-" / "controlled"); it keeps the hyphen when the
 document writes the compound whole somewhere, and otherwise joins the
 two halves. `headers_footers` finds running heads by where they stand on
 their pages (a PDF's, form feeds in text, or `.pages` given to
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md));
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md));
 without pages it takes a short line with a letter in it repeated at the
 edge of its block, so a label that is a block of its own and recurs can
 go with them.
 
 ## See also
 
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md)
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
 
 Other ingest functions:
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md),
-[`gr_document`](https://elkronos.github.io/readgpt/reference/gr_document.md),
-[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md),
+[`gr_document`](https://elkronos.github.io/harnessr/reference/gr_document.md),
+[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
+[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
 
 ## Examples
 

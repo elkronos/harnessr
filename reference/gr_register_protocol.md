@@ -17,7 +17,7 @@ gr_register_protocol(name, protocol)
 - protocol:
 
   A
-  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md).
+  [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md).
 
 ## Value
 
@@ -25,8 +25,8 @@ The name, invisibly.
 
 ## See also
 
-[`gr_protocols()`](https://elkronos.github.io/readgpt/reference/gr_protocols.md),
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md)
+[`gr_protocols()`](https://elkronos.github.io/harnessr/reference/gr_protocols.md),
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md)
 
 ## Examples
 

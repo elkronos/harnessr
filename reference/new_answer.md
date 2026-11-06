@@ -1,13 +1,13 @@
 # Build a `gr_answer`, the object every reader must return
 
 Exported because it is part of the extension API:
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
 rejects anything that does not inherit `"gr_answer"`, so a custom reader
 registered with
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md)
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md)
 cannot be written without this. Using it also means your reader reports
 `partial`, `evidence` and `notes` the same way the built-ins do, so
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 can put it in the same table.
 
 ## Usage
@@ -33,7 +33,7 @@ new_answer(
 
   The answer string. Use `"NOT_IN_DOCUMENT"` when the chunks did not
   contain the answer;
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
   counts that separately from a failure.
 
 - reader:
@@ -80,36 +80,36 @@ new_answer(
 - premise:
 
   Whether, and how, the question's premise was checked; see `premise` in
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md).
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
   `NULL` (the default) when your reader did not check it, which leaves
   the field out of the answer. `NA` or `FALSE` when it checked and the
   model reported nothing contradicting it. Otherwise the sentence in
   which the model said what the document states instead, which should
   then be `text` as well, so that `$answer` says it and
-  [`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
+  [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
   is `FALSE`. Any other value, `TRUE` among them, is an error.
 
 ## Value
 
 A
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md).
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md).
 
 ## See also
 
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md),
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
-[`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
 
 Other reading functions:
-[`gr_answer`](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md),
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
-[`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md),
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md),
-[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
+[`gr_answer`](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+[`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
 
 ## Examples
 

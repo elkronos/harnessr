@@ -30,13 +30,13 @@ gr_register_embedder(name, fn, description = "", deterministic = FALSE)
 - description:
 
   One line, shown by
-  [`gr_embedders()`](https://elkronos.github.io/readgpt/reference/gr_embedders.md).
+  [`gr_embedders()`](https://elkronos.github.io/harnessr/reference/gr_embedders.md).
 
 - deterministic:
 
   `TRUE` if the same text always gives the same vector in any session on
   any machine. **Say so only if it is true.** It is what lets a
-  [`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+  [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
   reproduce a run's chunk ranking instead of degrading to lexical
   vectors, and claiming it wrongly turns a replay from a recording into
   a plausible-looking fiction.
@@ -47,11 +47,11 @@ The name, invisibly.
 
 ## See also
 
-[`gr_embedders()`](https://elkronos.github.io/readgpt/reference/gr_embedders.md),
-[`gr_embed()`](https://elkronos.github.io/readgpt/reference/gr_embed.md),
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`gr_embedders()`](https://elkronos.github.io/harnessr/reference/gr_embedders.md),
+[`gr_embed()`](https://elkronos.github.io/harnessr/reference/gr_embed.md),
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 for `embedder`,
-[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
+[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
 to supply an embedder alongside a transport
 
 ## Examples

@@ -17,27 +17,27 @@ gr_segmenters()
 A data frame with one row per registered segmenter: `name`, `cost`
 (`"free"`, `"embedding"` or `"llm"`), `needs_client`
 (`"TRUE"`/`"FALSE"`; when `TRUE` and no client is supplied,
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 warns and the segmenter falls back), `description`, and `calls`, the
 stems of the labels its model calls carry, joined by commas (empty for
 one that makes none).
 
 ## See also
 
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-[`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md),
-[`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md),
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
+[`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md),
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
 to compare what they produce
 
 Other segmentation functions:
-[`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md),
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
-[`gr_chunks`](https://elkronos.github.io/readgpt/reference/gr_chunks.md),
-[`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md),
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-[`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md),
-[`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)
+[`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md),
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md),
+[`gr_chunks`](https://elkronos.github.io/harnessr/reference/gr_chunks.md),
+[`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md),
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
+[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
 
 ## Examples
 

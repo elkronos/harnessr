@@ -28,7 +28,7 @@ gr_claims(
 - extraction:
 
   A
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
   result, or a data frame shaped like its `$table`.
 
 - question:
@@ -38,13 +38,13 @@ gr_claims(
 - protocol:
 
   A
-  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md);
+  [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md);
   its `question` is used when `question` is not given.
 
 - client:
 
   A
-  [`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md).
+  [`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md).
   One is built from `model` if omitted.
 
 - model, temperature, max_claim_tokens:
@@ -56,40 +56,40 @@ gr_claims(
 - include_unclear:
 
   Keep rows with nothing extracted. Off by default, the same as
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md).
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md).
 
 - trace:
 
   A
-  [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+  [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
   to add this stage's calls to, or `NULL`. The calls are recorded on a
   trace of the stage's own, returned as `$trace`, and folded into
   `trace` when the stage ends, as in
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
   and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md).
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md).
   Its requests are held to the governor of `trace`, if it has one, less
   what `trace` has already spent (see
-  [`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md)).
+  [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)).
 
 - bib:
 
   Which columns carry bibliographic identity, as in
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md):
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md):
   a named list of `citation`, `authors`, `year`, `title`, `venue`,
   `doi`. Those columns are withheld from the model, so a claim cannot
   attribute a finding to a name, and cannot be moderated by one.
   Omitted, only the conventional names are withheld. Pass the same `bib`
   to
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
   and
-  [`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md).
+  [`gr_gaps()`](https://elkronos.github.io/harnessr/reference/gr_gaps.md).
 
 - effort:
 
   Reasoning effort, or `NULL` (the default) to send none: one string, or
   a character vector named by stage, as `effort` in
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md).
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
   The calls here are labelled `claims.draw` and `claims.reconcile`, so
   `c(claims = "high")` covers both. Drawing claims is judgement, the
   stage most worth a higher effort. The reasoning counts against the
@@ -153,7 +153,7 @@ records all of it, so a claims table that looks thin can be told apart
 from a literature that is.
 
 The study numbers are the same ones
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 cites, because both derive them from one function. A claim resting on
 study 3 and a sentence citing `[study 3]` point at the same row by
 construction.
@@ -186,13 +186,13 @@ it held rather than passed over.
 
 ## See also
 
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 to derive sections from these claims,
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 to write from them,
-[`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md)
+[`gr_gaps()`](https://elkronos.github.io/harnessr/reference/gr_gaps.md)
 for what they do not cover,
-[`gr_protocols()`](https://elkronos.github.io/readgpt/reference/gr_protocols.md)
+[`gr_protocols()`](https://elkronos.github.io/harnessr/reference/gr_protocols.md)
 for the `claims` schema they want as input
 
 ## Examples

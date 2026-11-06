@@ -26,7 +26,7 @@ gr_segment_spec(
 - method:
 
   Segmenter name; see
-  [`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md).
+  [`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md).
 
 - max_tokens:
 
@@ -35,7 +35,7 @@ gr_segment_spec(
   routinely did. An oversized chunk is re-split, down to single
   characters if it has to be; if the active tokenizer counts even one
   character as more than the cap,
-  [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
   stops with an error of class `"gr_cap_unenforceable"` rather than pass
   the chunk on.
 
@@ -115,19 +115,19 @@ about, never applied silently: `max_tokens` \[32, 1e6\],
 
 ## See also
 
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md)
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md)
 for the available methods and their costs,
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
 
 Other segmentation functions:
-[`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md),
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md),
-[`gr_chunks`](https://elkronos.github.io/readgpt/reference/gr_chunks.md),
-[`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md),
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md),
-[`new_chunks()`](https://elkronos.github.io/readgpt/reference/new_chunks.md)
+[`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md),
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md),
+[`gr_chunks`](https://elkronos.github.io/harnessr/reference/gr_chunks.md),
+[`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md),
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md),
+[`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
 
 ## Examples
 

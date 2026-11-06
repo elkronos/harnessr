@@ -42,7 +42,7 @@ gr_read_spec(
 - reader:
 
   Reader name; see
-  [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md).
+  [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md).
 
 - model:
 
@@ -141,7 +141,7 @@ gr_read_spec(
   them: `"auto"` when the body is long enough to bury the first ask,
   `"always"`, or `"never"`. A setting rather than a rule, because
   whether it helps is a question about your corpus and your model. Point
-  [`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
   at two recipes differing only in this and find out.
 
 - members:
@@ -180,7 +180,7 @@ gr_read_spec(
   recording in order.
 
   Two things do not cross the process boundary. The limits in
-  [`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+  [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
   are checked before a batch is sent and not inside it, since a worker
   cannot see what the others spend. So the pre-flight check, which runs
   in the parent, holds a parallel run to its worst case, every reply at
@@ -190,9 +190,9 @@ gr_read_spec(
   case, and otherwise runs one request at a time, each checked. And a
   handler that records calls in variables of its own (a closure passed
   to
-  [`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
+  [`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
   or
-  [`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md))
+  [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md))
   records a worker's calls in that worker's copy, which this process
   never sees; ask the trace, or the client's `$calls()`, instead.
 
@@ -218,9 +218,9 @@ gr_read_spec(
   named `"default"`, covers the labels no name does, and a label nothing
   covers is sent no effort. A name must cover a stem some registered
   reader, segmenter or stage declares (the `calls` column of
-  [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
+  [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
   and
-  [`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md)),
+  [`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md)),
   or a label under one, so a misspelt name is an error of class
   `hr_unknown_effort_key` that lists the stems, not a setting that
   reaches no call. It reaches the segmenters that call a model too, when
@@ -237,16 +237,16 @@ gr_read_spec(
   excerpts state the contrary of an assumption in it, it is to say so in
   one sentence giving what they state instead, rather than answer. That
   sentence becomes `$answer` and `$premise` (see
-  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)),
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)),
   and
-  [`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
+  [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
   is `FALSE` for it. Excerpts that are merely silent are still
   `NOT_IN_DOCUMENT`. See "Checking the premise" below for how each
   reader combines what its requests report. The verdict is the model's
   reading of the excerpts, not a check harnessr makes, so weigh it as
   you would any answer. Off by default because it changes what is sent:
   the prompts are longer, so a cache, a recorded replay or a
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
   store made without it does not answer a run with it, and the reverse.
   `screen` and `extract`, which answer no question, ignore it.
 
@@ -257,9 +257,9 @@ gr_read_spec(
   same requests and accepts answers as before; the `quote_*` shadow
   columns are still recorded on checked evidence (see "Verifying
   quotations"). With `TRUE`,
-  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+  [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
   runs
-  [`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md)
+  [`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md)
   on every answer, writes its columns onto `$evidence`, marks the answer
   partial when a quotation is not found, and records a `read.verify`
   step in the trace. The `iterative` reader also asks each step that
@@ -307,12 +307,12 @@ name the chunks or members that reported it.
 
 The answer records the check: `$premise` is `NA` when nothing
 contradicted the question, and the correction when something did.
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 and
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 add a `premise` column to their summaries,
 [`print()`](https://rdrr.io/r/base/print.html) and
-[`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
+[`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
 say when the model reported the premise false, and the trace has a
 `read.premise` step with the outcome.
 
@@ -326,7 +326,7 @@ sent. The check means something where a model chose what to quote:
 
 Two matchers score each quotation. The one that decides `verified` is
 the check described in
-[`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md),
+[`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md),
 unchanged. Beside it the answer carries `quote_status`, `quote_sim`,
 `quote_coverage`, `quote_edits` and `quote_critical_ok` from an
 edit-distance matcher that tolerates ligatures, line-break hyphens and
@@ -356,18 +356,18 @@ its claims.
 
 The effort is sent as `reasoning = {"effort": ...}` on the Responses API
 and as `reasoning_effort` on Chat Completions, and a
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
 or
-[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
+[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
 handler finds it in `params$effort`. It is sent only to a model whose
-[`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md)
+[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md)
 says `reasoning = TRUE`, and left out without a warning for any other,
 which would refuse the field, as `temperature` is left out for a model
 that refuses that; register a gateway's reasoning model with
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
 to reach it. For the calls it covers it replaces an effort the client's
 `extra_body` sets. A
-[`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
+[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
 cannot take it per call, says so once (`gr_effort_unsupported`) and does
 not record it as sent. A value is passed through as given; one that is
 not `"none"`, `"minimal"`, `"low"`, `"medium"`, `"high"` or `"xhigh"` is
@@ -376,15 +376,15 @@ levels.
 
 Each request's effort is in its trace step (`params$effort`, and an
 `effort` column of `as.data.frame(trace)`), and
-[`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
+[`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
 shows it beside what each stage cost. It is part of the
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 key, and, when set, of a recipe's store key in
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
 of what
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 counts as a different recipe, and of the key a
-[`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
 matches on, so runs at different efforts never share answers. Unset,
 none of those keys change.
 
@@ -396,10 +396,10 @@ The labels are the `stage` column of `as.data.frame(trace)`:
 `iterative.step`, `iterative.final`; `ensemble.adjudicate`;
 `preview.plan`, `preview.skim`, `preview.answer`; `screen.decide`;
 `extract.chunk`, `extract.resolve`; and, for
-[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 and
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md),
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md),
 `claims.draw`, `claims.reconcile`, `outline.derive`,
 `synthesise.section`, `synthesise.batch`, `synthesise.merge` and
 `synthesise.revise.structure` (`.cut`, `.register`). A merge that takes
@@ -418,29 +418,29 @@ Reasoning shares the reply's cap, so a call at `"high"` can spend all of
 it and come back cut off (`finish_reason = "length"`, warned about where
 it matters). Give such stages room: `max_answer_tokens` here,
 `max_section_tokens` in
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md),
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md),
 `max_outline_tokens` in
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md).
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md).
 Requests to a reasoning model are sent with an output cap of at least
 2048 tokens whatever the effort, and the cost limits are checked at that
 cap.
 
 ## See also
 
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
 for the available readers and their call costs,
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
-[`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md)
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+[`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)
 
 Other reading functions:
-[`gr_answer`](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md),
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
-[`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md),
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md),
-[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md),
-[`new_answer()`](https://elkronos.github.io/readgpt/reference/new_answer.md)
+[`gr_answer`](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+[`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md),
+[`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
 
 ## Examples
 

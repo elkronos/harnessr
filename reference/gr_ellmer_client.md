@@ -32,14 +32,14 @@ gr_ellmer_client(chat, embed = NULL, model = NULL)
 
   Model id reported to this package. Defaults to the chat's own model.
   Register it with
-  [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+  [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
   if it is not already known. The context window is what sizes your
   chunks, so a wrong one is not cosmetic.
 
 ## Value
 
 A
-[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md).
+[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md).
 
 ## Details
 
@@ -65,23 +65,23 @@ A few things, all worth knowing before you rely on them.
 `temperature` belongs to the chat object, not to the call. ellmer fixes
 sampling parameters when the chat is constructed, so a `temperature` in
 a
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
 cannot be honoured per-call; it is ignored and warned about once
 (`gr_ellmer_temperature`). Build a second chat if you need a second
 temperature.
 
 Reasoning effort is the same. An `effort` in a
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
 or given to
-[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 or
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md),
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md),
 is not sent through an ellmer chat; it is warned about once
 (`gr_effort_unsupported`) and the chat's own setting applies. Each trace
 step keeps the effort its call asked for as `params$unsent_effort`, not
 `params$effort`, so the `effort` column of `as.data.frame(trace)` and
-[`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
+[`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
 do not count it as sent. (Like every client, the adapter is handed an
 effort only for a model the registry lists as a reasoning model, so for
 any other there is nothing to warn about.)
@@ -109,9 +109,9 @@ mutated, and no conversation history leaks from one chunk's call into
 the next.
 
 For
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 and
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)'s
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)'s
 `store`, the client's identity covers the provider, endpoint, model, the
 chat's [`params()`](https://ellmer.tidyverse.org/reference/params.html)
 and `api_args`, and its system prompt, so two chats that differ in any
@@ -120,9 +120,9 @@ an identity that lasts only for the session.
 
 ## See also
 
-[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md),
-[`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md),
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md),
+[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md),
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
 
 ## Examples
 

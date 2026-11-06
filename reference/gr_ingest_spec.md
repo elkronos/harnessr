@@ -25,7 +25,7 @@ gr_ingest_spec(
 
   A preset name (`"none"`, `"minimal"`, `"standard"`, `"academic"`,
   `"scan"`, `"legacy"`) or a character vector of cleaner names from
-  [`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md).
+  [`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md).
 
 - ocr:
 
@@ -80,20 +80,20 @@ A list of class `gr_ingest_spec`.
 
 ## See also
 
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md)
 for the individual step names,
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md)
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md)
 to preview a configuration on your own text
 
 Other ingest functions:
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md),
-[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md),
-[`gr_document`](https://elkronos.github.io/readgpt/reference/gr_document.md),
-[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md),
+[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md),
+[`gr_document`](https://elkronos.github.io/harnessr/reference/gr_document.md),
+[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
+[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
 
 ## Examples
 

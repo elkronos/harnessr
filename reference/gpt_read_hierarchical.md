@@ -1,7 +1,7 @@
 # Deprecated: hierarchical reading
 
 Superseded by
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
 with `reader = "hierarchical"`. The new reader recurses until the
 summaries fit the context window; v1 summarised exactly once and
 overflowed past roughly 32 chunks.
@@ -39,7 +39,7 @@ gpt_read_hierarchical(
 - ...:
 
   Passed to
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md).
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
 
 ## Value
 
@@ -48,18 +48,18 @@ A single string when `return_json` is `FALSE`; otherwise a
 
 ## See also
 
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
 and `reader = "hierarchical"`,
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
 for `fan_in` and `max_levels`,
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
 
 Other v1 compatibility:
-[`answer_question()`](https://elkronos.github.io/readgpt/reference/answer_question.md),
-[`gpt_read_chunked()`](https://elkronos.github.io/readgpt/reference/gpt_read_chunked.md),
-[`gpt_read_multipass()`](https://elkronos.github.io/readgpt/reference/gpt_read_multipass.md),
-[`gpt_read_retrieval()`](https://elkronos.github.io/readgpt/reference/gpt_read_retrieval.md),
-[`parse_text()`](https://elkronos.github.io/readgpt/reference/parse_text.md)
+[`answer_question()`](https://elkronos.github.io/harnessr/reference/answer_question.md),
+[`gpt_read_chunked()`](https://elkronos.github.io/harnessr/reference/gpt_read_chunked.md),
+[`gpt_read_multipass()`](https://elkronos.github.io/harnessr/reference/gpt_read_multipass.md),
+[`gpt_read_retrieval()`](https://elkronos.github.io/harnessr/reference/gpt_read_retrieval.md),
+[`parse_text()`](https://elkronos.github.io/harnessr/reference/parse_text.md)
 
 ## Examples
 

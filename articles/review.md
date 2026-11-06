@@ -1,51 +1,51 @@
 # Many documents and literature reviews
 
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 asks one question of one document. Most real work has a folder of them,
 and a literature review has a folder, a search behind it, and a write-up
 at the end that somebody else has to be able to check. This guide covers
 that work in the order it happens:
 
 1.  Asking one question of every document, with
-    [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
+    [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
 2.  Starting a review from a database search, with
-    [`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
+    [`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
     and
-    [`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md).
+    [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md).
 3.  The review itself: one trace for every stage,
-    [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md),
+    [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
     then
-    [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
+    [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
     measuring the screening against a person with
-    [`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md)
+    [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
     and
-    [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md),
+    [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
     then
-    [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+    [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
     and
-    [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md).
+    [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md).
 4.  Writing from claims instead of from rows, with
-    [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
-    [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+    [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+    [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
     and
-    [`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md).
+    [`gr_gaps()`](https://elkronos.github.io/harnessr/reference/gr_gaps.md).
 5.  Counting and reporting the whole run, with
-    [`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)
+    [`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
     and
-    [`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md).
+    [`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md).
 
-[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md)
+[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 introduces the package and its ideas, and how one document is read is in
-[`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md).
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md).
 Read
-[`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md)
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 first if you have not set spending limits or a cache: this guide points
 to it for both, and for replay.
 
 ## Setting up
 
 Everything below runs offline.
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
 stands in for the model: its handler is an ordinary R function.
 `embedder = "lexical"` keeps retrieval free and deterministic.
 
@@ -59,16 +59,16 @@ cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollar
 ## Reading many documents
 
 Before reading a folder you have not read before,
-[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md)
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md)
 lists what is in it: which extractor reads each file, which have no text
 layer and which would be skipped, with no model calls and no key.
-[`vignette("ingest")`](https://elkronos.github.io/readgpt/articles/ingest.md)
+[`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md)
 shows it on a folder and covers what to do about files with no extractor
 or no text layer.
 
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 runs several recipes over one document.
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 runs one recipe over many, and returns one row per document. That is the
 shape the work usually has: a folder, one question, and a table at the
 end.
@@ -95,7 +95,7 @@ carries `answer`, `partial`, `reader`, `chunks`, `cached`, `tokens_in`,
 `tokens_out`, `cost_usd`, `seconds` and `error`, and
 `write.csv(out$summary, ...)` is a reasonable end to a run.
 
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 does five things a [`lapply()`](https://rdrr.io/r/base/lapply.html) does
 not.
 
@@ -127,9 +127,9 @@ unknown rather than zero and you get a `gr_corpus_cost_unknown` warning
 instead of a silent free pass. Documents past either ceiling are marked
 `"skipped"` rather than dropped. Set neither and the run says once what
 its worst case is.
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 and
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 take the same two arguments.
 
 A run can be resumed. Point `store =` at a directory and each result is
@@ -147,12 +147,12 @@ gr_read_many(reports, "What was revenue?", "thorough",
 The store is keyed on the document’s path, size and mtime, the question,
 the whole pipeline and the model, so an edited document is a new job,
 not a stale hit. A
-[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
+[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
 needs a stable `id` for a store or a cache to be reused by a later
 session;
-[`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
+[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
 and
-[`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
+[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
 already know what they are.
 
 The same document is read once. The same paper reaches you from three
@@ -173,10 +173,10 @@ passed as text, while the id is the same string for the same document in
 every run and on every machine.
 
 You can see what it cost. `out$trace` holds the run’s calls, and
-[`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)
+[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
 prices them at each step’s own model, counting only the calls that were
 issued. The mock client has no price, so this bill is zero;
-[`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md)
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 explains the columns and how to register a price.
 
 ``` r
@@ -191,9 +191,9 @@ gr_trace_cost(out$trace)[, c("model", "calls", "paid_calls", "usd")]
 A folder of PDFs cannot say which databases were searched, with what
 query, on what date, or how many records came back, and no care further
 down substitutes for that.
-[`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
+[`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
 records the search, and
-[`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md)
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
 reads the export your reference manager already produces (RIS here):
 
 ``` r
@@ -236,14 +236,14 @@ recs
 ```
 
 Hand `recs` to
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 and
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 wherever you would have passed a folder. Four things follow from it that
 a folder cannot give you.
 
 The flow counts start at identification.
-[`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)
+[`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
 begins at records identified rather than at “sources given”, which is
 already past the step that decides whether anyone can reproduce the
 search.
@@ -260,7 +260,7 @@ have DOIs and differ are never merged, because similar titles happen and
 merging two studies is the error this whole path exists to avoid.
 
 Authors and years become facts.
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 cites by name, and without an export those names came from asking a
 model to read a title page. That is the one part of a citation that must
 be exactly right, resting on the loosest guarantee in the pipeline. From
@@ -281,23 +281,23 @@ A corpus job usually wants a table, and a review wants a table plus the
 account of it. Four functions cover that, and they compose in one
 direction:
 
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md)
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md)
 →
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 →
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 →
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 
 ### One trace for the whole review
 
 Passing the same `trace =` to
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
-[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 and
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 accumulates the whole review in one place. It is a parent: each stage
 still records on a trace of its own, which is what its `$trace` returns
 and what `gr_options(max_calls =)` is measured against, and adds its
@@ -305,11 +305,11 @@ calls to the shared one when it finishes. So the screening cannot spend
 the write-up’s ceiling, the shared trace’s totals are the sum of the
 stages’, and each request is counted once.
 
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 records its calls on `attr(outline, "trace")`, which
-[`gr_outline_pick()`](https://elkronos.github.io/readgpt/reference/gr_outline_pick.md)
+[`gr_outline_pick()`](https://elkronos.github.io/harnessr/reference/gr_outline_pick.md)
 keeps and
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 keeps as `$outline_trace`; it does not add them to `claims$trace`. To
 total a review’s cost, pass one trace to every stage, or add
 `attr(outline, "trace")` to the claims’ own.
@@ -345,12 +345,12 @@ protocol
 #>   recipe   : research
 ```
 
-[`gr_protocols()`](https://elkronos.github.io/readgpt/reference/gr_protocols.md)
+[`gr_protocols()`](https://elkronos.github.io/harnessr/reference/gr_protocols.md)
 lists four templates to start from: `bibliography`, `claims`,
 `evidence_table` and `systematic_review`.
-[`gr_protocol_save()`](https://elkronos.github.io/readgpt/reference/gr_protocol_save.md)
+[`gr_protocol_save()`](https://elkronos.github.io/harnessr/reference/gr_protocol_save.md)
 and
-[`gr_protocol_read()`](https://elkronos.github.io/readgpt/reference/gr_protocol_save.md)
+[`gr_protocol_read()`](https://elkronos.github.io/harnessr/reference/gr_protocol_save.md)
 round-trip a protocol through a JSON file, so it can be shared, diffed
 and cited alongside the results.
 
@@ -404,7 +404,7 @@ basename(screened$deferred)
 #> [1] "south.txt"
 ```
 
-[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md)
+[`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md)
 records that person’s decision. It needs to know who decided, and it
 records when (in UTC) and, optionally, why, in the table and as a
 `"screen.resolve"` step in the trace. `forward`, `deferred` and
@@ -421,13 +421,13 @@ screened$table[, c("document", "decision", "screener_decision", "resolved_by")]
 #> 2 south.txt  include           unclear A. Reviewer
 ```
 
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
 compares against `screener_decision`, so a person’s correction is not
 credited to the screener. Duplicates of a resolved record take the same
 decision.
 
 Hand `screened` itself to
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
 In this release that reads the included records only, and warns (class
 `gr_unclear_dropped`) when it leaves unclear ones out; from the next
 release it reads `$forward`. Pass `screened$forward` to read the unclear
@@ -439,7 +439,7 @@ for.
 
 ### Knowing how good the screening is
 
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 gives every document a decision. Nothing in the run says whether those
 decisions were any good, and a screener that discards a fifth of the
 eligible studies produces a carefully audited review of the wrong
@@ -449,9 +449,9 @@ The tempting substitute is running the model twice and reporting the
 agreement. It measures the wrong thing: two passes share weights, priors
 and blind spots, so they agree most confidently where they are both
 wrong. Only a reference standard settles it.
-[`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md)
+[`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
 draws a sample for a person to screen by hand, and
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
 compares the two.
 
 ``` r
@@ -494,7 +494,7 @@ Which rows you sample changes which questions the sample can answer. A
 sample of exclusions contains no kept records, so sensitivity would
 compute to 0% and specificity to 100%. Both are artifacts of the frame,
 alarming or flattering, and neither is a fact about the screener, so
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
 reports what the frame supports and refuses the rest. The frame travels
 as a column in the CSV, because that file gets emailed, opened in Excel
 and read back a fortnight later, and an attribute survives none of that.
@@ -504,7 +504,7 @@ a byte-order mark so Excel opens accented names intact.
 
 A sample drawn from everything screened (`of = "all"`) supports the
 rest. This one is the eight-record example from
-[`?gr_calibrate`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md):
+[`?gr_calibrate`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md):
 
 ``` r
 
@@ -687,7 +687,7 @@ field does not allow is reported as one it could not read.
 
 ### The write-up
 
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 makes one call per section of the outline, and every section cites the
 rows it rests on:
 
@@ -770,7 +770,7 @@ protocol <- gr_protocol(
 )
 ```
 
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 takes the extraction table, so the shape it needs is easy to show
 directly:
 
@@ -897,7 +897,7 @@ strongest thing a review has to say is structural: that a literature
 splits into three incompatible measures, and that the argument about
 effect size is an argument about measurement.
 
-[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
 computes the relations between studies first. Each claim names the
 studies that support it, the studies that contradict it, and the field
 that distinguishes them. The stand-in below plays all three stages that
@@ -949,11 +949,11 @@ an invented explanation for a real disagreement is the most convincing
 error this layer can make. `cm$dropped` records all of it, so a thin
 claims table can be told apart from a thin literature.
 
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 then derives the sections from the claims and hands them back as an
 ordinary outline you can accept, edit or throw away;
 `attr(outline, "claims")` is the assignment of claims to sections.
-[`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md)
+[`gr_gaps()`](https://elkronos.github.io/harnessr/reference/gr_gaps.md)
 computes what the corpus does not contain (a declared category nobody
 studied, a dimension with no variation, a claim nobody has replicated, a
 disagreement nothing explains) in R, with no model call, so the gap list
@@ -976,7 +976,7 @@ two outlines are is counted, not asked: `distance` is how far each lies
 from the first, the share of pairs of claims that one puts together and
 the other apart. One that groups the claims as an earlier one did,
 whatever its headings, is dropped. Nothing ranks them, and
-[`gr_outline_pick()`](https://elkronos.github.io/readgpt/reference/gr_outline_pick.md)
+[`gr_outline_pick()`](https://elkronos.github.io/harnessr/reference/gr_outline_pick.md)
 hands back the one you choose:
 
 ``` r
@@ -1037,7 +1037,7 @@ check.
 
 ## Counting and reporting the run
 
-[`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)
+[`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
 returns the numbers a flow diagram is made of, from what the run already
 recorded. Every source is accounted for at every stage it reached, so
 the arithmetic closes:
@@ -1069,12 +1069,12 @@ read (no screening call was made) and screening call failed (a call was
 made and its reply failed or was not the form asked for), and those five
 rows sum to “screened”. “resolved by a person” counts the decisions a
 person made with
-[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md),
+[`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md),
 “kept for full text” is `$forward`, and “deferred to full text” is the
 unclear part of it, `$deferred`. Pass `records =` to start the counts at
 identification, and `claims =` to add the claim-level counts.
 
-[`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
+[`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
 writes the whole chain out as one self-contained HTML file for the
 reviewer or co-author whose question is “how do you know?”. It holds the
 protocol as fixed in advance, what happened to every document (the
@@ -1103,16 +1103,16 @@ the value taken from it.
 
 ## Next
 
-- [`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md):
+- [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
   spending limits, caching a run so it is paid for once, and replaying
   it offline.
-- [`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md):
+- [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md):
   how each document is read, which `recipe =` chooses for
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
   and
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
-- [`?gr_calibrate`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md),
-  [`?gr_screen`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
+- [`?gr_calibrate`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
+  [`?gr_screen`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
   and
-  [`?gr_synthesise`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md):
+  [`?gr_synthesise`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md):
   every argument, with the reasoning behind the defaults.

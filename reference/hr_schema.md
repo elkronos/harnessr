@@ -12,9 +12,9 @@ hr_schema(...)
 
 - ...:
 
-  [`hr_param()`](https://elkronos.github.io/readgpt/reference/hr_param.md)
+  [`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md)
   objects. Their order is the order
-  [`hr_validate()`](https://elkronos.github.io/readgpt/reference/hr_validate.md)
+  [`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md)
   resolves them in, so a bound that depends on another parameter comes
   after it.
 
@@ -25,8 +25,8 @@ parameter.
 
 ## See also
 
-[`hr_param()`](https://elkronos.github.io/readgpt/reference/hr_param.md),
-[`hr_validate()`](https://elkronos.github.io/readgpt/reference/hr_validate.md)
+[`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md),
+[`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md)
 
 ## Examples
 

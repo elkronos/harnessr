@@ -1,12 +1,12 @@
 # Check a reader against the reader contract
 
 Reads the bundled example document
-([`gr_example()`](https://elkronos.github.io/readgpt/reference/gr_example.md))
+([`gr_example()`](https://elkronos.github.io/harnessr/reference/gr_example.md))
 with one registered reader, through an offline client, and reports which
 rules of the reader contract it breaks. Nothing is refused: a reader
 that fails a rule stays registered and runs as before. Use it on a
 reader of your own after
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md).
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md).
 
 ## Usage
 
@@ -19,25 +19,25 @@ gr_check_reader(reader, client = NULL)
 - reader:
 
   A registered reader's name; see
-  [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md).
+  [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md).
 
 - client:
 
   A `gr_client` to read with. `NULL` (the default) uses a
-  [`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+  [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
   whose reply to a request with a JSON schema is an object of that
   schema's shape, and a fixed sentence otherwise.
 
 ## Value
 
 An `hr_conformance` data frame; see
-[`hr_check_module()`](https://elkronos.github.io/readgpt/reference/hr_check_module.md).
+[`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md).
 
 ## Details
 
 The document is cut with `list(method = "paragraph", max_tokens = 150)`
 and read on a fresh
-[`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md).
+[`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md).
 Readers that need more than a question are given what they need:
 `extract` one field, `screen` one inclusion criterion, and `ensemble`
 the members `"stuff"` and `"retrieve"`.
@@ -47,20 +47,20 @@ the members `"stuff"` and `"retrieve"`.
 - `is_function`, `runs`:
 
   The reader's `fn` is a function, and
-  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+  [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
   with it finishes without an error.
 
 - `answer_class`:
 
   It returns a
-  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md).
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md).
 
 - `answer_fields`:
 
   The answer has every field
-  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
   documents for
-  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md):
+  [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md):
   `answer`, `reader`, `question`, `chunks_used`, `partial`, `notes`,
   `trace`, `warnings` and `signature`, with `partial` one `TRUE` or
   `FALSE`.
@@ -94,19 +94,19 @@ the members `"stuff"` and `"retrieve"`.
 
 ## See also
 
-[`hr_check_module()`](https://elkronos.github.io/readgpt/reference/hr_check_module.md),
-[`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md),
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md)
+[`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md),
+[`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md),
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md)
 
 Other reading functions:
-[`gr_answer`](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
-[`gr_reader_signature()`](https://elkronos.github.io/readgpt/reference/gr_reader_signature.md),
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md),
-[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md),
-[`new_answer()`](https://elkronos.github.io/readgpt/reference/new_answer.md)
+[`gr_answer`](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+[`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md),
+[`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
 
 ## Examples
 

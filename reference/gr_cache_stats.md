@@ -13,7 +13,7 @@ gr_cache_stats(cache)
 - cache:
 
   A
-  [`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md).
+  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md).
 
 ## Value
 
@@ -22,12 +22,12 @@ A one-row data frame: `dir`, `entries`, `bytes`, `hits`, `misses`,
 they include entries written by earlier sessions; the counters cover
 this session only. `legacy_hits` is how many of the hits were found
 under the old `readgpt-cache-v2` key (see
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)).
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)).
 
 ## See also
 
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md),
-[`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md)
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md),
+[`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md)
 
 ## Examples
 

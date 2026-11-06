@@ -39,7 +39,7 @@ failure after you have paid for the request. Rare long words (technical
 and medical vocabulary) can still come in under the real count, by about
 a tenth for a table of medical terms; that is what the `safety_margin`
 of
-[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md)
+[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
 is for.
 
 For counts from OpenAI's own tokenizer install reticulate plus Python
@@ -54,20 +54,20 @@ models) is counted as the plain text it is.
 
 ## See also
 
-[`gr_set_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_set_tokenizer.md),
-[`gr_truncate_tokens()`](https://elkronos.github.io/readgpt/reference/gr_truncate_tokens.md),
-[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md)
+[`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md),
+[`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md),
+[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
 
 Other cost and token functions:
-[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md),
-[`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md),
-[`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md),
-[`gr_model_limits()`](https://elkronos.github.io/readgpt/reference/gr_model_limits.md),
-[`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md),
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
-[`gr_set_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_set_tokenizer.md),
-[`gr_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_tokenizer.md),
-[`gr_truncate_tokens()`](https://elkronos.github.io/readgpt/reference/gr_truncate_tokens.md)
+[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md),
+[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md),
+[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md),
+[`gr_model_limits()`](https://elkronos.github.io/harnessr/reference/gr_model_limits.md),
+[`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md),
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
+[`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md),
+[`gr_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_tokenizer.md),
+[`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md)
 
 ## Examples
 

@@ -3,9 +3,9 @@
 Runs a module once and reports which of a list of rules it breaks. It is
 a report and nothing more: registering a module does not run it, and a
 module that breaks a rule is still registered and still runs.
-[`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md)
+[`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md)
 and
-[`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md)
+[`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md)
 use it with the rules for readers and segmenters.
 
 ## Usage
@@ -66,8 +66,8 @@ detail. When `run()` fails, no rule is asked and each is reported as
 
 ## See also
 
-[`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md),
-[`gr_check_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_check_segmenter.md)
+[`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
+[`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md)
 
 ## Examples
 

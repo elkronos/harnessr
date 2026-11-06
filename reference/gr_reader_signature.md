@@ -26,21 +26,21 @@ different members are correctly seen as different experiments.
 
 ## See also
 
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
 for every signature at once,
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 which uses this to detect duplicate recipes,
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md)
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md)
 
 Other reading functions:
-[`gr_answer`](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`gr_check_reader()`](https://elkronos.github.io/readgpt/reference/gr_check_reader.md),
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md),
-[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md),
-[`new_answer()`](https://elkronos.github.io/readgpt/reference/new_answer.md)
+[`gr_answer`](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md),
+[`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
 
 ## Examples
 

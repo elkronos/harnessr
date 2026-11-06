@@ -2,11 +2,11 @@
 
 harnessr keeps two caches in memory for the life of the R session: the
 documents
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
 has already extracted and cleaned, keyed on the file and every setting
 that changes the result, and the vectors the built-in `"api"` embedder
 has already fetched (see
-[`gr_embed()`](https://elkronos.github.io/readgpt/reference/gr_embed.md)).
+[`gr_embed()`](https://elkronos.github.io/harnessr/reference/gr_embed.md)).
 This empties them. The next ingestion of a file reads and cleans it
 again, and the next ranking sends its embeddings requests again, which
 are counted against `max_calls` and `max_cost_usd` like any others.
@@ -37,24 +37,24 @@ within memory. It is for starting again from nothing: to give the memory
 back at once, or to time or test a run as a fresh session would see it.
 
 Not to be confused with
-[`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md),
+[`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md),
 which deletes the model *responses* a
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 keeps in a directory on disk. Neither touches the other's cache: this
 leaves every stored response in place, and
-[`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md)
+[`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md)
 leaves every document and vector in memory.
 `gr_options(cache_documents = FALSE, cache_embeddings = FALSE)` turns
 the two memory caches off instead.
 
 ## See also
 
-[`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md)
+[`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md)
 for the on-disk response cache,
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 for `cache_documents` and `cache_embeddings`,
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_embed()`](https://elkronos.github.io/readgpt/reference/gr_embed.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_embed()`](https://elkronos.github.io/harnessr/reference/gr_embed.md)
 
 ## Examples
 

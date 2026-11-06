@@ -1,7 +1,7 @@
 # Bind an ingestion, segmentation and reading configuration together
 
 A recipe is the unit
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 treats as one experiment. Fixing two axes and varying the third is what
 makes a difference in the answer attributable to the change you made.
 That is exactly what the previous release could not do, because its
@@ -39,15 +39,15 @@ method that shows all three at once.
 
 ## See also
 
-[`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md)
+[`gr_recipes()`](https://elkronos.github.io/harnessr/reference/gr_recipes.md)
 for the built-ins,
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 to run one,
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 to run several,
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
-[`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md),
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
 
 ## Examples
 

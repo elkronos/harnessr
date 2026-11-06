@@ -1,7 +1,7 @@
 # Validate and resolve settings against a schema
 
 Applies each parameter's rule (see
-[`hr_param()`](https://elkronos.github.io/readgpt/reference/hr_param.md))
+[`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md))
 to the value given for it, or to its default when none is given, in
 schema order.
 
@@ -16,7 +16,7 @@ hr_validate(schema, values = list())
 - schema:
 
   An
-  [`hr_schema()`](https://elkronos.github.io/readgpt/reference/hr_schema.md).
+  [`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md).
 
 - values:
 
@@ -30,8 +30,8 @@ parameter that resolves to `NULL` is kept as a `NULL` element.
 
 ## See also
 
-[`hr_param()`](https://elkronos.github.io/readgpt/reference/hr_param.md),
-[`hr_schema()`](https://elkronos.github.io/readgpt/reference/hr_schema.md)
+[`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md),
+[`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md)
 
 ## Examples
 

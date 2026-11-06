@@ -1,7 +1,7 @@
 # Write a review from an extraction table
 
 The last stage. Takes what
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 found and writes it up section by section, against an outline fixed in
 advance, with every section citing the rows it rests on.
 
@@ -35,20 +35,20 @@ gr_synthesise(
 - extraction:
 
   A `gr_extraction` from
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
   or a data frame shaped like its `$table`.
 
 - protocol:
 
   A
-  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md);
+  [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md);
   its `outline` and `question` are used unless you give them directly.
 
 - outline:
 
   The sections, as a named character vector: names are headings, values
   say what that section has to cover. As
-  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md).
+  [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md).
   A heading with a blank brief is dropped, unless the claim assignment
   (see `claims`) places claims in it: then its heading is its brief.
 
@@ -108,9 +108,9 @@ gr_synthesise(
   a name that may be wrong.
 
   Pass the same `bib` to
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
   and
-  [`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md).
+  [`gr_gaps()`](https://elkronos.github.io/harnessr/reference/gr_gaps.md).
   The claims model is shown every column its own `bib` did not withhold,
   so a claim, and the moderator it names, can carry a column this
   write-up withholds, and the claims reach the writing prompts as they
@@ -178,17 +178,17 @@ gr_synthesise(
 - claims:
 
   A
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
   result. With it each section argues that section's claims and sees
   only the studies those claims rest on, rather than being handed every
   study and writing a paragraph per row. Needs an `outline` from
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md),
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md),
   which carries the assignment, and it must be an outline derived from
   these same claims: the run stops (`gr_claims_mismatch`) when the
   outline says it came from other claims, and (`gr_claims_unplaced`)
   when the assignment places a claim in a heading the outline does not
   have – a heading renamed after
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md),
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md),
   say; rename it in `attr(outline, "claims")$section` too. A section
   given no claims is written from the rows, as without `claims`, except
   the closing section, which is written from `gaps` alone and is left
@@ -199,9 +199,9 @@ gr_synthesise(
 - gaps:
 
   A
-  [`gr_gaps()`](https://elkronos.github.io/readgpt/reference/gr_gaps.md)
+  [`gr_gaps()`](https://elkronos.github.io/harnessr/reference/gr_gaps.md)
   result, or lines of text. Given to the closing section
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
   named, `attr(outline, "closing")`, with an instruction to state those
   gaps and no others. When the outline has no such section they reach
   none, and a warning (`gr_gaps_unused`) says so. They are cut, at a
@@ -211,9 +211,9 @@ gr_synthesise(
 - trace:
 
   A
-  [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+  [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
   to fold this write-up's accounting into, as in
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
   It is a parent, not this stage's counter: `$trace` is still the
   write-up's own, so `gr_options(max_calls =)` bounds the write-up
   rather than being spent by the screening that came before it.
@@ -222,7 +222,7 @@ gr_synthesise(
 
   Reasoning effort, or `NULL` (the default) to send none: one string, or
   a character vector named by stage, as `effort` in
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md).
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
   The calls here are labelled `synthesise.section`, `synthesise.batch`,
   `synthesise.merge` and, with `coherence`,
   `synthesise.revise.structure`, `.cut` and `.register`;
@@ -332,7 +332,7 @@ An object of class `gr_synthesis`:
 - `claims`:
 
   The
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
   result written from, or `NULL`. When its `$lost` names studies whose
   claims batch contributed nothing, the run warns (`gr_claims_partial`),
   and print() and the audit report say the review was written without
@@ -347,7 +347,7 @@ An object of class `gr_synthesis`:
 - `outline_alternative`:
 
   Present only when the outline is one of several
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
   compared (`alternatives` above 1): which one it was, as `alternative`,
   `of` (how many were asked for), `distinct` (how many came back
   distinct) and `distance` from the first proposal. The trace's meta
@@ -356,21 +356,21 @@ An object of class `gr_synthesis`:
 - `outline_trace`:
 
   Present only when `outline` came from
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md):
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md):
   the trace of the calls that derived it, which this stage's `trace`
   does not include.
 
 - `trace`:
 
   As
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md).
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
 
 ## Which rows are used
 
 Rows that were never read (`status` `"failed"` or `"skipped"`) are left
 out, and so are duplicates: a study counted twice is the error this
 whole pipeline exists to avoid, and
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 has already marked them. The number left out is reported by
 [`print()`](https://rdrr.io/r/base/print.html) and is in `$skipped`.
 
@@ -442,9 +442,9 @@ whether its citations can be trusted, and those are checked apart.
 
 ## See also
 
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md),
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 
 ## Examples
 
@@ -463,8 +463,8 @@ cl <- gr_mock_client(function(messages, params) {
 f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised trial. We enrolled 120 people.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1c0c52217d11.txt
-#> Extracting 'file1c0c52217d11.txt' with the 'txt' extractor.
+#> [1/1] file1df64fc03799.txt
+#> Extracting 'file1df64fc03799.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).

@@ -1,7 +1,7 @@
 # Extract a typed schema from many documents
 
 The corpus counterpart to
-[`gr_fields()`](https://elkronos.github.io/readgpt/reference/gr_fields.md):
+[`gr_fields()`](https://elkronos.github.io/harnessr/reference/gr_fields.md):
 applies one extraction schema to every document and returns a tidy
 table, one row per document and one column per field, with a separate
 long table saying where every value came from.
@@ -33,21 +33,21 @@ gr_extract(
 - sources:
 
   As
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md):
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md):
   file paths, a directory, or raw text, and additionally a
-  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+  [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
   result. Passing the screening object rather than `screened$included`
   is what carries the search forward, so
-  [`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
+  [`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
   can show it and the bibliographic fields the export supplied are
   joined to the table.
 
 - fields:
 
   A
-  [`gr_fields()`](https://elkronos.github.io/readgpt/reference/gr_fields.md)
+  [`gr_fields()`](https://elkronos.github.io/harnessr/reference/gr_fields.md)
   schema, or a
-  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md).
+  [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md).
   A protocol carries its own schema, question and recipe, so passing one
   is the same as passing its three parts and it is the shorter way to
   say it.
@@ -69,7 +69,7 @@ gr_extract(
 - client, store, on_error, max_total_usd, recursive:
 
   As
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
   `store` is worth setting for anything longer than a coffee break: an
   interrupted extraction resumes instead of restarting.
 
@@ -98,12 +98,12 @@ gr_extract(
 - max_total_calls, trace:
 
   As
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
 
 - keep_answers:
 
   Keep the underlying
-  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
   objects in `$answers`. They hold every chunk's source text, so for a
   large corpus this is what runs you out of memory; the tables do not
   need them.
@@ -111,7 +111,7 @@ gr_extract(
 - ...:
 
   Recipe overrides, as in
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
   `max_tokens =` is the one that matters here, because it decides how
   many chunks each document is cut into and therefore how many calls it
   costs.
@@ -130,7 +130,7 @@ An object of class `gr_extraction`:
   whose extraction requests all succeeded is not `"failed"` for another
   request's failure; see the section on `NA` below. A document whose
   cleaned text repeats one already read is not read again (see
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)),
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)),
   so `subset(x$table, is.na(duplicate_of))` is the set of distinct
   documents.
 
@@ -146,7 +146,7 @@ An object of class `gr_extraction`:
 - `summary`:
 
   The per-document run summary from
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
   including calls, tokens, cost and seconds.
 
 - `answers`:
@@ -156,7 +156,7 @@ An object of class `gr_extraction`:
 - `trace`,`store`:
 
   As
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
 
 ## NA means two different things
 
@@ -234,7 +234,7 @@ the quote is not in the chunk or does not carry the value. It also
 counts a field left empty because the value given for it could not be
 read as the field's type ("120 (60 per arm)" or "3 million" for an
 integer, "unclear" for a boolean; see
-[`gr_field()`](https://elkronos.github.io/readgpt/reference/gr_field.md)):
+[`gr_field()`](https://elkronos.github.io/harnessr/reference/gr_field.md)):
 the document may well report it, so it is not listed as not reported.
 That column is the one to look at before believing a table:
 `n_unverified` of zero means every value in the row can be pointed at in
@@ -244,7 +244,7 @@ unaudited, and the answer is marked `partial` to say so.
 values instead.
 
 See
-[`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md)
+[`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md)
 for the same check on a single answer.
 
 ## What to cite
@@ -272,11 +272,11 @@ sentence is really there.
 
 ## See also
 
-[`gr_fields()`](https://elkronos.github.io/readgpt/reference/gr_fields.md),
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md),
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
-[`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md),
-[`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)
+[`gr_fields()`](https://elkronos.github.io/harnessr/reference/gr_fields.md),
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
+[`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md),
+[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
 
 ## Examples
 
@@ -297,14 +297,14 @@ f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised controlled trial. We enrolled 120 participants.", f)
 
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1c0c7b887275.txt
-#> Extracting 'file1c0c7b887275.txt' with the 'txt' extractor.
+#> [1/1] file1df61a08070a.txt
+#> Extracting 'file1df61a08070a.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~22 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).
 x$table[, c("document", "design", "n", "n_unverified", "status")]
 #>               document                      design   n n_unverified status
-#> 1 file1c0c7b887275.txt randomised controlled trial 120            0     ok
+#> 1 file1df61a08070a.txt randomised controlled trial 120            0     ok
 x$evidence[, c("field", "quote", "verified")]
 #>    field                                 quote verified
 #> 1 design We ran a randomised controlled trial.     TRUE

@@ -17,7 +17,7 @@ gr_protocol_read(path)
 - protocol:
 
   A
-  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md).
+  [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md).
 
 - path:
 
@@ -32,7 +32,7 @@ returns a `gr_protocol`.
 
 The round trip is lossless for everything a protocol *is*, the search
 included when one was given to
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md).
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md).
 `recipe` is the one thing it may not be: a `gr_recipe` object is written
 as its name, because a file that pinned every clean and segmentation
 setting would silently pin them for a reader on a different version. Two
@@ -51,8 +51,8 @@ model and printed in the audit report.
 
 ## See also
 
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md),
-[`gr_protocols()`](https://elkronos.github.io/readgpt/reference/gr_protocols.md)
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
+[`gr_protocols()`](https://elkronos.github.io/harnessr/reference/gr_protocols.md)
 
 ## Examples
 

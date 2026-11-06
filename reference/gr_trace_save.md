@@ -1,9 +1,9 @@
 # Save a trace to a file
 
 Writes the trace as JSON, in the form
-[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
+[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
 produces. The file is everything
-[`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
 needs, so this is how a run leaves the session it happened in.
 
 ## Usage
@@ -28,9 +28,9 @@ gr_trace_save(trace, path)
 
 ## See also
 
-[`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md),
-[`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md),
-[`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md),
+[`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md),
+[`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
 
 ## Examples
 

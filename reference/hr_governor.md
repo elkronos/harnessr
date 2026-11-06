@@ -4,7 +4,7 @@ A governor holds the limits that every request a run makes is checked
 against before it is sent: how many calls the run may make, what it may
 spend, the largest output cap one request may carry, and which models it
 may call.
-[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md),
+[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md),
 and every reader, judge, adjudication, segmenter and embeddings request
 in the package, goes through the same check, so a limit holds whether or
 not the code that makes the call looks at it.
@@ -62,18 +62,18 @@ An object of class `hr_governor`: a list of the six limits.
 A request is checked against its worst case: the most prompt tokens it
 can be billed for at the model's input price, plus its output cap as
 sent (for a reasoning model the raised cap; see
-[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md))
+[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md))
 at the output price. The prompt is counted as the trace counts it, with
 the JSON schema and extra body fields the request carries, a few tokens
 for each message's framing, and `safety_margin` (see
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md))
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md))
 on top. One that would take the run past `max_cost_usd` is refused, so a
 run ends at or under the limit rather than one request over it. That
 bound rests on two things the governor cannot see: that a provider stops
 a reply at its cap (a
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
 or
-[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
+[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
 handler that returns more is charged for what it returned), and that the
 provider counts the prompt within the margin of the local tokenizer. A
 provider that reports more prompt tokens than that, or a tokenizer far
@@ -84,9 +84,9 @@ cap would have used.
 
 A refused request is not sent and is not a call: it adds nothing to the
 trace's `calls`, steps or spend. It comes back from
-[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)
+[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
 as a failed
-[gr_result](https://elkronos.github.io/readgpt/reference/gr_result.md)
+[gr_result](https://elkronos.github.io/harnessr/reference/gr_result.md)
 with `refused = TRUE` and an error that names the limit, and a condition
 of class `hr_budget_refused` is signalled, which a caller can catch with
 [`withCallingHandlers()`](https://rdrr.io/r/base/conditions.html) or
@@ -106,11 +106,11 @@ still apply: `max_tokens_total` is the limit that bounds such a run,
 since the spending limit cannot. An embedding model with no price is not
 refused; its requests count against `max_calls` and add nothing to the
 spend, as
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 warns.
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
 makes no paid requests and is never refused as unpriced. A request a
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 answers spends nothing and is checked only against `max_calls`,
 `max_output_tokens` and `allowed_models`.
 
@@ -123,27 +123,27 @@ pass it.
 A governor is attached to a run with `gr_trace(governor = )`, and then
 governs the requests recorded into that trace. A stage that keeps a
 trace of its own and folds it into the one it is given
-([`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
-[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md),
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+([`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
+[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 and
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md))
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md))
 holds its requests to that trace's governor, less what the given trace
 has already spent and used in tokens; `max_calls` stays a limit per
 document for
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 and per stage for the others, as with the options. A trace made without
 one, including those the package makes for itself, reads the limits from
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 each time it checks, so changing an option affects runs that are already
 going, as it always has.
 
 ## See also
 
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 for the session defaults,
-[`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md),
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+[`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md),
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
 to give a model its prices
 
 ## Examples

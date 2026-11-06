@@ -65,7 +65,7 @@ An object of class `hr_cost`.
 
 ## See also
 
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md)
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md)
 
 ## Examples
 

@@ -24,24 +24,24 @@ A `gr_recipe` when `name` is a single string, otherwise a named list of
 
 ## `"auto"`
 
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 defaults to `recipe = "auto"`. It is not a recipe but a choice between
 two of these, made once the document is ingested: `"fast"` for a
 document of at most 50,000 tokens (less on a model with a small context
 window), `"thorough"` for anything longer. "Choosing the recipe" in
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 gives the whole rule. Functions that read several documents or compare
 recipes take one fixed recipe, and refuse `"auto"`.
 
 ## See also
 
-[`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md)
+[`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)
 to build your own,
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md),
-[`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
+[`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md)
 and
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md)
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
 for the pieces they are made of
 
 ## Examples

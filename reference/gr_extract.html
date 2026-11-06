@@ -37,7 +37,7 @@ per field, with a separate long table saying where every value came from."></hea
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/elkronos/readgpt/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/elkronos/harnessr/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -47,7 +47,7 @@ per field, with a separate long table saying where every value came from."></hea
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Extract a typed schema from many documents</h1>
-      <small class="dont-index">Source: <a href="https://github.com/elkronos/readgpt/blob/main/R/doc-extract-result.R" class="external-link"><code>R/doc-extract-result.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/elkronos/harnessr/blob/main/R/doc-extract-result.R" class="external-link"><code>R/doc-extract-result.R</code></a></small>
       <div class="d-none name"><code>gr_extract.Rd</code></div>
     </div>
 
@@ -313,14 +313,14 @@ the sentence it was taken from and a check that the sentence is really there.</p
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"We ran a randomised controlled trial. We enrolled 120 participants."</span>, <span class="va">f</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu">gr_extract</span><span class="op">(</span><span class="va">f</span>, <span class="va">fields</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1c0c7b887275.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1c0c7b887275.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1df61a08070a.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1df61a08070a.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~22 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'structural' (cap 900 tokens, overlap 90).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).</span>
 <span class="r-in"><span><span class="va">x</span><span class="op">$</span><span class="va">table</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"design"</span>, <span class="st">"n"</span>, <span class="st">"n_unverified"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               document                      design   n n_unverified status</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1c0c7b887275.txt randomised controlled trial 120            0     ok</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1df61a08070a.txt randomised controlled trial 120            0     ok</span>
 <span class="r-in"><span><span class="va">x</span><span class="op">$</span><span class="va">evidence</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"field"</span>, <span class="st">"quote"</span>, <span class="st">"verified"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    field                                 quote verified</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 design We ran a randomised controlled trial.     TRUE</span>

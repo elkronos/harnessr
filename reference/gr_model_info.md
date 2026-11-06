@@ -21,7 +21,7 @@ gr_model_info(model = NULL)
 
 A named list: `id`, `context_window`, `max_output`, `input_usd`,
 `output_usd` and `cached_input_usd` (per 1M tokens, used by
-[`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md)),
+[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md)),
 `reasoning`, `supports_temperature`, `kind`, `dimensions`, `as_of`,
 `certain`, and `source` (`"registered"`, `"builtin"`, `"alias"`,
 `"pattern:..."` or `"default"`). `certain` is `FALSE` when the answer
@@ -39,20 +39,20 @@ neither id is in the registry.
 
 ## See also
 
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
-[`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md),
-[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md)
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
+[`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md),
+[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
 
 Other cost and token functions:
-[`gr_budget()`](https://elkronos.github.io/readgpt/reference/gr_budget.md),
-[`gr_count_tokens()`](https://elkronos.github.io/readgpt/reference/gr_count_tokens.md),
-[`gr_estimate_cost()`](https://elkronos.github.io/readgpt/reference/gr_estimate_cost.md),
-[`gr_model_limits()`](https://elkronos.github.io/readgpt/reference/gr_model_limits.md),
-[`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md),
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
-[`gr_set_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_set_tokenizer.md),
-[`gr_tokenizer()`](https://elkronos.github.io/readgpt/reference/gr_tokenizer.md),
-[`gr_truncate_tokens()`](https://elkronos.github.io/readgpt/reference/gr_truncate_tokens.md)
+[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md),
+[`gr_count_tokens()`](https://elkronos.github.io/harnessr/reference/gr_count_tokens.md),
+[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md),
+[`gr_model_limits()`](https://elkronos.github.io/harnessr/reference/gr_model_limits.md),
+[`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md),
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
+[`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md),
+[`gr_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_tokenizer.md),
+[`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md)
 
 ## Examples
 

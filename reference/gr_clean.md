@@ -1,7 +1,7 @@
 # Run the cleaning pipeline over a character vector
 
 Exposed separately from
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
 so you can see exactly what a cleaning configuration does to your own
 text before committing a run to it. Cleaning is destructive and
 irreversible from the model's point of view: whatever is removed here,
@@ -22,9 +22,9 @@ gr_clean(text, steps = NULL, opts = list())
 - steps:
 
   Character vector of cleaner **names** (see
-  [`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md)),
+  [`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md)),
   or `NULL` for the `default_on` set. Unlike
-  [`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md)'s
+  [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)'s
   `clean` argument this does **not** accept preset names. Steps are
   reordered so every `"early"` cleaner runs before every `"late"` one,
   regardless of the order given. This is what stops digit removal from
@@ -37,7 +37,7 @@ gr_clean(text, steps = NULL, opts = list())
   by what the rest of the document says (as `hyphenation` and
   `headers_footers` do); and `.pages`, a page per block, where the
   caller gives one
-  ([`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+  ([`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
   does).
 
 ## Value
@@ -47,20 +47,20 @@ recording characters removed per step.
 
 ## See also
 
-[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md)
+[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md)
 for the step names,
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md)
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
 to use a configuration in a real run
 
 Other ingest functions:
-[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md),
-[`gr_document`](https://elkronos.github.io/readgpt/reference/gr_document.md),
-[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
+[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md),
+[`gr_document`](https://elkronos.github.io/harnessr/reference/gr_document.md),
+[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
+[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
 
 ## Examples
 

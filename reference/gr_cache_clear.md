@@ -3,7 +3,7 @@
 Removes the stored responses and resets the session counters. The
 directory itself is left in place, and so is anything in it that is not
 a cache entry (a
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 store, your own files): only files in the cache's own layout are
 removed.
 
@@ -18,7 +18,7 @@ gr_cache_clear(cache)
 - cache:
 
   A
-  [`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md).
+  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md).
 
 ## Value
 
@@ -26,8 +26,8 @@ The number of entries removed, invisibly.
 
 ## See also
 
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md),
-[`gr_cache_stats()`](https://elkronos.github.io/readgpt/reference/gr_cache_stats.md)
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md),
+[`gr_cache_stats()`](https://elkronos.github.io/harnessr/reference/gr_cache_stats.md)
 
 ## Examples
 

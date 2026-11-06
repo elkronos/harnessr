@@ -1,7 +1,7 @@
 # Ask one question of many documents
 
 The counterpart to
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md):
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md):
 that runs several recipes over one document, this runs one recipe over
 many. Returns one tidy row per document, so the result goes straight
 into a data frame you can write out, join, or code against.
@@ -31,18 +31,18 @@ gr_read_many(
 
   A character vector of file paths, or a single directory, or raw text,
   or a
-  [`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md)
+  [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
   or a
-  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+  [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
   result, either of which also carries the search forward to the audit.
   A directory, and a vector of paths that all exist, are both filtered
   to the extensions some registered extractor claims, so which files are
   picked up follows
-  [`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
+  [`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
   including any you registered yourself. Raw text, a mixed vector and a
   [`list()`](https://rdrr.io/r/base/list.html) of sources are passed
   through untouched, and a web address is downloaded as
-  [`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
   downloads one.
 
 - question:
@@ -56,15 +56,15 @@ gr_read_many(
 - client:
 
   A `gr_client`. Wrap it in
-  [`gr_cache_client()`](https://elkronos.github.io/readgpt/reference/gr_cache_client.md)
+  [`gr_cache_client()`](https://elkronos.github.io/harnessr/reference/gr_cache_client.md)
   for a long run: with a durable cache directory, a restart pays for
   nothing it has already answered. A closure-backed client
-  ([`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
+  ([`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
   or
-  [`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md))
+  [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md))
   reuses a cache or a `store` across sessions only if it was given a
   stable `id`; see
-  [`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
+  [`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
   for why.
 
 - store:
@@ -121,7 +121,7 @@ gr_read_many(
 - keep_answers:
 
   Keep every
-  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
   in the result. Set `FALSE` for a large corpus, where holding every
   trace and evidence table is the thing that runs you out of memory.
 
@@ -132,7 +132,7 @@ gr_read_many(
 - trace:
 
   A
-  [`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)
+  [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
   to fold this run's accounting into, so several stages of one review
   add up to one figure. It is a *parent*: this run still gets its own
   trace, which is what `$trace` returns and what
@@ -143,7 +143,7 @@ gr_read_many(
 - ...:
 
   Overrides applied to the recipe, as in
-  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md).
+  [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md).
 
 ## Value
 
@@ -152,7 +152,7 @@ An object of class `gr_corpus`: `summary` (one row per document),
 (the sources as read, aligned row for row with `summary`;
 `summary$document` is a display label and cannot be turned back into a
 path), `records` (the
-[`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md)
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
 the corpus came from, or `NULL`), `trace` (every call made *this run*)
 and `store`.
 
@@ -168,7 +168,7 @@ print as they happen; this column is what lets you tie them to a
 document afterwards.
 
 With `premise = TRUE` in the recipe's read spec (see
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md))
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md))
 there is one more column, after `warnings`: `premise`, the sentence in
 which the model said what the document states instead of the question's
 premise, or `NA` when it reported nothing contradicting it. Such a row's
@@ -200,7 +200,7 @@ when those vectors ranked the chunks the reader sent (`retrieve`,
 segmenter's cuts; that, like a proposition batch kept as written, shows
 in `warnings`, and a contextual header that could not be written only in
 the trace's `errors` (see
-[`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)).
+[`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)).
 A row that a limit or a failed request stopped keeps `document_id`,
 `reader` and the chunk counts, since the text was read; only `answer`
 and `not_found` are left `NA`. A restored row keeps the numbers from
@@ -223,7 +223,7 @@ deduplicated set and `sum(!is.na(x$summary$duplicate_of))` is the number
 to report as removed.
 
 This is about the table, not the bill: a
-[`gr_cache_client()`](https://elkronos.github.io/readgpt/reference/gr_cache_client.md)
+[`gr_cache_client()`](https://elkronos.github.io/harnessr/reference/gr_cache_client.md)
 already makes the second copy's calls free. What it could not do is stop
 the duplicate from appearing in the results as a second, independent
 document, which is how one study gets counted twice in a synthesis.
@@ -259,10 +259,10 @@ serialise on each of them. Within a document,
 
 ## See also
 
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md),
-[`gr_cache_client()`](https://elkronos.github.io/readgpt/reference/gr_cache_client.md),
-[`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
+[`gr_cache_client()`](https://elkronos.github.io/harnessr/reference/gr_cache_client.md),
+[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
 
 ## Examples
 
@@ -274,25 +274,25 @@ b <- tempfile(fileext = ".txt"); writeLines("Revenue was 51.8 million.", b)
 
 out <- gr_read_many(c(a, b), "What was revenue?", "fast", client = cl)
 #> 2 document(s), and gr_options(max_calls) is 400 PER DOCUMENT, so this run may make up to 800 call(s). Pass max_total_calls = to cap the run.
-#> [1/2] file1c0c188c1e26.txt
-#> Extracting 'file1c0c188c1e26.txt' with the 'txt' extractor.
+#> [1/2] file1df638ed1516.txt
+#> Extracting 'file1df638ed1516.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~11 tokens (0 chars removed by cleaning).
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
-#> [2/2] file1c0c78f0f16f.txt
-#> Extracting 'file1c0c78f0f16f.txt' with the 'txt' extractor.
+#> [2/2] file1df654361ef5.txt
+#> Extracting 'file1df654361ef5.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~11 tokens (0 chars removed by cleaning).
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
 out$summary[, c("document", "answer", "not_found", "status")]
 #>               document                            answer not_found status
-#> 1 file1c0c188c1e26.txt Revenue was 45.2 million dollars.     FALSE     ok
-#> 2 file1c0c78f0f16f.txt Revenue was 45.2 million dollars.     FALSE     ok
+#> 1 file1df638ed1516.txt Revenue was 45.2 million dollars.     FALSE     ok
+#> 2 file1df654361ef5.txt Revenue was 45.2 million dollars.     FALSE     ok
 
 # A missing file is one bad row, not a failed run.
 bad <- gr_read_many(c(a, "no-such-file.txt"), "What was revenue?", "fast", client = cl)
 #> 2 document(s), and gr_options(max_calls) is 400 PER DOCUMENT, so this run may make up to 800 call(s). Pass max_total_calls = to cap the run.
-#> [1/2] file1c0c188c1e26.txt
+#> [1/2] file1df638ed1516.txt
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
@@ -300,7 +300,7 @@ bad <- gr_read_many(c(a, "no-such-file.txt"), "What was revenue?", "fast", clien
 #> Warning: Document 'no-such-file.txt' failed: File not found: 'no-such-file.txt'. If you meant to pass document text rather than a path, it must not end in something that looks like a file extension.
 bad$summary[, c("document", "status", "error")]
 #>               document status
-#> 1 file1c0c188c1e26.txt     ok
+#> 1 file1df638ed1516.txt     ok
 #> 2     no-such-file.txt failed
 #>                                                                                                                                                       error
 #> 1                                                                                                                                                      <NA>

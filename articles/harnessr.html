@@ -52,7 +52,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/elkronos/readgpt/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/elkronos/harnessr/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -69,7 +69,7 @@
       <h1>Get started with harnessr</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/elkronos/readgpt/blob/main/vignettes/harnessr.Rmd" class="external-link"><code>vignettes/harnessr.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/elkronos/harnessr/blob/main/vignettes/harnessr.Rmd" class="external-link"><code>vignettes/harnessr.Rmd</code></a></small>
       <div class="d-none name"><code>harnessr.Rmd</code></div>
     </div>
 
@@ -98,7 +98,7 @@ English a token is roughly four characters, so a page of text is several
 hundred tokens. Providers charge per token, both for the text you send
 and, at a higher rate, for the text the model writes back.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/readgpt" class="external-link">harnessr</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_count_tokens.html">gr_count_tokens</a></span><span class="op">(</span><span class="st">"Revenue rose to 45.2 million dollars in fiscal 2024."</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 20</span></span></code></pre></div>
@@ -138,9 +138,9 @@ The first example below shows where to look.</p>
 <p>harnessr needs R 4.1 or later. Install it from GitHub:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"remotes"</span>, <span class="st">"knitr"</span>, <span class="st">"rmarkdown"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"elkronos/readgpt"</span>, build_vignettes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p>The repository is still called readgpt, the package’s name up to
-version 0.6.0; the package it installs is harnessr.</p>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"elkronos/harnessr"</span>, build_vignettes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>The package and its repository were called readgpt up to version
+0.6.0.</p>
 <p><code>build_vignettes = TRUE</code> also installs these guides, so
 <code><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette()</a></code> can open them. Building them needs
 <code>knitr</code>, <code>rmarkdown</code> and Pandoc. Pandoc comes with

@@ -3,7 +3,7 @@
 Reads RIS or BibTeX exports from one or more databases, removes the
 records that are the same work, and matches what is left to the
 documents you have on disk. It is the step before
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
 and it is where a review's numbers come from: how many records were
 identified, how many duplicates went, how many reports were sought and
 how many were never obtained.
@@ -40,7 +40,7 @@ gr_records(
 - search:
 
   A
-  [`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
+  [`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
   describing how the export was produced. Not required, and the reason
   to supply it is that a review has to report it.
 
@@ -86,7 +86,7 @@ An object of class `gr_records`:
 - `search`:
 
   The
-  [`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md),
+  [`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md),
   or `NULL`.
 
 - `unmatched_files`:
@@ -109,7 +109,7 @@ which is a finding about the review, and a folder represents it as
 nothing at all.
 
 It fixes something quieter too.
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 cites by author and year, and without an export those come from asking a
 model to read a title page. That is the one part of a citation that must
 be exactly right, resting on the loosest guarantee in the pipeline. From
@@ -117,17 +117,17 @@ an export they are data.
 
 ## See also
 
-[`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md),
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
-[`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md),
-[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md)
+[`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md),
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
+[`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md),
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md)
 
 Other corpus functions:
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md),
-[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md),
-[`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md),
-[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md),
-[`gr_search()`](https://elkronos.github.io/readgpt/reference/gr_search.md)
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md),
+[`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
+[`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md),
+[`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
 
 ## Examples
 
@@ -138,7 +138,7 @@ writeLines(c("TY  - JOUR", "AU  - Smith, J.", "TI  - A trial of spacing",
 recs <- gr_records(ris)
 recs
 #> <gr_records> 1 record(s) from 1 export(s)
-#>   file1c0c26ef7b20.ris 1
+#>   file1df644d5f60e.ris 1
 #>   records identified       1
 #>   duplicates removed       0
 #>   records screened         1

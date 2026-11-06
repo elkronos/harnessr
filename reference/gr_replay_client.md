@@ -16,9 +16,9 @@ gr_replay_client(source, strict = TRUE, on_exhausted = c("error", "flag"))
 - source:
 
   A `gr_trace`; a path to a file written by
-  [`gr_trace_save()`](https://elkronos.github.io/readgpt/reference/gr_trace_save.md);
+  [`gr_trace_save()`](https://elkronos.github.io/harnessr/reference/gr_trace_save.md);
   the JSON text
-  [`as_json()`](https://elkronos.github.io/readgpt/reference/as_json.md)
+  [`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
   writes for a trace or for an answer (whose trace is used); or an
   already-parsed list in that shape. Parse a file yourself with
   `jsonlite::fromJSON(path, simplifyVector = FALSE)`: the default
@@ -32,7 +32,7 @@ gr_replay_client(source, strict = TRUE, on_exhausted = c("error", "flag"))
   the replay has diverged from the recording, and continuing would
   produce a result that looks like the original but is not. With `FALSE`
   a miss returns a failed
-  [gr_result](https://elkronos.github.io/readgpt/reference/gr_result.md)
+  [gr_result](https://elkronos.github.io/harnessr/reference/gr_result.md)
   instead, so a partially recorded trace still runs.
 
 - on_exhausted:
@@ -47,7 +47,7 @@ gr_replay_client(source, strict = TRUE, on_exhausted = c("error", "flag"))
 ## Value
 
 An object of class `gr_replay_client`, usable anywhere a
-[`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
+[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
 is. It also carries `$stats()` and `$missed()`.
 
 ## Details
@@ -62,7 +62,7 @@ re-runnable recording of exactly what went wrong.
 A response is matched on the exact prompt messages plus the model id the
 call asked for, the reasoning effort it was sent with when it had one
 (see `effort` in
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)),
 the temperature it was made with once the session default was filled in
 (none for a model that takes none), the output cap it asked for, and its
 JSON schema. These make up the key `harnessr-replay-v2`, which each step
@@ -71,11 +71,11 @@ temperature, cap or schema misses rather than passing for the recording.
 A replay under the same effort matches even where this session's
 registry does not list a model as a reasoning model and the recording
 session's did (a gateway model registered with
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md)
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
 there and not here), and a call through an ellmer chat, which sends no
 effort, is matched on the one it asked for. The model id can differ from
 the model the trace records as answering: a
-[`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
+[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
 answers with its chat's model whatever the recipe asked for, and its
 runs replay all the same.
 
@@ -103,7 +103,7 @@ When a run issued the same request more than once (which happens at a
 temperature above zero, and in readers that revisit a chunk), the
 recorded responses are returned in the order they were produced. A call
 with a `draw_index` above 0 (see
-[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md))
+[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md))
 is answered with the reply recorded for that draw; in a recording that
 holds no draw indexes, draw k is the k-th reply recorded for the
 request. A call past the end of what was recorded, or for a draw that
@@ -124,7 +124,7 @@ Both conditions, because replaying an API-embedded run with a
 deterministic local embedder would compute vectors the original never
 saw while looking exact. Anything else, including a run recorded with
 the default `"api"` embedder (or a
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)'s
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)'s
 embed handler), warns with class `gr_replay_no_embeddings` and falls
 back to hashed lexical vectors. Those place semantic cuts and rank
 chunks differently, so such a replay usually sends prompts the recording
@@ -151,7 +151,7 @@ limit stops sooner, marked partial as the run would have been.
 ## The recipe "auto" chose
 
 A recording of
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 with `recipe = "auto"` holds the recipe the choice picked for each
 document and question, and a replay of the same document and question
 repeats that choice rather than making it again. What the choice rests
@@ -168,10 +168,10 @@ reply.
 
 ## See also
 
-[`gr_trace_save()`](https://elkronos.github.io/readgpt/reference/gr_trace_save.md),
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+[`gr_trace_save()`](https://elkronos.github.io/harnessr/reference/gr_trace_save.md),
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 for making future runs cheap,
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
 for invented answers rather than recorded ones
 
 ## Examples

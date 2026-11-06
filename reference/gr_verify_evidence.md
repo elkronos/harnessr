@@ -17,12 +17,12 @@ gr_verify_evidence(answer, chunks = NULL)
 - answer:
 
   A
-  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md).
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md).
 
 - chunks:
 
   The
-  [gr_chunks](https://elkronos.github.io/readgpt/reference/gr_chunks.md)
+  [gr_chunks](https://elkronos.github.io/harnessr/reference/gr_chunks.md)
   the answer was read from. Needed for readers whose evidence is
   verbatim, where the comparison is against the chunk the span claims to
   come from: its `source_text` where the segmenter recorded one (the
@@ -169,9 +169,9 @@ answer `partial` too.
 
 ## See also
 
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md),
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
-[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
 
 ## Examples
 

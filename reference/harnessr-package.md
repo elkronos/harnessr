@@ -7,19 +7,19 @@ harnessr has two layers.
 The general core sends model calls and keeps them under control: clients
 for an API, a local backend or [ellmer](https://ellmer.tidyverse.org)
 (see
-[`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md),
-[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md),
-[`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md),
+[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md),
+[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md),
+[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md),
 and
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
 for offline work), spending and call limits checked before each request
-([`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)),
+([`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)),
 a response cache
-([`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)),
+([`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)),
 recordings that replay offline
-([`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)),
+([`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)),
 and a trace of every call
-([`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)).
+([`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)).
 
 The document layer, built on that core, controls how a model reads a
 document. The three decisions that drive answer quality are pulled apart
@@ -28,38 +28,38 @@ into independent, swappable axes:
 - **ingest**:
 
   bytes to clean text: which extractor, which cleaning steps. See
-  [`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-  [`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
-  [`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md);
+  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+  [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+  [`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md);
   it returns a
-  [gr_document](https://elkronos.github.io/readgpt/reference/gr_document.md).
+  [gr_document](https://elkronos.github.io/harnessr/reference/gr_document.md).
 
 - **segment**:
 
   text to chunks: where the boundaries fall, how big, how much overlap.
   See
-  [`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-  [`gr_segment_spec()`](https://elkronos.github.io/readgpt/reference/gr_segment_spec.md),
-  [`gr_segmenters()`](https://elkronos.github.io/readgpt/reference/gr_segmenters.md);
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+  [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
+  [`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md);
   it returns
-  [gr_chunks](https://elkronos.github.io/readgpt/reference/gr_chunks.md).
+  [gr_chunks](https://elkronos.github.io/harnessr/reference/gr_chunks.md).
 
 - **read**:
 
   chunks to an answer: which chunks reach the model, in what call
   pattern. See
-  [`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md),
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md),
-  [`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md);
+  [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+  [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md);
   it returns a
-  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md).
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md).
 
 Over a set of documents it also screens
-([`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)),
+([`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)),
 extracts fields
-([`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md))
+([`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md))
 and synthesises what was found
-([`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)).
+([`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)).
 
 harnessr was called readgpt up to version 0.6.0. Requests, cache keys
 and recordings are unchanged by the rename. The `readgpt.api_key` and
@@ -67,11 +67,11 @@ and recordings are unchanged by the rename. The `readgpt.api_key` and
 their `harnessr.` names are not set.
 
 Any ingest x any segmenter x any reader composes.
-[`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md)
+[`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)
 binds one of each into a named pipeline;
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 runs one;
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 runs several over one document and reports how they differ.
 
 ## Getting started
@@ -111,15 +111,15 @@ and chunking deliberately, so a change in behaviour can be measured
 against old results rather than assumed.
 
 See
-[`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md)
+[`gr_recipes()`](https://elkronos.github.io/harnessr/reference/gr_recipes.md)
 for what each one actually configures. When in doubt,
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 two or three on your own document and read `cmp$summary`.
 
 ## Cost control
 
 Two limits are on by default, both
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md):
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md):
 `max_cost_usd` (5) and `max_calls` (400). Before the first request, a
 run is refused with a classed error naming the option to change when it
 would need more calls than `max_calls`, or when its reader sends every
@@ -128,7 +128,7 @@ checked again before every request, so a run that reaches either one
 stops and returns a `partial` answer rather than continuing to spend. A
 parallel read that sends batches, which cannot be stopped part way, is
 held to its worst case instead; see
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md).
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md).
 
 Preview segmentation for free before committing to a reader:
 
@@ -138,7 +138,7 @@ Preview segmentation for free before committing to a reader:
 ## Diagnosing an answer
 
 Every degradation is recorded, never silent. See
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
 for the full object, and `vignette`-free quick reference:
 
     ans$partial     # did anything degrade?
@@ -147,25 +147,25 @@ for the full object, and `vignette`-free quick reference:
     as_json(ans)              # every prompt and response from this one run
 
 An answer taken from a
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 carries its own recipe's segmentation and read only; the comparison's
 `cmp$trace` has the ingestion and every recipe.
 
 ## Extending it
 
 Each axis is a registry, so additions behave exactly like built-ins:
-[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-[`gr_register_segmenter()`](https://elkronos.github.io/readgpt/reference/gr_register_segmenter.md),
-[`gr_register_reader()`](https://elkronos.github.io/readgpt/reference/gr_register_reader.md),
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md).
+[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
+[`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md),
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md).
 
 ## See also
 
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md),
-[`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md),
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
+[`gr_recipes()`](https://elkronos.github.io/harnessr/reference/gr_recipes.md),
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 
 ## Author
 

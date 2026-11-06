@@ -33,15 +33,15 @@ gr_audit_report(
 - screening, extraction, synthesis:
 
   The objects from
-  [`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
-  [`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+  [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
   and
-  [`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md).
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md).
 
 - protocol:
 
   The
-  [`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md)
+  [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md)
   the run was made under. Worth passing even when the other objects
   carry its pieces: the criteria as *written* are what a reader checks
   the decisions against. The report compares it with what each stage
@@ -60,7 +60,7 @@ gr_audit_report(
 - claims:
 
   A
-  [`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
   result, or `NULL` to take the one the synthesis carries. It adds the
   link the rest of the report cannot make: the claim a sentence is
   making, back to the studies meant to support it.
@@ -68,7 +68,7 @@ gr_audit_report(
 - records:
 
   A
-  [`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md).
+  [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md).
   Adds the search itself to the report (which sources, with what query,
   on what date) and starts the flow counts at identification. Without
   one the report says so, because a missing search is a defect in the
@@ -77,7 +77,7 @@ gr_audit_report(
 - calibration:
 
   A
-  [`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md)
+  [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
   result, to add a section saying how good the screening is:
   sensitivity, specificity, kappa, and how many eligible studies the
   screener threw away. Without it the report says what the run did and
@@ -86,11 +86,11 @@ gr_audit_report(
 - answer:
 
   A
-  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
   from
-  [`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
+  [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
   or a `gr_corpus` from
-  [`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md).
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
   Adds the question, the answer, whether it is complete, what it cost,
   and the passages it came from in document order; see "An answer"
   below.
@@ -167,7 +167,7 @@ request, is cut to the text around what is highlighted, with each cut
 shown as "\[...\]". Last comes one row per request, from
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) on the
 answer's trace (see
-[`gr_trace()`](https://elkronos.github.io/readgpt/reference/gr_trace.md)),
+[`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)),
 without the prompts and replies. Where the answer records which steps of
 a trace shared with other runs are its own, the requests, the rows and
 the cost are those steps only.
@@ -203,28 +203,28 @@ the studies each of its headings cites, then the sections as first
 drafted, with their checks, under "Draft before revision", and the
 passes that ran, with the words of prose each was given and gave back.
 When the outline was one of several
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 compared and chosen with
-[`gr_outline_pick()`](https://elkronos.github.io/readgpt/reference/gr_outline_pick.md),
+[`gr_outline_pick()`](https://elkronos.github.io/harnessr/reference/gr_outline_pick.md),
 "What was written" says which one, and how far its grouping of the
 claims lies from the first proposal's. The cost table includes the calls
-[`gr_claims()`](https://elkronos.github.io/readgpt/reference/gr_claims.md)
+[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
 made and, when the write-up's outline came from it, those
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 made. When any request was sent with a reasoning effort (`effort` in
-[`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)),
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)),
 the cost table says which efforts each stage's requests carried, and the
 table of requests has an `effort` column.
 
 ## See also
 
-[`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md),
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md),
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md),
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md),
-[`gr_verify_evidence()`](https://elkronos.github.io/readgpt/reference/gr_verify_evidence.md),
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md),
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md),
+[`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md),
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 
 ## Examples
 
@@ -235,14 +235,14 @@ cl <- gr_mock_client(function(messages, params) {
 })
 f <- tempfile(fileext = ".txt"); writeLines("We ran a randomised trial.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1c0c410855e1.txt
-#> Extracting 'file1c0c410855e1.txt' with the 'txt' extractor.
+#> [1/1] file1df632818567.txt
+#> Extracting 'file1df632818567.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~10 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).
 
 out <- gr_audit_report(tempfile(fileext = ".html"), extraction = x, open = FALSE)
-#> Audit report written to /tmp/RtmpMcWAVZ/file1c0c2f6d72b8.html
+#> Audit report written to /tmp/Rtmpdsr9gD/file1df6218cb0b.html
 file.exists(out)
 #> [1] TRUE
 
@@ -253,5 +253,5 @@ ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl2)
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
 page <- gr_audit_report(tempfile(fileext = ".html"), answer = ans, open = FALSE)
-#> Audit report written to /tmp/RtmpMcWAVZ/file1c0c585c8132.html
+#> Audit report written to /tmp/Rtmpdsr9gD/file1df69f20586.html
 ```

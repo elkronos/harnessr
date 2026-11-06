@@ -19,7 +19,7 @@ gr_protocols(name = NULL)
 ## Value
 
 With `name`, a
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md).
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md).
 Without, a data frame of `name`, `question` and `description`.
 
 ## Details
@@ -51,9 +51,9 @@ Without, a data frame of `name`, `question` and `description`.
 
 ## See also
 
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md),
-[`gr_register_protocol()`](https://elkronos.github.io/readgpt/reference/gr_register_protocol.md),
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
+[`gr_register_protocol()`](https://elkronos.github.io/harnessr/reference/gr_register_protocol.md),
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 
 ## Examples
 

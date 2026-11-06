@@ -1,29 +1,29 @@
 # harnessr
 
-[![R-CMD-check](https://github.com/elkronos/readgpt/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/elkronos/readgpt/actions/workflows/R-CMD-check.yaml)
-[![tests](https://github.com/elkronos/readgpt/actions/workflows/tests.yaml/badge.svg)](https://github.com/elkronos/readgpt/actions/workflows/tests.yaml)
+[![R-CMD-check](https://github.com/elkronos/harnessr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/elkronos/harnessr/actions/workflows/R-CMD-check.yaml)
+[![tests](https://github.com/elkronos/harnessr/actions/workflows/tests.yaml/badge.svg)](https://github.com/elkronos/harnessr/actions/workflows/tests.yaml)
 
 For one document,
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 picks an ingest, a segmentation and a reading strategy, and returns an
 answer with a trace of everything it did. For a folder,
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 decides which documents count,
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 fills a typed schema across all of them, and
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 writes the result up with every claim citing the row it rests on. Every
 model call is budgeted, recorded and checked, and can be cached.
 
-harnessr was called readgpt up to version 0.6.0. The GitHub repository
-keeps the old name. Requests, cache keys and recordings are unchanged by
-the rename; the `readgpt.*` options are still read, with a warning (see
+harnessr was called readgpt up to version 0.6.0, and so was its GitHub
+repository. Requests, cache keys and recordings are unchanged by the
+rename; the `readgpt.*` options are still read, with a warning (see
 `NEWS.md`).
 
 The [guides](#guides) explain each part in depth and all run offline,
 without a key. Start with
-[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md).
-They are also on the website, <https://elkronos.github.io/readgpt/>,
+[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md).
+They are also on the website, <https://elkronos.github.io/harnessr/>,
 with the reference for every function.
 
 ## Install
@@ -34,21 +34,21 @@ Requires R 4.1 or later. The only non-base hard dependencies are
 ``` r
 
 install.packages(c("remotes", "knitr", "rmarkdown"))
-remotes::install_github("elkronos/readgpt", build_vignettes = TRUE)
+remotes::install_github("elkronos/harnessr", build_vignettes = TRUE)
 ```
 
 `build_vignettes = TRUE` installs the guides, so
-[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md)
+[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 works. Building them needs `knitr`, `rmarkdown` and Pandoc. Pandoc comes
 with RStudio; without RStudio, install it from
 <https://pandoc.org/installing.html> first, or leave out
 `build_vignettes = TRUE`. From a local checkout,
-`remotes::install_local("path/to/readgpt")` does the same.
+`remotes::install_local("path/to/harnessr")` does the same.
 
 Other packages (pdftools, tesseract and magick, xml2, future, ellmer,
 shiny) are checked when a feature needs them; a missing one is an error
 naming it, unless harnessr can carry on without it.
-[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md)
+[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 lists them.
 
 ## Quick start
@@ -64,9 +64,9 @@ ans$partial
 
 Every console block below is real output from the bundled example
 document, with
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
 standing in for the API, so you can reproduce all of it without a key.
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 runs several recipes over one document and extracts it only once, so you
 can choose a pipeline before committing to it:
 
@@ -90,7 +90,7 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "setting
 
 `settings` names whatever each recipe changed from the defaults. The
 bundled example is small (573 tokens as
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
 counts them), so `fast` and `thorough` fit it in one chunk. On a real
 report they would not.
 
@@ -119,22 +119,22 @@ An explicit argument wins over the `harnessr.api_key` option, which wins
 over `OPENAI_API_KEY`. Keep the key out of the repository: `.Renviron`
 is the usual home for it, and both `.Renviron` and `.Rprofile` are
 gitignored here. Without a key,
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 and
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 stop before reading the document, with a `gr_auth_error` that says how
 to set one, so a missing key does not first cost an OCR pass over a long
 scan.
 
 Behind a company gateway, `gr_client(headers = )` sends the headers it
 wants, such as Azure’s `api-key`;
-[`vignette("harnessr")`](https://elkronos.github.io/readgpt/articles/harnessr.md)
+[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 shows how.
 
 The built-in client speaks to OpenAI-compatible `/responses` and
 `/chat/completions` endpoints.
-[`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
+[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
 hands the transport to [ellmer](https://ellmer.tidyverse.org/), which
 covers roughly twenty providers, local models through Ollama among them.
 The spending limit is on by default and can hold only for a model with a
@@ -158,16 +158,16 @@ gr_ellmer_client(chat_ollama(model = "llama3.1"))
 
 Without a registered price, a run under `max_cost_usd` stops before its
 first request with an `hr_unpriced_model` error.
-[`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md)
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 covers unpriced models and what changes through ellmer (temperature and
 embeddings).
 
 Anything else, such as a model behind a queue, goes through
-[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md),
+[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md),
 which makes any function of `messages` and `params` that returns a
 string the transport. Limits, the trace, caching and replay work the
 same way on every client. Register the model’s real context window with
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md),
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
 since it is what sizes your chunks.
 
 ## How it works
@@ -185,40 +185,40 @@ extend without editing the package:
                    └─ 6 extractors + 14 individually toggleable cleaners
 
 Any ingest composes with any segmenter and any reader.
-[`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md)
+[`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)
 binds one of each into a named pipeline, and a recipe run alongside
 others gives a byte-identical `$answer` and `$chunks_used` to running it
 alone. Which model answers is a fourth, independent choice.
 
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
 turns a file into cleaned text blocks that keep their page and section.
 The extractors cover plain text and delimited files, Markdown, HTML,
 Word, PDF (with OCR for scanned pages) and images, and a web address is
 downloaded and read as whatever it serves. Each cleaner can be turned on
 or off by name, and `remove_numbers` is off by default, because it would
 make every figure, date and percentage unanswerable. See
-[`vignette("ingest")`](https://elkronos.github.io/readgpt/articles/ingest.md).
+[`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md).
 
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 cuts the document into chunks: on a ruler, by paragraph, sentence,
 heading or page, where embeddings diverge, or by rewriting it into
 standalone statements. `max_tokens` is enforced on every segmenter, and
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md)
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
 compares chunkings for nothing before you spend anything on reading. See
-[`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md).
+[`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md).
 
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
 answers the question with one of the strategies, from `stuff` (one
 request carrying the whole document) through `map_reduce` (one per
 chunk, then a merge) to `iterative` (multi-hop). Each has a traversal
 signature, `select|calls|state`, which is how the package tells two
 methods apart from two names for the same thing. Recipes such as `fast`,
 `needle`, `thorough` and `survey` bundle a segmenter with a reader.
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 defaults to `"auto"`, which reads a document of up to 50,000 tokens
 (less on a model with a small context window) with `fast` and a longer
 one with `thorough`. See
-[`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md),
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md),
 which also covers what to check when the answer is not what you
 expected.
 
@@ -242,13 +242,13 @@ answer partial, and a citation of a chunk that was never sent is
 recorded in `ans$notes$cited_unknown`. Both checks are local string
 operations, so they cost nothing and always run.
 
-[`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)
+[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
 prices a run by each step’s own model and counts only the calls that
 were issued;
-[`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md)
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 shows a bill.
 
-[`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
+[`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
 puts the question, the answer, whether it is partial and why, the cost,
 and the passages in document order on one HTML page:
 
@@ -259,20 +259,20 @@ gr_audit_report("answer.html", answer = ans)
 
 ## Many documents and reviews
 
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 runs one recipe over a folder and returns one row per document. An
 unreadable file costs one row rather than the run, each document gets
 its own budget, `max_total_calls` and `max_total_usd` bound the run, and
 `store =` makes a long run resumable.
 
 A review fixes its protocol before reading anything, then runs
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md)
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md)
 →
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 →
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 →
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md).
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md).
 Screening gives every document a decision and a reason, and sends
 `"unclear"` ones to a person instead of guessing. Extraction gives a
 typed table, and its `n_unverified` column counts the values in a row
@@ -290,13 +290,13 @@ gr_audit_report("audit.html", extraction = x, synthesis = review, claims = cm,
                 protocol = protocol)
 ```
 
-[`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md)
+[`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)
 covers the rest: surveying a folder with
-[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md),
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md),
 starting from a reference manager’s export with
-[`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md),
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
 measuring the screener against a hand-screened sample with
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md),
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
 author-year citations, claims, outlines and gaps, and the checks on
 revision passes.
 
@@ -304,27 +304,27 @@ revision passes.
 
 Two limits are on by default, `max_cost_usd = 5` and `max_calls = 400`
 per run, set with
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 or held together by
-[`hr_governor()`](https://elkronos.github.io/readgpt/reference/hr_governor.md).
+[`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md).
 Every request is checked before it is sent, against what the run has
 spent plus the most that request could cost, and a request that could
 pass a limit is not sent. The answer comes back partial, and the trace
 names the limit in `stop_reason`.
 
-[`gr_cache()`](https://elkronos.github.io/readgpt/reference/gr_cache.md)
+[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 stores each successful response, keyed on everything that can change the
 reply, and
-[`gr_cache_client()`](https://elkronos.github.io/readgpt/reference/gr_cache_client.md)
+[`gr_cache_client()`](https://elkronos.github.io/harnessr/reference/gr_cache_client.md)
 attaches it to a client, so a repeat is free and identical. A trace
 records every prompt and response, so
-[`gr_trace_save()`](https://elkronos.github.io/readgpt/reference/gr_trace_save.md)
+[`gr_trace_save()`](https://elkronos.github.io/harnessr/reference/gr_trace_save.md)
 and
-[`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
 reproduce a run from the saved trace and the source document, with no
 key and no spend.
 
-[`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md)
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 covers the other limits (tokens, output caps, allowed models), reasoning
 effort per stage, what each trace step records, cache keys, replaying a
 run that used embeddings, and the classed errors and warnings.
@@ -340,7 +340,7 @@ Every axis is a control, and a free “Preview chunking” button shows the
 chunks before you spend anything. Set `GPTREAD_DOC_ROOTS` before
 exposing the app to anyone else: unset, it reads `~/Documents`, or your
 whole home directory when there is none.
-[`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md)
+[`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md)
 has the details.
 
 ## Guides
@@ -350,13 +350,13 @@ Each guide is on the website and, once installed, in R as
 
 | guide | what it covers |
 |----|----|
-| [Get started](https://elkronos.github.io/readgpt/articles/harnessr.html) (`harnessr`) | The ideas, installing, connecting, a first question checked from start to finish, cost, a glossary |
-| [Getting text out of files](https://elkronos.github.io/readgpt/articles/ingest.html) (`ingest`) | PDFs, Word files, web pages and scans, every cleaner, and surveying a folder |
-| [Cutting documents into chunks](https://elkronos.github.io/readgpt/articles/segment.html) (`segment`) | The segmenters, overlap, minimum size, context, and comparing chunkings |
-| [Choosing how the model reads](https://elkronos.github.io/readgpt/articles/readers.html) (`readers`) | The reading strategies, recipes, what each costs, and how to choose |
-| [Many documents and literature reviews](https://elkronos.github.io/readgpt/articles/review.html) (`review`) | Search, screening, calibration, extraction, claims, synthesis, the audit report |
-| [Cost, limits and reproducible runs](https://elkronos.github.io/readgpt/articles/runs.html) (`runs`) | The governor, effort, traces, caching, replay |
-| [Extending harnessr](https://elkronos.github.io/readgpt/articles/extending.html) (`extending`) | Registering your own extractors, cleaners, segmenters, readers and embedders, and checking them |
+| [Get started](https://elkronos.github.io/harnessr/articles/harnessr.html) (`harnessr`) | The ideas, installing, connecting, a first question checked from start to finish, cost, a glossary |
+| [Getting text out of files](https://elkronos.github.io/harnessr/articles/ingest.html) (`ingest`) | PDFs, Word files, web pages and scans, every cleaner, and surveying a folder |
+| [Cutting documents into chunks](https://elkronos.github.io/harnessr/articles/segment.html) (`segment`) | The segmenters, overlap, minimum size, context, and comparing chunkings |
+| [Choosing how the model reads](https://elkronos.github.io/harnessr/articles/readers.html) (`readers`) | The reading strategies, recipes, what each costs, and how to choose |
+| [Many documents and literature reviews](https://elkronos.github.io/harnessr/articles/review.html) (`review`) | Search, screening, calibration, extraction, claims, synthesis, the audit report |
+| [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`) | The governor, effort, traces, caching, replay |
+| [Extending harnessr](https://elkronos.github.io/harnessr/articles/extending.html) (`extending`) | Registering your own extractors, cleaners, segmenters, readers and embedders, and checking them |
 
 ## Development
 
@@ -391,10 +391,10 @@ once:
 |----|----|
 | `answer_question(f, q, mode = "Chunked")` | `answer_document(f, q, "thorough")` |
 | `parse_text(f, chunk_method = "semantic")` | `gr_ingest(f)` → `gr_segment(doc, "semantic")` |
-| [`gpt_read_chunked()`](https://elkronos.github.io/readgpt/reference/gpt_read_chunked.md) | `gr_read(ch, q, cl, "map_reduce")` |
-| [`gpt_read_retrieval()`](https://elkronos.github.io/readgpt/reference/gpt_read_retrieval.md) | `gr_read(ch, q, cl, "skim")` |
-| [`gpt_read_hierarchical()`](https://elkronos.github.io/readgpt/reference/gpt_read_hierarchical.md) | `gr_read(ch, q, cl, "hierarchical")` |
-| [`gpt_read_multipass()`](https://elkronos.github.io/readgpt/reference/gpt_read_multipass.md) | `gr_read(ch, q, cl, "ensemble")` |
+| [`gpt_read_chunked()`](https://elkronos.github.io/harnessr/reference/gpt_read_chunked.md) | `gr_read(ch, q, cl, "map_reduce")` |
+| [`gpt_read_retrieval()`](https://elkronos.github.io/harnessr/reference/gpt_read_retrieval.md) | `gr_read(ch, q, cl, "skim")` |
+| [`gpt_read_hierarchical()`](https://elkronos.github.io/harnessr/reference/gpt_read_hierarchical.md) | `gr_read(ch, q, cl, "hierarchical")` |
+| [`gpt_read_multipass()`](https://elkronos.github.io/harnessr/reference/gpt_read_multipass.md) | `gr_read(ch, q, cl, "ensemble")` |
 
 Three behaviour changes are deliberate and will alter your results:
 
@@ -406,7 +406,7 @@ Three behaviour changes are deliberate and will alter your results:
     cost, and its answer relative to `mode = "Chunked"` alone.
 3.  **Digits are no longer stripped by default.** v1’s
     `remove_numbers = TRUE` default was unreachable from
-    [`answer_question()`](https://elkronos.github.io/readgpt/reference/answer_question.md),
+    [`answer_question()`](https://elkronos.github.io/harnessr/reference/answer_question.md),
     so every figure, date and percentage was deleted before the model
     saw the document.
 

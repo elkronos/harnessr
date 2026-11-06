@@ -1,7 +1,7 @@
 # Deprecated: chunk-by-chunk reading
 
 Superseded by
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
 with `reader = "map_reduce"`. Kept so v1 scripts keep running; it warns
 once per session and does **not** reproduce v1's unbounded merge prompt,
 which produced HTTP 400s once the per-chunk answers outgrew the context
@@ -34,7 +34,7 @@ gpt_read_chunked(chunks, question, client = NULL, return_json = FALSE, ...)
 - ...:
 
   Passed to
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md).
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
 
 ## Value
 
@@ -43,19 +43,19 @@ A single string when `return_json` is `FALSE`; otherwise a
 
 ## See also
 
-[`gr_read()`](https://elkronos.github.io/readgpt/reference/gr_read.md)
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
 and `reader = "map_reduce"`,
-[`gr_readers()`](https://elkronos.github.io/readgpt/reference/gr_readers.md),
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-[`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md)
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`gr_recipes()`](https://elkronos.github.io/harnessr/reference/gr_recipes.md)
 for `"legacy"`
 
 Other v1 compatibility:
-[`answer_question()`](https://elkronos.github.io/readgpt/reference/answer_question.md),
-[`gpt_read_hierarchical()`](https://elkronos.github.io/readgpt/reference/gpt_read_hierarchical.md),
-[`gpt_read_multipass()`](https://elkronos.github.io/readgpt/reference/gpt_read_multipass.md),
-[`gpt_read_retrieval()`](https://elkronos.github.io/readgpt/reference/gpt_read_retrieval.md),
-[`parse_text()`](https://elkronos.github.io/readgpt/reference/parse_text.md)
+[`answer_question()`](https://elkronos.github.io/harnessr/reference/answer_question.md),
+[`gpt_read_hierarchical()`](https://elkronos.github.io/harnessr/reference/gpt_read_hierarchical.md),
+[`gpt_read_multipass()`](https://elkronos.github.io/harnessr/reference/gpt_read_multipass.md),
+[`gpt_read_retrieval()`](https://elkronos.github.io/harnessr/reference/gpt_read_retrieval.md),
+[`parse_text()`](https://elkronos.github.io/harnessr/reference/parse_text.md)
 
 ## Examples
 

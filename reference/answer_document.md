@@ -23,7 +23,7 @@ answer_document(
 - source:
 
   File path, web address, or raw text; see
-  [`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md).
+  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md).
 
 - question:
 
@@ -32,7 +32,7 @@ answer_document(
 - recipe:
 
   A `gr_recipe`, a recipe name from
-  [`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md),
+  [`gr_recipes()`](https://elkronos.github.io/harnessr/reference/gr_recipes.md),
   a reader name, or a named list of `ingest`/`segment`/`read`. The
   default, `"auto"`, picks `"fast"` or `"thorough"` from the document's
   length; see "Choosing the recipe" below.
@@ -76,29 +76,29 @@ number of requests and the cost, not how much of the document is read.
 The room is measured for the model that answers: the one passed as
 `model` in `...`, or else the client's. A model whose limits harnessr
 has to guess (see
-[`gr_model_info()`](https://elkronos.github.io/readgpt/reference/gr_model_info.md))
+[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md))
 always gets `"thorough"`; register its real limits with
-[`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md).
+[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md).
 
 The answer's `recipe` names the recipe used, `notes$auto_recipe` records
 that `"auto"` chose it, and the trace has an `auto_recipe` step with the
 token count and the limit the choice was made on. A
-[`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
 repeats the recorded choice rather than making it again. Overrides in
 `...` apply to whichever recipe is chosen.
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md),
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 and the review functions need one fixed recipe and refuse `"auto"`.
 
 ## See also
 
-[`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md)
+[`gr_recipes()`](https://elkronos.github.io/harnessr/reference/gr_recipes.md)
 for the built-in pipelines,
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 to run several,
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
 for the returned object,
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 for the cost and call caps
 
 ## Examples

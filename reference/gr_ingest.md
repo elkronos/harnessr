@@ -69,25 +69,25 @@ A `gr_document`: a list with `blocks` (data frame), `text`, `source`,
 
 ## See also
 
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md)
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
 for the options,
-[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md)
+[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md)
 for the step names,
-[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md)
+[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md)
 for the formats,
-[gr_document](https://elkronos.github.io/readgpt/reference/gr_document.md)
+[gr_document](https://elkronos.github.io/harnessr/reference/gr_document.md)
 for what comes back,
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md)
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 for the next axis
 
 Other ingest functions:
-[`gr_clean()`](https://elkronos.github.io/readgpt/reference/gr_clean.md),
-[`gr_cleaners()`](https://elkronos.github.io/readgpt/reference/gr_cleaners.md),
-[`gr_document`](https://elkronos.github.io/readgpt/reference/gr_document.md),
-[`gr_extractors()`](https://elkronos.github.io/readgpt/reference/gr_extractors.md),
-[`gr_ingest_spec()`](https://elkronos.github.io/readgpt/reference/gr_ingest_spec.md),
-[`gr_register_cleaner()`](https://elkronos.github.io/readgpt/reference/gr_register_cleaner.md),
-[`gr_register_extractor()`](https://elkronos.github.io/readgpt/reference/gr_register_extractor.md)
+[`gr_clean()`](https://elkronos.github.io/harnessr/reference/gr_clean.md),
+[`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md),
+[`gr_document`](https://elkronos.github.io/harnessr/reference/gr_document.md),
+[`gr_extractors()`](https://elkronos.github.io/harnessr/reference/gr_extractors.md),
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
+[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
 
 ## Examples
 

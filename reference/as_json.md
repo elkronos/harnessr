@@ -17,11 +17,11 @@ as_json(x, pretty = TRUE, ...)
 - x:
 
   Object to serialise. Methods exist for
-  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md),
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
   `gr_trace`,
-  [gr_chunks](https://elkronos.github.io/readgpt/reference/gr_chunks.md)
+  [gr_chunks](https://elkronos.github.io/harnessr/reference/gr_chunks.md)
   and
-  [gr_document](https://elkronos.github.io/readgpt/reference/gr_document.md);
+  [gr_document](https://elkronos.github.io/harnessr/reference/gr_document.md);
   anything else (a review stage such as a screening or an extraction, a
   corpus, a comparison, a list of answers) falls back to a plain
   `jsonlite` conversion, in which a trace, answer, chunk set or document
@@ -53,8 +53,8 @@ cleaning steps an ingest ran), which are arrays at every length.
 
 ## See also
 
-[`gr_trace_summary()`](https://elkronos.github.io/readgpt/reference/gr_trace_summary.md),
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)
+[`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md),
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
 
 ## Examples
 

@@ -26,7 +26,7 @@ gr_compare(
 - source:
 
   File path, web address, or raw text; see
-  [`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md).
+  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md).
 
 - question:
 
@@ -60,7 +60,7 @@ gr_compare(
   nothing because a limit stopped it is `NA`: the spending, token or
   call limit, the model allow-list or the output ceiling. A function is
   called with each recipe's
-  [gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
   and returns `TRUE`, `FALSE` or `NA` (not known); when it fails or
   returns anything else, a warning of class `gr_bad_correct` names the
   recipe and its `correct` is `NA`. An invalid `correct` argument is an
@@ -73,7 +73,7 @@ gr_compare(
 ## Value
 
 A list with `answers` (named list of
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)),
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)),
 `summary`, `trace` (shared across all recipes, so it records every
 recipe's calls) and `document` (source and ingestion stats). `summary`
 is a data frame with one row per recipe and these columns:
@@ -96,7 +96,7 @@ is a data frame with one row per recipe and these columns:
 - `usd`:
 
   What those requests cost, at the prices registered with
-  [`gr_register_model()`](https://elkronos.github.io/readgpt/reference/gr_register_model.md).
+  [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md).
   `NA` when a model the recipe used has no registered price.
 
 - `usd_estimated`:
@@ -117,7 +117,7 @@ is a data frame with one row per recipe and these columns:
 
   Only when a recipe checks the question's premise: what the model said
   the document states instead, or `NA`; see `premise` in
-  [`gr_read_spec()`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md).
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
 
 ## Details
 
@@ -129,7 +129,7 @@ genuinely different runs.
 
 Each row of `summary` says what its recipe cost, priced from the
 requests on the trace by the model each one used (see
-[`gr_trace_cost()`](https://elkronos.github.io/readgpt/reference/gr_trace_cost.md)).
+[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)).
 A recipe is charged what it would cost run alone: a segmentation it
 shares with an earlier recipe is charged to both, as `max_calls` counts
 it for both, so `sum(summary$usd)` can be more than the comparison
@@ -138,7 +138,7 @@ row also says whether the answer was right and what a right answer cost.
 
 A comparison is one run for the spending and token limits:
 `max_cost_usd` and `max_tokens_total` in
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 are checked against what every recipe and every segmentation has spent
 and used so far, so a recipe that reaches either limit stops `partial`
 and the ones after it are refused and recorded as failed. `max_calls` is
@@ -148,10 +148,10 @@ segmentation that a limit cut short is not shared with a later recipe.
 
 ## See also
 
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-[`gr_recipes()`](https://elkronos.github.io/readgpt/reference/gr_recipes.md),
-[`gr_recipe()`](https://elkronos.github.io/readgpt/reference/gr_recipe.md),
-[gr_answer](https://elkronos.github.io/readgpt/reference/gr_answer.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`gr_recipes()`](https://elkronos.github.io/harnessr/reference/gr_recipes.md),
+[`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md),
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
 
 ## Examples
 
@@ -178,9 +178,9 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "chunks_
 # One trace covers all three, so this is the cost of the whole comparison.
 gr_trace_summary(cmp$trace)
 #>                          run_id calls cached steps tokens_in tokens_out errors
-#> 1 run_20261106091711.652_ae893c     5      0    16      2122         65      0
+#> 1 run_20261106103537.693_67245a     5      0    16      2122         65      0
 #>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in
-#> 1      0.12           0            0                0                0
+#> 1      0.11           0            0                0                0
 #>   usage_estimated
 #> 1               1
 

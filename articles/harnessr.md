@@ -54,10 +54,10 @@ can see and change each one:
     relevant few, and so on.
 
 A fourth choice, which model answers, is independent of all three.
-[`vignette("ingest")`](https://elkronos.github.io/readgpt/articles/ingest.md),
-[`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md)
+[`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md),
+[`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md)
 and
-[`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md)
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
 cover the three steps in depth.
 
 **Models can make things up.** A model may state something the document
@@ -73,11 +73,10 @@ harnessr needs R 4.1 or later. Install it from GitHub:
 ``` r
 
 install.packages(c("remotes", "knitr", "rmarkdown"))
-remotes::install_github("elkronos/readgpt", build_vignettes = TRUE)
+remotes::install_github("elkronos/harnessr", build_vignettes = TRUE)
 ```
 
-The repository is still called readgpt, the package’s name up to version
-0.6.0; the package it installs is harnessr.
+The package and its repository were called readgpt up to version 0.6.0.
 
 `build_vignettes = TRUE` also installs these guides, so
 [`vignette()`](https://rdrr.io/r/utils/vignette.html) can open them.
@@ -121,7 +120,7 @@ file.edit("~/.Renviron")
 # OPENAI_API_KEY=sk-...
 ```
 
-[`gr_api_key()`](https://elkronos.github.io/readgpt/reference/gr_api_key.md)
+[`gr_api_key()`](https://elkronos.github.io/harnessr/reference/gr_api_key.md)
 checks that R can see it, and stops with an explanation if it cannot:
 
 ``` r
@@ -155,7 +154,7 @@ Ollama.
 ## Practising without a key
 
 For learning, a real model is unnecessary.
-[`gr_mock_client()`](https://elkronos.github.io/readgpt/reference/gr_mock_client.md)
+[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
 builds a stand-in that replies with whatever an R function returns, and
 it can be used anywhere a real model can. This one always gives the same
 answer, which is enough to see how everything else works:
@@ -170,13 +169,13 @@ old <- gr_options(verbose = FALSE)
 it on in your own work while you are learning. In an interactive session
 it also keeps a line up to date with how far a long read has got and
 what it has spent.
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md)
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 returns the settings it replaced, so they can be restored later with
 `gr_options(old)`.
 
 ## Your first question
 
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 does all three steps in one call. harnessr includes a short example
 document, an annual report:
 
@@ -244,7 +243,7 @@ recorded on the result, so check `partial` every time. Any warnings
 raised along the way are kept in `ans$warnings` as well as printed, so
 they can still be read after the console has scrolled past them.
 
-**[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
+**[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
 says whether the document had the answer at all.** Every reading
 strategy tells the model to reply with a fixed marker when the text it
 was shown does not answer the question, so “the document does not say”
@@ -268,11 +267,11 @@ marker. Add `premise = TRUE` to the call and the model is told that,
 when the document says the opposite, it should say so in one sentence
 giving what the document states. That sentence is the answer and
 `ans$premise`, and
-[`is_not_found()`](https://elkronos.github.io/readgpt/reference/is_not_found.md)
+[`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
 is `FALSE` for it. A document that is merely silent still gets the
 marker. It is off by default, and the correction is the model’s reading,
 not a check harnessr makes
-([`?gr_read_spec`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)).
+([`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)).
 
 **`evidence` shows what the answer rests on.** Each row is a chunk the
 answer drew on, with where it came from: the page, for a PDF, and the
@@ -291,11 +290,11 @@ On a long document there is a row for every chunk used, and `page` and
 holds depends on the reading strategy. When the model is asked to quote
 the document, harnessr checks every quotation against the text and marks
 the answer `partial` if one is not there.
-[`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md)
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
 shows both.
 
 To see the passages in place, write the answer out as a page.
-[`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
+[`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
 shows the answer, whether it is partial, the cost, and each passage with
 its page and section, with the quotation or the answer’s numbers
 highlighted. In an interactive session it opens the page for you:
@@ -332,7 +331,7 @@ as.data.frame(ans$trace)[, c("stage", "tokens_in", "tokens_out", "usd", "seconds
 ```
 
 `usd` is priced from harnessr’s list of known models
-([`gr_models()`](https://elkronos.github.io/readgpt/reference/gr_models.md)).
+([`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md)).
 A model it does not know is priced as unknown rather than free. You can
 also estimate before sending anything. Here is a 120,000-token document
 with a 4,000-token answer:
@@ -360,9 +359,9 @@ unlist(gr_options()[c("max_cost_usd", "max_calls")])
 ```
 
 Change them with
-[`gr_options()`](https://elkronos.github.io/readgpt/reference/gr_options.md),
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md),
 for example `gr_options(max_cost_usd = 20)`.
-[`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md)
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 covers the other limits, and how to cache a run so it is paid for once.
 
 The default models also *reason* before they answer: they work through
@@ -386,12 +385,12 @@ enough. The trace records the effort each request carried; the `effort`
 column appears only when a request carried one. Less reasoning costs
 less. `effort` can also differ by stage, low for the many routine
 requests and high for the few that judge;
-[`?gr_read_spec`](https://elkronos.github.io/readgpt/reference/gr_read_spec.md)
+[`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
 lists the stages and suggests a starting point.
 
 ## Choosing a recipe
 
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 made the three decisions using a *recipe*, a named combination of
 choices. The default, `"auto"`, picks one of two by the document’s
 length: `"fast"`, which sends the whole document in one request, for up
@@ -452,46 +451,46 @@ fast$reader
 Recipes differ a great deal in cost. `"thorough"` sends every chunk to
 the model separately, so a long document means many requests; `"fast"`
 and `"needle"` make one.
-[`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md)
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
 explains each reading strategy and when to use it, and how to change a
 recipe’s settings or build your own.
 
 ## More than one document
 
 For a folder of documents,
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 asks the same question of each file and returns one row per document.
 For a literature review,
-[`gr_screen()`](https://elkronos.github.io/readgpt/reference/gr_screen.md)
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 decides which documents meet your criteria,
-[`gr_extract()`](https://elkronos.github.io/readgpt/reference/gr_extract.md)
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 builds a table of the details you ask for, and
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 writes up the findings with each statement citing the study it came
 from.
-[`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md)
+[`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)
 covers each of these.
 
 ## Where to go next
 
-- [`vignette("ingest")`](https://elkronos.github.io/readgpt/articles/ingest.md):
+- [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md):
   getting text out of PDFs, Word files, web pages and scans, and
   cleaning it.
-- [`vignette("segment")`](https://elkronos.github.io/readgpt/articles/segment.md):
+- [`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md):
   cutting documents into chunks, and comparing chunkings before you
   spend anything.
-- [`vignette("readers")`](https://elkronos.github.io/readgpt/articles/readers.md):
+- [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md):
   the reading strategies and recipes, what each costs, and how to
   choose.
-- [`vignette("review")`](https://elkronos.github.io/readgpt/articles/review.md):
+- [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md):
   many documents and literature reviews, from a search export to a
   written review.
-- [`vignette("runs")`](https://elkronos.github.io/readgpt/articles/runs.md):
+- [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
   cost, limits, the trace, caching and replaying a run.
-- [`vignette("extending")`](https://elkronos.github.io/readgpt/articles/extending.md):
+- [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md):
   adding your own extractors, cleaners, segmenters, readers and
   embedders.
-- [`?gr_options`](https://elkronos.github.io/readgpt/reference/gr_options.md):
+- [`?gr_options`](https://elkronos.github.io/harnessr/reference/gr_options.md):
   every setting, with its default.
 
 `browseVignettes("harnessr")` lists all the guides.

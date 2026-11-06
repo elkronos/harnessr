@@ -35,10 +35,10 @@ fail as a transport error that never mentions the key.
 
 A run that would have to send a request without a key stops with a
 `gr_auth_error` that says how to set one.
-[`answer_document()`](https://elkronos.github.io/readgpt/reference/answer_document.md),
-[`gr_read_many()`](https://elkronos.github.io/readgpt/reference/gr_read_many.md)
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 and
-[`gr_compare()`](https://elkronos.github.io/readgpt/reference/gr_compare.md)
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 check before reading the document, so a missing key does not first cost
 an OCR pass; everything else stops at the first request. A client that
 sends its credential in `headers`, a mock, a backend or replay client,
@@ -46,7 +46,7 @@ and a client with a response cache attached are not affected.
 
 ## See also
 
-[`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
+[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
 
 ## Examples
 

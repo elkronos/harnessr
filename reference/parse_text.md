@@ -49,16 +49,16 @@ A character vector of chunk texts.
 
 ## See also
 
-[`gr_ingest()`](https://elkronos.github.io/readgpt/reference/gr_ingest.md),
-[`gr_segment()`](https://elkronos.github.io/readgpt/reference/gr_segment.md),
-[`gr_chunk_stats()`](https://elkronos.github.io/readgpt/reference/gr_chunk_stats.md)
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md),
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
 
 Other v1 compatibility:
-[`answer_question()`](https://elkronos.github.io/readgpt/reference/answer_question.md),
-[`gpt_read_chunked()`](https://elkronos.github.io/readgpt/reference/gpt_read_chunked.md),
-[`gpt_read_hierarchical()`](https://elkronos.github.io/readgpt/reference/gpt_read_hierarchical.md),
-[`gpt_read_multipass()`](https://elkronos.github.io/readgpt/reference/gpt_read_multipass.md),
-[`gpt_read_retrieval()`](https://elkronos.github.io/readgpt/reference/gpt_read_retrieval.md)
+[`answer_question()`](https://elkronos.github.io/harnessr/reference/answer_question.md),
+[`gpt_read_chunked()`](https://elkronos.github.io/harnessr/reference/gpt_read_chunked.md),
+[`gpt_read_hierarchical()`](https://elkronos.github.io/harnessr/reference/gpt_read_hierarchical.md),
+[`gpt_read_multipass()`](https://elkronos.github.io/harnessr/reference/gpt_read_multipass.md),
+[`gpt_read_retrieval()`](https://elkronos.github.io/harnessr/reference/gpt_read_retrieval.md)
 
 ## Examples
 

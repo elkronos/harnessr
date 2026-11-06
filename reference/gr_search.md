@@ -59,26 +59,26 @@ An object of class `gr_search`.
 
 This function computes nothing. It exists so the answer travels with the
 run instead of living in a lab notebook. It reaches
-[`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)
+[`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
 and the audit report, and, given to
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md)
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md)
 as `search`, it round-trips through
-[`gr_protocol_save()`](https://elkronos.github.io/readgpt/reference/gr_protocol_save.md)
+[`gr_protocol_save()`](https://elkronos.github.io/harnessr/reference/gr_protocol_save.md)
 alongside the criteria, so what was searched and what was eligible are
 one artifact.
 
 ## See also
 
-[`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md),
-[`gr_protocol()`](https://elkronos.github.io/readgpt/reference/gr_protocol.md),
-[`gr_flow()`](https://elkronos.github.io/readgpt/reference/gr_flow.md)
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
+[`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
+[`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
 
 Other corpus functions:
-[`gr_calibrate()`](https://elkronos.github.io/readgpt/reference/gr_calibrate.md),
-[`gr_inventory()`](https://elkronos.github.io/readgpt/reference/gr_inventory.md),
-[`gr_records()`](https://elkronos.github.io/readgpt/reference/gr_records.md),
-[`gr_reference()`](https://elkronos.github.io/readgpt/reference/gr_reference.md),
-[`gr_resolve()`](https://elkronos.github.io/readgpt/reference/gr_resolve.md)
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md),
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
+[`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
+[`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md)
 
 ## Examples
 

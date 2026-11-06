@@ -1,7 +1,7 @@
 # A response cache
 
 Wrap a client with
-[`gr_cache_client()`](https://elkronos.github.io/readgpt/reference/gr_cache_client.md)
+[`gr_cache_client()`](https://elkronos.github.io/harnessr/reference/gr_cache_client.md)
 and every successful model call is written to disk, keyed on the exact
 request. Re-issuing the same request returns the stored response without
 touching the network: free, instant, and byte-identical even at a
@@ -55,12 +55,12 @@ are read too, after it; new entries go only to the harnessr directory,
 and the old one is never cleared.
 
 Cross-session reuse needs a client that can say what it is.
-[`gr_client()`](https://elkronos.github.io/readgpt/reference/gr_client.md)
+[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
 and
-[`gr_ellmer_client()`](https://elkronos.github.io/readgpt/reference/gr_ellmer_client.md)
+[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
 can: an endpoint and a model describe what will answer next month as
 well as today. A bare
-[`gr_backend_client()`](https://elkronos.github.io/readgpt/reference/gr_backend_client.md)
+[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
 cannot, because what answers is an R closure, so by default it gets a
 fresh identity per object and its entries are session-scoped. Give it a
 stable `id` to opt in.
@@ -69,7 +69,7 @@ stable `id` to opt in.
 
 One small RDS file per entry, sharded into subdirectories by the first
 two characters of the key. Each file holds the
-[gr_result](https://elkronos.github.io/readgpt/reference/gr_result.md)
+[gr_result](https://elkronos.github.io/harnessr/reference/gr_result.md)
 (text, token usage, model, finish reason), with the raw parsed API
 response dropped, because nothing downstream reads it and keeping it
 multiplied the cache size for no benefit. The prompt is **not** stored,
@@ -89,7 +89,7 @@ At a temperature above zero a cache hit replays one sample rather than
 drawing a new one. That is the point: it is what makes a run
 reproducible. But it means N identical calls are one draw N times. To
 keep N draws, give each call its own `draw_index` (see
-[`gr_call()`](https://elkronos.github.io/readgpt/reference/gr_call.md)):
+[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)):
 it is part of the key when it is above 0, so draws 1 to N are N entries,
 and a rerun gets the same N replies back in the same order. A call with
 the default `draw_index = 0` keys as an unsampled call always has. Use a
@@ -105,18 +105,18 @@ still read. A call with no draw index that finds nothing under its key
 is looked up under the old key too, and a reply found there is used. The
 first such hit in a session warns once for the cache, with class
 `hr_legacy_key`, and
-[`gr_cache_stats()`](https://elkronos.github.io/readgpt/reference/gr_cache_stats.md)
+[`gr_cache_stats()`](https://elkronos.github.io/harnessr/reference/gr_cache_stats.md)
 counts them as `legacy_hits`. Old entries are never rewritten, and new
 ones are written under the new key only, so a cache directory stays
 readable by the version that wrote it.
 
 ## See also
 
-[`gr_cache_client()`](https://elkronos.github.io/readgpt/reference/gr_cache_client.md)
+[`gr_cache_client()`](https://elkronos.github.io/harnessr/reference/gr_cache_client.md)
 to attach one,
-[`gr_cache_stats()`](https://elkronos.github.io/readgpt/reference/gr_cache_stats.md),
-[`gr_cache_clear()`](https://elkronos.github.io/readgpt/reference/gr_cache_clear.md),
-[`gr_replay_client()`](https://elkronos.github.io/readgpt/reference/gr_replay_client.md)
+[`gr_cache_stats()`](https://elkronos.github.io/harnessr/reference/gr_cache_stats.md),
+[`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md),
+[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
 for reproducing a recorded run
 
 ## Examples
@@ -124,7 +124,7 @@ for reproducing a recorded run
 ``` r
 cache <- gr_cache(dir = file.path(tempdir(), "harnessr-example-cache"))
 cache
-#> <gr_cache> /tmp/RtmpMcWAVZ/harnessr-example-cache
+#> <gr_cache> /tmp/Rtmpdsr9gD/harnessr-example-cache
 #>   0 entries, 0.0 B on disk; 0 hit(s), 0 miss(es), 0 write(s)
 
 # Nothing is written until a call is cached.

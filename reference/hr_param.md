@@ -2,9 +2,9 @@
 
 A parameter states its type, default and allowed values once, so that
 the spec it belongs to is validated the same way wherever it is built.
-[`hr_validate()`](https://elkronos.github.io/readgpt/reference/hr_validate.md)
+[`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md)
 applies the rules;
-[`hr_schema()`](https://elkronos.github.io/readgpt/reference/hr_schema.md)
+[`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md)
 collects parameters into a schema.
 
 ## Usage
@@ -154,8 +154,8 @@ its own, such as an effort map checked against declared call stems.
 
 ## See also
 
-[`hr_schema()`](https://elkronos.github.io/readgpt/reference/hr_schema.md),
-[`hr_validate()`](https://elkronos.github.io/readgpt/reference/hr_validate.md)
+[`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md),
+[`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md)
 
 ## Examples
 

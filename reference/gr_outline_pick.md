@@ -1,13 +1,13 @@
 # Choose one of the outlines gr_outline() compared
 
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 with `alternatives` above 1 returns its first proposal and attaches the
 others it kept. This hands back the one you choose, with its own claim
 assignment, rationale and closing section, so the headings, the claims
 placed under each and the claims they were derived from stay one
 consistent object. Copying `attr(, "claims")` from one outline onto
 another's headings is what this avoids:
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 refuses a claim placed under a heading the outline does not have.
 
 ## Usage
@@ -21,7 +21,7 @@ gr_outline_pick(outline, alternative)
 - outline:
 
   A
-  [`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
   result made with `alternatives` above 1.
 
 - alternative:
@@ -32,7 +32,7 @@ gr_outline_pick(outline, alternative)
 ## Value
 
 The outline chosen, shaped like any
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md)
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 result, without the alternatives and comparison attached.
 
 ## Details
@@ -45,9 +45,9 @@ author's call.
 
 The outline returned carries `attr(, "alternative")`, which says which
 one it is.
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 records it in `$outline_alternative` and in its trace, and
-[`gr_audit_report()`](https://elkronos.github.io/readgpt/reference/gr_audit_report.md)
+[`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
 says which was used, so a review written from the second proposal says
 so. Renaming its headings keeps that record. Moving claims between its
 sections does not: the grouping is then your own, and the review is
@@ -55,8 +55,8 @@ recorded as one written from an outline of your own would be.
 
 ## See also
 
-[`gr_outline()`](https://elkronos.github.io/readgpt/reference/gr_outline.md),
-[`gr_synthesise()`](https://elkronos.github.io/readgpt/reference/gr_synthesise.md)
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md),
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 
 ## Examples
 

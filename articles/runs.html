@@ -52,7 +52,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/elkronos/readgpt/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/elkronos/harnessr/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -69,7 +69,7 @@
       <h1>Cost, limits and reproducible runs</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/elkronos/readgpt/blob/main/vignettes/runs.Rmd" class="external-link"><code>vignettes/runs.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/elkronos/harnessr/blob/main/vignettes/runs.Rmd" class="external-link"><code>vignettes/runs.Rmd</code></a></small>
       <div class="d-none name"><code>runs.Rmd</code></div>
     </div>
 
@@ -99,7 +99,7 @@ nothing to count. So the examples give it a price:
 input tokens and $8 per million output tokens, and each run names that
 model, so every request is priced at those rates.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/readgpt" class="external-link">harnessr</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/gr_register_model.html">gr_register_model</a></span><span class="op">(</span><span class="st">"priced-mock"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">2</span>, output_usd <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
@@ -204,7 +204,7 @@ are kept as <code>tokens$reasoning</code> and
 <span><span class="co">#&gt; List of 4</span></span>
 <span><span class="co">#&gt;  $ label      : chr "reduce"</span></span>
 <span><span class="co">#&gt;  $ attempts   : int 1</span></span>
-<span><span class="co">#&gt;  $ started_utc: chr "2026-11-06T09:17:44.968Z"</span></span>
+<span><span class="co">#&gt;  $ started_utc: chr "2026-11-06T10:36:10.499Z"</span></span>
 <span><span class="co">#&gt;  $ tokens     :List of 3</span></span>
 <span><span class="co">#&gt;   ..$ input     : int 296</span></span>
 <span><span class="co">#&gt;   ..$ output    : int 13</span></span>
@@ -281,10 +281,10 @@ credentials.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_trace.html">gr_trace</a></span><span class="op">(</span>owner <span class="op">=</span> <span class="st">"finance team"</span>, run_by <span class="op">=</span> <span class="st">"ana"</span>, purpose <span class="op">=</span> <span class="st">"Q3 check"</span><span class="op">)</span></span>
 <span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261106091745.338_fd68b9&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261106103610.866_9583db&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   cost: no cost recorded</span></span>
 <span><span class="co">#&gt;   actor: owner = finance team, run_by = ana, purpose = Q3 check </span></span>
-<span><span class="co">#&gt;   started: 2026-11-06T09:17:45.338Z</span></span>
+<span><span class="co">#&gt;   started: 2026-11-06T10:36:10.866Z</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">tr</span><span class="op">$</span><span class="va">config</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "options"   "r_version"</span></span></code></pre></div>
 <p><code>as_json(ans)</code> writes the answer with every prompt and
