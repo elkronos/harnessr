@@ -144,7 +144,7 @@ test_that("an ensemble's known floor is not waived by a member read by an unpric
 # money-04: an ellmer chat is priced as the model it bills
 # ---------------------------------------------------------------------------
 
-test_that("an ellmer chat's own unpriced model is named as uncheckable, override or not", {
+test_that("an ellmer chat's own unpriced model is refused, override or not", {
   skip_if_not_installed("ellmer")
   local_registries()
   gr_register_model("claude-test", context_window = 200000, max_output = 8000)
@@ -153,19 +153,28 @@ test_that("an ellmer chat's own unpriced model is named as uncheckable, override
   cl <- gr_ellmer_client(fake_chat("claude-test"))
   expect_identical(harnessr:::client_billed_model(cl), "claude-test")
   # The fake chat cannot take a per-call output cap either; that warning is
-  # tested in test-backend.R and is not the one this test is about.
-  expect_warning(suppressWarnings(suppressMessages(gr_read(ch, "Q?", cl, "stuff")),
-                                  classes = "gr_ellmer_max_output"),
-                 class = "gr_cost_uncheckable", regexp = "claude-test")
-  # Naming a priced model does not change what the chat bills as.
-  ws <- character(0)
-  withCallingHandlers(suppressMessages(gr_read(ch, "Q?", cl, list(reader = "stuff",
-                                                                 model = "gpt-5.6-terra"))),
-                      warning = function(w) {
-                        ws <<- c(ws, paste(class(w)[1], conditionMessage(w)))
-                        invokeRestart("muffleWarning")
-                      })
-  expect_true(any(grepl("^gr_cost_uncheckable .*claude-test", ws)))
+  # tested in test-backend.R and is not the one this test is about. Under a
+  # spending limit the run is refused before its first request, naming the
+  # model the chat bills as.
+  expect_error(suppressWarnings(suppressMessages(gr_read(ch, "Q?", cl, "stuff"))),
+               class = "hr_unpriced_model", regexp = "claude-test")
+  # Naming a priced model does not change what the chat bills as, so the run
+  # is still refused, for the chat's model.
+  expect_error(suppressWarnings(suppressMessages(
+    gr_read(ch, "Q?", cl, list(reader = "stuff", model = "gpt-5.6-terra")))),
+    class = "hr_unpriced_model", regexp = "claude-test")
+  # Allowed to run unpriced, it says the limit cannot be checked, for the
+  # chat's model in both cases.
+  gr_options(allow_unpriced = TRUE)
+  for (settings in list("stuff", list(reader = "stuff", model = "gpt-5.6-terra"))) {
+    ws <- character(0)
+    withCallingHandlers(suppressMessages(gr_read(ch, "Q?", cl, settings)),
+                        warning = function(w) {
+                          ws <<- c(ws, paste(class(w)[1], conditionMessage(w)))
+                          invokeRestart("muffleWarning")
+                        })
+    expect_true(any(grepl("^gr_cost_uncheckable .*claude-test", ws)))
+  }
   # Other clients bill as the model each request names.
   expect_null(harnessr:::client_billed_model(mock_echo()))
   expect_null(harnessr:::client_billed_model(gr_backend_client(function(m, p) "x", model = "bk")))

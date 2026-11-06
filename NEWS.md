@@ -186,7 +186,11 @@
   `gr_options(allow_unpriced = TRUE)`; then its requests are sent, still
   count against `max_calls` and `max_tokens_total`, and are priced `NA` in
   the trace. `gr_mock_client()` and replays are never refused for this, and
-  neither are embedding models with no price.
+  neither are embedding models with no price. An ellmer chat is priced as
+  the model it was built with, whatever a spec names, so a chat on a model
+  with no registered price is refused too; the README and the
+  `gr_ellmer_client()` example now register its price, and allow a local
+  model to run unpriced.
 
 * **New option `max_tokens_total`** (`NULL`, off) limits the tokens a run
   may use: prompts and replies of every call, and text sent to be embedded.
