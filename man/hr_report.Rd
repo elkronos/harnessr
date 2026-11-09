@@ -135,8 +135,8 @@ chapter 12; Davison and Hinkley 1997, chapters 2 and 5). Each of the \code{B}
 resamples draws whole clusters with replacement, with all their items,
 runs and arms, and gives t* = (r* - r) / se*, with se* the linearised
 standard error of the resample. The interval is
-\link{r - q_hi se, r - q_lo se}, with q_lo and q_hi the (1 - conf) / 2 and
-(1 + conf) / 2 quantiles of t* and se = sqrt(V), cut to \link{0, 1}.
+[r - q_hi se, r - q_lo se], with q_lo and q_hi the (1 - conf) / 2 and
+(1 + conf) / 2 quantiles of t* and se = sqrt(V), cut to [0, 1].
 Studentising corrects the skew of a proportion near a bound, where the
 BCa interval this replaces undercovered (93.5\% at a true accuracy of
 0.75 in the coverage simulation of \code{dev/sim-coverage.R}, 386 items in 40
@@ -196,8 +196,8 @@ difference is the ratio estimator of the cluster sums of item
 differences, and its interval is the cluster-robust t interval
 d plus and minus t_(C - 1, (1 + conf) / 2) x sqrt(V_d), with V_d the
 linearised variance above applied to the differences, whatever the method
-for accuracy (Cameron and Miller 2015), cut to \link{-1, 1} as the accuracy
-intervals are cut to \link{0, 1} (with few clusters the t quantile can reach
+for accuracy (Cameron and Miller 2015), cut to [-1, 1] as the accuracy
+intervals are cut to [0, 1] (with few clusters the t quantile can reach
 past either end). It covered 94.7\% (40 clusters) and
 95.7\% (10 clusters) in the coverage simulation, where the BCa cluster
 bootstrap it replaces covered 92.9\% and 89.2\%. When every cluster gives
@@ -225,7 +225,7 @@ the other pairs is then taken at 1 - (1 - conf) x (pairs with V_d > 0) /
 (number of pairs), so the error rates of the two parts add up to at most
 1 - conf over the whole family. With 3 pairs of which 1 has V_d = 0 and
 conf = 0.95, the max-t part runs at 1 - 0.05 x 2 / 3, about 0.967. These
-intervals are cut to \link{-1, 1} too.
+intervals are cut to [-1, 1] too.
 Rank intervals are the \code{(1 - conf) / 2} and \code{(1 + conf) / 2} quantiles of
 each arm's rank over the cluster bootstrap resamples (rank 1 is the most
 accurate).

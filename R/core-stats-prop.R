@@ -16,8 +16,10 @@ prop_row <- function(name, hits, total, conf = 0.95) {
   d <- 1 + z^2 / total
   centre <- (p + z^2 / (2 * total)) / d
   half <- z * sqrt(p * (1 - p) / total + z^2 / (4 * total^2)) / d
-  data.frame(metric = name, estimate = p, lower = max(0, centre - half),
-             upper = min(1, centre + half), n = as.integer(total),
+  # Exact bounds at 0 and total hits, where the formula leaves a rounding error.
+  lower <- if (hits == 0) 0 else max(0, centre - half)
+  upper <- if (hits == total) 1 else min(1, centre + half)
+  data.frame(metric = name, estimate = p, lower = lower, upper = upper, n = as.integer(total),
              stringsAsFactors = FALSE)
 }
 
@@ -39,7 +41,8 @@ prop_row <- function(name, hits, total, conf = 0.95) {
 #'   Bayesian summaries is wanted.
 #'
 #' Wilson here has no continuity correction, so the two-sided interval is the
-#' one `prop.test(x, n, correct = FALSE)` reports. The Clopper-Pearson interval
+#' one `prop.test(x, n, correct = FALSE)` reports, with the lower bound exactly
+#' 0 at `x = 0` and the upper exactly 1 at `x = n`. The Clopper-Pearson interval
 #' is the one `binom.test(x, n)` reports. The Jeffreys bounds are
 #' `qbeta(a, x + 0.5, n - x + 0.5)` and `qbeta(1 - a, x + 0.5, n - x + 0.5)`,
 #' with the lower bound set to 0 at `x = 0` and the upper to 1 at `x = n`.
@@ -112,7 +115,11 @@ hr_prop_ci <- function(x, n, method = c("wilson", "clopper_pearson", "jeffreys")
         d <- 1 + z^2 / no
         centre <- (p + z^2 / (2 * no)) / d
         half <- z * sqrt(p * (1 - p) / no + z^2 / (4 * no^2)) / d
-        list(pmax(0, centre - half), pmin(1, centre + half))
+        # At x = 0 and x = n the bounds are exactly 0 and 1, but centre - half
+        # and centre + half can miss them by a rounding error (2.8e-17 at
+        # x = 0, n = 10), so they are set as prop.test() gives them.
+        list(ifelse(xo == 0, 0, pmax(0, centre - half)),
+             ifelse(xo == no, 1, pmin(1, centre + half)))
       },
       clopper_pearson = list(
         ifelse(xo == 0, 0, stats::qbeta(a, xo, no - xo + 1)),

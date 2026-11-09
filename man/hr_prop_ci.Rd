@@ -49,7 +49,8 @@ Bayesian summaries is wanted.
 }
 
 Wilson here has no continuity correction, so the two-sided interval is the
-one \code{prop.test(x, n, correct = FALSE)} reports. The Clopper-Pearson interval
+one \code{prop.test(x, n, correct = FALSE)} reports, with the lower bound exactly
+0 at \code{x = 0} and the upper exactly 1 at \code{x = n}. The Clopper-Pearson interval
 is the one \code{binom.test(x, n)} reports. The Jeffreys bounds are
 \code{qbeta(a, x + 0.5, n - x + 0.5)} and \code{qbeta(1 - a, x + 0.5, n - x + 0.5)},
 with the lower bound set to 0 at \code{x = 0} and the upper to 1 at \code{x = n}.

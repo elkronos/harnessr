@@ -41,11 +41,24 @@ test_that("the BCa cluster bootstrap matches boot::boot.ci on the same resamples
   den <- matrix(nper12, 12L, 2L)
   tab <- harnessr:::bca_table(harnessr:::ratio_boot(S, den, cnt), 0.95)
   dif <- harnessr:::bca_table(harnessr:::ratio_boot(S[, 1] - S[, 2], den[, 1], cnt), 0.95)
-  # Reference values from boot 1.3: boot() over the 12 cluster sums with
-  # set.seed(7) and R = 999, then boot.ci(type = "bca") with L the cluster
-  # jackknife influence values (C - 1) * (mean(t_jack) - t_jack).
+  # Accuracy reference values from boot 1.3: boot() over the 12 cluster sums
+  # with set.seed(7) and R = 999, then boot.ci(type = "bca") with L the
+  # cluster jackknife influence values (C - 1) * (mean(t_jack) - t_jack).
   expect_equal(tab$lower, c(0.593371176004613, 0.764790555665983), tolerance = 1e-10)
   expect_equal(tab$upper, c(0.789231622024109, 0.888082761058241), tolerance = 1e-10)
+  # The paired difference is not boot's. Its t0 is -23/180 and 20 of the 999
+  # replicates equal it in exact arithmetic but differ from it by rounding
+  # errors. boot counts sum(t < t0), which takes 495 below with boot's own
+  # t0 (491 with this t0), and boot.ci gives -0.17084855843 and
+  # -0.08297544967. bca_interval() counts a replicate as below only when it is
+  # more than 1e-12 * max(1, |t0|) below t0, the exact-arithmetic count of
+  # 484, so z0 = qnorm(484 / 999). The limits below are this package's output
+  # under that rule.
+  rb <- harnessr:::ratio_boot(S[, 1] - S[, 2], den[, 1], cnt)
+  expect_equal(rb$t0[[1]], -23 / 180)
+  expect_identical(sum(abs(rb$t[, 1] + 23 / 180) < 1e-9), 20L)
+  iv <- harnessr:::bca_interval(rb$t[, 1], rb$t0[[1]], rb$jack[, 1])
+  expect_equal(iv$z0, qnorm(484 / 999), tolerance = 1e-12)
   expect_equal(dif$lower, -0.1716115464907494, tolerance = 1e-10)
   expect_equal(dif$upper, -0.0838355270689133, tolerance = 1e-10)
   expect_equal(tab$estimate, c(127, 150) / 180)
@@ -56,6 +69,43 @@ test_that("the BCa cluster bootstrap matches boot::boot.ci on the same resamples
   set.seed(7)
   idx <- matrix(sample.int(12L, 12L * 999L, replace = TRUE), 999L)
   expect_equal(as.vector(cnt[5, ]), tabulate(idx[5, ], 12L))
+})
+
+test_that("the hr_report help keeps the brackets of its intervals", {
+  # Unescaped [a, b] in markdown roxygen became \\link{a, b}: R CMD check
+  # warned of missing links 'r - q_hi se, r - q_lo se', '0, 1' and '-1, 1',
+  # and the rendered help dropped the brackets (and the leading r).
+  rd <- tools::Rd_db("harnessr")[["hr_report.Rd"]]
+  skip_if(is.null(rd), "help pages not installed")
+  txt <- paste(capture.output(tools::Rd2txt(rd, options = list(underline_titles = FALSE))),
+               collapse = " ")
+  txt <- gsub("\\s+", " ", txt)
+  expect_true(grepl("[r - q_hi se, r - q_lo se]", txt, fixed = TRUE))
+  expect_true(grepl("cut to [0, 1]", txt, fixed = TRUE))
+  expect_true(grepl("cut to [-1, 1]", txt, fixed = TRUE))
+  expect_true(grepl("are cut to [-1, 1] too", txt, fixed = TRUE))
+  # No link target in any help page is a phrase with a space or comma.
+  links <- unlist(lapply(tools::Rd_db("harnessr"), function(x) {
+    tools:::.Rd_get_xrefs(x)[, "Target"]
+  }))
+  expect_identical(unname(grep("[ ,]", links, value = TRUE)), character())
+})
+
+test_that("bca_interval counts exact and rounding ties at t0 as not below", {
+  # t0 = 0.3. By hand, 0.1 and 0.2 are below; 0.3 ties exactly; 0.7 - 0.4 is
+  # 0.29999999999999993 and 0.1 + 0.2 is 0.30000000000000004, both 0.3 in
+  # exact arithmetic, so both are ties. 2 of 10 are below, z0 = qnorm(0.2)
+  # = -0.841621233572914. sum(t < t0), boot's count, would give 3.
+  t <- c(0.1, 0.2, 0.7 - 0.4, 0.3, 0.1 + 0.2, 0.4, 0.5, 0.6, 0.7, 0.8)
+  expect_identical(sum(t < 0.3), 3L)
+  # Jackknife values -1, 0, 1: L = 1, 0, -1, sum(L^3) = 0, so a = 0.
+  iv <- harnessr:::bca_interval(t, 0.3, c(-1, 0, 1))
+  expect_true(iv$bca)
+  expect_equal(iv$z0, -0.841621233572914, tolerance = 1e-12)
+  expect_identical(iv$a, 0)
+  # Shifting t0 well above the ties counts all five values up to 0.3: z0 =
+  # qnorm(0.5) = 0.
+  expect_identical(harnessr:::bca_interval(t, 0.3 + 1e-6, c(-1, 0, 1))$z0, 0)
 })
 
 test_that("hr_report gives the studentised bootstrap and the cluster-robust t intervals", {

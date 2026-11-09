@@ -43,6 +43,28 @@ test_that("Wilson matches prop.test without continuity correction", {
   }
 })
 
+test_that("Wilson bounds are exactly 0 at x = 0 and exactly 1 at x = n", {
+  # The Wilson lower bound at x = 0 is (z^2 / 2n - z^2 / 2n) / d = 0 and the
+  # upper bound at x = n is (1 + z^2 / 2n - z^2 / 2n) / d = 1 in exact
+  # arithmetic, and prop.test(correct = FALSE) reports exactly 0 and 1 there.
+  # Before the fix the formula left a rounding error: the lower bound at 0 of
+  # 10 was 2.775558e-17, and the bounds missed 0 and 1 for 38 and 60 of the
+  # values of n from 1 to 200 (19 and 57 for the one-sided bounds).
+  n <- 1:200
+  expect_identical(hr_prop_ci(0, 10)$lower, 0)
+  expect_identical(suppressWarnings(prop.test(0, 10, correct = FALSE))$conf.int[1], 0)
+  expect_identical(hr_prop_ci(0, n)$lower, rep(0, 200))
+  expect_identical(hr_prop_ci(n, n)$upper, rep(1, 200))
+  expect_identical(hr_prop_ci(0, n, side = "lower")$lower, rep(0, 200))
+  expect_identical(hr_prop_ci(n, n, side = "upper")$upper, rep(1, 200))
+  # The internal Wilson row used by the screening and agreement summaries.
+  expect_identical(vapply(n, function(k) harnessr:::prop_row("r", 0, k)$lower, 0), rep(0, 200))
+  expect_identical(vapply(n, function(k) harnessr:::prop_row("r", k, k)$upper, 0), rep(1, 200))
+  # Inside the range the bounds are unchanged: 3 of 10 still matches prop.test.
+  expect_equal(c(hr_prop_ci(3, 10)$lower, hr_prop_ci(3, 10)$upper),
+               as.numeric(prop.test(3, 10, correct = FALSE)$conf.int), tolerance = 1e-12)
+})
+
 test_that("Clopper-Pearson matches binom.test, both sides and one", {
   for (n in c(1, 5, 30, 200)) for (x in unique(round(seq(0, n, length.out = 7)))) {
     cp <- hr_prop_ci(x, n, method = "clopper_pearson")

@@ -549,8 +549,11 @@
 
 * **New `hr_prop_ci()`** gives Wilson, Clopper-Pearson or Jeffreys intervals
   for proportions, vectorised over `x` and `n`, two-sided or as a one-sided
-  bound. Wilson matches `prop.test(correct = FALSE)` and Clopper-Pearson
-  matches `binom.test()`. The help says which to use: Wilson for descriptive
+  bound. Wilson matches `prop.test(correct = FALSE)`, including a lower bound
+  of exactly 0 at `x = 0` and an upper bound of exactly 1 at `x = n` (the
+  formula alone left a rounding error there for 38 and 60 of the values of
+  `n` from 1 to 200, such as a lower bound of 2.8e-17 at 0 of 10), and
+  Clopper-Pearson matches `binom.test()`. The help says which to use: Wilson for descriptive
   rates, Clopper-Pearson for any "at least" or "at most" guarantee.
 
 * **New `hr_agreement()`** reports agreement between two raters as the count
@@ -704,7 +707,16 @@
   note to use 10 runs when runs account for more than 10%. Below 5 runs the
   report is descriptive only, without intervals. An item scored on some
   runs but not all is refused. It has `print()` and `as_json()` methods and
-  leaves the caller's random state as it was.
+  leaves the caller's random state as it was. The help writes its intervals
+  with their brackets, such as [r - q_hi se, r - q_lo se] and "cut to
+  [0, 1]"; they had been turned into 5 broken links, which R CMD check
+  reported as a warning and the rendered help showed without brackets.
+  The BCa intervals still used for cost and pass^k count a resample as
+  below t0 only when it is more than 1e-12 x max(1, |t0|) below it, so a
+  resample that ties with t0 up to a rounding error is not counted. This is
+  the count in exact arithmetic; boot.ci() counts sum(t < t0) and can differ
+  when there are such ties (484 against 495 of 999 resamples in one test,
+  moving the limits by less than 0.001).
 
 ### Non-inferiority contrasts and the minimum detectable difference
 

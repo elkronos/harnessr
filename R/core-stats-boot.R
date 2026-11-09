@@ -68,7 +68,15 @@ norm_inter <- function(t, alpha) {
 #' values L = mean(jack) - jack (Efron and Tibshirani 1993, 14.3). The
 #' adjusted levels are pnorm(z0 + (z0 + z) / (1 - a * (z0 + z))), read off
 #' with norm_inter(). This is the interval boot::boot.ci(type = "bca")
-#' returns when given the same replicates and L.
+#' returns when given the same replicates and L, unless some replicates equal
+#' t0 in exact arithmetic but differ from it by a rounding error. boot counts
+#' sum(t < t0), so such a tie counts as below or not depending on the order
+#' in which its sums were added; here a replicate counts as below only when
+#' it is more than 1e-12 * max(1, |t0|) below t0, which is the count in exact
+#' arithmetic. In the paired difference of test-core-bench-report.R, 20 of
+#' 999 replicates tie with t0 = -23/180: this rule counts 484 below, boot
+#' counted 495 with its own t0, and the 95% limits differ in the fourth
+#' decimal (-0.17161 and -0.08384 here, -0.17085 and -0.08298 from boot).
 #'
 #' When every replicate equals t0 the interval is the point. When t0 lies
 #' outside the replicates, so z0 is infinite, or the acceleration is not
