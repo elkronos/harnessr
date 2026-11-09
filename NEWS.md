@@ -529,6 +529,50 @@
   `gr_register_segmenter()` still check only that `fn` is a function, and
   register a module that breaks a rule as before.
 
+## Phase 2
+
+### Agreement and estimation statistics
+
+* **New `hr_prop_ci()`** gives Wilson, Clopper-Pearson or Jeffreys intervals
+  for proportions, vectorised over `x` and `n`, two-sided or as a one-sided
+  bound. Wilson matches `prop.test(correct = FALSE)` and Clopper-Pearson
+  matches `binom.test()`. The help says which to use: Wilson for descriptive
+  rates, Clopper-Pearson for any "at least" or "at most" guarantee.
+
+* **New `hr_agreement()`** reports agreement between two raters as the count
+  table with observed agreement, Cohen's kappa (standard error and a
+  bootstrap interval over items), the prevalence and bias indices, PABAK,
+  Gwet's AC1 with its variance interval, positive and negative specific
+  agreement, and, when `positive` is given, sensitivity, specificity, PPV and
+  NPV against the second rater. `paradox_flag` marks tables where kappa
+  should not be compared across samples. For a matrix of coders, or a level
+  other than nominal, it reports Krippendorff's alpha at the nominal,
+  ordinal, interval or ratio level with a bootstrap interval, and reports
+  only percent agreement, with a note, below 30 items or for a constant
+  field. It has `print()` and `as_json()` methods, and its bootstrap leaves
+  the caller's random state as it was. Factor levels that neither rater used
+  are left out of the two-rater table with a note, and a `positive` label
+  that is not among the labels is an error.
+
+* **New `hr_ht_estimate()`** estimates a total (Horvitz-Thompson), a mean
+  (Hajek) or a ratio of totals from a sample drawn with known inclusion
+  probabilities, optionally stratified, with the difference estimator when
+  predictions for the whole population are given, and a bootstrap interval
+  that resamples within strata.
+
+* **New `hr_ppi()`** gives a prediction-powered estimate of a mean from many
+  model-labelled units and a few labelled by people, with the power-tuned
+  PPI++ weight by default and inverse-probability weighting when the
+  labelled units were drawn with unequal probabilities.
+
+* **New `hr_alt_test()`** runs the alternative annotator test of Calderon,
+  Reichart and Dror (2025): whether a model's labels can be used in place of
+  three or more human annotators, with the margin set by their declared
+  expertise, a Benjamini-Yekutieli correction, the winning rate, and the
+  winning rate over margins from 0.05 to 0.20.
+
+* `gr_calibrate()` and its output are unchanged.
+
 # readgpt 0.6.0
 
 ## New

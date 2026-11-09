@@ -154,6 +154,18 @@ reference:
   - gr_flush_caches
   - gr_replay_client
 
+- title: Statistics
+  desc: >
+    Intervals for proportions, agreement between raters and coders,
+    design-weighted and prediction-powered estimates, and the test of whether
+    a model's labels can stand in for people's.
+  contents:
+  - hr_prop_ci
+  - hr_agreement
+  - hr_ht_estimate
+  - hr_ppi
+  - hr_alt_test
+
 - title: Extending harnessr
   desc: >
     Every axis is a registry, and an addition is used exactly like a

@@ -336,6 +336,14 @@
       "formals": ["answer", "chunks = NULL"],
       "type": "function"
     },
+    "hr_agreement": {
+      "formals": ["x", "y = NULL", "coders = NULL", "level = c(\"nominal\", \"ordinal\", \"interval\", \"ratio\")", "positive = NULL", "B = 2000", "conf = 0.95", "seed = 1"],
+      "type": "function"
+    },
+    "hr_alt_test": {
+      "formals": ["model_labels", "human_labels", "expertise", "epsilon = NULL", "q = 0.05", "metric = c(\"accuracy\", \"neg_rmse\")"],
+      "type": "function"
+    },
     "hr_check_module": {
       "formals": ["fn", "run", "rules = list()", "kind = \"module\"", "name = NA_character_"],
       "type": "function"
@@ -348,8 +356,20 @@
       "formals": ["max_calls = gr_options(\"max_calls\")", "max_cost_usd = gr_options(\"max_cost_usd\")", "max_tokens_total = gr_options(\"max_tokens_total\")", "max_output_tokens = gr_options(\"max_output_tokens\")", "allowed_models = gr_options(\"allowed_models\")", "allow_unpriced = gr_options(\"allow_unpriced\")"],
       "type": "function"
     },
+    "hr_ht_estimate": {
+      "formals": ["y", "pi", "strata = NULL", "estimand = c(\"mean\", \"total\", \"ratio\")", "den = NULL", "yhat = NULL", "yhat_pop = NULL", "B = 2000", "conf = 0.95", "seed = 1"],
+      "type": "function"
+    },
     "hr_param": {
       "formals": ["name", "type = c(\"integer\", \"number\", \"string\", \"boolean\", \"enum\", \"string_vector\", \"named_map\", \"module_ref\", \"file\")", "default = NULL", "min = NULL", "max = NULL", "choices = NULL", "required = FALSE", "help = \"\"", "cost_class = \"none\"", "affects_output = TRUE", "tier = c(\"basic\", \"advanced\")", "evidence = NULL", "depends_on = NULL", "since = NULL", "kind = NULL", "strict = TRUE", "resolve = NULL"],
+      "type": "function"
+    },
+    "hr_ppi": {
+      "formals": ["yhat_unlabelled", "yhat_labelled", "y_labelled", "pi = NULL", "conf = 0.95", "tune = TRUE"],
+      "type": "function"
+    },
+    "hr_prop_ci": {
+      "formals": ["x", "n", "method = c(\"wilson\", \"clopper_pearson\", \"jeffreys\")", "side = c(\"two\", \"lower\", \"upper\")", "conf = 0.95"],
       "type": "function"
     },
     "hr_schema": {
@@ -419,6 +439,11 @@
     },
     "as_json.gr_trace": {
       "class": "gr_trace",
+      "formals": ["x", "pretty = TRUE", "..."],
+      "generic": "as_json"
+    },
+    "as_json.hr_agreement": {
+      "class": "hr_agreement",
       "formals": ["x", "pretty = TRUE", "..."],
       "generic": "as_json"
     },
@@ -590,6 +615,16 @@
     "print.gr_trace": {
       "class": "gr_trace",
       "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_agreement": {
+      "class": "hr_agreement",
+      "formals": ["x", "digits = 3", "..."],
+      "generic": "print"
+    },
+    "print.hr_alt_test": {
+      "class": "hr_alt_test",
+      "formals": ["x", "digits = 3", "..."],
       "generic": "print"
     },
     "print.hr_conformance": {
