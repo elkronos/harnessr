@@ -337,6 +337,7 @@
 "max_t_critical","core","function"
 "mdd_design","core","function"
 "mdd_t","core","function"
+"merge_levels","core","function"
 "model_call","core","function"
 "na_default","core","function"
 "nb_fit","core","function"

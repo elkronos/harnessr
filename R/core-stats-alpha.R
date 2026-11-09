@@ -41,7 +41,8 @@ agreement_coders <- function(coders, level, B, conf, seed) {
 #' Coder labels as a matrix of category indices, with the categories.
 #'
 #' Nominal and ordinal labels become indices into the sorted (or factor
-#' level) categories; interval and ratio labels must be numeric and their
+#' level) categories, with the coders' factor levels merged by
+#' merge_levels(); interval and ratio labels must be numeric and their
 #' distinct values are the categories.
 #' @noRd
 coder_matrix <- function(coders, level) {
@@ -66,7 +67,7 @@ coder_matrix <- function(coders, level) {
     idx <- vapply(cols, function(v) match(v, vals), integer(nrow(coders)))
   } else {
     facs <- vapply(cols, is.factor, logical(1))
-    vals <- if (any(facs)) unique(unlist(lapply(cols[facs], levels))) else character(0)
+    vals <- if (any(facs)) merge_levels(lapply(cols[facs], levels), level) else character(0)
     rest <- unique(unlist(lapply(cols, function(v) as.character(v[!is.na(v)]))))
     extra <- setdiff(rest, vals)
     # Numbers sort as numbers, so an ordinal 1-10 scale is not read as "1", "10", "2".
@@ -81,6 +82,44 @@ coder_matrix <- function(coders, level) {
   pairable <- rowSums(!is.na(idx)) >= 2L
   list(values = idx[pairable, , drop = FALSE], categories = vals,
        dropped = sum(!pairable))
+}
+
+#' Merge the coders' factor levels into one order.
+#'
+#' Each coder's levels must keep their relative order in the merged order, so
+#' levels low, high and low, mid, high merge to low, mid, high. The merge is a
+#' topological sort of the "comes before" pairs within each coder's levels,
+#' taking ties in order of first appearance. For the ordinal level the order
+#' must be fixed by the coders' levels: conflicting orders (low, high and
+#' high, low) or levels with no order between them (low, mid and low, high)
+#' are an error. For other levels the order only names the categories, so
+#' ties and conflicts fall back to order of first appearance.
+#' @noRd
+merge_levels <- function(lev_list, level) {
+  all_lev <- unique(unlist(lev_list))
+  if (length(lev_list) < 2L || length(unique(lev_list)) == 1L) return(all_lev)
+  k <- length(all_lev)
+  before <- matrix(FALSE, k, k)
+  for (lv in lev_list) {
+    i <- match(lv, all_lev)
+    if (length(i) > 1L) before[cbind(i[-length(i)], i[-1L])] <- TRUE
+  }
+  out <- integer(0)
+  left <- seq_len(k)
+  while (length(left)) {
+    free <- left[colSums(before[left, left, drop = FALSE]) == 0]
+    if (level == "ordinal" && length(free) != 1L) {
+      gr_abort(paste0(
+        "The coders' factors carry levels that do not fix one order for the ordinal level (",
+        paste(vapply(lev_list, paste, character(1), collapse = " < "), collapse = "; "),
+        "). Give every coder a factor with the same levels in the same order."),
+        class = "gr_bad_setting")
+    }
+    if (!length(free)) return(all_lev)
+    out <- c(out, free[1L])
+    left <- setdiff(left, free[1L])
+  }
+  all_lev[out]
 }
 
 #' Krippendorff's alpha from a matrix of category indices.

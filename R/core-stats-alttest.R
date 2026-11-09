@@ -52,6 +52,8 @@
 #'   value per row of `human_labels`, `NA` where it gave none.
 #' @param human_labels A matrix or data frame, items in rows and human
 #'   annotators in columns, `NA` where an annotator did not label an item.
+#'   Column names, when given, must be unique and non-empty; they name the
+#'   rows of `per_annotator`.
 #' @param expertise The annotators' expertise: `"expert"`, `"skilled"` or
 #'   `"crowd"`. Required.
 #' @param epsilon The cost-benefit margin. `NULL` takes it from `expertise`.
@@ -110,6 +112,15 @@ hr_alt_test <- function(model_labels, human_labels, expertise, epsilon = NULL, q
   }
   ids <- if (is.null(colnames(human_labels))) paste0("annotator_", seq_len(ncol(H))) else
     colnames(human_labels)
+  # Each annotator's results are keyed by its name, so a repeated or empty
+  # name would drop an annotator from the test without a word.
+  bad_ids <- is.na(ids) | !nzchar(ids)
+  if (any(bad_ids) || anyDuplicated(ids)) {
+    what <- if (any(bad_ids)) sprintf("%d empty name(s)", sum(bad_ids)) else
+      sprintf("repeated name(s): %s", paste(unique(ids[duplicated(ids)]), collapse = ", "))
+    gr_abort(sprintf("Every annotator column of `human_labels` needs a unique, non-empty name; found %s.",
+                     what), class = "gr_bad_setting")
+  }
   if (metric == "neg_rmse") {
     ok_num <- function(v) is.numeric(v) || all(is.na(v))
     if (!ok_num(model_labels) || !all(vapply(H, ok_num, logical(1)))) {

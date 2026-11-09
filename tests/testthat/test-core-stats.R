@@ -260,6 +260,43 @@ test_that("alpha reproduces Krippendorff's (2011) worked example at every level"
   expect_equal(round(alpha_at("ratio"), 3), 0.797)
 })
 
+test_that("ordinal alpha merges coders' factor levels in order", {
+  # Coder A never says "mid" and its factor has levels low, high; coder B's
+  # has low, mid, high. Items: 10 x (low, low), 10 x (high, high),
+  # 6 x (high, mid), 4 x (low, mid). Coincidences o_ll = 20, o_hh = 20,
+  # o_mh = 6 each way, o_lm = 4 each way; margins n_l = 24, n_m = 10,
+  # n_h = 26, n = 60. Ordinal distances on low < mid < high:
+  # d_lm = (34 / 2)^2 = 289, d_mh = (36 / 2)^2 = 324, d_lh = (60 - 25)^2 = 1225.
+  # D_o = 2 * (4 * 289 + 6 * 324) = 6200;
+  # D_e = 2 * (24 * 10 * 289 + 10 * 26 * 324 + 24 * 26 * 1225) = 1836000;
+  # alpha = 1 - 59 * 6200 / 1836000 = 0.8007625. Reading the order as
+  # low, high, mid (the old result) gives 0.3997168.
+  a <- rep(c("low", "high", "high", "low"), c(10, 10, 6, 4))
+  b <- rep(c("low", "high", "mid", "mid"), c(10, 10, 6, 4))
+  lv <- c("low", "mid", "high")
+  ag <- hr_agreement(factor(a, levels = c("low", "high")), factor(b, levels = lv),
+                     level = "ordinal", B = 0)
+  expect_equal(ag$categories, lv)
+  expect_equal(ag$alpha, 1 - 59 * 6200 / 1836000)
+  expect_equal(round(ag$alpha, 7), 0.8007625)
+  # The same with the coders swapped, and with common levels.
+  expect_equal(hr_agreement(factor(b, levels = lv), factor(a, levels = c("low", "high")),
+                            level = "ordinal", B = 0)$alpha, 1 - 59 * 6200 / 1836000)
+  expect_equal(hr_agreement(factor(a, levels = lv), factor(b, levels = lv),
+                            level = "ordinal", B = 0)$alpha, 1 - 59 * 6200 / 1836000)
+  # Orders that conflict, or that leave two levels unordered, are an error
+  # for the ordinal level; nominal alpha does not depend on the order.
+  expect_error(hr_agreement(factor(a, levels = c("high", "low")), factor(b, levels = lv),
+                            level = "ordinal", B = 0),
+               "same levels", class = "gr_bad_setting")
+  expect_error(hr_agreement(factor(a, levels = c("low", "high")),
+                            factor(b, levels = c("low", "mid")), level = "ordinal", B = 0),
+               "same levels", class = "gr_bad_setting")
+  nom <- hr_agreement(coders = data.frame(a = factor(a, levels = c("high", "low")),
+                                          b = factor(b, levels = lv)), B = 0)
+  expect_setequal(nom$categories, lv)
+})
+
 test_that("below 30 items alpha is withheld and percent agreement given", {
   ag <- hr_agreement(coders = kripp_example())
   expect_s3_class(ag, "hr_agreement")
@@ -350,6 +387,40 @@ test_that("the bootstrap resamples within strata and keeps the caller's RNG", {
   expect_identical(r, hr_ht_estimate(y, pi, strata = st, estimand = "total", B = 400))
   one <- hr_ht_estimate(c(1, 0, 1), c(1, 0.5, 0.5), strata = c("a", "b", "b"), B = 50)
   expect_match(one$note, "one sampled unit")
+})
+
+test_that("the bootstrap applies the finite population correction", {
+  # A census: all 20 units judged at pi = 1, 12 of them eligible. The total is
+  # known exactly, so se = 0 and the interval is [12, 12] although y varies.
+  # Before the fix: se 2.22, interval [8, 16].
+  y <- c(rep(1, 12), rep(0, 8))
+  cen <- hr_ht_estimate(y, rep(1, 20), estimand = "total", B = 2000)
+  expect_equal(c(cen$estimate, cen$se, cen$lower, cen$upper), c(12, 0, 12, 12))
+  # Kept records judged in full with varying y, excluded ones at pi = 0.1: the
+  # kept stratum adds nothing, so the se depends on the excluded stratum only.
+  y2 <- c(y, rep(c(1, 0), c(3, 27)))
+  pi2 <- c(rep(1, 20), rep(0.1, 30))
+  st2 <- rep(c("kept", "excluded"), c(20, 30))
+  only_ex <- hr_ht_estimate(y2[21:50], pi2[21:50], estimand = "total", B = 1000)
+  both <- hr_ht_estimate(y2, pi2, strata = st2, estimand = "total", B = 1000)
+  expect_equal(both$se, only_ex$se)
+  expect_equal(both$estimate, 12 + 3 / 0.1)
+  # SRS of 100 from N = 200 (pi = 0.5), 30 eligible. Design variance
+  # N^2 (1 - f) s^2 / n with s^2 = 30 * 70 / (100 * 99) = 0.2121212:
+  # 40000 * 0.5 * 0.2121212 / 100 = 42.42424, se 6.513389. Without the
+  # correction the bootstrap gave 9.14.
+  y3 <- rep(c(1, 0), c(30, 70))
+  srs <- hr_ht_estimate(y3, rep(0.5, 100), estimand = "total", B = 4000)
+  expect_equal(srs$se, 6.513389, tolerance = 0.3 / 6.513389)
+  # The documented example: excluded stratum N = 300, n = 30, one eligible, so
+  # s^2 = (1 - 1 / 30) / 29 = 1 / 30 and the variance is
+  # 300^2 * 0.9 * (1 / 30) / 30 = 90, se 9.486833; the census of kept records
+  # adds nothing. Before the fix: 10.07.
+  el <- c(rep(1, 18), rep(0, 2), rep(1, 1), rep(0, 29))
+  kp <- c(rep(1, 20), rep(0, 30))
+  ex <- hr_ht_estimate(el, ifelse(kp == 1, 1, 0.1), strata = kp, estimand = "total",
+                       B = 4000)
+  expect_equal(ex$se, 9.486833, tolerance = 0.4 / 9.486833)
 })
 
 test_that("hr_ht_estimate refuses bad probabilities and mismatched inputs", {
@@ -484,6 +555,31 @@ test_that("the per-annotator p-value is a one-sided t test on the indicator diff
   r <- hr_alt_test(dd$gold, dd$people, expertise = "crowd")
   expect_equal(r$per_annotator$p_adjusted, p.adjust(r$per_annotator$p_value, "BY"))
   expect_equal(r$per_annotator$rejected, r$per_annotator$p_adjusted <= 0.05)
+})
+
+test_that("hr_alt_test refuses repeated or empty annotator names", {
+  d <- alt_people(51)
+  r <- hr_alt_test(d$gold, d$people, expertise = "skilled")
+  # Independently: one one-sided t test per column on W_human - W_model, then
+  # BY over all four p-values.
+  own_p <- vapply(1:4, function(j) {
+    dj <- vapply(1:100, function(i) {
+      o <- d$people[i, -j]; sh <- mean(d$people[i, j] == o); sm <- mean(d$gold[i] == o)
+      (sh >= sm) - (sm >= sh)
+    }, numeric(1))
+    t.test(dj, mu = 0.15, alternative = "less")$p.value
+  }, numeric(1))
+  expect_equal(r$per_annotator$annotator, paste0("p", 1:4))
+  expect_equal(r$per_annotator$p_value, own_p)
+  expect_equal(r$per_annotator$p_adjusted, p.adjust(own_p, "BY"))
+  # Before: two columns named "p1" gave three rows, the first annotator gone
+  # and BY run over three p-values. Now it is an error.
+  dup <- d$people; colnames(dup) <- c("p1", "p1", "p3", "p4")
+  expect_error(hr_alt_test(d$gold, dup, expertise = "skilled"), "repeated name\\(s\\): p1",
+               class = "gr_bad_setting")
+  emp <- d$people; colnames(emp) <- c("p1", "", "p3", "p4")
+  expect_error(hr_alt_test(d$gold, emp, expertise = "skilled"), "1 empty name",
+               class = "gr_bad_setting")
 })
 
 test_that("hr_alt_test enforces its minimums and requires expertise", {

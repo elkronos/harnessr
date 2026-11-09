@@ -18,7 +18,9 @@ hr_alt_test(
 value per row of \code{human_labels}, \code{NA} where it gave none.}
 
 \item{human_labels}{A matrix or data frame, items in rows and human
-annotators in columns, \code{NA} where an annotator did not label an item.}
+annotators in columns, \code{NA} where an annotator did not label an item.
+Column names, when given, must be unique and non-empty; they name the
+rows of \code{per_annotator}.}
 
 \item{expertise}{The annotators' expertise: \code{"expert"}, \code{"skilled"} or
 \code{"crowd"}. Required.}

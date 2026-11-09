@@ -20,12 +20,22 @@
 #' that total over length(yhat_pop). It stays unbiased whatever the quality of
 #' the predictions, and its variance shrinks as they improve.
 #'
-#' The interval is a percentile bootstrap that resamples sampled units with
-#' replacement within each stratum, keeping each unit's weight, and recomputes
-#' the estimate (`B` resamples under `seed`, with the caller's random state
-#' put back). `se` is the standard deviation of the replicates. A stratum with
-#' one sampled unit adds no variance under this scheme, and the result notes
-#' it.
+#' The interval is a percentile bootstrap with the finite population
+#' correction: the rescaling bootstrap of Rao and Wu (1988) with n_h - 1 draws
+#' per stratum. In each of `B` resamples (under `seed`, with the caller's
+#' random state put back) each stratum h draws n_h - 1 of its n_h sampled
+#' units with replacement, and unit i gets the weight multiplier
+#' 1 - lambda_h + lambda_h * r_i * n_h / (n_h - 1), where r_i is the number of
+#' times it was drawn and lambda_h = sqrt(1 - f_h). The sampling fraction f_h
+#' is n_h / sum(1 / pi) over the stratum, which is pi itself when pi is
+#' constant within the stratum. For an HT total under stratified simple random
+#' sampling the replicate variance then has expectation
+#' sum_h N_h^2 (1 - f_h) s_h^2 / n_h, the design variance. A stratum judged in
+#' full (pi = 1, so f_h = 1) is a census and adds no variance whatever its
+#' values. `se` is the standard deviation of the replicates. A stratum with
+#' one sampled unit also adds no variance, and the result notes it. Give
+#' strata that match the design, with one pi per stratum, for the correction
+#' to be exact.
 #'
 #' @param y Values for the sampled units (numeric or logical), no NA.
 #' @param pi Inclusion probability of each sampled unit, in (0, 1].
@@ -50,6 +60,10 @@
 #'
 #' Hajek, J. (1971). Comment on a paper by D. Basu. In Godambe, V. P. and
 #' Sprott, D. A. (eds), *Foundations of Statistical Inference*, 236.
+#'
+#' Rao, J. N. K. and Wu, C. F. J. (1988). Resampling inference with complex
+#' survey data. *Journal of the American Statistical Association* 83(401),
+#' 231-241.
 #'
 #' Sarndal, C.-E., Swensson, B. and Wretman, J. (1992). *Model Assisted Survey
 #' Sampling*. Springer. (The difference estimator, section 6.3.)
@@ -153,11 +167,18 @@ hr_ht_estimate <- function(y, pi, strata = NULL, estimand = c("mean", "total", "
   }
   se <- NA_real_; ci <- c(NA_real_, NA_real_)
   if (B > 0 && !is.na(est)) {
+    # Rao-Wu rescaling: n_h - 1 draws per stratum, multipliers scaled by
+    # lambda_h = sqrt(1 - f_h). A census stratum (f_h = 1) gets lambda_h = 0,
+    # so every one of its units keeps multiplier 1 in every replicate.
+    lambda <- vapply(groups, function(g) sqrt(max(0, 1 - length(g) / sum(w[g]))),
+                     numeric(1))
     reps <- with_private_rng(seed, vapply(seq_len(B), function(b) {
-      cw <- numeric(n)
-      for (g in groups) {
-        pick <- g[sample.int(length(g), length(g), replace = TRUE)]
-        cw <- cw + tabulate(pick, n)
+      cw <- rep(1, n)
+      for (k in seq_along(groups)) {
+        g <- groups[[k]]; m <- length(g) - 1L
+        if (m < 1L || lambda[[k]] == 0) next
+        r <- tabulate(sample.int(m + 1L, m, replace = TRUE), m + 1L)
+        cw[g] <- 1 - lambda[[k]] + lambda[[k]] * r * (m + 1L) / m
       }
       est_fun(cw)
     }, numeric(1)))

@@ -566,13 +566,20 @@
   field. It has `print()` and `as_json()` methods, and its bootstrap leaves
   the caller's random state as it was. Factor levels that neither rater used
   are left out of the two-rater table with a note, and a `positive` label
-  that is not among the labels is an error.
+  that is not among the labels is an error. When coders' factors carry
+  different level sets, ordinal alpha merges them keeping each coder's
+  order (low, high and low, mid, high give low, mid, high), and levels that
+  conflict or leave two levels unordered are an error.
 
 * **New `hr_ht_estimate()`** estimates a total (Horvitz-Thompson), a mean
   (Hajek) or a ratio of totals from a sample drawn with known inclusion
   probabilities, optionally stratified, with the difference estimator when
   predictions for the whole population are given, and a bootstrap interval
-  that resamples within strata.
+  that resamples within strata with the finite population correction (the
+  Rao-Wu rescaling bootstrap). A stratum judged in full (pi = 1) adds no
+  variance: a census of 20 records gives se 0 and the interval [12, 12] for
+  a total of 12, and a simple random sample of 100 from 200 with 30
+  eligible gives se 6.5, the design value.
 
 * **New `hr_ppi()`** gives a prediction-powered estimate of a mean from many
   model-labelled units and a few labelled by people, with the power-tuned
@@ -583,7 +590,8 @@
   Reichart and Dror (2025): whether a model's labels can be used in place of
   three or more human annotators, with the margin set by their declared
   expertise, a Benjamini-Yekutieli correction, the winning rate, and the
-  winning rate over margins from 0.05 to 0.20.
+  winning rate over margins from 0.05 to 0.20. Annotator column names must
+  be unique and non-empty.
 
 * `gr_calibrate()` and its output are unchanged.
 

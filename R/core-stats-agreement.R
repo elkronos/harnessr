@@ -234,7 +234,11 @@ kappa_boot <- function(cells, n, conf) {
 #' is too unstable to be read (Hayes and Krippendorff 2007).
 #'
 #' Ordinal levels follow the factor levels when the labels are a factor, and
-#' sorted order otherwise. Interval and ratio levels need numeric labels.
+#' sorted order otherwise. When coders' factors carry different level sets
+#' (one coder never used "mid" and its factor has only low and high), the
+#' levels are merged keeping each coder's order, so low, high and low, mid,
+#' high give low, mid, high. Levels that conflict, or that leave the order of
+#' two levels open, are an error for the ordinal level. Interval and ratio levels need numeric labels.
 #'
 #' The bootstrap runs under `seed`, so the same data give the same interval
 #' every time, and the caller's random state is left as it was.
