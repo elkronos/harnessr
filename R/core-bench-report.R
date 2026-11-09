@@ -20,56 +20,107 @@
 #' item, then the mean over items.
 #'
 #' **Intervals.** With `method = "auto"` the method follows the size of the
-#' benchmark:
-#' * At least 300 items and at least 30 clusters: a BCa cluster bootstrap.
-#'   Each of the `B` resamples draws whole clusters with replacement, with all
-#'   their items, runs and arms. The bias correction is z0 = qnorm(share of
-#'   resamples below the estimate) and the acceleration is
-#'   a = sum(L^3) / (6 sum(L^2)^1.5), with L the leave-one-cluster-out
-#'   jackknife influence values (Efron 1987; Efron and Tibshirani 1993,
-#'   chapter 14). Quantiles are interpolated on the normal scale as in
-#'   `boot::boot.ci()`. When BCa is undefined (the estimate lies outside every
-#'   resample) the percentile interval is given and the method column says so.
-#' * Below either threshold: a Bayesian beta-binomial model with a cluster
-#'   random effect, which held its coverage in small clustered samples where
-#'   the bootstrap and the normal interval did not (Bowyer et al. 2025).
-#'   Cluster c has m_c scored runs over its items, x_c of them correct. Its
-#'   accuracy is Beta with mean mu and intra-cluster correlation rho, so
-#'   alpha = mu (1 - rho) / rho and beta = (1 - mu) (1 - rho) / rho, and its
-#'   runs are binomial given it; runs of one item agreeing more than runs of
-#'   different items shows up as overdispersion, which rho takes up.
-#'   The priors on mu and rho are flat (uniform on 0 to 1). The posterior is
-#'   computed on a grid over mu and rho, and the interval is the equal-tailed
-#'   credible interval of mu. Note that mu is the mean of cluster
-#'   accuracies, each cluster weighted alike, while the estimate printed
-#'   beside it weights clusters by their items; with unequal cluster sizes
-#'   the interval can sit slightly off the estimate. When an arm's accuracy
-#'   is exactly 0 or 1 an equal-tailed interval would leave out the boundary,
-#'   so the interval is one-sided there: from 0 to the `conf` quantile of mu,
-#'   or from the `1 - conf` quantile to 1.
+#' benchmark. Both rest on the cluster sums of item accuracy: accuracy is the
+#' ratio estimator r = sum_c S_c / sum_c n_c, with S_c the summed item
+#' accuracy and n_c the items of cluster c, and its cluster-robust
+#' (linearised) variance is V = C / (C - 1) * sum_c (S_c - r n_c)^2 / N^2,
+#' with the small-sample factor C / (C - 1) for C clusters and N items
+#' (Cochran 1977, chapter 6; Cameron and Miller 2015).
+#' * At least 300 items and at least 30 clusters (`method = "bootstrap"`): a
+#'   studentised (bootstrap-t) cluster bootstrap (Efron and Tibshirani 1993,
+#'   chapter 12; Davison and Hinkley 1997, chapters 2 and 5). Each of the `B`
+#'   resamples draws whole clusters with replacement, with all their items,
+#'   runs and arms, and gives t* = (r* - r) / se*, with se* the linearised
+#'   standard error of the resample. The interval is
+#'   [r - q_hi se, r - q_lo se], with q_lo and q_hi the (1 - conf) / 2 and
+#'   (1 + conf) / 2 quantiles of t* and se = sqrt(V), cut to [0, 1].
+#'   Studentising corrects the skew of a proportion near a bound, where the
+#'   BCa interval this replaces undercovered (93.5% at a true accuracy of
+#'   0.75 in the coverage simulation of `dev/sim-coverage.R`, 386 items in 40
+#'   clusters); the studentised interval covered 95.5% and 95.0% there.
+#' * Below either threshold (`method = "cluster_t"`): a cluster-robust t
+#'   interval on the logit scale, logit(r) plus and minus
+#'   t_(C - 1, (1 + conf) / 2) x sqrt(V) / (r (1 - r)), mapped back to
+#'   (0, 1) (the delta method on the logit scale, Agresti 2013; t quantiles
+#'   with C - 1 degrees of freedom for few clusters, Cameron and Miller
+#'   2015). In the coverage simulation (50 items in 10 clusters, 2000
+#'   replicates) it covered 95.7% and 95.8%, and 95.2% and 95.8% over 6000
+#'   further replicates: slightly conservative, as a t interval is when
+#'   cluster means are bounded.
+#' * Where those intervals are not defined, because accuracy is 0 or 1 or
+#'   every cluster has the same accuracy (V = 0), the arm gets the
+#'   Korn-Graubard interval below, one-sided from the bound at 0 or 1 at
+#'   level `conf`, and its method column and a note say so.
 #' * `method = "exact"` selects instead a Clopper-Pearson interval on the
 #'   effective number of items computed from cluster totals of item
 #'   accuracy, with Korn and Graubard's (1998) degrees-of-freedom adjustment.
 #'   Items, not runs, are the trials, since runs of one item mostly agree.
+#'   It is conservative: 98.4% to 98.8% coverage in the small simulated
+#'   design.
+#' * `method = "bayes"` selects a Bayesian beta-binomial model with a
+#'   cluster random effect (Bowyer et al. 2025). Cluster c has m_c scored
+#'   runs over its items, x_c of them correct. Its accuracy is Beta with
+#'   mean mu and intra-cluster correlation rho, so
+#'   alpha = mu (1 - rho) / rho and beta = (1 - mu) (1 - rho) / rho, and its
+#'   runs are binomial given it. The priors on mu and rho are flat (uniform
+#'   on 0 to 1), the posterior is computed on a grid, and the interval is
+#'   the equal-tailed credible interval of mu, one-sided from the bound when
+#'   accuracy is 0 or 1. It is not the default: in the small simulated design
+#'   it covered 96.5% to 96.6% and its misses fell mostly below the truth
+#'   (2.9% to 3.2% below, 0.2% to 0.5% above). The prior on rho drives
+#'   this: the flat prior keeps much of its mass on strong clustering
+#'   (posterior mean of rho 0.23), which widens the interval and spreads mu
+#'   toward 0.5. In a check of 600 replicates, a Beta(1, 10) prior on rho
+#'   balanced the misses but undercovered (91.7% to 92.0%), and a prior
+#'   uniform on log((1 - rho) / rho) covered 94.5% to 94.8% with misses still
+#'   lopsided (3.2% to 3.5% below, 2.0% above); counting items instead of
+#'   runs as trials made it more conservative (98.0% to 98.2% over 2000
+#'   replicates), not less lopsided. A prior chosen to hit 95% in one design
+#'   would not carry to others, so the model is kept as it was, as an
+#'   option, and a note gives its calibration when it is used. Note that mu
+#'   is the mean of cluster accuracies, each cluster weighted alike, while
+#'   the estimate printed beside it weights clusters by their items.
 #'
-#' No Wald or normal-approximation interval is given for accuracy at any
-#' size. `method = "bootstrap"` or `"bayes"` forces that method at any size,
-#' with a note when the bootstrap is used below the thresholds.
+#' No interval treats items or runs as independent trials (the Wald interval
+#' on n items). `method = "bootstrap"` or `"cluster_t"` forces that method at
+#' any size, with a note when the bootstrap is used below the thresholds,
+#' where it is unstable.
 #'
 #' **Paired differences.** For each contrast, accuracy of the first arm minus
-#' the second, item by item, so each difference is paired. Its interval is
-#' BCa from the same cluster resamples as everything else, whatever the
-#' method for accuracy; below 300 items or 30 clusters the report notes that
-#' it may undercover.
+#' the second, item by item, so each difference is paired. The mean paired
+#' difference is the ratio estimator of the cluster sums of item
+#' differences, and its interval is the cluster-robust t interval
+#' d plus and minus t_(C - 1, (1 + conf) / 2) x sqrt(V_d), with V_d the
+#' linearised variance above applied to the differences, whatever the method
+#' for accuracy (Cameron and Miller 2015), cut to [-1, 1] as the accuracy
+#' intervals are cut to [0, 1] (with few clusters the t quantile can reach
+#' past either end). It covered 94.7% (40 clusters) and
+#' 95.7% (10 clusters) in the coverage simulation, where the BCa cluster
+#' bootstrap it replaces covered 92.9% and 89.2%. When every cluster gives
+#' the same mean difference per item, V_d is 0 and the t interval is not
+#' defined. That is a property of the items, not evidence that the
+#' difference is known, so the interval then takes the items, not the
+#' clusters, as the sampling units: Tango's (1998) score interval for paired
+#' proportions with the discordant shares q10 and q01 described under
+#' non-inferiority below, on n_eff = I x (z_(1 - a) / t_(C - 1, 1 - a))^2
+#' pairs for one-sided level a = (1 - conf) / 2, the I items scaled for the
+#' C - 1 degrees of freedom as Korn and Graubard's effective size is. Its
+#' `method` is `"tango_items"`, and a note says so.
 #'
 #' **Rankings.** No leaderboard by point estimate: arms are listed in the
 #' order of the benchmark. Simultaneous intervals over all pairwise
-#' differences use the max-t method on the bootstrap resamples (each
-#' difference standardised by its bootstrap standard deviation, the critical
-#' value the `conf` quantile of the largest one), with the same small-sample
-#' note. Rank intervals are the `(1 - conf) /
-#' 2` and `(1 + conf) / 2` quantiles of each arm's rank over the bootstrap
-#' resamples (rank 1 is the most accurate).
+#' differences use the single-step max-t method (Hothorn, Bretz and Westfall
+#' 2008) on the same cluster-robust t statistics: the critical value is the
+#' `conf` quantile of the largest absolute value of a multivariate t with
+#' C - 1 degrees of freedom and the correlation matrix of the linearised
+#' covariance of the differences, from 100000 draws of the private random
+#' stream. With one pair it is the t quantile of the paired interval. A
+#' pair whose V_d is 0 gets the Tango interval above at the Bonferroni level
+#' a = (1 - conf) / (2 x number of pairs). These intervals are cut to
+#' [-1, 1] too.
+#' Rank intervals are the `(1 - conf) / 2` and `(1 + conf) / 2` quantiles of
+#' each arm's rank over the cluster bootstrap resamples (rank 1 is the most
+#' accurate).
 #'
 #' **Stability** (Atil et al. 2025): the flip rate is the share of items
 #' whose correctness differs across runs; TARa is the share of items whose
@@ -106,31 +157,40 @@
 #'
 #' **Non-inferiority.** With a `registration` from [hr_register_contrasts()],
 #' each registered contrast is tested. The verdict holds only if (1) the
-#' one-sided lower bound of the BCa cluster-bootstrap accuracy difference
-#' (new minus reference) is above -margin and (2), when the contrast has
-#' `cost_test = TRUE`, the one-sided upper bound of the paired difference in
-#' dollars per item is below 0. At a one-sided level of 0.025 that is the
-#' 97.5% bound. Each contrast's p-value is the smallest one-sided level at
-#' which both conditions hold (an intersection-union test, so each condition
-#' runs at that full level). The confirmatory contrasts are tested with
-#' Holm's (1979) step-down procedure at the registration's alpha: in order of
-#' their p-values, the j-th of k is tested at alpha / (k - j + 1), and the
-#' first that fails stops the procedure. Exploratory contrasts are tested at
-#' alpha alone. Beside every verdict the report gives the design MDD the contrast
-#' was registered against and the achieved MDD,
-#' (z_(1 - alpha') + z_power) x SE, with SE the bootstrap standard deviation
-#' of the paired difference (the design formula with p_disc / n_eff taken
-#' from the data) and alpha' = alpha / (number of confirmatory contrasts),
-#' or alpha for an exploratory one. A verdict that passed its registered test
+#' one-sided lower bound of the accuracy difference (new minus reference) is
+#' above -margin and (2), when the contrast has `cost_test = TRUE`, the
+#' one-sided upper bound of the paired difference in dollars per item is
+#' below 0. The accuracy bound is the cluster-robust t bound of the paired
+#' differences above, taken one-sided: d - t_(C - 1, 1 - level) x sqrt(V_d),
+#' or, when V_d is 0, the lower end of the Tango interval with items as
+#' pairs above at one-sided `level`. At a one-sided level of 0.025 that is
+#' the 97.5% bound, the lower end of the 95% contrast interval, so the
+#' verdict and the printed interval agree. The cost bound is the BCa cluster
+#' bootstrap of the cost intervals. Each contrast's p-value is the smallest
+#' one-sided level at which both conditions hold (an intersection-union
+#' test, so each condition runs at that full level). The confirmatory
+#' contrasts are tested with Holm's (1979) step-down procedure at the
+#' registration's alpha: in order of their p-values, the j-th of k is tested
+#' at alpha / (k - j + 1), and the first that fails stops the procedure.
+#' Exploratory contrasts are tested at alpha alone. Beside every verdict the
+#' report gives the design MDD the contrast was registered against and the
+#' achieved MDD,
+#' (t_(C - 1, 1 - alpha') + t_(C - 1, power)) x SE, with SE = sqrt(V_d) the
+#' linearised standard error of the paired difference (the [hr_mdd()]
+#' formula with p_disc / n_eff taken from the data) and
+#' alpha' = alpha / (number of confirmatory contrasts), or alpha for an
+#' exploratory one; it is `NA` when V_d is 0, since the data then give no
+#' variance to base it on. A verdict that passed its registered test
 #' is shown as passed even when the achieved MDD exceeds the margin; a note
 #' says so. As a cross-check, Tango's (1998) score interval for paired
 #' proportions is computed on effective counts. The discordant shares are
 #' the means over items of the chance that a run of the new arm is right and
 #' a run of the reference wrong (q10), and the reverse (q01). The effective
 #' number of pairs is (q10 + q01 - estimate^2) / SE^2, the size of a simple
-#' paired sample with the variance the cluster bootstrap found (the effective
+#' paired sample with the linearised variance V_d (the effective
 #' size of Korn and Graubard 1998, applied to the paired difference), at most
-#' the number of paired runs; the counts are q10 and q01 times it. Tango's
+#' the number of items (runs of one item mostly agree, so they are not
+#' independent pairs); the counts are q10 and q01 times it. Tango's
 #' interval is reported at the level the contrast was tested at, beside
 #' whether it reaches the same accuracy conclusion, and is not used in the
 #' verdict.
@@ -145,9 +205,9 @@
 #' `hr_registration_changed`).
 #'
 #' Below 5 runs the report is descriptive only: point estimates without
-#' intervals, resamples or rank intervals. Cost, pass^k and frontier
-#' intervals come from the cluster bootstrap in both regimes; below the
-#' thresholds the report says to read them as rough.
+#' intervals, resamples or rank intervals. Cost and pass^k intervals (BCa),
+#' rank intervals and the frontier share come from the cluster bootstrap in
+#' both regimes; below the thresholds the report says to read them as rough.
 #'
 #' @param bench An [hr_benchmark()] result, or a data frame with at least the
 #'   columns `cluster`, `item`, `arm`, `run` and `correct`. Optional columns
@@ -162,7 +222,8 @@
 #' @param k The values of k for pass^k.
 #' @param seed Seed of the private random stream the resamples are drawn
 #'   from; the caller's random state is left as it was.
-#' @param method `"auto"`, `"bootstrap"`, `"bayes"` or `"exact"`, as above.
+#' @param method `"auto"`, `"bootstrap"`, `"cluster_t"`, `"bayes"` or
+#'   `"exact"`, as above.
 #' @param confirmatory `TRUE` for a confirmatory report, which raises the
 #'   default `B` to 5000 and refuses dev-split rows. Left unset, it is `TRUE`
 #'   when `registration` holds a confirmatory contrast.
@@ -179,14 +240,18 @@
 #'     only.}
 #'   \item{`n_items`, `n_clusters`, `runs`, `arms`, `conf`, `B`, `seed`,
 #'     `confirmatory`}{The design and settings.}
-#'   \item{`accuracy`}{Per arm: `estimate`, `lower`, `upper`, `method`, and
-#'     the rank interval `rank_lower`, `rank_upper`.}
+#'   \item{`accuracy`}{Per arm: `estimate`, `lower`, `upper`, `method`
+#'     (`"studentised_cluster_bootstrap"`, `"logit_cluster_robust_t"`,
+#'     `"korn_graubard_clopper_pearson"`, `"beta_binomial_bayes"` or
+#'     `"descriptive"`), and the rank interval `rank_lower`, `rank_upper`.}
 #'   \item{`bayes`}{Per arm, in the Bayesian regime: posterior mean and
 #'     median of mu and posterior mean of rho.}
 #'   \item{`contrasts`}{Per contrast: `arm1`, `arm2`, `estimate` (arm1 minus
-#'     arm2), `lower`, `upper`, `method`.}
+#'     arm2), `lower`, `upper`, `method` (`"cluster_robust_t"`, or
+#'     `"tango_items"` when the cluster variance is 0).}
 #'   \item{`simultaneous`}{Every pairwise difference with simultaneous
-#'     `lower` and `upper` bounds and the critical value.}
+#'     `lower` and `upper` bounds, `method` (`"max_t_cluster_robust"`, or
+#'     `"tango_items"` when the cluster variance is 0) and the critical value.}
 #'   \item{`stability`}{Per arm: `flip_rate`, `tara`, `run_sd`.}
 #'   \item{`pass_k`}{Per arm and k: `pass_k` with `lower` and `upper`.}
 #'   \item{`cost`}{Per arm: `usd_per_item`, `usd_per_correct`,
@@ -216,14 +281,27 @@
 #' Atil, B. et al. (2025). Non-determinism of "deterministic" LLM settings.
 #' arXiv:2408.04667.
 #'
+#' Agresti, A. (2013). *Categorical Data Analysis*, 3rd edition. Wiley.
+#'
 #' Bowyer, S. et al. (2025). Position: Don't use the CLT in LLM evals with
 #' fewer than a few hundred datapoints. *ICML 2025*.
+#'
+#' Cameron, A. C. and Miller, D. L. (2015). A practitioner's guide to
+#' cluster-robust inference. *Journal of Human Resources* 50(2), 317-372.
+#'
+#' Cochran, W. G. (1977). *Sampling Techniques*, 3rd edition. Wiley.
+#'
+#' Davison, A. C. and Hinkley, D. V. (1997). *Bootstrap Methods and their
+#' Application*. Cambridge University Press.
 #'
 #' Efron, B. (1987). Better bootstrap confidence intervals. *Journal of the
 #' American Statistical Association* 82(397), 171-185.
 #'
 #' Efron, B. and Tibshirani, R. J. (1993). *An Introduction to the
 #' Bootstrap*. Chapman and Hall.
+#'
+#' Hothorn, T., Bretz, F. and Westfall, P. (2008). Simultaneous inference in
+#' general parametric models. *Biometrical Journal* 50(3), 346-363.
 #'
 #' Kapoor, S., Stroebl, B., Siegel, Z. S., Nadgir, N. and Narayanan, A.
 #' (2024). arXiv:2407.01502.
@@ -261,7 +339,7 @@
 #' rpt
 #' rpt$accuracy
 hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3, 5),
-                      seed = 1, method = c("auto", "bootstrap", "bayes", "exact"),
+                      seed = 1, method = c("auto", "bootstrap", "cluster_t", "bayes", "exact"),
                       confirmatory = FALSE, registration = NULL) {
   method <- match.arg(method)
   if (!is.null(registration)) {
@@ -293,7 +371,7 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
   descriptive <- R < 5L
   intervals <- !descriptive && C >= 2L
   big <- I >= 300L && C >= 30L
-  chosen <- if (!intervals) "none" else if (method == "auto") (if (big) "bootstrap" else "bayes")
+  chosen <- if (!intervals) "none" else if (method == "auto") (if (big) "bootstrap" else "cluster_t")
             else method
   reason <- if (descriptive) {
     sprintf("%d run(s), below 5: descriptive only, without intervals", R)
@@ -306,8 +384,18 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
     sprintf("method = \"%s\" was asked for (%d items in %d clusters)", method, I, C)
   }
   if (chosen == "bootstrap" && !big) {
-    notes <- c(notes, paste0("The cluster bootstrap was asked for below 300 items or 30 ",
-                             "clusters, where it can undercover."))
+    notes <- c(notes, paste0("The studentised cluster bootstrap was asked for below 300 items ",
+                             "or 30 clusters; with few clusters its intervals are unstable and ",
+                             "can undercover or overcover (in 2000 simulated benchmarks of 50 ",
+                             "items in 10 clusters it covered 96.0% and 96.1% and was 13% to 16% ",
+                             "wider than the cluster-robust t interval)."))
+  }
+  if (chosen == "bayes") {
+    notes <- c(notes, paste0("The Bayesian beta-binomial interval was asked for. In the ",
+                             "coverage simulation (50 items in 10 clusters, 2000 replicates) ",
+                             "it covered 96.5% to 96.6% and missed mostly below the truth ",
+                             "(2.9% to 3.2% below, 0.2% to 0.5% above); the default there is ",
+                             "the cluster-robust t interval."))
   }
 
   p <- d$p
@@ -317,11 +405,11 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
   names(est) <- arms
 
   # Correct runs and scored runs per item and arm, and their cluster sums:
-  # the Bayesian model counts runs as trials, so an item whose runs agree
-  # adds the variance it carries, and run-to-run agreement within an item is
-  # part of the cluster's overdispersion. The exact interval counts items
-  # instead: runs of one item mostly agree, so counting them as trials would
-  # claim far more information than the items hold.
+  # the Bayesian model counts runs as trials, and run-to-run agreement within
+  # an item is part of the cluster's overdispersion. Every other interval
+  # works on items' mean correctness: runs of one item mostly agree, so
+  # counting them as trials would claim far more information than the items
+  # hold.
   cnt <- matrix(0, I, A); nr <- matrix(0, I, A)
   for (a in seq_len(A)) {
     ya <- matrix(d$y[, a, ], I, R)
@@ -331,17 +419,50 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
   Xc <- rowsum(cnt, d$cluster_index, reorder = TRUE)
   Mc <- rowsum(nr, d$cluster_index, reorder = TRUE)
 
-  counts <- if (intervals) with_private_rng(seed, cluster_counts(C, B)) else NULL
+  # The cluster resamples, then the multivariate t draws of the simultaneous
+  # intervals, from one private stream: the resamples are the ones the seed
+  # gave before the draws were added. One pair needs no draws.
+  n_pairs <- A * (A - 1L) / 2L
+  n_draws <- if (n_pairs > 1L) 100000L else 0L
+  rng <- if (intervals) {
+    with_private_rng(seed, list(counts = cluster_counts(C, B),
+                                z = matrix(stats::rnorm(n_draws * n_pairs), n_draws, n_pairs),
+                                w = stats::rchisq(n_draws, C - 1L)))
+  } else NULL
+  counts <- rng$counts
   acc_t <- if (intervals) (counts %*% S) / (counts %*% nmat) else NULL
+
+  # Korn and Graubard's interval for the arms where the t intervals are not
+  # defined: accuracy 0 or 1, or every cluster at the same accuracy (cluster
+  # variance 0). At 0 or 1 an equal-tailed interval would leave out the
+  # estimate itself, so the interval there is one-sided at level `conf`.
+  kg_fallback <- function(acc, rows) {
+    for (a in which(rows)) {
+      e <- acc$estimate[[a]]
+      edge <- e <= 0 || e >= 1
+      lvl <- if (edge) max(2 * conf - 1, conf / 2) else conf
+      k <- korn_graubard(S[, a], d$n, lvl)
+      acc$lower[[a]] <- if (e <= 0) 0 else k$lower
+      acc$upper[[a]] <- if (e >= 1) 1 else k$upper
+      acc$method[[a]] <- "korn_graubard_clopper_pearson"
+    }
+    acc
+  }
 
   # Accuracy per arm.
   acc <- data.frame(arm = arms, estimate = unname(est), lower = NA_real_, upper = NA_real_,
                     method = "descriptive", stringsAsFactors = FALSE)
   bayes <- NULL
   if (chosen == "bootstrap") {
-    tab <- bca_table(ratio_boot(S, nmat, counts), conf)
+    tab <- studentised_table(S, nmat, counts, conf, bounds = c(0, 1))
     acc$lower <- tab$lower; acc$upper <- tab$upper
-    acc$method <- ifelse(tab$bca, "bca_cluster_bootstrap", "percentile_cluster_bootstrap")
+    acc$method <- "studentised_cluster_bootstrap"
+    acc <- kg_fallback(acc, !tab$defined)
+  } else if (chosen == "cluster_t") {
+    tab <- cluster_t_table(S, nmat, conf, scale = "logit")
+    acc$lower <- tab$lower; acc$upper <- tab$upper
+    acc$method <- "logit_cluster_robust_t"
+    acc <- kg_fallback(acc, !tab$defined)
   } else if (chosen == "bayes") {
     post <- lapply(seq_len(A), function(a) bayes_betabin(Xc[, a], Mc[, a], conf))
     acc$lower <- vapply(post, `[[`, numeric(1), "lower")
@@ -383,37 +504,57 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
                       lower = NA_real_, upper = NA_real_, method = "descriptive",
                       stringsAsFactors = FALSE, row.names = NULL)
     if (!intervals) return(out)
-    # Every regime takes its difference intervals from the same cluster
-    # resamples: a normal model on cluster differences collapses to zero
-    # width when the differences agree, which says nothing about the arms.
+    # The mean paired difference is a ratio of cluster sums: its interval is
+    # the cluster-robust t interval in every regime. A difference whose
+    # clusters all agree has cluster variance 0, where that interval is not
+    # defined; it gets Tango's score interval with items as pairs
+    # (paired_items_interval()), the interval the non-inferiority bound uses
+    # there too, and a note below.
+    den <- matrix(d$n, C, ncol(D))
+    v <- cluster_ratio_se(D, den)
+    se <- unname(v$se)
+    use <- se > 0
     if (simultaneous) {
-      Dt <- acc_t[, i1, drop = FALSE] - acc_t[, i2, drop = FALSE]
-      se <- apply(Dt, 2L, stats::sd)
-      use <- se > 0
       crit <- if (any(use)) {
-        dev <- abs(sweep(Dt[, use, drop = FALSE], 2L, out$estimate[use])) /
-          rep(se[use], each = nrow(Dt))
-        stats::quantile(apply(dev, 1L, max), conf, names = FALSE)
+        max_t_critical(v$vcov[use, use, drop = FALSE], v$df, level, rng$z, rng$w)
       } else NA_real_
-      out$lower <- out$estimate - ifelse(use, crit * se, 0)
-      out$upper <- out$estimate + ifelse(use, crit * se, 0)
-      out$method <- "max_t_cluster_bootstrap"
+      out$lower <- out$estimate - crit * se
+      out$upper <- out$estimate + crit * se
+      out$method <- "max_t_cluster_robust"
       out$critical <- crit
+      # Bonferroni over all pairs for the rows the max-t method cannot take.
+      a_zero <- (1 - level) / (2 * nrow(pr))
     } else {
-      tab <- bca_table(ratio_boot(D, matrix(d$n, C, ncol(D)), counts), level)
+      tab <- cluster_t_table(D, den, level)
       out$lower <- tab$lower; out$upper <- tab$upper
-      out$method <- ifelse(tab$bca, "bca_cluster_bootstrap", "percentile_cluster_bootstrap")
+      out$method <- "cluster_robust_t"
+      a_zero <- (1 - level) / 2
     }
+    if (any(!use)) {
+      sh <- discordant_shares(p, i1, i2)
+      for (j in which(!use)) {
+        iv <- paired_items_interval(sh$q10[[j]], sh$q01[[j]], I, v$df, a_zero)
+        out$lower[j] <- iv[["lower"]]; out$upper[j] <- iv[["upper"]]
+        out$method[j] <- "tango_items"
+      }
+    }
+    # A difference of proportions lies in [-1, 1]; with few clusters (df 1)
+    # the t intervals can reach past that, so they are cut to it, as the
+    # accuracy intervals are cut to [0, 1].
+    out$lower <- pmax(out$lower, -1)
+    out$upper <- pmin(out$upper, 1)
     out
   }
   all_pairs <- report_pairs(NULL, arms)
   contr <- diff_rows(pairs, conf)
   simult <- diff_rows(all_pairs, conf, simultaneous = TRUE)
-  if (!is.null(contr) && any(contr$lower == contr$upper, na.rm = TRUE)) {
+  if (any(c(contr$method, simult$method) == "tango_items")) {
     notes <- c(notes, paste0(
-      "A paired difference has an interval of zero width: every cluster gives the same ",
-      "difference, so the resamples show no spread. That is a property of these items, ",
-      "not evidence that the difference is known."))
+      "A paired difference has cluster variance 0: every cluster gives the same mean ",
+      "difference per item, where the t interval is not defined. That is a property of ",
+      "these items, not evidence that the difference is known; its interval (and its ",
+      "non-inferiority bound) is Tango's score interval with items as pairs, the item count ",
+      "scaled for C - 1 degrees of freedom."))
   }
 
   # Stability.
@@ -524,12 +665,12 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
 
   ni <- NULL
   if (!is.null(registration)) {
-    ni <- report_ni(registration, arms, S, U, d$n, p, counts, R)
+    ni <- report_ni(registration, arms, S, U, d$n, p, counts)
     if (!intervals) {
       notes <- c(notes, paste0("The registered contrasts were not tested: the report has no ",
                                "intervals."))
     } else {
-      under <- ni$verdict %in% TRUE & ni$mdd_achieved > ni$margin
+      under <- ni$verdict %in% TRUE & (ni$mdd_achieved > ni$margin) %in% TRUE
       if (any(under)) {
         notes <- c(notes, sprintf(paste0(
           "%s passed the registered test although the achieved MDD exceeds the margin; the ",
@@ -542,8 +683,10 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
       }
       if (any(ni$tango_agrees %in% FALSE)) {
         notes <- c(notes, paste0("Tango's interval on effective counts reaches a different ",
-                                 "accuracy conclusion from the cluster bootstrap for at least ",
-                                 "one contrast; the verdict follows the bootstrap."))
+                                 "accuracy conclusion from the non-inferiority bound (the ",
+                                 "cluster-robust t bound, or Tango's with items as pairs where ",
+                                 "the cluster variance is 0) for at least one contrast; the ",
+                                 "verdict follows that bound."))
       }
     }
   }
@@ -552,11 +695,16 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
     notes <- c(notes, sprintf(paste0(
       "Descriptive only: %d run(s) cannot separate run-to-run spread from differences ",
       "between arms, so no interval is given. Use runs = 5 or more."), R))
-  } else if (intervals && chosen != "bootstrap" && !big) {
+  } else if (intervals && !big) {
     notes <- c(notes, paste0(
-      "Paired differences, simultaneous intervals, cost, pass^k, frontier share and ",
-      "rank intervals come from the cluster bootstrap, ",
+      "Cost, pass^k, frontier share and rank intervals come from the cluster bootstrap, ",
       "which can undercover below 300 items or 30 clusters; read them as rough."))
+  }
+  if (intervals && any(acc$method == "korn_graubard_clopper_pearson") && chosen != "exact") {
+    notes <- c(notes, sprintf(paste0(
+      "Accuracy of %s is 0, 1 or the same in every cluster, where the t interval is not ",
+      "defined; its interval is Korn and Graubard's, one-sided from 0 or 1 at those bounds."),
+      paste(acc$arm[acc$method == "korn_graubard_clopper_pearson"], collapse = ", ")))
   }
   if (intervals) {
     notes <- c(notes, paste0(
@@ -743,10 +891,11 @@ print.hr_bench_report <- function(x, digits = 3, ...) {
   cat(sprintf("<hr_bench_report> %d arm(s), %d item(s) in %d cluster(s), %d run(s)\n",
               length(x$arms), x$n_items, x$n_clusters, x$runs))
   cat(sprintf("Intervals: %s at %g%% (%s).\n",
-              switch(x$method, none = "none", bootstrap = sprintf("cluster bootstrap, B = %d",
-                                                                   x$B),
+              switch(x$method, none = "none",
+                     bootstrap = sprintf("studentised cluster bootstrap, B = %d", x$B),
+                     cluster_t = "cluster-robust t on the logit scale, C - 1 df",
                      bayes = "Bayesian beta-binomial with a cluster effect",
-                     exact = "Clopper-Pearson on the cluster effective size"),
+                     exact = "Korn-Graubard (Clopper-Pearson on the cluster effective size)"),
               100 * x$conf, x$method_reason))
   a <- x$accuracy
   cat("\nAccuracy (arms in benchmark order, not ranked):\n")

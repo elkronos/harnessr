@@ -16,3 +16,4 @@
 ^pkgdown$
 ^dev$
 ^\.lintr$
+^sim-results$

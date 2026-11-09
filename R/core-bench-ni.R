@@ -16,10 +16,13 @@
 #' to detect a given one. Both use the closed form for a paired comparison of
 #' two proportions with a true difference of 0:
 #'
-#' n_eff = (z_(1 - alpha') + z_power)^2 x p_disc / Delta^2,
+#' n_eff = (t_(C - 1, 1 - alpha') + t_(C - 1, power))^2 x p_disc / Delta^2,
 #'
-#' where p_disc is the share of items on which the two arms disagree, so
-#' p_disc / n_eff is the variance of the mean paired difference. Items in one
+#' with t quantiles on C - 1 degrees of freedom for C clusters: the degrees
+#' of freedom of the cluster-robust t bound that [hr_report()] tests
+#' non-inferiority with. p_disc is the share of items on which the two arms
+#' disagree, so p_disc / n_eff is the variance of the mean paired
+#' difference. Items in one
 #' cluster are not independent, so the effective number of items is
 #' n_eff = n_items / DE with the design effect DE = 1 + (m - 1) x ICC_D
 #' (Kish 1965), where m is the mean cluster size and ICC_D the intra-cluster
@@ -28,7 +31,12 @@
 #' (cv^2 + 1) x m (Eldridge, Ashby and Kerry 2006). `hr_mdd()` solves for
 #' Delta:
 #'
-#' Delta = (z_(1 - alpha') + z_power) x sqrt(p_disc / n_eff).
+#' Delta = (t_(C - 1, 1 - alpha') + t_(C - 1, power)) x sqrt(p_disc / n_eff).
+#'
+#' C is `n_clusters`, or n_items / m when only `m` is given, or n_items when
+#' the items are independent; it must be above 1. `hr_n_needed()` finds the
+#' number of items whose C = n_items / m satisfies the formula, by root
+#' finding, since the quantiles depend on it.
 #'
 #' With `holm = TRUE` and more than one contrast, alpha' = alpha /
 #' n_contrasts, the level Holm's procedure tests its first contrast at: the
@@ -36,7 +44,14 @@
 #' alpha' = alpha.
 #'
 #' The closed form is a first estimate. Power for a study is better planned
-#' by simulation from a pilot fitted on the dev split.
+#' by simulation from a pilot fitted on the dev split. Set against the
+#' report's cluster-robust t bound (`dev/sim-power.R`, 2000 replicates,
+#' seed 1), the MDD at 80% power was 0.16 and 0.17 points below the
+#' simulated one at 80 equal clusters (one and nine contrasts; simulated
+#' power at the formula's MDD 78.55% and 78.30%) and 0.25 points above it at
+#' 40 unequal clusters (81.60%). Normal quantiles in place of the t
+#' quantiles were 0.26 and 0.41 points below at 80 clusters (77.20% and
+#' 76.05%) and 0.04 points below at 40 (79.85%).
 #'
 #' @param n_items The number of scored items.
 #' @param n_clusters The number of clusters the items fall in, or `NULL`.
@@ -65,11 +80,13 @@
 #' @return `hr_mdd()` returns an object of class `hr_mdd`, a list with
 #'   `mdd` and the design it rests on: `n_items`, `n_clusters`, `m`, `m_adj`
 #'   (the size after the cv correction), `icc`, `cv`, `de`, `n_eff`,
-#'   `p_disc`, `power`, `alpha`, `alpha_adj`, `n_contrasts`, `holm`,
-#'   `z_alpha` and `z_power`. `hr_n_needed()` returns an object of class
-#'   `hr_n_needed` with `n_eff`, `n_items` (n_eff x DE) and `n_clusters`
-#'   (n_items / m, `NA` when `m` is not given), unrounded, beside the same
-#'   design values; `print()` rounds them up.
+#'   `p_disc`, `power`, `alpha`, `alpha_adj`, `n_contrasts`, `holm`, `df`
+#'   (C - 1), the t quantiles `t_alpha` and `t_power` the MDD uses, and the
+#'   normal quantiles `z_alpha` and `z_power` beside them.
+#'   `hr_n_needed()` returns an object of class `hr_n_needed` with `n_eff`,
+#'   `n_items` (n_eff x DE) and `n_clusters` (n_items / m, `NA` when `m` is
+#'   not given), unrounded, beside the same design values, `df`
+#'   (n_items / m - 1) and the quantiles; `print()` rounds them up.
 #' @references
 #' Eldridge, S. M., Ashby, D. and Kerry, S. (2006). Sample size for cluster
 #' randomized trials: effect of coefficient of variation of cluster size and
@@ -107,11 +124,12 @@ hr_mdd <- function(n_items, n_clusters = NULL, m = NULL, icc = NULL, p_disc = NU
                      format(m), format(n_items / n_clusters)), class = "gr_bad_setting")
   }
   d <- mdd_design(m, icc, p_disc, cv, power, alpha, n_contrasts, holm)
+  n_cl <- if (is.null(n_clusters)) n_items / d$m else n_clusters
+  q <- mdd_t(n_cl, d)
   n_eff <- n_items / d$de
-  mdd <- (d$z_alpha + d$z_power) * sqrt(d$p_disc / n_eff)
-  structure(c(list(mdd = mdd, n_items = n_items,
-                   n_clusters = if (is.null(n_clusters)) n_items / d$m else n_clusters,
-                   n_eff = n_eff), d), class = "hr_mdd")
+  mdd <- (q$t_alpha + q$t_power) * sqrt(d$p_disc / n_eff)
+  structure(c(list(mdd = mdd, n_items = n_items, n_clusters = n_cl, n_eff = n_eff), d, q),
+            class = "hr_mdd")
 }
 
 #' @rdname hr_mdd
@@ -129,15 +147,29 @@ hr_n_needed <- function(delta, m = NULL, icc = NULL, p_disc = NULL, cv = 0, powe
   m_given <- !is.null(m)
   d <- mdd_design(m, icc, p_disc, cv, power, alpha, n_contrasts, holm)
   gap <- delta + true_diff
-  n_eff <- (d$z_alpha + d$z_power)^2 * d$p_disc / gap^2
-  n_items <- n_eff * d$de
+  # The items n solve n = (t_alpha + t_power)^2 x p_disc x DE / gap^2, with
+  # the quantiles on n / m - 1 degrees of freedom. The right side falls as n
+  # grows, so the root is unique; it lies above the normal-quantile solution
+  # and above m (at least one degree of freedom is needed above C = 1).
+  need <- function(n) {
+    q <- mdd_t(n / d$m, d)
+    n - (q$t_alpha + q$t_power)^2 * d$p_disc * d$de / gap^2
+  }
+  n_z <- (d$z_alpha + d$z_power)^2 * d$p_disc * d$de / gap^2
+  lo <- max(n_z, d$m * (1 + 1e-6))
+  n_items <- if (need(lo) >= 0) lo else {
+    stats::uniroot(need, c(lo, 2 * lo), extendInt = "upX", tol = 1e-12 * lo)$root
+  }
+  q <- mdd_t(n_items / d$m, d)
+  n_eff <- n_items / d$de
   structure(c(list(n_eff = n_eff, n_items = n_items,
                    n_clusters = if (m_given) n_items / d$m else NA_real_,
-                   delta = delta, true_diff = true_diff), d), class = "hr_n_needed")
+                   delta = delta, true_diff = true_diff), d, q), class = "hr_n_needed")
 }
 
 #' The parts of an MDD calculation that do not depend on the number of
-#' items: the design effect and the two normal quantiles.
+#' items: the design effect and the two normal quantiles (the t quantiles
+#' come from mdd_t(), once the number of clusters is known).
 #' @noRd
 mdd_design <- function(m, icc, p_disc, cv, power, alpha, n_contrasts, holm) {
   if (is.null(m)) m <- 1
@@ -186,6 +218,19 @@ mdd_design <- function(m, icc, p_disc, cv, power, alpha, n_contrasts, holm) {
        power = power, alpha = alpha, alpha_adj = alpha_adj,
        n_contrasts = as.integer(n_contrasts), holm = holm,
        z_alpha = stats::qnorm(1 - alpha_adj), z_power = stats::qnorm(power))
+}
+
+#' The t quantiles of an MDD calculation, on C - 1 degrees of freedom for
+#' C clusters (C = n_items when the items are independent).
+#' @noRd
+mdd_t <- function(n_clusters, d) {
+  if (!(n_clusters > 1)) {
+    gr_abort(sprintf(paste0(
+      "The design has %s cluster(s); the bound has C - 1 degrees of freedom, so it needs ",
+      "more than one."), format(signif(n_clusters, 4))), class = "gr_bad_setting")
+  }
+  df <- n_clusters - 1
+  list(df = df, t_alpha = stats::qt(1 - d$alpha_adj, df), t_power = stats::qt(d$power, df))
 }
 
 #' Stop unless `x` is one positive number.
@@ -533,14 +578,58 @@ tango_interval <- function(b, c, n, conf = 0.95) {
   c(lower = lower, upper = upper)
 }
 
+#' The interval of a mean paired accuracy difference whose cluster variance
+#' is 0, where the cluster-robust t interval is not defined: the counterpart
+#' of the Korn and Graubard interval for accuracy.
+#'
+#' Every cluster then gives the same mean difference per item, which says
+#' nothing about how much the difference varies, so the interval takes the
+#' items, not the clusters, as the sampling units. It is Tango's (1998)
+#' score interval on n_eff pairs with counts n_eff x q10 and n_eff x q01,
+#' where q10 and q01 are the discordant shares of one paired run (the means
+#' over items of p_new (1 - p_ref) and (1 - p_new) p_ref; q10 - q01 is the
+#' estimate). n_eff is the number of items I, not of paired runs, since runs
+#' of one item mostly agree, scaled by (z_(1 - a) / t_(C - 1, 1 - a))^2 for
+#' the few degrees of freedom C clusters carry, as korn_graubard() scales
+#' its effective size. `a` is the one-sided level of each bound; the
+#' interval is two-sided at 1 - 2a. The scaling falls with a, so each bound
+#' widens as the level falls. At a = 0.5 both quantiles are 0 and the
+#' scaling is its limit, (dt(0, C - 1) / dnorm(0))^2.
+#' @noRd
+paired_items_interval <- function(q10, q01, I, df, a) {
+  ratio <- if (a < 0.5) {
+    stats::qnorm(1 - a) / stats::qt(1 - a, df)
+  } else stats::dt(0, df) / stats::dnorm(0)
+  n_eff <- I * ratio^2
+  tg <- tango_interval(n_eff * q10, n_eff * q01, n_eff, conf = 1 - 2 * a)
+  c(tg, n_eff = n_eff)
+}
+
+#' The discordant shares q10 and q01 of one paired run, per contrast, from
+#' item accuracies `p` (items x arms) and the arm columns `i1` (new) and
+#' `i2` (reference).
+#' @noRd
+discordant_shares <- function(p, i1, i2) {
+  pn <- p[, i1, drop = FALSE]; pr <- p[, i2, drop = FALSE]
+  list(q10 = unname(colMeans(pn * (1 - pr))), q01 = unname(colMeans((1 - pn) * pr)))
+}
+
 #' Test the registered contrasts of a benchmark report.
 #'
 #' `S` and `U` are cluster sums (C x A) of item accuracy and item mean
 #' dollars, `n` the items per cluster, `p` the item x arm accuracies,
-#' `counts` the cluster resamples (NULL when the report has no intervals),
-#' `runs` the number of runs.
+#' `counts` the cluster resamples (NULL when the report has no intervals).
+#'
+#' The accuracy bound is the report's cluster-robust t interval for a paired
+#' difference, taken one-sided: d - t_(C - 1, 1 - a) x SE at level a, with SE
+#' the linearised standard error of cluster_ratio_se(). At a = (1 - conf) / 2
+#' it is the lower end of the contrast interval the report prints. When every
+#' cluster gives the same mean difference per item, SE is 0, the t bound is
+#' not defined, and the bound is that of paired_items_interval() at level a,
+#' as in the printed interval; the achieved MDD is then NA. The cost bound
+#' stays the BCa cluster bootstrap of the report's cost intervals.
 #' @noRd
-report_ni <- function(reg, arms, S, U, n, p, counts, runs) {
+report_ni <- function(reg, arms, S, U, n, p, counts) {
   tab <- reg$contrasts
   bad <- setdiff(c(tab$new, tab$reference), arms)
   if (length(bad)) {
@@ -549,7 +638,7 @@ report_ni <- function(reg, arms, S, U, n, p, counts, runs) {
   }
   K <- nrow(tab); I <- sum(n); C <- length(n)
   alpha <- reg$alpha
-  z_power <- stats::qnorm(reg$power)
+  t_power <- if (C > 1L) stats::qt(reg$power, C - 1L) else NA_real_
   i1 <- match(tab$new, arms); i2 <- match(tab$reference, arms)
   den <- matrix(n, C, K)
   D <- S[, i1, drop = FALSE] - S[, i2, drop = FALSE]
@@ -564,23 +653,32 @@ report_ni <- function(reg, arms, S, U, n, p, counts, runs) {
                     tango_lower = NA_real_, tango_upper = NA_real_, tango_agrees = NA,
                     n_eff = NA_real_, p_value = NA_real_, stringsAsFactors = FALSE, row.names = NULL)
   if (is.null(counts)) return(out)
-  ra <- ratio_boot(D, den, counts)
+  # The accuracy difference: the cluster-robust t interval of the report's
+  # paired differences, one-sided, on C - 1 degrees of freedom.
+  va <- cluster_ratio_se(D, den)
+  se <- unname(va$se)
   ru <- ratio_boot(Du, den, counts)
-  se <- apply(ra$t, 2L, stats::sd)
+  sh <- discordant_shares(p, i1, i2)
+  acc_lower <- function(j, a) {
+    if (se[[j]] == 0) {
+      return(paired_items_interval(sh$q10[[j]], sh$q01[[j]], I, va$df, a)[["lower"]])
+    }
+    est[[j]] - stats::qt(1 - a, va$df) * se[[j]]
+  }
   # The per-contrast test at one-sided level a: the lower bound of the
   # accuracy difference above -margin and, when asked, the upper bound of
   # the cost difference below 0. Requiring both is an intersection-union
   # test, so each part runs at the full level a.
   test_at <- function(j, a) {
-    acc <- bca_interval(ra$t[, j], ra$t0[[j]], ra$jack[, j], conf = 1 - 2 * a)
-    acc_ok <- is.finite(acc$lower) && acc$lower > -tab$margin[j]
+    lower <- acc_lower(j, a)
+    acc_ok <- is.finite(lower) && lower > -tab$margin[j]
     cu <- NA_real_; cost_ok <- NA
     if (tab$cost_test[j]) {
       cv <- bca_interval(ru$t[, j], ru$t0[[j]], ru$jack[, j], conf = 1 - 2 * a)
       cu <- cv$upper
       cost_ok <- is.finite(cu) && cu < 0
     }
-    list(lower = acc$lower, acc_ok = acc_ok, cost_upper = cu, cost_ok = cost_ok,
+    list(lower = lower, acc_ok = acc_ok, cost_upper = cu, cost_ok = cost_ok,
          pass = acc_ok && (!tab$cost_test[j] || isTRUE(cost_ok)))
   }
   # The p-value of a contrast is the smallest one-sided level at which it
@@ -623,21 +721,25 @@ report_ni <- function(reg, arms, S, U, n, p, counts, runs) {
     out$cost_holds[j] <- r$cost_ok
     out$verdict[j] <- if (tab$confirmatory[j]) holm_pass[j] else r$pass
     # The achieved MDD is the design formula with the variance of the mean
-    # paired difference, p_disc / n_eff, taken from the cluster bootstrap.
+    # paired difference, p_disc / n_eff, taken from the data: the squared
+    # linearised standard error of the bound. With SE = 0 the data give no
+    # such variance, and the MDD is NA rather than 0.
     a_mdd <- if (tab$confirmatory[j]) alpha / k else alpha
-    out$mdd_achieved[j] <- (stats::qnorm(1 - a_mdd) + z_power) * se[[j]]
+    out$mdd_achieved[j] <- if (se[[j]] > 0) {
+      (stats::qt(1 - a_mdd, va$df) + t_power) * se[[j]]
+    } else NA_real_
     # Tango's interval on effective counts. Per item, q10 is the chance that
     # a run of the new arm is right and a run of the reference wrong, and q01
     # the reverse; their means give the discordant shares of one paired run.
     # The effective number of pairs is the count at which a simple paired
-    # sample with those shares would have the variance the cluster bootstrap
-    # found, (q10 + q01 - estimate^2) / SE^2, as Korn and Graubard (1998)
+    # sample with those shares would have the linearised variance of the
+    # bound, (q10 + q01 - estimate^2) / SE^2, as Korn and Graubard (1998)
     # define an effective size for one proportion, and it is capped at the
-    # number of paired runs.
-    pn <- p[, i1[j]]; pr <- p[, i2[j]]
-    q10 <- mean(pn * (1 - pr)); q01 <- mean((1 - pn) * pr)
+    # number of items: runs of one item mostly agree, so they are not
+    # independent pairs (as korn_graubard() counts items, not runs).
+    q10 <- sh$q10[[j]]; q01 <- sh$q01[[j]]
     v1 <- q10 + q01 - est[[j]]^2
-    ne <- if (se[[j]] > 0 && v1 > 0) min(I * runs, v1 / se[[j]]^2) else I * runs
+    ne <- if (se[[j]] > 0 && v1 > 0) min(I, v1 / se[[j]]^2) else I
     out$n_eff[j] <- ne
     tg <- tango_interval(ne * q10, ne * q01, ne,
                          conf = 1 - 2 * level[j])

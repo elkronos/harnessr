@@ -40,40 +40,45 @@ test_that("hr_mdd and hr_n_needed reproduce the worked numbers of the QA design"
   expect_equal(m$de, 2)
   expect_equal(m$n_eff, 240)
   expect_equal(m$m, 6)
-  # sqrt(7.849 * 0.2 / 240): about 8.1 points before Holm.
-  expect_equal(m$mdd, 0.0808748, tolerance = 1e-5)
-  # sqrt(13.06 * 0.2 / 240): about 10.4 points after Holm over 9 contrasts.
+  # (qt(0.975, 79) + qt(0.8, 79)) * sqrt(0.2 / 240) = (1.99045 + 0.84619) *
+  # 0.0288675: about 8.2 points before Holm.
+  expect_equal(m$mdd, 0.0818869, tolerance = 1e-5)
+  expect_equal(m$df, 79)
+  # (qt(1 - 0.025 / 9, 79) + qt(0.8, 79)) * sqrt(0.2 / 240): about 10.7
+  # points after Holm over 9 contrasts.
   m9 <- hr_mdd(480, n_clusters = 80, icc = 0.2, p_disc = 0.2, n_contrasts = 9)
   expect_equal(m9$alpha_adj, 0.025 / 9)
-  expect_equal(m9$mdd, 0.1043429, tolerance = 1e-5)
+  expect_equal(m9$mdd, 0.1067334, tolerance = 1e-5)
   # Without the Holm adjustment the family size does not matter.
   expect_equal(hr_mdd(480, n_clusters = 80, icc = 0.2, p_disc = 0.2, n_contrasts = 9,
                       holm = FALSE)$mdd, m$mdd)
 
-  # 8 points needs about 245 effective items.
+  # The item counts below solve n = (qt(1 - alpha', n / m - 1) +
+  # qt(0.8, n / m - 1))^2 x p_disc x DE / gap^2, found once by bisection on n.
+  # 8 points needs about 251 effective items.
   n8 <- hr_n_needed(0.08, m = 6, icc = 0.2, p_disc = 0.2)
-  expect_equal(n8$n_eff, 245.2775, tolerance = 1e-4)
-  # After Holm over nine contrasts about 408 effective items, 816 questions
-  # and 136 documents of 6.
+  expect_equal(n8$n_eff, 251.1714, tolerance = 1e-4)
+  # After Holm over nine contrasts about 419 effective items, 838 questions
+  # and 140 documents of 6.
   n9 <- hr_n_needed(0.08, m = 6, icc = 0.2, p_disc = 0.2, n_contrasts = 9)
-  expect_equal(n9$n_eff, 408.2787, tolerance = 1e-4)
-  expect_equal(n9$n_items, 816.5574, tolerance = 1e-4)
-  expect_equal(n9$n_clusters, 136.0929, tolerance = 1e-4)
-  # Holm over six contrasts gives about 378.
-  expect_equal(hr_n_needed(0.08, p_disc = 0.2, n_contrasts = 6)$n_eff, 378.4236,
+  expect_equal(n9$n_eff, 418.8948, tolerance = 1e-4)
+  expect_equal(n9$n_items, 837.7896, tolerance = 1e-4)
+  expect_equal(n9$n_clusters, 139.6316, tolerance = 1e-4)
+  # Holm over six contrasts gives about 382 (independent items, df n - 1).
+  expect_equal(hr_n_needed(0.08, p_disc = 0.2, n_contrasts = 6)$n_eff, 381.6507,
                tolerance = 1e-4)
-  # 3 points needs about 1,744 effective items.
-  expect_equal(hr_n_needed(0.03, p_disc = 0.2)$n_eff, 1744.195, tolerance = 1e-3)
-  # A true difference of -2 points against an 8-point margin needs about 436.
-  expect_equal(hr_n_needed(0.08, p_disc = 0.2, true_diff = -0.02)$n_eff, 436.0489,
+  # 3 points needs about 1,746 effective items.
+  expect_equal(hr_n_needed(0.03, p_disc = 0.2)$n_eff, 1746.146, tolerance = 1e-3)
+  # A true difference of -2 points against an 8-point margin needs about 438.
+  expect_equal(hr_n_needed(0.08, p_disc = 0.2, true_diff = -0.02)$n_eff, 438.0018,
                tolerance = 1e-4)
   # The two are inverses of each other.
   m816 <- hr_mdd(816, m = 6, icc = 0.2, p_disc = 0.2, n_contrasts = 9)
   expect_equal(hr_n_needed(m816$mdd, m = 6, icc = 0.2, p_disc = 0.2, n_contrasts = 9)$n_items,
                816)
   expect_true(is.na(hr_n_needed(0.08, p_disc = 0.2)$n_clusters))
-  expect_output(print(n9), "409 effective items; DE 2, so 817 items in 137 clusters of 6")
-  expect_output(print(m9), "10.4 points")
+  expect_output(print(n9), "419 effective items; DE 2, so 838 items in 140 clusters of 6")
+  expect_output(print(m9), "10.7 points")
 })
 
 test_that("unequal cluster sizes raise m to (cv^2 + 1) x m", {
@@ -93,29 +98,34 @@ test_that("hr_mdd asks for the design values it cannot assume", {
   expect_error(hr_mdd(480, n_clusters = 79.5, icc = 0.2, p_disc = 0.2),
                class = "gr_bad_setting")
   expect_error(hr_mdd(480.5, p_disc = 0.2), class = "gr_bad_setting")
+  # The t quantiles need more than one cluster (C - 1 degrees of freedom).
+  expect_error(hr_mdd(6, n_clusters = 1, icc = 0.2, p_disc = 0.2), class = "gr_bad_setting")
+  expect_error(hr_mdd(1, p_disc = 0.2), class = "gr_bad_setting")
   expect_error(hr_n_needed(0.08, p_disc = 0.2, true_diff = -0.1), class = "gr_bad_setting")
-  # Independent items need no ICC.
+  # Independent items need no ICC; each item is its own cluster, so the t
+  # quantiles have 239 degrees of freedom.
   expect_equal(hr_mdd(240, p_disc = 0.2)$mdd,
-               (stats::qnorm(0.975) + stats::qnorm(0.8)) * sqrt(0.2 / 240))
+               (stats::qt(0.975, 239) + stats::qt(0.8, 239)) * sqrt(0.2 / 240))
 })
 
 test_that("a confirmatory margin below the design MDD after Holm is refused", {
   ref <- ni_reference(80, 6)
   design <- hr_mdd(480, n_clusters = 80, icc = 0.2, p_disc = 0.2)
-  # 8 points is just under the 8.1-point MDD of this design.
+  # 8 points is just under the 8.2-point MDD of this design.
   expect_error(hr_register_contrasts(ref, hr_contrast("a", "b", margin = 0.08), design),
                class = "hr_margin_below_mdd")
-  # 10 points clears it for one contrast, and for three (9.3 points after
-  # Holm), but not for nine (10.4 points).
+  # 10 points clears it for one contrast, and for three (9.5 points after
+  # Holm), but not for nine (10.7 points).
   expect_s3_class(hr_register_contrasts(ref, hr_contrast("a", "b", margin = 0.10), design),
                   "hr_contrast_registration")
   three <- lapply(c("a", "c", "d"), function(x) hr_contrast(x, "b", margin = 0.10))
   reg3 <- hr_register_contrasts(ref, three, design)
-  expect_equal(reg3$mdd$mdd, 0.0934, tolerance = 1e-3)
+  # (qt(1 - 0.025 / 3, 79) + qt(0.8, 79)) * sqrt(0.2 / 240) = 0.09504.
+  expect_equal(reg3$mdd$mdd, 0.0950, tolerance = 1e-3)
   nine <- lapply(letters[3:11], function(x) hr_contrast(x, "b", margin = 0.10))
   err <- tryCatch(hr_register_contrasts(ref, nine, design), error = function(e) e)
   expect_s3_class(err, "hr_margin_below_mdd")
-  expect_match(conditionMessage(err), "10.4 points")
+  expect_match(conditionMessage(err), "10.7 points")
   # A design given at lower power is still checked at 80%.
   weak <- hr_mdd(480, n_clusters = 80, icc = 0.2, p_disc = 0.2, power = 0.5)
   expect_lt(weak$mdd, 0.08)
@@ -128,7 +138,7 @@ test_that("a confirmatory margin below the design MDD after Holm is refused", {
                class = "hr_margin_below_mdd")
   reg <- hr_register_contrasts(ref, hr_contrast("a", "b", margin = 0.10), loose)
   expect_equal(reg$alpha, 0.025)
-  expect_equal(reg$mdd$mdd, 0.0808748, tolerance = 1e-5)
+  expect_equal(reg$mdd$mdd, 0.0818869, tolerance = 1e-5)
 })
 
 test_that("a design larger than the reference is refused", {
@@ -209,7 +219,7 @@ test_that("a true difference of 0 passes at a generous margin and -0.15 fails", 
   expect_lte(ni$p_value, 0.025)
   expect_true(ni$tango_agrees)
   # The achieved MDD sits beside the verdict and is the design formula on
-  # the bootstrap standard error.
+  # the linearised standard error.
   expect_gt(ni$mdd_achieved, 0)
   expect_equal(ni$mdd_design, design$mdd)
   expect_output(print(r0), "non-inferior")
@@ -227,6 +237,157 @@ test_that("a true difference of 0 passes at a generous margin and -0.15 fails", 
   plain <- hr_report(worse, B = 2000)
   expect_null(plain$ni)
   expect_equal(plain$contrasts, r1$contrasts)
+})
+
+test_that("the non-inferiority bound is the one-sided cluster-robust t bound", {
+  ref <- ni_reference(40, 10)
+  design <- hr_mdd(400, n_clusters = 40, icc = 0.1, p_disc = 0.2)
+  reg <- hr_register_contrasts(ref, hr_contrast("new", "ref", margin = 0.10,
+                                                cost_test = FALSE), design)
+  set.seed(11)
+  d <- ni_bench(ref, shift = 0)
+  r <- hr_report(d, contrasts = c("new", "ref"), registration = reg, B = 200)
+  # By hand: item accuracy over runs, the paired item differences summed per
+  # cluster (D_c over n_c items), the ratio estimate sum(D_c) / N and
+  # SE = sqrt(C / (C - 1) x sum((D_c - n_c x estimate)^2)) / N, with C = 40
+  # and N = 400.
+  acc <- tapply(d$correct, list(d$item, d$arm), mean)
+  dif <- acc[, "new"] - acc[, "ref"]
+  cl <- ref$cluster[match(rownames(acc), ref$ids)]
+  Dc <- tapply(dif, cl, sum); nc <- tapply(dif, cl, length)
+  est <- sum(Dc) / 400
+  se <- sqrt(40 / 39 * sum((Dc - nc * est)^2)) / 400
+  expect_equal(r$ni$estimate, est)
+  expect_equal(r$ni$level, 0.025)
+  expect_equal(r$ni$lower, est - stats::qt(0.975, 39) * se)
+  # At one-sided 0.025 it is the lower end of the printed 95% interval.
+  expect_equal(r$ni$lower, r$contrasts$lower)
+  expect_identical(r$contrasts$method, "cluster_robust_t")
+  # Without the cost condition the p-value is the t tail at the margin.
+  expect_equal(r$ni$p_value, stats::pt((est + 0.10) / se, 39, lower.tail = FALSE),
+               tolerance = 1e-6)
+  # The achieved MDD is the design formula on the same SE and degrees of
+  # freedom.
+  expect_equal(r$ni$mdd_achieved, (stats::qt(0.975, 39) + stats::qt(0.8, 39)) * se)
+})
+
+test_that("a paired difference with no cluster variance takes items as pairs", {
+  ref <- ni_reference(10, 5)
+  design <- hr_mdd(50, n_clusters = 10, icc = 0.1, p_disc = 0.2)
+  reg <- hr_register_contrasts(ref, hr_contrast("new", "ref", margin = 0.10,
+                                                confirmatory = FALSE, cost_test = FALSE),
+                               design)
+  # "new" is right on every run of every item; "ref" only on the first item
+  # of each cluster. Every cluster then has a mean difference of 0.8 per item,
+  # so the cluster variance is 0 and the t bound is not defined.
+  g <- expand.grid(run = 1:5, i = seq_along(ref$ids))
+  first <- !duplicated(ref$cluster)
+  one <- function(arm, correct) {
+    data.frame(cluster = ref$cluster[g$i], item = ref$ids[g$i], arm = arm, run = g$run,
+               split = "test", reportable = TRUE, correct = correct[g$i], usd = 0.001,
+               stringsAsFactors = FALSE)
+  }
+  d <- rbind(one("new", rep(TRUE, 50)), one("ref", first))
+  attr(d, "reference_hash") <- ref$hash
+  r <- hr_report(d, contrasts = c("new", "ref"), registration = reg, B = 200)
+  expect_equal(r$ni$estimate, 0.8)
+  # Tango's interval with b = 0.8 n discordant pairs, c = 0, on
+  # n = 50 (qnorm(0.975) / qt(0.975, 9))^2 = 37.5336360168 pairs. With c = 0
+  # the score equation has closed forms: lower (b - z^2) / (n + z^2), and
+  # upper the larger root of (n + z^2) d^2 - (1.6 n + z^2) d + 0.64 n = 0.
+  expect_equal(r$ni$lower, 0.632879515940509, tolerance = 1e-9)
+  expect_equal(r$contrasts$lower, 0.632879515940509, tolerance = 1e-9)
+  expect_equal(r$contrasts$upper, 0.897170450954456, tolerance = 1e-9)
+  expect_identical(r$contrasts$method, "tango_items")
+  expect_true(r$ni$verdict)
+  # No variance is estimated, so there is no achieved MDD.
+  expect_true(is.na(r$ni$mdd_achieved))
+  expect_true(any(grepl("Tango's score interval with items as pairs", r$notes)))
+})
+
+# Four clusters of five items; each arm is right or wrong on an item on every
+# run, so items, not runs, carry the information.
+zero_var_bench <- function(ref, new_right, ref_right) {
+  g <- expand.grid(run = 1:5, i = seq_along(ref$ids))
+  one <- function(arm, v) {
+    data.frame(cluster = ref$cluster[g$i], item = ref$ids[g$i], arm = arm, run = g$run,
+               split = "test", reportable = TRUE, correct = v[g$i], usd = 0.001,
+               stringsAsFactors = FALSE)
+  }
+  d <- rbind(one("new", new_right), one("ref", ref_right))
+  attr(d, "reference_hash") <- ref$hash
+  d
+}
+
+test_that("identical arms with no cluster variance are not declared non-inferior by default", {
+  ref <- ni_reference(4, 5)
+  design <- hr_mdd(20, n_clusters = 4, icc = 0.1, p_disc = 0.2)
+  reg <- hr_register_contrasts(ref, hr_contrast("new", "ref", margin = 0.05,
+                                                confirmatory = FALSE, cost_test = FALSE),
+                               design)
+  set.seed(4)
+  truth <- stats::runif(20) < 0.7
+  r <- hr_report(zero_var_bench(ref, truth, truth), contrasts = c("new", "ref"),
+                 registration = reg, B = 200)
+  expect_equal(r$ni$estimate, 0)
+  # No discordant item: Tango's lower bound is -z^2 / (n + z^2) on
+  # n = 20 (qnorm(0.975) / qt(0.975, 3))^2 pairs.
+  expect_equal(r$ni$lower, -0.336164910534051, tolerance = 1e-9)
+  expect_false(r$ni$verdict)
+  # The p-value is the level a at which z_a^2 / (n(a) + z_a^2) = 0.05, with
+  # n(a) = 20 (qnorm(1 - a) / qt(1 - a, 3))^2, solved by uniroot().
+  expect_equal(r$ni$p_value, 0.1901995852, tolerance = 1e-7)
+  expect_true(is.na(r$ni$mdd_achieved))
+  # Tango's cross-check counts the 20 items, not the 100 paired runs.
+  expect_equal(r$ni$n_eff, 20)
+})
+
+test_that("a constant cluster difference with item-level spread is not known exactly", {
+  ref <- ni_reference(4, 5)
+  design <- hr_mdd(20, n_clusters = 4, icc = 0.1, p_disc = 0.2)
+  reg <- hr_register_contrasts(ref, hr_contrast("new", "ref", margin = 0.25,
+                                                confirmatory = FALSE, cost_test = FALSE),
+                               design)
+  # In every cluster "new" wins two items and loses three: each cluster's mean
+  # difference is -0.2, while item differences are +1 or -1.
+  r <- hr_report(zero_var_bench(ref, rep(c(TRUE, TRUE, FALSE, FALSE, FALSE), 4),
+                                rep(c(FALSE, FALSE, TRUE, TRUE, TRUE), 4)),
+                 contrasts = c("new", "ref"), registration = reg, B = 200)
+  expect_equal(r$ni$estimate, -0.2)
+  # Tango's lower bound for b = 0.4 n, c = 0.6 n on
+  # n = 20 (qnorm(0.975) / qt(0.975, 3))^2 = 7.58584575607 pairs, found by
+  # uniroot() on a separate implementation of the score.
+  expect_equal(r$ni$lower, -0.704814732682492, tolerance = 1e-9)
+  expect_equal(r$contrasts$lower, r$ni$lower)
+  expect_false(r$ni$verdict)
+  expect_false(any(grepl("the verdict follows the bootstrap", r$notes)))
+})
+
+test_that("a Tango disagreement is noted against the t bound the verdict follows", {
+  ref <- ni_reference(4, 5)
+  design <- hr_mdd(20, n_clusters = 4, icc = 0.1, p_disc = 0.2)
+  reg <- hr_register_contrasts(ref, hr_contrast("new", "ref", margin = 0.4,
+                                                confirmatory = FALSE, cost_test = FALSE),
+                               design)
+  # "new" wins items 1 and 2 of each cluster and loses 3 to 5, except item 3
+  # of the first cluster, where both are right. Cluster sums of item
+  # differences 0, -1, -1, -1: estimate -0.15, residuals 0.75 and -0.25
+  # (three times), SE = sqrt(4 / 3 x 0.75) / 20 = 0.05.
+  nw <- rep(c(TRUE, TRUE, FALSE, FALSE, FALSE), 4); rf <- !nw
+  nw[3] <- TRUE
+  r <- hr_report(zero_var_bench(ref, nw, rf), contrasts = c("new", "ref"),
+                 registration = reg, B = 200)
+  expect_equal(r$ni$estimate, -0.15)
+  expect_equal(r$ni$lower, -0.15 - stats::qt(0.975, 3) * 0.05)
+  expect_true(r$ni$verdict)
+  # Tango's check: q10 = 8 / 20, q01 = 11 / 20, and
+  # (q10 + q01 - 0.15^2) / SE^2 = 371 effective pairs, capped at 20 items.
+  expect_equal(r$ni$n_eff, 20)
+  expect_lt(r$ni$tango_lower, -0.4)
+  expect_false(r$ni$tango_agrees)
+  expect_true(any(grepl(paste0("different accuracy conclusion from the non-inferiority ",
+                               "bound \\(the cluster-robust t bound"), r$notes)))
+  expect_false(any(grepl("the verdict follows the bootstrap", r$notes)))
 })
 
 test_that("the verdict needs the new arm to be cheaper when the contrast tests cost", {

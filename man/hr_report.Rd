@@ -13,7 +13,7 @@ hr_report(
   conf = 0.95,
   k = c(1, 3, 5),
   seed = 1,
-  method = c("auto", "bootstrap", "bayes", "exact"),
+  method = c("auto", "bootstrap", "cluster_t", "bayes", "exact"),
   confirmatory = FALSE,
   registration = NULL
 )
@@ -42,7 +42,8 @@ pair, in benchmark order.}
 \item{seed}{Seed of the private random stream the resamples are drawn
 from; the caller's random state is left as it was.}
 
-\item{method}{\code{"auto"}, \code{"bootstrap"}, \code{"bayes"} or \code{"exact"}, as above.}
+\item{method}{\code{"auto"}, \code{"bootstrap"}, \code{"cluster_t"}, \code{"bayes"} or
+\code{"exact"}, as above.}
 
 \item{confirmatory}{\code{TRUE} for a confirmatory report, which raises the
 default \code{B} to 5000 and refuses dev-split rows. Left unset, it is \code{TRUE}
@@ -67,14 +68,18 @@ for accuracy, why it was chosen, and whether the report is descriptive
 only.}
 \item{\code{n_items}, \code{n_clusters}, \code{runs}, \code{arms}, \code{conf}, \code{B}, \code{seed},
 \code{confirmatory}}{The design and settings.}
-\item{\code{accuracy}}{Per arm: \code{estimate}, \code{lower}, \code{upper}, \code{method}, and
-the rank interval \code{rank_lower}, \code{rank_upper}.}
+\item{\code{accuracy}}{Per arm: \code{estimate}, \code{lower}, \code{upper}, \code{method}
+(\code{"studentised_cluster_bootstrap"}, \code{"logit_cluster_robust_t"},
+\code{"korn_graubard_clopper_pearson"}, \code{"beta_binomial_bayes"} or
+\code{"descriptive"}), and the rank interval \code{rank_lower}, \code{rank_upper}.}
 \item{\code{bayes}}{Per arm, in the Bayesian regime: posterior mean and
 median of mu and posterior mean of rho.}
 \item{\code{contrasts}}{Per contrast: \code{arm1}, \code{arm2}, \code{estimate} (arm1 minus
-arm2), \code{lower}, \code{upper}, \code{method}.}
+arm2), \code{lower}, \code{upper}, \code{method} (\code{"cluster_robust_t"}, or
+\code{"tango_items"} when the cluster variance is 0).}
 \item{\code{simultaneous}}{Every pairwise difference with simultaneous
-\code{lower} and \code{upper} bounds and the critical value.}
+\code{lower} and \code{upper} bounds, \code{method} (\code{"max_t_cluster_robust"}, or
+\code{"tango_items"} when the cluster variance is 0) and the critical value.}
 \item{\code{stability}}{Per arm: \code{flip_rate}, \code{tara}, \code{run_sd}.}
 \item{\code{pass_k}}{Per arm and k: \code{pass_k} with \code{lower} and \code{upper}.}
 \item{\code{cost}}{Per arm: \code{usd_per_item}, \code{usd_per_correct},
@@ -113,57 +118,109 @@ dev split never enters a report, and items with no label are left out.
 item, then the mean over items.
 
 \strong{Intervals.} With \code{method = "auto"} the method follows the size of the
-benchmark:
+benchmark. Both rest on the cluster sums of item accuracy: accuracy is the
+ratio estimator r = sum_c S_c / sum_c n_c, with S_c the summed item
+accuracy and n_c the items of cluster c, and its cluster-robust
+(linearised) variance is V = C / (C - 1) * sum_c (S_c - r n_c)^2 / N^2,
+with the small-sample factor C / (C - 1) for C clusters and N items
+(Cochran 1977, chapter 6; Cameron and Miller 2015).
 \itemize{
-\item At least 300 items and at least 30 clusters: a BCa cluster bootstrap.
-Each of the \code{B} resamples draws whole clusters with replacement, with all
-their items, runs and arms. The bias correction is z0 = qnorm(share of
-resamples below the estimate) and the acceleration is
-a = sum(L^3) / (6 sum(L^2)^1.5), with L the leave-one-cluster-out
-jackknife influence values (Efron 1987; Efron and Tibshirani 1993,
-chapter 14). Quantiles are interpolated on the normal scale as in
-\code{boot::boot.ci()}. When BCa is undefined (the estimate lies outside every
-resample) the percentile interval is given and the method column says so.
-\item Below either threshold: a Bayesian beta-binomial model with a cluster
-random effect, which held its coverage in small clustered samples where
-the bootstrap and the normal interval did not (Bowyer et al. 2025).
-Cluster c has m_c scored runs over its items, x_c of them correct. Its
-accuracy is Beta with mean mu and intra-cluster correlation rho, so
-alpha = mu (1 - rho) / rho and beta = (1 - mu) (1 - rho) / rho, and its
-runs are binomial given it; runs of one item agreeing more than runs of
-different items shows up as overdispersion, which rho takes up.
-The priors on mu and rho are flat (uniform on 0 to 1). The posterior is
-computed on a grid over mu and rho, and the interval is the equal-tailed
-credible interval of mu. Note that mu is the mean of cluster
-accuracies, each cluster weighted alike, while the estimate printed
-beside it weights clusters by their items; with unequal cluster sizes
-the interval can sit slightly off the estimate. When an arm's accuracy
-is exactly 0 or 1 an equal-tailed interval would leave out the boundary,
-so the interval is one-sided there: from 0 to the \code{conf} quantile of mu,
-or from the \code{1 - conf} quantile to 1.
+\item At least 300 items and at least 30 clusters (\code{method = "bootstrap"}): a
+studentised (bootstrap-t) cluster bootstrap (Efron and Tibshirani 1993,
+chapter 12; Davison and Hinkley 1997, chapters 2 and 5). Each of the \code{B}
+resamples draws whole clusters with replacement, with all their items,
+runs and arms, and gives t* = (r* - r) / se*, with se* the linearised
+standard error of the resample. The interval is
+\link{r - q_hi se, r - q_lo se}, with q_lo and q_hi the (1 - conf) / 2 and
+(1 + conf) / 2 quantiles of t* and se = sqrt(V), cut to \link{0, 1}.
+Studentising corrects the skew of a proportion near a bound, where the
+BCa interval this replaces undercovered (93.5\% at a true accuracy of
+0.75 in the coverage simulation of \code{dev/sim-coverage.R}, 386 items in 40
+clusters); the studentised interval covered 95.5\% and 95.0\% there.
+\item Below either threshold (\code{method = "cluster_t"}): a cluster-robust t
+interval on the logit scale, logit(r) plus and minus
+t_(C - 1, (1 + conf) / 2) x sqrt(V) / (r (1 - r)), mapped back to
+(0, 1) (the delta method on the logit scale, Agresti 2013; t quantiles
+with C - 1 degrees of freedom for few clusters, Cameron and Miller
+2015). In the coverage simulation (50 items in 10 clusters, 2000
+replicates) it covered 95.7\% and 95.8\%, and 95.2\% and 95.8\% over 6000
+further replicates: slightly conservative, as a t interval is when
+cluster means are bounded.
+\item Where those intervals are not defined, because accuracy is 0 or 1 or
+every cluster has the same accuracy (V = 0), the arm gets the
+Korn-Graubard interval below, one-sided from the bound at 0 or 1 at
+level \code{conf}, and its method column and a note say so.
 \item \code{method = "exact"} selects instead a Clopper-Pearson interval on the
 effective number of items computed from cluster totals of item
 accuracy, with Korn and Graubard's (1998) degrees-of-freedom adjustment.
 Items, not runs, are the trials, since runs of one item mostly agree.
+It is conservative: 98.4\% to 98.8\% coverage in the small simulated
+design.
+\item \code{method = "bayes"} selects a Bayesian beta-binomial model with a
+cluster random effect (Bowyer et al. 2025). Cluster c has m_c scored
+runs over its items, x_c of them correct. Its accuracy is Beta with
+mean mu and intra-cluster correlation rho, so
+alpha = mu (1 - rho) / rho and beta = (1 - mu) (1 - rho) / rho, and its
+runs are binomial given it. The priors on mu and rho are flat (uniform
+on 0 to 1), the posterior is computed on a grid, and the interval is
+the equal-tailed credible interval of mu, one-sided from the bound when
+accuracy is 0 or 1. It is not the default: in the small simulated design
+it covered 96.5\% to 96.6\% and its misses fell mostly below the truth
+(2.9\% to 3.2\% below, 0.2\% to 0.5\% above). The prior on rho drives
+this: the flat prior keeps much of its mass on strong clustering
+(posterior mean of rho 0.23), which widens the interval and spreads mu
+toward 0.5. In a check of 600 replicates, a Beta(1, 10) prior on rho
+balanced the misses but undercovered (91.7\% to 92.0\%), and a prior
+uniform on log((1 - rho) / rho) covered 94.5\% to 94.8\% with misses still
+lopsided (3.2\% to 3.5\% below, 2.0\% above); counting items instead of
+runs as trials made it more conservative (98.0\% to 98.2\% over 2000
+replicates), not less lopsided. A prior chosen to hit 95\% in one design
+would not carry to others, so the model is kept as it was, as an
+option, and a note gives its calibration when it is used. Note that mu
+is the mean of cluster accuracies, each cluster weighted alike, while
+the estimate printed beside it weights clusters by their items.
 }
 
-No Wald or normal-approximation interval is given for accuracy at any
-size. \code{method = "bootstrap"} or \code{"bayes"} forces that method at any size,
-with a note when the bootstrap is used below the thresholds.
+No interval treats items or runs as independent trials (the Wald interval
+on n items). \code{method = "bootstrap"} or \code{"cluster_t"} forces that method at
+any size, with a note when the bootstrap is used below the thresholds,
+where it is unstable.
 
 \strong{Paired differences.} For each contrast, accuracy of the first arm minus
-the second, item by item, so each difference is paired. Its interval is
-BCa from the same cluster resamples as everything else, whatever the
-method for accuracy; below 300 items or 30 clusters the report notes that
-it may undercover.
+the second, item by item, so each difference is paired. The mean paired
+difference is the ratio estimator of the cluster sums of item
+differences, and its interval is the cluster-robust t interval
+d plus and minus t_(C - 1, (1 + conf) / 2) x sqrt(V_d), with V_d the
+linearised variance above applied to the differences, whatever the method
+for accuracy (Cameron and Miller 2015), cut to \link{-1, 1} as the accuracy
+intervals are cut to \link{0, 1} (with few clusters the t quantile can reach
+past either end). It covered 94.7\% (40 clusters) and
+95.7\% (10 clusters) in the coverage simulation, where the BCa cluster
+bootstrap it replaces covered 92.9\% and 89.2\%. When every cluster gives
+the same mean difference per item, V_d is 0 and the t interval is not
+defined. That is a property of the items, not evidence that the
+difference is known, so the interval then takes the items, not the
+clusters, as the sampling units: Tango's (1998) score interval for paired
+proportions with the discordant shares q10 and q01 described under
+non-inferiority below, on n_eff = I x (z_(1 - a) / t_(C - 1, 1 - a))^2
+pairs for one-sided level a = (1 - conf) / 2, the I items scaled for the
+C - 1 degrees of freedom as Korn and Graubard's effective size is. Its
+\code{method} is \code{"tango_items"}, and a note says so.
 
 \strong{Rankings.} No leaderboard by point estimate: arms are listed in the
 order of the benchmark. Simultaneous intervals over all pairwise
-differences use the max-t method on the bootstrap resamples (each
-difference standardised by its bootstrap standard deviation, the critical
-value the \code{conf} quantile of the largest one), with the same small-sample
-note. Rank intervals are the \code{(1 - conf) / 2} and \code{(1 + conf) / 2} quantiles of each arm's rank over the bootstrap
-resamples (rank 1 is the most accurate).
+differences use the single-step max-t method (Hothorn, Bretz and Westfall
+2008) on the same cluster-robust t statistics: the critical value is the
+\code{conf} quantile of the largest absolute value of a multivariate t with
+C - 1 degrees of freedom and the correlation matrix of the linearised
+covariance of the differences, from 100000 draws of the private random
+stream. With one pair it is the t quantile of the paired interval. A
+pair whose V_d is 0 gets the Tango interval above at the Bonferroni level
+a = (1 - conf) / (2 x number of pairs). These intervals are cut to
+\link{-1, 1} too.
+Rank intervals are the \code{(1 - conf) / 2} and \code{(1 + conf) / 2} quantiles of
+each arm's rank over the cluster bootstrap resamples (rank 1 is the most
+accurate).
 
 \strong{Stability} (Atil et al. 2025): the flip rate is the share of items
 whose correctness differs across runs; TARa is the share of items whose
@@ -200,31 +257,40 @@ exceeds 10\%, runs = 10 is recommended.
 
 \strong{Non-inferiority.} With a \code{registration} from \code{\link[=hr_register_contrasts]{hr_register_contrasts()}},
 each registered contrast is tested. The verdict holds only if (1) the
-one-sided lower bound of the BCa cluster-bootstrap accuracy difference
-(new minus reference) is above -margin and (2), when the contrast has
-\code{cost_test = TRUE}, the one-sided upper bound of the paired difference in
-dollars per item is below 0. At a one-sided level of 0.025 that is the
-97.5\% bound. Each contrast's p-value is the smallest one-sided level at
-which both conditions hold (an intersection-union test, so each condition
-runs at that full level). The confirmatory contrasts are tested with
-Holm's (1979) step-down procedure at the registration's alpha: in order of
-their p-values, the j-th of k is tested at alpha / (k - j + 1), and the
-first that fails stops the procedure. Exploratory contrasts are tested at
-alpha alone. Beside every verdict the report gives the design MDD the contrast
-was registered against and the achieved MDD,
-(z_(1 - alpha') + z_power) x SE, with SE the bootstrap standard deviation
-of the paired difference (the design formula with p_disc / n_eff taken
-from the data) and alpha' = alpha / (number of confirmatory contrasts),
-or alpha for an exploratory one. A verdict that passed its registered test
+one-sided lower bound of the accuracy difference (new minus reference) is
+above -margin and (2), when the contrast has \code{cost_test = TRUE}, the
+one-sided upper bound of the paired difference in dollars per item is
+below 0. The accuracy bound is the cluster-robust t bound of the paired
+differences above, taken one-sided: d - t_(C - 1, 1 - level) x sqrt(V_d),
+or, when V_d is 0, the lower end of the Tango interval with items as
+pairs above at one-sided \code{level}. At a one-sided level of 0.025 that is
+the 97.5\% bound, the lower end of the 95\% contrast interval, so the
+verdict and the printed interval agree. The cost bound is the BCa cluster
+bootstrap of the cost intervals. Each contrast's p-value is the smallest
+one-sided level at which both conditions hold (an intersection-union
+test, so each condition runs at that full level). The confirmatory
+contrasts are tested with Holm's (1979) step-down procedure at the
+registration's alpha: in order of their p-values, the j-th of k is tested
+at alpha / (k - j + 1), and the first that fails stops the procedure.
+Exploratory contrasts are tested at alpha alone. Beside every verdict the
+report gives the design MDD the contrast was registered against and the
+achieved MDD,
+(t_(C - 1, 1 - alpha') + t_(C - 1, power)) x SE, with SE = sqrt(V_d) the
+linearised standard error of the paired difference (the \code{\link[=hr_mdd]{hr_mdd()}}
+formula with p_disc / n_eff taken from the data) and
+alpha' = alpha / (number of confirmatory contrasts), or alpha for an
+exploratory one; it is \code{NA} when V_d is 0, since the data then give no
+variance to base it on. A verdict that passed its registered test
 is shown as passed even when the achieved MDD exceeds the margin; a note
 says so. As a cross-check, Tango's (1998) score interval for paired
 proportions is computed on effective counts. The discordant shares are
 the means over items of the chance that a run of the new arm is right and
 a run of the reference wrong (q10), and the reverse (q01). The effective
 number of pairs is (q10 + q01 - estimate^2) / SE^2, the size of a simple
-paired sample with the variance the cluster bootstrap found (the effective
+paired sample with the linearised variance V_d (the effective
 size of Korn and Graubard 1998, applied to the paired difference), at most
-the number of paired runs; the counts are q10 and q01 times it. Tango's
+the number of items (runs of one item mostly agree, so they are not
+independent pairs); the counts are q10 and q01 times it. Tango's
 interval is reported at the level the contrast was tested at, beside
 whether it reaches the same accuracy conclusion, and is not used in the
 verdict.
@@ -239,9 +305,9 @@ and a registration changed after it was made is refused (class
 \code{hr_registration_changed}).
 
 Below 5 runs the report is descriptive only: point estimates without
-intervals, resamples or rank intervals. Cost, pass^k and frontier
-intervals come from the cluster bootstrap in both regimes; below the
-thresholds the report says to read them as rough.
+intervals, resamples or rank intervals. Cost and pass^k intervals (BCa),
+rank intervals and the frontier share come from the cluster bootstrap in
+both regimes; below the thresholds the report says to read them as rough.
 }
 \examples{
 # 12 documents with 3 questions each, two arms, 5 runs.
@@ -260,14 +326,27 @@ rpt$accuracy
 Atil, B. et al. (2025). Non-determinism of "deterministic" LLM settings.
 arXiv:2408.04667.
 
+Agresti, A. (2013). \emph{Categorical Data Analysis}, 3rd edition. Wiley.
+
 Bowyer, S. et al. (2025). Position: Don't use the CLT in LLM evals with
 fewer than a few hundred datapoints. \emph{ICML 2025}.
+
+Cameron, A. C. and Miller, D. L. (2015). A practitioner's guide to
+cluster-robust inference. \emph{Journal of Human Resources} 50(2), 317-372.
+
+Cochran, W. G. (1977). \emph{Sampling Techniques}, 3rd edition. Wiley.
+
+Davison, A. C. and Hinkley, D. V. (1997). \emph{Bootstrap Methods and their
+Application}. Cambridge University Press.
 
 Efron, B. (1987). Better bootstrap confidence intervals. \emph{Journal of the
 American Statistical Association} 82(397), 171-185.
 
 Efron, B. and Tibshirani, R. J. (1993). \emph{An Introduction to the
 Bootstrap}. Chapman and Hall.
+
+Hothorn, T., Bretz, F. and Westfall, P. (2008). Simultaneous inference in
+general parametric models. \emph{Biometrical Journal} 50(3), 346-363.
 
 Kapoor, S., Stroebl, B., Siegel, Z. S., Nadgir, N. and Narayanan, A.
 (2024). arXiv:2407.01502.

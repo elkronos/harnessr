@@ -1,5 +1,6 @@
-# core-stats-boot.R: the cluster bootstrap, BCa intervals and the small-sample
-# intervals that replace them on small benchmarks.
+# core-stats-boot.R: the cluster bootstrap, BCa and studentised bootstrap
+# intervals, cluster-robust t intervals, and the small-sample intervals for
+# accuracy.
 #
 # Every bootstrapped quantity in a benchmark report is a ratio of sums over
 # clusters (accuracy is items' mean correctness summed per cluster over the
@@ -110,6 +111,122 @@ bca_table <- function(rb, conf) {
                bca = iv$bca, stringsAsFactors = FALSE)
   })
   do.call(rbind, rows)
+}
+
+#' Cluster-robust (linearised) standard errors of ratios of cluster sums.
+#'
+#' `num` and `den` are C x K matrices of per-cluster sums; statistic k is the
+#' ratio estimator r_k = sum(num[, k]) / sum(den[, k]). Its first-order
+#' (Taylor) linearisation gives the residuals e_ck = num_ck - r_k den_ck, and
+#' the variance with the small-sample factor C / (C - 1),
+#' V_k = C / (C - 1) * sum_c e_ck^2 / (sum_c den_ck)^2 (Cochran 1977,
+#' chapter 6; Cameron and Miller 2015). The covariance of r_j
+#' and r_k is the same sum over e_cj e_ck. `df` is C - 1, the degrees of
+#' freedom the t quantiles take with few clusters (Cameron and Miller 2015).
+#' @noRd
+cluster_ratio_se <- function(num, den) {
+  num <- as.matrix(num); den <- as.matrix(den)
+  C <- nrow(num)
+  td <- colSums(den)
+  est <- colSums(num) / td
+  res <- num - sweep(den, 2L, est, `*`)
+  # Residuals that are 0 in exact arithmetic (every cluster at the same
+  # ratio) can come out at rounding-error size; they are set to 0.
+  res[abs(res) < 1e-12 * pmax(1, abs(num))] <- 0
+  scaled <- sweep(res, 2L, td, `/`)
+  vc <- C / (C - 1) * crossprod(scaled)
+  list(estimate = est, se = sqrt(diag(vc)), vcov = vc, df = C - 1L)
+}
+
+#' Cluster-robust t intervals for ratios of cluster sums: the estimate plus
+#' and minus t_(C - 1, (1 + conf) / 2) times the linearised standard error of
+#' cluster_ratio_se(). A statistic whose standard error is 0 (every cluster
+#' at the same ratio) gets the point as its interval, with `zero_var = TRUE`.
+#'
+#' With `scale = "logit"` the interval is built for logit(r), with the delta
+#' method standard error se / (r (1 - r)), and mapped back, so it stays inside
+#' (0, 1) and follows the skew of a proportion near a bound (Agresti 2013).
+#' It is undefined at r = 0 or 1 and
+#' when se = 0; those rows come back NA with `defined = FALSE`.
+#' @noRd
+cluster_t_table <- function(num, den, conf, scale = c("identity", "logit")) {
+  scale <- match.arg(scale)
+  v <- cluster_ratio_se(num, den)
+  q <- stats::qt((1 + conf) / 2, v$df)
+  est <- unname(v$estimate); se <- unname(v$se)
+  zero <- se == 0
+  if (scale == "identity") {
+    lower <- est - ifelse(zero, 0, q * se)
+    upper <- est + ifelse(zero, 0, q * se)
+    defined <- is.finite(est)
+  } else {
+    defined <- is.finite(est) & est > 0 & est < 1 & !zero
+    h <- ifelse(defined, q * se / (est * (1 - est)), NA_real_)
+    lg <- ifelse(defined, stats::qlogis(pmin(pmax(est, 1e-300), 1 - 1e-16)), NA_real_)
+    lower <- stats::plogis(lg - h)
+    upper <- stats::plogis(lg + h)
+  }
+  data.frame(estimate = est, se = se, lower = lower, upper = upper, df = v$df,
+             zero_var = zero, defined = defined, stringsAsFactors = FALSE)
+}
+
+#' Studentised (bootstrap-t) cluster bootstrap intervals for ratios of
+#' cluster sums (Efron and Tibshirani 1993, chapter 12; Davison and Hinkley
+#' 1997, chapters 2 and 5).
+#'
+#' Each resample b gives r*_b and its own linearised standard error se*_b,
+#' the cluster_ratio_se() formula applied to the resampled clusters with
+#' their counts as weights, and t*_b = (r*_b - r) / se*_b. With q_lo and q_hi
+#' the (1 - conf) / 2 and (1 + conf) / 2 quantiles of t* (the order
+#' statistics of quantile type 1), the interval is
+#' [r - q_hi se, r - q_lo se], with se the full-sample standard error.
+#' A resample at r with se*_b = 0 has t*_b = 0. With `bounds` the interval is
+#' cut to that range. A statistic with se = 0 comes back NA with
+#' `defined = FALSE`.
+#' @noRd
+studentised_table <- function(num, den, counts, conf, bounds = c(-Inf, Inf)) {
+  num <- as.matrix(num); den <- as.matrix(den)
+  C <- nrow(num)
+  v <- cluster_ratio_se(num, den)
+  nb <- counts %*% num; db <- counts %*% den
+  rb <- nb / db
+  # sum_c w_c (num_c - r* den_c)^2, expanded so each part is one product.
+  ss <- counts %*% num^2 - 2 * rb * (counts %*% (num * den)) + rb^2 * (counts %*% den^2)
+  seb <- sqrt(C / (C - 1) * pmax(ss, 0)) / db
+  rows <- lapply(seq_len(ncol(num)), function(k) {
+    est <- unname(v$estimate[[k]]); se <- unname(v$se[[k]])
+    if (!is.finite(est) || se == 0) {
+      return(data.frame(estimate = est, se = se, lower = NA_real_, upper = NA_real_,
+                        defined = FALSE))
+    }
+    tt <- (rb[, k] - est) / seb[, k]
+    tt[is.nan(tt)] <- 0
+    q <- stats::quantile(tt, c((1 + conf) / 2, (1 - conf) / 2), type = 1, names = FALSE)
+    data.frame(estimate = est, se = se,
+               lower = min(max(est - q[[1]] * se, bounds[[1]]), bounds[[2]]),
+               upper = max(min(est - q[[2]] * se, bounds[[2]]), bounds[[1]]), defined = TRUE)
+  })
+  do.call(rbind, rows)
+}
+
+#' The critical value of simultaneous cluster-robust t intervals: the `conf`
+#' quantile of max_j |T_j| for T multivariate t with `df` degrees of freedom
+#' and correlation matrix that of `vcov` (Hothorn, Bretz and Westfall 2008,
+#' the single-step max-t method). It is computed from `z`, an M x K matrix of
+#' standard normal draws, and `w`, M chi-squared draws on `df` degrees of
+#' freedom: T = (z L) / sqrt(w / df) with L L' the correlation matrix (from
+#' its eigen decomposition, so a singular matrix is allowed). With one
+#' statistic it is the t quantile itself.
+#' @noRd
+max_t_critical <- function(vcov, df, conf, z, w) {
+  K <- nrow(vcov)
+  if (K == 1L) return(stats::qt((1 + conf) / 2, df))
+  s <- sqrt(diag(vcov))
+  R <- vcov / outer(s, s)
+  e <- eigen(R, symmetric = TRUE)
+  L <- t(e$vectors %*% diag(sqrt(pmax(e$values, 0)), K))
+  tt <- (z[, seq_len(K), drop = FALSE] %*% L) / sqrt(w / df)
+  stats::quantile(do.call(pmax, as.data.frame(abs(tt))), conf, names = FALSE)
 }
 
 #' Posterior of the mean accuracy under a beta-binomial model with a cluster

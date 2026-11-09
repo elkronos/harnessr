@@ -80,11 +80,13 @@ is delta + true_diff.}
 \code{hr_mdd()} returns an object of class \code{hr_mdd}, a list with
 \code{mdd} and the design it rests on: \code{n_items}, \code{n_clusters}, \code{m}, \code{m_adj}
 (the size after the cv correction), \code{icc}, \code{cv}, \code{de}, \code{n_eff},
-\code{p_disc}, \code{power}, \code{alpha}, \code{alpha_adj}, \code{n_contrasts}, \code{holm},
-\code{z_alpha} and \code{z_power}. \code{hr_n_needed()} returns an object of class
-\code{hr_n_needed} with \code{n_eff}, \code{n_items} (n_eff x DE) and \code{n_clusters}
-(n_items / m, \code{NA} when \code{m} is not given), unrounded, beside the same
-design values; \code{print()} rounds them up.
+\code{p_disc}, \code{power}, \code{alpha}, \code{alpha_adj}, \code{n_contrasts}, \code{holm}, \code{df}
+(C - 1), the t quantiles \code{t_alpha} and \code{t_power} the MDD uses, and the
+normal quantiles \code{z_alpha} and \code{z_power} beside them.
+\code{hr_n_needed()} returns an object of class \code{hr_n_needed} with \code{n_eff},
+\code{n_items} (n_eff x DE) and \code{n_clusters} (n_items / m, \code{NA} when \code{m} is
+not given), unrounded, beside the same design values, \code{df}
+(n_items / m - 1) and the quantiles; \code{print()} rounds them up.
 }
 \description{
 \code{hr_mdd()} gives the smallest paired accuracy difference a benchmark of
@@ -93,10 +95,13 @@ to detect a given one. Both use the closed form for a paired comparison of
 two proportions with a true difference of 0:
 }
 \details{
-n_eff = (z_(1 - alpha') + z_power)^2 x p_disc / Delta^2,
+n_eff = (t_(C - 1, 1 - alpha') + t_(C - 1, power))^2 x p_disc / Delta^2,
 
-where p_disc is the share of items on which the two arms disagree, so
-p_disc / n_eff is the variance of the mean paired difference. Items in one
+with t quantiles on C - 1 degrees of freedom for C clusters: the degrees
+of freedom of the cluster-robust t bound that \code{\link[=hr_report]{hr_report()}} tests
+non-inferiority with. p_disc is the share of items on which the two arms
+disagree, so p_disc / n_eff is the variance of the mean paired
+difference. Items in one
 cluster are not independent, so the effective number of items is
 n_eff = n_items / DE with the design effect DE = 1 + (m - 1) x ICC_D
 (Kish 1965), where m is the mean cluster size and ICC_D the intra-cluster
@@ -105,7 +110,12 @@ unequal cluster sizes of coefficient of variation \code{cv}, m is replaced by
 (cv^2 + 1) x m (Eldridge, Ashby and Kerry 2006). \code{hr_mdd()} solves for
 Delta:
 
-Delta = (z_(1 - alpha') + z_power) x sqrt(p_disc / n_eff).
+Delta = (t_(C - 1, 1 - alpha') + t_(C - 1, power)) x sqrt(p_disc / n_eff).
+
+C is \code{n_clusters}, or n_items / m when only \code{m} is given, or n_items when
+the items are independent; it must be above 1. \code{hr_n_needed()} finds the
+number of items whose C = n_items / m satisfies the formula, by root
+finding, since the quantiles depend on it.
 
 With \code{holm = TRUE} and more than one contrast, alpha' = alpha /
 n_contrasts, the level Holm's procedure tests its first contrast at: the
@@ -113,7 +123,14 @@ worst case, since later steps test at larger levels. With \code{holm = FALSE},
 alpha' = alpha.
 
 The closed form is a first estimate. Power for a study is better planned
-by simulation from a pilot fitted on the dev split.
+by simulation from a pilot fitted on the dev split. Set against the
+report's cluster-robust t bound (\code{dev/sim-power.R}, 2000 replicates,
+seed 1), the MDD at 80\% power was 0.16 and 0.17 points below the
+simulated one at 80 equal clusters (one and nine contrasts; simulated
+power at the formula's MDD 78.55\% and 78.30\%) and 0.25 points above it at
+40 unequal clusters (81.60\%). Normal quantiles in place of the t
+quantiles were 0.26 and 0.41 points below at 80 clusters (77.20\% and
+76.05\%) and 0.04 points below at 40 (79.85\%).
 }
 \examples{
 # 480 scored questions in 80 documents, ICC of the paired difference 0.2,

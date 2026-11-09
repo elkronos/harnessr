@@ -616,21 +616,45 @@
 
 * **New `hr_report()`** turns the reportable rows of an `hr_benchmark()`
   into accuracy per arm (mean over runs within each item, then over items)
-  with intervals that keep clusters together. With at least 300 items and 30
-  clusters it uses a BCa cluster bootstrap that resamples whole clusters
-  with all their items, runs and arms (B = 2000, or 5000 with
-  `confirmatory = TRUE`); below either threshold it uses a Bayesian
-  beta-binomial model with a cluster random effect and flat priors, computed
-  on a grid, one-sided from the boundary when an arm scores 0 or 1.
+  with intervals that keep clusters together. With the default
+  `method = "auto"` and at least 300 items and 30 clusters it uses
+  `method = "bootstrap"`, which is now a studentised (bootstrap-t) cluster
+  bootstrap rather than BCa: it resamples whole clusters with all their
+  items, runs and arms (B = 2000, or 5000 with `confirmatory = TRUE`), each
+  resample studentised by its own linearised standard error. Below either
+  threshold it uses the new `method = "cluster_t"`, a cluster-robust t
+  interval on the logit scale: the linearised variance of the ratio
+  estimator with the C / (C - 1) factor and t quantiles on C - 1 degrees of
+  freedom (Cameron and Miller 2015). Both can be asked for at any size.
+  Where neither is defined (accuracy 0 or 1, or the same in every cluster)
+  the arm gets Korn and Graubard's interval, one-sided from the bound at 0
+  or 1, with a note.
   `method = "exact"` gives Clopper-Pearson on the effective number of items
   from cluster totals (Korn and Graubard) instead, with items rather than
-  runs as trials. No Wald or normal interval is given for accuracy.
+  runs as trials, and `method = "bayes"` a Bayesian beta-binomial model
+  with a cluster random effect and flat priors, with a note on its
+  calibration. No interval treats items or runs as independent trials.
+
+  These methods replace the BCa cluster bootstrap and the Bayesian model as
+  defaults after the coverage simulation (`dev/sim-coverage.R`, 2000
+  replicates) failed them: BCa covered 93.5% for accuracy at 0.75 and 92.9%
+  for the paired difference with 40 clusters, and 89.2% for the difference
+  with 10 clusters; the Bayesian model covered 96.5% to 96.6% with 10
+  clusters, its misses 2.9% to 3.2% below the truth and 0.2% to 0.5% above.
+  With the new methods the same simulation passes: accuracy 95.5% and
+  95.0%, difference 94.7% with 40 clusters; accuracy 95.8% and 95.7%,
+  difference 95.7% with 10 clusters.
 
 * The report also gives paired differences between arms (every pair, or
-  the ones in `contrasts`) with BCa intervals from the same cluster
-  resamples at every size, max-t simultaneous intervals over all pairs and
-  bootstrap rank intervals in place of a ranking by point estimate; flip
-  rate, TARa and run-level SD; pass^k with the unbiased estimator; dollars
+  the ones in `contrasts`) with cluster-robust t intervals on C - 1 degrees
+  of freedom at every size, cut to [-1, 1] (when every cluster gives the
+  same mean difference, so the cluster variance is 0, Tango's score
+  interval with the items as pairs and the item count scaled for C - 1
+  degrees of freedom, with a note), single-step max-t simultaneous
+  intervals over all pairs from the multivariate t with the same
+  correlation (Hothorn, Bretz and Westfall 2008), and bootstrap rank
+  intervals in place of a ranking by point estimate; flip rate, TARa and
+  run-level SD; pass^k with the unbiased estimator; dollars
   and tokens per item and per correct item with intervals, flagging arms
   whose cost rests on estimated token counts for more than 5%; the
   cost-accuracy frontier with each arm's share of resamples on it; failure
@@ -645,13 +669,19 @@
 
 * **New `hr_mdd()` and `hr_n_needed()`** give the smallest paired accuracy
   difference a clustered design can detect, and the items needed for a
-  given one, from n_eff = (z_(1 - alpha') + z_power)^2 x p_disc / Delta^2
-  with the design effect DE = 1 + (m - 1) x ICC_D, where ICC_D is the
-  intra-cluster correlation of the paired item difference and m becomes
-  (cv^2 + 1) x m for unequal clusters. With `n_contrasts` above 1, alpha' is
-  alpha / n_contrasts, the first step of Holm. For 480 questions in 80
-  documents at ICC_D 0.2 and p_disc 0.2 this gives DE 2, 240 effective items
-  and an MDD of 8.1 points, or 10.4 points after Holm over nine contrasts.
+  given one, from
+  n_eff = (t_(C - 1, 1 - alpha') + t_(C - 1, power))^2 x p_disc / Delta^2
+  with t quantiles on C - 1 degrees of freedom for C clusters, the degrees
+  of freedom of the report's non-inferiority bound, and the design effect
+  DE = 1 + (m - 1) x ICC_D, where ICC_D is the intra-cluster correlation of
+  the paired item difference and m becomes (cv^2 + 1) x m for unequal
+  clusters. With `n_contrasts` above 1, alpha' is alpha / n_contrasts, the
+  first step of Holm. For 480 questions in 80 documents at ICC_D 0.2 and
+  p_disc 0.2 this gives DE 2, 240 effective items and an MDD of 8.2 points,
+  or 10.7 points after Holm over nine contrasts (8.1 and 10.4 with normal
+  quantiles). `hr_n_needed()` finds the number of items by root finding,
+  since the degrees of freedom depend on it, and both refuse a design of one
+  cluster.
   `hr_n_needed()` also takes a true difference below 0.
 
 * **New `hr_contrast()` and `hr_register_contrasts()`** fix non-inferiority
@@ -668,15 +698,25 @@
   clusters only.
 
 * **`hr_report()` gains `registration`.** Each registered contrast is
-  non-inferior only if the one-sided lower bound of the cluster-bootstrap
-  accuracy difference is above -margin and, when it tests cost, the upper
-  bound of the paired cost difference is below 0. Confirmatory contrasts
-  are tested with Holm's step-down procedure, exploratory ones at alpha.
-  The design and achieved MDD are printed beside every verdict, and a
+  non-inferior only if the one-sided lower bound of the accuracy difference
+  is above -margin and, when it tests cost, the upper bound of the paired
+  cost difference (BCa cluster bootstrap) is below 0. The accuracy bound is
+  the cluster-robust t bound of the report's paired differences, taken
+  one-sided on C - 1 degrees of freedom (the Tango bound with items as
+  pairs when every cluster gives the same mean difference), so at one-sided
+  0.025 it is the lower end of the printed 95% contrast interval. It
+  replaces the BCa cluster bootstrap bound, which undercovered the paired
+  difference in the coverage simulation (92.9% with 40 clusters, 89.2% with
+  10). Confirmatory contrasts are tested with Holm's step-down procedure,
+  exploratory ones at alpha.
+  The design and achieved MDD are printed beside every verdict (the
+  achieved one on the linearised standard error and the same t quantiles
+  as `hr_mdd()`, and `NA` when the cluster variance is 0), and a
   contrast that passed its registered test is reported as passed even when
   the achieved MDD exceeds its margin. Tango's (1998) paired score interval
-  on effective counts is given as a cross-check. A changed registration,
-  or one for another reference, is refused.
+  on effective counts, at most one pair per item, is given as a
+  cross-check. A changed registration, or one for another reference, is
+  refused.
 
 * **Dev-split rows are refused as evidence.** A report with a registration
   or `confirmatory = TRUE` errors with class `hr_dev_not_evidence` when the
@@ -819,6 +859,35 @@
   arm, another reference or scorer (`hr_drift_mismatch`) and a live rerun
   answered from a cache or a recording (`hr_drift_not_live`). The live
   rerun is returned as an `hr_bench`.
+
+### Validation of the intervals and the MDD
+
+* **A nightly validation job checks the report's statistics on simulated
+  benchmarks.** `dev/sim-coverage.R` simulates clustered corpora with a
+  known effect, document ICC and run variance, reports each with
+  `hr_report()`, and gives the coverage of the accuracy and paired
+  difference intervals over 2000 replicates with its Wilson 95% interval,
+  in a large design (386 items in 40 clusters, studentised cluster
+  bootstrap) and a small one (50 items in 10 clusters, cluster-robust t on
+  the logit scale, with the Korn-Graubard interval beside it). An interval
+  passes when that Monte Carlo interval contains 95% and its lower end is
+  at least 93%. `dev/sim-power.R` sets `hr_mdd()` against a power
+  simulation of the report's cluster-robust t non-inferiority bound and
+  passes when the simulated MDD is within 1 point. Both exit with status 1
+  on a failure. The workflow `.github/workflows/validation.yaml` runs them
+  every night and by hand, never on pull requests, and keeps the printed
+  tables as an artifact. The power table's `power_check` column also marks
+  a design whose simulated power at the formula's MDD lies below or above
+  the target beyond Monte Carlo error ("below target" or "above target"),
+  without failing the run.
+
+* The `hr_mdd()` help gives the power simulation's result (2000
+  replicates, seed 1): the MDD was 0.16 and 0.17 points below the simulated
+  one at 80 equal clusters (simulated power at the formula's MDD 78.55% and
+  78.30%) and 0.25 points above it at 40 unequal clusters (81.60%). With
+  normal quantiles it was 0.26 and 0.41 points below at 80 clusters (power
+  77.20% and 76.05%, short of 80% beyond Monte Carlo error), which is why
+  the formula takes t quantiles.
 
 # readgpt 0.6.0
 

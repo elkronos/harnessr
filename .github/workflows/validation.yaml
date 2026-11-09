@@ -1,0 +1,67 @@
+name: validation
+
+# The statistical checks that take minutes: coverage of the report's
+# intervals and the MDD formula against a power simulation, each over 2000
+# replicates (dev/sim-coverage.R and dev/sim-power.R). They test the methods,
+# not a change, so they run nightly and by hand, never on pull requests. The
+# printed tables are kept as an artifact whether the run passes or fails.
+
+on:
+  schedule:
+    - cron: '23 4 * * *'
+  workflow_dispatch:
+    inputs:
+      reps:
+        description: 'Replicates per design'
+        required: false
+        default: '2000'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      OPENAI_API_KEY: ''
+      REPS: ${{ github.event.inputs.reps || '2000' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"hard"'
+
+      - name: Install package
+        run: R CMD INSTALL . --no-byte-compile
+        shell: bash
+
+      - name: Coverage of the report's intervals
+        run: Rscript dev/sim-coverage.R --reps="$REPS" --cores=4 --out=sim-results
+        shell: bash
+
+      # Runs even when the coverage step failed, so one night reports both.
+      - name: MDD against a power simulation
+        if: success() || failure()
+        run: Rscript dev/sim-power.R --reps="$REPS" --cores=4 --out=sim-results
+        shell: bash
+
+      - name: Upload the tables
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-tables
+          path: sim-results/
+          if-no-files-found: warn
