@@ -9,7 +9,10 @@ gr_calibrate(
   reference,
   positive = "include",
   min_positives = 10L,
-  of = NULL
+  of = NULL,
+  recall_target = 0.95,
+  conf = 0.95,
+  max_lost = NULL
 )
 }
 \arguments{
@@ -30,10 +33,21 @@ one stratum is judged by its interval instead; see "What a small sample
 cannot do".}
 
 \item{of}{Which part of the screening run the reference was drawn from:
-\code{"excluded"}, \code{"kept"} or \code{"all"}; anything else is an error. Normally
+\code{"excluded"}, \code{"kept"}, \code{"all"} or \code{"stacked"}; anything else is an
+error. \code{"stacked"} also reads a kept sheet and an excluded sheet stacked
+with \code{rbind()} as one stratified reference. Normally
 recovered from the file \code{\link[=gr_reference]{gr_reference()}} wrote; give it explicitly for a
 reference built by hand. Given over a file that records a different
 frame, it wins with a warning, and the file's frame size is not used.}
+
+\item{recall_target}{The recall the screener should reach, strictly between
+0 and 1.}
+
+\item{conf}{Confidence level of the recall and loss bounds.}
+
+\item{max_lost}{Optional: the most eligible records the screener may have
+excluded. When given, an upper bound on records lost at or below it also
+meets the target.}
 }
 \value{
 An object of class \code{gr_calibration}:
@@ -61,6 +75,25 @@ in an \code{"excluded"} or \code{"kept"} one.}
 \code{"interval"} or \code{"whole frame"}), \code{bar}, \code{width}, and \code{note}, a
 sentence saying why the sample fell short (\code{NA} when it did not).}
 \item{\code{frame}}{Which rows the sample was drawn from, and how many.}
+\item{\code{recall}}{Recall: \code{estimate}, \code{lower} and \code{upper} (two-sided at
+\code{conf}), \code{bound} (the one-sided lower bound), \code{method}, \code{conf}, \code{n}
+(eligible records in the sample) and \code{note}. \code{NA} where the frame
+cannot estimate it.}
+\item{\code{lost}}{M, the projected number of eligible records excluded:
+\code{estimate}, \code{lower}, \code{upper}, \code{bound} (the one-sided upper bound),
+\code{frame_n} (records excluded) and \code{conf}.}
+\item{\code{false_exclusion}}{The share of excluded records that are
+eligible: \code{estimate}, \code{lower}, \code{upper} (exact) and \code{n}.}
+\item{\code{work_saved}}{The share of screened records the screener
+excluded, which nobody reads: \code{estimate}, \code{excluded}, \code{screened}.}
+\item{\code{unclear_rate}}{The share of screened records left unclear:
+\code{estimate}, \code{unclear}, \code{screened}.}
+\item{\code{strata}}{One row per stratum the frame drew from: \code{N}, \code{n},
+\code{eligible}, \code{inclusion_prob}, and the estimated eligible count with
+its exact two-sided bounds.}
+\item{\code{verdict}}{\code{met} (\code{TRUE}, \code{FALSE}, or \code{NA} when nothing bounds
+recall or M), \code{rule}, \code{recall_target}, \code{conf}, \code{max_lost} and
+\code{note}.}
 }
 }
 \description{
@@ -159,6 +192,49 @@ studies, printed with its interval, is the figure to judge that by.
 \verb{$adequacy$note} says in a sentence why a sample fell short.
 }
 
+\section{Recall against a target}{
+
+Every calibration also reports recall, the share of eligible records the
+screener kept, against \code{recall_target}, with bounds that stay valid at the
+zero or one misses a reference usually finds.
+
+On a stacked reference (every kept record, and a simple random sample of n
+of the N excluded ones; \code{of = "stacked"}) the eligible count is K among the
+kept and x in the sample, and recall is estimated with the design weights,
+the ratio of Horvitz-Thompson totals from \code{\link[=hr_ht_estimate]{hr_ht_estimate()}}:
+K / (K + M), with M = N x / n the projected number of eligible records
+excluded. M is bounded exactly from the hypergeometric distribution of x:
+its upper bound M_U is the largest M for which drawing x or fewer has
+probability above alpha = 1 - \code{conf}, and the lower bound the smallest M
+for which drawing x or more does. Recall falls as M rises, so its one-sided
+lower bound is K / (K + M_U). If the kept records were sampled too, each
+sampled stratum is bounded the same way with alpha split equally between
+them (Bonferroni). The interval in \verb{$recall} is two-sided at \code{conf}, with
+alpha / 2 on each side; \verb{$recall$bound} is the one-sided bound at \code{conf}.
+No bootstrap is used: with x = 0 every resample also gives M = 0, and the
+interval would be \verb{[1, 1]}.
+
+On a sample of everything screened (\code{"all"}) the eligible records in the
+sample are a random sample of all of them, and recall is the share kept
+with a Clopper-Pearson bound (Lewis, Yang and Frieder 2021). A sample of
+the exclusions alone bounds M and the false-exclusion rate but not recall,
+since it does not count the eligible records kept, and a sample of the
+kept records alone holds none of the misses.
+
+The verdict in \verb{$verdict} says the target is met when the one-sided lower
+bound on recall is at least \code{recall_target}, or, when \code{max_lost} is given,
+when the upper bound on M is at most \code{max_lost}. On a stacked reference
+this verdict is also \verb{$adequate}.
+
+Weights come from the run: N is the number of records the screening
+excluded (or kept), and n the rows of that stratum with a human decision.
+On a complete sheet that is the inclusion probability the sheet records; a
+sheet whose recorded probabilities disagree is weighted by the run, with a
+warning. Agreement statistics are not computed on a stacked reference,
+since unweighted they are distorted in the same direction as unweighted
+sensitivity.
+}
+
 \section{One row per document}{
 
 The reference is matched to the screening by document name, compared as
@@ -180,14 +256,25 @@ ref <- data.frame(document = paste0("d", 1:8, ".pdf"),
                   stringsAsFactors = FALSE)
 gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref)
 }
+\references{
+Lewis, D. D., Yang, E. and Frieder, O. (2021). Certifying one-phase
+technology-assisted reviews. \emph{Proceedings of the 30th ACM International
+Conference on Information and Knowledge Management}, 893-902.
+
+Horvitz, D. G. and Thompson, D. J. (1952). A generalization of sampling
+without replacement from a finite universe. \emph{Journal of the American
+Statistical Association} 47(260), 663-685.
+}
 \seealso{
-\code{\link[=gr_reference]{gr_reference()}}, \code{\link[=gr_screen]{gr_screen()}}, \code{\link[=gr_audit_report]{gr_audit_report()}}
+\code{\link[=gr_reference]{gr_reference()}}, \code{\link[=gr_screen_sample_size]{gr_screen_sample_size()}}, \code{\link[=gr_screen]{gr_screen()}},
+\code{\link[=gr_audit_report]{gr_audit_report()}}
 
 Other corpus functions: 
 \code{\link{gr_inventory}()},
 \code{\link{gr_records}()},
 \code{\link{gr_reference}()},
 \code{\link{gr_resolve}()},
+\code{\link{gr_screen_sample_size}()},
 \code{\link{gr_search}()}
 }
 \concept{corpus functions}

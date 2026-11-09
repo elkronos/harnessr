@@ -66,6 +66,7 @@ Other corpus functions:
 \code{\link{gr_inventory}()},
 \code{\link{gr_records}()},
 \code{\link{gr_reference}()},
-\code{\link{gr_resolve}()}
+\code{\link{gr_resolve}()},
+\code{\link{gr_screen_sample_size}()}
 }
 \concept{corpus functions}

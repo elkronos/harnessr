@@ -573,6 +573,41 @@
 
 * `gr_calibrate()` and its output are unchanged.
 
+### Screening recall against a target
+
+* **`gr_reference(of = "stacked")`** draws the reference the screening help
+  recommends in one sheet: every record the screener kept, and `n` of those
+  it excluded. Each row records its stratum and its inclusion probability (1
+  for a kept record, `n` / N for an excluded one). A blind sheet keeps both
+  inside a key per row of one length, so they do not reveal what the model
+  decided. `frame =` is accepted as another name for `of`, and `reviewers`
+  writes one row per document per reviewer. The other frames draw exactly
+  as before.
+
+* **`gr_calibrate()` estimates recall on a stacked reference** instead of
+  refusing it: the ratio of Horvitz-Thompson totals, K / (K + M), with M the
+  projected number of eligible records excluded and exact hypergeometric
+  bounds on M mapped into a one-sided lower bound on recall. A kept sheet and
+  an excluded sheet stacked with `rbind()` are read the same way with
+  `of = "stacked"`; without it they are still refused.
+
+* **`gr_calibrate()` gains `recall_target` (0.95), `conf` (0.95) and
+  `max_lost`**, and its result gains `recall`, `lost`, `false_exclusion`,
+  `work_saved`, `unclear_rate`, `strata` and `verdict`, which says whether
+  the one-sided lower bound on recall reaches the target (or the bound on M
+  is within `max_lost`). A sample of everything screened bounds recall with
+  Clopper-Pearson; a sample of the exclusions alone bounds M but not recall.
+  Every field it returned before is unchanged.
+
+* **New `gr_screen_sample_size()`** gives the reference size a recall target
+  needs: n >= ln(alpha) / ln(T) eligible records with no miss (59 for 95% at
+  95% confidence), divided by `prevalence` for the records to draw, and for
+  a sample of the exclusions the exact hypergeometric size for a frame of
+  `frame_n` records with at most `max_lost` lost, beside the binomial one.
+  For a sample of everything screened, giving `frame_n` with `prevalence`
+  adds the exact finite-frame size (388 rather than 1180 for 500 records at
+  5% prevalence).
+
 # readgpt 0.6.0
 
 ## New

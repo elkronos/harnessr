@@ -54,10 +54,20 @@
 #' sensitivity from, which is no estimate at all.
 #'
 #' The design that matches how people actually work is to judge *every* record
-#' the screener kept, plus a sample of what it discarded: `of = "kept"` with
-#' `n = Inf`, and `of = "excluded"` with whatever hand-screening effort you have.
+#' the screener kept, plus a sample of what it discarded. `of = "stacked"` draws
+#' exactly that in one sheet: every kept record, and `n` of the excluded ones.
+#' Each row records its stratum and its inclusion probability (1 for a kept
+#' record, `n` / N for an excluded one, N being the number excluded), and
+#' [gr_calibrate()] weights each stratum by it to estimate recall. Drawn as two
+#' sheets (`of = "kept"` with `n = Inf`, and `of = "excluded"`) and stacked by
+#' hand, the same reference needs `of = "stacked"` in [gr_calibrate()].
+#' [gr_screen_sample_size()] says how large `n` should be.
 #' [gr_calibrate()] knows which frame it was given and will not compute a
 #' corpus-wide figure from a sample that cannot support one.
+#'
+#' A blind stacked sheet keeps each row's stratum and probability inside the
+#' `sampled_from` key, one key per row, so that neither gives away what the
+#' model decided; the rows are in the run's order, not grouped by stratum.
 #'
 #' @section The file:
 #' The CSV is written as UTF-8 with a byte-order mark, which is what makes
@@ -68,9 +78,11 @@
 #'
 #' @param screening A `gr_screening` from [gr_screen()].
 #' @param n How many to draw: a whole number of at least 1. `Inf` takes the
-#'   whole frame, as does any `n` larger than it.
+#'   whole frame, as does any `n` larger than it. For `of = "stacked"`, how
+#'   many of the excluded records to draw; the kept ones are all taken.
 #' @param of Which rows to sample from: `"excluded"`, `"kept"` (include and
-#'   unclear), or `"all"`.
+#'   unclear), `"all"`, or `"stacked"` (every kept record and a sample of the
+#'   excluded ones).
 #' @param seed A seed for the draw, so it is reproducible: the sample is drawn
 #'   after `set.seed(seed)` and your session's random number stream is put back
 #'   afterwards. A calibration sample is part of the method and has to be
@@ -82,7 +94,15 @@
 #'   "excluded" on every row says what the model decided: `sampled_from` holds
 #'   an opaque key that [gr_calibrate()] reads back as the frame and its size.
 #'   With `blind = FALSE` the file has `model_decision`, `model_reason`, and the
-#'   frame in plain words (`sampled_from`, `frame_n`, `screened_n`).
+#'   frame in plain words (`sampled_from`, `frame_n`, `screened_n`, and for a
+#'   stacked sheet `stratum` and `inclusion_prob`, with `frame_n` the size of
+#'   the row's stratum).
+#' @param frame The same as `of`, under the name [gr_screen_sample_size()]
+#'   uses. Give one or the other.
+#' @param reviewers How many people will judge each record. Above 1 the sheet
+#'   has one row per document per reviewer, numbered in a `reviewer` column.
+#'   [gr_calibrate()] counts copies that agree once and refuses copies that
+#'   disagree, so reconcile them into one decision per document first.
 #' @return A data frame of class `gr_reference_frame`, invisibly when written.
 #'   The `human_decision` column is empty and is yours to fill with `include` or
 #'   `exclude`.
@@ -96,9 +116,26 @@
 #'                   reason = "because", stringsAsFactors = FALSE)
 #' gr_reference(structure(list(table = tab), class = "gr_screening"),
 #'              n = 3, of = "excluded", seed = 1)
-gr_reference <- function(screening, n = 50, of = c("excluded", "kept", "all"),
-                         seed = NULL, path = NULL, blind = TRUE) {
+#'
+#' # Every kept record, and two of the four excluded ones.
+#' gr_reference(structure(list(table = tab), class = "gr_screening"),
+#'              n = 2, of = "stacked", seed = 1, blind = FALSE)
+gr_reference <- function(screening, n = 50, of = c("excluded", "kept", "all", "stacked"),
+                         seed = NULL, path = NULL, blind = TRUE, frame = NULL,
+                         reviewers = 1L) {
+  if (!is.null(frame)) {
+    frame <- match.arg(frame, c("excluded", "kept", "all", "stacked"))
+    if (!missing(of) && !identical(match.arg(of), frame)) {
+      gr_abort(sprintf("`frame = \"%s\"` and `of = \"%s\"` name different frames; give one.",
+                       frame, match.arg(of)), class = "gr_bad_setting")
+    }
+    of <- frame
+  }
   of <- match.arg(of)
+  rv <- suppressWarnings(as.numeric(reviewers))
+  if (length(rv) != 1L || is.na(rv) || !is.finite(rv) || rv < 1 || rv != floor(rv)) {
+    gr_abort("`reviewers` must be a single whole number of at least 1.", class = "gr_bad_setting")
+  }
   # A number, compared as a number, for the reason min_positives is below:
   # `"5" >= 30` is TRUE because R compares as strings, so n = "5" from a config
   # file took the whole frame, and NA stopped with "missing value where
@@ -114,25 +151,43 @@ gr_reference <- function(screening, n = 50, of = c("excluded", "kept", "all"),
   # A row with no decision was never read. It is not an exclusion and cannot be
   # compared with a human judgement of the document's eligibility.
   judged <- !is.na(tab$decision)
-  frame <- switch(of,
-                  excluded = judged & tab$decision == "exclude",
-                  kept     = judged & tab$decision %in% c("include", "unclear"),
-                  all      = judged)
-  pool <- tab[frame, , drop = FALSE]
+  is_kept <- judged & tab$decision %in% c("include", "unclear")
+  in_frame <- switch(of,
+                     excluded = judged & tab$decision == "exclude",
+                     kept     = is_kept,
+                     all      = judged,
+                     stacked  = judged)
+  pool <- tab[in_frame, , drop = FALSE]
   if (!nrow(pool)) {
     gr_abort(sprintf("No rows to sample: nothing in this run was %s.",
                      switch(of, excluded = "excluded", kept = "kept", "screened")),
              class = "gr_no_reference_frame")
   }
-  take <- if (is.infinite(n) || n >= nrow(pool)) seq_len(nrow(pool)) else {
-    idx <- seq_len(nrow(pool))
+  draw <- function(idx, size) {
+    if (is.infinite(size) || size >= length(idx)) return(idx)
     # with_private_rng(), not withr::with_seed(): withr is only suggested, so a
     # default install stopped here with "there is no package called 'withr'".
     # It is the same draw -- set.seed() under the session's RNG kind, the
     # caller's stream restored afterwards -- so a seed keeps its sample.
-    if (is.null(seed)) sample(idx, n) else with_private_rng(seed, sample(idx, n))
+    # idx[sample.int()] rather than sample(idx): sample() of one number draws
+    # from 1:idx instead.
+    pick <- function() idx[sample.int(length(idx), size)]
+    if (is.null(seed)) pick() else with_private_rng(seed, pick())
   }
-  out <- pool[sort(take), , drop = FALSE]
+  if (of == "stacked") {
+    # Every kept record, and `n` of the excluded ones. The rows stay in the
+    # run's order, so where a row sits on the sheet does not say which stratum
+    # it came from.
+    pool_kept <- is_kept[in_frame]
+    n_strata <- c(kept = sum(pool_kept), excluded = sum(!pool_kept))
+    take <- c(which(pool_kept), draw(which(!pool_kept), n))
+    drawn_strata <- c(kept = n_strata[["kept"]],
+                      excluded = length(take) - n_strata[["kept"]])
+  } else {
+    take <- draw(seq_len(nrow(pool)), n)
+  }
+  take <- sort(take)
+  out <- pool[take, , drop = FALSE]
 
   keep <- intersect(c("document", "document_id", "title", "authors", "year"), names(out))
   ref <- out[, keep, drop = FALSE]
@@ -156,12 +211,37 @@ gr_reference <- function(screening, n = 50, of = c("excluded", "kept", "all"),
   # sampled_from = "excluded" on every row told the person filling it in that
   # the model had rejected each record -- the answer `blind` exists to keep from
   # them -- and frame_n against screened_n said the same by its ratio.
-  if (blind) {
+  if (of == "stacked") {
+    # Each row says which stratum it came from and with what probability, the
+    # design weights gr_calibrate() estimates recall with. A blind sheet keeps
+    # them inside a key per row, padded to one length: a stratum written out,
+    # or an inclusion probability of 1, would tell the person which records
+    # the model kept.
+    stratum <- ifelse(pool_kept[take], "kept", "excluded")
+    size <- unname(n_strata[stratum])
+    got <- unname(drawn_strata[stratum])
+    if (blind) {
+      ref$sampled_from <- vapply(seq_along(stratum), function(i) {
+        stacked_key(stratum[i], size[i], got[i], sum(judged), out$document[i])
+      }, character(1))
+    } else {
+      ref$sampled_from <- "stacked"
+      ref$stratum <- stratum
+      ref$inclusion_prob <- got / size
+      ref$frame_n <- size
+      ref$screened_n <- sum(judged)
+    }
+  } else if (blind) {
     ref$sampled_from <- frame_key(of, nrow(pool), sum(judged), out$document)
   } else {
     ref$sampled_from <- of
     ref$frame_n <- nrow(pool)
     ref$screened_n <- sum(judged)
+  }
+  if (rv > 1) {
+    # One row per document per reviewer, each reviewer filling their own rows.
+    ref <- ref[rep(seq_len(nrow(ref)), each = rv), , drop = FALSE]
+    ref$reviewer <- rep(seq_len(rv), length.out = nrow(ref))
   }
   rownames(ref) <- NULL
   attr(ref, "of") <- of
@@ -318,6 +398,47 @@ as_screening_table <- function(screening) {
 #' studies, printed with its interval, is the figure to judge that by.
 #' `$adequacy$note` says in a sentence why a sample fell short.
 #'
+#' @section Recall against a target:
+#' Every calibration also reports recall, the share of eligible records the
+#' screener kept, against `recall_target`, with bounds that stay valid at the
+#' zero or one misses a reference usually finds.
+#'
+#' On a stacked reference (every kept record, and a simple random sample of n
+#' of the N excluded ones; `of = "stacked"`) the eligible count is K among the
+#' kept and x in the sample, and recall is estimated with the design weights,
+#' the ratio of Horvitz-Thompson totals from [hr_ht_estimate()]:
+#' K / (K + M), with M = N x / n the projected number of eligible records
+#' excluded. M is bounded exactly from the hypergeometric distribution of x:
+#' its upper bound M_U is the largest M for which drawing x or fewer has
+#' probability above alpha = 1 - `conf`, and the lower bound the smallest M
+#' for which drawing x or more does. Recall falls as M rises, so its one-sided
+#' lower bound is K / (K + M_U). If the kept records were sampled too, each
+#' sampled stratum is bounded the same way with alpha split equally between
+#' them (Bonferroni). The interval in `$recall` is two-sided at `conf`, with
+#' alpha / 2 on each side; `$recall$bound` is the one-sided bound at `conf`.
+#' No bootstrap is used: with x = 0 every resample also gives M = 0, and the
+#' interval would be `[1, 1]`.
+#'
+#' On a sample of everything screened (`"all"`) the eligible records in the
+#' sample are a random sample of all of them, and recall is the share kept
+#' with a Clopper-Pearson bound (Lewis, Yang and Frieder 2021). A sample of
+#' the exclusions alone bounds M and the false-exclusion rate but not recall,
+#' since it does not count the eligible records kept, and a sample of the
+#' kept records alone holds none of the misses.
+#'
+#' The verdict in `$verdict` says the target is met when the one-sided lower
+#' bound on recall is at least `recall_target`, or, when `max_lost` is given,
+#' when the upper bound on M is at most `max_lost`. On a stacked reference
+#' this verdict is also `$adequate`.
+#'
+#' Weights come from the run: N is the number of records the screening
+#' excluded (or kept), and n the rows of that stratum with a human decision.
+#' On a complete sheet that is the inclusion probability the sheet records; a
+#' sheet whose recorded probabilities disagree is weighted by the run, with a
+#' warning. Agreement statistics are not computed on a stacked reference,
+#' since unweighted they are distorted in the same direction as unweighted
+#' sensitivity.
+#'
 #' @section One row per document:
 #' The reference is matched to the screening by document name, compared as
 #' UTF-8 whatever the session's locale, and by `document_id` for a row whose
@@ -335,7 +456,9 @@ as_screening_table <- function(screening) {
 #' @param positive Which human decision counts as eligible: `"include"` or
 #'   `"exclude"`.
 #' @param of Which part of the screening run the reference was drawn from:
-#'   `"excluded"`, `"kept"` or `"all"`; anything else is an error. Normally
+#'   `"excluded"`, `"kept"`, `"all"` or `"stacked"`; anything else is an
+#'   error. `"stacked"` also reads a kept sheet and an excluded sheet stacked
+#'   with `rbind()` as one stratified reference. Normally
 #'   recovered from the file [gr_reference()] wrote; give it explicitly for a
 #'   reference built by hand. Given over a file that records a different
 #'   frame, it wins with a warning, and the file's frame size is not used.
@@ -343,6 +466,12 @@ as_screening_table <- function(screening) {
 #'   the sensitivity estimate is reported but marked inadequate. A sample of
 #'   one stratum is judged by its interval instead; see "What a small sample
 #'   cannot do".
+#' @param recall_target The recall the screener should reach, strictly between
+#'   0 and 1.
+#' @param conf Confidence level of the recall and loss bounds.
+#' @param max_lost Optional: the most eligible records the screener may have
+#'   excluded. When given, an upper bound on records lost at or below it also
+#'   meets the target.
 #' @return An object of class `gr_calibration`:
 #'   \describe{
 #'     \item{`counts`}{The confusion matrix, as kept/excluded by eligible/not.}
@@ -368,8 +497,36 @@ as_screening_table <- function(screening) {
 #'       `"interval"` or `"whole frame"`), `bar`, `width`, and `note`, a
 #'       sentence saying why the sample fell short (`NA` when it did not).}
 #'     \item{`frame`}{Which rows the sample was drawn from, and how many.}
+#'     \item{`recall`}{Recall: `estimate`, `lower` and `upper` (two-sided at
+#'       `conf`), `bound` (the one-sided lower bound), `method`, `conf`, `n`
+#'       (eligible records in the sample) and `note`. `NA` where the frame
+#'       cannot estimate it.}
+#'     \item{`lost`}{M, the projected number of eligible records excluded:
+#'       `estimate`, `lower`, `upper`, `bound` (the one-sided upper bound),
+#'       `frame_n` (records excluded) and `conf`.}
+#'     \item{`false_exclusion`}{The share of excluded records that are
+#'       eligible: `estimate`, `lower`, `upper` (exact) and `n`.}
+#'     \item{`work_saved`}{The share of screened records the screener
+#'       excluded, which nobody reads: `estimate`, `excluded`, `screened`.}
+#'     \item{`unclear_rate`}{The share of screened records left unclear:
+#'       `estimate`, `unclear`, `screened`.}
+#'     \item{`strata`}{One row per stratum the frame drew from: `N`, `n`,
+#'       `eligible`, `inclusion_prob`, and the estimated eligible count with
+#'       its exact two-sided bounds.}
+#'     \item{`verdict`}{`met` (`TRUE`, `FALSE`, or `NA` when nothing bounds
+#'       recall or M), `rule`, `recall_target`, `conf`, `max_lost` and
+#'       `note`.}
 #'   }
-#' @seealso [gr_reference()], [gr_screen()], [gr_audit_report()]
+#' @references
+#' Lewis, D. D., Yang, E. and Frieder, O. (2021). Certifying one-phase
+#' technology-assisted reviews. *Proceedings of the 30th ACM International
+#' Conference on Information and Knowledge Management*, 893-902.
+#'
+#' Horvitz, D. G. and Thompson, D. J. (1952). A generalization of sampling
+#' without replacement from a finite universe. *Journal of the American
+#' Statistical Association* 47(260), 663-685.
+#' @seealso [gr_reference()], [gr_screen_sample_size()], [gr_screen()],
+#'   [gr_audit_report()]
 #' @family corpus functions
 #' @export
 #' @examples
@@ -383,7 +540,10 @@ as_screening_table <- function(screening) {
 #'                   stringsAsFactors = FALSE)
 #' gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref)
 gr_calibrate <- function(screening, reference, positive = "include", min_positives = 10L,
-                         of = NULL) {
+                         of = NULL, recall_target = 0.95, conf = 0.95, max_lost = NULL) {
+  check_recall_target(recall_target)
+  check_conf(conf)
+  max_lost <- check_count_arg(max_lost, "max_lost", 0)
   tab <- as_screening_table(screening)
   ref <- read_reference(reference)
   # Normalised the way the human decisions are. A positive the decisions can
@@ -474,16 +634,20 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
   overridden <- NULL
   if (!is.null(of)) {
     of <- lower_text(trimws(as_chr1(of, "")))
-    if (!of %in% c("excluded", "kept", "all")) {
-      gr_abort(sprintf("`of` must be \"excluded\", \"kept\" or \"all\", not '%s'.", of),
-               class = "gr_bad_setting")
+    if (!of %in% c("excluded", "kept", "all", "stacked")) {
+      gr_abort(sprintf("`of` must be \"excluded\", \"kept\", \"all\" or \"stacked\", not '%s'.",
+                       of), class = "gr_bad_setting")
     }
     # Named over a file that records otherwise, the file is what gr_reference()
     # did and `of` is a claim about it. Said out loud (below, once the rows are
     # known to fit the claim), and the file's frame size dropped: it counts the
     # frame the file names, not this one, and a projection multiplied by it
     # would be the wrong pile.
-    if (!is.null(recorded) && !identical(recorded, of)) {
+    # A file that stacks kept and excluded samples, read as one stacked
+    # reference, is what `of = "stacked"` is for and not an override.
+    stacking <- identical(of, "stacked") && identical(recorded, "mixed") &&
+      all(attr(ref, "frames") %in% c("kept", "excluded", "stacked"))
+    if (!is.null(recorded) && !identical(recorded, of) && !stacking) {
       overridden <- paste(attr(ref, "frames") %||% recorded, collapse = " and ")
       frame_n <- NA_integer_
     }
@@ -502,8 +666,10 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
                     paste(attr(ref, "frames") %||% sort(unique(as.character(ref$sampled_from))),
                           collapse = " and "),
                     "). An unweighted figure over stratified samples is wrong, not just ",
-                    "imprecise. Calibrate each frame separately (one gr_calibrate() call ",
-                    "per file), or pass `of =` if the rows are one frame."),
+                    "imprecise. Pass `of = \"stacked\"` to weight each stratum by how ",
+                    "much of it was sampled (or draw the sheet with ",
+                    "gr_reference(of = \"stacked\")), calibrate each frame separately, ",
+                    "or pass `of =` if the rows are one frame."),
              class = "gr_mixed_frame")
   }
   if (identical(of, "unknown")) {
@@ -524,6 +690,23 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
   # while `missed` listed none of them.
   fits <- switch(of, excluded = model == "exclude",
                  kept = model %in% c("include", "unclear"), rep(TRUE, length(model)))
+  if (identical(of, "stacked")) {
+    # A stacked row says which stratum it came from; it has to be the one the
+    # run puts it in, or its weight is the other stratum's.
+    claim <- lower_text(trimws(to_utf8(as.character(rows$stratum %||% rows$sampled_from %||%
+                                                      rep(NA, length(model))))))
+    named <- claim %in% c("kept", "excluded")
+    fits <- !named | (claim == ifelse(model == "exclude", "excluded", "kept"))
+    if (!all(fits)) {
+      gr_abort(sprintf(paste0("%d of %d stacked reference row(s) name a stratum this screening run ",
+                              "did not put them in, starting with '%s' (now '%s'). The reference ",
+                              "was drawn from a different run, or its decisions have changed ",
+                              "since; calibrate against the run the sample was drawn from."),
+                       sum(!fits), length(fits), rows$document[which(!fits)[1]],
+                       model[which(!fits)[1]]),
+               class = "gr_reference_mismatch")
+    }
+  }
   if (!all(fits)) {
     gr_abort(sprintf(paste0("%d of %d reference row(s) are said to come from the %s records, but ",
                             "this screening run did not %s them, starting with '%s' (now '%s'). ",
@@ -543,8 +726,14 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
                            "if the file is right, leave `of` out."), of, overridden),
             class = "gr_frame_override")
   }
+  if (identical(of, "stacked")) check_stacked(tab, ref, hit, kept, use)
+  # Recall, records lost and the run's rates, from the strata the frame drew
+  # on. Added beside the figures above, which are unchanged for every frame
+  # that had them.
+  rec <- screening_recall(of, kept, eligible, tab, recall_target, conf, max_lost)
   metrics <- switch(
     of,
+    stacked = stacked_metrics(rec, sum(eligible)),
     excluded = rbind(
       prop_row("eligible among the excluded", sum(eligible), length(model)),
       prop_row("correctly excluded", sum(!eligible), length(model))),
@@ -576,7 +765,10 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
   # sensitivity above counted the same record as kept. The strict table
   # (include against the rest) is the secondary one: its gap from the primary is
   # the deferral, as with the two sensitivities.
-  one_stratum <- of %in% c("excluded", "kept")
+  # A stacked sample is two strata, but drawn at different rates: agreement
+  # counted over its rows unweighted is distorted the way unweighted
+  # sensitivity is, so it is left out with the one-stratum frames.
+  one_stratum <- of %in% c("excluded", "kept", "stacked")
   agreement <- if (one_stratum) NULL else list(
     kept = agreement_binary(kept, eligible),
     strict = agreement_binary(strict, eligible))
@@ -611,7 +803,10 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
   # rate is a count for this run.
   headline <- switch(of, excluded = "eligible among the excluded",
                      kept = "eligible among those kept", NA_character_)
-  adequacy <- if (is.na(headline)) {
+  adequacy <- if (identical(of, "stacked")) {
+    list(rule = "recall target", bar = recall_target, width = NA_real_,
+         note = if (isTRUE(rec$verdict$met)) NA_character_ else rec$verdict$note)
+  } else if (is.na(headline)) {
     list(rule = "positives", bar = min_pos, width = NA_real_,
          note = if (n_pos >= min_pos) NA_character_ else
            sprintf("Only %d eligible stud%s in the sample, below the %s this calibration asks for.",
@@ -650,7 +845,7 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
     adequacy = adequacy,
     min_positives = min_pos,
     frame = list(of = of,
-                 frame_n = frame_n,
+                 frame_n = if (identical(of, "stacked")) sum(rec$strata$N) else frame_n,
                  screened_n = attr(ref, "screened_n") %||% nrow(tab)),
     # What the rate implies for the part of the frame nobody checked. The whole
     # reason to sample exclusions is to find out how much was lost, and a rate
@@ -660,8 +855,83 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
       m <- exact[exact$metric == "eligible among the excluded", ]
       list(frame_n = fr, lost = fr * m$estimate,
            lower = fr * m$lower, upper = fr * m$upper)
-    } else NULL
+    } else if (identical(of, "stacked")) {
+      list(frame_n = rec$lost$frame_n, lost = rec$lost$estimate,
+           lower = rec$lost$lower, upper = rec$lost$upper)
+    } else NULL,
+    recall = rec$recall,
+    lost = rec$lost,
+    false_exclusion = rec$false_exclusion,
+    work_saved = rec$work_saved,
+    unclear_rate = rec$unclear_rate,
+    strata = rec$strata,
+    verdict = rec$verdict
   ), class = "gr_calibration")
+}
+
+#' Stop unless a stacked reference can be weighted: rows from each stratum
+#' that has records, and inclusion probabilities, where recorded, that agree
+#' with the rows drawn.
+#' @noRd
+check_stacked <- function(tab, ref, hit, kept, use) {
+  judged <- !is.na(tab$decision)
+  N <- c(kept = sum(judged & tab$decision %in% c("include", "unclear")),
+         excluded = sum(judged & tab$decision == "exclude"))
+  n <- c(kept = sum(kept), excluded = sum(!kept))
+  empty <- names(N)[N > 0 & n == 0]
+  if (length(empty)) {
+    gr_abort(sprintf(paste0("This stacked reference has no judged row from the %s records (%d in ",
+                            "the run), so their eligible count, and recall, cannot be estimated. ",
+                            "Judge every kept record and a sample of the excluded ones."),
+                     empty[1], N[[empty[1]]]), class = "gr_bad_reference")
+  }
+  if (!is.null(ref$inclusion_prob)) {
+    # The weights used are N / n from the rows judged, which equal the
+    # recorded probabilities on a complete sheet. They part when rows were
+    # added, dropped or left blank, and the sheet then no longer describes
+    # the draw.
+    # Only the filled rows count, as in the weights: a blank row was drawn
+    # but not judged, so it lowers n without the sheet saying so.
+    used <- hit[use]
+    rows <- unique(used[!is.na(tab$decision[used])])
+    drawn_kept <- tab$decision[rows] %in% c("include", "unclear")
+    expect <- ifelse(drawn_kept, sum(drawn_kept) / N[["kept"]],
+                     sum(!drawn_kept) / N[["excluded"]])
+    recorded <- suppressWarnings(as.numeric(ref$inclusion_prob[use][match(rows, used)]))
+    off <- !is.na(recorded) & abs(recorded - expect) > 1e-6
+    if (any(off)) {
+      gr_warn(sprintf(paste0("%d row(s) record an inclusion probability that does not match the ",
+                             "rows drawn from their stratum. Recall is weighted by the rows ",
+                             "judged in each stratum against the stratum's size in this run."),
+                      sum(off)), class = "gr_inclusion_mismatch")
+    }
+  }
+  invisible(TRUE)
+}
+
+#' The metric rows of a stacked calibration: recall and the excluded and kept
+#' rates with their exact intervals, and the run's own deferral and reading
+#' avoided, which are counts and carry no sampling error.
+#' @noRd
+stacked_metrics <- function(rec, n_pos) {
+  st <- rec$strata
+  sk <- st[st$stratum == "kept", ]
+  row <- function(name, est, lo, hi, n) {
+    data.frame(metric = name, estimate = est, lower = lo, upper = hi, n = as.integer(n),
+               stringsAsFactors = FALSE)
+  }
+  fx <- rec$false_exclusion
+  kept_rate <- if (sk$N > 0 && sk$n > 0) c(sk$eligible / sk$n, sk$lower / sk$N, sk$upper / sk$N)
+               else rep(NA_real_, 3)
+  rbind(
+    row("sensitivity (as deployed)", rec$recall$estimate, rec$recall$lower, rec$recall$upper,
+        n_pos),
+    row("eligible among the excluded", fx$estimate, fx$lower, fx$upper, fx$n),
+    row("eligible among those kept", kept_rate[1], kept_rate[2], kept_rate[3], sk$n),
+    row("deferred to a person", rec$unclear_rate$estimate, rec$unclear_rate$estimate,
+        rec$unclear_rate$estimate, rec$unclear_rate$screened),
+    row("reading avoided", rec$work_saved$estimate, rec$work_saved$estimate,
+        rec$work_saved$estimate, rec$work_saved$screened))
 }
 
 #' @noRd
@@ -691,6 +961,18 @@ read_reference <- function(reference) {
     }, character(1))
     ref$sampled_from <- named[match(raw, seen)]
     keys <- Filter(Negate(is.null), decoded)
+    # A stacked key carries the row's stratum and its inclusion probability,
+    # which a blind sheet keeps out of plain sight.
+    stacked <- vapply(decoded, function(k) !is.null(k$stratum), logical(1))
+    if (any(stacked) && is.null(ref$stratum)) {
+      at <- match(raw, seen)
+      strat <- vapply(decoded, function(k) k$stratum %||% NA_character_, character(1))
+      prob <- vapply(decoded, function(k) {
+        if (is.null(k$stratum) || !k$frame_n) NA_real_ else k$drawn / k$frame_n
+      }, numeric(1))
+      ref$stratum <- strat[at]
+      ref$inclusion_prob <- prob[at]
+    }
   }
   # The COLUMNS say where each row came from; the attributes only say where the
   # first row did. rbind() keeps its first argument's attributes, so a sample
@@ -712,7 +994,9 @@ read_reference <- function(reference) {
     if (length(frames) > 1L && length(v)) {
       attr(ref, "of") <- "mixed"
       attr(ref, "frames") <- sort(frames)
-    } else if (length(v) == 1L && v %in% c("excluded", "kept", "all")) attr(ref, "of") <- v
+    } else if (length(v) == 1L && v %in% c("excluded", "kept", "all", "stacked")) {
+      attr(ref, "of") <- v
+    }
   }
   for (col in c("frame_n", "screened_n")) {
     from_keys <- vapply(keys, function(k) k[[col]], integer(1))
@@ -758,8 +1042,27 @@ frame_key <- function(of, frame_n, screened_n, salt) {
   paste0("gr", nonce, paste(sprintf("%02x", body), collapse = ""))
 }
 
+#' The key for one row of a blind stacked sheet: its stratum, the stratum's
+#' size, how many of the stratum were drawn and the run's screened count.
+#'
+#' Padded with spaces to a fixed length before it is masked, so that the key
+#' of a kept row and of an excluded one are the same length; the nonce comes
+#' from the row's own document, so no two rows share a key by stratum.
+#' @noRd
+stacked_key <- function(stratum, frame_n, drawn, screened_n, salt) {
+  txt <- formatC(sprintf("stacked:%s:%s:%s:%s", stratum, format(frame_n, scientific = FALSE),
+                         format(drawn, scientific = FALSE), format(screened_n, scientific = FALSE)),
+                 width = -64L)
+  payload <- as.integer(charToRaw(txt))
+  nonce <- substr(gr_hash(list("readgpt-frame-key", as.character(salt))), 1, 8)
+  body <- bitwXor(payload, frame_pad(nonce, length(payload)))
+  paste0("gr", nonce, paste(sprintf("%02x", body), collapse = ""))
+}
+
 #' The frame a key stands for, as list(of, frame_n, screened_n); NULL for
-#' anything that is not a key this package wrote.
+#' anything that is not a key this package wrote. A stacked sheet's key also
+#' gives the row's `stratum` and `drawn`, the number drawn from that stratum,
+#' with `frame_n` the stratum's size.
 #' @noRd
 frame_unkey <- function(x) {
   x <- lower_text(trimws(as_chr1(x, "")))
@@ -770,6 +1073,12 @@ frame_unkey <- function(x) {
   plain <- bitwXor(body, frame_pad(substr(x, 3L, 10L), length(body)))
   if (any(plain < 32L | plain > 126L)) return(NULL)
   txt <- rawToChar(as.raw(plain))
+  st <- regmatches(txt, regexec("^stacked:(kept|excluded):([0-9]+):([0-9]+):([0-9]+) *$",
+                                txt))[[1]]
+  if (length(st)) {
+    return(list(of = "stacked", frame_n = as.integer(st[3]), screened_n = as.integer(st[5]),
+                stratum = st[2], drawn = as.integer(st[4])))
+  }
   m <- regmatches(txt, regexec("^(excluded|kept|all):([0-9]+|NA):([0-9]+|NA)$", txt))[[1]]
   if (!length(m)) return(NULL)
   list(of = m[2], frame_n = suppressWarnings(as.integer(m[3])),
@@ -886,7 +1195,11 @@ print.gr_calibration <- function(x, ...) {
                        "     eligible stud%s lost (%.0f to %.0f on the interval above).\n"),
                 p$frame_n, p$lost, if (round(p$lost) == 1) "y" else "ies", p$lower, p$upper))
   }
-  if (identical(x$frame$of, "excluded")) {
+  print_calibration_recall(x)
+  if (identical(x$frame$of, "stacked")) {
+    cat("  (every kept record and a sample of the exclusions: each stratum weighted by\n")
+    cat("   how much of it was judged, with exact hypergeometric bounds)\n")
+  } else if (identical(x$frame$of, "excluded")) {
     cat("  (sampled from exclusions only: this frame estimates what was lost, not\n")
     cat("   sensitivity or specificity: it contains no kept records to compute them from)\n")
   } else if (identical(x$frame$of, "kept")) {
@@ -900,7 +1213,10 @@ print.gr_calibration <- function(x, ...) {
     if (nrow(x$missed) > 5L) cat(sprintf("      ... and %d more\n", nrow(x$missed) - 5L))
   }
   rule <- x$adequacy$rule %||% "positives"
-  if (!x$adequate && !identical(rule, "positives")) {
+  if (!x$adequate && identical(rule, "recall target")) {
+    cat(sprintf("  ! %s\n", paste(strwrap(x$adequacy$note, width = 72, exdent = 4),
+                                     collapse = "\n")))
+  } else if (!x$adequate && !identical(rule, "positives")) {
     # One stratum: the rate is over every row, so the eligible count is not
     # what it rests on, and saying so told the owner of a clean 500-row sample
     # that it rested on nothing.
@@ -919,6 +1235,32 @@ print.gr_calibration <- function(x, ...) {
                 else sprintf("those %d observations", x$n_positives)))
   }
   invisible(x)
+}
+
+#' The recall part of a calibration's print: recall with its interval and
+#' one-sided bound, the exact bound on records lost, and whether the target
+#' was met. Silent for a calibration saved before these fields existed.
+#' @noRd
+print_calibration_recall <- function(x) {
+  pct <- function(v) if (is.na(v)) "--" else sprintf("%.1f%%", 100 * v)
+  r <- x[["recall", exact = TRUE]]
+  if (is.list(r) && !is.na(r$estimate)) {
+    cat(sprintf("  recall %s  [%s, %s]; %.0f%% one-sided lower bound %s\n",
+                pct(r$estimate), pct(r$lower), pct(r$upper), 100 * r$conf, pct(r$bound)))
+  }
+  l <- x[["lost", exact = TRUE]]
+  if (is.list(l) && !is.na(l$bound)) {
+    cat(sprintf("  eligible records excluded: about %.0f of %d; %.0f%% upper bound %.0f\n",
+                l$estimate, as.integer(l$frame_n), 100 * l$conf, l$bound))
+  }
+  v <- x[["verdict", exact = TRUE]]
+  if (is.list(v) && !is.na(v$met)) {
+    cat(sprintf("  recall target %s at %.0f%% confidence%s: %s\n", pct(v$recall_target),
+                100 * v$conf,
+                if (is.na(v$max_lost)) "" else sprintf(" (or at most %s lost)", format(v$max_lost)),
+                if (v$met) "met" else "not met"))
+  }
+  invisible(NULL)
 }
 
 #' The 3x2 counts of a calibration's print: the screener's three labels

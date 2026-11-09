@@ -110,6 +110,7 @@ reference:
   - gr_screen
   - gr_reference
   - gr_calibrate
+  - gr_screen_sample_size
   - gr_resolve
   - '`[.gr_reference_frame`'
   - gr_fields

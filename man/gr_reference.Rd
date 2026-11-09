@@ -7,20 +7,24 @@
 gr_reference(
   screening,
   n = 50,
-  of = c("excluded", "kept", "all"),
+  of = c("excluded", "kept", "all", "stacked"),
   seed = NULL,
   path = NULL,
-  blind = TRUE
+  blind = TRUE,
+  frame = NULL,
+  reviewers = 1L
 )
 }
 \arguments{
 \item{screening}{A \code{gr_screening} from \code{\link[=gr_screen]{gr_screen()}}.}
 
 \item{n}{How many to draw: a whole number of at least 1. \code{Inf} takes the
-whole frame, as does any \code{n} larger than it.}
+whole frame, as does any \code{n} larger than it. For \code{of = "stacked"}, how
+many of the excluded records to draw; the kept ones are all taken.}
 
 \item{of}{Which rows to sample from: \code{"excluded"}, \code{"kept"} (include and
-unclear), or \code{"all"}.}
+unclear), \code{"all"}, or \code{"stacked"} (every kept record and a sample of the
+excluded ones).}
 
 \item{seed}{A seed for the draw, so it is reproducible: the sample is drawn
 after \code{set.seed(seed)} and your session's random number stream is put back
@@ -35,7 +39,17 @@ measures nothing. A blind sheet does not name its frame either, since
 "excluded" on every row says what the model decided: \code{sampled_from} holds
 an opaque key that \code{\link[=gr_calibrate]{gr_calibrate()}} reads back as the frame and its size.
 With \code{blind = FALSE} the file has \code{model_decision}, \code{model_reason}, and the
-frame in plain words (\code{sampled_from}, \code{frame_n}, \code{screened_n}).}
+frame in plain words (\code{sampled_from}, \code{frame_n}, \code{screened_n}, and for a
+stacked sheet \code{stratum} and \code{inclusion_prob}, with \code{frame_n} the size of
+the row's stratum).}
+
+\item{frame}{The same as \code{of}, under the name \code{\link[=gr_screen_sample_size]{gr_screen_sample_size()}}
+uses. Give one or the other.}
+
+\item{reviewers}{How many people will judge each record. Above 1 the sheet
+has one row per document per reviewer, numbered in a \code{reviewer} column.
+\code{\link[=gr_calibrate]{gr_calibrate()}} counts copies that agree once and refuses copies that
+disagree, so reconcile them into one decision per document first.}
 }
 \value{
 A data frame of class \code{gr_reference_frame}, invisibly when written.
@@ -59,10 +73,20 @@ were never in doubt, and leaves two or three positives to estimate
 sensitivity from, which is no estimate at all.
 
 The design that matches how people actually work is to judge \emph{every} record
-the screener kept, plus a sample of what it discarded: \code{of = "kept"} with
-\code{n = Inf}, and \code{of = "excluded"} with whatever hand-screening effort you have.
+the screener kept, plus a sample of what it discarded. \code{of = "stacked"} draws
+exactly that in one sheet: every kept record, and \code{n} of the excluded ones.
+Each row records its stratum and its inclusion probability (1 for a kept
+record, \code{n} / N for an excluded one, N being the number excluded), and
+\code{\link[=gr_calibrate]{gr_calibrate()}} weights each stratum by it to estimate recall. Drawn as two
+sheets (\code{of = "kept"} with \code{n = Inf}, and \code{of = "excluded"}) and stacked by
+hand, the same reference needs \code{of = "stacked"} in \code{\link[=gr_calibrate]{gr_calibrate()}}.
+\code{\link[=gr_screen_sample_size]{gr_screen_sample_size()}} says how large \code{n} should be.
 \code{\link[=gr_calibrate]{gr_calibrate()}} knows which frame it was given and will not compute a
 corpus-wide figure from a sample that cannot support one.
+
+A blind stacked sheet keeps each row's stratum and probability inside the
+\code{sampled_from} key, one key per row, so that neither gives away what the
+model decided; the rows are in the run's order, not grouped by stratum.
 }
 
 \section{The file}{
@@ -81,6 +105,10 @@ tab <- data.frame(document = paste0("d", 1:6, ".pdf"),
                   reason = "because", stringsAsFactors = FALSE)
 gr_reference(structure(list(table = tab), class = "gr_screening"),
              n = 3, of = "excluded", seed = 1)
+
+# Every kept record, and two of the four excluded ones.
+gr_reference(structure(list(table = tab), class = "gr_screening"),
+             n = 2, of = "stacked", seed = 1, blind = FALSE)
 }
 \seealso{
 \code{\link[=gr_calibrate]{gr_calibrate()}}, \code{\link[=gr_screen]{gr_screen()}}
@@ -90,6 +118,7 @@ Other corpus functions:
 \code{\link{gr_inventory}()},
 \code{\link{gr_records}()},
 \code{\link{gr_resolve}()},
+\code{\link{gr_screen_sample_size}()},
 \code{\link{gr_search}()}
 }
 \concept{corpus functions}

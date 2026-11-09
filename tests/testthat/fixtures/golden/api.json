@@ -61,7 +61,7 @@
       "type": "function"
     },
     "gr_calibrate": {
-      "formals": ["screening", "reference", "positive = \"include\"", "min_positives = 10L", "of = NULL"],
+      "formals": ["screening", "reference", "positive = \"include\"", "min_positives = 10L", "of = NULL", "recall_target = 0.95", "conf = 0.95", "max_lost = NULL"],
       "type": "function"
     },
     "gr_call": {
@@ -241,7 +241,7 @@
       "type": "function"
     },
     "gr_reference": {
-      "formals": ["screening", "n = 50", "of = c(\"excluded\", \"kept\", \"all\")", "seed = NULL", "path = NULL", "blind = TRUE"],
+      "formals": ["screening", "n = 50", "of = c(\"excluded\", \"kept\", \"all\", \"stacked\")", "seed = NULL", "path = NULL", "blind = TRUE", "frame = NULL", "reviewers = 1L"],
       "type": "function"
     },
     "gr_register_cleaner": {
@@ -282,6 +282,10 @@
     },
     "gr_screen": {
       "formals": ["sources", "protocol = NULL", "question = NULL", "include = NULL", "exclude = NULL", "recipe = \"research\"", "client = NULL", "store = NULL", "screen_tokens = NULL", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = FALSE", "recursive = FALSE", "trace = NULL", "..."],
+      "type": "function"
+    },
+    "gr_screen_sample_size": {
+      "formals": ["recall_target = 0.95", "conf = 0.95", "prevalence = NULL", "frame = \"all\"", "max_lost = NULL", "frame_n = NULL"],
       "type": "function"
     },
     "gr_search": {
