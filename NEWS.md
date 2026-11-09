@@ -529,6 +529,14 @@
   `gr_register_segmenter()` still check only that `fn` is a function, and
   register a module that breaks a rule as before.
 
+## Fixed
+
+* A download refused for size no longer breaks the downloads after it. httr
+  shares one curl handle per host, and a stream stopped at the size limit could
+  leave that handle attached to its connection, so every later download from
+  the same host in the session failed with "Handle is already in use
+  elsewhere". Each request now gets its own handle.
+
 ## Phase 2
 
 ### Agreement and estimation statistics

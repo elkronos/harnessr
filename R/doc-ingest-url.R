@@ -205,9 +205,13 @@ url_download <- function(url, dest, max_bytes = .gr_max_download_bytes,
     # to open ...: Could not resolve host") ahead of a bare "cannot open the
     # connection"; the reason is kept for the error.
     why <- character(0)
+    # Each request gets its own curl handle. httr otherwise shares one handle
+    # per host, and a stream stopped at the size limit can leave that handle
+    # attached to its connection, so every later download from the same host
+    # in the session failed with "Handle is already in use elsewhere".
     res <- tryCatch(
       withCallingHandlers(
-        httr::GET(url, httr::write_stream(function(x) {
+        httr::GET(url, handle = httr::handle(url), httr::write_stream(function(x) {
                     written <<- written + length(x)
                     if (written > max_bytes) too_big()
                     writeBin(x, out)
