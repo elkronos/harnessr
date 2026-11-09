@@ -493,3 +493,46 @@ test_that("a table without failure kinds counts its wrong runs as wrong", {
   r <- hr_report(counts_bench(c(5, 3, 0), c(2, 1)), B = 200)
   expect_identical(r$failures$wrong, 7L)
 })
+
+test_that("a contrast written against benchmark order prints its simultaneous interval", {
+  set.seed(2)
+  grid <- expand.grid(run = 1:5, arm = c("short", "long", "mid"), item = 1:36,
+                      stringsAsFactors = FALSE)
+  grid$cluster <- paste0("doc", (grid$item - 1) %/% 3 + 1)
+  grid$item <- paste0("q", grid$item)
+  grid$correct <- stats::runif(nrow(grid)) < ifelse(grid$arm == "long", 0.8, 0.7)
+  r <- hr_report(grid, contrasts = c("long", "short"), B = 500)
+  # The simultaneous rows hold short - long only: estimate -0.2111,
+  # interval [-0.35396, -0.06826]. long - short is its negation,
+  # [-(-0.06826), -(-0.35396)] = [0.068, 0.354] at 3 decimals. It used to
+  # print "-".
+  s <- r$simultaneous[r$simultaneous$arm1 == "short" & r$simultaneous$arm2 == "long", ]
+  expect_equal(c(s$lower, s$upper), c(-0.35396144811, -0.06826077412), tolerance = 1e-9)
+  expect_output(print(r), "long - short 0.211      [0.094, 0.328] [0.068, 0.354]",
+                fixed = TRUE)
+})
+
+test_that("max-t with a zero-variance pair leaves room for its Bonferroni share", {
+  # 12 clusters of 3 items. Arm a is right on items 1 and 2 of each cluster
+  # and arm b on item 1, so a - b is 1/3 in every cluster (cluster variance
+  # 0) and takes Tango's interval at (1 - 0.95) / (2 x 3) per tail. Arm c is
+  # random, so a - c and b - c take the max-t interval, at level
+  # 1 - 0.05 x 2 / 3 = 0.96667 so that the family stays at 0.95.
+  # mvtnorm::qmvt(1 - 0.05 * 2 / 3, tail = "both.tails", df = 11) on the
+  # correlation of those two differences gives 2.4317; at 0.95 it gives
+  # 2.2014, about the 2.1957 used before. 100000 draws carry a Monte Carlo
+  # error of about 0.01.
+  set.seed(5)
+  C <- 12; m <- 3; I <- C * m
+  g <- expand.grid(run = 1:5, arm = c("a", "b", "c"), item = 1:I, stringsAsFactors = FALSE)
+  g$cluster <- paste0("doc", (g$item - 1) %/% m + 1)
+  pos <- (g$item - 1) %% m + 1
+  g$item <- paste0("q", g$item)
+  g$correct <- ifelse(g$arm == "a", pos %in% 1:2,
+                      ifelse(g$arm == "b", pos == 1, stats::runif(nrow(g)) < 0.6))
+  s <- hr_report(g, B = 200)$simultaneous
+  expect_identical(s$method, c("tango_items", "max_t_cluster_robust", "max_t_cluster_robust"))
+  expect_true(is.na(s$critical[1]))
+  expect_equal(s$critical[2:3], c(2.4317, 2.4317), tolerance = 0.02 / 2.43)
+  expect_identical(s$critical[2], s$critical[3])
+})

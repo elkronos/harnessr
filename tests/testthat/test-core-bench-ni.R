@@ -77,7 +77,10 @@ test_that("hr_mdd and hr_n_needed reproduce the worked numbers of the QA design"
   expect_equal(hr_n_needed(m816$mdd, m = 6, icc = 0.2, p_disc = 0.2, n_contrasts = 9)$n_items,
                816)
   expect_true(is.na(hr_n_needed(0.08, p_disc = 0.2)$n_clusters))
-  expect_output(print(n9), "419 effective items; DE 2, so 838 items in 140 clusters of 6")
+  # n9 has n_items 837.79 and n_clusters 139.63 at m = 6: the clusters round
+  # up to 140 and the items are 140 x 6 = 840, one design (838 is not a
+  # multiple of 6).
+  expect_output(print(n9), "419 effective items; DE 2, so 840 items in 140 clusters of 6")
   expect_output(print(m9), "10.7 points")
 })
 
@@ -501,4 +504,38 @@ test_that("Tango's paired score interval matches a hand-computed example", {
   z <- harnessr:::tango_interval(0, 0, 50)
   expect_equal(z[["lower"]], -z[["upper"]])
   expect_identical(unname(harnessr:::tango_interval(5, 0, 5)[2]), 1)
+})
+
+test_that("a cost-test p-value stops at the bootstrap resolution 1 / (B + 1)", {
+  # 40 clusters of 6 items, both arms right with probability 0.8, and the new
+  # arm cheaper by 0.00017 dollars per run plus a cluster effect of sd
+  # 0.0004. The accuracy part is far from binding at margin 0.5, and every
+  # cost resample is below 0, so the cost bound passes at any level the
+  # resamples resolve. Below 1 / (B + 1) the BCa bound is the largest
+  # resample and stops moving; the p-value used to reach the search floor
+  # 1e-6 there. The cluster t on the 40 paired cost means gives about
+  # 2.3e-4, so 1e-6 overstated the evidence.
+  C <- 40; m <- 6; I <- C * m
+  ref <- hr_reference(paste0("q", 1:I), labels = rep("yes", I),
+                      cluster = rep(paste0("doc", 1:C), each = m), split = "test")
+  design <- hr_mdd(I, n_clusters = C, icc = 0.1, p_disc = 0.2)
+  reg <- hr_register_contrasts(
+    ref, list(hr_contrast("new", "old", margin = 0.5, cost_test = TRUE)), design)
+  set.seed(7)
+  g <- expand.grid(run = 1:5, arm = c("old", "new"), item = 1:I, stringsAsFactors = FALSE)
+  g$cluster <- paste0("doc", (g$item - 1) %/% m + 1)
+  g$item <- paste0("q", g$item)
+  g$correct <- stats::runif(nrow(g)) < 0.8
+  cu <- stats::rnorm(C, 0, 0.0004)
+  names(cu) <- paste0("doc", 1:C)
+  g$usd <- 0.004 + (cu[g$cluster] - 0.00017) * (g$arm == "new")
+  attr(g, "reference_hash") <- ref$hash
+  # B = 500: the floor is 1 / 501 = 0.001996007984...
+  r <- hr_report(g, registration = reg, B = 500)
+  expect_true(r$ni$verdict)
+  expect_true(r$ni$cost_holds)
+  expect_equal(r$ni$p_value, 0.001996007984032, tolerance = 1e-9)
+  # B = 2000: the floor is 1 / 2001 = 0.0004997501249...
+  r2 <- hr_report(g, registration = reg, B = 2000)
+  expect_equal(r2$ni$p_value, 0.0004997501249375, tolerance = 1e-9)
 })

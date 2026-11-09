@@ -86,7 +86,10 @@
 #'   `hr_n_needed()` returns an object of class `hr_n_needed` with `n_eff`,
 #'   `n_items` (n_eff x DE) and `n_clusters` (n_items / m, `NA` when `m` is
 #'   not given), unrounded, beside the same design values, `df`
-#'   (n_items / m - 1) and the quantiles; `print()` rounds them up.
+#'   (n_items / m - 1) and the quantiles. `print()` rounds them up: with `m`
+#'   given it rounds the clusters up first and prints that many clusters of
+#'   m as the items, so n_items 837.8 at m = 6 prints as 840 items in 140
+#'   clusters.
 #' @references
 #' Eldridge, S. M., Ashby, D. and Kerry, S. (2006). Sample size for cluster
 #' randomized trials: effect of coefficient of variation of cluster size and
@@ -278,10 +281,17 @@ print.hr_n_needed <- function(x, ...) {
               if (x$holm && x$n_contrasts > 1L) {
                 sprintf(" (%s / %d contrasts, Holm worst case)", format(x$alpha), x$n_contrasts)
               } else ""))
+  # With m given, the clusters are rounded up first and the items are that
+  # many clusters of m, so the two printed counts describe one design.
+  if (is.na(x$n_clusters)) {
+    items <- ceiling(x$n_items); where <- ""
+  } else {
+    cl <- ceiling(x$n_clusters)
+    items <- ceiling(cl * x$m - 1e-9)
+    where <- sprintf(" in %d clusters of %s", cl, format(x$m))
+  }
   cat(sprintf("  n_eff %d effective items; DE %s, so %d items%s\n", ceiling(x$n_eff),
-              format(signif(x$de, 4)), ceiling(x$n_items),
-              if (is.na(x$n_clusters)) "" else sprintf(" in %d clusters of %s",
-                                                       ceiling(x$n_clusters), format(x$m))))
+              format(signif(x$de, 4)), items, where))
   invisible(x)
 }
 
@@ -684,10 +694,16 @@ report_ni <- function(reg, arms, S, U, n, p, counts) {
   # The p-value of a contrast is the smallest one-sided level at which it
   # passes, found by bisection on the log scale; 1 when it fails even at
   # 0.5. Bounds widen as the level falls, so passing is monotone in it.
+  # The search stops at 1e-6, and for a cost test at 1 / (B + 1): below that
+  # level the BCa cost bound is the most extreme of the B resamples and no
+  # longer moves (norm_inter()), so a smaller level is not resolved by the
+  # data. With B = 2000 the floor is 1 / 2001, about 5.0e-4.
+  B_cost <- nrow(ru$t)
   pval <- function(j) {
     if (!test_at(j, 0.5)$pass) return(1)
-    lo <- log(1e-6); hi <- log(0.5)
-    if (test_at(j, exp(lo))$pass) return(exp(lo))
+    p_floor <- if (tab$cost_test[j]) max(1e-6, 1 / (B_cost + 1)) else 1e-6
+    lo <- log(p_floor); hi <- log(0.5)
+    if (test_at(j, p_floor)$pass) return(p_floor)
     for (it in seq_len(40L)) {
       mid <- (lo + hi) / 2
       if (test_at(j, exp(mid))$pass) hi <- mid else lo <- mid

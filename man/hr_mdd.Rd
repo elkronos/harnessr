@@ -86,7 +86,10 @@ normal quantiles \code{z_alpha} and \code{z_power} beside them.
 \code{hr_n_needed()} returns an object of class \code{hr_n_needed} with \code{n_eff},
 \code{n_items} (n_eff x DE) and \code{n_clusters} (n_items / m, \code{NA} when \code{m} is
 not given), unrounded, beside the same design values, \code{df}
-(n_items / m - 1) and the quantiles; \code{print()} rounds them up.
+(n_items / m - 1) and the quantiles. \code{print()} rounds them up: with \code{m}
+given it rounds the clusters up first and prints that many clusters of
+m as the items, so n_items 837.8 at m = 6 prints as 840 items in 140
+clusters.
 }
 \description{
 \code{hr_mdd()} gives the smallest paired accuracy difference a benchmark of

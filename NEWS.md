@@ -685,7 +685,16 @@
   degrees of freedom, with a note), single-step max-t simultaneous
   intervals over all pairs from the multivariate t with the same
   correlation (Hothorn, Bretz and Westfall 2008), and bootstrap rank
-  intervals in place of a ranking by point estimate; flip rate, TARa and
+  intervals in place of a ranking by point estimate. A pair whose cluster
+  variance is 0 takes Tango's interval at the Bonferroni share
+  (1 - conf) / number of pairs, and the max-t critical value over the rest
+  is then taken at 1 - (1 - conf) x (pairs with variance above 0) / (number
+  of pairs), so the family stays at conf: with 3 pairs, one at variance 0,
+  and 12 clusters it is 2.43, where the full-level 2.20 left the family at
+  up to 6.7% error. The `critical` column is `NA` on the Tango rows.
+  `print()` shows the simultaneous interval of a contrast written against
+  benchmark order (b - a) as the negated interval of its pair,
+  [-upper, -lower], where it printed "-"; flip rate, TARa and
   run-level SD; pass^k with the unbiased estimator; dollars
   and tokens per item and per correct item with intervals, flagging arms
   whose cost rests on estimated token counts for more than 5%; the
@@ -714,7 +723,10 @@
   quantiles). `hr_n_needed()` finds the number of items by root finding,
   since the degrees of freedom depend on it, and both refuse a design of one
   cluster.
-  `hr_n_needed()` also takes a true difference below 0.
+  `hr_n_needed()` also takes a true difference below 0. Its `print()`
+  rounds the clusters up first and gives the items as that many clusters of
+  m: 840 items in 140 clusters of 6 for n_items 837.8, where it printed 838
+  items, not a multiple of 6.
 
 * **New `hr_contrast()` and `hr_register_contrasts()`** fix non-inferiority
   contrasts (arm, reference arm, margin, whether it must also be cheaper)
@@ -749,6 +761,12 @@
   on effective counts, at most one pair per item, is given as a
   cross-check. A changed registration, or one for another reference, is
   refused.
+  Each contrast's `p_value` is the smallest one-sided level at which it
+  passes, found by bisection down to 1e-6. With a cost test the search
+  stops at 1 / (B + 1) (1 / 2001, about 5.0e-4, at B = 2000): below that
+  level the BCa cost bound is the most extreme resample and stops moving,
+  and a contrast whose resamples were all cheaper was reported at 1e-6
+  where a cluster t on the paired cost means gave 2.3e-4.
 
 * **Dev-split rows are refused as evidence.** A report with a registration
   or `confirmatory = TRUE` errors with class `hr_dev_not_evidence` when the

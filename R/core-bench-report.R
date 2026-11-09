@@ -116,8 +116,12 @@
 #' covariance of the differences, from 100000 draws of the private random
 #' stream. With one pair it is the t quantile of the paired interval. A
 #' pair whose V_d is 0 gets the Tango interval above at the Bonferroni level
-#' a = (1 - conf) / (2 x number of pairs). These intervals are cut to
-#' [-1, 1] too.
+#' a = (1 - conf) / (2 x number of pairs), and the max-t critical value over
+#' the other pairs is then taken at 1 - (1 - conf) x (pairs with V_d > 0) /
+#' (number of pairs), so the error rates of the two parts add up to at most
+#' 1 - conf over the whole family. With 3 pairs of which 1 has V_d = 0 and
+#' conf = 0.95, the max-t part runs at 1 - 0.05 x 2 / 3, about 0.967. These
+#' intervals are cut to [-1, 1] too.
 #' Rank intervals are the `(1 - conf) / 2` and `(1 + conf) / 2` quantiles of
 #' each arm's rank over the cluster bootstrap resamples (rank 1 is the most
 #' accurate).
@@ -251,7 +255,8 @@
 #'     `"tango_items"` when the cluster variance is 0).}
 #'   \item{`simultaneous`}{Every pairwise difference with simultaneous
 #'     `lower` and `upper` bounds, `method` (`"max_t_cluster_robust"`, or
-#'     `"tango_items"` when the cluster variance is 0) and the critical value.}
+#'     `"tango_items"` when the cluster variance is 0) and the max-t
+#'     `critical` value (`NA` on `"tango_items"` rows, which do not use it).}
 #'   \item{`stability`}{Per arm: `flip_rate`, `tara`, `run_sd`.}
 #'   \item{`pass_k`}{Per arm and k: `pass_k` with `lower` and `upper`.}
 #'   \item{`cost`}{Per arm: `usd_per_item`, `usd_per_correct`,
@@ -271,8 +276,11 @@
 #'     `tango_upper` with `tango_agrees` (whether it reaches the same
 #'     accuracy conclusion), the effective number of pairs `n_eff` it
 #'     rests on, and `p_value`, the smallest one-sided level at which the
-#'     contrast passes, found by bisection; it is bounded below at 1e-6, so
-#'     a value of 1e-6 means at most 1e-6. `NULL` without one.}
+#'     contrast passes, found by bisection. The search stops at 1e-6, and
+#'     for a contrast with `cost_test = TRUE` at 1 / (B + 1), the smallest
+#'     level the B bootstrap resamples of the cost bound resolve (1 / 2001,
+#'     about 5.0e-4, at B = 2000); a value at that floor means at most the
+#'     floor. `NULL` without one.}
 #'   \item{`registration`}{The registration's hash, time and reference
 #'     hash, or `NULL`.}
 #'   \item{`notes`}{What the reader should know.}
@@ -515,13 +523,17 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
     se <- unname(v$se)
     use <- se > 0
     if (simultaneous) {
+      # The pairs with V_d = 0 take a Bonferroni share (1 - level) / npairs
+      # each below, so the max-t part over the rest runs at the remaining
+      # error, (1 - level) x n_use / npairs, and the family stays at level.
+      lev_t <- 1 - (1 - level) * sum(use) / nrow(pr)
       crit <- if (any(use)) {
-        max_t_critical(v$vcov[use, use, drop = FALSE], v$df, level, rng$z, rng$w)
+        max_t_critical(v$vcov[use, use, drop = FALSE], v$df, lev_t, rng$z, rng$w)
       } else NA_real_
       out$lower <- out$estimate - crit * se
       out$upper <- out$estimate + crit * se
       out$method <- "max_t_cluster_robust"
-      out$critical <- crit
+      out$critical <- ifelse(use, crit, NA_real_)
       # Bonferroni over all pairs for the rows the max-t method cannot take.
       a_zero <- (1 - level) / (2 * nrow(pr))
     } else {
@@ -907,11 +919,21 @@ print.hr_bench_report <- function(x, digits = 3, ...) {
   if (!is.null(x$contrasts) && nrow(x$contrasts)) {
     cat("\nPaired differences (first minus second):\n")
     s <- x$simultaneous
-    sm <- match(paste(x$contrasts$arm1, x$contrasts$arm2), paste(s$arm1, s$arm2))
+    if (is.null(s)) s <- data.frame(arm1 = character(0), arm2 = character(0),
+                                    lower = numeric(0), upper = numeric(0))
+    # The simultaneous rows hold each pair once, in benchmark order. A
+    # contrast written the other way round takes the negated interval of its
+    # pair, [-upper, -lower], which holds for the max-t and Tango rows alike.
+    key <- paste(x$contrasts$arm1, x$contrasts$arm2)
+    sm <- match(key, paste(s$arm1, s$arm2))
+    rv <- match(key, paste(s$arm2, s$arm1))
+    flip <- is.na(sm) & !is.na(rv)
+    s_lo <- ifelse(flip, -s$upper[rv], s$lower[sm])
+    s_hi <- ifelse(flip, -s$lower[rv], s$upper[sm])
     print(data.frame(contrast = paste(x$contrasts$arm1, "-", x$contrasts$arm2),
                      difference = f(x$contrasts$estimate),
                      interval = iv(x$contrasts$lower, x$contrasts$upper),
-                     simultaneous = iv(s$lower[sm], s$upper[sm]),
+                     simultaneous = iv(s_lo, s_hi),
                      stringsAsFactors = FALSE), row.names = FALSE, right = FALSE)
   }
   st <- x$stability

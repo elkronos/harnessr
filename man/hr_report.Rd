@@ -79,7 +79,8 @@ arm2), \code{lower}, \code{upper}, \code{method} (\code{"cluster_robust_t"}, or
 \code{"tango_items"} when the cluster variance is 0).}
 \item{\code{simultaneous}}{Every pairwise difference with simultaneous
 \code{lower} and \code{upper} bounds, \code{method} (\code{"max_t_cluster_robust"}, or
-\code{"tango_items"} when the cluster variance is 0) and the critical value.}
+\code{"tango_items"} when the cluster variance is 0) and the max-t
+\code{critical} value (\code{NA} on \code{"tango_items"} rows, which do not use it).}
 \item{\code{stability}}{Per arm: \code{flip_rate}, \code{tara}, \code{run_sd}.}
 \item{\code{pass_k}}{Per arm and k: \code{pass_k} with \code{lower} and \code{upper}.}
 \item{\code{cost}}{Per arm: \code{usd_per_item}, \code{usd_per_correct},
@@ -99,8 +100,11 @@ bound at the one-sided \code{level} it was tested at, \code{accuracy_holds},
 \code{tango_upper} with \code{tango_agrees} (whether it reaches the same
 accuracy conclusion), the effective number of pairs \code{n_eff} it
 rests on, and \code{p_value}, the smallest one-sided level at which the
-contrast passes, found by bisection; it is bounded below at 1e-6, so
-a value of 1e-6 means at most 1e-6. \code{NULL} without one.}
+contrast passes, found by bisection. The search stops at 1e-6, and
+for a contrast with \code{cost_test = TRUE} at 1 / (B + 1), the smallest
+level the B bootstrap resamples of the cost bound resolve (1 / 2001,
+about 5.0e-4, at B = 2000); a value at that floor means at most the
+floor. \code{NULL} without one.}
 \item{\code{registration}}{The registration's hash, time and reference
 hash, or \code{NULL}.}
 \item{\code{notes}}{What the reader should know.}
@@ -216,8 +220,12 @@ C - 1 degrees of freedom and the correlation matrix of the linearised
 covariance of the differences, from 100000 draws of the private random
 stream. With one pair it is the t quantile of the paired interval. A
 pair whose V_d is 0 gets the Tango interval above at the Bonferroni level
-a = (1 - conf) / (2 x number of pairs). These intervals are cut to
-\link{-1, 1} too.
+a = (1 - conf) / (2 x number of pairs), and the max-t critical value over
+the other pairs is then taken at 1 - (1 - conf) x (pairs with V_d > 0) /
+(number of pairs), so the error rates of the two parts add up to at most
+1 - conf over the whole family. With 3 pairs of which 1 has V_d = 0 and
+conf = 0.95, the max-t part runs at 1 - 0.05 x 2 / 3, about 0.967. These
+intervals are cut to \link{-1, 1} too.
 Rank intervals are the \code{(1 - conf) / 2} and \code{(1 + conf) / 2} quantiles of
 each arm's rank over the cluster bootstrap resamples (rank 1 is the most
 accurate).
