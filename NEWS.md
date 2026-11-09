@@ -612,6 +612,35 @@
   over the reportable rows and labelled items, with the dev split's accuracy
   in its own column, descriptive only.
 
+### Benchmark reports: `hr_report()`
+
+* **New `hr_report()`** turns the reportable rows of an `hr_benchmark()`
+  into accuracy per arm (mean over runs within each item, then over items)
+  with intervals that keep clusters together. With at least 300 items and 30
+  clusters it uses a BCa cluster bootstrap that resamples whole clusters
+  with all their items, runs and arms (B = 2000, or 5000 with
+  `confirmatory = TRUE`); below either threshold it uses a Bayesian
+  beta-binomial model with a cluster random effect and flat priors, computed
+  on a grid, one-sided from the boundary when an arm scores 0 or 1.
+  `method = "exact"` gives Clopper-Pearson on the effective number of items
+  from cluster totals (Korn and Graubard) instead, with items rather than
+  runs as trials. No Wald or normal interval is given for accuracy.
+
+* The report also gives paired differences between arms (every pair, or
+  the ones in `contrasts`) with BCa intervals from the same cluster
+  resamples at every size, max-t simultaneous intervals over all pairs and
+  bootstrap rank intervals in place of a ranking by point estimate; flip
+  rate, TARa and run-level SD; pass^k with the unbiased estimator; dollars
+  and tokens per item and per correct item with intervals, flagging arms
+  whose cost rests on estimated token counts for more than 5%; the
+  cost-accuracy frontier with each arm's share of resamples on it; failure
+  counts with accuracy recomputed without parse failures and refusals; and
+  within-item and between-item variance on the probability scale, with a
+  note to use 10 runs when runs account for more than 10%. Below 5 runs the
+  report is descriptive only, without intervals. An item scored on some
+  runs but not all is refused. It has `print()` and `as_json()` methods and
+  leaves the caller's random state as it was.
+
 # readgpt 0.6.0
 
 ## New

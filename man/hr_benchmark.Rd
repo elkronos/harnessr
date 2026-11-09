@@ -152,6 +152,7 @@ head(bench[, c("item", "run", "correct", "failure_kind", "draw_index")])
 Other harness: 
 \code{\link{hr_arm}()},
 \code{\link{hr_reference}()},
+\code{\link{hr_report}()},
 \code{\link{hr_scorer}()}
 }
 \concept{harness}

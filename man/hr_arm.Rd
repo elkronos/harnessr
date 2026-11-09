@@ -71,6 +71,7 @@ short
 Other harness: 
 \code{\link{hr_benchmark}()},
 \code{\link{hr_reference}()},
+\code{\link{hr_report}()},
 \code{\link{hr_scorer}()}
 }
 \concept{harness}

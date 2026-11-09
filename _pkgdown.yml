@@ -172,6 +172,7 @@ reference:
     its splits, scorers, and repeated runs held to one spending limit.
   contents:
   - hr_benchmark
+  - hr_report
   - hr_arm
   - hr_reference
   - hr_scorer
