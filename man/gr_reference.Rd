@@ -47,14 +47,16 @@ the row's stratum).}
 uses. Give one or the other.}
 
 \item{reviewers}{How many people will judge each record. Above 1 the sheet
-has one row per document per reviewer, numbered in a \code{reviewer} column.
-\code{\link[=gr_calibrate]{gr_calibrate()}} counts copies that agree once and refuses copies that
-disagree, so reconcile them into one decision per document first.}
+has one decision column per reviewer, \code{human_decision_1} to
+\verb{human_decision_<reviewers>}, in place of \code{human_decision}, and a
+\code{consensus} column for an adjudicator to fill where they disagree. See
+\code{\link[=gr_reference_consensus]{gr_reference_consensus()}} for how their decisions become one.}
 }
 \value{
 A data frame of class \code{gr_reference_frame}, invisibly when written.
 The \code{human_decision} column is empty and is yours to fill with \code{include} or
-\code{exclude}.
+\code{exclude} (with several reviewers, each \verb{human_decision_<reviewer>}
+column is).
 }
 \description{
 Picks documents out of a \code{\link[=gr_screen]{gr_screen()}} run for a person to judge without
@@ -111,12 +113,13 @@ gr_reference(structure(list(table = tab), class = "gr_screening"),
              n = 2, of = "stacked", seed = 1, blind = FALSE)
 }
 \seealso{
-\code{\link[=gr_calibrate]{gr_calibrate()}}, \code{\link[=gr_screen]{gr_screen()}}
+\code{\link[=gr_calibrate]{gr_calibrate()}}, \code{\link[=gr_reference_consensus]{gr_reference_consensus()}}, \code{\link[=gr_screen]{gr_screen()}}
 
 Other corpus functions: 
 \code{\link{gr_calibrate}()},
 \code{\link{gr_inventory}()},
 \code{\link{gr_records}()},
+\code{\link{gr_reference_consensus}()},
 \code{\link{gr_resolve}()},
 \code{\link{gr_screen_sample_size}()},
 \code{\link{gr_search}()}

@@ -22,7 +22,9 @@ be \code{"include"}, \code{"exclude"}, \code{"unclear"} or empty (never read), i
 case; a row whose \code{status} says it was not read counts as never read.}
 
 \item{reference}{The completed frame from \code{\link[=gr_reference]{gr_reference()}}, a path to the
-filled-in CSV, or any data frame with \code{document} and \code{human_decision}.}
+filled-in CSV, or any data frame with \code{document} and \code{human_decision}
+(or one \verb{human_decision_<reviewer>} column per reviewer; see "Several
+reviewers").}
 
 \item{positive}{Which human decision counts as eligible: \code{"include"} or
 \code{"exclude"}.}
@@ -94,6 +96,14 @@ its exact two-sided bounds.}
 \item{\code{verdict}}{\code{met} (\code{TRUE}, \code{FALSE}, or \code{NA} when nothing bounds
 recall or M), \code{rule}, \code{recall_target}, \code{conf}, \code{max_lost} and
 \code{note}.}
+\item{\code{reviewers}}{Only for a sheet with several reviewers:
+\code{reviewers} (their labels), \code{n_reviewers}, \code{rule} (how the consensus
+was formed), \code{conflicts} (documents they disagreed on), \code{consensus}
+(how each document's consensus was reached, counted), \code{weighted},
+\code{sensitivity} (one row per reviewer and statistic: \code{estimate},
+\code{lower}, \code{upper}, \code{n}, \code{method}), \code{agreement} (one row per pair of
+reviewers, scope and statistic, the scope being the frame, a stratum
+or \code{"weighted"}), \code{notes} and \code{conf}.}
 }
 }
 \description{
@@ -239,10 +249,52 @@ sensitivity.
 
 The reference is matched to the screening by document name, compared as
 UTF-8 whatever the session's locale, and by \code{document_id} for a row whose
-name still does not match. A document judged twice (two reviewers' sheets
-stacked, say) is counted once when the copies agree, with a warning, and is
-refused when they disagree: reconcile dual screening into one consensus
-decision per document first.
+name still does not match. A document judged twice (two sheets stacked
+with no \code{reviewer} column, say) is counted once when the copies agree, with
+a warning, and is refused when they disagree.
+}
+
+\section{Several reviewers}{
+
+A sheet with one \verb{human_decision_<reviewer>} column per reviewer (from
+\code{gr_reference(reviewers = k)}), or a long sheet with a \code{reviewer} column, is
+compared on the reviewers' consensus. Where it has been formed with
+\code{\link[=gr_reference_consensus]{gr_reference_consensus()}} that is used; otherwise records the reviewers
+agreed on take their decision, records they disagreed on take the
+\code{consensus} column, and the calibration stops if any disagreement has none,
+saying how many there were.
+
+\verb{$reviewers} then reports how far the people agree with each other, the
+yardstick for the screener's agreement with them, with
+\code{\link[=hr_agreement]{hr_agreement()}}: for every pair of reviewers the observed agreement,
+Cohen's kappa, PABAK, Gwet's AC1 and the prevalence and bias indices, never
+kappa alone, and with three reviewers or more Krippendorff's alpha over all
+of them. It also reports each reviewer's sensitivity and specificity
+against the consensus, the share of consensus-eligible records they
+included and of consensus-ineligible records they excluded, which says what
+one person screening alone would have missed. A reviewer is scored on the
+records they judged. Note that a reviewer is part of the consensus they
+are scored against, so these figures are higher than against an
+independent reference, and more so with fewer reviewers.
+
+On a stacked reference both are weighted the way recall is, each record by
+N_h / n_h for its stratum h (the screener's kept or excluded records), so
+they describe every record screened rather than the sample. Sensitivity
+is sum_h (N_h / n_h) a_h / sum_h (N_h / n_h) (a_h + b_h), with a_h the
+consensus-eligible records the reviewer included in stratum h and b_h those
+they excluded; its interval bounds each count in a sampled stratum exactly
+with the hypergeometric distribution, alpha split equally over them
+(Bonferroni), and maps them through the ratio, which rises with a and falls
+with b. Specificity is the same with the consensus-ineligible records.
+Agreement is computed on the 2x2 table built with the same weights, with
+percentile intervals from a bootstrap within each sampled stratum
+(B = 2000, seed 1), and \code{\link[=hr_agreement]{hr_agreement()}} is also reported within each
+stratum. The weighted kappa interval is approximate and runs narrow when
+the sampled exclusion stratum holds fewer than about 100 records (near 80\%
+coverage for a nominal 95\% at 30), and \verb{$reviewers$notes} says so; the
+observed agreement, PABAK and AC1 intervals hold up better there. On any other
+frame the sample is one simple random sample, the figures are unweighted,
+and sensitivity and specificity have Wilson intervals, as in \verb{$metrics}.
 }
 
 \examples{
@@ -264,15 +316,23 @@ Conference on Information and Knowledge Management}, 893-902.
 Horvitz, D. G. and Thompson, D. J. (1952). A generalization of sampling
 without replacement from a finite universe. \emph{Journal of the American
 Statistical Association} 47(260), 663-685.
+
+Byrt, T., Bishop, J. and Carlin, J. B. (1993). Bias, prevalence and kappa.
+\emph{Journal of Clinical Epidemiology} 46(5), 423-429.
+
+Gwet, K. L. (2008). Computing inter-rater reliability and its variance in
+the presence of high agreement. \emph{British Journal of Mathematical and
+Statistical Psychology} 61(1), 29-48.
 }
 \seealso{
-\code{\link[=gr_reference]{gr_reference()}}, \code{\link[=gr_screen_sample_size]{gr_screen_sample_size()}}, \code{\link[=gr_screen]{gr_screen()}},
+\code{\link[=gr_reference]{gr_reference()}}, \code{\link[=gr_reference_consensus]{gr_reference_consensus()}}, \code{\link[=gr_screen_sample_size]{gr_screen_sample_size()}}, \code{\link[=gr_screen]{gr_screen()}},
 \code{\link[=gr_audit_report]{gr_audit_report()}}
 
 Other corpus functions: 
 \code{\link{gr_inventory}()},
 \code{\link{gr_records}()},
 \code{\link{gr_reference}()},
+\code{\link{gr_reference_consensus}()},
 \code{\link{gr_resolve}()},
 \code{\link{gr_screen_sample_size}()},
 \code{\link{gr_search}()}

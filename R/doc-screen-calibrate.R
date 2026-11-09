@@ -100,13 +100,15 @@
 #' @param frame The same as `of`, under the name [gr_screen_sample_size()]
 #'   uses. Give one or the other.
 #' @param reviewers How many people will judge each record. Above 1 the sheet
-#'   has one row per document per reviewer, numbered in a `reviewer` column.
-#'   [gr_calibrate()] counts copies that agree once and refuses copies that
-#'   disagree, so reconcile them into one decision per document first.
+#'   has one decision column per reviewer, `human_decision_1` to
+#'   `human_decision_<reviewers>`, in place of `human_decision`, and a
+#'   `consensus` column for an adjudicator to fill where they disagree. See
+#'   [gr_reference_consensus()] for how their decisions become one.
 #' @return A data frame of class `gr_reference_frame`, invisibly when written.
 #'   The `human_decision` column is empty and is yours to fill with `include` or
-#'   `exclude`.
-#' @seealso [gr_calibrate()], [gr_screen()]
+#'   `exclude` (with several reviewers, each `human_decision_<reviewer>`
+#'   column is).
+#' @seealso [gr_calibrate()], [gr_reference_consensus()], [gr_screen()]
 #' @family corpus functions
 #' @export
 #' @examples
@@ -239,9 +241,15 @@ gr_reference <- function(screening, n = 50, of = c("excluded", "kept", "all", "s
     ref$screened_n <- sum(judged)
   }
   if (rv > 1) {
-    # One row per document per reviewer, each reviewer filling their own rows.
-    ref <- ref[rep(seq_len(nrow(ref)), each = rv), , drop = FALSE]
-    ref$reviewer <- rep(seq_len(rv), length.out = nrow(ref))
+    # One decision column per reviewer, and one for an adjudicator, in place of
+    # the single `human_decision`: each person fills their own column, and the
+    # document stays on one row, so a sheet split between reviewers and put
+    # back together cannot count a record twice.
+    at <- match("human_decision", names(ref))
+    dec <- stats::setNames(rep(list(NA_character_), rv), paste0("human_decision_", seq_len(rv)))
+    ref <- cbind(ref[, seq_len(at - 1L), drop = FALSE], as.data.frame(dec),
+                 consensus = NA_character_, ref[, -seq_len(at), drop = FALSE],
+                 stringsAsFactors = FALSE)
   }
   rownames(ref) <- NULL
   attr(ref, "of") <- of
@@ -442,17 +450,59 @@ as_screening_table <- function(screening) {
 #' @section One row per document:
 #' The reference is matched to the screening by document name, compared as
 #' UTF-8 whatever the session's locale, and by `document_id` for a row whose
-#' name still does not match. A document judged twice (two reviewers' sheets
-#' stacked, say) is counted once when the copies agree, with a warning, and is
-#' refused when they disagree: reconcile dual screening into one consensus
-#' decision per document first.
+#' name still does not match. A document judged twice (two sheets stacked
+#' with no `reviewer` column, say) is counted once when the copies agree, with
+#' a warning, and is refused when they disagree.
+#'
+#' @section Several reviewers:
+#' A sheet with one `human_decision_<reviewer>` column per reviewer (from
+#' `gr_reference(reviewers = k)`), or a long sheet with a `reviewer` column, is
+#' compared on the reviewers' consensus. Where it has been formed with
+#' [gr_reference_consensus()] that is used; otherwise records the reviewers
+#' agreed on take their decision, records they disagreed on take the
+#' `consensus` column, and the calibration stops if any disagreement has none,
+#' saying how many there were.
+#'
+#' `$reviewers` then reports how far the people agree with each other, the
+#' yardstick for the screener's agreement with them, with
+#' [hr_agreement()]: for every pair of reviewers the observed agreement,
+#' Cohen's kappa, PABAK, Gwet's AC1 and the prevalence and bias indices, never
+#' kappa alone, and with three reviewers or more Krippendorff's alpha over all
+#' of them. It also reports each reviewer's sensitivity and specificity
+#' against the consensus, the share of consensus-eligible records they
+#' included and of consensus-ineligible records they excluded, which says what
+#' one person screening alone would have missed. A reviewer is scored on the
+#' records they judged. Note that a reviewer is part of the consensus they
+#' are scored against, so these figures are higher than against an
+#' independent reference, and more so with fewer reviewers.
+#'
+#' On a stacked reference both are weighted the way recall is, each record by
+#' N_h / n_h for its stratum h (the screener's kept or excluded records), so
+#' they describe every record screened rather than the sample. Sensitivity
+#' is sum_h (N_h / n_h) a_h / sum_h (N_h / n_h) (a_h + b_h), with a_h the
+#' consensus-eligible records the reviewer included in stratum h and b_h those
+#' they excluded; its interval bounds each count in a sampled stratum exactly
+#' with the hypergeometric distribution, alpha split equally over them
+#' (Bonferroni), and maps them through the ratio, which rises with a and falls
+#' with b. Specificity is the same with the consensus-ineligible records.
+#' Agreement is computed on the 2x2 table built with the same weights, with
+#' percentile intervals from a bootstrap within each sampled stratum
+#' (B = 2000, seed 1), and [hr_agreement()] is also reported within each
+#' stratum. The weighted kappa interval is approximate and runs narrow when
+#' the sampled exclusion stratum holds fewer than about 100 records (near 80%
+#' coverage for a nominal 95% at 30), and `$reviewers$notes` says so; the
+#' observed agreement, PABAK and AC1 intervals hold up better there. On any other
+#' frame the sample is one simple random sample, the figures are unweighted,
+#' and sensitivity and specificity have Wilson intervals, as in `$metrics`.
 #'
 #' @param screening A `gr_screening` from [gr_screen()], or a data frame shaped
 #'   like its `$table`, for instance read back from a CSV. Its `decision` must
 #'   be `"include"`, `"exclude"`, `"unclear"` or empty (never read), in any
 #'   case; a row whose `status` says it was not read counts as never read.
 #' @param reference The completed frame from [gr_reference()], a path to the
-#'   filled-in CSV, or any data frame with `document` and `human_decision`.
+#'   filled-in CSV, or any data frame with `document` and `human_decision`
+#'   (or one `human_decision_<reviewer>` column per reviewer; see "Several
+#'   reviewers").
 #' @param positive Which human decision counts as eligible: `"include"` or
 #'   `"exclude"`.
 #' @param of Which part of the screening run the reference was drawn from:
@@ -516,6 +566,14 @@ as_screening_table <- function(screening) {
 #'     \item{`verdict`}{`met` (`TRUE`, `FALSE`, or `NA` when nothing bounds
 #'       recall or M), `rule`, `recall_target`, `conf`, `max_lost` and
 #'       `note`.}
+#'     \item{`reviewers`}{Only for a sheet with several reviewers:
+#'       `reviewers` (their labels), `n_reviewers`, `rule` (how the consensus
+#'       was formed), `conflicts` (documents they disagreed on), `consensus`
+#'       (how each document's consensus was reached, counted), `weighted`,
+#'       `sensitivity` (one row per reviewer and statistic: `estimate`,
+#'       `lower`, `upper`, `n`, `method`), `agreement` (one row per pair of
+#'       reviewers, scope and statistic, the scope being the frame, a stratum
+#'       or `"weighted"`), `notes` and `conf`.}
 #'   }
 #' @references
 #' Lewis, D. D., Yang, E. and Frieder, O. (2021). Certifying one-phase
@@ -525,7 +583,14 @@ as_screening_table <- function(screening) {
 #' Horvitz, D. G. and Thompson, D. J. (1952). A generalization of sampling
 #' without replacement from a finite universe. *Journal of the American
 #' Statistical Association* 47(260), 663-685.
-#' @seealso [gr_reference()], [gr_screen_sample_size()], [gr_screen()],
+#'
+#' Byrt, T., Bishop, J. and Carlin, J. B. (1993). Bias, prevalence and kappa.
+#' *Journal of Clinical Epidemiology* 46(5), 423-429.
+#'
+#' Gwet, K. L. (2008). Computing inter-rater reliability and its variance in
+#' the presence of high agreement. *British Journal of Mathematical and
+#' Statistical Psychology* 61(1), 29-48.
+#' @seealso [gr_reference()], [gr_reference_consensus()], [gr_screen_sample_size()], [gr_screen()],
 #'   [gr_audit_report()]
 #' @family corpus functions
 #' @export
@@ -546,6 +611,10 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
   max_lost <- check_count_arg(max_lost, "max_lost", 0)
   tab <- as_screening_table(screening)
   ref <- read_reference(reference)
+  # Several reviewers: one row per document with their consensus in
+  # `human_decision`, the reviewers' own decisions kept beside it.
+  panel <- reviewer_panel(ref)
+  if (!is.null(panel)) ref <- panel
   # Normalised the way the human decisions are. A positive the decisions can
   # never equal ("Include") made every study ineligible without a word.
   positive <- lower_text(trimws(as_chr1(positive, "")))
@@ -826,7 +895,11 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
                           "whole stratum judged) before the figure says much."),
                    headline, 100 * width, length(model), 100 * .gr_frame_max_width))
   }
-  structure(list(
+  reviewers <- if (!is.null(panel)) {
+    reviewer_summary(rows, eligible, kept, of, tab, positive, conf,
+                     attr(panel, "consensus_rule"), attr(panel, "conflicts"))
+  }
+  out <- structure(list(
     counts = counts,
     metrics = metrics,
     kappa = kappa,
@@ -867,6 +940,10 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
     strata = rec$strata,
     verdict = rec$verdict
   ), class = "gr_calibration")
+  # Only with several reviewers, so a one-reviewer calibration is the object it
+  # was before.
+  if (!is.null(reviewers)) out$reviewers <- reviewers
+  out
 }
 
 #' Stop unless a stacked reference can be weighted: rows from each stratum
@@ -943,9 +1020,13 @@ read_reference <- function(reference) {
     gr_abort("`reference` must be a data frame, or a path to the CSV gr_reference() wrote.",
              class = "gr_bad_reference")
   }
-  if (is.null(ref$document) || is.null(ref$human_decision)) {
-    gr_abort(paste0("`reference` needs `document` and `human_decision` columns. ",
-                    "gr_reference() writes a file with both."), class = "gr_bad_reference")
+  # Several reviewers' sheets have one `human_decision_<reviewer>` column each
+  # in place of `human_decision`.
+  if (is.null(ref$document) ||
+      (is.null(ref$human_decision) && length(reviewer_columns(ref)) < 2L)) {
+    gr_abort(paste0("`reference` needs `document` and `human_decision` columns (or one ",
+                    "`human_decision_<reviewer>` column per reviewer). gr_reference() writes ",
+                    "a file with them."), class = "gr_bad_reference")
   }
   # A blind sheet's frame is an opaque key (see frame_key()); read it back as
   # the frame's name and sizes, which is what everything below works with.
@@ -1196,6 +1277,7 @@ print.gr_calibration <- function(x, ...) {
                 p$frame_n, p$lost, if (round(p$lost) == 1) "y" else "ies", p$lower, p$upper))
   }
   print_calibration_recall(x)
+  print_calibration_reviewers(x)
   if (identical(x$frame$of, "stacked")) {
     cat("  (every kept record and a sample of the exclusions: each stratum weighted by\n")
     cat("   how much of it was judged, with exact hypergeometric bounds)\n")

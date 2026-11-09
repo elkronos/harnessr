@@ -269,11 +269,11 @@ test_that("a sample of everything uses the finite frame when its size is given",
   expect_true(is.na(b$n_exact))
 })
 
-test_that("reviewers > 1 gives one row per document per reviewer", {
+test_that("reviewers > 1 gives one decision column per reviewer", {
   scr <- recall_run()
   ref <- gr_reference(scr, n = 3, of = "excluded", seed = 1, reviewers = 2)
-  expect_identical(nrow(ref), 6L)
-  expect_identical(ref$reviewer, rep(1:2, 3))
-  expect_identical(ref$document[c(1, 3, 5)], ref$document[c(2, 4, 6)])
+  expect_identical(nrow(ref), 3L)
+  expect_true(all(c("human_decision_1", "human_decision_2", "consensus") %in% names(ref)))
+  expect_identical(ref$document, gr_reference(scr, n = 3, of = "excluded", seed = 1)$document)
   expect_error(gr_reference(scr, reviewers = 0), class = "gr_bad_setting")
 })

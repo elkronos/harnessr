@@ -244,6 +244,10 @@
       "formals": ["screening", "n = 50", "of = c(\"excluded\", \"kept\", \"all\", \"stacked\")", "seed = NULL", "path = NULL", "blind = TRUE", "frame = NULL", "reviewers = 1L"],
       "type": "function"
     },
+    "gr_reference_consensus": {
+      "formals": ["reference", "rule = c(\"majority\", \"any_include\", \"adjudicated\")"],
+      "type": "function"
+    },
     "gr_register_cleaner": {
       "formals": ["name", "fn", "stage = c(\"early\", \"late\")", "description = \"\"", "default_on = FALSE", "scope = c(\"block\", \"document\")"],
       "type": "function"

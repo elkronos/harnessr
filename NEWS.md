@@ -580,9 +580,8 @@
   it excluded. Each row records its stratum and its inclusion probability (1
   for a kept record, `n` / N for an excluded one). A blind sheet keeps both
   inside a key per row of one length, so they do not reveal what the model
-  decided. `frame =` is accepted as another name for `of`, and `reviewers`
-  writes one row per document per reviewer. The other frames draw exactly
-  as before.
+  decided. `frame =` is accepted as another name for `of`. The other frames
+  draw exactly as before.
 
 * **`gr_calibrate()` estimates recall on a stacked reference** instead of
   refusing it: the ratio of Horvitz-Thompson totals, K / (K + M), with M the
@@ -607,6 +606,34 @@
   For a sample of everything screened, giving `frame_n` with `prevalence`
   adds the exact finite-frame size (388 rather than 1180 for 500 records at
   5% prevalence).
+
+### References from several reviewers
+
+* **`gr_reference(reviewers = k)`** writes one decision column per reviewer,
+  `human_decision_1` to `human_decision_<k>`, and a `consensus` column for an
+  adjudicator, one row per document. With one reviewer the sheet is as
+  before.
+
+* **New `gr_reference_consensus()`** forms one decision per document from
+  several reviewers, by `rule = "majority"` (a tie is settled by `consensus`
+  where filled, and otherwise settled as include), `"any_include"` or
+  `"adjudicated"` (the `consensus` column, an error where reviewers disagree
+  and it is empty). It also reads a long sheet with a `reviewer` column. Each
+  row says in `consensus_from` how its decision was reached. Columns named
+  `human_decision_<x>` are reviewers, except those ending in `_note`,
+  `_notes`, `_comment`, `_comments` or `_date`.
+
+* **`gr_calibrate()` compares the screener with the reviewers' consensus** on
+  a multi-reviewer sheet, and stops only on a disagreement nobody settled,
+  saying how many there were. Its result gains `reviewers`: agreement between
+  each pair of reviewers from `hr_agreement()` (kappa beside PABAK, AC1 and
+  the prevalence and bias indices, never alone), Krippendorff's alpha with
+  three reviewers or more, and each reviewer's sensitivity and specificity
+  against the consensus. On a stacked reference both are weighted by the
+  stratum weights recall uses, with exact hypergeometric bounds for the rates
+  and a bootstrap within the sampled stratum for agreement; the notes flag
+  the weighted kappa interval as approximate when fewer than 100 excluded
+  records were sampled. A one-reviewer calibration is unchanged.
 
 # readgpt 0.6.0
 

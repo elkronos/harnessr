@@ -109,6 +109,7 @@ reference:
   - gr_records
   - gr_screen
   - gr_reference
+  - gr_reference_consensus
   - gr_calibrate
   - gr_screen_sample_size
   - gr_resolve
