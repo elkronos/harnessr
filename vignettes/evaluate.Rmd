@@ -80,11 +80,12 @@ qa
 
 The eastern report names a chair and no chief executive, so `e_ceo` is marked
 unanswerable: its label is the not-found answer, and a reader is right on it
-only when it says the document does not hold the answer. A reference without
-such items never tests whether a reader can tell that an answer is missing. An
-item
-with neither an answer nor the unanswerable flag has no label, and every run on
-it is scored `NA`, so it never counts for or against an arm.
+only when it says the document does not hold the answer. The flag goes into
+the label alone; the payload a configuration is given holds the question and
+the document, so it cannot tell which questions have no answer. A reference
+without such items never tests whether a reader can tell that an answer is
+missing. An item with neither an answer nor the unanswerable flag has no label,
+and every run on it is scored `NA`, so it never counts for or against an arm.
 
 Once a benchmark starts scoring a reference, the reference is locked:
 `hr_reference_add()` then refuses to add items to it, or to any copy of it,
@@ -195,7 +196,9 @@ ask("large", "mock-large")
 
 The arm records a SHA-256 hash of its name, code, settings and `version`. The
 code is hashed as text with the values it names from the environment it was
-made in, so the same arm has the same hash in every session and after
+made in, the workspace included: an arm written at top level that reads a
+global prompt gets a new hash when the prompt changes. The same arm has the
+same hash in every session and after
 `saveRDS()`, and an arm edited after it was built is refused rather than run
 under its old name. Change `version` when the arm's behaviour changes.
 
@@ -222,7 +225,9 @@ compared) and a `failure_kind` saying why a wrong output was wrong:
 or `"error"`. `hr_scorer_exact()`, the default, compares text after folding case
 and white space. `gr_scorer_answer()` is the one for reading recipes: an answer
 is right when it contains any acceptable answer, after folding case, white
-space and thousands separators, with numbers matched whole:
+space and thousands separators, with numbers matched whole (`"12"` is not
+found in `".12"` or `"-12"`, but is found in `"12-15"`, and `"45.2"` in
+`"45.2m"`):
 
 ```{r}
 s <- gr_scorer_answer()
@@ -307,7 +312,9 @@ anything was sent.
 
 Run `r` is given `ctx$draw_index = r`, and `ctx$call()` passes it on, so under
 a `gr_cache()` each run is its own cache entry and under a `gr_replay_client()`
-its own recorded draw. Five runs answered from one stored reply would agree
+its own recorded draw. The recorded draw also names the arm, so a replay
+answers each arm with its own replies, whether it replays every arm or a few,
+in any order. Five runs answered from one stored reply would agree
 perfectly and measure nothing, so an arm whose runs come back as copies is
 refused with an error of class `hr_duplicate_draw`. An arm that calls
 `gr_call()` without the draw index is one:

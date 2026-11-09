@@ -48,11 +48,13 @@ benchmarking reading recipes with \code{\link[=gr_arm]{gr_arm()}} and scoring th
 \code{\link[=gr_scorer_answer]{gr_scorer_answer()}}.
 }
 \details{
-Each item's payload is a list of \code{question}, \code{document} and
-\code{unanswerable}. Its label is the list of acceptable answers, any one of
+Each item's payload, what an arm is given, is a list of \code{question} and
+\code{document}. Its label is the list of acceptable answers, any one of
 which an answer must contain to be right. An unanswerable item, one the
 document does not answer, is labelled \code{"NOT_IN_DOCUMENT"}: the reader is
-right when it says the document does not hold the answer. An answer given
+right when it says the document does not hold the answer. That an item is
+unanswerable is held in its label alone, so an arm cannot read it from the
+payload. An answer given
 as \code{"NOT_IN_DOCUMENT"} marks its item unanswerable too. An item that is
 neither unanswerable nor given an answer has no label, and every run on it
 is scored \code{NA}.

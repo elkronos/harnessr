@@ -322,6 +322,10 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   # on the trace of each benchmark run). An index given to the call wins.
   if (draw_index == 0L) draw_index <- trace_draw_index(trace)
   if (draw_index > 0L) params$draw_index <- draw_index
+  # Whose draw it is, when the trace says (hr_benchmark() names the arm), so
+  # a replay hands each arm its own recorded replies. Kept out of `params`,
+  # and out of the cache and replay keys.
+  draw_scope <- if (draw_index > 0L) trace_draw_scope(trace)
 
   # One dispatch, one exit, one trace entry. The mock and HTTP paths each used
   # to `return()` after recording their own trace entry, so every feature that
@@ -331,7 +335,7 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
               temperature = temperature, schema = schema, schema_name = schema_name,
               info = info, params = params, label = label, extra = extra,
               accept = accept, effort_map = effort_map, draw_index = draw_index,
-              asked_cap = asked_cap)
+              draw_scope = draw_scope, asked_cap = asked_cap)
   # The replay key of this call, recorded on its step so a replay of the trace
   # looks it up by the same key (see replay_lookup()).
   rkey <- request_replay_key(req, model, params$effort)
@@ -385,7 +389,8 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   }
   trace_record(trace, label, messages, res, params,
                seconds = as.numeric(difftime(ended, started, units = "secs")),
-               sent = sent, started = started, ended = ended, replay_key = rkey)
+               sent = sent, started = started, ended = ended, replay_key = rkey,
+               draw_scope = draw_scope)
   res
 }
 

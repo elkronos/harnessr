@@ -329,7 +329,7 @@ usd12 <- function(x) {
 #' @noRd
 trace_record <- function(trace, label, messages, result, params = list(), seconds = NA_real_,
                          embedding = FALSE, sent = NULL, started = NULL, ended = NULL,
-                         replay_key = NULL) {
+                         replay_key = NULL, draw_scope = NULL) {
   if (is.null(trace) || !inherits(trace, "gr_trace")) return(invisible(NULL))
   trace$calls <- trace$calls + 1L
   if (isTRUE(result$cached)) trace$cached <- trace$cached + 1L
@@ -429,6 +429,11 @@ trace_record <- function(trace, label, messages, result, params = list(), second
   if (is.character(replay_key) && length(replay_key) == 1L && !is.na(replay_key)) {
     step$replay_key <- replay_key
   }
+  # Whose draw a sampled request was (see trace_draw_scope()). Only on such
+  # steps, so every other step keeps the fields it always had.
+  if (is.character(draw_scope) && length(draw_scope) == 1L && !is.na(draw_scope)) {
+    step$draw_scope <- draw_scope
+  }
   trace$steps <- c(trace$steps, list(step))
   invisible(NULL)
 }
@@ -477,6 +482,20 @@ trace_draw_index <- function(trace) {
   ok <- is.numeric(d) && length(d) == 1L && !is.na(d) && is.finite(d) && d >= 1 &&
     d == round(d) && d <= .Machine$integer.max
   if (ok) as.integer(d) else 0L
+}
+
+#' The draw scope a trace hands to the sampled requests recorded into it, or
+#' NULL.
+#'
+#' hr_benchmark() sets it to the arm's name on the trace of each run. Two arms
+#' can send the same request at the same draw index; the scope keeps their
+#' recorded replies apart, so a replay answers each arm with its own replies
+#' whichever arms are replayed and in whatever order (see replay_lookup()).
+#' @noRd
+trace_draw_scope <- function(trace) {
+  if (!inherits(trace, "gr_trace")) return(NULL)
+  s <- get0("draw_scope", envir = trace, inherits = FALSE)
+  if (is.character(s) && length(s) == 1L && !is.na(s) && nzchar(s)) s else NULL
 }
 
 #' Fold a child trace's steps and counters into a parent.

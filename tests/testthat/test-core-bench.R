@@ -439,3 +439,127 @@ test_that("an arm is given its context", {
   expect_identical(got$trace$run_id, b$ledger_id[5])
   expect_s3_class(got$client, "gr_mock_client")
 })
+
+# ---- review fixes ------------------------------------------------------------
+
+test_that("a numeric label is compared as plain digits, not as 1e+05", {
+  # as.character(100000) is "1e+05"; format(100000, scientific = FALSE) is
+  # "100000", which is what the answer says.
+  exact <- hr_scorer_exact()
+  expect_identical(exact$fn(NULL, "100000", 100000),
+                   list(correct = TRUE, outcome = "100000", failure_kind = NA_character_))
+  expect_true(exact$fn(NULL, "0.0001", 1e-04)$correct)
+  expect_true(exact$fn(NULL, "100000", list(c(100000, 5)))$correct)
+  expect_true(exact$fn(NULL, "5", list(c(100000, 5)))$correct)
+  # A list holding a number and a string: unlist() alone would give "1e+05".
+  expect_true(exact$fn(NULL, "100000", list(list(100000, "a hundred thousand")))$correct)
+  expect_identical(exact$fn(NULL, "1e+05", 100000)$failure_kind, "wrong")
+  ref <- hr_reference(list(q1 = "x"), 100000, "a", split = "test")
+  b <- hr_benchmark(hr_arm("n", function(item, ctx) "100000"), ref, runs = 5, client = NULL)
+  expect_identical(b$correct, rep(TRUE, 5))
+  expect_identical(b$failure_kind, rep(NA_character_, 5))
+})
+
+test_that("named labels and clusters are matched to the items by name", {
+  ref <- hr_reference(items = list(q1 = "France", q2 = "Peru"),
+                      labels = c(q2 = "Lima", q1 = "Paris"),
+                      cluster = c(q2 = "b", q1 = "a"),
+                      split = c(q2 = "dev", q1 = "test"),
+                      inclusion_prob = c(q2 = 0.5, q1 = 1),
+                      strata = c(q2 = "s2", q1 = "s1"))
+  expect_identical(ref$labels, list(q1 = "Paris", q2 = "Lima"))
+  expect_identical(ref$cluster, c("a", "b"))
+  expect_identical(ref$split, c("test", "dev"))
+  expect_identical(ref$inclusion_prob, c(1, 0.5))
+  expect_identical(ref$strata, c("s1", "s2"))
+  # The same reference as one given in item order.
+  same <- hr_reference(items = list(q1 = "France", q2 = "Peru"), labels = c("Paris", "Lima"),
+                       cluster = c("a", "b"), split = c("test", "dev"),
+                       inclusion_prob = c(1, 0.5), strata = c("s1", "s2"))
+  expect_identical(ref$hash, same$hash)
+  # A named list of labels too.
+  lst <- hr_reference(list(q1 = "France", q2 = "Peru"), list(q2 = c("Lima", "Lima, Peru"),
+                                                             q1 = "Paris"), "a")
+  expect_identical(lst$labels, list(q1 = "Paris", q2 = c("Lima", "Lima, Peru")))
+  # Names that are not the item ids are an error, not a match by position.
+  expect_error(hr_reference(list(q1 = "France", q2 = "Peru"), c(q1 = "Paris", q3 = "Lima"), "a"),
+               class = "hr_bad_reference")
+  expect_error(hr_reference(list(q1 = "France", q2 = "Peru"), c("Paris", "Lima"),
+                            c(a = "x", b = "y")), class = "hr_bad_reference")
+  expect_error(hr_reference(list(q1 = "France", q2 = "Peru"), c(q1 = "Paris", q1 = "Lima"), "a"),
+               class = "hr_bad_reference")
+  # hr_reference_add() matches by name as well.
+  grown <- hr_reference_add(same, list(q3 = "Chad", q4 = "Fiji"),
+                            c(q4 = "Suva", q3 = "N'Djamena"), "c", split = "test",
+                            strata = c("s3", "s4"))
+  expect_identical(grown$labels$q3, "N'Djamena")
+  expect_identical(grown$labels$q4, "Suva")
+})
+
+test_that("a replay gives each arm its own draws, for a subset of the arms or another order", {
+  # Calls are made item by item, arm by arm, run by run: q1 a1 runs 1-5 are
+  # calls 1-5, q1 a2 calls 6-10, q2 a1 calls 11-15, q2 a2 calls 16-20. The
+  # mock answers "Lyon" on calls 3, 6, 9, 12, 15 and 18, so the folded
+  # outcomes recorded are
+  #   q1 a1: paris paris lyon paris paris   q1 a2: lyon paris paris lyon paris
+  #   q2 a1: lima lyon lima lima lyon       q2 a2: lima lima lyon lima lima
+  ref <- hr_reference(list(q1 = "France", q2 = "Peru"), c("Paris", "Lima"), "a", split = "test")
+  n <- 0
+  cl <- gr_mock_client(function(messages, params) {
+    n <<- n + 1
+    if (n %% 3 == 0) "Lyon" else if (grepl("France", messages[[1]]$content)) "Paris" else "Lima"
+  })
+  a1 <- hr_arm("a1", function(item, ctx) ctx$call(paste0("Capital of ", item))$text)
+  a2 <- hr_arm("a2", function(item, ctx) toupper(ctx$call(paste0("Capital of ", item))$text))
+  b <- hr_benchmark(list(a1, a2), ref, runs = 5, client = cl)
+  want_a1 <- c("paris", "paris", "lyon", "paris", "paris", "lima", "lyon", "lima", "lima", "lyon")
+  want_a2 <- c("lyon", "paris", "paris", "lyon", "paris", "lima", "lima", "lyon", "lima", "lima")
+  expect_identical(b$outcome[b$arm == "a1"], want_a1)
+  expect_identical(b$outcome[b$arm == "a2"], want_a2)
+  path <- tempfile(fileext = ".json")
+  on.exit(unlink(path), add = TRUE)
+  gr_trace_save(attr(b, "trace"), path)
+  for (rec in list(attr(b, "trace"), path)) {
+    # Before the fix, a2 alone got a1's replies: paris paris lyon paris
+    # paris for q1.
+    alone <- hr_benchmark(list(a2), ref, runs = 5, client = gr_replay_client(rec))
+    expect_identical(alone$outcome, want_a2)
+    swapped <- hr_benchmark(list(a2, a1), ref, runs = 5, client = gr_replay_client(rec))
+    expect_identical(swapped$outcome[swapped$arm == "a1"], want_a1)
+    expect_identical(swapped$outcome[swapped$arm == "a2"], want_a2)
+  }
+  # Each sampled step names the arm that made it.
+  steps <- attr(b, "trace")$steps
+  expect_identical(vapply(steps, `[[`, character(1), "draw_scope"),
+                   rep(rep(c("a1", "a2"), each = 5), 2))
+})
+
+test_that("an arm written at top level hashes the globals it reads", {
+  g <- globalenv()
+  had <- exists("hr_test_prompt", envir = g, inherits = FALSE)
+  old_item <- if (exists("item", envir = g, inherits = FALSE)) get("item", envir = g)
+  had_item <- exists("item", envir = g, inherits = FALSE)
+  on.exit({
+    if (!had) rm("hr_test_prompt", envir = g)
+    if (had_item) assign("item", old_item, envir = g) else rm("item", envir = g)
+  }, add = TRUE)
+  run <- eval(quote(function(item, ctx) paste(hr_test_prompt, item)), g)
+  assign("hr_test_prompt", "Answer in one word:", envir = g)
+  assign("item", "left over", envir = g)
+  a <- hr_arm("short", run)
+  assign("hr_test_prompt", "Answer in full sentences, explaining your reasoning:", envir = g)
+  b <- hr_arm("short", run)
+  # Before the fix both were hashed by code and "R_GlobalEnv" alone: TRUE.
+  expect_false(identical(a$hash, b$hash))
+  # The same prompt again gives the first hash back.
+  assign("hr_test_prompt", "Answer in one word:", envir = g)
+  expect_identical(hr_arm("short", run)$hash, a$hash)
+  # `item` is an argument, not a global the arm reads.
+  assign("item", "something else", envir = g)
+  expect_identical(hr_arm("short", run)$hash, a$hash)
+  # An arm whose global changed after it was built is still accepted.
+  assign("hr_test_prompt", "Changed:", envir = g)
+  out <- hr_benchmark(a, hr_reference(list(q1 = "x"), "y", "c", split = "test"), runs = 5,
+                      client = NULL)
+  expect_identical(out$outcome, rep("changed: x", 5))
+})

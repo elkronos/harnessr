@@ -37,7 +37,8 @@
 #' default scorer. The text is `output` itself when it is one string, or its
 #' `answer` or `text` element when it is a list (a [gr_result] has `text`).
 #' A label may hold several accepted answers; matching any one is correct.
-#' With `normalise = TRUE` both sides are folded first: lower case, white
+#' A number in a label is compared as written in plain digits, so the label
+#' `100000` accepts `"100000"` (not `"1e+05"`). With `normalise = TRUE` both sides are folded first: lower case, white
 #' space trimmed and runs of it collapsed to one space. Before comparing, it
 #' sorts out the outputs that are not answers:
 #' * an output with a `failure_kind` element from the list above is wrong for
@@ -99,10 +100,10 @@ hr_scorer_exact <- function(normalise = TRUE) {
       return(list(correct = FALSE, outcome = NA_character_, failure_kind = "parse_failure"))
     }
     seen <- fold(text)
-    accepted <- unlist(label, use.names = FALSE)
+    accepted <- label_text(label)
     accepted <- accepted[!is.na(accepted)]
     if (!length(accepted)) return(list(correct = NA, outcome = seen, failure_kind = NA_character_))
-    accepted <- fold(as.character(accepted))
+    accepted <- fold(accepted)
     if (seen %in% accepted) return(list(correct = TRUE, outcome = seen,
                                         failure_kind = NA_character_))
     abstain <- identical(toupper(trimws(text)), "NOT_IN_DOCUMENT")
@@ -115,6 +116,27 @@ hr_scorer_exact <- function(normalise = TRUE) {
 print.hr_scorer <- function(x, ...) {
   cat(sprintf("<hr_scorer %s>\n", x$name))
   invisible(x)
+}
+
+#' The accepted answers in a label, as text. A number is written in plain
+#' digits, one at a time, as gr_qa_reference() writes it: as.character()
+#' gives "1e+05" for 100000, which no answer written as 100000 can match.
+#' NA stays NA.
+#' @noRd
+label_text <- function(label) {
+  one <- function(a) {
+    if (is.null(a)) return(character(0))
+    if (is.list(a)) return(unlist(lapply(a, one), use.names = FALSE))
+    if (is.factor(a)) return(as.character(a))
+    if (is.numeric(a)) {
+      return(vapply(a, function(v) {
+        if (is.na(v)) NA_character_ else format(v, scientific = FALSE, trim = TRUE, digits = 15)
+      }, character(1), USE.NAMES = FALSE))
+    }
+    as.character(unname(a))
+  }
+  out <- one(label)
+  if (is.null(out)) character(0) else out
 }
 
 #' Fold case and white space.

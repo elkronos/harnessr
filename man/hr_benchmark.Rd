@@ -91,7 +91,10 @@ same order.
 Run \code{r} of each arm on each item is given \code{ctx$draw_index = r} (see
 \code{\link[=hr_arm]{hr_arm()}}), so with the index passed to \code{\link[=gr_call]{gr_call()}} each run is its own
 entry in a \code{\link[=gr_cache]{gr_cache()}} and its own recorded draw in a
-\code{\link[=gr_replay_client]{gr_replay_client()}}. An arm whose runs are not distinct draws is refused
+\code{\link[=gr_replay_client]{gr_replay_client()}}. Each request a run makes with a draw index is
+recorded under the arm's name as well, so a replay of a benchmark answers
+each arm with the replies that arm got, even when two arms sent the same
+request, and whether all the arms are replayed or some, in any order. An arm whose runs are not distinct draws is refused
 with an error of class \code{hr_duplicate_draw}: a run of an arm on an item is
 a duplicate when one of its requests was answered from a cache or a
 recording with the same request and draw index as a request of an earlier

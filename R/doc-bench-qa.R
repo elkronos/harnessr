@@ -14,11 +14,13 @@
 #' benchmarking reading recipes with [gr_arm()] and scoring them with
 #' [gr_scorer_answer()].
 #'
-#' Each item's payload is a list of `question`, `document` and
-#' `unanswerable`. Its label is the list of acceptable answers, any one of
+#' Each item's payload, what an arm is given, is a list of `question` and
+#' `document`. Its label is the list of acceptable answers, any one of
 #' which an answer must contain to be right. An unanswerable item, one the
 #' document does not answer, is labelled `"NOT_IN_DOCUMENT"`: the reader is
-#' right when it says the document does not hold the answer. An answer given
+#' right when it says the document does not hold the answer. That an item is
+#' unanswerable is held in its label alone, so an arm cannot read it from the
+#' payload. An answer given
 #' as `"NOT_IN_DOCUMENT"` marks its item unanswerable too. An item that is
 #' neither unanswerable nor given an answer has no label, and every run on it
 #' is scored `NA`.
@@ -95,8 +97,10 @@ gr_qa_reference <- function(questions, documents, answers, split, cluster = docu
     }
     labels[[i]] <- if (absent[i]) .NOT_FOUND else if (length(given)) given else NA_character_
   }
+  # The payload is what the arm sees, so it holds no part of the label:
+  # whether an item is unanswerable is in its label alone.
   items <- lapply(seq_len(n), function(i) {
-    list(question = questions[[i]], document = docs[[i]], unanswerable = absent[[i]])
+    list(question = questions[[i]], document = docs[[i]])
   })
   names(items) <- ids
   args <- list(items = items, labels = labels, cluster = cluster)
@@ -192,8 +196,13 @@ qa_unanswerable <- function(unanswerable, n, ids) {
 #' contains any of the item's acceptable answers, after both are folded the
 #' same way: lower case, runs of white space as one space, and thousands
 #' separators dropped between digits, so `"1,204"`, `"1 204"` (with a
-#' no-break or thin space) and `"1204"` are the same. A number is matched
-#' whole: `"45.2"` is not found in `"145.2"` or `"45.25"`. On an unanswerable
+#' no-break or thin space) and `"1204"` are the same. A number in a label is
+#' written in plain digits, so the label `100000` accepts `"100,000"`. A
+#' number is matched whole: `"45.2"` is not found in `"145.2"` or `"45.25"`,
+#' and `"12"` is not found in `".12"` (the decimal 0.12) or in
+#' `"-12"`. A unit written against a number does not hide it (`"45.2m"` and
+#' `"5mg"` contain `"45.2"` and `"5"`), and a hyphen between two numbers is
+#' a range, not a minus sign (`"12-15"` contains `"15"`). On an unanswerable
 #' item, labelled `"NOT_IN_DOCUMENT"`, the answer is right when
 #' [is_not_found()] says it reports the document does not hold the answer.
 #'
@@ -253,11 +262,12 @@ score_answer <- function(item, output, label) {
   if (is.na(text) || !nzchar(trimws(text))) return(fail("parse_failure"))
   seen <- fold_answer(text)
 
-  accepted <- as.character(unlist(label, use.names = FALSE))
+  accepted <- label_text(label)
   accepted <- accepted[!is.na(accepted) & nzchar(trimws(accepted))]
   sentinel <- vapply(accepted, is_not_found, logical(1))
-  absent_ok <- any(sentinel) ||
-    (is.list(item) && isTRUE(item[["unanswerable", exact = TRUE]]))
+  # Only the label says an item is unanswerable: the item is what the arm is
+  # given, and must not tell it.
+  absent_ok <- any(sentinel)
   wanted <- unique(fold_answer(accepted[!sentinel]))
   if (!absent_ok && !length(wanted)) {
     return(list(correct = NA, outcome = seen, failure_kind = NA_character_))
@@ -296,9 +306,13 @@ fold_answer <- function(x) {
 #' Whether folded `text` contains folded `needle` as a whole word or
 #' number: a needle that starts (ends) with a letter or digit must not have
 #' a letter or digit right before (after) it, so "no" is not found in "not".
-#' A needle that starts or ends with a digit must also not run into a
-#' decimal part on that side, and one that starts with a digit must not
-#' follow a minus sign, so "12" is not found in "-12".
+#' A needle that ends with a digit may be followed by a letter, since a unit
+#' is often written against a number ("45.2m", "5mg"), but not by a digit or
+#' a decimal part (".5", ",5"). A needle that starts with a digit must not
+#' follow a decimal point or comma, with or without a digit before it, so
+#' "12" is not found in ".12" or "1.12"; nor a minus sign, so "12" is not
+#' found in "-12". A hyphen with a digit right before it joins a range, so
+#' "15" is found in "12-15".
 #' @noRd
 contains_answer <- function(needle, text) {
   if (!nzchar(needle)) return(FALSE)
@@ -314,9 +328,9 @@ contains_answer <- function(needle, text) {
     before <- substr(text, max(1L, s - 2L), s - 1L)
     after <- substr(text, s + len, s + len + 1L)
     clash_before <- (word_start && grepl("[[:alnum:]]$", before)) ||
-      (digit_start && grepl("([0-9][.,]|[-\u2212])$", before))
-    clash_after <- (word_end && grepl("^[[:alnum:]]", after)) ||
-      (digit_end && grepl("^[.,][0-9]", after))
+      (digit_start && grepl("([.,]|(^|[^0-9])[-\u2212])$", before))
+    clash_after <- if (digit_end) grepl("^([0-9]|[.,][0-9])", after)
+                   else word_end && grepl("^[[:alnum:]]", after)
     if (!clash_before && !clash_after) return(TRUE)
   }
   FALSE

@@ -45,7 +45,8 @@ recorded \code{NA}, with its \code{failure_kind} kept.
 default scorer. The text is \code{output} itself when it is one string, or its
 \code{answer} or \code{text} element when it is a list (a \link{gr_result} has \code{text}).
 A label may hold several accepted answers; matching any one is correct.
-With \code{normalise = TRUE} both sides are folded first: lower case, white
+A number in a label is compared as written in plain digits, so the label
+\code{100000} accepts \code{"100000"} (not \code{"1e+05"}). With \code{normalise = TRUE} both sides are folded first: lower case, white
 space trimmed and runs of it collapsed to one space. Before comparing, it
 sorts out the outputs that are not answers:
 \itemize{

@@ -603,12 +603,17 @@
   for `gr_call()` that fills in all three. `run` is required. The arm
   records its settings, a version and a hash of its code and settings,
   which is the same in every session and after `saveRDS()`, also for an arm
-  built inside a function of yours.
+  built inside a function of yours. The hash covers the values the code
+  reads from where it was written, the workspace included, so an arm at top
+  level that reads a global prompt gets a new hash when the prompt changes.
 
 * **New `hr_reference()`** holds the items to score, their labels, clusters,
   splits (`"dev"`, `"exploratory"`, `"calibration"`, `"test"`, `"final"`),
   inclusion probabilities, strata and coder labels, with a content hash.
-  Items can be added with `hr_reference_add()` until a benchmark starts
+  Labels, clusters, splits, inclusion probabilities and strata given with
+  names are matched to the items by name (`c(q2 = "Lima", q1 = "Paris")`
+  gives q1 Paris), and names that are not the item ids are an error of
+  class `hr_bad_reference`. Items can be added with `hr_reference_add()` until a benchmark starts
   scoring the reference; after that every copy of it, and every reference
   grown from it, refuses new items with an error of class
   `hr_reference_locked`.
@@ -617,7 +622,8 @@
   failure kind for each run), and **`hr_scorer_exact()`**, the default,
   compares text after folding case and white space, and sorts parse
   failures, errors, `NOT_IN_DOCUMENT` and failures an arm reports itself
-  apart from wrong answers.
+  apart from wrong answers. A number in a label is compared in plain
+  digits, so the label `100000` accepts `"100000"`.
 
 * **New `hr_benchmark()`** runs every arm on every item of the chosen splits
   `runs` times (5 by default; fewer warns) and returns one row per cluster x
@@ -626,7 +632,11 @@
   Run `r` is draw `r`, so repeated runs are separate cache entries and
   recorded draws, and an arm whose runs come back as one stored reply (the
   same cache entry, a repeated replay, a repeated response id) is refused
-  with an error of class `hr_duplicate_draw`. The whole benchmark is held to
+  with an error of class `hr_duplicate_draw`. Each draw is also recorded
+  under the arm's name, and `gr_replay_client()` answers an arm only with
+  its own replies, so replaying some of the arms, or the arms in another
+  order, gives each arm what it got even when two arms sent the same
+  request. The whole benchmark is held to
   one governor; a run with a refused request is recorded as a budget stop
   and counted wrong. Every run on an item with no label has `correct = NA`,
   failures included, so such an item never counts against an arm. Rows on
@@ -763,11 +773,15 @@
   documents from questions, documents and acceptable answers (one string or
   a list of alternatives per question). Unanswerable questions, given as
   flags, ids, positions or the answer `NOT_IN_DOCUMENT`, are labelled
-  `NOT_IN_DOCUMENT`. Items are clustered by document by default.
+  `NOT_IN_DOCUMENT`. The payload an arm is given holds the question and the
+  document only: whether an item is unanswerable is in its label. Items are
+  clustered by document by default.
 
 * **New `gr_scorer_answer()`** marks an answer right when it contains an
   accepted answer after folding case, white space and thousands separators
-  (`"1,204"` matches `"1204"`), with numbers matched whole, and an
+  (`"1,204"` matches `"1204"`), with numbers matched whole (`"12"` is not
+  in `".12"` or `"-12"`, but is in `"12-15"`, and `"45.2"` is in
+  `"45.2m"`), a numeric label written in plain digits, and an
   unanswerable item right when `is_not_found()` is true and no limit or
   refusal stopped the run. Wrong answers are sorted into parse failures,
   budget stops, refusals, `not_in_document` and wrong.

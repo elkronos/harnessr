@@ -49,8 +49,10 @@ test_that("gr_qa_reference builds items, labels and clusters from questions and 
   expect_identical(ref$ids, c("revenue", "units", "leipzig", "ceo", "dividend"))
   expect_identical(ref$items$units$question, "How many units did the Sheffield plant produce?")
   expect_identical(ref$items$units$document, gr_example())
-  expect_identical(ref$items$ceo$unanswerable, TRUE)
-  expect_identical(ref$items$revenue$unanswerable, FALSE)
+  # The payload holds no part of the label: whether an item is unanswerable
+  # is in its label alone.
+  expect_identical(names(ref$items$ceo), c("question", "document"))
+  expect_identical(names(ref$items$revenue), c("question", "document"))
   expect_identical(ref$labels$revenue, c("45.2 million", "45,200,000"))
   # A number is taken as text, and an unanswerable item expects the sentinel.
   expect_identical(ref$labels$leipzig, "168")
@@ -87,8 +89,7 @@ test_that("gr_qa_reference takes unanswerable as flags, ids, positions or the se
   by_sentinel <- gr_qa_reference(q, "Some text.", list("x", "NOT_IN_DOCUMENT", "NOT_IN_DOCUMENT"))
   for (r in list(by_flag, by_id, by_pos, by_sentinel)) {
     expect_identical(unname(unlist(r$labels)), c("x", "NOT_IN_DOCUMENT", "NOT_IN_DOCUMENT"))
-    expect_identical(unname(vapply(r$items, `[[`, logical(1), "unanswerable")),
-                     c(FALSE, TRUE, TRUE))
+    expect_identical(unname(lapply(r$items, names)), rep(list(c("question", "document")), 3))
   }
 })
 
@@ -357,4 +358,63 @@ test_that("a draw index on the trace reaches requests that do not give one", {
   plain <- gr_trace()
   gr_call(cl, "hi", trace = plain)
   expect_null(cl$calls()[[3]]$params$draw_index)
+})
+
+# ---- review fixes ------------------------------------------------------------
+
+test_that("an arm cannot read from the payload which items are unanswerable", {
+  qa <- gr_qa_reference(c(revenue = "What was revenue in 2024?",
+                          ceo = "Who is the chief executive?"),
+                        gr_example(), list("45.2 million", NA), unanswerable = "ceo",
+                        split = "test")
+  cheat <- hr_arm("cheat", function(item, ctx) {
+    if (isTRUE(item$unanswerable)) "NOT_IN_DOCUMENT" else "no idea"
+  })
+  b <- hr_benchmark(cheat, qa, runs = 5, client = NULL, scorer = gr_scorer_answer())
+  # Before the fix the arm saw unanswerable = TRUE on ceo and scored 5 of 5
+  # there. Now it answers "no idea" on both items: 0 of 10.
+  expect_identical(c(tapply(b$correct, b$item, mean))[c("ceo", "revenue")],
+                   c(ceo = 0, revenue = 0))
+  expect_identical(unique(b$failure_kind), "wrong")
+  # The label alone makes an item unanswerable for the scorer.
+  s <- gr_scorer_answer()
+  expect_true(s$fn(list(question = "q"), "NOT_IN_DOCUMENT", "NOT_IN_DOCUMENT")$correct)
+  # A payload flag without the label no longer counts: no label, no score.
+  expect_identical(s$fn(list(unanswerable = TRUE), "NOT_IN_DOCUMENT", NA)$correct, NA)
+})
+
+test_that("gr_scorer_answer writes a numeric label in plain digits", {
+  # as.character(100000) is "1e+05"; the label is compared as "100000", and
+  # "100,000" folds to "100000".
+  s <- gr_scorer_answer()
+  item <- list(question = "q", document = "d")
+  expect_identical(s$fn(item, "Sheffield made 100,000 units.", 100000),
+                   list(correct = TRUE, outcome = "sheffield made 100000 units.",
+                        failure_kind = NA_character_))
+  expect_true(s$fn(item, "It made 100000.", 100000)$correct)
+  expect_true(s$fn(item, "A rate of 0.0001.", 1e-04)$correct)
+  expect_identical(s$fn(item, "It made 1e+05.", 100000)$failure_kind, "wrong")
+})
+
+test_that("gr_scorer_answer finds numbers with a unit, in a range, and not in a decimal", {
+  s <- gr_scorer_answer()
+  item <- list(question = "q", document = "d")
+  # A unit written against the number: before the fix FALSE.
+  expect_true(s$fn(item, "\u20ac45.2m", "45.2")$correct)
+  expect_true(s$fn(item, "Take 5mg twice a day.", "5")$correct)
+  # A range: the hyphen follows a digit, so it is not a minus sign. Before
+  # the fix FALSE.
+  expect_true(s$fn(item, "The range was 12-15.", "15")$correct)
+  expect_true(s$fn(item, "The range was 12-15.", "12")$correct)
+  expect_true(s$fn(item, "From 2020-2024.", "2024")$correct)
+  # A leading decimal point: .12 is 0.12, not 12. Before the fix TRUE.
+  expect_false(s$fn(item, "The value is .12", "12")$correct)
+  expect_false(s$fn(item, "The value is 0.12", "12")$correct)
+  # Still: a minus sign with no digit before it, a digit or a decimal part
+  # after the number, and a letter after a word.
+  expect_false(s$fn(item, "Change was -12 percent.", "12")$correct)
+  expect_false(s$fn(item, "-12", "12")$correct)
+  expect_false(s$fn(item, "It was 125.", "12")$correct)
+  expect_false(s$fn(item, "It was 12.5.", "12")$correct)
+  expect_false(s$fn(item, "Romeo", "Rome")$correct)
 })

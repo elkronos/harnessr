@@ -48,8 +48,11 @@
 #'   `derived_from`, `version` and `hash`, a SHA-256 hash of the other five
 #'   that changes when the arm's code, settings or version do. The code is
 #'   hashed as text, with the values it names from the environment it was
-#'   made in (an arm built by a function of yours), so the same arm has the
-#'   same hash in every session and after [saveRDS()].
+#'   made in: the workspace for an arm written at top level, or the function
+#'   of yours that built it. So an arm that reads a global prompt has a new
+#'   hash when that prompt changes, and the same arm has the same hash in
+#'   every session and after [saveRDS()]. A function from a package is hashed
+#'   by its code and the package's name.
 #' @seealso [hr_benchmark()], [hr_reference()], [hr_scorer()]
 #' @family harness
 #' @export
@@ -106,9 +109,10 @@ hr_arm <- function(name, run, params = list(), derived_from = NULL, version = "0
 #' A closure made inside a function (an arm factory) has an unnamed
 #' environment, and hashing it by address gave the same arm a new hash in
 #' every session and refused an arm read back with readRDS(). So the code is
-#' hashed as text, a named environment by its name, and an unnamed one by the
-#' values its code names there, which are what make one closure from a
-#' factory differ from another. With `values = FALSE` those values are left
+#' hashed as text, a named environment by its name, and an unnamed one or the
+#' global environment by the values its code names there, which are what make
+#' one closure from a factory, or one top-level arm reading a global prompt,
+#' differ from another. With `values = FALSE` those values are left
 #' out: that is the arm's shape, which check_arms() compares.
 #' @noRd
 arm_parts <- function(arm, values = TRUE) {
@@ -125,10 +129,19 @@ fn_fingerprint <- function(f, values = FALSE) {
   env <- environment(f)
   if (is.null(env)) return(list(code = code, env = "<primitive>"))
   nm <- environmentName(env)
-  if (nzchar(nm)) return(list(code = code, env = nm))
-  if (!values) return(list(code = code, env = "<closure>"))
+  # The global environment is named, but what an arm written at top level
+  # reads from it (a prompt, a model name) is as much the arm as its code, so
+  # its values are hashed as a factory's are. A package namespace or another
+  # named environment is hashed by its name.
+  global <- identical(env, globalenv())
+  if (nzchar(nm) && !global) return(list(code = code, env = nm))
+  if (!values) return(list(code = code, env = if (global) nm else "<closure>"))
   used <- unique(c(all.names(body(f)),
                    unlist(lapply(formals(f), function(d) all.names(d)), use.names = FALSE)))
+  # A name the function takes as an argument is not read from its
+  # environment, so a global `item` or `ctx` left over from testing is not
+  # part of the arm.
+  used <- setdiff(used, names(formals(f)))
   used <- sort(intersect(used, ls(env, all.names = TRUE)))
   vals <- lapply(used, function(v) {
     fingerprint_value(tryCatch(get(v, envir = env, inherits = FALSE),

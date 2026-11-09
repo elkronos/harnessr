@@ -19,7 +19,10 @@
 #' Run `r` of each arm on each item is given `ctx$draw_index = r` (see
 #' [hr_arm()]), so with the index passed to [gr_call()] each run is its own
 #' entry in a [gr_cache()] and its own recorded draw in a
-#' [gr_replay_client()]. An arm whose runs are not distinct draws is refused
+#' [gr_replay_client()]. Each request a run makes with a draw index is
+#' recorded under the arm's name as well, so a replay of a benchmark answers
+#' each arm with the replies that arm got, even when two arms sent the same
+#' request, and whether all the arms are replayed or some, in any order. An arm whose runs are not distinct draws is refused
 #' with an error of class `hr_duplicate_draw`: a run of an arm on an item is
 #' a duplicate when one of its requests was answered from a cache or a
 #' recording with the same request and draw index as a request of an earlier
@@ -197,6 +200,10 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
                             meta = list(recipe = arm$name, item = id,
                                         cluster = reference$cluster[[i]], run = r),
                             governor = bench_governor(parent))
+          # Every sampled request of the run is the arm's own draw, so a
+          # replay answers it with the reply this arm got, not another arm's
+          # reply to the same request (see trace_draw_scope()).
+          child$draw_scope <- arm$name
           ctx <- bench_ctx(client, child, r, id, arm)
           started <- proc.time()[["elapsed"]]
           # A refusal ends the run: it is a budget stop whatever the arm

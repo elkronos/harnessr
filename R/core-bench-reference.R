@@ -44,7 +44,10 @@
 #'   character vector of ids, which are then their own payloads.
 #' @param labels The label of each item, one per item: an atomic vector, or a
 #'   list whose elements may hold several accepted answers. `NA` for an item
-#'   with no label, which is scored `NA`.
+#'   with no label, which is scored `NA`. Unnamed, the labels go to the items
+#'   in order; named, they go to the items by name, and the names must be the
+#'   item ids. The same holds for `cluster`, `split`, `inclusion_prob` and
+#'   `strata` when they give one value per item.
 #' @param cluster The cluster of each item, one per item, or one value for
 #'   all. Taken as text.
 #' @param split The split of each item, one per item, or one value for all:
@@ -169,12 +172,28 @@ new_reference <- function(items, labels, cluster, split, inclusion_prob, strata,
     gr_abort("`labels` must be a vector or list with one label per item.",
              class = "hr_bad_reference")
   }
-  labels <- as.list(per_item(labels, "labels", recycle = FALSE))
+  # A value per item that carries names is matched to the items by name, so
+  # labels from a lookup table in another order reach the right items. Names
+  # that are not the item ids are an error: taken by position instead, each
+  # item was scored against another item's label.
+  by_id <- function(x, what) {
+    nm <- names(x)
+    if (is.null(nm) || length(x) != n) return(x)
+    if (anyNA(nm) || anyDuplicated(nm) || !setequal(nm, ids)) {
+      gr_abort(sprintf(paste0("`%s` is named, but its names are not the item ids: %s. Name it ",
+                              "by item id, or leave it unnamed to match the items by position."),
+                       what, paste(utils::head(setdiff(union(nm, ids), intersect(nm, ids)), 5),
+                                   collapse = ", ")),
+               class = "hr_bad_reference")
+    }
+    x[match(ids, nm)]
+  }
+  labels <- as.list(by_id(per_item(labels, "labels", recycle = FALSE), "labels"))
   names(labels) <- ids
   if (missing(cluster) || is.null(cluster) || !is.atomic(cluster) || anyNA(cluster)) {
     gr_abort("`cluster` must give each item a cluster, with no NA.", class = "hr_bad_reference")
   }
-  cluster <- as.character(per_item(cluster, "cluster"))
+  cluster <- as.character(by_id(per_item(cluster, "cluster"), "cluster"))
   # Left as the default it is "dev": an item is only evidence when it was put
   # in a reported split on purpose.
   if (isTRUE(split_missing)) split <- "dev"
@@ -184,17 +203,18 @@ new_reference <- function(items, labels, cluster, split, inclusion_prob, strata,
                      paste(.hr_splits, collapse = ", "), paste(bad, collapse = ", ")),
              class = "hr_bad_reference")
   }
-  split <- per_item(split, "split")
+  split <- unname(by_id(per_item(split, "split"), "split"))
   if (!is.numeric(inclusion_prob) || anyNA(inclusion_prob) ||
       any(inclusion_prob <= 0 | inclusion_prob > 1)) {
     gr_abort("`inclusion_prob` must be in (0, 1], with no NA.", class = "hr_bad_reference")
   }
-  inclusion_prob <- as.numeric(per_item(inclusion_prob, "inclusion_prob"))
+  inclusion_prob <- as.numeric(by_id(per_item(inclusion_prob, "inclusion_prob"),
+                                     "inclusion_prob"))
   if (!is.null(strata)) {
     if (!is.atomic(strata) || anyNA(strata)) {
       gr_abort("`strata` must give each item a stratum, with no NA.", class = "hr_bad_reference")
     }
-    strata <- as.character(per_item(strata, "strata", recycle = FALSE))
+    strata <- as.character(by_id(per_item(strata, "strata", recycle = FALSE), "strata"))
   }
   if (!is.null(coders)) {
     if (!(is.matrix(coders) || is.data.frame(coders)) || nrow(coders) != n) {

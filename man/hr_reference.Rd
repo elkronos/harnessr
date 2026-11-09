@@ -35,7 +35,10 @@ character vector of ids, which are then their own payloads.}
 
 \item{labels}{The label of each item, one per item: an atomic vector, or a
 list whose elements may hold several accepted answers. \code{NA} for an item
-with no label, which is scored \code{NA}.}
+with no label, which is scored \code{NA}. Unnamed, the labels go to the items
+in order; named, they go to the items by name, and the names must be the
+item ids. The same holds for \code{cluster}, \code{split}, \code{inclusion_prob} and
+\code{strata} when they give one value per item.}
 
 \item{cluster}{The cluster of each item, one per item, or one value for
 all. Taken as text.}

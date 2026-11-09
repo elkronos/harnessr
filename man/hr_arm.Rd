@@ -28,8 +28,11 @@ An object of class \code{hr_arm}: a list of \code{name}, \code{run}, \code{param
 \code{derived_from}, \code{version} and \code{hash}, a SHA-256 hash of the other five
 that changes when the arm's code, settings or version do. The code is
 hashed as text, with the values it names from the environment it was
-made in (an arm built by a function of yours), so the same arm has the
-same hash in every session and after \code{\link[=saveRDS]{saveRDS()}}.
+made in: the workspace for an arm written at top level, or the function
+of yours that built it. So an arm that reads a global prompt has a new
+hash when that prompt changes, and the same arm has the same hash in
+every session and after \code{\link[=saveRDS]{saveRDS()}}. A function from a package is hashed
+by its code and the package's name.
 }
 \description{
 An arm is one way of answering the items of a reference: a prompt, a

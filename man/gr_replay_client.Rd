@@ -88,8 +88,11 @@ temperature above zero, and in readers that revisit a chunk), the recorded
 responses are returned in the order they were produced. A call with a
 \code{draw_index} above 0 (see \code{\link[=gr_call]{gr_call()}}) is answered with the reply recorded
 for that draw; in a recording that holds no draw indexes, draw k is the
-k-th reply recorded for the request. A call past the end of what was
-recorded, or for a draw that was never recorded, raises
+k-th reply recorded for the request. In a recording of \code{\link[=hr_benchmark]{hr_benchmark()}}
+each draw also names the arm that made it, and an arm's call is answered
+only with that arm's replies, so replaying some of the arms, or the arms
+in another order, gives each arm what it got. A call past the end of what
+was recorded, or for a draw that was never recorded, raises
 \code{hr_replay_exhausted} unless \code{on_exhausted = "flag"}.
 }
 

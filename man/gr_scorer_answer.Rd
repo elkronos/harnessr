@@ -15,8 +15,13 @@ reference from \code{\link[=gr_qa_reference]{gr_qa_reference()}}. An answer is r
 contains any of the item's acceptable answers, after both are folded the
 same way: lower case, runs of white space as one space, and thousands
 separators dropped between digits, so \code{"1,204"}, \code{"1 204"} (with a
-no-break or thin space) and \code{"1204"} are the same. A number is matched
-whole: \code{"45.2"} is not found in \code{"145.2"} or \code{"45.25"}. On an unanswerable
+no-break or thin space) and \code{"1204"} are the same. A number in a label is
+written in plain digits, so the label \code{100000} accepts \code{"100,000"}. A
+number is matched whole: \code{"45.2"} is not found in \code{"145.2"} or \code{"45.25"},
+and \code{"12"} is not found in \code{".12"} (the decimal 0.12) or in
+\code{"-12"}. A unit written against a number does not hide it (\code{"45.2m"} and
+\code{"5mg"} contain \code{"45.2"} and \code{"5"}), and a hyphen between two numbers is
+a range, not a minus sign (\code{"12-15"} contains \code{"15"}). On an unanswerable
 item, labelled \code{"NOT_IN_DOCUMENT"}, the answer is right when
 \code{\link[=is_not_found]{is_not_found()}} says it reports the document does not hold the answer.
 }
