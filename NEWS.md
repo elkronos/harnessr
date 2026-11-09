@@ -765,6 +765,38 @@
   needs enough labelled items in every inclusion stratum; with few labels
   at small inclusion probabilities it is too narrow.
 
+### Baselines without a model
+
+* **New `hr_tfidf()`** turns texts into an l2-normalised tf-idf matrix:
+  lower-cased runs of letters and digits, terms in at least `min_df` texts
+  (at most `max_features`, the most frequent), raw counts times the smoothed
+  idf log((1 + n) / (1 + df)) + 1. It is a dense base R matrix, which suits a
+  reference or screening set of a few thousand texts.
+
+* **New `hr_baseline_classifier()`**, a ridge-penalised logistic regression
+  on tf-idf features fitted by iteratively reweighted least squares and
+  cross-fitted by fold, so each item is predicted by a model that never saw
+  it. Folds are stratified by label, or keep each `cluster` whole. The
+  vocabulary and idf are fitted on each training fold only. More than two
+  labels are fitted one against the rest. It returns the out-of-fold
+  probabilities and labels, the training size of each fold, and accuracy
+  with a Wilson interval from `hr_prop_ci()`.
+
+* **New `hr_baseline_ranker()`** simulates prioritised screening over a
+  fully labelled set, as ASReview does: it starts from `seed_n` relevant and
+  irrelevant records, refits after each `batch`, and screens the record
+  with the highest predicted relevance next. The model is the same ridge
+  logistic regression or multinomial naive Bayes. It returns the screening
+  order, the recall curve, the records screened to reach 95% recall, WSS@95
+  and the number a random order would need on average.
+
+* **New `gr_stop_test()`**, the hypergeometric stopping test of Callaghan
+  and Muller-Hansen (2020) for prioritised screening. After each screened
+  record it gives the p-value for recall still being below `target` given
+  the records left unscreened, and the first point where screening may
+  stop at `alpha`. It takes a vector of relevance in screening order, with
+  unscreened records as trailing `NA`, or an `hr_baseline_ranker()` result.
+
 # readgpt 0.6.0
 
 ## New

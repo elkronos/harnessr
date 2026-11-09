@@ -320,6 +320,10 @@
       "formals": ["name", "fn = NULL"],
       "type": "function"
     },
+    "gr_stop_test": {
+      "formals": ["screened_order", "target = 0.95", "alpha = 0.05", "n_total = NULL"],
+      "type": "function"
+    },
     "gr_synthesise": {
       "formals": ["extraction", "protocol = NULL", "outline = NULL", "question = NULL", "client = NULL", "model = NULL", "max_section_tokens = 1200L", "temperature = NULL", "include_unclear = FALSE", "cite_style = c(\"auto\", \"marker\", \"author-year\", \"numeric\")", "bib = NULL", "style = NULL", "coherence = FALSE", "references = TRUE", "claims = NULL", "gaps = NULL", "trace = NULL", "effort = NULL"],
       "type": "function"
@@ -362,6 +366,14 @@
     },
     "hr_arm": {
       "formals": ["name", "run", "params = list()", "derived_from = NULL", "version = \"0.0.1\""],
+      "type": "function"
+    },
+    "hr_baseline_classifier": {
+      "formals": ["texts", "labels", "folds = 5", "cluster = NULL", "seed = 1", "lambda = 1", "min_df = 2", "max_features = 5000"],
+      "type": "function"
+    },
+    "hr_baseline_ranker": {
+      "formals": ["texts", "labels", "seed_n = c(1, 1)", "batch = 1", "model = c(\"logistic\", \"naive_bayes\")", "seed = 1", "lambda = 1", "min_df = 2", "max_features = 5000"],
       "type": "function"
     },
     "hr_benchmark": {
@@ -458,6 +470,10 @@
     },
     "hr_scorer_judge": {
       "formals": ["judge_config", "validation", "client", "governor = NULL", "draw_index = 0L"],
+      "type": "function"
+    },
+    "hr_tfidf": {
+      "formals": ["texts", "min_df = 2", "max_features = 5000"],
       "type": "function"
     },
     "hr_validate": {
@@ -696,6 +712,11 @@
       "formals": ["x", "..."],
       "generic": "print"
     },
+    "print.gr_stop_test": {
+      "class": "gr_stop_test",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
     "print.gr_synthesis": {
       "class": "gr_synthesis",
       "formals": ["x", "..."],
@@ -718,6 +739,16 @@
     },
     "print.hr_arm": {
       "class": "hr_arm",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_baseline_classifier": {
+      "class": "hr_baseline_classifier",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_baseline_ranker": {
+      "class": "hr_baseline_ranker",
       "formals": ["x", "..."],
       "generic": "print"
     },
