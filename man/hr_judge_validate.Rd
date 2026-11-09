@@ -39,12 +39,17 @@ in \code{judge} is taken as inconsistent.}
 \item{\code{config_hash}}{Optional. When given, every row must carry the
 configuration's hash: labels on another configuration's outputs are
 refused.}
-}}
+}
+Columns are matched by their exact names, and other columns are ignored:
+a column named \code{consistently_long} is not read as \code{consistent}.}
 
 \item{n_pos_min, n_neg_min}{The fewest human-positive and human-negative
 items accepted; 50 or more.}
 
 \item{positive}{The value of \code{judge} and \code{human} that counts as positive.
+Both columns must be on one scale: when no resolved \code{judge} value occurs
+in \code{human} (logical judge calls beside \code{"pass"}/\code{"fail"} labels, say),
+the call stops with \code{gr_bad_setting}.
 \code{NULL} (the default) takes the configuration's positive grade (such as
 \code{"pass"}) when the configuration is in mode \code{"grade"} and the \code{judge} or
 \code{human} column holds text, and \code{TRUE} otherwise.}

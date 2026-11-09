@@ -840,7 +840,11 @@
   human-positive or 50 human-negative items are refused with
   `hr_judge_too_few_labels`, and the minimums cannot be lowered. Text labels
   such as `"pass"` and `"fail"` default to the configuration's positive
-  grade. The record is keyed by the configuration
+  grade. A `judge` column that shares no value with `human` (logical calls
+  beside `"pass"`/`"fail"` labels) is refused with `gr_bad_setting` rather
+  than counted as all negative. The optional columns `consistent`,
+  `outcome` and `config_hash` are read by exact name, so an extra column
+  such as `consistently_long` is ignored. The record is keyed by the configuration
   hash; `hr_judge_valid()` is `FALSE`, naming what changed, when the model,
   rubric, prompt, schema, orders, aggregation or positive grade differ, or
   when the record was edited.

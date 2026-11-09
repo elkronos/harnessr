@@ -259,6 +259,57 @@ test_that("hr_judge_validate takes the configuration's positive grade for text l
                class = "gr_bad_setting", regexp = "\"pass\"")
 })
 
+test_that("hr_judge_validate refuses a judge column on another scale than human", {
+  cfg <- grade_config()
+  h <- rep(c(TRUE, FALSE), c(60, 60))
+  # 57 of 60 positives and 55 of 60 negatives called right.
+  j <- h
+  j[c(1:3, 61:65)] <- !j[c(1:3, 61:65)]
+  text <- data.frame(judge = ifelse(j, "pass", "fail"), human = ifelse(h, "pass", "fail"))
+  v <- hr_judge_validate(cfg, text, B = 0)
+  # sens = 57 / 60 = 0.95, spec = 55 / 60; po = 112 / 120,
+  # pe = (62 * 60 + 58 * 60) / 120^2 = 0.5, kappa = (112 / 120 - 0.5) / 0.5 = 13 / 15.
+  expect_equal(v$sensitivity$estimate, 0.95)
+  expect_equal(v$specificity$estimate, 55 / 60)
+  expect_equal(v$kappa$estimate, 13 / 15)
+  # Logical judge calls beside text labels never equal "pass"; before the fix
+  # they were counted as all negative (sensitivity 0, specificity 1, kappa 0).
+  mixed <- data.frame(judge = j, human = text$human)
+  expect_error(hr_judge_validate(cfg, mixed, B = 0), class = "gr_bad_setting",
+               regexp = "holds \"FALSE\", \"TRUE\" and the human column \"pass\", \"fail\"")
+  # The same holds with unresolved calls among them.
+  mixed$judge[c(10, 70)] <- NA
+  expect_error(hr_judge_validate(cfg, mixed, B = 0), class = "gr_bad_setting")
+  # A grade the humans never used is allowed when the scales share a value:
+  # "partial" counts as not positive, so sensitivity is 56 / 60.
+  partial <- text
+  partial$judge[4] <- "partial"
+  w <- hr_judge_validate(cfg, partial, B = 0)
+  expect_equal(w$sensitivity$estimate, 56 / 60)
+})
+
+test_that("hr_judge_validate reads the optional columns by exact name only", {
+  cfg <- grade_config()
+  lab <- known_labels()
+  lab$consistent <- NULL
+  lab$judge[c(1, 70)] <- NA
+  # No `consistent` or `outcome` column: the two NA verdicts are the
+  # inconsistent items, 2 of 120.
+  base <- hr_judge_validate(cfg, lab, B = 0)
+  expect_identical(c(base$swap_inconsistency$x, base$swap_inconsistency$n), c(2L, 120L))
+  # Unrelated columns whose names start with a reserved name change nothing.
+  # Before the fix `consistently_long` gave 0 of 120 and `outcomes_note` gave
+  # NA (not measured); `config_hash_note` stopped with hr_judge_config_mismatch.
+  for (extra in c("consistently_long", "outcomes_note", "config_hash_note")) {
+    l2 <- lab
+    l2[[extra]] <- if (extra == "consistently_long") TRUE else "x"
+    v <- hr_judge_validate(cfg, l2, B = 0)
+    expect_identical(c(v$swap_inconsistency$x, v$swap_inconsistency$n), c(2L, 120L))
+    # Wilson centre aside, the point estimate is 2 / 120 = 0.01667.
+    expect_equal(v$swap_inconsistency$estimate, 2 / 120)
+  }
+})
+
 test_that("hr_judge_validate refuses fewer than 50 items per class", {
   cfg <- grade_config()
   lab <- known_labels()

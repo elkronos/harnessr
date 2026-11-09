@@ -536,9 +536,14 @@ print.hr_judgement <- function(x, ...) {
 #'     configuration's hash: labels on another configuration's outputs are
 #'     refused.}
 #' }
+#'   Columns are matched by their exact names, and other columns are ignored:
+#'   a column named `consistently_long` is not read as `consistent`.
 #' @param n_pos_min,n_neg_min The fewest human-positive and human-negative
 #'   items accepted; 50 or more.
 #' @param positive The value of `judge` and `human` that counts as positive.
+#'   Both columns must be on one scale: when no resolved `judge` value occurs
+#'   in `human` (logical judge calls beside `"pass"`/`"fail"` labels, say),
+#'   the call stops with `gr_bad_setting`.
 #'   `NULL` (the default) takes the configuration's positive grade (such as
 #'   `"pass"`) when the configuration is in mode `"grade"` and the `judge` or
 #'   `human` column holds text, and `TRUE` otherwise.
@@ -600,30 +605,33 @@ hr_judge_validate <- function(judge_config, labels, n_pos_min = 50, n_neg_min = 
     gr_abort("`labels` must be a data frame with columns `judge` and `human`.",
              class = "gr_bad_setting")
   }
+  # Columns by exact name: `$` on a data frame would take `consistently_long`
+  # for a missing `consistent`.
+  column <- function(nm) if (nm %in% names(labels)) labels[[nm]] else NULL
   if (is.null(positive)) {
     # Labels copied from grade-mode judgements carry the grade text, so the
     # configuration's positive grade is the natural default there.
     texty <- function(v) is.character(v) || is.factor(v)
     positive <- if (identical(judge_config$mode, "grade") && !is.null(judge_config$positive) &&
-                    (texty(labels$judge) || texty(labels$human))) judge_config$positive
+                    (texty(column("judge")) || texty(column("human")))) judge_config$positive
                 else TRUE
   }
   if (length(positive) != 1L || is.na(positive)) {
     gr_abort("`positive` must be one value.", class = "gr_bad_setting")
   }
-  if (!is.null(labels$config_hash)) {
-    h <- as.character(labels$config_hash)
+  if (!is.null(column("config_hash"))) {
+    h <- as.character(column("config_hash"))
     if (anyNA(h) || any(h != judge_config$hash)) {
       gr_abort(paste0("Some rows of `labels` were judged under another configuration (their ",
                       "`config_hash` differs). A validation holds for one configuration only."),
                class = "hr_judge_config_mismatch")
     }
   }
-  human <- labels$human
+  human <- column("human")
   keep <- !is.na(human)
   n_dropped <- sum(!keep)
   pos_h <- as.character(human[keep]) == as.character(positive)
-  judge <- labels$judge[keep]
+  judge <- column("judge")[keep]
   resolved <- !is.na(judge)
   # An unresolved or failed verdict is not a positive call, as in the scorer.
   pos_j <- resolved & as.character(judge) == as.character(positive)
@@ -634,6 +642,18 @@ hr_judge_validate <- function(judge_config, labels, n_pos_min = 50, n_neg_min = 
                             "Set `positive` to the value that marks a positive item."),
                      encodeString(as.character(positive), quote = "\""),
                      paste(encodeString(utils::head(seen, 5), quote = "\""), collapse = ", ")),
+             class = "gr_bad_setting")
+  }
+  # A judge column on another scale than `human` (TRUE/FALSE beside
+  # "pass"/"fail") would never equal `positive` and count as all negative.
+  seen_j <- unique(as.character(judge[resolved]))
+  seen_h <- unique(as.character(human[keep]))
+  if (length(seen_j) && length(seen_h) && !any(seen_j %in% seen_h)) {
+    gr_abort(sprintf(paste0("No resolved `judge` value occurs in `human`: the judge column ",
+                            "holds %s and the human column %s. Put both columns on one ",
+                            "scale."),
+                     paste(encodeString(utils::head(seen_j, 5), quote = "\""), collapse = ", "),
+                     paste(encodeString(utils::head(seen_h, 5), quote = "\""), collapse = ", ")),
              class = "gr_bad_setting")
   }
   if (n_pos < n_pos_min || n_neg < n_neg_min) {
@@ -651,12 +671,12 @@ hr_judge_validate <- function(judge_config, labels, n_pos_min = 50, n_neg_min = 
   swap <- data.frame(x = NA_integer_, n = NA_integer_, estimate = NA_real_, lower = NA_real_,
                      upper = NA_real_)
   if (judge_config$orders >= 2L) {
-    if (!is.null(labels$consistent)) {
-      cons <- as.logical(labels$consistent[keep])
+    if (!is.null(column("consistent"))) {
+      cons <- as.logical(column("consistent")[keep])
       checked <- !is.na(cons)
       bad <- !cons[checked]
-    } else if (!is.null(labels$outcome)) {
-      oc <- as.character(labels$outcome[keep])
+    } else if (!is.null(column("outcome"))) {
+      oc <- as.character(column("outcome")[keep])
       checked <- oc %in% c("answered", "unresolved")
       bad <- oc[checked] == "unresolved"
     } else {
