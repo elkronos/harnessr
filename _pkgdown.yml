@@ -169,6 +169,46 @@ reference:
   - hr_ppi
   - hr_alt_test
 
+- title: Benchmarks
+  desc: >
+    Compare configurations on a labelled reference: arms, the reference and
+    its splits, scorers, and repeated runs held to one spending limit.
+  contents:
+  - hr_benchmark
+  - hr_report
+  - hr_mdd
+  - hr_contrast
+  - hr_drift_check
+  - hr_arm
+  - hr_reference
+  - hr_scorer
+  - gr_arm
+  - gr_qa_reference
+  - gr_scorer_answer
+
+- title: Baselines
+  desc: >
+    Comparisons that use no model: tf-idf features, a cross-fitted classifier,
+    a simulated active-learning ranker for screening, and the stopping test for
+    prioritised screening.
+  contents:
+  - hr_tfidf
+  - hr_baseline_classifier
+  - hr_baseline_ranker
+  - gr_stop_test
+
+- title: Judges
+  desc: >
+    A model that chooses between candidates or grades one against a
+    reference, asked in both orders, validated against blind human labels
+    before it scores, with its accuracy corrected by those labels.
+  contents:
+  - hr_judge
+  - hr_judge_config
+  - hr_judge_validate
+  - hr_scorer_judge
+  - hr_judge_ppi
+
 - title: Signals and calibration
   desc: >
     Values the package records about its own work, the calibration records

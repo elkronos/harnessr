@@ -581,6 +581,322 @@
 
 * `gr_calibrate()` and its output are unchanged.
 
+### Benchmarks: arms, references, scorers and `hr_benchmark()`
+
+* **New `hr_arm()`** describes one configuration to compare: a function of
+  an item and a context that carries the client, a trace of the run alone,
+  the governor and the run's `draw_index`, with `ctx$call()` as a shortcut
+  for `gr_call()` that fills in all three. `run` is required. The arm
+  records its settings, a version and a hash of its code and settings,
+  which is the same in every session and after `saveRDS()`, also for an arm
+  built inside a function of yours.
+
+* **New `hr_reference()`** holds the items to score, their labels, clusters,
+  splits (`"dev"`, `"exploratory"`, `"calibration"`, `"test"`, `"final"`),
+  inclusion probabilities, strata and coder labels, with a content hash.
+  Items can be added with `hr_reference_add()` until a benchmark starts
+  scoring the reference; after that every copy of it, and every reference
+  grown from it, refuses new items with an error of class
+  `hr_reference_locked`.
+
+* **New `hr_scorer()`** states the scoring contract (correct, outcome and
+  failure kind for each run), and **`hr_scorer_exact()`**, the default,
+  compares text after folding case and white space, and sorts parse
+  failures, errors, `NOT_IN_DOCUMENT` and failures an arm reports itself
+  apart from wrong answers.
+
+* **New `hr_benchmark()`** runs every arm on every item of the chosen splits
+  `runs` times (5 by default; fewer warns) and returns one row per cluster x
+  item x arm x run with correctness, failure kind, tokens by kind, cost and
+  its provenance, seconds, the draw index and the id of the run's trace.
+  Run `r` is draw `r`, so repeated runs are separate cache entries and
+  recorded draws, and an arm whose runs come back as one stored reply (the
+  same cache entry, a repeated replay, a repeated response id) is refused
+  with an error of class `hr_duplicate_draw`. The whole benchmark is held to
+  one governor; a run with a refused request is recorded as a budget stop
+  and counted wrong. Every run on an item with no label has `correct = NA`,
+  failures included, so such an item never counts against an arm. Rows on
+  the dev split are marked not reportable. `print()` shows accuracy per arm
+  over the reportable rows and labelled items, with the dev split's accuracy
+  in its own column, descriptive only.
+
+### Benchmark reports: `hr_report()`
+
+* **New `hr_report()`** turns the reportable rows of an `hr_benchmark()`
+  into accuracy per arm (mean over runs within each item, then over items)
+  with intervals that keep clusters together. With the default
+  `method = "auto"` and at least 300 items and 30 clusters it uses
+  `method = "bootstrap"`, which is now a studentised (bootstrap-t) cluster
+  bootstrap rather than BCa: it resamples whole clusters with all their
+  items, runs and arms (B = 2000, or 5000 with `confirmatory = TRUE`), each
+  resample studentised by its own linearised standard error. Below either
+  threshold it uses the new `method = "cluster_t"`, a cluster-robust t
+  interval on the logit scale: the linearised variance of the ratio
+  estimator with the C / (C - 1) factor and t quantiles on C - 1 degrees of
+  freedom (Cameron and Miller 2015). Both can be asked for at any size.
+  Where neither is defined (accuracy 0 or 1, or the same in every cluster)
+  the arm gets Korn and Graubard's interval, one-sided from the bound at 0
+  or 1, with a note.
+  `method = "exact"` gives Clopper-Pearson on the effective number of items
+  from cluster totals (Korn and Graubard) instead, with items rather than
+  runs as trials, and `method = "bayes"` a Bayesian beta-binomial model
+  with a cluster random effect and flat priors, with a note on its
+  calibration. No interval treats items or runs as independent trials.
+
+  These methods replace the BCa cluster bootstrap and the Bayesian model as
+  defaults after the coverage simulation (`dev/sim-coverage.R`, 2000
+  replicates) failed them: BCa covered 93.5% for accuracy at 0.75 and 92.9%
+  for the paired difference with 40 clusters, and 89.2% for the difference
+  with 10 clusters; the Bayesian model covered 96.5% to 96.6% with 10
+  clusters, its misses 2.9% to 3.2% below the truth and 0.2% to 0.5% above.
+  With the new methods the same simulation passes: accuracy 95.5% and
+  95.0%, difference 94.7% with 40 clusters; accuracy 95.8% and 95.7%,
+  difference 95.7% with 10 clusters.
+
+* The report also gives paired differences between arms (every pair, or
+  the ones in `contrasts`) with cluster-robust t intervals on C - 1 degrees
+  of freedom at every size, cut to [-1, 1] (when every cluster gives the
+  same mean difference, so the cluster variance is 0, Tango's score
+  interval with the items as pairs and the item count scaled for C - 1
+  degrees of freedom, with a note), single-step max-t simultaneous
+  intervals over all pairs from the multivariate t with the same
+  correlation (Hothorn, Bretz and Westfall 2008), and bootstrap rank
+  intervals in place of a ranking by point estimate; flip rate, TARa and
+  run-level SD; pass^k with the unbiased estimator; dollars
+  and tokens per item and per correct item with intervals, flagging arms
+  whose cost rests on estimated token counts for more than 5%; the
+  cost-accuracy frontier with each arm's share of resamples on it; failure
+  counts with accuracy recomputed without parse failures and refusals; and
+  within-item and between-item variance on the probability scale, with a
+  note to use 10 runs when runs account for more than 10%. Below 5 runs the
+  report is descriptive only, without intervals. An item scored on some
+  runs but not all is refused. It has `print()` and `as_json()` methods and
+  leaves the caller's random state as it was.
+
+### Non-inferiority contrasts and the minimum detectable difference
+
+* **New `hr_mdd()` and `hr_n_needed()`** give the smallest paired accuracy
+  difference a clustered design can detect, and the items needed for a
+  given one, from
+  n_eff = (t_(C - 1, 1 - alpha') + t_(C - 1, power))^2 x p_disc / Delta^2
+  with t quantiles on C - 1 degrees of freedom for C clusters, the degrees
+  of freedom of the report's non-inferiority bound, and the design effect
+  DE = 1 + (m - 1) x ICC_D, where ICC_D is the intra-cluster correlation of
+  the paired item difference and m becomes (cv^2 + 1) x m for unequal
+  clusters. With `n_contrasts` above 1, alpha' is alpha / n_contrasts, the
+  first step of Holm. For 480 questions in 80 documents at ICC_D 0.2 and
+  p_disc 0.2 this gives DE 2, 240 effective items and an MDD of 8.2 points,
+  or 10.7 points after Holm over nine contrasts (8.1 and 10.4 with normal
+  quantiles). `hr_n_needed()` finds the number of items by root finding,
+  since the degrees of freedom depend on it, and both refuse a design of one
+  cluster.
+  `hr_n_needed()` also takes a true difference below 0.
+
+* **New `hr_contrast()` and `hr_register_contrasts()`** fix non-inferiority
+  contrasts (arm, reference arm, margin, whether it must also be cheaper)
+  against an `hr_reference()` before a benchmark scores it. A confirmatory
+  margin below the design MDD at 80% power after Holm is refused with an
+  error of class `hr_margin_below_mdd`; with `confirmatory = FALSE` it is
+  registered as exploratory. The check is at one-sided alpha 0.025 or less
+  whatever level the design was given at, and a design with more items or
+  clusters than the reference holds on the test and final splits is
+  refused. A reference already being scored, or one rebuilt with the same
+  content, is refused (`hr_registration_after_scoring`), and the
+  registration is hashed. `hr_mdd()` takes whole numbers of items and
+  clusters only.
+
+* **`hr_report()` gains `registration`.** Each registered contrast is
+  non-inferior only if the one-sided lower bound of the accuracy difference
+  is above -margin and, when it tests cost, the upper bound of the paired
+  cost difference (BCa cluster bootstrap) is below 0. The accuracy bound is
+  the cluster-robust t bound of the report's paired differences, taken
+  one-sided on C - 1 degrees of freedom (the Tango bound with items as
+  pairs when every cluster gives the same mean difference), so at one-sided
+  0.025 it is the lower end of the printed 95% contrast interval. It
+  replaces the BCa cluster bootstrap bound, which undercovered the paired
+  difference in the coverage simulation (92.9% with 40 clusters, 89.2% with
+  10). Confirmatory contrasts are tested with Holm's step-down procedure,
+  exploratory ones at alpha.
+  The design and achieved MDD are printed beside every verdict (the
+  achieved one on the linearised standard error and the same t quantiles
+  as `hr_mdd()`, and `NA` when the cluster variance is 0), and a
+  contrast that passed its registered test is reported as passed even when
+  the achieved MDD exceeds its margin. Tango's (1998) paired score interval
+  on effective counts, at most one pair per item, is given as a
+  cross-check. A changed registration, or one for another reference, is
+  refused.
+
+* **Dev-split rows are refused as evidence.** A report with a registration
+  or `confirmatory = TRUE` errors with class `hr_dev_not_evidence` when the
+  benchmark holds rows on the dev, exploratory or calibration split or rows
+  marked not reportable.
+
+### Benchmarking reading recipes
+
+* **New `gr_arm()` and `gr_arms()`** wrap reading recipes as benchmark arms.
+  Each run reads the item's document with `answer_document()`, or with
+  `gr_read()` when the document is already chunked, and returns the
+  `gr_answer`, with every request on the run's own trace. That trace gives
+  every request of the run, segmenter and reader requests included, the
+  run's draw index, so repeated runs under a cache or a recording are
+  separate draws. A reader that refuses to start because the run's call or
+  spending limit leaves too little returns a partial `NOT_IN_DOCUMENT`
+  answer noting the limit, which is scored as a budget stop rather than an
+  error. The arm records the recipe and its settings, and its version is
+  the package version.
+
+* **New `gr_qa_reference()`** builds an `hr_reference()` of questions about
+  documents from questions, documents and acceptable answers (one string or
+  a list of alternatives per question). Unanswerable questions, given as
+  flags, ids, positions or the answer `NOT_IN_DOCUMENT`, are labelled
+  `NOT_IN_DOCUMENT`. Items are clustered by document by default.
+
+* **New `gr_scorer_answer()`** marks an answer right when it contains an
+  accepted answer after folding case, white space and thousands separators
+  (`"1,204"` matches `"1204"`), with numbers matched whole, and an
+  unanswerable item right when `is_not_found()` is true and no limit or
+  refusal stopped the run. Wrong answers are sorted into parse failures,
+  budget stops, refusals, `not_in_document` and wrong.
+
+* `gr_compare()`'s help now says it is descriptive, and points to
+  `hr_benchmark()` and `hr_report()` for a comparison with intervals.
+
+### Judges and their validation record
+
+* **New `hr_judge()`** asks a model to choose between candidates
+  (`"select"`), compare two (`"pairwise"`) or grade one against a reference
+  (`"grade"`). Candidates are shown under the letters A, B, ... only, and
+  each item is asked in two presentation orders: reversed for candidates,
+  reference first and then response first for grading. A verdict that
+  differs between the orders, mapped back to the candidate it names, is
+  returned as `"unresolved"` with `degradation = "judge_inconsistent"`;
+  a failed request or a reply with no allowed verdict is `"failed"`. One
+  order is allowed for grading only. With more than two candidates,
+  `orders` above 2 shows cyclic rotations. Requests go through the same
+  path as `gr_call()`, so the governor, a cache keyed with `draw_index` and
+  the trace all apply, under the labels `judge.<mode>.o<k>`. They are
+  recorded in the judge's own trace and their cost in `$judge_cost`, never
+  in the trace of the run being judged, which gets a local note pointing at
+  the judge's trace; the judge is held to what that run's governor has left.
+
+* **New `hr_judge_config()`** holds what decides a judge's answers (model,
+  mode, rubric, the package's instructions for the mode, reply schema,
+  orders, how verdicts are combined, the positive grade) with a SHA-256
+  hash of them.
+
+* **New `hr_judge_validate()` and `hr_judge_valid()`.** From blind human
+  labels on a judge's decisions, the record gives Cohen's kappa with a
+  bootstrap interval and the full `hr_agreement()` set, sensitivity and
+  specificity with Wilson intervals (and the sensitivity half-width), and
+  the swap-inconsistency rate. Items the judge left unresolved or failed
+  on count as not called positive, the rule `hr_scorer_judge()` applies, so
+  the figures describe the judge as the scorer uses it. Fewer than 50
+  human-positive or 50 human-negative items are refused with
+  `hr_judge_too_few_labels`, and the minimums cannot be lowered. Text labels
+  such as `"pass"` and `"fail"` default to the configuration's positive
+  grade. The record is keyed by the configuration
+  hash; `hr_judge_valid()` is `FALSE`, naming what changed, when the model,
+  rubric, prompt, schema, orders, aggregation or positive grade differ, or
+  when the record was edited.
+
+* **New `hr_scorer_judge()`**, a benchmark scorer that grades each output
+  against its label with a grade-mode judge. It refuses to be built
+  without a valid record (`hr_judge_unvalidated`). Unresolved judgements
+  count as wrong and failed ones as errors, and the judge's requests stay
+  in the scorer's own trace, out of the benchmark's cost columns. A
+  `draw_index` argument sets the cache draw for the judge's requests.
+
+* **New `hr_judge_ppi()`** corrects judge-scored accuracy with human labels
+  on a sample through `hr_ppi()`: prediction-powered inference, and the
+  inverse-probability weighted DSL form when the labelling probabilities
+  vary. It also reports the uncorrected judge mean. Its normal interval
+  needs enough labelled items in every inclusion stratum; with few labels
+  at small inclusion probabilities it is too narrow.
+
+### Baselines without a model
+
+* **New `hr_tfidf()`** turns texts into an l2-normalised tf-idf matrix:
+  lower-cased runs of letters and digits, terms in at least `min_df` texts
+  (at most `max_features`, the most frequent), raw counts times the smoothed
+  idf log((1 + n) / (1 + df)) + 1. It is a dense base R matrix, which suits a
+  reference or screening set of a few thousand texts.
+
+* **New `hr_baseline_classifier()`**, a ridge-penalised logistic regression
+  on tf-idf features fitted by iteratively reweighted least squares and
+  cross-fitted by fold, so each item is predicted by a model that never saw
+  it. Folds are stratified by label, or keep each `cluster` whole. The
+  vocabulary and idf are fitted on each training fold only. More than two
+  labels are fitted one against the rest. It returns the out-of-fold
+  probabilities and labels, the training size of each fold, and accuracy
+  with a Wilson interval from `hr_prop_ci()`.
+
+* **New `hr_baseline_ranker()`** simulates prioritised screening over a
+  fully labelled set, as ASReview does: it starts from `seed_n` relevant and
+  irrelevant records, refits after each `batch`, and screens the record
+  with the highest predicted relevance next. The model is the same ridge
+  logistic regression or multinomial naive Bayes. It returns the screening
+  order, the recall curve, the records screened to reach 95% recall, WSS@95
+  and the number a random order would need on average.
+
+* **New `gr_stop_test()`**, the hypergeometric stopping test of Callaghan
+  and Muller-Hansen (2020) for prioritised screening. After each screened
+  record it gives the p-value for recall still being below `target` given
+  the records left unscreened, and the first point where screening may
+  stop at `alpha`. It takes a vector of relevance in screening order, with
+  unscreened records as trailing `NA`, or an `hr_baseline_ranker()` result.
+
+### Drift checks
+
+* **New `hr_drift_check()`** reruns an arm live on the items of a frozen
+  `hr_benchmark()` and reports, item by item, which items were lost,
+  gained or moved, with their most common output before and after. Two
+  tests are fixed in the call, with `alpha` and an optional `alert`
+  threshold. (a) The accuracy change, live minus frozen, by a BCa cluster
+  bootstrap over documents on paired item accuracy, with the clustered
+  McNemar test of Obuchowski (1998) beside it as a cross-check. (b) Excess
+  instability: the flips between frozen and live runs against the flips
+  among replicate runs, frozen and live, one-sided, on the same cluster
+  resamples. Per item it estimates the squared change in accuracy, so it
+  sees losses and gains that cancel in accuracy and noisy items that turn
+  deterministic; it needs at least 2 live runs. The alert is crossed when
+  the whole accuracy interval lies beyond the threshold, and
+  `alert_not_ruled_out` reports the weaker reading, an interval that
+  reaches beyond it. Moved items whose runs disagreed are counted apart in
+  the printout, since their moves can be run-to-run variation. Fewer
+  than 5 frozen runs is refused (`hr_drift_few_runs`), as are a changed
+  arm, another reference or scorer (`hr_drift_mismatch`) and a live rerun
+  answered from a cache or a recording (`hr_drift_not_live`). The live
+  rerun is returned as an `hr_bench`.
+
+### Validation of the intervals and the MDD
+
+* **A nightly validation job checks the report's statistics on simulated
+  benchmarks.** `dev/sim-coverage.R` simulates clustered corpora with a
+  known effect, document ICC and run variance, reports each with
+  `hr_report()`, and gives the coverage of the accuracy and paired
+  difference intervals over 2000 replicates with its Wilson 95% interval,
+  in a large design (386 items in 40 clusters, studentised cluster
+  bootstrap) and a small one (50 items in 10 clusters, cluster-robust t on
+  the logit scale, with the Korn-Graubard interval beside it). An interval
+  passes when that Monte Carlo interval contains 95% and its lower end is
+  at least 93%. `dev/sim-power.R` sets `hr_mdd()` against a power
+  simulation of the report's cluster-robust t non-inferiority bound and
+  passes when the simulated MDD is within 1 point. Both exit with status 1
+  on a failure. The workflow `.github/workflows/validation.yaml` runs them
+  every night and by hand, never on pull requests, and keeps the printed
+  tables as an artifact. The power table's `power_check` column also marks
+  a design whose simulated power at the formula's MDD lies below or above
+  the target beyond Monte Carlo error ("below target" or "above target"),
+  without failing the run.
+
+* The `hr_mdd()` help gives the power simulation's result (2000
+  replicates, seed 1): the MDD was 0.16 and 0.17 points below the simulated
+  one at 80 equal clusters (simulated power at the formula's MDD 78.55% and
+  78.30%) and 0.25 points above it at 40 unequal clusters (81.60%). With
+  normal quantiles it was 0.26 and 0.41 points below at 80 clusters (power
+  77.20% and 76.05%, short of 80% beyond Monte Carlo error), which is why
+  the formula takes t quantiles.
+
 ### Screening recall against a target
 
 * **`gr_reference(of = "stacked")`** draws the reference the screening help

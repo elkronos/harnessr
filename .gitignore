@@ -50,6 +50,9 @@ docs/
 readgpt.log
 readgpt_history_*.json
 
+# Tables written by dev/sim-coverage.R and dev/sim-power.R.
+sim-results/
+
 # ---------------------------------------------------------------------------
 # One-time migration scaffolding. These exist to get from the previous release
 # to this one; they are not part of the package and do not belong in history.

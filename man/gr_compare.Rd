@@ -97,6 +97,13 @@ earlier recipe is charged to both, as \code{max_calls} counts it for both, so
 \code{sum(gr_trace_cost(trace)$usd)}. Give \code{correct} and each row also says
 whether the answer was right and what a right answer cost.
 
+The comparison is descriptive: one run of each recipe on one question,
+with no interval. Run-to-run spread can exceed the gap between recipes, so
+to say one recipe is better, compare them over a reference of questions
+with repeated runs: build the arms with \code{\link[=gr_arms]{gr_arms()}} and the questions with
+\code{\link[=gr_qa_reference]{gr_qa_reference()}}, run them with \code{\link[=hr_benchmark]{hr_benchmark()}}, and read the
+intervals from \code{\link[=hr_report]{hr_report()}}.
+
 A comparison is one run for the spending and token limits: \code{max_cost_usd}
 and \code{max_tokens_total} in \code{\link[=gr_options]{gr_options()}} are checked against what every
 recipe and every segmentation has spent and used so far, so a recipe that
@@ -127,5 +134,6 @@ cmp <- gr_compare(gr_example(), "What was revenue?", c("fast", "precise"),
 cmp$summary[, c("recipe", "calls", "usd", "correct", "usd_per_correct")]
 }
 \seealso{
-\code{\link[=answer_document]{answer_document()}}, \code{\link[=gr_recipes]{gr_recipes()}}, \code{\link[=gr_recipe]{gr_recipe()}}, \link{gr_answer}
+\code{\link[=answer_document]{answer_document()}}, \code{\link[=gr_recipes]{gr_recipes()}}, \code{\link[=gr_recipe]{gr_recipe()}}, \link{gr_answer},
+\code{\link[=hr_benchmark]{hr_benchmark()}} for the comparison with intervals
 }
