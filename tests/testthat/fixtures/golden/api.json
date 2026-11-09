@@ -388,6 +388,26 @@
       "formals": ["y", "pi", "strata = NULL", "estimand = c(\"mean\", \"total\", \"ratio\")", "den = NULL", "yhat = NULL", "yhat_pop = NULL", "B = 2000", "conf = 0.95", "seed = 1"],
       "type": "function"
     },
+    "hr_judge": {
+      "formals": ["candidates", "client", "mode = c(\"select\", \"grade\", \"pairwise\")", "reference = NULL", "model = NULL", "orders = 2", "rubric", "schema = NULL", "trace = NULL", "governor = NULL", "draw_index = 0L"],
+      "type": "function"
+    },
+    "hr_judge_config": {
+      "formals": ["model", "rubric", "mode = c(\"select\", \"grade\", \"pairwise\")", "orders = 2", "schema = NULL", "positive = NULL"],
+      "type": "function"
+    },
+    "hr_judge_ppi": {
+      "formals": ["judge_scores", "human_labels", "inclusion_prob = NULL", "conf = 0.95", "tune = TRUE"],
+      "type": "function"
+    },
+    "hr_judge_valid": {
+      "formals": ["validation", "judge_config"],
+      "type": "function"
+    },
+    "hr_judge_validate": {
+      "formals": ["judge_config", "labels", "n_pos_min = 50", "n_neg_min = 50", "positive = NULL", "B = 2000", "conf = 0.95", "seed = 1"],
+      "type": "function"
+    },
     "hr_mdd": {
       "formals": ["n_items", "n_clusters = NULL", "m = NULL", "icc = NULL", "p_disc = NULL", "cv = 0", "power = 0.8", "alpha = 0.025", "n_contrasts = 1", "holm = TRUE"],
       "type": "function"
@@ -434,6 +454,10 @@
     },
     "hr_scorer_exact": {
       "formals": ["normalise = TRUE"],
+      "type": "function"
+    },
+    "hr_scorer_judge": {
+      "formals": ["judge_config", "validation", "client", "governor = NULL", "draw_index = 0L"],
       "type": "function"
     },
     "hr_validate": {
@@ -724,6 +748,21 @@
     },
     "print.hr_governor": {
       "class": "hr_governor",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_judge_config": {
+      "class": "hr_judge_config",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_judge_validation": {
+      "class": "hr_judge_validation",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_judgement": {
+      "class": "hr_judgement",
       "formals": ["x", "..."],
       "generic": "print"
     },

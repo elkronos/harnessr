@@ -713,6 +713,58 @@
 * `gr_compare()`'s help now says it is descriptive, and points to
   `hr_benchmark()` and `hr_report()` for a comparison with intervals.
 
+### Judges and their validation record
+
+* **New `hr_judge()`** asks a model to choose between candidates
+  (`"select"`), compare two (`"pairwise"`) or grade one against a reference
+  (`"grade"`). Candidates are shown under the letters A, B, ... only, and
+  each item is asked in two presentation orders: reversed for candidates,
+  reference first and then response first for grading. A verdict that
+  differs between the orders, mapped back to the candidate it names, is
+  returned as `"unresolved"` with `degradation = "judge_inconsistent"`;
+  a failed request or a reply with no allowed verdict is `"failed"`. One
+  order is allowed for grading only. With more than two candidates,
+  `orders` above 2 shows cyclic rotations. Requests go through the same
+  path as `gr_call()`, so the governor, a cache keyed with `draw_index` and
+  the trace all apply, under the labels `judge.<mode>.o<k>`. They are
+  recorded in the judge's own trace and their cost in `$judge_cost`, never
+  in the trace of the run being judged, which gets a local note pointing at
+  the judge's trace; the judge is held to what that run's governor has left.
+
+* **New `hr_judge_config()`** holds what decides a judge's answers (model,
+  mode, rubric, the package's instructions for the mode, reply schema,
+  orders, how verdicts are combined, the positive grade) with a SHA-256
+  hash of them.
+
+* **New `hr_judge_validate()` and `hr_judge_valid()`.** From blind human
+  labels on a judge's decisions, the record gives Cohen's kappa with a
+  bootstrap interval and the full `hr_agreement()` set, sensitivity and
+  specificity with Wilson intervals (and the sensitivity half-width), and
+  the swap-inconsistency rate. Items the judge left unresolved or failed
+  on count as not called positive, the rule `hr_scorer_judge()` applies, so
+  the figures describe the judge as the scorer uses it. Fewer than 50
+  human-positive or 50 human-negative items are refused with
+  `hr_judge_too_few_labels`, and the minimums cannot be lowered. Text labels
+  such as `"pass"` and `"fail"` default to the configuration's positive
+  grade. The record is keyed by the configuration
+  hash; `hr_judge_valid()` is `FALSE`, naming what changed, when the model,
+  rubric, prompt, schema, orders, aggregation or positive grade differ, or
+  when the record was edited.
+
+* **New `hr_scorer_judge()`**, a benchmark scorer that grades each output
+  against its label with a grade-mode judge. It refuses to be built
+  without a valid record (`hr_judge_unvalidated`). Unresolved judgements
+  count as wrong and failed ones as errors, and the judge's requests stay
+  in the scorer's own trace, out of the benchmark's cost columns. A
+  `draw_index` argument sets the cache draw for the judge's requests.
+
+* **New `hr_judge_ppi()`** corrects judge-scored accuracy with human labels
+  on a sample through `hr_ppi()`: prediction-powered inference, and the
+  inverse-probability weighted DSL form when the labelling probabilities
+  vary. It also reports the uncorrected judge mean. Its normal interval
+  needs enough labelled items in every inclusion stratum; with few labels
+  at small inclusion probabilities it is too narrow.
+
 # readgpt 0.6.0
 
 ## New

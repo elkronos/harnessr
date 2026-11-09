@@ -182,6 +182,18 @@ reference:
   - gr_qa_reference
   - gr_scorer_answer
 
+- title: Judges
+  desc: >
+    A model that chooses between candidates or grades one against a
+    reference, asked in both orders, validated against blind human labels
+    before it scores, with its accuracy corrected by those labels.
+  contents:
+  - hr_judge
+  - hr_judge_config
+  - hr_judge_validate
+  - hr_scorer_judge
+  - hr_judge_ppi
+
 - title: Extending harnessr
   desc: >
     Every axis is a registry, and an addition is used exactly like a
