@@ -1221,8 +1221,11 @@ write_reference_csv <- function(df, path) {
 #' name ("X...document"). So the bytes are read here: the mark dropped, each
 #' line kept as UTF-8 where it is valid and read as Windows-1252 where it is not
 #' (to_utf8()), and the text parsed from memory, which read.csv() marks UTF-8.
+#' `na.strings` and `...` go to read.csv(): a label sheet reads every column
+#' as text, so an id such as "007" keeps its zeros, and only an empty cell
+#' as missing, so an answer of "NA" stays an answer.
 #' @noRd
-read_reference_csv <- function(path) {
+read_reference_csv <- function(path, na.strings = c("", "NA"), ...) {
   bytes <- readBin(path, "raw", n = max(file.size(path), 0))
   if (length(bytes) >= 3L && identical(bytes[1:3], as.raw(c(0xEF, 0xBB, 0xBF)))) {
     bytes <- bytes[-(1:3)]
@@ -1231,7 +1234,7 @@ read_reference_csv <- function(path) {
   lines <- strsplit(rawToChar(bytes), "\n", fixed = TRUE, useBytes = TRUE)[[1]]
   lines <- to_utf8(sub("\r$", "", lines, useBytes = TRUE))
   if (!length(lines)) return(data.frame())
-  utils::read.csv(text = lines, stringsAsFactors = FALSE, na.strings = c("", "NA"))
+  utils::read.csv(text = lines, stringsAsFactors = FALSE, na.strings = na.strings, ...)
 }
 
 #' Subsetting a reference frame gives a plain data frame.

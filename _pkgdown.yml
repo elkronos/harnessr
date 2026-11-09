@@ -182,6 +182,15 @@ reference:
   - hr_gate_threshold
   - hr_signal_policy
 
+- title: Reference sets and splits
+  desc: >
+    Splitting reference items into tuning, calibration and test sets by
+    document, and the sheets people fill in to label them.
+  contents:
+  - hr_assign_splits
+  - gr_label_sheet
+  - gr_read_labels
+
 - title: Extending harnessr
   desc: >
     Every axis is a registry, and an addition is used exactly like a

@@ -168,6 +168,10 @@
       "formals": ["sources", "recursive = TRUE", "model = NULL", "ocr_min_chars = 40L", "max_pdf_pages = 3L"],
       "type": "function"
     },
+    "gr_label_sheet": {
+      "formals": ["kind = c(\"qa\", \"screening\", \"extraction\", \"calibration\", \"judge\")", "items", "path = NULL", "blind = TRUE", "reviewers = 1", "fields = NULL"],
+      "type": "function"
+    },
     "gr_mock_client": {
       "formals": ["handler = NULL", "embed_handler = NULL"],
       "type": "function"
@@ -214,6 +218,10 @@
     },
     "gr_read": {
       "formals": ["chunks", "question", "client", "spec = NULL", "trace = NULL"],
+      "type": "function"
+    },
+    "gr_read_labels": {
+      "formals": ["path", "kind", "items = NULL", "fields = NULL"],
       "type": "function"
     },
     "gr_read_many": {
@@ -358,6 +366,10 @@
     },
     "hr_apply_signal": {
       "formals": ["sig", "policy", "cal = NULL", "key = NULL"],
+      "type": "function"
+    },
+    "hr_assign_splits": {
+      "formals": ["items", "cluster = NULL", "props = c(dev = 0.1, exploratory = 0.1, calibration = 0.3, test = 0.5)", "seed", "method = c(\"stable\", \"balanced\")"],
       "type": "function"
     },
     "hr_calibrate_signal": {
@@ -704,6 +716,11 @@
     },
     "print.hr_signal_policy": {
       "class": "hr_signal_policy",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_splits": {
+      "class": "hr_splits",
       "formals": ["x", "..."],
       "generic": "print"
     }

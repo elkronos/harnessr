@@ -706,6 +706,42 @@
   routed to a check, a person or nowhere, and `reason` says why. Nothing in
   the package calls `hr_apply_signal()` yet, so nothing gates by default.
 
+### Splits and label sheets
+
+* **New `hr_assign_splits()`** assigns reference items to the `dev`,
+  `exploratory`, `calibration`, `test` and `final` splits by cluster, so
+  every item of a document lands in the same split. The default shares are
+  10% dev, 10% exploratory, 30% calibration and 50% test. Each cluster's
+  place comes from the SHA-256 digest of the seed and its id, so the
+  assignment does not depend on row order or the session's random state.
+  With `method = "stable"` (the default) adding or dropping documents never
+  moves another one; `method = "balanced"` gives each split its share of
+  clusters by largest remainders. The result reports clusters and items per
+  split beside the target shares, and warns with `hr_empty_split` when a
+  split given a share receives nothing.
+
+* **New `gr_label_sheet()`** writes a CSV for people to label, with an
+  instructions file beside it, for five kinds of set: QA answers, a
+  screening reference, extraction fields, a calibration graded set and judge
+  validation verdicts. Each row has an `item_id` and empty decision columns.
+  A blind sheet (the default) copies only the columns a person needs to
+  judge the item, so no model output or sampling detail reaches it. With
+  several reviewers each gets a sheet of their own. The help page gives the
+  number of items each set needs for the package's own evaluation.
+
+* **New `gr_read_labels()`** reads filled sheets back, checks every value
+  and id, and stops with `gr_bad_labels` naming the sheet, row and item of
+  each value it cannot read. It returns a screening reference that
+  `gr_calibrate()` and `gr_reference_consensus()` take, an extraction table
+  for `gr_extract_agreement()`, and calibration labels with clusters, with
+  the items' own columns joined back by id (an item column named like a
+  decision, such as the model's `answer` or a judge's `verdict`, comes back
+  as `model_<name>`). Only a calibration sheet written with `blind = FALSE`
+  has the `correct` column `hr_calibrate_signal()` needs; a blind one gives
+  reference answers, and the model's answers are scored against them to make
+  `correct`. A blind screening sheet carries the reference's frame as an
+  opaque key, so it reads back as a usable reference without `items`.
+
 # readgpt 0.6.0
 
 ## New
