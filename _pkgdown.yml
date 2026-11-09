@@ -166,6 +166,16 @@ reference:
   - hr_ppi
   - hr_alt_test
 
+- title: Benchmarks
+  desc: >
+    Compare configurations on a labelled reference: arms, the reference and
+    its splits, scorers, and repeated runs held to one spending limit.
+  contents:
+  - hr_benchmark
+  - hr_arm
+  - hr_reference
+  - hr_scorer
+
 - title: Extending harnessr
   desc: >
     Every axis is a registry, and an addition is used exactly like a

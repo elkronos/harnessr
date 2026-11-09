@@ -344,6 +344,14 @@
       "formals": ["model_labels", "human_labels", "expertise", "epsilon = NULL", "q = 0.05", "metric = c(\"accuracy\", \"neg_rmse\")"],
       "type": "function"
     },
+    "hr_arm": {
+      "formals": ["name", "run", "params = list()", "derived_from = NULL", "version = \"0.0.1\""],
+      "type": "function"
+    },
+    "hr_benchmark": {
+      "formals": ["arms", "reference", "runs = 5", "client", "scorer = hr_scorer_exact()", "split = \"test\"", "governor = NULL", "seed = 1"],
+      "type": "function"
+    },
     "hr_check_module": {
       "formals": ["fn", "run", "rules = list()", "kind = \"module\"", "name = NA_character_"],
       "type": "function"
@@ -372,8 +380,24 @@
       "formals": ["x", "n", "method = c(\"wilson\", \"clopper_pearson\", \"jeffreys\")", "side = c(\"two\", \"lower\", \"upper\")", "conf = 0.95"],
       "type": "function"
     },
+    "hr_reference": {
+      "formals": ["items", "labels", "cluster", "split = c(\"dev\", \"exploratory\", \"calibration\", \"test\", \"final\")", "inclusion_prob = 1", "strata = NULL", "coders = NULL"],
+      "type": "function"
+    },
+    "hr_reference_add": {
+      "formals": ["reference", "items", "labels", "cluster", "split = c(\"dev\", \"exploratory\", \"calibration\", \"test\", \"final\")", "inclusion_prob = 1", "strata = NULL", "coders = NULL"],
+      "type": "function"
+    },
     "hr_schema": {
       "formals": ["..."],
+      "type": "function"
+    },
+    "hr_scorer": {
+      "formals": ["fn", "name"],
+      "type": "function"
+    },
+    "hr_scorer_exact": {
+      "formals": ["normalise = TRUE"],
       "type": "function"
     },
     "hr_validate": {
@@ -627,6 +651,16 @@
       "formals": ["x", "digits = 3", "..."],
       "generic": "print"
     },
+    "print.hr_arm": {
+      "class": "hr_arm",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_bench": {
+      "class": "hr_bench",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
     "print.hr_conformance": {
       "class": "hr_conformance",
       "formals": ["x", "..."],
@@ -637,8 +671,18 @@
       "formals": ["x", "..."],
       "generic": "print"
     },
+    "print.hr_reference": {
+      "class": "hr_reference",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
     "print.hr_schema": {
       "class": "hr_schema",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_scorer": {
+      "class": "hr_scorer",
       "formals": ["x", "..."],
       "generic": "print"
     }

@@ -573,6 +573,45 @@
 
 * `gr_calibrate()` and its output are unchanged.
 
+### Benchmarks: arms, references, scorers and `hr_benchmark()`
+
+* **New `hr_arm()`** describes one configuration to compare: a function of
+  an item and a context that carries the client, a trace of the run alone,
+  the governor and the run's `draw_index`, with `ctx$call()` as a shortcut
+  for `gr_call()` that fills in all three. `run` is required. The arm
+  records its settings, a version and a hash of its code and settings,
+  which is the same in every session and after `saveRDS()`, also for an arm
+  built inside a function of yours.
+
+* **New `hr_reference()`** holds the items to score, their labels, clusters,
+  splits (`"dev"`, `"exploratory"`, `"calibration"`, `"test"`, `"final"`),
+  inclusion probabilities, strata and coder labels, with a content hash.
+  Items can be added with `hr_reference_add()` until a benchmark starts
+  scoring the reference; after that every copy of it, and every reference
+  grown from it, refuses new items with an error of class
+  `hr_reference_locked`.
+
+* **New `hr_scorer()`** states the scoring contract (correct, outcome and
+  failure kind for each run), and **`hr_scorer_exact()`**, the default,
+  compares text after folding case and white space, and sorts parse
+  failures, errors, `NOT_IN_DOCUMENT` and failures an arm reports itself
+  apart from wrong answers.
+
+* **New `hr_benchmark()`** runs every arm on every item of the chosen splits
+  `runs` times (5 by default; fewer warns) and returns one row per cluster x
+  item x arm x run with correctness, failure kind, tokens by kind, cost and
+  its provenance, seconds, the draw index and the id of the run's trace.
+  Run `r` is draw `r`, so repeated runs are separate cache entries and
+  recorded draws, and an arm whose runs come back as one stored reply (the
+  same cache entry, a repeated replay, a repeated response id) is refused
+  with an error of class `hr_duplicate_draw`. The whole benchmark is held to
+  one governor; a run with a refused request is recorded as a budget stop
+  and counted wrong. Every run on an item with no label has `correct = NA`,
+  failures included, so such an item never counts against an arm. Rows on
+  the dev split are marked not reportable. `print()` shows accuracy per arm
+  over the reportable rows and labelled items, with the dev split's accuracy
+  in its own column, descriptive only.
+
 # readgpt 0.6.0
 
 ## New
