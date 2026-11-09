@@ -199,6 +199,23 @@
       },
       {
         "detail": {
+          "item_id": null,
+          "refs": {
+            "round": 1
+          },
+          "signal": "gr.iterative.can_answer",
+          "type": "logical",
+          "value": true
+        },
+        "kind": "local",
+        "label": "signal",
+        "ok": true,
+        "recipe": "golden-iterative",
+        "source": "annual_report.md",
+        "step": 7
+      },
+      {
+        "detail": {
           "reason": "model satisfied",
           "rounds": 1
         },
@@ -207,7 +224,7 @@
         "ok": true,
         "recipe": "golden-iterative",
         "source": "annual_report.md",
-        "step": 7
+        "step": 8
       }
     ],
     "stop_reason": null,
@@ -217,7 +234,7 @@
       "embed_calls": 0,
       "embed_tokens": 0,
       "errors": 0,
-      "steps": 7,
+      "steps": 8,
       "tokens_cached_in": 0,
       "tokens_in": 728,
       "tokens_out": 40,

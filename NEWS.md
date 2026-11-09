@@ -651,6 +651,61 @@
   as reporting nothing, duplicates are left out, and `$pairs` lists every
   cell side by side for reading the disagreements.
 
+### Signals, calibration records and gate thresholds
+
+* **New `hr_signal()` and `hr_signals()`.** `hr_signal()` records a value the
+  package produced about its own work (a self-signal) into a trace, as a
+  local step labelled `"signal"`; it sends no request, so requests and cache
+  keys are unchanged. `hr_signals()` reads every recorded signal back from a
+  trace, an answer or a list of them as one table, a row per value, with the
+  value as text and as a number.
+
+* **Three readers record a signal.** `iterative` records
+  `gr.iterative.can_answer` for each step whose reply parsed, `preview`
+  records `gr.preview.skip` for each section of a usable plan (the plan's own
+  decision, before any section is demoted to skim), and `ensemble` records
+  `gr.ensemble.adjudicate` as `"model"`, `"concatenated"` or
+  `"single member"`. No reader behaves differently: each answer, each
+  request and each cache key is as before, and a trace from these readers
+  has one more local step per signal.
+
+* **New `hr_calibrate_signal()`** measures a signal against a graded set that
+  must include unanswerable items, on the half of each cluster's items not
+  used to fit the map: the Brier score with its reliability, resolution and
+  uncertainty decomposition (and the two within-bin terms that make it exact
+  over binned forecasts), type-2 AUROC, the area under the risk-coverage
+  curve with the selective risk at 50, 80 and 90 percent coverage, and the
+  debiased equal-mass calibration error over 5 to 10 bins, each with a
+  cluster bootstrap interval (`NA` when the calibration half has one
+  cluster, with a note below 20 clusters). AUROC and the risk-coverage curve
+  are taken on the signal itself, so a signal that is higher when the item
+  is wrong shows an AUROC below 0.5 even after the map turns it round. The
+  map is Platt scaling, isotonic regression (only from 1000 graded items,
+  counted before the split) or none. A map that does not increase with the
+  signal keeps the record advisory. The record is keyed by served model,
+  model version, task, format, prompt hash, effort, module and contract
+  version, starts `advisory`, says why, and has `print()` and `as_json()`
+  methods.
+
+* **New `hr_calibration_valid()`** is `FALSE` when any key field of a record
+  differs from the run's, and names the fields.
+
+* **New `hr_gate_threshold()`** picks a threshold by Learn-then-Test: the
+  thresholds are tested from strict to loose with a one-sided
+  Clopper-Pearson bound on the error among accepted items, or on the miss
+  rate for exclusions, and the loosest one before the first failure is kept.
+  It starts where enough items are acted on for the bound to reach `alpha`,
+  and reports `"none passed"` or `"too few items"` when nothing qualifies. A
+  record becomes `"gating"` only with a passing threshold, at least 100
+  wrong items in the graded set, a map that increases with the signal and
+  an ECE over at least 5 bins.
+
+* **New `hr_signal_policy()` and `hr_apply_signal()`.** A signal gates its
+  action only with a gating record for the same signal and action whose key
+  matches the run; otherwise it stays advisory (`gated = FALSE`), the item is
+  routed to a check, a person or nowhere, and `reason` says why. Nothing in
+  the package calls `hr_apply_signal()` yet, so nothing gates by default.
+
 # readgpt 0.6.0
 
 ## New

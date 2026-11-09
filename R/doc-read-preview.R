@@ -164,6 +164,13 @@ read_preview <- function(chunks, question, client, spec, trace) {
                    "read in full (does this endpoint support JSON schema output?). This run is ",
                    "effectively 'stuff', not 'preview'."), class = "gr_preview_degraded")
   }
+  # The plan's decision for each section, recorded before any read section is
+  # demoted to skim for lack of room, so it is what the plan said. A plan that
+  # could not be used decided nothing, and records nothing.
+  if (!degraded) {
+    hr_signal("gr.preview.skip", treat == "skip", trace,
+              refs = list(section = seq_len(n_units), treatment = treat))
+  }
 
   # Budget the sections marked `read`, in document order. What does not fit is
   # DEMOTED to skim rather than dropped: the section still gets looked at, for

@@ -1061,6 +1061,24 @@
           "output": 26,
           "provenance": "estimated"
         }
+      },
+      {
+        "detail": {
+          "item_id": null,
+          "refs": {
+            "answered": 3,
+            "members": 3
+          },
+          "signal": "gr.ensemble.adjudicate",
+          "type": "character",
+          "value": "model"
+        },
+        "kind": "local",
+        "label": "signal",
+        "ok": true,
+        "recipe": "golden-ensemble",
+        "source": "annual_report.md",
+        "step": 21
       }
     ],
     "stop_reason": null,
@@ -1070,7 +1088,7 @@
       "embed_calls": 0,
       "embed_tokens": 0,
       "errors": 0,
-      "steps": 20,
+      "steps": 21,
       "tokens_cached_in": 0,
       "tokens_in": 3796,
       "tokens_out": 390,

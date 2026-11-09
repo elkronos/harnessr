@@ -356,12 +356,28 @@
       "formals": ["model_labels", "human_labels", "expertise", "epsilon = NULL", "q = 0.05", "metric = c(\"accuracy\", \"neg_rmse\")"],
       "type": "function"
     },
+    "hr_apply_signal": {
+      "formals": ["sig", "policy", "cal = NULL", "key = NULL"],
+      "type": "function"
+    },
+    "hr_calibrate_signal": {
+      "formals": ["signal", "graded", "key", "method = c(\"platt\", \"isotonic\", \"none\")", "bins = 10L", "split = 0.5", "seed", "B = 2000L"],
+      "type": "function"
+    },
+    "hr_calibration_valid": {
+      "formals": ["cal", "key"],
+      "type": "function"
+    },
     "hr_check_module": {
       "formals": ["fn", "run", "rules = list()", "kind = \"module\"", "name = NA_character_"],
       "type": "function"
     },
     "hr_cost": {
       "formals": ["calls", "calls_max = calls", "tokens_in_max = 0", "tokens_out_max = 0", "embed_max = 0", "sends = list()", "batched = TRUE"],
+      "type": "function"
+    },
+    "hr_gate_threshold": {
+      "formals": ["cal", "action", "risk = c(\"error_among_accepted\", \"miss_rate\")", "alpha", "delta = 0.05", "grid = NULL"],
       "type": "function"
     },
     "hr_governor": {
@@ -386,6 +402,18 @@
     },
     "hr_schema": {
       "formals": ["..."],
+      "type": "function"
+    },
+    "hr_signal": {
+      "formals": ["name", "value", "trace = NULL", "item_id = NA_character_", "refs = NULL"],
+      "type": "function"
+    },
+    "hr_signal_policy": {
+      "formals": ["signal", "action", "on_fail = c(\"route_check\", \"route_person\", \"ignore\")"],
+      "type": "function"
+    },
+    "hr_signals": {
+      "formals": ["x", "name = NULL"],
       "type": "function"
     },
     "hr_validate": {
@@ -456,6 +484,11 @@
     },
     "as_json.hr_agreement": {
       "class": "hr_agreement",
+      "formals": ["x", "pretty = TRUE", "..."],
+      "generic": "as_json"
+    },
+    "as_json.hr_calibration": {
+      "class": "hr_calibration",
       "formals": ["x", "pretty = TRUE", "..."],
       "generic": "as_json"
     },
@@ -644,6 +677,11 @@
       "formals": ["x", "digits = 3", "..."],
       "generic": "print"
     },
+    "print.hr_calibration": {
+      "class": "hr_calibration",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
     "print.hr_conformance": {
       "class": "hr_conformance",
       "formals": ["x", "..."],
@@ -656,6 +694,16 @@
     },
     "print.hr_schema": {
       "class": "hr_schema",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_signal": {
+      "class": "hr_signal",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_signal_policy": {
+      "class": "hr_signal_policy",
       "formals": ["x", "..."],
       "generic": "print"
     }

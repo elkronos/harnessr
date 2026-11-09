@@ -169,6 +169,19 @@ reference:
   - hr_ppi
   - hr_alt_test
 
+- title: Signals and calibration
+  desc: >
+    Values the package records about its own work, the calibration records
+    that measure how well they predict being right, and the thresholds and
+    policy that decide whether a signal may gate an action. Nothing gates by
+    default.
+  contents:
+  - hr_signal
+  - hr_calibrate_signal
+  - hr_calibration_valid
+  - hr_gate_threshold
+  - hr_signal_policy
+
 - title: Extending harnessr
   desc: >
     Every axis is a registry, and an addition is used exactly like a
