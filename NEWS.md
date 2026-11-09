@@ -797,6 +797,29 @@
   stop at `alpha`. It takes a vector of relevance in screening order, with
   unscreened records as trailing `NA`, or an `hr_baseline_ranker()` result.
 
+### Drift checks
+
+* **New `hr_drift_check()`** reruns an arm live on the items of a frozen
+  `hr_benchmark()` and reports, item by item, which items were lost,
+  gained or moved, with their most common output before and after. Two
+  tests are fixed in the call, with `alpha` and an optional `alert`
+  threshold. (a) The accuracy change, live minus frozen, by a BCa cluster
+  bootstrap over documents on paired item accuracy, with the clustered
+  McNemar test of Obuchowski (1998) beside it as a cross-check. (b) Excess
+  instability: the flips between frozen and live runs against the flips
+  among replicate runs, frozen and live, one-sided, on the same cluster
+  resamples. Per item it estimates the squared change in accuracy, so it
+  sees losses and gains that cancel in accuracy and noisy items that turn
+  deterministic; it needs at least 2 live runs. The alert is crossed when
+  the whole accuracy interval lies beyond the threshold, and
+  `alert_not_ruled_out` reports the weaker reading, an interval that
+  reaches beyond it. Moved items whose runs disagreed are counted apart in
+  the printout, since their moves can be run-to-run variation. Fewer
+  than 5 frozen runs is refused (`hr_drift_few_runs`), as are a changed
+  arm, another reference or scorer (`hr_drift_mismatch`) and a live rerun
+  answered from a cache or a recording (`hr_drift_not_live`). The live
+  rerun is returned as an `hr_bench`.
+
 # readgpt 0.6.0
 
 ## New

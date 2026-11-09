@@ -143,6 +143,7 @@ Other harness:
 \code{\link{hr_arm}()},
 \code{\link{hr_benchmark}()},
 \code{\link{hr_contrast}()},
+\code{\link{hr_drift_check}()},
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},
 \code{\link{hr_scorer}()}

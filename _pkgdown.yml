@@ -175,6 +175,7 @@ reference:
   - hr_report
   - hr_mdd
   - hr_contrast
+  - hr_drift_check
   - hr_arm
   - hr_reference
   - hr_scorer

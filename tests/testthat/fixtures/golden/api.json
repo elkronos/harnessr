@@ -392,6 +392,10 @@
       "formals": ["calls", "calls_max = calls", "tokens_in_max = 0", "tokens_out_max = 0", "embed_max = 0", "sends = list()", "batched = TRUE"],
       "type": "function"
     },
+    "hr_drift_check": {
+      "formals": ["frozen", "arm", "runs = 5", "alpha = 0.05", "alert = NULL", "client", "reference", "scorer = hr_scorer_exact()", "governor = NULL", "B = 2000", "seed = NULL"],
+      "type": "function"
+    },
     "hr_governor": {
       "formals": ["max_calls = gr_options(\"max_calls\")", "max_cost_usd = gr_options(\"max_cost_usd\")", "max_tokens_total = gr_options(\"max_tokens_total\")", "max_output_tokens = gr_options(\"max_output_tokens\")", "allowed_models = gr_options(\"allowed_models\")", "allow_unpriced = gr_options(\"allow_unpriced\")"],
       "type": "function"
@@ -775,6 +779,11 @@
     "print.hr_contrast_registration": {
       "class": "hr_contrast_registration",
       "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_drift_check": {
+      "class": "hr_drift_check",
+      "formals": ["x", "digits = 3", "..."],
       "generic": "print"
     },
     "print.hr_governor": {
