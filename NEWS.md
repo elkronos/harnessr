@@ -641,6 +641,48 @@
   runs but not all is refused. It has `print()` and `as_json()` methods and
   leaves the caller's random state as it was.
 
+### Non-inferiority contrasts and the minimum detectable difference
+
+* **New `hr_mdd()` and `hr_n_needed()`** give the smallest paired accuracy
+  difference a clustered design can detect, and the items needed for a
+  given one, from n_eff = (z_(1 - alpha') + z_power)^2 x p_disc / Delta^2
+  with the design effect DE = 1 + (m - 1) x ICC_D, where ICC_D is the
+  intra-cluster correlation of the paired item difference and m becomes
+  (cv^2 + 1) x m for unequal clusters. With `n_contrasts` above 1, alpha' is
+  alpha / n_contrasts, the first step of Holm. For 480 questions in 80
+  documents at ICC_D 0.2 and p_disc 0.2 this gives DE 2, 240 effective items
+  and an MDD of 8.1 points, or 10.4 points after Holm over nine contrasts.
+  `hr_n_needed()` also takes a true difference below 0.
+
+* **New `hr_contrast()` and `hr_register_contrasts()`** fix non-inferiority
+  contrasts (arm, reference arm, margin, whether it must also be cheaper)
+  against an `hr_reference()` before a benchmark scores it. A confirmatory
+  margin below the design MDD at 80% power after Holm is refused with an
+  error of class `hr_margin_below_mdd`; with `confirmatory = FALSE` it is
+  registered as exploratory. The check is at one-sided alpha 0.025 or less
+  whatever level the design was given at, and a design with more items or
+  clusters than the reference holds on the test and final splits is
+  refused. A reference already being scored, or one rebuilt with the same
+  content, is refused (`hr_registration_after_scoring`), and the
+  registration is hashed. `hr_mdd()` takes whole numbers of items and
+  clusters only.
+
+* **`hr_report()` gains `registration`.** Each registered contrast is
+  non-inferior only if the one-sided lower bound of the cluster-bootstrap
+  accuracy difference is above -margin and, when it tests cost, the upper
+  bound of the paired cost difference is below 0. Confirmatory contrasts
+  are tested with Holm's step-down procedure, exploratory ones at alpha.
+  The design and achieved MDD are printed beside every verdict, and a
+  contrast that passed its registered test is reported as passed even when
+  the achieved MDD exceeds its margin. Tango's (1998) paired score interval
+  on effective counts is given as a cross-check. A changed registration,
+  or one for another reference, is refused.
+
+* **Dev-split rows are refused as evidence.** A report with a registration
+  or `confirmatory = TRUE` errors with class `hr_dev_not_evidence` when the
+  benchmark holds rows on the dev, exploratory or calibration split or rows
+  marked not reportable.
+
 # readgpt 0.6.0
 
 ## New

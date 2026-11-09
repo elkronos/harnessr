@@ -106,6 +106,8 @@ length(ref$ids)
 Other harness: 
 \code{\link{hr_arm}()},
 \code{\link{hr_benchmark}()},
+\code{\link{hr_contrast}()},
+\code{\link{hr_mdd}()},
 \code{\link{hr_report}()},
 \code{\link{hr_scorer}()}
 }

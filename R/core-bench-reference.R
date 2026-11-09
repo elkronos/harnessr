@@ -231,6 +231,12 @@ check_reference <- function(reference) {
   invisible(reference)
 }
 
+# The hashes of every reference a benchmark has begun to score in this
+# session, with the time it began. A reference rebuilt from the same
+# arguments has the same hash but a fresh lock, so the lock alone cannot
+# tell hr_register_contrasts() that its content was already scored.
+.hr_locked_refs <- new.env(parent = emptyenv())
+
 #' Lock a reference: from now on no item can be added to it.
 #' @noRd
 reference_lock <- function(reference, by) {
@@ -240,6 +246,10 @@ reference_lock <- function(reference, by) {
     lock$locked_at <- utc_stamp(Sys.time())
     lock$locked_by <- by
     lock$hash <- reference$hash
+  }
+  if (is.character(reference$hash) && length(reference$hash) == 1L &&
+      is.null(.hr_locked_refs[[reference$hash]])) {
+    assign(reference$hash, lock$locked_at, envir = .hr_locked_refs)
   }
   invisible(reference)
 }

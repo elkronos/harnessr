@@ -173,6 +173,8 @@ reference:
   contents:
   - hr_benchmark
   - hr_report
+  - hr_mdd
+  - hr_contrast
   - hr_arm
   - hr_reference
   - hr_scorer

@@ -104,6 +104,46 @@
 #' the variance of p_ia over items, averaged over arms. When the within share
 #' exceeds 10%, runs = 10 is recommended.
 #'
+#' **Non-inferiority.** With a `registration` from [hr_register_contrasts()],
+#' each registered contrast is tested. The verdict holds only if (1) the
+#' one-sided lower bound of the BCa cluster-bootstrap accuracy difference
+#' (new minus reference) is above -margin and (2), when the contrast has
+#' `cost_test = TRUE`, the one-sided upper bound of the paired difference in
+#' dollars per item is below 0. At a one-sided level of 0.025 that is the
+#' 97.5% bound. Each contrast's p-value is the smallest one-sided level at
+#' which both conditions hold (an intersection-union test, so each condition
+#' runs at that full level). The confirmatory contrasts are tested with
+#' Holm's (1979) step-down procedure at the registration's alpha: in order of
+#' their p-values, the j-th of k is tested at alpha / (k - j + 1), and the
+#' first that fails stops the procedure. Exploratory contrasts are tested at
+#' alpha alone. Beside every verdict the report gives the design MDD the contrast
+#' was registered against and the achieved MDD,
+#' (z_(1 - alpha') + z_power) x SE, with SE the bootstrap standard deviation
+#' of the paired difference (the design formula with p_disc / n_eff taken
+#' from the data) and alpha' = alpha / (number of confirmatory contrasts),
+#' or alpha for an exploratory one. A verdict that passed its registered test
+#' is shown as passed even when the achieved MDD exceeds the margin; a note
+#' says so. As a cross-check, Tango's (1998) score interval for paired
+#' proportions is computed on effective counts. The discordant shares are
+#' the means over items of the chance that a run of the new arm is right and
+#' a run of the reference wrong (q10), and the reverse (q01). The effective
+#' number of pairs is (q10 + q01 - estimate^2) / SE^2, the size of a simple
+#' paired sample with the variance the cluster bootstrap found (the effective
+#' size of Korn and Graubard 1998, applied to the paired difference), at most
+#' the number of paired runs; the counts are q10 and q01 times it. Tango's
+#' interval is reported at the level the contrast was tested at, beside
+#' whether it reaches the same accuracy conclusion, and is not used in the
+#' verdict.
+#'
+#' A registration, or `confirmatory = TRUE`, makes the report evidence: a
+#' `bench` with any row outside the test and final splits (dev, exploratory
+#' or calibration) or marked not reportable is then refused with an error of
+#' class `hr_dev_not_evidence`. The `bench` must
+#' carry the hash of the reference the registration names, as an
+#' [hr_benchmark()] result does (error class `hr_registration_mismatch`),
+#' and a registration changed after it was made is refused (class
+#' `hr_registration_changed`).
+#'
 #' Below 5 runs the report is descriptive only: point estimates without
 #' intervals, resamples or rank intervals. Cost, pass^k and frontier
 #' intervals come from the cluster bootstrap in both regimes; below the
@@ -124,7 +164,10 @@
 #'   from; the caller's random state is left as it was.
 #' @param method `"auto"`, `"bootstrap"`, `"bayes"` or `"exact"`, as above.
 #' @param confirmatory `TRUE` for a confirmatory report, which raises the
-#'   default `B` to 5000.
+#'   default `B` to 5000 and refuses dev-split rows. Left unset, it is `TRUE`
+#'   when `registration` holds a confirmatory contrast.
+#' @param registration An [hr_register_contrasts()] result for the reference
+#'   this benchmark scored, or `NULL`.
 #' @param x An `hr_bench_report`.
 #' @param digits Digits to print.
 #' @param pretty Whether to indent the JSON.
@@ -155,6 +198,18 @@
 #'     `accuracy_without_parse_refusal`.}
 #'   \item{`variance`}{`within`, `between`, `within_share` overall and per
 #'     arm, and `recommend_runs`.}
+#'   \item{`ni`}{With a registration, per registered contrast: `new`,
+#'     `reference`, `label`, `margin`, `estimate`, the one-sided `lower`
+#'     bound at the one-sided `level` it was tested at, `accuracy_holds`,
+#'     `cost_test`, `cost_diff`, `cost_upper`, `cost_holds`, `verdict`,
+#'     `mdd_design`, `mdd_achieved`, and Tango's `tango_lower` and
+#'     `tango_upper` with `tango_agrees` (whether it reaches the same
+#'     accuracy conclusion), the effective number of pairs `n_eff` it
+#'     rests on, and `p_value`, the smallest one-sided level at which the
+#'     contrast passes, found by bisection; it is bounded below at 1e-6, so
+#'     a value of 1e-6 means at most 1e-6. `NULL` without one.}
+#'   \item{`registration`}{The registration's hash, time and reference
+#'     hash, or `NULL`.}
 #'   \item{`notes`}{What the reader should know.}
 #' }
 #' @references
@@ -177,12 +232,20 @@
 #' proportions with small expected number of positive counts estimated from
 #' survey data. *Survey Methodology* 24(2), 193-201.
 #'
+#' Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+#' *Scandinavian Journal of Statistics* 6(2), 65-70.
+#'
 #' Miller, E. (2024). Adding error bars to evals: a statistical approach to
 #' language model evaluations. arXiv:2411.00640.
 #'
+#' Tango, T. (1998). Equivalence test and confidence interval for the
+#' difference in proportions for the paired-sample design. *Statistics in
+#' Medicine* 17(8), 891-908.
+#'
 #' Yao, S., Shinn, N., Razavi, P. and Narasimhan, K. (2024). tau-bench.
 #' arXiv:2406.12045.
-#' @seealso [hr_benchmark()], [hr_prop_ci()]
+#' @seealso [hr_benchmark()], [hr_prop_ci()], [hr_register_contrasts()],
+#'   [hr_mdd()]
 #' @family harness
 #' @export
 #' @examples
@@ -199,8 +262,12 @@
 #' rpt$accuracy
 hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3, 5),
                       seed = 1, method = c("auto", "bootstrap", "bayes", "exact"),
-                      confirmatory = FALSE) {
+                      confirmatory = FALSE, registration = NULL) {
   method <- match.arg(method)
+  if (!is.null(registration)) {
+    check_registration(registration)
+    if (missing(confirmatory)) confirmatory <- registration$n_confirmatory > 0L
+  }
   if (!is.logical(confirmatory) || length(confirmatory) != 1L || is.na(confirmatory)) {
     gr_abort("`confirmatory` must be TRUE or FALSE.", class = "gr_bad_setting")
   }
@@ -209,6 +276,13 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
   check_boot(B, seed, min = 100L)
   if (!is.numeric(k) || !length(k) || anyNA(k) || any(k < 1) || any(k != round(k))) {
     gr_abort("`k` must be whole numbers, at least 1.", class = "gr_bad_setting")
+  }
+  if (confirmatory || !is.null(registration)) check_no_dev(bench)
+  if (!is.null(registration) &&
+      !identical(attr(bench, "reference_hash"), registration$reference_hash)) {
+    gr_abort(paste0("The benchmark did not score the reference the contrasts were registered ",
+                    "against (its reference hash differs or is missing), so the ",
+                    "registration does not apply to it."), class = "hr_registration_mismatch")
   }
   d <- report_design(bench)
   arms <- d$arms
@@ -448,6 +522,32 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
       "Run-to-run variance is %.0f%% of the total, above 10%%: use runs = 10."), 100 * wshare))
   }
 
+  ni <- NULL
+  if (!is.null(registration)) {
+    ni <- report_ni(registration, arms, S, U, d$n, p, counts, R)
+    if (!intervals) {
+      notes <- c(notes, paste0("The registered contrasts were not tested: the report has no ",
+                               "intervals."))
+    } else {
+      under <- ni$verdict %in% TRUE & ni$mdd_achieved > ni$margin
+      if (any(under)) {
+        notes <- c(notes, sprintf(paste0(
+          "%s passed the registered test although the achieved MDD exceeds the margin; the ",
+          "verdict stands, and the MDD beside it says how fine a difference these items ",
+          "resolve."), paste(ni$new[under], "vs", ni$reference[under], collapse = ", ")))
+      }
+      if (any(ni$cost_test & is.na(ni$cost_diff))) {
+        notes <- c(notes, paste0("A contrast with a cost test has arms with unknown cost; ",
+                                 "its cost condition cannot hold."))
+      }
+      if (any(ni$tango_agrees %in% FALSE)) {
+        notes <- c(notes, paste0("Tango's interval on effective counts reaches a different ",
+                                 "accuracy conclusion from the cluster bootstrap for at least ",
+                                 "one contrast; the verdict follows the bootstrap."))
+      }
+    }
+  }
+
   if (descriptive) {
     notes <- c(notes, sprintf(paste0(
       "Descriptive only: %d run(s) cannot separate run-to-run spread from differences ",
@@ -473,6 +573,12 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
     stability = stab, pass_k = passk, cost = cost, frontier = front, failures = fail,
     variance = list(within = within, between = between, within_share = wshare,
                     by_arm = var_tab, recommend_runs = recommend),
+    ni = ni,
+    registration = if (!is.null(registration)) {
+      list(hash = registration$hash, registered_at = registration$registered_at,
+           reference_hash = registration$reference_hash, alpha = registration$alpha,
+           power = registration$power, n_confirmatory = registration$n_confirmatory)
+    },
     notes = unique(notes)), class = "hr_bench_report")
 }
 
@@ -697,6 +803,29 @@ print.hr_bench_report <- function(x, digits = 3, ...) {
   print(cbind(fa[c("arm", shown)],
               without_parse_refusal = f(fa$accuracy_without_parse_refusal)),
         row.names = FALSE, right = FALSE)
+  if (!is.null(x$ni) && nrow(x$ni)) {
+    ni <- x$ni
+    pt <- function(v) ifelse(is.na(v), "-", sprintf("%.1f", 100 * v))
+    cat(sprintf("\nNon-inferiority (registered %s, hash %s; points):\n",
+                x$registration$registered_at, substr(x$registration$hash, 1, 12)))
+    print(data.frame(
+      contrast = paste(ni$new, "vs", ni$reference), label = ni$label, margin = pt(ni$margin),
+      difference = pt(ni$estimate),
+      lower = ifelse(is.na(ni$lower), "-", sprintf("%s (%s)", pt(ni$lower),
+                                                  formatC(ni$level, digits = 3, format = "g"))),
+      cost_upper = ifelse(!ni$cost_test, "not tested",
+                          ifelse(is.na(ni$cost_upper), "-",
+                                 formatC(ni$cost_upper, digits = 3, format = "g"))),
+      verdict = ifelse(is.na(ni$verdict), "not tested",
+                       ifelse(ni$verdict, "non-inferior", "not shown")),
+      mdd_design = pt(ni$mdd_design), mdd_achieved = pt(ni$mdd_achieved),
+      tango = ifelse(is.na(ni$tango_lower), "-",
+                     sprintf("[%s, %s]", pt(ni$tango_lower), pt(ni$tango_upper))),
+      stringsAsFactors = FALSE), row.names = FALSE, right = FALSE)
+    cat(paste0("  lower: one-sided bound of the accuracy difference at the level in brackets ",
+               "(Holm for confirmatory contrasts); cost_upper: upper bound of the paired ",
+               "dollars per item.\n"))
+  }
   v <- x$variance
   cat(sprintf("\nVariance on the probability scale: within-item runs %s, between items %s, within share %s.\n",
               f(v$within), f(v$between), f(v$within_share)))

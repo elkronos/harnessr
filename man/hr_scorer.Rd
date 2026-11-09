@@ -78,6 +78,8 @@ near$fn(NULL, "45.3", 45.2)
 Other harness: 
 \code{\link{hr_arm}()},
 \code{\link{hr_benchmark}()},
+\code{\link{hr_contrast}()},
+\code{\link{hr_mdd}()},
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()}
 }

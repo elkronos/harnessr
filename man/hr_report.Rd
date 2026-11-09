@@ -14,7 +14,8 @@ hr_report(
   k = c(1, 3, 5),
   seed = 1,
   method = c("auto", "bootstrap", "bayes", "exact"),
-  confirmatory = FALSE
+  confirmatory = FALSE,
+  registration = NULL
 )
 
 \method{print}{hr_bench_report}(x, digits = 3, ...)
@@ -44,7 +45,11 @@ from; the caller's random state is left as it was.}
 \item{method}{\code{"auto"}, \code{"bootstrap"}, \code{"bayes"} or \code{"exact"}, as above.}
 
 \item{confirmatory}{\code{TRUE} for a confirmatory report, which raises the
-default \code{B} to 5000.}
+default \code{B} to 5000 and refuses dev-split rows. Left unset, it is \code{TRUE}
+when \code{registration} holds a confirmatory contrast.}
+
+\item{registration}{An \code{\link[=hr_register_contrasts]{hr_register_contrasts()}} result for the reference
+this benchmark scored, or \code{NULL}.}
 
 \item{x}{An \code{hr_bench_report}.}
 
@@ -81,6 +86,18 @@ arm2), \code{lower}, \code{upper}, \code{method}.}
 \code{accuracy_without_parse_refusal}.}
 \item{\code{variance}}{\code{within}, \code{between}, \code{within_share} overall and per
 arm, and \code{recommend_runs}.}
+\item{\code{ni}}{With a registration, per registered contrast: \code{new},
+\code{reference}, \code{label}, \code{margin}, \code{estimate}, the one-sided \code{lower}
+bound at the one-sided \code{level} it was tested at, \code{accuracy_holds},
+\code{cost_test}, \code{cost_diff}, \code{cost_upper}, \code{cost_holds}, \code{verdict},
+\code{mdd_design}, \code{mdd_achieved}, and Tango's \code{tango_lower} and
+\code{tango_upper} with \code{tango_agrees} (whether it reaches the same
+accuracy conclusion), the effective number of pairs \code{n_eff} it
+rests on, and \code{p_value}, the smallest one-sided level at which the
+contrast passes, found by bisection; it is bounded below at 1e-6, so
+a value of 1e-6 means at most 1e-6. \code{NULL} without one.}
+\item{\code{registration}}{The registration's hash, time and reference
+hash, or \code{NULL}.}
 \item{\code{notes}}{What the reader should know.}
 }
 }
@@ -181,6 +198,46 @@ of p_ia (1 - p_ia) over item-arm cells, and the between-item variance is
 the variance of p_ia over items, averaged over arms. When the within share
 exceeds 10\%, runs = 10 is recommended.
 
+\strong{Non-inferiority.} With a \code{registration} from \code{\link[=hr_register_contrasts]{hr_register_contrasts()}},
+each registered contrast is tested. The verdict holds only if (1) the
+one-sided lower bound of the BCa cluster-bootstrap accuracy difference
+(new minus reference) is above -margin and (2), when the contrast has
+\code{cost_test = TRUE}, the one-sided upper bound of the paired difference in
+dollars per item is below 0. At a one-sided level of 0.025 that is the
+97.5\% bound. Each contrast's p-value is the smallest one-sided level at
+which both conditions hold (an intersection-union test, so each condition
+runs at that full level). The confirmatory contrasts are tested with
+Holm's (1979) step-down procedure at the registration's alpha: in order of
+their p-values, the j-th of k is tested at alpha / (k - j + 1), and the
+first that fails stops the procedure. Exploratory contrasts are tested at
+alpha alone. Beside every verdict the report gives the design MDD the contrast
+was registered against and the achieved MDD,
+(z_(1 - alpha') + z_power) x SE, with SE the bootstrap standard deviation
+of the paired difference (the design formula with p_disc / n_eff taken
+from the data) and alpha' = alpha / (number of confirmatory contrasts),
+or alpha for an exploratory one. A verdict that passed its registered test
+is shown as passed even when the achieved MDD exceeds the margin; a note
+says so. As a cross-check, Tango's (1998) score interval for paired
+proportions is computed on effective counts. The discordant shares are
+the means over items of the chance that a run of the new arm is right and
+a run of the reference wrong (q10), and the reverse (q01). The effective
+number of pairs is (q10 + q01 - estimate^2) / SE^2, the size of a simple
+paired sample with the variance the cluster bootstrap found (the effective
+size of Korn and Graubard 1998, applied to the paired difference), at most
+the number of paired runs; the counts are q10 and q01 times it. Tango's
+interval is reported at the level the contrast was tested at, beside
+whether it reaches the same accuracy conclusion, and is not used in the
+verdict.
+
+A registration, or \code{confirmatory = TRUE}, makes the report evidence: a
+\code{bench} with any row outside the test and final splits (dev, exploratory
+or calibration) or marked not reportable is then refused with an error of
+class \code{hr_dev_not_evidence}. The \code{bench} must
+carry the hash of the reference the registration names, as an
+\code{\link[=hr_benchmark]{hr_benchmark()}} result does (error class \code{hr_registration_mismatch}),
+and a registration changed after it was made is refused (class
+\code{hr_registration_changed}).
+
 Below 5 runs the report is descriptive only: point estimates without
 intervals, resamples or rank intervals. Cost, pass^k and frontier
 intervals come from the cluster bootstrap in both regimes; below the
@@ -219,18 +276,28 @@ Korn, E. L. and Graubard, B. I. (1998). Confidence intervals for
 proportions with small expected number of positive counts estimated from
 survey data. \emph{Survey Methodology} 24(2), 193-201.
 
+Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+\emph{Scandinavian Journal of Statistics} 6(2), 65-70.
+
 Miller, E. (2024). Adding error bars to evals: a statistical approach to
 language model evaluations. arXiv:2411.00640.
+
+Tango, T. (1998). Equivalence test and confidence interval for the
+difference in proportions for the paired-sample design. \emph{Statistics in
+Medicine} 17(8), 891-908.
 
 Yao, S., Shinn, N., Razavi, P. and Narasimhan, K. (2024). tau-bench.
 arXiv:2406.12045.
 }
 \seealso{
-\code{\link[=hr_benchmark]{hr_benchmark()}}, \code{\link[=hr_prop_ci]{hr_prop_ci()}}
+\code{\link[=hr_benchmark]{hr_benchmark()}}, \code{\link[=hr_prop_ci]{hr_prop_ci()}}, \code{\link[=hr_register_contrasts]{hr_register_contrasts()}},
+\code{\link[=hr_mdd]{hr_mdd()}}
 
 Other harness: 
 \code{\link{hr_arm}()},
 \code{\link{hr_benchmark}()},
+\code{\link{hr_contrast}()},
+\code{\link{hr_mdd}()},
 \code{\link{hr_reference}()},
 \code{\link{hr_scorer}()}
 }

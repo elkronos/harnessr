@@ -356,6 +356,10 @@
       "formals": ["fn", "run", "rules = list()", "kind = \"module\"", "name = NA_character_"],
       "type": "function"
     },
+    "hr_contrast": {
+      "formals": ["new", "reference", "margin", "confirmatory = TRUE", "cost_test = TRUE"],
+      "type": "function"
+    },
     "hr_cost": {
       "formals": ["calls", "calls_max = calls", "tokens_in_max = 0", "tokens_out_max = 0", "embed_max = 0", "sends = list()", "batched = TRUE"],
       "type": "function"
@@ -366,6 +370,14 @@
     },
     "hr_ht_estimate": {
       "formals": ["y", "pi", "strata = NULL", "estimand = c(\"mean\", \"total\", \"ratio\")", "den = NULL", "yhat = NULL", "yhat_pop = NULL", "B = 2000", "conf = 0.95", "seed = 1"],
+      "type": "function"
+    },
+    "hr_mdd": {
+      "formals": ["n_items", "n_clusters = NULL", "m = NULL", "icc = NULL", "p_disc = NULL", "cv = 0", "power = 0.8", "alpha = 0.025", "n_contrasts = 1", "holm = TRUE"],
+      "type": "function"
+    },
+    "hr_n_needed": {
+      "formals": ["delta", "m = NULL", "icc = NULL", "p_disc = NULL", "cv = 0", "power = 0.8", "alpha = 0.025", "n_contrasts = 1", "holm = TRUE", "true_diff = 0"],
       "type": "function"
     },
     "hr_param": {
@@ -388,8 +400,12 @@
       "formals": ["reference", "items", "labels", "cluster", "split = c(\"dev\", \"exploratory\", \"calibration\", \"test\", \"final\")", "inclusion_prob = 1", "strata = NULL", "coders = NULL"],
       "type": "function"
     },
+    "hr_register_contrasts": {
+      "formals": ["plan", "contrasts", "mdd"],
+      "type": "function"
+    },
     "hr_report": {
-      "formals": ["bench", "contrasts = NULL", "B = 2000", "conf = 0.95", "k = c(1, 3, 5)", "seed = 1", "method = c(\"auto\", \"bootstrap\", \"bayes\", \"exact\")", "confirmatory = FALSE"],
+      "formals": ["bench", "contrasts = NULL", "B = 2000", "conf = 0.95", "k = c(1, 3, 5)", "seed = 1", "method = c(\"auto\", \"bootstrap\", \"bayes\", \"exact\")", "confirmatory = FALSE", "registration = NULL"],
       "type": "function"
     },
     "hr_schema": {
@@ -680,8 +696,28 @@
       "formals": ["x", "..."],
       "generic": "print"
     },
+    "print.hr_contrast": {
+      "class": "hr_contrast",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_contrast_registration": {
+      "class": "hr_contrast_registration",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
     "print.hr_governor": {
       "class": "hr_governor",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_mdd": {
+      "class": "hr_mdd",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_n_needed": {
+      "class": "hr_n_needed",
       "formals": ["x", "..."],
       "generic": "print"
     },
