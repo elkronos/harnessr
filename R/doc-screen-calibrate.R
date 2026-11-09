@@ -429,7 +429,10 @@ as_screening_table <- function(screening) {
 #'
 #' On a sample of everything screened (`"all"`) the eligible records in the
 #' sample are a random sample of all of them, and recall is the share kept
-#' with a Clopper-Pearson bound (Lewis, Yang and Frieder 2021). A sample of
+#' with a Clopper-Pearson bound (Lewis, Yang and Frieder 2021). That bound
+#' treats the frame as infinite. When the sample is every screened record
+#' (`gr_reference(n = Inf)`) recall is known exactly, and the estimate is
+#' also both ends of the interval and the bound (`method = "census"`). A sample of
 #' the exclusions alone bounds M and the false-exclusion rate but not recall,
 #' since it does not count the eligible records kept, and a sample of the
 #' kept records alone holds none of the misses.

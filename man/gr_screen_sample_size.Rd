@@ -30,7 +30,7 @@ records the screener may have excluded while still meeting the target.}
 
 \item{frame_n}{Number of records in the frame sampled: the excluded records
 for \code{"excluded"} and \code{"stacked"}, everything screened for \code{"all"}, where
-with \code{prevalence} it gives the exact finite-frame size.}
+with \code{prevalence} it caps the draw at the whole frame.}
 }
 \value{
 A one-row data frame: the settings, \code{positives} (eligible records
@@ -79,13 +79,15 @@ ignores the finite frame and so asks for a few more records.
 
 \section{A finite frame}{
 
-For \code{frame = "all"} with both \code{prevalence} and \code{frame_n} given, the frame
-holds about E = \code{prevalence} x \code{frame_n} eligible records, and recall T is
-met while at most m = floor(E (1 - T)) of them are missed. \code{n_exact} is the
-smallest draw for which a frame with m + 1 missed records shows none of
-them with probability at most alpha, and \code{n} is set to it. For 95\% at 95\%
-confidence, 5\% prevalence and 500 records, E = 25 and m = 1, and 388
-records are drawn where the binomial rule asks for 1180.
+For \code{frame = "all"}, \code{\link[=gr_calibrate]{gr_calibrate()}} bounds a sample smaller than the frame
+with Clopper-Pearson, which treats the frame as infinite, so the eligible
+records needed do not fall with the frame's size. When the whole frame is
+judged, recall is known exactly and is its own bound. So with \code{frame_n}
+given, \code{n} is the binomial draw when it fits in the frame, and otherwise
+\code{frame_n} itself: at 95\% recall, 95\% confidence and 5\% prevalence, a frame
+of 500 records holds about 25 eligible records, fewer than the 59 needed,
+and only judging all 500 can show the target. \code{n_exact} is \code{NA} for
+\code{frame = "all"}.
 }
 
 \examples{

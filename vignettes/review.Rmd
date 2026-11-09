@@ -461,8 +461,10 @@ gr_screen_sample_size(frame = "stacked", max_lost = 2,
 records; the binomial rule, which ignores that the frame is finite, asks for
 508. For a sample of everything screened (`frame = "all"`) the rule is
 k >= ln(alpha) / ln(T) eligible records with no miss: 59 for 95% recall at 95%
-confidence, which at 5% prevalence means drawing 1180 records, or 388 from a
-frame of 500:
+confidence, which at 5% prevalence means drawing 1180 records. A frame of
+500 records at that prevalence holds about 25 eligible records, too few for
+any sample of it to show the target, so the size is the whole frame; judged
+whole, recall is known exactly:
 
 ```{r}
 gr_screen_sample_size(0.95, 0.95, prevalence = 0.05,

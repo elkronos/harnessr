@@ -969,8 +969,11 @@
   `work_saved`, `unclear_rate`, `strata` and `verdict`, which says whether
   the one-sided lower bound on recall reaches the target (or the bound on M
   is within `max_lost`). A sample of everything screened bounds recall with
-  Clopper-Pearson; a sample of the exclusions alone bounds M but not recall.
-  Every field it returned before is unchanged.
+  Clopper-Pearson, except that when it is every screened record recall is
+  known exactly and is its own bound (`method = "census"`: 25 of 25 eligible
+  kept gives a bound of 1, not the 0.887 Clopper-Pearson gives); a sample of
+  the exclusions alone bounds M but not recall. Every field it returned
+  before is unchanged.
 
 * **New `gr_screen_sample_size()`** gives the reference size a recall target
   needs: n >= ln(alpha) / ln(T) eligible records with no miss (59 for 95% at
@@ -978,8 +981,11 @@
   a sample of the exclusions the exact hypergeometric size for a frame of
   `frame_n` records with at most `max_lost` lost, beside the binomial one.
   For a sample of everything screened, giving `frame_n` with `prevalence`
-  adds the exact finite-frame size (388 rather than 1180 for 500 records at
-  5% prevalence).
+  caps the draw at the frame: a frame of 500 records at 5% prevalence holds
+  about 25 eligible records, fewer than the 59 needed, so `n` is 500 (judge
+  every record) rather than 1180. A smaller draw cannot pass
+  `gr_calibrate()`, which bounds such a sample with Clopper-Pearson: 388
+  records with 22 eligible and none missed give a bound of 0.873.
 
 ### References from several reviewers
 
@@ -1022,8 +1028,9 @@
   value row covers the documents both tables report. Below 30 documents or
   for a constant field alpha is `NA` and a note says why. Rows of a
   `gr_extract()` result that failed or were read only in part are not taken
-  as reporting nothing, duplicates are left out, and `$pairs` lists every
-  cell side by side for reading the disagreements.
+  as reporting nothing, duplicates are left out (a blank `duplicate_of`, as
+  a table saved with `write.csv(na = "")` reads back, is not a duplicate),
+  and `$pairs` lists every cell side by side for reading the disagreements.
 
 ### Signals, calibration records and gate thresholds
 

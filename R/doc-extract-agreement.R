@@ -262,7 +262,12 @@ agreement_rows <- function(t, arg, by) {
     gr_abort(sprintf("`%s` has no `%s` column to match documents on.", arg, by),
              class = "gr_bad_setting")
   }
-  dup <- if ("duplicate_of" %in% names(t)) !is.na(t$duplicate_of) else rep(FALSE, nrow(t))
+  # A blank duplicate_of, as a table saved with write.csv(na = "") reads back,
+  # is not a duplicate, as in as_screening_table().
+  dup <- if ("duplicate_of" %in% names(t)) {
+    d <- as.character(t$duplicate_of)
+    !is.na(d) & nzchar(trimws(d))
+  } else rep(FALSE, nrow(t))
   t <- t[!dup, , drop = FALSE]
   key <- as.character(t[[by]])
   if (anyNA(key) || any(!nzchar(key))) {

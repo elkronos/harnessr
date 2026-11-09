@@ -191,8 +191,10 @@ test_that("blank rows in a stacked sheet part the weights from the recorded prob
 test_that("a sample of everything bounds recall with Clopper-Pearson", {
   # 18 of 20 eligible kept: the one-sided 95% lower bound is
   # binom.test(18, 20, alternative = "greater")$conf.int[1] = 0.7173815.
-  dec <- c(rep("include", 18), rep("exclude", 2), rep("exclude", 30))
-  scr <- structure(list(table = data.frame(document = sprintf("a%02d", 1:50), decision = dec,
+  # The screening has 60 records and the reference the first 50, so the
+  # reference is a sample and not the whole frame.
+  dec <- c(rep("include", 18), rep("exclude", 2), rep("exclude", 40))
+  scr <- structure(list(table = data.frame(document = sprintf("a%02d", 1:60), decision = dec,
                                            stringsAsFactors = FALSE)), class = "gr_screening")
   ref <- data.frame(document = sprintf("a%02d", 1:50),
                     human_decision = c(rep("include", 20), rep("exclude", 30)),
@@ -205,6 +207,14 @@ test_that("a sample of everything bounds recall with Clopper-Pearson", {
   # The figures that were there before are as they were.
   expect_equal(cal$metrics$estimate[cal$metrics$metric == "sensitivity (as deployed)"], 0.9)
   expect_identical(cal$adequacy$rule, "positives")
+  # The same 50 records as the whole screening are a census: recall is
+  # 18 / 20 = 0.9 exactly, and that is the bound.
+  scr50 <- scr
+  scr50$table <- scr$table[1:50, ]
+  c50 <- gr_calibrate(scr50, ref, of = "all")
+  expect_identical(c50$recall$method, "census")
+  expect_equal(c50$recall$bound, 0.9)
+  expect_false(c50$verdict$met)
 })
 
 test_that("a sample of one stratum does not claim a recall", {
@@ -253,20 +263,84 @@ test_that("the excluded-frame sample size uses the finite frame", {
   expect_true(stats::phyper(0, d, 9000 - d, st$n_exact - 1) > 0.05)
 })
 
-test_that("a sample of everything uses the finite frame when its size is given", {
-  # 5% of 500 records gives E = 25 eligible; T = 0.95 allows m = 1 missed, so
-  # a frame with 2 missed must show neither with probability at most 0.05:
-  # phyper(0, 2, 498, n) is 0.0507255 at n = 387 and 0.0498277 at 388.
-  expect_equal(stats::phyper(0, 2, 498, 387), 0.0507255, tolerance = 1e-6)
-  expect_equal(stats::phyper(0, 2, 498, 388), 0.0498277, tolerance = 1e-6)
+test_that("a sample of everything is sized for the bound gr_calibrate() uses", {
+  # gr_calibrate() bounds a partial "all" sample with Clopper-Pearson, which
+  # needs k >= ln(0.05) / ln(0.95) = 58.4, so 59 eligible, and 59 / 0.05 =
+  # 1180 records. A frame of 500 at 5% holds 0.05 * 500 = 25 eligible, fewer
+  # than 59, so only the whole frame (500) can show the target. This replaces
+  # the earlier n = n_exact = 388, which no "all" sample could pass.
   s <- gr_screen_sample_size(0.95, 0.95, prevalence = 0.05, frame_n = 500)
   expect_identical(s$n_binomial, 1180)
-  expect_identical(s$n_exact, 388)
-  expect_identical(s$n, 388)
+  expect_identical(s$n, 500)
+  expect_true(is.na(s$n_exact))
+  expect_match(s$note, "holds about 25 eligible records, fewer than the 59 needed", fixed = TRUE)
+  # A frame of 2000 holds room for the binomial draw, which stands.
+  f <- gr_screen_sample_size(0.95, 0.95, prevalence = 0.05, frame_n = 2000)
+  expect_identical(f$n, 1180)
+  expect_true(is.na(f$note))
   # Without the frame size the binomial draw stands.
   b <- gr_screen_sample_size(0.95, 0.95, prevalence = 0.05)
   expect_identical(b$n, 1180)
   expect_true(is.na(b$n_exact))
+})
+
+# 500 records, the first `elig` eligible, the first `kept` of those kept.
+all_frame_run <- function(elig = 25, kept = 25, N = 500) {
+  dec <- c(rep("include", kept), rep("exclude", N - kept))
+  tab <- data.frame(document = sprintf("d%03d.pdf", seq_len(N)), decision = dec,
+                    reason = "because", stringsAsFactors = FALSE)
+  structure(list(table = tab), class = "gr_screening")
+}
+judge_all_frame <- function(scr, ref, elig = 25) {
+  ref$human_decision <- ifelse(match(ref$document, scr$table$document) <= elig,
+                               "include", "exclude")
+  ref
+}
+
+test_that("the size recommended for a sample of everything passes with no miss", {
+  scr <- all_frame_run()
+  ss <- gr_screen_sample_size(0.95, 0.95, prevalence = 0.05, frame_n = 500)
+  ref <- judge_all_frame(scr, gr_reference(scr, n = ss$n, of = "all", seed = 1, blind = FALSE))
+  cal <- gr_calibrate(scr, ref, recall_target = 0.95)
+  expect_identical(nrow(ref), 500L)
+  # Every record judged, 25 of 25 eligible kept: recall is 25 / 25 = 1 exactly.
+  expect_identical(cal$recall$method, "census")
+  expect_equal(c(cal$recall$estimate, cal$recall$lower, cal$recall$upper, cal$recall$bound),
+               c(1, 1, 1, 1))
+  expect_true(cal$verdict$met)
+  # The 388 draw recommended before: with none of k eligible missed, the
+  # Clopper-Pearson bound is 0.05^(1/k), and 0.05^(1/58) = 0.9496 < 0.95 for
+  # any k the frame can hold, so it cannot pass.
+  r388 <- judge_all_frame(scr, gr_reference(scr, n = 388, of = "all", seed = 1, blind = FALSE))
+  c388 <- gr_calibrate(scr, r388, recall_target = 0.95)
+  expect_identical(c388$recall$method, "clopper_pearson")
+  expect_equal(c388$recall$bound, 0.05^(1 / c388$recall$n), tolerance = 1e-9)
+  expect_false(c388$verdict$met)
+})
+
+test_that("a census of everything screened gives recall exactly", {
+  # 24 of 25 eligible kept, every record judged: recall 24 / 25 = 0.96 with
+  # no sampling error, so the bound is 0.96 and a 0.95 target is met.
+  # Clopper-Pearson would give binom.test(24, 25, alternative = "greater")
+  # lower = qbeta(0.05, 24, 2) = 0.8238793, below the target.
+  scr <- all_frame_run(kept = 24)
+  ref <- judge_all_frame(scr, gr_reference(scr, n = Inf, of = "all", seed = 1, blind = FALSE))
+  cal <- gr_calibrate(scr, ref, recall_target = 0.95)
+  expect_identical(cal$recall$method, "census")
+  expect_equal(c(cal$recall$estimate, cal$recall$lower, cal$recall$upper, cal$recall$bound),
+               rep(0.96, 4))
+  expect_true(cal$verdict$met)
+  # 23 of 25 is 0.92, below 0.95, and fails.
+  scr2 <- all_frame_run(kept = 23)
+  ref2 <- judge_all_frame(scr2, gr_reference(scr2, n = Inf, of = "all", seed = 1, blind = FALSE))
+  cal2 <- gr_calibrate(scr2, ref2, recall_target = 0.95)
+  expect_equal(cal2$recall$bound, 0.92)
+  expect_false(cal2$verdict$met)
+  # One record left out is a sample again, bounded with Clopper-Pearson.
+  ref3 <- ref[ref$document != "d500.pdf", ]
+  cal3 <- gr_calibrate(scr, ref3, recall_target = 0.95, of = "all")
+  expect_identical(cal3$recall$method, "clopper_pearson")
+  expect_equal(cal3$recall$bound, 0.8238793, tolerance = 1e-6)
 })
 
 test_that("reviewers > 1 gives one decision column per reviewer", {

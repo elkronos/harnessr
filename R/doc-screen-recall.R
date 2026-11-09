@@ -115,9 +115,15 @@ screening_recall <- function(of, kept, eligible, tab, recall_target, conf, max_l
   } else if (of %in% c("all", "unknown")) {
     # One simple random sample of everything screened: the eligible records in
     # it are a random sample of all eligible records, and the share kept is
-    # bounded with Clopper-Pearson (Lewis, Yang and Frieder 2021).
+    # bounded with Clopper-Pearson (Lewis, Yang and Frieder 2021). That bound
+    # treats the frame as infinite. When the sample is every screened record
+    # there is no sampling error, recall is known exactly and is its own
+    # bound, as hyper_bounds() gives for n = N in the stacked branch.
     tp <- x[["kept"]]; pos <- sum(eligible)
-    if (pos > 0) {
+    if (pos > 0 && all(n >= N)) {
+      recall$estimate <- recall$lower <- recall$upper <- recall$bound <- tp / pos
+      recall$method <- "census"
+    } else if (pos > 0) {
       two <- hr_prop_ci(tp, pos, method = "clopper_pearson", conf = conf)
       recall$estimate <- tp / pos
       recall$lower <- two$lower; recall$upper <- two$upper
@@ -219,13 +225,15 @@ screening_recall <- function(of, kept, eligible, tab, recall_target, conf, max_l
 #' ignores the finite frame and so asks for a few more records.
 #'
 #' @section A finite frame:
-#' For `frame = "all"` with both `prevalence` and `frame_n` given, the frame
-#' holds about E = `prevalence` x `frame_n` eligible records, and recall T is
-#' met while at most m = floor(E (1 - T)) of them are missed. `n_exact` is the
-#' smallest draw for which a frame with m + 1 missed records shows none of
-#' them with probability at most alpha, and `n` is set to it. For 95% at 95%
-#' confidence, 5% prevalence and 500 records, E = 25 and m = 1, and 388
-#' records are drawn where the binomial rule asks for 1180.
+#' For `frame = "all"`, [gr_calibrate()] bounds a sample smaller than the frame
+#' with Clopper-Pearson, which treats the frame as infinite, so the eligible
+#' records needed do not fall with the frame's size. When the whole frame is
+#' judged, recall is known exactly and is its own bound. So with `frame_n`
+#' given, `n` is the binomial draw when it fits in the frame, and otherwise
+#' `frame_n` itself: at 95% recall, 95% confidence and 5% prevalence, a frame
+#' of 500 records holds about 25 eligible records, fewer than the 59 needed,
+#' and only judging all 500 can show the target. `n_exact` is `NA` for
+#' `frame = "all"`.
 #'
 #' @param recall_target The recall to show, strictly between 0 and 1. Used by
 #'   `frame = "all"`; for the other frames it enters through `max_lost`.
@@ -238,7 +246,7 @@ screening_recall <- function(of, kept, eligible, tab, recall_target, conf, max_l
 #'   records the screener may have excluded while still meeting the target.
 #' @param frame_n Number of records in the frame sampled: the excluded records
 #'   for `"excluded"` and `"stacked"`, everything screened for `"all"`, where
-#'   with `prevalence` it gives the exact finite-frame size.
+#'   with `prevalence` it caps the draw at the whole frame.
 #' @return A one-row data frame: the settings, `positives` (eligible records
 #'   needed, for `"all"`), `n` (records to draw), `n_binomial`, `n_exact`,
 #'   `rule` and `note`.
@@ -288,21 +296,18 @@ gr_screen_sample_size <- function(recall_target = 0.95, conf = 0.95, prevalence 
     rule <- "zero misses among the eligible: k >= ln(alpha) / ln(T)"
     if (!is.null(prevalence)) {
       n <- n_binomial <- up(positives / prevalence)
-      if (!is.null(frame_n)) {
-        # A finite frame holds about E = prevalence * frame_n eligible records,
-        # and recall T is met while at most m = floor(E (1 - T)) are missed. The
-        # draw must show none of m + 1 missed records with probability at most
-        # alpha, which the hypergeometric gives directly in records drawn.
-        E <- max(1, round(prevalence * frame_n))
-        d <- floor(E * (1 - recall_target) + 1e-9) + 1
-        sizes <- seq_len(frame_n - d + 1)
-        n <- n_exact <- as.numeric(
-          sizes[which(stats::phyper(0, d, frame_n - d, sizes) <= alpha)[1]])
-        if (n_binomial > frame_n) {
-          note <- sprintf(paste0("The binomial draw (%s) is larger than the frame (%s); the exact ",
-                                 "size uses the frame's %s expected eligible records."),
-                          format(n_binomial), format(frame_n), format(E))
-        }
+      if (!is.null(frame_n) && n_binomial > frame_n) {
+        # gr_calibrate() bounds a sample smaller than the frame with
+        # Clopper-Pearson, which needs `positives` eligible records whatever
+        # the frame's size. A frame too small to hold them can only show the
+        # target by being judged whole, when recall is known exactly.
+        n <- frame_n
+        note <- sprintf(paste0("The binomial draw (%s) is larger than the frame (%s), which holds ",
+                               "about %s eligible records, fewer than the %s needed. Only judging ",
+                               "every record (n = Inf in gr_reference()) can show the target; ",
+                               "recall is then known exactly."),
+                        format(n_binomial), format(frame_n),
+                        format(round(prevalence * frame_n, 1)), format(positives))
       }
     } else {
       note <- "Give `prevalence` to turn the eligible records needed into records to draw."

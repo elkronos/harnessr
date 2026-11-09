@@ -252,3 +252,26 @@ test_that("an extraction's unreadable fields are found when rows match on anothe
   p <- gr_extract_agreement(ex, person, by = "document_id", B = 0)$pairs
   expect_identical(p$x_state, c("unknown", "value"))
 })
+
+test_that("a blank duplicate_of read back from a CSV is not a duplicate", {
+  x <- data.frame(document = c("a.pdf", "b.pdf", "c.pdf", "c2.pdf"),
+                  status = c("ok", "ok", "ok", "duplicate"),
+                  duplicate_of = c(NA, NA, NA, "c.pdf"), n = c(120, 85, 40, 40),
+                  stringsAsFactors = FALSE)
+  y <- data.frame(document = c("a.pdf", "b.pdf", "c.pdf"), n = c(120, 85, 41))
+  f <- tempfile(fileext = ".csv")
+  on.exit(unlink(f), add = TRUE)
+  utils::write.csv(x, f, row.names = FALSE, na = "")
+  x2 <- utils::read.csv(f, stringsAsFactors = FALSE)
+  expect_identical(x2$duplicate_of, c("", "", "", "c.pdf"))
+  a <- gr_extract_agreement(x, y, fields = "n", B = 0)
+  b <- gr_extract_agreement(x2, y, fields = "n", B = 0)
+  # a, b and c compared in both; c2.pdf left out as a duplicate of c.pdf.
+  # All three report n (agreement 1) and two of the three values match
+  # (120, 85; 40 vs 41), so 2 / 3.
+  expect_identical(a$table$n, c(3L, 3L))
+  expect_identical(b$table$n, c(3L, 3L))
+  expect_identical(b$table$part, c("reported", "value"))
+  expect_equal(b$table$percent_agreement, c(1, 2 / 3))
+  expect_identical(b$unmatched, list(x = character(0), y = character(0)))
+})
