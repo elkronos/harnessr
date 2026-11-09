@@ -539,6 +539,12 @@
 
 ## Phase 2
 
+* New guide, `vignette("evaluate")` ("Measuring and comparing
+  configurations"), covers reference sets and label sheets, benchmarks and
+  their reports, non-inferiority, judges, baselines, drift and signals;
+  `vignette("review")` gains recall against a target, the stopping test,
+  several reviewers and agreement on extracted fields.
+
 ### Agreement and estimation statistics
 
 * **New `hr_prop_ci()`** gives Wilson, Clopper-Pearson or Jeffreys intervals

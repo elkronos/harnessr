@@ -20,6 +20,7 @@ articles:
   - segment
   - readers
   - review
+  - evaluate
   - runs
   - extending
 
@@ -161,7 +162,7 @@ reference:
   desc: >
     Intervals for proportions, agreement between raters and coders,
     design-weighted and prediction-powered estimates, and the test of whether
-    a model's labels can stand in for people's.
+    a model's labels can stand in for people's. See `vignette("evaluate")`.
   contents:
   - hr_prop_ci
   - hr_agreement
@@ -172,7 +173,8 @@ reference:
 - title: Benchmarks
   desc: >
     Compare configurations on a labelled reference: arms, the reference and
-    its splits, scorers, and repeated runs held to one spending limit.
+    its splits, scorers, and repeated runs held to one spending limit. See
+    `vignette("evaluate")`.
   contents:
   - hr_benchmark
   - hr_report
@@ -190,7 +192,8 @@ reference:
   desc: >
     Comparisons that use no model: tf-idf features, a cross-fitted classifier,
     a simulated active-learning ranker for screening, and the stopping test for
-    prioritised screening.
+    prioritised screening. See `vignette("evaluate")`, and `vignette("review")`
+    for the stopping test.
   contents:
   - hr_tfidf
   - hr_baseline_classifier
@@ -201,7 +204,8 @@ reference:
   desc: >
     A model that chooses between candidates or grades one against a
     reference, asked in both orders, validated against blind human labels
-    before it scores, with its accuracy corrected by those labels.
+    before it scores, with its accuracy corrected by those labels. See
+    `vignette("evaluate")`.
   contents:
   - hr_judge
   - hr_judge_config
@@ -214,7 +218,7 @@ reference:
     Values the package records about its own work, the calibration records
     that measure how well they predict being right, and the thresholds and
     policy that decide whether a signal may gate an action. Nothing gates by
-    default.
+    default. See `vignette("evaluate")`.
   contents:
   - hr_signal
   - hr_calibrate_signal
@@ -225,7 +229,8 @@ reference:
 - title: Reference sets and splits
   desc: >
     Splitting reference items into tuning, calibration and test sets by
-    document, and the sheets people fill in to label them.
+    document, and the sheets people fill in to label them. See
+    `vignette("evaluate")`.
   contents:
   - hr_assign_splits
   - gr_label_sheet
