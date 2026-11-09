@@ -317,6 +317,10 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   # Added only above 0, as the effort is only when there is one: an unsampled
   # call gives a handler and the trace exactly the params it always did.
   draw_index <- as_int1(draw_index, 0L)
+  # A run whose requests are made deep inside a reader cannot pass the index
+  # to each of them, so the run's trace can carry it instead (gr_arm() sets it
+  # on the trace of each benchmark run). An index given to the call wins.
+  if (draw_index == 0L) draw_index <- trace_draw_index(trace)
   if (draw_index > 0L) params$draw_index <- draw_index
 
   # One dispatch, one exit, one trace entry. The mock and HTTP paths each used

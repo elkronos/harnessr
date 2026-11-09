@@ -683,6 +683,36 @@
   benchmark holds rows on the dev, exploratory or calibration split or rows
   marked not reportable.
 
+### Benchmarking reading recipes
+
+* **New `gr_arm()` and `gr_arms()`** wrap reading recipes as benchmark arms.
+  Each run reads the item's document with `answer_document()`, or with
+  `gr_read()` when the document is already chunked, and returns the
+  `gr_answer`, with every request on the run's own trace. That trace gives
+  every request of the run, segmenter and reader requests included, the
+  run's draw index, so repeated runs under a cache or a recording are
+  separate draws. A reader that refuses to start because the run's call or
+  spending limit leaves too little returns a partial `NOT_IN_DOCUMENT`
+  answer noting the limit, which is scored as a budget stop rather than an
+  error. The arm records the recipe and its settings, and its version is
+  the package version.
+
+* **New `gr_qa_reference()`** builds an `hr_reference()` of questions about
+  documents from questions, documents and acceptable answers (one string or
+  a list of alternatives per question). Unanswerable questions, given as
+  flags, ids, positions or the answer `NOT_IN_DOCUMENT`, are labelled
+  `NOT_IN_DOCUMENT`. Items are clustered by document by default.
+
+* **New `gr_scorer_answer()`** marks an answer right when it contains an
+  accepted answer after folding case, white space and thousands separators
+  (`"1,204"` matches `"1204"`), with numbers matched whole, and an
+  unanswerable item right when `is_not_found()` is true and no limit or
+  refusal stopped the run. Wrong answers are sorted into parse failures,
+  budget stops, refusals, `not_in_document` and wrong.
+
+* `gr_compare()`'s help now says it is descriptive, and points to
+  `hr_benchmark()` and `hr_report()` for a comparison with intervals.
+
 # readgpt 0.6.0
 
 ## New

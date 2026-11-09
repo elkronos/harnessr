@@ -69,6 +69,9 @@ short
 \code{\link[=hr_benchmark]{hr_benchmark()}}, \code{\link[=hr_reference]{hr_reference()}}, \code{\link[=hr_scorer]{hr_scorer()}}
 
 Other harness: 
+\code{\link{gr_arm}()},
+\code{\link{gr_qa_reference}()},
+\code{\link{gr_scorer_answer}()},
 \code{\link{hr_benchmark}()},
 \code{\link{hr_contrast}()},
 \code{\link{hr_mdd}()},

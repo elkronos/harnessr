@@ -76,6 +76,9 @@ near$fn(NULL, "45.3", 45.2)
 \code{\link[=hr_benchmark]{hr_benchmark()}}
 
 Other harness: 
+\code{\link{gr_arm}()},
+\code{\link{gr_qa_reference}()},
+\code{\link{gr_scorer_answer}()},
 \code{\link{hr_arm}()},
 \code{\link{hr_benchmark}()},
 \code{\link{hr_contrast}()},

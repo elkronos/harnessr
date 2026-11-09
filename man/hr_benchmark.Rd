@@ -150,6 +150,9 @@ head(bench[, c("item", "run", "correct", "failure_kind", "draw_index")])
 \code{\link[=hr_arm]{hr_arm()}}, \code{\link[=hr_reference]{hr_reference()}}, \code{\link[=hr_scorer]{hr_scorer()}}, \code{\link[=hr_governor]{hr_governor()}}
 
 Other harness: 
+\code{\link{gr_arm}()},
+\code{\link{gr_qa_reference}()},
+\code{\link{gr_scorer_answer}()},
 \code{\link{hr_arm}()},
 \code{\link{hr_contrast}()},
 \code{\link{hr_mdd}()},

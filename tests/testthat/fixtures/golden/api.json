@@ -32,6 +32,14 @@
       "formals": ["key = NULL"],
       "type": "function"
     },
+    "gr_arm": {
+      "formals": ["recipe", "settings = list()", "name = NULL"],
+      "type": "function"
+    },
+    "gr_arms": {
+      "formals": ["recipes", "settings = list()"],
+      "type": "function"
+    },
     "gr_audit_report": {
       "formals": ["path", "screening = NULL", "extraction = NULL", "synthesis = NULL", "protocol = NULL", "title = NULL", "claims = NULL", "records = NULL", "calibration = NULL", "answer = NULL", "open = interactive()"],
       "type": "function"
@@ -208,6 +216,10 @@
       "formals": ["name = NULL"],
       "type": "function"
     },
+    "gr_qa_reference": {
+      "formals": ["questions", "documents", "answers", "split", "cluster = documents", "unanswerable = NULL"],
+      "type": "function"
+    },
     "gr_read": {
       "formals": ["chunks", "question", "client", "spec = NULL", "trace = NULL"],
       "type": "function"
@@ -278,6 +290,10 @@
     },
     "gr_resolve": {
       "formals": ["screening", "document", "decision", "by", "reason = NA_character_", "at = Sys.time()"],
+      "type": "function"
+    },
+    "gr_scorer_answer": {
+      "formals": [],
       "type": "function"
     },
     "gr_screen": {

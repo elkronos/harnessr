@@ -178,6 +178,9 @@ reference:
   - hr_arm
   - hr_reference
   - hr_scorer
+  - gr_arm
+  - gr_qa_reference
+  - gr_scorer_answer
 
 - title: Extending harnessr
   desc: >

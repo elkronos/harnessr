@@ -465,6 +465,20 @@ trace_note <- function(trace, label, detail = list()) {
   invisible(NULL)
 }
 
+#' The draw index a trace hands to the requests recorded into it, or 0.
+#'
+#' Set on the trace of one benchmark run, so every request a reader makes in
+#' that run is its own draw (see model_call()). Read without inheritance: a
+#' trace is an environment with an empty parent.
+#' @noRd
+trace_draw_index <- function(trace) {
+  if (!inherits(trace, "gr_trace")) return(0L)
+  d <- get0("draw_index", envir = trace, inherits = FALSE)
+  ok <- is.numeric(d) && length(d) == 1L && !is.na(d) && is.finite(d) && d >= 1 &&
+    d == round(d) && d <= .Machine$integer.max
+  if (ok) as.integer(d) else 0L
+}
+
 #' Fold a child trace's steps and counters into a parent.
 #'
 #' Used by `gr_compare()` so each recipe is budgeted independently while the

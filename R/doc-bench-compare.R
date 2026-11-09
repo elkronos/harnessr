@@ -21,6 +21,13 @@
 #' `sum(gr_trace_cost(trace)$usd)`. Give `correct` and each row also says
 #' whether the answer was right and what a right answer cost.
 #'
+#' The comparison is descriptive: one run of each recipe on one question,
+#' with no interval. Run-to-run spread can exceed the gap between recipes, so
+#' to say one recipe is better, compare them over a reference of questions
+#' with repeated runs: build the arms with [gr_arms()] and the questions with
+#' [gr_qa_reference()], run them with [hr_benchmark()], and read the
+#' intervals from [hr_report()].
+#'
 #' A comparison is one run for the spending and token limits: `max_cost_usd`
 #' and `max_tokens_total` in [gr_options()] are checked against what every
 #' recipe and every segmentation has spent and used so far, so a recipe that
@@ -80,7 +87,8 @@
 #'       the model said the document states instead, or `NA`; see `premise` in
 #'       [gr_read_spec()].}
 #'   }
-#' @seealso [answer_document()], [gr_recipes()], [gr_recipe()], [gr_answer]
+#' @seealso [answer_document()], [gr_recipes()], [gr_recipe()], [gr_answer],
+#'   [hr_benchmark()] for the comparison with intervals
 #' @export
 #' @examples
 #' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")

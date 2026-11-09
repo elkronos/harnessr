@@ -98,6 +98,9 @@ try(hr_register_contrasts(ref, hr_contrast("skim", "long", margin = 0.05), desig
 \code{\link[=hr_mdd]{hr_mdd()}}, \code{\link[=hr_report]{hr_report()}}, \code{\link[=hr_reference]{hr_reference()}}
 
 Other harness: 
+\code{\link{gr_arm}()},
+\code{\link{gr_qa_reference}()},
+\code{\link{gr_scorer_answer}()},
 \code{\link{hr_arm}()},
 \code{\link{hr_benchmark}()},
 \code{\link{hr_mdd}()},
