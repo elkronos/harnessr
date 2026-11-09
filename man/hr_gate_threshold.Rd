@@ -33,10 +33,11 @@ half (\code{cal$grid}).}
 }
 \value{
 \code{cal} with \verb{$gate} set: a list of \code{action}, \code{risk}, \code{alpha},
-\code{delta}, \code{n_min}, \code{threshold} (\code{NA} when none passed), \code{n}, \code{k}, \code{ucb}
-and \code{coverage} (the share of the calibration half acted on) at that
-threshold, \code{status} (\code{"passed"}, \code{"none passed"} or \code{"too few items"})
-and \code{path}, a data frame of every threshold with its \code{n}, \code{k}, \code{ucb},
+\code{delta}, \code{n_min}, \code{threshold} (\code{NA} when none passed), \code{n}, \code{k},
+\code{deff} (the design effect), \code{n_eff} (\code{n / deff}), \code{ucb} and \code{coverage}
+(the share of the calibration half acted on) at that threshold, \code{status}
+(\code{"passed"}, \code{"none passed"} or \code{"too few items"}) and \code{path}, a data
+frame of every threshold with its \code{n}, \code{k}, \code{deff}, \code{ucb},
 whether it was \code{tested} and whether it \code{passed}. \verb{$status} and
 \verb{$reasons} are updated.
 }
@@ -51,7 +52,8 @@ Learn-then-Test (Angelopoulos et al. 2021) with fixed-sequence testing:
 each threshold \code{t} is a hypothesis "the risk at \code{t} exceeds \code{alpha}",
 rejected when the one-sided Clopper-Pearson upper bound
 \code{ucb = qbeta(1 - delta, k + 1, n - k)} is at most \code{alpha} (1 when
-\code{k = n}). Thresholds are tested from strict to loose; the sequence stops at
+\code{k = n}), taken on the effective sample described under "Clustered
+items". Thresholds are tested from strict to loose; the sequence stops at
 the first that fails, and the loosest one that passed is kept. Because the
 order is fixed before the labels are looked at, no correction for testing
 many thresholds is needed.
@@ -66,6 +68,28 @@ For actions such as stopping, skipping or accepting.}
 on at \code{t}. The denominator does not depend on \code{t}. For screening
 exclusions.}
 }
+}
+
+\section{Clustered items}{
+
+The Clopper-Pearson bound treats items as independent. Items from one
+document are not: their errors go together, and \code{\link[=hr_calibrate_signal]{hr_calibrate_signal()}}
+puts part of every document in the calibration half. With \code{n} and \code{k}
+taken at face value the guarantee then fails for new documents (with 30
+documents of 20 items, a true error rate of 0.12 and an intraclass
+correlation of 0.3, a gate at \code{alpha = 0.10} and \code{delta = 0.05} passed in
+8.7 percent of draws, not at most 5 percent). So the bound is taken on an
+effective sample: \code{ucb = qbeta(1 - delta, k / deff + 1, (n - k) / deff)},
+where \code{deff}, the design effect at that threshold, is the cluster
+(linearisation) variance of \code{k / n} over the calibration half's
+\code{cluster}s divided by the variance the same formula gives with each item
+its own cluster, and is never below 1 (Kish 1965). In the draws above the
+gate then passed in 2.4 percent of them. Items with no cluster, or in
+clusters of one, give \code{deff = 1} and the exact Clopper-Pearson bound. So
+do a single cluster and a threshold with no error (or no right item)
+among its units, where there is no spread to measure; the bound is then
+only as good as the assumption that the items are independent. With few
+clusters \code{deff} is itself noisy and the guarantee is approximate.
 
 Even with no errors the bound reaches \code{alpha} only from
 \code{n_min = ceiling(log(delta) / log(1 - alpha))} items: 59 at \code{alpha = 0.05}
@@ -104,6 +128,8 @@ control. arXiv:2110.01052.
 
 Clopper, C. J. and Pearson, E. S. (1934). The use of confidence or fiducial
 limits illustrated in the case of the binomial. \emph{Biometrika} 26(4), 404-413.
+
+Kish, L. (1965). \emph{Survey Sampling}. New York: Wiley.
 }
 \seealso{
 \code{\link[=hr_calibrate_signal]{hr_calibrate_signal()}}, \code{\link[=hr_apply_signal]{hr_apply_signal()}}

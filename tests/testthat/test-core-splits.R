@@ -134,3 +134,38 @@ test_that("a split given a share and no cluster is a warning and a note", {
   expect_true(any(grepl("received no cluster", sp$notes)))
   expect_identical(sum(sp$counts$clusters == 0L), 2L)
 })
+
+test_that("columns are matched by exact name, never by prefix", {
+  # No item_id, id or cluster column, but `ideal_answer` starts with "id"
+  # and `cluster_size` with "cluster". The ids fall back to the row number
+  # and the clusters to `document`: a.pdf with 2 items, b.pdf with 1. Read
+  # by prefix, the two "yes" answers stopped the call as a repeated id.
+  qa <- data.frame(document = c("a.pdf", "a.pdf", "b.pdf"),
+                   question = c("Q1", "Q2", "Q3"),
+                   ideal_answer = c("yes", "yes", "no"),
+                   cluster_size = c(2, 2, 1))
+  sp <- quiet(hr_assign_splits(qa, seed = 1))
+  expect_identical(sp$clusters$cluster, c("a.pdf", "b.pdf"))
+  expect_identical(sp$clusters$n_items, c(2L, 1L))
+  # Three documents of two items each and a `cluster_size` column: three
+  # clusters, not the one cluster "2" that `cluster_size` gave.
+  d3 <- data.frame(item_id = paste0("q", 1:6), document = rep(c("a", "b", "c"), each = 2),
+                   cluster_size = 2)
+  sp3 <- quiet(hr_assign_splits(d3, seed = 1))
+  expect_identical(sp3$clusters$cluster, c("a", "b", "c"))
+  expect_identical(sp3$clusters$n_items, c(2L, 2L, 2L))
+})
+
+test_that("a numeric cluster id gets the same split as a double or an integer", {
+  ids <- sprintf("q%d", 1:4)
+  dbl <- quiet(hr_assign_splits(ids, cluster = c(100000, 200000, 300000, 123456), seed = 7))
+  int <- quiet(hr_assign_splits(ids, cluster = c(100000L, 200000L, 300000L, 123456L), seed = 7))
+  # as.character(100000) is "1e+05" and as.character(100000L) is "100000";
+  # both are now hashed as the integer form, written in full.
+  expect_identical(dbl$clusters$cluster, c("100000", "200000", "300000", "123456"))
+  expect_identical(dbl$clusters, int$clusters)
+  expect_identical(dbl$clusters$u, harnessr:::split_uniform(7, c("100000", "200000", "300000",
+                                                                  "123456")))
+  # A number that is not whole keeps as.character()'s form.
+  expect_identical(harnessr:::split_id_text(c(2.5, 1e5, -0, 7)), c("2.5", "100000", "0", "7"))
+})

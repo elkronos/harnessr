@@ -137,17 +137,20 @@ signal_trace <- function(x) {
 #'   value's position within its step), `value` (as text), `score` (the value
 #'   as a number: 1 or 0 for a logical, the number for a numeric, `NA` for
 #'   text) and `refs` (the references for that value as a JSON object, or
-#'   `NA`). A trace recorded into twice by the same run, as a comparison
-#'   does, lists each step once.
+#'   `NA`). A trace reached more than once in `x` (the same trace object,
+#'   as the answers of one comparison share it) lists each step once; two
+#'   separate traces are both read, even with the same `run_id`.
 #' @export
 hr_signals <- function(x, name = NULL) {
   traces <- signal_traces(x)
   rows <- list()
-  seen <- character(0)
+  seen <- list()
   for (tr in traces) {
-    key <- paste0(tr$run_id, "\r", length(tr$steps))
-    if (key %in% seen) next
-    seen <- c(seen, key)
+    # The same trace object reached twice (several answers of one run share
+    # it) is read once. Two traces that only share a run_id, as a run_id the
+    # caller chose can, are different traces and are both read.
+    if (any(vapply(seen, identical, logical(1), tr))) next
+    seen[[length(seen) + 1L]] <- tr
     for (st in tr$steps) {
       if (!identical(st$label, "signal") || !is.list(st$detail)) next
       rows[[length(rows) + 1L]] <- signal_rows(st, tr$run_id)

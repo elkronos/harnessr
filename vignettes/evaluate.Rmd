@@ -714,20 +714,28 @@ A new record is always advisory. `hr_gate_threshold()` looks for the loosest
 threshold at which acting on the items at or above it keeps a risk below
 `alpha` with confidence 1 - `delta`, by Learn-then-Test: thresholds are tested
 from strict to loose with a one-sided Clopper-Pearson bound, and the sequence
-stops at the first that fails. `alpha` has no default, since it is a decision
+stops at the first that fails. Errors from one document go together, so the
+bound is taken on an effective number of items, `n / deff`, where the design
+effect `deff` is measured over the calibration half's clusters at each
+threshold. `alpha` has no default, since it is a decision
 about the task:
 
 ```{r}
 cal <- hr_gate_threshold(cal, "stop", alpha = 0.1)
-as.data.frame(cal$gate[c("threshold", "n", "k", "ucb", "coverage", "status")])
+as.data.frame(cal$gate[c("threshold", "n", "k", "deff", "ucb", "coverage", "status")])
 cal$status
 ```
 
 At the threshold kept, 147 items of the calibration half are acted on, 7 of
-them wrongly, and the upper bound on the error among them is 0.088. A record
+them wrongly. The design effect is 1.26, so the bound counts them as about
+117 independent items, and the upper bound on the error among them is 0.094
+(0.088 if the items were independent). A record
 becomes `"gating"` only with a passing threshold, at least 100 wrong items in
 the graded set, a map that rises with the signal and a calibration error over
-at least 5 bins. Even then the signal gates only through a policy, and only for
+at least 5 bins. Items with the same `p` share a bin, so a signal with fewer
+than 5 values, such as a logical one, stays advisory. A graded set with a
+`split` column, as `hr_assign_splits()` gives, is calibrated on its
+`calibration` rows alone. Even then the signal gates only through a policy, and only for
 a run whose key matches the record:
 
 ```{r}

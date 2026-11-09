@@ -18,7 +18,8 @@
 #' each threshold `t` is a hypothesis "the risk at `t` exceeds `alpha`",
 #' rejected when the one-sided Clopper-Pearson upper bound
 #' `ucb = qbeta(1 - delta, k + 1, n - k)` is at most `alpha` (1 when
-#' `k = n`). Thresholds are tested from strict to loose; the sequence stops at
+#' `k = n`), taken on the effective sample described under "Clustered
+#' items". Thresholds are tested from strict to loose; the sequence stops at
 #' the first that fails, and the loosest one that passed is kept. Because the
 #' order is fixed before the labels are looked at, no correction for testing
 #' many thresholds is needed.
@@ -33,6 +34,26 @@
 #'     on at `t`. The denominator does not depend on `t`. For screening
 #'     exclusions.}
 #' }
+#'
+#' @section Clustered items:
+#' The Clopper-Pearson bound treats items as independent. Items from one
+#' document are not: their errors go together, and [hr_calibrate_signal()]
+#' puts part of every document in the calibration half. With `n` and `k`
+#' taken at face value the guarantee then fails for new documents (with 30
+#' documents of 20 items, a true error rate of 0.12 and an intraclass
+#' correlation of 0.3, a gate at `alpha = 0.10` and `delta = 0.05` passed in
+#' 8.7 percent of draws, not at most 5 percent). So the bound is taken on an
+#' effective sample: `ucb = qbeta(1 - delta, k / deff + 1, (n - k) / deff)`,
+#' where `deff`, the design effect at that threshold, is the cluster
+#' (linearisation) variance of `k / n` over the calibration half's
+#' `cluster`s divided by the variance the same formula gives with each item
+#' its own cluster, and is never below 1 (Kish 1965). In the draws above the
+#' gate then passed in 2.4 percent of them. Items with no cluster, or in
+#' clusters of one, give `deff = 1` and the exact Clopper-Pearson bound. So
+#' do a single cluster and a threshold with no error (or no right item)
+#' among its units, where there is no spread to measure; the bound is then
+#' only as good as the assumption that the items are independent. With few
+#' clusters `deff` is itself noisy and the guarantee is approximate.
 #'
 #' Even with no errors the bound reaches `alpha` only from
 #' `n_min = ceiling(log(delta) / log(1 - alpha))` items: 59 at `alpha = 0.05`
@@ -61,10 +82,11 @@
 #'   tested from the highest down. `NULL` uses 20 quantiles of `p` on the fit
 #'   half (`cal$grid`).
 #' @return `cal` with `$gate` set: a list of `action`, `risk`, `alpha`,
-#'   `delta`, `n_min`, `threshold` (`NA` when none passed), `n`, `k`, `ucb`
-#'   and `coverage` (the share of the calibration half acted on) at that
-#'   threshold, `status` (`"passed"`, `"none passed"` or `"too few items"`)
-#'   and `path`, a data frame of every threshold with its `n`, `k`, `ucb`,
+#'   `delta`, `n_min`, `threshold` (`NA` when none passed), `n`, `k`,
+#'   `deff` (the design effect), `n_eff` (`n / deff`), `ucb` and `coverage`
+#'   (the share of the calibration half acted on) at that threshold, `status`
+#'   (`"passed"`, `"none passed"` or `"too few items"`) and `path`, a data
+#'   frame of every threshold with its `n`, `k`, `deff`, `ucb`,
 #'   whether it was `tested` and whether it `passed`. `$status` and
 #'   `$reasons` are updated.
 #' @references
@@ -74,6 +96,8 @@
 #'
 #' Clopper, C. J. and Pearson, E. S. (1934). The use of confidence or fiducial
 #' limits illustrated in the case of the binomial. *Biometrika* 26(4), 404-413.
+#'
+#' Kish, L. (1965). *Survey Sampling*. New York: Wiley.
 #' @seealso [hr_calibrate_signal()], [hr_apply_signal()]
 #' @family signals
 #' @export
@@ -120,16 +144,19 @@ hr_gate_threshold <- function(cal, action, risk = c("error_among_accepted", "mis
   wrong <- !half$correct
   n_min <- ceiling(log(delta) / log(1 - alpha))
 
+  cluster <- as.character(half$cluster)
   acted <- vapply(grid, function(t) sum(p >= t), numeric(1))
-  if (risk == "error_among_accepted") {
-    n <- acted
-    k <- vapply(grid, function(t) sum(p >= t & wrong), numeric(1))
-  } else {
-    n <- rep(sum(wrong), length(grid))
-    k <- vapply(grid, function(t) sum(p >= t & wrong), numeric(1))
-  }
+  # The units of the risk at each threshold: the acted-on items for the
+  # error among them, the wrong items for the miss rate.
+  unit <- lapply(grid, function(t) if (risk == "error_among_accepted") p >= t else wrong)
+  n <- vapply(unit, sum, numeric(1))
+  k <- vapply(seq_along(grid), function(i) sum(unit[[i]] & p >= grid[i] & wrong), numeric(1))
+  deff <- vapply(seq_along(grid), function(i) {
+    u <- unit[[i]]
+    gate_deff(tapply(u & p >= grid[i] & wrong, cluster, sum), tapply(u, cluster, sum))
+  }, numeric(1))
   ucb <- ifelse(n <= 0, NA_real_,
-                ifelse(k >= n, 1, stats::qbeta(1 - delta, k + 1, pmax(n - k, 1))))
+                ifelse(k >= n, 1, stats::qbeta(1 - delta, k / deff + 1, pmax((n - k) / deff, 1e-8))))
   tested <- passed <- logical(length(grid))
   start <- if (risk == "error_among_accepted") which(n >= n_min)[1] else if (n[1] >= n_min) 1L
            else NA_integer_
@@ -145,10 +172,11 @@ hr_gate_threshold <- function(cal, action, risk = c("error_among_accepted", "mis
   at <- function(v) if (is.na(best)) NA_real_ else v[best]
   cal$gate <- list(
     action = action, risk = risk, alpha = alpha, delta = delta, n_min = n_min,
-    threshold = at(grid), n = at(n), k = at(k), ucb = at(ucb),
+    threshold = at(grid), n = at(n), k = at(k), deff = at(deff), n_eff = at(n / deff),
+    ucb = at(ucb),
     coverage = if (is.na(best)) NA_real_ else acted[best] / length(p),
     status = status,
-    path = data.frame(threshold = grid, n = n, k = k, ucb = ucb, tested = tested,
+    path = data.frame(threshold = grid, n = n, k = k, deff = deff, ucb = ucb, tested = tested,
                       passed = passed))
 
   reasons <- setdiff(cal$reasons, c("no gate threshold has been set",
@@ -165,6 +193,25 @@ hr_gate_threshold <- function(cal, action, risk = c("error_among_accepted", "mis
   cal$reasons <- reasons
   cal$status <- if (status == "passed" && !length(reasons)) "gating" else "advisory"
   cal
+}
+
+#' The design effect of a ratio k / n over clusters: the cluster
+#' (linearisation) variance of the ratio over the variance the same formula
+#' gives with each item its own cluster, so that items in clusters of one
+#' give exactly 1. `k_j` and `n_j` are the per-cluster counts; clusters
+#' with no units drop out. Never below 1; 1 with fewer than two clusters
+#' holding units, or with k = 0 or k = n, where there is no spread to
+#' measure.
+#' @noRd
+gate_deff <- function(k_j, n_j) {
+  keep <- !is.na(n_j) & n_j > 0
+  k_j <- as.numeric(k_j[keep]); n_j <- as.numeric(n_j[keep])
+  n <- sum(n_j); k <- sum(k_j); g <- length(n_j)
+  if (g < 2L || k <= 0 || k >= n) return(1)
+  r <- k / n
+  v_cluster <- g / (g - 1) * sum((k_j - r * n_j)^2)
+  v_item <- n / (n - 1) * (k * (1 - r)^2 + (n - k) * r^2)
+  max(1, v_cluster / v_item)
 }
 
 #' What a signal may do, and what happens when it may not

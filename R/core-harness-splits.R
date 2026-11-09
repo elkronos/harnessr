@@ -32,7 +32,10 @@
 #' @section How clusters are assigned:
 #' Each cluster gets a number `u` in \[0, 1) from the first 13 hex digits of
 #' the SHA-256 digest of `"harnessr-split"`, the seed and the cluster id
-#' (as UTF-8, joined by a separator), divided by 16^13.
+#' (as UTF-8, joined by a separator), divided by 16^13. A number that is a
+#' whole number is written out in full before it is hashed, so a document id
+#' of 100000 gets the same split whether it is stored as a double or as an
+#' integer (`as.character(100000)` would give `"1e+05"`).
 #'
 #' * `method = "stable"` (the default) cuts \[0, 1) into consecutive
 #'   intervals whose widths are `props`, in the order `props` is given, and a
@@ -53,7 +56,8 @@
 #'
 #' @param items The items: a vector of item ids, or a data frame with one row
 #'   per item. A data frame's ids come from its `item_id` column, else its
-#'   `id` column, else the row number.
+#'   `id` column, else the row number. Column names are matched exactly, so
+#'   a column such as `ideal_answer` is never taken for `id`.
 #' @param cluster The cluster of each item: a vector as long as `items`, or
 #'   for a data frame the name of a column. With a data frame one string is
 #'   always read as a column name; for a one-row frame and a literal cluster
@@ -112,10 +116,10 @@ hr_assign_splits <- function(items, cluster = NULL,
   if (!n) gr_abort("`items` has no items.", class = "gr_bad_setting")
 
   ids <- if (!is_df) items
-         else if (!is.null(items$item_id)) items$item_id
-         else if (!is.null(items$id)) items$id
+         else if (!is.null(items[["item_id"]])) items[["item_id"]]
+         else if (!is.null(items[["id"]])) items[["id"]]
          else seq_len(n)
-  ids <- as.character(ids)
+  ids <- split_id_text(ids)
   if (anyNA(ids) || any(!nzchar(trimws(ids)))) {
     gr_abort(sprintf("Item %d has no id.", which(is.na(ids) | !nzchar(trimws(ids)))[1]),
              class = "gr_bad_setting")
@@ -135,8 +139,8 @@ hr_assign_splits <- function(items, cluster = NULL,
     }
     cluster <- items[[cluster]]
   } else if (is.null(cluster)) {
-    cluster <- if (is_df && !is.null(items$cluster)) items$cluster
-               else if (is_df && !is.null(items$document)) items$document
+    cluster <- if (is_df && !is.null(items[["cluster"]])) items[["cluster"]]
+               else if (is_df && !is.null(items[["document"]])) items[["document"]]
                else NULL
     if (is.null(cluster)) {
       cluster <- ids
@@ -147,7 +151,7 @@ hr_assign_splits <- function(items, cluster = NULL,
     gr_abort(sprintf("`cluster` has %d value(s) for %d item(s).", length(cluster), n),
              class = "gr_bad_setting")
   }
-  cluster <- enc2utf8(as.character(cluster))
+  cluster <- enc2utf8(split_id_text(cluster))
   bad <- is.na(cluster) | !nzchar(trimws(cluster))
   if (any(bad)) {
     gr_abort(sprintf("Item '%s' has no cluster.", ids[which(bad)[1]]), class = "gr_bad_setting")
@@ -232,6 +236,21 @@ split_props <- function(props) {
                      format(sum(props), digits = 6)), class = "gr_bad_setting")
   }
   props
+}
+
+#' Ids as text, the same whatever numeric type holds them: a whole number
+#' stored as a double is written in full, as an integer is, so 100000 and
+#' 100000L both give "100000" (as.character() gives "1e+05" for the double).
+#' Other numbers keep as.character()'s 15 significant digits.
+#' @noRd
+split_id_text <- function(x) {
+  if (is.factor(x)) return(as.character(x))
+  out <- as.character(x)
+  if (is.double(x)) {
+    whole <- !is.na(x) & is.finite(x) & x == round(x) & abs(x) < 2^53
+    out[whole] <- sprintf("%.0f", x[whole] + 0)
+  }
+  out
 }
 
 #' A number in [0, 1) for each cluster id, from the SHA-256 digest of the

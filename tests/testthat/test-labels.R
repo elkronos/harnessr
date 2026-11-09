@@ -335,3 +335,42 @@ test_that("bad settings stop with gr_bad_setting", {
                class = "gr_bad_setting")
   expect_error(gr_read_labels(items, "quiz"), class = "gr_bad_setting")
 })
+
+test_that("an id-like column is not taken for the ids, so a blind sheet stays blind", {
+  # No item_id or id column: the ids are the kind and the row number, as
+  # documented, not the reference answers in `ideal_answer`.
+  qa <- data.frame(document = c("a.pdf", "a.pdf", "b.pdf"),
+                   question = c("What was revenue?", "Who audited it?",
+                                "When did the trial start?"),
+                   ideal_answer = c("45.2 million dollars", "KPMG", "March 2019"))
+  sheet <- gr_label_sheet("qa", qa)
+  expect_identical(sheet$item_id, c("qa-0001", "qa-0002", "qa-0003"))
+  expect_false(any(unlist(lapply(sheet, as.character)) %in% qa$ideal_answer, na.rm = TRUE))
+})
+
+test_that("a blind = FALSE calibration sheet read without items is a graded set", {
+  items <- data.frame(item_id = sprintf("c%d", 1:4), document = c("a", "a", "b", "b"),
+                      question = "q?", answer = c("x", "y", "z", "w"),
+                      score = c(0.9, 0.2, 0.7, 0.4))
+  open <- gr_label_sheet("calibration", items, blind = FALSE)
+  path <- labels_tmp("cal.csv")
+  suppressMessages(gr_label_sheet("calibration", items, path = path, blind = FALSE))
+  labels_fill(path, answerable = c("yes", "no", "yes", "no"), answer = c("x", NA, "z", NA),
+              correct = c("yes", "no", "yes", "no"))
+  lab <- suppressMessages(gr_read_labels(path, "calibration"))
+  # model_score went through the CSV as text; it comes back as the numbers
+  # 0.9, 0.2, 0.7 and 0.4 the items had.
+  expect_identical(lab$score, c(0.9, 0.2, 0.7, 0.4))
+  expect_identical(lab$cluster, c("a", "a", "b", "b"))
+  key <- list(served_model = "m", version = "1", task = "qa", format = "pdf",
+              prompt_hash = "h", effort = NA, module = "it")
+  cal <- hr_calibrate_signal("s", lab, key, seed = 1, B = 0)
+  expect_identical(cal$n_items, 4L)
+  # A logical score is written TRUE and FALSE and read back as 1 and 0.
+  items$score <- c(TRUE, FALSE, TRUE, FALSE)
+  open <- gr_label_sheet("calibration", items, blind = FALSE)
+  open$answerable <- c("yes", "no", "yes", "no")
+  open$answer <- c("x", NA, "z", NA)
+  open$correct <- c("yes", "no", "yes", "no")
+  expect_identical(suppressMessages(gr_read_labels(open, "calibration"))$score, c(1, 0, 1, 0))
+})

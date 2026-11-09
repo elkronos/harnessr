@@ -32,7 +32,9 @@ logical; \code{human_decision} and \code{verdict} are lower case; extraction val
 are text as written. A calibration result has a \code{cluster} column (from
 \code{items}, else \code{document}), and a \code{correct} column only when the sheet
 was written with \code{blind = FALSE}; only then is it ready for
-\code{\link[=hr_calibrate_signal]{hr_calibrate_signal()}}. Attributes \code{label_kind} and \code{unlabelled} (the
+\code{\link[=hr_calibrate_signal]{hr_calibrate_signal()}}. Its \code{score} comes from \code{items} when they are
+given, else from the sheet's \code{model_score} (yes and no, or \code{TRUE} and
+\code{FALSE}, read as 1 and 0; left out when a value is not a number). Attributes \code{label_kind} and \code{unlabelled} (the
 number of rows not yet labelled) are set.
 }
 \description{
@@ -41,9 +43,11 @@ value and id, and returns the labels in the form the package's
 comparisons take: a screening reference for \code{\link[=gr_calibrate]{gr_calibrate()}}, a table for
 \code{\link[=gr_extract_agreement]{gr_extract_agreement()}}, calibration labels, or labels to compare a
 judge's verdicts with in \code{\link[=hr_agreement]{hr_agreement()}}. A calibration sheet written
-with \code{blind = FALSE} gives a graded set \code{\link[=hr_calibrate_signal]{hr_calibrate_signal()}} takes; a
-blind one gives reference answers, and the model's answers must be scored
-against them to make the \code{correct} column it needs.
+with \code{blind = FALSE} gives a graded set \code{\link[=hr_calibrate_signal]{hr_calibrate_signal()}} takes,
+with or without \code{items}: without them, the sheet's \code{model_score} column
+is read back as the number \code{score}. A blind one gives reference answers,
+and the model's answers must be scored against them to make the \code{correct}
+column it needs.
 }
 \section{What is checked}{
 

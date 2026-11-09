@@ -49,7 +49,7 @@ the calibration half), \code{metrics} (a data frame of \code{metric}, \code{esti
 \code{lower}, \code{upper}), \code{selective_risk}, \code{decomposition}, \code{map} (the fitted
 map), \code{grid} (the default thresholds for \code{\link[=hr_gate_threshold]{hr_gate_threshold()}}, from the
 fit half), \code{data} (the graded items with their half and mapped \code{p}),
-\code{sample_design}, \code{bins}, \code{B}, \code{seed}, \code{created_utc}, \code{created_by},
+\code{sample_design}, \code{bins} (the number of ECE bins formed), \code{B}, \code{seed}, \code{created_utc}, \code{created_by},
 \code{status} (\code{"advisory"} or \code{"gating"}), \code{reasons}, \code{notes} (remarks that
 do not stop a record from gating, such as a small cluster count behind
 the intervals) and \code{gate} (\code{NULL}
@@ -81,7 +81,15 @@ answer" is most often wrong.}
 from. Without it each item is its own cluster.}
 \item{\code{item_id}, \code{signal}}{Optional. When \code{signal} is present only the
 rows for this signal are used.}
+\item{\code{split}}{Optional, as \code{\link[=hr_assign_splits]{hr_assign_splits()}} and \code{\link[=gr_read_labels]{gr_read_labels()}}
+give it. When present only the rows in the \code{calibration} split are
+used: dev items were tuned on, and test items must stay unseen until
+they are scored. The rows left out are counted in \code{notes} and in a
+message, and a set with no calibration row stops with
+\code{hr_bad_calibration}.}
 }
+Columns are matched by their exact names, so a column such as
+\code{cluster_size} is never read as \code{cluster}.
 }
 
 \section{How it is computed}{
@@ -139,7 +147,13 @@ by the noise in each bin's mean, and the subtracted term removes that
 bias, so a perfectly calibrated signal scores near 0 rather than at the
 noise floor. \code{bins} is held between 5 and 10. A calibration half of
 fewer than 10 items is lowered to fewer bins so each bin has at least
-two items; \code{reasons} then says how many bins were used.
+two items. The ECE and the decomposition use the same bins, and items
+with the same \code{p} always share one: when \code{p} takes no more distinct
+values than \code{bins}, each value is its own bin, and otherwise an item's
+bin follows the average rank of its \code{p}. So the ECE does not depend on
+the order of the rows, and a signal with two values (a logical one, or
+any map of it) is measured over 2 bins. The record's \code{bins} is the
+number of bins formed, and \code{reasons} says so when it is below 5.
 }
 
 Intervals are 95 percent percentile intervals from a bootstrap that
@@ -153,7 +167,8 @@ A record is \code{advisory} until \code{\link[=hr_gate_threshold]{hr_gate_thresh
 passes. It also stays advisory when the graded set has fewer than 100
 wrong items, when the fitted map does not increase with the signal (a
 Platt slope of 0 or less, or a flat isotonic fit), or when the ECE used
-fewer than 5 bins; \code{reasons} says why.
+fewer than 5 bins, as it does for a signal with fewer than 5 distinct
+values, such as a logical one; \code{reasons} says why.
 }
 
 \examples{

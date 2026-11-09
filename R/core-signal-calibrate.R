@@ -41,7 +41,15 @@
 #'     from. Without it each item is its own cluster.}
 #'   \item{`item_id`, `signal`}{Optional. When `signal` is present only the
 #'     rows for this signal are used.}
+#'   \item{`split`}{Optional, as [hr_assign_splits()] and [gr_read_labels()]
+#'     give it. When present only the rows in the `calibration` split are
+#'     used: dev items were tuned on, and test items must stay unseen until
+#'     they are scored. The rows left out are counted in `notes` and in a
+#'     message, and a set with no calibration row stops with
+#'     `hr_bad_calibration`.}
 #' }
+#' Columns are matched by their exact names, so a column such as
+#' `cluster_size` is never read as `cluster`.
 #'
 #' @section How it is computed:
 #' Within each cluster, a share `split` of the items goes to the fit half and
@@ -98,7 +106,13 @@
 #'   bias, so a perfectly calibrated signal scores near 0 rather than at the
 #'   noise floor. `bins` is held between 5 and 10. A calibration half of
 #'   fewer than 10 items is lowered to fewer bins so each bin has at least
-#'   two items; `reasons` then says how many bins were used.
+#'   two items. The ECE and the decomposition use the same bins, and items
+#'   with the same `p` always share one: when `p` takes no more distinct
+#'   values than `bins`, each value is its own bin, and otherwise an item's
+#'   bin follows the average rank of its `p`. So the ECE does not depend on
+#'   the order of the rows, and a signal with two values (a logical one, or
+#'   any map of it) is measured over 2 bins. The record's `bins` is the
+#'   number of bins formed, and `reasons` says so when it is below 5.
 #'
 #' Intervals are 95 percent percentile intervals from a bootstrap that
 #' resamples whole clusters of the calibration half, `B` times. With fewer
@@ -111,7 +125,8 @@
 #' passes. It also stays advisory when the graded set has fewer than 100
 #' wrong items, when the fitted map does not increase with the signal (a
 #' Platt slope of 0 or less, or a flat isotonic fit), or when the ECE used
-#' fewer than 5 bins; `reasons` says why.
+#' fewer than 5 bins, as it does for a signal with fewer than 5 distinct
+#' values, such as a logical one; `reasons` says why.
 #'
 #' @param signal The signal's name, as recorded by [hr_signal()].
 #' @param graded The graded set, a data frame; see "The graded set".
@@ -137,7 +152,7 @@
 #'   `lower`, `upper`), `selective_risk`, `decomposition`, `map` (the fitted
 #'   map), `grid` (the default thresholds for [hr_gate_threshold()], from the
 #'   fit half), `data` (the graded items with their half and mapped `p`),
-#'   `sample_design`, `bins`, `B`, `seed`, `created_utc`, `created_by`,
+#'   `sample_design`, `bins` (the number of ECE bins formed), `B`, `seed`, `created_utc`, `created_by`,
 #'   `status` (`"advisory"` or `"gating"`), `reasons`, `notes` (remarks that
 #'   do not stop a record from gating, such as a small cluster count behind
 #'   the intervals) and `gate` (`NULL`
@@ -206,6 +221,8 @@ hr_calibrate_signal <- function(signal, graded, key, method = c("platt", "isoton
   if (is.na(B) || B < 0L) gr_abort("`B` must be a whole number, 0 or more.", class = "gr_bad_setting")
   key <- calibration_key(key)
   d <- graded_items(graded, signal)
+  dropped <- attr(d, "dropped")
+  if (length(dropped)) gr_msg(paste0("hr_calibrate_signal(): ", dropped, "."))
   n <- nrow(d)
   if (method == "isotonic" && n < 1000L) {
     gr_abort(sprintf(paste0("Isotonic calibration needs at least 1000 graded items, counted before ",
@@ -267,15 +284,16 @@ hr_calibrate_signal <- function(signal, graded, key, method = c("platt", "isoton
     reasons <- c("the fitted map does not increase with the signal", reasons)
   }
   if (est$bins < 5L) {
-    reasons <- c(sprintf("the calibration half has %d items, so the ECE uses %d bins, fewer than 5",
-                         nrow(cal_half), est$bins), reasons)
+    reasons <- c(sprintf(paste0("the ECE uses %d bins, fewer than 5: the calibration half has %d ",
+                                "items and its p takes %d distinct values"),
+                         est$bins, nrow(cal_half), length(unique(cal_half$p))), reasons)
   }
-  notes <- character(0)
+  notes <- dropped
   if (B > 0L && cal_clusters < 2L) {
-    notes <- "the calibration half has one cluster, so there are no intervals"
+    notes <- c(notes, "the calibration half has one cluster, so there are no intervals")
   } else if (B > 0L && cal_clusters < 20L) {
-    notes <- sprintf("the intervals rest on %d clusters; percentile intervals cover poorly below 20",
-                     cal_clusters)
+    notes <- c(notes, sprintf(paste0("the intervals rest on %d clusters; percentile intervals ",
+                                     "cover poorly below 20"), cal_clusters))
   }
   fit_p <- d$p[d$half == "fit"]
   grid <- sort(unique(stats::quantile(fit_p, probs = seq(0, 1, length.out = 20L), names = FALSE,
@@ -343,8 +361,33 @@ calibration_key <- function(key, fill = TRUE) {
 #' @noRd
 graded_items <- function(graded, signal) {
   if (!is.data.frame(graded)) gr_abort("`graded` must be a data frame.", class = "gr_bad_setting")
-  if (!is.null(graded$signal)) graded <- graded[graded$signal %in% signal, , drop = FALSE]
-  score <- graded$score %||% graded$value
+  if (!is.null(graded[["signal"]])) graded <- graded[graded[["signal"]] %in% signal, , drop = FALSE]
+  # Items from hr_assign_splits() carry a `split` column. Only the
+  # calibration split may fit the map and choose the gate: dev items were
+  # tuned on, and test items have to stay unseen until they are scored.
+  dropped <- character(0)
+  sp <- graded[["split"]]
+  if (!is.null(sp) && length(sp)) {
+    sp <- as.character(sp)
+    keep <- !is.na(sp) & sp == "calibration"
+    if (!any(keep)) {
+      gr_abort(sprintf(paste0("`graded` has a `split` column but no row in the calibration split ",
+                              "(found %s). Calibrate on the items hr_assign_splits() put in ",
+                              "`calibration`."),
+                       paste(sprintf("'%s'", sort(unique(ifelse(is.na(sp), "NA", sp)))),
+                             collapse = ", ")),
+               class = "hr_bad_calibration")
+    }
+    if (!all(keep)) {
+      other <- ifelse(is.na(sp[!keep]), "NA", sp[!keep])
+      tab <- table(other)
+      dropped <- sprintf("%d row(s) outside the calibration split were left out (%s)",
+                         sum(!keep), paste(sprintf("%s %d", names(tab), as.integer(tab)),
+                                           collapse = ", "))
+    }
+    graded <- graded[keep, , drop = FALSE]
+  }
+  score <- graded[["score"]] %||% graded[["value"]]
   if (is.null(score)) {
     gr_abort("`graded` needs a `score` (or `value`) column holding the signal.",
              class = "gr_bad_setting")
@@ -370,21 +413,23 @@ graded_items <- function(graded, signal) {
     gr_abort("The signal's score must be numeric or logical, finite, with no NA.",
              class = "gr_bad_setting")
   }
-  answerable <- as_flag(graded$answerable, "answerable")
+  answerable <- as_flag(graded[["answerable"]], "answerable")
   if (all(answerable)) {
     gr_abort(paste0("`graded` has no unanswerable items. A signal has to be calibrated on items ",
                     "whose answer is not in the source too, or it is never tested where it is ",
                     "most often wrong."), class = "hr_bad_calibration")
   }
   n <- nrow(graded)
-  cluster <- if (is.null(graded$cluster)) seq_len(n) else graded$cluster
+  cluster <- if (is.null(graded[["cluster"]])) seq_len(n) else graded[["cluster"]]
   if (anyNA(cluster)) gr_abort("`graded$cluster` must not contain NA.", class = "gr_bad_setting")
-  data.frame(item_id = as.character(graded$item_id %||% seq_len(n)),
-             cluster = as.character(cluster),
-             score = as.numeric(score),
-             correct = as_flag(graded$correct, "correct"),
-             answerable = answerable,
-             stringsAsFactors = FALSE)
+  out <- data.frame(item_id = as.character(graded[["item_id"]] %||% seq_len(n)),
+                    cluster = as.character(cluster),
+                    score = as.numeric(score),
+                    correct = as_flag(graded[["correct"]], "correct"),
+                    answerable = answerable,
+                    stringsAsFactors = FALSE)
+  attr(out, "dropped") <- dropped
+  out
 }
 
 #' "fit" or "calibration" for each item: within each cluster, round(share * n)
@@ -455,15 +500,18 @@ apply_signal_map <- function(map, score) {
 }
 
 #' Equal-mass bins: each item's bin, `nb` bins by rank of `p`. When `p` takes
-#' no more than `nb` distinct values, each value is its own bin.
+#' no more than `nb` distinct values, each value is its own bin. Otherwise an
+#' item's bin comes from the average rank of its value, so items with the
+#' same `p` always share a bin and the bins do not depend on row order; heavy
+#' ties can leave fewer than `nb` bins. Bins are numbered 1, 2, ... in order
+#' of `p`.
 #' @noRd
-mass_bins <- function(p, nb, distinct = TRUE) {
+mass_bins <- function(p, nb) {
   u <- sort(unique(p))
-  if (distinct && length(u) <= nb) return(match(p, u))
-  n <- length(p)
-  bin <- integer(n)
-  bin[order(p)] <- as.integer(ceiling(seq_len(n) * nb / n))
-  bin
+  if (length(u) <= nb) return(match(p, u))
+  r <- rank(p, ties.method = "average")
+  bin <- as.integer(ceiling(r * nb / length(p)))
+  match(bin, sort(unique(bin)))
 }
 
 #' The Brier score and its decomposition over the bins in `bin`.
@@ -514,13 +562,14 @@ risk_curve <- function(p, y) {
   (before_e[j] + (k - before_n[j]) * e[j] / m[j]) / k
 }
 
-#' The debiased L2 calibration error over equal-mass bins (Kumar et al. 2019).
+#' The debiased L2 calibration error over equal-mass bins (Kumar et al. 2019),
+#' on the same bins as the Brier decomposition, with the number of bins formed.
 #' @noRd
 ece_debiased <- function(p, y, nb) {
   y <- as.numeric(y)
   n <- length(p)
   nb <- max(1L, min(nb, n %/% 2L))
-  bin <- mass_bins(p, nb, distinct = FALSE)
+  bin <- mass_bins(p, nb)
   s <- 0
   for (k in unique(bin)) {
     i <- bin == k
@@ -528,7 +577,7 @@ ece_debiased <- function(p, y, nb) {
     yk <- mean(y[i])
     s <- s + nk / n * ((mean(p[i]) - yk)^2 - if (nk > 1L) yk * (1 - yk) / (nk - 1) else 0)
   }
-  list(ece = sqrt(max(0, s)), bins = nb)
+  list(ece = sqrt(max(0, s)), bins = length(unique(bin)))
 }
 
 #' Every metric of a calibration half: Brier, its decomposition and the ECE
@@ -542,7 +591,7 @@ signal_metrics <- function(p, score, y, nb) {
                    items = as.integer(ceiling(cover * n)),
                    risk = rc[as.integer(ceiling(cover * n))])
   ec <- ece_debiased(p, y, nb)
-  dec <- brier_parts(p, y, mass_bins(p, min(nb, max(1L, n %/% 2L))))
+  dec <- brier_parts(p, y, mass_bins(p, max(1L, min(nb, n %/% 2L))))
   list(brier = dec$brier, auroc2 = auroc2(score, y), aurc = mean(rc), ece = ec$ece,
        bins = ec$bins, selective_risk = sr,
        decomposition = dec)

@@ -20,7 +20,9 @@ gr_label_sheet(
 \item{items}{A data frame with one row per item. Its ids come from an
 \code{item_id} column, else an \code{id} column; without either they are made
 from the kind and the row number (\code{"qa-0001"}), so pass the same rows in
-the same order to \code{\link[=gr_read_labels]{gr_read_labels()}}.}
+the same order to \code{\link[=gr_read_labels]{gr_read_labels()}}. Column names are matched exactly:
+a column such as \code{ideal_answer} is never taken for \code{id}, so reference
+answers cannot reach a blind sheet as ids.}
 
 \item{path}{Where to write the CSV. \code{NULL} returns the sheet without
 writing. The instructions go to \verb{<name>_instructions.txt} beside it.}

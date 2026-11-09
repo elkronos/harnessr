@@ -1039,7 +1039,10 @@
   local step labelled `"signal"`; it sends no request, so requests and cache
   keys are unchanged. `hr_signals()` reads every recorded signal back from a
   trace, an answer or a list of them as one table, a row per value, with the
-  value as text and as a number.
+  value as text and as a number. A trace object reached twice in the list is
+  read once; two separate traces are both read even when they share a
+  `run_id` (two traces made with `gr_trace(run_id = "pilot")` give 2 rows,
+  not 1).
 
 * **Three readers record a signal.** `iterative` records
   `gr.iterative.can_answer` for each step whose reply parsed, `preview`
@@ -1068,6 +1071,19 @@
   version, starts `advisory`, says why, and has `print()` and `as_json()`
   methods.
 
+  The ECE and the Brier decomposition use the same bins, and items with the
+  same `p` always share one, so the ECE does not depend on row order. A
+  signal with two values on 200 documents of 10 items, calibrated within
+  each value, had an ECE of 0.044 that fell to 0 when its rows were
+  shuffled; it is now 0 either way. `bins` is the number of bins formed: 2
+  for a logical signal, which therefore stays advisory under the 5-bin rule
+  (it reported 10). A graded set with a `split` column is calibrated on its
+  `calibration` rows alone, with the rows left out counted in `notes` and a
+  message (before, dev, exploratory and test rows were fitted and scored
+  too), and one with no calibration row stops with `hr_bad_calibration`.
+  Columns are read by exact name, so a `cluster_size` column is no longer
+  taken for `cluster` (40 documents of 10 items collapsed to 1 cluster).
+
 * **New `hr_calibration_valid()`** is `FALSE` when any key field of a record
   differs from the run's, and names the fields.
 
@@ -1075,6 +1091,16 @@
   thresholds are tested from strict to loose with a one-sided
   Clopper-Pearson bound on the error among accepted items, or on the miss
   rate for exclusions, and the loosest one before the first failure is kept.
+  The bound is taken on an effective sample, `n / deff` items with
+  `k / deff` errors, where the design effect `deff` is the cluster variance
+  of the error rate over the variance with each item its own cluster, never
+  below 1. Taken at face value, items from one document are not
+  independent: with 30 documents of 20 items, a true error rate of 0.12 and
+  an intraclass correlation of 0.3, a gate at `alpha = 0.10` and
+  `delta = 0.05` passed in 8.7 percent of draws; it now passes in 2.4
+  percent. Unclustered items give `deff = 1` and the exact Clopper-Pearson
+  bound. `$gate` reports `deff` and `n_eff`, and `$gate$path` the `deff` of
+  every threshold.
   It starts where enough items are acted on for the bound to reach `alpha`,
   and reports `"none passed"` or `"too few items"` when nothing qualifies. A
   record becomes `"gating"` only with a passing threshold, at least 100
@@ -1099,7 +1125,12 @@
   moves another one; `method = "balanced"` gives each split its share of
   clusters by largest remainders. The result reports clusters and items per
   split beside the target shares, and warns with `hr_empty_split` when a
-  split given a share receives nothing.
+  split given a share receives nothing. A whole-number cluster id is hashed
+  written in full, so document 300000 gets the same split stored as a
+  double or as an integer (as a double it was hashed as `"3e+05"` and went
+  to test instead of calibration with seed 7). Columns are matched by exact
+  name: a frame with no `item_id`, `id` or `cluster` column no longer takes
+  `ideal_answer` for its ids or `cluster_size` for its clusters.
 
 * **New `gr_label_sheet()`** writes a CSV for people to label, with an
   instructions file beside it, for five kinds of set: QA answers, a
@@ -1108,7 +1139,11 @@
   A blind sheet (the default) copies only the columns a person needs to
   judge the item, so no model output or sampling detail reaches it. With
   several reviewers each gets a sheet of their own. The help page gives the
-  number of items each set needs for the package's own evaluation.
+  number of items each set needs for the package's own evaluation. Ids come
+  from a column named exactly `item_id` or `id`: a frame whose only such
+  column was `ideal_answer` used to put the reference answers in the
+  `item_id` column of a blind sheet; it now gets `qa-0001`, `qa-0002`, and
+  so on.
 
 * **New `gr_read_labels()`** reads filled sheets back, checks every value
   and id, and stops with `gr_bad_labels` naming the sheet, row and item of
@@ -1120,7 +1155,10 @@
   as `model_<name>`). Only a calibration sheet written with `blind = FALSE`
   has the `correct` column `hr_calibrate_signal()` needs; a blind one gives
   reference answers, and the model's answers are scored against them to make
-  `correct`. A blind screening sheet carries the reference's frame as an
+  `correct`. A `blind = FALSE` calibration sheet read back without `items`
+  turns its `model_score` column back into the number `score`, so it is a
+  graded set either way (before, only the read with `items` was). A blind
+  screening sheet carries the reference's frame as an
   opaque key, so it reads back as a usable reference without `items`.
 
 # readgpt 0.6.0

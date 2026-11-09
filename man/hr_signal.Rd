@@ -42,8 +42,9 @@ was stamped with, or \code{NA}), \code{signal}, \code{type}, \code{item_id}, \co
 value's position within its step), \code{value} (as text), \code{score} (the value
 as a number: 1 or 0 for a logical, the number for a numeric, \code{NA} for
 text) and \code{refs} (the references for that value as a JSON object, or
-\code{NA}). A trace recorded into twice by the same run, as a comparison
-does, lists each step once.
+\code{NA}). A trace reached more than once in \code{x} (the same trace object,
+as the answers of one comparison share it) lists each step once; two
+separate traces are both read, even with the same \code{run_id}.
 }
 \description{
 \code{hr_signal()} writes a value the package produced about its own work into

@@ -137,7 +137,9 @@
 #' @param items A data frame with one row per item. Its ids come from an
 #'   `item_id` column, else an `id` column; without either they are made
 #'   from the kind and the row number (`"qa-0001"`), so pass the same rows in
-#'   the same order to [gr_read_labels()].
+#'   the same order to [gr_read_labels()]. Column names are matched exactly:
+#'   a column such as `ideal_answer` is never taken for `id`, so reference
+#'   answers cannot reach a blind sheet as ids.
 #' @param path Where to write the CSV. `NULL` returns the sheet without
 #'   writing. The instructions go to `<name>_instructions.txt` beside it.
 #' @param blind Leave model output out of the sheet; see "Blind sheets".
@@ -192,9 +194,9 @@ gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibratio
       gr_abort(sprintf("Item %d has no `%s`.", blank[1], col), class = "gr_bad_setting")
     }
   }
-  if (kind == "extraction" && anyDuplicated(as.character(items$document))) {
+  if (kind == "extraction" && anyDuplicated(as.character(items[["document"]]))) {
     gr_abort(sprintf("An extraction sheet has one row per document; '%s' appears twice.",
-                     items$document[anyDuplicated(as.character(items$document))]),
+                     items[["document"]][anyDuplicated(as.character(items[["document"]]))]),
              class = "gr_bad_setting")
   }
   ids <- label_ids(items, kind)
@@ -202,7 +204,7 @@ gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibratio
   sheet <- data.frame(item_id = ids, stringsAsFactors = FALSE)
   ctx <- intersect(spec$context, names(items))
   for (col in ctx) sheet[[col]] <- items[[col]]
-  if (kind == "screening" && !is.null(items$sampled_from)) {
+  if (kind == "screening" && !is.null(items[["sampled_from"]])) {
     # gr_calibrate() needs the frame, and a sheet read back without `items`
     # has nothing else to give it. A blind sheet carries it as the opaque key
     # gr_reference(blind = TRUE) writes, made here from plain frame names, so
@@ -218,7 +220,7 @@ gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibratio
         sheet$sampled_from <- keys
       }
     } else {
-      sheet$sampled_from <- items$sampled_from
+      sheet$sampled_from <- items[["sampled_from"]]
       for (col in intersect(c("stratum", "inclusion_prob", "frame_n", "screened_n"),
                             names(items))) {
         sheet[[col]] <- items[[col]]
@@ -265,9 +267,11 @@ gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibratio
 #' comparisons take: a screening reference for [gr_calibrate()], a table for
 #' [gr_extract_agreement()], calibration labels, or labels to compare a
 #' judge's verdicts with in [hr_agreement()]. A calibration sheet written
-#' with `blind = FALSE` gives a graded set [hr_calibrate_signal()] takes; a
-#' blind one gives reference answers, and the model's answers must be scored
-#' against them to make the `correct` column it needs.
+#' with `blind = FALSE` gives a graded set [hr_calibrate_signal()] takes,
+#' with or without `items`: without them, the sheet's `model_score` column
+#' is read back as the number `score`. A blind one gives reference answers,
+#' and the model's answers must be scored against them to make the `correct`
+#' column it needs.
 #'
 #' @section What is checked:
 #' * Every row has an `item_id`, and no id appears twice for one reviewer.
@@ -311,7 +315,9 @@ gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibratio
 #'   are text as written. A calibration result has a `cluster` column (from
 #'   `items`, else `document`), and a `correct` column only when the sheet
 #'   was written with `blind = FALSE`; only then is it ready for
-#'   [hr_calibrate_signal()]. Attributes `label_kind` and `unlabelled` (the
+#'   [hr_calibrate_signal()]. Its `score` comes from `items` when they are
+#'   given, else from the sheet's `model_score` (yes and no, or `TRUE` and
+#'   `FALSE`, read as 1 and 0; left out when a value is not a number). Attributes `label_kind` and `unlabelled` (the
 #'   number of rows not yet labelled) are set.
 #' @seealso [gr_label_sheet()], [gr_calibrate()], [gr_extract_agreement()],
 #'   [hr_calibrate_signal()], [hr_agreement()]
@@ -374,22 +380,24 @@ gr_read_labels <- function(path, kind, items = NULL, fields = NULL) {
   probs <- list()
   flag <- function(rows, msg) {
     if (length(rows)) {
-      probs[[length(probs) + 1L]] <<- data.frame(sheet = d$.sheet[rows], row = d$.row[rows],
-                                                 item_id = d$item_id[rows], problem = msg,
+      probs[[length(probs) + 1L]] <<- data.frame(sheet = d[[".sheet"]][rows],
+                                                 row = d[[".row"]][rows],
+                                                 item_id = d[["item_id"]][rows], problem = msg,
                                                  stringsAsFactors = FALSE)
     }
   }
-  flag(which(is.na(d$item_id)), "`item_id` is empty.")
-  rv_key <- if (is.null(d$reviewer)) rep("", nrow(d)) else ifelse(is.na(d$reviewer), "", d$reviewer)
-  key <- paste(rv_key, d$item_id, sep = "\u0001")
-  dup <- which(!is.na(d$item_id) & duplicated(key))
-  flag(dup, sprintf("item '%s' appears more than once%s.", d$item_id[dup],
+  flag(which(is.na(d[["item_id"]])), "`item_id` is empty.")
+  rv_key <- if (is.null(d[["reviewer"]])) rep("", nrow(d))
+            else ifelse(is.na(d[["reviewer"]]), "", d[["reviewer"]])
+  key <- paste(rv_key, d[["item_id"]], sep = "\u0001")
+  dup <- which(!is.na(d[["item_id"]]) & duplicated(key))
+  flag(dup, sprintf("item '%s' appears more than once%s.", d[["item_id"]][dup],
                     ifelse(nzchar(rv_key[dup]), sprintf(" for reviewer %s", rv_key[dup]), "")))
-  if (!is.null(d$reviewer)) flag(which(is.na(d$reviewer)), "`reviewer` is empty.")
+  if (!is.null(d[["reviewer"]])) flag(which(is.na(d[["reviewer"]])), "`reviewer` is empty.")
   item_ids <- if (!is.null(items)) label_ids(items, kind) else NULL
   if (!is.null(item_ids)) {
-    bad <- which(!is.na(d$item_id) & !d$item_id %in% item_ids)
-    flag(bad, sprintf("item '%s' is not one of `items`.", d$item_id[bad]))
+    bad <- which(!is.na(d[["item_id"]]) & !d[["item_id"]] %in% item_ids)
+    flag(bad, sprintf("item '%s' is not one of `items`.", d[["item_id"]][bad]))
   }
 
   check_set <- function(col, allowed, what) {
@@ -408,29 +416,29 @@ gr_read_labels <- function(path, kind, items = NULL, fields = NULL) {
   labelled <- switch(kind,
     qa = , calibration = {
       ans <- yes_no("answerable")
-      need <- which(ans %in% TRUE & is.na(d$answer))
+      need <- which(ans %in% TRUE & is.na(d[["answer"]]))
       flag(need, "`answerable` is yes but `answer` is empty.")
-      flag(which(ans %in% FALSE & !is.na(d$answer)),
+      flag(which(ans %in% FALSE & !is.na(d[["answer"]])),
            "`answerable` is no but `answer` is filled; clear one of them.")
       others <- intersect(c("answer", "quote", "correct"), names(d))
       filled <- Reduce(`|`, lapply(others, function(c) !is.na(d[[c]])))
-      early <- which(is.na(d$answerable) & filled)
+      early <- which(is.na(d[["answerable"]]) & filled)
       flag(early, "`answerable` is empty but other decisions are filled.")
       if ("correct" %in% spec$decisions) {
-        d$correct <- yes_no("correct")
-        flag(which(!is.na(d$answerable) & is.na(d$correct)), "`correct` is empty.")
+        d[["correct"]] <- yes_no("correct")
+        flag(which(!is.na(d[["answerable"]]) & is.na(d[["correct"]])), "`correct` is empty.")
       }
-      d$answerable <- ans
-      !is.na(d$answerable)
+      d[["answerable"]] <- ans
+      !is.na(d[["answerable"]])
     },
     screening = {
-      d$human_decision <- check_set("human_decision", .gr_reference_decisions,
+      d[["human_decision"]] <- check_set("human_decision", .gr_reference_decisions,
                                     "include or exclude")
-      !is.na(d$human_decision)
+      !is.na(d[["human_decision"]])
     },
     judge = {
-      d$verdict <- check_set("verdict", c("pass", "fail"), "pass or fail")
-      !is.na(d$verdict)
+      d[["verdict"]] <- check_set("verdict", c("pass", "fail"), "pass or fail")
+      !is.na(d[["verdict"]])
     },
     extraction = {
       cells <- as.data.frame(lapply(d[spec$fields], function(v) !is.na(v)))
@@ -463,16 +471,17 @@ gr_read_labels <- function(path, kind, items = NULL, fields = NULL) {
   }
 
   if (!is.null(item_ids)) {
-    groups <- if (is.null(d$reviewer)) list(d$item_id) else split(d$item_id, d$reviewer)
+    groups <- if (is.null(d[["reviewer"]])) list(d[["item_id"]])
+              else split(d[["item_id"]], d[["reviewer"]])
     lost <- unique(unlist(lapply(groups, function(g) setdiff(item_ids, g))))
     if (length(lost)) {
       gr_warn(sprintf("%d item(s) are missing from the %s, starting with '%s'.", length(lost),
                       if (length(groups) > 1L) "reviewers' sheets" else "sheet", lost[1]),
               class = "gr_labels_missing")
     }
-  } else if (!is.null(d$reviewer)) {
-    groups <- split(d$item_id, d$reviewer)
-    all_ids <- unique(d$item_id)
+  } else if (!is.null(d[["reviewer"]])) {
+    groups <- split(d[["item_id"]], d[["reviewer"]])
+    all_ids <- unique(d[["item_id"]])
     short <- names(groups)[vapply(groups, function(g) length(setdiff(all_ids, g)) > 0L,
                                   logical(1))]
     if (length(short)) {
@@ -481,13 +490,13 @@ gr_read_labels <- function(path, kind, items = NULL, fields = NULL) {
     }
   }
 
-  cols <- c("item_id", if (!is.null(d$reviewer)) "reviewer",
+  cols <- c("item_id", if (!is.null(d[["reviewer"]])) "reviewer",
             setdiff(names(d), c("item_id", "reviewer", spec$decisions, spec$note,
                                 ".sheet", ".row")),
             spec$decisions, intersect(spec$note, names(d)))
   out <- d[, cols, drop = FALSE]
   if (!is.null(items)) {
-    at <- match(out$item_id, item_ids)
+    at <- match(out[["item_id"]], item_ids)
     # An item column named like a decision is usually the model's own output
     # (its answer, or a judge's verdict), the thing the labels are compared
     # with, so it comes back as model_<name>, as a blind = FALSE sheet names it.
@@ -497,7 +506,14 @@ gr_read_labels <- function(path, kind, items = NULL, fields = NULL) {
       if (!nm %in% names(out)) out[[nm]] <- items[[col]][at]
     }
   }
-  if (kind == "calibration" && is.null(out$cluster)) out$cluster <- out$document
+  if (kind == "calibration" && is.null(out[["cluster"]])) out[["cluster"]] <- out[["document"]]
+  # A blind = FALSE sheet writes the signal's `score` as `model_score`, as
+  # text once it has been through a CSV. Read back without `items`, that is
+  # the only copy, so it is restored as the number hr_calibrate_signal() reads.
+  if (kind == "calibration" && is.null(out[["score"]]) && !is.null(out[["model_score"]])) {
+    sc <- label_score(out[["model_score"]])
+    if (!is.null(sc)) out[["score"]] <- sc
+  }
   rownames(out) <- NULL
   n_empty <- sum(!labelled)
   attr(out, "label_kind") <- kind
@@ -505,8 +521,8 @@ gr_read_labels <- function(path, kind, items = NULL, fields = NULL) {
   msg <- sprintf("Read %d row(s): %d labelled, %d not yet labelled.", nrow(out),
                  nrow(out) - n_empty, n_empty)
   if (kind == "judge") {
-    n_pass <- sum(out$verdict %in% "pass")
-    n_fail <- sum(out$verdict %in% "fail")
+    n_pass <- sum(out[["verdict"]] %in% "pass")
+    n_fail <- sum(out[["verdict"]] %in% "fail")
     msg <- paste0(msg, sprintf(" %d pass, %d fail.", n_pass, n_fail))
     if (min(n_pass, n_fail) < 50L) {
       msg <- paste0(msg, " Validating a judge needs at least 50 of each.")
@@ -563,22 +579,22 @@ label_spec <- function(kind, fields, blind, need_fields = TRUE) {
 #' when a row cannot be keyed; an empty `sampled_from` stays empty.
 #' @noRd
 label_frame_keys <- function(items) {
-  raw <- as.character(items$sampled_from)
+  raw <- as.character(items[["sampled_from"]])
   plain <- lower_text(trimws(raw))
   out <- rep(NA_character_, length(raw))
   int_col <- function(col, i) {
     v <- if (is.null(items[[col]])) NA else suppressWarnings(as.numeric(items[[col]][i]))
     if (is.na(v)) NA_integer_ else as.integer(round(v))
   }
-  docs <- as.character(items$document)
+  docs <- as.character(items[["document"]])
   for (i in seq_along(raw)) {
     if (is.na(raw[i]) || !nzchar(plain[i])) next
     if (!is.null(frame_unkey(raw[i]))) {
       out[i] <- raw[i]
     } else if (plain[i] == "stacked") {
-      st <- if (is.null(items$stratum)) NA else lower_text(trimws(items$stratum[i]))
-      p <- if (is.null(items$inclusion_prob)) NA
-           else suppressWarnings(as.numeric(items$inclusion_prob[i]))
+      st <- if (is.null(items[["stratum"]])) NA else lower_text(trimws(items[["stratum"]][i]))
+      p <- if (is.null(items[["inclusion_prob"]])) NA
+           else suppressWarnings(as.numeric(items[["inclusion_prob"]][i]))
       size <- int_col("frame_n", i)
       scr <- int_col("screened_n", i)
       if (is.na(st) || !st %in% c("kept", "excluded") || is.na(p) || is.na(size) ||
@@ -606,12 +622,28 @@ label_frame_keys <- function(items) {
   out
 }
 
+#' A model_score column read back as a number: yes/no words (TRUE and FALSE
+#' as a CSV writes them) as 1 and 0, else the number; NULL when any filled
+#' value is neither.
+#' @noRd
+label_score <- function(x) {
+  v <- trimws(as.character(x))
+  v[!is.na(v) & !nzchar(v)] <- NA_character_
+  lw <- lower_text(v)
+  if (all(is.na(lw) | lw %in% c(.gr_true_words, .gr_false_words))) {
+    return(ifelse(is.na(lw), NA_real_, as.numeric(lw %in% .gr_true_words)))
+  }
+  num <- suppressWarnings(as.numeric(v))
+  if (any(!is.na(v) & is.na(num))) return(NULL)
+  num
+}
+
 #' The id of each item: its `item_id` column, else its `id` column, else
 #' the kind and the row number. Checked for blanks and repeats.
 #' @noRd
 label_ids <- function(items, kind) {
-  ids <- if (!is.null(items$item_id)) items$item_id
-         else if (!is.null(items$id)) items$id
+  ids <- if (!is.null(items[["item_id"]])) items[["item_id"]]
+         else if (!is.null(items[["id"]])) items[["id"]]
          else sprintf("%s-%s", kind, formatC(seq_len(nrow(items)),
                                              width = max(4L, nchar(nrow(items))), flag = "0"))
   ids <- trimws(as.character(ids))
@@ -659,7 +691,7 @@ label_read_sheets <- function(path) {
     s$.row <- seq_len(nrow(s)) + 1L
     cells <- as.matrix(s[setdiff(names(s), ".row")])
     s <- s[rowSums(!is.na(cells) & nzchar(trimws(cells))) > 0L, , drop = FALSE]
-    if (length(sheets) > 1L && is.null(s$reviewer)) s$reviewer <- rep(as.character(i), nrow(s))
+    if (length(sheets) > 1L && is.null(s[["reviewer"]])) s$reviewer <- rep(as.character(i), nrow(s))
     s$.sheet <- rep(names_of[i], nrow(s))
     sheets[[i]] <- s
   }

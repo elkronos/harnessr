@@ -15,7 +15,8 @@ hr_assign_splits(
 \arguments{
 \item{items}{The items: a vector of item ids, or a data frame with one row
 per item. A data frame's ids come from its \code{item_id} column, else its
-\code{id} column, else the row number.}
+\code{id} column, else the row number. Column names are matched exactly, so
+a column such as \code{ideal_answer} is never taken for \code{id}.}
 
 \item{cluster}{The cluster of each item: a vector as long as \code{items}, or
 for a data frame the name of a column. With a data frame one string is
@@ -74,7 +75,10 @@ tuning and testing.
 
 Each cluster gets a number \code{u} in [0, 1) from the first 13 hex digits of
 the SHA-256 digest of \code{"harnessr-split"}, the seed and the cluster id
-(as UTF-8, joined by a separator), divided by 16^13.
+(as UTF-8, joined by a separator), divided by 16^13. A number that is a
+whole number is written out in full before it is hashed, so a document id
+of 100000 gets the same split whether it is stored as a double or as an
+integer (\code{as.character(100000)} would give \code{"1e+05"}).
 \itemize{
 \item \code{method = "stable"} (the default) cuts [0, 1) into consecutive
 intervals whose widths are \code{props}, in the order \code{props} is given, and a

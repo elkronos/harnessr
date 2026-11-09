@@ -14,11 +14,11 @@ sig_key <- function(...) {
 
 # A calibration record whose calibration half is exactly `d` (columns p and
 # correct), so the gate can be checked against arithmetic on known counts.
-cal_with_half <- function(d, grid) {
+cal_with_half <- function(d, grid, cluster = "c") {
   g <- data.frame(score = rep(c(0.9, 0.1), 10), correct = rep(c(TRUE, FALSE), 10),
                   answerable = rep(c(TRUE, FALSE), c(15, 5)))
   cal <- hr_calibrate_signal("demo", g, sig_key(), method = "none", seed = 1, B = 0)
-  cal$data <- data.frame(item_id = as.character(seq_len(nrow(d))), cluster = "c",
+  cal$data <- data.frame(item_id = as.character(seq_len(nrow(d))), cluster = cluster,
                          score = d$p, correct = d$correct, answerable = TRUE,
                          half = "calibration", p = d$p, stringsAsFactors = FALSE)
   cal$grid <- grid
@@ -151,7 +151,7 @@ test_that("ECE is near 0 for a perfectly calibrated signal", {
   # The plug-in error on the same bins sits at the noise floor instead,
   # about sqrt(sum w * p(1 - p) / n_k), roughly 0.03 here.
   half <- cal$data[cal$data$half == "calibration", ]
-  bin <- harnessr:::mass_bins(half$p, 10L, distinct = FALSE)
+  bin <- harnessr:::mass_bins(half$p, 10L)
   plug <- sqrt(sum(tapply(seq_along(bin), bin, function(i) {
     length(i) / nrow(half) * (mean(half$p[i]) - mean(half$correct[i]))^2
   })))
@@ -239,7 +239,10 @@ test_that("isotonic needs 1000 items and the graded set needs unanswerable items
   expect_error(hr_calibrate_signal("demo", g, list(task = "qa"), seed = 1),
                class = "gr_bad_setting")
   cal <- hr_calibrate_signal("demo", g, sig_key(), seed = 1, B = 50)
-  expect_match(cal$reasons[1], "fewer than the 100")
+  # Two values of p (0.9 and 0.1) give 2 ECE bins, a reason of its own that
+  # comes first; the error count is the next.
+  expect_match(cal$reasons[1], "the ECE uses 2 bins")
+  expect_match(cal$reasons[2], "fewer than the 100")
   expect_true(all(is.finite(cal$metrics$lower[cal$metrics$metric == "brier"])))
   js <- jsonlite::fromJSON(as_json(cal))
   expect_equal(js$signal, "demo")
@@ -257,6 +260,101 @@ test_that("isotonic regression fits a non-decreasing map at 1000 items or more",
   # pools the last two to 2.5.
   expect_equal(harnessr:::pava(c(1, 3, 2), c(1, 1, 1)), c(1, 2.5, 2.5))
   expect_equal(harnessr:::pava(c(1, 3, 2), c(1, 1, 3)), c(1, 2.25, 2.25))
+})
+
+test_that("tied scores share an ECE bin, so the ECE ignores row order", {
+  # Two values of p, 20 items each, rows grouped as documents would group
+  # them. At p = 0.3, 12 of 20 are right (mean 0.6); at p = 0.8, 16 of 20
+  # (mean 0.8). One bin per value, Kumar et al.'s debiased estimate:
+  #   0.5 * ((0.3 - 0.6)^2 - 0.6 * 0.4 / 19) + 0.5 * ((0.8 - 0.8)^2 - 0.8 * 0.2 / 19)
+  #   = 0.045 - 0.2 / 19 = 0.0344737, and sqrt(0.0344737) = 0.1856709.
+  p <- rep(c(0.3, 0.8), each = 20)
+  y <- c(rep(c(TRUE, FALSE), c(12, 8)), rep(c(TRUE, FALSE), c(16, 4)))
+  e <- harnessr:::ece_debiased(p, y, 10L)
+  expect_equal(e$ece, 0.18567090297223823, tolerance = 1e-12)
+  expect_identical(e$bins, 2L)
+  rev_e <- harnessr:::ece_debiased(rev(p), rev(y), 10L)
+  expect_equal(rev_e$ece, e$ece, tolerance = 1e-14)
+  # Calibrated at each value (6 of 20 right at 0.3, 16 of 20 at 0.8) the
+  # estimate is 0: both terms are 0 minus a noise term, so the sum is below 0.
+  y0 <- c(rep(c(TRUE, FALSE), c(6, 14)), rep(c(TRUE, FALSE), c(16, 4)))
+  expect_identical(harnessr:::ece_debiased(p, y0, 10L)$ece, 0)
+  # With more distinct values than bins, ties still share a bin. 40 items:
+  # 0.05, 0.15, 0.25, 0.35 (ranks 1 to 4), 30 at 0.5 (ranks 5 to 34, average
+  # 19.5), then 0.55 to 0.95 and 0.99 (ranks 35 to 40). The bin is
+  # ceiling(rank * 10 / 40): 1 for ranks 1 to 4, 5 for 19.5, 9 for 35 and
+  # 36, 10 for 37 to 40. Four bins, numbered 1 to 4 in order of p.
+  q <- c(rep(0.5, 30), seq(0.05, 0.95, by = 0.1)[-5], 0.99)
+  b <- harnessr:::mass_bins(q, 10L)
+  expect_identical(b, c(rep(2L, 30), 1L, 1L, 1L, 1L, 3L, 3L, 4L, 4L, 4L, 4L))
+  expect_identical(b, harnessr:::mass_bins(rev(q), 10L)[length(q):1])
+})
+
+test_that("a logical signal is measured over two bins and stays advisory", {
+  # 200 documents of 10 items, a logical score, correctness shared within a
+  # document; map "none" on the 0.3/0.8 recoding keeps two values of p.
+  g <- seeded(1, {
+    shift <- rep(stats::rnorm(200, 0, 0.15), each = 10)
+    s <- rep(c(TRUE, FALSE), 1000)
+    pr <- pmin(pmax(ifelse(s, 0.8, 0.3) + shift, 0), 1)
+    data.frame(cluster = rep(1:200, each = 10), score = ifelse(s, 0.8, 0.3),
+               correct = stats::runif(2000) < pr, answerable = rep(c(TRUE, FALSE), c(1500, 500)))
+  })
+  cal <- hr_calibrate_signal("demo", g, sig_key(), method = "none", seed = 1, B = 0)
+  expect_identical(cal$bins, 2L)
+  expect_match(cal$reasons[1], "the ECE uses 2 bins, fewer than 5")
+  # The ECE is the per-value estimate, recomputed here from the half.
+  h <- cal$data[cal$data$half == "calibration", ]
+  s <- sum(vapply(split(seq_len(nrow(h)), h$p), function(i) {
+    yk <- mean(h$correct[i])
+    length(i) / nrow(h) * ((h$p[i[1]] - yk)^2 - yk * (1 - yk) / (length(i) - 1))
+  }, numeric(1)))
+  expect_equal(cal$metrics$estimate[cal$metrics$metric == "ece"], sqrt(max(0, s)),
+               tolerance = 1e-12)
+})
+
+test_that("only the calibration split is calibrated on", {
+  g <- seeded(3, {
+    s <- stats::runif(400)
+    data.frame(cluster = rep(1:40, each = 10), score = s, correct = stats::runif(400) < s,
+               answerable = rep(c(TRUE, FALSE), 200),
+               split = rep(c("calibration", "test", "dev", "calibration"), each = 100))
+  })
+  expect_message(cal <- hr_calibrate_signal("demo", g, sig_key(), seed = 1, B = 0),
+                 "200 row\\(s\\) outside the calibration split were left out \\(dev 100, test 100\\)")
+  # 400 rows, 200 of them in the calibration split.
+  expect_identical(cal$n_items, 200L)
+  expect_setequal(unique(cal$data$cluster), as.character(c(1:10, 31:40)))
+  expect_identical(cal$notes[1], "200 row(s) outside the calibration split were left out (dev 100, test 100)")
+  g$split <- "test"
+  expect_error(hr_calibrate_signal("demo", g, sig_key(), seed = 1, B = 0),
+               class = "hr_bad_calibration")
+})
+
+test_that("graded columns are read by exact name", {
+  # No `cluster` column but a `cluster_size` one: each item is its own
+  # cluster, 100 of them, not one cluster made of the value 10.
+  g <- seeded(2, data.frame(cluster_size = 10, score = stats::runif(100),
+                            correct = stats::runif(100) < 0.6,
+                            answerable = rep(c(TRUE, FALSE), 50)))
+  cal <- hr_calibrate_signal("demo", g, sig_key(), seed = 1, B = 20)
+  expect_identical(cal$n_clusters, 100L)
+  expect_false(any(grepl("one cluster", cal$notes)))
+  # `scores` is not `score`, and `values` is not `value`.
+  g2 <- data.frame(scores = 0.5, correct = TRUE, answerable = c(TRUE, FALSE))
+  expect_error(hr_calibrate_signal("demo", g2, sig_key(), seed = 1, B = 0), "`score`")
+})
+
+test_that("two traces that share a run_id are both read", {
+  t1 <- gr_trace(run_id = "pilot")
+  t2 <- gr_trace(run_id = "pilot")
+  hr_signal("s", TRUE, t1, item_id = "q1")
+  hr_signal("s", FALSE, t2, item_id = "q2")
+  tab <- hr_signals(list(t1, t2))
+  expect_identical(tab$item_id, c("q1", "q2"))
+  expect_identical(tab$value, c("TRUE", "FALSE"))
+  # The same trace twice is still read once.
+  expect_identical(nrow(hr_signals(list(t1, t2, t1))), 2L)
 })
 
 # ---- the gate -----------------------------------------------------------------
@@ -315,6 +413,38 @@ test_that("the Learn-then-Test threshold matches a hand computation", {
                            "stop", alpha = 0.05)$gate
   expect_equal(few$status, "too few items")
   expect_error(hr_gate_threshold(cal, "stop"), class = "gr_bad_setting")
+})
+
+test_that("the gate bound counts clustered errors through the design effect", {
+  # 200 items at p = 0.9 in 10 documents of 20; documents 1 and 2 hold 6
+  # wrong items each, the rest none: n = 200, k = 12, r = 0.06.
+  #   cluster variance: 10/9 * (2 * (6 - 1.2)^2 + 8 * 1.2^2)   = 64
+  #   item variance:   200/199 * (12 * 0.94^2 + 188 * 0.06^2) = 11.33668
+  #   deff = 64 / 11.33668 = 796/141 = 5.645390
+  #   ucb = qbeta(0.95, 12/deff + 1, 188/deff) = 0.172054, above 0.10.
+  # Taken as 200 independent items, ucb = qbeta(0.95, 13, 188) = 0.095401,
+  # which passed.
+  d <- data.frame(p = 0.9, correct = !c(rep(c(TRUE, FALSE), c(6, 14)),
+                                        rep(c(TRUE, FALSE), c(6, 14)), rep(FALSE, 160)))
+  cl <- rep(sprintf("doc%02d", 1:10), each = 20)
+  g <- hr_gate_threshold(cal_with_half(d, 0.5, cluster = cl), "stop", alpha = 0.10)$gate
+  expect_equal(c(g$path$n, g$path$k), c(200, 12))
+  expect_equal(g$path$deff, 796 / 141, tolerance = 1e-12)
+  expect_equal(g$path$ucb, 0.17205393389065216, tolerance = 1e-10)
+  expect_equal(g$status, "none passed")
+  # The same counts with every item its own cluster: deff is exactly 1 and
+  # the bound is Clopper-Pearson's.
+  solo <- hr_gate_threshold(cal_with_half(d, 0.5, cluster = as.character(1:200)), "stop",
+                            alpha = 0.10)$gate
+  expect_equal(solo$deff, 1)
+  expect_equal(solo$n_eff, 200)
+  expect_equal(solo$ucb, 0.095401417729877314, tolerance = 1e-12)
+  expect_equal(solo$status, "passed")
+  # Miss rate: the 12 wrong items are the units, all acted on at t = 0.5.
+  # k = n, so the bound is 1 whatever the clusters.
+  mr <- hr_gate_threshold(cal_with_half(d, 0.5, cluster = cl), "exclude", "miss_rate",
+                          alpha = 0.2)$gate
+  expect_equal(mr$path$ucb, 1)
 })
 
 # ---- validity and the policy ----------------------------------------------------
