@@ -128,6 +128,10 @@
       "formals": ["sources", "fields", "goal = NULL", "recipe = \"research\"", "client = NULL", "store = NULL", "resolve = c(\"first\", \"model\")", "require_quote = FALSE", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = FALSE", "recursive = FALSE", "trace = NULL", "..."],
       "type": "function"
     },
+    "gr_extract_agreement": {
+      "formals": ["x", "y", "fields = NULL", "levels = NULL", "by = \"document\"", "B = 2000", "conf = 0.95", "seed = 1"],
+      "type": "function"
+    },
     "gr_extractors": {
       "formals": [],
       "type": "function"
@@ -553,6 +557,11 @@
     "print.gr_document": {
       "class": "gr_document",
       "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_extract_agreement": {
+      "class": "gr_extract_agreement",
+      "formals": ["x", "digits = 3", "..."],
       "generic": "print"
     },
     "print.gr_extraction": {

@@ -635,6 +635,22 @@
   the weighted kappa interval as approximate when fewer than 100 excluded
   records were sampled. A one-reviewer calibration is unchanged.
 
+### Agreement on extracted fields
+
+* **New `gr_extract_agreement()`** compares two extraction tables for the
+  same documents, a model's `gr_extract()` result against a person's or two
+  people's, matched on `document`. Each field gets Krippendorff's alpha at a
+  declared level (`levels =`; by default interval for `integer` and `number`
+  fields and nominal otherwise) with a bootstrap interval over documents,
+  percent agreement and the number of documents compared. "Not reported" is
+  a category of its own in a nominal field; an ordinal, interval or ratio
+  field gets a separate row for agreement on whether it is reported, and its
+  value row covers the documents both tables report. Below 30 documents or
+  for a constant field alpha is `NA` and a note says why. Rows of a
+  `gr_extract()` result that failed or were read only in part are not taken
+  as reporting nothing, duplicates are left out, and `$pairs` lists every
+  cell side by side for reading the disagreements.
+
 # readgpt 0.6.0
 
 ## New
