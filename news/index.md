@@ -676,3 +676,802 @@
   [`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md)
   still check only that `fn` is a function, and register a module that
   breaks a rule as before.
+
+### Fixed
+
+- A download refused for size no longer breaks the downloads after it.
+  httr shares one curl handle per host, and a stream stopped at the size
+  limit could leave that handle attached to its connection, so every
+  later download from the same host in the session failed with “Handle
+  is already in use elsewhere”. Each request now gets its own handle.
+
+### Phase 2
+
+- New guide,
+  [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
+  (“Measuring and comparing configurations”), covers reference sets and
+  label sheets, benchmarks and their reports, non-inferiority, judges,
+  baselines, drift and signals;
+  [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)
+  gains recall against a target, the stopping test, several reviewers
+  and agreement on extracted fields.
+
+#### Agreement and estimation statistics
+
+- **New
+  [`hr_prop_ci()`](https://elkronos.github.io/harnessr/reference/hr_prop_ci.md)**
+  gives Wilson, Clopper-Pearson or Jeffreys intervals for proportions,
+  vectorised over `x` and `n`, two-sided or as a one-sided bound. Wilson
+  matches `prop.test(correct = FALSE)`, including a lower bound of
+  exactly 0 at `x = 0` and an upper bound of exactly 1 at `x = n` (the
+  formula alone left a rounding error there for 38 and 60 of the values
+  of `n` from 1 to 200, such as a lower bound of 2.8e-17 at 0 of 10),
+  and Clopper-Pearson matches
+  [`binom.test()`](https://rdrr.io/r/stats/binom.test.html). The help
+  says which to use: Wilson for descriptive rates, Clopper-Pearson for
+  any “at least” or “at most” guarantee.
+
+- **New
+  [`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md)**
+  reports agreement between two raters as the count table with observed
+  agreement, Cohen’s kappa (standard error and a bootstrap interval over
+  items), the prevalence and bias indices, PABAK, Gwet’s AC1 with its
+  variance interval, positive and negative specific agreement, and, when
+  `positive` is given, sensitivity, specificity, PPV and NPV against the
+  second rater. `paradox_flag` marks tables where kappa should not be
+  compared across samples. For a matrix of coders, or a level other than
+  nominal, it reports Krippendorff’s alpha at the nominal, ordinal,
+  interval or ratio level with a bootstrap interval, and reports only
+  percent agreement, with a note, below 30 items or for a constant
+  field. It has [`print()`](https://rdrr.io/r/base/print.html) and
+  [`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
+  methods, and its bootstrap leaves the caller’s random state as it was.
+  Factor levels that neither rater used are left out of the two-rater
+  table with a note, and a `positive` label that is not among the labels
+  is an error. When coders’ factors carry different level sets, ordinal
+  alpha merges them keeping each coder’s order (low, high and low, mid,
+  high give low, mid, high), and levels that conflict or leave two
+  levels unordered are an error.
+
+- **New
+  [`hr_ht_estimate()`](https://elkronos.github.io/harnessr/reference/hr_ht_estimate.md)**
+  estimates a total (Horvitz-Thompson), a mean (Hajek) or a ratio of
+  totals from a sample drawn with known inclusion probabilities,
+  optionally stratified, with the difference estimator when predictions
+  for the whole population are given, and a bootstrap interval that
+  resamples within strata with the finite population correction (the
+  Rao-Wu rescaling bootstrap). A stratum judged in full (pi = 1) adds no
+  variance: a census of 20 records gives se 0 and the interval \[12,
+  12\] for a total of 12, and a simple random sample of 100 from 200
+  with 30 eligible gives se 6.5, the design value.
+
+- **New
+  [`hr_ppi()`](https://elkronos.github.io/harnessr/reference/hr_ppi.md)**
+  gives a prediction-powered estimate of a mean from many model-labelled
+  units and a few labelled by people, with the power-tuned PPI++ weight
+  by default and inverse-probability weighting when the labelled units
+  were drawn with unequal probabilities.
+
+- **New
+  [`hr_alt_test()`](https://elkronos.github.io/harnessr/reference/hr_alt_test.md)**
+  runs the alternative annotator test of Calderon, Reichart and Dror
+  (2025): whether a model’s labels can be used in place of three or more
+  human annotators, with the margin set by their declared expertise, a
+  Benjamini-Yekutieli correction, the winning rate, and the winning rate
+  over margins from 0.05 to 0.20. Annotator column names must be unique
+  and non-empty.
+
+- [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+  and its output are unchanged.
+
+#### Benchmarks: arms, references, scorers and `hr_benchmark()`
+
+- **New
+  [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)**
+  describes one configuration to compare: a function of an item and a
+  context that carries the client, a trace of the run alone, the
+  governor and the run’s `draw_index`, with `ctx$call()` as a shortcut
+  for
+  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
+  that fills in all three. `run` is required. The arm records its
+  settings, a version and a hash of its code and settings, which is the
+  same in every session and after
+  [`saveRDS()`](https://rdrr.io/r/base/readRDS.html), also for an arm
+  built inside a function of yours. The hash covers the values the code
+  reads from where it was written, the workspace included, so an arm at
+  top level that reads a global prompt gets a new hash when the prompt
+  changes.
+
+- **New
+  [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)**
+  holds the items to score, their labels, clusters, splits (`"dev"`,
+  `"exploratory"`, `"calibration"`, `"test"`, `"final"`), inclusion
+  probabilities, strata and coder labels, with a content hash. Labels,
+  clusters, splits, inclusion probabilities and strata given with names
+  are matched to the items by name (`c(q2 = "Lima", q1 = "Paris")` gives
+  q1 Paris), and names that are not the item ids are an error of class
+  `hr_bad_reference`. Items can be added with
+  [`hr_reference_add()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
+  until a benchmark starts scoring the reference; after that every copy
+  of it, and every reference grown from it, refuses new items with an
+  error of class `hr_reference_locked`.
+
+- **New
+  [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md)**
+  states the scoring contract (correct, outcome and failure kind for
+  each run), and
+  **[`hr_scorer_exact()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md)**,
+  the default, compares text after folding case and white space, and
+  sorts parse failures, errors, `NOT_IN_DOCUMENT` and failures an arm
+  reports itself apart from wrong answers. A number in a label is
+  compared in plain digits, so the label `100000` accepts `"100000"`.
+
+- **New
+  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)**
+  runs every arm on every item of the chosen splits `runs` times (5 by
+  default; fewer warns) and returns one row per cluster x item x arm x
+  run with correctness, failure kind, tokens by kind, cost and its
+  provenance, seconds, the draw index and the id of the run’s trace. Run
+  `r` is draw `r`, so repeated runs are separate cache entries and
+  recorded draws, and an arm whose runs come back as one stored reply
+  (the same cache entry, a repeated replay, a repeated response id) is
+  refused with an error of class `hr_duplicate_draw`. Each draw is also
+  recorded under the arm’s name, and
+  [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
+  answers an arm only with its own replies, so replaying some of the
+  arms, or the arms in another order, gives each arm what it got even
+  when two arms sent the same request. The whole benchmark is held to
+  one governor; a run with a refused request is recorded as a budget
+  stop and counted wrong. Every run on an item with no label has
+  `correct = NA`, failures included, so such an item never counts
+  against an arm. Rows on the dev split are marked not reportable.
+  [`print()`](https://rdrr.io/r/base/print.html) shows accuracy per arm
+  over the reportable rows and labelled items, with the dev split’s
+  accuracy in its own column, descriptive only.
+
+#### Benchmark reports: `hr_report()`
+
+- **New
+  [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)**
+  turns the reportable rows of an
+  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+  into accuracy per arm (mean over runs within each item, then over
+  items) with intervals that keep clusters together. With the default
+  `method = "auto"` and at least 300 items and 30 clusters it uses
+  `method = "bootstrap"`, which is now a studentised (bootstrap-t)
+  cluster bootstrap rather than BCa: it resamples whole clusters with
+  all their items, runs and arms (B = 2000, or 5000 with
+  `confirmatory = TRUE`), each resample studentised by its own
+  linearised standard error. Below either threshold it uses the new
+  `method = "cluster_t"`, a cluster-robust t interval on the logit
+  scale: the linearised variance of the ratio estimator with the C /
+  (C - 1) factor and t quantiles on C - 1 degrees of freedom (Cameron
+  and Miller 2015). Both can be asked for at any size. Where neither is
+  defined (accuracy 0 or 1, or the same in every cluster) the arm gets
+  Korn and Graubard’s interval, one-sided from the bound at 0 or 1, with
+  a note. `method = "exact"` gives Clopper-Pearson on the effective
+  number of items from cluster totals (Korn and Graubard) instead, with
+  items rather than runs as trials, and `method = "bayes"` a Bayesian
+  beta-binomial model with a cluster random effect and flat priors, with
+  a note on its calibration. No interval treats items or runs as
+  independent trials.
+
+  These methods replace the BCa cluster bootstrap and the Bayesian model
+  as defaults after the coverage simulation (`dev/sim-coverage.R`, 2000
+  replicates) failed them: BCa covered 93.5% for accuracy at 0.75 and
+  92.9% for the paired difference with 40 clusters, and 89.2% for the
+  difference with 10 clusters; the Bayesian model covered 96.5% to 96.6%
+  with 10 clusters, its misses 2.9% to 3.2% below the truth and 0.2% to
+  0.5% above. With the new methods the same simulation passes: accuracy
+  95.5% and 95.0%, difference 94.7% with 40 clusters; accuracy 95.8% and
+  95.7%, difference 95.7% with 10 clusters.
+
+- The report also gives paired differences between arms (every pair, or
+  the ones in `contrasts`) with cluster-robust t intervals on C - 1
+  degrees of freedom at every size, cut to \[-1, 1\] (when every cluster
+  gives the same mean difference, so the cluster variance is 0, Tango’s
+  score interval with the items as pairs and the item count scaled for
+  C - 1 degrees of freedom, with a note), single-step max-t simultaneous
+  intervals over all pairs from the multivariate t with the same
+  correlation (Hothorn, Bretz and Westfall 2008), and bootstrap rank
+  intervals in place of a ranking by point estimate. A pair whose
+  cluster variance is 0 takes Tango’s interval at the Bonferroni share
+  (1 - conf) / number of pairs, and the max-t critical value over the
+  rest is then taken at 1 - (1 - conf) x (pairs with variance above 0) /
+  (number of pairs), so the family stays at conf: with 3 pairs, one at
+  variance 0, and 12 clusters it is 2.43, where the full-level 2.20 left
+  the family at up to 6.7% error. The `critical` column is `NA` on the
+  Tango rows. [`print()`](https://rdrr.io/r/base/print.html) shows the
+  simultaneous interval of a contrast written against benchmark order
+  (b - a) as the negated interval of its pair, \[-upper, -lower\], where
+  it printed “-”; flip rate, TARa and run-level SD; pass^k with the
+  unbiased estimator; dollars and tokens per item and per correct item
+  with intervals, flagging arms whose cost rests on estimated token
+  counts for more than 5%; the cost-accuracy frontier with each arm’s
+  share of resamples on it; failure counts with accuracy recomputed
+  without parse failures and refusals; and within-item and between-item
+  variance on the probability scale, with a note to use 10 runs when
+  runs account for more than 10%. Below 5 runs the report is descriptive
+  only, without intervals. An item scored on some runs but not all is
+  refused. It has [`print()`](https://rdrr.io/r/base/print.html) and
+  [`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
+  methods and leaves the caller’s random state as it was. The help
+  writes its intervals with their brackets, such as \[r - q_hi se, r -
+  q_lo se\] and “cut to \[0, 1\]”; they had been turned into 5 broken
+  links, which R CMD check reported as a warning and the rendered help
+  showed without brackets. The BCa intervals still used for cost and
+  pass^k count a resample as below t0 only when it is more than 1e-12 x
+  max(1, \|t0\|) below it, so a resample that ties with t0 up to a
+  rounding error is not counted. This is the count in exact arithmetic;
+  boot.ci() counts sum(t \< t0) and can differ when there are such ties
+  (484 against 495 of 999 resamples in one test, moving the limits by
+  less than 0.001).
+
+#### Non-inferiority contrasts and the minimum detectable difference
+
+- **New
+  [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
+  and
+  [`hr_n_needed()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)**
+  give the smallest paired accuracy difference a clustered design can
+  detect, and the items needed for a given one, from n_eff = (t\_(C - 1,
+  1 - alpha’) + t\_(C - 1, power))^2 x p_disc / Delta^2 with t quantiles
+  on C - 1 degrees of freedom for C clusters, the degrees of freedom of
+  the report’s non-inferiority bound, and the design effect DE = 1 +
+  (m - 1) x ICC_D, where ICC_D is the intra-cluster correlation of the
+  paired item difference and m becomes (cv^2 + 1) x m for unequal
+  clusters. With `n_contrasts` above 1, alpha’ is alpha / n_contrasts,
+  the first step of Holm. For 480 questions in 80 documents at ICC_D 0.2
+  and p_disc 0.2 this gives DE 2, 240 effective items and an MDD of 8.2
+  points, or 10.7 points after Holm over nine contrasts (8.1 and 10.4
+  with normal quantiles).
+  [`hr_n_needed()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
+  finds the number of items by root finding, since the degrees of
+  freedom depend on it, and both refuse a design of one cluster.
+  [`hr_n_needed()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
+  also takes a true difference below 0. Its
+  [`print()`](https://rdrr.io/r/base/print.html) rounds the clusters up
+  first and gives the items as that many clusters of m: 840 items in 140
+  clusters of 6 for n_items 837.8, where it printed 838 items, not a
+  multiple of 6.
+
+- **New
+  [`hr_contrast()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md)
+  and
+  [`hr_register_contrasts()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md)**
+  fix non-inferiority contrasts (arm, reference arm, margin, whether it
+  must also be cheaper) against an
+  [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
+  before a benchmark scores it. A confirmatory margin below the design
+  MDD at 80% power after Holm is refused with an error of class
+  `hr_margin_below_mdd`; with `confirmatory = FALSE` it is registered as
+  exploratory. The check is at one-sided alpha 0.025 or less whatever
+  level the design was given at, and a design with more items or
+  clusters than the reference holds on the test and final splits is
+  refused. A reference already being scored, or one rebuilt with the
+  same content, is refused (`hr_registration_after_scoring`), and the
+  registration is hashed.
+  [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
+  takes whole numbers of items and clusters only.
+
+- **[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+  gains `registration`.** Each registered contrast is non-inferior only
+  if the one-sided lower bound of the accuracy difference is above
+  -margin and, when it tests cost, the upper bound of the paired cost
+  difference (BCa cluster bootstrap) is below 0. The accuracy bound is
+  the cluster-robust t bound of the report’s paired differences, taken
+  one-sided on C - 1 degrees of freedom (the Tango bound with items as
+  pairs when every cluster gives the same mean difference), so at
+  one-sided 0.025 it is the lower end of the printed 95% contrast
+  interval. It replaces the BCa cluster bootstrap bound, which
+  undercovered the paired difference in the coverage simulation (92.9%
+  with 40 clusters, 89.2% with 10). Confirmatory contrasts are tested
+  with Holm’s step-down procedure, exploratory ones at alpha. The design
+  and achieved MDD are printed beside every verdict (the achieved one on
+  the linearised standard error and the same t quantiles as
+  [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md),
+  and `NA` when the cluster variance is 0), and a contrast that passed
+  its registered test is reported as passed even when the achieved MDD
+  exceeds its margin. Tango’s (1998) paired score interval on effective
+  counts, at most one pair per item, is given as a cross-check. A
+  changed registration, or one for another reference, is refused. Each
+  contrast’s `p_value` is the smallest one-sided level at which it
+  passes, found by bisection down to 1e-6. With a cost test the search
+  stops at 1 / (B + 1) (1 / 2001, about 5.0e-4, at B = 2000): below that
+  level the BCa cost bound is the most extreme resample and stops
+  moving, and a contrast whose resamples were all cheaper was reported
+  at 1e-6 where a cluster t on the paired cost means gave 2.3e-4.
+
+- **Dev-split rows are refused as evidence.** A report with a
+  registration or `confirmatory = TRUE` errors with class
+  `hr_dev_not_evidence` when the benchmark holds rows on the dev,
+  exploratory or calibration split or rows marked not reportable.
+
+#### Benchmarking reading recipes
+
+- **New
+  [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
+  and
+  [`gr_arms()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)**
+  wrap reading recipes as benchmark arms. Each run reads the item’s
+  document with
+  [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+  or with
+  [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
+  when the document is already chunked, and returns the `gr_answer`,
+  with every request on the run’s own trace. That trace gives every
+  request of the run, segmenter and reader requests included, the run’s
+  draw index, so repeated runs under a cache or a recording are separate
+  draws. A reader that refuses to start because the run’s call or
+  spending limit leaves too little returns a partial `NOT_IN_DOCUMENT`
+  answer noting the limit, which is scored as a budget stop rather than
+  an error. The arm records the recipe and its settings, and its version
+  is the package version.
+
+- **New
+  [`gr_qa_reference()`](https://elkronos.github.io/harnessr/reference/gr_qa_reference.md)**
+  builds an
+  [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
+  of questions about documents from questions, documents and acceptable
+  answers (one string or a list of alternatives per question).
+  Unanswerable questions, given as flags, ids, positions or the answer
+  `NOT_IN_DOCUMENT`, are labelled `NOT_IN_DOCUMENT`. The payload an arm
+  is given holds the question and the document only: whether an item is
+  unanswerable is in its label. Items are clustered by document by
+  default.
+
+- **New
+  [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md)**
+  marks an answer right when it contains an accepted answer after
+  folding case, white space and thousands separators (`"1,204"` matches
+  `"1204"`), with numbers matched whole (`"12"` is not in `".12"` or
+  `"-12"`, but is in `"12-15"`, and `"45.2"` is in `"45.2m"`), a numeric
+  label written in plain digits, and an unanswerable item right when
+  [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
+  is true and no limit or refusal stopped the run. Wrong answers are
+  sorted into parse failures, budget stops, refusals, `not_in_document`
+  and wrong.
+
+- [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)’s
+  help now says it is descriptive, and points to
+  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+  and
+  [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+  for a comparison with intervals.
+
+#### Judges and their validation record
+
+- **New
+  [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)**
+  asks a model to choose between candidates (`"select"`), compare two
+  (`"pairwise"`) or grade one against a reference (`"grade"`).
+  Candidates are shown under the letters A, B, … only, and each item is
+  asked in two presentation orders: reversed for candidates, reference
+  first and then response first for grading. A verdict that differs
+  between the orders, mapped back to the candidate it names, is returned
+  as `"unresolved"` with `degradation = "judge_inconsistent"`; a failed
+  request or a reply with no allowed verdict is `"failed"`. One order is
+  allowed for grading only. With more than two candidates, `orders`
+  above 2 shows cyclic rotations. Requests go through the same path as
+  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md),
+  so the governor, a cache keyed with `draw_index` and the trace all
+  apply, under the labels `judge.<mode>.o<k>`. They are recorded in the
+  judge’s own trace and their cost in `$judge_cost`, never in the trace
+  of the run being judged, which gets a local note pointing at the
+  judge’s trace; the judge is held to what that run’s governor has left.
+
+- **New
+  [`hr_judge_config()`](https://elkronos.github.io/harnessr/reference/hr_judge_config.md)**
+  holds what decides a judge’s answers (model, mode, rubric, the
+  package’s instructions for the mode, reply schema, orders, how
+  verdicts are combined, the positive grade) with a SHA-256 hash of
+  them.
+
+- **New
+  [`hr_judge_validate()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md)
+  and
+  [`hr_judge_valid()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md).**
+  From blind human labels on a judge’s decisions, the record gives
+  Cohen’s kappa with a bootstrap interval and the full
+  [`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md)
+  set, sensitivity and specificity with Wilson intervals (and the
+  sensitivity half-width), and the swap-inconsistency rate. Items the
+  judge left unresolved or failed on count as not called positive, the
+  rule
+  [`hr_scorer_judge()`](https://elkronos.github.io/harnessr/reference/hr_scorer_judge.md)
+  applies, so the figures describe the judge as the scorer uses it.
+  Fewer than 50 human-positive or 50 human-negative items are refused
+  with `hr_judge_too_few_labels`, and the minimums cannot be lowered.
+  Text labels such as `"pass"` and `"fail"` default to the
+  configuration’s positive grade. A `judge` column that shares no value
+  with `human` (logical calls beside `"pass"`/`"fail"` labels) is
+  refused with `gr_bad_setting` rather than counted as all negative. The
+  optional columns `consistent`, `outcome` and `config_hash` are read by
+  exact name, so an extra column such as `consistently_long` is ignored.
+  The record is keyed by the configuration hash;
+  [`hr_judge_valid()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md)
+  is `FALSE`, naming what changed, when the model, rubric, prompt,
+  schema, orders, aggregation or positive grade differ, or when the
+  record was edited.
+
+- **New
+  [`hr_scorer_judge()`](https://elkronos.github.io/harnessr/reference/hr_scorer_judge.md)**,
+  a benchmark scorer that grades each output against its label with a
+  grade-mode judge. It refuses to be built without a valid record
+  (`hr_judge_unvalidated`). Unresolved judgements count as wrong and
+  failed ones as errors, and the judge’s requests stay in the scorer’s
+  own trace, out of the benchmark’s cost columns. A `draw_index`
+  argument sets the cache draw for the judge’s requests.
+
+- **New
+  [`hr_judge_ppi()`](https://elkronos.github.io/harnessr/reference/hr_judge_ppi.md)**
+  corrects judge-scored accuracy with human labels on a sample through
+  [`hr_ppi()`](https://elkronos.github.io/harnessr/reference/hr_ppi.md):
+  prediction-powered inference, and the inverse-probability weighted DSL
+  form when the labelling probabilities vary. It also reports the
+  uncorrected judge mean. Its normal interval needs enough labelled
+  items in every inclusion stratum; with few labels at small inclusion
+  probabilities it is too narrow.
+
+#### Baselines without a model
+
+- **New
+  [`hr_tfidf()`](https://elkronos.github.io/harnessr/reference/hr_tfidf.md)**
+  turns texts into an l2-normalised tf-idf matrix: lower-cased runs of
+  letters and digits, terms in at least `min_df` texts (at most
+  `max_features`, the most frequent), raw counts times the smoothed idf
+  log((1 + n) / (1 + df)) + 1. It is a dense base R matrix, which suits
+  a reference or screening set of a few thousand texts.
+
+- **New
+  [`hr_baseline_classifier()`](https://elkronos.github.io/harnessr/reference/hr_baseline_classifier.md)**,
+  a ridge-penalised logistic regression on tf-idf features fitted by
+  iteratively reweighted least squares and cross-fitted by fold, so each
+  item is predicted by a model that never saw it. Folds are stratified
+  by label, or keep each `cluster` whole. The vocabulary and idf are
+  fitted on each training fold only. More than two labels are fitted one
+  against the rest. It returns the out-of-fold probabilities and labels,
+  the training size of each fold, and accuracy with a Wilson interval
+  from
+  [`hr_prop_ci()`](https://elkronos.github.io/harnessr/reference/hr_prop_ci.md).
+
+- **New
+  [`hr_baseline_ranker()`](https://elkronos.github.io/harnessr/reference/hr_baseline_ranker.md)**
+  simulates prioritised screening over a fully labelled set, as ASReview
+  does: it starts from `seed_n` relevant and irrelevant records, refits
+  after each `batch`, and screens the record with the highest predicted
+  relevance next. The model is the same ridge logistic regression or
+  multinomial naive Bayes. It returns the screening order, the recall
+  curve, the records screened to reach 95% recall, <WSS@95> and the
+  number a random order would need on average.
+
+- **New
+  [`gr_stop_test()`](https://elkronos.github.io/harnessr/reference/gr_stop_test.md)**,
+  the hypergeometric stopping test of Callaghan and Muller-Hansen (2020)
+  for prioritised screening. After each screened record it gives the
+  p-value for recall still being below `target` given the records left
+  unscreened, and the first point where screening may stop at `alpha`.
+  It takes a vector of relevance in screening order, with unscreened
+  records as trailing `NA`, or an
+  [`hr_baseline_ranker()`](https://elkronos.github.io/harnessr/reference/hr_baseline_ranker.md)
+  result.
+
+#### Drift checks
+
+- **New
+  [`hr_drift_check()`](https://elkronos.github.io/harnessr/reference/hr_drift_check.md)**
+  reruns an arm live on the items of a frozen
+  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+  and reports, item by item, which items were lost, gained or moved,
+  with their most common output before and after. Two tests are fixed in
+  the call, with `alpha` and an optional `alert` threshold. (a) The
+  accuracy change, live minus frozen, by a BCa cluster bootstrap over
+  documents on paired item accuracy, with the clustered McNemar test of
+  Obuchowski (1998) beside it as a cross-check. (b) Excess instability:
+  the flips between frozen and live runs against the flips among
+  replicate runs, frozen and live, one-sided, on the same cluster
+  resamples. Per item it estimates the squared change in accuracy, so it
+  sees losses and gains that cancel in accuracy and noisy items that
+  turn deterministic; it needs at least 2 live runs. The alert is
+  crossed when the whole accuracy interval lies beyond the threshold,
+  and `alert_not_ruled_out` reports the weaker reading, an interval that
+  reaches beyond it. Moved items whose runs disagreed are counted apart
+  in the printout, since their moves can be run-to-run variation. Fewer
+  than 5 frozen runs is refused (`hr_drift_few_runs`), as are a changed
+  arm, another reference or scorer (`hr_drift_mismatch`) and a live
+  rerun answered from a cache or a recording (`hr_drift_not_live`). The
+  live rerun is returned as an `hr_bench`.
+
+#### Validation of the intervals and the MDD
+
+- **A nightly validation job checks the report’s statistics on simulated
+  benchmarks.** `dev/sim-coverage.R` simulates clustered corpora with a
+  known effect, document ICC and run variance, reports each with
+  [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
+  and gives the coverage of the accuracy and paired difference intervals
+  over 2000 replicates with its Wilson 95% interval, in a large design
+  (386 items in 40 clusters, studentised cluster bootstrap) and a small
+  one (50 items in 10 clusters, cluster-robust t on the logit scale,
+  with the Korn-Graubard interval beside it). An interval passes when
+  that Monte Carlo interval contains 95% and its lower end is at least
+  93%. `dev/sim-power.R` sets
+  [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
+  against a power simulation of the report’s cluster-robust t
+  non-inferiority bound and passes when the simulated MDD is within 1
+  point. Both exit with status 1 on a failure. The workflow
+  `.github/workflows/validation.yaml` runs them every night and by hand,
+  never on pull requests, and keeps the printed tables as an artifact.
+  The power table’s `power_check` column also marks a design whose
+  simulated power at the formula’s MDD lies below or above the target
+  beyond Monte Carlo error (“below target” or “above target”), without
+  failing the run.
+
+- The
+  [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
+  help gives the power simulation’s result (2000 replicates, seed 1):
+  the MDD was 0.16 and 0.17 points below the simulated one at 80 equal
+  clusters (simulated power at the formula’s MDD 78.55% and 78.30%) and
+  0.25 points above it at 40 unequal clusters (81.60%). With normal
+  quantiles it was 0.26 and 0.41 points below at 80 clusters (power
+  77.20% and 76.05%, short of 80% beyond Monte Carlo error), which is
+  why the formula takes t quantiles.
+
+#### Screening recall against a target
+
+- **`gr_reference(of = "stacked")`** draws the reference the screening
+  help recommends in one sheet: every record the screener kept, and `n`
+  of those it excluded. Each row records its stratum and its inclusion
+  probability (1 for a kept record, `n` / N for an excluded one). A
+  blind sheet keeps both inside a key per row of one length, so they do
+  not reveal what the model decided. `frame =` is accepted as another
+  name for `of`. The other frames draw exactly as before.
+
+- **[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+  estimates recall on a stacked reference** instead of refusing it: the
+  ratio of Horvitz-Thompson totals, K / (K + M), with M the projected
+  number of eligible records excluded and exact hypergeometric bounds on
+  M mapped into a one-sided lower bound on recall. A kept sheet and an
+  excluded sheet stacked with
+  [`rbind()`](https://rdrr.io/r/base/cbind.html) are read the same way
+  with `of = "stacked"`; without it they are still refused.
+
+- **[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+  gains `recall_target` (0.95), `conf` (0.95) and `max_lost`**, and its
+  result gains `recall`, `lost`, `false_exclusion`, `work_saved`,
+  `unclear_rate`, `strata` and `verdict`, which says whether the
+  one-sided lower bound on recall reaches the target (or the bound on M
+  is within `max_lost`). A sample of everything screened bounds recall
+  with Clopper-Pearson, except that when it is every screened record
+  recall is known exactly and is its own bound (`method = "census"`: 25
+  of 25 eligible kept gives a bound of 1, not the 0.887 Clopper-Pearson
+  gives); a sample of the exclusions alone bounds M but not recall.
+  Every field it returned before is unchanged.
+
+- **New
+  [`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md)**
+  gives the reference size a recall target needs: n \>= ln(alpha) /
+  ln(T) eligible records with no miss (59 for 95% at 95% confidence),
+  divided by `prevalence` for the records to draw, and for a sample of
+  the exclusions the exact hypergeometric size for a frame of `frame_n`
+  records with at most `max_lost` lost, beside the binomial one. For a
+  sample of everything screened, giving `frame_n` with `prevalence` caps
+  the draw at the frame: a frame of 500 records at 5% prevalence holds
+  about 25 eligible records, fewer than the 59 needed, so `n` is 500
+  (judge every record) rather than 1180. A smaller draw cannot pass
+  [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
+  which bounds such a sample with Clopper-Pearson: 388 records with 22
+  eligible and none missed give a bound of 0.873.
+
+#### References from several reviewers
+
+- **`gr_reference(reviewers = k)`** writes one decision column per
+  reviewer, `human_decision_1` to `human_decision_<k>`, and a
+  `consensus` column for an adjudicator, one row per document. With one
+  reviewer the sheet is as before.
+
+- **New
+  [`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md)**
+  forms one decision per document from several reviewers, by
+  `rule = "majority"` (a tie is settled by `consensus` where filled, and
+  otherwise settled as include), `"any_include"` or `"adjudicated"` (the
+  `consensus` column, an error where reviewers disagree and it is
+  empty). It also reads a long sheet with a `reviewer` column. Each row
+  says in `consensus_from` how its decision was reached. Columns named
+  `human_decision_<x>` are reviewers, except those ending in `_note`,
+  `_notes`, `_comment`, `_comments` or `_date`.
+
+- **[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+  compares the screener with the reviewers’ consensus** on a
+  multi-reviewer sheet, and stops only on a disagreement nobody settled,
+  saying how many there were. Its result gains `reviewers`: agreement
+  between each pair of reviewers from
+  [`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md)
+  (kappa beside PABAK, AC1 and the prevalence and bias indices, never
+  alone), Krippendorff’s alpha with three reviewers or more, and each
+  reviewer’s sensitivity and specificity against the consensus. On a
+  stacked reference both are weighted by the stratum weights recall
+  uses, with exact hypergeometric bounds for the rates and a bootstrap
+  within the sampled stratum for agreement; the notes flag the weighted
+  kappa interval as approximate when fewer than 100 excluded records
+  were sampled. A one-reviewer calibration is unchanged.
+
+#### Agreement on extracted fields
+
+- **New
+  [`gr_extract_agreement()`](https://elkronos.github.io/harnessr/reference/gr_extract_agreement.md)**
+  compares two extraction tables for the same documents, a model’s
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+  result against a person’s or two people’s, matched on `document`. Each
+  field gets Krippendorff’s alpha at a declared level (`levels =`; by
+  default interval for `integer` and `number` fields and nominal
+  otherwise) with a bootstrap interval over documents, percent agreement
+  and the number of documents compared. “Not reported” is a category of
+  its own in a nominal field; an ordinal, interval or ratio field gets a
+  separate row for agreement on whether it is reported, and its value
+  row covers the documents both tables report. Below 30 documents or for
+  a constant field alpha is `NA` and a note says why. Rows of a
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+  result that failed or were read only in part are not taken as
+  reporting nothing, duplicates are left out (a blank `duplicate_of`, as
+  a table saved with `write.csv(na = "")` reads back, is not a
+  duplicate), and `$pairs` lists every cell side by side for reading the
+  disagreements.
+
+#### Signals, calibration records and gate thresholds
+
+- **New
+  [`hr_signal()`](https://elkronos.github.io/harnessr/reference/hr_signal.md)
+  and
+  [`hr_signals()`](https://elkronos.github.io/harnessr/reference/hr_signal.md).**
+  [`hr_signal()`](https://elkronos.github.io/harnessr/reference/hr_signal.md)
+  records a value the package produced about its own work (a
+  self-signal) into a trace, as a local step labelled `"signal"`; it
+  sends no request, so requests and cache keys are unchanged.
+  [`hr_signals()`](https://elkronos.github.io/harnessr/reference/hr_signal.md)
+  reads every recorded signal back from a trace, an answer or a list of
+  them as one table, a row per value, with the value as text and as a
+  number. A trace object reached twice in the list is read once; two
+  separate traces are both read even when they share a `run_id` (two
+  traces made with `gr_trace(run_id = "pilot")` give 2 rows, not 1).
+
+- **Three readers record a signal.** `iterative` records
+  `gr.iterative.can_answer` for each step whose reply parsed, `preview`
+  records `gr.preview.skip` for each section of a usable plan (the
+  plan’s own decision, before any section is demoted to skim), and
+  `ensemble` records `gr.ensemble.adjudicate` as `"model"`,
+  `"concatenated"` or `"single member"`. No reader behaves differently:
+  each answer, each request and each cache key is as before, and a trace
+  from these readers has one more local step per signal.
+
+- **New
+  [`hr_calibrate_signal()`](https://elkronos.github.io/harnessr/reference/hr_calibrate_signal.md)**
+  measures a signal against a graded set that must include unanswerable
+  items, on the half of each cluster’s items not used to fit the map:
+  the Brier score with its reliability, resolution and uncertainty
+  decomposition (and the two within-bin terms that make it exact over
+  binned forecasts), type-2 AUROC, the area under the risk-coverage
+  curve with the selective risk at 50, 80 and 90 percent coverage, and
+  the debiased equal-mass calibration error over 5 to 10 bins, each with
+  a cluster bootstrap interval (`NA` when the calibration half has one
+  cluster, with a note below 20 clusters). AUROC and the risk-coverage
+  curve are taken on the signal itself, so a signal that is higher when
+  the item is wrong shows an AUROC below 0.5 even after the map turns it
+  round. The map is Platt scaling, isotonic regression (only from 1000
+  graded items, counted before the split) or none. A map that does not
+  increase with the signal keeps the record advisory. The record is
+  keyed by served model, model version, task, format, prompt hash,
+  effort, module and contract version, starts `advisory`, says why, and
+  has [`print()`](https://rdrr.io/r/base/print.html) and
+  [`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
+  methods.
+
+  The ECE and the Brier decomposition use the same bins, and items with
+  the same `p` always share one, so the ECE does not depend on row
+  order. A signal with two values on 200 documents of 10 items,
+  calibrated within each value, had an ECE of 0.044 that fell to 0 when
+  its rows were shuffled; it is now 0 either way. `bins` is the number
+  of bins formed: 2 for a logical signal, which therefore stays advisory
+  under the 5-bin rule (it reported 10). A graded set with a `split`
+  column is calibrated on its `calibration` rows alone, with the rows
+  left out counted in `notes` and a message (before, dev, exploratory
+  and test rows were fitted and scored too), and one with no calibration
+  row stops with `hr_bad_calibration`. Columns are read by exact name,
+  so a `cluster_size` column is no longer taken for `cluster` (40
+  documents of 10 items collapsed to 1 cluster).
+
+- **New
+  [`hr_calibration_valid()`](https://elkronos.github.io/harnessr/reference/hr_calibration_valid.md)**
+  is `FALSE` when any key field of a record differs from the run’s, and
+  names the fields.
+
+- **New
+  [`hr_gate_threshold()`](https://elkronos.github.io/harnessr/reference/hr_gate_threshold.md)**
+  picks a threshold by Learn-then-Test: the thresholds are tested from
+  strict to loose with a one-sided Clopper-Pearson bound on the error
+  among accepted items, or on the miss rate for exclusions, and the
+  loosest one before the first failure is kept. The bound is taken on an
+  effective sample, `n / deff` items with `k / deff` errors, where the
+  design effect `deff` is the cluster variance of the error rate over
+  the variance with each item its own cluster, never below 1. Taken at
+  face value, items from one document are not independent: with 30
+  documents of 20 items, a true error rate of 0.12 and an intraclass
+  correlation of 0.3, a gate at `alpha = 0.10` and `delta = 0.05` passed
+  in 8.7 percent of draws; it now passes in 2.4 percent. Unclustered
+  items give `deff = 1` and the exact Clopper-Pearson bound. `$gate`
+  reports `deff` and `n_eff`, and `$gate$path` the `deff` of every
+  threshold. It starts where enough items are acted on for the bound to
+  reach `alpha`, and reports `"none passed"` or `"too few items"` when
+  nothing qualifies. A record becomes `"gating"` only with a passing
+  threshold, at least 100 wrong items in the graded set, a map that
+  increases with the signal and an ECE over at least 5 bins.
+
+- **New
+  [`hr_signal_policy()`](https://elkronos.github.io/harnessr/reference/hr_signal_policy.md)
+  and
+  [`hr_apply_signal()`](https://elkronos.github.io/harnessr/reference/hr_signal_policy.md).**
+  A signal gates its action only with a gating record for the same
+  signal and action whose key matches the run; otherwise it stays
+  advisory (`gated = FALSE`), the item is routed to a check, a person or
+  nowhere, and `reason` says why. Nothing in the package calls
+  [`hr_apply_signal()`](https://elkronos.github.io/harnessr/reference/hr_signal_policy.md)
+  yet, so nothing gates by default.
+
+#### Splits and label sheets
+
+- **New
+  [`hr_assign_splits()`](https://elkronos.github.io/harnessr/reference/hr_assign_splits.md)**
+  assigns reference items to the `dev`, `exploratory`, `calibration`,
+  `test` and `final` splits by cluster, so every item of a document
+  lands in the same split. The default shares are 10% dev, 10%
+  exploratory, 30% calibration and 50% test. Each cluster’s place comes
+  from the SHA-256 digest of the seed and its id, so the assignment does
+  not depend on row order or the session’s random state. With
+  `method = "stable"` (the default) adding or dropping documents never
+  moves another one; `method = "balanced"` gives each split its share of
+  clusters by largest remainders. The result reports clusters and items
+  per split beside the target shares, and warns with `hr_empty_split`
+  when a split given a share receives nothing. A whole-number cluster id
+  is hashed written in full, so document 300000 gets the same split
+  stored as a double or as an integer (as a double it was hashed as
+  `"3e+05"` and went to test instead of calibration with seed 7).
+  Columns are matched by exact name: a frame with no `item_id`, `id` or
+  `cluster` column no longer takes `ideal_answer` for its ids or
+  `cluster_size` for its clusters.
+
+- **New
+  [`gr_label_sheet()`](https://elkronos.github.io/harnessr/reference/gr_label_sheet.md)**
+  writes a CSV for people to label, with an instructions file beside it,
+  for five kinds of set: QA answers, a screening reference, extraction
+  fields, a calibration graded set and judge validation verdicts. Each
+  row has an `item_id` and empty decision columns. A blind sheet (the
+  default) copies only the columns a person needs to judge the item, so
+  no model output or sampling detail reaches it. With several reviewers
+  each gets a sheet of their own. The help page gives the number of
+  items each set needs for the package’s own evaluation. Ids come from a
+  column named exactly `item_id` or `id`: a frame whose only such column
+  was `ideal_answer` used to put the reference answers in the `item_id`
+  column of a blind sheet; it now gets `qa-0001`, `qa-0002`, and so on.
+
+- **New
+  [`gr_read_labels()`](https://elkronos.github.io/harnessr/reference/gr_read_labels.md)**
+  reads filled sheets back, checks every value and id, and stops with
+  `gr_bad_labels` naming the sheet, row and item of each value it cannot
+  read. It returns a screening reference that
+  [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+  and
+  [`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md)
+  take, an extraction table for
+  [`gr_extract_agreement()`](https://elkronos.github.io/harnessr/reference/gr_extract_agreement.md),
+  and calibration labels with clusters, with the items’ own columns
+  joined back by id (an item column named like a decision, such as the
+  model’s `answer` or a judge’s `verdict`, comes back as
+  `model_<name>`). Only a calibration sheet written with `blind = FALSE`
+  has the `correct` column
+  [`hr_calibrate_signal()`](https://elkronos.github.io/harnessr/reference/hr_calibrate_signal.md)
+  needs; a blind one gives reference answers, and the model’s answers
+  are scored against them to make `correct`. A `blind = FALSE`
+  calibration sheet read back without `items` turns its `model_score`
+  column back into the number `score`, so it is a graded set either way
+  (before, only the read with `items` was). A blind screening sheet
+  carries the reference’s frame as an opaque key, so it reads back as a
+  usable reference without `items`.

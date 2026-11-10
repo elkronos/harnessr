@@ -75,6 +75,8 @@ Other corpus functions:
 [`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md),
 [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
 [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
+[`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md),
+[`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md),
 [`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
 
 ## Examples
@@ -88,16 +90,16 @@ f <- tempfile(fileext = ".txt")
 writeLines("Participants were adults.", f)
 s <- gr_screen(f, question = "Does the treatment work?",
                include = "Reports a randomised comparison", client = cl)
-#> [1/1] file1df66cf72b3b.txt
-#> Extracting 'file1df66cf72b3b.txt' with the 'txt' extractor.
+#> [1/1] file1baf1ebb074c.txt
+#> Extracting 'file1baf1ebb074c.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~9 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'screen' (head|1|none) over 1 chunk(s).
 s$deferred
-#> [1] "/tmp/Rtmpdsr9gD/file1df66cf72b3b.txt"
+#> [1] "/tmp/Rtmp4M7RcG/file1baf1ebb074c.txt"
 s <- gr_resolve(s, basename(f), "include", by = "A. Reviewer",
                 reason = "Methods section describes randomisation.")
 s$table[, c("document", "decision", "screener_decision", "resolved_by")]
 #>               document decision screener_decision resolved_by
-#> 1 file1df66cf72b3b.txt  include           unclear A. Reviewer
+#> 1 file1baf1ebb074c.txt  include           unclear A. Reviewer
 ```

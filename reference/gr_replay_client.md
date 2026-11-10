@@ -106,9 +106,13 @@ with a `draw_index` above 0 (see
 [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md))
 is answered with the reply recorded for that draw; in a recording that
 holds no draw indexes, draw k is the k-th reply recorded for the
-request. A call past the end of what was recorded, or for a draw that
-was never recorded, raises `hr_replay_exhausted` unless
-`on_exhausted = "flag"`.
+request. In a recording of
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+each draw also names the arm that made it, and an arm's call is answered
+only with that arm's replies, so replaying some of the arms, or the arms
+in another order, gives each arm what it got. A call past the end of
+what was recorded, or for a draw that was never recorded, raises
+`hr_replay_exhausted` unless `on_exhausted = "flag"`.
 
 ## Embeddings
 

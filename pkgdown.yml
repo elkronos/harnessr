@@ -2,6 +2,7 @@ pandoc: 3.8.3
 pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
+  evaluate: evaluate.html
   extending: extending.html
   harnessr: harnessr.html
   ingest: ingest.html
@@ -9,7 +10,7 @@ articles:
   review: review.html
   runs: runs.html
   segment: segment.html
-last_built: 2026-11-06T10:35Z
+last_built: 2026-11-10T01:54Z
 urls:
   reference: https://elkronos.github.io/harnessr/reference
   article: https://elkronos.github.io/harnessr/articles

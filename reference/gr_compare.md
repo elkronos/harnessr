@@ -136,6 +136,18 @@ it for both, so `sum(summary$usd)` can be more than the comparison
 spent, which is `sum(gr_trace_cost(trace)$usd)`. Give `correct` and each
 row also says whether the answer was right and what a right answer cost.
 
+The comparison is descriptive: one run of each recipe on one question,
+with no interval. Run-to-run spread can exceed the gap between recipes,
+so to say one recipe is better, compare them over a reference of
+questions with repeated runs: build the arms with
+[`gr_arms()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
+and the questions with
+[`gr_qa_reference()`](https://elkronos.github.io/harnessr/reference/gr_qa_reference.md),
+run them with
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
+and read the intervals from
+[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md).
+
 A comparison is one run for the spending and token limits:
 `max_cost_usd` and `max_tokens_total` in
 [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
@@ -151,7 +163,9 @@ segmentation that a limit cut short is not shared with a later recipe.
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
 [`gr_recipes()`](https://elkronos.github.io/harnessr/reference/gr_recipes.md),
 [`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md),
-[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+for the comparison with intervals
 
 ## Examples
 
@@ -178,7 +192,7 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "chunks_
 # One trace covers all three, so this is the cost of the whole comparison.
 gr_trace_summary(cmp$trace)
 #>                          run_id calls cached steps tokens_in tokens_out errors
-#> 1 run_20261106103537.693_67245a     5      0    16      2122         65      0
+#> 1 run_20261110015419.781_77f933     5      0    16      2122         65      0
 #>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in
 #> 1      0.11           0            0                0                0
 #>   usage_estimated

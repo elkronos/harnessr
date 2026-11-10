@@ -20,6 +20,8 @@ One guide per topic, in the order a run uses them.
   reads](https://elkronos.github.io/harnessr/articles/readers.md):
 - [Many documents and literature
   reviews](https://elkronos.github.io/harnessr/articles/review.md):
+- [Measuring and comparing
+  configurations](https://elkronos.github.io/harnessr/articles/evaluate.md):
 - [Cost, limits and reproducible
   runs](https://elkronos.github.io/harnessr/articles/runs.md):
 - [Extending

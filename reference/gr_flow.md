@@ -69,8 +69,8 @@ cl <- gr_mock_client(function(messages, params) {
 f <- tempfile(fileext = ".txt"); writeLines("Revenue was 45.2 million.", f)
 s <- gr_screen(f, question = "What was revenue?",
                include = "Reports a revenue figure", client = cl)
-#> [1/1] file1df67817610d.txt
-#> Extracting 'file1df67817610d.txt' with the 'txt' extractor.
+#> [1/1] file1baf2e55ad0b.txt
+#> Extracting 'file1baf2e55ad0b.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~11 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'screen' (head|1|none) over 1 chunk(s).

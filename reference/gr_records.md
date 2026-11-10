@@ -126,7 +126,9 @@ Other corpus functions:
 [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
 [`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md),
 [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
+[`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md),
 [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md),
+[`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md),
 [`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
 
 ## Examples
@@ -138,7 +140,7 @@ writeLines(c("TY  - JOUR", "AU  - Smith, J.", "TI  - A trial of spacing",
 recs <- gr_records(ris)
 recs
 #> <gr_records> 1 record(s) from 1 export(s)
-#>   file1df644d5f60e.ris 1
+#>   file1baf1dcd5c6b.ris 1
 #>   records identified       1
 #>   duplicates removed       0
 #>   records screened         1

@@ -16,7 +16,10 @@ gr_calibrate(
   reference,
   positive = "include",
   min_positives = 10L,
-  of = NULL
+  of = NULL,
+  recall_target = 0.95,
+  conf = 0.95,
+  max_lost = NULL
 )
 ```
 
@@ -36,7 +39,8 @@ gr_calibrate(
   The completed frame from
   [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
   a path to the filled-in CSV, or any data frame with `document` and
-  `human_decision`.
+  `human_decision` (or one `human_decision_<reviewer>` column per
+  reviewer; see "Several reviewers").
 
 - positive:
 
@@ -52,12 +56,28 @@ gr_calibrate(
 - of:
 
   Which part of the screening run the reference was drawn from:
-  `"excluded"`, `"kept"` or `"all"`; anything else is an error. Normally
-  recovered from the file
+  `"excluded"`, `"kept"`, `"all"` or `"stacked"`; anything else is an
+  error. `"stacked"` also reads a kept sheet and an excluded sheet
+  stacked with [`rbind()`](https://rdrr.io/r/base/cbind.html) as one
+  stratified reference. Normally recovered from the file
   [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
   wrote; give it explicitly for a reference built by hand. Given over a
   file that records a different frame, it wins with a warning, and the
   file's frame size is not used.
+
+- recall_target:
+
+  The recall the screener should reach, strictly between 0 and 1.
+
+- conf:
+
+  Confidence level of the recall and loss bounds.
+
+- max_lost:
+
+  Optional: the most eligible records the screener may have excluded.
+  When given, an upper bound on records lost at or below it also meets
+  the target.
 
 ## Value
 
@@ -117,6 +137,55 @@ An object of class `gr_calibration`:
 - `frame`:
 
   Which rows the sample was drawn from, and how many.
+
+- `recall`:
+
+  Recall: `estimate`, `lower` and `upper` (two-sided at `conf`), `bound`
+  (the one-sided lower bound), `method`, `conf`, `n` (eligible records
+  in the sample) and `note`. `NA` where the frame cannot estimate it.
+
+- `lost`:
+
+  M, the projected number of eligible records excluded: `estimate`,
+  `lower`, `upper`, `bound` (the one-sided upper bound), `frame_n`
+  (records excluded) and `conf`.
+
+- `false_exclusion`:
+
+  The share of excluded records that are eligible: `estimate`, `lower`,
+  `upper` (exact) and `n`.
+
+- `work_saved`:
+
+  The share of screened records the screener excluded, which nobody
+  reads: `estimate`, `excluded`, `screened`.
+
+- `unclear_rate`:
+
+  The share of screened records left unclear: `estimate`, `unclear`,
+  `screened`.
+
+- `strata`:
+
+  One row per stratum the frame drew from: `N`, `n`, `eligible`,
+  `inclusion_prob`, and the estimated eligible count with its exact
+  two-sided bounds.
+
+- `verdict`:
+
+  `met` (`TRUE`, `FALSE`, or `NA` when nothing bounds recall or M),
+  `rule`, `recall_target`, `conf`, `max_lost` and `note`.
+
+- `reviewers`:
+
+  Only for a sheet with several reviewers: `reviewers` (their labels),
+  `n_reviewers`, `rule` (how the consensus was formed), `conflicts`
+  (documents they disagreed on), `consensus` (how each document's
+  consensus was reached, counted), `weighted`, `sensitivity` (one row
+  per reviewer and statistic: `estimate`, `lower`, `upper`, `n`,
+  `method`), `agreement` (one row per pair of reviewers, scope and
+  statistic, the scope being the frame, a stratum or `"weighted"`),
+  `notes` and `conf`.
 
 ## Two sensitivities, and the gap between them
 
@@ -208,18 +277,129 @@ exclusions, and the projected count of lost studies, printed with its
 interval, is the figure to judge that by. `$adequacy$note` says in a
 sentence why a sample fell short.
 
+## Recall against a target
+
+Every calibration also reports recall, the share of eligible records the
+screener kept, against `recall_target`, with bounds that stay valid at
+the zero or one misses a reference usually finds.
+
+On a stacked reference (every kept record, and a simple random sample of
+n of the N excluded ones; `of = "stacked"`) the eligible count is K
+among the kept and x in the sample, and recall is estimated with the
+design weights, the ratio of Horvitz-Thompson totals from
+[`hr_ht_estimate()`](https://elkronos.github.io/harnessr/reference/hr_ht_estimate.md):
+K / (K + M), with M = N x / n the projected number of eligible records
+excluded. M is bounded exactly from the hypergeometric distribution of
+x: its upper bound M_U is the largest M for which drawing x or fewer has
+probability above alpha = 1 - `conf`, and the lower bound the smallest M
+for which drawing x or more does. Recall falls as M rises, so its
+one-sided lower bound is K / (K + M_U). If the kept records were sampled
+too, each sampled stratum is bounded the same way with alpha split
+equally between them (Bonferroni). The interval in `$recall` is
+two-sided at `conf`, with alpha / 2 on each side; `$recall$bound` is the
+one-sided bound at `conf`. No bootstrap is used: with x = 0 every
+resample also gives M = 0, and the interval would be `[1, 1]`.
+
+On a sample of everything screened (`"all"`) the eligible records in the
+sample are a random sample of all of them, and recall is the share kept
+with a Clopper-Pearson bound (Lewis, Yang and Frieder 2021). That bound
+treats the frame as infinite. When the sample is every screened record
+(`gr_reference(n = Inf)`) recall is known exactly, and the estimate is
+also both ends of the interval and the bound (`method = "census"`). A
+sample of the exclusions alone bounds M and the false-exclusion rate but
+not recall, since it does not count the eligible records kept, and a
+sample of the kept records alone holds none of the misses.
+
+The verdict in `$verdict` says the target is met when the one-sided
+lower bound on recall is at least `recall_target`, or, when `max_lost`
+is given, when the upper bound on M is at most `max_lost`. On a stacked
+reference this verdict is also `$adequate`.
+
+Weights come from the run: N is the number of records the screening
+excluded (or kept), and n the rows of that stratum with a human
+decision. On a complete sheet that is the inclusion probability the
+sheet records; a sheet whose recorded probabilities disagree is weighted
+by the run, with a warning. Agreement statistics are not computed on a
+stacked reference, since unweighted they are distorted in the same
+direction as unweighted sensitivity.
+
 ## One row per document
 
 The reference is matched to the screening by document name, compared as
 UTF-8 whatever the session's locale, and by `document_id` for a row
-whose name still does not match. A document judged twice (two reviewers'
-sheets stacked, say) is counted once when the copies agree, with a
-warning, and is refused when they disagree: reconcile dual screening
-into one consensus decision per document first.
+whose name still does not match. A document judged twice (two sheets
+stacked with no `reviewer` column, say) is counted once when the copies
+agree, with a warning, and is refused when they disagree.
+
+## Several reviewers
+
+A sheet with one `human_decision_<reviewer>` column per reviewer (from
+`gr_reference(reviewers = k)`), or a long sheet with a `reviewer`
+column, is compared on the reviewers' consensus. Where it has been
+formed with
+[`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md)
+that is used; otherwise records the reviewers agreed on take their
+decision, records they disagreed on take the `consensus` column, and the
+calibration stops if any disagreement has none, saying how many there
+were.
+
+`$reviewers` then reports how far the people agree with each other, the
+yardstick for the screener's agreement with them, with
+[`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md):
+for every pair of reviewers the observed agreement, Cohen's kappa,
+PABAK, Gwet's AC1 and the prevalence and bias indices, never kappa
+alone, and with three reviewers or more Krippendorff's alpha over all of
+them. It also reports each reviewer's sensitivity and specificity
+against the consensus, the share of consensus-eligible records they
+included and of consensus-ineligible records they excluded, which says
+what one person screening alone would have missed. A reviewer is scored
+on the records they judged. Note that a reviewer is part of the
+consensus they are scored against, so these figures are higher than
+against an independent reference, and more so with fewer reviewers.
+
+On a stacked reference both are weighted the way recall is, each record
+by N_h / n_h for its stratum h (the screener's kept or excluded
+records), so they describe every record screened rather than the sample.
+Sensitivity is sum_h (N_h / n_h) a_h / sum_h (N_h / n_h) (a_h + b_h),
+with a_h the consensus-eligible records the reviewer included in stratum
+h and b_h those they excluded; its interval bounds each count in a
+sampled stratum exactly with the hypergeometric distribution, alpha
+split equally over them (Bonferroni), and maps them through the ratio,
+which rises with a and falls with b. Specificity is the same with the
+consensus-ineligible records. Agreement is computed on the 2x2 table
+built with the same weights, with percentile intervals from a bootstrap
+within each sampled stratum (B = 2000, seed 1), and
+[`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md)
+is also reported within each stratum. The weighted kappa interval is
+approximate and runs narrow when the sampled exclusion stratum holds
+fewer than about 100 records (near 80% coverage for a nominal 95% at
+30), and `$reviewers$notes` says so; the observed agreement, PABAK and
+AC1 intervals hold up better there. On any other frame the sample is one
+simple random sample, the figures are unweighted, and sensitivity and
+specificity have Wilson intervals, as in `$metrics`.
+
+## References
+
+Lewis, D. D., Yang, E. and Frieder, O. (2021). Certifying one-phase
+technology-assisted reviews. *Proceedings of the 30th ACM International
+Conference on Information and Knowledge Management*, 893-902.
+
+Horvitz, D. G. and Thompson, D. J. (1952). A generalization of sampling
+without replacement from a finite universe. *Journal of the American
+Statistical Association* 47(260), 663-685.
+
+Byrt, T., Bishop, J. and Carlin, J. B. (1993). Bias, prevalence and
+kappa. *Journal of Clinical Epidemiology* 46(5), 423-429.
+
+Gwet, K. L. (2008). Computing inter-rater reliability and its variance
+in the presence of high agreement. *British Journal of Mathematical and
+Statistical Psychology* 61(1), 29-48.
 
 ## See also
 
 [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
+[`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md),
+[`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md),
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
 [`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
 
@@ -227,7 +407,9 @@ Other corpus functions:
 [`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md),
 [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
 [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
+[`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md),
 [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md),
+[`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md),
 [`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
 
 ## Examples
@@ -266,6 +448,9 @@ gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref)
 #>     AC1       0.26  [--, --]
 #>     PI -0.12, BI -0.12
 #>     (no kappa or AC1 interval: Only 8 record(s); the kappa and AC1 intervals need at least 10.)
+#>   recall 75.0%  [75.0%, 75.0%]; 95% one-sided lower bound 75.0%
+#>   eligible records excluded: about 1 of 4; 95% upper bound 1
+#>   recall target 95.0% at 95% confidence: not met
 #>   ! 1 eligible study was excluded by the screener:
 #>       d6.pdf
 #>   ! only 4 eligible studies in the sample. Every rate above rests on

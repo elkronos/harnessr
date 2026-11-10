@@ -222,6 +222,15 @@ one with `thorough`. See
 which also covers what to check when the answer is not what you
 expected.
 
+To choose a recipe or a model on more than one document,
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+runs each configuration several times over a labelled set of questions
+under one spending limit, and
+[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+gives accuracy, paired differences and cost with intervals that treat
+the questions about one document as a cluster. See
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
+
 ## What an answer gives back
 
 `print(ans)` sums up the cost, where the evidence came from and, when
@@ -354,7 +363,8 @@ Each guide is on the website and, once installed, in R as
 | [Getting text out of files](https://elkronos.github.io/harnessr/articles/ingest.html) (`ingest`) | PDFs, Word files, web pages and scans, every cleaner, and surveying a folder |
 | [Cutting documents into chunks](https://elkronos.github.io/harnessr/articles/segment.html) (`segment`) | The segmenters, overlap, minimum size, context, and comparing chunkings |
 | [Choosing how the model reads](https://elkronos.github.io/harnessr/articles/readers.html) (`readers`) | The reading strategies, recipes, what each costs, and how to choose |
-| [Many documents and literature reviews](https://elkronos.github.io/harnessr/articles/review.html) (`review`) | Search, screening, calibration, extraction, claims, synthesis, the audit report |
+| [Many documents and literature reviews](https://elkronos.github.io/harnessr/articles/review.html) (`review`) | Search, screening, calibration and recall, several reviewers, extraction, claims, synthesis, the audit report |
+| [Measuring and comparing configurations](https://elkronos.github.io/harnessr/articles/evaluate.html) (`evaluate`) | Reference sets and label sheets, benchmarks and their intervals, non-inferiority, judges, baselines, drift, signals |
 | [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`) | The governor, effort, traces, caching, replay |
 | [Extending harnessr](https://elkronos.github.io/harnessr/articles/extending.html) (`extending`) | Registering your own extractors, cleaners, segmenters, readers and embedders, and checking them |
 
@@ -376,6 +386,7 @@ key is needed and no requests are made; `--check` runs a full
 | `R-CMD-check.yaml` | full `R CMD check` on macOS and Ubuntu, current R and the previous release |
 | `pkgdown.yaml` | builds the website on pull requests and on pushes to the main branch, and publishes it except from a pull request |
 | `pr-checks.yaml` | fails a pull request that drops an `expect_*()` call or adds a `skip()` without the label `tests-reviewed`, or adds a dependency without the label `deps-reviewed` (an added package must be on CRAN either way), and lints the changed files under `R/` |
+| `validation.yaml` | runs nightly and by hand, never on pull requests: simulates clustered benchmarks to check the coverage of [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)’s intervals (`dev/sim-coverage.R`) and [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md) against a power simulation (`dev/sim-power.R`), 2000 replicates each, and keeps the tables as an artifact |
 
 `Rscript dev/ci/pr-checks.R tests origin/main HEAD` runs the
 pull-request checks locally. No workflow needs a secret:

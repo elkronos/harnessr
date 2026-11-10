@@ -137,8 +137,12 @@ report, with the screening measured against a hand-screened sample. See
   : Decide which documents a review should read
 - [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
   : Draw a sample to screen by hand
+- [`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md)
+  : Form one decision per document from several reviewers
 - [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
   : Measure the screener against a hand-screened sample
+- [`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md)
+  : How many records to judge by hand to show a recall target
 - [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md)
   : Record a person's decision on screened records
 - [`` `[`( ``*`<gr_reference_frame>`*`)`](https://elkronos.github.io/harnessr/reference/sub-.gr_reference_frame.md)
@@ -149,6 +153,8 @@ report, with the screening measured against a hand-screened sample. See
   : Describe one field of an extraction schema
 - [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
   : Extract a typed schema from many documents
+- [`gr_extract_agreement()`](https://elkronos.github.io/harnessr/reference/gr_extract_agreement.md)
+  : Agreement between two extraction tables, field by field
 - [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
   : The claims a table of studies supports
 - [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
@@ -230,6 +236,144 @@ See
   : Clear the session's document and embedding caches
 - [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
   : A client that answers from a recorded run
+
+## Statistics
+
+Intervals for proportions, agreement between raters and coders,
+design-weighted and prediction-powered estimates, and the test of
+whether a model’s labels can stand in for people’s. See
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
+
+- [`hr_prop_ci()`](https://elkronos.github.io/harnessr/reference/hr_prop_ci.md)
+  : Confidence intervals for binomial proportions
+- [`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md)
+  : Agreement between raters, with every measure that should go with it
+- [`hr_ht_estimate()`](https://elkronos.github.io/harnessr/reference/hr_ht_estimate.md)
+  : Design-weighted estimates from a probability sample
+- [`hr_ppi()`](https://elkronos.github.io/harnessr/reference/hr_ppi.md)
+  : Prediction-powered inference for a mean
+- [`hr_alt_test()`](https://elkronos.github.io/harnessr/reference/hr_alt_test.md)
+  : The alternative annotator test
+
+## Benchmarks
+
+Compare configurations on a labelled reference: arms, the reference and
+its splits, scorers, and repeated runs held to one spending limit. See
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
+
+- [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+  [`print(`*`<hr_bench>`*`)`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+  : Run arms against a reference
+- [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+  [`print(`*`<hr_bench_report>`*`)`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+  [`as_json(`*`<hr_bench_report>`*`)`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+  : Report a benchmark with intervals
+- [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
+  [`hr_n_needed()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
+  [`print(`*`<hr_mdd>`*`)`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
+  [`print(`*`<hr_n_needed>`*`)`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
+  : The minimum detectable difference of a paired, clustered design
+- [`hr_contrast()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md)
+  [`hr_register_contrasts()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md)
+  [`print(`*`<hr_contrast>`*`)`](https://elkronos.github.io/harnessr/reference/hr_contrast.md)
+  [`print(`*`<hr_contrast_registration>`*`)`](https://elkronos.github.io/harnessr/reference/hr_contrast.md)
+  : Non-inferiority contrasts, registered before scoring
+- [`hr_drift_check()`](https://elkronos.github.io/harnessr/reference/hr_drift_check.md)
+  [`print(`*`<hr_drift_check>`*`)`](https://elkronos.github.io/harnessr/reference/hr_drift_check.md)
+  : Check an arm for drift against a frozen benchmark
+- [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)
+  : A configuration to compare in a benchmark
+- [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
+  [`hr_reference_add()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
+  : A reference set to score arms against
+- [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md)
+  [`hr_scorer_exact()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md)
+  : A rule for scoring an arm's output
+- [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
+  [`gr_arms()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
+  : A reading recipe as an arm of a benchmark
+- [`gr_qa_reference()`](https://elkronos.github.io/harnessr/reference/gr_qa_reference.md)
+  : A reference of questions about documents
+- [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md)
+  : Score a reading recipe's answer against acceptable answers
+
+## Baselines
+
+Comparisons that use no model: tf-idf features, a cross-fitted
+classifier, a simulated active-learning ranker for screening, and the
+stopping test for prioritised screening. See
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md),
+and
+[`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)
+for the stopping test.
+
+- [`hr_tfidf()`](https://elkronos.github.io/harnessr/reference/hr_tfidf.md)
+  : Tf-idf features from texts
+- [`hr_baseline_classifier()`](https://elkronos.github.io/harnessr/reference/hr_baseline_classifier.md)
+  [`print(`*`<hr_baseline_classifier>`*`)`](https://elkronos.github.io/harnessr/reference/hr_baseline_classifier.md)
+  : Cross-fitted text classifier baseline
+- [`hr_baseline_ranker()`](https://elkronos.github.io/harnessr/reference/hr_baseline_ranker.md)
+  [`print(`*`<hr_baseline_ranker>`*`)`](https://elkronos.github.io/harnessr/reference/hr_baseline_ranker.md)
+  : Active-learning screening baseline
+- [`gr_stop_test()`](https://elkronos.github.io/harnessr/reference/gr_stop_test.md)
+  [`print(`*`<gr_stop_test>`*`)`](https://elkronos.github.io/harnessr/reference/gr_stop_test.md)
+  : Hypergeometric stopping test for prioritised screening
+
+## Judges
+
+A model that chooses between candidates or grades one against a
+reference, asked in both orders, validated against blind human labels
+before it scores, with its accuracy corrected by those labels. See
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
+
+- [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)
+  [`print(`*`<hr_judgement>`*`)`](https://elkronos.github.io/harnessr/reference/hr_judge.md)
+  : Judge candidates with a model, in more than one order
+- [`hr_judge_config()`](https://elkronos.github.io/harnessr/reference/hr_judge_config.md)
+  [`print(`*`<hr_judge_config>`*`)`](https://elkronos.github.io/harnessr/reference/hr_judge_config.md)
+  : A judge configuration
+- [`hr_judge_validate()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md)
+  [`hr_judge_valid()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md)
+  [`print(`*`<hr_judge_validation>`*`)`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md)
+  : Validate a judge against blind human labels
+- [`hr_scorer_judge()`](https://elkronos.github.io/harnessr/reference/hr_scorer_judge.md)
+  : Score benchmark runs with a validated judge
+- [`hr_judge_ppi()`](https://elkronos.github.io/harnessr/reference/hr_judge_ppi.md)
+  : Judge-scored accuracy corrected with human labels
+
+## Signals and calibration
+
+Values the package records about its own work, the calibration records
+that measure how well they predict being right, and the thresholds and
+policy that decide whether a signal may gate an action. Nothing gates by
+default. See
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
+
+- [`hr_signal()`](https://elkronos.github.io/harnessr/reference/hr_signal.md)
+  [`hr_signals()`](https://elkronos.github.io/harnessr/reference/hr_signal.md)
+  : Record a self-signal
+- [`hr_calibrate_signal()`](https://elkronos.github.io/harnessr/reference/hr_calibrate_signal.md)
+  : Calibrate a self-signal against graded items
+- [`hr_calibration_valid()`](https://elkronos.github.io/harnessr/reference/hr_calibration_valid.md)
+  : Is a calibration record valid for a run?
+- [`hr_gate_threshold()`](https://elkronos.github.io/harnessr/reference/hr_gate_threshold.md)
+  : Choose a gate threshold by Learn-then-Test
+- [`hr_signal_policy()`](https://elkronos.github.io/harnessr/reference/hr_signal_policy.md)
+  [`hr_apply_signal()`](https://elkronos.github.io/harnessr/reference/hr_signal_policy.md)
+  : What a signal may do, and what happens when it may not
+
+## Reference sets and splits
+
+Splitting reference items into tuning, calibration and test sets by
+document, and the sheets people fill in to label them. See
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
+
+- [`hr_assign_splits()`](https://elkronos.github.io/harnessr/reference/hr_assign_splits.md)
+  : Assign reference items to splits by cluster
+- [`gr_label_sheet()`](https://elkronos.github.io/harnessr/reference/gr_label_sheet.md)
+  : Write a sheet for people to label
+- [`gr_read_labels()`](https://elkronos.github.io/harnessr/reference/gr_read_labels.md)
+  : Read a filled label sheet
 
 ## Extending harnessr
 

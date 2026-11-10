@@ -78,7 +78,9 @@ Other corpus functions:
 [`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md),
 [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
 [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
-[`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md)
+[`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md),
+[`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md),
+[`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md)
 
 ## Examples
 

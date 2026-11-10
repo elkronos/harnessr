@@ -19,10 +19,11 @@ that work in the order it happens:
     measuring the screening against a person with
     [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)
     and
-    [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
-    then
+    [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+    (recall against a target, when ranked screening can stop, several
+    reviewers), then
     [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
-    and
+    and its agreement with a person’s table, and
     [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md).
 4.  Writing from claims instead of from rows, with
     [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
@@ -40,7 +41,9 @@ introduces the package and its ideas, and how one document is read is in
 Read
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 first if you have not set spending limits or a cache: this guide points
-to it for both, and for replay.
+to it for both, and for replay. Comparing whole configurations on a
+labelled set of questions, with intervals, is in
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
 
 ## Setting up
 
@@ -479,6 +482,7 @@ gr_calibrate(big, check)
 #>   exclude            3            57
 #>   -> across all 340 excluded record(s) that rate implies about 17
 #>      eligible studies lost (6 to 47 on the interval above).
+#>   eligible records excluded: about 17 of 340; 95% upper bound 39
 #>   (sampled from exclusions only: this frame estimates what was lost, not
 #>    sensitivity or specificity: it contains no kept records to compute them from)
 #>   ! 3 eligible studies were excluded by the screener:
@@ -542,6 +546,9 @@ cal
 #>     AC1       0.26  [--, --]
 #>     PI -0.12, BI -0.12
 #>     (no kappa or AC1 interval: Only 8 record(s); the kappa and AC1 intervals need at least 10.)
+#>   recall 75.0%  [75.0%, 75.0%]; 95% one-sided lower bound 75.0%
+#>   eligible records excluded: about 1 of 4; 95% upper bound 1
+#>   recall target 95.0% at 95% confidence: not met
 #>   ! 1 eligible study was excluded by the screener:
 #>       d6.pdf
 #>   ! only 4 eligible studies in the sample. Every rate above rests on
@@ -621,6 +628,234 @@ section of the report, with the 3x2 counts and every statistic above, so
 the figure a reviewer asks for sits next to the run it describes instead
 of being copied into a methods section by hand.
 
+### Recall against a target
+
+Sensitivity as deployed is recall: the share of eligible studies the
+screener kept. A review usually sets a target for it, such as 95%, and
+the claim worth making is that recall is at least the target, at a
+stated confidence. A sample of the exclusions alone cannot support that
+claim, because it counts none of the eligible records that were kept.
+The design that can is the one people use anyway: judge every record the
+screener kept, and a sample of what it excluded. `of = "stacked"` draws
+both in one sheet.
+
+The target fixes how many exclusions to judge. Recall is K / (K + M),
+with K the eligible records kept and M the eligible records excluded, so
+a target is a cap on M. If a pilot suggests about 50 of the 72 kept
+records are eligible, 95% recall allows floor(50 x 0.05 / 0.95) = 2 of
+them to have been lost.
+[`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md)
+gives the number of the 340 exclusions to judge so that, if none of them
+turns out eligible, the bound on M is 2:
+
+``` r
+
+gr_screen_sample_size(frame = "stacked", max_lost = 2,
+                      frame_n = 340)[, c("frame", "max_lost", "frame_n", "n", "n_binomial")]
+#>     frame max_lost frame_n   n n_binomial
+#> 1 stacked        2     340 215        508
+```
+
+215 is the exact size from the hypergeometric distribution of a frame of
+340 records; the binomial rule, which ignores that the frame is finite,
+asks for 508. For a sample of everything screened (`frame = "all"`) the
+rule is k \>= ln(alpha) / ln(T) eligible records with no miss: 59 for
+95% recall at 95% confidence, which at 5% prevalence means drawing 1180
+records. A frame of 500 records at that prevalence holds about 25
+eligible records, too few for any sample of it to show the target, so
+the size is the whole frame; judged whole, recall is known exactly:
+
+``` r
+
+gr_screen_sample_size(0.95, 0.95, prevalence = 0.05,
+                      frame_n = 500)[, c("positives", "n", "n_binomial")]
+#>   positives   n n_binomial
+#> 1        59 500       1180
+```
+
+So draw every kept record and 215 of the exclusions:
+
+``` r
+
+stacked <- gr_reference(big, n = 215, of = "stacked", seed = 1)
+nrow(stacked)
+#> [1] 287
+
+# ... a person judges every row, blind. Here 50 of the 72 kept records are
+# eligible, and none of the 215 sampled exclusions.
+kept <- big$table$decision[match(stacked$document, big$table$document)] != "exclude"
+stacked$human_decision <- "exclude"
+stacked$human_decision[which(kept)[1:50]] <- "include"
+
+recall <- gr_calibrate(big, stacked)
+unlist(recall$recall[c("estimate", "lower", "upper", "bound")])
+#>  estimate     lower     upper     bound 
+#> 1.0000000 0.9433962 1.0000000 0.9615385
+unlist(recall$lost[c("estimate", "bound", "frame_n")])
+#> estimate    bound  frame_n 
+#>        0        2      340
+recall$verdict$met
+#> [1] TRUE
+```
+
+Each stratum is weighted by how much of it was judged: all 72 kept
+records count once, and each of the 215 sampled exclusions stands for
+340 / 215 of them. Recall is the ratio of the weighted
+(Horvitz-Thompson) totals, from
+[`hr_ht_estimate()`](https://elkronos.github.io/harnessr/reference/hr_ht_estimate.md).
+M is bounded exactly from the hypergeometric distribution of what the
+sample found, and the one-sided lower bound on recall is K / (K + M_U),
+here 50 / 52 = 0.962, above the target. No bootstrap is used: with no
+eligible record in the sample every resample also finds none, and the
+interval would be \[1, 1\].
+
+One eligible record among the sampled exclusions is enough to miss the
+target. It stands for 340 / 215 records, and the bound has to allow for
+more than that:
+
+``` r
+
+one_miss <- stacked
+one_miss$human_decision[which(!kept)[1]] <- "include"
+missed <- gr_calibrate(big, one_miss)
+round(missed$recall$bound, 3)
+#> [1] 0.909
+missed$verdict$met
+#> [1] FALSE
+```
+
+A blind stacked sheet keeps each row’s stratum and inclusion probability
+inside its `sampled_from` key, one key per row, and lists the rows in
+the run’s order rather than by stratum, so the person filling it in
+cannot tell which records the screener kept. A kept sheet and an
+excluded sheet drawn separately and joined with
+[`rbind()`](https://rdrr.io/r/base/cbind.html) are read the same way
+with `gr_calibrate(of = "stacked")`. On a stacked reference the result
+also has `lost` (M with its bounds), `false_exclusion`, `work_saved`,
+`unclear_rate`, `strata` and `verdict`; agreement statistics are left
+out there, since unweighted they would be distorted the same way
+unweighted sensitivity is.
+
+### When prioritised screening can stop
+
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+reads every record once, so it has no stopping point to choose.
+Screening that reads records in ranked order, most likely relevant
+first, does: after enough irrelevant records in a row, the rest are
+probably irrelevant too.
+[`gr_stop_test()`](https://elkronos.github.io/harnessr/reference/gr_stop_test.md)
+makes that a test. After each screened record it gives the p-value for
+recall still being below `target`, given how many records are left, and
+the first point where screening may stop at `alpha` (Callaghan and
+Muller-Hansen 2020). Here 1,000 records are screened in ranked order:
+the first 100 are relevant, the next 400 are not, and 500 are unread:
+
+``` r
+
+seen <- c(rep(1, 100), rep(0, 400), rep(NA, 500))
+gr_stop_test(seen)
+#> <gr_stop_test> recall target 0.95, alpha 0.05, 500 of 1000 records screened
+#>   safe to stop after 453 records (100 relevant found), work saved 0.547
+```
+
+The test treats the last records screened as a random draw from those
+left, which a ranking is not: when the ranker works it is cautious, and
+when it ranks worse than chance it cannot be trusted. Nor is it
+corrected for looking after every record. Report the rule and its
+settings with the result.
+[`hr_baseline_ranker()`](https://elkronos.github.io/harnessr/reference/hr_baseline_ranker.md)
+simulates such an order with a cheap model and no calls, and
+[`gr_stop_test()`](https://elkronos.github.io/harnessr/reference/gr_stop_test.md)
+accepts its result;
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
+shows it.
+
+### Several reviewers
+
+One person’s decisions are a reference, but not a perfect one, and how
+far two people agree is the yardstick for how far a screener agrees with
+either. `gr_reference(reviewers = k)` writes one decision column per
+reviewer and a `consensus` column for an adjudicator:
+
+``` r
+
+pair <- gr_reference(big, n = 40, of = "all", seed = 2, reviewers = 2)
+names(pair)
+#> [1] "document"         "human_decision_1" "human_decision_2" "consensus"       
+#> [5] "human_note"       "sampled_from"
+
+# ... two people screen the 40 records; the second includes three records the
+# first excluded.
+eligible <- big$table$decision[match(pair$document, big$table$document)] != "exclude"
+pair$human_decision_1 <- ifelse(eligible, "include", "exclude")
+pair$human_decision_2 <- pair$human_decision_1
+pair$human_decision_2[c(3, 11, 25)] <- "include"
+```
+
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+compares the screener with the reviewers’ consensus, and it will not
+guess one: a disagreement nobody settled stops it, saying how many there
+were.
+
+``` r
+
+tryCatch(gr_calibrate(big, pair), error = function(e) cat(conditionMessage(e)))
+#> 3 of 40 document(s) were judged differently by the reviewers and have no `consensus` decision, starting with 'rec038.pdf'. Fill `consensus` where they disagree, or form one with gr_reference_consensus(rule = "majority") or rule = "any_include".
+```
+
+[`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md)
+forms one decision per document by a rule. `"majority"` takes the
+decision of more than half the reviewers, and settles a tie by the
+`consensus` column where it is filled and otherwise as include, so a
+reference never excludes a record half its reviewers included. With two
+reviewers every disagreement is a tie. `"any_include"` carries a record
+forward unless every reviewer excluded it, and `"adjudicated"` takes the
+`consensus` column and stops where it is empty. `consensus_from` says
+how each row’s decision was reached:
+
+``` r
+
+table(gr_reference_consensus(pair, "majority")$consensus_from)
+#> 
+#>  tie kept unanimous 
+#>         3        37
+```
+
+Here an adjudicator settles the three instead, and the calibration runs:
+
+``` r
+
+pair$consensus[c(3, 11, 25)] <- "exclude"
+both <- gr_calibrate(big, pair)
+both$reviewers$agreement[, c("statistic", "estimate", "lower", "upper")]
+#>            statistic   estimate     lower     upper
+#> 1 observed agreement  0.9250000 0.8013577 0.9741640
+#> 2              kappa  0.8181818 0.5833333 1.0000000
+#> 3              PABAK  0.8500000 0.6027153 0.9483279
+#> 4                AC1  0.8729487 0.7245902 1.0000000
+#> 5   prevalence index -0.4250000        NA        NA
+#> 6         bias index -0.0750000        NA        NA
+#> 7 positive agreement  0.8695652        NA        NA
+#> 8 negative agreement  0.9473684        NA        NA
+both$reviewers$sensitivity[, c("reviewer", "statistic", "estimate", "lower", "upper", "n")]
+#>   reviewer   statistic estimate     lower     upper  n
+#> 1        1 sensitivity      1.0 0.7224672 1.0000000 10
+#> 2        1 specificity      1.0 0.8864866 1.0000000 30
+#> 3        2 sensitivity      1.0 0.7224672 1.0000000 10
+#> 4        2 specificity      0.9 0.7437892 0.9654001 30
+```
+
+`$reviewers` gives every pair of reviewers the observed agreement,
+kappa, PABAK, AC1 and the prevalence and bias indices from
+[`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md),
+never kappa alone, and Krippendorff’s alpha over all of them with three
+reviewers or more. It also gives each reviewer’s sensitivity and
+specificity against the consensus, which says what one person screening
+alone would have missed. Each reviewer is part of the consensus they are
+scored against, so these figures run higher than against an independent
+reference, the more so with fewer reviewers. On a stacked reference both
+are weighted the way recall is.
+
 ### Extraction
 
 Extraction fills the protocol’s fields from every chunk of each included
@@ -684,6 +919,73 @@ Nothing is discarded for failing that check; `require_quote = TRUE`
 makes discarding a choice rather than a surprise. A value is read by its
 field’s type, so “1,204” in an integer field is 1204, and a value the
 field does not allow is reported as one it could not read.
+
+### Agreement on extracted fields
+
+`n_unverified` says whether a value can be found in the document, not
+whether it is the value a person would have taken. For that, have a
+person fill the same fields for a sample of documents
+(`gr_label_sheet("extraction", ...)` writes the sheet;
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
+shows how sheets are read back) and compare the tables with
+[`gr_extract_agreement()`](https://elkronos.github.io/harnessr/reference/gr_extract_agreement.md).
+It matches rows on `document` and compares each field on its own, with
+Krippendorff’s alpha at the field’s level of measurement: interval for
+`integer` and `number` fields and nominal otherwise, unless `levels =`
+names another. Here a model and a person extracted two fields from 40
+studies:
+
+``` r
+
+fields <- gr_fields(
+  design = gr_field("Study design", type = "enum", values = c("rct", "cohort", "case series")),
+  n      = gr_field("Number randomised", type = "integer"))
+
+studies_40 <- sprintf("s%02d.pdf", 1:40)
+person <- data.frame(document = studies_40,
+                     design = rep(c("rct", "cohort", "rct", "case series"), 10),
+                     n = 30 + 7 * (1:40))
+person$n[c(5, 30)] <- NA
+model <- person
+model$design[c(4, 17)] <- c("rct", "cohort")
+model$n[c(9, 22, 31)] <- c(94, NA, 58)
+
+ag <- gr_extract_agreement(model, person, fields = fields, B = 200)
+ag
+#> <gr_extract_agreement> 2 field(s), 40 document(s) matched
+#> 
+#>   field     part    level  n percent_agreement alpha  lower upper
+#>  design    value  nominal 40             0.950 0.921  0.807     1
+#>       n reported  nominal 40             0.975 0.789 -0.013     1
+#>       n    value interval 37             0.946 0.929  0.774     1
+#>  not_reported_x not_reported_y unknown
+#>               0              0       0
+#>               3              2       0
+#>               3              2       0
+#> 
+#> Alpha intervals at 95%; bootstrap over documents, B = 200, seed 1.
+subset(ag$pairs, x != y)
+#>    document  field            x           y      x_state y_state
+#> 4   s04.pdf design          rct case series        value   value
+#> 17  s17.pdf design       cohort         rct        value   value
+#> 49  s09.pdf      n           94          93        value   value
+#> 62  s22.pdf      n not reported         184 not reported   value
+#> 71  s31.pdf      n           58         247        value   value
+```
+
+A blank, `NA` or “not reported” cell means the document does not report
+the field. In a nominal field that is one more category. A numeric field
+cannot place it on its scale, so it gets two rows: whether the field is
+reported at all, and the value where both tables report it. Alpha at the
+interval level gives partial credit for a near miss, so 94 against 93
+costs far less than 58 against 247, while percent agreement counts both
+as disagreements. Below 30 documents, or for a field that never varies,
+alpha is `NA` and a note says why; read percent agreement there. A
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+result can be passed directly. A row that failed is left out of every
+field, and an empty cell in a row read only in part is left out rather
+than taken as not reported, so a document is never counted as reporting
+nothing because it was not read.
 
 ### The write-up
 
@@ -1111,7 +1413,11 @@ the value taken from it.
   [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
   and
   [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
+- [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md):
+  label sheets, comparing recipes and models on a labelled set with
+  intervals, judges, and baselines that use no model.
 - [`?gr_calibrate`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md),
+  [`?gr_screen_sample_size`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md),
   [`?gr_screen`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
   and
   [`?gr_synthesise`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md):
