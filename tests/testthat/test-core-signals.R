@@ -314,6 +314,8 @@ test_that("a logical signal is measured over two bins and stays advisory", {
 })
 
 test_that("only the calibration split is calibrated on", {
+  old <- gr_options(verbose = TRUE)
+  on.exit(gr_options(old), add = TRUE)
   g <- seeded(3, {
     s <- stats::runif(400)
     data.frame(cluster = rep(1:40, each = 10), score = s, correct = stats::runif(400) < s,
