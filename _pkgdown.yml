@@ -20,6 +20,7 @@ articles:
   - segment
   - readers
   - review
+  - evaluate
   - runs
   - extending
 
@@ -109,12 +110,15 @@ reference:
   - gr_records
   - gr_screen
   - gr_reference
+  - gr_reference_consensus
   - gr_calibrate
+  - gr_screen_sample_size
   - gr_resolve
   - '`[.gr_reference_frame`'
   - gr_fields
   - gr_field
   - gr_extract
+  - gr_extract_agreement
   - gr_claims
   - gr_outline
   - gr_outline_pick
@@ -153,6 +157,84 @@ reference:
   - gr_cache_clear
   - gr_flush_caches
   - gr_replay_client
+
+- title: Statistics
+  desc: >
+    Intervals for proportions, agreement between raters and coders,
+    design-weighted and prediction-powered estimates, and the test of whether
+    a model's labels can stand in for people's. See `vignette("evaluate")`.
+  contents:
+  - hr_prop_ci
+  - hr_agreement
+  - hr_ht_estimate
+  - hr_ppi
+  - hr_alt_test
+
+- title: Benchmarks
+  desc: >
+    Compare configurations on a labelled reference: arms, the reference and
+    its splits, scorers, and repeated runs held to one spending limit. See
+    `vignette("evaluate")`.
+  contents:
+  - hr_benchmark
+  - hr_report
+  - hr_mdd
+  - hr_contrast
+  - hr_drift_check
+  - hr_arm
+  - hr_reference
+  - hr_scorer
+  - gr_arm
+  - gr_qa_reference
+  - gr_scorer_answer
+
+- title: Baselines
+  desc: >
+    Comparisons that use no model: tf-idf features, a cross-fitted classifier,
+    a simulated active-learning ranker for screening, and the stopping test for
+    prioritised screening. See `vignette("evaluate")`, and `vignette("review")`
+    for the stopping test.
+  contents:
+  - hr_tfidf
+  - hr_baseline_classifier
+  - hr_baseline_ranker
+  - gr_stop_test
+
+- title: Judges
+  desc: >
+    A model that chooses between candidates or grades one against a
+    reference, asked in both orders, validated against blind human labels
+    before it scores, with its accuracy corrected by those labels. See
+    `vignette("evaluate")`.
+  contents:
+  - hr_judge
+  - hr_judge_config
+  - hr_judge_validate
+  - hr_scorer_judge
+  - hr_judge_ppi
+
+- title: Signals and calibration
+  desc: >
+    Values the package records about its own work, the calibration records
+    that measure how well they predict being right, and the thresholds and
+    policy that decide whether a signal may gate an action. Nothing gates by
+    default. See `vignette("evaluate")`.
+  contents:
+  - hr_signal
+  - hr_calibrate_signal
+  - hr_calibration_valid
+  - hr_gate_threshold
+  - hr_signal_policy
+
+- title: Reference sets and splits
+  desc: >
+    Splitting reference items into tuning, calibration and test sets by
+    document, and the sheets people fill in to label them. See
+    `vignette("evaluate")`.
+  contents:
+  - hr_assign_splits
+  - gr_label_sheet
+  - gr_read_labels
 
 - title: Extending harnessr
   desc: >

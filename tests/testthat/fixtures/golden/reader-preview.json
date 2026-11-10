@@ -206,6 +206,36 @@
         }
       },
       {
+        "detail": {
+          "item_id": null,
+          "refs": {
+            "section": [
+              1,
+              2,
+              3
+            ],
+            "treatment": [
+              "read",
+              "skim",
+              "read"
+            ]
+          },
+          "signal": "gr.preview.skip",
+          "type": "logical",
+          "value": [
+            false,
+            false,
+            false
+          ]
+        },
+        "kind": "local",
+        "label": "signal",
+        "ok": true,
+        "recipe": "golden-preview",
+        "source": "annual_report.md",
+        "step": 5
+      },
+      {
         "attempts": 1,
         "budget_usd": 0,
         "cached": false,
@@ -240,7 +270,7 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
-        "step": 5,
+        "step": 6,
         "tokens": {
           "input": 198,
           "output": 25,
@@ -263,7 +293,7 @@
         "ok": true,
         "recipe": "golden-preview",
         "source": "annual_report.md",
-        "step": 6
+        "step": 7
       },
       {
         "attempts": 1,
@@ -300,7 +330,7 @@
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
-        "step": 7,
+        "step": 8,
         "tokens": {
           "input": 546,
           "output": 26,
@@ -315,7 +345,7 @@
       "embed_calls": 0,
       "embed_tokens": 0,
       "errors": 0,
-      "steps": 7,
+      "steps": 8,
       "tokens_cached_in": 0,
       "tokens_in": 1401,
       "tokens_out": 176,

@@ -32,6 +32,14 @@
       "formals": ["key = NULL"],
       "type": "function"
     },
+    "gr_arm": {
+      "formals": ["recipe", "settings = list()", "name = NULL"],
+      "type": "function"
+    },
+    "gr_arms": {
+      "formals": ["recipes", "settings = list()"],
+      "type": "function"
+    },
     "gr_audit_report": {
       "formals": ["path", "screening = NULL", "extraction = NULL", "synthesis = NULL", "protocol = NULL", "title = NULL", "claims = NULL", "records = NULL", "calibration = NULL", "answer = NULL", "open = interactive()"],
       "type": "function"
@@ -61,7 +69,7 @@
       "type": "function"
     },
     "gr_calibrate": {
-      "formals": ["screening", "reference", "positive = \"include\"", "min_positives = 10L", "of = NULL"],
+      "formals": ["screening", "reference", "positive = \"include\"", "min_positives = 10L", "of = NULL", "recall_target = 0.95", "conf = 0.95", "max_lost = NULL"],
       "type": "function"
     },
     "gr_call": {
@@ -128,6 +136,10 @@
       "formals": ["sources", "fields", "goal = NULL", "recipe = \"research\"", "client = NULL", "store = NULL", "resolve = c(\"first\", \"model\")", "require_quote = FALSE", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = FALSE", "recursive = FALSE", "trace = NULL", "..."],
       "type": "function"
     },
+    "gr_extract_agreement": {
+      "formals": ["x", "y", "fields = NULL", "levels = NULL", "by = \"document\"", "B = 2000", "conf = 0.95", "seed = 1"],
+      "type": "function"
+    },
     "gr_extractors": {
       "formals": [],
       "type": "function"
@@ -162,6 +174,10 @@
     },
     "gr_inventory": {
       "formals": ["sources", "recursive = TRUE", "model = NULL", "ocr_min_chars = 40L", "max_pdf_pages = 3L"],
+      "type": "function"
+    },
+    "gr_label_sheet": {
+      "formals": ["kind = c(\"qa\", \"screening\", \"extraction\", \"calibration\", \"judge\")", "items", "path = NULL", "blind = TRUE", "reviewers = 1", "fields = NULL"],
       "type": "function"
     },
     "gr_mock_client": {
@@ -208,8 +224,16 @@
       "formals": ["name = NULL"],
       "type": "function"
     },
+    "gr_qa_reference": {
+      "formals": ["questions", "documents", "answers", "split", "cluster = documents", "unanswerable = NULL"],
+      "type": "function"
+    },
     "gr_read": {
       "formals": ["chunks", "question", "client", "spec = NULL", "trace = NULL"],
+      "type": "function"
+    },
+    "gr_read_labels": {
+      "formals": ["path", "kind", "items = NULL", "fields = NULL"],
       "type": "function"
     },
     "gr_read_many": {
@@ -241,7 +265,11 @@
       "type": "function"
     },
     "gr_reference": {
-      "formals": ["screening", "n = 50", "of = c(\"excluded\", \"kept\", \"all\")", "seed = NULL", "path = NULL", "blind = TRUE"],
+      "formals": ["screening", "n = 50", "of = c(\"excluded\", \"kept\", \"all\", \"stacked\")", "seed = NULL", "path = NULL", "blind = TRUE", "frame = NULL", "reviewers = 1L"],
+      "type": "function"
+    },
+    "gr_reference_consensus": {
+      "formals": ["reference", "rule = c(\"majority\", \"any_include\", \"adjudicated\")"],
       "type": "function"
     },
     "gr_register_cleaner": {
@@ -280,8 +308,16 @@
       "formals": ["screening", "document", "decision", "by", "reason = NA_character_", "at = Sys.time()"],
       "type": "function"
     },
+    "gr_scorer_answer": {
+      "formals": [],
+      "type": "function"
+    },
     "gr_screen": {
       "formals": ["sources", "protocol = NULL", "question = NULL", "include = NULL", "exclude = NULL", "recipe = \"research\"", "client = NULL", "store = NULL", "screen_tokens = NULL", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = FALSE", "recursive = FALSE", "trace = NULL", "..."],
+      "type": "function"
+    },
+    "gr_screen_sample_size": {
+      "formals": ["recall_target = 0.95", "conf = 0.95", "prevalence = NULL", "frame = \"all\"", "max_lost = NULL", "frame_n = NULL"],
       "type": "function"
     },
     "gr_search": {
@@ -302,6 +338,10 @@
     },
     "gr_set_tokenizer": {
       "formals": ["name", "fn = NULL"],
+      "type": "function"
+    },
+    "gr_stop_test": {
+      "formals": ["screened_order", "target = 0.95", "alpha = 0.05", "n_total = NULL"],
       "type": "function"
     },
     "gr_synthesise": {
@@ -336,24 +376,160 @@
       "formals": ["answer", "chunks = NULL"],
       "type": "function"
     },
+    "hr_agreement": {
+      "formals": ["x", "y = NULL", "coders = NULL", "level = c(\"nominal\", \"ordinal\", \"interval\", \"ratio\")", "positive = NULL", "B = 2000", "conf = 0.95", "seed = 1"],
+      "type": "function"
+    },
+    "hr_alt_test": {
+      "formals": ["model_labels", "human_labels", "expertise", "epsilon = NULL", "q = 0.05", "metric = c(\"accuracy\", \"neg_rmse\")"],
+      "type": "function"
+    },
+    "hr_apply_signal": {
+      "formals": ["sig", "policy", "cal = NULL", "key = NULL"],
+      "type": "function"
+    },
+    "hr_arm": {
+      "formals": ["name", "run", "params = list()", "derived_from = NULL", "version = \"0.0.1\""],
+      "type": "function"
+    },
+    "hr_assign_splits": {
+      "formals": ["items", "cluster = NULL", "props = c(dev = 0.1, exploratory = 0.1, calibration = 0.3, test = 0.5)", "seed", "method = c(\"stable\", \"balanced\")"],
+      "type": "function"
+    },
+    "hr_baseline_classifier": {
+      "formals": ["texts", "labels", "folds = 5", "cluster = NULL", "seed = 1", "lambda = 1", "min_df = 2", "max_features = 5000"],
+      "type": "function"
+    },
+    "hr_baseline_ranker": {
+      "formals": ["texts", "labels", "seed_n = c(1, 1)", "batch = 1", "model = c(\"logistic\", \"naive_bayes\")", "seed = 1", "lambda = 1", "min_df = 2", "max_features = 5000"],
+      "type": "function"
+    },
+    "hr_benchmark": {
+      "formals": ["arms", "reference", "runs = 5", "client", "scorer = hr_scorer_exact()", "split = \"test\"", "governor = NULL", "seed = 1"],
+      "type": "function"
+    },
+    "hr_calibrate_signal": {
+      "formals": ["signal", "graded", "key", "method = c(\"platt\", \"isotonic\", \"none\")", "bins = 10L", "split = 0.5", "seed", "B = 2000L"],
+      "type": "function"
+    },
+    "hr_calibration_valid": {
+      "formals": ["cal", "key"],
+      "type": "function"
+    },
     "hr_check_module": {
       "formals": ["fn", "run", "rules = list()", "kind = \"module\"", "name = NA_character_"],
+      "type": "function"
+    },
+    "hr_contrast": {
+      "formals": ["new", "reference", "margin", "confirmatory = TRUE", "cost_test = TRUE"],
       "type": "function"
     },
     "hr_cost": {
       "formals": ["calls", "calls_max = calls", "tokens_in_max = 0", "tokens_out_max = 0", "embed_max = 0", "sends = list()", "batched = TRUE"],
       "type": "function"
     },
+    "hr_drift_check": {
+      "formals": ["frozen", "arm", "runs = 5", "alpha = 0.05", "alert = NULL", "client", "reference", "scorer = hr_scorer_exact()", "governor = NULL", "B = 2000", "seed = NULL"],
+      "type": "function"
+    },
+    "hr_gate_threshold": {
+      "formals": ["cal", "action", "risk = c(\"error_among_accepted\", \"miss_rate\")", "alpha", "delta = 0.05", "grid = NULL"],
+      "type": "function"
+    },
     "hr_governor": {
       "formals": ["max_calls = gr_options(\"max_calls\")", "max_cost_usd = gr_options(\"max_cost_usd\")", "max_tokens_total = gr_options(\"max_tokens_total\")", "max_output_tokens = gr_options(\"max_output_tokens\")", "allowed_models = gr_options(\"allowed_models\")", "allow_unpriced = gr_options(\"allow_unpriced\")"],
+      "type": "function"
+    },
+    "hr_ht_estimate": {
+      "formals": ["y", "pi", "strata = NULL", "estimand = c(\"mean\", \"total\", \"ratio\")", "den = NULL", "yhat = NULL", "yhat_pop = NULL", "B = 2000", "conf = 0.95", "seed = 1"],
+      "type": "function"
+    },
+    "hr_judge": {
+      "formals": ["candidates", "client", "mode = c(\"select\", \"grade\", \"pairwise\")", "reference = NULL", "model = NULL", "orders = 2", "rubric", "schema = NULL", "trace = NULL", "governor = NULL", "draw_index = 0L"],
+      "type": "function"
+    },
+    "hr_judge_config": {
+      "formals": ["model", "rubric", "mode = c(\"select\", \"grade\", \"pairwise\")", "orders = 2", "schema = NULL", "positive = NULL"],
+      "type": "function"
+    },
+    "hr_judge_ppi": {
+      "formals": ["judge_scores", "human_labels", "inclusion_prob = NULL", "conf = 0.95", "tune = TRUE"],
+      "type": "function"
+    },
+    "hr_judge_valid": {
+      "formals": ["validation", "judge_config"],
+      "type": "function"
+    },
+    "hr_judge_validate": {
+      "formals": ["judge_config", "labels", "n_pos_min = 50", "n_neg_min = 50", "positive = NULL", "B = 2000", "conf = 0.95", "seed = 1"],
+      "type": "function"
+    },
+    "hr_mdd": {
+      "formals": ["n_items", "n_clusters = NULL", "m = NULL", "icc = NULL", "p_disc = NULL", "cv = 0", "power = 0.8", "alpha = 0.025", "n_contrasts = 1", "holm = TRUE"],
+      "type": "function"
+    },
+    "hr_n_needed": {
+      "formals": ["delta", "m = NULL", "icc = NULL", "p_disc = NULL", "cv = 0", "power = 0.8", "alpha = 0.025", "n_contrasts = 1", "holm = TRUE", "true_diff = 0"],
       "type": "function"
     },
     "hr_param": {
       "formals": ["name", "type = c(\"integer\", \"number\", \"string\", \"boolean\", \"enum\", \"string_vector\", \"named_map\", \"module_ref\", \"file\")", "default = NULL", "min = NULL", "max = NULL", "choices = NULL", "required = FALSE", "help = \"\"", "cost_class = \"none\"", "affects_output = TRUE", "tier = c(\"basic\", \"advanced\")", "evidence = NULL", "depends_on = NULL", "since = NULL", "kind = NULL", "strict = TRUE", "resolve = NULL"],
       "type": "function"
     },
+    "hr_ppi": {
+      "formals": ["yhat_unlabelled", "yhat_labelled", "y_labelled", "pi = NULL", "conf = 0.95", "tune = TRUE"],
+      "type": "function"
+    },
+    "hr_prop_ci": {
+      "formals": ["x", "n", "method = c(\"wilson\", \"clopper_pearson\", \"jeffreys\")", "side = c(\"two\", \"lower\", \"upper\")", "conf = 0.95"],
+      "type": "function"
+    },
+    "hr_reference": {
+      "formals": ["items", "labels", "cluster", "split = c(\"dev\", \"exploratory\", \"calibration\", \"test\", \"final\")", "inclusion_prob = 1", "strata = NULL", "coders = NULL"],
+      "type": "function"
+    },
+    "hr_reference_add": {
+      "formals": ["reference", "items", "labels", "cluster", "split = c(\"dev\", \"exploratory\", \"calibration\", \"test\", \"final\")", "inclusion_prob = 1", "strata = NULL", "coders = NULL"],
+      "type": "function"
+    },
+    "hr_register_contrasts": {
+      "formals": ["plan", "contrasts", "mdd"],
+      "type": "function"
+    },
+    "hr_report": {
+      "formals": ["bench", "contrasts = NULL", "B = 2000", "conf = 0.95", "k = c(1, 3, 5)", "seed = 1", "method = c(\"auto\", \"bootstrap\", \"cluster_t\", \"bayes\", \"exact\")", "confirmatory = FALSE", "registration = NULL"],
+      "type": "function"
+    },
     "hr_schema": {
       "formals": ["..."],
+      "type": "function"
+    },
+    "hr_scorer": {
+      "formals": ["fn", "name"],
+      "type": "function"
+    },
+    "hr_scorer_exact": {
+      "formals": ["normalise = TRUE"],
+      "type": "function"
+    },
+    "hr_scorer_judge": {
+      "formals": ["judge_config", "validation", "client", "governor = NULL", "draw_index = 0L"],
+      "type": "function"
+    },
+    "hr_signal": {
+      "formals": ["name", "value", "trace = NULL", "item_id = NA_character_", "refs = NULL"],
+      "type": "function"
+    },
+    "hr_signal_policy": {
+      "formals": ["signal", "action", "on_fail = c(\"route_check\", \"route_person\", \"ignore\")"],
+      "type": "function"
+    },
+    "hr_signals": {
+      "formals": ["x", "name = NULL"],
+      "type": "function"
+    },
+    "hr_tfidf": {
+      "formals": ["texts", "min_df = 2", "max_features = 5000"],
       "type": "function"
     },
     "hr_validate": {
@@ -419,6 +595,21 @@
     },
     "as_json.gr_trace": {
       "class": "gr_trace",
+      "formals": ["x", "pretty = TRUE", "..."],
+      "generic": "as_json"
+    },
+    "as_json.hr_agreement": {
+      "class": "hr_agreement",
+      "formals": ["x", "pretty = TRUE", "..."],
+      "generic": "as_json"
+    },
+    "as_json.hr_bench_report": {
+      "class": "hr_bench_report",
+      "formals": ["x", "pretty = TRUE", "..."],
+      "generic": "as_json"
+    },
+    "as_json.hr_calibration": {
+      "class": "hr_calibration",
       "formals": ["x", "pretty = TRUE", "..."],
       "generic": "as_json"
     },
@@ -522,6 +713,11 @@
       "formals": ["x", "..."],
       "generic": "print"
     },
+    "print.gr_extract_agreement": {
+      "class": "gr_extract_agreement",
+      "formals": ["x", "digits = 3", "..."],
+      "generic": "print"
+    },
     "print.gr_extraction": {
       "class": "gr_extraction",
       "formals": ["x", "..."],
@@ -582,6 +778,11 @@
       "formals": ["x", "..."],
       "generic": "print"
     },
+    "print.gr_stop_test": {
+      "class": "gr_stop_test",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
     "print.gr_synthesis": {
       "class": "gr_synthesis",
       "formals": ["x", "..."],
@@ -592,9 +793,64 @@
       "formals": ["x", "..."],
       "generic": "print"
     },
+    "print.hr_agreement": {
+      "class": "hr_agreement",
+      "formals": ["x", "digits = 3", "..."],
+      "generic": "print"
+    },
+    "print.hr_alt_test": {
+      "class": "hr_alt_test",
+      "formals": ["x", "digits = 3", "..."],
+      "generic": "print"
+    },
+    "print.hr_arm": {
+      "class": "hr_arm",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_baseline_classifier": {
+      "class": "hr_baseline_classifier",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_baseline_ranker": {
+      "class": "hr_baseline_ranker",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_bench": {
+      "class": "hr_bench",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_bench_report": {
+      "class": "hr_bench_report",
+      "formals": ["x", "digits = 3", "..."],
+      "generic": "print"
+    },
+    "print.hr_calibration": {
+      "class": "hr_calibration",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
     "print.hr_conformance": {
       "class": "hr_conformance",
       "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_contrast": {
+      "class": "hr_contrast",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_contrast_registration": {
+      "class": "hr_contrast_registration",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_drift_check": {
+      "class": "hr_drift_check",
+      "formals": ["x", "digits = 3", "..."],
       "generic": "print"
     },
     "print.hr_governor": {
@@ -602,8 +858,58 @@
       "formals": ["x", "..."],
       "generic": "print"
     },
+    "print.hr_judge_config": {
+      "class": "hr_judge_config",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_judge_validation": {
+      "class": "hr_judge_validation",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_judgement": {
+      "class": "hr_judgement",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_mdd": {
+      "class": "hr_mdd",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_n_needed": {
+      "class": "hr_n_needed",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_reference": {
+      "class": "hr_reference",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
     "print.hr_schema": {
       "class": "hr_schema",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_scorer": {
+      "class": "hr_scorer",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_signal": {
+      "class": "hr_signal",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_signal_policy": {
+      "class": "hr_signal_policy",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_splits": {
+      "class": "hr_splits",
       "formals": ["x", "..."],
       "generic": "print"
     }

@@ -122,8 +122,11 @@ gr_trace_save <- function(trace, path) {
 #' responses are returned in the order they were produced. A call with a
 #' `draw_index` above 0 (see [gr_call()]) is answered with the reply recorded
 #' for that draw; in a recording that holds no draw indexes, draw k is the
-#' k-th reply recorded for the request. A call past the end of what was
-#' recorded, or for a draw that was never recorded, raises
+#' k-th reply recorded for the request. In a recording of [hr_benchmark()]
+#' each draw also names the arm that made it, and an arm's call is answered
+#' only with that arm's replies, so replaying some of the arms, or the arms
+#' in another order, gives each arm what it got. A call past the end of what
+#' was recorded, or for a draw that was never recorded, raises
 #' `hr_replay_exhausted` unless `on_exhausted = "flag"`.
 #'
 #' @section Embeddings:
@@ -434,6 +437,8 @@ replay_steps <- function(source) {
       key = replay_step_key(st$replay_key),
       # Which draw of a sampled request the call was; 0 for an ordinary call.
       draw = max(as_int1(params[["draw_index", exact = TRUE]], 0L), 0L),
+      # Whose draw it was (an hr_benchmark() arm), or NA. See replay_lookup().
+      scope = as_chr1(st$draw_scope, NA_character_),
       # The reasoning effort the request was sent with, or NULL for none, which
       # is every step recorded without the setting. Part of the old key a
       # replayed call is looked up by: see legacy_replay_key_v1(). And whether
@@ -785,15 +790,28 @@ replay_lookup <- function(client, req) {
           else if (draw == 0L) recorded
           else if (draw <= length(recorded)) recorded[draw]
           else list()
-  ck <- paste(if (legacy) "v1" else "v2", kf, draw)
+  # Two benchmark arms that send the same request at the same draw each have
+  # a reply recorded under it. Handed out in call order, a replay of one arm
+  # alone, or of the arms in another order, gave an arm the other's replies.
+  # So a request that names its scope (the arm) takes only the replies
+  # recorded for that scope, and keeps its own cursor. A recording made
+  # without scopes is read as before.
+  scope <- as_chr1(req[["draw_scope", exact = TRUE]], NA_character_)
+  scoped <- !legacy && draw > 0L && !is.na(scope) &&
+    any(vapply(cand, function(s) !is.na(as_chr1(s$scope, NA_character_)), logical(1)))
+  if (scoped) {
+    cand <- Filter(function(s) identical(as_chr1(s$scope, NA_character_), scope), cand)
+  }
+  ck <- paste(if (legacy) "v1" else "v2", kf, draw, if (scoped) scope)
   pos <- (idx$cursor[[ck]] %||% 0L) + 1L
   if (pos > length(cand)) {
     if (!identical(client$on_exhausted, "flag")) {
       have <- if (legacy) length(recorded) else length(unique(vapply(recorded, function(s) s$draw, 1L)))
       gr_abort(paste0(
         if (!length(cand)) {
-          sprintf(paste0("The recording holds no reply for draw %d of this request; it holds %d ",
-                         "draw(s) of it."), draw, have)
+          sprintf(paste0("The recording holds no reply for draw %d of this request%s; it holds %d ",
+                         "draw(s) of it."), draw,
+                  if (scoped) sprintf(" made by '%s'", scope) else "", have)
         } else {
           sprintf("The recording holds %d repl%s to %s, and this is call %d for it.",
                   length(cand), if (length(cand) == 1L) "y" else "ies",

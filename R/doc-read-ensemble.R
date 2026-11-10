@@ -80,6 +80,8 @@ read_ensemble <- function(chunks, question, client, spec, trace) {
   flagged <- isTRUE(spec$premise) & vapply(results, premise_flagged, logical(1)) & usable
   premise_notes <- if (isTRUE(spec$premise)) list(premise_members = members[flagged])
   if (sum(usable) == 1L) {
+    hr_signal("gr.ensemble.adjudicate", "single member", trace,
+              refs = list(members = length(members), answered = 1L))
     only <- results[[which(usable)]]
     return(new_answer(only$answer, "ensemble", question, only$chunks_used, trace,
                       evidence = only$evidence, partial = TRUE,
@@ -108,6 +110,10 @@ read_ensemble <- function(chunks, question, client, spec, trace) {
     list(role = "user", content = paste0("Question: ", question))
   ), model = spec$model, max_output = spec$max_answer_tokens, temperature = spec$temperature,
      trace = trace, label = "ensemble.adjudicate", effort = spec$effort)
+  # How the members were settled. The values name the outcome, not the
+  # notes' older wording, and nothing below reads the signal back.
+  hr_signal("gr.ensemble.adjudicate", if (res$ok) "model" else "concatenated", trace,
+            refs = list(members = length(members), answered = sum(usable)))
 
   ev <- rbind_evidence(lapply(results[usable], function(r) r$evidence))
 

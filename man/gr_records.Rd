@@ -100,7 +100,9 @@ Other corpus functions:
 \code{\link{gr_calibrate}()},
 \code{\link{gr_inventory}()},
 \code{\link{gr_reference}()},
+\code{\link{gr_reference_consensus}()},
 \code{\link{gr_resolve}()},
+\code{\link{gr_screen_sample_size}()},
 \code{\link{gr_search}()}
 }
 \concept{corpus functions}

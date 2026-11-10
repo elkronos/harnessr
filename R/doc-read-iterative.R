@@ -188,6 +188,11 @@ read_iterative <- function(chunks, question, client, spec, trace) {
       break
     }
     answer <- as_chr1(json_text(out$value, "answer"), "")
+    # Recorded, not acted on differently: the loop below stops on can_answer
+    # as it always has. The record is what a later calibration joins to
+    # graded items.
+    hr_signal("gr.iterative.can_answer", isTRUE(json_field(out$value, "can_answer")), trace,
+              refs = list(round = rounds))
     # A step that reports the premise false has read enough to say so, whatever
     # it set can_answer to: the verdict is the outcome, and another round would
     # go looking for support for an assumption the excerpts contradict. The
