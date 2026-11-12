@@ -147,18 +147,18 @@ records would otherwise credit the screener with the person's calls.
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"Participants were adults."</span>, <span class="va">f</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_screen.html">gr_screen</a></span><span class="op">(</span><span class="va">f</span>, question <span class="op">=</span> <span class="st">"Does the treatment work?"</span>,</span></span>
 <span class="r-in"><span>               include <span class="op">=</span> <span class="st">"Reports a randomised comparison"</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1baf1ebb074c.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1baf1ebb074c.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1b515554a7d8.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1b515554a7d8.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~9 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'structural' (cap 900 tokens, overlap 90).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'screen' (head|1|none) over 1 chunk(s).</span>
 <span class="r-in"><span><span class="va">s</span><span class="op">$</span><span class="va">deferred</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/Rtmp4M7RcG/file1baf1ebb074c.txt"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/Rtmp0cYkSI/file1b515554a7d8.txt"</span>
 <span class="r-in"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu">gr_resolve</span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span>, <span class="st">"include"</span>, by <span class="op">=</span> <span class="st">"A. Reviewer"</span>,</span></span>
 <span class="r-in"><span>                reason <span class="op">=</span> <span class="st">"Methods section describes randomisation."</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">s</span><span class="op">$</span><span class="va">table</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"decision"</span>, <span class="st">"screener_decision"</span>, <span class="st">"resolved_by"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               document decision screener_decision resolved_by</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1baf1ebb074c.txt  include           unclear A. Reviewer</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1b515554a7d8.txt  include           unclear A. Reviewer</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

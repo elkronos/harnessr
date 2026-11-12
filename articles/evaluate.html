@@ -402,12 +402,22 @@ the refusals are visible:</p>
 <span></span>
 <span><span class="va">short</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">capital</span>, <span class="va">capitals</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">geo</span>,</span>
 <span>                      governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_calls <span class="op">=</span> <span class="fl">6</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in warn_budget_stops(out, stop_limit, governor, from_options): 14 of 20</span></span>
+<span><span class="co">#&gt; runs were stopped by the benchmark's limits (calls: 14). All of them are</span></span>
+<span><span class="co">#&gt; counted wrong in the accuracy, intervals and comparisons. The first was item</span></span>
+<span><span class="co">#&gt; 'q2', arm 'capital', run 2.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">short</span><span class="op">$</span><span class="va">failure_kind</span>, useNA <span class="op">=</span> <span class="st">"ifany"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; budget_stop        &lt;NA&gt; </span></span>
 <span><span class="co">#&gt;          14           6</span></span></code></pre></div>
 <p>The first six runs were answered, and the other fourteen were refused
-before anything was sent.</p>
+before anything was sent. <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> warns (class
+<code>hr_budget_stopped</code>) whenever a limit stops a run, with the
+number stopped, the limit that stopped them, how many of them count
+against an arm and the first run stopped. When the limits came from
+<code><a href="../reference/gr_options.html">gr_options()</a></code>, the warning gives the values of the options
+that stopped runs and says to pass a governor sized for the
+benchmark.</p>
 </div>
 <div class="section level3">
 <h3 id="repeated-runs-must-be-repeated-draws">Repeated runs must be repeated draws<a class="anchor" aria-label="anchor" href="#repeated-runs-must-be-repeated-draws"></a>
@@ -603,10 +613,10 @@ is refused with class <code>hr_registration_after_scoring</code>.</p>
 <span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mdd.html">hr_mdd</a></span><span class="op">(</span><span class="va">n</span>, n_clusters <span class="op">=</span> <span class="fl">50</span>, icc <span class="op">=</span> <span class="fl">0.1</span>, p_disc <span class="op">=</span> <span class="fl">0.15</span><span class="op">)</span></span>
 <span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_contrast.html">hr_register_contrasts</a></span><span class="op">(</span><span class="va">plan</span>, <span class="fu"><a href="../reference/hr_contrast.html">hr_contrast</a></span><span class="op">(</span><span class="st">"small"</span>, <span class="st">"large"</span>, margin <span class="op">=</span> <span class="fl">0.10</span><span class="op">)</span>, <span class="va">design</span><span class="op">)</span></span>
 <span><span class="va">reg</span></span>
-<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-10T01:54:42.320Z</span></span>
+<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-12T23:25:55.245Z</span></span>
 <span><span class="co">#&gt;  contrast       label        margin mdd cost_test</span></span>
 <span><span class="co">#&gt;  small vs large confirmatory 10.0   7.8 yes      </span></span>
-<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash 79bccfe26832</span></span></code></pre></div>
+<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash 866a868e1fbf</span></span></code></pre></div>
 <p>Here the stand-in model finds each item easier or harder by document
 and by item, and <code>mock-small</code> is a little worse on every one.
 The governor allows the 3000 calls the benchmark needs:</p>

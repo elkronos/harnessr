@@ -212,7 +212,15 @@ there), is recorded as <code>failure_kind = "budget_stop"</code> and counted wro
 The runs after it are still started, so every row exists and the refusals
 are visible; their requests are refused before anything is sent. With <code>governor = NULL</code> the limits are
 read from <code><a href="gr_options.html">gr_options()</a></code> when the benchmark starts and apply to the whole
-benchmark, as they apply to one run of a reader.</p>
+benchmark, as they apply to one run of a reader. Those defaults are set
+for one run (400 calls), and a benchmark of two arms on 300 items for 5
+runs needs several thousand, so pass a governor sized for the benchmark.
+When any run is stopped, <code>hr_benchmark()</code> warns (class
+<code>hr_budget_stopped</code>) with the number of runs stopped, the limits that
+stopped them, how many of them count against an arm (runs on the dev
+split or on items with no label do not) and the first run stopped. With
+<code>governor = NULL</code> it also gives the <code><a href="gr_options.html">gr_options()</a></code> values behind those
+limits.</p>
 <p>An arm that raises an error has that run recorded as <code>"error"</code>, counted
 wrong, with the message in the run's trace. Every run on an item with no
 label has <code>correct = NA</code>, whatever its <code>failure_kind</code>: a failure on it

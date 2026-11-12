@@ -189,11 +189,11 @@ hash or that names another reference.</p>
 <span class="r-in"><span>  <span class="fu">hr_contrast</span><span class="op">(</span><span class="st">"short"</span>, <span class="st">"long"</span>, margin <span class="op">=</span> <span class="fl">0.10</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  <span class="fu">hr_contrast</span><span class="op">(</span><span class="st">"skim"</span>, <span class="st">"long"</span>, margin <span class="op">=</span> <span class="fl">0.05</span>, confirmatory <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span>, <span class="va">design</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">reg</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;hr_contrast_registration&gt; 2 contrast(s), 1 confirmatory; registered 2026-11-10T01:54:33.257Z</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;hr_contrast_registration&gt; 2 contrast(s), 1 confirmatory; registered 2026-11-12T23:25:45.087Z</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  contrast      label        margin mdd cost_test</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  short vs long confirmatory 10.0   8.2 yes      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  skim vs long  exploratory  5.0    8.2 yes      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Margins and MDD in points; reference db69600f91ae; hash 9c90941991d4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Margins and MDD in points; reference db69600f91ae; hash 94842c2bd58b</span>
 <span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu">hr_register_contrasts</span><span class="op">(</span><span class="va">ref</span>, <span class="fu">hr_contrast</span><span class="op">(</span><span class="st">"skim"</span>, <span class="st">"long"</span>, margin <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>, <span class="va">design</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Error in hr_register_contrasts(ref, hr_contrast("skim", "long", margin = 0.05),  : </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   The margin of skim vs long (5.0 points) is below the design MDD of 8.2 points (80% power, one-sided alpha 0.025 after Holm over 1 contrast(s)), so the design cannot support a non-inferiority claim at it. Widen the margin, enlarge the design, or register the contrast with confirmatory = FALSE as exploratory.</span>

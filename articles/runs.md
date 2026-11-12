@@ -141,7 +141,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 #> List of 4
 #>  $ label      : chr "reduce"
 #>  $ attempts   : int 1
-#>  $ started_utc: chr "2026-11-10T01:55:13.563Z"
+#>  $ started_utc: chr "2026-11-12T23:26:27.410Z"
 #>  $ tokens     :List of 3
 #>   ..$ input     : int 296
 #>   ..$ output    : int 13
@@ -224,10 +224,10 @@ are left out, since they can hold credentials.
 
 tr <- gr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
-#> <gr_trace run_20261110015513.924_3c3acd>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261112232627.765_91da3e>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   cost: no cost recorded
 #>   actor: owner = finance team, run_by = ana, purpose = Q3 check 
-#>   started: 2026-11-10T01:55:13.924Z
+#>   started: 2026-11-12T23:26:27.765Z
 names(tr$config)
 #> [1] "options"   "r_version"
 ```

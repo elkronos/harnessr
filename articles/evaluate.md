@@ -383,6 +383,10 @@ capital <- hr_arm("capital", function(item, ctx) ctx$call(paste0("Capital of ", 
 
 short <- hr_benchmark(capital, capitals, runs = 5, client = geo,
                       governor = hr_governor(max_calls = 6))
+#> Warning in warn_budget_stops(out, stop_limit, governor, from_options): 14 of 20
+#> runs were stopped by the benchmark's limits (calls: 14). All of them are
+#> counted wrong in the accuracy, intervals and comparisons. The first was item
+#> 'q2', arm 'capital', run 2.
 table(short$failure_kind, useNA = "ifany")
 #> 
 #> budget_stop        <NA> 
@@ -391,6 +395,13 @@ table(short$failure_kind, useNA = "ifany")
 
 The first six runs were answered, and the other fourteen were refused
 before anything was sent.
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+warns (class `hr_budget_stopped`) whenever a limit stops a run, with the
+number stopped, the limit that stopped them, how many of them count
+against an arm and the first run stopped. When the limits came from
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md),
+the warning gives the values of the options that stopped runs and says
+to pass a governor sized for the benchmark.
 
 ### Repeated runs must be repeated draws
 
@@ -613,10 +624,10 @@ plan <- hr_reference(ids, labels = rep("yes", n), cluster = docs, split = "test"
 design <- hr_mdd(n, n_clusters = 50, icc = 0.1, p_disc = 0.15)
 reg <- hr_register_contrasts(plan, hr_contrast("small", "large", margin = 0.10), design)
 reg
-#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-10T01:54:42.320Z
+#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-12T23:25:55.245Z
 #>  contrast       label        margin mdd cost_test
 #>  small vs large confirmatory 10.0   7.8 yes      
-#>   Margins and MDD in points; reference d453122a93af; hash 79bccfe26832
+#>   Margins and MDD in points; reference d453122a93af; hash 866a868e1fbf
 ```
 
 Here the stand-in model finds each item easier or harder by document and

@@ -188,7 +188,16 @@ their requests are refused before anything is sent. With
 `governor = NULL` the limits are read from
 [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 when the benchmark starts and apply to the whole benchmark, as they
-apply to one run of a reader.
+apply to one run of a reader. Those defaults are set for one run (400
+calls), and a benchmark of two arms on 300 items for 5 runs needs
+several thousand, so pass a governor sized for the benchmark. When any
+run is stopped, `hr_benchmark()` warns (class `hr_budget_stopped`) with
+the number of runs stopped, the limits that stopped them, how many of
+them count against an arm (runs on the dev split or on items with no
+label do not) and the first run stopped. With `governor = NULL` it also
+gives the
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+values behind those limits.
 
 An arm that raises an error has that run recorded as `"error"`, counted
 wrong, with the message in the run's trace. Every run on an item with no
