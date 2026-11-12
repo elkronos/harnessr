@@ -291,7 +291,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
                      if (embed_calls > 0L) sprintf("%d of them for embeddings; ", embed_calls)
                      else "",
                      already, format(cap, scientific = FALSE)),
-             class = "gr_call_cap")
+             class = "gr_call_cap", limit = "calls")
   }
   # A parallel batch is not stopped part way, so a parallel read is held to its
   # worst case against the call cap as it is against the spending limit.
@@ -303,7 +303,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
                             "gr_options(max_calls = ...), or read without parallel = TRUE, where ",
                             "the cap is checked before every request."),
                      spec$reader, n, worst_calls, already, format(cap, scientific = FALSE)),
-             class = "gr_call_cap")
+             class = "gr_call_cap", limit = "calls")
   }
   budget <- chk$budget
   if (is.null(budget) || !is.finite(budget)) return(invisible(NULL))
@@ -321,7 +321,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
                             "prices with gr_register_model(input_usd =, output_usd =), or allow ",
                             "unpriced models with gr_options(allow_unpriced = TRUE)."),
                      models_txt(unpriced), their(unpriced), limit_txt),
-             class = c("hr_unpriced_model", "hr_budget_refused"))
+             class = c("hr_unpriced_model", "hr_budget_refused"), limit = "unpriced")
   }
   # Allowed unpriced, or a mock: what its requests cost is not counted. Say
   # so rather than silently running with no spending guard at all.
@@ -343,7 +343,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
     gr_abort(sprintf(paste0("This run has already spent $%s, which reaches the $%s limit. ",
                             "Raise it with gr_options(max_cost_usd = ...)."),
                      fmt_usd(spent), limit_txt),
-             class = "gr_cost_cap")
+             class = "gr_cost_cap", limit = "cost")
   }
   # A limit of nothing: a model that costs nothing may run, and the first
   # request to one that has a price would already pass it.
@@ -351,7 +351,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
     gr_abort(sprintf(paste0("The spending limit is $0, and '%s' has a price. Raise it with ",
                             "gr_options(max_cost_usd = ...), or use a model registered at no cost."),
                      chk$zero_model),
-             class = "gr_cost_cap")
+             class = "gr_cost_cap", limit = "cost")
   }
   already_txt <- if (spent > 0) sprintf(", and this run has already spent $%s", fmt_usd(spent))
                  else ""
@@ -363,7 +363,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
                             "chunks it picks, such as recipe = \"needle\"."),
                      spec$reader, fmt_usd(input_cost), n,
                      format(tok, big.mark = ",", scientific = FALSE), already_txt, limit_txt),
-             class = "gr_cost_cap")
+             class = "gr_cost_cap", limit = "cost")
   }
   if (identical(limit, "worst")) {
     gr_abort(sprintf(paste0("With parallel = TRUE, requests go out in batches that cannot be ",
@@ -373,7 +373,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
                             "or read without parallel = TRUE, where spending is checked before ",
                             "every request."),
                      fmt_usd(worst), spec$reader, n, already_txt, limit_txt),
-             class = "gr_cost_cap")
+             class = "gr_cost_cap", limit = "cost")
   }
   invisible(NULL)
 }

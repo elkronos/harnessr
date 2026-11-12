@@ -313,10 +313,74 @@ test_that("a refused request is a refusal in the benchmark, and a limit a budget
 
   # One call for the whole benchmark: the first run reads, and the reader of
   # every later run refuses to start, which is a budget stop, not an error.
-  stopped <- quiet(hr_benchmark(gr_arm("fast"), ref, runs = 5, client = qa_client(),
-                                scorer = gr_scorer_answer(), split = "test",
-                                governor = hr_governor(max_calls = 1)))
+  # The warning names the limit the readers met, though no request of
+  # theirs was refused: each reader stopped before sending one.
+  stop_warning <- NULL
+  stopped <- withCallingHandlers(
+    quiet(hr_benchmark(gr_arm("fast"), ref, runs = 5, client = qa_client(),
+                       scorer = gr_scorer_answer(), split = "test",
+                       governor = hr_governor(max_calls = 1))),
+    hr_budget_stopped = function(w) {
+      stop_warning <<- conditionMessage(w)
+      invokeRestart("muffleWarning")
+    })
   expect_identical(stopped$failure_kind[stopped$item == "revenue"], rep("budget_stop", 5))
+  expect_match(stop_warning, "^9 of 10 runs were stopped by the benchmark's limits \\(calls: 9\\)")
+  # The note names the limit on the run's trace, and the trace's own
+  # stop_reason, which a replay reads, is left as the governor set it.
+  tr <- attr(stopped, "traces")[[2]]
+  expect_true(any(vapply(tr$steps, function(s) identical(s$label, "budget.preflight"), logical(1))))
+  expect_true(is.null(tr$stop_reason) || is.na(tr$stop_reason))
+})
+
+test_that("a reader stopped before it starts by a spending limit or an unpriced model is named", {
+  ref <- gr_qa_reference(c(revenue = "What was revenue in 2024?", units = "How many units?"),
+                         gr_example(), c("45.2 million", "12,400"), split = "test")
+  stop_of <- function(expr) {
+    msg <- NULL
+    withCallingHandlers(quiet(expr), hr_budget_stopped = function(w) {
+      msg <<- conditionMessage(w)
+      invokeRestart("muffleWarning")
+    }, gr_cost_uncheckable = function(w) invokeRestart("muffleWarning"))
+    msg
+  }
+  cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+  local_model <- function(...) {
+    suppressWarnings(gr_register_model("bench-priced-model", context_window = 128000L,
+                                       max_output = 16384L, ...))
+  }
+  local_model(input_usd = 10, output_usd = 30)
+  on.exit(suppressWarnings(gr_register_model("bench-priced-model", context_window = 128000L,
+                                             max_output = 16384L)), add = TRUE)
+  arm <- gr_arm("fast", list(model = "bench-priced-model"))
+  w <- stop_of(hr_benchmark(arm, ref, runs = 5, client = cl, scorer = gr_scorer_answer(),
+                            governor = hr_governor(max_cost_usd = 0.05)))
+  expect_match(w, "\\(cost: [0-9]+\\)")
+  expect_false(grepl("unknown", w, fixed = TRUE))
+  # With no price, a spending limit stops a real client's reader before it
+  # starts; a mock is let through with a warning instead. Nothing is sent:
+  # the check comes before the first request, and the address is closed.
+  local_model()
+  real <- gr_client(model = "bench-priced-model", api_key = "sk-not-a-real-key",
+                    base_url = "http://127.0.0.1:9/v1", max_retries = 0L)
+  w <- stop_of(hr_benchmark(gr_arm("fast"), ref, runs = 5, client = real,
+                            scorer = gr_scorer_answer(), governor = hr_governor(max_cost_usd = 1)))
+  expect_match(w, "\\(unpriced: 10\\)")
+  # A priced model under a limit too small for one read is stopped by the
+  # reader's own check, before the governor sees a request: the cost label
+  # then comes from the check's error and the note it leaves on the trace.
+  priced <- gr_client(model = "gpt-4o", api_key = "sk-not-a-real-key",
+                      base_url = "http://127.0.0.1:9/v1", max_retries = 0L)
+  b <- NULL
+  w <- stop_of(b <- hr_benchmark(gr_arm("fast"), ref, runs = 5, client = priced,
+                                 scorer = gr_scorer_answer(),
+                                 governor = hr_governor(max_cost_usd = 1e-6)))
+  expect_match(w, "\\(cost: 10\\)")
+  notes <- Filter(function(s) identical(s$label, "budget.preflight"),
+                  attr(b, "traces")[[1]]$steps)
+  expect_length(notes, 1L)
+  expect_identical(notes[[1]]$detail$limit, "cost")
+  expect_identical(attr(b, "traces")[[1]]$calls, 0L)
 })
 
 test_that("recipe arms under a cache are separate draws, and a second pass is answered from it", {

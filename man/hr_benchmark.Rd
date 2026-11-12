@@ -114,7 +114,15 @@ there), is recorded as \code{failure_kind = "budget_stop"} and counted wrong
 The runs after it are still started, so every row exists and the refusals
 are visible; their requests are refused before anything is sent. With \code{governor = NULL} the limits are
 read from \code{\link[=gr_options]{gr_options()}} when the benchmark starts and apply to the whole
-benchmark, as they apply to one run of a reader.
+benchmark, as they apply to one run of a reader. Those defaults are set
+for one run (400 calls), and a benchmark of two arms on 300 items for 5
+runs needs several thousand, so pass a governor sized for the benchmark.
+When any run is stopped, \code{hr_benchmark()} warns (class
+\code{hr_budget_stopped}) with the number of runs stopped, the limits that
+stopped them, how many of them count against an arm (runs on the dev
+split or on items with no label do not) and the first run stopped. With
+\code{governor = NULL} it also gives the \code{\link[=gr_options]{gr_options()}} values behind those
+limits.
 
 An arm that raises an error has that run recorded as \code{"error"}, counted
 wrong, with the message in the run's trace. Every run on an item with no

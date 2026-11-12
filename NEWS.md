@@ -641,7 +641,15 @@
   order, gives each arm what it got even when two arms sent the same
   request. The whole benchmark is held to
   one governor; a run with a refused request is recorded as a budget stop
-  and counted wrong. Every run on an item with no label has `correct = NA`,
+  and counted wrong, and the benchmark warns (class `hr_budget_stopped`)
+  with the number of runs stopped, the limits that stopped them, how many
+  count against an arm, and the first run stopped. With no governor the
+  limits are `gr_options()`'s, set for one run of a reader (400 calls), and
+  the warning gives the values of the options that stopped runs and, for a
+  call, spending or token limit, says to pass a governor sized for the
+  benchmark. A reader stopped by its own check before its first request
+  now leaves a `budget.preflight` note on the run's trace naming the limit,
+  and the errors that check raises carry the limit in `$limit`. Every run on an item with no label has `correct = NA`,
   failures included, so such an item never counts against an arm. Rows on
   the dev split are marked not reportable. `print()` shows accuracy per arm
   over the reportable rows and labelled items, with the dev split's accuracy

@@ -306,7 +306,11 @@ table(short$failure_kind, useNA = "ifany")
 ```
 
 The first six runs were answered, and the other fourteen were refused before
-anything was sent.
+anything was sent. `hr_benchmark()` warns (class `hr_budget_stopped`) whenever
+a limit stops a run, with the number stopped, the limit that stopped them, how
+many of them count against an arm and the first run stopped. When the limits
+came from `gr_options()`, the warning gives the values of the options that
+stopped runs and says to pass a governor sized for the benchmark.
 
 ### Repeated runs must be repeated draws
 
