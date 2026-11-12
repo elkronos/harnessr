@@ -42,7 +42,15 @@
 #' The runs after it are still started, so every row exists and the refusals
 #' are visible; their requests are refused before anything is sent. With `governor = NULL` the limits are
 #' read from [gr_options()] when the benchmark starts and apply to the whole
-#' benchmark, as they apply to one run of a reader.
+#' benchmark, as they apply to one run of a reader. Those defaults are set
+#' for one run (400 calls), and a benchmark of two arms on 300 items for 5
+#' runs needs several thousand, so pass a governor sized for the benchmark.
+#' When any run is stopped, `hr_benchmark()` warns (class
+#' `hr_budget_stopped`) with the number of runs stopped, the limits that
+#' stopped them, how many of them count against an arm (runs on the dev
+#' split or on items with no label do not) and the first run stopped. With
+#' `governor = NULL` it also gives the [gr_options()] values behind those
+#' limits.
 #'
 #' An arm that raises an error has that run recorded as `"error"`, counted
 #' wrong, with the message in the run's trace. Every run on an item with no
@@ -152,7 +160,8 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
              class = "gr_bad_setting")
   }
   split <- unique(split)
-  if (is.null(governor)) governor <- hr_governor()
+  from_options <- is.null(governor)
+  if (from_options) governor <- hr_governor()
   if (!inherits(governor, "hr_governor")) {
     gr_abort("`governor` must come from hr_governor(), or be NULL.", class = "gr_bad_setting")
   }
@@ -187,6 +196,7 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
               tokens_cached = integer(n), usd = numeric(n), usd_provenance = character(n),
               seconds = numeric(n), draw_index = integer(n), ledger_id = character(n))
   traces <- vector("list", n)
+  stop_limit <- rep(NA_character_, n)
   k <- 0L
   with_private_rng(seed, {
     for (i in sel) {
@@ -214,7 +224,8 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
                           error = function(e) list(error = e))
           secs <- proc.time()[["elapsed"]] - started
           where <- sprintf("item '%s', arm '%s', run %d", id, arm$name, r)
-          scored <- if (length(child$refusals) || inherits(out$error, "hr_budget_refused")) {
+          stopped <- length(child$refusals) || inherits(out$error, "hr_budget_refused")
+          scored <- if (stopped) {
             list(correct = FALSE, outcome = NA_character_, failure_kind = "budget_stop")
           } else if (!is.null(out$error)) {
             trace_note(child, "bench.error", list(message = conditionMessage(out$error)))
@@ -227,6 +238,13 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
           # failures FALSE would let an unlabelled item count only against
           # an arm, so they are NA too; the failure_kind stays for the audit.
           if (!labelled) scored$correct <- NA
+          # A reader that meets a limit can stop on its own and return a
+          # partial result, which the scorer calls a budget stop; the run's
+          # trace says which limit it met either way.
+          if (identical(scored$failure_kind, "budget_stop")) {
+            stop_limit[k] <- as_chr1(child$stop_reason,
+                                     as_chr1(out$error$limit, preflight_limit(child)))
+          }
           bench_fold(parent, child)
           sig <- draw_signature(child)
           dup <- draw_duplicate(sig, seen, runs)
@@ -263,6 +281,7 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
   })
   out <- as.data.frame(col, stringsAsFactors = FALSE)
   out$reportable <- out$split != "dev"
+  warn_budget_stops(out, stop_limit, governor, from_options)
   names(traces) <- out$ledger_id
   structure(out, class = c("hr_bench", "data.frame"),
             arms = data.frame(
@@ -274,6 +293,68 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
               stringsAsFactors = FALSE, row.names = NULL),
             reference_hash = reference$hash, runs = runs, split = split, seed = seed,
             scorer = scorer$name, trace = parent, traces = traces)
+}
+
+#' The limit a reader's pre-flight check named when it stopped a run before
+#' any request: the last "budget.preflight" note on the run's trace, or
+#' "unknown".
+#' @noRd
+preflight_limit <- function(trace) {
+  for (st in rev(trace$steps)) {
+    if (identical(as_chr1(st$label, ""), "budget.preflight")) {
+      return(as_chr1(st$detail$limit, "unknown"))
+    }
+  }
+  "unknown"
+}
+
+#' Warn when the benchmark's limits stopped runs. The warning names how many
+#' runs stopped, which limits stopped them, how many of them count against
+#' an arm (not those on the dev split or on items with no label), and the
+#' first run that stopped. When the limits came from gr_options(), it gives
+#' the values of the options behind the limits that stopped runs, and, when
+#' one of them is a limit on the whole run, how to set it for the benchmark.
+#' @noRd
+warn_budget_stops <- function(rows, stop_limit, governor, from_options) {
+  hit <- which(rows$failure_kind == "budget_stop")
+  if (!length(hit)) return(invisible(NULL))
+  why <- ifelse(is.na(stop_limit[hit]), "unknown", stop_limit[hit])
+  limits <- table(factor(why, levels = unique(why)))
+  counted <- sum(rows$reportable[hit] & !is.na(rows$correct[hit]))
+  first <- hit[1L]
+  msg <- sprintf("%d of %d runs were stopped by the benchmark's limits (%s). ",
+                 length(hit), nrow(rows),
+                 paste(sprintf("%s: %d", names(limits), as.integer(limits)), collapse = ", "))
+  msg <- paste0(msg, if (counted == length(hit)) {
+    "All of them are counted wrong in the accuracy, intervals and comparisons."
+  } else {
+    sprintf(paste0("%d of them are counted wrong in the accuracy, intervals and comparisons; ",
+                   "the others are on the dev split or on items with no label."), counted)
+  })
+  msg <- paste0(msg, sprintf(" The first was item '%s', arm '%s', run %d.",
+                             rows$item[first], rows$arm[first], rows$run[first]))
+  if (from_options) {
+    option <- c(calls = "max_calls", cost = "max_cost_usd", tokens = "max_tokens_total",
+                output = "max_output_tokens", model = "allowed_models",
+                unpriced = "allow_unpriced")
+    named <- unique(unname(option[intersect(names(limits), names(option))]))
+    if (!length(named)) named <- c("max_calls", "max_cost_usd", "max_tokens_total")
+    shown <- vapply(named, function(o) {
+      v <- governor[[o]]
+      v <- if (is.null(v)) "none" else if (is.numeric(v)) {
+        if (is.finite(v)) format(v, scientific = FALSE) else "none"
+      } else paste(as.character(v), collapse = ", ")
+      sprintf("%s %s", o, v)
+    }, character(1))
+    msg <- paste0(msg, sprintf(" The limits came from gr_options() (%s).",
+                               paste(shown, collapse = "; ")))
+    if (any(named %in% c("max_calls", "max_cost_usd", "max_tokens_total"))) {
+      msg <- paste0(msg, paste0(" Its call, spending and token limits are set for one run of ",
+                                "a reader; pass `governor = hr_governor(...)` with limits for ",
+                                "the whole benchmark."))
+    }
+  }
+  gr_warn(msg, class = "hr_budget_stopped")
 }
 
 #' The governor one arm run is held to: the benchmark's, less the calls,

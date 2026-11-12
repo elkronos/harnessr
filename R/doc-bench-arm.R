@@ -160,6 +160,12 @@ doc_arm_run <- function(recipe, overrides) {
 #' @noRd
 stopped_answer <- function(e, recipe, question, ctx, notes) {
   if (inherits(e, "hr_budget_refused")) stop(e)
+  # The pre-flight check stops the reader before any request, so the run's
+  # trace holds no refusal saying which limit. Leave a note naming it for
+  # hr_benchmark()'s warning. The trace's stop_reason is left alone: it is
+  # folded into the benchmark's trace, where a replay reads it.
+  trace_note(ctx$trace, "budget.preflight",
+             list(limit = as_chr1(e$limit, if (inherits(e, "gr_cost_cap")) "cost" else "calls")))
   reader <- if (is.list(recipe)) as_chr1(recipe$read$reader, NA_character_) else "auto"
   notes <- notes[!vapply(notes, is.null, logical(1))]
   if (!length(notes)) notes <- list(limit_refused = TRUE)

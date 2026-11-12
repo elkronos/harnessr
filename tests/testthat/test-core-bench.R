@@ -368,8 +368,9 @@ test_that("rows on the dev split are not reportable", {
 
 test_that("the governor holds the whole benchmark, and refused runs are budget stops", {
   ref <- bench_ref()
-  b <- hr_benchmark(ask_arm(), ref, runs = 5, client = capital_client(),
-                    governor = hr_governor(max_calls = 7))
+  expect_warning(b <- hr_benchmark(ask_arm(), ref, runs = 5, client = capital_client(),
+                                   governor = hr_governor(max_calls = 7)),
+                 class = "hr_budget_stopped")
   expect_identical(nrow(b), 20L)
   expect_identical(attr(b, "trace")$calls, 7L)
   expect_identical(b$failure_kind[8:20], rep("budget_stop", 13))
@@ -385,9 +386,81 @@ test_that("the governor holds the whole benchmark, and refused runs are budget s
     withCallingHandlers(ctx$call(paste0("Capital of ", item))$text,
                         hr_budget_refused = function(cnd) stop(cnd))
   })
-  b <- hr_benchmark(stopping, ref, runs = 5, client = capital_client(),
-                    governor = hr_governor(max_calls = 2))
+  expect_warning(b <- hr_benchmark(stopping, ref, runs = 5, client = capital_client(),
+                                   governor = hr_governor(max_calls = 2)),
+                 class = "hr_budget_stopped")
   expect_identical(b$failure_kind[3:20], rep("budget_stop", 18))
+})
+
+test_that("a benchmark warns when its limits stop runs, and says which", {
+  ref <- bench_ref()
+  catch <- function(expr) tryCatch(expr, hr_budget_stopped = function(w) conditionMessage(w))
+  # A governor passed in: the count, the limit and the first stopped run are
+  # named, and nothing is said about gr_options().
+  w <- catch(hr_benchmark(ask_arm(), ref, runs = 5, client = capital_client(),
+                          governor = hr_governor(max_calls = 7)))
+  b <- suppressWarnings(hr_benchmark(ask_arm(), ref, runs = 5, client = capital_client(),
+                                     governor = hr_governor(max_calls = 7)))
+  first <- which(b$failure_kind == "budget_stop")[1]
+  expect_match(w, "^13 of 20 runs were stopped by the benchmark's limits \\(calls: 13\\)\\. All of them are counted wrong")
+  expect_match(w, sprintf("The first was item '%s', arm 'ask', run %d.", b$item[first], b$run[first]),
+               fixed = TRUE)
+  expect_false(grepl("gr_options", w, fixed = TRUE))
+
+  # No governor: the limits are gr_options()'s, and the warning gives the
+  # option that stopped the runs and how to set limits for the benchmark.
+  old <- gr_options(max_calls = 7L, max_cost_usd = 5, max_output_tokens = NULL,
+                    max_tokens_total = NULL)
+  on.exit(gr_options(old), add = TRUE)
+  w <- catch(hr_benchmark(ask_arm(), ref, runs = 5, client = capital_client()))
+  expect_match(w, "The limits came from gr_options() (max_calls 7).", fixed = TRUE)
+  expect_match(w, "governor = hr_governor(...)", fixed = TRUE)
+  # Large limits are written out, not as 1e+05.
+  gr_options(max_calls = 100000L, max_output_tokens = 5L)
+  out_arm <- hr_arm("out", function(item, ctx) {
+    ctx$call(paste0("Capital of ", item), max_output = 50)$text
+  })
+  w <- catch(hr_benchmark(out_arm, ref, runs = 5, client = capital_client()))
+  # A limit on each request is named with its own option, and the advice
+  # about limits for the whole benchmark, which would not help, is left out.
+  expect_match(w, "(output: 20)", fixed = TRUE)
+  expect_match(w, "The limits came from gr_options() (max_output_tokens 5).", fixed = TRUE)
+  expect_false(grepl("whole benchmark", w, fixed = TRUE))
+  gr_options(max_output_tokens = NULL, max_tokens_total = 1)
+  w <- catch(hr_benchmark(ask_arm(), ref, runs = 5, client = capital_client()))
+  expect_match(w, "(tokens: 20)", fixed = TRUE)
+  expect_match(w, "(max_tokens_total 1)", fixed = TRUE)
+  gr_options(old)
+  expect_null(gr_options("max_tokens_total"))
+
+  # Runs on the dev split or on unlabelled items are not counted wrong, and
+  # the warning says how many of the stopped runs are.
+  mixed <- hr_reference(items = list(q1 = "France", q2 = "Peru"), labels = list(NA, "Lima"),
+                        cluster = c("a", "b"), split = "test")
+  w <- catch(hr_benchmark(ask_arm(), mixed, runs = 5, client = capital_client(),
+                          governor = hr_governor(max_calls = 2)))
+  expect_match(w, "8 of 10 runs were stopped", fixed = TRUE)
+  expect_match(w, paste0("5 of them are counted wrong in the accuracy, intervals and comparisons; ",
+                         "the others are on the dev split or on items with no label."), fixed = TRUE)
+  dev <- catch(hr_benchmark(ask_arm(), bench_ref("dev"), runs = 5, client = capital_client(),
+                            split = "dev", governor = hr_governor(max_calls = 2)))
+  expect_match(dev, "18 of 20 runs were stopped", fixed = TRUE)
+  expect_match(dev, "0 of them are counted wrong", fixed = TRUE)
+
+  # Runs stopped by different limits are counted by limit, in the order
+  # they first stopped a run.
+  rows <- data.frame(item = c("q1", "q2", "q3", "q4"), arm = "a", run = 1:4,
+                     failure_kind = c(NA, "budget_stop", "budget_stop", "budget_stop"),
+                     correct = c(TRUE, FALSE, FALSE, FALSE), reportable = TRUE)
+  w <- catch(harnessr:::warn_budget_stops(rows, c(NA, "cost", "tokens", "cost"),
+                                          hr_governor(), FALSE))
+  expect_match(w, "3 of 4 runs were stopped by the benchmark's limits (cost: 2, tokens: 1).",
+               fixed = TRUE)
+  expect_match(w, "The first was item 'q2', arm 'a', run 2.", fixed = TRUE)
+
+  # Within the limits there is no warning.
+  expect_no_warning(hr_benchmark(ask_arm(), ref, runs = 5, client = capital_client(),
+                                 governor = hr_governor(max_calls = 100)))
 })
 
 test_that("an arm that fails is recorded as an error with its message in the run's trace", {
