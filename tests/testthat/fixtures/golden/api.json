@@ -177,7 +177,7 @@
       "type": "function"
     },
     "gr_label_sheet": {
-      "formals": ["kind = c(\"qa\", \"screening\", \"extraction\", \"calibration\", \"judge\")", "items", "path = NULL", "blind = TRUE", "reviewers = 1", "fields = NULL"],
+      "formals": ["kind = c(\"qa\", \"screening\", \"extraction\", \"calibration\", \"judge\", \"pairwise\")", "items", "path = NULL", "blind = TRUE", "reviewers = 1", "fields = NULL"],
       "type": "function"
     },
     "gr_mock_client": {
@@ -324,6 +324,22 @@
       "formals": ["databases", "dates = NULL", "limits = NULL", "registration = NA_character_", "other = NULL", "notes = NULL"],
       "type": "function"
     },
+    "gr_seg_boundaries": {
+      "formals": ["x", "doc"],
+      "type": "function"
+    },
+    "gr_seg_pk": {
+      "formals": ["reference", "hypothesis", "k = NULL"],
+      "type": "function"
+    },
+    "gr_seg_recall": {
+      "formals": ["reference", "segmenters", "k = c(1, 3, 5)", "client = NULL", "read = list()", "split = \"test\""],
+      "type": "function"
+    },
+    "gr_seg_windowdiff": {
+      "formals": ["reference", "hypothesis", "k = NULL"],
+      "type": "function"
+    },
     "gr_segment": {
       "formals": ["doc", "spec = NULL", "client = NULL", "trace = NULL"],
       "type": "function"
@@ -338,6 +354,10 @@
     },
     "gr_set_tokenizer": {
       "formals": ["name", "fn = NULL"],
+      "type": "function"
+    },
+    "gr_settings": {
+      "formals": ["module = c(\"read\", \"segment\", \"ingest\")"],
       "type": "function"
     },
     "gr_stop_test": {
@@ -513,7 +533,7 @@
       "type": "function"
     },
     "hr_scorer_judge": {
-      "formals": ["judge_config", "validation", "client", "governor = NULL", "draw_index = 0L"],
+      "formals": ["judge_config", "validation", "client", "governor = NULL", "draw_index = 0L", "judge_model = judge_config$model"],
       "type": "function"
     },
     "hr_signal": {
@@ -570,6 +590,11 @@
     },
     "as.data.frame.gr_trace": {
       "class": "gr_trace",
+      "formals": ["x", "row.names = NULL", "optional = FALSE", "..."],
+      "generic": "as.data.frame"
+    },
+    "as.data.frame.hr_schema": {
+      "class": "hr_schema",
       "formals": ["x", "row.names = NULL", "optional = FALSE", "..."],
       "generic": "as.data.frame"
     },
