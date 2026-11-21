@@ -28,6 +28,16 @@
   recorded settings that differ between them. Those settings changed nothing
   that was sent: `top_k` under the `fast` recipe, which sends the whole
   document, is one.
+* **`gr_settings_table()`** returns every setting of every stage in one table
+  of 195 rows: the ingest, segment and read schemas (with the entries of
+  `cleaner_opts` and `layout_opts` the built-in code reads), the arguments of
+  the screening, extraction, synthesis and evaluation functions, and every
+  `gr_options()` option. Each row has its stage, the function that takes it,
+  its default, tier, evidence status and source, the first sentence of its
+  help, and the guide section that explains how to choose it. It is built
+  from the schemas, the option rules, the functions' arguments and the
+  installed help when it is called, and a test fails when a declared setting
+  is missing from it.
 * **`gr_settings()`** returns the schema of the read, segment or ingest
   settings, and `as.data.frame()` of a schema gives each setting's default,
   range, tier, evidence status and source.

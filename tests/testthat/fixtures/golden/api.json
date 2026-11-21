@@ -360,6 +360,10 @@
       "formals": ["module = c(\"read\", \"segment\", \"ingest\")"],
       "type": "function"
     },
+    "gr_settings_table": {
+      "formals": ["stage = NULL"],
+      "type": "function"
+    },
     "gr_stop_test": {
       "formals": ["screened_order", "target = 0.95", "alpha = 0.05", "n_total = NULL"],
       "type": "function"

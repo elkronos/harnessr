@@ -257,6 +257,7 @@ reference:
   - new_answer
   - hr_cost
   - gr_settings
+  - gr_settings_table
   - hr_schema
   - hr_param
   - hr_validate
