@@ -40,7 +40,8 @@ says where its default came from; almost none has a measurement behind it.
   last 40%". `header_max_chars` and `header_min_repeats`, which
   `headers_footers` already read, are now documented. The settings column
   of `gr_compare()` names each entry of `layout_opts` and `cleaner_opts`,
-  as `layout_opts.depth=3`.
+  as `layout_opts.depth=3`, and the ingest step of a run's trace records them
+  under `settings` when any is set.
 * **`gr_synthesise()`**: `coherence_rounds` (1) lets each revision pass run
   more than once, each round checked as a pass is and the pass stopping at a
   round that is discarded or changes nothing (paper-orchestra runs up to 3,

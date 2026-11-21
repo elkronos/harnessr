@@ -582,3 +582,16 @@ test_that("hr_calibrate_signal's minimums are settable and recorded", {
                              isotonic_min_items = 10)
   expect_identical(iso$method, "isotonic")
 })
+
+test_that("a run's trace records the ingest settings it used", {
+  cl <- gr_mock_client(function(m, p) "x")
+  a <- quiet(answer_document(gr_example(), "q?", "fast", client = cl,
+                             layout_opts = list(depth = 4)))
+  ing <- Filter(function(s) identical(s$label, "ingest"), a$trace$steps)
+  expect_length(ing, 1L)
+  expect_equal(ing[[1]]$detail$settings, list(layout_opts.depth = 4))
+  # At the defaults the ingest step carries no settings.
+  b <- quiet(answer_document(gr_example(), "q?", "fast", client = cl))
+  ing <- Filter(function(s) identical(s$label, "ingest"), b$trace$steps)
+  expect_null(ing[[1]]$detail$settings)
+})

@@ -125,6 +125,17 @@ ingest_settings <- function(spec) {
   c(flat("layout_opts"), flat("cleaner_opts"))
 }
 
+#' The ingest step's trace detail, with the spec's `layout_opts` and
+#' `cleaner_opts` entries as `settings` when it has any, so a trace says which
+#' ingest settings a run used. A spec at its defaults adds nothing, and its
+#' trace is as before.
+#' @noRd
+ingest_note <- function(detail, spec) {
+  s <- tryCatch(ingest_settings(spec), error = function(e) list())
+  if (length(s)) detail$settings <- s
+  detail
+}
+
 #' The settings of drop_running_lines() a spec's `layout_opts` may change.
 #' @noRd
 .gr_layout_opt_names <- c("depth", "share", "min_pages", "max_chars", "max_words")
@@ -354,7 +365,7 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
 
   if (cache && !is.null(doc <- doc_cache_get(key))) {
     gr_msg("Using cached ingestion for this document + settings.")
-    trace_note(trace, "ingest", list(cached = TRUE, blocks = nrow(doc$blocks)))
+    trace_note(trace, "ingest", ingest_note(list(cached = TRUE, blocks = nrow(doc$blocks)), spec))
     return(doc)
   }
 
@@ -454,9 +465,9 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
   ), class = "gr_document")
 
   if (cache) doc_cache_put(key, doc)
-  trace_note(trace, "ingest", list(cached = FALSE, source = label,
-                                   blocks = nrow(blocks), tokens = doc$stats$tokens,
-                                   clean_steps = steps))
+  trace_note(trace, "ingest", ingest_note(list(cached = FALSE, source = label,
+                                               blocks = nrow(blocks), tokens = doc$stats$tokens,
+                                               clean_steps = steps), spec))
   gr_msg(sprintf("Ingested %d block(s), ~%d tokens (%d chars removed by cleaning).",
                  doc$stats$blocks, doc$stats$tokens, doc$stats$chars_removed))
   doc

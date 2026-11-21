@@ -1028,6 +1028,7 @@
 "hyper_bounds","doc","function"
 "hyphens_rejoined","doc","function"
 "ingest_code","doc","function"
+"ingest_note","doc","function"
 "ingest_settings","doc","function"
 "inventory_frame","doc","function"
 "inventory_row","doc","function"
