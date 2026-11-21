@@ -534,3 +534,48 @@ test_that("hr_report notes self-judged runs and never refuses them", {
                         scorer = hr_scorer_judge(cfg, v, j$client, judge_model = "judge-model"))
   expect_false(any(grepl("own model", hr_report(other, B = 100)$notes)))
 })
+
+test_that("self_judged leaves out the requests of a judge the arm calls in its run", {
+  cfg <- grade_config()
+  v <- hr_judge_validate(cfg, known_labels(), B = 0)
+  j <- judge_client(function(txt) "pass")
+  ref <- hr_reference(list(q1 = "France", q2 = "Peru"), labels = c("Paris", "Lima"),
+                      cluster = c("a", "b"), split = "test")
+  mix <- gr_mock_client(function(m, p) {
+    txt <- paste(vapply(m, function(x) x$content, ""), collapse = "\n")
+    if (grepl("You grade one response", txt, fixed = TRUE)) {
+      return('{"verdict": "pass", "reason": "c"}')
+    }
+    "Paris"
+  })
+  # The arm answers on "other-model" and judges its answer on "mock-model",
+  # the scorer's judge model, with its run's trace.
+  arm <- hr_arm("ask_judged", function(item, ctx) {
+    a <- ctx$call(paste("Capital of", item), model = "other-model")$text
+    hr_judge(a, ctx$client, mode = "grade", reference = "Paris", model = "mock-model",
+             rubric = "r", trace = ctx$trace, orders = 1)
+    a
+  })
+  b <- suppressWarnings(hr_benchmark(arm, ref, runs = 2, client = mix,
+                                     scorer = hr_scorer_judge(cfg, v, j$client)))
+  # The judge's request is in each run's trace, marked with its judge.
+  tr <- attr(b, "traces")[[b$ledger_id[1]]]
+  marked <- Filter(function(s) !is.null(s$judge), tr$steps)
+  expect_length(marked, 1L)
+  expect_identical(marked[[1]]$model, "mock-model")
+  expect_identical(marked[[1]]$judge, hr_judge_config("mock-model", "r", mode = "grade",
+                                                      orders = 1)$hash)
+  # Only the answer counts: no run is self-judged and the report has no note.
+  expect_identical(b$self_judged, rep(FALSE, 4))
+  expect_false(any(grepl("own model", hr_report(b, B = 100)$notes)))
+  # An arm that answers on the judge's model is still self-judged.
+  same <- hr_arm("same", function(item, ctx) {
+    a <- ctx$call(paste("Capital of", item), model = "mock-model")$text
+    hr_judge(a, ctx$client, mode = "grade", reference = "Paris", model = "other-model",
+             rubric = "r", trace = ctx$trace, orders = 1)
+    a
+  })
+  b2 <- suppressWarnings(hr_benchmark(same, ref, runs = 2, client = mix,
+                                      scorer = hr_scorer_judge(cfg, v, j$client)))
+  expect_identical(b2$self_judged, rep(TRUE, 4))
+})

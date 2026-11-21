@@ -142,7 +142,14 @@ says where its default came from; almost none has a measurement behind it.
   out at draw index 0: under a `gr_cache()` every run was handed run 1's
   verdict. Its requests now count against the trace's governor, are folded
   into the trace when the judgement ends, and are sent at the trace's draw
-  index and draw scope unless `draw_index` names another. The note it adds
+  index and draw scope unless `draw_index` names another. A `governor`
+  given with a `trace` no longer replaces the trace's: the judge is held to
+  both, the lower of each limit, so a judge inside a benchmark run cannot
+  take the run past the benchmark's `max_calls`. Each request folded in
+  names the judge in its `judge` field, and `self_judged` in
+  `hr_benchmark()` leaves those requests out: an arm that answers on one
+  model and judges on another inside its run is not marked as judged on its
+  own model by an `hr_scorer_judge()` on the judge's model. The note it adds
   to the trace records no tokens, so cost summaries count the judge once.
   Its own result is unchanged: `$trace` and `$judge_cost` still hold the
   judge's requests alone, and the order swap works as before. A judge
@@ -150,6 +157,14 @@ says where its default came from; almost none has a measurement behind it.
   apart. A recording made before this change holds no judge requests in a
   benchmark's trace, so a replay of an arm that judged inside its runs
   stops at the judge, as it did before.
+
+* `hr_benchmark()` records a run as `"budget_stop"`, not `"error"`, when a
+  reader's pre-flight check in the arm stops it with `gr_call_cap` or
+  `gr_cost_cap` because the benchmark's limits leave too little. `gr_arm()`
+  caught that error, but a hand-written arm that calls `answer_document()`
+  with `trace = ctx$trace` let it through, so the run was scored as an
+  error and left out of the `hr_budget_stopped` warning. The run's trace
+  gets a `budget.preflight` note naming the limit.
 
 * `hr_benchmark()` now sets each run's draw index on `ctx$trace`, not only
   on `ctx$call()`. A `gr_read()`, `gr_segment()`, `answer_document()` or

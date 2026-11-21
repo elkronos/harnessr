@@ -247,3 +247,79 @@ test_that("a benchmark recorded before a run's trace carried its draw still repl
   expect_identical(b1$failure_kind[b1$item == "revenue"], NA_character_)
   expect_identical(b1$correct, b$correct[b$run == 1L])
 })
+
+test_that("a judge given a trace and a governor is held to both", {
+  m <- draw_judge()
+  # Alone, the judge's own governor would allow it; the run has one call left.
+  run <- gr_trace(governor = hr_governor(max_calls = 1))
+  res <- suppressWarnings(hr_judge("Paris", m$client, mode = "grade", reference = "Paris",
+                                   rubric = "r", trace = run,
+                                   governor = hr_governor(max_calls = 100)))
+  expect_identical(m$n, 1L)
+  expect_identical(run$calls, 1L)
+  expect_length(run$refusals, 1L)
+  expect_true(run$budget_stop)
+  # The lower limit holds whichever governor sets it.
+  run2 <- gr_trace(governor = hr_governor(max_calls = 100))
+  invisible(suppressWarnings(hr_judge("Paris", m$client, mode = "grade", reference = "Paris",
+                                      rubric = "r", trace = run2,
+                                      governor = hr_governor(max_calls = 1))))
+  expect_identical(run2$calls, 1L)
+  expect_length(run2$refusals, 1L)
+  # Models: only those both allow; unpriced models only when both allow them.
+  g <- governor_tighter(hr_governor(allowed_models = c("a", "b"), allow_unpriced = TRUE),
+                        hr_governor(allowed_models = c("b", "c"), max_cost_usd = 2))
+  expect_identical(g$allowed_models, "b")
+  expect_false(g$allow_unpriced)
+  expect_identical(g$max_cost_usd, 2)
+  expect_null(governor_tighter(NULL, NULL))
+})
+
+test_that("a judge with its own governor in a benchmark run stops at the benchmark's limit", {
+  m <- draw_judge("Paris")
+  ref <- hr_reference(list(q1 = "France", q2 = "Peru"), labels = c("Paris", "Lima"),
+                      cluster = c("d1", "d2"), split = "test")
+  arm <- hr_arm("a", function(item, ctx) {
+    a <- ctx$call(item)$text
+    hr_judge(a, ctx$client, mode = "grade", reference = "Paris", rubric = "r",
+             trace = ctx$trace, governor = hr_governor(max_calls = 100))
+    a
+  })
+  w <- character()
+  b <- withCallingHandlers(
+    hr_benchmark(arm, ref, runs = 1, client = m$client, scorer = hr_scorer_exact(),
+                 governor = hr_governor(max_calls = 2)),
+    warning = function(x) {
+      w <<- c(w, class(x)[1])
+      invokeRestart("muffleWarning")
+    })
+  expect_identical(attr(b, "trace")$calls, 2L)
+  expect_identical(m$n, 2L)
+  expect_identical(b$failure_kind, c("budget_stop", "budget_stop"))
+  expect_true("hr_budget_stopped" %in% w)
+})
+
+test_that("a reader's pre-flight cap in a hand-written arm is a budget stop", {
+  m <- draw_judge("Revenue was 45.2 million dollars [chunk 1].")
+  arm <- hr_arm("doc_self", function(item, ctx) {
+    answer_document(item$document, item$question, "fast", client = ctx$client,
+                    trace = ctx$trace)
+  })
+  w <- character()
+  b <- withCallingHandlers(
+    hr_benchmark(arm, draw_reference(), runs = 1, client = m$client,
+                 scorer = gr_scorer_answer(), governor = hr_governor(max_calls = 1)),
+    warning = function(x) {
+      w <<- c(w, paste(class(x)[1], conditionMessage(x)))
+      invokeRestart("muffleWarning")
+    })
+  expect_identical(b$failure_kind[2], "budget_stop")
+  expect_identical(b$usd[2], 0)
+  stopped <- grep("^hr_budget_stopped", w, value = TRUE)
+  expect_length(stopped, 1L)
+  expect_match(stopped, "1 of 2 runs were stopped by the benchmark's limits (calls: 1)", fixed = TRUE)
+  tr <- attr(b, "traces")[[b$ledger_id[2]]]
+  notes <- Filter(function(s) identical(s$label, "budget.preflight"), tr$steps)
+  expect_length(notes, 1L)
+  expect_identical(notes[[1]]$detail$limit, "calls")
+})

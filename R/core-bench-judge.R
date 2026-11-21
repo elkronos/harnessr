@@ -221,14 +221,19 @@ print.hr_judge_config <- function(x, ...) {
 #' When `trace` is given, the judge is a step of the run that trace records,
 #' as a judge called inside an [hr_arm()] with `trace = ctx$trace` is. It is
 #' held to what that run's governor has left (calls, dollars and tokens),
-#' or to `governor` when one is given. Its requests are sent at the trace's
+#' and to `governor` as well when one is given: each limit is the lower of
+#' the two, a model must be allowed by both, and an unpriced model only when
+#' both allow it. Its requests are sent at the trace's
 #' draw index and under its draw scope, as a stage's are, so each run of a
 #' benchmark is judged in its own draw and a cache does not hand every run
 #' the first run's verdict. A `draw_index` above 0 is used instead of the
 #' trace's. When the judgement ends, the judge's trace is folded into
 #' `trace`: its requests count against the run's governor and are part of
 #' every cost read from that trace, such as the run's `usd` in
-#' [hr_benchmark()]. A local note naming the judge's trace, outcome and cost is added
+#' [hr_benchmark()]. Each folded request names the judge's configuration
+#' hash in its `judge` field, so [hr_benchmark()] leaves it out when it
+#' compares the run's models with a scorer's judge model (`self_judged`).
+#' A local note naming the judge's trace, outcome and cost is added
 #' after them; it records no tokens, so cost summaries, which count requests
 #' only, do not count the judge twice.
 #'
@@ -250,7 +255,8 @@ print.hr_judge_config <- function(x, ...) {
 #' @param trace Optional `gr_trace` of the run the judge is part of. Its
 #'   draw index, draw scope and governor apply to the judge's requests, which
 #'   are folded into it.
-#' @param governor Optional [hr_governor()] for the judge's requests.
+#' @param governor Optional [hr_governor()] for the judge's requests. With
+#'   `trace`, the judge is held to this and to the trace's governor.
 #' @param draw_index Draw index passed to every request (see [gr_call()]).
 #'   0, the default, takes the draw index of `trace`, if any.
 #' @param x An `hr_judgement`.
@@ -318,7 +324,10 @@ hr_judge <- function(candidates, client, mode = c("select", "grade", "pairwise")
   cfg <- hr_judge_config(model %||% as_chr1(client$model, ""), rubric, mode = mode,
                          orders = orders, schema = schema)
   draw_index <- check_draw_index(draw_index)
-  if (is.null(governor) && !is.null(trace)) governor <- bench_governor(trace)
+  # A judge that is a step of a run is held to what the run has left, and to
+  # `governor` as well when one is given: its calls are folded into the run,
+  # so a governor of its own alone would let the run pass its limits.
+  if (!is.null(trace)) governor <- governor_tighter(bench_governor(trace), governor)
   jt <- gr_trace(governor = governor, meta = list(judge = cfg$hash))
   if (is.null(trace)) return(judge_run(cfg, candidates, reference, client, jt,
                                        draw_index = draw_index))
@@ -327,11 +336,21 @@ hr_judge <- function(candidates, client, mode = c("select", "grade", "pairwise")
   # folded into `trace` when the judgement ends, or when a refusal or an error
   # ends it early, so the run's cost and the governor's count include them.
   trace_inherit_draw(jt, trace)
+  # Each request folded into `trace` names the judge it came from, so the
+  # run's own requests can be told from its judge's (see self_judged()).
   folded <- FALSE
-  on.exit(if (!folded) trace_absorb(trace, jt), add = TRUE)
+  fold <- function() {
+    if (folded) return(invisible(NULL))
+    folded <<- TRUE
+    jt$steps <- lapply(jt$steps, function(st) {
+      if (is.list(st) && is.null(st$judge)) st$judge <- cfg$hash
+      st
+    })
+    trace_absorb(trace, jt)
+  }
+  on.exit(fold(), add = TRUE)
   j <- judge_run(cfg, candidates, reference, client, jt, draw_index = draw_index)
-  trace_absorb(trace, jt)
-  folded <- TRUE
+  fold()
   # A local step: it has no tokens, so no cost summary counts the judge again.
   trace_note(trace, sprintf("%s.%s", .hr_judge_calls, cfg$mode),
              list(judge_trace = jt$run_id, outcome = j$outcome, calls = j$judge_cost$calls,
