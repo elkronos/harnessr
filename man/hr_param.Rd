@@ -50,10 +50,16 @@ another setting.}
 \item{affects_output}{Whether the parameter can change what a run returns,
 and so belongs in cache and store keys.}
 
-\item{tier}{\code{"basic"} or \code{"advanced"}, for grouping in a user interface.}
+\item{tier}{\code{"basic"} or \code{"advanced"}, for grouping in a user interface.
+A module keeps \code{"basic"} for the few settings most users change.}
 
-\item{evidence}{\code{NULL}, or a list saying where the setting comes from and
-whether its benefit has been measured.}
+\item{evidence}{\code{NULL}, or a list saying where the default comes from:
+\code{status}, one of \code{"measured"} (the value was measured or tuned, and
+\code{source} says where the measurement is), \code{"cited"} (taken from a
+published source, which \code{source} names) or \code{"untested"} (nothing has
+measured it; \code{source} says how it was chosen), and \code{source}, one
+non-empty string. Anything else is an error of class \code{gr_bad_setting}.
+The package's own spec parameters all declare it.}
 
 \item{depends_on}{\code{NULL}, or a condition (a string) under which the
 parameter applies.}
