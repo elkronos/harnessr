@@ -34,14 +34,19 @@ and rise towards 1; lower is better.
 \details{
 These are the definitions of NLTK's \code{pk()} and \code{windowdiff()}, with the
 same windows and the same default \code{k}, \code{round(L / (2 * boundaries))},
-rounded half to even as Python rounds, and never below 1. That is NLTK's
+rounded half to even as Python rounds. That is NLTK's
 approximation of half the mean reference segment length. Half the mean
 length itself, as Beeferman et al. define \code{k}, is
 \code{(L + 1) / (2 * (boundaries + 1))}, since \code{L} positions describe \code{L + 1}
 units in \code{boundaries + 1} segments. For \code{"0100"} the default is 2: the
 reference has 5 units in 2 segments, a mean length of 2.5, and half of
-that, 1.25, would round to 1. Give \code{k} to use that figure. Values agree
-with NLTK's on the same strings.
+that, 1.25, would round to 1. Give \code{k} to use that figure.
+
+The default \code{k} matches NLTK's except in one case: when every position of
+the reference is a boundary, \code{round(L / (2 * L))} is \code{round(0.5)}, which is
+0. NLTK then uses a window of 0 positions and returns 0 for any hypothesis;
+this function raises \code{k} to 1. With that exception, and whenever \code{k} is
+given, values agree with NLTK's on the same strings.
 
 They measure whether chunk edges fall where topics change. A chunker held
 to a token cap much smaller than the topics has to cut inside them, and

@@ -9,8 +9,9 @@
 #
 # Pk and WindowDiff follow the definitions in NLTK's nltk.metrics.segmentation
 # exactly (windows of k positions over a boundary string, L - k + 1 of them,
-# and k by default NLTK's round(L / (2 * boundaries))), so a value here
-# can be checked against NLTK's on the same strings.
+# and k by default NLTK's round(L / (2 * boundaries)), raised to 1 where
+# NLTK's is 0), so a value here can be checked against NLTK's on the same
+# strings.
 
 #' Where a segmentation puts its boundaries, sentence by sentence
 #'
@@ -195,14 +196,19 @@ seg_owner_by_text <- function(units, segs) {
 #'
 #' These are the definitions of NLTK's `pk()` and `windowdiff()`, with the
 #' same windows and the same default `k`, `round(L / (2 * boundaries))`,
-#' rounded half to even as Python rounds, and never below 1. That is NLTK's
+#' rounded half to even as Python rounds. That is NLTK's
 #' approximation of half the mean reference segment length. Half the mean
 #' length itself, as Beeferman et al. define `k`, is
 #' `(L + 1) / (2 * (boundaries + 1))`, since `L` positions describe `L + 1`
 #' units in `boundaries + 1` segments. For `"0100"` the default is 2: the
 #' reference has 5 units in 2 segments, a mean length of 2.5, and half of
-#' that, 1.25, would round to 1. Give `k` to use that figure. Values agree
-#' with NLTK's on the same strings.
+#' that, 1.25, would round to 1. Give `k` to use that figure.
+#'
+#' The default `k` matches NLTK's except in one case: when every position of
+#' the reference is a boundary, `round(L / (2 * L))` is `round(0.5)`, which is
+#' 0. NLTK then uses a window of 0 positions and returns 0 for any hypothesis;
+#' this function raises `k` to 1. With that exception, and whenever `k` is
+#' given, values agree with NLTK's on the same strings.
 #'
 #' They measure whether chunk edges fall where topics change. A chunker held
 #' to a token cap much smaller than the topics has to cut inside them, and

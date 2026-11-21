@@ -146,6 +146,18 @@ test_that("the default Pk window is NLTK's round(L / (2 * boundaries))", {
   expect_identical(attr(gr_seg_pk("0100", "0100"), "k"), 2L)
 })
 
+test_that("a reference with a boundary at every position takes k = 1, not NLTK's 0", {
+  # NLTK: k = round(6 / 12) = 0, and pk('111111', '000011', boundary='1')
+  # returns 0.0. Here k is raised to 1: the 4 windows of the 6 that hold no
+  # hypothesis boundary are errors.
+  p <- gr_seg_pk("111111", "000011")
+  expect_identical(attr(p, "k"), 1L)
+  expect_equal(as.numeric(p), 4 / 6)
+  expect_identical(attr(gr_seg_windowdiff("111111", "000011"), "k"), 1L)
+  # With k given, the value is NLTK's: pk(..., k = 2) is 0.6.
+  expect_equal(as.numeric(gr_seg_pk("111111", "000011", k = 2)), 0.6)
+})
+
 test_that("a contextual chunk is matched on its source text, not its context line", {
   old <- gr_options(verbose = FALSE)
   on.exit(gr_options(old))
