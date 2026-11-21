@@ -83,3 +83,21 @@ test_that("the table's own declarations name real settings and agree with the co
   fm <- formals(ns$drop_running_lines)
   expect_true(all(ns$.gr_layout_opt_names %in% names(fm)))
 })
+
+test_that("every guide section the table points to exists", {
+  guides <- unique(stats::na.omit(gr_settings_table()$guide))
+  expect_gt(length(guides), 0L)
+  # The vignette sources sit next to the tests in the repository, and an
+  # installed package built with its vignettes keeps them under doc/.
+  dirs <- c(file.path("..", "..", "vignettes"), system.file("doc", package = "harnessr"))
+  dirs <- dirs[nzchar(dirs) & dir.exists(dirs)]
+  for (d in dirs[1]) {
+    for (g in guides) {
+      parts <- strsplit(g, "#", fixed = TRUE)[[1]]
+      f <- file.path(d, paste0(parts[1], ".Rmd"))
+      expect_true(file.exists(f), info = g)
+      expect_true(any(grepl(sprintf("{#%s}", parts[2]), readLines(f, warn = FALSE),
+                            fixed = TRUE)), info = g)
+    }
+  }
+})

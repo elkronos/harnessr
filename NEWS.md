@@ -11,6 +11,22 @@
   for them and simultaneous intervals where three arms are compared. A last
   section shows the same steps on your own documents, writing results to a
   directory you name.
+* **Settings walkthroughs.** Five guides end with a "Choosing the settings"
+  section, one walkthrough per important setting or group: what it controls
+  and trades off, the signs in your results that point to changing it, where
+  its default came from (measured, cited or untested), and how to test it
+  with `hr_sweep()`. `vignette("ingest")` covers cleaning presets with
+  `references_after`, and OCR; `vignette("segment")` the segmenter,
+  `max_tokens`, `overlap_tokens`, and `contextual` and `proposition`;
+  `vignette("readers")` the reader, `top_k`, `mmr`, word matching
+  (`lexical_blend` and BM25), `context_order` with `restate`, `verify` with
+  `cite`, `effort` and `max_merge_levels`; `vignette("review")` screening
+  calibration, extraction's `resolve` and `require_quote`, and synthesis's
+  `coherence_rounds`, `figure_bands` and `prominence`; `vignette("runs")` the
+  global limits and the governor. The offline examples run on the stand-in
+  models and report what each value sent: on the example report, `"scan"`
+  cleaning, `mmr = 0.7` at `top_k = 3`, `verify` and a merge cap of 1 sent the
+  same requests as the value before them.
 * **`hr_sweep()`** builds one arm per row of a grid of settings. The base is
   an arm from `gr_arm()`, whose settings each row overrides by name, or a
   function of the grid's columns that returns an arm. A column that is not a

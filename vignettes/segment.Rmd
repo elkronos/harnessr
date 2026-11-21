@@ -323,6 +323,175 @@ cmp <- gr_compare(gr_example(), "What was revenue?", list(
 cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "chunks_used")]
 ```
 
+## Choosing the settings
+
+Each walkthrough below takes one segmentation setting or group: what it
+controls and what it trades off, the signs in your results that point to
+changing it, where its default came from, and how to test a change.
+`vignette("settings")` lists every segmentation setting with its default.
+
+The free statistics above (`gr_chunk_stats()`, and `gr_seg_recall()` and
+`gr_seg_pk()` in `vignette("compare")`) are the first test of a chunking, since
+they cost nothing. What a chunking does to answers is tested with arms:
+`hr_sweep()` builds one arm per value and `hr_benchmark()` runs them on a
+reference. Here the arms run on one question and a stand-in model that always
+answers correctly, so the examples show how a sweep is built and read, not
+which value is better. `vignette("compare")` runs a grid of segmenters and
+chunk sizes on dev, then compares one choice on test with intervals.
+
+```{r}
+qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
+                      documents = gr_example(), answers = list("45.2 million"),
+                      split = "dev")
+says <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+sweep <- function(arms) {
+  hr_benchmark(arms, qa, runs = 5, client = says, split = "dev",
+               scorer = gr_scorer_answer())
+}
+```
+
+### Which segmenter {#set-method}
+
+**What it controls.** `method` is where the cuts fall: on a ruler (`fixed`), at
+the author's paragraphs, sentences or headings, at pages, or where the
+embeddings shift (`semantic`). Each is a guess about where meaning breaks. A
+cut through the middle of a table or an argument separates the parts a model
+needs together; chunks that keep whole sections are larger and fewer.
+
+**Signs it needs changing.** An answer that gives half a figure, or a quotation
+that stops mid-sentence, points to cuts in the wrong places: look at the chunks
+around it with `chunks$chunks$text`. `gr_seg_recall()` reporting the answer
+outside the top chunks for one segmenter and inside for another is the same
+sign, measured. A document with headings that a `paragraph` chunking runs
+across is a candidate for `structural`; a form or invoice for `page`.
+
+**Where the default came from.** `paragraph` was chosen because it needs no
+model or embedder; it has not been compared with the others (`untested`).
+Each recipe sets its own: `"needle"` uses `semantic`, `"precise"` uses
+`sentence`.
+
+**How to test it.** Sweep it on the recipe you use:
+
+```{r}
+bench <- sweep(hr_sweep(gr_arm("needle"),
+                        list(method = c("paragraph", "sentence", "structural"))))
+aggregate(tokens_in ~ param.method, bench, mean)
+```
+
+All three sent different requests here (`hr_sweep_check(bench)` has no rows),
+and `structural` sent the most, 690 prompt tokens against 667 for `sentence`,
+because its chunks carry their headings.
+
+### Chunk size: `max_tokens` {#set-max-tokens}
+
+**What it controls.** `max_tokens` caps every chunk. Smaller chunks make more
+requests for a reader that sends every chunk, and let a reader that picks the
+best few send less text around the answer; larger chunks keep more context
+together and cost fewer requests.
+
+**Signs it needs changing.** Under `map_reduce` or `skim`, a cost dominated by
+the number of requests (`gr_trace_summary()`) points to larger chunks. Under
+`retrieve`, an answer that is right but rests on long chunks of unrelated
+text points to smaller ones, and an answer split across two chunks, of which
+only one was picked, points to larger ones or to overlap.
+
+**Where the default came from.** 1200 tokens was set when the segmenters were
+written and not tuned (`untested`). The recipes set their own, from 500
+(`"needle"`) to 4000 (`"fast"`).
+
+**How to test it.**
+
+```{r}
+bench <- sweep(hr_sweep(gr_arm("needle"), list(max_tokens = c(100, 200, 500))))
+aggregate(tokens_in ~ param.max_tokens, bench, mean)
+```
+
+Under `retrieve`, smaller chunks sent more here, 829 prompt tokens at 100
+against 676 at 500. At 100 the report became eight chunks holding 704 tokens,
+since each repeats the recipe's 50 tokens of overlap, and `retrieve` sent all
+eight (the recipe's `top_k` is 8); at 500 it became two chunks of 563
+tokens. Whether the answers
+change is what a benchmark on your own reference measures.
+
+### Overlap: `overlap_tokens` {#set-overlap}
+
+**What it controls.** `overlap_tokens` copies the end of each chunk into the
+start of the next, so a sentence near a cut is whole in at least one chunk. It
+costs duplicated tokens in every request that carries both chunks, and for a
+reader that sends every chunk, in every request (see "Overlap" above).
+
+**Signs it needs changing.** An answer that needs the end of one chunk and the
+start of the next, such as a figure in one and its unit in the other, points to
+more overlap. A bill that grew with no change in answers points to less.
+
+**Where the default came from.** 0, so no text is sent twice; it has not been
+compared with other values (`untested`). Several recipes set 10% of their
+chunk size.
+
+**How to test it.**
+
+```{r}
+bench <- sweep(hr_sweep(gr_arm("needle", list(max_tokens = 100)),
+                        list(overlap_tokens = c(0, 20, 50))))
+aggregate(tokens_in ~ param.overlap_tokens, bench, mean)
+```
+
+At 100-token chunks, 50 tokens of overlap sent 24% more prompt tokens than
+none (829 against 669).
+
+### Context lines and propositions: `contextual` and `proposition` {#set-contextual}
+
+**What they control.** `contextual` starts each chunk with a line saying where
+it sits, built from the file's metadata for nothing, or written by a model
+with `context_source = "llm"` (one request per chunk, capped at
+`context_reply_tokens`, from the first `context_document_tokens` of the
+document). `proposition` has a model rewrite the text into standalone
+statements, one request per `proposition_batch_tokens` of text. Both help a
+chunk retrieved on its own to make sense; both put words in the chunk that are
+not the document's, which is why quotations are checked against
+`source_text`.
+
+**Signs they are needed.** Answers that confuse two sections that say similar
+things ("revenue rose" in the 2023 and the 2024 section), or retrieval that
+picks a chunk whose subject is a pronoun, point to `contextual`. Dense factual
+text where each sentence leans on the one before points to `proposition`. A
+segmentation bill that is a large share of the run (`ctx$trace`) points away
+from the model-written versions.
+
+**Where the defaults came from.** `context_source = "metadata"` was chosen as
+the source that makes no request, and has not been compared with `"llm"`.
+`proposition_batch_tokens` (900), `context_reply_tokens` (90),
+`context_document_tokens` (1500) and `proposition_reply_tokens` (2000) are the
+values the code had as constants; none was tuned (`untested`).
+
+**How to test them.** Compare `contextual` with the segmenter it builds on:
+
+```{r}
+bench <- sweep(hr_sweep(gr_arm("needle", list(max_tokens = 100)),
+                        list(method = c("paragraph", "contextual"))))
+aggregate(tokens_in ~ param.method, bench, mean)
+```
+
+`contextual` sent 81 fewer prompt tokens here. The room it holds back for its
+lines makes its chunks smaller, 73 tokens on average against 81, and the
+recipe's eight chunks then hold less text.
+`proposition` and `context_source = "llm"` need a model that writes real
+statements, so they run on your own reference and client:
+
+```{r eval = FALSE}
+arms <- hr_sweep(gr_arm("needle"), data.frame(
+  method = c("paragraph", "contextual", "contextual", "proposition"),
+  context_source = c("metadata", "metadata", "llm", "metadata")))
+bench <- hr_benchmark(arms, my_reference, runs = 5, client = my_client, split = "dev",
+                      scorer = gr_scorer_answer())
+aggregate(cbind(correct, usd) ~ param.method + param.context_source, bench, mean)
+```
+
+`context_source` is stored in the recipe even under a segmenter that ignores
+it, so give it the value the other rows use for every row where it does
+nothing, as above; a row that changes nothing else would otherwise be a second
+arm sending the same requests, which `hr_sweep_check()` would then report.
+
 ## Previewing chunks in the Shiny app
 
 The bundled app has a control for every segmentation setting: segmenter,
