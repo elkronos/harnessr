@@ -42,11 +42,15 @@ reference answer. Required for \code{"grade"}.}
 
 \item{schema}{\code{NULL}, or a reply schema with a string \code{verdict} property.}
 
-\item{trace}{Optional \code{gr_trace} of the run being judged.}
+\item{trace}{Optional \code{gr_trace} of the run the judge is part of. Its
+draw index, draw scope and governor apply to the judge's requests, which
+are folded into it.}
 
-\item{governor}{Optional \code{\link[=hr_governor]{hr_governor()}} for the judge's requests.}
+\item{governor}{Optional \code{\link[=hr_governor]{hr_governor()}} for the judge's requests. With
+\code{trace}, the judge is held to this and to the trace's governor.}
 
-\item{draw_index}{Draw index passed to every request (see \code{\link[=gr_call]{gr_call()}}).}
+\item{draw_index}{Draw index passed to every request (see \code{\link[=gr_call]{gr_call()}}).
+0, the default, takes the draw index of \code{trace}, if any.}
 
 \item{x}{An \code{hr_judgement}.}
 
@@ -85,14 +89,29 @@ kind is common in model judges (Zheng et al. 2023; Wang et al. 2024).
 }
 \details{
 Every request goes through \code{\link[=gr_call]{gr_call()}}'s path, so the governor checks it
-before it is sent, a \code{\link[=gr_cache]{gr_cache()}} keys it with \code{draw_index}, and the
+before it is sent, a \code{\link[=gr_cache]{gr_cache()}} keys it with its draw index, and the
 trace records it, under the label \verb{judge.<mode>.o<k>} for order k. The
-requests are recorded in a trace of the judge's own (\verb{$trace}), never in
-\code{trace}, and their cost is reported in \verb{$judge_cost}, so a run's cost
-never includes the judging of it. When \code{trace} is given, the judge is held
-to what that run's governor has left (calls, dollars and tokens) and a
-local note naming the judge's trace and cost is added to it. \code{governor}, if
-given, is used instead.
+requests are recorded in a trace of the judge's own (\verb{$trace}), and their
+cost is reported in \verb{$judge_cost}.
+
+When \code{trace} is given, the judge is a step of the run that trace records,
+as a judge called inside an \code{\link[=hr_arm]{hr_arm()}} with \code{trace = ctx$trace} is. It is
+held to what that run's governor has left (calls, dollars and tokens),
+and to \code{governor} as well when one is given: each limit is the lower of
+the two, a model must be allowed by both, and an unpriced model only when
+both allow it. Its requests are sent at the trace's
+draw index and under its draw scope, as a stage's are, so each run of a
+benchmark is judged in its own draw and a cache does not hand every run
+the first run's verdict. A \code{draw_index} above 0 is used instead of the
+trace's. When the judgement ends, the judge's trace is folded into
+\code{trace}: its requests count against the run's governor and are part of
+every cost read from that trace, such as the run's \code{usd} in
+\code{\link[=hr_benchmark]{hr_benchmark()}}. Each folded request names the judge's configuration
+hash in its \code{judge} field, so \code{\link[=hr_benchmark]{hr_benchmark()}} leaves it out when it
+compares the run's models with a scorer's judge model (\code{self_judged}).
+A local note naming the judge's trace, outcome and cost is added
+after them; it records no tokens, so cost summaries, which count requests
+only, do not count the judge twice.
 
 A failed request, or a reply with no allowed verdict, makes the result
 \code{"failed"}.

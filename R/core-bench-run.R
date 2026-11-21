@@ -17,7 +17,10 @@
 #' same order.
 #'
 #' Run `r` of each arm on each item is given `ctx$draw_index = r` (see
-#' [hr_arm()]), so with the index passed to [gr_call()] each run is its own
+#' [hr_arm()]), and its `ctx$trace` carries `r` as well, so every request the
+#' run makes through `ctx$call()`, `ctx$call_json()` or a stage called with
+#' `trace = ctx$trace` ([gr_read()], [gr_segment()], [answer_document()],
+#' [hr_judge()] and the like) is sent at the run's draw, and each run is its own
 #' entry in a [gr_cache()] and its own recorded draw in a
 #' [gr_replay_client()]. Each request a run makes with a draw index is
 #' recorded under the arm's name as well, so a replay of a benchmark answers
@@ -51,6 +54,13 @@
 #' split or on items with no label do not) and the first run stopped. With
 #' `governor = NULL` it also gives the [gr_options()] values behind those
 #' limits.
+#'
+#' A reader's pre-flight check that finds the run's limits leave too little
+#' for it raises an error of class `gr_call_cap` or `gr_cost_cap` before any
+#' request. An arm that lets that error through, such as one that calls
+#' [answer_document()] with `trace = ctx$trace`, has the run recorded as a
+#' `"budget_stop"` as well, with a `budget.preflight` note naming the limit
+#' in its trace, as [gr_arm()] records it.
 #'
 #' An arm that raises an error has that run recorded as `"error"`, counted
 #' wrong, with the message in the run's trace. Every run on an item with no
@@ -116,7 +126,9 @@
 #'     [hr_scorer_judge()]) equals the model or the served model of one of
 #'     the run's model requests, `FALSE` when the run made model requests
 #'     with a known model and none equals it, and `NA` when the scorer names
-#'     no judge model or the run recorded no model. The match is exact, so
+#'     no judge model or the run recorded no model. The requests of a judge
+#'     the arm called with `trace = ctx$trace` ([hr_judge()]) are left out:
+#'     they graded the run's answers, they did not make them. The match is exact, so
 #'     `"model-x"` and `"model-x-2026-01"` differ. Nothing is refused; see the
 #'     note [hr_report()] adds.}
 #'   \item{`reportable`}{`FALSE` for rows on the dev split.}
@@ -233,7 +245,19 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
                           error = function(e) list(error = e))
           secs <- proc.time()[["elapsed"]] - started
           where <- sprintf("item '%s', arm '%s', run %d", id, arm$name, r)
-          stopped <- length(child$refusals) || inherits(out$error, "hr_budget_refused")
+          # A reader's pre-flight check stops it before any request with an
+          # error that names the limit (gr_call_cap, gr_cost_cap), not with a
+          # refusal. In a hand-written arm nothing catches it, as gr_arm()
+          # does, so it is a budget stop here too, not an error.
+          capped <- inherits(out$error, c("gr_call_cap", "gr_cost_cap"))
+          stopped <- length(child$refusals) || capped ||
+            inherits(out$error, "hr_budget_refused")
+          if (capped && !length(child$refusals)) {
+            trace_note(child, "budget.preflight", list(
+              limit = as_chr1(out$error$limit,
+                              if (inherits(out$error, "gr_cost_cap")) "cost" else "calls"),
+              message = conditionMessage(out$error)))
+          }
           scored <- if (stopped) {
             list(correct = FALSE, outcome = NA_character_, failure_kind = "budget_stop")
           } else if (!is.null(out$error)) {
@@ -260,8 +284,9 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
           if (!is.na(dup)) {
             gr_abort(sprintf(paste0(
               "Arm '%s' did not make distinct draws: on %s, %s. Repeated runs answered from one ",
-              "stored reply are copies, not draws. Pass ctx$draw_index to every request the arm ",
-              "makes (ctx$call() does), and record enough draws for a replay."),
+              "stored reply are copies, not draws. Send every request of the arm at the run's draw ",
+              "(ctx$call() and stages given trace = ctx$trace do, unless a request names a fixed ",
+              "draw_index), and record enough draws for a replay."),
               arm$name, where, dup), class = "hr_duplicate_draw")
           }
           seen[[length(seen) + 1L]] <- sig
@@ -373,14 +398,42 @@ warn_budget_stops <- function(rows, stop_limit, governor, from_options) {
 bench_governor <- function(parent) fork_governor(parent)
 
 #' The context an arm run is given. Built in its own function, so the `call`
-#' shortcut keeps this run's trace and draw however long the arm holds it.
+#' and `call_json` shortcuts keep this run's trace and draw however long the
+#' arm holds them.
+#'
+#' The run's trace carries the run's draw index (hr_benchmark() has already
+#' set the arm's name as its draw scope), so a stage or a judge the arm calls
+#' with `trace = ctx$trace` sends every request as the run's draw (see
+#' trace_draw_index()). Given only to `call`, a gr_read() inside the arm sent
+#' draw 0, and under a cache the arm was refused for repeating a draw.
 #' @noRd
 bench_ctx <- function(client, trace, run, item_id, arm) {
+  trace$draw_index <- run
   list(client = client, trace = trace, governor = trace$governor, draw_index = run,
        item_id = item_id, arm = arm$name, run = run, params = arm$params,
        call = function(messages, ...) {
          gr_call(client, messages, ..., trace = trace, draw_index = run)
+       },
+       call_json = function(messages, schema, ...) {
+         bench_call_json(client, messages, schema, ..., trace = trace, draw_index = run)
        })
+}
+
+#' A structured call for an arm: the parsed reply when the request succeeded
+#' and the reply meets `schema`, else a failed gr_result, which a scorer reads
+#' as an error (see output_failure()). A reply that came back but does not
+#' meet the schema is that reply's result, marked failed, with the reason.
+#' @noRd
+bench_call_json <- function(client, messages, schema, ...) {
+  res <- gr_call_json(client, messages, schema = schema, ...)
+  if (isTRUE(res$ok)) return(res$value)
+  out <- res$result
+  if (isTRUE(out$ok)) {
+    out$ok <- FALSE
+    out$error <- sprintf("The reply does not meet the schema: %s",
+                         as_chr1(res$problem, "it is not a JSON object"))
+  }
+  out
 }
 
 #' Fold one arm run's trace into the benchmark's, with each folded step
@@ -434,12 +487,15 @@ draw_signature <- function(trace) {
 #' Whether a run was graded by a judge on its own model: TRUE when
 #' `judge_model` is the model or served model of one of the run's model
 #' requests, FALSE when the run has requests with a known model and none is,
-#' NA when there is no judge model or no known model to compare.
+#' NA when there is no judge model or no known model to compare. The requests
+#' of a judge the run called with its trace (hr_judge(trace =)) are left out:
+#' they judged the run's answers, they did not make them.
 #' @noRd
 self_judged <- function(trace, judge_model) {
   jm <- as_chr1(judge_model, NA_character_)
   if (is.na(jm) || !nzchar(jm)) return(NA)
-  req <- Filter(function(s) !identical(s$kind, "embedding"), request_steps(trace$steps))
+  req <- Filter(function(s) !identical(s$kind, "embedding") && is.null(s$judge),
+                request_steps(trace$steps))
   seen <- unlist(lapply(req, function(s) {
     c(as_chr1(s$model, NA_character_), as_chr1(s$served_model, NA_character_))
   }), use.names = FALSE)

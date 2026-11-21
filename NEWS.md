@@ -134,6 +134,52 @@ says where its default came from; almost none has a measurement behind it.
   `gr_options(max_calls =)` is still a limit per document for
   `gr_read_many()` and per stage for the others.
 
+* `hr_judge()` given a `trace` is now a step of the run that trace records.
+  It recorded its requests on a trace of its own with a copy of the run's
+  governor and never folded it in, so its calls and dollars were missing
+  from the run's cost, from `usd` in `hr_benchmark()` and from the count
+  the benchmark's governor checks, and its requests went
+  out at draw index 0: under a `gr_cache()` every run was handed run 1's
+  verdict. Its requests now count against the trace's governor, are folded
+  into the trace when the judgement ends, and are sent at the trace's draw
+  index and draw scope unless `draw_index` names another. A `governor`
+  given with a `trace` no longer replaces the trace's: the judge is held to
+  both, the lower of each limit, so a judge inside a benchmark run cannot
+  take the run past the benchmark's `max_calls`. Each request folded in
+  names the judge in its `judge` field, and `self_judged` in
+  `hr_benchmark()` leaves those requests out: an arm that answers on one
+  model and judges on another inside its run is not marked as judged on its
+  own model by an `hr_scorer_judge()` on the judge's model. The note it adds
+  to the trace records no tokens, so cost summaries count the judge once.
+  Its own result is unchanged: `$trace` and `$judge_cost` still hold the
+  judge's requests alone, and the order swap works as before. A judge
+  called without a trace, and `hr_scorer_judge()`, still keep their calls
+  apart. A recording made before this change holds no judge requests in a
+  benchmark's trace, so a replay of an arm that judged inside its runs
+  stops at the judge, as it did before.
+
+* `hr_benchmark()` records a run as `"budget_stop"`, not `"error"`, when a
+  reader's pre-flight check in the arm stops it with `gr_call_cap` or
+  `gr_cost_cap` because the benchmark's limits leave too little. `gr_arm()`
+  caught that error, but a hand-written arm that calls `answer_document()`
+  with `trace = ctx$trace` let it through, so the run was scored as an
+  error and left out of the `hr_budget_stopped` warning. The run's trace
+  gets a `budget.preflight` note naming the limit.
+
+* `hr_benchmark()` now sets each run's draw index on `ctx$trace`, not only
+  on `ctx$call()`. A `gr_read()`, `gr_segment()`, `answer_document()` or
+  other stage called with `trace = ctx$trace` sent its requests at draw 0,
+  so under a `gr_cache()` the arm was refused with `hr_duplicate_draw`
+  unless it set `ctx$trace$draw_index` itself. Arms no longer need that
+  line, and `gr_arm()` no longer sets it. A request given a fixed
+  `draw_index` still sends that one, and such an arm is still refused.
+
+* `hr_arm()`'s `ctx` gains `call_json(messages, schema, ...)`, a structured
+  call sent through the same client, trace, governor and draw as
+  `ctx$call()`. It returns the parsed reply, or a failed `gr_result` when
+  the request failed or the reply does not meet the schema, which the
+  scorers count as an error.
+
 ## Renamed
 
 * **The package is now called harnessr.** readgpt grew a general core for

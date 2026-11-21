@@ -76,7 +76,9 @@ model as the arm: \code{TRUE} when the scorer's \code{judge_model} (see
 \code{\link[=hr_scorer_judge]{hr_scorer_judge()}}) equals the model or the served model of one of
 the run's model requests, \code{FALSE} when the run made model requests
 with a known model and none equals it, and \code{NA} when the scorer names
-no judge model or the run recorded no model. The match is exact, so
+no judge model or the run recorded no model. The requests of a judge
+the arm called with \code{trace = ctx$trace} (\code{\link[=hr_judge]{hr_judge()}}) are left out:
+they graded the run's answers, they did not make them. The match is exact, so
 \code{"model-x"} and \code{"model-x-2026-01"} differ. Nothing is refused; see the
 note \code{\link[=hr_report]{hr_report()}} adds.}
 \item{\code{reportable}}{\code{FALSE} for rows on the dev split.}
@@ -97,7 +99,10 @@ same order.
 }
 \details{
 Run \code{r} of each arm on each item is given \code{ctx$draw_index = r} (see
-\code{\link[=hr_arm]{hr_arm()}}), so with the index passed to \code{\link[=gr_call]{gr_call()}} each run is its own
+\code{\link[=hr_arm]{hr_arm()}}), and its \code{ctx$trace} carries \code{r} as well, so every request the
+run makes through \code{ctx$call()}, \code{ctx$call_json()} or a stage called with
+\code{trace = ctx$trace} (\code{\link[=gr_read]{gr_read()}}, \code{\link[=gr_segment]{gr_segment()}}, \code{\link[=answer_document]{answer_document()}},
+\code{\link[=hr_judge]{hr_judge()}} and the like) is sent at the run's draw, and each run is its own
 entry in a \code{\link[=gr_cache]{gr_cache()}} and its own recorded draw in a
 \code{\link[=gr_replay_client]{gr_replay_client()}}. Each request a run makes with a draw index is
 recorded under the arm's name as well, so a replay of a benchmark answers
@@ -131,6 +136,13 @@ stopped them, how many of them count against an arm (runs on the dev
 split or on items with no label do not) and the first run stopped. With
 \code{governor = NULL} it also gives the \code{\link[=gr_options]{gr_options()}} values behind those
 limits.
+
+A reader's pre-flight check that finds the run's limits leave too little
+for it raises an error of class \code{gr_call_cap} or \code{gr_cost_cap} before any
+request. An arm that lets that error through, such as one that calls
+\code{\link[=answer_document]{answer_document()}} with \code{trace = ctx$trace}, has the run recorded as a
+\code{"budget_stop"} as well, with a \code{budget.preflight} note naming the limit
+in its trace, as \code{\link[=gr_arm]{gr_arm()}} records it.
 
 An arm that raises an error has that run recorded as \code{"error"}, counted
 wrong, with the message in the run's trace. Every run on an item with no

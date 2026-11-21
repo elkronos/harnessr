@@ -47,17 +47,32 @@ which the benchmark's scorer then compares with the item's label.
 \item{\code{trace}}{A \code{\link[=gr_trace]{gr_trace()}} of this run alone. Every request the arm
 makes must be recorded into it (\code{gr_call(..., trace = ctx$trace)}):
 it is how the benchmark counts the run's tokens, dollars and refusals,
-and how it holds the run to the benchmark's limits.}
+and how it holds the run to the benchmark's limits. It carries the
+run's draw index and the arm's name as its draw scope, so a stage
+called with \code{trace = ctx$trace} (\code{\link[=gr_read]{gr_read()}}, \code{\link[=gr_segment]{gr_segment()}},
+\code{\link[=answer_document]{answer_document()}}, \code{\link[=hr_judge]{hr_judge()}} and the like) sends every request at
+the run's draw without being given \code{draw_index}.}
 \item{\code{governor}}{The \code{\link[=hr_governor]{hr_governor()}} the run is held to: the
 benchmark's limits less what earlier runs used. It is already attached
 to \code{trace}.}
-\item{\code{draw_index}}{The run number, 1 to \code{runs}. Pass it to
-\code{\link[=gr_call]{gr_call()}} as \code{draw_index} so each run is its own draw: under a
-\code{\link[=gr_cache]{gr_cache()}} or a \code{\link[=gr_replay_client]{gr_replay_client()}} a request sent without it
-answers every run with the same stored reply, and the benchmark
-refuses such an arm.}
+\item{\code{draw_index}}{The run number, 1 to \code{runs}. Every request
+recorded in \code{ctx$trace} is sent at it unless the request names another
+draw index, so each run is its own draw: under a \code{\link[=gr_cache]{gr_cache()}} or a
+\code{\link[=gr_replay_client]{gr_replay_client()}} a request sent at one fixed draw index answers
+every run with the same stored reply, and the benchmark refuses such
+an arm.}
 \item{\code{call}}{A shortcut, \code{ctx$call(messages, ...)}, for
 \code{gr_call(ctx$client, messages, ..., trace = ctx$trace, draw_index = ctx$draw_index)}.}
+\item{\code{call_json}}{A structured call, \code{ctx$call_json(messages, schema, ...)}, sent as \code{call} sends one: with the benchmark's client, recorded
+in \code{ctx$trace}, held to its governor and at the run's draw. \code{schema} is
+a JSON schema (a list) the reply must meet, and \code{...} takes the other
+arguments of \code{\link[=gr_call]{gr_call()}}, such as \code{model}, \code{label} and
+\code{schema_name}. It returns the parsed reply, a list, when the request
+succeeded and the reply meets the schema. Otherwise it returns a failed
+\link{gr_result} (\code{ok = FALSE}): the request's own result when the request
+failed, or the reply's result with the reason in \code{error} when the reply
+does not meet the schema. An arm that returns that result is scored as
+an error.}
 \item{\code{item_id}, \code{arm}, \code{run}, \code{params}}{The item's id, the arm's name,
 the run number and the arm's \code{params}.}
 }

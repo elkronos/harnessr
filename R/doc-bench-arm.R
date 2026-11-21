@@ -126,9 +126,8 @@ gr_arms <- function(recipes, settings = list()) {
 doc_arm_run <- function(recipe, overrides) {
   function(item, ctx) {
     item <- qa_item(item)
-    # Every request this run makes, however deep in the reader, is draw
-    # `ctx$draw_index` of its request (trace_draw_index()).
-    ctx$trace$draw_index <- ctx$draw_index
+    # Every request this run makes, however deep in the reader, is the run's
+    # draw: hr_benchmark() hands the arm a trace that carries it (bench_ctx()).
     tryCatch({
       if (inherits(item$document, "gr_chunks")) {
         if (identical(recipe, "auto")) {

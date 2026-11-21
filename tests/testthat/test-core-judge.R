@@ -124,30 +124,41 @@ test_that("a reply with no allowed verdict, or a failed call, makes the judgemen
   expect_identical(hr_judge(c("x", "y"), down, mode = "select", rubric = "r")$outcome, "failed")
 })
 
-test_that("judge cost is recorded apart from the run it judges", {
+test_that("judge cost is folded into the run it is part of, once", {
   gr_register_model("judge-priced", context_window = 128000L, max_output = 4096L,
                     input_usd = 2, output_usd = 8)
   j <- judge_client(paris_rule)
   run <- gr_trace()
   invisible(gr_call(j$client, "Answer the question.", trace = run, label = "run.answer"))
-  before <- gr_trace_cost(run)
+  before <- sum(gr_trace_cost(run)$usd)
   res <- hr_judge(c("Paris", "Lyon"), j$client, mode = "select", model = "judge-priced",
                   rubric = "Which names the capital of France?", trace = run)
-  # The run's calls, tokens and dollars are as they were.
-  expect_identical(run$calls, 1L)
-  expect_equal(gr_trace_cost(run), before)
-  # The judge's own ledger holds both requests and their price.
+  # The judge's own ledger holds both requests and their price, as before.
   expect_identical(res$judge_cost$calls, 2L)
   expect_identical(res$trace$calls, 2L)
   expect_gt(res$judge_cost$usd, 0)
   expect_equal(res$judge_cost$usd, sum(gr_trace_cost(res$trace)$usd))
   expect_identical(res$judge_cost$tokens_in, res$trace$tokens_in)
   expect_identical(res$judge_cost$tokens_out, res$trace$tokens_out)
-  # The run gets a local note pointing at the judge's ledger.
+  # The run holds its own call and the judge's two, and their cost once.
+  expect_identical(run$calls, 3L)
+  expect_equal(sum(gr_trace_cost(run)$usd), before + res$judge_cost$usd)
+  expect_equal(run$spent_usd, before + res$judge_cost$usd)
+  labels <- vapply(run$steps, function(s) s$label, "")
+  expect_identical(labels, c("run.answer", "judge.select.o1", "judge.select.o2",
+                             "judge.select"))
+  # The run ends with a local note naming the judge's ledger. It holds no
+  # tokens, so it adds nothing to the cost.
   note <- run$steps[[length(run$steps)]]
   expect_identical(note$kind, "local")
+  expect_null(note$tokens)
   expect_identical(note$detail$judge_trace, res$trace$run_id)
   expect_equal(note$detail$usd, res$judge_cost$usd)
+  # Without a trace, nothing is folded anywhere.
+  alone <- hr_judge(c("Paris", "Lyon"), j$client, mode = "select", model = "judge-priced",
+                    rubric = "Which names the capital of France?")
+  expect_identical(alone$trace$calls, 2L)
+  expect_identical(run$calls, 3L)
 })
 
 test_that("judge calls are held to what the run's governor has left", {
@@ -522,4 +533,49 @@ test_that("hr_report notes self-judged runs and never refuses them", {
   other <- hr_benchmark(arm, ref, runs = 5, client = answers,
                         scorer = hr_scorer_judge(cfg, v, j$client, judge_model = "judge-model"))
   expect_false(any(grepl("own model", hr_report(other, B = 100)$notes)))
+})
+
+test_that("self_judged leaves out the requests of a judge the arm calls in its run", {
+  cfg <- grade_config()
+  v <- hr_judge_validate(cfg, known_labels(), B = 0)
+  j <- judge_client(function(txt) "pass")
+  ref <- hr_reference(list(q1 = "France", q2 = "Peru"), labels = c("Paris", "Lima"),
+                      cluster = c("a", "b"), split = "test")
+  mix <- gr_mock_client(function(m, p) {
+    txt <- paste(vapply(m, function(x) x$content, ""), collapse = "\n")
+    if (grepl("You grade one response", txt, fixed = TRUE)) {
+      return('{"verdict": "pass", "reason": "c"}')
+    }
+    "Paris"
+  })
+  # The arm answers on "other-model" and judges its answer on "mock-model",
+  # the scorer's judge model, with its run's trace.
+  arm <- hr_arm("ask_judged", function(item, ctx) {
+    a <- ctx$call(paste("Capital of", item), model = "other-model")$text
+    hr_judge(a, ctx$client, mode = "grade", reference = "Paris", model = "mock-model",
+             rubric = "r", trace = ctx$trace, orders = 1)
+    a
+  })
+  b <- suppressWarnings(hr_benchmark(arm, ref, runs = 2, client = mix,
+                                     scorer = hr_scorer_judge(cfg, v, j$client)))
+  # The judge's request is in each run's trace, marked with its judge.
+  tr <- attr(b, "traces")[[b$ledger_id[1]]]
+  marked <- Filter(function(s) !is.null(s$judge), tr$steps)
+  expect_length(marked, 1L)
+  expect_identical(marked[[1]]$model, "mock-model")
+  expect_identical(marked[[1]]$judge, hr_judge_config("mock-model", "r", mode = "grade",
+                                                      orders = 1)$hash)
+  # Only the answer counts: no run is self-judged and the report has no note.
+  expect_identical(b$self_judged, rep(FALSE, 4))
+  expect_false(any(grepl("own model", hr_report(b, B = 100)$notes)))
+  # An arm that answers on the judge's model is still self-judged.
+  same <- hr_arm("same", function(item, ctx) {
+    a <- ctx$call(paste("Capital of", item), model = "mock-model")$text
+    hr_judge(a, ctx$client, mode = "grade", reference = "Paris", model = "other-model",
+             rubric = "r", trace = ctx$trace, orders = 1)
+    a
+  })
+  b2 <- suppressWarnings(hr_benchmark(same, ref, runs = 2, client = mix,
+                                      scorer = hr_scorer_judge(cfg, v, j$client)))
+  expect_identical(b2$self_judged, rep(TRUE, 4))
 })

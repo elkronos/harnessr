@@ -190,6 +190,25 @@ fork_governor <- function(parent) {
   gov
 }
 
+#' A governor that holds a request to both `a` and `b`: the lower of each
+#' limit, only the models both allow, and unpriced models only when both
+#' allow them. Either may be NULL, and then the other is returned as it is.
+#' @noRd
+governor_tighter <- function(a, b) {
+  if (!inherits(a, "hr_governor")) return(if (inherits(b, "hr_governor")) b)
+  if (!inherits(b, "hr_governor")) return(a)
+  out <- a
+  for (f in c("max_calls", "max_cost_usd", "max_tokens_total", "max_output_tokens")) {
+    lim <- c(finite_limit(a[[f]]), finite_limit(b[[f]]))
+    if (length(lim)) out[f] <- list(min(lim))
+  }
+  models <- list(a$allowed_models, b$allowed_models)
+  models <- models[!vapply(models, is.null, logical(1))]
+  if (length(models)) out["allowed_models"] <- list(Reduce(intersect, models))
+  out$allow_unpriced <- isTRUE(a$allow_unpriced) && isTRUE(b$allow_unpriced)
+  out
+}
+
 #' What one request could cost at worst: its prompt at the input price and its
 #' output cap at the output price. NA when the model has no price.
 #' @noRd

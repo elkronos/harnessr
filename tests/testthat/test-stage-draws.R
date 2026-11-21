@@ -106,8 +106,7 @@ test_that("an hr_benchmark arm that calls gr_claims on ctx$trace makes distinct 
   ccl <- gr_cache_client(s$client, cache)
   ref <- hr_reference(items = list(q1 = "Q?"), labels = "x", cluster = "a", split = "test")
   arm <- hr_arm("claims", function(item, ctx) {
-    # As a recipe arm does (see doc_arm_run()).
-    ctx$trace$draw_index <- ctx$draw_index
+    # ctx$trace carries the run's draw index (see bench_ctx()).
     cm <- quiet(gr_claims(draws_table(), question = item, client = ctx$client,
                           temperature = 1, trace = ctx$trace))
     paste(cm$claims$claim, collapse = ";")
