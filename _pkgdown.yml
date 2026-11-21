@@ -177,9 +177,9 @@ reference:
 
 - title: Benchmarks
   desc: >
-    Compare configurations on a labelled reference: arms, the reference and
-    its splits, scorers, and repeated runs held to one spending limit. See
-    `vignette("evaluate")`.
+    Compare configurations on a labelled reference: arms, sweeps of a
+    setting, the reference and its splits, scorers, and repeated runs held to
+    one spending limit. See `vignette("evaluate")` and `vignette("compare")`.
   contents:
   - hr_benchmark
   - hr_report
@@ -187,6 +187,8 @@ reference:
   - hr_contrast
   - hr_drift_check
   - hr_arm
+  - hr_sweep
+  - hr_sweep_check
   - hr_reference
   - hr_scorer
   - gr_arm

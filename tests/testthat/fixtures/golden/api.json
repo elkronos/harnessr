@@ -548,6 +548,14 @@
       "formals": ["x", "name = NULL"],
       "type": "function"
     },
+    "hr_sweep": {
+      "formals": ["base", "grid", "name = NULL"],
+      "type": "function"
+    },
+    "hr_sweep_check": {
+      "formals": ["bench"],
+      "type": "function"
+    },
     "hr_tfidf": {
       "formals": ["texts", "min_df = 2", "max_features = 5000"],
       "type": "function"

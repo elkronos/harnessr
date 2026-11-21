@@ -201,8 +201,9 @@ test_that("hr_scorer checks its function and the benchmark holds scorers to the 
 
 test_that("hr_benchmark returns one row per cluster x item x arm x run", {
   ref <- bench_ref()
-  b <- hr_benchmark(list(ask_arm("one"), ask_arm("two")), ref, runs = 5,
-                    client = capital_client())
+  # The two arms differ only in name, which hr_benchmark() says.
+  expect_warning(b <- hr_benchmark(list(ask_arm("one"), ask_arm("two")), ref, runs = 5,
+                                   client = capital_client()), class = "hr_same_config")
   expect_s3_class(b, "hr_bench")
   expect_identical(nrow(b), 4L * 2L * 5L)
   expect_identical(names(b), c(

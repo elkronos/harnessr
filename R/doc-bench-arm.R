@@ -38,7 +38,11 @@
 #'
 #' The arm's `params` are the recipe's name and the settings, and its version
 #' is the version of harnessr, since readers and prompts change between
-#' versions.
+#' versions. The arm also records them as its settings, which [hr_benchmark()]
+#' reports in `param.<name>` columns and [hr_sweep()] overrides by name. Two
+#' recipe arms whose settings resolve to the same recipe (a setting given at
+#' the recipe's own value, say) have the same configuration, and
+#' [hr_benchmark()] warns when it is given both.
 #'
 #' @param recipe A recipe: a name from [gr_recipes()], `"auto"`, a reader
 #'   name, a [gr_recipe()] or a named list of `ingest`, `segment` and `read`.
@@ -88,8 +92,39 @@ gr_arm <- function(recipe, settings = list(), name = NULL) {
   }
   version <- tryCatch(as.character(utils::packageVersion("harnessr")),
                       error = function(e) "0.0.0")
-  hr_arm(name %||% label, doc_arm_run(rec, overrides),
-         params = c(list(recipe = label), settings), version = version)
+  arm <- hr_arm(name %||% label, doc_arm_run(rec, overrides),
+                params = c(list(recipe = label), settings), version = version)
+  # What hr_sweep() and hr_benchmark() read: the settings, a hash of the
+  # resolved recipe (two arms whose settings resolve alike run alike), and how
+  # to build the arm again with some settings changed.
+  arm_annotate(arm, settings = c(list(recipe = label), settings),
+               config = hr_hash(list(recipe = fingerprint_value(rec),
+                                     overrides = fingerprint_value(overrides),
+                                     version = version)),
+               rebuild = doc_arm_rebuild(recipe, settings),
+               known = doc_arm_settings())
+}
+
+#' The names a recipe arm's settings may take: `recipe`, and every override
+#' apply_overrides() accepts.
+#' @noRd
+doc_arm_settings <- function() {
+  unique(c("recipe", setdiff(c(names(formals(gr_ingest_spec)), names(formals(gr_segment_spec)),
+                               names(formals(gr_read_spec))), "...")))
+}
+
+#' A function that builds a recipe arm again with some settings changed, for
+#' hr_sweep(). A `recipe` among them replaces the recipe.
+#' @noRd
+doc_arm_rebuild <- function(recipe, settings) {
+  force(recipe)
+  force(settings)
+  function(changes, name) {
+    s <- settings
+    for (k in setdiff(names(changes), "recipe")) s[k] <- list(changes[[k]])
+    rec <- if ("recipe" %in% names(changes)) changes[["recipe"]] else recipe
+    gr_arm(rec, s, name = name)
+  }
 }
 
 #' @rdname gr_arm

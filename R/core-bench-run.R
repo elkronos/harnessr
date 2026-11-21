@@ -71,6 +71,11 @@
 #' evidence. The reference is locked when scoring starts (see
 #' [hr_reference()]).
 #'
+#' Two arms that resolve to the same configuration warn (class
+#' `hr_same_config`) before anything runs: their differences could only be
+#' run-to-run spread. Arms from [gr_arm()] resolve alike when their recipes
+#' do; any other two arms when everything but their names is the same.
+#'
 #' Fewer than 5 runs warns (class `hr_few_runs`): with fewer, run-to-run
 #' spread cannot be told from the differences between arms, and interval
 #' reports are expected to refuse such a benchmark unless it is labelled
@@ -132,6 +137,12 @@
 #'     `"model-x"` and `"model-x-2026-01"` differ. Nothing is refused; see the
 #'     note [hr_report()] adds.}
 #'   \item{`reportable`}{`FALSE` for rows on the dev split.}
+#'   \item{`param.<name>`}{One column per setting the arms record: the
+#'     settings of an arm built by [gr_arm()] (`param.recipe`,
+#'     `param.top_k` and so on) or by [hr_sweep()], `NA` for an arm that
+#'     does not record that setting. A setting whose values are not all
+#'     single values is written as text. A benchmark of arms made by
+#'     [hr_arm()] alone has none.}
 #' }
 #' Attributes record the arms (`arms`: name, version, hash, derived_from),
 #' the reference hash, `runs`, `split`, `seed`, the scorer's name, and the
@@ -160,6 +171,7 @@
 hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_exact(),
                          split = "test", governor = NULL, seed = 1) {
   arms <- check_arms(arms)
+  warn_same_config(arms)
   check_reference(reference)
   if (!is.numeric(runs) || length(runs) != 1L || is.na(runs) || !is.finite(runs) ||
       runs < 1 || runs != round(runs)) {
@@ -316,6 +328,7 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
   })
   out <- as.data.frame(col, stringsAsFactors = FALSE)
   out$reportable <- out$split != "dev"
+  out <- bench_param_columns(out, arms)
   warn_budget_stops(out, stop_limit, governor, from_options)
   names(traces) <- out$ledger_id
   structure(out, class = c("hr_bench", "data.frame"),
