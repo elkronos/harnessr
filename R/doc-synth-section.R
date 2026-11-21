@@ -47,7 +47,8 @@ claim_order <- function(claims, support, weights) {
 #' @noRd
 synth_section <- function(heading, brief, question, rendered, used, client, spec, trace,
                           style = NULL, claims = NULL, claim_ids = integer(0),
-                          weights = NULL, gaps = NULL, capped = NULL, gaps_cut = FALSE) {
+                          weights = NULL, gaps = NULL, capped = NULL, gaps_cut = FALSE,
+                          prominence = NULL) {
   # With claims, the section argues a list of claims and sees only the studies
   # those claims rest on. Without, it sees every study and writes from rows --
   # which is what produces "Smith (2019) found X. Garcia (2022) found Y."
@@ -68,7 +69,8 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
     # Indexing the ALREADY-rendered blocks rather than re-rendering, so the
     # bibliographic columns stay hidden by exactly the same rule.
     rendered <- rendered[used$study %in% want]
-    blocks <- render_claims(cw, claims$support, weights, collapse = FALSE)
+    blocks <- render_claims(cw, claims$support, weights, collapse = FALSE,
+                            prominence = prominence)
     claim_block <- paste(blocks, collapse = "\n\n")
   } else if (gaps_only) {
     rendered <- character(0)
@@ -158,7 +160,7 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
     # happens. A section written from the gaps alone has no studies to send.
     if (!gaps_only) {
       msgs[[3L]] <- list(role = "user", content = paste0("<studies>\n", body, "\n</studies>",
-                                                         restate_tail(body, again, spec$restate)))
+                                                         restate_tail(body, again, restate_how(spec))))
     }
     res <- gr_call(client, msgs, model = spec$model, max_output = spec$max_answer_tokens,
                    temperature = spec$temperature, trace = trace, label = "synthesise.section",
@@ -461,8 +463,13 @@ trace_cut_off <- function(trace, from, prefix) {
 #' `attr(, "claim_id")`: the tiers are set across the whole section first, so a
 #' section written a few claims at a time gives each claim the room it earned
 #' among all of them.
+#'
+#' `prominence`: the shares of the claims in the top and middle tiers
+#' (gr_synthesise()'s argument); thirds when NULL. The top tier always holds
+#' at least one claim, and a section of three claims or fewer puts them all
+#' there.
 #' @noRd
-render_claims <- function(cw, support, weights, collapse = TRUE) {
+render_claims <- function(cw, support, weights, collapse = TRUE, prominence = NULL) {
   ord <- claim_order(cw, support, weights)
   cw <- cw[ord, , drop = FALSE]
   # Labelled, as the brief they are pasted to is: a claim edited by hand under
@@ -471,13 +478,17 @@ render_claims <- function(cw, support, weights, collapse = TRUE) {
     if (is.character(cw[[col]])) cw[[col]] <- mark_utf8(cw[[col]])
   }
   n <- nrow(cw)
-  third <- max(1L, n %/% 3L)
+  share <- prominence %||% c(top = 1/3, middle = 1/3)
+  # The small allowance keeps n * (1/3) at a whole number of claims where the
+  # product falls a rounding error short of one: at thirds this is n %/% 3.
+  n_top <- min(n, max(1L, as.integer(floor(n * share[[1]] + 1e-9))))
+  n_mid <- min(n - n_top, as.integer(floor(n * share[[2]] + 1e-9)))
   tier <- rep("one sentence", n)
   if (n <= 3L) {
     tier[] <- "two or three sentences"
   } else {
-    tier[seq_len(third)] <- "two or three sentences"
-    tier[seq(third + 1L, min(n, 2L * third))] <- "one or two sentences"
+    tier[seq_len(n_top)] <- "two or three sentences"
+    if (n_mid > 0L) tier[n_top + seq_len(n_mid)] <- "one or two sentences"
   }
   ids <- function(id, role) {
     v <- sort(support$study[support$claim_id == id & support$role == role])

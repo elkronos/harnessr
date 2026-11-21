@@ -153,6 +153,40 @@
 #'   after a hyphen ("in press-a"). Under `"author-year"`, an entry whose key
 #'   came from a `citation` field leads with that key, so the prose can be
 #'   followed to it.
+#' @param coherence_rounds How many rounds each `coherence` pass may run:
+#'   each round revises the text the round before it kept, and the pass stops
+#'   at the first round that is discarded or changes nothing. Every round is
+#'   checked as a single pass is, and is a request. A whole number in
+#'   \[1, 10\]; default 1, one round per pass, as before the setting existed.
+#'   Untested: paper-orchestra runs up to 3 refinement rounds, with no
+#'   recorded evidence for that number, and nothing has measured more than
+#'   one round here.
+#' @param figure_bands How near a value a qualified figure must be to count as
+#'   found in the check of figures (see "Figures"): a named numeric vector of
+#'   `about` (the share either way that "about 1,200" covers), `over` (the
+#'   share above that "more than 1,000" covers) and `under` (the share below
+#'   that "fewer than 1,000" covers). Names left out keep their defaults,
+#'   `c(about = 0.10, over = 0.25, under = 0.25)`, set when the check was
+#'   written and untested. Each is in \[0, 1\]. The check sends nothing, so
+#'   this changes what `$figures` reports, never a request.
+#' @param prominence How much of the writing prompt's sentence budget the
+#'   claims of a section get, by rank: `c(top = , middle = )`, the shares of a
+#'   section's claims (ranked by how many studies, and how much weight, stand
+#'   behind them) asked for "two or three sentences" and "one or two
+#'   sentences"; the rest get "one sentence", and a section of three claims
+#'   or fewer gives each "two or three". Default `c(top = 1/3, middle = 1/3)`,
+#'   thirds, set when claims were added and untested. Each share is in
+#'   \[0, 1\] and the two add up to at most 1. At least one claim is always
+#'   in the top tier. Used only with `claims`.
+#' @param study_weights How much each study counts when claims are ranked
+#'   (and so which tier each claim gets, see `prominence`): `NULL` (the
+#'   default) for the package's weight, `0.5 + 0.5 * size + 0.5 * filled`,
+#'   where `size` is `log1p(n)` over its largest value (the mean of the known
+#'   ones when `n` is missing) and `filled` the share of a row's filled cells
+#'   whose quotations verified (0.5 when unknown). That formula is untested,
+#'   and is not a quality score. Or a function of the studies table (the
+#'   extraction's included rows, with a `study` column of ids) returning one
+#'   non-negative number per row. Used only with `claims`.
 #' @param effort Reasoning effort, or `NULL` (the default) to send none: one
 #'   string, or a character vector named by stage, as `effort` in
 #'   [gr_read_spec()]. The calls here are labelled `synthesise.section`,
@@ -173,8 +207,9 @@
 #'     \item{`references`}{The reference list, or `NULL`.}
 #'     \item{`cite_style`}{The style actually used, which is not always the one
 #'       asked for.}
-#'     \item{`coherence`}{One row per revision pass, or `NULL` if none ran:
-#'       `pass` (which of `"structure"`, `"cut"`, `"register"`), `ran`, `kept`,
+#'     \item{`coherence`}{One row per round of each revision pass, or `NULL`
+#'       if none ran: `pass` (which of `"structure"`, `"cut"`, `"register"`),
+#'       `round` (1 unless `coherence_rounds` is more), `ran`, `kept`,
 #'       `lost` and `added` (citations, if the revision changed them),
 #'       `reason` for anything discarded, and `words_before` and `words_after`
 #'       (integer: words of prose, headings and citation markers left out, in
@@ -297,7 +332,8 @@
 #' its section was shown or the review was written from, or how many of those
 #' rows share a field's value ("10 were randomised trials"); or, after
 #' "about", "more than", "fewer than" and their like, within a tenth (about)
-#' or a quarter (a bound) of a value it could have come from. Not read as
+#' or a quarter (a bound) of a value it could have come from (`figure_bands`
+#' changes these shares). Not read as
 #' figures: a citation's ids, written bare as well ("studies 12 to 15"), a
 #' whole number below ten that is not a percentage or scaled (a review writes
 #' "2 of the trials" as it likes), a number joined to a name ("COVID-19",
@@ -345,8 +381,18 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
                           cite_style = c("auto", "marker", "author-year", "numeric"),
                           bib = NULL, style = NULL, coherence = FALSE,
                           references = TRUE, claims = NULL, gaps = NULL,
-                          trace = NULL, effort = NULL) {
+                          trace = NULL, effort = NULL, coherence_rounds = 1L,
+                          figure_bands = c(about = 0.10, over = 0.25, under = 0.25),
+                          prominence = c(top = 1/3, middle = 1/3), study_weights = NULL) {
   cite_style <- match.arg(cite_style)
+  coherence_rounds <- clamp_warn(na_default(coherence_rounds, 1L, "coherence_rounds"),
+                                 1, 10, "coherence_rounds")
+  figure_bands <- check_figure_bands(figure_bands)
+  prominence <- check_prominence(prominence)
+  if (!is.null(study_weights) && !is.function(study_weights)) {
+    gr_abort("`study_weights` must be NULL or a function of the studies table.",
+             class = "gr_bad_setting")
+  }
   tab <- if (inherits(extraction, "gr_extraction")) extraction$table else extraction
   if (!is.data.frame(tab) || !nrow(tab)) {
     gr_abort("`extraction` must be a gr_extraction, or a data frame shaped like its $table.",
@@ -577,7 +623,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
       gaps_cut <- TRUE
     }
   }
-  weights <- if (is.null(claims)) NULL else study_weight(used)
+  weights <- if (is.null(claims)) NULL else
+    if (is.null(study_weights)) study_weight(used) else user_study_weights(study_weights, used)
   # One latch for the whole write-up, so the ceiling is reported once rather
   # than once per section.
   capped <- new.env(parent = emptyenv())
@@ -601,6 +648,7 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
     tryCatch(
       synth_section(heading, outline[[i]], question, rendered, used, client, spec, trace, style,
                     claims = claims, claim_ids = ids, weights = weights,
+                    prominence = prominence,
                     gaps = if (is_closing) gaps else NULL, capped = capped,
                     gaps_cut = is_closing && gaps_cut),
       gr_budget_error = function(e) synth_unwritten(heading, outline[[i]], ids, conditionMessage(e)))
@@ -630,7 +678,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   marked <- synth_document(sections)
   passes <- revise_passes(coherence)
   revised <- if (length(passes)) {
-    synth_revise(marked, question, client, spec, trace, style, passes)
+    synth_revise(marked, question, client, spec, trace, style, passes,
+                 rounds = coherence_rounds)
   } else NULL
   final_marked <- revised$text %||% marked
 
@@ -641,7 +690,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   # synth_figures().
   figs <- synth_figures(sections, revised$text, used, rendered, question, claims = claims,
                         assign_map = assign_map, gaps = gaps, closing = closing, style = style,
-                        hide = unlist(cols, use.names = FALSE), trace = trace)
+                        hide = unlist(cols, use.names = FALSE), trace = trace,
+                        bands = figure_bands)
   sections$n_unbacked <- figs$n_unbacked
 
   # A study a section cited without being shown it stays a visible marker, as a
@@ -1248,4 +1298,60 @@ study_weight <- function(used) {
   ok <- ifelse(is.na(filled) | filled <= 0, 0.5,
                pmax(0, (filled - unver)) / pmax(filled, 1))
   stats::setNames(0.5 + 0.5 * size + 0.5 * ok, as.character(used$study))
+}
+
+#' The weights a `study_weights` function gives, checked: one finite,
+#' non-negative number per study, named by study id.
+#' @noRd
+user_study_weights <- function(fn, used) {
+  w <- fn(used)
+  if (!is.numeric(w) || length(w) != nrow(used) || anyNA(w) || any(!is.finite(w)) ||
+      any(w < 0)) {
+    gr_abort(sprintf(paste0("`study_weights` must return one finite, non-negative number per ",
+                            "study (%d), in the order of the table it is given."), nrow(used)),
+             class = "gr_bad_setting")
+  }
+  stats::setNames(as.numeric(w), as.character(used$study))
+}
+
+#' The default `figure_bands` of gr_synthesise().
+#' @noRd
+.gr_figure_bands <- c(about = 0.10, over = 0.25, under = 0.25)
+
+#' `figure_bands` checked: the three named shares, each in \[0, 1\], with any
+#' left out taken from the defaults. An unknown name is an error.
+#' @noRd
+check_figure_bands <- function(x) {
+  if (is.null(x)) return(.gr_figure_bands)
+  if (!is.numeric(x) || is.null(names(x)) || any(!nzchar(names(x)))) {
+    gr_abort("`figure_bands` must be a named numeric vector of `about`, `over` and `under`.",
+             class = "gr_bad_setting")
+  }
+  bad <- setdiff(names(x), names(.gr_figure_bands))
+  if (length(bad)) {
+    gr_abort(sprintf("`figure_bands` has unknown name(s) %s; it takes about, over and under.",
+                     paste0("'", bad, "'", collapse = ", ")), class = "gr_bad_setting")
+  }
+  out <- .gr_figure_bands
+  for (nm in names(x)) {
+    out[[nm]] <- clamp_warn(na_default(x[[nm]], .gr_figure_bands[[nm]],
+                                       paste0("figure_bands[\"", nm, "\"]")),
+                            0, 1, paste0("figure_bands[\"", nm, "\"]"), integer = FALSE)
+  }
+  out
+}
+
+#' `prominence` checked: the top and middle shares, each in \[0, 1\], adding
+#' up to at most 1.
+#' @noRd
+check_prominence <- function(x) {
+  def <- c(top = 1/3, middle = 1/3)
+  if (is.null(x)) return(def)
+  if (!is.numeric(x) || length(x) != 2L || anyNA(x) || any(x < 0 | x > 1) || sum(x) > 1 + 1e-9) {
+    gr_abort(paste0("`prominence` must be two shares, top and middle, each between 0 and 1 ",
+                    "and adding up to at most 1."), class = "gr_bad_setting")
+  }
+  nm <- names(x)
+  if (!is.null(nm) && all(c("top", "middle") %in% nm)) x <- x[c("top", "middle")]
+  stats::setNames(as.numeric(x), c("top", "middle"))
 }

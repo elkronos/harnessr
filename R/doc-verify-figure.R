@@ -121,8 +121,9 @@
 
 #' Words before a figure that make it approximate or a bound, and so let it
 #' stand for a value near it: "about 1,200 participants" over a row of 1,204,
-#' "more than 1,000" over the same. `about` is within a tenth either way;
-#' `over` up to a quarter above; `under` up to a quarter below. Read only after
+#' "more than 1,000" over the same. By default (gr_synthesise()'s
+#' `figure_bands`) `about` is within a tenth either way; `over` up to a quarter
+#' above; `under` up to a quarter below. Read only after
 #' every other test has failed, so "over 12 weeks" over a row of 12 weeks is
 #' found as written.
 #' @noRd
@@ -413,16 +414,18 @@ figure_hit <- function(tg, pool) {
 }
 
 #' Whether a qualified figure ("about 1,200") is near enough a value in `pool`.
+#' `bands` is gr_synthesise()'s `figure_bands`: the share either way `about`
+#' covers, and the share above and below that `over` and `under` cover.
 #' @noRd
-figure_near <- function(tg, pool, qualifier) {
+figure_near <- function(tg, pool, qualifier, bands = .gr_figure_bands) {
   if (is.list(pool)) pool <- unlist(pool, use.names = FALSE)
   if (!length(pool) || is.na(qualifier)) return(FALSE)
   any(vapply(tg$t, function(c) {
     if (c <= 0) return(FALSE)
     switch(qualifier,
-           about = any(abs(pool - c) <= 0.1 * c),
-           over = any(pool >= c & pool <= 1.25 * c),
-           under = any(pool <= c & pool >= 0.75 * c),
+           about = any(abs(pool - c) <= bands[["about"]] * c),
+           over = any(pool >= c & pool <= (1 + bands[["over"]]) * c),
+           under = any(pool <= c & pool >= (1 - bands[["under"]]) * c),
            FALSE)
   }, logical(1)))
 }
@@ -539,7 +542,8 @@ figure_empty_table <- function() {
 #' @noRd
 synth_figures <- function(sections, final, used, rendered, question, claims = NULL,
                           assign_map = NULL, gaps = NULL, closing = NA_character_,
-                          style = NULL, hide = character(0), trace = NULL, word = "study") {
+                          style = NULL, hide = character(0), trace = NULL, word = "study",
+                          bands = .gr_figure_bands) {
   n_sec <- NROW(sections)
   if (!n_sec || !nrow(used)) return(list(table = figure_empty_table(), n_unbacked = integer(n_sec)))
   ids <- used$study
@@ -685,7 +689,7 @@ synth_figures <- function(sections, final, used, rendered, question, claims = NU
       }
       near <- c(unlist(pool, use.names = FALSE), sums, unlist(cpool, use.names = FALSE),
                 unlist(cx$fixed, use.names = FALSE))
-      if (figure_near(tg, near, f$qualifier[k])) return("approximate")
+      if (figure_near(tg, near, f$qualifier[k], bands)) return("approximate")
       NA_character_
     }, character(1))
     data.frame(sentence = rep(trimws(sentence), length(basis)), number = f$written,

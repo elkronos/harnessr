@@ -208,7 +208,7 @@
 #' and a registration changed after it was made is refused (class
 #' `hr_registration_changed`).
 #'
-#' Below 5 runs the report is descriptive only: point estimates without
+#' Below 5 runs (`min_runs`) the report is descriptive only: point estimates without
 #' intervals, resamples or rank intervals. Cost and pass^k intervals (BCa),
 #' rank intervals and the frontier share come from the cluster bootstrap in
 #' both regimes; below the thresholds the report says to read them as rough.
@@ -233,6 +233,16 @@
 #'   when `registration` holds a confirmatory contrast.
 #' @param registration An [hr_register_contrasts()] result for the reference
 #'   this benchmark scored, or `NULL`.
+#' @param auto_bootstrap_at Under `method = "auto"`, the size at which the
+#'   report switches from the cluster-robust t interval to the studentised
+#'   cluster bootstrap: `c(items = , clusters = )`, both reached. Default
+#'   `c(items = 300, clusters = 30)`, backed by the coverage simulation of
+#'   `dev/sim-coverage.R` (2000 replicates at 386 items in 40 clusters and at
+#'   50 items in 10; see "Intervals"). The notes about intervals that can
+#'   undercover use the same two numbers.
+#' @param min_runs The fewest runs for which the report gives intervals;
+#'   below it the report is descriptive only. A whole number, 2 or more;
+#'   default 5, untested: no simulation backs that number.
 #' @param x An `hr_bench_report`.
 #' @param digits Digits to print.
 #' @param pretty Whether to indent the JSON.
@@ -348,8 +358,22 @@
 #' rpt$accuracy
 hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3, 5),
                       seed = 1, method = c("auto", "bootstrap", "cluster_t", "bayes", "exact"),
-                      confirmatory = FALSE, registration = NULL) {
+                      confirmatory = FALSE, registration = NULL,
+                      auto_bootstrap_at = c(items = 300, clusters = 30), min_runs = 5L) {
   method <- match.arg(method)
+  at <- auto_bootstrap_at
+  if (!is.numeric(at) || length(at) != 2L || anyNA(at) || any(at < 1)) {
+    gr_abort("`auto_bootstrap_at` must be two numbers, items and clusters, each 1 or more.",
+             class = "gr_bad_setting")
+  }
+  if (!is.null(names(at)) && all(c("items", "clusters") %in% names(at))) {
+    at <- at[c("items", "clusters")]
+  }
+  at <- stats::setNames(as.numeric(at), c("items", "clusters"))
+  if (!is.numeric(min_runs) || length(min_runs) != 1L || is.na(min_runs) || min_runs < 2) {
+    gr_abort("`min_runs` must be one whole number, 2 or more.", class = "gr_bad_setting")
+  }
+  min_runs <- as.integer(floor(min_runs))
   if (!is.null(registration)) {
     check_registration(registration)
     if (missing(confirmatory)) confirmatory <- registration$n_confirmatory > 0L
@@ -376,24 +400,26 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
   pairs <- report_pairs(contrasts, arms)
   notes <- d$notes
 
-  descriptive <- R < 5L
+  descriptive <- R < min_runs
   intervals <- !descriptive && C >= 2L
-  big <- I >= 300L && C >= 30L
+  big <- I >= at[["items"]] && C >= at[["clusters"]]
+  at_txt <- sprintf("%s items and %s clusters", format(at[["items"]]), format(at[["clusters"]]))
+  at_or <- sprintf("%s items or %s clusters", format(at[["items"]]), format(at[["clusters"]]))
   chosen <- if (!intervals) "none" else if (method == "auto") (if (big) "bootstrap" else "cluster_t")
             else method
   reason <- if (descriptive) {
-    sprintf("%d run(s), below 5: descriptive only, without intervals", R)
+    sprintf("%d run(s), below %d: descriptive only, without intervals", R, min_runs)
   } else if (C < 2L) {
     "one cluster: no interval can be drawn from clusters"
   } else if (method == "auto") {
-    sprintf("%d items in %d clusters %s 300 items and 30 clusters", I, C,
-            if (big) "reach" else "fall short of")
+    sprintf("%d items in %d clusters %s %s", I, C,
+            if (big) "reach" else "fall short of", at_txt)
   } else {
     sprintf("method = \"%s\" was asked for (%d items in %d clusters)", method, I, C)
   }
   if (chosen == "bootstrap" && !big) {
-    notes <- c(notes, paste0("The studentised cluster bootstrap was asked for below 300 items ",
-                             "or 30 clusters; with few clusters its intervals are unstable and ",
+    notes <- c(notes, paste0("The studentised cluster bootstrap was asked for below ", at_or,
+                             "; with few clusters its intervals are unstable and ",
                              "can undercover or overcover (in 2000 simulated benchmarks of 50 ",
                              "items in 10 clusters it covered 96.0% and 96.1% and was 13% to 16% ",
                              "wider than the cluster-robust t interval)."))
@@ -706,11 +732,11 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
   if (descriptive) {
     notes <- c(notes, sprintf(paste0(
       "Descriptive only: %d run(s) cannot separate run-to-run spread from differences ",
-      "between arms, so no interval is given. Use runs = 5 or more."), R))
+      "between arms, so no interval is given. Use runs = %d or more."), R, min_runs))
   } else if (intervals && !big) {
     notes <- c(notes, paste0(
       "Cost, pass^k, frontier share and rank intervals come from the cluster bootstrap, ",
-      "which can undercover below 300 items or 30 clusters; read them as rough."))
+      "which can undercover below ", at_or, "; read them as rough."))
   }
   if (intervals && any(acc$method == "korn_graubard_clopper_pearson") && chosen != "exact") {
     notes <- c(notes, sprintf(paste0(

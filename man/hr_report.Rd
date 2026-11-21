@@ -15,7 +15,9 @@ hr_report(
   seed = 1,
   method = c("auto", "bootstrap", "cluster_t", "bayes", "exact"),
   confirmatory = FALSE,
-  registration = NULL
+  registration = NULL,
+  auto_bootstrap_at = c(items = 300, clusters = 30),
+  min_runs = 5L
 )
 
 \method{print}{hr_bench_report}(x, digits = 3, ...)
@@ -51,6 +53,18 @@ when \code{registration} holds a confirmatory contrast.}
 
 \item{registration}{An \code{\link[=hr_register_contrasts]{hr_register_contrasts()}} result for the reference
 this benchmark scored, or \code{NULL}.}
+
+\item{auto_bootstrap_at}{Under \code{method = "auto"}, the size at which the
+report switches from the cluster-robust t interval to the studentised
+cluster bootstrap: \code{c(items = , clusters = )}, both reached. Default
+\code{c(items = 300, clusters = 30)}, backed by the coverage simulation of
+\code{dev/sim-coverage.R} (2000 replicates at 386 items in 40 clusters and at
+50 items in 10; see "Intervals"). The notes about intervals that can
+undercover use the same two numbers.}
+
+\item{min_runs}{The fewest runs for which the report gives intervals;
+below it the report is descriptive only. A whole number, 2 or more;
+default 5, untested: no simulation backs that number.}
 
 \item{x}{An \code{hr_bench_report}.}
 
@@ -312,7 +326,7 @@ carry the hash of the reference the registration names, as an
 and a registration changed after it was made is refused (class
 \code{hr_registration_changed}).
 
-Below 5 runs the report is descriptive only: point estimates without
+Below 5 runs (\code{min_runs}) the report is descriptive only: point estimates without
 intervals, resamples or rank intervals. Cost and pass^k intervals (BCa),
 rank intervals and the frontier share come from the cluster bootstrap in
 both regimes; below the thresholds the report says to read them as rough.

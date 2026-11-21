@@ -12,7 +12,8 @@
 .hr_calibration_key_fields <- c("served_model", "version", "task", "format", "prompt_hash",
                                 "effort", "module", "contract_version")
 
-#' The number of errors a graded set needs before its record can gate.
+#' The default number of errors a graded set needs before its record can
+#' gate; hr_calibrate_signal()'s `min_errors`.
 #' @noRd
 .hr_calibration_min_errors <- 100L
 
@@ -62,11 +63,12 @@
 #'   logistic regression on the targets `(N+ + 1) / (N+ + 2)` for a right
 #'   item and `1 / (N- + 2)` for a wrong one, which keeps the fit finite when
 #'   the halves separate. It is the default and the only fitted map allowed
-#'   below 1000 graded items.
+#'   below 1000 graded items (`isotonic_min_items`).
 #' * **Isotonic regression** (pool adjacent violators, weighted by the number
-#'   of items at each score) needs at least 1000 graded items. The count is
-#'   of the whole graded set before the split, so the map itself is fitted on
-#'   about `split` of them (500 at the minimum with the default `split`).
+#'   of items at each score) needs at least 1000 graded items by default. The
+#'   count is of the whole graded set before the split, so the map itself is
+#'   fitted on about `split` of them (500 at the minimum with the default
+#'   `split`).
 #'   Between fitted scores it interpolates linearly; beyond them it holds the
 #'   end values.
 #' * **`"none"`** takes the score as the probability, so it must lie in
@@ -146,6 +148,19 @@
 #'   graded set always gives the same record. The caller's random state is
 #'   left as it was.
 #' @param B Number of bootstrap resamples; 0 for no intervals.
+#' @param min_errors The fewest wrong items a graded set needs before its
+#'   record may gate; below it the record stays advisory and `reasons` says
+#'   why. Default 100, untested: set when calibration records were written,
+#'   with no measurement behind the number.
+#' @param isotonic_min_items The fewest graded items, counted before the
+#'   split, for which `method = "isotonic"` is allowed. Default 1000,
+#'   untested.
+#' @param min_clusters The fewest clusters in the calibration half for which
+#'   the bootstrap intervals are given without a note that they rest on few
+#'   clusters. Default 20, untested.
+#'
+#'   A value other than the default of any of these three is written to the
+#'   record's `notes`, so the record says it was held to a different bar.
 #' @return An `hr_calibration`: a list with `signal`, `key`, `method`,
 #'   `n_items`, `n_errors`, `n_unanswerable`, `n_clusters`, `accuracy` (on
 #'   the calibration half), `metrics` (a data frame of `metric`, `estimate`,
@@ -201,8 +216,20 @@
 #'                            seed = 7, B = 0)
 #' raw$metrics[raw$metrics$metric %in% c("brier", "ece"), ]
 hr_calibrate_signal <- function(signal, graded, key, method = c("platt", "isotonic", "none"),
-                                bins = 10L, split = 0.5, seed, B = 2000L) {
+                                bins = 10L, split = 0.5, seed, B = 2000L,
+                                min_errors = 100L, isotonic_min_items = 1000L,
+                                min_clusters = 20L) {
   method <- match.arg(method)
+  count_arg <- function(x, name, lo) {
+    if (!is.numeric(x) || length(x) != 1L || is.na(x) || x < lo || !is.finite(x)) {
+      gr_abort(sprintf("`%s` must be one whole number, %d or more.", name, lo),
+               class = "gr_bad_setting")
+    }
+    as.integer(floor(x))
+  }
+  min_errors <- count_arg(min_errors, "min_errors", 0L)
+  isotonic_min_items <- count_arg(isotonic_min_items, "isotonic_min_items", 2L)
+  min_clusters <- count_arg(min_clusters, "min_clusters", 2L)
   if (!is.character(signal) || length(signal) != 1L || !is_nonblank(signal)) {
     gr_abort("`signal` must be one non-blank string.", class = "gr_bad_setting")
   }
@@ -224,10 +251,11 @@ hr_calibrate_signal <- function(signal, graded, key, method = c("platt", "isoton
   dropped <- attr(d, "dropped")
   if (length(dropped)) gr_msg(paste0("hr_calibrate_signal(): ", dropped, "."))
   n <- nrow(d)
-  if (method == "isotonic" && n < 1000L) {
-    gr_abort(sprintf(paste0("Isotonic calibration needs at least 1000 graded items, counted before ",
+  if (method == "isotonic" && n < isotonic_min_items) {
+    gr_abort(sprintf(paste0("Isotonic calibration needs at least %d graded items, counted before ",
                             "the split; this set has %d. ",
-                            "Use method = \"platt\"."), n), class = "hr_bad_calibration")
+                            "Use method = \"platt\"."), isotonic_min_items, n),
+             class = "hr_bad_calibration")
   }
   if (method == "none" && any(d$score < 0 | d$score > 1)) {
     gr_abort("With method = \"none\" the score is the probability, so it must lie in [0, 1].",
@@ -273,9 +301,9 @@ hr_calibrate_signal <- function(signal, graded, key, method = c("platt", "isoton
 
   n_errors <- sum(!d$correct)
   reasons <- "no gate threshold has been set"
-  if (n_errors < .hr_calibration_min_errors) {
+  if (n_errors < min_errors) {
     reasons <- c(sprintf("the graded set has %d wrong items, fewer than the %d a gating record needs",
-                         n_errors, .hr_calibration_min_errors), reasons)
+                         n_errors, min_errors), reasons)
   }
   # A threshold on p is a threshold on the signal only when p rises with it.
   map <- out$map
@@ -291,9 +319,17 @@ hr_calibrate_signal <- function(signal, graded, key, method = c("platt", "isoton
   notes <- dropped
   if (B > 0L && cal_clusters < 2L) {
     notes <- c(notes, "the calibration half has one cluster, so there are no intervals")
-  } else if (B > 0L && cal_clusters < 20L) {
+  } else if (B > 0L && cal_clusters < min_clusters) {
     notes <- c(notes, sprintf(paste0("the intervals rest on %d clusters; percentile intervals ",
-                                     "cover poorly below 20"), cal_clusters))
+                                     "cover poorly below %d"), cal_clusters, min_clusters))
+  }
+  # A bar other than the default is part of what the record means.
+  bars <- c(min_errors = min_errors, isotonic_min_items = isotonic_min_items,
+            min_clusters = min_clusters)
+  moved <- bars != c(.hr_calibration_min_errors, 1000L, 20L)
+  if (any(moved)) {
+    notes <- c(notes, sprintf("%s was set to %d (default %d)", names(bars)[moved], bars[moved],
+                              c(.hr_calibration_min_errors, 1000L, 20L)[moved]))
   }
   fit_p <- d$p[d$half == "fit"]
   grid <- sort(unique(stats::quantile(fit_p, probs = seq(0, 1, length.out = 20L), names = FALSE,

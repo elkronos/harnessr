@@ -478,9 +478,15 @@ revise_passes <- function(coherence) {
 #' next runs on the text that survived, so one bad revision costs that pass
 #' rather than the document. `steps` is each kept pass's text in order, which
 #' render_revised() follows one pass at a time.
+#'
+#' `rounds` (gr_synthesise()'s `coherence_rounds`): how many times each pass
+#' may run, each round on the text the round before kept. A pass stops at its
+#' first round that is not kept or gives the text back unchanged, since the
+#' next round would be sent the same text. Each round is a row of the report,
+#' numbered in `round`.
 #' @noRd
 synth_revise <- function(drafted, question, client, spec, trace, style = NULL,
-                         passes = .gr_revise_passes) {
+                         passes = .gr_revise_passes, rounds = 1L) {
   text <- as_chr1(drafted)
   report <- list()
   steps <- character(0)
@@ -496,13 +502,13 @@ synth_revise <- function(drafted, question, client, spec, trace, style = NULL,
                    "is kept as written."),
             class = "gr_revision_unguarded")
   }
-  for (pass in passes) {
+  for (pass in passes) for (round in seq_len(max(1L, as_int1(rounds, 1L)))) {
     step <- if (unread) {
       list(ran = FALSE, kept = FALSE,
            reason = "the draft is not in English, which the escalation guard reads")
     } else revise_once(text, question, client, spec, trace, style, pass)
     report[[length(report) + 1L]] <- data.frame(
-      pass = pass, ran = isTRUE(step$ran), kept = isTRUE(step$kept),
+      pass = pass, round = round, ran = isTRUE(step$ran), kept = isTRUE(step$kept),
       # Comma-joined rather than a list column: this frame is printed, written to
       # an audit report and read back out of a CSV, and a list column survives
       # none of that.
@@ -511,13 +517,15 @@ synth_revise <- function(drafted, question, client, spec, trace, style = NULL,
       # NA for a pass refused before its length was measured, or never sent.
       words_before = as_int1(step$words_before, NA_integer_),
       words_after = as_int1(step$words_after, NA_integer_), stringsAsFactors = FALSE)
+    changed <- isTRUE(step$kept) && !identical(step$text, text)
     if (isTRUE(step$kept)) {
       text <- step$text
       steps <- c(steps, text)
     }
+    if (!changed) break
   }
   rep_df <- if (length(report)) do.call(rbind, report) else
-    data.frame(pass = character(0), ran = logical(0), kept = logical(0),
+    data.frame(pass = character(0), round = integer(0), ran = logical(0), kept = logical(0),
                lost = character(0), added = character(0), reason = character(0),
                words_before = integer(0), words_after = integer(0), stringsAsFactors = FALSE)
   rownames(rep_df) <- NULL

@@ -22,7 +22,11 @@ gr_synthesise(
   claims = NULL,
   gaps = NULL,
   trace = NULL,
-  effort = NULL
+  effort = NULL,
+  coherence_rounds = 1L,
+  figure_bands = c(about = 0.1, over = 0.25, under = 0.25),
+  prominence = c(top = 1/3, middle = 1/3),
+  study_weights = NULL
 )
 }
 \arguments{
@@ -170,6 +174,44 @@ string, or a character vector named by stage, as \code{effort} in
 does the rest at medium. The reasoning counts against each call's reply
 limit (\code{max_section_tokens} for a section), and a section cut off at it is
 reported as one.}
+
+\item{coherence_rounds}{How many rounds each \code{coherence} pass may run:
+each round revises the text the round before it kept, and the pass stops
+at the first round that is discarded or changes nothing. Every round is
+checked as a single pass is, and is a request. A whole number in
+[1, 10]; default 1, one round per pass, as before the setting existed.
+Untested: paper-orchestra runs up to 3 refinement rounds, with no
+recorded evidence for that number, and nothing has measured more than
+one round here.}
+
+\item{figure_bands}{How near a value a qualified figure must be to count as
+found in the check of figures (see "Figures"): a named numeric vector of
+\code{about} (the share either way that "about 1,200" covers), \code{over} (the
+share above that "more than 1,000" covers) and \code{under} (the share below
+that "fewer than 1,000" covers). Names left out keep their defaults,
+\code{c(about = 0.10, over = 0.25, under = 0.25)}, set when the check was
+written and untested. Each is in [0, 1]. The check sends nothing, so
+this changes what \verb{$figures} reports, never a request.}
+
+\item{prominence}{How much of the writing prompt's sentence budget the
+claims of a section get, by rank: \code{c(top = , middle = )}, the shares of a
+section's claims (ranked by how many studies, and how much weight, stand
+behind them) asked for "two or three sentences" and "one or two
+sentences"; the rest get "one sentence", and a section of three claims
+or fewer gives each "two or three". Default \code{c(top = 1/3, middle = 1/3)},
+thirds, set when claims were added and untested. Each share is in
+[0, 1] and the two add up to at most 1. At least one claim is always
+in the top tier. Used only with \code{claims}.}
+
+\item{study_weights}{How much each study counts when claims are ranked
+(and so which tier each claim gets, see \code{prominence}): \code{NULL} (the
+default) for the package's weight, \code{0.5 + 0.5 * size + 0.5 * filled},
+where \code{size} is \code{log1p(n)} over its largest value (the mean of the known
+ones when \code{n} is missing) and \code{filled} the share of a row's filled cells
+whose quotations verified (0.5 when unknown). That formula is untested,
+and is not a quality score. Or a function of the studies table (the
+extraction's included rows, with a \code{study} column of ids) returning one
+non-negative number per row. Used only with \code{claims}.}
 }
 \value{
 An object of class \code{gr_synthesis}:
@@ -182,8 +224,9 @@ what the citation check ran on.}
 \item{\code{references}}{The reference list, or \code{NULL}.}
 \item{\code{cite_style}}{The style actually used, which is not always the one
 asked for.}
-\item{\code{coherence}}{One row per revision pass, or \code{NULL} if none ran:
-\code{pass} (which of \code{"structure"}, \code{"cut"}, \code{"register"}), \code{ran}, \code{kept},
+\item{\code{coherence}}{One row per round of each revision pass, or \code{NULL}
+if none ran: \code{pass} (which of \code{"structure"}, \code{"cut"}, \code{"register"}),
+\code{round} (1 unless \code{coherence_rounds} is more), \code{ran}, \code{kept},
 \code{lost} and \code{added} (citations, if the revision changed them),
 \code{reason} for anything discarded, and \code{words_before} and \code{words_after}
 (integer: words of prose, headings and citation markers left out, in
@@ -316,7 +359,8 @@ cited row carries in any column; the number of studies the sentence cites,
 its section was shown or the review was written from, or how many of those
 rows share a field's value ("10 were randomised trials"); or, after
 "about", "more than", "fewer than" and their like, within a tenth (about)
-or a quarter (a bound) of a value it could have come from. Not read as
+or a quarter (a bound) of a value it could have come from (\code{figure_bands}
+changes these shares). Not read as
 figures: a citation's ids, written bare as well ("studies 12 to 15"), a
 whole number below ten that is not a percentage or scaled (a review writes
 "2 of the trials" as it likes), a number joined to a name ("COVID-19",

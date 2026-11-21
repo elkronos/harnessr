@@ -32,11 +32,6 @@
 #' @noRd
 .gr_reference_decisions <- c("include", "exclude")
 
-#' The widest interval a one-stratum sample's headline rate may have and still
-#' be called adequate: ten percentage points, a margin of five either way.
-#' @noRd
-.gr_frame_max_width <- 0.10
-
 #' Draw a sample to screen by hand
 #'
 #' Picks documents out of a [gr_screen()] run for a person to judge without
@@ -399,8 +394,9 @@ as_screening_table <- function(screening) {
 #' excluded", "eligible among those kept") is taken over every row sampled, so
 #' a sample of 500 clean exclusions is a good one, not one resting on no
 #' observations. There the sample is adequate when that rate's interval is at
-#' most 10 percentage points wide, or when every record in the stratum was
-#' judged (nothing is left to sample, and the rate is a count for this run).
+#' most 10 percentage points wide (`max_width`), or when every record in the
+#' stratum was judged (nothing is left to sample, and the rate is a count for
+#' this run).
 #' The bar is a floor, not a verdict: 10 points is wide for an omission rate
 #' near zero across a large pile of exclusions, and the projected count of lost
 #' studies, printed with its interval, is the figure to judge that by.
@@ -525,6 +521,11 @@ as_screening_table <- function(screening) {
 #' @param max_lost Optional: the most eligible records the screener may have
 #'   excluded. When given, an upper bound on records lost at or below it also
 #'   meets the target.
+#' @param max_width For a sample of one stratum: the widest interval, as a
+#'   proportion, its headline rate may have for the sample to be adequate.
+#'   One number strictly between 0 and 1; default 0.10, ten percentage points
+#'   or a margin of five either way, set when the rule was written and
+#'   untested.
 #' @return An object of class `gr_calibration`:
 #'   \describe{
 #'     \item{`counts`}{The confusion matrix, as kept/excluded by eligible/not.}
@@ -608,9 +609,15 @@ as_screening_table <- function(screening) {
 #'                   stringsAsFactors = FALSE)
 #' gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref)
 gr_calibrate <- function(screening, reference, positive = "include", min_positives = 10L,
-                         of = NULL, recall_target = 0.95, conf = 0.95, max_lost = NULL) {
+                         of = NULL, recall_target = 0.95, conf = 0.95, max_lost = NULL,
+                         max_width = 0.10) {
   check_recall_target(recall_target)
   check_conf(conf)
+  if (!is.numeric(max_width) || length(max_width) != 1L || is.na(max_width) ||
+      max_width <= 0 || max_width >= 1) {
+    gr_abort("`max_width` must be one number strictly between 0 and 1.",
+             class = "gr_bad_setting")
+  }
   max_lost <- check_count_arg(max_lost, "max_lost", 0)
   tab <- as_screening_table(screening)
   ref <- read_reference(reference)
@@ -890,13 +897,13 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
                         switch(of, excluded = tab$decision == "exclude",
                                tab$decision %in% c("include", "unclear")))
     whole <- length(in_frame) > 0L && all(in_frame %in% hit[use])
-    list(rule = if (whole) "whole frame" else "interval", bar = .gr_frame_max_width,
+    list(rule = if (whole) "whole frame" else "interval", bar = max_width,
          width = width,
-         note = if (whole || width <= .gr_frame_max_width) NA_character_ else
+         note = if (whole || width <= max_width) NA_character_ else
            sprintf(paste0("The interval on '%s' is %.1f points wide, from %d hand-screened ",
                           "row(s); a sample of one stratum needs it within %.0f points (or the ",
                           "whole stratum judged) before the figure says much."),
-                   headline, 100 * width, length(model), 100 * .gr_frame_max_width))
+                   headline, 100 * width, length(model), 100 * max_width))
   }
   reviewers <- if (!is.null(panel)) {
     reviewer_summary(rows, eligible, kept, of, tab, positive, conf,
