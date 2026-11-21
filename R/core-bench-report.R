@@ -296,7 +296,9 @@
 #'     floor. `NULL` without one.}
 #'   \item{`registration`}{The registration's hash, time and reference
 #'     hash, or `NULL`.}
-#'   \item{`notes`}{What the reader should know.}
+#'   \item{`notes`}{What the reader should know. Among them: how many runs
+#'     were graded by a judge on the arm's own model, when the benchmark's
+#'     `self_judged` column has any (see [hr_scorer_judge()]).}
 #' }
 #' @references
 #' Atil, B. et al. (2025). Non-determinism of "deterministic" LLM settings.
@@ -839,6 +841,7 @@ report_design <- function(bench) {
     gr_abort("`bench` has no reportable rows: dev-split scores are not evidence.",
              class = "hr_bad_bench")
   }
+  if ("self_judged" %in% cols) notes <- c(notes, self_judged_note(df, rep_ok))
   get <- function(name, default) {
     if (name %in% cols) df[[name]][rep_ok] else rep(default, sum(rep_ok))
   }
@@ -922,6 +925,31 @@ report_design <- function(bench) {
        p = matrix(y_mat, I, A), key = fill(key, NA_character_), failure = fk,
        usd = fill(usd_raw, NA_real_), tokens = fill(tok_raw, NA_real_),
        estimated_share = unname(share), notes = notes)
+}
+
+#' The note on runs graded by a judge on the arm's own model, or on runs
+#' whose model could not be compared with the judge's; nothing when every
+#' reportable run is FALSE or the scorer named no judge model.
+#' @noRd
+self_judged_note <- function(df, rep_ok) {
+  sj <- as.logical(df$self_judged[rep_ok])
+  arm <- as.character(df$arm[rep_ok])
+  out <- character(0)
+  if (any(sj %in% TRUE)) {
+    by_arm <- tapply(sj %in% TRUE, arm, sum)
+    by_arm <- by_arm[by_arm > 0]
+    out <- c(out, sprintf(paste0(
+      "%d of %d runs were graded by a judge on the arm's own model (%s). A model grading its ",
+      "own output can favour it; compare with a judge on another model, or with human labels ",
+      "(hr_judge_ppi())."), sum(sj %in% TRUE), length(sj),
+      paste(sprintf("%s: %d", names(by_arm), as.integer(by_arm)), collapse = ", ")))
+  }
+  if (any(sj %in% c(TRUE, FALSE)) && anyNA(sj)) {
+    out <- c(out, sprintf(paste0(
+      "%d run(s) recorded no model to compare with the judge's, so whether they were ",
+      "self-judged is unknown."), sum(is.na(sj))))
+  }
+  out
 }
 
 #' @rdname hr_report

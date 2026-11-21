@@ -124,7 +124,9 @@ about 5.0e-4, at B = 2000); a value at that floor means at most the
 floor. \code{NULL} without one.}
 \item{\code{registration}}{The registration's hash, time and reference
 hash, or \code{NULL}.}
-\item{\code{notes}}{What the reader should know.}
+\item{\code{notes}}{What the reader should know. Among them: how many runs
+were graded by a judge on the arm's own model, when the benchmark's
+\code{self_judged} column has any (see \code{\link[=hr_scorer_judge]{hr_scorer_judge()}}).}
 }
 }
 \description{

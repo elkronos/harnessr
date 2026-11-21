@@ -453,3 +453,73 @@ test_that("hr_judge_ppi corrects a judge with known bias", {
                plain$estimate)
   expect_error(hr_judge_ppi(judge, human[-1]), class = "gr_bad_setting")
 })
+
+test_that("hr_benchmark marks runs graded by a judge on the arm's own model", {
+  cfg <- grade_config()   # the judge's model is "mock-model"
+  v <- hr_judge_validate(cfg, known_labels(), B = 0)
+  j <- judge_client(function(txt) "pass")
+  ref <- hr_reference(list(q1 = "France", q2 = "Peru"), labels = c("Paris", "Lima"),
+                      cluster = c("d1", "d2"), split = "test")
+  answers <- gr_mock_client(function(m, p) "Paris")
+  arm <- hr_arm("ask", function(item, ctx) ctx$call(paste("Capital of", item))$text)
+  run <- function(scorer, a = arm, client = answers) {
+    suppressWarnings(hr_benchmark(a, ref, runs = 2, client = client, scorer = scorer))
+  }
+  # The arm asks the mock's own model, "mock-model": the judge's model.
+  same <- run(hr_scorer_judge(cfg, v, j$client))
+  expect_identical(same$self_judged, rep(TRUE, 4))
+  # Another judge model: every run made requests to a known model, none
+  # of them the judge's, so FALSE. A dated id is another model: the match
+  # is exact.
+  expect_identical(run(hr_scorer_judge(cfg, v, j$client, judge_model = "judge-model"))$self_judged,
+                   rep(FALSE, 4))
+  expect_identical(run(hr_scorer_judge(cfg, v, j$client,
+                                       judge_model = "mock-model-2026-01"))$self_judged,
+                   rep(FALSE, 4))
+  # The served model counts too: a provider that answers as "judge-model"
+  # makes a run self-judged by a judge of that name.
+  served <- gr_mock_client(function(m, p) {
+    gr_result(TRUE, "Paris", model = "mock-model", served_model = "judge-model")
+  })
+  expect_identical(run(hr_scorer_judge(cfg, v, j$client, judge_model = "judge-model"),
+                       client = served)$self_judged, rep(TRUE, 4))
+  # NA: an arm that calls no model, a judge model given as NA, and a scorer
+  # that is not a judge.
+  quiet <- hr_arm("quiet", function(item, ctx) "Paris")
+  expect_identical(run(hr_scorer_judge(cfg, v, j$client), a = quiet)$self_judged, rep(NA, 4))
+  expect_identical(run(hr_scorer_judge(cfg, v, j$client, judge_model = NA))$self_judged,
+                   rep(NA, 4))
+  expect_identical(run(hr_scorer_exact())$self_judged, rep(NA, 4))
+  expect_error(hr_scorer_judge(cfg, v, j$client, judge_model = ""), class = "gr_bad_setting")
+  expect_error(hr_scorer_judge(cfg, v, j$client, judge_model = c("a", "b")),
+               class = "gr_bad_setting")
+  expect_identical(hr_scorer_judge(cfg, v, j$client)$judge_model, "mock-model")
+})
+
+test_that("hr_report notes self-judged runs and never refuses them", {
+  cfg <- grade_config()
+  v <- hr_judge_validate(cfg, known_labels(), B = 0)
+  j <- judge_client(function(txt) {
+    if (grepl("Response to grade:\nParis", txt, fixed = TRUE)) "pass" else "fail"
+  })
+  ref <- hr_reference(list(q1 = "France", q2 = "Peru", q3 = "Chad", q4 = "Fiji"),
+                      labels = c("Paris", "Lima", "N'Djamena", "Suva"),
+                      cluster = c("a", "a", "b", "b"), split = "test")
+  answers <- gr_mock_client(function(m, p) "Paris")
+  arm <- hr_arm("ask", function(item, ctx) ctx$call(paste("Capital of", item))$text)
+  quiet <- hr_arm("quiet", function(item, ctx) "Paris")
+  bench <- hr_benchmark(list(arm, quiet), ref, runs = 5, client = answers,
+                        scorer = hr_scorer_judge(cfg, v, j$client))
+  # 4 items x 5 runs of "ask" are self-judged; "quiet" calls no model, so
+  # its 20 runs are NA.
+  expect_identical(sum(bench$self_judged, na.rm = TRUE), 20L)
+  expect_identical(sum(is.na(bench$self_judged)), 20L)
+  rpt <- hr_report(bench, B = 100)
+  expect_true(any(grepl("20 of 40 runs were graded by a judge on the arm's own model \\(ask: 20\\)",
+                        rpt$notes)))
+  expect_true(any(grepl("20 run\\(s\\) recorded no model", rpt$notes)))
+  # With a judge on another model there is no self-judging note.
+  other <- hr_benchmark(arm, ref, runs = 5, client = answers,
+                        scorer = hr_scorer_judge(cfg, v, j$client, judge_model = "judge-model"))
+  expect_false(any(grepl("own model", hr_report(other, B = 100)$notes)))
+})

@@ -111,6 +111,14 @@
 #'     `attr(x, "traces")` under that name, and which every step the run
 #'     added to the benchmark's trace, `attr(x, "trace")`, carries as
 #'     `ledger_id`.}
+#'   \item{`self_judged`}{Whether the run was graded by a judge on the same
+#'     model as the arm: `TRUE` when the scorer's `judge_model` (see
+#'     [hr_scorer_judge()]) equals the model or the served model of one of
+#'     the run's model requests, `FALSE` when the run made model requests
+#'     with a known model and none equals it, and `NA` when the scorer names
+#'     no judge model or the run recorded no model. The match is exact, so
+#'     `"model-x"` and `"model-x-2026-01"` differ. Nothing is refused; see the
+#'     note [hr_report()] adds.}
 #'   \item{`reportable`}{`FALSE` for rows on the dev split.}
 #' }
 #' Attributes record the arms (`arms`: name, version, hash, derived_from),
@@ -194,7 +202,8 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
               outcome = character(n), failure_kind = character(n),
               tokens_in = integer(n), tokens_out = integer(n), tokens_reasoning = integer(n),
               tokens_cached = integer(n), usd = numeric(n), usd_provenance = character(n),
-              seconds = numeric(n), draw_index = integer(n), ledger_id = character(n))
+              seconds = numeric(n), draw_index = integer(n), ledger_id = character(n),
+              self_judged = logical(n))
   traces <- vector("list", n)
   stop_limit <- rep(NA_character_, n)
   k <- 0L
@@ -274,6 +283,7 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
           col$seconds[k] <- round(secs, 3)
           col$draw_index[k] <- r
           col$ledger_id[k] <- child$run_id
+          col$self_judged[k] <- self_judged(child, scorer$judge_model)
           traces[[k]] <- child
         }
       }
@@ -419,6 +429,23 @@ draw_signature <- function(trace) {
     cached = vapply(req, function(s) isTRUE(s$cached), logical(1)),
     keyed = vapply(req, function(s) is.character(s$replay_key), logical(1)),
     response_id = vapply(req, function(s) as_chr1(s$response_id, NA_character_), character(1)))
+}
+
+#' Whether a run was graded by a judge on its own model: TRUE when
+#' `judge_model` is the model or served model of one of the run's model
+#' requests, FALSE when the run has requests with a known model and none is,
+#' NA when there is no judge model or no known model to compare.
+#' @noRd
+self_judged <- function(trace, judge_model) {
+  jm <- as_chr1(judge_model, NA_character_)
+  if (is.na(jm) || !nzchar(jm)) return(NA)
+  req <- Filter(function(s) !identical(s$kind, "embedding"), request_steps(trace$steps))
+  seen <- unlist(lapply(req, function(s) {
+    c(as_chr1(s$model, NA_character_), as_chr1(s$served_model, NA_character_))
+  }), use.names = FALSE)
+  seen <- seen[!is.na(seen) & nzchar(seen)]
+  if (!length(seen)) return(NA)
+  jm %in% seen
 }
 
 #' Whether a label holds any value that is not NA.
