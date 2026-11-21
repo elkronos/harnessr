@@ -329,7 +329,8 @@ gr_reader_signature <- function(reader) {
 #'   edit-distance matcher scores `near_verbatim` (see "Verifying quotations")
 #'   also lets the `iterative` reader stop. `FALSE` (the default) accepts only
 #'   a quotation the decisive check verifies, as before the setting existed.
-#'   Untested: nothing has measured whether accepting near-verbatim quotations
+#'   A near-verbatim quotation that stops the loop is still reported as not
+#'   verified in `$evidence`, so the answer is marked partial. Untested: nothing has measured whether accepting near-verbatim quotations
 #'   gives better answers, and on the package's labelled quotation set 25 of 46
 #'   quotations with one content word swapped scored `near_verbatim`.
 #' @param max_merge_levels The most merge levels `map_reduce`, `skim` and the

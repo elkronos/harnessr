@@ -183,6 +183,30 @@ test_that("accept_near_verbatim lets a near-verbatim quotation stop the iterativ
   expect_error(gr_read_spec(accept_near_verbatim = NA), class = "gr_bad_setting")
 })
 
+test_that("with accept_near_verbatim the iterative reader answers, marked partial", {
+  ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 80)))
+  cl <- gr_mock_client(function(m, p) {
+    if (!grepl("reading iteratively", m[[1]]$content, fixed = TRUE)) return("x")
+    as.character(jsonlite::toJSON(list(
+      can_answer = TRUE, answer = "Revenue was 45.2 million.", next_query = "",
+      quotes = list(list(chunk_id = 2L,
+                         text = "reported total revenue of 45.2 million dollars in fiscal 2024"))),
+      auto_unbox = TRUE))
+  })
+  read <- function(acc) {
+    quiet(gr_read(ch, "What was revenue in 2024?", cl,
+                  gr_read_spec("iterative", verify = TRUE, top_k = 3L,
+                               accept_near_verbatim = acc)))
+  }
+  expect_true(is_not_found(read(FALSE)$answer))
+  a <- read(TRUE)
+  expect_identical(a$answer, "Revenue was 45.2 million.")
+  # The quotation stopped the loop but is still not verified.
+  expect_true(a$partial)
+  expect_false(a$evidence$verified)
+  expect_identical(a$evidence$quote_status, "near_verbatim")
+})
+
 test_that("max_merge_levels caps how deep a merge goes", {
   local_registries()
   gr_register_model("merge-ctx", context_window = 1200L, max_output = 200L,
