@@ -124,30 +124,41 @@ test_that("a reply with no allowed verdict, or a failed call, makes the judgemen
   expect_identical(hr_judge(c("x", "y"), down, mode = "select", rubric = "r")$outcome, "failed")
 })
 
-test_that("judge cost is recorded apart from the run it judges", {
+test_that("judge cost is folded into the run it is part of, once", {
   gr_register_model("judge-priced", context_window = 128000L, max_output = 4096L,
                     input_usd = 2, output_usd = 8)
   j <- judge_client(paris_rule)
   run <- gr_trace()
   invisible(gr_call(j$client, "Answer the question.", trace = run, label = "run.answer"))
-  before <- gr_trace_cost(run)
+  before <- sum(gr_trace_cost(run)$usd)
   res <- hr_judge(c("Paris", "Lyon"), j$client, mode = "select", model = "judge-priced",
                   rubric = "Which names the capital of France?", trace = run)
-  # The run's calls, tokens and dollars are as they were.
-  expect_identical(run$calls, 1L)
-  expect_equal(gr_trace_cost(run), before)
-  # The judge's own ledger holds both requests and their price.
+  # The judge's own ledger holds both requests and their price, as before.
   expect_identical(res$judge_cost$calls, 2L)
   expect_identical(res$trace$calls, 2L)
   expect_gt(res$judge_cost$usd, 0)
   expect_equal(res$judge_cost$usd, sum(gr_trace_cost(res$trace)$usd))
   expect_identical(res$judge_cost$tokens_in, res$trace$tokens_in)
   expect_identical(res$judge_cost$tokens_out, res$trace$tokens_out)
-  # The run gets a local note pointing at the judge's ledger.
+  # The run holds its own call and the judge's two, and their cost once.
+  expect_identical(run$calls, 3L)
+  expect_equal(sum(gr_trace_cost(run)$usd), before + res$judge_cost$usd)
+  expect_equal(run$spent_usd, before + res$judge_cost$usd)
+  labels <- vapply(run$steps, function(s) s$label, "")
+  expect_identical(labels, c("run.answer", "judge.select.o1", "judge.select.o2",
+                             "judge.select"))
+  # The run ends with a local note naming the judge's ledger. It holds no
+  # tokens, so it adds nothing to the cost.
   note <- run$steps[[length(run$steps)]]
   expect_identical(note$kind, "local")
+  expect_null(note$tokens)
   expect_identical(note$detail$judge_trace, res$trace$run_id)
   expect_equal(note$detail$usd, res$judge_cost$usd)
+  # Without a trace, nothing is folded anywhere.
+  alone <- hr_judge(c("Paris", "Lyon"), j$client, mode = "select", model = "judge-priced",
+                    rubric = "Which names the capital of France?")
+  expect_identical(alone$trace$calls, 2L)
+  expect_identical(run$calls, 3L)
 })
 
 test_that("judge calls are held to what the run's governor has left", {

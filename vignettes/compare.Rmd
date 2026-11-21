@@ -432,7 +432,6 @@ screener <- gr_mock_client(function(messages, params) {
 })
 screen_arm <- function(tokens) {
   hr_arm(paste0("tokens_", tokens), function(item, ctx) {
-    ctx$trace$draw_index <- ctx$draw_index
     gr_screen(item, protocol, client = ctx$client, screen_tokens = ctx$params$tokens,
               trace = ctx$trace)$table$decision
   }, params = list(tokens = tokens))

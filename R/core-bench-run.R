@@ -17,7 +17,10 @@
 #' same order.
 #'
 #' Run `r` of each arm on each item is given `ctx$draw_index = r` (see
-#' [hr_arm()]), so with the index passed to [gr_call()] each run is its own
+#' [hr_arm()]), and its `ctx$trace` carries `r` as well, so every request the
+#' run makes through `ctx$call()`, `ctx$call_json()` or a stage called with
+#' `trace = ctx$trace` ([gr_read()], [gr_segment()], [answer_document()],
+#' [hr_judge()] and the like) is sent at the run's draw, and each run is its own
 #' entry in a [gr_cache()] and its own recorded draw in a
 #' [gr_replay_client()]. Each request a run makes with a draw index is
 #' recorded under the arm's name as well, so a replay of a benchmark answers
@@ -260,8 +263,9 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
           if (!is.na(dup)) {
             gr_abort(sprintf(paste0(
               "Arm '%s' did not make distinct draws: on %s, %s. Repeated runs answered from one ",
-              "stored reply are copies, not draws. Pass ctx$draw_index to every request the arm ",
-              "makes (ctx$call() does), and record enough draws for a replay."),
+              "stored reply are copies, not draws. Send every request of the arm at the run's draw ",
+              "(ctx$call() and stages given trace = ctx$trace do, unless a request names a fixed ",
+              "draw_index), and record enough draws for a replay."),
               arm$name, where, dup), class = "hr_duplicate_draw")
           }
           seen[[length(seen) + 1L]] <- sig
@@ -373,14 +377,42 @@ warn_budget_stops <- function(rows, stop_limit, governor, from_options) {
 bench_governor <- function(parent) fork_governor(parent)
 
 #' The context an arm run is given. Built in its own function, so the `call`
-#' shortcut keeps this run's trace and draw however long the arm holds it.
+#' and `call_json` shortcuts keep this run's trace and draw however long the
+#' arm holds them.
+#'
+#' The run's trace carries the run's draw index (hr_benchmark() has already
+#' set the arm's name as its draw scope), so a stage or a judge the arm calls
+#' with `trace = ctx$trace` sends every request as the run's draw (see
+#' trace_draw_index()). Given only to `call`, a gr_read() inside the arm sent
+#' draw 0, and under a cache the arm was refused for repeating a draw.
 #' @noRd
 bench_ctx <- function(client, trace, run, item_id, arm) {
+  trace$draw_index <- run
   list(client = client, trace = trace, governor = trace$governor, draw_index = run,
        item_id = item_id, arm = arm$name, run = run, params = arm$params,
        call = function(messages, ...) {
          gr_call(client, messages, ..., trace = trace, draw_index = run)
+       },
+       call_json = function(messages, schema, ...) {
+         bench_call_json(client, messages, schema, ..., trace = trace, draw_index = run)
        })
+}
+
+#' A structured call for an arm: the parsed reply when the request succeeded
+#' and the reply meets `schema`, else a failed gr_result, which a scorer reads
+#' as an error (see output_failure()). A reply that came back but does not
+#' meet the schema is that reply's result, marked failed, with the reason.
+#' @noRd
+bench_call_json <- function(client, messages, schema, ...) {
+  res <- gr_call_json(client, messages, schema = schema, ...)
+  if (isTRUE(res$ok)) return(res$value)
+  out <- res$result
+  if (isTRUE(out$ok)) {
+    out$ok <- FALSE
+    out$error <- sprintf("The reply does not meet the schema: %s",
+                         as_chr1(res$problem, "it is not a JSON object"))
+  }
+  out
 }
 
 #' Fold one arm run's trace into the benchmark's, with each folded step

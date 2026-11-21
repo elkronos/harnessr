@@ -97,7 +97,10 @@ same order.
 }
 \details{
 Run \code{r} of each arm on each item is given \code{ctx$draw_index = r} (see
-\code{\link[=hr_arm]{hr_arm()}}), so with the index passed to \code{\link[=gr_call]{gr_call()}} each run is its own
+\code{\link[=hr_arm]{hr_arm()}}), and its \code{ctx$trace} carries \code{r} as well, so every request the
+run makes through \code{ctx$call()}, \code{ctx$call_json()} or a stage called with
+\code{trace = ctx$trace} (\code{\link[=gr_read]{gr_read()}}, \code{\link[=gr_segment]{gr_segment()}}, \code{\link[=answer_document]{answer_document()}},
+\code{\link[=hr_judge]{hr_judge()}} and the like) is sent at the run's draw, and each run is its own
 entry in a \code{\link[=gr_cache]{gr_cache()}} and its own recorded draw in a
 \code{\link[=gr_replay_client]{gr_replay_client()}}. Each request a run makes with a draw index is
 recorded under the arm's name as well, so a replay of a benchmark answers

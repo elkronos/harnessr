@@ -271,20 +271,19 @@ test_that("an arm whose runs are copies of one stored reply is refused", {
   d <- tempfile("bench-cache-")
   on.exit(unlink(d, recursive = TRUE), add = TRUE)
   cached <- gr_cache_client(gr_mock_client(function(m, p) "Paris"), gr_cache(d))
-  # No draw index: run 2 is the cache entry run 1 wrote.
-  undrawn <- hr_arm("undrawn", function(item, ctx) {
-    gr_call(ctx$client, paste0("Capital of ", item), trace = ctx$trace)$text
-  })
-  expect_error(hr_benchmark(undrawn, ref, runs = 5, client = cached),
-               class = "hr_duplicate_draw")
-  # The same draw index on every run is no better.
+  # The same draw index on every run: run 2 is the cache entry run 1 wrote.
   fixed <- hr_arm("fixed", function(item, ctx) {
     gr_call(ctx$client, paste0("Capital of ", item), trace = ctx$trace, draw_index = 1)$text
   })
   expect_error(hr_benchmark(fixed, ref, runs = 5, client = cached),
                class = "hr_duplicate_draw")
   # One run cannot repeat an earlier one.
-  expect_silent(suppressWarnings(hr_benchmark(undrawn, ref, runs = 1, client = cached)))
+  expect_silent(suppressWarnings(hr_benchmark(fixed, ref, runs = 1, client = cached)))
+  # A request that names no draw index takes the run's from ctx$trace.
+  undrawn <- hr_arm("undrawn", function(item, ctx) {
+    gr_call(ctx$client, paste0("Capital of ", item), trace = ctx$trace)$text
+  })
+  expect_identical(hr_benchmark(undrawn, ref, runs = 5, client = cached)$draw_index, 1:5)
 })
 
 test_that("a reply whose response id repeats across runs is refused", {

@@ -249,7 +249,9 @@ test_that("gr_arms builds one arm per recipe, named by recipe or by the names gi
 test_that("an arm run reads the item's document into the run's trace at the run's draw", {
   cl <- qa_client()
   arm <- gr_arm("fast")
+  # The trace carries the run's draw, as the one hr_benchmark() hands an arm does.
   tr <- gr_trace()
+  tr$draw_index <- 3L
   ctx <- list(client = cl, trace = tr, governor = NULL, draw_index = 3L)
   item <- list(question = "What was revenue in 2024?", document = gr_example())
   a <- quiet(arm$run(item, ctx))

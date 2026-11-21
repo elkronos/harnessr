@@ -83,6 +83,7 @@
 "bayes_betabin","core","function"
 "bca_interval","core","function"
 "bca_table","core","function"
+"bench_call_json","core","function"
 "bench_ctx","core","function"
 "bench_fold","core","function"
 "bench_governor","core","function"
