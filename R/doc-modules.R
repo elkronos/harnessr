@@ -235,3 +235,29 @@ check_calls <- function(calls, name) {
   }
   unique(calls)
 }
+
+#' The settings of a read, segment or ingest spec
+#'
+#' Returns the schema [gr_read_spec()], [gr_segment_spec()] or
+#' [gr_ingest_spec()] checks its arguments against: every setting with its
+#' type, default, range, tier and where its default came from. Printed, it
+#' lists each setting's tier (`basic` for the few most runs change,
+#' `advanced` for the rest) and evidence status (`"measured"`, `"cited"` or
+#' `"untested"`); `as.data.frame()` adds the default, the help line and the
+#' source the status rests on. Use it to see what a comparison can vary
+#' before building arms with [gr_arm()].
+#'
+#' @param module `"read"`, `"segment"` or `"ingest"`.
+#' @return An [hr_schema()].
+#' @seealso [gr_read_spec()], [gr_segment_spec()], [gr_ingest_spec()],
+#'   [hr_param()], [gr_arm()]
+#' @export
+#' @examples
+#' gr_settings("segment")
+#' s <- as.data.frame(gr_settings("read"))
+#' s[s$tier == "basic", c("name", "default", "status")]
+gr_settings <- function(module = c("read", "segment", "ingest")) {
+  module <- match.arg(module)
+  switch(module, read = .gr_read_schema, segment = .gr_segment_schema,
+         ingest = .gr_ingest_schema)
+}

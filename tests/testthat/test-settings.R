@@ -595,3 +595,28 @@ test_that("a run's trace records the ingest settings it used", {
   ing <- Filter(function(s) identical(s$label, "ingest"), b$trace$steps)
   expect_null(ing[[1]]$detail$settings)
 })
+
+test_that("gr_settings returns each module's schema, and as.data.frame shows its sources", {
+  for (mod in names(spec_schemas())) {
+    expect_identical(gr_settings(mod), spec_schemas()[[mod]])
+  }
+  expect_identical(gr_settings(), spec_schemas()$read)
+  expect_error(gr_settings("screen"))
+  d <- as.data.frame(gr_settings("read"))
+  expect_identical(names(d), c("name", "type", "default", "range", "tier", "status",
+                               "source", "help"))
+  expect_identical(d$name, names(spec_schemas()$read))
+  row <- d[d$name == "bm25_k1", ]
+  expect_identical(row$default, "1.5")
+  expect_identical(row$range, "[0, 10]")
+  expect_identical(row$status, "cited")
+  expect_match(row$source, "Robertson and Zaragoza")
+  # An enum's default is its first choice; a bound set by another parameter is f().
+  seg <- as.data.frame(gr_settings("segment"))
+  expect_identical(seg$default[seg$name == "context_source"], "metadata")
+  expect_identical(seg$range[seg$name == "overlap_tokens"], "[0, f()]")
+  # A parameter with no evidence declared reads NA, not an error.
+  bare <- as.data.frame(hr_schema(hr_param("k", "integer", default = 3L)))
+  expect_true(is.na(bare$status) && is.na(bare$source))
+  expect_identical(bare$default, "3")
+})
