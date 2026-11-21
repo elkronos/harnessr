@@ -6,6 +6,28 @@
 # strategy on a large corpus, and the only one whose cost does not scale with
 # document length.
 # ---------------------------------------------------------------------------
+#' How the retrieve reader scores chunk texts for a question: cosine
+#' similarity of their embeddings, blended with BM25 by `lexical_blend` when
+#' the embeddings are lexical. Returns the scores, the embedding matrix
+#' (question first), its source and whether it fell back to lexical.
+#' gr_seg_recall() ranks with this too, so both rank alike.
+#' @noRd
+retrieve_scores <- function(texts, question, client, spec, trace) {
+  emb <- gr_embed(client, c(question, texts), trace = trace)
+  src <- attr(emb, "embedding_source") %||% "api"
+  scores <- if (nrow(emb) >= 2L) cosine_against(emb[-1, , drop = FALSE], emb[1, ])
+            else rep(0, length(texts))
+  if (identical(src, "lexical")) {
+    # Blend in BM25 so the offline path is at least a real lexical retriever.
+    w <- as_num1(spec$lexical_blend, 0.5)
+    scores <- w * scores + (1 - w) * scale01(bm25_scores(texts, question,
+                                                         k1 = as_num1(spec$bm25_k1, 1.5),
+                                                         b = as_num1(spec$bm25_b, 0.75)))
+  }
+  list(scores = scores, emb = emb, source = src,
+       degraded = isTRUE(attr(emb, "embedding_fallback")))
+}
+
 #' @noRd
 read_retrieve <- function(chunks, question, client, spec, trace) {
   d <- chunks$chunks
@@ -16,17 +38,11 @@ read_retrieve <- function(chunks, question, client, spec, trace) {
     return(new_answer(.NOT_FOUND, "retrieve", question, integer(0), trace, partial = TRUE,
                       notes = list(chunks = 0L, reason = "there are no chunks to read")))
   }
-  emb <- gr_embed(client, c(question, d$text), trace = trace)
-  src <- attr(emb, "embedding_source") %||% "api"
-  degraded_embed <- isTRUE(attr(emb, "embedding_fallback"))
-  scores <- if (nrow(emb) >= 2L) cosine_against(emb[-1, , drop = FALSE], emb[1, ]) else rep(0, nrow(d))
-  if (identical(src, "lexical")) {
-    # Blend in BM25 so the offline path is at least a real lexical retriever.
-    w <- as_num1(spec$lexical_blend, 0.5)
-    scores <- w * scores + (1 - w) * scale01(bm25_scores(d$text, question,
-                                                         k1 = as_num1(spec$bm25_k1, 1.5),
-                                                         b = as_num1(spec$bm25_b, 0.75)))
-  }
+  ranked <- retrieve_scores(d$text, question, client, spec, trace)
+  emb <- ranked$emb
+  src <- ranked$source
+  degraded_embed <- ranked$degraded
+  scores <- ranked$scores
   k <- as.integer(clamp(spec$top_k, 1, nrow(d)))
   min_score <- as_num1(spec$min_score, -Inf)
   # The floor is applied BEFORE selection, not after. Applied after, a chunk
