@@ -144,6 +144,9 @@ Other segmentation functions:
 \code{\link{gr_chunk_stats}()},
 \code{\link{gr_chunks}},
 \code{\link{gr_register_segmenter}()},
+\code{\link{gr_seg_boundaries}()},
+\code{\link{gr_seg_pk}()},
+\code{\link{gr_seg_recall}()},
 \code{\link{gr_segment}()},
 \code{\link{gr_segmenters}()},
 \code{\link{new_chunks}()}

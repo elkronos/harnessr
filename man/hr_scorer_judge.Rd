@@ -9,7 +9,8 @@ hr_scorer_judge(
   validation,
   client,
   governor = NULL,
-  draw_index = 0L
+  draw_index = 0L,
+  judge_model = judge_config$model
 )
 }
 \arguments{
@@ -25,10 +26,17 @@ hr_scorer_judge(
 \code{\link[=gr_call]{gr_call()}}). With a caching client and a fixed index, identical outputs
 graded against the same label reuse one cached verdict; give another
 index for a fresh judge draw.}
+
+\item{judge_model}{The model the judge runs on, as the arms' traces would
+name it: by default the configuration's \code{model}. \code{\link[=hr_benchmark]{hr_benchmark()}}
+compares it with the model and served model of each run's requests and
+records the result as \code{self_judged}. Give the served model id when the
+provider names it differently from the configuration, so the comparison
+can match it. \code{NA} records no comparison.}
 }
 \value{
-An \code{hr_scorer} with two more elements: \code{trace}, the judge's
-\code{gr_trace}, and \code{config_hash}.
+An \code{hr_scorer} with three more elements: \code{trace}, the judge's
+\code{gr_trace}, \code{config_hash} and \code{judge_model}.
 }
 \description{
 An \code{\link[=hr_scorer]{hr_scorer()}} that grades each run's output against the item's label
@@ -52,6 +60,16 @@ held to \code{governor}, and never in the runs' traces, so a benchmark's cost
 columns leave judging out. Accuracy estimated by a judge should be
 reported corrected against human labels, with \code{\link[=hr_judge_ppi]{hr_judge_ppi()}}.
 }
+\section{Self-judging}{
+
+A model grading its own output can favour it. \code{hr_scorer_judge()} never
+refuses such a pairing, since a provider may offer only one capable
+model, but \code{\link[=hr_benchmark]{hr_benchmark()}} marks each run graded by a judge on the arm's
+own model in \code{self_judged}, and \code{\link[=hr_report]{hr_report()}} says so in its notes. The
+match is exact: a model id that differs by a date or a version suffix is
+a different model to it.
+}
+
 \examples{
 cfg <- hr_judge_config("mock-model", "Does the response give the reference's answer?",
                        mode = "grade")

@@ -374,3 +374,106 @@ test_that("a blind = FALSE calibration sheet read without items is a graded set"
   open$correct <- c("yes", "no", "yes", "no")
   expect_identical(suppressMessages(gr_read_labels(open, "calibration"))$score, c(1, 0, 1, 0))
 })
+
+# ---- pairwise sheets ---------------------------------------------------------
+
+labels_pairs <- function(n = 40) {
+  data.frame(item_id = sprintf("p%02d", seq_len(n)), question = "Which is right?",
+             candidate_a = sprintf("Answer A%02d", seq_len(n)),
+             candidate_b = sprintf("Answer B%02d", seq_len(n)),
+             judge_verdict = "A", stringsAsFactors = FALSE)
+}
+
+test_that("a pairwise sheet shows the two texts in a blinded order behind a key", {
+  items <- labels_pairs()
+  sheet <- gr_label_sheet("pairwise", items)
+  expect_identical(names(sheet), c("item_id", "question", "text_1", "text_2", "order_key",
+                                   "preferred", "note"))
+  # The candidates' own columns, and anything else in `items`, stay off it.
+  expect_false(any(c("candidate_a", "candidate_b", "judge_verdict") %in% names(sheet)))
+  b_first <- sheet$text_1 == items$candidate_b
+  # Every row shows both texts once, in one order or the other.
+  expect_true(all(ifelse(b_first, sheet$text_2 == items$candidate_a,
+                         sheet$text_1 == items$candidate_a)))
+  # Both orders occur, and the order is the same when the sheet is written
+  # again: it comes from the row, not from the random state.
+  expect_true(any(b_first) && any(!b_first))
+  set.seed(99)
+  expect_identical(gr_label_sheet("pairwise", items)$text_1, sheet$text_1)
+  # The keys are opaque and of one length whichever order a row has.
+  expect_true(all(grepl("^pk[0-9a-f]+$", sheet$order_key)))
+  expect_length(unique(nchar(sheet$order_key)), 1L)
+  # Without blind, other columns are copied as model_ columns, the order
+  # is still blinded and the candidates are still not written as they are.
+  open <- gr_label_sheet("pairwise", items, blind = FALSE)
+  expect_true("model_judge_verdict" %in% names(open))
+  expect_false(any(c("candidate_a", "candidate_b", "model_candidate_a") %in% names(open)))
+  expect_identical(open$text_1, sheet$text_1)
+  expect_error(gr_label_sheet("pairwise", items[, c("item_id", "candidate_a")]),
+               class = "gr_bad_setting")
+})
+
+test_that("pairwise labels come back as A, B or tie in candidate order", {
+  items <- labels_pairs(6)
+  path <- labels_tmp("pairs.csv")
+  sheet <- suppressMessages(gr_label_sheet("pairwise", items, path = path))
+  expect_true(any(grepl("preferred", readLines(sub("[.]csv$", "_instructions.txt", path)))))
+  # The person prefers whichever text is shown first on rows 1 to 4 and
+  # calls rows 5 and 6 a tie. In candidate order, row i's answer is the
+  # candidate its text_1 came from.
+  labels_fill(path, preferred = c("1", "1", "1", "1", "tie", "TIE"))
+  lab <- suppressMessages(gr_read_labels(path, "pairwise", items = items))
+  first <- ifelse(sheet$text_1 == items$candidate_a, "A", "B")
+  expect_identical(lab$shown_first, first)
+  expect_identical(lab$preferred, c(first[1:4], "tie", "tie"))
+  # And text_2 on a row shown B first is candidate A.
+  labels_fill(path, preferred = rep("2", 6))
+  lab2 <- suppressMessages(gr_read_labels(path, "pairwise"))
+  expect_identical(lab2$preferred, ifelse(first == "A", "B", "A"))
+  # The items' columns are joined back, so the candidates sit beside the label.
+  expect_identical(lab$candidate_a, items$candidate_a)
+})
+
+test_that("pairwise labels feed hr_judge_validate with ties counted as negative", {
+  # 60 pairs where people prefer A, 30 where they prefer B and 30 ties.
+  # The judge agrees on every A and B pair and calls every tie "A".
+  # Positive is "A": human positives 60, negatives 60 (B and tie).
+  # Judge positives: the 60 A pairs and the 30 ties. Sensitivity 60/60 = 1,
+  # specificity 30/60 = 0.5: the ties the judge called A are false positives.
+  n <- 120
+  items <- labels_pairs(n)
+  sheet <- gr_label_sheet("pairwise", items)
+  human <- rep(c("A", "B", "tie"), c(60, 30, 30))
+  first <- ifelse(sheet$text_1 == items$candidate_a, "A", "B")
+  sheet$preferred <- ifelse(human == "tie", "tie", ifelse(human == first, "1", "2"))
+  lab <- suppressMessages(gr_read_labels(sheet, "pairwise"))
+  expect_identical(lab$preferred, human)
+  judge <- ifelse(human == "tie", "A", human)
+  cfg <- hr_judge_config("mock-model", "Which answer is right?", mode = "pairwise")
+  v <- hr_judge_validate(cfg, data.frame(judge = judge, human = lab$preferred),
+                         positive = "A", B = 0)
+  expect_identical(v$n_pos, 60L)
+  expect_identical(v$n_neg, 60L)
+  expect_equal(v$sensitivity$estimate, 1)
+  expect_equal(v$specificity$estimate, 0.5)
+})
+
+test_that("a pairwise row with a bad value or a key from another row is refused", {
+  items <- labels_pairs(4)
+  sheet <- gr_label_sheet("pairwise", items)
+  sheet$preferred <- c("1", "3", "tie", "2")
+  err <- tryCatch(gr_read_labels(sheet, "pairwise"), gr_bad_labels = function(e) e)
+  expect_s3_class(err, "gr_bad_labels")
+  expect_match(conditionMessage(err), "1, 2 or tie")
+  expect_identical(err$problems$item_id, "p02")
+  # Keys swapped between rows 1 and 2, and one key typed over, are caught.
+  sheet$preferred <- "1"
+  sheet$order_key[1:2] <- sheet$order_key[2:1]
+  sheet$order_key[4] <- "pk0000000000"
+  err <- tryCatch(gr_read_labels(sheet, "pairwise"), gr_bad_labels = function(e) e)
+  expect_identical(err$problems$item_id, c("p01", "p02", "p04"))
+  expect_match(err$problems$problem[1], "order_key")
+  # A sheet with no key column is not a pairwise sheet.
+  sheet$order_key <- NULL
+  expect_error(gr_read_labels(sheet, "pairwise"), "order_key", class = "gr_bad_labels")
+})

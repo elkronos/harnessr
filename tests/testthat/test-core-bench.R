@@ -208,7 +208,7 @@ test_that("hr_benchmark returns one row per cluster x item x arm x run", {
   expect_identical(names(b), c(
     "cluster", "item", "arm", "run", "split", "correct", "outcome", "failure_kind",
     "tokens_in", "tokens_out", "tokens_reasoning", "tokens_cached", "usd", "usd_provenance",
-    "seconds", "draw_index", "ledger_id", "reportable"))
+    "seconds", "draw_index", "ledger_id", "self_judged", "reportable"))
   expect_identical(b$cluster, rep(c("a", "b"), each = 20))
   expect_identical(b$item, rep(c("q1", "q2", "q3", "q4"), each = 10))
   expect_identical(b$arm, rep(rep(c("one", "two"), each = 5), 4))

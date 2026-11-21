@@ -71,6 +71,14 @@ paid for no request, and \code{NA} when a request does not say.}
 \code{attr(x, "traces")} under that name, and which every step the run
 added to the benchmark's trace, \code{attr(x, "trace")}, carries as
 \code{ledger_id}.}
+\item{\code{self_judged}}{Whether the run was graded by a judge on the same
+model as the arm: \code{TRUE} when the scorer's \code{judge_model} (see
+\code{\link[=hr_scorer_judge]{hr_scorer_judge()}}) equals the model or the served model of one of
+the run's model requests, \code{FALSE} when the run made model requests
+with a known model and none equals it, and \code{NA} when the scorer names
+no judge model or the run recorded no model. The match is exact, so
+\code{"model-x"} and \code{"model-x-2026-01"} differ. Nothing is refused; see the
+note \code{\link[=hr_report]{hr_report()}} adds.}
 \item{\code{reportable}}{\code{FALSE} for rows on the dev split.}
 }
 Attributes record the arms (\code{arms}: name, version, hash, derived_from),

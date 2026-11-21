@@ -283,6 +283,40 @@ print.hr_schema <- function(x, ...) {
   invisible(x)
 }
 
+#' @param x An `hr_schema`.
+#' @param row.names,optional Ignored.
+#' @rdname hr_schema
+#' @return `as.data.frame()` gives one row per parameter: `name`, `type`,
+#'   `default` (as text; an enum's is its first choice), `range` (the
+#'   bounds or choices, `f()` for a bound set by another parameter), `tier`,
+#'   `status` and `source` (from its `evidence`, `NA` when not declared) and
+#'   `help`.
+#' @export
+as.data.frame.hr_schema <- function(x, row.names = NULL, optional = FALSE, ...) {
+  show <- function(v) {
+    if (is.null(v)) return("NULL")
+    if (is.list(v)) return(if (length(v)) "list(...)" else "list()")
+    paste(format(v, trim = TRUE), collapse = ", ")
+  }
+  rng <- function(p) {
+    if (!is.null(p$choices)) return(paste(p$choices, collapse = "|"))
+    if (is.null(p$min) && is.null(p$max)) return("")
+    b <- function(v, d) if (is.null(v)) d else if (is.function(v)) "f()" else format(v)
+    sprintf("[%s, %s]", b(p$min, "-Inf"), b(p$max, "Inf"))
+  }
+  col <- function(f) unname(vapply(x, f, character(1)))
+  data.frame(
+    name = col(function(p) p$name),
+    type = col(function(p) p$type),
+    default = col(function(p) if (identical(p$type, "enum")) p$choices[1] else show(p$default)),
+    range = col(rng),
+    tier = col(function(p) as_chr1(p$tier, NA_character_)),
+    status = col(function(p) as_chr1(p$evidence$status, NA_character_)),
+    source = col(function(p) as_chr1(p$evidence$source, NA_character_)),
+    help = col(function(p) as_chr1(p$help, NA_character_)),
+    stringsAsFactors = FALSE)
+}
+
 #' Validate and resolve settings against a schema
 #'
 #' Applies each parameter's rule (see [hr_param()]) to the value given for it,

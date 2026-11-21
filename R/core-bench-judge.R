@@ -804,8 +804,21 @@ print.hr_judge_validation <- function(x, ...) {
 #'   [gr_call()]). With a caching client and a fixed index, identical outputs
 #'   graded against the same label reuse one cached verdict; give another
 #'   index for a fresh judge draw.
-#' @return An `hr_scorer` with two more elements: `trace`, the judge's
-#'   `gr_trace`, and `config_hash`.
+#' @param judge_model The model the judge runs on, as the arms' traces would
+#'   name it: by default the configuration's `model`. [hr_benchmark()]
+#'   compares it with the model and served model of each run's requests and
+#'   records the result as `self_judged`. Give the served model id when the
+#'   provider names it differently from the configuration, so the comparison
+#'   can match it. `NA` records no comparison.
+#' @section Self-judging:
+#' A model grading its own output can favour it. `hr_scorer_judge()` never
+#' refuses such a pairing, since a provider may offer only one capable
+#' model, but [hr_benchmark()] marks each run graded by a judge on the arm's
+#' own model in `self_judged`, and [hr_report()] says so in its notes. The
+#' match is exact: a model id that differs by a date or a version suffix is
+#' a different model to it.
+#' @return An `hr_scorer` with three more elements: `trace`, the judge's
+#'   `gr_trace`, `config_hash` and `judge_model`.
 #' @seealso [hr_judge_validate()], [hr_benchmark()], [hr_judge_ppi()]
 #' @family judges
 #' @export
@@ -827,8 +840,12 @@ print.hr_judge_validation <- function(x, ...) {
 #' sc$fn("Capital of France?", "Paris", "Paris")$correct
 #' sc$fn("Capital of France?", "Lyon", "Paris")$correct
 hr_scorer_judge <- function(judge_config, validation, client, governor = NULL,
-                            draw_index = 0L) {
+                            draw_index = 0L, judge_model = judge_config$model) {
   check_judge_config(judge_config)
+  if (length(judge_model) != 1L || !(is.character(judge_model) || is.na(judge_model)) ||
+      (!is.na(judge_model) && !nzchar(trimws(judge_model)))) {
+    gr_abort("`judge_model` must be one model id, or NA.", class = "gr_bad_setting")
+  }
   draw_index <- check_draw_index(draw_index)
   if (missing(validation)) validation <- NULL
   ok <- hr_judge_valid(validation, judge_config)
@@ -874,6 +891,7 @@ hr_scorer_judge <- function(judge_config, validation, client, governor = NULL,
   sc <- hr_scorer(fn, name = sprintf("judge_%s", substr(cfg$hash, 1, 12)))
   sc$trace <- jt
   sc$config_hash <- cfg$hash
+  sc$judge_model <- as.character(judge_model)
   sc
 }
 

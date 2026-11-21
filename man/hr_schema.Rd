@@ -2,18 +2,31 @@
 % Please edit documentation in R/core-registry-schema.R
 \name{hr_schema}
 \alias{hr_schema}
+\alias{as.data.frame.hr_schema}
 \title{Collect parameters into a schema}
 \usage{
 hr_schema(...)
+
+\method{as.data.frame}{hr_schema}(x, row.names = NULL, optional = FALSE, ...)
 }
 \arguments{
 \item{...}{\code{\link[=hr_param]{hr_param()}} objects. Their order is the order \code{\link[=hr_validate]{hr_validate()}}
 resolves them in, so a bound that depends on another parameter comes
 after it.}
+
+\item{x}{An \code{hr_schema}.}
+
+\item{row.names, optional}{Ignored.}
 }
 \value{
 An object of class \code{hr_schema}: a list of \code{hr_param}, named by
 parameter.
+
+\code{as.data.frame()} gives one row per parameter: \code{name}, \code{type},
+\code{default} (as text; an enum's is its first choice), \code{range} (the
+bounds or choices, \code{f()} for a bound set by another parameter), \code{tier},
+\code{status} and \code{source} (from its \code{evidence}, \code{NA} when not declared) and
+\code{help}.
 }
 \description{
 Collect parameters into a schema
