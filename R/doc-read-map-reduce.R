@@ -17,7 +17,7 @@ read_map_reduce <- function(chunks, question, client, spec, trace) {
                           spec$max_chunk_tokens)
   res <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
     r <- gr_call(client, answer_messages(question, render_chunks(d[i, , drop = FALSE]),
-                                         cite = spec$cite, restate = spec$restate,
+                                         cite = spec$cite, restate = restate_how(spec),
                                          premise = spec$premise),
                  model = spec$model, max_output = spec$max_chunk_tokens,
                  temperature = spec$temperature, trace = trace, label = "map.answer",

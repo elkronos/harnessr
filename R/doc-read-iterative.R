@@ -158,7 +158,7 @@ read_iterative <- function(chunks, question, client, spec, trace) {
       # bury it. Every other reader asks last, through answer_messages(); this
       # one asked first and then handed over several thousand tokens.
       list(role = "user", content = paste0("<excerpts>\n", body, "\n</excerpts>",
-                                           restate_tail(body, question, spec$restate))))
+                                           restate_tail(body, question, restate_how(spec)))))
     # The quotations the last step gave that were not in their chunks, so the
     # model knows what was refused and where. Only under verify = TRUE, and
     # only after a refusal.
@@ -214,7 +214,8 @@ read_iterative <- function(chunks, question, client, spec, trace) {
       # them only with can_answer true, and quote-backed verdicts come later.
       quoted <- verify && !contradicted
       if (quoted) {
-        quotes <- step_quotes(out$value, d, step$rows)
+        quotes <- step_quotes(out$value, d, step$rows,
+                              near = isTRUE(spec$accept_near_verbatim))
         if (!nrow(quotes) || !all(quotes$verified)) {
           # Not a stop: the model said it could answer and did not show it.
           # The next round is told which quotations were refused, and looks
@@ -301,7 +302,7 @@ read_iterative <- function(chunks, question, client, spec, trace) {
     gr_result(FALSE, error = "no gathered chunk fits the context window")
   } else {
     gr_call(client, answer_messages(question, final$body, cite = spec$cite,
-                                    restate = spec$restate, premise = spec$premise),
+                                    restate = restate_how(spec), premise = spec$premise),
             model = spec$model, max_output = spec$max_answer_tokens,
             temperature = spec$temperature, trace = trace, label = "iterative.final",
             effort = spec$effort)
@@ -334,9 +335,11 @@ read_iterative <- function(chunks, question, client, spec, trace) {
 #' a chunk the step was not shown this round cannot back anything it says. The
 #' check is span_match(), the one that decides `verified` everywhere else, so
 #' a quotation that stops the loop is one gr_verify_evidence() also passes.
+#' With `near = TRUE` (`accept_near_verbatim`), a quotation the edit-distance
+#' matcher (match_span()) scores `near_verbatim` in that chunk is accepted too.
 #' @return A data frame: `chunk_id`, `text`, `verified`.
 #' @noRd
-step_quotes <- function(value, d, shown) {
+step_quotes <- function(value, d, shown, near = FALSE) {
   raw <- json_field(value, "quotes", scalar = FALSE)
   # A parsed array of objects is a data frame, and an array of one object can
   # arrive as that object alone.
@@ -357,7 +360,9 @@ step_quotes <- function(value, d, shown) {
   src <- reader_source_text(d)
   ok <- vapply(seq_along(text), function(i) {
     row <- match(ids[i], d$chunk_id)
-    !is.na(row) && row %in% shown && isTRUE(span_match(text[i], src[row])$verified)
+    !is.na(row) && row %in% shown &&
+      (isTRUE(span_match(text[i], src[row])$verified) ||
+         (near && identical(match_span(text[i], src[row])$status, "near_verbatim")))
   }, logical(1))
   data.frame(chunk_id = ids, text = text, verified = ok, stringsAsFactors = FALSE)
 }

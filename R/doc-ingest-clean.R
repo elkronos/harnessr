@@ -361,17 +361,19 @@ register_builtin_cleaners <- function() {
   gr_register_cleaner("references", stage = "early", default_on = FALSE, scope = "document",
     description = "Drop a trailing bibliography, from a References/Bibliography heading to the end",
     fn = function(x, o) {
-      # Correct version of the old one-liner. `(?s)` lets `.` cross newlines;
-      # the heading must be on its own line, optionally numbered, so a mid-
-      # sentence mention of "references" is not a match; and the heading must
-      # fall in the last 40% of the text, so a References entry in a table of
-      # contents does not truncate the document.
+      # Correct version of the old one-liner. The heading must be on its own
+      # line, optionally numbered, so a mid-sentence mention of "references"
+      # is not a match; and it must start at or after `references_after` (0.4
+      # by default) of the text, that is, anywhere after the first 40%, so a
+      # References entry in a table of contents does not truncate the
+      # document. The first such heading ends the text.
       m <- gregexpr("(?mi)^[ \t]*(?:\\d+\\.?[ \t]*)?(references|bibliography|works cited)[ \t:]*$",
                     x, perl = TRUE)[[1]]
       if (m[1] == -1) return(x)
+      after <- references_after(o)
       pos <- as.integer(m)
       total <- nchar(x)
-      cand <- pos[pos >= total * 0.4]
+      cand <- pos[pos >= total * after]
       if (!length(cand)) return(x)
       substr(x, 1, max(cand[1] - 1L, 0L))
     })
@@ -500,6 +502,18 @@ document_compounds <- function(texts, memo = NULL) {
   }
   if (is.environment(memo)) memo$compounds <- out
   out
+}
+
+#' Where in a text the `references` cleaner starts looking for a bibliography
+#' heading, as a share of the text: `cleaner_opts$references_after`, 0.4 when
+#' it is not set. A value that cannot be read warns and uses 0.4; one outside
+#' \[0, 1\] is clamped with a warning.
+#' @noRd
+references_after <- function(o) {
+  v <- o[["references_after", exact = TRUE]]
+  if (is.null(v)) return(0.4)
+  clamp_warn(na_default(v, 0.4, "references_after"), 0, 1, "references_after",
+             integer = FALSE)
 }
 
 #' Drop running heads and feet from a document's text: what the

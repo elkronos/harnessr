@@ -58,7 +58,8 @@ rerank_prefilter <- function(d, question, client, trace, pre, m) {
 #' @noRd
 read_rerank <- function(chunks, question, client, spec, trace) {
   d <- chunks$chunks
-  pre <- bm25_scores(d$text, question)
+  pre <- bm25_scores(d$text, question, k1 = as_num1(spec$bm25_k1, 1.5),
+                     b = as_num1(spec$bm25_b, 0.75))
   m <- as.integer(clamp(spec$rerank_candidates, 1, nrow(d)))
   prefilter <- rerank_prefilter(d, question, client, trace, pre, m)
   cand <- prefilter$cand
@@ -191,7 +192,7 @@ read_rerank <- function(chunks, question, client, spec, trace) {
                                           context_order = as_chr1(spec$context_order, "relevance"),
                                           scores = round(utils::head(keep_sc, 10), 2)))
   res <- gr_call(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
-                                         restate = spec$restate, premise = spec$premise),
+                                         restate = restate_how(spec), premise = spec$premise),
                  model = spec$model, max_output = spec$max_answer_tokens,
                  temperature = spec$temperature, trace = trace, label = "rerank.answer",
                  effort = spec$effort)

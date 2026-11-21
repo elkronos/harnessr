@@ -29,7 +29,7 @@ read_stuff <- function(chunks, question, client, spec, trace) {
   }
   sub <- d[fit$idx, , drop = FALSE]
   res <- gr_call(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
-                                    restate = spec$restate, premise = spec$premise),
+                                    restate = restate_how(spec), premise = spec$premise),
                  model = spec$model, max_output = spec$max_answer_tokens,
                  temperature = spec$temperature, trace = trace, label = "stuff.answer",
                  effort = spec$effort)

@@ -14,7 +14,8 @@ gr_ingest_spec(
   extractor = NULL,
   parallel = NULL,
   cleaner_opts = list(),
-  layout = c("auto", "raw")
+  layout = c("auto", "raw"),
+  layout_opts = list()
 )
 }
 \arguments{
@@ -39,7 +40,22 @@ the file extension.}
 
 \item{parallel}{Parallelise page-level OCR.}
 
-\item{cleaner_opts}{Extra options passed to individual cleaners.}
+\item{cleaner_opts}{Extra options passed to individual cleaners, as a named
+list. The built-in cleaners read these:
+\describe{
+\item{\code{references_after} (0.4)}{For the \code{references} cleaner (in the
+\code{academic} and \code{legacy} presets): a References, Bibliography or Works
+cited heading ends the text only when it starts at or after this
+share of the text, so an entry in a table of contents does not cut
+the document. A number in [0, 1]; a value that cannot be read
+warns and uses 0.4. Untested: set when the cleaner was written.}
+\item{\code{header_max_chars} (80)}{For the \code{headers_footers} cleaner (in
+the \code{scan} preset): the longest line, in characters, that can be
+taken for a running head or foot. Untested.}
+\item{\code{header_min_repeats} (3)}{For \code{headers_footers}: how many times a
+line must recur to be taken for one. Values below 3 are read as 3,
+and a text of fewer than 8 lines is left alone. Untested.}
+}}
 
 \item{layout}{How a PDF page's text is put in reading order. \code{"auto"} drops
 running heads and feet (short lines repeated at the top or bottom of many
@@ -50,6 +66,17 @@ sections. \code{"raw"} keeps each page as pdftools lays it out. Other formats
 are not affected. Stored in the spec only when it is not \code{"auto"}, so a
 default spec keeps the cache and store keys it had before the setting
 existed.}
+
+\item{layout_opts}{Under \code{layout = "auto"}, a named list that changes how
+running heads and feet are found on PDF pages: \code{depth} (2, lines at each
+edge of a page that are candidates), \code{share} (0.4, the share of pages a
+line must recur on), \code{min_pages} (3, the fewest pages a document needs
+before any line is dropped, and the fewest a line must recur on),
+\code{max_chars} (200, the longest candidate line) and \code{max_words} (5, above
+which a numbered line must carry its number where a page number is set).
+Names left out keep these defaults, which were set when the PDF reader
+was written and are untested. An unknown name is an error. Stored in the
+spec only when it is not empty.}
 }
 \value{
 A list of class \code{gr_ingest_spec}.
@@ -57,6 +84,25 @@ A list of class \code{gr_ingest_spec}.
 \description{
 Describe an ingestion configuration
 }
+\section{Where the defaults come from}{
+
+Each setting's default, its tier and the evidence behind the value, as in
+\code{\link[=gr_read_spec]{gr_read_spec()}}.
+\itemize{
+\item \code{ocr} (default \code{"auto"}, basic): untested. OCR only where a page has no text layer; not compared.
+\item \code{layout} (default \code{"auto"}, advanced): untested. The layout pass is on; checked on the PDFs in the tests, with no measured comparison against "raw".
+\item \code{clean} (default \code{"standard"}, basic): untested. The preset meant for born-digital text; not compared.
+\item \code{ocr_lang} (default \code{"eng"}, advanced): untested. English, the language of the package's own examples.
+\item \code{ocr_dpi} (default \code{300}, advanced): cited. Tesseract's documentation on improving output quality recommends images of at least 300 DPI; not measured here.
+\item \code{ocr_min_chars} (default \code{40}, advanced): untested. Set when OCR was added; not tuned.
+\item \code{min_chars} (default \code{20}, basic): untested. A floor that catches an empty extraction; not tuned.
+\item \code{extractor} (default \code{NULL}, advanced): untested. Not a tuned value: NULL chooses by file type.
+\item \code{parallel} (default \code{NULL}, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.
+\item \code{cleaner_opts} (default \code{list()}, advanced): untested. Empty: each cleaner uses its own defaults, listed under \code{cleaner_opts}.
+\item \code{layout_opts} (default \code{list()}, advanced): untested. Empty: the pass uses the values it was written with, listed under \code{layout_opts}; none was tuned.
+}
+}
+
 \examples{
 # What each preset costs you, on a real document, before any model call.
 vapply(c("none", "minimal", "standard", "academic", "scan"),
@@ -65,6 +111,9 @@ vapply(c("none", "minimal", "standard", "academic", "scan"),
 
 # Or name the steps yourself; see gr_cleaners() for what is available.
 gr_ingest_spec(clean = c("page_numbers", "references"), ocr = "never")$clean
+
+# A bibliography heading counts only in the last half of the text.
+gr_ingest_spec(clean = "academic", cleaner_opts = list(references_after = 0.5))
 }
 \seealso{
 \code{\link[=gr_ingest]{gr_ingest()}}, \code{\link[=gr_cleaners]{gr_cleaners()}} for the individual step names,

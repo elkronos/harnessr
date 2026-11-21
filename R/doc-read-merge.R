@@ -139,10 +139,11 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
     if (!length(pieces)) return(list(text = .NOT_FOUND, ok = FALSE, levels = level,
                                      truncated = truncated, truncated_calls = cut,
                                      failed = failed))
-    if (length(pieces) >= prev_n || level > 6L) {
+    deep <- level > as_int1(spec$max_merge_levels, 6L)
+    if (length(pieces) >= prev_n || deep) {
       return(list(text = merge_giveup(pieces, spec, trace, label), ok = FALSE, levels = level,
                   truncated = truncated, truncated_calls = cut, failed = failed,
-                  error = if (level > 6L) "merge depth cap reached" else "merge made no progress"))
+                  error = if (deep) "merge depth cap reached" else "merge made no progress"))
     }
     prev_n <- length(pieces)
   }

@@ -325,6 +325,33 @@ gr_reader_signature <- function(reader) {
 #'   is not asked for quotations and is not refused for lacking them: its
 #'   verdict stops the loop as it does without `verify`. See "Verifying
 #'   quotations" below.
+#' @param accept_near_verbatim Under `verify = TRUE`, whether a quotation the
+#'   edit-distance matcher scores `near_verbatim` (see "Verifying quotations")
+#'   also lets the `iterative` reader stop. `FALSE` (the default) accepts only
+#'   a quotation the decisive check verifies, as before the setting existed.
+#'   Untested: nothing has measured whether accepting near-verbatim quotations
+#'   gives better answers, and on the package's labelled quotation set 25 of 46
+#'   quotations with one content word swapped scored `near_verbatim`.
+#' @param max_merge_levels The most merge levels `map_reduce`, `skim` and the
+#'   other readers that merge findings run before they give up and return the
+#'   findings unmerged and cut, with the answer partial. \[1, 12\], default
+#'   6, the cap the code had before it was a setting. Separate from
+#'   `max_levels`, which only `hierarchical` reads. Untested.
+#' @param restate_tokens Under `restate = "auto"`, the length of the excerpts,
+#'   in tokens, above which the question is repeated before them. \[0, 1e6\],
+#'   default 1200, the value the code had before it was a setting. Untested:
+#'   the code called it "a number, and an arbitrary one".
+#' @param bm25_k1,bm25_b The Okapi BM25 parameters of the word-matching scores
+#'   that `rerank` prefilters its candidates with and that `retrieve` blends
+#'   in when embeddings are lexical. Defaults 1.5 and 0.75, the usual values
+#'   given by Robertson and Zaragoza (2009), "The Probabilistic Relevance
+#'   Framework: BM25 and Beyond"; not tuned on this package's tasks.
+#'   `bm25_k1` \[0, 10\], `bm25_b` \[0, 1\].
+#' @param lexical_blend For `retrieve` when the embeddings are lexical (the
+#'   offline embedder, or the fallback when the embeddings request fails): the
+#'   weight of the cosine score, with `1 - lexical_blend` on the BM25 score.
+#'   \[0, 1\], default 0.5, an even blend chosen when the offline path was
+#'   written. Untested.
 #' @param ... Extra fields for custom readers.
 #' @return A list of class `gr_read_spec`.
 #'
@@ -382,7 +409,20 @@ gr_reader_signature <- function(reader) {
 #' `max_levels` \[1, 12\], `max_rounds` \[1, 20\], `rerank_candidates` \[1, 1e4\],
 #' `rerank_min_score` \[0, 10\], `preview_tokens` \[100, 1e5\],
 #' `delay_between_calls` \[0, 600\],
-#' token caps \[16, 1e6\].
+#' token caps \[16, 1e6\]. The ranges of the settings added later are given
+#' with each argument.
+#'
+#' @section Where the defaults come from:
+#' Each setting's default, its tier (`basic` for the few most users change,
+#' `advanced` for the rest) and the evidence behind the value. `untested`
+#' means no measurement backs the value; `cited` names the published source it
+#' comes from. The settings added as declared parameters
+#' (`accept_near_verbatim`, `max_merge_levels`, `restate_tokens`, `bm25_k1`,
+#' `bm25_b`, `lexical_blend`) are stored in the spec only when they are not
+#' their default, so a default spec keeps the store and cache keys it had
+#' before they existed.
+#'
+#' `r schema_sources_md(.gr_read_schema)`
 #'
 #' @section Reasoning effort:
 #' The default models reason before they write a reply, and that reasoning is
@@ -483,7 +523,9 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
                          skim_model = NULL, summary_model = NULL,
                          parallel = NULL, delay_between_calls = 0,
                          on_overflow = c("warn", "error"), effort = NULL, premise = FALSE,
-                         verify = FALSE, ...) {
+                         verify = FALSE, accept_near_verbatim = FALSE, max_merge_levels = 6L,
+                         restate_tokens = 1200L, bm25_k1 = 1.5, bm25_b = 0.75,
+                         lexical_blend = 0.5, ...) {
   warn_near_miss(list(...), names(formals(gr_read_spec)), "read")
   # Every argument but `...` is checked and resolved by the schema
   # (.gr_read_schema): ranges clamped with a warning, a missing number taken
@@ -527,6 +569,8 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
   if (isTRUE(p$premise)) list(premise = TRUE),
   # Only when TRUE, for the same reason as `premise`.
   if (isTRUE(p$verify)) list(verify = TRUE),
+  # Only when not the default, for the same reason.
+  nondefault_params(p, .gr_read_schema, .gr_read_late_params),
   list(...)), class = "gr_read_spec")
   registry_get("readers", spec$reader, "readers", state = gr_state)   # fail fast on a typo
   # Asked of a reader that answers no question, the check would silently do
@@ -557,79 +601,176 @@ as_read_spec <- function(spec) {
 .gr_read_schema <- hr_schema(
   hr_param("on_overflow", "enum", choices = c("warn", "error"),
            help = "For stuff: truncate with a warning, or stop, when the document does not fit.",
-           tier = "advanced"),
+           tier = "advanced",
+           evidence = ev_untested(paste0("Chosen so that a document too long for one request ",
+                                         "still gets an answer that says what was cut."))),
   hr_param("context_order", "enum", choices = c("relevance", "document", "edges"),
-           help = "Where the selected chunks sit in the prompt."),
+           help = "Where the selected chunks sit in the prompt.", tier = "advanced",
+           evidence = ev_untested(paste0("The order the readers used before the setting ",
+                                         "existed; the alternatives were added to be compared, ",
+                                         "and no comparison is recorded."))),
   hr_param("restate", "enum", choices = c("auto", "always", "never"),
            help = "Whether to repeat the question before the excerpts as well as after.",
-           tier = "advanced"),
+           tier = "advanced",
+           evidence = ev_untested(paste0("A setting so that gr_compare() can measure it on a ",
+                                         "corpus; no measurement is recorded."))),
   # Refused rather than read with isTRUE(): premise = "yes" or NA would turn a
   # check the caller asked for into none, and nothing in the answer would say.
-  hr_param("premise", "boolean", default = FALSE, strict = TRUE,
-           help = "Check the question's assumptions against the document."),
+  hr_param("premise", "boolean", default = FALSE, strict = TRUE, tier = "advanced",
+           help = "Check the question's assumptions against the document.",
+           evidence = ev_untested(paste0("Off, so a run sends the requests it sent before ",
+                                         "the check existed."))),
   hr_param("verify", "boolean", default = FALSE, strict = TRUE,
-           help = "Check the answer's quotations against the chunks they cite."),
+           help = "Check the answer's quotations against the chunks they cite.",
+           evidence = ev_untested(paste0("Off, so a run sends the requests and accepts the ",
+                                         "answers it did before the check existed."))),
   hr_param("effort", "named_map", default = NULL, cost_class = "per_call_constant",
            help = "Reasoning effort, one level or a map named by call stem.",
            tier = "advanced",
+           evidence = ev_untested(paste0("Unset: no effort is sent, and the provider's own ",
+                                         "default applies.")),
            resolve = function(x, p, params) check_effort_stems(check_effort(x),
                                                                declared_call_stems())),
   hr_param("reader", "module_ref", default = "map_reduce", kind = "reader",
-           help = "The reading strategy.", cost_class = "per_unit", resolve = param_as_given),
+           help = "The reading strategy.", cost_class = "per_unit", resolve = param_as_given,
+           evidence = ev_untested(paste0("The reader that sends every chunk, chosen because it ",
+                                         "reads the whole document at any length; no ",
+                                         "comparison of readers is recorded."))),
   # NULL is kept, not filled from gr_options("model"): filled here, every
   # reader passed a model to gr_call(), which only falls back to the client's
   # when given none, so a client built for another model was never the one
   # asked, budgeted for or billed. gr_read() fills it from the client.
   hr_param("model", "string", default = NULL, help = "Chat model id; NULL means the client's.",
+           evidence = ev_untested("Not a tuned value: NULL takes the client's model."),
            resolve = function(x, p, params) if (is.null(x)) NULL else as_chr1(x)),
   hr_param("temperature", "number", default = NULL, help = "Sampling temperature.",
            tier = "advanced",
+           evidence = ev_untested(paste0("Not a tuned value: NULL takes ",
+                                         "gr_options(\"temperature\"), which sends none.")),
            resolve = function(x, p, params) x %||% gr_options("temperature")),
   hr_param("max_answer_tokens", "integer", default = 1500L, min = 16, max = 1e6,
-           help = "Output cap for final answers and merges.", tier = "advanced"),
+           help = "Output cap for final answers and merges.", tier = "advanced",
+           evidence = ev_untested("Set as a generous cap for an answer; not measured.")),
   hr_param("max_chunk_tokens", "integer", default = 700L, min = 16, max = 1e6,
-           help = "Output cap for per-chunk calls.", tier = "advanced"),
+           help = "Output cap for per-chunk calls.", tier = "advanced",
+           evidence = ev_untested("Set as a cap for one chunk's finding; not measured.")),
   hr_param("max_summary_tokens", "integer", default = 500L, min = 16, max = 1e6,
-           help = "Output cap for summarisation calls.", tier = "advanced"),
+           help = "Output cap for summarisation calls.", tier = "advanced",
+           evidence = ev_untested("Set as a cap for one summary; not measured.")),
   hr_param("top_k", "integer", default = 6L, min = 1, max = 1e4,
-           help = "Chunks to use, for retrieve, rerank and iterative."),
+           help = "Chunks to use, for retrieve, rerank and iterative.",
+           evidence = ev_untested("A common starting value for retrieval; not tuned here.")),
   # -Inf is the documented "no floor", so a value that cannot be compared has
   # to be refused rather than silently becoming one: a relevance floor that is
   # not applied is the same failure as a cost ceiling that is not enforced.
   hr_param("min_score", "number", default = -Inf,
-           help = "For retrieve: chunks scoring below this are dropped.", tier = "advanced"),
+           help = "For retrieve: chunks scoring below this are dropped.", tier = "advanced",
+           evidence = ev_untested("Not a tuned value: -Inf applies no floor.")),
   # NA falls back to the default, not to the bottom of the range, which for
   # this setting is pure diversity and picks irrelevant chunks.
-  hr_param("mmr", "number", default = 1, min = 0, max = 1,
-           help = "Relevance against diversity when selecting chunks; 1 is plain top-k."),
+  hr_param("mmr", "number", default = 1, min = 0, max = 1, tier = "advanced",
+           help = "Relevance against diversity when selecting chunks; 1 is plain top-k.",
+           evidence = ev_untested(paste0("1 is plain top-k, the selection used before the ",
+                                         "setting existed."))),
   hr_param("rerank_candidates", "integer", default = 20L, min = 1, max = 1e4,
-           help = "For rerank: how many chunks to score.", cost_class = "per_unit"),
+           help = "For rerank: how many chunks to score.", cost_class = "per_unit",
+           tier = "advanced", evidence = ev_untested("Set when rerank was written; not tuned.")),
   hr_param("rerank_min_score", "number", default = 4, min = 0, max = 10,
-           help = "For rerank: the score below which a chunk is discarded.", tier = "advanced"),
+           help = "For rerank: the score below which a chunk is discarded.", tier = "advanced",
+           evidence = ev_untested("Set when rerank was written; not tuned.")),
   hr_param("fan_in", "integer", default = 5L, min = 2, max = 32,
-           help = "For hierarchical: summaries combined per call.", tier = "advanced"),
+           help = "For hierarchical: summaries combined per call.", tier = "advanced",
+           evidence = ev_untested("Set when hierarchical was written; not tuned.")),
   hr_param("max_levels", "integer", default = 5L, min = 1, max = 12,
-           help = "For hierarchical: the recursion depth cap.", tier = "advanced"),
+           help = "For hierarchical: the recursion depth cap.", tier = "advanced",
+           evidence = ev_untested("Set when hierarchical was written; not tuned.")),
   hr_param("max_rounds", "integer", default = 4L, min = 1, max = 20,
-           help = "For iterative: retrieve-assess cycles.", cost_class = "per_round"),
+           help = "For iterative: retrieve-assess cycles.", cost_class = "per_round",
+           tier = "advanced", evidence = ev_untested("Set when iterative was written; not tuned.")),
   hr_param("preview_tokens", "integer", default = 1200L, min = 100, max = 1e5,
-           help = "For preview: the cap on the outline the planner sees.", tier = "advanced"),
+           help = "For preview: the cap on the outline the planner sees.", tier = "advanced",
+           evidence = ev_untested("Set when preview was written; not tuned.")),
   hr_param("members", "string_vector", default = NULL, cost_class = "per_unit",
-           help = "For ensemble: the reader names to combine.", resolve = param_as_given),
+           help = "For ensemble: the reader names to combine.", resolve = param_as_given,
+           tier = "advanced",
+           evidence = ev_untested(paste0("NULL takes ensemble's own pair, retrieve and ",
+                                         "map_reduce; not compared with other pairs."))),
   hr_param("cite", "boolean", default = FALSE, strict = FALSE,
-           help = "Ask for chunk-level citations in the answer."),
+           help = "Ask for chunk-level citations in the answer.",
+           evidence = ev_untested(paste0("Off, so the answer prompt is the one used before ",
+                                         "the setting existed."))),
   hr_param("skim_model", "string", default = NULL, tier = "advanced",
            help = "A cheaper model for skim's extraction and rerank's scoring.",
+           evidence = ev_untested("Not a tuned value: NULL uses `model`."),
            resolve = param_as_given),
   hr_param("summary_model", "string", default = NULL, tier = "advanced",
-           help = "A cheaper model for hierarchical's summaries.", resolve = param_as_given),
+           help = "A cheaper model for hierarchical's summaries.", resolve = param_as_given,
+           evidence = ev_untested("Not a tuned value: NULL uses `model`.")),
   hr_param("parallel", "boolean", default = NULL, affects_output = FALSE, tier = "advanced",
            help = "Run per-chunk calls in parallel.",
+           evidence = ev_untested(paste0("Not a tuned value: NULL follows ",
+                                         "gr_options(\"parallel\"). It does not change output.")),
            resolve = function(x, p, params) x %||% gr_options("parallel")),
   hr_param("delay_between_calls", "number", default = 0, min = 0, max = 600,
            affects_output = FALSE, tier = "advanced",
-           help = "Seconds to sleep between sequential calls.")
+           help = "Seconds to sleep between sequential calls.",
+           evidence = ev_untested("No pause. It does not change output.")),
+  # The settings below were constants in the code until they were declared
+  # here. Each keeps the constant's value as its default, and gr_read_spec()
+  # stores it only when it is not the default (read_spec_extras()).
+  hr_param("accept_near_verbatim", "boolean", default = FALSE, strict = TRUE,
+           tier = "advanced", depends_on = "verify = TRUE",
+           help = "Under verify, let a near-verbatim quotation stop the iterative reader.",
+           evidence = ev_untested(paste0("Off, as the code behaved before the setting existed. ",
+                                         "Not measured as a stopping rule; on the labelled ",
+                                         "quotation set, 25 of 46 quotations with one content ",
+                                         "word swapped score near_verbatim (NEWS, 0.6.0.9000)."))),
+  hr_param("max_merge_levels", "integer", default = 6L, min = 1, max = 12, tier = "advanced",
+           cost_class = "per_round",
+           help = "Most merge levels a reader runs before it returns its findings unmerged.",
+           evidence = ev_untested("The cap the merge code had as a constant; not tuned.")),
+  hr_param("restate_tokens", "integer", default = 1200L, min = 0, max = 1e6,
+           tier = "advanced", depends_on = "restate = \"auto\"",
+           help = "Under restate = 'auto', the body length above which the question is repeated.",
+           evidence = ev_untested(paste0("An arbitrary number, as its comment said when it was ",
+                                         "a constant; not measured."))),
+  hr_param("bm25_k1", "number", default = 1.5, min = 0, max = 10, tier = "advanced",
+           help = "BM25 term-frequency saturation, for rerank's prefilter and lexical retrieve.",
+           evidence = ev_cited(paste0("Robertson and Zaragoza (2009), \"The Probabilistic ",
+                                      "Relevance Framework: BM25 and Beyond\", give k1 between ",
+                                      "1.2 and 2.0 as usual; not tuned here."))),
+  hr_param("bm25_b", "number", default = 0.75, min = 0, max = 1, tier = "advanced",
+           help = "BM25 length normalisation, for rerank's prefilter and lexical retrieve.",
+           evidence = ev_cited(paste0("Robertson and Zaragoza (2009), \"The Probabilistic ",
+                                      "Relevance Framework: BM25 and Beyond\", give b = 0.75 ",
+                                      "as usual; not tuned here."))),
+  hr_param("lexical_blend", "number", default = 0.5, min = 0, max = 1, tier = "advanced",
+           help = "For retrieve on lexical embeddings: the weight of cosine against BM25.",
+           evidence = ev_untested("An even blend, set when the offline path was written."))
 )
+
+#' The read settings that were constants in the code until they were declared
+#' in the schema. gr_read_spec() stores each only when it is not its default.
+#' @noRd
+.gr_read_late_params <- c("accept_near_verbatim", "max_merge_levels", "restate_tokens",
+                          "bm25_k1", "bm25_b", "lexical_blend")
+
+#' The settings among `names` whose resolved value is not the schema's default,
+#' as a list to add to a spec. A spec is hashed whole into the corpus store and
+#' document cache keys, so a field present in every spec, at its default or
+#' not, would move every key ever written; one present only when changed
+#' keeps the keys of a default spec.
+#' @noRd
+nondefault_params <- function(p, schema, names) {
+  out <- list()
+  for (nm in names) {
+    v <- p[[nm]]
+    d <- schema[[nm]]$default
+    if (is.null(v) || isTRUE(all.equal(v, d, check.attributes = FALSE))) next
+    out[[nm]] <- v
+  }
+  out
+}
 
 #' The settings of a read spec that differ from its defaults, for the trace
 #' and gr_compare(). Defaults come from gr_read_spec() itself, so a model or
