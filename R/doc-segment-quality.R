@@ -7,11 +7,12 @@
 # question, puts the chunk that holds the answer among the first k. Neither
 # calls a model unless the client given embeds.
 #
-# Pk and WindowDiff follow the definitions in NLTK's nltk.metrics.segmentation
-# exactly (windows of k positions over a boundary string, L - k + 1 of them,
-# and k by default NLTK's round(L / (2 * boundaries)), raised to 1 where
-# NLTK's is 0), so a value here can be checked against NLTK's on the same
-# strings.
+# Pk and WindowDiff follow the definitions in NLTK's nltk.metrics.segmentation:
+# windows of k positions over a boundary string, L - k + 1 of them, and k by
+# default NLTK's round(L / (2 * boundaries)). The one difference is a
+# reference with a boundary at every position, where NLTK's default k is 0
+# and its window empty; here k is raised to 1. Outside that case, and
+# whenever k is given, a value here matches NLTK's on the same strings.
 
 #' Where a segmentation puts its boundaries, sentence by sentence
 #'
