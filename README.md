@@ -285,6 +285,7 @@ Each guide is on the website and, once installed, in R as `vignette("name")`.
 | [Choosing how the model reads](https://elkronos.github.io/harnessr/articles/readers.html) (`readers`) | The reading strategies, recipes, what each costs, and how to choose |
 | [Many documents and literature reviews](https://elkronos.github.io/harnessr/articles/review.html) (`review`) | Search, screening, calibration and recall, several reviewers, extraction, claims, synthesis, the audit report |
 | [Measuring and comparing configurations](https://elkronos.github.io/harnessr/articles/evaluate.html) (`evaluate`) | Reference sets and label sheets, benchmarks and their intervals, non-inferiority, judges, baselines, drift, signals |
+| [Comparing methods and settings](https://elkronos.github.io/harnessr/articles/compare.html) (`compare`) | Worked comparisons of readers, segmenters and chunk sizes, one setting over its values, screening settings and a judge against labels, and how to read each report |
 | [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`) | The governor, effort, traces, caching, replay |
 | [Extending harnessr](https://elkronos.github.io/harnessr/articles/extending.html) (`extending`) | Registering your own extractors, cleaners, segmenters, readers and embedders, and checking them |
 

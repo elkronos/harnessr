@@ -21,6 +21,7 @@ articles:
   - readers
   - review
   - evaluate
+  - compare
   - runs
   - extending
 
@@ -73,13 +74,17 @@ reference:
 - title: Cut documents into chunks
   desc: >
     The segmenters, their settings, and the free statistics for comparing
-    chunkings. See `vignette("segment")`.
+    chunkings: size, boundary error against a reference (Pk and WindowDiff)
+    and retrieval recall. See `vignette("segment")` and `vignette("compare")`.
   contents:
   - gr_segment
   - gr_segment_spec
   - gr_segmenters
   - gr_chunks
   - gr_chunk_stats
+  - gr_seg_boundaries
+  - gr_seg_pk
+  - gr_seg_recall
 
 - title: Read the chunks
   desc: >
@@ -249,6 +254,7 @@ reference:
   - new_chunks
   - new_answer
   - hr_cost
+  - gr_settings
   - hr_schema
   - hr_param
   - hr_validate

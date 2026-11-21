@@ -1,5 +1,41 @@
 # harnessr 0.6.0.9000
 
+## Comparing methods and settings
+
+* A new guide, `vignette("compare")`, works through five comparisons offline,
+  each ending in an `hr_report()`: three readers on 32 test questions in 8
+  reports, a grid of three segmenters at two chunk sizes, `top_k` swept over
+  1, 2 and 4, two values of `screen_tokens`, and a pairwise judge validated
+  against 180 labelled pairs. Settings are tuned on the dev split and one
+  chosen contrast is run on test. A last section shows the same steps on
+  your own documents, writing results to a directory you name.
+* **`gr_settings()`** returns the schema of the read, segment or ingest
+  settings, and `as.data.frame()` of a schema gives each setting's default,
+  range, tier, evidence status and source.
+* **`gr_seg_pk()`** and **`gr_seg_windowdiff()`** measure how far a
+  segmentation's boundaries fall from a reference's (Beeferman, Berger and
+  Lafferty 1999; Pevzner and Hearst 2002), with NLTK's windows and default
+  `k`, so values match NLTK's on the same strings. **`gr_seg_boundaries()`**
+  turns chunks, or a reference segmentation given as text, into the
+  sentence-by-sentence boundaries they compare. **`gr_seg_recall()`** ranks
+  each segmentation's chunks for each question as the `retrieve` reader does
+  and reports recall at k per segmenter, with no model call under the
+  lexical embedder.
+* **`gr_label_sheet("pairwise")`** writes two texts per row as `text_1` and
+  `text_2`, in an order drawn for each row from a SHA-256 digest of its id
+  and texts, with the order kept in an opaque `order_key` tied to the row.
+  `gr_read_labels()` gives the person's choice back in candidate order as
+  `"A"`, `"B"` or `"tie"`, ready for `hr_judge_validate(positive = "A")`,
+  where a tie counts as negative. A key edited or moved to another row is an
+  error of class `gr_bad_labels`.
+* **Self-judging is recorded.** `hr_scorer_judge()` takes `judge_model`, the
+  configuration's model by default, and `hr_benchmark()` adds a
+  `self_judged` column: `TRUE` when the judge's model equals the model or
+  served model of one of the run's requests, `FALSE` when the run asked a
+  known model and none equals it, `NA` otherwise. The match is exact and
+  nothing is refused; `hr_report()` adds a note counting the self-judged
+  runs per arm. `hr_bench` has the new column before `reportable`.
+
 ## Settings that were constants
 
 Values that were fixed in the code are now settings, each with the value it

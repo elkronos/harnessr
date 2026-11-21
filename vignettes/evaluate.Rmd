@@ -27,6 +27,8 @@ running it, judges, baselines that use no model, drift, and the signals the
 package records about its own work. The statistics functions underneath come
 last. Measuring a screener against people, several reviewers and agreement
 between extraction tables are part of a review and are in `vignette("review")`.
+`vignette("compare")` puts these functions to work on worked comparisons of
+readers, segmenters, settings, screening and judges.
 
 ## Setting up
 
@@ -130,10 +132,11 @@ A split given a share that receives no cluster warns with class
 
 Labels come from people. `gr_label_sheet()` writes a CSV with one row per item,
 the columns a person needs to judge it and empty columns for their decisions,
-with an instructions file beside it. It writes five kinds: `"qa"`,
-`"screening"`, `"extraction"`, `"calibration"` and `"judge"`. A blind sheet,
-the default, copies only those columns, so a model's answer in `items` stays
-out of it:
+with an instructions file beside it. It writes six kinds: `"qa"`,
+`"screening"`, `"extraction"`, `"calibration"`, `"judge"` and `"pairwise"`
+(two texts in a blinded order, for a pairwise judge; `vignette("compare")`
+has one). A blind sheet, the default, copies only those columns, so a model's
+answer in `items` stays out of it:
 
 ```{r message = FALSE}
 to_label <- head(sp$items, 3)
@@ -810,6 +813,9 @@ gr_options(old)
 
 ## Next
 
+- `vignette("compare")`: these steps applied to five comparisons (readers,
+  segmenters and chunk sizes, a setting over its values, screening settings,
+  a judge against labels), each with its report and how to read it.
 - `vignette("review")`: screening recall against a target, several reviewers,
   and agreement between extraction tables.
 - `vignette("runs")`: the governor, caching and replay that a benchmark relies
