@@ -519,6 +519,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
                                list(outline_alternative = chosen$alternative,
                                     outline_of = chosen$of)),
                     governor = fork_governor(parent))
+  # Each request is the draw of the run the parent is (trace_inherit_draw()).
+  trace_inherit_draw(trace, parent)
   if (!is.null(parent)) on.exit(trace_absorb(parent, trace), add = TRUE)
 
   # The writing model is NOT shown who wrote each study. Adding bibliographic

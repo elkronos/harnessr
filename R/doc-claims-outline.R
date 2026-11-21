@@ -188,6 +188,8 @@ gr_outline <- function(claims, question = NULL, client = NULL, model = NULL,
   trace <- gr_trace(meta = list(stage = "outline", question = question,
                                 claims = nrow(cw)),
                     governor = fork_governor(parent))
+  # Each request is the draw of the run the parent is (trace_inherit_draw()).
+  trace_inherit_draw(trace, parent)
   if (!is.null(parent)) on.exit(trace_absorb(parent, trace), add = TRUE)
 
   # Labelled, so that a claim edited by hand, unlabelled under a non-UTF-8

@@ -790,6 +790,14 @@ replay_lookup <- function(client, req) {
           else if (draw == 0L) recorded
           else if (draw <= length(recorded)) recorded[draw]
           else list()
+  # A stage that keeps its own trace (claims, outline, synthesis, a corpus
+  # read) sent draw 0 before its trace carried the run's draw index, so a
+  # recording made then holds this request only at draw 0. Its replies are
+  # numbered in recorded order, as a recording made without per-draw keys
+  # is, and served as such (see `unkeyed` below).
+  undrawn <- !legacy && draw > 0L && !length(cand) && length(recorded) &&
+    all(vapply(recorded, function(s) identical(as_int1(s$draw, 0L), 0L), logical(1)))
+  if (undrawn) cand <- if (draw <= length(recorded)) recorded[draw] else list()
   # Two benchmark arms that send the same request at the same draw each have
   # a reply recorded under it. Handed out in call order, a replay of one arm
   # alone, or of the arms in another order, gave an arm the other's replies.
@@ -868,7 +876,7 @@ replay_lookup <- function(client, req) {
   # is given a harnessr-replay-v2 key in the replay's own trace (see
   # model_call()), so a replay of that trace still goes through the old key,
   # or still runs out of replies, instead of counting as exact.
-  if (legacy || repeated) res$unkeyed <- TRUE
+  if (legacy || repeated || undrawn) res$unkeyed <- TRUE
   res
 }
 

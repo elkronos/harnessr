@@ -498,6 +498,25 @@ trace_draw_scope <- function(trace) {
   if (is.character(s) && length(s) == 1L && !is.na(s) && nzchar(s)) s else NULL
 }
 
+#' Hand a parent trace's draw index and draw scope to a child trace.
+#'
+#' For a stage that records on a trace of its own and folds it into the one it
+#' is given (gr_claims(), gr_outline(), gr_synthesise(), gr_read_many()). The
+#' child is a fresh trace, so without this its requests went out at draw index
+#' 0 whatever run of a benchmark the parent was: repeated runs sent the same
+#' request, a cache answered every run after the first with one reply, and
+#' hr_benchmark() refused the arm for repeating a draw. A parent with no draw
+#' index leaves the child without one, so its requests are what they were.
+#' @noRd
+trace_inherit_draw <- function(child, parent) {
+  if (!inherits(child, "gr_trace")) return(invisible(child))
+  d <- trace_draw_index(parent)
+  if (d > 0L) child$draw_index <- d
+  s <- trace_draw_scope(parent)
+  if (!is.null(s)) child$draw_scope <- s
+  invisible(child)
+}
+
 #' Fold a child trace's steps and counters into a parent.
 #'
 #' Used by `gr_compare()` so each recipe is budgeted independently while the

@@ -240,6 +240,8 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   trace <- gr_trace(meta = list(stage = "claims", question = question,
                                 studies = nrow(used)),
                     governor = fork_governor(parent))
+  # Each request is the draw of the run the parent is (trace_inherit_draw()).
+  trace_inherit_draw(trace, parent)
   # on.exit, so calls made before an error still reach the parent.
   if (!is.null(parent)) on.exit(trace_absorb(parent, trace), add = TRUE)
 

@@ -372,6 +372,8 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
   trace <- gr_trace(meta = list(recipe = rec$name, question = question,
                                 documents = length(sources)),
                     governor = fork_governor(parent))
+  # Each request is the draw of the run the parent is (trace_inherit_draw()).
+  trace_inherit_draw(trace, parent)
   # on.exit, not a line at the end: a run that aborts part-way -- a cost cap, an
   # unreadable file under on_error = "stop" -- has still spent whatever it spent,
   # and a parent that loses it reports a review as cheaper than it was.
@@ -519,14 +521,16 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
                      sprintf(" (at least $%.4f spent so far)", spent_priced)
                    else ""))
     started <- Sys.time()
-    # One trace per document, folded into the parent afterwards. Sharing the
-    # parent outright would make `max_calls` count earlier documents against
-    # later ones, so the same document would answer differently depending on
-    # its position in the corpus -- the bug gr_compare() had between recipes.
-    # The run's governor, with its spending and token limits less what the
-    # documents before this one used; `max_calls` stays per document.
+    # One trace per document, folded into the parent afterwards. Without a
+    # governor, `gr_options(max_calls =)` is a limit per document: sharing the
+    # parent outright would count earlier documents against later ones, so the
+    # same document would answer differently depending on its position in the
+    # corpus, the bug gr_compare() had between recipes. With a governor, the
+    # forked one holds its call, spending and token limits less what the
+    # documents before this one used, so they bound the whole run.
     sub <- gr_trace(meta = list(recipe = rec$name, question = question, source = lab),
                     governor = fork_governor(trace))
+    trace_inherit_draw(sub, trace)
     # What the run spent before this document, so the progress line gives the
     # run's total and not this document's. NA when that is unknown.
     sub$spent_before <- spent

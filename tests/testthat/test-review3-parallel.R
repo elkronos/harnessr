@@ -100,12 +100,13 @@ test_that("what a handler needs from the workspace is sent once", {
   expect_false(any(pids == Sys.getpid()))
 
   # The function a worker runs holds only what an item needs: that, the
-  # governor holding the item's share of the run's limits, and the one flag
-  # that stops a worker's share of the batch after an item fails (review6
-  # tokenize-embed-11).
+  # governor holding the item's share of the run's limits, the run's draw
+  # index and scope, and the one flag that stops a worker's share of the batch
+  # after an item fails (review6 tokenize-embed-11).
   wrapped <- harnessr:::worker_item(function(item, trace) item, "", list(), list(), list(), NULL)
   expect_setequal(ls(environment(wrapped)),
-                  c("fn", "key", "opts", "regs", "parent_meta", "state", "governor", "failed"))
+                  c("fn", "key", "opts", "regs", "parent_meta", "state", "governor", "draw",
+                    "failed"))
   expect_identical(get("failed", environment(wrapped)), FALSE)
 })
 

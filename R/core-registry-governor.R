@@ -70,9 +70,10 @@
 #' governs the requests recorded into that trace. A stage that keeps a trace
 #' of its own and folds it into the one it is given ([gr_read_many()],
 #' [gr_claims()], [gr_outline()] and [gr_synthesise()]) holds its requests to
-#' that trace's governor, less what the given trace has already spent and
-#' used in tokens; `max_calls` stays a limit per document for
-#' [gr_read_many()] and per stage for the others, as with the options. A
+#' that trace's governor, less the calls the given trace has already made and
+#' what it has spent and used in tokens, so the governor's limits hold for
+#' the run as a whole. Without a governor, `gr_options(max_calls =)` stays a
+#' limit per document for [gr_read_many()] and per stage for the others. A
 #' trace made without one, including those the package makes for itself,
 #' reads the limits from [gr_options()] each time it checks, so changing an
 #' option affects runs that are already going, as it always has.
@@ -167,14 +168,21 @@ tokens_used <- function(trace) {
 }
 
 #' The governor a stage's own trace is held to when it folds into `parent`:
-#' the parent's, with what the parent has already spent and used in tokens
-#' taken off the run's limits. `max_calls` is left whole, since such a stage
-#' counts its calls apart (see as_parent_trace()). NULL when the parent has no
-#' governor, so the stage reads the options as it always has.
+#' the parent's, with the calls the parent has made, what it has spent and
+#' what it has used in tokens taken off the run's limits. NULL when the parent
+#' has no governor, so the stage reads the options as it always has.
+#'
+#' The calls taken off are the parent's `calls`, the count the governor checks
+#' `max_calls` against (see governor_check()): every request recorded, cache
+#' hits, replayed calls and embeddings requests included. `max_calls` used to
+#' be left whole, so a stage under `hr_governor(max_calls = 2)` given a trace
+#' that had already made 2 calls made a third.
 #' @noRd
 fork_governor <- function(parent) {
   gov <- if (inherits(parent, "gr_trace")) parent[["governor"]]
   if (!inherits(gov, "hr_governor")) return(NULL)
+  cap <- finite_limit(gov$max_calls)
+  if (!is.null(cap)) gov$max_calls <- max(cap - as_num1(parent$calls, 0), 0)
   limit <- finite_limit(gov$max_cost_usd)
   if (!is.null(limit)) gov$max_cost_usd <- max(limit - budget_spent(parent), 0)
   tokens <- finite_limit(gov$max_tokens_total)

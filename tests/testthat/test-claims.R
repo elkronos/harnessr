@@ -731,14 +731,13 @@ test_that("gr_claims() and gr_outline() hold their requests to the given trace's
   expect_true(any(vapply(p2$refusals, function(r) identical(r$label, "outline.derive"), logical(1))))
 })
 
-test_that("max_calls on the given trace's governor stays a limit per stage for claims and outline", {
+test_that("max_calls on the given trace's governor holds for the run across claims and outline", {
   f <- outline_fixture(paste0(
     '{"sections":[{"heading":"A","brief":"first","claims":[1,2,3],"rationale":null}]}'))
-  p <- gr_trace(governor = hr_governor(max_calls = 1))
+  p <- gr_trace(governor = hr_governor(max_calls = 2))
   quiet(gr_claims(claims_table(), question = "Q?", client = f$client, trace = p))
   quiet(gr_claims(claims_table(), question = "Q?", client = f$client, trace = p))
-  o <- quiet(gr_outline(f$claims, client = f$client, trace = p))
-  expect_identical(p$calls, 3L)
-  expect_length(p$refusals, 0L)
-  expect_false(isTRUE(attr(o, "partial")))
+  quiet(gr_outline(f$claims, client = f$client, trace = p))
+  expect_identical(p$calls, 2L)
+  expect_true(any(vapply(p$refusals, function(r) identical(r$limit, "calls"), logical(1))))
 })

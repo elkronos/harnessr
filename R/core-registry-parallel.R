@@ -119,7 +119,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
     gr_msg(sprintf("Running %d %s(s) one at a time: a replay hands out its recording in order.",
                    length(x), label))
     parent_meta <- if (inherits(trace, "gr_trace")) trace$meta else list()
-    wrapped <- worker_item(fn, "", list(), list(), parent_meta, NULL, share)
+    wrapped <- worker_item(fn, "", list(), list(), parent_meta, NULL, share, trace_draw(trace))
     return(batch_collect(lapply(x, wrapped), trace, NULL, rerun))
   }
 
@@ -207,7 +207,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
          stats = if (inherits(cache, "gr_cache") && is.environment(cache$.stats)) cache$.stats)
   }
   state <- client_state(client)
-  wrapped <- worker_item(fn, key, opts, regs, parent_meta, state, share)
+  wrapped <- worker_item(fn, key, opts, regs, parent_meta, state, share, trace_draw(trace))
   # A limit on what a future may carry (future.globals.maxSize) is checked as
   # each future is made and launched: a FutureError from the plan, or a plain
   # error from measuring the globals, as future versions differ. Every future
@@ -345,6 +345,17 @@ keep_caller_rng <- function(expr) {
   expr
 }
 
+#' The draw index and draw scope a batch's items record their requests at:
+#' the run's (see trace_draw_index() and trace_draw_scope()). Each item has a
+#' trace of its own, which without them sent every request at draw index 0
+#' whatever run of a benchmark the batch belonged to. NULL entries for a run
+#' with neither, so the items' requests are what they were.
+#' @noRd
+trace_draw <- function(trace) {
+  d <- trace_draw_index(trace)
+  list(index = if (d > 0L) d, scope = trace_draw_scope(trace))
+}
+
 #' The function a worker runs for each item of a batch.
 #'
 #' Made by this function rather than inside gr_lapply(), because a closure
@@ -353,9 +364,10 @@ keep_caller_rng <- function(expr) {
 #' for the batch, which future_lapply() sends as globals as well, so each of
 #' them reached every worker twice. This frame holds only what an item needs.
 #' @noRd
-worker_item <- function(fn, key, opts, regs, parent_meta, state, governor = NULL) {
+worker_item <- function(fn, key, opts, regs, parent_meta, state, governor = NULL,
+                        draw = NULL) {
   force(fn); force(key); force(opts); force(regs); force(parent_meta); force(state)
-  force(governor)
+  force(governor); force(draw)
   # Set once an item fails. A worker runs its share of the batch in order, in
   # its own copy of this frame, and the items after a failure are not run, as
   # a sequential run would not run them.
@@ -370,6 +382,9 @@ worker_item <- function(fn, key, opts, regs, parent_meta, state, governor = NULL
     for (layer in regs$layers) layer$restore(layer$values)
     # Held to the item's share of the run's limits (batch_share()).
     sub <- gr_trace(meta = parent_meta, governor = governor)
+    # The run's draw, so each item's request is the draw the run's would be.
+    if (!is.null(draw$index)) sub$draw_index <- draw$index
+    if (!is.null(draw$scope)) sub$draw_scope <- draw$scope
     n_calls <- length(state$log$calls)
     n_embeds <- length(state$log$embeds)
     counts <- function() c(state$stats$hits %||% 0L, state$stats$misses %||% 0L,
