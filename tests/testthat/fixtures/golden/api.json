@@ -69,7 +69,7 @@
       "type": "function"
     },
     "gr_calibrate": {
-      "formals": ["screening", "reference", "positive = \"include\"", "min_positives = 10L", "of = NULL", "recall_target = 0.95", "conf = 0.95", "max_lost = NULL"],
+      "formals": ["screening", "reference", "positive = \"include\"", "min_positives = 10L", "of = NULL", "recall_target = 0.95", "conf = 0.95", "max_lost = NULL", "max_width = 0.1"],
       "type": "function"
     },
     "gr_call": {
@@ -169,7 +169,7 @@
       "type": "function"
     },
     "gr_ingest_spec": {
-      "formals": ["clean = \"standard\"", "ocr = c(\"auto\", \"always\", \"never\")", "ocr_lang = \"eng\"", "ocr_dpi = 300", "ocr_min_chars = 40L", "min_chars = 20L", "extractor = NULL", "parallel = NULL", "cleaner_opts = list()", "layout = c(\"auto\", \"raw\")"],
+      "formals": ["clean = \"standard\"", "ocr = c(\"auto\", \"always\", \"never\")", "ocr_lang = \"eng\"", "ocr_dpi = 300", "ocr_min_chars = 40L", "min_chars = 20L", "extractor = NULL", "parallel = NULL", "cleaner_opts = list()", "layout = c(\"auto\", \"raw\")", "layout_opts = list()"],
       "type": "function"
     },
     "gr_inventory": {
@@ -241,7 +241,7 @@
       "type": "function"
     },
     "gr_read_spec": {
-      "formals": ["reader = \"map_reduce\"", "model = NULL", "temperature = NULL", "max_answer_tokens = 1500L", "max_chunk_tokens = 700L", "max_summary_tokens = 500L", "top_k = 6L", "min_score = -Inf", "mmr = 1", "context_order = c(\"relevance\", \"document\", \"edges\")", "rerank_candidates = 20L", "rerank_min_score = 4", "fan_in = 5L", "max_levels = 5L", "max_rounds = 4L", "preview_tokens = 1200L", "restate = c(\"auto\", \"always\", \"never\")", "members = NULL", "cite = FALSE", "skim_model = NULL", "summary_model = NULL", "parallel = NULL", "delay_between_calls = 0", "on_overflow = c(\"warn\", \"error\")", "effort = NULL", "premise = FALSE", "verify = FALSE", "..."],
+      "formals": ["reader = \"map_reduce\"", "model = NULL", "temperature = NULL", "max_answer_tokens = 1500L", "max_chunk_tokens = 700L", "max_summary_tokens = 500L", "top_k = 6L", "min_score = -Inf", "mmr = 1", "context_order = c(\"relevance\", \"document\", \"edges\")", "rerank_candidates = 20L", "rerank_min_score = 4", "fan_in = 5L", "max_levels = 5L", "max_rounds = 4L", "preview_tokens = 1200L", "restate = c(\"auto\", \"always\", \"never\")", "members = NULL", "cite = FALSE", "skim_model = NULL", "summary_model = NULL", "parallel = NULL", "delay_between_calls = 0", "on_overflow = c(\"warn\", \"error\")", "effort = NULL", "premise = FALSE", "verify = FALSE", "accept_near_verbatim = FALSE", "max_merge_levels = 6L", "restate_tokens = 1200L", "bm25_k1 = 1.5", "bm25_b = 0.75", "lexical_blend = 0.5", "..."],
       "type": "function"
     },
     "gr_reader_signature": {
@@ -329,7 +329,7 @@
       "type": "function"
     },
     "gr_segment_spec": {
-      "formals": ["method = \"paragraph\"", "max_tokens = 1200L", "overlap_tokens = 0L", "min_tokens = 0L", "separators = NULL", "prefix_section = TRUE", "semantic_window = 2L", "semantic_percentile = 90", "context_source = c(\"metadata\", \"llm\")", "proposition_batch_tokens = 900L", "parallel = NULL", "..."],
+      "formals": ["method = \"paragraph\"", "max_tokens = 1200L", "overlap_tokens = 0L", "min_tokens = 0L", "separators = NULL", "prefix_section = TRUE", "semantic_window = 2L", "semantic_percentile = 90", "context_source = c(\"metadata\", \"llm\")", "proposition_batch_tokens = 900L", "parallel = NULL", "context_reply_tokens = 90L", "context_document_tokens = 1500L", "proposition_reply_tokens = 2000L", "..."],
       "type": "function"
     },
     "gr_segmenters": {
@@ -345,7 +345,7 @@
       "type": "function"
     },
     "gr_synthesise": {
-      "formals": ["extraction", "protocol = NULL", "outline = NULL", "question = NULL", "client = NULL", "model = NULL", "max_section_tokens = 1200L", "temperature = NULL", "include_unclear = FALSE", "cite_style = c(\"auto\", \"marker\", \"author-year\", \"numeric\")", "bib = NULL", "style = NULL", "coherence = FALSE", "references = TRUE", "claims = NULL", "gaps = NULL", "trace = NULL", "effort = NULL"],
+      "formals": ["extraction", "protocol = NULL", "outline = NULL", "question = NULL", "client = NULL", "model = NULL", "max_section_tokens = 1200L", "temperature = NULL", "include_unclear = FALSE", "cite_style = c(\"auto\", \"marker\", \"author-year\", \"numeric\")", "bib = NULL", "style = NULL", "coherence = FALSE", "references = TRUE", "claims = NULL", "gaps = NULL", "trace = NULL", "effort = NULL", "coherence_rounds = 1L", "figure_bands = c(about = 0.1, over = 0.25, under = 0.25)", "prominence = c(top = 1/3, middle = 1/3)", "study_weights = NULL"],
       "type": "function"
     },
     "gr_tokenizer": {
@@ -409,7 +409,7 @@
       "type": "function"
     },
     "hr_calibrate_signal": {
-      "formals": ["signal", "graded", "key", "method = c(\"platt\", \"isotonic\", \"none\")", "bins = 10L", "split = 0.5", "seed", "B = 2000L"],
+      "formals": ["signal", "graded", "key", "method = c(\"platt\", \"isotonic\", \"none\")", "bins = 10L", "split = 0.5", "seed", "B = 2000L", "min_errors = 100L", "isotonic_min_items = 1000L", "min_clusters = 20L"],
       "type": "function"
     },
     "hr_calibration_valid": {
@@ -497,7 +497,7 @@
       "type": "function"
     },
     "hr_report": {
-      "formals": ["bench", "contrasts = NULL", "B = 2000", "conf = 0.95", "k = c(1, 3, 5)", "seed = 1", "method = c(\"auto\", \"bootstrap\", \"cluster_t\", \"bayes\", \"exact\")", "confirmatory = FALSE", "registration = NULL"],
+      "formals": ["bench", "contrasts = NULL", "B = 2000", "conf = 0.95", "k = c(1, 3, 5)", "seed = 1", "method = c(\"auto\", \"bootstrap\", \"cluster_t\", \"bayes\", \"exact\")", "confirmatory = FALSE", "registration = NULL", "auto_bootstrap_at = c(items = 300, clusters = 30)", "min_runs = 5L"],
       "type": "function"
     },
     "hr_schema": {

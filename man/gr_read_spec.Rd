@@ -32,6 +32,12 @@ gr_read_spec(
   effort = NULL,
   premise = FALSE,
   verify = FALSE,
+  accept_near_verbatim = FALSE,
+  max_merge_levels = 6L,
+  restate_tokens = 1200L,
+  bm25_k1 = 1.5,
+  bm25_b = 0.75,
+  lexical_blend = 0.5,
   ...
 )
 }
@@ -203,6 +209,41 @@ is not asked for quotations and is not refused for lacking them: its
 verdict stops the loop as it does without \code{verify}. See "Verifying
 quotations" below.}
 
+\item{accept_near_verbatim}{Under \code{verify = TRUE}, whether a quotation the
+edit-distance matcher scores \code{near_verbatim} (see "Verifying quotations")
+also lets the \code{iterative} reader stop. \code{FALSE} (the default) accepts only
+a quotation the decisive check verifies, as before the setting existed.
+A near-verbatim quotation that stops the loop is still reported as not
+verified in \verb{$evidence}, so the answer is marked partial. \code{TRUE}
+without \code{verify = TRUE} is refused with a \code{gr_bad_setting} error. Untested:
+nothing has measured whether accepting near-verbatim quotations gives
+better answers, and on the package's labelled quotation set 25 of 46
+quotations with one content word swapped scored \code{near_verbatim}.}
+
+\item{max_merge_levels}{The most merge levels \code{map_reduce}, \code{skim} and the
+other readers that merge findings run before they give up and return the
+findings unmerged and cut, with the answer partial. [1, 12], default
+6, the cap the code had before it was a setting. Separate from
+\code{max_levels}, which only \code{hierarchical} reads. Untested.}
+
+\item{restate_tokens}{Under \code{restate = "auto"}, the length of the excerpts,
+in tokens, above which the question is repeated before them. [0, 1e6],
+default 1200, the value the code had before it was a setting. Untested:
+the code called it "a number, and an arbitrary one".}
+
+\item{bm25_k1, bm25_b}{The Okapi BM25 parameters of the word-matching scores
+that \code{rerank} prefilters its candidates with and that \code{retrieve} blends
+in when embeddings are lexical. Defaults 1.5 and 0.75, the usual values
+given by Robertson and Zaragoza (2009), "The Probabilistic Relevance
+Framework: BM25 and Beyond"; not tuned on this package's tasks.
+\code{bm25_k1} [0, 10], \code{bm25_b} [0, 1].}
+
+\item{lexical_blend}{For \code{retrieve} when the embeddings are lexical (the
+offline embedder, or the fallback when the embeddings request fails): the
+weight of the cosine score, with \code{1 - lexical_blend} on the BM25 score.
+[0, 1], default 0.5, an even blend chosen when the offline path was
+written. Untested.}
+
 \item{...}{Extra fields for custom readers.}
 }
 \value{
@@ -270,7 +311,55 @@ about, never applied silently: \code{top_k} [1, 1e4], \code{fan_in} [2, 32],
 \code{max_levels} [1, 12], \code{max_rounds} [1, 20], \code{rerank_candidates} [1, 1e4],
 \code{rerank_min_score} [0, 10], \code{preview_tokens} [100, 1e5],
 \code{delay_between_calls} [0, 600],
-token caps [16, 1e6].
+token caps [16, 1e6]. The ranges of the settings added later are given
+with each argument.
+}
+
+\section{Where the defaults come from}{
+
+Each setting's default, its tier (\code{basic} for the few most users change,
+\code{advanced} for the rest) and the evidence behind the value. \code{untested}
+means no measurement backs the value; \code{cited} names the published source it
+comes from. The settings added as declared parameters
+(\code{accept_near_verbatim}, \code{max_merge_levels}, \code{restate_tokens}, \code{bm25_k1},
+\code{bm25_b}, \code{lexical_blend}) are stored in the spec only when they are not
+their default, so a default spec keeps the store and cache keys it had
+before they existed.
+\itemize{
+\item \code{on_overflow} (default \code{"warn"}, advanced): untested. Chosen so that a document too long for one request still gets an answer that says what was cut.
+\item \code{context_order} (default \code{"relevance"}, advanced): untested. The order the readers used before the setting existed; the alternatives were added to be compared, and no comparison is recorded.
+\item \code{restate} (default \code{"auto"}, advanced): untested. A setting so that gr_compare() can measure it on a corpus; no measurement is recorded.
+\item \code{premise} (default \code{FALSE}, advanced): untested. Off, so a run sends the requests it sent before the check existed.
+\item \code{verify} (default \code{FALSE}, basic): untested. Off, so a run sends the requests and accepts the answers it did before the check existed.
+\item \code{effort} (default \code{NULL}, advanced): untested. Unset: no effort is sent, and the provider's own default applies.
+\item \code{reader} (default \code{"map_reduce"}, basic): untested. The reader that sends every chunk, chosen because it reads the whole document at any length; no comparison of readers is recorded.
+\item \code{model} (default \code{NULL}, basic): untested. Not a tuned value: NULL takes the client's model.
+\item \code{temperature} (default \code{NULL}, advanced): untested. Not a tuned value: NULL takes gr_options("temperature"), which sends none.
+\item \code{max_answer_tokens} (default \code{1500}, advanced): untested. Set as a generous cap for an answer; not measured.
+\item \code{max_chunk_tokens} (default \code{700}, advanced): untested. Set as a cap for one chunk's finding; not measured.
+\item \code{max_summary_tokens} (default \code{500}, advanced): untested. Set as a cap for one summary; not measured.
+\item \code{top_k} (default \code{6}, basic): untested. A common starting value for retrieval; not tuned here.
+\item \code{min_score} (default \code{-Inf}, advanced): untested. Not a tuned value: -Inf applies no floor.
+\item \code{mmr} (default \code{1}, advanced): untested. 1 is plain top-k, the selection used before the setting existed.
+\item \code{rerank_candidates} (default \code{20}, advanced): untested. Set when rerank was written; not tuned.
+\item \code{rerank_min_score} (default \code{4}, advanced): untested. Set when rerank was written; not tuned.
+\item \code{fan_in} (default \code{5}, advanced): untested. Set when hierarchical was written; not tuned.
+\item \code{max_levels} (default \code{5}, advanced): untested. Set when hierarchical was written; not tuned.
+\item \code{max_rounds} (default \code{4}, advanced): untested. Set when iterative was written; not tuned.
+\item \code{preview_tokens} (default \code{1200}, advanced): untested. Set when preview was written; not tuned.
+\item \code{members} (default \code{NULL}, advanced): untested. NULL takes ensemble's own pair, retrieve and map_reduce; not compared with other pairs.
+\item \code{cite} (default \code{FALSE}, basic): untested. Off, so the answer prompt is the one used before the setting existed.
+\item \code{skim_model} (default \code{NULL}, advanced): untested. Not a tuned value: NULL uses \code{model}.
+\item \code{summary_model} (default \code{NULL}, advanced): untested. Not a tuned value: NULL uses \code{model}.
+\item \code{parallel} (default \code{NULL}, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.
+\item \code{delay_between_calls} (default \code{0}, advanced): untested. No pause. It does not change output.
+\item \code{accept_near_verbatim} (default \code{FALSE}, advanced): untested. Off, as the code behaved before the setting existed. Not measured as a stopping rule; on the labelled quotation set, 25 of 46 quotations with one content word swapped score near_verbatim (NEWS, 0.6.0.9000).
+\item \code{max_merge_levels} (default \code{6}, advanced): untested. The cap the merge code had as a constant; not tuned.
+\item \code{restate_tokens} (default \code{1200}, advanced): untested. An arbitrary number, as its comment said when it was a constant; not measured.
+\item \code{bm25_k1} (default \code{1.5}, advanced): cited. Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give k1 between 1.2 and 2.0 as usual; not tuned here.
+\item \code{bm25_b} (default \code{0.75}, advanced): cited. Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give b = 0.75 as usual; not tuned here.
+\item \code{lexical_blend} (default \code{0.5}, advanced): untested. An even blend, set when the offline path was written.
+}
 }
 
 \section{Reasoning effort}{

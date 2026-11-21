@@ -57,8 +57,39 @@ gr_defaults <- list(
   unknown_model_action = "warn",       # "warn" | "error"
   # Who runs are for and who runs them, recorded on every trace (see
   # gr_trace()). Empty: every field NA unless gr_trace() is given it.
-  actor               = list()
+  actor               = list(),
+  # Settings that were constants in the code until they were options. Each
+  # keeps the constant's value; see .gr_late_options.
+  auto_max_tokens     = 50000L,
+  auto_room_share     = 0.5,
+  reasoning_floor     = 2048L,
+  output_reserve_share = 0.25,
+  near_verbatim_sim   = 0.90,
+  near_verbatim_sim_short = 0.95,
+  near_verbatim_short_chars = 40L
 )
+
+#' The options that were constants in the code until they were declared. A
+#' trace records them only when one is not its default (config_snapshot()), so
+#' a trace made at the defaults reads as it did before they existed; and the
+#' ones that change a reply or an answer join the cache and store keys only
+#' then (nondefault_options()).
+#' @noRd
+.gr_late_options <- c("auto_max_tokens", "auto_room_share", "reasoning_floor",
+                      "output_reserve_share", "near_verbatim_sim", "near_verbatim_sim_short",
+                      "near_verbatim_short_chars")
+
+#' The options among `names` that are not their default, as a named list.
+#' Empty at the defaults, so a key built with it is the key built without it.
+#' @noRd
+nondefault_options <- function(names = .gr_late_options) {
+  out <- list()
+  for (nm in names) {
+    v <- gr_options(nm)
+    if (!isTRUE(all.equal(v, gr_defaults[[nm]], check.attributes = FALSE))) out[[nm]] <- v
+  }
+  out
+}
 
 #' What each numeric option is allowed to be, checked where it is SET.
 #'
@@ -84,16 +115,62 @@ gr_defaults <- list(
   # The ranges are the ones the code that reads each option clamps to --
   # gr_client() for the three request settings, gr_lapply() for `workers` -- so
   # a value accepted here is the value used, and a warning's "using N" is true.
-  safety_margin     = list(kind = "tune", lo = 0, hi = 0.5,  whole = FALSE),
-  min_output_tokens = list(kind = "tune", lo = 0, hi = 1e6,  whole = TRUE),
-  max_retries       = list(kind = "tune", lo = 0, hi = 10,   whole = TRUE),
-  retry_pause_base  = list(kind = "tune", lo = 0, hi = 60,   whole = FALSE),
-  request_timeout   = list(kind = "tune", lo = 1, hi = 3600, whole = FALSE),
-  workers           = list(kind = "tune", lo = 1, hi = 32,   whole = TRUE),
+  # Each tuning rule says where its default comes from (`evidence`, as an
+  # hr_param() does); see the "Where the defaults come from" section of
+  # gr_options().
+  safety_margin     = list(kind = "tune", lo = 0, hi = 0.5,  whole = FALSE,
+                           evidence = list(status = "untested",
+                                           source = "Set to absorb local token-count error.")),
+  min_output_tokens = list(kind = "tune", lo = 0, hi = 1e6,  whole = TRUE,
+                           evidence = list(status = "untested",
+                                           source = "Set as a floor for a short reply.")),
+  max_retries       = list(kind = "tune", lo = 0, hi = 10,   whole = TRUE,
+                           evidence = list(status = "untested",
+                                           source = "Set when retries were written.")),
+  retry_pause_base  = list(kind = "tune", lo = 0, hi = 60,   whole = FALSE,
+                           evidence = list(status = "untested",
+                                           source = "Set when retries were written.")),
+  request_timeout   = list(kind = "tune", lo = 1, hi = 3600, whole = FALSE,
+                           evidence = list(status = "untested",
+                                           source = "Set when the HTTP client was written.")),
+  workers           = list(kind = "tune", lo = 1, hi = 32,   whole = TRUE,
+                           evidence = list(status = "untested",
+                                           source = "Set when parallel runs were added.")),
   # NULL is temperature's default -- "let the model decide" -- so it falls back
   # to NULL; and Inf is out of range for it rather than meaning "no limit",
   # which is the ceilings' meaning and went on the wire as "temperature":"Inf".
-  temperature       = list(kind = "tune", lo = 0, hi = 2, whole = FALSE, null_ok = TRUE),
+  temperature       = list(kind = "tune", lo = 0, hi = 2, whole = FALSE, null_ok = TRUE,
+                           evidence = list(status = "untested",
+                                           source = "NULL sends none; the model decides.")),
+  auto_max_tokens   = list(kind = "tune", lo = 0, hi = 1e7, whole = TRUE,
+                           evidence = list(status = "untested", source = paste0(
+                             "The constant the code had: about 70 pages of prose, under a ",
+                             "twentieth of the default model's window. Not measured."))),
+  auto_room_share   = list(kind = "tune", lo = 0, hi = 1, whole = FALSE,
+                           evidence = list(status = "untested", source = paste0(
+                             "The constant the code had: half the room, the other half for ",
+                             "local token-count error. Not measured."))),
+  reasoning_floor   = list(kind = "tune", lo = 0, hi = 1e6, whole = TRUE,
+                           evidence = list(status = "untested", source = paste0(
+                             "The constant the code had, from the observation that a reasoning ",
+                             "model can spend a few hundred to a couple of thousand tokens ",
+                             "before it replies. Not measured."))),
+  output_reserve_share = list(kind = "tune", lo = 0, hi = 0.9, whole = FALSE,
+                              evidence = list(status = "untested",
+                                              source = "The quarter the code had; not measured.")),
+  near_verbatim_sim = list(kind = "tune", lo = 0, hi = 1, whole = FALSE,
+                           evidence = list(status = "measured", source = paste0(
+                             "From practitioner sources, not tuned. The matcher's error rates at ",
+                             "this value were measured on 343 true and 162 false quotations ",
+                             "(dev/quote-matcher-rates.R; NEWS, 0.6.0.9000)."))),
+  near_verbatim_sim_short = list(kind = "tune", lo = 0, hi = 1, whole = FALSE,
+                                 evidence = list(status = "measured", source = paste0(
+                                   "From practitioner sources, not tuned; measured with ",
+                                   "near_verbatim_sim on the same labelled set."))),
+  near_verbatim_short_chars = list(kind = "tune", lo = 0, hi = 1e4, whole = TRUE,
+                                   evidence = list(status = "measured", source = paste0(
+                                     "From practitioner sources, not tuned; measured with ",
+                                     "near_verbatim_sim on the same labelled set."))),
   max_cost_usd      = list(kind = "ceiling", lo = 0, whole = FALSE),
   # lo = 0: "make no calls at all" is a meaningful instruction, and the tests
   # that assert a reader degrades rather than spending use it.
@@ -214,16 +291,23 @@ check_option <- function(name, value) {
 #'     bearer token. Inherited by every [gr_client()] that does not name its
 #'     own; see that function's `headers` argument for the rules.}
 #'   \item{`temperature` (NULL)}{Default sampling temperature. `NULL` omits the
-#'     field. Dropped automatically for models that reject it.}
+#'     field. Dropped automatically for models that reject it. Untested:
+#'     `NULL` sends no temperature, so the model decides.}
 #'   \item{`max_retries` (4)}{Retries for transient failures. HTTP 400 is never
-#'     retried: a malformed request stays malformed.}
-#'   \item{`retry_pause_base` (2)}{Seconds; exponential backoff base.}
-#'   \item{`request_timeout` (120)}{Per-request timeout, seconds.}
+#'     retried: a malformed request stays malformed. Untested: set when
+#'     retries were written, with no measurement behind the number.}
+#'   \item{`retry_pause_base` (2)}{Seconds; exponential backoff base.
+#'     Untested: set when retries were written.}
+#'   \item{`request_timeout` (120)}{Per-request timeout, seconds. Untested:
+#'     set when the HTTP client was written.}
 #'   \item{`safety_margin` (0.10)}{Fraction of the context window left unused to
-#'     absorb tokenizer error. Not a spending cap (see `max_cost_usd`).}
+#'     absorb tokenizer error. Not a spending cap (see `max_cost_usd`).
+#'     Untested: set to absorb the error of counting tokens locally, and not
+#'     measured against it.}
 #'   \item{`min_output_tokens` (256)}{Floor on the completion room [gr_budget()]
 #'     reserves *when `reserve_output` is not given explicitly*. An explicit
-#'     `reserve_output` is honoured down to 1.}
+#'     `reserve_output` is honoured down to 1. Untested: set as a floor for a
+#'     short reply.}
 #'   \item{`cache_documents` (TRUE)}{Cache ingestion per file + settings. The key
 #'     covers file size, mtime and every option that changes the output.}
 #'   \item{`cache_embeddings` (TRUE)}{Cache embeddings per text + model.}
@@ -240,7 +324,9 @@ check_option <- function(name, value) {
 #'   \item{`parallel` (FALSE)}{Run per-chunk calls concurrently. Needs the
 #'     future and future.apply packages; without them it warns and runs
 #'     sequentially.}
-#'   \item{`workers` (4)}{Worker processes when `parallel` is TRUE.}
+#'   \item{`workers` (4)}{Worker processes when `parallel` is TRUE.
+#'     Untested: set when parallel runs were added. It does not change
+#'     output.}
 #'   \item{`max_cost_usd` (5)}{Spending limit per run, in USD. A run whose
 #'     reader sends every chunk is refused before it starts when sending them
 #'     would cost more than this. Every request is then checked before it is
@@ -286,7 +372,51 @@ check_option <- function(name, value) {
 #'     recorded on each new trace unless [gr_trace()] is given its own; one
 #'     named nowhere is `NA`. Other names are refused with an error of class
 #'     `gr_bad_option`.}
+#'   \item{`auto_max_tokens` (50000)}{The largest document, in tokens, that
+#'     [answer_document()] with `recipe = "auto"` reads with `"fast"` (one
+#'     request); a larger one is read with `"thorough"`. Untested: the value
+#'     is about 70 pages of prose and under a twentieth of the default model's
+#'     window, and nothing has measured where the two recipes' answers
+#'     diverge.}
+#'   \item{`auto_room_share` (0.5)}{The second condition of that choice: the
+#'     document must fill at most this share of the input room [gr_budget()]
+#'     leaves on every model of the run. Untested: the other half was left
+#'     for the error of counting tokens locally.}
+#'   \item{`reasoning_floor` (2048)}{The smallest output cap a request to a
+#'     reasoning model is sent with. A smaller cap is raised to it, within the
+#'     model's limit and the room the context window leaves, so a short
+#'     structured call is not used up by reasoning; `0` turns the raise off.
+#'     The trace's `params_sent` records the cap sent. Untested: a reasoning
+#'     model can spend a few hundred to a couple of thousand tokens before it
+#'     replies, and the value was not measured. A value other than the
+#'     default joins the response-cache key and the store key of
+#'     [gr_read_many()].}
+#'   \item{`output_reserve_share` (0.25)}{The share of the usable window
+#'     [gr_budget()] reserves for the reply when no `reserve_output` is given,
+#'     between `min_output_tokens` and the model's output limit. It sets the
+#'     input room, so how much of a document fits one request. Untested.}
+#'   \item{`near_verbatim_sim` (0.90), `near_verbatim_sim_short` (0.95),
+#'     `near_verbatim_short_chars` (40)}{The least similarity a quotation of at
+#'     least `near_verbatim_short_chars` characters (after normalising), and
+#'     one shorter than that, needs for the edit-distance matcher to score it
+#'     `near_verbatim` (see [gr_verify_evidence()]). The values come from
+#'     practitioner sources and were not tuned; the matcher's error rates at
+#'     them were measured on a labelled set of 343 true and 162 false
+#'     quotations (see NEWS). The status is recorded only, unless
+#'     `accept_near_verbatim = TRUE` (see [gr_read_spec()]). A value other
+#'     than the default joins the store key of [gr_read_many()].}
 #' }
+#'
+#' @section Where the defaults come from:
+#' The settings listed last above were constants in the code until they were
+#' options; each keeps the constant's value. A trace records them (in its
+#' options snapshot) only when one is not its default, so a trace made at the
+#' defaults reads as it did before they existed. Each tuning setting's entry
+#' above (`temperature`, `max_retries`, `retry_pause_base`, `request_timeout`,
+#' `safety_margin`, `min_output_tokens`, `workers` and the settings listed
+#' last) says where its default came from; "untested" means no measurement
+#' backs the value. The other entries are switches, limits and names, which
+#' are choices rather than tuned values.
 #'
 #' @section Checked values:
 #' Numeric options are checked when they are set, and the two kinds are treated
@@ -302,8 +432,11 @@ check_option <- function(name, value) {
 #'
 #' The tuning settings (`safety_margin` \[0, 0.5\], `min_output_tokens`
 #' \[0, 1e6\], `max_retries` \[0, 10\], `retry_pause_base` \[0, 60\],
-#' `request_timeout` \[1, 3600\], `workers` \[1, 32\] and `temperature`
-#' \[0, 2\]) read a number written as text as that number. A value they cannot
+#' `request_timeout` \[1, 3600\], `workers` \[1, 32\], `temperature`
+#' \[0, 2\], `auto_max_tokens` \[0, 1e7\], `auto_room_share` \[0, 1\],
+#' `reasoning_floor` \[0, 1e6\], `output_reserve_share` \[0, 0.9\],
+#' `near_verbatim_sim` and `near_verbatim_sim_short` \[0, 1\] and
+#' `near_verbatim_short_chars` \[0, 1e4\]) read a number written as text as that number. A value they cannot
 #' read, such as `NA` or `"x"`, warns (`gr_bad_option`) and leaves the current
 #' setting unchanged; a value outside the range is clamped into it, with the
 #' same warning. Whole-number settings are rounded down. `temperature` also

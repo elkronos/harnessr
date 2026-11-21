@@ -12,7 +12,10 @@ hr_calibrate_signal(
   bins = 10L,
   split = 0.5,
   seed,
-  B = 2000L
+  B = 2000L,
+  min_errors = 100L,
+  isotonic_min_items = 1000L,
+  min_clusters = 20L
 )
 }
 \arguments{
@@ -41,6 +44,22 @@ graded set always gives the same record. The caller's random state is
 left as it was.}
 
 \item{B}{Number of bootstrap resamples; 0 for no intervals.}
+
+\item{min_errors}{The fewest wrong items a graded set needs before its
+record may gate; below it the record stays advisory and \code{reasons} says
+why. Default 100, untested: set when calibration records were written,
+with no measurement behind the number.}
+
+\item{isotonic_min_items}{The fewest graded items, counted before the
+split, for which \code{method = "isotonic"} is allowed. Default 1000,
+untested.}
+
+\item{min_clusters}{The fewest clusters in the calibration half for which
+the bootstrap intervals are given without a note that they rest on few
+clusters. Default 20, untested.
+
+A value other than the default of any of these three is written to the
+record's \code{notes}, so the record says it was held to a different bar.}
 }
 \value{
 An \code{hr_calibration}: a list with \code{signal}, \code{key}, \code{method},
@@ -104,11 +123,12 @@ the map is never judged on the items it was fitted to.
 logistic regression on the targets \code{(N+ + 1) / (N+ + 2)} for a right
 item and \code{1 / (N- + 2)} for a wrong one, which keeps the fit finite when
 the halves separate. It is the default and the only fitted map allowed
-below 1000 graded items.
+below 1000 graded items (\code{isotonic_min_items}).
 \item \strong{Isotonic regression} (pool adjacent violators, weighted by the number
-of items at each score) needs at least 1000 graded items. The count is
-of the whole graded set before the split, so the map itself is fitted on
-about \code{split} of them (500 at the minimum with the default \code{split}).
+of items at each score) needs at least 1000 graded items by default. The
+count is of the whole graded set before the split, so the map itself is
+fitted on about \code{split} of them (500 at the minimum with the default
+\code{split}).
 Between fitted scores it interpolates linearly; beyond them it holds the
 end values.
 \item \strong{\code{"none"}} takes the score as the probability, so it must lie in

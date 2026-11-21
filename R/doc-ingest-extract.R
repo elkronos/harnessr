@@ -676,7 +676,9 @@ extract_pdf <- function(path, opts) {
   raw <- identical(opts[["layout", exact = TRUE]] %||% "auto", "raw")
   lines <- NULL
   if (!raw || any(!ocr_done & nchar(gsub("[[:space:]]+", "", pages)) <= 800L)) {
-    lines <- drop_running_lines(lapply(pages, page_lines))
+    # `layout_opts` changes the pass's thresholds; empty, it runs as written.
+    lines <- do.call(drop_running_lines,
+                     c(list(lapply(pages, page_lines)), opts[["layout_opts", exact = TRUE]]))
   }
   # A page that did not become text through OCR and has nothing on it once
   # its running head, foot or stamp is dropped was not read, whatever OCR was

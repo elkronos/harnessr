@@ -129,16 +129,26 @@
 #' A number, and an arbitrary one: what it should be is a question about a
 #' particular corpus and a particular model, which is why `restate` is a read
 #' setting -- gr_compare() can take two recipes differing only in it and measure
-#' the difference, rather than the package asserting one.
+#' the difference, rather than the package asserting one. The default of the
+#' read spec's `restate_tokens`, which sets it per run.
 #' @noRd
 .gr_restate_tokens <- 1200L
 
+#' A spec's `restate`, carrying its `restate_tokens` as an attribute, so the
+#' threshold reaches restate_now() wherever the mode is passed.
+#' @noRd
+restate_how <- function(spec) {
+  structure(as_chr1(spec$restate, "auto"),
+            tokens = as_num1(spec$restate_tokens, .gr_restate_tokens))
+}
+
 #' @noRd
 restate_now <- function(body, how = "auto") {
+  limit <- as_num1(attr(how, "tokens", exact = TRUE), .gr_restate_tokens)
   how <- as_chr1(how, "auto")
   if (identical(how, "always")) return(TRUE)
   if (identical(how, "never")) return(FALSE)
-  gr_count_tokens(as_chr1(body)) > .gr_restate_tokens
+  gr_count_tokens(as_chr1(body)) > limit
 }
 
 #' The question again, after a body long enough to bury the first ask.

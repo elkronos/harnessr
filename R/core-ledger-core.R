@@ -270,6 +270,11 @@ check_actor <- function(value, where = "gr_options(actor = )") {
 #' @noRd
 config_snapshot <- function() {
   opts <- gr_options()
+  # The options that were constants in the code until they were declared are
+  # recorded only when one is not its default, so a trace made at the
+  # defaults reads as one made before they existed.
+  late <- setdiff(.gr_late_options, names(nondefault_options()))
+  opts[late] <- NULL
   h <- opts[["api_headers", exact = TRUE]]
   if (length(h)) opts["api_headers"] <- list(stats::setNames(rep("<set>", length(h)), names(h)))
   list(options = opts, r_version = R.version$version.string)

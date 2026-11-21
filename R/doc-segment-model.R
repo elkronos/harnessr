@@ -116,11 +116,13 @@ seg_contextual <- function(doc, spec, client, trace) {
     h
   }
 
-  # The room a header needs. A reply is held to 90 tokens. A metadata header
-  # is bounded by the longest one it could be: the longest section label, the
-  # highest page, and a part number no larger than the document has
-  # characters (a chunk holds at least one). One packing, no second pass.
-  reserve <- if (identical(src, "llm")) 90L else {
+  # The room a header needs. A reply is held to `context_reply_tokens` (90 by
+  # default). A metadata header is bounded by the longest one it could be: the
+  # longest section label, the highest page, and a part number no larger than
+  # the document has characters (a chunk holds at least one). One packing, no
+  # second pass.
+  reply_cap <- as_int1(spec$context_reply_tokens, 90L)
+  reserve <- if (identical(src, "llm")) reply_cap else {
     b <- doc$blocks
     top_page <- suppressWarnings(max(b$page, na.rm = TRUE))
     n_hi <- max(1L, nchar(doc$text))
@@ -136,7 +138,8 @@ seg_contextual <- function(doc, spec, client, trace) {
   if (!nrow(d)) return(new_chunks(character(0), "contextual", spec))
   extra <- list(context_source = src)
   headers <- if (identical(src, "llm")) {
-    doc_summary <- truncate_logged(doc$text, 1500, "segment.contextual.document", trace,
+    doc_summary <- truncate_logged(doc$text, as_int1(spec$context_document_tokens, 1500L),
+                                   "segment.contextual.document", trace,
                                    marker = "")$text
     sys_prompt <- "You situate an excerpt within its source document. Reply with one sentence, no preamble."
     ask <- function(excerpt) paste0(
@@ -144,13 +147,14 @@ seg_contextual <- function(doc, spec, client, trace) {
       "\n</excerpt>\n\nIn one sentence, say what this excerpt is about and where it fits in the document.")
     # The longest excerpt with its reply at the cap: what gr_lapply() holds a
     # parallel batch to, since the workers cannot see what the run spends.
-    worst <- seg_call_usd(client, sum(gr_count_tokens(c(sys_prompt, ask("")))) + max(d$tokens), 90L)
+    worst <- seg_call_usd(client, sum(gr_count_tokens(c(sys_prompt, ask("")))) + max(d$tokens),
+                          reply_cap)
     mark <- seg_trace_mark(trace)
     res <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
       r <- gr_call(client, list(
         list(role = "system", content = sys_prompt),
         list(role = "user", content = ask(d$text[i]))
-      ), max_output = 90L, trace = trace, label = "segment.context",
+      ), max_output = reply_cap, trace = trace, label = "segment.context",
          effort = spec$effort)
       if (is_refused(r)) return(list(text = "", why = "limit"))
       if (!isTRUE(r$ok)) return(list(text = "", why = "failed"))
@@ -250,10 +254,11 @@ seg_proposition <- function(doc, spec, client, trace) {
     "self-contained factual statement: resolve every pronoun and abbreviation to the ",
     "entity it refers to, keep all numbers, dates and units verbatim, and add nothing ",
     "that is not stated in the text.")
+  prop_cap <- as_int1(spec$proposition_reply_tokens, 2000L)
   # The largest batch with its reply at the cap: what gr_lapply() holds a
   # parallel batch to, since the workers cannot see what the run spends.
   worst <- seg_call_usd(client, gr_count_tokens(sys_prompt) +
-                          max(c(0L, gr_count_tokens(batches$text))), 2000L)
+                          max(c(0L, gr_count_tokens(batches$text))), prop_cap)
   mark <- seg_trace_mark(trace)
   res <- gr_lapply(seq_along(batches$text), function(i, trace) {
     # A request a limit refused keeps its batch as written, as a failed one does.
@@ -261,7 +266,7 @@ seg_proposition <- function(doc, spec, client, trace) {
       list(role = "system", content = sys_prompt),
       list(role = "user", content = batches$text[i])
     ), schema = schema, schema_name = "propositions", trace = trace,
-       label = "segment.proposition", max_output = 2000L, effort = spec$effort)
+       label = "segment.proposition", max_output = prop_cap, effort = spec$effort)
     if (!out$ok) return(keep(i))
     # as.character() on whatever simplifyVector made of it flattened a matrix
     # column-major (transposing the propositions) and deparsed a data frame

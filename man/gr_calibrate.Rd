@@ -12,7 +12,8 @@ gr_calibrate(
   of = NULL,
   recall_target = 0.95,
   conf = 0.95,
-  max_lost = NULL
+  max_lost = NULL,
+  max_width = 0.1
 )
 }
 \arguments{
@@ -50,6 +51,12 @@ frame, it wins with a warning, and the file's frame size is not used.}
 \item{max_lost}{Optional: the most eligible records the screener may have
 excluded. When given, an upper bound on records lost at or below it also
 meets the target.}
+
+\item{max_width}{For a sample of one stratum: the widest interval, as a
+proportion, its headline rate may have for the sample to be adequate.
+One number strictly between 0 and 1; default 0.10, ten percentage points
+or a margin of five either way, set when the rule was written and
+untested.}
 }
 \value{
 An object of class \code{gr_calibration}:
@@ -194,8 +201,9 @@ eligible studies alone, so the sample needs \code{min_positives} of them. In an
 excluded", "eligible among those kept") is taken over every row sampled, so
 a sample of 500 clean exclusions is a good one, not one resting on no
 observations. There the sample is adequate when that rate's interval is at
-most 10 percentage points wide, or when every record in the stratum was
-judged (nothing is left to sample, and the rate is a count for this run).
+most 10 percentage points wide (\code{max_width}), or when every record in the
+stratum was judged (nothing is left to sample, and the rate is a count for
+this run).
 The bar is a floor, not a verdict: 10 points is wide for an omission rate
 near zero across a large pile of exclusions, and the projected count of lost
 studies, printed with its interval, is the figure to judge that by.

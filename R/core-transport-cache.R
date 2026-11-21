@@ -343,6 +343,12 @@ cache_key <- function(client, messages, model, max_output, temperature,
     # perfect agreement. A part only above 0, as effort is only when set: an
     # unsampled call has no draw, and keys as such.
     if (draw_index > 0L) paste0("draw:", draw_index),
+    # The least output cap a reasoning model is sent, which the key's cap (the
+    # one asked for) does not show. A part only when it is not the default, so
+    # a run at the default keeps its keys.
+    if (length(rf <- nondefault_options("reasoning_floor"))) {
+      paste0("reasoning_floor:", format(rf$reasoning_floor))
+    },
     key_text(unlist(lapply(messages, function(m) c(as_chr1(m$role), as_chr1(m$content))),
                     use.names = FALSE))
   )

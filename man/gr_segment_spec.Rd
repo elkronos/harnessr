@@ -16,6 +16,9 @@ gr_segment_spec(
   context_source = c("metadata", "llm"),
   proposition_batch_tokens = 900L,
   parallel = NULL,
+  context_reply_tokens = 90L,
+  context_document_tokens = 1500L,
+  proposition_reply_tokens = 2000L,
   ...
 )
 }
@@ -58,10 +61,10 @@ boundary (higher = fewer, larger chunks).}
 
 \item{context_source}{For \code{method = "contextual"}: \code{"metadata"} (free) or
 \code{"llm"} (one call per chunk). Room for the context line is held back from
-each chunk's text before packing -- 90 tokens for \code{"llm"}, the longest
-header the document could need for \code{"metadata"}, never more than half of
-\code{max_tokens} -- so no chunk is cut again once its header is added, and a
-header that still does not fit is shortened, never the text. Under
+each chunk's text before packing (\code{context_reply_tokens} for \code{"llm"}, the
+longest header the document could need for \code{"metadata"}, never more than
+half of \code{max_tokens}), so no chunk is cut again once its header is added,
+and a header that still does not fit is shortened, never the text. Under
 \code{"llm"}, a chunk whose call failed or was skipped at the run's limits
 keeps its text without a context line; \verb{$extra$blurbs_missing} counts
 them and a \code{"gr_segment_fallback"} warning says so, which also reaches
@@ -70,6 +73,18 @@ the answer's warnings.}
 \item{proposition_batch_tokens}{For \code{method = "proposition"}: batch size.}
 
 \item{parallel}{Parallelise per-chunk model work in segmenters that do any.}
+
+\item{context_reply_tokens}{For \code{method = "contextual"} with
+\code{context_source = "llm"}: the output cap of each context-line request, and
+the room held back for the line in each chunk. [16, 4000], default 90.
+Untested.}
+
+\item{context_document_tokens}{For \code{context_source = "llm"}: how much of
+the document, from its start, each context-line request carries so the
+model can place the excerpt. [100, 1e6], default 1500. Untested.}
+
+\item{proposition_reply_tokens}{For \code{method = "proposition"}: the output cap
+of each batch's request. [100, 1e6], default 2000. Untested.}
 
 \item{...}{Extra fields for custom segmenters.}
 }
@@ -86,6 +101,31 @@ never applied silently: \code{max_tokens} [32, 1e6], \code{overlap_tokens}
 [0, max_tokens - 1], \code{min_tokens} [0, max_tokens], \code{semantic_window}
 [1, 10], \code{semantic_percentile} [50, 99.5], \code{proposition_batch_tokens}
 [200, 4000].
+}
+
+\section{Where the defaults come from}{
+
+Each setting's default, its tier and the evidence behind the value, as in
+\code{\link[=gr_read_spec]{gr_read_spec()}}. \code{context_reply_tokens}, \code{context_document_tokens} and
+\code{proposition_reply_tokens} were constants in the code; they are stored in
+the spec only when they are not their default, so a default spec keeps the
+store and cache keys it had before they existed.
+\itemize{
+\item \code{context_source} (default \code{"metadata"}, advanced): untested. The source that makes no request; not compared with "llm".
+\item \code{max_tokens} (default \code{1200}, basic): untested. Set when the segmenters were written; not tuned.
+\item \code{overlap_tokens} (default \code{0}, basic): untested. No overlap, so no text is sent twice; not compared.
+\item \code{min_tokens} (default \code{0}, advanced): untested. No merging of small chunks; not compared.
+\item \code{method} (default \code{"paragraph"}, basic): untested. A segmenter that needs no model or embedder; not compared with the others.
+\item \code{separators} (default \code{NULL}, advanced): untested. Not a tuned value: NULL takes recursive's own cascade.
+\item \code{prefix_section} (default \code{TRUE}, advanced): untested. Set when structural was written; not compared.
+\item \code{semantic_window} (default \code{2}, advanced): untested. Set when semantic was written; not tuned.
+\item \code{semantic_percentile} (default \code{90}, advanced): untested. Set when semantic was written; not tuned.
+\item \code{proposition_batch_tokens} (default \code{900}, advanced): untested. Set when proposition was written; not tuned.
+\item \code{parallel} (default \code{NULL}, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.
+\item \code{context_reply_tokens} (default \code{90}, advanced): untested. The cap the code had as a constant; not tuned.
+\item \code{context_document_tokens} (default \code{1500}, advanced): untested. The length the code had as a constant; not tuned.
+\item \code{proposition_reply_tokens} (default \code{2000}, advanced): untested. The cap the code had as a constant; not tuned.
+}
 }
 
 \examples{

@@ -336,7 +336,7 @@ read_preview <- function(chunks, question, client, spec, trace) {
                                    reason = "the plan skipped every section, or every skim failed")))
   }
 
-  res2 <- gr_call(client, answer_messages(question, body, cite = spec$cite, restate = spec$restate,
+  res2 <- gr_call(client, answer_messages(question, body, cite = spec$cite, restate = restate_how(spec),
                                           premise = spec$premise),
                   model = spec$model, max_output = spec$max_answer_tokens,
                   temperature = spec$temperature, trace = trace, label = "preview.answer",

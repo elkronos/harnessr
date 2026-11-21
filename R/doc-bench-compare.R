@@ -64,7 +64,9 @@
 #'   \describe{
 #'     \item{`recipe`, `segmenter`, `chunks`, `reader`, `signature`,
 #'       `settings`}{Which pipeline the row is, and what was changed from the
-#'       recipe's defaults.}
+#'       defaults of its read and segment specs, with each entry of its
+#'       ingest spec's `layout_opts` and `cleaner_opts` (as
+#'       `layout_opts.depth=3`).}
 #'     \item{`partial`, `chunks_used`, `answer_chars`, `not_found`,
 #'       `error`}{What the answer is, and what went wrong, if anything.}
 #'     \item{`calls`, `tokens_in`, `tokens_out`}{The model and embeddings
@@ -315,7 +317,8 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
                # Recipes differing only in a setting -- top_k, mmr, max_tokens --
                # were indistinguishable here. Name what was changed.
                settings = if (is.null(r)) NA_character_ else
-                 format_settings(c(read_settings(r$read), segment_settings(r$segment))),
+                 format_settings(c(read_settings(r$read), segment_settings(r$segment),
+                                   ingest_settings(r$ingest))),
                partial = a$partial,
                chunks_used = length(a$chunks_used),
                answer_chars = nchar(a$answer),

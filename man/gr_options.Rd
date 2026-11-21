@@ -45,16 +45,23 @@ sent with every request, for gateways that do not authenticate with a
 bearer token. Inherited by every \code{\link[=gr_client]{gr_client()}} that does not name its
 own; see that function's \code{headers} argument for the rules.}
 \item{\code{temperature} (NULL)}{Default sampling temperature. \code{NULL} omits the
-field. Dropped automatically for models that reject it.}
+field. Dropped automatically for models that reject it. Untested:
+\code{NULL} sends no temperature, so the model decides.}
 \item{\code{max_retries} (4)}{Retries for transient failures. HTTP 400 is never
-retried: a malformed request stays malformed.}
-\item{\code{retry_pause_base} (2)}{Seconds; exponential backoff base.}
-\item{\code{request_timeout} (120)}{Per-request timeout, seconds.}
+retried: a malformed request stays malformed. Untested: set when
+retries were written, with no measurement behind the number.}
+\item{\code{retry_pause_base} (2)}{Seconds; exponential backoff base.
+Untested: set when retries were written.}
+\item{\code{request_timeout} (120)}{Per-request timeout, seconds. Untested:
+set when the HTTP client was written.}
 \item{\code{safety_margin} (0.10)}{Fraction of the context window left unused to
-absorb tokenizer error. Not a spending cap (see \code{max_cost_usd}).}
+absorb tokenizer error. Not a spending cap (see \code{max_cost_usd}).
+Untested: set to absorb the error of counting tokens locally, and not
+measured against it.}
 \item{\code{min_output_tokens} (256)}{Floor on the completion room \code{\link[=gr_budget]{gr_budget()}}
 reserves \emph{when \code{reserve_output} is not given explicitly}. An explicit
-\code{reserve_output} is honoured down to 1.}
+\code{reserve_output} is honoured down to 1. Untested: set as a floor for a
+short reply.}
 \item{\code{cache_documents} (TRUE)}{Cache ingestion per file + settings. The key
 covers file size, mtime and every option that changes the output.}
 \item{\code{cache_embeddings} (TRUE)}{Cache embeddings per text + model.}
@@ -71,7 +78,9 @@ sessions and make a long run resumable.}
 \item{\code{parallel} (FALSE)}{Run per-chunk calls concurrently. Needs the
 future and future.apply packages; without them it warns and runs
 sequentially.}
-\item{\code{workers} (4)}{Worker processes when \code{parallel} is TRUE.}
+\item{\code{workers} (4)}{Worker processes when \code{parallel} is TRUE.
+Untested: set when parallel runs were added. It does not change
+output.}
 \item{\code{max_cost_usd} (5)}{Spending limit per run, in USD. A run whose
 reader sends every chunk is refused before it starts when sending them
 would cost more than this. Every request is then checked before it is
@@ -117,7 +126,53 @@ fields every \code{\link[=gr_trace]{gr_trace()}} records: \code{system}, \code{o
 recorded on each new trace unless \code{\link[=gr_trace]{gr_trace()}} is given its own; one
 named nowhere is \code{NA}. Other names are refused with an error of class
 \code{gr_bad_option}.}
+\item{\code{auto_max_tokens} (50000)}{The largest document, in tokens, that
+\code{\link[=answer_document]{answer_document()}} with \code{recipe = "auto"} reads with \code{"fast"} (one
+request); a larger one is read with \code{"thorough"}. Untested: the value
+is about 70 pages of prose and under a twentieth of the default model's
+window, and nothing has measured where the two recipes' answers
+diverge.}
+\item{\code{auto_room_share} (0.5)}{The second condition of that choice: the
+document must fill at most this share of the input room \code{\link[=gr_budget]{gr_budget()}}
+leaves on every model of the run. Untested: the other half was left
+for the error of counting tokens locally.}
+\item{\code{reasoning_floor} (2048)}{The smallest output cap a request to a
+reasoning model is sent with. A smaller cap is raised to it, within the
+model's limit and the room the context window leaves, so a short
+structured call is not used up by reasoning; \code{0} turns the raise off.
+The trace's \code{params_sent} records the cap sent. Untested: a reasoning
+model can spend a few hundred to a couple of thousand tokens before it
+replies, and the value was not measured. A value other than the
+default joins the response-cache key and the store key of
+\code{\link[=gr_read_many]{gr_read_many()}}.}
+\item{\code{output_reserve_share} (0.25)}{The share of the usable window
+\code{\link[=gr_budget]{gr_budget()}} reserves for the reply when no \code{reserve_output} is given,
+between \code{min_output_tokens} and the model's output limit. It sets the
+input room, so how much of a document fits one request. Untested.}
+\item{\code{near_verbatim_sim} (0.90), \code{near_verbatim_sim_short} (0.95),
+\code{near_verbatim_short_chars} (40)}{The least similarity a quotation of at
+least \code{near_verbatim_short_chars} characters (after normalising), and
+one shorter than that, needs for the edit-distance matcher to score it
+\code{near_verbatim} (see \code{\link[=gr_verify_evidence]{gr_verify_evidence()}}). The values come from
+practitioner sources and were not tuned; the matcher's error rates at
+them were measured on a labelled set of 343 true and 162 false
+quotations (see NEWS). The status is recorded only, unless
+\code{accept_near_verbatim = TRUE} (see \code{\link[=gr_read_spec]{gr_read_spec()}}). A value other
+than the default joins the store key of \code{\link[=gr_read_many]{gr_read_many()}}.}
 }
+}
+
+\section{Where the defaults come from}{
+
+The settings listed last above were constants in the code until they were
+options; each keeps the constant's value. A trace records them (in its
+options snapshot) only when one is not its default, so a trace made at the
+defaults reads as it did before they existed. Each tuning setting's entry
+above (\code{temperature}, \code{max_retries}, \code{retry_pause_base}, \code{request_timeout},
+\code{safety_margin}, \code{min_output_tokens}, \code{workers} and the settings listed
+last) says where its default came from; "untested" means no measurement
+backs the value. The other entries are switches, limits and names, which
+are choices rather than tuned values.
 }
 
 \section{Checked values}{
@@ -135,8 +190,11 @@ vector of ids, and \code{allow_unpriced} \code{TRUE} or \code{FALSE}.
 
 The tuning settings (\code{safety_margin} [0, 0.5], \code{min_output_tokens}
 [0, 1e6], \code{max_retries} [0, 10], \code{retry_pause_base} [0, 60],
-\code{request_timeout} [1, 3600], \code{workers} [1, 32] and \code{temperature}
-[0, 2]) read a number written as text as that number. A value they cannot
+\code{request_timeout} [1, 3600], \code{workers} [1, 32], \code{temperature}
+[0, 2], \code{auto_max_tokens} [0, 1e7], \code{auto_room_share} [0, 1],
+\code{reasoning_floor} [0, 1e6], \code{output_reserve_share} [0, 0.9],
+\code{near_verbatim_sim} and \code{near_verbatim_sim_short} [0, 1] and
+\code{near_verbatim_short_chars} [0, 1e4]) read a number written as text as that number. A value they cannot
 read, such as \code{NA} or \code{"x"}, warns (\code{gr_bad_option}) and leaves the current
 setting unchanged; a value outside the range is clamped into it, with the
 same warning. Whole-number settings are rounded down. \code{temperature} also

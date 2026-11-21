@@ -102,9 +102,11 @@ wrong.
 
 The record becomes \code{"gating"} only when a threshold passes and none of
 the reasons \code{\link[=hr_calibrate_signal]{hr_calibrate_signal()}} gave holds: the graded set had at
-least 100 wrong items, the fitted map increases with the signal and the
-ECE used at least 5 bins. Otherwise it stays \code{"advisory"} and \code{reasons}
-says why.
+least as many wrong items as the bar the record was calibrated with
+(\code{min_errors} of \code{\link[=hr_calibrate_signal]{hr_calibrate_signal()}}, default 100; a bar other than the
+default is in the record's \code{notes}), the fitted map increases with the
+signal and the ECE used at least 5 bins. Otherwise it stays \code{"advisory"}
+and \code{reasons} says why.
 }
 
 \examples{

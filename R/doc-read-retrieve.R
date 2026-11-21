@@ -22,7 +22,10 @@ read_retrieve <- function(chunks, question, client, spec, trace) {
   scores <- if (nrow(emb) >= 2L) cosine_against(emb[-1, , drop = FALSE], emb[1, ]) else rep(0, nrow(d))
   if (identical(src, "lexical")) {
     # Blend in BM25 so the offline path is at least a real lexical retriever.
-    scores <- 0.5 * scores + 0.5 * scale01(bm25_scores(d$text, question))
+    w <- as_num1(spec$lexical_blend, 0.5)
+    scores <- w * scores + (1 - w) * scale01(bm25_scores(d$text, question,
+                                                         k1 = as_num1(spec$bm25_k1, 1.5),
+                                                         b = as_num1(spec$bm25_b, 0.75)))
   }
   k <- as.integer(clamp(spec$top_k, 1, nrow(d)))
   min_score <- as_num1(spec$min_score, -Inf)
@@ -57,7 +60,7 @@ read_retrieve <- function(chunks, question, client, spec, trace) {
   # Checked by the governor, as every request is: as an ensemble member this
   # can run after another member has spent the budget.
   res <- gr_call(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
-                                         restate = spec$restate, premise = spec$premise),
+                                         restate = restate_how(spec), premise = spec$premise),
                  model = spec$model, max_output = spec$max_answer_tokens,
                  temperature = spec$temperature, trace = trace, label = "retrieve.answer",
                  effort = spec$effort)

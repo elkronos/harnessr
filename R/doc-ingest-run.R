@@ -35,7 +35,22 @@
 #' @param extractor Force a specific extractor name instead of dispatching on
 #'   the file extension.
 #' @param parallel Parallelise page-level OCR.
-#' @param cleaner_opts Extra options passed to individual cleaners.
+#' @param cleaner_opts Extra options passed to individual cleaners, as a named
+#'   list. The built-in cleaners read these:
+#'   \describe{
+#'     \item{`references_after` (0.4)}{For the `references` cleaner (in the
+#'       `academic` and `legacy` presets): a References, Bibliography or Works
+#'       cited heading ends the text only when it starts at or after this
+#'       share of the text, so an entry in a table of contents does not cut
+#'       the document. A number in \[0, 1\]; a value that cannot be read
+#'       warns and uses 0.4. Untested: set when the cleaner was written.}
+#'     \item{`header_max_chars` (80)}{For the `headers_footers` cleaner (in
+#'       the `scan` preset): the longest line, in characters, that can be
+#'       taken for a running head or foot. Untested.}
+#'     \item{`header_min_repeats` (3)}{For `headers_footers`: how many times a
+#'       line must recur to be taken for one. Values below 3 are read as 3,
+#'       and a text of fewer than 8 lines is left alone. Untested.}
+#'   }
 #' @param layout How a PDF page's text is put in reading order. `"auto"` drops
 #'   running heads and feet (short lines repeated at the top or bottom of many
 #'   pages), reads a page set in two columns one column after the other, and
@@ -45,7 +60,23 @@
 #'   are not affected. Stored in the spec only when it is not `"auto"`, so a
 #'   default spec keeps the cache and store keys it had before the setting
 #'   existed.
+#' @param layout_opts Under `layout = "auto"`, a named list that changes how
+#'   running heads and feet are found on PDF pages: `depth` (2, lines at each
+#'   edge of a page that are candidates), `share` (0.4, the share of pages a
+#'   line must recur on), `min_pages` (3, the fewest pages a document needs
+#'   before any line is dropped, and the fewest a line must recur on),
+#'   `max_chars` (200, the longest candidate line) and `max_words` (5, above
+#'   which a numbered line must carry its number where a page number is set).
+#'   Names left out keep these defaults, which were set when the PDF reader
+#'   was written and are untested. An unknown name is an error. Stored in the
+#'   spec only when it is not empty.
 #' @return A list of class `gr_ingest_spec`.
+#'
+#' @section Where the defaults come from:
+#' Each setting's default, its tier and the evidence behind the value, as in
+#' [gr_read_spec()].
+#'
+#' `r schema_sources_md(.gr_ingest_schema)`
 #' @export
 #' @seealso [gr_ingest()], [gr_cleaners()] for the individual step names,
 #'   [gr_clean()] to preview a configuration on your own text
@@ -58,10 +89,14 @@
 #'
 #' # Or name the steps yourself; see gr_cleaners() for what is available.
 #' gr_ingest_spec(clean = c("page_numbers", "references"), ocr = "never")$clean
+#'
+#' # A bibliography heading counts only in the last half of the text.
+#' gr_ingest_spec(clean = "academic", cleaner_opts = list(references_after = 0.5))
 gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"),
                            ocr_lang = "eng", ocr_dpi = 300, ocr_min_chars = 40L,
                            min_chars = 20L, extractor = NULL, parallel = NULL,
-                           cleaner_opts = list(), layout = c("auto", "raw")) {
+                           cleaner_opts = list(), layout = c("auto", "raw"),
+                           layout_opts = list()) {
   p <- hr_validate(.gr_ingest_schema, mget(names(.gr_ingest_schema), environment()))
   spec <- structure(list(clean = p$clean, ocr = p$ocr, ocr_lang = p$ocr_lang,
                          ocr_dpi = p$ocr_dpi, ocr_min_chars = p$ocr_min_chars,
@@ -69,7 +104,66 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
                          parallel = p$parallel, cleaner_opts = p$cleaner_opts),
                     class = "gr_ingest_spec")
   if (!identical(p$layout, "auto")) spec$layout <- p$layout
+  # Only when set, as `layout`: the spec is hashed into the document cache and
+  # store keys.
+  if (length(p$layout_opts)) spec$layout_opts <- p$layout_opts
   spec
+}
+
+#' The entries of an ingest spec's `layout_opts` and `cleaner_opts`, flattened
+#' as `layout_opts.depth` and `cleaner_opts.references_after`, for the
+#' settings column of gr_compare(). Both lists are empty by default, so every
+#' entry is a change from it. The spec's other fields are left out: a recipe
+#' names its cleaning preset already, and the column never listed them.
+#' @noRd
+ingest_settings <- function(spec) {
+  flat <- function(nm) {
+    x <- spec[[nm]]
+    if (!length(x) || is.null(names(x))) return(list())
+    stats::setNames(as.list(x), paste0(nm, ".", names(x)))
+  }
+  c(flat("layout_opts"), flat("cleaner_opts"))
+}
+
+#' The ingest step's trace detail, with the spec's `layout_opts` and
+#' `cleaner_opts` entries as `settings` when it has any, so a trace says which
+#' ingest settings a run used. A spec at its defaults adds nothing, and its
+#' trace is as before.
+#' @noRd
+ingest_note <- function(detail, spec) {
+  s <- tryCatch(ingest_settings(spec), error = function(e) list())
+  if (length(s)) detail$settings <- s
+  detail
+}
+
+#' The settings of drop_running_lines() a spec's `layout_opts` may change.
+#' @noRd
+.gr_layout_opt_names <- c("depth", "share", "min_pages", "max_chars", "max_words")
+
+#' Check `layout_opts`: a named list of single numbers, each a setting of
+#' drop_running_lines(), in range.
+#' @noRd
+check_layout_opts <- function(x, p, params) {
+  if (is.null(x) || !length(x)) return(list())
+  x <- as.list(x)
+  nm <- names(x)
+  if (is.null(nm) || any(is.na(nm) | !nzchar(nm))) {
+    gr_abort("`layout_opts` must be a named list.", class = "gr_bad_setting")
+  }
+  bad <- setdiff(nm, .gr_layout_opt_names)
+  if (length(bad)) {
+    gr_abort(sprintf("`layout_opts` has unknown name(s) %s. Known: %s.",
+                     paste0("'", bad, "'", collapse = ", "),
+                     paste(.gr_layout_opt_names, collapse = ", ")), class = "gr_bad_setting")
+  }
+  rng <- list(depth = c(1, 20), share = c(0, 1), min_pages = c(2, 1e4),
+              max_chars = c(10, 1e4), max_words = c(1, 100))
+  for (k in nm) {
+    v <- na_default(x[[k]], formals(drop_running_lines)[[k]], paste0("layout_opts$", k))
+    x[[k]] <- clamp_warn(v, rng[[k]][1], rng[[k]][2], paste0("layout_opts$", k),
+                         integer = !identical(k, "share"))
+  }
+  x
 }
 
 #' The schema of gr_ingest_spec(). Most settings are stored as given, as they
@@ -77,15 +171,23 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
 #' @noRd
 .gr_ingest_schema <- hr_schema(
   hr_param("ocr", "enum", choices = c("auto", "always", "never"), cost_class = "local",
-           help = "When to OCR a page: with no text layer, always, or never."),
+           help = "When to OCR a page: with no text layer, always, or never.",
+           evidence = ev_untested("OCR only where a page has no text layer; not compared.")),
   hr_param("layout", "enum", choices = c("auto", "raw"),
-           help = "How a PDF page's text is put in reading order.", tier = "advanced"),
+           help = "How a PDF page's text is put in reading order.", tier = "advanced",
+           evidence = ev_untested(paste0("The layout pass is on; checked on the PDFs in the ",
+                                         "tests, with no measured comparison against \"raw\"."))),
   hr_param("clean", "string_vector", default = "standard",
-           help = "A cleaning preset, or cleaner names.", resolve = param_as_given),
+           help = "A cleaning preset, or cleaner names.", resolve = param_as_given,
+           evidence = ev_untested("The preset meant for born-digital text; not compared.")),
   hr_param("ocr_lang", "string", default = "eng", tier = "advanced",
-           help = "Tesseract language code.", resolve = param_as_given),
+           help = "Tesseract language code.", resolve = param_as_given,
+           evidence = ev_untested("English, the language of the package's own examples.")),
   hr_param("ocr_dpi", "number", default = 300, tier = "advanced", cost_class = "local",
-           help = "Render density for PDF OCR.", resolve = param_as_given),
+           help = "Render density for PDF OCR.", resolve = param_as_given,
+           evidence = ev_cited(paste0("Tesseract's documentation on improving output quality ",
+                                      "recommends images of at least 300 DPI; not measured ",
+                                      "here."))),
   # Not bare as.integer(): NA and 3e9 both became NA_integer_, and
   # `sum(nchar(text)) < NA` then failed EVERY document with "missing value
   # where TRUE/FALSE needed". The OCR threshold is read by ocr_threshold(),
@@ -93,16 +195,29 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
   # does.
   hr_param("ocr_min_chars", "number", default = 40L, tier = "advanced",
            help = "A page with fewer characters is OCRed under ocr = 'auto'.",
+           evidence = ev_untested("Set when OCR was added; not tuned."),
            resolve = function(x, p, params) ocr_threshold(x)),
   hr_param("min_chars", "integer", default = 20L,
-           help = "Refuse the document if less text than this survives."),
+           help = "Refuse the document if less text than this survives.",
+           evidence = ev_untested("A floor that catches an empty extraction; not tuned.")),
   hr_param("extractor", "module_ref", default = NULL, kind = "extractor", tier = "advanced",
            help = "Force an extractor instead of choosing by file type.",
+           evidence = ev_untested("Not a tuned value: NULL chooses by file type."),
            resolve = param_as_given),
   hr_param("parallel", "boolean", default = NULL, affects_output = FALSE, tier = "advanced",
-           help = "Parallelise page-level OCR.", resolve = param_as_given),
+           help = "Parallelise page-level OCR.", resolve = param_as_given,
+           evidence = ev_untested(paste0("Not a tuned value: NULL follows ",
+                                         "gr_options(\"parallel\"). It does not change output."))),
   hr_param("cleaner_opts", "named_map", default = list(), tier = "advanced",
-           help = "Extra options passed to individual cleaners.", resolve = param_as_given)
+           help = "Extra options passed to individual cleaners.", resolve = param_as_given,
+           evidence = ev_untested(paste0("Empty: each cleaner uses its own defaults, listed ",
+                                         "under `cleaner_opts`."))),
+  hr_param("layout_opts", "named_map", default = list(), tier = "advanced",
+           depends_on = "layout = \"auto\"",
+           help = "Settings of the PDF running-head pass under layout = 'auto'.",
+           evidence = ev_untested(paste0("Empty: the pass uses the values it was written with, ",
+                                         "listed under `layout_opts`; none was tuned.")),
+           resolve = check_layout_opts)
 )
 
 #' Ingest a document into cleaned, provenance-bearing text blocks
@@ -250,7 +365,7 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
 
   if (cache && !is.null(doc <- doc_cache_get(key))) {
     gr_msg("Using cached ingestion for this document + settings.")
-    trace_note(trace, "ingest", list(cached = TRUE, blocks = nrow(doc$blocks)))
+    trace_note(trace, "ingest", ingest_note(list(cached = TRUE, blocks = nrow(doc$blocks)), spec))
     return(doc)
   }
 
@@ -350,9 +465,9 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
   ), class = "gr_document")
 
   if (cache) doc_cache_put(key, doc)
-  trace_note(trace, "ingest", list(cached = FALSE, source = label,
-                                   blocks = nrow(blocks), tokens = doc$stats$tokens,
-                                   clean_steps = steps))
+  trace_note(trace, "ingest", ingest_note(list(cached = FALSE, source = label,
+                                               blocks = nrow(blocks), tokens = doc$stats$tokens,
+                                               clean_steps = steps), spec))
   gr_msg(sprintf("Ingested %d block(s), ~%d tokens (%d chars removed by cleaning).",
                  doc$stats$blocks, doc$stats$tokens, doc$stats$chars_removed))
   doc

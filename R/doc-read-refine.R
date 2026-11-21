@@ -47,7 +47,7 @@ read_refine <- function(chunks, question, client, spec, trace) {
     state_in <- if (is.null(draft)) 0L else gr_count_tokens(draft)
     from <- length(trace$steps)
     msgs <- if (is.null(draft)) {
-      answer_messages(question, excerpt, cite = spec$cite, restate = spec$restate,
+      answer_messages(question, excerpt, cite = spec$cite, restate = restate_how(spec),
                       premise = spec$premise)
     } else {
       # A draft that is a premise verdict is carried forward as it came, with

@@ -173,6 +173,16 @@ test_that("a two-column PDF is read in reading order, with sections and without 
   expect_true(all(is.na(raw$blocks$section)))
 })
 
+test_that("layout_opts reaches the running-head pass of a PDF", {
+  skip_if_not_installed("pdftools")
+  local_clean_cache()
+  f <- two_column_pdf()
+  expect_false(grepl("Journal of Learning Studies", gr_ingest(f)$text, fixed = TRUE))
+  # Four pages are fewer than the ten asked for, so no line is dropped as running.
+  kept <- gr_ingest(f, gr_ingest_spec(layout_opts = list(min_pages = 10)))
+  expect_true(grepl("Journal of Learning Studies", kept$text, fixed = TRUE))
+})
+
 test_that("a single-column PDF reads as it did", {
   skip_if_not_installed("pdftools")
   local_clean_cache()

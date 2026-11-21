@@ -33,16 +33,25 @@
 #'   boundary (higher = fewer, larger chunks).
 #' @param context_source For `method = "contextual"`: `"metadata"` (free) or
 #'   `"llm"` (one call per chunk). Room for the context line is held back from
-#'   each chunk's text before packing -- 90 tokens for `"llm"`, the longest
-#'   header the document could need for `"metadata"`, never more than half of
-#'   `max_tokens` -- so no chunk is cut again once its header is added, and a
-#'   header that still does not fit is shortened, never the text. Under
+#'   each chunk's text before packing (`context_reply_tokens` for `"llm"`, the
+#'   longest header the document could need for `"metadata"`, never more than
+#'   half of `max_tokens`), so no chunk is cut again once its header is added,
+#'   and a header that still does not fit is shortened, never the text. Under
 #'   `"llm"`, a chunk whose call failed or was skipped at the run's limits
 #'   keeps its text without a context line; `$extra$blurbs_missing` counts
 #'   them and a `"gr_segment_fallback"` warning says so, which also reaches
 #'   the answer's warnings.
 #' @param proposition_batch_tokens For `method = "proposition"`: batch size.
 #' @param parallel Parallelise per-chunk model work in segmenters that do any.
+#' @param context_reply_tokens For `method = "contextual"` with
+#'   `context_source = "llm"`: the output cap of each context-line request, and
+#'   the room held back for the line in each chunk. \[16, 4000\], default 90.
+#'   Untested.
+#' @param context_document_tokens For `context_source = "llm"`: how much of
+#'   the document, from its start, each context-line request carries so the
+#'   model can place the excerpt. \[100, 1e6\], default 1500. Untested.
+#' @param proposition_reply_tokens For `method = "proposition"`: the output cap
+#'   of each batch's request. \[100, 1e6\], default 2000. Untested.
 #' @param ... Extra fields for custom segmenters.
 #' @return A list of class `gr_segment_spec`.
 #'
@@ -52,6 +61,15 @@
 #' \[0, max_tokens - 1\], `min_tokens` \[0, max_tokens\], `semantic_window`
 #' \[1, 10\], `semantic_percentile` \[50, 99.5\], `proposition_batch_tokens`
 #' \[200, 4000\].
+#'
+#' @section Where the defaults come from:
+#' Each setting's default, its tier and the evidence behind the value, as in
+#' [gr_read_spec()]. `context_reply_tokens`, `context_document_tokens` and
+#' `proposition_reply_tokens` were constants in the code; they are stored in
+#' the spec only when they are not their default, so a default spec keeps the
+#' store and cache keys it had before they existed.
+#'
+#' `r schema_sources_md(.gr_segment_schema)`
 #'
 #' @seealso [gr_segmenters()] for the available methods and their costs,
 #'   [gr_segment()], [gr_chunk_stats()]
@@ -68,7 +86,9 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
                             separators = NULL, prefix_section = TRUE,
                             semantic_window = 2L, semantic_percentile = 90,
                             context_source = c("metadata", "llm"),
-                            proposition_batch_tokens = 900L, parallel = NULL, ...) {
+                            proposition_batch_tokens = 900L, parallel = NULL,
+                            context_reply_tokens = 90L, context_document_tokens = 1500L,
+                            proposition_reply_tokens = 2000L, ...) {
   warn_near_miss(list(...), names(formals(gr_segment_spec)), "segment")
   # Out-of-range settings are clamped rather than accepted, but the clamp is
   # ANNOUNCED. Silently rewriting a user's parameter is how v1 ended up feeding
@@ -83,7 +103,10 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
                    semantic_percentile = p$semantic_percentile,
                    context_source = p$context_source,
                    proposition_batch_tokens = p$proposition_batch_tokens,
-                   parallel = p$parallel), list(...)),
+                   parallel = p$parallel),
+                 # Only when not the default; see nondefault_params().
+                 nondefault_params(p, .gr_segment_schema, .gr_segment_late_params),
+                 list(...)),
             class = "gr_segment_spec")
 }
 
@@ -100,31 +123,65 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
 #' @noRd
 .gr_segment_schema <- hr_schema(
   hr_param("context_source", "enum", choices = c("metadata", "llm"), cost_class = "per_unit",
-           help = "For contextual: where the context line comes from.", tier = "advanced"),
+           help = "For contextual: where the context line comes from.", tier = "advanced",
+           evidence = ev_untested("The source that makes no request; not compared with \"llm\".")),
   hr_param("max_tokens", "integer", default = 1200L, min = 32, max = 1e6,
-           help = "Hard cap on chunk size, in tokens.", cost_class = "per_unit"),
+           help = "Hard cap on chunk size, in tokens.", cost_class = "per_unit",
+           evidence = ev_untested("Set when the segmenters were written; not tuned.")),
   hr_param("overlap_tokens", "integer", default = 0L, min = 0,
            max = function(p) p$max_tokens - 1L,
-           help = "Tokens of trailing context copied into the start of the next chunk."),
+           help = "Tokens of trailing context copied into the start of the next chunk.",
+           evidence = ev_untested("No overlap, so no text is sent twice; not compared.")),
   hr_param("min_tokens", "integer", default = 0L, min = 0, max = function(p) p$max_tokens,
-           help = "A smaller chunk is merged into the one before it.", tier = "advanced"),
+           help = "A smaller chunk is merged into the one before it.", tier = "advanced",
+           evidence = ev_untested("No merging of small chunks; not compared.")),
   hr_param("method", "module_ref", default = "paragraph", kind = "segmenter",
-           help = "The segmentation strategy.", resolve = param_as_given),
+           help = "The segmentation strategy.", resolve = param_as_given,
+           evidence = ev_untested(paste0("A segmenter that needs no model or embedder; not ",
+                                         "compared with the others."))),
   hr_param("separators", "string_vector", default = NULL, tier = "advanced",
            help = "For recursive: the separator cascade, strongest first.",
+           evidence = ev_untested("Not a tuned value: NULL takes recursive's own cascade."),
            resolve = param_as_given),
   hr_param("prefix_section", "boolean", default = TRUE, strict = FALSE, tier = "advanced",
-           help = "For structural: prepend the heading."),
+           help = "For structural: prepend the heading.",
+           evidence = ev_untested("Set when structural was written; not compared.")),
   hr_param("semantic_window", "integer", default = 2L, min = 1, max = 10, tier = "advanced",
-           help = "For semantic: sentences embedded together."),
+           help = "For semantic: sentences embedded together.",
+           evidence = ev_untested("Set when semantic was written; not tuned.")),
   hr_param("semantic_percentile", "number", default = 90, min = 50, max = 99.5,
-           tier = "advanced", help = "For semantic: how extreme a distance counts as a boundary."),
+           tier = "advanced", help = "For semantic: how extreme a distance counts as a boundary.",
+           evidence = ev_untested("Set when semantic was written; not tuned.")),
   hr_param("proposition_batch_tokens", "integer", default = 900L, min = 200, max = 4000,
            cost_class = "per_unit", tier = "advanced",
-           help = "For proposition: the size of each batch sent to the model."),
+           help = "For proposition: the size of each batch sent to the model.",
+           evidence = ev_untested("Set when proposition was written; not tuned.")),
   hr_param("parallel", "boolean", default = NULL, affects_output = FALSE, tier = "advanced",
-           help = "Parallelise per-chunk model work.", resolve = param_as_given)
+           help = "Parallelise per-chunk model work.", resolve = param_as_given,
+           evidence = ev_untested(paste0("Not a tuned value: NULL follows ",
+                                         "gr_options(\"parallel\"). It does not change output."))),
+  # Constants in the code until they were declared here; stored only when not
+  # the default (.gr_segment_late_params).
+  hr_param("context_reply_tokens", "integer", default = 90L, min = 16, max = 4000,
+           tier = "advanced", cost_class = "per_unit", depends_on = "context_source = \"llm\"",
+           help = "For contextual under llm: the output cap of each context-line request.",
+           evidence = ev_untested("The cap the code had as a constant; not tuned.")),
+  hr_param("context_document_tokens", "integer", default = 1500L, min = 100, max = 1e6,
+           tier = "advanced", cost_class = "per_unit", depends_on = "context_source = \"llm\"",
+           help = "For contextual under llm: how much of the document each request carries.",
+           evidence = ev_untested("The length the code had as a constant; not tuned.")),
+  hr_param("proposition_reply_tokens", "integer", default = 2000L, min = 100, max = 1e6,
+           tier = "advanced", cost_class = "per_unit",
+           help = "For proposition: the output cap of each batch's request.",
+           evidence = ev_untested("The cap the code had as a constant; not tuned."))
 )
+
+#' The segment settings that were constants in the code until they were
+#' declared in the schema. gr_segment_spec() stores each only when it is not
+#' its default.
+#' @noRd
+.gr_segment_late_params <- c("context_reply_tokens", "context_document_tokens",
+                             "proposition_reply_tokens")
 
 #' The settings of a segment spec that differ from its defaults, as
 #' read_settings() does for a read spec.

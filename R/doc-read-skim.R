@@ -87,7 +87,7 @@ read_skim <- function(chunks, question, client, spec, trace) {
     cite <- isTRUE(spec$cite) && length(sent) > 0L
   }
   res2 <- gr_call(client, answer_messages(question, body, cite = cite, label = "Evidence",
-                                          restate = spec$restate, premise = spec$premise),
+                                          restate = restate_how(spec), premise = spec$premise),
                   model = spec$model, max_output = spec$max_answer_tokens,
                   temperature = spec$temperature, trace = trace, label = "skim.answer",
                   effort = spec$effort)

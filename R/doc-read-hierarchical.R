@@ -119,7 +119,7 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
   # back below.
   from <- length(trace$steps)
   res <- gr_call(client, answer_messages(question, body, cite = FALSE, label = "Summaries",
-                                         restate = spec$restate, premise = spec$premise),
+                                         restate = restate_how(spec), premise = spec$premise),
                  model = spec$model, max_output = spec$max_answer_tokens,
                  temperature = spec$temperature, trace = trace, label = "hier.answer",
                  effort = spec$effort)

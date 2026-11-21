@@ -71,7 +71,8 @@ gr_budget <- function(model = NULL, reserve_output = NULL, overhead = 0,
     reserve_output <- NULL
   }
   reserve_output <- if (is.null(reserve_output)) {
-    min(info$max_output, max(min_out, floor(usable / 4)))
+    share <- as_num1(gr_options("output_reserve_share"), 0.25)
+    min(info$max_output, max(min_out, floor(usable * share)))
   } else {
     as.integer(clamp(one_num(reserve_output), 1, info$max_output))
   }

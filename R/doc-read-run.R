@@ -499,19 +499,21 @@ embed_counter <- function(client) {
 #' `k` findings of up to `piece` tokens are grouped greedily into merges that
 #' fit `room`, each merge replying with up to `answer` tokens, level after
 #' level, until one merge takes everything that is left. A group of one is
-#' passed on without a request, and tree_merge() gives up after seven levels or
-#' a level that does not shrink the pile. NULL when the room is not known.
+#' passed on without a request. tree_merge() gives up after the level past
+#' `levels` (the spec's `max_merge_levels`, 6 by default) or after a level that
+#' does not shrink the pile, so up to `levels + 1` levels make requests. NULL
+#' when the room is not known.
 #'
 #' Each finding is counted in the numbered tags tree_merge() sizes it in, with
 #' the blank line after it, so the bound holds for findings of any size.
 #' @noRd
-merge_tree_worst <- function(k, piece, answer, room) {
+merge_tree_worst <- function(k, piece, answer, room, levels = 6L) {
   if (length(room) != 1L || is.na(room) || room <= 0) return(NULL)
   if (k <= 1) return(list(calls = 0, input = 0))
   tag <- gr_count_tokens("<findings 999>\n\n</findings 999>\n\n")
   calls <- 0
   input <- 0
-  for (level in seq_len(7L)) {
+  for (level in seq_len(as_int1(levels, 6L) + 1L)) {
     per <- max(1, floor(room / max(piece + tag, 1)))
     if (k <= per) return(list(calls = calls + 1, input = input + k * (piece + tag)))
     groups <- ceiling(k / per)

@@ -117,8 +117,14 @@ format_settings <- function(x) {
 #' @param affects_output Whether the parameter can change what a run returns,
 #'   and so belongs in cache and store keys.
 #' @param tier `"basic"` or `"advanced"`, for grouping in a user interface.
-#' @param evidence `NULL`, or a list saying where the setting comes from and
-#'   whether its benefit has been measured.
+#'   A module keeps `"basic"` for the few settings most users change.
+#' @param evidence `NULL`, or a list saying where the default comes from:
+#'   `status`, one of `"measured"` (the value was measured or tuned, and
+#'   `source` says where the measurement is), `"cited"` (taken from a
+#'   published source, which `source` names) or `"untested"` (nothing has
+#'   measured it; `source` says how it was chosen), and `source`, one
+#'   non-empty string. Anything else is an error of class `gr_bad_setting`.
+#'   The package's own spec parameters all declare it.
 #' @param depends_on `NULL`, or a condition (a string) under which the
 #'   parameter applies.
 #' @param since The version that added the parameter.
@@ -173,12 +179,64 @@ hr_param <- function(name, type = c("integer", "number", "string", "boolean", "e
   if (!is.null(resolve) && !is.function(resolve)) {
     gr_abort(sprintf("`resolve` of '%s' must be a function.", name), class = "gr_bad_setting")
   }
+  if (!is.null(evidence) && !evidence_ok(evidence)) {
+    gr_abort(sprintf(paste0("`evidence` of '%s' must be NULL or a list with `status` (one of %s) ",
+                            "and a non-empty `source`."),
+                     name, paste0("\"", .hr_evidence_status, "\"", collapse = ", ")),
+             class = "gr_bad_setting")
+  }
   structure(list(name = name, type = type, default = default, min = min, max = max,
                  choices = choices, required = isTRUE(required), help = help,
                  cost_class = cost_class, affects_output = isTRUE(affects_output), tier = tier,
                  evidence = evidence, depends_on = depends_on, since = since, kind = kind,
                  strict = isTRUE(strict), resolve = resolve),
             class = "hr_param")
+}
+
+#' What a parameter's `evidence` may say about its default. `measured`: a
+#' measurement or tuning run backs it, and `source` says where that is.
+#' `cited`: a published source gives it. `untested`: nothing has measured it,
+#' and `source` says how it was chosen.
+#' @noRd
+.hr_evidence_status <- c("measured", "cited", "untested")
+
+#' @noRd
+evidence_ok <- function(x) {
+  is.list(x) && length(x$status) == 1L && is.character(x$status) &&
+    x$status %in% .hr_evidence_status && is_nonblank(x$source)
+}
+
+#' Evidence for a default nothing has measured; `source` says how it was set.
+#' @noRd
+ev_untested <- function(source) list(status = "untested", source = source)
+
+#' Evidence for a default a measurement backs; `source` says where it is.
+#' @noRd
+ev_measured <- function(source) list(status = "measured", source = source)
+
+#' Evidence for a default taken from a published source, which `source` names.
+#' @noRd
+ev_cited <- function(source) list(status = "cited", source = source)
+
+#' The defaults of a schema and where each comes from, as markdown for a help
+#' page: one item per parameter, in schema order. Called from roxygen inline
+#' code, so the help states what the schema declares.
+#' @noRd
+schema_sources_md <- function(schema) {
+  show <- function(v) {
+    if (is.null(v)) return("NULL")
+    if (is.list(v) && !length(v)) return("list()")
+    if (is.character(v)) return(paste0("\"", v, "\"", collapse = ", "))
+    paste(format(v, trim = TRUE), collapse = ", ")
+  }
+  items <- vapply(schema, function(p) {
+    def <- if (identical(p$type, "enum")) show(p$choices[1]) else show(p$default)
+    ev <- p$evidence
+    sprintf("* `%s` (default `%s`, %s): %s %s", p$name, def, p$tier,
+            if (is.null(ev)) "not declared." else paste0(ev$status, "."),
+            if (is.null(ev)) "" else ev$source)
+  }, character(1))
+  paste(trimws(items), collapse = "\n")
 }
 
 #' Collect parameters into a schema
@@ -219,7 +277,8 @@ print.hr_schema <- function(x, ...) {
                b <- function(v, d) if (is.null(v)) d else if (is.function(v)) "f()" else format(v)
                sprintf("[%s, %s]", b(p$min, "-Inf"), b(p$max, "Inf"))
              } else ""
-    cat(sprintf("  %-26s %-13s %s\n", p$name, p$type, range))
+    cat(sprintf("  %-26s %-13s %-9s %-9s %s\n", p$name, p$type, p$tier,
+                p$evidence$status %||% "-", range))
   }
   invisible(x)
 }
