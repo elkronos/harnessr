@@ -1,0 +1,233 @@
+---
+title: "Settings reference"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Settings reference}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+This page lists every setting harnessr has, stage by stage, and the building
+blocks the settings choose between. The tables are made from
+`gr_settings_table()` and the registries when the page is built, so they say
+what the installed code does. A setting with a walkthrough links to it: the
+section of a guide that says what the setting trades off, the signs that point
+to changing it, where its default came from and how to test a change.
+
+```{r message = FALSE}
+library(harnessr)
+old <- gr_options(verbose = FALSE, embedder = "lexical")
+settings <- gr_settings_table()
+table(settings$stage, settings$tier)[unique(settings$stage), ]
+```
+
+## Reading the tables
+
+Each row is one setting. `where` is the function that takes it. `default` is
+the value used when you give none: a string without quotes, the first of a set
+of choices, anything else as R code. `tier` is `basic` for the few settings
+most runs change and `advanced` for the rest. `status` says where the default
+came from: `measured` (a measurement backs it), `cited` (a published source
+gives it) or `untested` (it was chosen, and nothing has measured it); a blank
+means nothing is declared, which is the case for switches, limits and most
+function arguments. `gr_settings_table()` adds the `source` behind each
+status, and `?gr_read_spec`, `?gr_segment_spec`, `?gr_ingest_spec` and
+`?gr_options` give the full help.
+
+A setting is given where its stage takes it. Ingest, segment and read
+settings go in a spec (`gr_read_spec(top_k = 4)`), in a recipe, or by name to
+`answer_document()`, `gr_read_many()` and `gr_arm()`, which put each on the
+step it belongs to. The review and evaluation settings are arguments of their
+functions. Options are set for the session with `gr_options()`.
+
+To find out whether a value is better for your documents, build one arm per
+value with `hr_sweep()` and compare them with `hr_benchmark()` and
+`hr_report()`, as `vignette("compare")` does; `hr_sweep_check()` says which
+values sent the same requests.
+
+```{r}
+show_settings <- function(stage) {
+  s <- settings[settings$stage == stage, ]
+  esc <- function(x) gsub("|", "\\|", ifelse(is.na(x), "", x), fixed = TRUE)
+  name <- ifelse(is.na(s$guide), paste0("`", s$name, "`"),
+                 sprintf("[`%s`](%s.html#%s)", s$name, sub("#.*", "", s$guide),
+                         sub(".*#", "", s$guide)))
+  knitr::kable(data.frame(setting = name, where = paste0("`", s$where, "`"),
+                          default = paste0("`", esc(s$default), "`"),
+                          tier = s$tier, status = esc(s$status),
+                          description = esc(s$description)),
+               row.names = FALSE)
+}
+```
+
+## Ingest
+
+What comes out of a file: cleaning, OCR, the PDF layout pass, and the floor on
+how much text must survive. The entries of `cleaner_opts` and `layout_opts`
+are listed with their parent's name. `vignette("ingest")` covers them.
+
+```{r echo = FALSE}
+show_settings("ingest")
+```
+
+## Segment
+
+How the text is cut into chunks. `vignette("segment")` covers them.
+
+```{r echo = FALSE}
+show_settings("segment")
+```
+
+## Read
+
+How the model reads the chunks, and the settings `gr_read_many()` adds for a
+folder. `vignette("readers")` covers them.
+
+```{r echo = FALSE}
+show_settings("read")
+```
+
+## Screening
+
+The arguments of `gr_screen()`, of `gr_reference()` and `gr_calibrate()`,
+which measure the screening against a person, and of the sample size and
+stopping tests. `vignette("review")` covers them.
+
+```{r echo = FALSE}
+show_settings("screen")
+```
+
+## Extraction
+
+The arguments of `gr_extract()`. Recipe settings passed to it in `...` are the
+ingest and segment settings above.
+
+```{r echo = FALSE}
+show_settings("extract")
+```
+
+## Synthesis
+
+The arguments of `gr_claims()`, `gr_outline()`, `gr_gaps()` and
+`gr_synthesise()`.
+
+```{r echo = FALSE}
+show_settings("synthesise")
+```
+
+## Evaluation
+
+The arguments of `hr_benchmark()`, `hr_report()`, `hr_judge()` and
+`gr_compare()`. `vignette("evaluate")` and `vignette("compare")` cover them.
+
+```{r echo = FALSE}
+show_settings("evaluate")
+```
+
+## Options
+
+Session settings, set with `gr_options()` and read when a run starts.
+`vignette("runs")` covers the limits.
+
+```{r echo = FALSE}
+show_settings("options")
+```
+
+## Building blocks
+
+Some settings choose a module from a registry: `extractor`, `clean`, `method`,
+`reader`, `gr_options(embedder = )`, and the recipe given to
+`answer_document()`. The tables below are the registries as installed, so a
+module you register with `gr_register_reader()` and the like
+(`vignette("extending")`) appears in them too.
+
+### Extractors
+
+An extractor turns one kind of file into text. It is chosen by the file's
+extension unless `extractor` names one.
+
+```{r}
+knitr::kable(gr_extractors()[, c("name", "extensions", "needs", "description")])
+```
+
+### Cleaners and presets
+
+A cleaner removes one kind of noise from the text. Those marked `default_on`
+run unless the preset or list you give leaves them out; `early` cleaners run
+before `late` ones whatever order they are named in.
+
+```{r}
+knitr::kable(gr_cleaners()[, c("name", "stage", "default_on", "description")])
+```
+
+A preset is a named list of cleaners. The steps each one runs, read from what
+it did to the example report:
+
+```{r}
+presets <- c("none", "minimal", "standard", "academic", "scan", "legacy")
+knitr::kable(data.frame(preset = presets, cleaners = vapply(presets, function(p) {
+  steps <- names(gr_ingest(gr_example(), gr_ingest_spec(clean = p))$stats$clean_log)
+  if (length(steps)) paste(steps, collapse = ", ") else "(none)"
+}, character(1)), row.names = NULL))
+```
+
+### Segmenters
+
+A segmenter decides where chunks are cut. `cost` says what it spends:
+`free`, one embedding pass, or model requests.
+
+```{r}
+knitr::kable(gr_segmenters()[, c("name", "cost", "needs_client", "description")])
+```
+
+### Readers
+
+A reader decides how the chunks reach the model. `signature` is which chunks
+are sent, how many requests, and how information passes between them;
+`cost_calls` is the number of requests.
+
+```{r}
+knitr::kable(gr_readers()[, c("name", "signature", "cost_calls", "description")])
+```
+
+### Embedders
+
+An embedder turns text into vectors for `retrieve`, `iterative` and the
+`semantic` segmenter. A deterministic one gives the same vectors every run,
+which a replay needs.
+
+```{r}
+knitr::kable(gr_embedders()[, c("name", "deterministic", "description")])
+```
+
+### Recipes
+
+A recipe names an ingestion, a segmentation and a reader with their settings.
+These are the values each built-in recipe sets; any of them can be overridden
+by name.
+
+```{r}
+knitr::kable(do.call(rbind, lapply(names(gr_recipes()), function(n) {
+  r <- gr_recipes(n)
+  data.frame(recipe = n, clean = paste(r$ingest$clean, collapse = ", "),
+             method = r$segment$method, max_tokens = r$segment$max_tokens,
+             overlap_tokens = r$segment$overlap_tokens, reader = r$read$reader,
+             top_k = r$read$top_k)
+})))
+```
+
+```{r include = FALSE}
+gr_options(old)
+```
+
+## Next
+
+- `vignette("harnessr")`: the basic settings of each stage, with when to change
+  each.
+- `vignette("compare")`: testing a setting on a reference with dev and test
+  splits, and reading the result with intervals.
+- `?gr_settings_table`: how the table is built, and its columns.

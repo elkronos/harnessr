@@ -11,6 +11,14 @@
   for them and simultaneous intervals where three arms are compared. A last
   section shows the same steps on your own documents, writing results to a
   directory you name.
+* **A settings reference.** `vignette("settings")` prints every setting of
+  every stage from `gr_settings_table()` when it is built, each important one
+  linked to its walkthrough, and the extractors, cleaners and presets,
+  segmenters, readers, embedders and recipes from their registries. The README
+  and `vignette("harnessr")` gain a "What you can change" section: one row per
+  stage with its count of settings, the most used, and links to the
+  walkthroughs; Get started also gives the basic settings of each stage with
+  when to change each.
 * **Settings walkthroughs.** Five guides end with a "Choosing the settings"
   section, one walkthrough per important setting or group: what it controls
   and trades off, the signs in your results that point to changing it, where

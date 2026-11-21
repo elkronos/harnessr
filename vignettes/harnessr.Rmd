@@ -372,6 +372,59 @@ separately, so a long document means many requests; `"fast"` and `"needle"` make
 one. `vignette("readers")` explains each reading strategy and when to use it,
 and how to change a recipe's settings or build your own.
 
+## What you can change
+
+A recipe is a set of settings, and every one of them can be changed. They are
+grouped by the stage of a run they belong to:
+
+```{r}
+settings <- gr_settings_table()
+table(factor(settings$stage, unique(settings$stage)))
+```
+
+| stage | where you set it | guide |
+|---|---|---|
+| ingest | `gr_ingest_spec()`, or by name in `answer_document()` | `vignette("ingest")` |
+| segment | `gr_segment_spec()`, or by name | `vignette("segment")` |
+| read | `gr_read_spec()`, or by name; `gr_read_many()` for a folder | `vignette("readers")` |
+| screen, extract, synthesise | the arguments of `gr_screen()`, `gr_extract()`, `gr_synthesise()` and the functions beside them | `vignette("review")` |
+| evaluate | the arguments of `hr_benchmark()`, `hr_report()` and `hr_judge()` | `vignette("evaluate")`, `vignette("compare")` |
+| options | `gr_options()`, for the whole session | `vignette("runs")` |
+
+Most runs change a few of them, which `gr_settings_table()` marks `basic`.
+The ones that matter first, with their defaults and when to change each:
+
+| stage | setting (default) | change it when |
+|---|---|---|
+| ingest | `clean` (`"standard"`) | the text carries captions, a reference list or running heads you do not want read (`"academic"`, `"scan"`), or a cleaner removed something you need |
+| ingest | `ocr` (`"auto"`) | scanned pages that carry a little text come back empty (`"always"`), or pages of figures in a born-digital file are read by OCR for nothing (`"never"`) |
+| ingest | `min_chars` (20) | short documents are refused that should be read, or near-empty extractions get through |
+| segment | `method` (`"paragraph"`) | the document has headings to cut at (`"structural"`), pages that stand alone (`"page"`), or no paragraph breaks (`"sentence"`) |
+| segment | `max_tokens` (1200) | a reader that sends every chunk makes too many requests (raise it), or one that picks a few sends too much text around the answer (lower it) |
+| segment | `overlap_tokens` (0) | answers fall across the cut between two chunks |
+| read | `reader` (`"map_reduce"`) | the question is one fact in a long document (`"retrieve"`), or needs exact quotations (`"skim"`); see "Choosing a recipe" above |
+| read | `model` (the client's) | a cheaper model answers as well on your documents, or a stronger one is needed |
+| read | `top_k` (6) | the chunk with the answer is not among those sent (raise it), or the prompt carries many unrelated chunks (lower it) |
+| read | `cite` (`FALSE`) | you need to trace each statement to a chunk and a page |
+| read | `verify` (`FALSE`) | you will act on quotations without reading the source |
+| read | `recipe`, `store` and `max_total_usd` of `gr_read_many()` | a folder needs another recipe, a run long enough to be interrupted, or a cap on the whole run |
+| screen | `screen_tokens` of `gr_screen()` (all that fits) | you screen on titles and abstracts, or the deciding sentence lies past the cap |
+| screen | `recall_target` and `conf` (0.95 each), `n` and `of` of `gr_reference()` | your protocol promises a different recall, or the sample is too small to show it |
+| extract | `resolve` (`"first"`) | chunks of one document disagree and the later value is the right one |
+| extract | `require_quote` (`FALSE`) | the protocol says no quote, no datum |
+| synthesise | `coherence` (`FALSE`) | the sections read as separate pieces, with terms that drift and studies introduced twice |
+| synthesise | `cite_style` (`"auto"`) | the review needs numbered citations or plain markers |
+| evaluate | `runs` (5) of `hr_benchmark()` | the report's notes ask for 10 |
+| evaluate | `governor` of `hr_benchmark()` (the options' limits) | always, for a benchmark: size it for arms x items x runs x requests per run |
+| options | `max_cost_usd` (5) and `max_calls` (400) | a run is stopped that should finish, or you want a mistake to stop sooner |
+| options | `cache_dir` (a temporary directory) | a long run should be paid for once and survive the session |
+
+`vignette("settings")` lists every setting with its default and where the
+default came from, and links each important one to a walkthrough that says
+what it trades off, the signs that point to changing it and how to test a
+change. `hr_sweep()` builds one arm per value of a setting so the values can
+be compared, as `vignette("compare")` shows.
+
 ## More than one document
 
 For a folder of documents, `gr_read_many()` asks the same question of each file
@@ -397,7 +450,9 @@ gr_options(old)
 - `vignette("runs")`: cost, limits, the trace, caching and replaying a run.
 - `vignette("extending")`: adding your own extractors, cleaners, segmenters,
   readers and embedders.
-- `?gr_options`: every setting, with its default.
+- `vignette("settings")`: every setting of every stage, with its default and
+  where the default came from.
+- `?gr_options`: every option, with its default.
 
 `browseVignettes("harnessr")` lists all the guides.
 
