@@ -9,28 +9,35 @@
 #
 # Pk and WindowDiff follow the definitions in NLTK's nltk.metrics.segmentation
 # exactly (windows of k positions over a boundary string, L - k + 1 of them,
-# and k by default half the mean reference segment length), so a value here
+# and k by default NLTK's round(L / (2 * boundaries))), so a value here
 # can be checked against NLTK's on the same strings.
 
 #' Where a segmentation puts its boundaries, sentence by sentence
 #'
 #' Turns a segmentation into the boundary sequence [gr_seg_pk()] and
 #' [gr_seg_windowdiff()] compare: the document is split into sentences, each
-#' sentence is placed in the first segment, in order, that holds it, and
-#' position `j` is 1 when sentence `j + 1` is in a later segment than
-#' sentence `j`. Two segmentations of one document mapped this way are on
-#' the same units and can be compared.
+#' sentence is placed in a segment, and position `j` is 1 when sentence
+#' `j + 1` is in a later segment than sentence `j`. Two segmentations of one
+#' document mapped this way are on the same units and can be compared.
 #'
 #' A segment is matched on its text with runs of white space made one space,
 #' and on a chunk's `source_text` when it has one, so the context line of a
-#' `contextual` chunk is not part of the match. A sentence that no segment
-#' holds whole, because a segmenter such as `fixed` cut inside it, is placed
-#' by its opening: its first 40 characters, or its first half when that is
-#' shorter. One placed neither way stays in the segment
-#' before it and is counted in the `unplaced` attribute. A boundary inside a
-#' sentence therefore counts at the end of that sentence. Overlap does not
-#' add boundaries: a sentence carried into the next chunk is placed in the
-#' first chunk that holds it.
+#' `contextual` chunk is not part of the match. When every segment is a
+#' verbatim part of the document, each segment and each sentence is located
+#' in the document, in order, and a sentence goes to the first segment that
+#' holds its first character. A sentence the document repeats, such as
+#' "See note 3." at the start of two sections, therefore goes to the segment
+#' it occurs in, not to the first segment whose text contains it. A
+#' boundary inside a sentence counts at the end of that sentence, and
+#' overlap does not add boundaries: a sentence carried into the next chunk
+#' stays in the first chunk that holds its start.
+#'
+#' When a segment is not verbatim (a segmenter that rewrites text, or a
+#' reference typed by hand), sentences are matched on text instead: each in
+#' the current segment after the text the sentences before it took, or in a
+#' later segment; failing that, by its opening, its first 40 characters or
+#' its first half when that is shorter. A sentence placed neither way stays
+#' in the segment before it and is counted in the `unplaced` attribute.
 #'
 #' @param x A [gr_chunks] from [gr_segment()], or a character vector of
 #'   segments in document order (a reference segmentation, for example the
@@ -73,28 +80,105 @@ gr_seg_boundaries <- function(x, doc) {
     gr_abort("The document has fewer than two sentences, so it has no boundaries to compare.",
              class = "gr_bad_setting")
   }
-  find_from <- function(probe, cur) {
-    for (ci in seq.int(cur, length(segs))) {
-      if (grepl(probe, segs[ci], fixed = TRUE)) return(ci)
+  owner <- seg_owner_by_position(units, segs, squash(text))
+  if (is.null(owner)) owner <- seg_owner_by_text(units, segs)
+  unplaced <- attr(owner, "unplaced")
+  structure(as.integer(diff(owner) != 0L), units = length(units), unplaced = unplaced)
+}
+
+#' Place each sentence in a segment by where both sit in the document.
+#'
+#' Used when every sentence and every segment is found, in order, in the
+#' document text (white space squashed); returns NULL otherwise. Sentence `j`
+#' is found after sentence `j - 1`. Segment `i` is the occurrence after the
+#' start of segment `i - 1` that starts nearest the end of segment `i - 1`,
+#' so a segment that overlaps the one before it, or one in a document that
+#' repeats itself, lands where it was cut from. A sentence belongs to the
+#' first segment, from the previous sentence's on, that holds its first
+#' character. Placing by position rather than by text keeps a repeated
+#' sentence, such as "See note 3.", in the segment it occurs in.
+#' @noRd
+seg_owner_by_position <- function(units, segs, doc) {
+  find <- function(probe, from) {
+    at <- regexpr(probe, substr(doc, from, nchar(doc)), fixed = TRUE)
+    if (at < 1L) NA_integer_ else from + as.integer(at) - 1L
+  }
+  # Every start of `probe` in the document at or after `from`.
+  find_all <- function(probe, from) {
+    out <- integer(0)
+    repeat {
+      at <- find(probe, from)
+      if (is.na(at)) return(out)
+      out <- c(out, at)
+      from <- at + 1L
     }
-    NA_integer_
+  }
+  s_start <- integer(length(units))
+  from <- 1L
+  for (j in seq_along(units)) {
+    at <- find(units[j], from)
+    if (is.na(at)) return(NULL)
+    s_start[j] <- at
+    from <- at + nchar(units[j])
+  }
+  g_start <- g_end <- integer(length(segs))
+  for (i in seq_along(segs)) {
+    if (!nzchar(segs[i])) return(NULL)
+    if (i == 1L) {
+      at <- find(segs[i], 1L)
+      if (is.na(at)) return(NULL)
+    } else {
+      cand <- find_all(segs[i], g_start[i - 1L] + 1L)
+      if (!length(cand)) return(NULL)
+      at <- cand[which.min(abs(cand - (g_end[i - 1L] + 1L)))]
+    }
+    g_start[i] <- at
+    g_end[i] <- at + nchar(segs[i]) - 1L
   }
   owner <- integer(length(units))
   cur <- 1L
   unplaced <- 0L
   for (j in seq_along(units)) {
-    hit <- find_from(units[j], cur)
-    if (is.na(hit)) {
-      hit <- find_from(substr(units[j], 1L, min(40L, ceiling(nchar(units[j]) / 2))), cur)
+    i <- seq.int(cur, length(segs))
+    hit <- i[g_start[i] <= s_start[j] & s_start[j] <= g_end[i]]
+    if (length(hit)) cur <- hit[1] else unplaced <- unplaced + 1L
+    owner[j] <- cur
+  }
+  structure(owner, unplaced = unplaced)
+}
+
+#' Place each sentence in a segment by matching its text, for segments that
+#' are not verbatim parts of the document. Sentence `j` is looked for in the
+#' current segment after the text the sentences before it took, then in the
+#' segments after it; then the same by its opening; then it stays where it is.
+#' @noRd
+seg_owner_by_text <- function(units, segs) {
+  find_from <- function(probe, cur, used) {
+    for (ci in seq.int(cur, length(segs))) {
+      from <- if (ci == cur) used else 0L
+      at <- regexpr(probe, substr(segs[ci], from + 1L, nchar(segs[ci])), fixed = TRUE)
+      if (at > 0L) return(c(ci, from + at + nchar(probe) - 1L))
     }
-    if (is.na(hit)) {
-      hit <- cur
+    NULL
+  }
+  owner <- integer(length(units))
+  cur <- 1L
+  used <- 0L
+  unplaced <- 0L
+  for (j in seq_along(units)) {
+    hit <- find_from(units[j], cur, used)
+    if (is.null(hit)) {
+      hit <- find_from(substr(units[j], 1L, min(40L, ceiling(nchar(units[j]) / 2))), cur, used)
+    }
+    if (is.null(hit)) {
+      hit <- c(cur, used)
       unplaced <- unplaced + 1L
     }
-    owner[j] <- hit
-    cur <- hit
+    owner[j] <- hit[1]
+    cur <- hit[1]
+    used <- hit[2]
   }
-  structure(as.integer(diff(owner) != 0L), units = length(units), unplaced = unplaced)
+  structure(owner, unplaced = unplaced)
 }
 
 #' Pk and WindowDiff: how far a segmentation's boundaries are from a reference
@@ -110,10 +194,15 @@ gr_seg_boundaries <- function(x, doc) {
 #' and rise towards 1; lower is better.
 #'
 #' These are the definitions of NLTK's `pk()` and `windowdiff()`, with the
-#' same windows and the same default `k`: half the mean length of a
-#' reference segment, `round(L / (2 * boundaries))`, rounded half to even
-#' as Python rounds, and never below 1. Values agree with NLTK's on the same
-#' strings.
+#' same windows and the same default `k`, `round(L / (2 * boundaries))`,
+#' rounded half to even as Python rounds, and never below 1. That is NLTK's
+#' approximation of half the mean reference segment length. Half the mean
+#' length itself, as Beeferman et al. define `k`, is
+#' `(L + 1) / (2 * (boundaries + 1))`, since `L` positions describe `L + 1`
+#' units in `boundaries + 1` segments. For `"0100"` the default is 2: the
+#' reference has 5 units in 2 segments, a mean length of 2.5, and half of
+#' that, 1.25, would round to 1. Give `k` to use that figure. Values agree
+#' with NLTK's on the same strings.
 #'
 #' They measure whether chunk edges fall where topics change. A chunker held
 #' to a token cap much smaller than the topics has to cut inside them, and

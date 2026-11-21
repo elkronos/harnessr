@@ -22,22 +22,29 @@ attributes \code{units} (the number of sentences) and \code{unplaced}.
 \description{
 Turns a segmentation into the boundary sequence \code{\link[=gr_seg_pk]{gr_seg_pk()}} and
 \code{\link[=gr_seg_windowdiff]{gr_seg_windowdiff()}} compare: the document is split into sentences, each
-sentence is placed in the first segment, in order, that holds it, and
-position \code{j} is 1 when sentence \code{j + 1} is in a later segment than
-sentence \code{j}. Two segmentations of one document mapped this way are on
-the same units and can be compared.
+sentence is placed in a segment, and position \code{j} is 1 when sentence
+\code{j + 1} is in a later segment than sentence \code{j}. Two segmentations of one
+document mapped this way are on the same units and can be compared.
 }
 \details{
 A segment is matched on its text with runs of white space made one space,
 and on a chunk's \code{source_text} when it has one, so the context line of a
-\code{contextual} chunk is not part of the match. A sentence that no segment
-holds whole, because a segmenter such as \code{fixed} cut inside it, is placed
-by its opening: its first 40 characters, or its first half when that is
-shorter. One placed neither way stays in the segment
-before it and is counted in the \code{unplaced} attribute. A boundary inside a
-sentence therefore counts at the end of that sentence. Overlap does not
-add boundaries: a sentence carried into the next chunk is placed in the
-first chunk that holds it.
+\code{contextual} chunk is not part of the match. When every segment is a
+verbatim part of the document, each segment and each sentence is located
+in the document, in order, and a sentence goes to the first segment that
+holds its first character. A sentence the document repeats, such as
+"See note 3." at the start of two sections, therefore goes to the segment
+it occurs in, not to the first segment whose text contains it. A
+boundary inside a sentence counts at the end of that sentence, and
+overlap does not add boundaries: a sentence carried into the next chunk
+stays in the first chunk that holds its start.
+
+When a segment is not verbatim (a segmenter that rewrites text, or a
+reference typed by hand), sentences are matched on text instead: each in
+the current segment after the text the sentences before it took, or in a
+later segment; failing that, by its opening, its first 40 characters or
+its first half when that is shorter. A sentence placed neither way stays
+in the segment before it and is counted in the \code{unplaced} attribute.
 }
 \examples{
 doc <- paste("Revenue rose. Costs fell.", "Staff grew. Offices moved.",

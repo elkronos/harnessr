@@ -104,6 +104,48 @@ test_that("overlap adds no boundary, and a cut inside a sentence counts at its e
   expect_error(gr_seg_boundaries(1:3, doc), class = "gr_bad_setting")
 })
 
+test_that("a repeated sentence is placed in the segment it occurs in", {
+  # "See note 3." opens both sections. Matched on text alone, the second one
+  # was found in the first section, which moved the boundary one sentence
+  # later: 0 0 1 instead of 0 1 0.
+  segs <- c("See note 3. Revenue rose sharply.", "See note 3. Costs fell slightly.")
+  b <- gr_seg_boundaries(segs, paste(segs, collapse = "\n\n"))
+  expect_identical(as.integer(b), c(0L, 1L, 0L))
+  expect_identical(attr(b, "unplaced"), 0L)
+  # A short sentence that is part of an earlier one in the same section.
+  short <- c("Costs fell. Costs fell sharply in May.", "Costs fell. Staff grew.")
+  expect_identical(as.integer(gr_seg_boundaries(short, paste(short, collapse = " "))),
+                   c(0L, 1L, 0L))
+  # Segments that are not verbatim parts of the document are matched on
+  # text, after the text already placed, and keep the boundary too.
+  loose <- c("See note 3.  Revenue rose sharply!", "See note 3. Costs fell slightly.")
+  doc <- "See note 3. Revenue rose sharply. See note 3. Costs fell slightly."
+  lb <- gr_seg_boundaries(loose, doc)
+  expect_identical(as.integer(lb), c(0L, 1L, 0L))
+  expect_identical(attr(lb, "unplaced"), 0L)
+})
+
+test_that("fixed chunks of a text that repeats itself keep their boundaries", {
+  old <- gr_options(verbose = FALSE)
+  on.exit(gr_options(old))
+  # Three sentences five times over: 15 sentences. The four fixed chunks
+  # are cut inside sentences 5, 9 and 13, so each cut counts at the end of
+  # that sentence. Matched on text alone, every boundary was lost.
+  txt <- paste(rep(paste("Revenue rose sharply this year.", "Costs fell slightly in the spring.",
+                         "Staff numbers grew again."), 5), collapse = " ")
+  ch <- gr_segment(txt, list(method = "fixed", max_tokens = 32, overlap = 4))
+  expect_identical(nrow(ch$chunks), 4L)
+  b <- gr_seg_boundaries(ch, txt)
+  expect_identical(which(b == 1L), c(5L, 9L, 13L))
+  expect_identical(attr(b, "unplaced"), 0L)
+})
+
+test_that("the default Pk window is NLTK's round(L / (2 * boundaries))", {
+  # 4 positions, 1 boundary: round(4 / 2) = 2. Half the mean segment length
+  # (5 units in 2 segments) would be 1.25.
+  expect_identical(attr(gr_seg_pk("0100", "0100"), "k"), 2L)
+})
+
 test_that("a contextual chunk is matched on its source text, not its context line", {
   old <- gr_options(verbose = FALSE)
   on.exit(gr_options(old))

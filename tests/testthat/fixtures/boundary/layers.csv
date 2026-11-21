@@ -1318,6 +1318,8 @@
 "seg_contextual","doc","function"
 "seg_fixed","doc","function"
 "seg_mark_recovered","doc","function"
+"seg_owner_by_position","doc","function"
+"seg_owner_by_text","doc","function"
 "seg_page","doc","function"
 "seg_paragraph","doc","function"
 "seg_proposition","doc","function"

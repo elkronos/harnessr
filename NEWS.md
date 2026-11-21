@@ -7,8 +7,10 @@
   reports, a grid of three segmenters at two chunk sizes, `top_k` swept over
   1, 2 and 4, two values of `screen_tokens`, and a pairwise judge validated
   against 180 labelled pairs. Settings are tuned on the dev split and one
-  chosen contrast is run on test. A last section shows the same steps on
-  your own documents, writing results to a directory you name.
+  chosen contrast is run on test, with 10 runs where the report's notes ask
+  for them and simultaneous intervals where three arms are compared. A last
+  section shows the same steps on your own documents, writing results to a
+  directory you name.
 * **`gr_settings()`** returns the schema of the read, segment or ingest
   settings, and `as.data.frame()` of a schema gives each setting's default,
   range, tier, evidence status and source.
@@ -17,7 +19,10 @@
   Lafferty 1999; Pevzner and Hearst 2002), with NLTK's windows and default
   `k`, so values match NLTK's on the same strings. **`gr_seg_boundaries()`**
   turns chunks, or a reference segmentation given as text, into the
-  sentence-by-sentence boundaries they compare. **`gr_seg_recall()`** ranks
+  sentence-by-sentence boundaries they compare. It locates segments and
+  sentences in the document, so a sentence the document repeats, such as
+  "See note 3." at the start of two sections, stays in the section it
+  occurs in. **`gr_seg_recall()`** ranks
   each segmentation's chunks for each question as the `retrieve` reader does
   and reports recall at k per segmenter, with no model call under the
   lexical embedder.
