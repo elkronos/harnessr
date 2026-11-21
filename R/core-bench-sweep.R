@@ -37,8 +37,12 @@
 #' their recipes resolve to the same settings, so a row that sets a setting
 #' to the recipe's own value is the base arm again. Any other two arms have
 #' the same configuration when everything but their names is the same,
-#' including the values their code reads: a function that ignores one of
-#' its arguments builds the same arm for every value of it.
+#' including the values their code reads and the values read by any helper
+#' function it calls by name: a function that ignores one of its arguments
+#' builds the same arm for every value of it. A value held in an
+#' environment, rather than read by name, is not compared, so two such arms
+#' can look like one configuration here and still send different requests;
+#' [hr_sweep_check()] compares what was sent.
 #'
 #' Sweeping one setting at a time on the dev split, then comparing the arm
 #' chosen with the default on test, is the order `vignette("compare")`
@@ -296,12 +300,17 @@ arm_settings <- function(arm) {
 }
 
 #' What an arm will do whatever it is called: its recorded configuration
-#' hash, else a hash of its fields other than its name.
+#' hash, else a hash of its fields other than its name. The run function is
+#' hashed with the values its code reads and, for a helper function among
+#' them, the values the helper reads, so two arms whose helpers hold
+#' different prompts are different configurations.
 #' @noRd
 arm_config <- function(arm) {
   cfg <- attr(arm, "hr_config", exact = TRUE)
   if (is.character(cfg) && length(cfg) == 1L && !is.na(cfg)) return(cfg)
-  hr_hash(arm_parts(arm, values = TRUE)[c("run", "params", "derived_from", "version")])
+  parts <- arm_parts(arm, values = TRUE)[c("run", "params", "derived_from", "version")]
+  parts$run <- fn_fingerprint(arm$run, values = TRUE, follow = TRUE)
+  hr_hash(parts)
 }
 
 #' Attach what hr_sweep() and hr_benchmark() read to an arm. Arguments left

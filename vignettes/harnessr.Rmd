@@ -397,7 +397,7 @@ The ones that matter first, with their defaults and when to change each:
 | stage | setting (default) | change it when |
 |---|---|---|
 | ingest | `clean` (`"standard"`) | the text carries captions, a reference list or running heads you do not want read (`"academic"`, `"scan"`), or a cleaner removed something you need |
-| ingest | `ocr` (`"auto"`) | scanned pages that carry a little text come back empty (`"always"`), or pages of figures in a born-digital file are read by OCR for nothing (`"never"`) |
+| ingest | `ocr` (`"auto"`) | scanned pages that carry a printed header or stamp of 40 or more characters come back holding only that text (`"always"`), or pages of figures in a born-digital file are read by OCR for nothing (`"never"`) |
 | ingest | `min_chars` (20) | short documents are refused that should be read, or near-empty extractions get through |
 | segment | `method` (`"paragraph"`) | the document has headings to cut at (`"structural"`), pages that stand alone (`"page"`), or no paragraph breaks (`"sentence"`) |
 | segment | `max_tokens` (1200) | a reader that sends every chunk makes too many requests (raise it), or one that picks a few sends too much text around the answer (lower it) |

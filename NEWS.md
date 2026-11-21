@@ -33,8 +33,9 @@
   `coherence_rounds`, `figure_bands` and `prominence`; `vignette("runs")` the
   global limits and the governor. The offline examples run on the stand-in
   models and report what each value sent: on the example report, `"scan"`
-  cleaning, `mmr = 0.7` at `top_k = 3`, `verify` and a merge cap of 1 sent the
-  same requests as the value before them.
+  cleaning sent the same requests as `"standard"`, a merge cap of 6 the same
+  as a cap of 1, and `mmr = 0.7` at `top_k = 3` and `verify` the same as the
+  value before them.
 * **`hr_sweep()`** builds one arm per row of a grid of settings. The base is
   an arm from `gr_arm()`, whose settings each row overrides by name, or a
   function of the grid's columns that returns an arm. A column that is not a

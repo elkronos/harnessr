@@ -730,10 +730,11 @@ aggregate(tokens_in ~ param.top_k, bench, mean)
 ```
 
 The prompt grows from 289 tokens at `top_k = 2` to 909 at 12. In
-`vignette("compare")` the same sweep on 32 questions found `top_k = 2` more
-accurate than 4 on test, with an interval from 1.8 to 12.0 points, and
-cheaper; that result is for its stand-in model, and yours is found the same
-way.
+`vignette("compare")` a `top_k` sweep on a different arm, the `"fast"` recipe
+with the `retrieve` reader and 40-token sentence chunks, found `top_k = 2` more
+accurate than 4 on 32 test questions, with an interval from 1.8 to 12.0
+points, and cheaper. That result is for its arm and its stand-in model; yours
+is found the same way.
 
 ### Diversity: `mmr` {#set-mmr}
 
@@ -775,9 +776,9 @@ the question's words once each, over a short chunk that answers it, points to
 a higher `bm25_b` or a lower `lexical_blend`. With real embeddings these
 settings do nothing for `retrieve`, and `hr_sweep_check()` shows it.
 
-**Where the defaults came from.** `bm25_k1 = 1.5` and `bm25_b = 0.75` are the
-usual values given by Robertson and Zaragoza (2009) (`cited`); they were not
-tuned here. `lexical_blend = 0.5`, an even blend, was set when the offline
+**Where the defaults came from.** Robertson and Zaragoza (2009) give
+`bm25_b = 0.75` as the usual value and `bm25_k1` between 1.2 and 2.0; 1.5 lies
+inside that range (`cited`). Neither was tuned here. `lexical_blend = 0.5`, an even blend, was set when the offline
 path was written (`untested`).
 
 **How to test them.**
@@ -808,8 +809,9 @@ from each other point to `"document"`.
 
 **Where the defaults came from.** `"relevance"` is the order the readers used
 before the setting existed; the alternatives were added to be compared, and no
-comparison is recorded. `restate = "auto"` and `restate_tokens = 1200` were
-set so a comparison could measure them; nothing has (`untested`).
+comparison is recorded. `restate = "auto"` was added so a comparison could
+measure it, and nothing has. `restate_tokens = 1200` is an arbitrary number,
+kept from when it was a constant. Both are `untested`.
 
 **How to test them.**
 

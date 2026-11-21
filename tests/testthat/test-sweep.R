@@ -130,6 +130,32 @@ test_that("hr_benchmark() warns hr_same_config for arms that resolve alike", {
   expect_no_warning(bench_quiet(arms))
 })
 
+test_that("a setting held by a helper closure keeps arms apart", {
+  local_quiet()
+  # The run function reads only `ask`; the prompt is in ask's environment.
+  mk <- function(prefix) {
+    ask <- function(item, ctx) ctx$call(paste(prefix, item))$text
+    function(item, ctx) ask(item, ctx)
+  }
+  arms <- list(hr_arm("one", mk("Answer in one word:")),
+               hr_arm("long", mk("Explain at length:")))
+  expect_no_warning(bench_quiet(arms))
+  same <- list(hr_arm("a", mk("Briefly:")), hr_arm("b", mk("Briefly:")))
+  expect_warning(bench_quiet(same), class = "hr_same_config")
+  expect_no_message(swept <- hr_sweep(function(prefix) hr_arm("p", mk(prefix)),
+                                      list(prefix = c("Answer in one word:",
+                                                      "Explain at length:"))))
+  expect_length(swept, 2L)
+  # A helper that calls itself does not loop.
+  rec <- function(prefix) {
+    ask <- function(item, ctx, n = 0) if (n > 0) ask(item, ctx, n - 1) else
+      ctx$call(paste(prefix, item))$text
+    function(item, ctx) ask(item, ctx)
+  }
+  expect_length(hr_sweep(function(prefix) hr_arm("r", rec(prefix)),
+                         list(prefix = c("A:", "B:"))), 2L)
+})
+
 # --- hr_sweep_check -----------------------------------------------------------
 
 test_that("hr_sweep_check() reports a setting that changed nothing sent", {

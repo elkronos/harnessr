@@ -50,8 +50,12 @@ naming them. Two arms from \code{\link[=gr_arm]{gr_arm()}} have the same configu
 their recipes resolve to the same settings, so a row that sets a setting
 to the recipe's own value is the base arm again. Any other two arms have
 the same configuration when everything but their names is the same,
-including the values their code reads: a function that ignores one of
-its arguments builds the same arm for every value of it.
+including the values their code reads and the values read by any helper
+function it calls by name: a function that ignores one of its arguments
+builds the same arm for every value of it. A value held in an
+environment, rather than read by name, is not compared, so two such arms
+can look like one configuration here and still send different requests;
+\code{\link[=hr_sweep_check]{hr_sweep_check()}} compares what was sent.
 
 Sweeping one setting at a time on the dev split, then comparing the arm
 chosen with the default on test, is the order \code{vignette("compare")}

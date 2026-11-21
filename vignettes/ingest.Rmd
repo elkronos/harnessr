@@ -447,9 +447,13 @@ hr_sweep_check(hr_benchmark(arms, qa, runs = 5, client = says, split = "dev",
                             scorer = gr_scorer_answer()))
 ```
 
-The example report has no References line, so both values sent the same
-requests. Run the sweep on documents that have one, with questions whose
-answers sit near the end.
+Both values sent the same requests, although the example report ends with a
+`## References` heading. The `references` cleaner cuts only at a line that
+reads "References", "Bibliography" or "Works cited" alone, optionally
+numbered, so a Markdown heading with its `#` marks is never cut, wherever it
+falls. Run the sweep on documents whose heading stands alone that way, as text
+extracted from a PDF usually does, with questions whose answers sit near the
+end.
 
 ### OCR settings {#set-ocr}
 
@@ -469,7 +473,8 @@ plainly says it) point to a higher `ocr_dpi` or the right `ocr_lang`.
 
 **Where the defaults came from.** `ocr_dpi = 300` follows Tesseract's
 documentation on improving output quality (`cited`). `ocr = "auto"`,
-`ocr_min_chars = 40` and `ocr_lang = "eng"` were set when OCR was added and are
+`ocr_min_chars = 40` were set when OCR was added, and `ocr_lang = "eng"` is
+English because the package's own examples are in English. All three are
 `untested`.
 
 **How to test it.** OCR needs a scanned file and the tesseract and magick
