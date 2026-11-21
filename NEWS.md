@@ -10,7 +10,11 @@
   and an `hr_benchmark()` arm that called `gr_claims(trace = ctx$trace)` was
   refused for repeating a draw. The items of a parallel `gr_lapply()` batch
   carry the run's draw index and scope the same way. Requests made without a
-  draw index are unchanged, and so are their cache keys.
+  draw index are unchanged, and so are their cache keys. A recording made
+  before this change holds a stage's requests only at draw 0, so a replay
+  asking for a later draw is answered with those replies in recorded order,
+  served as replies without their own draw key, as for any recording made
+  without per-draw keys.
 
 * A stage that keeps a trace of its own (`gr_read_many()`, `gr_claims()`,
   `gr_outline()`, `gr_synthesise()`) is now held to the calls its given

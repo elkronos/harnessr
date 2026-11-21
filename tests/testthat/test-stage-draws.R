@@ -194,3 +194,33 @@ test_that("the items of a parallel batch carry the run's draw index and scope", 
                          logical(1))))
   expect_true(all(vapply(st, function(x) identical(x$draw_scope, "arm"), logical(1))))
 })
+
+test_that("a recording made before stages carried the draw index still replays", {
+  # A stage's requests were sent at draw 0 before its trace carried the run's
+  # draw index. A replay that now asks for draw 1 is answered with the reply
+  # recorded at draw 0, marked as served without its own draw key.
+  s <- draws_sampler()
+  rec <- gr_trace()
+  quiet(gr_claims(draws_table(), question = "Q?", client = s$client, temperature = 1,
+                  trace = rec))
+  expect_identical(unique(s$draws), 0L)
+  path <- tempfile(fileext = ".json")
+  on.exit(unlink(path), add = TRUE)
+  gr_trace_save(rec, path)
+
+  tr <- gr_trace()
+  tr$draw_index <- 1L
+  cm <- quiet(gr_claims(draws_table(), question = "Q?", client = gr_replay_client(path),
+                        temperature = 1, trace = tr))
+  expect_identical(cm$claims$claim[[1]], "Claim 1.")
+  req <- Filter(function(st) !is.null(st$prompt), tr$steps)
+  expect_true(length(req) > 0L)
+  expect_true(all(vapply(req, function(st) isTRUE(st$cached) && !is.character(st$replay_key),
+                         logical(1))))
+  # A second draw has nothing recorded for it and runs out, as before.
+  tr2 <- gr_trace()
+  tr2$draw_index <- 2L
+  expect_error(quiet(gr_claims(draws_table(), question = "Q?", client = gr_replay_client(path),
+                               temperature = 1, trace = tr2)),
+               class = "hr_replay_exhausted")
+})
