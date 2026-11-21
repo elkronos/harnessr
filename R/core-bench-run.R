@@ -360,12 +360,7 @@ warn_budget_stops <- function(rows, stop_limit, governor, from_options) {
 #' The governor one arm run is held to: the benchmark's, less the calls,
 #' dollars and tokens the runs before it used.
 #' @noRd
-bench_governor <- function(parent) {
-  gov <- fork_governor(parent)
-  cap <- finite_limit(gov$max_calls)
-  if (!is.null(cap)) gov$max_calls <- max(cap - as_num1(parent$calls, 0), 0)
-  gov
-}
+bench_governor <- function(parent) fork_governor(parent)
 
 #' The context an arm run is given. Built in its own function, so the `call`
 #' shortcut keeps this run's trace and draw however long the arm holds it.

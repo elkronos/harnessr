@@ -1,5 +1,27 @@
 # harnessr 0.6.0.9000
 
+## Fixed
+
+* `gr_claims()`, `gr_outline()`, `gr_synthesise()` and `gr_read_many()` now
+  send their requests at the draw index and draw scope of the trace they are
+  given. Each records on a trace of its own, which did not carry them, so its
+  requests went out at draw index 0 whatever run of a benchmark the trace
+  was: under a `gr_cache()` runs 2 onwards were answered with run 1's reply,
+  and an `hr_benchmark()` arm that called `gr_claims(trace = ctx$trace)` was
+  refused for repeating a draw. The items of a parallel `gr_lapply()` batch
+  carry the run's draw index and scope the same way. Requests made without a
+  draw index are unchanged, and so are their cache keys.
+
+* A stage that keeps a trace of its own (`gr_read_many()`, `gr_claims()`,
+  `gr_outline()`, `gr_synthesise()`) is now held to the calls its given
+  trace's `hr_governor()` has left, as it already was to the dollars and
+  tokens left. `max_calls` was left whole, so a stage given a trace that had
+  made its 2 calls under `hr_governor(max_calls = 2)` made a third. The calls
+  taken off are the ones the governor counts: every recorded request, cache
+  hits and embeddings requests included. Without a governor,
+  `gr_options(max_calls =)` is still a limit per document for
+  `gr_read_many()` and per stage for the others.
+
 ## Renamed
 
 * **The package is now called harnessr.** readgpt grew a general core for

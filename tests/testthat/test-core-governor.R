@@ -433,15 +433,15 @@ test_that("gr_read_many() and gr_synthesise() hold their requests to the given t
   expect_lte(tr2$spent_usd, 0.05)
   expect_lt(length(cl2$calls()), 3L)
 
-  # The governor a forked stage is held to keeps max_calls whole and takes off
-  # what the parent has already spent.
+  # The governor a forked stage is held to takes off the calls the parent has
+  # made and what it has already spent.
   tr3 <- gr_trace(governor = hr_governor(max_calls = 4, max_cost_usd = 1,
                                          max_tokens_total = 100))
   tr3$spent_usd <- 0.25
   tr3$tokens_in <- 30L
   tr3$calls <- 3L
   fork <- harnessr:::fork_governor(tr3)
-  expect_identical(fork$max_calls, 4)
+  expect_identical(fork$max_calls, 1)
   expect_equal(fork$max_cost_usd, 0.75)
   expect_equal(fork$max_tokens_total, 70)
   expect_null(harnessr:::fork_governor(gr_trace()))

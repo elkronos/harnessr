@@ -372,6 +372,8 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
   trace <- gr_trace(meta = list(recipe = rec$name, question = question,
                                 documents = length(sources)),
                     governor = fork_governor(parent))
+  # Each request is the draw of the run the parent is (trace_inherit_draw()).
+  trace_inherit_draw(trace, parent)
   # on.exit, not a line at the end: a run that aborts part-way -- a cost cap, an
   # unreadable file under on_error = "stop" -- has still spent whatever it spent,
   # and a parent that loses it reports a review as cheaper than it was.
@@ -527,6 +529,7 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     # documents before this one used; `max_calls` stays per document.
     sub <- gr_trace(meta = list(recipe = rec$name, question = question, source = lab),
                     governor = fork_governor(trace))
+    trace_inherit_draw(sub, trace)
     # What the run spent before this document, so the progress line gives the
     # run's total and not this document's. NA when that is unknown.
     sub$spent_before <- spent
