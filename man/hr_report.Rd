@@ -57,10 +57,13 @@ this benchmark scored, or \code{NULL}.}
 \item{auto_bootstrap_at}{Under \code{method = "auto"}, the size at which the
 report switches from the cluster-robust t interval to the studentised
 cluster bootstrap: \code{c(items = , clusters = )}, both reached. Default
-\code{c(items = 300, clusters = 30)}, backed by the coverage simulation of
-\code{dev/sim-coverage.R} (2000 replicates at 386 items in 40 clusters and at
-50 items in 10; see "Intervals"). The notes about intervals that can
-undercover use the same two numbers.}
+\code{c(items = 300, clusters = 30)}. The coverage simulation of
+\code{dev/sim-coverage.R} measured each method at two designs only, 386
+items in 40 clusters and 50 items in 10 (2000 replicates each; see
+"Intervals"), and found each covers at the design it is used for. The
+cut-point itself is untested: no design near 300 items or 30 clusters
+was run, so nothing measures where the switch belongs. The notes about
+intervals that can undercover use the same two numbers.}
 
 \item{min_runs}{The fewest runs for which the report gives intervals;
 below it the report is descriptive only. A whole number, 2 or more;

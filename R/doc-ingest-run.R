@@ -110,6 +110,21 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
   spec
 }
 
+#' The entries of an ingest spec's `layout_opts` and `cleaner_opts`, flattened
+#' as `layout_opts.depth` and `cleaner_opts.references_after`, for the
+#' settings column of gr_compare(). Both lists are empty by default, so every
+#' entry is a change from it. The spec's other fields are left out: a recipe
+#' names its cleaning preset already, and the column never listed them.
+#' @noRd
+ingest_settings <- function(spec) {
+  flat <- function(nm) {
+    x <- spec[[nm]]
+    if (!length(x) || is.null(names(x))) return(list())
+    stats::setNames(as.list(x), paste0(nm, ".", names(x)))
+  }
+  c(flat("layout_opts"), flat("cleaner_opts"))
+}
+
 #' The settings of drop_running_lines() a spec's `layout_opts` may change.
 #' @noRd
 .gr_layout_opt_names <- c("depth", "share", "min_pages", "max_chars", "max_words")

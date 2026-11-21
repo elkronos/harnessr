@@ -45,16 +45,23 @@ sent with every request, for gateways that do not authenticate with a
 bearer token. Inherited by every \code{\link[=gr_client]{gr_client()}} that does not name its
 own; see that function's \code{headers} argument for the rules.}
 \item{\code{temperature} (NULL)}{Default sampling temperature. \code{NULL} omits the
-field. Dropped automatically for models that reject it.}
+field. Dropped automatically for models that reject it. Untested:
+\code{NULL} sends no temperature, so the model decides.}
 \item{\code{max_retries} (4)}{Retries for transient failures. HTTP 400 is never
-retried: a malformed request stays malformed.}
-\item{\code{retry_pause_base} (2)}{Seconds; exponential backoff base.}
-\item{\code{request_timeout} (120)}{Per-request timeout, seconds.}
+retried: a malformed request stays malformed. Untested: set when
+retries were written, with no measurement behind the number.}
+\item{\code{retry_pause_base} (2)}{Seconds; exponential backoff base.
+Untested: set when retries were written.}
+\item{\code{request_timeout} (120)}{Per-request timeout, seconds. Untested:
+set when the HTTP client was written.}
 \item{\code{safety_margin} (0.10)}{Fraction of the context window left unused to
-absorb tokenizer error. Not a spending cap (see \code{max_cost_usd}).}
+absorb tokenizer error. Not a spending cap (see \code{max_cost_usd}).
+Untested: set to absorb the error of counting tokens locally, and not
+measured against it.}
 \item{\code{min_output_tokens} (256)}{Floor on the completion room \code{\link[=gr_budget]{gr_budget()}}
 reserves \emph{when \code{reserve_output} is not given explicitly}. An explicit
-\code{reserve_output} is honoured down to 1.}
+\code{reserve_output} is honoured down to 1. Untested: set as a floor for a
+short reply.}
 \item{\code{cache_documents} (TRUE)}{Cache ingestion per file + settings. The key
 covers file size, mtime and every option that changes the output.}
 \item{\code{cache_embeddings} (TRUE)}{Cache embeddings per text + model.}
@@ -71,7 +78,9 @@ sessions and make a long run resumable.}
 \item{\code{parallel} (FALSE)}{Run per-chunk calls concurrently. Needs the
 future and future.apply packages; without them it warns and runs
 sequentially.}
-\item{\code{workers} (4)}{Worker processes when \code{parallel} is TRUE.}
+\item{\code{workers} (4)}{Worker processes when \code{parallel} is TRUE.
+Untested: set when parallel runs were added. It does not change
+output.}
 \item{\code{max_cost_usd} (5)}{Spending limit per run, in USD. A run whose
 reader sends every chunk is refused before it starts when sending them
 would cost more than this. Every request is then checked before it is
@@ -158,8 +167,12 @@ than the default joins the store key of \code{\link[=gr_read_many]{gr_read_many(
 The settings listed last above were constants in the code until they were
 options; each keeps the constant's value. A trace records them (in its
 options snapshot) only when one is not its default, so a trace made at the
-defaults reads as it did before they existed. Each entry above says where
-its default came from; "untested" means no measurement backs the value.
+defaults reads as it did before they existed. Each tuning setting's entry
+above (\code{temperature}, \code{max_retries}, \code{retry_pause_base}, \code{request_timeout},
+\code{safety_margin}, \code{min_output_tokens}, \code{workers} and the settings listed
+last) says where its default came from; "untested" means no measurement
+backs the value. The other entries are switches, limits and names, which
+are choices rather than tuned values.
 }
 
 \section{Checked values}{

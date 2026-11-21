@@ -52,7 +52,9 @@ one row per recipe and these columns:
 \describe{
 \item{\code{recipe}, \code{segmenter}, \code{chunks}, \code{reader}, \code{signature},
 \code{settings}}{Which pipeline the row is, and what was changed from the
-recipe's defaults.}
+defaults of its read and segment specs, with each entry of its
+ingest spec's \code{layout_opts} and \code{cleaner_opts} (as
+\code{layout_opts.depth=3}).}
 \item{\code{partial}, \code{chunks_used}, \code{answer_chars}, \code{not_found},
 \code{error}}{What the answer is, and what went wrong, if anything.}
 \item{\code{calls}, \code{tokens_in}, \code{tokens_out}}{The model and embeddings

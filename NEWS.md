@@ -20,9 +20,10 @@ says where its default came from; almost none has a measurement behind it.
   `output_reserve_share` and the near-verbatim settings join the store key
   of `gr_read_many()`.
 * **`gr_read_spec()`**: `accept_near_verbatim` (FALSE) lets a near-verbatim
-  quotation stop the `iterative` reader under `verify = TRUE`;
-  `max_merge_levels` (6) caps the merge tree of `map_reduce` and the other
-  merging readers; `restate_tokens` (1200) is the length above which
+  quotation stop the `iterative` reader under `verify = TRUE`, and is
+  refused without it; `max_merge_levels` (6) caps the merge tree of
+  `map_reduce` and the other merging readers, and the worst case counted
+  before a run counts that many levels; `restate_tokens` (1200) is the length above which
   `restate = "auto"` repeats the question; `bm25_k1` (1.5) and `bm25_b`
   (0.75) are the BM25 parameters of rerank's prefilter and lexical retrieve,
   the usual values in Robertson and Zaragoza (2009); `lexical_blend` (0.5)
@@ -37,7 +38,9 @@ says where its default came from; almost none has a measurement behind it.
   cleaner may find a bibliography heading; it keeps the code's behaviour, a
   heading at or after 40% of the text, which a comment had described as "the
   last 40%". `header_max_chars` and `header_min_repeats`, which
-  `headers_footers` already read, are now documented.
+  `headers_footers` already read, are now documented. The settings column
+  of `gr_compare()` names each entry of `layout_opts` and `cleaner_opts`,
+  as `layout_opts.depth=3`.
 * **`gr_synthesise()`**: `coherence_rounds` (1) lets each revision pass run
   more than once, each round checked as a pass is and the pass stopping at a
   round that is discarded or changes nothing (paper-orchestra runs up to 3,
@@ -49,10 +52,12 @@ says where its default came from; almost none has a measurement behind it.
 * **`gr_calibrate(max_width = 0.10)`**, **`hr_report(auto_bootstrap_at =
   c(items = 300, clusters = 30), min_runs = 5)`** and
   **`hr_calibrate_signal(min_errors = 100, isotonic_min_items = 1000,
-  min_clusters = 20)`**. Of these, only the switch to the bootstrap at 300
-  items and 30 clusters has a measurement behind it (`dev/sim-coverage.R`).
-  A calibration record held to a bar other than the default says so in its
-  `notes`.
+  min_clusters = 20)`**. None of these numbers was measured. The coverage
+  simulation (`dev/sim-coverage.R`) measured the two interval methods at
+  two designs only, 386 items in 40 clusters and 50 items in 10; the switch
+  to the bootstrap at 300 items and 30 clusters lies between them and is
+  itself untested. A calibration record held to a bar other than the
+  default says so in its `notes`.
 * **`hr_param(evidence =)`** must be a list of `status` (`"measured"`,
   `"cited"` or `"untested"`) and a non-empty `source`. Every parameter of
   the read, segment and ingest schemas declares one, their help pages list

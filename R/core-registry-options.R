@@ -291,16 +291,23 @@ check_option <- function(name, value) {
 #'     bearer token. Inherited by every [gr_client()] that does not name its
 #'     own; see that function's `headers` argument for the rules.}
 #'   \item{`temperature` (NULL)}{Default sampling temperature. `NULL` omits the
-#'     field. Dropped automatically for models that reject it.}
+#'     field. Dropped automatically for models that reject it. Untested:
+#'     `NULL` sends no temperature, so the model decides.}
 #'   \item{`max_retries` (4)}{Retries for transient failures. HTTP 400 is never
-#'     retried: a malformed request stays malformed.}
-#'   \item{`retry_pause_base` (2)}{Seconds; exponential backoff base.}
-#'   \item{`request_timeout` (120)}{Per-request timeout, seconds.}
+#'     retried: a malformed request stays malformed. Untested: set when
+#'     retries were written, with no measurement behind the number.}
+#'   \item{`retry_pause_base` (2)}{Seconds; exponential backoff base.
+#'     Untested: set when retries were written.}
+#'   \item{`request_timeout` (120)}{Per-request timeout, seconds. Untested:
+#'     set when the HTTP client was written.}
 #'   \item{`safety_margin` (0.10)}{Fraction of the context window left unused to
-#'     absorb tokenizer error. Not a spending cap (see `max_cost_usd`).}
+#'     absorb tokenizer error. Not a spending cap (see `max_cost_usd`).
+#'     Untested: set to absorb the error of counting tokens locally, and not
+#'     measured against it.}
 #'   \item{`min_output_tokens` (256)}{Floor on the completion room [gr_budget()]
 #'     reserves *when `reserve_output` is not given explicitly*. An explicit
-#'     `reserve_output` is honoured down to 1.}
+#'     `reserve_output` is honoured down to 1. Untested: set as a floor for a
+#'     short reply.}
 #'   \item{`cache_documents` (TRUE)}{Cache ingestion per file + settings. The key
 #'     covers file size, mtime and every option that changes the output.}
 #'   \item{`cache_embeddings` (TRUE)}{Cache embeddings per text + model.}
@@ -317,7 +324,9 @@ check_option <- function(name, value) {
 #'   \item{`parallel` (FALSE)}{Run per-chunk calls concurrently. Needs the
 #'     future and future.apply packages; without them it warns and runs
 #'     sequentially.}
-#'   \item{`workers` (4)}{Worker processes when `parallel` is TRUE.}
+#'   \item{`workers` (4)}{Worker processes when `parallel` is TRUE.
+#'     Untested: set when parallel runs were added. It does not change
+#'     output.}
 #'   \item{`max_cost_usd` (5)}{Spending limit per run, in USD. A run whose
 #'     reader sends every chunk is refused before it starts when sending them
 #'     would cost more than this. Every request is then checked before it is
@@ -402,8 +411,12 @@ check_option <- function(name, value) {
 #' The settings listed last above were constants in the code until they were
 #' options; each keeps the constant's value. A trace records them (in its
 #' options snapshot) only when one is not its default, so a trace made at the
-#' defaults reads as it did before they existed. Each entry above says where
-#' its default came from; "untested" means no measurement backs the value.
+#' defaults reads as it did before they existed. Each tuning setting's entry
+#' above (`temperature`, `max_retries`, `retry_pause_base`, `request_timeout`,
+#' `safety_margin`, `min_output_tokens`, `workers` and the settings listed
+#' last) says where its default came from; "untested" means no measurement
+#' backs the value. The other entries are switches, limits and names, which
+#' are choices rather than tuned values.
 #'
 #' @section Checked values:
 #' Numeric options are checked when they are set, and the two kinds are treated

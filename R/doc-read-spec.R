@@ -330,8 +330,10 @@ gr_reader_signature <- function(reader) {
 #'   also lets the `iterative` reader stop. `FALSE` (the default) accepts only
 #'   a quotation the decisive check verifies, as before the setting existed.
 #'   A near-verbatim quotation that stops the loop is still reported as not
-#'   verified in `$evidence`, so the answer is marked partial. Untested: nothing has measured whether accepting near-verbatim quotations
-#'   gives better answers, and on the package's labelled quotation set 25 of 46
+#'   verified in `$evidence`, so the answer is marked partial. `TRUE`
+#'   without `verify = TRUE` is refused with a `gr_bad_setting` error. Untested:
+#'   nothing has measured whether accepting near-verbatim quotations gives
+#'   better answers, and on the package's labelled quotation set 25 of 46
 #'   quotations with one content word swapped scored `near_verbatim`.
 #' @param max_merge_levels The most merge levels `map_reduce`, `skim` and the
 #'   other readers that merge findings run before they give up and return the
@@ -532,6 +534,13 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
   # (.gr_read_schema): ranges clamped with a warning, a missing number taken
   # from its default, the choices matched.
   p <- hr_validate(.gr_read_schema, mget(names(.gr_read_schema), environment()))
+  # Without verify the setting does nothing, yet it would still move the
+  # spec's hash, its store keys and what gr_compare() reports as changed.
+  if (isTRUE(p$accept_near_verbatim) && !isTRUE(p$verify)) {
+    gr_abort(paste0("`accept_near_verbatim = TRUE` needs `verify = TRUE`: without `verify` ",
+                    "no quotation is checked, so the setting has no effect."),
+             class = "gr_bad_setting")
+  }
   spec <- structure(c(list(
     reader = p$reader,
     model = p$model,
@@ -718,7 +727,7 @@ as_read_spec <- function(spec) {
            evidence = ev_untested("No pause. It does not change output.")),
   # The settings below were constants in the code until they were declared
   # here. Each keeps the constant's value as its default, and gr_read_spec()
-  # stores it only when it is not the default (read_spec_extras()).
+  # stores it only when it is not the default (nondefault_params()).
   hr_param("accept_near_verbatim", "boolean", default = FALSE, strict = TRUE,
            tier = "advanced", depends_on = "verify = TRUE",
            help = "Under verify, let a near-verbatim quotation stop the iterative reader.",

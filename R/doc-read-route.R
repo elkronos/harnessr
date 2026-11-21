@@ -242,6 +242,23 @@ answer_error <- function(a) {
   if (length(open)) as_chr1(open[[1]]$error, NA_character_) else NA_character_
 }
 
+#' The recipe's value of setting `nm`, as the gr_bad_override message names
+#' it. A setting a spec stores only when it is not the default (such as
+#' `max_merge_levels` or `layout_opts`) is absent from a spec at its default,
+#' so the constructor's default is named instead, as "the default, <value>".
+#' @noRd
+override_held_value <- function(ctor, held, nm) {
+  show <- function(v) {
+    if (!length(v) || is.list(v)) return(paste(deparse(v), collapse = ""))
+    paste(format(v), collapse = ", ")
+  }
+  if (nm %in% names(held)) return(show(held[[nm]]))
+  v <- tryCatch(eval(formals(ctor)[[nm]], baseenv()), error = function(e) NULL)
+  # A vector of choices, as `restate` has: the first is the default.
+  if (is.character(v) && length(v) > 1L) v <- v[1L]
+  paste0("the default, ", show(v))
+}
+
 #' Apply flat `...` overrides onto the right axis of a recipe.
 #'
 #' Unknown names are an ERROR. In the old code they were swallowed by a
@@ -288,12 +305,11 @@ apply_overrides <- function(rec, overrides) {
       ctor <- if (nm %in% seg_only || nm == "method") gr_segment_spec else
         if (nm %in% rd_only) gr_read_spec else if (nm %in% ing_only) gr_ingest_spec else NULL
       if (!is.null(ctor) && nm != "parallel" && !null_ok(ctor, nm)) {
+        held <- unclass(if (identical(ctor, gr_segment_spec)) rec$segment else
+                          if (identical(ctor, gr_read_spec)) rec$read else rec$ingest)
         gr_abort(sprintf(paste0("`%s = NULL` is not a setting. Leave `%s` out to keep the ",
                                 "recipe's value (%s)."),
-                         nm, nm, paste(format(unclass(
-                           if (identical(ctor, gr_segment_spec)) rec$segment else
-                             if (identical(ctor, gr_read_spec)) rec$read else rec$ingest)[[nm]]),
-                           collapse = ", ")),
+                         nm, nm, override_held_value(ctor, held, nm)),
                  class = "gr_bad_override")
       }
     }

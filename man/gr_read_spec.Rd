@@ -214,8 +214,10 @@ edit-distance matcher scores \code{near_verbatim} (see "Verifying quotations")
 also lets the \code{iterative} reader stop. \code{FALSE} (the default) accepts only
 a quotation the decisive check verifies, as before the setting existed.
 A near-verbatim quotation that stops the loop is still reported as not
-verified in \verb{$evidence}, so the answer is marked partial. Untested: nothing has measured whether accepting near-verbatim quotations
-gives better answers, and on the package's labelled quotation set 25 of 46
+verified in \verb{$evidence}, so the answer is marked partial. \code{TRUE}
+without \code{verify = TRUE} is refused with a \code{gr_bad_setting} error. Untested:
+nothing has measured whether accepting near-verbatim quotations gives
+better answers, and on the package's labelled quotation set 25 of 46
 quotations with one content word swapped scored \code{near_verbatim}.}
 
 \item{max_merge_levels}{The most merge levels \code{map_reduce}, \code{skim} and the

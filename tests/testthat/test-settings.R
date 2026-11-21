@@ -77,10 +77,11 @@ test_that("a default spec carries none of the settings declared later", {
   expect_identical(gr_segment_spec(context_reply_tokens = 90), gr_segment_spec())
   expect_identical(gr_ingest_spec(layout_opts = list()), gr_ingest_spec())
   # Set, they are in the spec and in what it reports as changed.
-  sp <- gr_read_spec(bm25_k1 = 1.2, accept_near_verbatim = TRUE)
+  sp <- gr_read_spec(bm25_k1 = 1.2, verify = TRUE, accept_near_verbatim = TRUE)
   expect_identical(sp$bm25_k1, 1.2)
   expect_true(sp$accept_near_verbatim)
-  expect_identical(ns$read_settings(sp), list(accept_near_verbatim = TRUE, bm25_k1 = 1.2))
+  expect_identical(ns$read_settings(sp),
+                   list(verify = TRUE, accept_near_verbatim = TRUE, bm25_k1 = 1.2))
   expect_identical(gr_segment_spec(proposition_reply_tokens = 500)$proposition_reply_tokens, 500L)
   expect_identical(gr_ingest_spec(layout_opts = list(share = 0.5))$layout_opts,
                    list(share = 0.5))
@@ -183,6 +184,23 @@ test_that("accept_near_verbatim lets a near-verbatim quotation stop the iterativ
   expect_error(gr_read_spec(accept_near_verbatim = NA), class = "gr_bad_setting")
 })
 
+test_that("accept_near_verbatim without verify is refused, naming verify", {
+  expect_error(gr_read_spec("iterative", accept_near_verbatim = TRUE),
+               "`verify = TRUE`", class = "gr_bad_setting")
+  expect_error(gr_read_spec("iterative", verify = FALSE, accept_near_verbatim = TRUE),
+               class = "gr_bad_setting")
+  # Given as an override of a recipe that does not verify, it is refused too.
+  expect_error(quiet(answer_document(gr_example(), "q?", "fast",
+                                     client = gr_mock_client(function(m, p) "x"),
+                                     accept_near_verbatim = TRUE)),
+               "`verify = TRUE`", class = "gr_bad_setting")
+  expect_true(gr_read_spec("iterative", verify = TRUE,
+                           accept_near_verbatim = TRUE)$accept_near_verbatim)
+  # Off, it needs nothing.
+  expect_identical(gr_read_spec("iterative", accept_near_verbatim = FALSE),
+                   gr_read_spec("iterative"))
+})
+
 test_that("with accept_near_verbatim the iterative reader answers, marked partial", {
   ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 80)))
   cl <- gr_mock_client(function(m, p) {
@@ -225,6 +243,66 @@ test_that("max_merge_levels caps how deep a merge goes", {
   expect_false(capped$ok)
   expect_identical(capped$levels, 2L)
   expect_identical(capped$error, "merge depth cap reached")
+})
+
+test_that("the pre-flight call bound follows max_merge_levels above and below the default", {
+  local_registries()
+  local_options()
+  gr_options(max_calls = 2000L)
+  gr_register_model("merge-bound-ctx", context_window = 900L, max_output = 300L,
+                    input_usd = 0, output_usd = 0)
+  # Each reply is as long as a finding, so a merge takes two at a time and
+  # 512 findings need nine levels.
+  piece <- paste(rep("Revenue rose.", 50), collapse = " ")
+  cl <- gr_mock_client(function(m, p) piece)
+  room <- gr_budget("merge-bound-ctx", reserve_output = 200L,
+                    overhead = ns$prompt_overhead("Q?", ns$.gr_prompts$merge_system,
+                                                  "never"))$input
+  stats <- list(n_chunks = 512L, tokens = 1e5,
+                reply_cap = function(model, cap) 200, room = function(...) room)
+  default_worst <- ns$merge_tree_worst(512, gr_count_tokens(piece), 200, room)
+  for (levels in c(12L, 3L)) {
+    sp <- gr_read_spec("map_reduce", model = "merge-bound-ctx", max_answer_tokens = 200L,
+                       max_merge_levels = levels)
+    tr <- gr_trace()
+    m <- quiet(ns$tree_merge(cl, "Q?", rep(piece, 512), sp, tr))
+    worst <- ns$merge_tree_worst(512, gr_count_tokens(piece), 200, room, levels = levels)
+    expect_gte(worst$calls, tr$calls)
+    # The cost functions pass the spec's cap on.
+    expect_equal(ns$cost_map_reduce(stats, sp)$calls_max, 512 + worst$calls)
+    expect_equal(ns$cost_skim(stats, sp)$calls_max, 512 + worst$calls + 1)
+    if (levels == 12L) {
+      # Nine levels, more than the default cap lets the bound count.
+      expect_true(m$ok)
+      expect_identical(m$levels, 9L)
+      expect_gt(tr$calls, default_worst$calls)
+    } else {
+      # Four levels make requests, fewer than the default cap counts.
+      expect_identical(m$error, "merge depth cap reached")
+      expect_lt(worst$calls, default_worst$calls)
+    }
+  }
+})
+
+test_that("a NULL override of a setting held only when not default names the default", {
+  r <- ns$as_recipe("fast")
+  msg <- function(nm) {
+    tryCatch(ns$apply_overrides(r, stats::setNames(list(NULL), nm)),
+             gr_bad_override = function(e) conditionMessage(e))
+  }
+  expect_match(msg("restate_tokens"), "recipe's value (the default, 1200)", fixed = TRUE)
+  expect_match(msg("max_merge_levels"), "recipe's value (the default, 6)", fixed = TRUE)
+  expect_match(msg("context_reply_tokens"), "recipe's value (the default, 90)", fixed = TRUE)
+  expect_match(msg("layout_opts"), "recipe's value (the default, list())", fixed = TRUE)
+  # A setting the recipe holds is named as it is.
+  expect_match(msg("top_k"), "recipe's value (6)", fixed = TRUE)
+  set <- ns$apply_overrides(r, list(max_merge_levels = 9L))
+  expect_error(ns$apply_overrides(set, list(max_merge_levels = NULL)),
+               "recipe's value (9)", fixed = TRUE, class = "gr_bad_override")
+  expect_error(answer_document(gr_example(), "q?", "fast",
+                               client = gr_mock_client(function(m, p) "x"),
+                               restate_tokens = NULL),
+               "(the default, 1200)", fixed = TRUE, class = "gr_bad_override")
 })
 
 test_that("restate_tokens sets the body length that brings the question forward", {
@@ -342,6 +420,21 @@ test_that("layout_opts is checked and changes which running lines are dropped", 
   expect_false(any(grepl("Journal", unlist(dropped))))
   kept <- do.call(ns$drop_running_lines, c(list(pages), list(min_pages = 10L)))
   expect_true(any(grepl("Journal", unlist(kept))))
+})
+
+test_that("gr_compare()'s settings column names layout_opts and cleaner_opts entries", {
+  local_options()
+  gr_options(embedder = "lexical")
+  rd <- gr_read_spec(reader = "retrieve")
+  recipes <- list(
+    a = gr_recipe(read = rd),
+    d = gr_recipe(read = rd, ingest = gr_ingest_spec(layout_opts = list(depth = 3))),
+    r = gr_recipe(read = rd, ingest = gr_ingest_spec(clean = "academic",
+                                                     cleaner_opts = list(references_after = 0.5))))
+  cmp <- quiet(gr_compare(gr_example(), "What was revenue?", recipes,
+                          client = gr_mock_client(function(m, p) "It rose.")))
+  expect_identical(cmp$summary$settings,
+                   c("", "layout_opts.depth=3", "cleaner_opts.references_after=0.5"))
 })
 
 # --- synthesis ----------------------------------------------------------------

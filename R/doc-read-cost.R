@@ -33,7 +33,8 @@ cost_map_reduce <- function(stats, params) {
                         # The prompt the merge sends, the premise rule included
                         # when the spec checks it: a longer system prompt leaves
                         # each merge less room.
-                        stats$room(merge_system_prompt(params$premise)))
+                        stats$room(merge_system_prompt(params$premise)),
+                        levels = params$max_merge_levels %||% 6L)
   calls <- n + ceiling(n / 5)
   hr_cost(calls = calls, calls_max = if (is.null(m)) calls else n + m$calls,
           tokens_in_max = if (is.null(m)) 0 else m$input,
@@ -58,7 +59,8 @@ cost_skim <- function(stats, params) {
   m <- if (is.na(fit)) NULL
        else if (body <= fit) list(calls = 0, input = 0)
        else merge_tree_worst(n, piece, stats$reply_cap(params$model, params$max_answer_tokens),
-                             stats$room(.gr_prompts$summarise_system))
+                             stats$room(.gr_prompts$summarise_system),
+                             levels = params$max_merge_levels %||% 6L)
   calls <- n + 1L
   hr_cost(calls = calls, calls_max = if (is.null(m)) calls else n + m$calls + 1,
           tokens_in_max = if (is.null(m)) 0 else m$input + min(body, fit),

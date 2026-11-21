@@ -66,9 +66,11 @@
 #'
 #' The record becomes `"gating"` only when a threshold passes and none of
 #' the reasons [hr_calibrate_signal()] gave holds: the graded set had at
-#' least 100 wrong items, the fitted map increases with the signal and the
-#' ECE used at least 5 bins. Otherwise it stays `"advisory"` and `reasons`
-#' says why.
+#' least as many wrong items as the bar the record was calibrated with
+#' (`min_errors` of [hr_calibrate_signal()], default 100; a bar other than the
+#' default is in the record's `notes`), the fitted map increases with the
+#' signal and the ECE used at least 5 bins. Otherwise it stays `"advisory"`
+#' and `reasons` says why.
 #'
 #' @param cal An `hr_calibration` from [hr_calibrate_signal()].
 #' @param action The action the signal would gate, such as `"stop"`,
