@@ -26,6 +26,7 @@
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -251,7 +252,7 @@
       </dl></div><div class="section level2">
       <h2 id="cut-documents-into-chunks">Cut documents into chunks<a class="anchor" aria-label="anchor" href="#cut-documents-into-chunks"></a></h2>
 
-      <div class="section-desc"><p>The segmenters, their settings, and the free statistics for comparing chunkings. See <code><a href="../articles/segment.html">vignette("segment")</a></code>.</p></div>
+      <div class="section-desc"><p>The segmenters, their settings, and the free statistics for comparing chunkings: size, boundary error against a reference (Pk and WindowDiff) and retrieval recall. See <code><a href="../articles/segment.html">vignette("segment")</a></code> and <code><a href="../articles/compare.html">vignette("compare")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -292,6 +293,27 @@
 
         </dt>
         <dd>Summary statistics for a chunk set</dd>
+
+        <dt>
+
+          <code><a href="gr_seg_boundaries.html">gr_seg_boundaries()</a></code>
+
+        </dt>
+        <dd>Where a segmentation puts its boundaries, sentence by sentence</dd>
+
+        <dt>
+
+          <code><a href="gr_seg_pk.html">gr_seg_pk()</a></code> <code><a href="gr_seg_pk.html">gr_seg_windowdiff()</a></code>
+
+        </dt>
+        <dd>Pk and WindowDiff: how far a segmentation's boundaries are from a reference</dd>
+
+        <dt>
+
+          <code><a href="gr_seg_recall.html">gr_seg_recall()</a></code>
+
+        </dt>
+        <dd>Retrieval recall at k, per segmenter</dd>
       </dl></div><div class="section level2">
       <h2 id="read-the-chunks">Read the chunks<a class="anchor" aria-label="anchor" href="#read-the-chunks"></a></h2>
 
@@ -1038,7 +1060,14 @@
 
         <dt>
 
-          <code><a href="hr_schema.html">hr_schema()</a></code>
+          <code><a href="gr_settings.html">gr_settings()</a></code>
+
+        </dt>
+        <dd>The settings of a read, segment or ingest spec</dd>
+
+        <dt>
+
+          <code><a href="hr_schema.html">hr_schema()</a></code> <code><a href="hr_schema.html">as.data.frame(<i>&lt;hr_schema&gt;</i>)</a></code>
 
         </dt>
         <dd>Collect parameters into a schema</dd>

@@ -32,6 +32,7 @@ gr_read_labels()."></head><body>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -64,7 +65,7 @@ with a short instructions file beside it. Read the filled sheet back with
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">gr_label_sheet</span><span class="op">(</span></span>
-<span>  kind <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"qa"</span>, <span class="st">"screening"</span>, <span class="st">"extraction"</span>, <span class="st">"calibration"</span>, <span class="st">"judge"</span><span class="op">)</span>,</span>
+<span>  kind <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"qa"</span>, <span class="st">"screening"</span>, <span class="st">"extraction"</span>, <span class="st">"calibration"</span>, <span class="st">"judge"</span>, <span class="st">"pairwise"</span><span class="op">)</span>,</span>
 <span>  <span class="va">items</span>,</span>
 <span>  path <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  blind <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -78,8 +79,8 @@ with a short instructions file beside it. Read the filled sheet back with
 
 
 <dl><dt id="arg-kind">kind<a class="anchor" aria-label="anchor" href="#arg-kind"></a></dt>
-<dd><p><code>"qa"</code>, <code>"screening"</code>, <code>"extraction"</code>, <code>"calibration"</code> or
-<code>"judge"</code>; see "Kinds of sheet".</p></dd>
+<dd><p><code>"qa"</code>, <code>"screening"</code>, <code>"extraction"</code>, <code>"calibration"</code>,
+<code>"judge"</code> or <code>"pairwise"</code>; see "Kinds of sheet".</p></dd>
 
 
 <dt id="arg-items">items<a class="anchor" aria-label="anchor" href="#arg-items"></a></dt>
@@ -151,6 +152,16 @@ answer, shown beside it, right).</p></dd>
 against. Items need <code>candidate</code>, the text being judged, and may give
 <code>question</code> or <code>criterion</code>. The person fills <code>verdict</code> (pass or fail).</p></dd>
 
+<dt><code>"pairwise"</code></dt>
+<dd><p>Two texts to compare, to validate a pairwise judge
+against. Items need <code>candidate_a</code> and <code>candidate_b</code>, and may give
+<code>question</code> or <code>criterion</code>. The sheet shows them as <code>text_1</code> and
+<code>text_2</code>, in an order drawn for each row, so the person cannot tell
+which candidate is which; the order is kept in <code>order_key</code>, an opaque
+key tied to the row's id. The person fills <code>preferred</code> with 1, 2 or
+tie, and <code><a href="gr_read_labels.html">gr_read_labels()</a></code> gives it back in candidate order as
+<code>"A"</code>, <code>"B"</code> or <code>"tie"</code>.</p></dd>
+
 
 </dl><p>Every sheet also has a free-text <code>note</code> column (<code>human_note</code> for
 screening).</p>
@@ -173,6 +184,10 @@ blind <code><a href="gr_reference.html">gr_reference()</a></code> sheet carries,
 tells <code><a href="gr_calibrate.html">gr_calibrate()</a></code> what was sampled; with <code>blind = FALSE</code> the columns
 are written as they are. Give the same <code>items</code> to <code><a href="gr_read_labels.html">gr_read_labels()</a></code> to
 join the rest back.</p>
+<p>A pairwise sheet is blind to order whatever <code>blind</code> says: <code>candidate_a</code>
+and <code>candidate_b</code> are never written as they are, only as <code>text_1</code> and
+<code>text_2</code> behind the key. The order of a row comes from a SHA-256 digest of
+its id and its two texts, so writing the sheet again gives the same order.</p>
 <p>Calibration grading needs the model's answer, so a blind calibration sheet
 has no <code>correct</code> column: the person records the reference answer, and the
 model's answers are scored against it afterwards.</p>
@@ -255,7 +270,7 @@ Leave a decision empty only for an item not yet labelled.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"qa-labels.csv"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">gr_label_sheet</span><span class="op">(</span><span class="st">"qa"</span>, <span class="va">qa</span>, path <span class="op">=</span> <span class="va">path</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Wrote 3 item(s) to '/tmp/RtmpOttrbz/qa-labels.csv', with instructions in '/tmp/RtmpOttrbz/qa-labels_instructions.txt'. Read the filled sheet back with gr_read_labels().</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Wrote 3 item(s) to '/tmp/Rtmp8Z9Xam/qa-labels.csv', with instructions in '/tmp/Rtmp8Z9Xam/qa-labels_instructions.txt'. Read the filled sheet back with gr_read_labels().</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"[.]csv$"</span>, <span class="st">"_instructions.txt"</span>, <span class="va">path</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "Labelling instructions: qa sheet"                                             </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [2] ""                                                                             </span>

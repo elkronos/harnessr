@@ -76,8 +76,11 @@ See
 ## Cut documents into chunks
 
 The segmenters, their settings, and the free statistics for comparing
-chunkings. See
-[`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md).
+chunkings: size, boundary error against a reference (Pk and WindowDiff)
+and retrieval recall. See
+[`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md)
+and
+[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md).
 
 - [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
   : Segment a document into chunks
@@ -89,6 +92,14 @@ chunkings. See
   : A set of document chunks
 - [`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
   : Summary statistics for a chunk set
+- [`gr_seg_boundaries()`](https://elkronos.github.io/harnessr/reference/gr_seg_boundaries.md)
+  : Where a segmentation puts its boundaries, sentence by sentence
+- [`gr_seg_pk()`](https://elkronos.github.io/harnessr/reference/gr_seg_pk.md)
+  [`gr_seg_windowdiff()`](https://elkronos.github.io/harnessr/reference/gr_seg_pk.md)
+  : Pk and WindowDiff: how far a segmentation's boundaries are from a
+  reference
+- [`gr_seg_recall()`](https://elkronos.github.io/harnessr/reference/gr_seg_recall.md)
+  : Retrieval recall at k, per segmenter
 
 ## Read the chunks
 
@@ -409,7 +420,11 @@ built-in. See
 - [`hr_cost()`](https://elkronos.github.io/harnessr/reference/hr_cost.md)
   : What one run of a module can cost
 
+- [`gr_settings()`](https://elkronos.github.io/harnessr/reference/gr_settings.md)
+  : The settings of a read, segment or ingest spec
+
 - [`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md)
+  [`as.data.frame(`*`<hr_schema>`*`)`](https://elkronos.github.io/harnessr/reference/hr_schema.md)
   : Collect parameters into a schema
 
 - [`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md)

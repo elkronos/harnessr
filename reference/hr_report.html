@@ -34,6 +34,7 @@ dev split never enters a report, and items with no label are left out."></head><
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -248,7 +249,9 @@ floor. <code>NULL</code> without one.</p></dd>
 hash, or <code>NULL</code>.</p></dd>
 
 <dt><code>notes</code></dt>
-<dd><p>What the reader should know.</p></dd>
+<dd><p>What the reader should know. Among them: how many runs
+were graded by a judge on the arm's own model, when the benchmark's
+<code>self_judged</code> column has any (see <code><a href="hr_scorer_judge.html">hr_scorer_judge()</a></code>).</p></dd>
 
 
 </dl></div>

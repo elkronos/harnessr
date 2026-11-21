@@ -1,6 +1,7 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://elkronos.github.io/harnessr/404.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/LICENSE-text.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/articles/compare.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/evaluate.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/extending.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/harnessr.html</loc></url>
@@ -96,10 +97,14 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_screen.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_search.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/gr_seg_boundaries.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/gr_seg_pk.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/gr_seg_recall.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_segment.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_segment_spec.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_segmenters.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/gr_settings.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_stop_test.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_synthesise.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_tokenizer.html</loc></url>

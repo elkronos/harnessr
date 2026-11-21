@@ -8,8 +8,14 @@ package's comparisons take: a screening reference for
 a table for
 [`gr_extract_agreement()`](https://elkronos.github.io/harnessr/reference/gr_extract_agreement.md),
 calibration labels, or labels to compare a judge's verdicts with in
-[`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md).
-A calibration sheet written with `blind = FALSE` gives a graded set
+[`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md)
+or
+[`hr_judge_validate()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md).
+A pairwise sheet comes back in candidate order: `preferred` is `"A"`,
+`"B"` or `"tie"`, whichever order the row was shown in, so it can be set
+beside a pairwise judge's verdicts and validated with
+`hr_judge_validate(positive = "A")`, where a tie counts as negative. A
+calibration sheet written with `blind = FALSE` gives a graded set
 [`hr_calibrate_signal()`](https://elkronos.github.io/harnessr/reference/hr_calibrate_signal.md)
 takes, with or without `items`: without them, the sheet's `model_score`
 column is read back as the number `score`. A blind one gives reference
@@ -59,9 +65,11 @@ sheet's decision or note columns (`answer`, `verdict` and so on, often
 the model's own output) is joined as `model_<name>`, unless the sheet
 already has a column of that name. `answerable` and `correct` are
 logical; `human_decision` and `verdict` are lower case; extraction
-values are text as written. A calibration result has a `cluster` column
-(from `items`, else `document`), and a `correct` column only when the
-sheet was written with `blind = FALSE`; only then is it ready for
+values are text as written. A pairwise result has `preferred` as `"A"`,
+`"B"` or `"tie"` in candidate order and `shown_first`, the candidate
+shown as `text_1`. A calibration result has a `cluster` column (from
+`items`, else `document`), and a `correct` column only when the sheet
+was written with `blind = FALSE`; only then is it ready for
 [`hr_calibrate_signal()`](https://elkronos.github.io/harnessr/reference/hr_calibrate_signal.md).
 Its `score` comes from `items` when they are given, else from the
 sheet's `model_score` (yes and no, or `TRUE` and `FALSE`, read as 1 and
@@ -76,7 +84,12 @@ sheet's `model_score` (yes and no, or `TRUE` and `FALSE`, read as 1 and
 
 - Yes-or-no columns (`answerable`, `correct`) hold yes, no, y, n, true,
   false, 1 or 0, in any case. `human_decision` holds include or exclude,
-  and `verdict` pass or fail.
+  `verdict` pass or fail, and `preferred` 1, 2 or tie.
+
+- A pairwise row's `order_key` is a key
+  [`gr_label_sheet()`](https://elkronos.github.io/harnessr/reference/gr_label_sheet.md)
+  wrote for that row's `item_id`; a key edited, lost or moved to another
+  row is an error.
 
 - An answerable QA or calibration item has an `answer`, and one that is
   not answerable has none; an item whose `answerable` is empty has no
@@ -114,7 +127,7 @@ qa <- data.frame(document = c("a.pdf", "a.pdf", "b.pdf"),
                               "When did the trial start?"))
 path <- file.path(tempdir(), "qa-read.csv")
 gr_label_sheet("qa", qa, path = path)
-#> Wrote 3 item(s) to '/tmp/RtmpOttrbz/qa-read.csv', with instructions in '/tmp/RtmpOttrbz/qa-read_instructions.txt'. Read the filled sheet back with gr_read_labels().
+#> Wrote 3 item(s) to '/tmp/Rtmp8Z9Xam/qa-read.csv', with instructions in '/tmp/Rtmp8Z9Xam/qa-read_instructions.txt'. Read the filled sheet back with gr_read_labels().
 
 # A person fills it in; here the filling is simulated.
 sheet <- read.csv(path, fileEncoding = "UTF-8-BOM")

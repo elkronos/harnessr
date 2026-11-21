@@ -6,6 +6,9 @@ Collect parameters into a schema
 
 ``` r
 hr_schema(...)
+
+# S3 method for class 'hr_schema'
+as.data.frame(x, row.names = NULL, optional = FALSE, ...)
 ```
 
 ## Arguments
@@ -18,10 +21,24 @@ hr_schema(...)
   resolves them in, so a bound that depends on another parameter comes
   after it.
 
+- x:
+
+  An `hr_schema`.
+
+- row.names, optional:
+
+  Ignored.
+
 ## Value
 
 An object of class `hr_schema`: a list of `hr_param`, named by
 parameter.
+
+[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) gives one
+row per parameter: `name`, `type`, `default` (as text; an enum's is its
+first choice), `range` (the bounds or choices, `f()` for a bound set by
+another parameter), `tier`, `status` and `source` (from its `evidence`,
+`NA` when not declared) and `help`.
 
 ## See also
 

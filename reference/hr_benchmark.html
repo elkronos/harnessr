@@ -32,6 +32,7 @@ same order."></head><body>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -172,6 +173,16 @@ paid for no request, and <code>NA</code> when a request does not say.</p></dd>
 <code>attr(x, "traces")</code> under that name, and which every step the run
 added to the benchmark's trace, <code>attr(x, "trace")</code>, carries as
 <code>ledger_id</code>.</p></dd>
+
+<dt><code>self_judged</code></dt>
+<dd><p>Whether the run was graded by a judge on the same
+model as the arm: <code>TRUE</code> when the scorer's <code>judge_model</code> (see
+<code><a href="hr_scorer_judge.html">hr_scorer_judge()</a></code>) equals the model or the served model of one of
+the run's model requests, <code>FALSE</code> when the run made model requests
+with a known model and none equals it, and <code>NA</code> when the scorer names
+no judge model or the run recorded no model. The match is exact, so
+<code>"model-x"</code> and <code>"model-x-2026-01"</code> differ. Nothing is refused; see the
+note <code><a href="hr_report.html">hr_report()</a></code> adds.</p></dd>
 
 <dt><code>reportable</code></dt>
 <dd><p><code>FALSE</code> for rows on the dev split.</p></dd>

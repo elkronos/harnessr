@@ -17,7 +17,8 @@ hr_scorer_judge(
   validation,
   client,
   governor = NULL,
-  draw_index = 0L
+  draw_index = 0L,
+  judge_model = judge_config$model
 )
 ```
 
@@ -52,10 +53,20 @@ hr_scorer_judge(
   against the same label reuse one cached verdict; give another index
   for a fresh judge draw.
 
+- judge_model:
+
+  The model the judge runs on, as the arms' traces would name it: by
+  default the configuration's `model`.
+  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+  compares it with the model and served model of each run's requests and
+  records the result as `self_judged`. Give the served model id when the
+  provider names it differently from the configuration, so the
+  comparison can match it. `NA` records no comparison.
+
 ## Value
 
-An `hr_scorer` with two more elements: `trace`, the judge's `gr_trace`,
-and `config_hash`.
+An `hr_scorer` with three more elements: `trace`, the judge's
+`gr_trace`, `config_hash` and `judge_model`.
 
 ## Details
 
@@ -75,6 +86,18 @@ held to `governor`, and never in the runs' traces, so a benchmark's cost
 columns leave judging out. Accuracy estimated by a judge should be
 reported corrected against human labels, with
 [`hr_judge_ppi()`](https://elkronos.github.io/harnessr/reference/hr_judge_ppi.md).
+
+## Self-judging
+
+A model grading its own output can favour it. `hr_scorer_judge()` never
+refuses such a pairing, since a provider may offer only one capable
+model, but
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+marks each run graded by a judge on the arm's own model in
+`self_judged`, and
+[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+says so in its notes. The match is exact: a model id that differs by a
+date or a version suffix is a different model to it.
 
 ## See also
 

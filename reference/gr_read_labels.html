@@ -3,7 +3,11 @@
 value and id, and returns the labels in the form the package's
 comparisons take: a screening reference for gr_calibrate(), a table for
 gr_extract_agreement(), calibration labels, or labels to compare a
-judge's verdicts with in hr_agreement(). A calibration sheet written
+judge's verdicts with in hr_agreement() or hr_judge_validate(). A
+pairwise sheet comes back in candidate order: preferred is &quot;A&quot;,
+&quot;B&quot; or &quot;tie&quot;, whichever order the row was shown in, so it can be set
+beside a pairwise judge's verdicts and validated with
+hr_judge_validate(positive = &quot;A&quot;), where a tie counts as negative. A calibration sheet written
 with blind = FALSE gives a graded set hr_calibrate_signal() takes,
 with or without items: without them, the sheet's model_score column
 is read back as the number score. A blind one gives reference answers,
@@ -12,7 +16,11 @@ column it needs."><meta property="og:description" content="Reads one or more she
 value and id, and returns the labels in the form the package's
 comparisons take: a screening reference for gr_calibrate(), a table for
 gr_extract_agreement(), calibration labels, or labels to compare a
-judge's verdicts with in hr_agreement(). A calibration sheet written
+judge's verdicts with in hr_agreement() or hr_judge_validate(). A
+pairwise sheet comes back in candidate order: preferred is &quot;A&quot;,
+&quot;B&quot; or &quot;tie&quot;, whichever order the row was shown in, so it can be set
+beside a pairwise judge's verdicts and validated with
+hr_judge_validate(positive = &quot;A&quot;), where a tie counts as negative. A calibration sheet written
 with blind = FALSE gives a graded set hr_calibrate_signal() takes,
 with or without items: without them, the sheet's model_score column
 is read back as the number score. A blind one gives reference answers,
@@ -44,6 +52,7 @@ column it needs."></head><body>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -71,7 +80,11 @@ column it needs."></head><body>
 value and id, and returns the labels in the form the package's
 comparisons take: a screening reference for <code><a href="gr_calibrate.html">gr_calibrate()</a></code>, a table for
 <code><a href="gr_extract_agreement.html">gr_extract_agreement()</a></code>, calibration labels, or labels to compare a
-judge's verdicts with in <code><a href="hr_agreement.html">hr_agreement()</a></code>. A calibration sheet written
+judge's verdicts with in <code><a href="hr_agreement.html">hr_agreement()</a></code> or <code><a href="hr_judge_validate.html">hr_judge_validate()</a></code>. A
+pairwise sheet comes back in candidate order: <code>preferred</code> is <code>"A"</code>,
+<code>"B"</code> or <code>"tie"</code>, whichever order the row was shown in, so it can be set
+beside a pairwise judge's verdicts and validated with
+<code>hr_judge_validate(positive = "A")</code>, where a tie counts as negative. A calibration sheet written
 with <code>blind = FALSE</code> gives a graded set <code><a href="hr_calibrate_signal.html">hr_calibrate_signal()</a></code> takes,
 with or without <code>items</code>: without them, the sheet's <code>model_score</code> column
 is read back as the number <code>score</code>. A blind one gives reference answers,
@@ -119,7 +132,9 @@ the sheet's decision or note columns (<code>answer</code>, <code>verdict</code> 
 often the model's own output) is joined as <code>model_&lt;name&gt;</code>, unless the
 sheet already has a column of that name. <code>answerable</code> and <code>correct</code> are
 logical; <code>human_decision</code> and <code>verdict</code> are lower case; extraction values
-are text as written. A calibration result has a <code>cluster</code> column (from
+are text as written. A pairwise result has <code>preferred</code> as <code>"A"</code>, <code>"B"</code>
+or <code>"tie"</code> in candidate order and <code>shown_first</code>, the candidate shown as
+<code>text_1</code>. A calibration result has a <code>cluster</code> column (from
 <code>items</code>, else <code>document</code>), and a <code>correct</code> column only when the sheet
 was written with <code>blind = FALSE</code>; only then is it ready for
 <code><a href="hr_calibrate_signal.html">hr_calibrate_signal()</a></code>. Its <code>score</code> comes from <code>items</code> when they are
@@ -136,7 +151,10 @@ With <code>items</code>, every id is one of the items', and an item missing from
 the sheets is reported with a warning of class <code>gr_labels_missing</code>.</p></li>
 <li><p>Yes-or-no columns (<code>answerable</code>, <code>correct</code>) hold yes, no, y, n, true,
 false, 1 or 0, in any case. <code>human_decision</code> holds include or exclude,
-and <code>verdict</code> pass or fail.</p></li>
+<code>verdict</code> pass or fail, and <code>preferred</code> 1, 2 or tie.</p></li>
+<li><p>A pairwise row's <code>order_key</code> is a key <code><a href="gr_label_sheet.html">gr_label_sheet()</a></code> wrote for that
+row's <code>item_id</code>; a key edited, lost or moved to another row is an
+error.</p></li>
 <li><p>An answerable QA or calibration item has an <code>answer</code>, and one that is
 not answerable has none; an item whose
 <code>answerable</code> is empty has no other decision filled; a calibration sheet
@@ -167,7 +185,7 @@ is returned with its decisions <code>NA</code>, and counted.</p>
 <span class="r-in"><span>                              <span class="st">"When did the trial start?"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"qa-read.csv"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="gr_label_sheet.html">gr_label_sheet</a></span><span class="op">(</span><span class="st">"qa"</span>, <span class="va">qa</span>, path <span class="op">=</span> <span class="va">path</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Wrote 3 item(s) to '/tmp/RtmpOttrbz/qa-read.csv', with instructions in '/tmp/RtmpOttrbz/qa-read_instructions.txt'. Read the filled sheet back with gr_read_labels().</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Wrote 3 item(s) to '/tmp/Rtmp8Z9Xam/qa-read.csv', with instructions in '/tmp/Rtmp8Z9Xam/qa-read_instructions.txt'. Read the filled sheet back with gr_read_labels().</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># A person fills it in; here the filling is simulated.</span></span></span>
 <span class="r-in"><span><span class="va">sheet</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">path</span>, fileEncoding <span class="op">=</span> <span class="st">"UTF-8-BOM"</span><span class="op">)</span></span></span>

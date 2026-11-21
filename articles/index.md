@@ -22,6 +22,8 @@ One guide per topic, in the order a run uses them.
   reviews](https://elkronos.github.io/harnessr/articles/review.md):
 - [Measuring and comparing
   configurations](https://elkronos.github.io/harnessr/articles/evaluate.md):
+- [Comparing methods and
+  settings](https://elkronos.github.io/harnessr/articles/compare.md):
 - [Cost, limits and reproducible
   runs](https://elkronos.github.io/harnessr/articles/runs.md):
 - [Extending

@@ -40,6 +40,7 @@
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -91,8 +92,9 @@ size of a comparison before running it, judges, baselines that use no
 model, drift, and the signals the package records about its own work.
 The statistics functions underneath come last. Measuring a screener
 against people, several reviewers and agreement between extraction
-tables are part of a review and are in
-<code><a href="../articles/review.html">vignette("review")</a></code>.</p>
+tables are part of a review and are in <code><a href="../articles/review.html">vignette("review")</a></code>.
+<code><a href="../articles/compare.html">vignette("compare")</a></code> puts these functions to work on worked
+comparisons of readers, segmenters, settings, screening and judges.</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
@@ -206,10 +208,12 @@ across a boundary, so draw it once and store it:</p>
 <p>Labels come from people. <code><a href="../reference/gr_label_sheet.html">gr_label_sheet()</a></code> writes a CSV
 with one row per item, the columns a person needs to judge it and empty
 columns for their decisions, with an instructions file beside it. It
-writes five kinds: <code>"qa"</code>, <code>"screening"</code>,
-<code>"extraction"</code>, <code>"calibration"</code> and
-<code>"judge"</code>. A blind sheet, the default, copies only those
-columns, so a model’s answer in <code>items</code> stays out of it:</p>
+writes six kinds: <code>"qa"</code>, <code>"screening"</code>,
+<code>"extraction"</code>, <code>"calibration"</code>,
+<code>"judge"</code> and <code>"pairwise"</code> (two texts in a blinded
+order, for a pairwise judge; <code><a href="../articles/compare.html">vignette("compare")</a></code> has one).
+A blind sheet, the default, copies only those columns, so a model’s
+answer in <code>items</code> stays out of it:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">to_label</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">sp</span><span class="op">$</span><span class="va">items</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="va">to_label</span><span class="op">$</span><span class="va">model_answer</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"45.2 million"</span>, <span class="st">"Not stated"</span>, <span class="st">"310"</span><span class="op">)</span></span>
@@ -613,10 +617,10 @@ is refused with class <code>hr_registration_after_scoring</code>.</p>
 <span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mdd.html">hr_mdd</a></span><span class="op">(</span><span class="va">n</span>, n_clusters <span class="op">=</span> <span class="fl">50</span>, icc <span class="op">=</span> <span class="fl">0.1</span>, p_disc <span class="op">=</span> <span class="fl">0.15</span><span class="op">)</span></span>
 <span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_contrast.html">hr_register_contrasts</a></span><span class="op">(</span><span class="va">plan</span>, <span class="fu"><a href="../reference/hr_contrast.html">hr_contrast</a></span><span class="op">(</span><span class="st">"small"</span>, <span class="st">"large"</span>, margin <span class="op">=</span> <span class="fl">0.10</span><span class="op">)</span>, <span class="va">design</span><span class="op">)</span></span>
 <span><span class="va">reg</span></span>
-<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-21T20:00:22.059Z</span></span>
+<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-21T22:27:32.845Z</span></span>
 <span><span class="co">#&gt;  contrast       label        margin mdd cost_test</span></span>
 <span><span class="co">#&gt;  small vs large confirmatory 10.0   7.8 yes      </span></span>
-<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash a3190326925c</span></span></code></pre></div>
+<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash a22fbf20be3a</span></span></code></pre></div>
 <p>Here the stand-in model finds each item easier or harder by document
 and by item, and <code>mock-small</code> is a little worse on every one.
 The governor allows the 3000 calls the benchmark needs:</p>
@@ -1019,6 +1023,11 @@ with two or more human labels, and warns below 50.</p>
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>
 </h2>
 <ul>
+<li>
+<code><a href="../articles/compare.html">vignette("compare")</a></code>: these steps applied to five
+comparisons (readers, segmenters and chunk sizes, a setting over its
+values, screening settings, a judge against labels), each with its
+report and how to read it.</li>
 <li>
 <code><a href="../articles/review.html">vignette("review")</a></code>: screening recall against a target,
 several reviewers, and agreement between extraction tables.</li>

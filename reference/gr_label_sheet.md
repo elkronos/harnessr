@@ -10,7 +10,7 @@ with
 
 ``` r
 gr_label_sheet(
-  kind = c("qa", "screening", "extraction", "calibration", "judge"),
+  kind = c("qa", "screening", "extraction", "calibration", "judge", "pairwise"),
   items,
   path = NULL,
   blind = TRUE,
@@ -23,8 +23,8 @@ gr_label_sheet(
 
 - kind:
 
-  `"qa"`, `"screening"`, `"extraction"`, `"calibration"` or `"judge"`;
-  see "Kinds of sheet".
+  `"qa"`, `"screening"`, `"extraction"`, `"calibration"`, `"judge"` or
+  `"pairwise"`; see "Kinds of sheet".
 
 - items:
 
@@ -104,6 +104,17 @@ holds the files written.
   `candidate`, the text being judged, and may give `question` or
   `criterion`. The person fills `verdict` (pass or fail).
 
+- `"pairwise"`:
+
+  Two texts to compare, to validate a pairwise judge against. Items need
+  `candidate_a` and `candidate_b`, and may give `question` or
+  `criterion`. The sheet shows them as `text_1` and `text_2`, in an
+  order drawn for each row, so the person cannot tell which candidate is
+  which; the order is kept in `order_key`, an opaque key tied to the
+  row's id. The person fills `preferred` with 1, 2 or tie, and
+  [`gr_read_labels()`](https://elkronos.github.io/harnessr/reference/gr_read_labels.md)
+  gives it back in candidate order as `"A"`, `"B"` or `"tie"`.
+
 Every sheet also has a free-text `note` column (`human_note` for
 screening).
 
@@ -127,6 +138,12 @@ what was sampled; with `blind = FALSE` the columns are written as they
 are. Give the same `items` to
 [`gr_read_labels()`](https://elkronos.github.io/harnessr/reference/gr_read_labels.md)
 to join the rest back.
+
+A pairwise sheet is blind to order whatever `blind` says: `candidate_a`
+and `candidate_b` are never written as they are, only as `text_1` and
+`text_2` behind the key. The order of a row comes from a SHA-256 digest
+of its id and its two texts, so writing the sheet again gives the same
+order.
 
 Calibration grading needs the model's answer, so a blind calibration
 sheet has no `correct` column: the person records the reference answer,
@@ -220,7 +237,7 @@ gr_label_sheet("qa", qa)
 
 path <- file.path(tempdir(), "qa-labels.csv")
 gr_label_sheet("qa", qa, path = path)
-#> Wrote 3 item(s) to '/tmp/RtmpOttrbz/qa-labels.csv', with instructions in '/tmp/RtmpOttrbz/qa-labels_instructions.txt'. Read the filled sheet back with gr_read_labels().
+#> Wrote 3 item(s) to '/tmp/Rtmp8Z9Xam/qa-labels.csv', with instructions in '/tmp/Rtmp8Z9Xam/qa-labels_instructions.txt'. Read the filled sheet back with gr_read_labels().
 readLines(sub("[.]csv$", "_instructions.txt", path))
 #>  [1] "Labelling instructions: qa sheet"                                             
 #>  [2] ""                                                                             

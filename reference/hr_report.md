@@ -210,7 +210,10 @@ An object of class `hr_bench_report`, a list with
 
 - `notes`:
 
-  What the reader should know.
+  What the reader should know. Among them: how many runs were graded by
+  a judge on the arm's own model, when the benchmark's `self_judged`
+  column has any (see
+  [`hr_scorer_judge()`](https://elkronos.github.io/harnessr/reference/hr_scorer_judge.md)).
 
 ## Details
 

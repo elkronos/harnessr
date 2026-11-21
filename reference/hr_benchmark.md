@@ -138,6 +138,19 @@ item x arm x run and the columns
   added to the benchmark's trace, `attr(x, "trace")`, carries as
   `ledger_id`.
 
+- `self_judged`:
+
+  Whether the run was graded by a judge on the same model as the arm:
+  `TRUE` when the scorer's `judge_model` (see
+  [`hr_scorer_judge()`](https://elkronos.github.io/harnessr/reference/hr_scorer_judge.md))
+  equals the model or the served model of one of the run's model
+  requests, `FALSE` when the run made model requests with a known model
+  and none equals it, and `NA` when the scorer names no judge model or
+  the run recorded no model. The match is exact, so `"model-x"` and
+  `"model-x-2026-01"` differ. Nothing is refused; see the note
+  [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+  adds.
+
 - `reportable`:
 
   `FALSE` for rows on the dev split.

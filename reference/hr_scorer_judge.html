@@ -34,6 +34,7 @@ decisions are not evidence of accuracy."></head><body>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -71,7 +72,8 @@ decisions are not evidence of accuracy.</p>
 <span>  <span class="va">validation</span>,</span>
 <span>  <span class="va">client</span>,</span>
 <span>  governor <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  draw_index <span class="op">=</span> <span class="fl">0L</span></span>
+<span>  draw_index <span class="op">=</span> <span class="fl">0L</span>,</span>
+<span>  judge_model <span class="op">=</span> <span class="va">judge_config</span><span class="op">$</span><span class="va">model</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -101,11 +103,20 @@ decisions are not evidence of accuracy.</p>
 graded against the same label reuse one cached verdict; give another
 index for a fresh judge draw.</p></dd>
 
+
+<dt id="arg-judge-model">judge_model<a class="anchor" aria-label="anchor" href="#arg-judge-model"></a></dt>
+<dd><p>The model the judge runs on, as the arms' traces would
+name it: by default the configuration's <code>model</code>. <code><a href="hr_benchmark.html">hr_benchmark()</a></code>
+compares it with the model and served model of each run's requests and
+records the result as <code>self_judged</code>. Give the served model id when the
+provider names it differently from the configuration, so the comparison
+can match it. <code>NA</code> records no comparison.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An <code>hr_scorer</code> with two more elements: <code>trace</code>, the judge's
-<code>gr_trace</code>, and <code>config_hash</code>.</p>
+    <p>An <code>hr_scorer</code> with three more elements: <code>trace</code>, the judge's
+<code>gr_trace</code>, <code>config_hash</code> and <code>judge_model</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -121,6 +132,17 @@ sorted as <code><a href="hr_scorer.html">hr_scorer_exact()</a></code> sorts them
 held to <code>governor</code>, and never in the runs' traces, so a benchmark's cost
 columns leave judging out. Accuracy estimated by a judge should be
 reported corrected against human labels, with <code><a href="hr_judge_ppi.html">hr_judge_ppi()</a></code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="self-judging">Self-judging<a class="anchor" aria-label="anchor" href="#self-judging"></a></h2>
+
+
+<p>A model grading its own output can favour it. <code>hr_scorer_judge()</code> never
+refuses such a pairing, since a provider may offer only one capable
+model, but <code><a href="hr_benchmark.html">hr_benchmark()</a></code> marks each run graded by a judge on the arm's
+own model in <code>self_judged</code>, and <code><a href="hr_report.html">hr_report()</a></code> says so in its notes. The
+match is exact: a model id that differs by a date or a version suffix is
+a different model to it.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
