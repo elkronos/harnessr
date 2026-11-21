@@ -74,7 +74,10 @@ letting a signal gate an action. A new record is always <code>advisory</code>.</
 <span>  bins <span class="op">=</span> <span class="fl">10L</span>,</span>
 <span>  split <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  <span class="va">seed</span>,</span>
-<span>  B <span class="op">=</span> <span class="fl">2000L</span></span>
+<span>  B <span class="op">=</span> <span class="fl">2000L</span>,</span>
+<span>  min_errors <span class="op">=</span> <span class="fl">100L</span>,</span>
+<span>  isotonic_min_items <span class="op">=</span> <span class="fl">1000L</span>,</span>
+<span>  min_clusters <span class="op">=</span> <span class="fl">20L</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -122,6 +125,27 @@ left as it was.</p></dd>
 
 <dt id="arg-b">B<a class="anchor" aria-label="anchor" href="#arg-b"></a></dt>
 <dd><p>Number of bootstrap resamples; 0 for no intervals.</p></dd>
+
+
+<dt id="arg-min-errors">min_errors<a class="anchor" aria-label="anchor" href="#arg-min-errors"></a></dt>
+<dd><p>The fewest wrong items a graded set needs before its
+record may gate; below it the record stays advisory and <code>reasons</code> says
+why. Default 100, untested: set when calibration records were written,
+with no measurement behind the number.</p></dd>
+
+
+<dt id="arg-isotonic-min-items">isotonic_min_items<a class="anchor" aria-label="anchor" href="#arg-isotonic-min-items"></a></dt>
+<dd><p>The fewest graded items, counted before the
+split, for which <code>method = "isotonic"</code> is allowed. Default 1000,
+untested.</p></dd>
+
+
+<dt id="arg-min-clusters">min_clusters<a class="anchor" aria-label="anchor" href="#arg-min-clusters"></a></dt>
+<dd><p>The fewest clusters in the calibration half for which
+the bootstrap intervals are given without a note that they rest on few
+clusters. Default 20, untested.</p>
+<p>A value other than the default of any of these three is written to the
+record's <code>notes</code>, so the record says it was held to a different bar.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -191,11 +215,12 @@ the map is never judged on the items it was fitted to.</p><ul><li><p><strong>Pla
 logistic regression on the targets <code>(N+ + 1) / (N+ + 2)</code> for a right
 item and <code>1 / (N- + 2)</code> for a wrong one, which keeps the fit finite when
 the halves separate. It is the default and the only fitted map allowed
-below 1000 graded items.</p></li>
+below 1000 graded items (<code>isotonic_min_items</code>).</p></li>
 <li><p><strong>Isotonic regression</strong> (pool adjacent violators, weighted by the number
-of items at each score) needs at least 1000 graded items. The count is
-of the whole graded set before the split, so the map itself is fitted on
-about <code>split</code> of them (500 at the minimum with the default <code>split</code>).
+of items at each score) needs at least 1000 graded items by default. The
+count is of the whole graded set before the split, so the map itself is
+fitted on about <code>split</code> of them (500 at the minimum with the default
+<code>split</code>).
 Between fitted scores it interpolates linearly; beyond them it holds the
 end values.</p></li>
 <li><p><strong><code>"none"</code></strong> takes the score as the probability, so it must lie in

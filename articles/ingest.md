@@ -299,9 +299,12 @@ below are off by default, for these reasons:
   the answer.
 - `references` cuts everything from a line reading just “References”,
   “Bibliography” or “Works cited” to the end of the document, when that
-  line is in the last 40% of the text. That loses the reference list if
-  your question is about the sources. A Markdown heading such as
-  `## References` is not such a line, so it does not trigger the cut.
+  line starts at or after 40% of the text, so a table of contents near
+  the start does not cut the document.
+  `cleaner_opts = list(references_after = )` moves that share, a number
+  from 0 to 1. The cut loses the reference list if your question is
+  about the sources. A Markdown heading such as `## References` is not
+  such a line, so it does not trigger the cut.
 
 Cleaning cannot be undone later: no reader can recover what it removes.
 Know what each choice costs before you make it.
@@ -422,7 +425,7 @@ invisible(file.create(file.path(inbox, "empty.txt")))
 
 inv <- gr_inventory(inbox)
 inv
-#> <gr_inventory> /tmp/RtmpBzofFl/inbox
+#> <gr_inventory> /tmp/RtmpiBq9eF/inbox
 #>   4 file(s), 1.9 KB; 2 readable
 #>   2 ready, 1 no_extractor, 1 empty
 #>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)

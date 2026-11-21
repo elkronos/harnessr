@@ -78,7 +78,11 @@ rows it rests on.</p>
 <span>  claims <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  gaps <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  trace <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  effort <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  effort <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  coherence_rounds <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  figure_bands <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>about <span class="op">=</span> <span class="fl">0.1</span>, over <span class="op">=</span> <span class="fl">0.25</span>, under <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span>,</span>
+<span>  prominence <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>top <span class="op">=</span> <span class="fl">1</span><span class="op">/</span><span class="fl">3</span>, middle <span class="op">=</span> <span class="fl">1</span><span class="op">/</span><span class="fl">3</span><span class="op">)</span>,</span>
+<span>  study_weights <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -258,6 +262,52 @@ does the rest at medium. The reasoning counts against each call's reply
 limit (<code>max_section_tokens</code> for a section), and a section cut off at it is
 reported as one.</p></dd>
 
+
+<dt id="arg-coherence-rounds">coherence_rounds<a class="anchor" aria-label="anchor" href="#arg-coherence-rounds"></a></dt>
+<dd><p>How many rounds each <code>coherence</code> pass may run:
+each round revises the text the round before it kept, and the pass stops
+at the first round that is discarded or changes nothing. Every round is
+checked as a single pass is, and is a request. A whole number in
+[1, 10]; default 1, one round per pass, as before the setting existed.
+Untested: paper-orchestra runs up to 3 refinement rounds, with no
+recorded evidence for that number, and nothing has measured more than
+one round here.</p></dd>
+
+
+<dt id="arg-figure-bands">figure_bands<a class="anchor" aria-label="anchor" href="#arg-figure-bands"></a></dt>
+<dd><p>How near a value a qualified figure must be to count as
+found in the check of figures (see "Figures"): a named numeric vector of
+<code>about</code> (the share either way that "about 1,200" covers), <code>over</code> (the
+share above that "more than 1,000" covers) and <code>under</code> (the share below
+that "fewer than 1,000" covers). Names left out keep their defaults,
+<code>c(about = 0.10, over = 0.25, under = 0.25)</code>, set when the check was
+written and untested. Each is in [0, 1]. The check sends nothing, so
+this changes what <code>$figures</code> reports, never a request.</p></dd>
+
+
+<dt id="arg-prominence">prominence<a class="anchor" aria-label="anchor" href="#arg-prominence"></a></dt>
+<dd><p>How much of the writing prompt's sentence budget the
+claims of a section get, by rank: <code>c(top = , middle = )</code>, the shares of a
+section's claims (ranked by how many studies, and how much weight, stand
+behind them) asked for "two or three sentences" and "one or two
+sentences"; the rest get "one sentence", and a section of three claims
+or fewer gives each "two or three". Default <code>c(top = 1/3, middle = 1/3)</code>,
+thirds, set when claims were added and untested. Each share is in
+[0, 1] and the two add up to at most 1. At least one claim is always
+in the top tier. Used only with <code>claims</code>.</p></dd>
+
+
+<dt id="arg-study-weights">study_weights<a class="anchor" aria-label="anchor" href="#arg-study-weights"></a></dt>
+<dd><p>How much each study counts when claims are ranked
+(and so which tier each claim gets, see <code>prominence</code>): <code>NULL</code> (the
+default) for the package's weight, <code>0.5 + 0.5 * size + 0.5 * filled</code>,
+where <code>size</code> is <code>log1p(n)</code> over its largest value (the mean of the known
+ones when <code>n</code> is missing) and <code>filled</code> the share of a row's filled cells
+whose quotations verified (0.5 when unknown). That formula is untested,
+and is not a quality score. Or a function of the studies table (the
+extraction's included rows, with a <code>study</code> column of ids) returning one
+non-negative number per row. Used only with <code>claims</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -280,8 +330,9 @@ what the citation check ran on.</p></dd>
 asked for.</p></dd>
 
 <dt><code>coherence</code></dt>
-<dd><p>One row per revision pass, or <code>NULL</code> if none ran:
-<code>pass</code> (which of <code>"structure"</code>, <code>"cut"</code>, <code>"register"</code>), <code>ran</code>, <code>kept</code>,
+<dd><p>One row per round of each revision pass, or <code>NULL</code>
+if none ran: <code>pass</code> (which of <code>"structure"</code>, <code>"cut"</code>, <code>"register"</code>),
+<code>round</code> (1 unless <code>coherence_rounds</code> is more), <code>ran</code>, <code>kept</code>,
 <code>lost</code> and <code>added</code> (citations, if the revision changed them),
 <code>reason</code> for anything discarded, and <code>words_before</code> and <code>words_after</code>
 (integer: words of prose, headings and citation markers left out, in
@@ -432,7 +483,8 @@ cited row carries in any column; the number of studies the sentence cites,
 its section was shown or the review was written from, or how many of those
 rows share a field's value ("10 were randomised trials"); or, after
 "about", "more than", "fewer than" and their like, within a tenth (about)
-or a quarter (a bound) of a value it could have come from. Not read as
+or a quarter (a bound) of a value it could have come from (<code>figure_bands</code>
+changes these shares). Not read as
 figures: a citation's ids, written bare as well ("studies 12 to 15"), a
 whole number below ten that is not a percentage or scaled (a review writes
 "2 of the trials" as it likes), a number joined to a name ("COVID-19",
@@ -470,8 +522,8 @@ can be trusted, and those are checked apart.</p>
 <span class="r-in"><span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".txt"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"We ran a randomised trial. We enrolled 120 people."</span>, <span class="va">f</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_extract.html">gr_extract</a></span><span class="op">(</span><span class="va">f</span>, <span class="va">fields</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1e2e5bbc624e.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1e2e5bbc624e.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1ba973862fea.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1ba973862fea.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'structural' (cap 900 tokens, overlap 90).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).</span>

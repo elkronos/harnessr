@@ -468,9 +468,9 @@ s <- hr_schema(
            help = "How chosen chunks are ordered in the prompt."))
 s
 #> <hr_schema> 3 parameter(s)
-#>   max_tokens                 integer       [32, 1e+06]
-#>   overlap_tokens             integer       [0, f()]
-#>   order                      enum          relevance|document
+#>   max_tokens                 integer       basic     -         [32, 1e+06]
+#>   overlap_tokens             integer       basic     -         [0, f()]
+#>   order                      enum          basic     -         relevance|document
 ```
 
 The parameters resolve in schema order, so a bound that depends on

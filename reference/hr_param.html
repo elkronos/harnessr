@@ -132,12 +132,18 @@ and so belongs in cache and store keys.</p></dd>
 
 
 <dt id="arg-tier">tier<a class="anchor" aria-label="anchor" href="#arg-tier"></a></dt>
-<dd><p><code>"basic"</code> or <code>"advanced"</code>, for grouping in a user interface.</p></dd>
+<dd><p><code>"basic"</code> or <code>"advanced"</code>, for grouping in a user interface.
+A module keeps <code>"basic"</code> for the few settings most users change.</p></dd>
 
 
 <dt id="arg-evidence">evidence<a class="anchor" aria-label="anchor" href="#arg-evidence"></a></dt>
-<dd><p><code>NULL</code>, or a list saying where the setting comes from and
-whether its benefit has been measured.</p></dd>
+<dd><p><code>NULL</code>, or a list saying where the default comes from:
+<code>status</code>, one of <code>"measured"</code> (the value was measured or tuned, and
+<code>source</code> says where the measurement is), <code>"cited"</code> (taken from a
+published source, which <code>source</code> names) or <code>"untested"</code> (nothing has
+measured it; <code>source</code> says how it was chosen), and <code>source</code>, one
+non-empty string. Anything else is an error of class <code>gr_bad_setting</code>.
+The package's own spec parameters all declare it.</p></dd>
 
 
 <dt id="arg-depends-on">depends_on<a class="anchor" aria-label="anchor" href="#arg-depends-on"></a></dt>

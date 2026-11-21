@@ -147,14 +147,16 @@ whether its numbers (with sign, a comparison sign before them and unit,
 such as "-12%", "\< 0.05" or "45.2 million"), numbers written in words
 ("twelve") and negations are the window's, exactly. `quote_status` is
 `"verbatim"` for no edit; `"near_verbatim"` for a similarity of at least
-0.90 (0.95 under 40 characters) with the critical tokens identical and
-five words or more; `"unverified"` otherwise; and `"not_checked"` where
-there was nothing to compare, or where a passage was too long to score:
-the edit table has a cell for each pair of characters, and a passage
-whose length times the source's is over 5e7 is skipped. A quotation
-split by an elision or a blank line takes the worst of its passages.
-`near_verbatim` is not verified: a changed word that is not a number or
-a negation ("Sheffield" for "Leipzig") can stay above the threshold.
+0.90 (0.95 under 40 characters; see `near_verbatim_sim` in
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md))
+with the critical tokens identical and five words or more;
+`"unverified"` otherwise; and `"not_checked"` where there was nothing to
+compare, or where a passage was too long to score: the edit table has a
+cell for each pair of characters, and a passage whose length times the
+source's is over 5e7 is skipped. A quotation split by an elision or a
+blank line takes the worst of its passages. `near_verbatim` is not
+verified: a changed word that is not a number or a negation ("Sheffield"
+for "Leipzig") can stay above the threshold.
 
 ## Citations
 

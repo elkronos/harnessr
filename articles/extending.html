@@ -471,9 +471,9 @@ applies the rules.</p>
 <span>           help <span class="op">=</span> <span class="st">"How chosen chunks are ordered in the prompt."</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">s</span></span>
 <span><span class="co">#&gt; &lt;hr_schema&gt; 3 parameter(s)</span></span>
-<span><span class="co">#&gt;   max_tokens                 integer       [32, 1e+06]</span></span>
-<span><span class="co">#&gt;   overlap_tokens             integer       [0, f()]</span></span>
-<span><span class="co">#&gt;   order                      enum          relevance|document</span></span></code></pre></div>
+<span><span class="co">#&gt;   max_tokens                 integer       basic     -         [32, 1e+06]</span></span>
+<span><span class="co">#&gt;   overlap_tokens             integer       basic     -         [0, f()]</span></span>
+<span><span class="co">#&gt;   order                      enum          basic     -         relevance|document</span></span></code></pre></div>
 <p>The parameters resolve in schema order, so a bound that depends on
 another parameter, such as <code>overlap_tokens</code> above, comes
 after it. A number out of range is moved to the nearest bound and warned

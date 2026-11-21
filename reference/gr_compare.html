@@ -134,7 +134,9 @@ known); when it fails or returns anything else, a warning of class
 one row per recipe and these columns:</p><dl><dt><code>recipe</code>, <code>segmenter</code>, <code>chunks</code>, <code>reader</code>, <code>signature</code>,
 <code>settings</code></dt>
 <dd><p>Which pipeline the row is, and what was changed from the
-recipe's defaults.</p></dd>
+defaults of its read and segment specs, with each entry of its
+ingest spec's <code>layout_opts</code> and <code>cleaner_opts</code> (as
+<code>layout_opts.depth=3</code>).</p></dd>
 
 <dt><code>partial</code>, <code>chunks_used</code>, <code>answer_chars</code>, <code>not_found</code>,
 <code>error</code></dt>
@@ -229,7 +231,7 @@ cut short is not shared with a later recipe.</p>
 <span class="r-in"><span><span class="co"># One trace covers all three, so this is the cost of the whole comparison.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="gr_trace_summary.html">gr_trace_summary</a></span><span class="op">(</span><span class="va">cmp</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                          run_id calls cached steps tokens_in tokens_out errors</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261121155232.557_244487     5      0    16      2122         65      0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261121195951.504_87bd55     5      0    16      2122         65      0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1      0.15           0            0                0                0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   usage_estimated</span>

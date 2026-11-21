@@ -33,6 +33,12 @@ gr_read_spec(
   effort = NULL,
   premise = FALSE,
   verify = FALSE,
+  accept_near_verbatim = FALSE,
+  max_merge_levels = 6L,
+  restate_tokens = 1200L,
+  bm25_k1 = 1.5,
+  bm25_b = 0.75,
+  lexical_blend = 0.5,
   ...
 )
 ```
@@ -273,6 +279,52 @@ gr_read_spec(
   lacking them: its verdict stops the loop as it does without `verify`.
   See "Verifying quotations" below.
 
+- accept_near_verbatim:
+
+  Under `verify = TRUE`, whether a quotation the edit-distance matcher
+  scores `near_verbatim` (see "Verifying quotations") also lets the
+  `iterative` reader stop. `FALSE` (the default) accepts only a
+  quotation the decisive check verifies, as before the setting existed.
+  A near-verbatim quotation that stops the loop is still reported as not
+  verified in `$evidence`, so the answer is marked partial. `TRUE`
+  without `verify = TRUE` is refused with a `gr_bad_setting` error.
+  Untested: nothing has measured whether accepting near-verbatim
+  quotations gives better answers, and on the package's labelled
+  quotation set 25 of 46 quotations with one content word swapped scored
+  `near_verbatim`.
+
+- max_merge_levels:
+
+  The most merge levels `map_reduce`, `skim` and the other readers that
+  merge findings run before they give up and return the findings
+  unmerged and cut, with the answer partial. \[1, 12\], default 6, the
+  cap the code had before it was a setting. Separate from `max_levels`,
+  which only `hierarchical` reads. Untested.
+
+- restate_tokens:
+
+  Under `restate = "auto"`, the length of the excerpts, in tokens, above
+  which the question is repeated before them. \[0, 1e6\], default 1200,
+  the value the code had before it was a setting. Untested: the code
+  called it "a number, and an arbitrary one".
+
+- bm25_k1, bm25_b:
+
+  The Okapi BM25 parameters of the word-matching scores that `rerank`
+  prefilters its candidates with and that `retrieve` blends in when
+  embeddings are lexical. Defaults 1.5 and 0.75, the usual values given
+  by Robertson and Zaragoza (2009), "The Probabilistic Relevance
+  Framework: BM25 and Beyond"; not tuned on this package's tasks.
+  `bm25_k1` \[0, 10\], `bm25_b` \[0, 1\].
+
+- lexical_blend:
+
+  For `retrieve` when the embeddings are lexical (the offline embedder,
+  or the fallback when the embeddings request fails): the weight of the
+  cosine score, with `1 - lexical_blend` on the BM25 score. \[0, 1\],
+  default 0.5, an even blend chosen when the offline path was written.
+  Untested.
+
 - ...:
 
   Extra fields for custom readers.
@@ -344,7 +396,125 @@ warned about, never applied silently: `top_k` \[1, 1e4\], `fan_in` \[2,
 32\], `max_levels` \[1, 12\], `max_rounds` \[1, 20\],
 `rerank_candidates` \[1, 1e4\], `rerank_min_score` \[0, 10\],
 `preview_tokens` \[100, 1e5\], `delay_between_calls` \[0, 600\], token
-caps \[16, 1e6\].
+caps \[16, 1e6\]. The ranges of the settings added later are given with
+each argument.
+
+## Where the defaults come from
+
+Each setting's default, its tier (`basic` for the few most users change,
+`advanced` for the rest) and the evidence behind the value. `untested`
+means no measurement backs the value; `cited` names the published source
+it comes from. The settings added as declared parameters
+(`accept_near_verbatim`, `max_merge_levels`, `restate_tokens`,
+`bm25_k1`, `bm25_b`, `lexical_blend`) are stored in the spec only when
+they are not their default, so a default spec keeps the store and cache
+keys it had before they existed.
+
+- `on_overflow` (default `"warn"`, advanced): untested. Chosen so that a
+  document too long for one request still gets an answer that says what
+  was cut.
+
+- `context_order` (default `"relevance"`, advanced): untested. The order
+  the readers used before the setting existed; the alternatives were
+  added to be compared, and no comparison is recorded.
+
+- `restate` (default `"auto"`, advanced): untested. A setting so that
+  gr_compare() can measure it on a corpus; no measurement is recorded.
+
+- `premise` (default `FALSE`, advanced): untested. Off, so a run sends
+  the requests it sent before the check existed.
+
+- `verify` (default `FALSE`, basic): untested. Off, so a run sends the
+  requests and accepts the answers it did before the check existed.
+
+- `effort` (default `NULL`, advanced): untested. Unset: no effort is
+  sent, and the provider's own default applies.
+
+- `reader` (default `"map_reduce"`, basic): untested. The reader that
+  sends every chunk, chosen because it reads the whole document at any
+  length; no comparison of readers is recorded.
+
+- `model` (default `NULL`, basic): untested. Not a tuned value: NULL
+  takes the client's model.
+
+- `temperature` (default `NULL`, advanced): untested. Not a tuned value:
+  NULL takes gr_options("temperature"), which sends none.
+
+- `max_answer_tokens` (default `1500`, advanced): untested. Set as a
+  generous cap for an answer; not measured.
+
+- `max_chunk_tokens` (default `700`, advanced): untested. Set as a cap
+  for one chunk's finding; not measured.
+
+- `max_summary_tokens` (default `500`, advanced): untested. Set as a cap
+  for one summary; not measured.
+
+- `top_k` (default `6`, basic): untested. A common starting value for
+  retrieval; not tuned here.
+
+- `min_score` (default `-Inf`, advanced): untested. Not a tuned value:
+  -Inf applies no floor.
+
+- `mmr` (default `1`, advanced): untested. 1 is plain top-k, the
+  selection used before the setting existed.
+
+- `rerank_candidates` (default `20`, advanced): untested. Set when
+  rerank was written; not tuned.
+
+- `rerank_min_score` (default `4`, advanced): untested. Set when rerank
+  was written; not tuned.
+
+- `fan_in` (default `5`, advanced): untested. Set when hierarchical was
+  written; not tuned.
+
+- `max_levels` (default `5`, advanced): untested. Set when hierarchical
+  was written; not tuned.
+
+- `max_rounds` (default `4`, advanced): untested. Set when iterative was
+  written; not tuned.
+
+- `preview_tokens` (default `1200`, advanced): untested. Set when
+  preview was written; not tuned.
+
+- `members` (default `NULL`, advanced): untested. NULL takes ensemble's
+  own pair, retrieve and map_reduce; not compared with other pairs.
+
+- `cite` (default `FALSE`, basic): untested. Off, so the answer prompt
+  is the one used before the setting existed.
+
+- `skim_model` (default `NULL`, advanced): untested. Not a tuned value:
+  NULL uses `model`.
+
+- `summary_model` (default `NULL`, advanced): untested. Not a tuned
+  value: NULL uses `model`.
+
+- `parallel` (default `NULL`, advanced): untested. Not a tuned value:
+  NULL follows gr_options("parallel"). It does not change output.
+
+- `delay_between_calls` (default `0`, advanced): untested. No pause. It
+  does not change output.
+
+- `accept_near_verbatim` (default `FALSE`, advanced): untested. Off, as
+  the code behaved before the setting existed. Not measured as a
+  stopping rule; on the labelled quotation set, 25 of 46 quotations with
+  one content word swapped score near_verbatim (NEWS, 0.6.0.9000).
+
+- `max_merge_levels` (default `6`, advanced): untested. The cap the
+  merge code had as a constant; not tuned.
+
+- `restate_tokens` (default `1200`, advanced): untested. An arbitrary
+  number, as its comment said when it was a constant; not measured.
+
+- `bm25_k1` (default `1.5`, advanced): cited. Robertson and Zaragoza
+  (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give
+  k1 between 1.2 and 2.0 as usual; not tuned here.
+
+- `bm25_b` (default `0.75`, advanced): cited. Robertson and Zaragoza
+  (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give
+  b = 0.75 as usual; not tuned here.
+
+- `lexical_blend` (default `0.5`, advanced): untested. An even blend,
+  set when the offline path was written.
 
 ## Reasoning effort
 

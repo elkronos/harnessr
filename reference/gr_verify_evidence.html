@@ -196,8 +196,8 @@ numbers (with sign, a comparison sign before them and unit, such as
 "-12%", "&lt; 0.05" or "45.2 million"), numbers written in words ("twelve")
 and negations are the window's, exactly. <code>quote_status</code> is <code>"verbatim"</code>
 for no edit; <code>"near_verbatim"</code> for a similarity of at least 0.90 (0.95
-under 40 characters) with the critical tokens identical and five words or
-more; <code>"unverified"</code> otherwise; and <code>"not_checked"</code> where there was nothing
+under 40 characters; see <code>near_verbatim_sim</code> in <code><a href="gr_options.html">gr_options()</a></code>) with the
+critical tokens identical and five words or more; <code>"unverified"</code> otherwise; and <code>"not_checked"</code> where there was nothing
 to compare, or where a passage was too long to score: the edit table has a
 cell for each pair of characters, and a passage whose length times the
 source's is over 5e7 is skipped. A quotation split by an elision or a blank line takes the worst

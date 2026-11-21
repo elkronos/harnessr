@@ -2,6 +2,86 @@
 
 ## harnessr 0.6.0.9000
 
+### Settings that were constants
+
+Values that were fixed in the code are now settings, each with the value
+it had as its default, so a run at the defaults sends the same requests
+and keeps the same cache, store and replay keys. A new read, segment or
+ingest setting is stored in the spec only when it is not its default,
+and a new option is recorded in a trace’s options, and joins a key, only
+then. Each setting’s help says where its default came from; almost none
+has a measurement behind it.
+
+- **[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)**:
+  `auto_max_tokens` (50000) and `auto_room_share` (0.5) set when
+  `answer_document(recipe = "auto")` reads with `"fast"`;
+  `reasoning_floor` (2048) is the least output cap sent to a reasoning
+  model, and `0` turns the raise off; `output_reserve_share` (0.25) is
+  the share of the window
+  [`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
+  reserves for the reply; `near_verbatim_sim` (0.90),
+  `near_verbatim_sim_short` (0.95) and `near_verbatim_short_chars` (40)
+  set when the edit-distance matcher scores a quotation `near_verbatim`.
+  A non-default `reasoning_floor` joins the response-cache key, and it,
+  `output_reserve_share` and the near-verbatim settings join the store
+  key of
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
+- **[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)**:
+  `accept_near_verbatim` (FALSE) lets a near-verbatim quotation stop the
+  `iterative` reader under `verify = TRUE`, and is refused without it;
+  `max_merge_levels` (6) caps the merge tree of `map_reduce` and the
+  other merging readers, and the worst case counted before a run counts
+  that many levels; `restate_tokens` (1200) is the length above which
+  `restate = "auto"` repeats the question; `bm25_k1` (1.5) and `bm25_b`
+  (0.75) are the BM25 parameters of rerank’s prefilter and lexical
+  retrieve, the usual values in Robertson and Zaragoza (2009);
+  `lexical_blend` (0.5) weighs cosine against BM25 in an offline
+  `retrieve`.
+- **[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md)**:
+  `context_reply_tokens` (90) and `context_document_tokens` (1500) for
+  `contextual` under `context_source = "llm"`, and
+  `proposition_reply_tokens` (2000) for `proposition`.
+- **[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)**:
+  `layout_opts` changes the PDF running-head pass (`depth`, `share`,
+  `min_pages`, `max_chars`, `max_words`). Under `cleaner_opts`,
+  `references_after` (0.4) sets where the `references` cleaner may find
+  a bibliography heading; it keeps the code’s behaviour, a heading at or
+  after 40% of the text, which a comment had described as “the last
+  40%”. `header_max_chars` and `header_min_repeats`, which
+  `headers_footers` already read, are now documented. The settings
+  column of
+  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+  names each entry of `layout_opts` and `cleaner_opts`, as
+  `layout_opts.depth=3`, and the ingest step of a run’s trace records
+  them under `settings` when any is set.
+- **[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)**:
+  `coherence_rounds` (1) lets each revision pass run more than once,
+  each round checked as a pass is and the pass stopping at a round that
+  is discarded or changes nothing (paper-orchestra runs up to 3, with no
+  recorded evidence for that number); `figure_bands` (about 0.10, over
+  and under 0.25) sets how near a qualified figure must be; `prominence`
+  (thirds) sets how many claims get each sentence budget; and
+  `study_weights` takes a function that weighs the studies claims are
+  ranked by. `$coherence` has a `round` column.
+- **`gr_calibrate(max_width = 0.10)`**,
+  **`hr_report(auto_bootstrap_at = c(items = 300, clusters = 30), min_runs = 5)`**
+  and
+  **`hr_calibrate_signal(min_errors = 100, isotonic_min_items = 1000, min_clusters = 20)`**.
+  None of these numbers was measured. The coverage simulation
+  (`dev/sim-coverage.R`) measured the two interval methods at two
+  designs only, 386 items in 40 clusters and 50 items in 10; the switch
+  to the bootstrap at 300 items and 30 clusters lies between them and is
+  itself untested. A calibration record held to a bar other than the
+  default says so in its `notes`.
+- **`hr_param(evidence =)`** must be a list of `status` (`"measured"`,
+  `"cited"` or `"untested"`) and a non-empty `source`. Every parameter
+  of the read, segment and ingest schemas declares one, their help pages
+  list them under “Where the defaults come from”, and
+  [`print()`](https://rdrr.io/r/base/print.html) of a schema shows each
+  parameter’s tier and evidence status. Each schema keeps at most five
+  `basic` parameters: the read spec’s are `reader`, `model`, `top_k`,
+  `cite` and `verify`, and the rest are `advanced`. No default changed.
+
 ### Fixed
 
 - [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),

@@ -20,7 +20,9 @@ hr_report(
   seed = 1,
   method = c("auto", "bootstrap", "cluster_t", "bayes", "exact"),
   confirmatory = FALSE,
-  registration = NULL
+  registration = NULL,
+  auto_bootstrap_at = c(items = 300, clusters = 30),
+  min_runs = 5L
 )
 
 # S3 method for class 'hr_bench_report'
@@ -81,6 +83,25 @@ as_json(x, pretty = TRUE, ...)
   An
   [`hr_register_contrasts()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md)
   result for the reference this benchmark scored, or `NULL`.
+
+- auto_bootstrap_at:
+
+  Under `method = "auto"`, the size at which the report switches from
+  the cluster-robust t interval to the studentised cluster bootstrap:
+  `c(items = , clusters = )`, both reached. Default
+  `c(items = 300, clusters = 30)`. The coverage simulation of
+  `dev/sim-coverage.R` measured each method at two designs only, 386
+  items in 40 clusters and 50 items in 10 (2000 replicates each; see
+  "Intervals"), and found each covers at the design it is used for. The
+  cut-point itself is untested: no design near 300 items or 30 clusters
+  was run, so nothing measures where the switch belongs. The notes about
+  intervals that can undercover use the same two numbers.
+
+- min_runs:
+
+  The fewest runs for which the report gives intervals; below it the
+  report is descriptive only. A whole number, 2 or more; default 5,
+  untested: no simulation backs that number.
 
 - x:
 
@@ -392,11 +413,11 @@ reference the registration names, as an
 result does (error class `hr_registration_mismatch`), and a registration
 changed after it was made is refused (class `hr_registration_changed`).
 
-Below 5 runs the report is descriptive only: point estimates without
-intervals, resamples or rank intervals. Cost and pass^k intervals (BCa),
-rank intervals and the frontier share come from the cluster bootstrap in
-both regimes; below the thresholds the report says to read them as
-rough.
+Below 5 runs (`min_runs`) the report is descriptive only: point
+estimates without intervals, resamples or rank intervals. Cost and
+pass^k intervals (BCa), rank intervals and the frontier share come from
+the cluster bootstrap in both regimes; below the thresholds the report
+says to read them as rough.
 
 ## References
 

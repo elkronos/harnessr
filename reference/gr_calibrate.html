@@ -74,7 +74,8 @@ sample is too small to say.</p>
 <span>  of <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  recall_target <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  conf <span class="op">=</span> <span class="fl">0.95</span>,</span>
-<span>  max_lost <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  max_lost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  max_width <span class="op">=</span> <span class="fl">0.1</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -131,6 +132,14 @@ frame, it wins with a warning, and the file's frame size is not used.</p></dd>
 <dd><p>Optional: the most eligible records the screener may have
 excluded. When given, an upper bound on records lost at or below it also
 meets the target.</p></dd>
+
+
+<dt id="arg-max-width">max_width<a class="anchor" aria-label="anchor" href="#arg-max-width"></a></dt>
+<dd><p>For a sample of one stratum: the widest interval, as a
+proportion, its headline rate may have for the sample to be adequate.
+One number strictly between 0 and 1; default 0.10, ten percentage points
+or a margin of five either way, set when the rule was written and
+untested.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -304,8 +313,9 @@ eligible studies alone, so the sample needs <code>min_positives</code> of them. 
 excluded", "eligible among those kept") is taken over every row sampled, so
 a sample of 500 clean exclusions is a good one, not one resting on no
 observations. There the sample is adequate when that rate's interval is at
-most 10 percentage points wide, or when every record in the stratum was
-judged (nothing is left to sample, and the rate is a count for this run).
+most 10 percentage points wide (<code>max_width</code>), or when every record in the
+stratum was judged (nothing is left to sample, and the rate is a count for
+this run).
 The bar is a floor, not a verdict: 10 points is wide for an omission rate
 near zero across a large pile of exclusions, and the projected count of lost
 studies, printed with its interval, is the figure to judge that by.

@@ -77,12 +77,18 @@ hr_param(
 
 - tier:
 
-  `"basic"` or `"advanced"`, for grouping in a user interface.
+  `"basic"` or `"advanced"`, for grouping in a user interface. A module
+  keeps `"basic"` for the few settings most users change.
 
 - evidence:
 
-  `NULL`, or a list saying where the setting comes from and whether its
-  benefit has been measured.
+  `NULL`, or a list saying where the default comes from: `status`, one
+  of `"measured"` (the value was measured or tuned, and `source` says
+  where the measurement is), `"cited"` (taken from a published source,
+  which `source` names) or `"untested"` (nothing has measured it;
+  `source` says how it was chosen), and `source`, one non-empty string.
+  Anything else is an error of class `gr_bad_setting`. The package's own
+  spec parameters all declare it.
 
 - depends_on:
 

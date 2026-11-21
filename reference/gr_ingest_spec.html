@@ -64,7 +64,8 @@
 <span>  extractor <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cleaner_opts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  layout <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"raw"</span><span class="op">)</span></span>
+<span>  layout <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"raw"</span><span class="op">)</span>,</span>
+<span>  layout_opts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -110,7 +111,27 @@ the file extension.</p></dd>
 
 
 <dt id="arg-cleaner-opts">cleaner_opts<a class="anchor" aria-label="anchor" href="#arg-cleaner-opts"></a></dt>
-<dd><p>Extra options passed to individual cleaners.</p></dd>
+<dd><p>Extra options passed to individual cleaners, as a named
+list. The built-in cleaners read these:</p><dl><dt><code>references_after</code> (0.4)</dt>
+<dd><p>For the <code>references</code> cleaner (in the
+<code>academic</code> and <code>legacy</code> presets): a References, Bibliography or Works
+cited heading ends the text only when it starts at or after this
+share of the text, so an entry in a table of contents does not cut
+the document. A number in [0, 1]; a value that cannot be read
+warns and uses 0.4. Untested: set when the cleaner was written.</p></dd>
+
+<dt><code>header_max_chars</code> (80)</dt>
+<dd><p>For the <code>headers_footers</code> cleaner (in
+the <code>scan</code> preset): the longest line, in characters, that can be
+taken for a running head or foot. Untested.</p></dd>
+
+<dt><code>header_min_repeats</code> (3)</dt>
+<dd><p>For <code>headers_footers</code>: how many times a
+line must recur to be taken for one. Values below 3 are read as 3,
+and a text of fewer than 8 lines is left alone. Untested.</p></dd>
+
+
+</dl></dd>
 
 
 <dt id="arg-layout">layout<a class="anchor" aria-label="anchor" href="#arg-layout"></a></dt>
@@ -124,11 +145,41 @@ are not affected. Stored in the spec only when it is not <code>"auto"</code>, so
 default spec keeps the cache and store keys it had before the setting
 existed.</p></dd>
 
+
+<dt id="arg-layout-opts">layout_opts<a class="anchor" aria-label="anchor" href="#arg-layout-opts"></a></dt>
+<dd><p>Under <code>layout = "auto"</code>, a named list that changes how
+running heads and feet are found on PDF pages: <code>depth</code> (2, lines at each
+edge of a page that are candidates), <code>share</code> (0.4, the share of pages a
+line must recur on), <code>min_pages</code> (3, the fewest pages a document needs
+before any line is dropped, and the fewest a line must recur on),
+<code>max_chars</code> (200, the longest candidate line) and <code>max_words</code> (5, above
+which a numbered line must carry its number where a page number is set).
+Names left out keep these defaults, which were set when the PDF reader
+was written and are untested. An unknown name is an error. Stored in the
+spec only when it is not empty.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A list of class <code>gr_ingest_spec</code>.</p>
     </div>
+    <div class="section level2">
+    <h2 id="where-the-defaults-come-from">Where the defaults come from<a class="anchor" aria-label="anchor" href="#where-the-defaults-come-from"></a></h2>
+
+
+<p>Each setting's default, its tier and the evidence behind the value, as in
+<code><a href="gr_read_spec.html">gr_read_spec()</a></code>.</p><ul><li><p><code>ocr</code> (default <code>"auto"</code>, basic): untested. OCR only where a page has no text layer; not compared.</p></li>
+<li><p><code>layout</code> (default <code>"auto"</code>, advanced): untested. The layout pass is on; checked on the PDFs in the tests, with no measured comparison against "raw".</p></li>
+<li><p><code>clean</code> (default <code>"standard"</code>, basic): untested. The preset meant for born-digital text; not compared.</p></li>
+<li><p><code>ocr_lang</code> (default <code>"eng"</code>, advanced): untested. English, the language of the package's own examples.</p></li>
+<li><p><code>ocr_dpi</code> (default <code>300</code>, advanced): cited. Tesseract's documentation on improving output quality recommends images of at least 300 DPI; not measured here.</p></li>
+<li><p><code>ocr_min_chars</code> (default <code>40</code>, advanced): untested. Set when OCR was added; not tuned.</p></li>
+<li><p><code>min_chars</code> (default <code>20</code>, basic): untested. A floor that catches an empty extraction; not tuned.</p></li>
+<li><p><code>extractor</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL chooses by file type.</p></li>
+<li><p><code>parallel</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.</p></li>
+<li><p><code>cleaner_opts</code> (default <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>, advanced): untested. Empty: each cleaner uses its own defaults, listed under <code>cleaner_opts</code>.</p></li>
+<li><p><code>layout_opts</code> (default <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>, advanced): untested. Empty: the pass uses the values it was written with, listed under <code>layout_opts</code>; none was tuned.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="gr_ingest.html">gr_ingest()</a></code>, <code><a href="gr_cleaners.html">gr_cleaners()</a></code> for the individual step names,
@@ -163,6 +214,40 @@ existed.</p></dd>
 <span class="r-in"><span><span class="co"># Or name the steps yourself; see gr_cleaners() for what is available.</span></span></span>
 <span class="r-in"><span><span class="fu">gr_ingest_spec</span><span class="op">(</span>clean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"page_numbers"</span>, <span class="st">"references"</span><span class="op">)</span>, ocr <span class="op">=</span> <span class="st">"never"</span><span class="op">)</span><span class="op">$</span><span class="va">clean</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "page_numbers" "references"  </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A bibliography heading counts only in the last half of the text.</span></span></span>
+<span class="r-in"><span><span class="fu">gr_ingest_spec</span><span class="op">(</span>clean <span class="op">=</span> <span class="st">"academic"</span>, cleaner_opts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>references_after <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $clean</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "academic"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $ocr</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "auto"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $ocr_lang</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "eng"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $ocr_dpi</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 300</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $ocr_min_chars</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 40</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $min_chars</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 20</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $extractor</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $parallel</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $cleaner_opts</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $cleaner_opts$references_after</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "gr_ingest_spec"</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -17,6 +17,9 @@ gr_segment_spec(
   context_source = c("metadata", "llm"),
   proposition_batch_tokens = 900L,
   parallel = NULL,
+  context_reply_tokens = 90L,
+  context_document_tokens = 1500L,
+  proposition_reply_tokens = 2000L,
   ...
 )
 ```
@@ -80,14 +83,14 @@ gr_segment_spec(
 
   For `method = "contextual"`: `"metadata"` (free) or `"llm"` (one call
   per chunk). Room for the context line is held back from each chunk's
-  text before packing – 90 tokens for `"llm"`, the longest header the
-  document could need for `"metadata"`, never more than half of
-  `max_tokens` – so no chunk is cut again once its header is added, and
-  a header that still does not fit is shortened, never the text. Under
-  `"llm"`, a chunk whose call failed or was skipped at the run's limits
-  keeps its text without a context line; `$extra$blurbs_missing` counts
-  them and a `"gr_segment_fallback"` warning says so, which also reaches
-  the answer's warnings.
+  text before packing (`context_reply_tokens` for `"llm"`, the longest
+  header the document could need for `"metadata"`, never more than half
+  of `max_tokens`), so no chunk is cut again once its header is added,
+  and a header that still does not fit is shortened, never the text.
+  Under `"llm"`, a chunk whose call failed or was skipped at the run's
+  limits keeps its text without a context line; `$extra$blurbs_missing`
+  counts them and a `"gr_segment_fallback"` warning says so, which also
+  reaches the answer's warnings.
 
 - proposition_batch_tokens:
 
@@ -96,6 +99,23 @@ gr_segment_spec(
 - parallel:
 
   Parallelise per-chunk model work in segmenters that do any.
+
+- context_reply_tokens:
+
+  For `method = "contextual"` with `context_source = "llm"`: the output
+  cap of each context-line request, and the room held back for the line
+  in each chunk. \[16, 4000\], default 90. Untested.
+
+- context_document_tokens:
+
+  For `context_source = "llm"`: how much of the document, from its
+  start, each context-line request carries so the model can place the
+  excerpt. \[100, 1e6\], default 1500. Untested.
+
+- proposition_reply_tokens:
+
+  For `method = "proposition"`: the output cap of each batch's request.
+  \[100, 1e6\], default 2000. Untested.
 
 - ...:
 
@@ -112,6 +132,58 @@ about, never applied silently: `max_tokens` \[32, 1e6\],
 `overlap_tokens` \[0, max_tokens - 1\], `min_tokens` \[0, max_tokens\],
 `semantic_window` \[1, 10\], `semantic_percentile` \[50, 99.5\],
 `proposition_batch_tokens` \[200, 4000\].
+
+## Where the defaults come from
+
+Each setting's default, its tier and the evidence behind the value, as
+in
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
+`context_reply_tokens`, `context_document_tokens` and
+`proposition_reply_tokens` were constants in the code; they are stored
+in the spec only when they are not their default, so a default spec
+keeps the store and cache keys it had before they existed.
+
+- `context_source` (default `"metadata"`, advanced): untested. The
+  source that makes no request; not compared with "llm".
+
+- `max_tokens` (default `1200`, basic): untested. Set when the
+  segmenters were written; not tuned.
+
+- `overlap_tokens` (default `0`, basic): untested. No overlap, so no
+  text is sent twice; not compared.
+
+- `min_tokens` (default `0`, advanced): untested. No merging of small
+  chunks; not compared.
+
+- `method` (default `"paragraph"`, basic): untested. A segmenter that
+  needs no model or embedder; not compared with the others.
+
+- `separators` (default `NULL`, advanced): untested. Not a tuned value:
+  NULL takes recursive's own cascade.
+
+- `prefix_section` (default `TRUE`, advanced): untested. Set when
+  structural was written; not compared.
+
+- `semantic_window` (default `2`, advanced): untested. Set when semantic
+  was written; not tuned.
+
+- `semantic_percentile` (default `90`, advanced): untested. Set when
+  semantic was written; not tuned.
+
+- `proposition_batch_tokens` (default `900`, advanced): untested. Set
+  when proposition was written; not tuned.
+
+- `parallel` (default `NULL`, advanced): untested. Not a tuned value:
+  NULL follows gr_options("parallel"). It does not change output.
+
+- `context_reply_tokens` (default `90`, advanced): untested. The cap the
+  code had as a constant; not tuned.
+
+- `context_document_tokens` (default `1500`, advanced): untested. The
+  length the code had as a constant; not tuned.
+
+- `proposition_reply_tokens` (default `2000`, advanced): untested. The
+  cap the code had as a constant; not tuned.
 
 ## See also
 

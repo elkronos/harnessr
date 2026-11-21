@@ -66,6 +66,9 @@
 <span>  context_source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"metadata"</span>, <span class="st">"llm"</span><span class="op">)</span>,</span>
 <span>  proposition_batch_tokens <span class="op">=</span> <span class="fl">900L</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  context_reply_tokens <span class="op">=</span> <span class="fl">90L</span>,</span>
+<span>  context_document_tokens <span class="op">=</span> <span class="fl">1500L</span>,</span>
+<span>  proposition_reply_tokens <span class="op">=</span> <span class="fl">2000L</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -127,10 +130,10 @@ boundary (higher = fewer, larger chunks).</p></dd>
 <dt id="arg-context-source">context_source<a class="anchor" aria-label="anchor" href="#arg-context-source"></a></dt>
 <dd><p>For <code>method = "contextual"</code>: <code>"metadata"</code> (free) or
 <code>"llm"</code> (one call per chunk). Room for the context line is held back from
-each chunk's text before packing – 90 tokens for <code>"llm"</code>, the longest
-header the document could need for <code>"metadata"</code>, never more than half of
-<code>max_tokens</code> – so no chunk is cut again once its header is added, and a
-header that still does not fit is shortened, never the text. Under
+each chunk's text before packing (<code>context_reply_tokens</code> for <code>"llm"</code>, the
+longest header the document could need for <code>"metadata"</code>, never more than
+half of <code>max_tokens</code>), so no chunk is cut again once its header is added,
+and a header that still does not fit is shortened, never the text. Under
 <code>"llm"</code>, a chunk whose call failed or was skipped at the run's limits
 keeps its text without a context line; <code>$extra$blurbs_missing</code> counts
 them and a <code>"gr_segment_fallback"</code> warning says so, which also reaches
@@ -143,6 +146,24 @@ the answer's warnings.</p></dd>
 
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
 <dd><p>Parallelise per-chunk model work in segmenters that do any.</p></dd>
+
+
+<dt id="arg-context-reply-tokens">context_reply_tokens<a class="anchor" aria-label="anchor" href="#arg-context-reply-tokens"></a></dt>
+<dd><p>For <code>method = "contextual"</code> with
+<code>context_source = "llm"</code>: the output cap of each context-line request, and
+the room held back for the line in each chunk. [16, 4000], default 90.
+Untested.</p></dd>
+
+
+<dt id="arg-context-document-tokens">context_document_tokens<a class="anchor" aria-label="anchor" href="#arg-context-document-tokens"></a></dt>
+<dd><p>For <code>context_source = "llm"</code>: how much of
+the document, from its start, each context-line request carries so the
+model can place the excerpt. [100, 1e6], default 1500. Untested.</p></dd>
+
+
+<dt id="arg-proposition-reply-tokens">proposition_reply_tokens<a class="anchor" aria-label="anchor" href="#arg-proposition-reply-tokens"></a></dt>
+<dd><p>For <code>method = "proposition"</code>: the output cap
+of each batch's request. [100, 1e6], default 2000. Untested.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -163,6 +184,29 @@ never applied silently: <code>max_tokens</code> [32, 1e6], <code>overlap_tokens<
 [1, 10], <code>semantic_percentile</code> [50, 99.5], <code>proposition_batch_tokens</code>
 [200, 4000].</p>
     </div>
+    <div class="section level2">
+    <h2 id="where-the-defaults-come-from">Where the defaults come from<a class="anchor" aria-label="anchor" href="#where-the-defaults-come-from"></a></h2>
+
+
+<p>Each setting's default, its tier and the evidence behind the value, as in
+<code><a href="gr_read_spec.html">gr_read_spec()</a></code>. <code>context_reply_tokens</code>, <code>context_document_tokens</code> and
+<code>proposition_reply_tokens</code> were constants in the code; they are stored in
+the spec only when they are not their default, so a default spec keeps the
+store and cache keys it had before they existed.</p><ul><li><p><code>context_source</code> (default <code>"metadata"</code>, advanced): untested. The source that makes no request; not compared with "llm".</p></li>
+<li><p><code>max_tokens</code> (default <code>1200</code>, basic): untested. Set when the segmenters were written; not tuned.</p></li>
+<li><p><code>overlap_tokens</code> (default <code>0</code>, basic): untested. No overlap, so no text is sent twice; not compared.</p></li>
+<li><p><code>min_tokens</code> (default <code>0</code>, advanced): untested. No merging of small chunks; not compared.</p></li>
+<li><p><code>method</code> (default <code>"paragraph"</code>, basic): untested. A segmenter that needs no model or embedder; not compared with the others.</p></li>
+<li><p><code>separators</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL takes recursive's own cascade.</p></li>
+<li><p><code>prefix_section</code> (default <code>TRUE</code>, advanced): untested. Set when structural was written; not compared.</p></li>
+<li><p><code>semantic_window</code> (default <code>2</code>, advanced): untested. Set when semantic was written; not tuned.</p></li>
+<li><p><code>semantic_percentile</code> (default <code>90</code>, advanced): untested. Set when semantic was written; not tuned.</p></li>
+<li><p><code>proposition_batch_tokens</code> (default <code>900</code>, advanced): untested. Set when proposition was written; not tuned.</p></li>
+<li><p><code>parallel</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.</p></li>
+<li><p><code>context_reply_tokens</code> (default <code>90</code>, advanced): untested. The cap the code had as a constant; not tuned.</p></li>
+<li><p><code>context_document_tokens</code> (default <code>1500</code>, advanced): untested. The length the code had as a constant; not tuned.</p></li>
+<li><p><code>proposition_reply_tokens</code> (default <code>2000</code>, advanced): untested. The cap the code had as a constant; not tuned.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="gr_segmenters.html">gr_segmenters()</a></code> for the available methods and their costs,

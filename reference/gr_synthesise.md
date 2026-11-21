@@ -26,7 +26,11 @@ gr_synthesise(
   claims = NULL,
   gaps = NULL,
   trace = NULL,
-  effort = NULL
+  effort = NULL,
+  coherence_rounds = 1L,
+  figure_bands = c(about = 0.1, over = 0.25, under = 0.25),
+  prominence = c(top = 1/3, middle = 1/3),
+  study_weights = NULL
 )
 ```
 
@@ -231,6 +235,52 @@ gr_synthesise(
   against each call's reply limit (`max_section_tokens` for a section),
   and a section cut off at it is reported as one.
 
+- coherence_rounds:
+
+  How many rounds each `coherence` pass may run: each round revises the
+  text the round before it kept, and the pass stops at the first round
+  that is discarded or changes nothing. Every round is checked as a
+  single pass is, and is a request. A whole number in \[1, 10\]; default
+  1, one round per pass, as before the setting existed. Untested:
+  paper-orchestra runs up to 3 refinement rounds, with no recorded
+  evidence for that number, and nothing has measured more than one round
+  here.
+
+- figure_bands:
+
+  How near a value a qualified figure must be to count as found in the
+  check of figures (see "Figures"): a named numeric vector of `about`
+  (the share either way that "about 1,200" covers), `over` (the share
+  above that "more than 1,000" covers) and `under` (the share below that
+  "fewer than 1,000" covers). Names left out keep their defaults,
+  `c(about = 0.10, over = 0.25, under = 0.25)`, set when the check was
+  written and untested. Each is in \[0, 1\]. The check sends nothing, so
+  this changes what `$figures` reports, never a request.
+
+- prominence:
+
+  How much of the writing prompt's sentence budget the claims of a
+  section get, by rank: `c(top = , middle = )`, the shares of a
+  section's claims (ranked by how many studies, and how much weight,
+  stand behind them) asked for "two or three sentences" and "one or two
+  sentences"; the rest get "one sentence", and a section of three claims
+  or fewer gives each "two or three". Default
+  `c(top = 1/3, middle = 1/3)`, thirds, set when claims were added and
+  untested. Each share is in \[0, 1\] and the two add up to at most 1.
+  At least one claim is always in the top tier. Used only with `claims`.
+
+- study_weights:
+
+  How much each study counts when claims are ranked (and so which tier
+  each claim gets, see `prominence`): `NULL` (the default) for the
+  package's weight, `0.5 + 0.5 * size + 0.5 * filled`, where `size` is
+  `log1p(n)` over its largest value (the mean of the known ones when `n`
+  is missing) and `filled` the share of a row's filled cells whose
+  quotations verified (0.5 when unknown). That formula is untested, and
+  is not a quality score. Or a function of the studies table (the
+  extraction's included rows, with a `study` column of ids) returning
+  one non-negative number per row. Used only with `claims`.
+
 ## Value
 
 An object of class `gr_synthesis`:
@@ -259,14 +309,15 @@ An object of class `gr_synthesis`:
 
 - `coherence`:
 
-  One row per revision pass, or `NULL` if none ran: `pass` (which of
-  `"structure"`, `"cut"`, `"register"`), `ran`, `kept`, `lost` and
-  `added` (citations, if the revision changed them), `reason` for
-  anything discarded, and `words_before` and `words_after` (integer:
-  words of prose, headings and citation markers left out, in the text
-  the pass was given and in its revision; `NA` for a pass that was not
-  sent, or was refused by a check made before the length check, which
-  comes last).
+  One row per round of each revision pass, or `NULL` if none ran: `pass`
+  (which of `"structure"`, `"cut"`, `"register"`), `round` (1 unless
+  `coherence_rounds` is more), `ran`, `kept`, `lost` and `added`
+  (citations, if the revision changed them), `reason` for anything
+  discarded, and `words_before` and `words_after` (integer: words of
+  prose, headings and citation markers left out, in the text the pass
+  was given and in its revision; `NA` for a pass that was not sent, or
+  was refused by a check made before the length check, which comes
+  last).
 
 - `unrendered`:
 
@@ -422,14 +473,15 @@ column; the number of studies the sentence cites, its section was shown
 or the review was written from, or how many of those rows share a
 field's value ("10 were randomised trials"); or, after "about", "more
 than", "fewer than" and their like, within a tenth (about) or a quarter
-(a bound) of a value it could have come from. Not read as figures: a
-citation's ids, written bare as well ("studies 12 to 15"), a whole
-number below ten that is not a percentage or scaled (a review writes "2
-of the trials" as it likes), a number joined to a name ("COVID-19",
-"IL-6"), an ordinal, a decade ("1990s", "in their 60s"), an interval's
-level (`95% CI`), a significance threshold (`p < .001`, "p value below
-0.05") and a significance level ("at the 5% level"). Numbers written in
-words are not checked.
+(a bound) of a value it could have come from (`figure_bands` changes
+these shares). Not read as figures: a citation's ids, written bare as
+well ("studies 12 to 15"), a whole number below ten that is not a
+percentage or scaled (a review writes "2 of the trials" as it likes), a
+number joined to a name ("COVID-19", "IL-6"), an ordinal, a decade
+("1990s", "in their 60s"), an interval's level (`95% CI`), a
+significance threshold (`p < .001`, "p value below 0.05") and a
+significance level ("at the 5% level"). Numbers written in words are not
+checked.
 
 A figure found nowhere is reported in `$figures` and counted in
 `$sections$n_unbacked`, and the run warns (`gr_synth_unbacked_figures`)
@@ -463,8 +515,8 @@ cl <- gr_mock_client(function(messages, params) {
 f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised trial. We enrolled 120 people.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1e2e5bbc624e.txt
-#> Extracting 'file1e2e5bbc624e.txt' with the 'txt' extractor.
+#> [1/1] file1ba973862fea.txt
+#> Extracting 'file1ba973862fea.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).

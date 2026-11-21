@@ -80,8 +80,9 @@ is a data frame with one row per recipe and these columns:
 
 - `recipe`, `segmenter`, `chunks`, `reader`, `signature`, `settings`:
 
-  Which pipeline the row is, and what was changed from the recipe's
-  defaults.
+  Which pipeline the row is, and what was changed from the defaults of
+  its read and segment specs, with each entry of its ingest spec's
+  `layout_opts` and `cleaner_opts` (as `layout_opts.depth=3`).
 
 - `partial`, `chunks_used`, `answer_chars`, `not_found`, `error`:
 
@@ -192,7 +193,7 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "chunks_
 # One trace covers all three, so this is the cost of the whole comparison.
 gr_trace_summary(cmp$trace)
 #>                          run_id calls cached steps tokens_in tokens_out errors
-#> 1 run_20261121155232.557_244487     5      0    16      2122         65      0
+#> 1 run_20261121195951.504_87bd55     5      0    16      2122         65      0
 #>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in
 #> 1      0.15           0            0                0                0
 #>   usage_estimated

@@ -172,9 +172,11 @@ scores, not the labels, so starting there keeps the guarantee. For
 wrong.</p>
 <p>The record becomes <code>"gating"</code> only when a threshold passes and none of
 the reasons <code><a href="hr_calibrate_signal.html">hr_calibrate_signal()</a></code> gave holds: the graded set had at
-least 100 wrong items, the fitted map increases with the signal and the
-ECE used at least 5 bins. Otherwise it stays <code>"advisory"</code> and <code>reasons</code>
-says why.</p>
+least as many wrong items as the bar the record was calibrated with
+(<code>min_errors</code> of <code><a href="hr_calibrate_signal.html">hr_calibrate_signal()</a></code>, default 100; a bar other than the
+default is in the record's <code>notes</code>), the fitted map increases with the
+signal and the ECE used at least 5 bins. Otherwise it stays <code>"advisory"</code>
+and <code>reasons</code> says why.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

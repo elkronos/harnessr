@@ -73,32 +73,38 @@ changing an option mid-session affects subsequent runs.
 - `temperature` (NULL):
 
   Default sampling temperature. `NULL` omits the field. Dropped
-  automatically for models that reject it.
+  automatically for models that reject it. Untested: `NULL` sends no
+  temperature, so the model decides.
 
 - `max_retries` (4):
 
   Retries for transient failures. HTTP 400 is never retried: a malformed
-  request stays malformed.
+  request stays malformed. Untested: set when retries were written, with
+  no measurement behind the number.
 
 - `retry_pause_base` (2):
 
-  Seconds; exponential backoff base.
+  Seconds; exponential backoff base. Untested: set when retries were
+  written.
 
 - `request_timeout` (120):
 
-  Per-request timeout, seconds.
+  Per-request timeout, seconds. Untested: set when the HTTP client was
+  written.
 
 - `safety_margin` (0.10):
 
   Fraction of the context window left unused to absorb tokenizer error.
-  Not a spending cap (see `max_cost_usd`).
+  Not a spending cap (see `max_cost_usd`). Untested: set to absorb the
+  error of counting tokens locally, and not measured against it.
 
 - `min_output_tokens` (256):
 
   Floor on the completion room
   [`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
   reserves *when `reserve_output` is not given explicitly*. An explicit
-  `reserve_output` is honoured down to 1.
+  `reserve_output` is honoured down to 1. Untested: set as a floor for a
+  short reply.
 
 - `cache_documents` (TRUE):
 
@@ -136,7 +142,8 @@ changing an option mid-session affects subsequent runs.
 
 - `workers` (4):
 
-  Worker processes when `parallel` is TRUE.
+  Worker processes when `parallel` is TRUE. Untested: set when parallel
+  runs were added. It does not change output.
 
 - `max_cost_usd` (5):
 
@@ -210,6 +217,71 @@ changing an option mid-session affects subsequent runs.
   is given its own; one named nowhere is `NA`. Other names are refused
   with an error of class `gr_bad_option`.
 
+- `auto_max_tokens` (50000):
+
+  The largest document, in tokens, that
+  [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
+  with `recipe = "auto"` reads with `"fast"` (one request); a larger one
+  is read with `"thorough"`. Untested: the value is about 70 pages of
+  prose and under a twentieth of the default model's window, and nothing
+  has measured where the two recipes' answers diverge.
+
+- `auto_room_share` (0.5):
+
+  The second condition of that choice: the document must fill at most
+  this share of the input room
+  [`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
+  leaves on every model of the run. Untested: the other half was left
+  for the error of counting tokens locally.
+
+- `reasoning_floor` (2048):
+
+  The smallest output cap a request to a reasoning model is sent with. A
+  smaller cap is raised to it, within the model's limit and the room the
+  context window leaves, so a short structured call is not used up by
+  reasoning; `0` turns the raise off. The trace's `params_sent` records
+  the cap sent. Untested: a reasoning model can spend a few hundred to a
+  couple of thousand tokens before it replies, and the value was not
+  measured. A value other than the default joins the response-cache key
+  and the store key of
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
+
+- `output_reserve_share` (0.25):
+
+  The share of the usable window
+  [`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
+  reserves for the reply when no `reserve_output` is given, between
+  `min_output_tokens` and the model's output limit. It sets the input
+  room, so how much of a document fits one request. Untested.
+
+- `near_verbatim_sim` (0.90), `near_verbatim_sim_short` (0.95),
+  `near_verbatim_short_chars` (40):
+
+  The least similarity a quotation of at least
+  `near_verbatim_short_chars` characters (after normalising), and one
+  shorter than that, needs for the edit-distance matcher to score it
+  `near_verbatim` (see
+  [`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md)).
+  The values come from practitioner sources and were not tuned; the
+  matcher's error rates at them were measured on a labelled set of 343
+  true and 162 false quotations (see NEWS). The status is recorded only,
+  unless `accept_near_verbatim = TRUE` (see
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)).
+  A value other than the default joins the store key of
+  [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
+
+## Where the defaults come from
+
+The settings listed last above were constants in the code until they
+were options; each keeps the constant's value. A trace records them (in
+its options snapshot) only when one is not its default, so a trace made
+at the defaults reads as it did before they existed. Each tuning
+setting's entry above (`temperature`, `max_retries`, `retry_pause_base`,
+`request_timeout`, `safety_margin`, `min_output_tokens`, `workers` and
+the settings listed last) says where its default came from; "untested"
+means no measurement backs the value. The other entries are switches,
+limits and names, which are choices rather than tuned values.
+
 ## Checked values
 
 Numeric options are checked when they are set, and the two kinds are
@@ -225,12 +297,16 @@ ignoring it spends money. `NULL` and `Inf` both mean "no limit".
 
 The tuning settings (`safety_margin` \[0, 0.5\], `min_output_tokens`
 \[0, 1e6\], `max_retries` \[0, 10\], `retry_pause_base` \[0, 60\],
-`request_timeout` \[1, 3600\], `workers` \[1, 32\] and `temperature`
-\[0, 2\]) read a number written as text as that number. A value they
-cannot read, such as `NA` or `"x"`, warns (`gr_bad_option`) and leaves
-the current setting unchanged; a value outside the range is clamped into
-it, with the same warning. Whole-number settings are rounded down.
-`temperature` also takes `NULL`, its default.
+`request_timeout` \[1, 3600\], `workers` \[1, 32\], `temperature` \[0,
+2\], `auto_max_tokens` \[0, 1e7\], `auto_room_share` \[0, 1\],
+`reasoning_floor` \[0, 1e6\], `output_reserve_share` \[0, 0.9\],
+`near_verbatim_sim` and `near_verbatim_sim_short` \[0, 1\] and
+`near_verbatim_short_chars` \[0, 1e4\]) read a number written as text as
+that number. A value they cannot read, such as `NA` or `"x"`, warns
+(`gr_bad_option`) and leaves the current setting unchanged; a value
+outside the range is clamped into it, with the same warning.
+Whole-number settings are rounded down. `temperature` also takes `NULL`,
+its default.
 
 ## See also
 

@@ -82,6 +82,12 @@
 <span>  effort <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  premise <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verify <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  accept_near_verbatim <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  max_merge_levels <span class="op">=</span> <span class="fl">6L</span>,</span>
+<span>  restate_tokens <span class="op">=</span> <span class="fl">1200L</span>,</span>
+<span>  bm25_k1 <span class="op">=</span> <span class="fl">1.5</span>,</span>
+<span>  bm25_b <span class="op">=</span> <span class="fl">0.75</span>,</span>
+<span>  lexical_blend <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -303,6 +309,51 @@ verdict stops the loop as it does without <code>verify</code>. See "Verifying
 quotations" below.</p></dd>
 
 
+<dt id="arg-accept-near-verbatim">accept_near_verbatim<a class="anchor" aria-label="anchor" href="#arg-accept-near-verbatim"></a></dt>
+<dd><p>Under <code>verify = TRUE</code>, whether a quotation the
+edit-distance matcher scores <code>near_verbatim</code> (see "Verifying quotations")
+also lets the <code>iterative</code> reader stop. <code>FALSE</code> (the default) accepts only
+a quotation the decisive check verifies, as before the setting existed.
+A near-verbatim quotation that stops the loop is still reported as not
+verified in <code>$evidence</code>, so the answer is marked partial. <code>TRUE</code>
+without <code>verify = TRUE</code> is refused with a <code>gr_bad_setting</code> error. Untested:
+nothing has measured whether accepting near-verbatim quotations gives
+better answers, and on the package's labelled quotation set 25 of 46
+quotations with one content word swapped scored <code>near_verbatim</code>.</p></dd>
+
+
+<dt id="arg-max-merge-levels">max_merge_levels<a class="anchor" aria-label="anchor" href="#arg-max-merge-levels"></a></dt>
+<dd><p>The most merge levels <code>map_reduce</code>, <code>skim</code> and the
+other readers that merge findings run before they give up and return the
+findings unmerged and cut, with the answer partial. [1, 12], default
+6, the cap the code had before it was a setting. Separate from
+<code>max_levels</code>, which only <code>hierarchical</code> reads. Untested.</p></dd>
+
+
+<dt id="arg-restate-tokens">restate_tokens<a class="anchor" aria-label="anchor" href="#arg-restate-tokens"></a></dt>
+<dd><p>Under <code>restate = "auto"</code>, the length of the excerpts,
+in tokens, above which the question is repeated before them. [0, 1e6],
+default 1200, the value the code had before it was a setting. Untested:
+the code called it "a number, and an arbitrary one".</p></dd>
+
+
+<dt id="arg-bm-k-bm-b">bm25_k1, bm25_b<a class="anchor" aria-label="anchor" href="#arg-bm-k-bm-b"></a></dt>
+<dd><p>The Okapi BM25 parameters of the word-matching scores
+that <code>rerank</code> prefilters its candidates with and that <code>retrieve</code> blends
+in when embeddings are lexical. Defaults 1.5 and 0.75, the usual values
+given by Robertson and Zaragoza (2009), "The Probabilistic Relevance
+Framework: BM25 and Beyond"; not tuned on this package's tasks.
+<code>bm25_k1</code> [0, 10], <code>bm25_b</code> [0, 1].</p></dd>
+
+
+<dt id="arg-lexical-blend">lexical_blend<a class="anchor" aria-label="anchor" href="#arg-lexical-blend"></a></dt>
+<dd><p>For <code>retrieve</code> when the embeddings are lexical (the
+offline embedder, or the fallback when the embeddings request fails): the
+weight of the cosine score, with <code>1 - lexical_blend</code> on the BM25 score.
+[0, 1], default 0.5, an even blend chosen when the offline path was
+written. Untested.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Extra fields for custom readers.</p></dd>
 
@@ -370,8 +421,54 @@ about, never applied silently: <code>top_k</code> [1, 1e4], <code>fan_in</code> 
 <code>max_levels</code> [1, 12], <code>max_rounds</code> [1, 20], <code>rerank_candidates</code> [1, 1e4],
 <code>rerank_min_score</code> [0, 10], <code>preview_tokens</code> [100, 1e5],
 <code>delay_between_calls</code> [0, 600],
-token caps [16, 1e6].</p>
+token caps [16, 1e6]. The ranges of the settings added later are given
+with each argument.</p>
     </div>
+    <div class="section level2">
+    <h2 id="where-the-defaults-come-from">Where the defaults come from<a class="anchor" aria-label="anchor" href="#where-the-defaults-come-from"></a></h2>
+
+
+<p>Each setting's default, its tier (<code>basic</code> for the few most users change,
+<code>advanced</code> for the rest) and the evidence behind the value. <code>untested</code>
+means no measurement backs the value; <code>cited</code> names the published source it
+comes from. The settings added as declared parameters
+(<code>accept_near_verbatim</code>, <code>max_merge_levels</code>, <code>restate_tokens</code>, <code>bm25_k1</code>,
+<code>bm25_b</code>, <code>lexical_blend</code>) are stored in the spec only when they are not
+their default, so a default spec keeps the store and cache keys it had
+before they existed.</p><ul><li><p><code>on_overflow</code> (default <code>"warn"</code>, advanced): untested. Chosen so that a document too long for one request still gets an answer that says what was cut.</p></li>
+<li><p><code>context_order</code> (default <code>"relevance"</code>, advanced): untested. The order the readers used before the setting existed; the alternatives were added to be compared, and no comparison is recorded.</p></li>
+<li><p><code>restate</code> (default <code>"auto"</code>, advanced): untested. A setting so that gr_compare() can measure it on a corpus; no measurement is recorded.</p></li>
+<li><p><code>premise</code> (default <code>FALSE</code>, advanced): untested. Off, so a run sends the requests it sent before the check existed.</p></li>
+<li><p><code>verify</code> (default <code>FALSE</code>, basic): untested. Off, so a run sends the requests and accepts the answers it did before the check existed.</p></li>
+<li><p><code>effort</code> (default <code>NULL</code>, advanced): untested. Unset: no effort is sent, and the provider's own default applies.</p></li>
+<li><p><code>reader</code> (default <code>"map_reduce"</code>, basic): untested. The reader that sends every chunk, chosen because it reads the whole document at any length; no comparison of readers is recorded.</p></li>
+<li><p><code>model</code> (default <code>NULL</code>, basic): untested. Not a tuned value: NULL takes the client's model.</p></li>
+<li><p><code>temperature</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL takes gr_options("temperature"), which sends none.</p></li>
+<li><p><code>max_answer_tokens</code> (default <code>1500</code>, advanced): untested. Set as a generous cap for an answer; not measured.</p></li>
+<li><p><code>max_chunk_tokens</code> (default <code>700</code>, advanced): untested. Set as a cap for one chunk's finding; not measured.</p></li>
+<li><p><code>max_summary_tokens</code> (default <code>500</code>, advanced): untested. Set as a cap for one summary; not measured.</p></li>
+<li><p><code>top_k</code> (default <code>6</code>, basic): untested. A common starting value for retrieval; not tuned here.</p></li>
+<li><p><code>min_score</code> (default <code>-Inf</code>, advanced): untested. Not a tuned value: -Inf applies no floor.</p></li>
+<li><p><code>mmr</code> (default <code>1</code>, advanced): untested. 1 is plain top-k, the selection used before the setting existed.</p></li>
+<li><p><code>rerank_candidates</code> (default <code>20</code>, advanced): untested. Set when rerank was written; not tuned.</p></li>
+<li><p><code>rerank_min_score</code> (default <code>4</code>, advanced): untested. Set when rerank was written; not tuned.</p></li>
+<li><p><code>fan_in</code> (default <code>5</code>, advanced): untested. Set when hierarchical was written; not tuned.</p></li>
+<li><p><code>max_levels</code> (default <code>5</code>, advanced): untested. Set when hierarchical was written; not tuned.</p></li>
+<li><p><code>max_rounds</code> (default <code>4</code>, advanced): untested. Set when iterative was written; not tuned.</p></li>
+<li><p><code>preview_tokens</code> (default <code>1200</code>, advanced): untested. Set when preview was written; not tuned.</p></li>
+<li><p><code>members</code> (default <code>NULL</code>, advanced): untested. NULL takes ensemble's own pair, retrieve and map_reduce; not compared with other pairs.</p></li>
+<li><p><code>cite</code> (default <code>FALSE</code>, basic): untested. Off, so the answer prompt is the one used before the setting existed.</p></li>
+<li><p><code>skim_model</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL uses <code>model</code>.</p></li>
+<li><p><code>summary_model</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL uses <code>model</code>.</p></li>
+<li><p><code>parallel</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.</p></li>
+<li><p><code>delay_between_calls</code> (default <code>0</code>, advanced): untested. No pause. It does not change output.</p></li>
+<li><p><code>accept_near_verbatim</code> (default <code>FALSE</code>, advanced): untested. Off, as the code behaved before the setting existed. Not measured as a stopping rule; on the labelled quotation set, 25 of 46 quotations with one content word swapped score near_verbatim (NEWS, 0.6.0.9000).</p></li>
+<li><p><code>max_merge_levels</code> (default <code>6</code>, advanced): untested. The cap the merge code had as a constant; not tuned.</p></li>
+<li><p><code>restate_tokens</code> (default <code>1200</code>, advanced): untested. An arbitrary number, as its comment said when it was a constant; not measured.</p></li>
+<li><p><code>bm25_k1</code> (default <code>1.5</code>, advanced): cited. Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give k1 between 1.2 and 2.0 as usual; not tuned here.</p></li>
+<li><p><code>bm25_b</code> (default <code>0.75</code>, advanced): cited. Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give b = 0.75 as usual; not tuned here.</p></li>
+<li><p><code>lexical_blend</code> (default <code>0.5</code>, advanced): untested. An even blend, set when the offline path was written.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="reasoning-effort">Reasoning effort<a class="anchor" aria-label="anchor" href="#reasoning-effort"></a></h2>
 

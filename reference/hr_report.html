@@ -75,7 +75,9 @@ dev split never enters a report, and items with no label are left out.</p>
 <span>  seed <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"bootstrap"</span>, <span class="st">"cluster_t"</span>, <span class="st">"bayes"</span>, <span class="st">"exact"</span><span class="op">)</span>,</span>
 <span>  confirmatory <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  registration <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  registration <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  auto_bootstrap_at <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>items <span class="op">=</span> <span class="fl">300</span>, clusters <span class="op">=</span> <span class="fl">30</span><span class="op">)</span>,</span>
+<span>  min_runs <span class="op">=</span> <span class="fl">5L</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'hr_bench_report'</span></span>
@@ -134,6 +136,25 @@ when <code>registration</code> holds a confirmatory contrast.</p></dd>
 <dt id="arg-registration">registration<a class="anchor" aria-label="anchor" href="#arg-registration"></a></dt>
 <dd><p>An <code><a href="hr_contrast.html">hr_register_contrasts()</a></code> result for the reference
 this benchmark scored, or <code>NULL</code>.</p></dd>
+
+
+<dt id="arg-auto-bootstrap-at">auto_bootstrap_at<a class="anchor" aria-label="anchor" href="#arg-auto-bootstrap-at"></a></dt>
+<dd><p>Under <code>method = "auto"</code>, the size at which the
+report switches from the cluster-robust t interval to the studentised
+cluster bootstrap: <code>c(items = , clusters = )</code>, both reached. Default
+<code>c(items = 300, clusters = 30)</code>. The coverage simulation of
+<code>dev/sim-coverage.R</code> measured each method at two designs only, 386
+items in 40 clusters and 50 items in 10 (2000 replicates each; see
+"Intervals"), and found each covers at the design it is used for. The
+cut-point itself is untested: no design near 300 items or 30 clusters
+was run, so nothing measures where the switch belongs. The notes about
+intervals that can undercover use the same two numbers.</p></dd>
+
+
+<dt id="arg-min-runs">min_runs<a class="anchor" aria-label="anchor" href="#arg-min-runs"></a></dt>
+<dd><p>The fewest runs for which the report gives intervals;
+below it the report is descriptive only. A whole number, 2 or more;
+default 5, untested: no simulation backs that number.</p></dd>
 
 
 <dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
@@ -411,7 +432,7 @@ carry the hash of the reference the registration names, as an
 <code><a href="hr_benchmark.html">hr_benchmark()</a></code> result does (error class <code>hr_registration_mismatch</code>),
 and a registration changed after it was made is refused (class
 <code>hr_registration_changed</code>).</p>
-<p>Below 5 runs the report is descriptive only: point estimates without
+<p>Below 5 runs (<code>min_runs</code>) the report is descriptive only: point estimates without
 intervals, resamples or rank intervals. Cost and pass^k intervals (BCa),
 rank intervals and the frontier share come from the cluster bootstrap in
 both regimes; below the thresholds the report says to read them as rough.</p>

@@ -122,26 +122,33 @@ own; see that function's <code>headers</code> argument for the rules.</p></dd>
 
 <dt><code>temperature</code> (NULL)</dt>
 <dd><p>Default sampling temperature. <code>NULL</code> omits the
-field. Dropped automatically for models that reject it.</p></dd>
+field. Dropped automatically for models that reject it. Untested:
+<code>NULL</code> sends no temperature, so the model decides.</p></dd>
 
 <dt><code>max_retries</code> (4)</dt>
 <dd><p>Retries for transient failures. HTTP 400 is never
-retried: a malformed request stays malformed.</p></dd>
+retried: a malformed request stays malformed. Untested: set when
+retries were written, with no measurement behind the number.</p></dd>
 
 <dt><code>retry_pause_base</code> (2)</dt>
-<dd><p>Seconds; exponential backoff base.</p></dd>
+<dd><p>Seconds; exponential backoff base.
+Untested: set when retries were written.</p></dd>
 
 <dt><code>request_timeout</code> (120)</dt>
-<dd><p>Per-request timeout, seconds.</p></dd>
+<dd><p>Per-request timeout, seconds. Untested:
+set when the HTTP client was written.</p></dd>
 
 <dt><code>safety_margin</code> (0.10)</dt>
 <dd><p>Fraction of the context window left unused to
-absorb tokenizer error. Not a spending cap (see <code>max_cost_usd</code>).</p></dd>
+absorb tokenizer error. Not a spending cap (see <code>max_cost_usd</code>).
+Untested: set to absorb the error of counting tokens locally, and not
+measured against it.</p></dd>
 
 <dt><code>min_output_tokens</code> (256)</dt>
 <dd><p>Floor on the completion room <code><a href="gr_budget.html">gr_budget()</a></code>
 reserves <em>when <code>reserve_output</code> is not given explicitly</em>. An explicit
-<code>reserve_output</code> is honoured down to 1.</p></dd>
+<code>reserve_output</code> is honoured down to 1. Untested: set as a floor for a
+short reply.</p></dd>
 
 <dt><code>cache_documents</code> (TRUE)</dt>
 <dd><p>Cache ingestion per file + settings. The key
@@ -170,7 +177,9 @@ future and future.apply packages; without them it warns and runs
 sequentially.</p></dd>
 
 <dt><code>workers</code> (4)</dt>
-<dd><p>Worker processes when <code>parallel</code> is TRUE.</p></dd>
+<dd><p>Worker processes when <code>parallel</code> is TRUE.
+Untested: set when parallel runs were added. It does not change
+output.</p></dd>
 
 <dt><code>max_cost_usd</code> (5)</dt>
 <dd><p>Spending limit per run, in USD. A run whose
@@ -233,8 +242,65 @@ recorded on each new trace unless <code><a href="gr_trace.html">gr_trace()</a></
 named nowhere is <code>NA</code>. Other names are refused with an error of class
 <code>gr_bad_option</code>.</p></dd>
 
+<dt><code>auto_max_tokens</code> (50000)</dt>
+<dd><p>The largest document, in tokens, that
+<code><a href="answer_document.html">answer_document()</a></code> with <code>recipe = "auto"</code> reads with <code>"fast"</code> (one
+request); a larger one is read with <code>"thorough"</code>. Untested: the value
+is about 70 pages of prose and under a twentieth of the default model's
+window, and nothing has measured where the two recipes' answers
+diverge.</p></dd>
+
+<dt><code>auto_room_share</code> (0.5)</dt>
+<dd><p>The second condition of that choice: the
+document must fill at most this share of the input room <code><a href="gr_budget.html">gr_budget()</a></code>
+leaves on every model of the run. Untested: the other half was left
+for the error of counting tokens locally.</p></dd>
+
+<dt><code>reasoning_floor</code> (2048)</dt>
+<dd><p>The smallest output cap a request to a
+reasoning model is sent with. A smaller cap is raised to it, within the
+model's limit and the room the context window leaves, so a short
+structured call is not used up by reasoning; <code>0</code> turns the raise off.
+The trace's <code>params_sent</code> records the cap sent. Untested: a reasoning
+model can spend a few hundred to a couple of thousand tokens before it
+replies, and the value was not measured. A value other than the
+default joins the response-cache key and the store key of
+<code><a href="gr_read_many.html">gr_read_many()</a></code>.</p></dd>
+
+<dt><code>output_reserve_share</code> (0.25)</dt>
+<dd><p>The share of the usable window
+<code><a href="gr_budget.html">gr_budget()</a></code> reserves for the reply when no <code>reserve_output</code> is given,
+between <code>min_output_tokens</code> and the model's output limit. It sets the
+input room, so how much of a document fits one request. Untested.</p></dd>
+
+<dt><code>near_verbatim_sim</code> (0.90), <code>near_verbatim_sim_short</code> (0.95),
+<code>near_verbatim_short_chars</code> (40)</dt>
+<dd><p>The least similarity a quotation of at
+least <code>near_verbatim_short_chars</code> characters (after normalising), and
+one shorter than that, needs for the edit-distance matcher to score it
+<code>near_verbatim</code> (see <code><a href="gr_verify_evidence.html">gr_verify_evidence()</a></code>). The values come from
+practitioner sources and were not tuned; the matcher's error rates at
+them were measured on a labelled set of 343 true and 162 false
+quotations (see NEWS). The status is recorded only, unless
+<code>accept_near_verbatim = TRUE</code> (see <code><a href="gr_read_spec.html">gr_read_spec()</a></code>). A value other
+than the default joins the store key of <code><a href="gr_read_many.html">gr_read_many()</a></code>.</p></dd>
+
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="where-the-defaults-come-from">Where the defaults come from<a class="anchor" aria-label="anchor" href="#where-the-defaults-come-from"></a></h2>
+
+
+<p>The settings listed last above were constants in the code until they were
+options; each keeps the constant's value. A trace records them (in its
+options snapshot) only when one is not its default, so a trace made at the
+defaults reads as it did before they existed. Each tuning setting's entry
+above (<code>temperature</code>, <code>max_retries</code>, <code>retry_pause_base</code>, <code>request_timeout</code>,
+<code>safety_margin</code>, <code>min_output_tokens</code>, <code>workers</code> and the settings listed
+last) says where its default came from; "untested" means no measurement
+backs the value. The other entries are switches, limits and names, which
+are choices rather than tuned values.</p>
+    </div>
     <div class="section level2">
     <h2 id="checked-values">Checked values<a class="anchor" aria-label="anchor" href="#checked-values"></a></h2>
 
@@ -250,8 +316,11 @@ ignoring it spends money. <code>NULL</code> and <code>Inf</code> both mean "no l
 vector of ids, and <code>allow_unpriced</code> <code>TRUE</code> or <code>FALSE</code>.</p>
 <p>The tuning settings (<code>safety_margin</code> [0, 0.5], <code>min_output_tokens</code>
 [0, 1e6], <code>max_retries</code> [0, 10], <code>retry_pause_base</code> [0, 60],
-<code>request_timeout</code> [1, 3600], <code>workers</code> [1, 32] and <code>temperature</code>
-[0, 2]) read a number written as text as that number. A value they cannot
+<code>request_timeout</code> [1, 3600], <code>workers</code> [1, 32], <code>temperature</code>
+[0, 2], <code>auto_max_tokens</code> [0, 1e7], <code>auto_room_share</code> [0, 1],
+<code>reasoning_floor</code> [0, 1e6], <code>output_reserve_share</code> [0, 0.9],
+<code>near_verbatim_sim</code> and <code>near_verbatim_sim_short</code> [0, 1] and
+<code>near_verbatim_short_chars</code> [0, 1e4]) read a number written as text as that number. A value they cannot
 read, such as <code>NA</code> or <code>"x"</code>, warns (<code>gr_bad_option</code>) and leaves the current
 setting unchanged; a value outside the range is clamped into it, with the
 same warning. Whole-number settings are rounded down. <code>temperature</code> also

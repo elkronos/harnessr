@@ -380,10 +380,13 @@ addresses, which are sometimes the answer.</li>
 <li>
 <code>references</code> cuts everything from a line reading just
 “References”, “Bibliography” or “Works cited” to the end of the
-document, when that line is in the last 40% of the text. That loses the
-reference list if your question is about the sources. A Markdown heading
-such as <code>## References</code> is not such a line, so it does not
-trigger the cut.</li>
+document, when that line starts at or after 40% of the text, so a table
+of contents near the start does not cut the document.
+<code>cleaner_opts = list(references_after = )</code> moves that share,
+a number from 0 to 1. The cut loses the reference list if your question
+is about the sources. A Markdown heading such as
+<code>## References</code> is not such a line, so it does not trigger
+the cut.</li>
 </ul>
 <p>Cleaning cannot be undone later: no reader can recover what it
 removes. Know what each choice costs before you make it.</p>
@@ -516,7 +519,7 @@ calling a model and without an API key:</p>
 <span></span>
 <span><span class="va">inv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_inventory.html">gr_inventory</a></span><span class="op">(</span><span class="va">inbox</span><span class="op">)</span></span>
 <span><span class="va">inv</span></span>
-<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/RtmpBzofFl/inbox</span></span>
+<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/RtmpiBq9eF/inbox</span></span>
 <span><span class="co">#&gt;   4 file(s), 1.9 KB; 2 readable</span></span>
 <span><span class="co">#&gt;   2 ready, 1 no_extractor, 1 empty</span></span>
 <span><span class="co">#&gt;   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)</span></span>
