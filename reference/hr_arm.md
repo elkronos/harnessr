@@ -69,7 +69,14 @@ package is hashed by its code and the package's name.
   of this run alone. Every request the arm makes must be recorded into
   it (`gr_call(..., trace = ctx$trace)`): it is how the benchmark counts
   the run's tokens, dollars and refusals, and how it holds the run to
-  the benchmark's limits.
+  the benchmark's limits. It carries the run's draw index and the arm's
+  name as its draw scope, so a stage called with `trace = ctx$trace`
+  ([`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+  [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+  [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+  [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)
+  and the like) sends every request at the run's draw without being
+  given `draw_index`.
 
 - `governor`:
 
@@ -80,19 +87,36 @@ package is hashed by its code and the package's name.
 
 - `draw_index`:
 
-  The run number, 1 to `runs`. Pass it to
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
-  as `draw_index` so each run is its own draw: under a
+  The run number, 1 to `runs`. Every request recorded in `ctx$trace` is
+  sent at it unless the request names another draw index, so each run is
+  its own draw: under a
   [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
   or a
   [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
-  a request sent without it answers every run with the same stored
-  reply, and the benchmark refuses such an arm.
+  a request sent at one fixed draw index answers every run with the same
+  stored reply, and the benchmark refuses such an arm.
 
 - `call`:
 
   A shortcut, `ctx$call(messages, ...)`, for
   `gr_call(ctx$client, messages, ..., trace = ctx$trace, draw_index = ctx$draw_index)`.
+
+- `call_json`:
+
+  A structured call, `ctx$call_json(messages, schema, ...)`, sent as
+  `call` sends one: with the benchmark's client, recorded in
+  `ctx$trace`, held to its governor and at the run's draw. `schema` is a
+  JSON schema (a list) the reply must meet, and `...` takes the other
+  arguments of
+  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md),
+  such as `model`, `label` and `schema_name`. It returns the parsed
+  reply, a list, when the request succeeded and the reply meets the
+  schema. Otherwise it returns a failed
+  [gr_result](https://elkronos.github.io/harnessr/reference/gr_result.md)
+  (`ok = FALSE`): the request's own result when the request failed, or
+  the reply's result with the reason in `error` when the reply does not
+  meet the schema. An arm that returns that result is scored as an
+  error.
 
 - `item_id`, `arm`, `run`, `params`:
 

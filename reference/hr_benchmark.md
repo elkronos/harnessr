@@ -146,8 +146,12 @@ item x arm x run and the columns
   equals the model or the served model of one of the run's model
   requests, `FALSE` when the run made model requests with a known model
   and none equals it, and `NA` when the scorer names no judge model or
-  the run recorded no model. The match is exact, so `"model-x"` and
-  `"model-x-2026-01"` differ. Nothing is refused; see the note
+  the run recorded no model. The requests of a judge the arm called with
+  `trace = ctx$trace`
+  ([`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md))
+  are left out: they graded the run's answers, they did not make them.
+  The match is exact, so `"model-x"` and `"model-x-2026-01"` differ.
+  Nothing is refused; see the note
   [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
   adds.
 
@@ -167,9 +171,15 @@ failures and cost, and is descriptive only: no interval.
 
 Run `r` of each arm on each item is given `ctx$draw_index = r` (see
 [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)),
-so with the index passed to
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
-each run is its own entry in a
+and its `ctx$trace` carries `r` as well, so every request the run makes
+through `ctx$call()`, `ctx$call_json()` or a stage called with
+`trace = ctx$trace`
+([`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)
+and the like) is sent at the run's draw, and each run is its own entry
+in a
 [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 and its own recorded draw in a
 [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md).
@@ -211,6 +221,15 @@ label do not) and the first run stopped. With `governor = NULL` it also
 gives the
 [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 values behind those limits.
+
+A reader's pre-flight check that finds the run's limits leave too little
+for it raises an error of class `gr_call_cap` or `gr_cost_cap` before
+any request. An arm that lets that error through, such as one that calls
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
+with `trace = ctx$trace`, has the run recorded as a `"budget_stop"` as
+well, with a `budget.preflight` note naming the limit in its trace, as
+[`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
+records it.
 
 An arm that raises an error has that run recorded as `"error"`, counted
 wrong, with the message in the run's trace. Every run on an item with no

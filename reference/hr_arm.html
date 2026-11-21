@@ -118,7 +118,11 @@ by its code and the package's name.</p>
 <dd><p>A <code><a href="gr_trace.html">gr_trace()</a></code> of this run alone. Every request the arm
 makes must be recorded into it (<code>gr_call(..., trace = ctx$trace)</code>):
 it is how the benchmark counts the run's tokens, dollars and refusals,
-and how it holds the run to the benchmark's limits.</p></dd>
+and how it holds the run to the benchmark's limits. It carries the
+run's draw index and the arm's name as its draw scope, so a stage
+called with <code>trace = ctx$trace</code> (<code><a href="gr_read.html">gr_read()</a></code>, <code><a href="gr_segment.html">gr_segment()</a></code>,
+<code><a href="answer_document.html">answer_document()</a></code>, <code><a href="hr_judge.html">hr_judge()</a></code> and the like) sends every request at
+the run's draw without being given <code>draw_index</code>.</p></dd>
 
 <dt><code>governor</code></dt>
 <dd><p>The <code><a href="hr_governor.html">hr_governor()</a></code> the run is held to: the
@@ -126,15 +130,28 @@ benchmark's limits less what earlier runs used. It is already attached
 to <code>trace</code>.</p></dd>
 
 <dt><code>draw_index</code></dt>
-<dd><p>The run number, 1 to <code>runs</code>. Pass it to
-<code><a href="gr_call.html">gr_call()</a></code> as <code>draw_index</code> so each run is its own draw: under a
-<code><a href="gr_cache.html">gr_cache()</a></code> or a <code><a href="gr_replay_client.html">gr_replay_client()</a></code> a request sent without it
-answers every run with the same stored reply, and the benchmark
-refuses such an arm.</p></dd>
+<dd><p>The run number, 1 to <code>runs</code>. Every request
+recorded in <code>ctx$trace</code> is sent at it unless the request names another
+draw index, so each run is its own draw: under a <code><a href="gr_cache.html">gr_cache()</a></code> or a
+<code><a href="gr_replay_client.html">gr_replay_client()</a></code> a request sent at one fixed draw index answers
+every run with the same stored reply, and the benchmark refuses such
+an arm.</p></dd>
 
 <dt><code>call</code></dt>
 <dd><p>A shortcut, <code>ctx$call(messages, ...)</code>, for
 <code>gr_call(ctx$client, messages, ..., trace = ctx$trace, draw_index = ctx$draw_index)</code>.</p></dd>
+
+<dt><code>call_json</code></dt>
+<dd><p>A structured call, <code>ctx$call_json(messages, schema, ...)</code>, sent as <code>call</code> sends one: with the benchmark's client, recorded
+in <code>ctx$trace</code>, held to its governor and at the run's draw. <code>schema</code> is
+a JSON schema (a list) the reply must meet, and <code>...</code> takes the other
+arguments of <code><a href="gr_call.html">gr_call()</a></code>, such as <code>model</code>, <code>label</code> and
+<code>schema_name</code>. It returns the parsed reply, a list, when the request
+succeeded and the reply meets the schema. Otherwise it returns a failed
+<a href="gr_result.html">gr_result</a> (<code>ok = FALSE</code>): the request's own result when the request
+failed, or the reply's result with the reason in <code>error</code> when the reply
+does not meet the schema. An arm that returns that result is scored as
+an error.</p></dd>
 
 <dt><code>item_id</code>, <code>arm</code>, <code>run</code>, <code>params</code></dt>
 <dd><p>The item's id, the arm's name,

@@ -180,7 +180,9 @@ model as the arm: <code>TRUE</code> when the scorer's <code>judge_model</code> (
 <code><a href="hr_scorer_judge.html">hr_scorer_judge()</a></code>) equals the model or the served model of one of
 the run's model requests, <code>FALSE</code> when the run made model requests
 with a known model and none equals it, and <code>NA</code> when the scorer names
-no judge model or the run recorded no model. The match is exact, so
+no judge model or the run recorded no model. The requests of a judge
+the arm called with <code>trace = ctx$trace</code> (<code><a href="hr_judge.html">hr_judge()</a></code>) are left out:
+they graded the run's answers, they did not make them. The match is exact, so
 <code>"model-x"</code> and <code>"model-x-2026-01"</code> differ. Nothing is refused; see the
 note <code><a href="hr_report.html">hr_report()</a></code> adds.</p></dd>
 
@@ -199,7 +201,10 @@ interval.</p>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Run <code>r</code> of each arm on each item is given <code>ctx$draw_index = r</code> (see
-<code><a href="hr_arm.html">hr_arm()</a></code>), so with the index passed to <code><a href="gr_call.html">gr_call()</a></code> each run is its own
+<code><a href="hr_arm.html">hr_arm()</a></code>), and its <code>ctx$trace</code> carries <code>r</code> as well, so every request the
+run makes through <code>ctx$call()</code>, <code>ctx$call_json()</code> or a stage called with
+<code>trace = ctx$trace</code> (<code><a href="gr_read.html">gr_read()</a></code>, <code><a href="gr_segment.html">gr_segment()</a></code>, <code><a href="answer_document.html">answer_document()</a></code>,
+<code><a href="hr_judge.html">hr_judge()</a></code> and the like) is sent at the run's draw, and each run is its own
 entry in a <code><a href="gr_cache.html">gr_cache()</a></code> and its own recorded draw in a
 <code><a href="gr_replay_client.html">gr_replay_client()</a></code>. Each request a run makes with a draw index is
 recorded under the arm's name as well, so a replay of a benchmark answers
@@ -232,6 +237,12 @@ stopped them, how many of them count against an arm (runs on the dev
 split or on items with no label do not) and the first run stopped. With
 <code>governor = NULL</code> it also gives the <code><a href="gr_options.html">gr_options()</a></code> values behind those
 limits.</p>
+<p>A reader's pre-flight check that finds the run's limits leave too little
+for it raises an error of class <code>gr_call_cap</code> or <code>gr_cost_cap</code> before any
+request. An arm that lets that error through, such as one that calls
+<code><a href="answer_document.html">answer_document()</a></code> with <code>trace = ctx$trace</code>, has the run recorded as a
+<code>"budget_stop"</code> as well, with a <code>budget.preflight</code> note naming the limit
+in its trace, as <code><a href="gr_arm.html">gr_arm()</a></code> records it.</p>
 <p>An arm that raises an error has that run recorded as <code>"error"</code>, counted
 wrong, with the message in the run's trace. Every run on an item with no
 label has <code>correct = NA</code>, whatever its <code>failure_kind</code>: a failure on it

@@ -411,8 +411,9 @@ to pass a governor sized for the benchmark.
 
 ### Repeated runs must be repeated draws
 
-Run `r` is given `ctx$draw_index = r`, and `ctx$call()` passes it on, so
-under a
+Run `r` is given `ctx$draw_index = r`, and its `ctx$trace` carries `r`,
+so `ctx$call()` and every stage called with `trace = ctx$trace` send
+their requests at the run’s draw. Under a
 [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
 each run is its own cache entry and under a
 [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
@@ -420,9 +421,8 @@ its own recorded draw. The recorded draw also names the arm, so a replay
 answers each arm with its own replies, whether it replays every arm or a
 few, in any order. Five runs answered from one stored reply would agree
 perfectly and measure nothing, so an arm whose runs come back as copies
-is refused with an error of class `hr_duplicate_draw`. An arm that calls
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
-without the draw index is one:
+is refused with an error of class `hr_duplicate_draw`. An arm that sends
+every run’s request at one fixed draw index is one:
 
 ``` r
 
@@ -430,10 +430,11 @@ cache <- gr_cache()
 cached <- gr_cache_client(geo, cache)
 invisible(hr_benchmark(capital, capitals, runs = 5, client = cached))
 
-no_draw <- hr_arm("no_draw", function(item, ctx) {
-  gr_call(ctx$client, paste0("Capital of ", item), trace = ctx$trace)$text
+fixed_draw <- hr_arm("fixed_draw", function(item, ctx) {
+  gr_call(ctx$client, paste0("Capital of ", item), trace = ctx$trace,
+          draw_index = 1)$text
 })
-tryCatch(hr_benchmark(no_draw, capitals, runs = 5, client = cached),
+tryCatch(hr_benchmark(fixed_draw, capitals, runs = 5, client = cached),
          hr_duplicate_draw = function(e) class(e)[1])
 #> [1] "hr_duplicate_draw"
 ```
@@ -442,7 +443,7 @@ A cache is still worth having: running the `capital` benchmark again
 under the same cache sends no request and costs nothing, each run
 answered from its own entry. A
 [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
-keeps no cache, so under it the `no_draw` arm is not refused; under a
+keeps no cache, so under it the `fixed_draw` arm is not refused; under a
 cache it is.
 
 ## Reading the report
@@ -630,10 +631,10 @@ plan <- hr_reference(ids, labels = rep("yes", n), cluster = docs, split = "test"
 design <- hr_mdd(n, n_clusters = 50, icc = 0.1, p_disc = 0.15)
 reg <- hr_register_contrasts(plan, hr_contrast("small", "large", margin = 0.10), design)
 reg
-#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-21T22:27:32.845Z
+#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-21T23:18:16.074Z
 #>  contrast       label        margin mdd cost_test
 #>  small vs large confirmatory 10.0   7.8 yes      
-#>   Margins and MDD in points; reference d453122a93af; hash a22fbf20be3a
+#>   Margins and MDD in points; reference d453122a93af; hash 7a4e57d76681
 ```
 
 Here the stand-in model finds each item easier or harder by document and

@@ -75,18 +75,22 @@ print(x, ...)
 
 - trace:
 
-  Optional `gr_trace` of the run being judged.
+  Optional `gr_trace` of the run the judge is part of. Its draw index,
+  draw scope and governor apply to the judge's requests, which are
+  folded into it.
 
 - governor:
 
   Optional
   [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)
-  for the judge's requests.
+  for the judge's requests. With `trace`, the judge is held to this and
+  to the trace's governor.
 
 - draw_index:
 
   Draw index passed to every request (see
   [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)).
+  0, the default, takes the draw index of `trace`, if any.
 
 - x:
 
@@ -144,13 +148,32 @@ Every request goes through
 [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)'s
 path, so the governor checks it before it is sent, a
 [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
-keys it with `draw_index`, and the trace records it, under the label
+keys it with its draw index, and the trace records it, under the label
 `judge.<mode>.o<k>` for order k. The requests are recorded in a trace of
-the judge's own (`$trace`), never in `trace`, and their cost is reported
-in `$judge_cost`, so a run's cost never includes the judging of it. When
-`trace` is given, the judge is held to what that run's governor has left
-(calls, dollars and tokens) and a local note naming the judge's trace
-and cost is added to it. `governor`, if given, is used instead.
+the judge's own (`$trace`), and their cost is reported in `$judge_cost`.
+
+When `trace` is given, the judge is a step of the run that trace
+records, as a judge called inside an
+[`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)
+with `trace = ctx$trace` is. It is held to what that run's governor has
+left (calls, dollars and tokens), and to `governor` as well when one is
+given: each limit is the lower of the two, a model must be allowed by
+both, and an unpriced model only when both allow it. Its requests are
+sent at the trace's draw index and under its draw scope, as a stage's
+are, so each run of a benchmark is judged in its own draw and a cache
+does not hand every run the first run's verdict. A `draw_index` above 0
+is used instead of the trace's. When the judgement ends, the judge's
+trace is folded into `trace`: its requests count against the run's
+governor and are part of every cost read from that trace, such as the
+run's `usd` in
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md).
+Each folded request names the judge's configuration hash in its `judge`
+field, so
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+leaves it out when it compares the run's models with a scorer's judge
+model (`self_judged`). A local note naming the judge's trace, outcome
+and cost is added after them; it records no tokens, so cost summaries,
+which count requests only, do not count the judge twice.
 
 A failed request, or a reply with no allowed verdict, makes the result
 `"failed"`.

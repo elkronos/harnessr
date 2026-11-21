@@ -138,15 +138,19 @@ reference answer. Required for <code>"grade"</code>.</p></dd>
 
 
 <dt id="arg-trace">trace<a class="anchor" aria-label="anchor" href="#arg-trace"></a></dt>
-<dd><p>Optional <code>gr_trace</code> of the run being judged.</p></dd>
+<dd><p>Optional <code>gr_trace</code> of the run the judge is part of. Its
+draw index, draw scope and governor apply to the judge's requests, which
+are folded into it.</p></dd>
 
 
 <dt id="arg-governor">governor<a class="anchor" aria-label="anchor" href="#arg-governor"></a></dt>
-<dd><p>Optional <code><a href="hr_governor.html">hr_governor()</a></code> for the judge's requests.</p></dd>
+<dd><p>Optional <code><a href="hr_governor.html">hr_governor()</a></code> for the judge's requests. With
+<code>trace</code>, the judge is held to this and to the trace's governor.</p></dd>
 
 
 <dt id="arg-draw-index">draw_index<a class="anchor" aria-label="anchor" href="#arg-draw-index"></a></dt>
-<dd><p>Draw index passed to every request (see <code><a href="gr_call.html">gr_call()</a></code>).</p></dd>
+<dd><p>Draw index passed to every request (see <code><a href="gr_call.html">gr_call()</a></code>).
+0, the default, takes the draw index of <code>trace</code>, if any.</p></dd>
 
 
 <dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
@@ -195,14 +199,28 @@ judged and under which configuration.</p></dd>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Every request goes through <code><a href="gr_call.html">gr_call()</a></code>'s path, so the governor checks it
-before it is sent, a <code><a href="gr_cache.html">gr_cache()</a></code> keys it with <code>draw_index</code>, and the
+before it is sent, a <code><a href="gr_cache.html">gr_cache()</a></code> keys it with its draw index, and the
 trace records it, under the label <code>judge.&lt;mode&gt;.o&lt;k&gt;</code> for order k. The
-requests are recorded in a trace of the judge's own (<code>$trace</code>), never in
-<code>trace</code>, and their cost is reported in <code>$judge_cost</code>, so a run's cost
-never includes the judging of it. When <code>trace</code> is given, the judge is held
-to what that run's governor has left (calls, dollars and tokens) and a
-local note naming the judge's trace and cost is added to it. <code>governor</code>, if
-given, is used instead.</p>
+requests are recorded in a trace of the judge's own (<code>$trace</code>), and their
+cost is reported in <code>$judge_cost</code>.</p>
+<p>When <code>trace</code> is given, the judge is a step of the run that trace records,
+as a judge called inside an <code><a href="hr_arm.html">hr_arm()</a></code> with <code>trace = ctx$trace</code> is. It is
+held to what that run's governor has left (calls, dollars and tokens),
+and to <code>governor</code> as well when one is given: each limit is the lower of
+the two, a model must be allowed by both, and an unpriced model only when
+both allow it. Its requests are sent at the trace's
+draw index and under its draw scope, as a stage's are, so each run of a
+benchmark is judged in its own draw and a cache does not hand every run
+the first run's verdict. A <code>draw_index</code> above 0 is used instead of the
+trace's. When the judgement ends, the judge's trace is folded into
+<code>trace</code>: its requests count against the run's governor and are part of
+every cost read from that trace, such as the run's <code>usd</code> in
+<code><a href="hr_benchmark.html">hr_benchmark()</a></code>. Each folded request names the judge's configuration
+hash in its <code>judge</code> field, so <code><a href="hr_benchmark.html">hr_benchmark()</a></code> leaves it out when it
+compares the run's models with a scorer's judge model (<code>self_judged</code>).
+A local note naming the judge's trace, outcome and cost is added
+after them; it records no tokens, so cost summaries, which count requests
+only, do not count the judge twice.</p>
 <p>A failed request, or a reply with no allowed verdict, makes the result
 <code>"failed"</code>.</p>
     </div>
