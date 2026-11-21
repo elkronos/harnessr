@@ -29,7 +29,9 @@ the sheet's decision or note columns (\code{answer}, \code{verdict} and so on,
 often the model's own output) is joined as \verb{model_<name>}, unless the
 sheet already has a column of that name. \code{answerable} and \code{correct} are
 logical; \code{human_decision} and \code{verdict} are lower case; extraction values
-are text as written. A calibration result has a \code{cluster} column (from
+are text as written. A pairwise result has \code{preferred} as \code{"A"}, \code{"B"}
+or \code{"tie"} in candidate order and \code{shown_first}, the candidate shown as
+\code{text_1}. A calibration result has a \code{cluster} column (from
 \code{items}, else \code{document}), and a \code{correct} column only when the sheet
 was written with \code{blind = FALSE}; only then is it ready for
 \code{\link[=hr_calibrate_signal]{hr_calibrate_signal()}}. Its \code{score} comes from \code{items} when they are
@@ -42,7 +44,11 @@ Reads one or more sheets written by \code{\link[=gr_label_sheet]{gr_label_sheet(
 value and id, and returns the labels in the form the package's
 comparisons take: a screening reference for \code{\link[=gr_calibrate]{gr_calibrate()}}, a table for
 \code{\link[=gr_extract_agreement]{gr_extract_agreement()}}, calibration labels, or labels to compare a
-judge's verdicts with in \code{\link[=hr_agreement]{hr_agreement()}}. A calibration sheet written
+judge's verdicts with in \code{\link[=hr_agreement]{hr_agreement()}} or \code{\link[=hr_judge_validate]{hr_judge_validate()}}. A
+pairwise sheet comes back in candidate order: \code{preferred} is \code{"A"},
+\code{"B"} or \code{"tie"}, whichever order the row was shown in, so it can be set
+beside a pairwise judge's verdicts and validated with
+\code{hr_judge_validate(positive = "A")}, where a tie counts as negative. A calibration sheet written
 with \code{blind = FALSE} gives a graded set \code{\link[=hr_calibrate_signal]{hr_calibrate_signal()}} takes,
 with or without \code{items}: without them, the sheet's \code{model_score} column
 is read back as the number \code{score}. A blind one gives reference answers,
@@ -57,7 +63,10 @@ With \code{items}, every id is one of the items', and an item missing from
 the sheets is reported with a warning of class \code{gr_labels_missing}.
 \item Yes-or-no columns (\code{answerable}, \code{correct}) hold yes, no, y, n, true,
 false, 1 or 0, in any case. \code{human_decision} holds include or exclude,
-and \code{verdict} pass or fail.
+\code{verdict} pass or fail, and \code{preferred} 1, 2 or tie.
+\item A pairwise row's \code{order_key} is a key \code{\link[=gr_label_sheet]{gr_label_sheet()}} wrote for that
+row's \code{item_id}; a key edited, lost or moved to another row is an
+error.
 \item An answerable QA or calibration item has an \code{answer}, and one that is
 not answerable has none; an item whose
 \code{answerable} is empty has no other decision filled; a calibration sheet

@@ -5,7 +5,7 @@
 \title{Write a sheet for people to label}
 \usage{
 gr_label_sheet(
-  kind = c("qa", "screening", "extraction", "calibration", "judge"),
+  kind = c("qa", "screening", "extraction", "calibration", "judge", "pairwise"),
   items,
   path = NULL,
   blind = TRUE,
@@ -14,8 +14,8 @@ gr_label_sheet(
 )
 }
 \arguments{
-\item{kind}{\code{"qa"}, \code{"screening"}, \code{"extraction"}, \code{"calibration"} or
-\code{"judge"}; see "Kinds of sheet".}
+\item{kind}{\code{"qa"}, \code{"screening"}, \code{"extraction"}, \code{"calibration"},
+\code{"judge"} or \code{"pairwise"}; see "Kinds of sheet".}
 
 \item{items}{A data frame with one row per item. Its ids come from an
 \code{item_id} column, else an \code{id} column; without either they are made
@@ -70,6 +70,14 @@ answer, shown beside it, right).}
 \item{\code{"judge"}}{Candidates a judge scores, to validate the judge
 against. Items need \code{candidate}, the text being judged, and may give
 \code{question} or \code{criterion}. The person fills \code{verdict} (pass or fail).}
+\item{\code{"pairwise"}}{Two texts to compare, to validate a pairwise judge
+against. Items need \code{candidate_a} and \code{candidate_b}, and may give
+\code{question} or \code{criterion}. The sheet shows them as \code{text_1} and
+\code{text_2}, in an order drawn for each row, so the person cannot tell
+which candidate is which; the order is kept in \code{order_key}, an opaque
+key tied to the row's id. The person fills \code{preferred} with 1, 2 or
+tie, and \code{\link[=gr_read_labels]{gr_read_labels()}} gives it back in candidate order as
+\code{"A"}, \code{"B"} or \code{"tie"}.}
 }
 Every sheet also has a free-text \code{note} column (\code{human_note} for
 screening).
@@ -91,6 +99,11 @@ blind \code{\link[=gr_reference]{gr_reference()}} sheet carries, made from plain
 tells \code{\link[=gr_calibrate]{gr_calibrate()}} what was sampled; with \code{blind = FALSE} the columns
 are written as they are. Give the same \code{items} to \code{\link[=gr_read_labels]{gr_read_labels()}} to
 join the rest back.
+
+A pairwise sheet is blind to order whatever \code{blind} says: \code{candidate_a}
+and \code{candidate_b} are never written as they are, only as \code{text_1} and
+\code{text_2} behind the key. The order of a row comes from a SHA-256 digest of
+its id and its two texts, so writing the sheet again gives the same order.
 
 Calibration grading needs the model's answer, so a blind calibration sheet
 has no \code{correct} column: the person records the reference answer, and the

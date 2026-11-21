@@ -29,8 +29,16 @@
                      need = c("document", "question"),
                      decisions = c("answerable", "answer"), note = "note"),
   judge = list(context = c("document", "document_id", "question", "criterion", "candidate"),
-               need = "candidate", decisions = "verdict", note = "note")
+               need = "candidate", decisions = "verdict", note = "note"),
+  pairwise = list(context = c("document", "document_id", "question", "criterion"),
+                  need = c("candidate_a", "candidate_b"), decisions = "preferred",
+                  note = "note")
 )
+
+#' The columns a pairwise sheet carries in place of its items' candidates:
+#' the two texts in the order shown, and the key that says which is which.
+#' @noRd
+.gr_pairwise_cols <- c("text_1", "text_2", "order_key")
 
 #' Item columns about how the item was sampled or assigned. They are never
 #' written to a sheet (the stratum or inclusion probability of a screening
@@ -69,6 +77,14 @@
 #'   \item{`"judge"`}{Candidates a judge scores, to validate the judge
 #'     against. Items need `candidate`, the text being judged, and may give
 #'     `question` or `criterion`. The person fills `verdict` (pass or fail).}
+#'   \item{`"pairwise"`}{Two texts to compare, to validate a pairwise judge
+#'     against. Items need `candidate_a` and `candidate_b`, and may give
+#'     `question` or `criterion`. The sheet shows them as `text_1` and
+#'     `text_2`, in an order drawn for each row, so the person cannot tell
+#'     which candidate is which; the order is kept in `order_key`, an opaque
+#'     key tied to the row's id. The person fills `preferred` with 1, 2 or
+#'     tie, and [gr_read_labels()] gives it back in candidate order as
+#'     `"A"`, `"B"` or `"tie"`.}
 #' }
 #' Every sheet also has a free-text `note` column (`human_note` for
 #' screening).
@@ -88,6 +104,11 @@
 #' tells [gr_calibrate()] what was sampled; with `blind = FALSE` the columns
 #' are written as they are. Give the same `items` to [gr_read_labels()] to
 #' join the rest back.
+#'
+#' A pairwise sheet is blind to order whatever `blind` says: `candidate_a`
+#' and `candidate_b` are never written as they are, only as `text_1` and
+#' `text_2` behind the key. The order of a row comes from a SHA-256 digest of
+#' its id and its two texts, so writing the sheet again gives the same order.
 #'
 #' Calibration grading needs the model's answer, so a blind calibration sheet
 #' has no `correct` column: the person records the reference answer, and the
@@ -132,8 +153,8 @@
 #' a spreadsheet opens accented text correctly; save it back as "CSV UTF-8".
 #' Leave a decision empty only for an item not yet labelled.
 #'
-#' @param kind `"qa"`, `"screening"`, `"extraction"`, `"calibration"` or
-#'   `"judge"`; see "Kinds of sheet".
+#' @param kind `"qa"`, `"screening"`, `"extraction"`, `"calibration"`,
+#'   `"judge"` or `"pairwise"`; see "Kinds of sheet".
 #' @param items A data frame with one row per item. Its ids come from an
 #'   `item_id` column, else an `id` column; without either they are made
 #'   from the kind and the row number (`"qa-0001"`), so pass the same rows in
@@ -164,7 +185,8 @@
 #' path <- file.path(tempdir(), "qa-labels.csv")
 #' gr_label_sheet("qa", qa, path = path)
 #' readLines(sub("[.]csv$", "_instructions.txt", path))
-gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibration", "judge"),
+gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibration", "judge",
+                                    "pairwise"),
                            items, path = NULL, blind = TRUE, reviewers = 1, fields = NULL) {
   kind <- match.arg(kind)
   if (!isTRUE(blind) && !isFALSE(blind)) {
@@ -204,6 +226,15 @@ gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibratio
   sheet <- data.frame(item_id = ids, stringsAsFactors = FALSE)
   ctx <- intersect(spec$context, names(items))
   for (col in ctx) sheet[[col]] <- items[[col]]
+  if (kind == "pairwise") {
+    a <- as.character(items[["candidate_a"]])
+    b <- as.character(items[["candidate_b"]])
+    swap <- vapply(seq_along(ids), function(i) pair_swapped(ids[i], a[i], b[i]), logical(1))
+    sheet$text_1 <- ifelse(swap, b, a)
+    sheet$text_2 <- ifelse(swap, a, b)
+    sheet$order_key <- vapply(seq_along(ids), function(i) pair_key(ids[i], swap[i]),
+                              character(1))
+  }
   if (kind == "screening" && !is.null(items[["sampled_from"]])) {
     # gr_calibrate() needs the frame, and a sheet read back without `items`
     # has nothing else to give it. A blind sheet carries it as the opaque key
@@ -229,7 +260,7 @@ gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibratio
   }
   if (!blind) {
     rest <- setdiff(names(items), c("item_id", "id", spec$context, .gr_label_design,
-                                    names(sheet)))
+                                    spec$need, names(sheet)))
     for (col in rest) {
       nm <- if (startsWith(col, "model_")) col else paste0("model_", col)
       if (!nm %in% names(sheet)) sheet[[nm]] <- items[[col]]
@@ -266,7 +297,11 @@ gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibratio
 #' value and id, and returns the labels in the form the package's
 #' comparisons take: a screening reference for [gr_calibrate()], a table for
 #' [gr_extract_agreement()], calibration labels, or labels to compare a
-#' judge's verdicts with in [hr_agreement()]. A calibration sheet written
+#' judge's verdicts with in [hr_agreement()] or [hr_judge_validate()]. A
+#' pairwise sheet comes back in candidate order: `preferred` is `"A"`,
+#' `"B"` or `"tie"`, whichever order the row was shown in, so it can be set
+#' beside a pairwise judge's verdicts and validated with
+#' `hr_judge_validate(positive = "A")`, where a tie counts as negative. A calibration sheet written
 #' with `blind = FALSE` gives a graded set [hr_calibrate_signal()] takes,
 #' with or without `items`: without them, the sheet's `model_score` column
 #' is read back as the number `score`. A blind one gives reference answers,
@@ -279,7 +314,10 @@ gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibratio
 #'   the sheets is reported with a warning of class `gr_labels_missing`.
 #' * Yes-or-no columns (`answerable`, `correct`) hold yes, no, y, n, true,
 #'   false, 1 or 0, in any case. `human_decision` holds include or exclude,
-#'   and `verdict` pass or fail.
+#'   `verdict` pass or fail, and `preferred` 1, 2 or tie.
+#' * A pairwise row's `order_key` is a key [gr_label_sheet()] wrote for that
+#'   row's `item_id`; a key edited, lost or moved to another row is an
+#'   error.
 #' * An answerable QA or calibration item has an `answer`, and one that is
 #'   not answerable has none; an item whose
 #'   `answerable` is empty has no other decision filled; a calibration sheet
@@ -312,7 +350,9 @@ gr_label_sheet <- function(kind = c("qa", "screening", "extraction", "calibratio
 #'   often the model's own output) is joined as `model_<name>`, unless the
 #'   sheet already has a column of that name. `answerable` and `correct` are
 #'   logical; `human_decision` and `verdict` are lower case; extraction values
-#'   are text as written. A calibration result has a `cluster` column (from
+#'   are text as written. A pairwise result has `preferred` as `"A"`, `"B"`
+#'   or `"tie"` in candidate order and `shown_first`, the candidate shown as
+#'   `text_1`. A calibration result has a `cluster` column (from
 #'   `items`, else `document`), and a `correct` column only when the sheet
 #'   was written with `blind = FALSE`; only then is it ready for
 #'   [hr_calibrate_signal()]. Its `score` comes from `items` when they are
@@ -355,7 +395,7 @@ gr_read_labels <- function(path, kind, items = NULL, fields = NULL) {
   }
   known <- c("item_id", "reviewer", spec$context, .gr_label_design, spec$note,
              ".sheet", ".row", "correct", "answerable", "answer", "quote", "human_decision",
-             "verdict")
+             "verdict", "preferred", .gr_pairwise_cols)
   if (kind == "extraction") {
     if (!length(spec$fields)) {
       spec$fields <- setdiff(names(d), c(known, grep("^model_", names(d), value = TRUE)))
@@ -371,7 +411,12 @@ gr_read_labels <- function(path, kind, items = NULL, fields = NULL) {
                      paste(sprintf("`%s`", miss), collapse = ", ")), class = "gr_bad_labels")
   }
   if (kind == "calibration" && "correct" %in% names(d)) spec$decisions <- c(spec$decisions, "correct")
-  for (col in intersect(c("item_id", "reviewer", spec$decisions, spec$note), names(d))) {
+  if (kind == "pairwise" && !"order_key" %in% names(d)) {
+    gr_abort("This is not a pairwise sheet: it has no column `order_key`.",
+             class = "gr_bad_labels")
+  }
+  for (col in intersect(c("item_id", "reviewer", spec$decisions, spec$note,
+                          if (kind == "pairwise") "order_key"), names(d))) {
     v <- trimws(d[[col]])
     v[!is.na(v) & !nzchar(v)] <- NA_character_
     d[[col]] <- v
@@ -439,6 +484,20 @@ gr_read_labels <- function(path, kind, items = NULL, fields = NULL) {
     judge = {
       d[["verdict"]] <- check_set("verdict", c("pass", "fail"), "pass or fail")
       !is.na(d[["verdict"]])
+    },
+    pairwise = {
+      v <- check_set("preferred", c("1", "2", "tie"), "1, 2 or tie")
+      swap <- vapply(seq_len(nrow(d)), function(i) {
+        pair_unkey(d[["order_key"]][i], d[["item_id"]][i])
+      }, logical(1))
+      flag(which(!is.na(d[["item_id"]]) & is.na(swap)),
+           "`order_key` is not the key written for this row; restore it from the sheet as written.")
+      first <- ifelse(swap, "B", "A")
+      second <- ifelse(swap, "A", "B")
+      d[["shown_first"]] <- first
+      d[["preferred"]] <- ifelse(is.na(v), NA_character_,
+                                 ifelse(v == "tie", "tie", ifelse(v == "1", first, second)))
+      !is.na(v)
     },
     extraction = {
       cells <- as.data.frame(lapply(d[spec$fields], function(v) !is.na(v)))
@@ -520,6 +579,16 @@ gr_read_labels <- function(path, kind, items = NULL, fields = NULL) {
   attr(out, "unlabelled") <- n_empty
   msg <- sprintf("Read %d row(s): %d labelled, %d not yet labelled.", nrow(out),
                  nrow(out) - n_empty, n_empty)
+  if (kind == "pairwise") {
+    n_a <- sum(out[["preferred"]] %in% "A")
+    n_b <- sum(out[["preferred"]] %in% "B")
+    n_tie <- sum(out[["preferred"]] %in% "tie")
+    msg <- paste0(msg, sprintf(" %d prefer A, %d B, %d tie.", n_a, n_b, n_tie))
+    if (min(n_a, n_b + n_tie) < 50L) {
+      msg <- paste0(msg, " Validating a judge with positive = \"A\" needs at least 50 A and ",
+                    "50 B or tie.")
+    }
+  }
   if (kind == "judge") {
     n_pass <- sum(out[["verdict"]] %in% "pass")
     n_fail <- sum(out[["verdict"]] %in% "fail")
@@ -561,7 +630,8 @@ label_spec <- function(kind, fields, blind, need_fields = TRUE) {
   # `answer` would be skipped there without a word.
   clash <- intersect(nms, c("item_id", "reviewer", spec$context, spec$note, .gr_label_design,
                             "answerable", "answer", "quote", "correct", "human_decision",
-                            "human_note", "verdict", ".sheet", ".row"))
+                            "human_note", "verdict", "preferred", "shown_first",
+                            .gr_pairwise_cols, ".sheet", ".row"))
   if (length(clash)) {
     gr_abort(sprintf("Field name(s) %s clash with the sheet's own columns.",
                      paste(sprintf("'%s'", clash), collapse = ", ")), class = "gr_bad_setting")
@@ -620,6 +690,47 @@ label_frame_keys <- function(items) {
     }
   }
   out
+}
+
+#' Whether a pairwise row shows candidate B first: a bit of the SHA-256
+#' digest of the row's id and its two texts, so the order is fixed for the
+#' row, needs no random state, and is about even over many rows.
+#' @noRd
+pair_swapped <- function(id, a, b) {
+  h <- hr_hash(list("harnessr-pair-order", as.character(id), as.character(a), as.character(b)))
+  strtoi(substr(h, 1L, 1L), 16L) %% 2L == 1L
+}
+
+#' The order key of a pairwise row: which candidate is shown first, and a
+#' digest of the row's id, masked as frame_key() masks a frame. Both orders
+#' give keys of one length.
+#' @noRd
+pair_key <- function(id, swapped) {
+  tag <- substr(hr_hash(list("harnessr-pair-id", as.character(id))), 1L, 12L)
+  payload <- as.integer(charToRaw(sprintf("pair:%s:%s", if (swapped) "ba" else "ab", tag)))
+  nonce <- substr(hr_hash(list("harnessr-pair-key", as.character(id))), 1L, 8L)
+  body <- bitwXor(payload, frame_pad(nonce, length(payload)))
+  paste0("pk", nonce, paste(sprintf("%02x", body), collapse = ""))
+}
+
+#' Whether the key says the row was shown with B first: TRUE or FALSE, or NA
+#' when it is not a pairwise key written for this id.
+#' @noRd
+pair_unkey <- function(key, id) {
+  key <- lower_text(trimws(as_chr1(key, "")))
+  if (is.na(id) || !grepl("^pk[0-9a-f]{8}([0-9a-f]{2})+$", key)) return(NA)
+  hex <- substring(key, 11L)
+  at <- seq(1L, nchar(hex) - 1L, by = 2L)
+  body <- strtoi(substring(hex, at, at + 1L), 16L)
+  plain <- bitwXor(body, frame_pad(substr(key, 3L, 10L), length(body)))
+  if (any(plain < 32L | plain > 126L)) return(NA)
+  m <- regmatches(rawToChar(as.raw(plain)),
+                  regexec("^pair:(ab|ba):([0-9a-f]{12})$", rawToChar(as.raw(plain))))[[1]]
+  if (!length(m)) return(NA)
+  if (!identical(m[3], substr(hr_hash(list("harnessr-pair-id", as.character(id))), 1L, 12L))) {
+    return(NA)
+  }
+  identical(m[2], "ba")
 }
 
 #' A model_score column read back as a number: yes/no words (TRUE and FALSE
@@ -738,7 +849,12 @@ label_instructions <- function(kind, spec, blind, reviewers, files) {
                     if ("correct" %in% spec$decisions)
                       "  correct     yes or no: is the model's answer, shown in the model_ columns, right?"),
     judge = c("Each row is a candidate text to judge. Fill in:",
-              "  verdict  pass or fail, judged against the question or criterion given"))
+              "  verdict  pass or fail, judged against the question or criterion given"),
+    pairwise = c("Each row shows two texts, text_1 and text_2, to compare against the question",
+                 "or criterion given. Their order was drawn for each row; it says nothing about",
+                 "where either text came from. Fill in:",
+                 "  preferred  1 if text_1 is better, 2 if text_2 is better, tie if neither is",
+                 "Do not edit order_key: it is how the sheet is read back."))
   c(sprintf("Labelling instructions: %s sheet", kind),
     "",
     what,
