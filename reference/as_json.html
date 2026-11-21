@@ -88,7 +88,7 @@ holds the API key), none of which is data, is written as <code>null</code>.</p><
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed to <code><a href="https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html" class="external-link">jsonlite::toJSON()</a></code>.</p></dd>
+<dd><p>Passed to <code><a href="https://rdrr.io/pkg/jsonlite/man/fromJSON.html" class="external-link">jsonlite::toJSON()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -96,7 +96,7 @@ holds the API key), none of which is data, is written as <code>null</code>.</p><
     <p>A <code>json</code>-classed character string. <code>NULL</code> fields are written as
 <code>null</code> rather than dropped, and each number is written with as many
 significant digits as it takes to read back as the same number: 15 for
-most, 16 or 17 for the few that need them (<code><a href="https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html" class="external-link">jsonlite::toJSON()</a></code> on its own
+most, 16 or 17 for the few that need them (<code><a href="https://rdrr.io/pkg/jsonlite/man/fromJSON.html" class="external-link">jsonlite::toJSON()</a></code> on its own
 rounds to four decimal places, and its <code>digits = NA</code> keeps 15 significant
 digits). Pass <code>digits</code> to round them. Otherwise a vector of length one is
 written as a scalar, except in the fields of a trace that list things (a
@@ -118,7 +118,7 @@ ingest ran), which are arrays at every length.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The answer plus every prompt and response from the same single run.</span></span></span>
 <span class="r-in"><span><span class="va">txt</span> <span class="op">&lt;-</span> <span class="fu">as_json</span><span class="op">(</span><span class="va">ans</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu">jsonlite</span><span class="fu">::</span><span class="fu"><a href="https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html" class="external-link">fromJSON</a></span><span class="op">(</span><span class="va">txt</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu">jsonlite</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/jsonlite/man/fromJSON.html" class="external-link">fromJSON</a></span><span class="op">(</span><span class="va">txt</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "answer"      "reader"      "question"    "partial"     "chunks_used"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [6] "notes"       "evidence"    "warnings"    "trace"      </span>
 </code></pre></div>

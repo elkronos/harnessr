@@ -128,12 +128,13 @@ trace of its own and folds it into the one it is given
 [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 and
 [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md))
-holds its requests to that trace's governor, less what the given trace
-has already spent and used in tokens; `max_calls` stays a limit per
-document for
+holds its requests to that trace's governor, less the calls the given
+trace has already made and what it has spent and used in tokens, so the
+governor's limits hold for the run as a whole. Without a governor,
+`gr_options(max_calls =)` stays a limit per document for
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
-and per stage for the others, as with the options. A trace made without
-one, including those the package makes for itself, reads the limits from
+and per stage for the others. A trace made without one, including those
+the package makes for itself, reads the limits from
 [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 each time it checks, so changing an option affects runs that are already
 going, as it always has.

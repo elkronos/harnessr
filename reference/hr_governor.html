@@ -166,9 +166,10 @@ its own worst case (prompt as above, reply at its cap) would pass it.</p>
 governs the requests recorded into that trace. A stage that keeps a trace
 of its own and folds it into the one it is given (<code><a href="gr_read_many.html">gr_read_many()</a></code>,
 <code><a href="gr_claims.html">gr_claims()</a></code>, <code><a href="gr_outline.html">gr_outline()</a></code> and <code><a href="gr_synthesise.html">gr_synthesise()</a></code>) holds its requests to
-that trace's governor, less what the given trace has already spent and
-used in tokens; <code>max_calls</code> stays a limit per document for
-<code><a href="gr_read_many.html">gr_read_many()</a></code> and per stage for the others, as with the options. A
+that trace's governor, less the calls the given trace has already made and
+what it has spent and used in tokens, so the governor's limits hold for
+the run as a whole. Without a governor, <code>gr_options(max_calls =)</code> stays a
+limit per document for <code><a href="gr_read_many.html">gr_read_many()</a></code> and per stage for the others. A
 trace made without one, including those the package makes for itself,
 reads the limits from <code><a href="gr_options.html">gr_options()</a></code> each time it checks, so changing an
 option affects runs that are already going, as it always has.</p>
