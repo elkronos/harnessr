@@ -135,10 +135,6 @@ answer_document <- function(source, question, recipe = "auto", client = NULL,
     json = as_json(ans))
 }
 
-#' The most tokens a document can have for `"auto"` to read it in one request:
-#' about 70 pages of prose, and under a twentieth of the default model's window.
-#' @noRd
-.gr_auto_max_tokens <- 50000L
 
 #' @noRd
 is_auto_recipe <- function(x) {
@@ -178,9 +174,11 @@ auto_shared_warnings <- function(cand) {
 #' Which of the two recipes reads this document: "fast" or "thorough".
 #'
 #' "fast" sends the whole document in one request, so it is chosen only when
-#' the document is at most `.gr_auto_max_tokens` and fills at most half of the
-#' room a request leaves for the document, on every model in `models`: the rest
-#' absorbs the error in counting tokens locally. A model with a small window
+#' the document is at most `gr_options("auto_max_tokens")` (50000: about 70
+#' pages of prose, and under a twentieth of the default model's window) and
+#' fills at most `gr_options("auto_room_share")` (half) of the room a request
+#' leaves for the document, on every model in `models`: the rest absorbs the
+#' error in counting tokens locally. A model with a small window
 #' lowers the threshold. A model whose limits are a guess (see gr_model_info())
 #' is no basis for sending everything at once, and neither is a document whose
 #' size cannot be counted; both are read the way that works at any size.
@@ -204,7 +202,8 @@ pick_auto_recipe <- function(tokens, fast, models = fast$read$model %||% gr_opti
     if (is.null(b) || !isTRUE(b$certain)) NA_real_ else as.numeric(b$input)
   }, numeric(1))
   limit <- if (!length(room) || anyNA(room)) NA_real_
-           else floor(min(.gr_auto_max_tokens, min(room) / 2))
+           else floor(min(as_num1(gr_options("auto_max_tokens"), 50000),
+                          min(room) * as_num1(gr_options("auto_room_share"), 0.5)))
   pick <- if (!is.na(tokens) && !is.na(limit) && tokens <= limit) "fast" else "thorough"
   trace_note(trace, "auto_recipe", list(chose = pick, tokens = tokens, limit = limit,
                                         models = models, key = key))

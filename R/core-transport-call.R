@@ -770,7 +770,8 @@ client_sends_effort.gr_ellmer_client <- function(client) FALSE
 #' reasoning: the reply came back "incomplete" with no text, context headers
 #' were silently dropped and rerank reported that the endpoint might not
 #' support JSON schema -- while every call was billed. Such a request is sent
-#' with room for the reasoning (at least `.gr_reasoning_floor` tokens, within
+#' with room for the reasoning (at least `gr_options("reasoning_floor")` tokens,
+#' 2048 by default, within
 #' the model's limit and what the context window leaves after the prompt). A cap
 #' at or above that is sent as it is. Only the HTTP request changes: the cache
 #' key, the trace and a mock or backend handler see the cap the caller asked
@@ -778,15 +779,17 @@ client_sends_effort.gr_ellmer_client <- function(client) FALSE
 #' @noRd
 reasoning_output_cap <- function(max_output, info, prompt_tokens) {
   max_output <- as.integer(max_output)
-  if (!isTRUE(info$reasoning) || max_output >= .gr_reasoning_floor) return(max_output)
-  room <- min(as_num1(info$max_output, .gr_reasoning_floor),
+  floor_cap <- reasoning_floor()
+  if (!isTRUE(info$reasoning) || max_output >= floor_cap) return(max_output)
+  room <- min(as_num1(info$max_output, floor_cap),
               as_num1(info$context_window, 0) - as_num1(prompt_tokens, 0) - 32)
-  as.integer(max(max_output, min(.gr_reasoning_floor, room)))
+  as.integer(max(max_output, min(floor_cap, room)))
 }
 
-#' The least output cap a reasoning model is sent; see reasoning_output_cap().
+#' The least output cap a reasoning model is sent: `gr_options("reasoning_floor")`,
+#' 2048 unless set; see reasoning_output_cap().
 #' @noRd
-.gr_reasoning_floor <- 2048L
+reasoning_floor <- function() as_num1(gr_options("reasoning_floor"), 2048)
 
 #' Token usage the trace can trust.
 #'

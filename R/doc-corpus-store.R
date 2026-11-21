@@ -29,29 +29,37 @@ corpus_key <- function(src, question, rec, client) {
                        error = function(e) as_chr1(gr_options("embedder"), "?"))
   # v3: the client's extra_body and the embedding configuration joined the key.
   # v4: a file is identified by its content rather than its mtime.
-  gr_hash(list("readgpt-corpus-v4", ident, key_text(question),
-               # The tokenizer, because it is what turns `max_tokens = 300` into
-               # an actual chunk boundary: the same document under "chars" and
-               # under "words" segments differently and is answered differently.
-               # Without it the store handed back an answer built from a
-               # segmentation this run would never have produced.
-               as_chr1(gr_options("tokenizer"), "?"),
-               unclass(rec$ingest), unclass(rec$segment), unclass(rec$read),
-               as_chr1(client$model, "?"), as_chr1(client$api, "?"),
-               as_chr1(client$base_url, "?"),
-               # As in cache_key(): for a closure-backed client the transport
-               # fields are identical constants, so without this a store restored
-               # one client's answers for a different client's run.
-               as_chr1(client$.client_id, "<url-addressed>"),
-               # Also as in cache_key(): extra_body goes into every request
-               # (reasoning effort, seed, provider routing) and changes the reply.
-               # Without it a rerun at a higher effort restored the low-effort
-               # answers, made no calls, and compared a run with itself.
-               gr_hash(client$extra_body %||% list()),
-               # What ranks the chunks for the embedding readers and places the
-               # semantic segmenter's cuts: another model or embedder is another
-               # set of chunks in front of the model.
-               as_chr1(client$embedding_model, "?"), embedder))
+  parts <- list("readgpt-corpus-v4", ident, key_text(question),
+                # The tokenizer, because it is what turns `max_tokens = 300` into
+                # an actual chunk boundary: the same document under "chars" and
+                # under "words" segments differently and is answered differently.
+                # Without it the store handed back an answer built from a
+                # segmentation this run would never have produced.
+                as_chr1(gr_options("tokenizer"), "?"),
+                unclass(rec$ingest), unclass(rec$segment), unclass(rec$read),
+                as_chr1(client$model, "?"), as_chr1(client$api, "?"),
+                as_chr1(client$base_url, "?"),
+                # As in cache_key(): for a closure-backed client the transport
+                # fields are identical constants, so without this a store restored
+                # one client's answers for a different client's run.
+                as_chr1(client$.client_id, "<url-addressed>"),
+                # Also as in cache_key(): extra_body goes into every request
+                # (reasoning effort, seed, provider routing) and changes the reply.
+                # Without it a rerun at a higher effort restored the low-effort
+                # answers, made no calls, and compared a run with itself.
+                gr_hash(client$extra_body %||% list()),
+                # What ranks the chunks for the embedding readers and places the
+                # semantic segmenter's cuts: another model or embedder is another
+                # set of chunks in front of the model.
+                as_chr1(client$embedding_model, "?"), embedder)
+  # The options that change a reply or what an answer records without being
+  # part of a spec: the reasoning model's least output cap, the reply room
+  # gr_budget() leaves, and the near-verbatim thresholds. A part only when one
+  # is not its default, so a store written at the defaults keeps its keys.
+  late <- nondefault_options(c("reasoning_floor", "output_reserve_share", "near_verbatim_sim",
+                               "near_verbatim_sim_short", "near_verbatim_short_chars"))
+  if (length(late)) parts <- c(parts, list(late))
+  gr_hash(parts)
 }
 
 #' The `duplicate_of` a store entry without a hash was saved with, when it

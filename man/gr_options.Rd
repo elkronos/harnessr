@@ -117,7 +117,49 @@ fields every \code{\link[=gr_trace]{gr_trace()}} records: \code{system}, \code{o
 recorded on each new trace unless \code{\link[=gr_trace]{gr_trace()}} is given its own; one
 named nowhere is \code{NA}. Other names are refused with an error of class
 \code{gr_bad_option}.}
+\item{\code{auto_max_tokens} (50000)}{The largest document, in tokens, that
+\code{\link[=answer_document]{answer_document()}} with \code{recipe = "auto"} reads with \code{"fast"} (one
+request); a larger one is read with \code{"thorough"}. Untested: the value
+is about 70 pages of prose and under a twentieth of the default model's
+window, and nothing has measured where the two recipes' answers
+diverge.}
+\item{\code{auto_room_share} (0.5)}{The second condition of that choice: the
+document must fill at most this share of the input room \code{\link[=gr_budget]{gr_budget()}}
+leaves on every model of the run. Untested: the other half was left
+for the error of counting tokens locally.}
+\item{\code{reasoning_floor} (2048)}{The smallest output cap a request to a
+reasoning model is sent with. A smaller cap is raised to it, within the
+model's limit and the room the context window leaves, so a short
+structured call is not used up by reasoning; \code{0} turns the raise off.
+The trace's \code{params_sent} records the cap sent. Untested: a reasoning
+model can spend a few hundred to a couple of thousand tokens before it
+replies, and the value was not measured. A value other than the
+default joins the response-cache key and the store key of
+\code{\link[=gr_read_many]{gr_read_many()}}.}
+\item{\code{output_reserve_share} (0.25)}{The share of the usable window
+\code{\link[=gr_budget]{gr_budget()}} reserves for the reply when no \code{reserve_output} is given,
+between \code{min_output_tokens} and the model's output limit. It sets the
+input room, so how much of a document fits one request. Untested.}
+\item{\code{near_verbatim_sim} (0.90), \code{near_verbatim_sim_short} (0.95),
+\code{near_verbatim_short_chars} (40)}{The least similarity a quotation of at
+least \code{near_verbatim_short_chars} characters (after normalising), and
+one shorter than that, needs for the edit-distance matcher to score it
+\code{near_verbatim} (see \code{\link[=gr_verify_evidence]{gr_verify_evidence()}}). The values come from
+practitioner sources and were not tuned; the matcher's error rates at
+them were measured on a labelled set of 343 true and 162 false
+quotations (see NEWS). The status is recorded only, unless
+\code{accept_near_verbatim = TRUE} (see \code{\link[=gr_read_spec]{gr_read_spec()}}). A value other
+than the default joins the store key of \code{\link[=gr_read_many]{gr_read_many()}}.}
 }
+}
+
+\section{Where the defaults come from}{
+
+The settings listed last above were constants in the code until they were
+options; each keeps the constant's value. A trace records them (in its
+options snapshot) only when one is not its default, so a trace made at the
+defaults reads as it did before they existed. Each entry above says where
+its default came from; "untested" means no measurement backs the value.
 }
 
 \section{Checked values}{
@@ -135,8 +177,11 @@ vector of ids, and \code{allow_unpriced} \code{TRUE} or \code{FALSE}.
 
 The tuning settings (\code{safety_margin} [0, 0.5], \code{min_output_tokens}
 [0, 1e6], \code{max_retries} [0, 10], \code{retry_pause_base} [0, 60],
-\code{request_timeout} [1, 3600], \code{workers} [1, 32] and \code{temperature}
-[0, 2]) read a number written as text as that number. A value they cannot
+\code{request_timeout} [1, 3600], \code{workers} [1, 32], \code{temperature}
+[0, 2], \code{auto_max_tokens} [0, 1e7], \code{auto_room_share} [0, 1],
+\code{reasoning_floor} [0, 1e6], \code{output_reserve_share} [0, 0.9],
+\code{near_verbatim_sim} and \code{near_verbatim_sim_short} [0, 1] and
+\code{near_verbatim_short_chars} [0, 1e4]) read a number written as text as that number. A value they cannot
 read, such as \code{NA} or \code{"x"}, warns (\code{gr_bad_option}) and leaves the current
 setting unchanged; a value outside the range is clamped into it, with the
 same warning. Whole-number settings are rounded down. \code{temperature} also
