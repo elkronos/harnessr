@@ -57,15 +57,24 @@
   every moderator is exploratory.
 
 * Claims reconciled across batches are no longer merged when they differ in
-  direction ("improves Y" and "does not improve Y", read from negations and
-  words of decrease, between findings) or in the population they name
-  (adults, children, adolescents, infants, older people, women, men,
-  students, from the claim and its scope), whatever the reconcile reply
-  grouped; such a group is split, with a `gr_claims_kept_apart` warning and a
-  `note` on each part. A merged claim takes the wording of the member most
-  studies support, then the one fewest contradict, then the first in a fixed
-  order, instead of the longest, so the claims no longer depend on the order
-  of the table. A new test shuffles a 24-study table five times and requires
+  direction, between findings, or in the population they name (adults,
+  children, adolescents, infants, older people, women, men, students, from
+  the claim and its scope), whatever the reconcile reply grouped; such a
+  group is split, with a `gr_claims_kept_apart` warning and a `note` on each
+  part. Direction is read from words on three axes: a null finding ("has no
+  effect", "did not improve", "ineffective", "unchanged") against an effect,
+  a benefit against a harm ("benefits", "harms"), and a rise against a fall
+  ("raises", "reduces"). "Improves depressive symptoms" and "reduces
+  depressive symptoms" stay together, and so "improves Y" and "reduces Y"
+  are not told apart; a population outside the list is not recognised. A
+  merged claim takes the wording of the member most studies support, then
+  the one fewest contradict, then the first in a fixed order, instead of the
+  longest, so the claims no longer depend on the order of the table. This
+  changes what is sent at the default settings when claims come from more
+  than one batch and the reconcile reply merges or groups them: the merged
+  claim's wording, and the number of claims where a group is split, feed the
+  `gr_outline()` and `gr_synthesise()` prompts, so those requests, and their
+  cache and replay keys, differ from before. A new test shuffles a 24-study table five times and requires
   at least 90% of claims to keep the same studies, direction and population.
   Two tests that expected a merge of opposite claims now expect them kept
   apart.
@@ -111,8 +120,9 @@
   state a claim and cite a study on its contradicting side with no hedge
   ("may", "suggest") and no word of contrast ("however", "mixed"). A
   sentence states a claim when it stands in a section the claim was given,
-  points in the claim's direction and shares at least two content words
-  with it. It is found by counting words, with no model; `print()` counts
+  points in the claim's direction in one of its clauses (so "improved mood,
+  with no adverse events" still states that mood improved) and shares at
+  least two content words with it. It is found by counting words, with no model; `print()` counts
   them and the audit report lists them. Nothing is marked partial.
 
 ## Checking the search, the files and the screening

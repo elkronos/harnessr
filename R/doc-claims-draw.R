@@ -113,14 +113,20 @@
 #' member's wording and the union of every member's studies, so if the model
 #' groups two claims that say different things, the studies behind one are
 #' listed as supporting the other's wording. Two such errors are refused by
-#' counting words: findings that point in opposite directions ("improves Y"
-#' and "does not improve Y", "lowers Y" and "raises Y"), read from their
-#' negations and words of decrease, and claims naming different populations
-#' (adults, children, adolescents, infants, older people, women, men,
-#' students), read from the claim and its scope, are kept apart whatever the
-#' reply grouped, with a warning (`gr_claims_kept_apart`) and a `note`. The
-#' words are English and the lists short, so a merge they do not catch is
-#' still possible. The merged claim takes the wording of the member most
+#' reading words: findings that point different ways, and claims naming
+#' different populations (adults, children, adolescents, infants, older
+#' people, women, men, students), read from the claim and its scope, are kept
+#' apart whatever the reply grouped, with a warning (`gr_claims_kept_apart`)
+#' and a `note`. A finding is read on three axes: whether it states no effect
+#' ("has no effect on Y", "did not improve Y", "ineffective"), whether it
+#' names a benefit or a harm ("improves", "harms"), and whether it names a
+#' rise or a fall ("raises", "reduces"). Two findings are kept apart when one
+#' states no effect and the other one, or when both speak to the same axis
+#' and differ. "Improves depressive symptoms" and "reduces depressive
+#' symptoms" stay together, since a fall can be a benefit; for the same
+#' reason "improves Y" and "reduces Y" are not told apart. The words are
+#' English and the lists short, and a population outside the list is not
+#' recognised, so a merge they do not catch is still possible. The merged claim takes the wording of the member most
 #' studies support, then the one fewest contradict, then the first in a
 #' fixed order, not the longest, so the result does not depend on
 #' the order of the table. Its `note` names every other wording it absorbed so
@@ -848,35 +854,107 @@ wording_pick <- function(claims, v) {
   order(-sup, con, key, method = "radix")[1]
 }
 
-#' Words that turn a claim's direction: a negation, and a verb or comparative
-#' of decrease. A claim with an even number of them points up, an odd number
-#' down ("lowers mortality" down, "does not lower mortality" up).
+#' Words that say how a claim's effect points, in four lists and a rule for
+#' a null finding.
+#'
+#' A claim is read on three axes, each from its own words, because the words
+#' alone cannot say whether a decrease is good: "improves depressive
+#' symptoms" and "reduces depressive symptoms" agree, and "improves" and
+#' "reduces" cannot be put on one line. `null`: it states no effect ("no
+#' effect", "did not improve", "ineffective", "unchanged"). `valence`: benefit
+#' (1, "improves", "benefits") or harm (-1, "harms", "worsens", "impairs").
+#' `change`: up (1, "raises", "increases", "higher") or down (-1, "reduces",
+#' "lowers", "fewer"). A word of either side cancels one of the other, so a
+#' text with as many of each is unknown on that axis (NA).
+#'
+#' A negation makes a null finding only when an effect word follows it
+#' within two words ("did not significantly improve"), and "no" only before
+#' a word for an effect ("no effect", "no significant difference"), so "with
+#' no adverse events" or "no side effects" is not a null finding.
 #' @noRd
-.gr_claim_negation <- paste0("\\b(?:not|no|never|without|neither|nor|none)\\b|n't\\b|",
-                             "\\bfail(?:s|ed)? to\\b")
-.gr_claim_down <- paste0("\\b(?:decreas|reduc|lower|less\\b|fewer|wors|declin|diminish|",
-                         "drop|fell\\b|fall|shorter|smaller|impair)")
+.gr_claim_negation <- paste0("(?:\\bnot\\b(?!\\s+only\\b)|\\bnever\\b|n't\\b|\\bfail(?:s|ed|ing)? to\\b|",
+                             "\\bneither\\b|\\bnor\\b)")
+.gr_claim_effect_verb <- paste0("(?:improv|benefit|help|reduc|decreas|lower|increas|rais|affect|",
+                                "alter|chang|differ|work|enhanc|harm|wors|impair|boost|predict|",
+                                "associat|relat|link|influenc|impact|effective|significant|",
+                                "protect|declin|diminish|elevat|prevent|shorten|lengthen)")
+.gr_claim_null <- c(
+  paste0(.gr_claim_negation, "(?:\\s+[\\w-]+){0,2}?\\s+", .gr_claim_effect_verb),
+  paste0("\\bno\\s+(?:(?:statistically\\s+)?(?:significant|clear|measurable|meaningful|",
+         "detectable|reliable|overall|net|consistent|real|discernible|appreciable)\\s+)?",
+         "(?:effects?|differences?|changes?|benefits?|improvements?|associations?|impacts?|",
+         "relationships?|reductions?|increases?|gains?|advantages?|influence|evidence)\\b"),
+  paste0("\\b(?:ineffective|unchanged|unaffected|unrelated|null|non-?significant|",
+         "insignificant|no better|no worse)\\b"))
+.gr_claim_benefit <- paste0("\\b(?:improv\\w*|benefit\\w*|better|enhanc\\w*|help(?:s|ed|ful)?|",
+                            "effective(?:ly|ness)?|protect\\w*|beneficial)\\b")
+.gr_claim_harm <- paste0("\\b(?:harm\\w*|wors\\w*|impair\\w*|detriment\\w*|damag\\w*|adversely|",
+                         "deteriorat\\w*)\\b")
+.gr_claim_up <- paste0("\\b(?:increas\\w*|rais(?:e|es|ed|ing)|rises?|risen|rising|rose|higher|",
+                       "boost\\w*|elevat\\w*|grow(?:s|n|ing)?|grew|greater|longer|larger)\\b")
+.gr_claim_down <- paste0("\\b(?:decreas\\w*|reduc\\w*|lower(?:s|ed|ing)?|less|fewer|declin\\w*|",
+                         "diminish\\w*|drop(?:s|ped|ping)?|fell|falling|shorter|smaller)\\b")
 
-#' The direction a claim's text points: 1 or -1, read from its negations and
-#' its words of decrease (see `.gr_claim_negation`).
+#' How a claim's text points, read from its words (see `.gr_claim_null`): a
+#' data frame of `null` (logical), `valence` and `change` (1, -1 or NA), one
+#' row per text.
 #' @noRd
-claim_direction <- function(text) {
+claim_polarity <- function(text) {
   low <- lower_text(as.character(text))
+  low[is.na(low)] <- ""
   count <- function(re) vapply(gregexpr(re, low, perl = TRUE),
                                function(m) sum(m > 0L), integer(1))
-  ifelse((count(.gr_claim_negation) + count(.gr_claim_down)) %% 2L == 0L, 1L, -1L)
+  null <- Reduce(`|`, lapply(.gr_claim_null, function(re) grepl(re, low, perl = TRUE)))
+  axis <- function(up, down) {
+    d <- sign(count(up) - count(down))
+    out <- as.integer(d)
+    out[d == 0] <- NA_integer_
+    out
+  }
+  data.frame(null = null, valence = axis(.gr_claim_benefit, .gr_claim_harm),
+             change = axis(.gr_claim_up, .gr_claim_down), stringsAsFactors = FALSE)
+}
+
+#' Whether two readings of claim_polarity() can be one claim: not when one
+#' states no effect and the other an effect, nor when both name a benefit or
+#' a harm and differ, nor when both name a rise or a fall and differ. An axis
+#' one of them does not speak to agrees with anything. `a` and `b` are
+#' one-row data frames.
+#' @noRd
+polarity_agree <- function(a, b) {
+  if (!identical(a$null, b$null)) return(FALSE)
+  if (isTRUE(a$null)) return(TRUE)
+  differ <- function(x, y) !is.na(x) && !is.na(y) && x != y
+  !differ(a$valence, b$valence) && !differ(a$change, b$change)
+}
+
+#' Whether a reading of claim_polarity() says anything about direction.
+#' @noRd
+polarity_known <- function(p) isTRUE(p$null) || !is.na(p$valence) || !is.na(p$change)
+
+#' The direction a claim's text points, as one number: 0 for a null finding,
+#' else its valence (1 benefit, -1 harm), else its change (1 up, -1 down),
+#' else NA. A label, for reading and for tests: two claims are compared by
+#' polarity_agree(), since "improves symptoms" (1) and "reduces symptoms"
+#' (-1) agree.
+#' @noRd
+claim_direction <- function(text) {
+  p <- claim_polarity(text)
+  out <- ifelse(p$null, 0L, ifelse(!is.na(p$valence), p$valence, p$change))
+  as.integer(out)
 }
 
 #' Populations a claim may be about, each with the stems that name it.
 #' @noRd
 .gr_claim_populations <- list(
-  children = "\\b(?:child|children|paediatric|pediatric|kids?|pupils?)\\b",
+  children = paste0("\\b(?:school|pre-?school|grand)?(?:child|children|kids?)\\b|",
+                    "\\b(?:paediatric|pediatric|pupils?)\\b"),
   adolescents = "\\b(?:adolescen\\w*|teen\\w*|youth)\\b",
   infants = "\\b(?:infants?|newborns?|neonat\\w*|toddlers?|babies|baby)\\b",
   older = "\\b(?:older|elderly|aged \\d+|geriatric)\\b",
   adults = "\\badults?\\b",
-  women = "\\b(?:women|woman|female|females|girls?|mothers?|pregnan\\w*)\\b",
-  men = "\\b(?:men|man|male|males|boys?|fathers?)\\b",
+  women = "\\b(?:women|woman|female|females|(?:school)?girls?|mothers?|pregnan\\w*)\\b",
+  men = "\\b(?:men|man|male|males|(?:school)?boys?|fathers?)\\b",
   students = "\\b(?:students?|undergraduates?)\\b")
 
 #' The populations a claim's text and scope name, as the names of
@@ -901,12 +979,12 @@ claim_split_group <- function(claims, v) {
   if (length(v) < 2L) return(list(v))
   v <- v[order(lower_text(gsub("[[:space:]]+", " ", trimws(claims$claim[v]))),
                lengths(claims$.support[v]), method = "radix")]
-  dir <- claim_direction(claims$claim[v])
+  pol <- claim_polarity(claims$claim[v])
   pop <- claim_population(paste(claims$claim[v], ifelse(is.na(claims$scope[v]), "",
                                                         claims$scope[v])))
   finding <- claims$kind[v] == "finding"
   agree <- function(i, j) {
-    if (finding[i] && finding[j] && dir[i] != dir[j]) return(FALSE)
+    if (finding[i] && finding[j] && !polarity_agree(pol[i, ], pol[j, ])) return(FALSE)
     if (length(pop[[i]]) && length(pop[[j]]) && !identical(pop[[i]], pop[[j]])) return(FALSE)
     TRUE
   }

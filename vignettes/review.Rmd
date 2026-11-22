@@ -1107,10 +1107,15 @@ the south, and cites the northern report, which the claim lists as
 contradicting it. The sentence cites it as the comparison, which is sound; the
 check cannot tell that from citing it as agreement, so it flags the sentence for
 a person to read and marks nothing partial. When claims
-come from several batches, the reconcile pass never merges two that point in
-opposite directions or name different populations, and a merged claim takes
-the wording most studies support, so the claims do not depend on the order of
-the table.
+come from several batches, the reconcile pass keeps apart two findings whose
+words point different ways (an effect against none, a benefit against a
+harm, a rise against a fall) or that name different populations from a short
+list, and a merged claim takes the wording most studies support, so the
+claims do not depend on the order of the table. The check reads English
+words, not meaning: "improves mood" and "reduces mood" are not told apart,
+since a fall can be good or bad, and a population outside the list is not
+recognised, so a merge it should have refused can still happen. The `note`
+of each merged claim names the wordings it absorbed, for a person to read.
 
 Each section now argues its own claims and is shown only the studies those
 claims rest on, ordered so a twelve-person pilot stops getting the same space as

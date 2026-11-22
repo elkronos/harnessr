@@ -307,7 +307,7 @@ and cite a study on its contradicting side with no hedge ("may",
 \code{sentence}, \code{claim_id}, \code{study}. A sentence states a claim when it
 stands in a section the claim was given (any claim, under a heading
 the write-up did not have), points in the claim's
-direction and shares at least two content words with it. Found by
+direction in one of its clauses and shares at least two content words with it. Found by
 counting words, with no model; a flag says where to look, and marks
 nothing partial.}
 \item{\code{section_studies}}{The studies each section was shown:

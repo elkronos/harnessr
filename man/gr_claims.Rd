@@ -158,14 +158,20 @@ What the reconcile pass cannot check is MEANING. A merged claim keeps one
 member's wording and the union of every member's studies, so if the model
 groups two claims that say different things, the studies behind one are
 listed as supporting the other's wording. Two such errors are refused by
-counting words: findings that point in opposite directions ("improves Y"
-and "does not improve Y", "lowers Y" and "raises Y"), read from their
-negations and words of decrease, and claims naming different populations
-(adults, children, adolescents, infants, older people, women, men,
-students), read from the claim and its scope, are kept apart whatever the
-reply grouped, with a warning (\code{gr_claims_kept_apart}) and a \code{note}. The
-words are English and the lists short, so a merge they do not catch is
-still possible. The merged claim takes the wording of the member most
+reading words: findings that point different ways, and claims naming
+different populations (adults, children, adolescents, infants, older
+people, women, men, students), read from the claim and its scope, are kept
+apart whatever the reply grouped, with a warning (\code{gr_claims_kept_apart})
+and a \code{note}. A finding is read on three axes: whether it states no effect
+("has no effect on Y", "did not improve Y", "ineffective"), whether it
+names a benefit or a harm ("improves", "harms"), and whether it names a
+rise or a fall ("raises", "reduces"). Two findings are kept apart when one
+states no effect and the other one, or when both speak to the same axis
+and differ. "Improves depressive symptoms" and "reduces depressive
+symptoms" stay together, since a fall can be a benefit; for the same
+reason "improves Y" and "reduces Y" are not told apart. The words are
+English and the lists short, and a population outside the list is not
+recognised, so a merge they do not catch is still possible. The merged claim takes the wording of the member most
 studies support, then the one fewest contradict, then the first in a
 fixed order, not the longest, so the result does not depend on
 the order of the table. Its \code{note} names every other wording it absorbed so

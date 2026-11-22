@@ -61,8 +61,8 @@ test_that("a flat groups array leaves the claims unmerged, with a warning", {
   # A real single group of three still merges: it arrives as a 1 x 3 matrix.
   # Three claims that agree, since claims differing in direction or population
   # are kept apart whatever the reply groups (P3-07): the three above come
-  # back as two, the adults' benefit with the rare harms, the children's null
-  # finding on its own.
+  # back as three, the adults' benefit, the children's null finding and the
+  # rare harms each on its own, since a benefit and a harm are read apart.
   cl <- gr_mock_client(function(m, p) '{"groups":[[1,2,3]]}')
   agree <- r6c_rows(r6c_claim("Trials in adults found a benefit.", 1),
                     r6c_claim("Cohorts of adults found a benefit.", 2),
@@ -70,7 +70,7 @@ test_that("a flat groups array leaves the claims unmerged, with a warning", {
   expect_identical(nrow(quiet(harnessr:::claims_reconcile(agree, "Q?", cl, gr_read_spec("stuff"),
                                                          gr_trace()))), 1L)
   expect_identical(nrow(quiet(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"),
-                                                         gr_trace()))), 2L)
+                                                         gr_trace()))), 3L)
 })
 
 # ---------------------------------------------------------------------------

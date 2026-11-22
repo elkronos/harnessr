@@ -308,11 +308,49 @@ test_that("a reconcile merge keeps claims of opposite direction or other populat
   # longest one.
   expect_identical(got$claim[vapply(sup, identical, logical(1), c(1L, 4L, 5L))],
                    "Exercise improves adult mood.")
+  # A null finding is 0, not the opposite direction; "It works." names no
+  # word of effect.
   expect_identical(ns$claim_direction(c("It lowers mortality.", "It does not lower mortality.",
                                         "It works.", "It failed to work.")),
-                   c(-1L, 1L, 1L, -1L))
+                   c(-1L, 0L, NA, 0L))
   expect_identical(ns$claim_population("Older adults and children"),
                    list(c("children", "older", "adults")))
+})
+
+test_that("reconcile keeps null, harmful and opposite findings apart, and merges agreeing ones", {
+  parts <- function(...) {
+    txt <- c(...)
+    cl <- data.frame(claim = txt, kind = "finding", moderator = NA_character_,
+                     scope = NA_character_, note = NA_character_, stringsAsFactors = FALSE)
+    cl$.support <- as.list(seq_along(txt))
+    cl$.contradict <- replicate(length(txt), integer(0), simplify = FALSE)
+    length(ns$claim_split_group(cl, seq_along(txt)))
+  }
+  # Opposite: an effect against none, a benefit against a harm, a rise
+  # against a fall, and populations that differ.
+  expect_identical(parts("Mindfulness reduces anxiety", "Mindfulness has no effect on anxiety"), 2L)
+  expect_identical(parts("The drug benefits patients", "The drug harms patients"), 2L)
+  expect_identical(parts("Tutoring raises test scores",
+                         "Tutoring was ineffective for test scores"), 2L)
+  expect_identical(parts("Tutoring raises test scores", "Tutoring did not raise test scores"), 2L)
+  expect_identical(parts("Mindfulness reduces anxiety", "Mindfulness increases anxiety"), 2L)
+  expect_identical(parts("Exercise reduces falls", "Exercise does not reduce falls"), 2L)
+  expect_identical(parts("Training improves outcomes in schoolchildren",
+                         "Training improves outcomes in adults"), 2L)
+  # Agreeing: a benefit and a fall of a bad outcome, and two falls, one
+  # worded with "dropout".
+  expect_identical(parts("Exercise improves depressive symptoms",
+                         "Exercise reduces depressive symptoms"), 1L)
+  expect_identical(parts("Incentives reduce dropout", "Incentives lower attrition"), 1L)
+  expect_identical(ns$claim_direction(c("Exercise improved mood.",
+                                        "Exercise was ineffective for mood.",
+                                        "Exercise was harmful to mood.",
+                                        "Mood was unchanged by exercise.",
+                                        "Exercise improved mood, with no adverse events.",
+                                        "Exercise not only improves mood but sleep.")),
+                   c(1L, 0L, -1L, 0L, 1L, 1L))
+  expect_identical(ns$claim_population("Schoolchildren and schoolgirls"),
+                   list(c("children", "women")))
 })
 
 # A corpus of 24 studies whose claims split by population and by direction,
@@ -669,4 +707,11 @@ test_that("a sentence citing a contradicting study for its claim, unhedged, is f
                                                sections = c("Findings", "Gaps"))), 0L)
   expect_identical(nrow(ns$contradiction_flags(txt, cm, s$claim_sections,
                                                sections = "Findings")), 1L)
+  # An unrelated negation or decrease in another clause does not hide the
+  # claim the sentence states; a clause that negates it is not the claim.
+  flags <- function(t) nrow(ns$contradiction_flags(paste0("## Findings\n\n", t), cm,
+                                                    s$claim_sections, sections = "Findings"))
+  expect_identical(flags("Exercise improved mood in adults, with no adverse events [study 1] [study 3]."), 1L)
+  expect_identical(flags("Exercise improved mood in adults and lowered anxiety [study 1] [study 3]."), 1L)
+  expect_identical(flags("Exercise did not improve mood in adults [study 1] [study 3]."), 0L)
 })

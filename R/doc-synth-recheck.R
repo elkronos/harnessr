@@ -64,7 +64,8 @@ content_stems <- function(text) {
 #' A sentence states claim C when it stands in a section C was given (any
 #' section, for a heading that is not one of `sections`, the write-up's
 #' own), cites a study C rests
-#' on either way, points in C's direction (claim_direction()), and shares at
+#' on either way, points in C's direction in one of its clauses
+#' (claim_polarity(), clause_points()), and shares at
 #' least two content words with C (one, for a claim with fewer than two). If
 #' it then cites a study on C's contradicting side and carries no hedge
 #' (`.gr_hedges`) and no word of contrast ("however", "but", "mixed"), it
@@ -81,7 +82,7 @@ contradiction_flags <- function(text_marked, claims, claim_sections = NULL,
   con_ids <- unique(sup$claim_id[sup$role == "contradicts"])
   if (!length(con_ids)) return(empty)
   stems <- lapply(cw$claim, content_stems)
-  dirs <- claim_direction(cw$claim)
+  pols <- claim_polarity(cw$claim)
   pc <- figure_pieces(text_marked)
   rows <- list()
   for (k in seq_along(pc$text)) {
@@ -98,12 +99,15 @@ contradiction_flags <- function(text_marked, claims, claim_sections = NULL,
         any(vapply(.gr_contrast_words, function(w) grepl(paste0("\\b", w, "\\b"), low,
                                                            perl = TRUE), logical(1)))
       if (hedged) next
-      sdir <- claim_direction(s)
+      # Read clause by clause: "improved mood, with no adverse events" or
+      # "improved mood and lowered anxiety" still states that mood improved,
+      # though the whole sentence holds a negation or a decrease.
+      spol <- claim_polarity(sentence_clauses(s, word))
       sst <- content_stems(s)
       for (i in which(cw$claim_id %in% intersect(given, con_ids))) {
         id <- cw$claim_id[i]
         against <- intersect(ids, sup$study[sup$claim_id == id & sup$role == "contradicts"])
-        if (!length(against) || sdir != dirs[i]) next
+        if (!length(against) || !clause_points(spol, pols[i, ])) next
         need <- if (length(stems[[i]]) < 2L) 1L else 2L
         if (sum(sst %in% stems[[i]]) < need) next
         rows[[length(rows) + 1L]] <- data.frame(section = head, sentence = trimws(s),
@@ -117,6 +121,31 @@ contradiction_flags <- function(text_marked, claims, claim_sections = NULL,
   if (is.null(out)) return(empty)
   rownames(out) <- NULL
   out
+}
+
+#' A sentence cut into its clauses, its citation markers removed: at commas,
+#' semicolons, colons and brackets, and before "and", "while", "whereas" and
+#' "with".
+#' @noRd
+sentence_clauses <- function(sentence, word = "study") {
+  x <- gsub(cite_grammar(word)$marker, " ", as_chr1(sentence, ""), perl = TRUE,
+            ignore.case = TRUE)
+  parts <- strsplit(x, "[,;:()]|\\s(?=(?:and|while|whereas|with)\\b)", perl = TRUE)[[1]]
+  parts <- trimws(parts)
+  parts <- parts[nzchar(parts)]
+  if (!length(parts)) "" else parts
+}
+
+#' Whether any clause, read by claim_polarity() into `clauses`, points in
+#' the direction of the claim read into `claim`: it agrees with it
+#' (polarity_agree()), and says something about direction where the claim
+#' does.
+#' @noRd
+clause_points <- function(clauses, claim) {
+  known <- polarity_known(claim)
+  any(vapply(seq_len(nrow(clauses)), function(k) {
+    polarity_agree(clauses[k, ], claim) && (!known || polarity_known(clauses[k, ]))
+  }, logical(1)))
 }
 
 #' Check and render an edited write-up again
