@@ -460,14 +460,23 @@ Run it on your own documents, with questions whose answers sit near the end.
 **What it controls.** `ocr` decides which pages are read as pictures:
 `"auto"` reads a page by OCR only when it has fewer than `ocr_min_chars`
 characters of text (40), `"always"` reads every page that way and `"never"`
-none. `ocr_dpi` is the resolution the page is rendered at, and `ocr_lang` the
-Tesseract language. OCR costs seconds per page and adds recognition errors;
-not running it on a scanned page leaves that page empty.
+none. `ocr_trigger` says which text those characters are counted on:
+`"raw_text"` counts the page's whole text layer, and `"after_running_lines"`
+counts what is left once the running heads, feet and stamps the layout pass
+drops are taken out. `ocr_dpi` is the resolution the page is rendered at, and
+`ocr_lang` the Tesseract language. OCR costs seconds per page and adds
+recognition errors; not running it on a scanned page leaves that page empty.
+The blocks of a page OCR read have `kind = "ocr"` (its headings keep
+`"heading"`) and carry `ocr_confidence`, Tesseract's mean word confidence for
+the page, from 0 to 100.
 
 **Signs it needs changing.** `doc$stats$unread_pages` lists pages that came
 back empty, and an answer from such a document is marked partial. A scanned
 page with a printed header or stamp can carry more than 40 characters of text
-and so skip OCR under `"auto"`: raise `ocr_min_chars`. Misread numbers or
+and so skip OCR under `"auto"`: set `ocr_trigger = "after_running_lines"`
+when the stamp repeats on every page, or raise `ocr_min_chars` when it does
+not. A low `ocr_confidence` on the blocks an answer cites says to read that
+page by hand. Misread numbers or
 letters in OCR text (a quotation that fails verification against a page that
 plainly says it) point to a higher `ocr_dpi` or the right `ocr_lang`.
 
@@ -476,7 +485,9 @@ documentation on improving output quality (`cited`). `ocr = "auto"` runs OCR
 only where a page has no text layer, and no other choice has been compared.
 `ocr_min_chars = 40` was set when OCR was added and has not been tuned, and
 `ocr_lang = "eng"` is English because the package's own examples are in
-English. All three are `untested`.
+English. `ocr_trigger = "raw_text"` is how pages were chosen before the
+setting existed, and has not been compared with `"after_running_lines"`. All
+four are `untested`.
 
 **How to test it.** OCR needs a scanned file and the tesseract and magick
 packages, so this runs on your own documents, with a reference built from them
@@ -492,6 +503,18 @@ hr_sweep_check(bench)
 
 A row from `hr_sweep_check()` means no page crossed the threshold between the
 two values, so they read the documents the same way.
+
+`ocr_trigger` is swept the same way, and decides which pages are read before
+any request, so `doc$stats$unread_pages` and the `"ocr"` blocks of each
+ingestion show its effect for nothing:
+
+```{r eval = FALSE}
+arms <- hr_sweep(gr_arm("scanned"),
+                 list(ocr_trigger = c("raw_text", "after_running_lines")))
+bench <- hr_benchmark(arms, my_reference, runs = 5, client = my_client, split = "dev",
+                      scorer = gr_scorer_answer())
+aggregate(correct ~ param.ocr_trigger, bench, mean)
+```
 
 ## Adding your own
 

@@ -304,10 +304,15 @@ NULL
 #' \describe{
 #'   \item{`blocks`}{Data frame of cleaned text blocks with provenance:
 #'     `text`, `page`, `section`, `kind`, `block_id`, `table_id`,
-#'     `table_rows`. `page` is set only by the PDF extractor; `kind` is one of
-#'     `"body"`, `"heading"`, `"code"`, `"table"`, `"footnote"`, `"ocr"`.
-#'     `table_id` and `table_rows` say which table a `"table"` block is a row
-#'     of and which rows it holds (see [gr_ingest()]).}
+#'     `table_rows`, and `ocr_confidence` when a PDF page was OCR-ed. `page`
+#'     is set only by the PDF extractor; `kind` is one of `"body"`,
+#'     `"heading"`, `"code"`, `"table"`, `"footnote"`, `"ocr"` (text that came
+#'     from OCR: a PDF page's blocks other than its headings, a Word file's
+#'     images, an image file). `table_id` and `table_rows` say which table a
+#'     `"table"` block is a row of and which rows it holds (see
+#'     [gr_ingest()]). `ocr_confidence` is tesseract's mean word confidence,
+#'     0 to 100, for the page an `"ocr"` block of a PDF came from, `NA` for
+#'     other blocks.}
 #'   \item{`text`}{All blocks joined with blank lines.}
 #'   \item{`source`}{Absolute path, the web address a document was fetched
 #'     from, or `"<inline text>"` when the input was a string of text.}

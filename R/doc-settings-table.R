@@ -133,6 +133,7 @@
   "ingest.cleaner_opts.header_min_repeats" = "ingest#set-clean",
   ingest.ocr = "ingest#set-ocr", ingest.ocr_lang = "ingest#set-ocr",
   ingest.ocr_dpi = "ingest#set-ocr", ingest.ocr_min_chars = "ingest#set-ocr",
+  ingest.ocr_trigger = "ingest#set-ocr",
   segment.method = "segment#set-method",
   segment.max_tokens = "segment#set-max-tokens",
   segment.overlap_tokens = "segment#set-overlap",

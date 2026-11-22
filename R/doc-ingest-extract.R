@@ -649,10 +649,10 @@ extract_pdf <- function(path, opts) {
   # as.numeric(), not as.integer(): Inf -- OCR every page -- is a threshold, and
   # as.integer(Inf) is NA.
   min_chars <- as.numeric(opts$ocr_min_chars %||% 40L)
-  needs <- switch(ocr_mode,
-                  never  = rep(FALSE, length(pages)),
-                  always = rep(TRUE,  length(pages)),
-                  nchar(trimws(pages)) < min_chars)
+  needs <- ocr_needs(pages, ocr_mode, min_chars,
+                     as_chr1(opts[["ocr_trigger", exact = TRUE]], "raw_text"),
+                     opts[["layout_opts", exact = TRUE]])
+  confidence <- rep(NA_real_, length(pages))
   # Pages whose content never became text. They travel with the document (as
   # `stats$unread_pages`) so an answer drawn from it is marked partial: a warning
   # printed once at the console is gone by the time anyone reads the answer, and
@@ -676,6 +676,7 @@ extract_pdf <- function(path, opts) {
       pages <- res$pages
       unread <- res$unread
       ocr_done <- res$ocr_done
+      confidence <- res$confidence %||% confidence
     }
   }
 
@@ -719,12 +720,47 @@ extract_pdf <- function(path, opts) {
     out <- pdf_page_blocks(lines, heading_matcher(pdf_outline_titles(path)))
     if (!nrow(out)) out <- NULL
   }
-  out <- as_blocks(out %||% data.frame(text = character(0)))
+  out <- tag_ocr_blocks(as_blocks(out %||% data.frame(text = character(0))), ocr_done)
+  # Tesseract's confidence for each page OCR read, NA for the others, for
+  # gr_ingest() to put on the page's "ocr" blocks.
+  if (any(ocr_done)) attr(out, "gr_ocr_confidence") <- confidence
   attr(out, "gr_unread_pages") <- unread
   # How many pages the file has, for a page count that does not stop at the
   # last page any block came from.
   attr(out, "gr_pages") <- length(pages)
   out
+}
+
+#' Which pages of a PDF to OCR.
+#'
+#' `"never"` and `"always"` as they say. Under `"auto"`, a page with fewer
+#' than `min_chars` characters: of its whole text layer with `trigger =
+#' "raw_text"`, as always, or with `trigger = "after_running_lines"`, of what
+#' is left once the running heads, feet and stamps the layout pass drops
+#' (drop_running_lines(), with `layout_opts`) are taken out. A scanned page
+#' with a 60-character fax header or Bates stamp in its text layer is then
+#' OCR-ed, where the raw count took the stamp for the page's text.
+#' @noRd
+ocr_needs <- function(pages, mode, min_chars, trigger = "raw_text", layout_opts = NULL) {
+  n <- length(pages)
+  if (identical(mode, "never")) return(rep(FALSE, n))
+  if (identical(mode, "always")) return(rep(TRUE, n))
+  if (!identical(trigger, "after_running_lines")) return(nchar(trimws(pages)) < min_chars)
+  lines <- do.call(drop_running_lines, c(list(lapply(pages, page_lines)), layout_opts))
+  kept <- vapply(lines, function(l) nchar(trimws(paste(l[nzchar(trimws(l))], collapse = "\n"))),
+                 numeric(1))
+  kept < min_chars
+}
+
+#' Mark the blocks of the pages OCR read as kind "ocr", as the Word and image
+#' extractors mark theirs, so a block says its text came from OCR. A heading
+#' keeps its kind, which is what gives the blocks after it their section.
+#' @noRd
+tag_ocr_blocks <- function(blocks, ocr_done) {
+  if (!nrow(blocks) || !any(ocr_done)) return(blocks)
+  hit <- !is.na(blocks$page) & blocks$page %in% which(ocr_done) & blocks$kind != "heading"
+  blocks$kind[hit] <- "ocr"
+  blocks
 }
 
 #' OCR the pages of a PDF marked in `needs`.
@@ -745,6 +781,10 @@ extract_pdf <- function(path, opts) {
 #' threw away good text: under `ocr = "always"` a born-digital PDF whose OCR
 #' failed lost every page. As when OCR is not installed, a page counts as
 #' unread only when nothing of it became text.
+#'
+#' `confidence` is tesseract's mean word confidence (0 to 100) for each page
+#' OCR read, from a second pass over the same image with ocr_data(); `NA` for
+#' a page not read, or when that pass fails.
 #' @noRd
 ocr_pdf_pages <- function(path, pages, needs, opts,
                           engine = function(lang) tesseract::tesseract(lang),
@@ -752,8 +792,11 @@ ocr_pdf_pages <- function(path, pages, needs, opts,
                             magick::image_read_pdf(path, pages = i, density = dpi)
                           },
                           ocr = function(img, eng) tesseract::ocr(img, engine = eng),
-                          workers = NULL) {
-  force(engine); force(read_page); force(ocr)
+                          workers = NULL,
+                          confidence = function(img, eng) {
+                            mean(tesseract::ocr_data(img, engine = eng)$confidence)
+                          }) {
+  force(engine); force(read_page); force(ocr); force(confidence)
   lang <- as_chr1(opts$ocr_lang %||% "eng")
   dpi <- as.numeric(opts$ocr_dpi %||% 300)
   eng <- engine(lang)
@@ -765,19 +808,25 @@ ocr_pdf_pages <- function(path, pages, needs, opts,
         eng <<- engine(lang)
         eng_pid <<- Sys.getpid()
       }
-      list(text = as_chr1(ocr(read_page(path, i, dpi), eng)), failed = FALSE)
+      img <- read_page(path, i, dpi)
+      text <- as_chr1(ocr(img, eng))
+      conf <- tryCatch(as_num1(confidence(img, eng), NA_real_), error = function(e) NA_real_)
+      list(text = text, failed = FALSE, confidence = conf)
     }, error = function(e) {
       gr_warn(sprintf("OCR failed on page %d: %s", i, conditionMessage(e)),
               class = "gr_ocr_failed")
-      list(text = "", failed = TRUE)
+      list(text = "", failed = TRUE, confidence = NA_real_)
     })
   }, parallel = opts$parallel, workers = workers, label = "OCR page")
   failed <- vapply(res, function(r) isTRUE(r$failed), logical(1))
   pages[idx[!failed]] <- vapply(res[!failed], function(r) as_chr1(r$text), character(1))
   ocr_done <- rep(FALSE, length(pages))
   ocr_done[idx[!failed]] <- TRUE
+  conf <- rep(NA_real_, length(pages))
+  conf[idx] <- vapply(res, function(r) as_num1(r$confidence, NA_real_), numeric(1))
+  conf[!ocr_done] <- NA_real_
   list(pages = pages, ocr_done = ocr_done,
-       unread = idx[failed & !nzchar(trimws(pages[idx]))])
+       unread = idx[failed & !nzchar(trimws(pages[idx]))], confidence = conf)
 }
 
 #' @noRd
@@ -812,9 +861,7 @@ extract_docx <- function(path, opts) {
     if (length(imgs)) {
       gr_msg(sprintf("OCR-ing %d embedded image(s) in DOCX.", length(imgs)))
       eng <- tesseract::tesseract(as_chr1(opts$ocr_lang %||% "eng"))
-      ocr <- vapply(imgs, function(f) tryCatch(as_chr1(tesseract::ocr(f, engine = eng)),
-                                               error = function(e) ""),
-                    character(1), USE.NAMES = FALSE)
+      ocr <- ocr_images(imgs, eng)
       ocr <- ocr[has_content(ocr)]
       if (length(ocr)) {
         blocks <- rbind(blocks, data.frame(text = ocr, section = "[embedded images]",
@@ -823,6 +870,18 @@ extract_docx <- function(path, opts) {
     }
   }
   as_blocks(blocks)
+}
+
+#' OCR the images of a Word file, one string per image. An image whose OCR
+#' fails gives "" and a `gr_ocr_failed` warning naming it, as a PDF page
+#' does; it used to give "" with nothing said, so its text was lost unseen.
+#' @noRd
+ocr_images <- function(imgs, eng, ocr = function(f, eng) tesseract::ocr(f, engine = eng)) {
+  vapply(imgs, function(f) tryCatch(as_chr1(ocr(f, eng)), error = function(e) {
+    gr_warn(sprintf("OCR failed on embedded image '%s': %s", basename(f), conditionMessage(e)),
+            class = "gr_ocr_failed")
+    ""
+  }), character(1), USE.NAMES = FALSE)
 }
 
 #' Unpack the parts of a Word file that are read: the text, styles, footnotes

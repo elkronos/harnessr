@@ -115,6 +115,26 @@ says how to test it with `hr_sweep()`.
   that each start with the header. The default, `"rows"`, packs rows as
   before.
 
+* `gr_ingest_spec()` gains `ocr_trigger`. At `"after_running_lines"`, under
+  `ocr = "auto"`, a PDF page is counted against `ocr_min_chars` once the
+  running heads, feet and stamps the layout pass drops are taken out, so a
+  scanned page whose text layer holds only a 60-character fax header or
+  Bates stamp is OCR-ed. The default, `"raw_text"`, counts the whole text
+  layer as before.
+
+* The blocks of a PDF page OCR read now have `kind = "ocr"` (headings keep
+  `"heading"`), as the blocks OCR reads from a Word file's images and from
+  image files always had, and carry `ocr_confidence`, Tesseract's mean word
+  confidence for the page. This changes the blocks of a document at the
+  default settings when tesseract and magick are installed and a page is
+  OCR-ed: it is a fix, since the blocks did not say their text came from
+  OCR, and no text and no request changes. The confidence costs a second
+  Tesseract pass over each OCR-ed page. Without tesseract nothing changes.
+
+* An embedded image in a Word file whose OCR fails now raises a
+  `gr_ocr_failed` warning naming the image, as a PDF page does; before, its
+  text was lost with nothing said.
+
 * `semantic` run on lexical vectors now reports its method as
   `"semantic->lexical"`, as it reports `"semantic->paragraph"` when it falls
   back. This is a label fix: the chunks and the requests are unchanged.

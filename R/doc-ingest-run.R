@@ -31,6 +31,13 @@
 #' @param ocr_min_chars A page with fewer characters than this is treated as
 #'   needing OCR under `ocr = "auto"`. Zero or more; `Inf` marks every page.
 #'   Anything else warns and uses 40.
+#' @param ocr_trigger Under `ocr = "auto"`, which of a PDF page's text
+#'   `ocr_min_chars` is counted on. `"raw_text"` (the default) counts the
+#'   whole text layer, as before. `"after_running_lines"` counts what is left
+#'   once the running heads, feet and stamps that `layout = "auto"` drops are
+#'   taken out (with `layout_opts`), so a scanned page whose text layer holds
+#'   only a 60-character fax header or Bates stamp repeated on every page is
+#'   OCR-ed. Untested.
 #' @param min_chars Refuse the document if less than this much text survives.
 #' @param extractor Force a specific extractor name instead of dispatching on
 #'   the file extension.
@@ -99,7 +106,8 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
                            ocr_lang = "eng", ocr_dpi = 300, ocr_min_chars = 40L,
                            min_chars = 20L, extractor = NULL, parallel = NULL,
                            cleaner_opts = list(), layout = c("auto", "raw"),
-                           layout_opts = list()) {
+                           layout_opts = list(),
+                           ocr_trigger = c("raw_text", "after_running_lines")) {
   p <- hr_validate(.gr_ingest_schema, mget(names(.gr_ingest_schema), environment()))
   spec <- structure(list(clean = p$clean, ocr = p$ocr, ocr_lang = p$ocr_lang,
                          ocr_dpi = p$ocr_dpi, ocr_min_chars = p$ocr_min_chars,
@@ -110,6 +118,8 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
   # Only when set, as `layout`: the spec is hashed into the document cache and
   # store keys.
   if (length(p$layout_opts)) spec$layout_opts <- p$layout_opts
+  # Only when set, for the same reason.
+  if (!identical(p$ocr_trigger, "raw_text")) spec$ocr_trigger <- p$ocr_trigger
   spec
 }
 
@@ -220,7 +230,12 @@ check_layout_opts <- function(x, p, params) {
            help = "Settings of the PDF running-head pass under layout = 'auto'.",
            evidence = ev_untested(paste0("Empty: the pass uses the values it was written with, ",
                                          "listed under `layout_opts`; none was tuned.")),
-           resolve = check_layout_opts)
+           resolve = check_layout_opts),
+  hr_param("ocr_trigger", "enum", choices = c("raw_text", "after_running_lines"),
+           tier = "advanced", depends_on = "ocr = \"auto\"",
+           help = "Which text of a PDF page ocr_min_chars is counted on under ocr = 'auto'.",
+           evidence = ev_untested(paste0("\"raw_text\" counts the whole text layer, as before; ",
+                                         "not compared with \"after_running_lines\".")))
 )
 
 #' Ingest a document into cleaned, provenance-bearing text blocks
@@ -414,7 +429,14 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
     # Which blocks the Markdown extractor took a four-space indent off (see
     # extract_md()), read before as_blocks(), which keeps no attributes.
     indented <- attr(raw, "gr_indented", exact = TRUE)
+    # Tesseract's confidence per page, for the pages OCR read (extract_pdf()).
+    ocr_conf <- attr(raw, "gr_ocr_confidence", exact = TRUE)
     blocks <- as_blocks(raw)
+    if (is.numeric(ocr_conf) && length(ocr_conf)) {
+      pg <- suppressWarnings(as.integer(blocks$page))
+      at <- ifelse(!is.na(pg) & pg >= 1L & pg <= length(ocr_conf), pg, NA_integer_)
+      blocks$ocr_confidence <- ifelse(blocks$kind == "ocr", ocr_conf[at], NA_real_)
+    }
     blocks$text <- to_utf8(blocks$text)
     source_type <- as_chr1(ex$name, NA_character_)
     if (!is.logical(indented) || length(indented) != nrow(blocks)) indented <- NULL

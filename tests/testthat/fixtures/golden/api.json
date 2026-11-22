@@ -149,7 +149,7 @@
       "type": "function"
     },
     "gr_ingest_spec": {
-      "formals": ["clean = \"standard\"", "ocr = c(\"auto\", \"always\", \"never\")", "ocr_lang = \"eng\"", "ocr_dpi = 300", "ocr_min_chars = 40L", "min_chars = 20L", "extractor = NULL", "parallel = NULL", "cleaner_opts = list()", "layout = c(\"auto\", \"raw\")", "layout_opts = list()"],
+      "formals": ["clean = \"standard\"", "ocr = c(\"auto\", \"always\", \"never\")", "ocr_lang = \"eng\"", "ocr_dpi = 300", "ocr_min_chars = 40L", "min_chars = 20L", "extractor = NULL", "parallel = NULL", "cleaner_opts = list()", "layout = c(\"auto\", \"raw\")", "layout_opts = list()", "ocr_trigger = c(\"raw_text\", \"after_running_lines\")"],
       "type": "function"
     },
     "gr_inventory": {

@@ -15,7 +15,8 @@ gr_ingest_spec(
   parallel = NULL,
   cleaner_opts = list(),
   layout = c("auto", "raw"),
-  layout_opts = list()
+  layout_opts = list(),
+  ocr_trigger = c("raw_text", "after_running_lines")
 )
 }
 \arguments{
@@ -80,6 +81,14 @@ which a numbered line must carry its number where a page number is set).
 Names left out keep these defaults, which were set when the PDF reader
 was written and are untested. An unknown name is an error. Stored in the
 spec only when it is not empty.}
+
+\item{ocr_trigger}{Under \code{ocr = "auto"}, which of a PDF page's text
+\code{ocr_min_chars} is counted on. \code{"raw_text"} (the default) counts the
+whole text layer, as before. \code{"after_running_lines"} counts what is left
+once the running heads, feet and stamps that \code{layout = "auto"} drops are
+taken out (with \code{layout_opts}), so a scanned page whose text layer holds
+only a 60-character fax header or Bates stamp repeated on every page is
+OCR-ed. Untested.}
 }
 \value{
 A list of class \code{gr_ingest_spec}.
@@ -103,6 +112,7 @@ Each setting's default, its tier and the evidence behind the value, as in
 \item \code{parallel} (default \code{NULL}, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.
 \item \code{cleaner_opts} (default \code{list()}, advanced): untested. Empty: each cleaner uses its own defaults, listed under \code{cleaner_opts}.
 \item \code{layout_opts} (default \code{list()}, advanced): untested. Empty: the pass uses the values it was written with, listed under \code{layout_opts}; none was tuned.
+\item \code{ocr_trigger} (default \code{"raw_text"}, advanced): untested. "raw_text" counts the whole text layer, as before; not compared with "after_running_lines".
 }
 }
 

@@ -292,3 +292,81 @@ test_that("table_packing is swept as recipe arms", {
                    list(table_packing = c("rows", "grouped")))
   expect_length(arms, 2L)
 })
+
+# ---------------------------------------------------------------------------
+# P1D-12: ocr_trigger, OCR tags and confidence, Word image OCR failures
+# ---------------------------------------------------------------------------
+
+po_stamp <- "CONFIDENTIAL FAX COPY 2024-03-01 FROM CLINIC RECORDS ROOM 12"
+
+test_that("ocr_trigger is off by default and leaves the spec as it was", {
+  expect_null(gr_ingest_spec()$ocr_trigger)
+  expect_identical(gr_ingest_spec(ocr_trigger = "after_running_lines")$ocr_trigger,
+                   "after_running_lines")
+  expect_error(gr_ingest_spec(ocr_trigger = "nope"))
+})
+
+test_that("after_running_lines OCRs a page whose only text is a running stamp", {
+  expect_identical(nchar(po_stamp), 60L)
+  body <- function(i) {
+    paste(sprintf("Page %d opens a paragraph of real text in its text layer,", i),
+          c("well past the forty characters that mark a page for OCR.",
+            "and the paragraph goes on to a second line of its own."), collapse = "\n")
+  }
+  pages <- c(vapply(1:3, function(i) paste(body(i), po_stamp, sep = "\n"), ""), po_stamp)
+  raw <- harnessr:::ocr_needs(pages, "auto", 40, "raw_text")
+  after <- harnessr:::ocr_needs(pages, "auto", 40, "after_running_lines")
+  expect_identical(raw, c(FALSE, FALSE, FALSE, FALSE))
+  expect_identical(after, c(FALSE, FALSE, FALSE, TRUE))
+  # never and always are as they were.
+  expect_identical(harnessr:::ocr_needs(pages, "never", 40, "after_running_lines"),
+                   rep(FALSE, 4))
+  expect_identical(harnessr:::ocr_needs(pages, "always", 40, "after_running_lines"),
+                   rep(TRUE, 4))
+})
+
+test_that("OCR-ed PDF blocks are kind 'ocr' with a confidence; headings keep theirs", {
+  b <- data.frame(text = c("Methods", "Scanned text.", "Typed text."), page = c(1L, 1L, 2L),
+                  section = "Methods", kind = c("heading", "body", "body"))
+  out <- harnessr:::tag_ocr_blocks(b, c(TRUE, FALSE))
+  expect_identical(out$kind, c("heading", "ocr", "body"))
+  expect_identical(harnessr:::tag_ocr_blocks(b, c(FALSE, FALSE)), b)
+  res <- po_quiet(harnessr:::ocr_pdf_pages(
+    "scan.pdf", pages = c("", "Typed."), needs = c(TRUE, FALSE), opts = list(parallel = FALSE),
+    engine = function(lang) "engine", read_page = function(path, i, dpi) i,
+    ocr = function(img, eng) "Scanned text.", confidence = function(img, eng) 87.5))
+  expect_identical(res$confidence, c(87.5, NA))
+  # A confidence pass that fails leaves NA, and the text stands.
+  res <- po_quiet(harnessr:::ocr_pdf_pages(
+    "scan.pdf", pages = "", needs = TRUE, opts = list(parallel = FALSE),
+    engine = function(lang) "engine", read_page = function(path, i, dpi) i,
+    ocr = function(img, eng) "Scanned text.", confidence = function(img, eng) stop("no")))
+  expect_identical(res$pages, "Scanned text.")
+  expect_identical(res$confidence, NA_real_)
+})
+
+test_that("a real OCR pass tags a PDF's pages and records tesseract's confidence", {
+  skip_if_not_installed("tesseract")
+  skip_if_not_installed("magick")
+  skip_if_not_installed("pdftools")
+  f <- test_path("fixtures", "pdf", "single-column.pdf")
+  d <- po_quiet(gr_ingest(f, gr_ingest_spec(ocr = "always"), cache = FALSE))
+  ocr <- d$blocks[d$blocks$kind == "ocr", , drop = FALSE]
+  expect_gt(nrow(ocr), 0L)
+  expect_true(all(ocr$ocr_confidence >= 0 & ocr$ocr_confidence <= 100, na.rm = TRUE))
+  expect_true(all(is.na(d$blocks$ocr_confidence[d$blocks$kind != "ocr"])))
+})
+
+test_that("a Word image whose OCR fails warns instead of vanishing", {
+  expect_warning(got <- harnessr:::ocr_images(c("a/fig1.png", "a/fig2.png"), "engine",
+                                              ocr = function(f, eng) {
+                                                if (grepl("fig1", f)) stop("bad image") else "Fig 2"
+                                              }),
+                 "fig1.png", class = "gr_ocr_failed")
+  expect_identical(got, c("", "Fig 2"))
+})
+
+test_that("ocr_trigger is swept as recipe arms", {
+  arms <- hr_sweep(gr_arm("scanned"), list(ocr_trigger = c("raw_text", "after_running_lines")))
+  expect_length(arms, 2L)
+})
