@@ -99,6 +99,9 @@
     "rounds, with no recorded evidence for that number.")),
   gr_synthesise.figure_bands = ev_untested("Set when the check of figures was written."),
   gr_synthesise.prominence = ev_untested("Thirds, set when claims were added."),
+  gr_synthesise.revision_check = ev_untested(paste0(
+    "\"lexicon\": the word-counting guard alone, as before; the judge is not validated ",
+    "against people's labels and not compared.")),
   gr_claims.unverified = ev_untested(paste0(
     "\"exclude\", so a claim rests on what the documents were found to say; not compared ",
     "with \"include\"."))
@@ -202,6 +205,7 @@
   synthesise.figure_bands = "review#set-synthesis",
   synthesise.prominence = "review#set-synthesis",
   synthesise.unverified = "review#set-synthesis",
+  synthesise.revision_check = "review#set-synthesis",
   evaluate.governor = "runs#set-governor",
   evaluate.hr_error_correlation.strata = "evaluate#set-errcorr",
   evaluate.hr_error_correlation.n_strata = "evaluate#set-errcorr",

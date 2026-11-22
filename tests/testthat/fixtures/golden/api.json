@@ -381,7 +381,7 @@
       "type": "function"
     },
     "gr_synthesise": {
-      "formals": ["extraction", "protocol = NULL", "outline = NULL", "question = NULL", "client = NULL", "model = NULL", "max_section_tokens = 1200L", "temperature = NULL", "include_unclear = FALSE", "cite_style = c(\"auto\", \"marker\", \"author-year\", \"numeric\")", "bib = NULL", "style = NULL", "coherence = FALSE", "references = TRUE", "claims = NULL", "gaps = NULL", "trace = NULL", "effort = NULL", "coherence_rounds = 1L", "figure_bands = c(about = 0.1, over = 0.25, under = 0.25)", "prominence = c(top = 1/3, middle = 1/3)", "study_weights = NULL"],
+      "formals": ["extraction", "protocol = NULL", "outline = NULL", "question = NULL", "client = NULL", "model = NULL", "max_section_tokens = 1200L", "temperature = NULL", "include_unclear = FALSE", "cite_style = c(\"auto\", \"marker\", \"author-year\", \"numeric\")", "bib = NULL", "style = NULL", "coherence = FALSE", "references = TRUE", "claims = NULL", "gaps = NULL", "trace = NULL", "effort = NULL", "coherence_rounds = 1L", "figure_bands = c(about = 0.1, over = 0.25, under = 0.25)", "prominence = c(top = 1/3, middle = 1/3)", "study_weights = NULL", "revision_check = c(\"lexicon\", \"judge\")"],
       "type": "function"
     },
     "gr_tokenizer": {

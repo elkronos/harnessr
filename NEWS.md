@@ -75,12 +75,23 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
   Without a registration from `hr_register_contrasts()` the contrasts are
   marked post hoc. It plans nothing: there is no effort planner.
 
+* `gr_synthesise()` gains `revision_check`. `"judge"` puts an advisory
+  check behind the word-counting guard of the `coherence` passes: each
+  sentence a kept revision changed is graded by `hr_judge()`, its requests
+  held to the run's limits, against the draft sentences it came from, as
+  `"holds"`, `"stronger"` or `"not_entailed"`. A flagged sentence is warned
+  about (`gr_revision_flagged`), counted in a `flagged` column of
+  `$coherence` and listed in `$revision_flags`; the revision is kept as it
+  was. "Is associated with" made "reduces" passes the word lists and is
+  flagged by the judge; a hedge moved into another sentence is not.
+  `"lexicon"`, the default, sends no judge request.
+
 * Left out: a look-up step for `hierarchical` (reading the chunks behind the
   summary an answer rests on) and showing `iterative` its earlier queries.
   Each changes the requests of a reader in a way that needs its own
   benchmark arm, and neither was needed for the policy itself.
 
-The read stage now has 50 settings, 223 in all.
+The read stage now has 50 settings and the synthesise stage 29, 224 in all.
 
 ## Reading options
 
