@@ -453,6 +453,150 @@ golden_api <- function() {
 }
 
 # ---------------------------------------------------------------------------
+# Heuristics: the numeral parser and the PDF layout pass.
+# ---------------------------------------------------------------------------
+#
+# These records freeze what two hand-tuned parts of the document layer do
+# today, with no model call involved: the numeral reader behind quote checks
+# (R/doc-verify-number.R) and the layout pass that puts PDF pages in reading
+# order (R/doc-ingest-pdf.R). They live in fixtures/golden-heuristics/, apart
+# from the run records, so a recorder without pdftools can leave the PDF
+# record as it is.
+#
+#   numerals    for each string of golden_numeral_corpus, the language
+#               quote_language() sees and every number quote_numbers() reads.
+#   pdf-layout  for each fixture PDF, the page text pdftools read when the
+#               fixtures were built (fixtures/pdf/pages.json), put through the
+#               layout pass: the gutter found on each page and the blocks that
+#               come out, with their page, section and kind. Needs no pdftools.
+#   pdf-read    each fixture PDF read end to end by the PDF extractor, in
+#               reading order and raw. Needs pdftools.
+
+golden_heuristics_dir <- function(root = NULL) {
+  if (!is.null(root)) {
+    return(file.path(root, "tests", "testthat", "fixtures", "golden-heuristics"))
+  }
+  testthat::test_path("fixtures", "golden-heuristics")
+}
+
+golden_pdf_dir <- function(root = NULL) {
+  if (!is.null(root)) return(file.path(root, "tests", "testthat", "fixtures", "pdf"))
+  testthat::test_path("fixtures", "pdf")
+}
+
+# Numerals as quotations write them. Characters outside ASCII are escaped so
+# the file reads the same in any locale.
+golden_numeral_corpus <- c(
+  # Thousands separators.
+  "1,234", "12,345,678 participants", "n = 1,120", "1 234 567",
+  "1\u2009234\u2009567", "1\u202f234", "1.234.567", "1'234'567", "1 234,5",
+  # Decimals.
+  "3.14", "0.5", ".75 of the sample", "45,2", "2\u00b75", "12.50",
+  # Ranges.
+  "20-30", "20\u201330", "1.5\u20132.0", "from 5 to 10", "between 18 and 65 years",
+  "ages 18\u201365",
+  # Negatives and signs.
+  "-5", "\u22125.3", "a change of -12%", "fell to \u221240 degrees", "+3.5",
+  # Percentages.
+  "54%", "54 per cent", "fifty-four percent", "12.5 %", "0.5 percentage points",
+  # Currencies and scales.
+  "$1.2 million", "$3bn", "$1.2 bn", "US$ 2.5bn", "\u00a31,250", "\u20ac45,2 Mio.",
+  "\u00a53\u4e07", "1,2 millions d'euros", "1,2 Millionen Euro", "1,2 millones de d\u00f3lares",
+  "three million dollars", "three billion people", "two trillion yen", "five lakh rupees",
+  "two crore", "2.4k",
+  # Words and fractions.
+  "twenty-one", "one hundred and five", "two and a half", "a quarter", "two thirds",
+  "one in five", "1 in 5", "\u00bd", "\u00be of patients", "a dozen", "nineteen ninety-nine",
+  # Scientific notation and p values.
+  "3.2 x 10^-5", "3.2 \u00d7 10\u207b\u2075", "3.2 x 10-5", "2.1\u00b710\u207b\u00b3",
+  "p < 0.001", "1e-3",
+  # Other languages and scripts.
+  "El ingreso fue de veintid\u00f3s millones de euros en el a\u00f1o",
+  "Les ventes ont atteint quatre-vingt-dix pour cent du total",
+  "Der Umsatz stieg um dreiundzwanzig Prozent im Jahr",
+  "Il fatturato \u00e8 stato di milleduecento euro nel periodo",
+  "A receita foi de cento e vinte milh\u00f5es de reais no ano",
+  "De omzet steeg tot tweeduizend euro in het jaar",
+  "\u0664\u0665", "\u096a\u0968", "\u4e09\u5343\u4e94\u767e", "\uff11\uff12\uff13",
+  # Names, numbering and nothing.
+  "phase III", "COVID-19", "Table 2", "no numbers here", "")
+
+golden_numerals <- function() {
+  ns <- asNamespace("harnessr")
+  lapply(golden_numeral_corpus, function(s) {
+    list(input = s,
+         language = I(ns$quote_language(ns$fold_numerals(s), folded = TRUE)),
+         numbers = I(ns$quote_numbers(s)))
+  })
+}
+
+golden_pdf_pages <- function(root = NULL) {
+  path <- file.path(golden_pdf_dir(root), "pages.json")
+  pages <- jsonlite::fromJSON(paste(readLines(path, encoding = "UTF-8", warn = FALSE),
+                                    collapse = "\n"), simplifyVector = TRUE)
+  lapply(pages, function(p) enc2utf8(as.character(p)))
+}
+
+golden_blocks <- function(b) {
+  b <- as.data.frame(b, stringsAsFactors = FALSE)
+  lapply(seq_len(nrow(b)), function(i) {
+    list(text = b$text[i], page = b$page[i], section = b$section[i], kind = b$kind[i])
+  })
+}
+
+# The layout pass of the PDF extractor on stored page text: running lines
+# out, each page's gutter, columns reordered, then blocks with headings found
+# by name (there are no bookmarks without the PDF).
+golden_pdf_layout <- function(root = NULL) {
+  ns <- asNamespace("harnessr")
+  lapply(golden_pdf_pages(root), function(pages) {
+    lines <- ns$drop_running_lines(lapply(pages, ns$page_lines))
+    gutters <- vapply(lines, function(l) as.integer(ns$column_gutter(l)), integer(1))
+    for (i in which(!is.na(gutters))) lines[[i]] <- ns$reorder_columns(lines[[i]], gutters[i])
+    list(gutters = I(gutters),
+         blocks = golden_blocks(ns$pdf_page_blocks(lines, ns$heading_matcher(character(0)))))
+  })
+}
+
+# Each fixture PDF read by the extractor, in reading order and raw. OCR is
+# off, so tesseract being installed or not changes nothing. `pages_as_built`
+# says whether this pdftools reads the same page text as the one that built
+# the fixtures; when it does not, the blocks can differ for that reason alone.
+golden_pdf_read <- function(root = NULL) {
+  ns <- asNamespace("harnessr")
+  built <- golden_pdf_pages(root)
+  out <- lapply(names(built), function(nm) {
+    f <- file.path(golden_pdf_dir(root), paste0(nm, ".pdf"))
+    read <- function(layout) {
+      b <- ns$extract_pdf(f, list(ocr = "never", layout = layout))
+      list(blocks = golden_blocks(b), pages = attr(b, "gr_pages"),
+           unread = I(as.integer(attr(b, "gr_unread_pages"))))
+    }
+    list(pages_as_built = identical(enc2utf8(pdftools::pdf_text(f)), built[[nm]]),
+         auto = read("auto"), raw = read("raw"))
+  })
+  stats::setNames(out, names(built))
+}
+
+# The heuristic records this session can compute: the PDF read only with
+# pdftools installed.
+golden_heuristics <- function(root = NULL) {
+  out <- list(numerals = golden_numerals(), `pdf-layout` = golden_pdf_layout(root))
+  if (requireNamespace("pdftools", quietly = TRUE)) out$`pdf-read` <- golden_pdf_read(root)
+  out
+}
+
+golden_heuristics_write <- function(records, dir) {
+  dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  for (nm in names(records)) {
+    con <- file(file.path(dir, paste0(nm, ".json")), open = "wb")
+    writeBin(charToRaw(paste0(golden_json(records[[nm]], pretty = TRUE), "\n")), con)
+    close(con)
+  }
+  invisible(file.path(dir, paste0(names(records), ".json")))
+}
+
+# ---------------------------------------------------------------------------
 # Writing and comparing.
 # ---------------------------------------------------------------------------
 

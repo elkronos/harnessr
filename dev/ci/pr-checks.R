@@ -1,9 +1,11 @@
 # Pull request hygiene checks, run by .github/workflows/pr-checks.yaml and
 # runnable by hand against any two git refs:
 #
-#   Rscript dev/ci/pr-checks.R tests <base> <head>
-#   Rscript dev/ci/pr-checks.R deps  <base> <head>
-#   Rscript dev/ci/pr-checks.R lint  <base> <head>
+#   Rscript dev/ci/pr-checks.R tests     <base> <head>
+#   Rscript dev/ci/pr-checks.R deps      <base> <head>
+#   Rscript dev/ci/pr-checks.R lint      <base> <head>
+#   Rscript dev/ci/pr-checks.R namespace <base> <head>
+#   Rscript dev/ci/pr-checks.R commits   <base> <head>
 #
 # Labels on the pull request come from the PR_LABELS environment variable, a
 # comma separated list. Locally, set it by hand to see what a label changes:
@@ -14,37 +16,48 @@
 # Each check exits 1 when it fails and 0 when it passes. Base R only, except
 # `lint`, which needs lintr.
 #
-# tests  Fails when the change removes an expect_*() call from tests/, or adds
-#        a skip(), skip_if*() or skip_on_*() call, unless the pull request
-#        carries the label "tests-reviewed". A line removed in one place and
-#        added back unchanged in another (a test moved between files) does not
-#        count. Comments and quoted strings are ignored, so a skip() in a
-#        comment or a message does not count. A line with an expect_ call that
-#        is edited (its arguments changed, say) counts as a removed
-#        expectation, since the old line no longer appears. Only skip(),
-#        skip_if*(), skip_on_*(), skip_unless*() and skip_empty() are caught;
-#        a project helper that wraps skip() under another name is not.
-# deps   Fails when the change adds a package to Depends, Imports, LinkingTo
-#        or Suggests in DESCRIPTION, unless the pull request carries the label
-#        "deps-reviewed". Moving a package from Suggests to Imports counts as
-#        an addition to Imports. Every added package must also exist on CRAN,
-#        label or not: it is looked up at https://crandb.r-pkg.org/<pkg>, and a
-#        404 means it is missing. CRANDB_URL overrides the host, for testing.
-# lint   Runs lintr, with the repository's .lintr, on the files under R/ that
-#        the change adds or modifies. It lints the files as they are in the
-#        working tree, so check out <head> before running it locally.
-
-args <- commandArgs(trailingOnly = TRUE)
-if (length(args) != 3L || !args[[1]] %in% c("tests", "deps", "lint")) {
-  cat("usage: Rscript dev/ci/pr-checks.R <tests|deps|lint> <base> <head>\n")
-  quit(status = 2)
-}
-check <- args[[1]]
-base  <- args[[2]]
-head  <- args[[3]]
-
-labels <- trimws(strsplit(Sys.getenv("PR_LABELS"), ",", fixed = TRUE)[[1]])
-labels <- labels[nzchar(labels)]
+# tests      Fails when the change removes an expect_*() call from tests/, or
+#            adds a skip(), skip_if*() or skip_on_*() call, unless the pull
+#            request carries the label "tests-reviewed". A line removed in one
+#            place and added back unchanged in another (a test moved between
+#            files) does not count. Comments and quoted strings are ignored,
+#            so a skip() in a comment or a message does not count. A line with
+#            an expect_ call that is edited (its arguments changed, say)
+#            counts as a removed expectation, since the old line no longer
+#            appears. Only skip(), skip_if*(), skip_on_*(), skip_unless*() and
+#            skip_empty() are caught; a project helper that wraps skip() under
+#            another name is not. A row added to one of the lists that may
+#            only shrink (tests/testthat/fixtures/boundary/allowed.csv and
+#            doc-uses-internal.csv) counts too: it lets more past a test.
+# deps       Fails when the change adds a package to Depends, Imports,
+#            LinkingTo or Suggests in DESCRIPTION, unless the pull request
+#            carries the label "deps-reviewed". Moving a package from Suggests
+#            to Imports counts as an addition to Imports. Every added package
+#            must also exist on CRAN, label or not: it is looked up at
+#            https://crandb.r-pkg.org/<pkg>, and a 404 means it is missing.
+#            CRANDB_URL overrides the host, for testing.
+# lint       Runs lintr, with the repository's .lintr, on the files under R/
+#            that the change adds or modifies. It lints the files as they are
+#            in the working tree, so check out <head> before running it
+#            locally.
+# namespace  Fails when an export() line of NAMESPACE at the merge base is
+#            gone at <head>, unless the pull request carries the label
+#            "exports-reviewed". A removed export breaks code that calls it;
+#            list it under "## Removed" in NEWS.md with what to use instead.
+#            Renaming counts as a removal. Only export() is compared, not
+#            S3method() or exportPattern().
+# commits    Fails when the message of a commit in <base>..<head> has a
+#            Co-Authored-By, Co-Developed-By or other "Co-...-By" trailer, a
+#            link to a chat or a session (claude.ai, chatgpt.com and the
+#            like, or a subdomain of one, or a trailer such as
+#            "X-Session-Id: <url>"), or a line that starts with "Generated
+#            with". A host named in prose, with no scheme and no path, is not
+#            a link. No label allows it: reword the commit. It reads commit
+#            messages only, never the files, which may mention any tool.
+#
+# Sourced rather than run (source("dev/ci/pr-checks.R")), the file only
+# defines its functions, so the tests in tests/testthat/test-pr-checks.R can
+# call the ones that decide a verdict without git.
 
 # system2() goes through the shell, so every argument is quoted: a pathspec
 # such as tests/*.R must reach git unexpanded.
@@ -94,6 +107,19 @@ report <- function(title, lines) {
   if (length(lines) > 50L) cat(sprintf("  and %d more\n", length(lines) - 50L))
 }
 
+# Fixtures that may only shrink: each row lets something past a test.
+shrink_only <- c("tests/testthat/fixtures/boundary/allowed.csv",
+                 "tests/testthat/fixtures/boundary/doc-uses-internal.csv")
+
+# Rows added to a shrink-only list and not just moved within it. The header
+# row is the same before and after, so it never counts.
+shrink_only_added <- function(added, removed) {
+  added <- added[nzchar(trimws(added))]
+  added[!squish(added) %in% squish(removed)]
+}
+
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
 check_tests <- function() {
   # In a git pathspec `*` also matches `/`, so this covers every R file
   # under tests/, at any depth.
@@ -103,10 +129,14 @@ check_tests <- function() {
                       "_on_[A-Za-z0-9_.]+|_unless[A-Za-z0-9_.]*|_empty)?\\s*\\(")
   lost_expect <- unmatched(ch$removed, ch$added, expect_re)
   new_skip    <- unmatched(ch$added, ch$removed, skip_re)
+  sh <- changed_lines(shrink_only)
+  new_rows <- shrink_only_added(sh$added, sh$removed)
   report("Removed expectations", lost_expect)
   report("Added skips", new_skip)
-  if (!length(lost_expect) && !length(new_skip)) {
-    cat("No expectations removed and no skips added.\n")
+  report("Rows added to a list that may only shrink", new_rows)
+  if (!length(lost_expect) && !length(new_skip) && !length(new_rows)) {
+    cat("No expectations removed, no skips added and no rows added to a",
+        "list that may only shrink.\n")
     return(0L)
   }
   if ("tests-reviewed" %in% labels) {
@@ -207,8 +237,178 @@ check_lint <- function() {
   if (n) 1L else 0L
 }
 
-status <- switch(check,
-                 tests = check_tests(),
-                 deps  = check_deps(),
-                 lint  = check_lint())
-quit(status = status)
+
+# ---------------------------------------------------------------------------
+# namespace
+# ---------------------------------------------------------------------------
+
+# The names exported by export() lines of a NAMESPACE file's text. roxygen
+# writes one name per line; a hand-written export(a, b) is split too. Quotes
+# and backticks around a name are dropped.
+namespace_exports <- function(txt) {
+  txt <- sub("#.*$", "", txt)
+  hits <- regmatches(txt, regexpr("^[[:space:]]*export[[:space:]]*[(].*[)]", txt))
+  inner <- sub("^[[:space:]]*export[[:space:]]*[(](.*)[)]$", "\\1", hits)
+  names <- trimws(unlist(strsplit(inner, ",", fixed = TRUE)))
+  names <- gsub("^[`'\"]|[`'\"]$", "", names)
+  sort(unique(names[nzchar(names)]), method = "radix")
+}
+
+# The verdict on two NAMESPACE texts and the pull request's labels: status 0
+# or 1, and the lines to print.
+namespace_verdict <- function(base_txt, head_txt, labels = character(0)) {
+  gone <- setdiff(namespace_exports(base_txt), namespace_exports(head_txt))
+  added <- setdiff(namespace_exports(head_txt), namespace_exports(base_txt))
+  out <- character(0)
+  if (length(added)) {
+    out <- c(out, sprintf("Exports added (%d): %s", length(added),
+                          paste(added, collapse = ", ")))
+  }
+  if (!length(gone)) {
+    return(list(status = 0L, out = c(out, "No exports removed.")))
+  }
+  out <- c(out, sprintf("Exports removed (%d): %s", length(gone),
+                        paste(gone, collapse = ", ")))
+  if ("exports-reviewed" %in% labels) {
+    return(list(status = 0L, out = c(out,
+      "Allowed: the pull request carries the label exports-reviewed.")))
+  }
+  list(status = 1L, out = c(out, paste(
+    "Removing an export breaks code that calls it. List each one under",
+    "\"## Removed\" in NEWS.md with what to use instead, have the change",
+    "reviewed, and add the label exports-reviewed to the pull request.")))
+}
+
+# NAMESPACE at a ref, or no lines when the ref has none.
+namespace_at <- function(ref) {
+  out <- suppressWarnings(system2("git", shQuote(c("show", paste0(ref, ":NAMESPACE"))),
+                                  stdout = TRUE, stderr = FALSE))
+  if (!is.null(attr(out, "status"))) character(0) else out
+}
+
+check_namespace <- function() {
+  mb <- git("merge-base", base, head)[1]
+  v <- namespace_verdict(namespace_at(mb), namespace_at(head), labels)
+  cat(v$out, sep = "\n")
+  v$status
+}
+
+# ---------------------------------------------------------------------------
+# commits
+# ---------------------------------------------------------------------------
+
+# Hosts of chat and assistant sessions. A link to any of them in a commit
+# message points at a conversation, not at the change.
+chat_hosts <- c("claude[.]ai", "chatgpt[.]com", "chat[.]openai[.]com",
+                "gemini[.]google[.]com", "g[.]co/gemini", "bard[.]google[.]com",
+                "copilot[.]microsoft[.]com", "perplexity[.]ai", "poe[.]com",
+                "chat[.]deepseek[.]com", "chat[.]mistral[.]ai", "huggingface[.]co/chat")
+
+# A link is a host with a scheme (https://claude.ai) or with a path
+# (claude.ai/chat/abc), on the host itself or any subdomain of it
+# (www.claude.ai). A host named in prose ("the claude.ai option name") is not
+# a link. The host must end where the name ends, so notclaude.ai.example.com
+# is not one of them.
+# A listed host that carries a path of its own (huggingface.co/chat) is a
+# link wherever it appears.
+chat_link <- local({
+  sub <- "(?:[a-z0-9-]+[.])*"
+  hosts <- paste0(sub, "(?:", paste(chat_hosts, collapse = "|"), ")")
+  pathed <- paste0(sub, "(?:", paste(grep("/", chat_hosts, value = TRUE), collapse = "|"), ")")
+  end <- "(?![a-z0-9-]|[.][a-z0-9])"
+  paste0("(?:https?://", hosts, end, ")",
+         "|(?:(?<![a-z0-9.-])", hosts, "(?::[0-9]+)?[/?#])",
+         "|(?:(?<![a-z0-9.-])", pathed, end, ")")
+})
+
+commit_rules <- list(
+  "a Co-Authored-By trailer or one like it" = "^[[:space:]]*co-[a-z-]*by[[:space:]]*:",
+  "a chat or session link" = chat_link,
+  "a session trailer" =
+    "^[[:space:]]*[a-z0-9-]*session[a-z0-9-]*[[:space:]]*:[[:space:]]*https?://",
+  "a \"Generated with\" line" = "^[^[:alnum:]]*generated with([^[:alnum:]]|$)"
+)
+
+# What is wrong with one commit message: for each rule it breaks, the rule's
+# name and the first line that breaks it. Matching ignores case.
+commit_problems <- function(msg) {
+  lines <- unlist(strsplit(paste(msg, collapse = "\n"), "\n", fixed = TRUE))
+  out <- character(0)
+  for (rule in names(commit_rules)) {
+    hit <- grep(commit_rules[[rule]], lines, ignore.case = TRUE, perl = TRUE, value = TRUE)
+    if (length(hit)) out <- c(out, sprintf("%s: %s", rule, trimws(hit[1])))
+  }
+  out
+}
+
+# The verdict on a set of commit messages, named by commit: status 0 or 1,
+# and the lines to print.
+commits_verdict <- function(messages) {
+  if (!length(messages)) return(list(status = 0L, out = "No commits to check."))
+  ids <- names(messages) %||% rep("", length(messages))
+  out <- character(0)
+  bad <- 0L
+  for (i in seq_along(messages)) {
+    p <- commit_problems(messages[[i]])
+    if (!length(p)) next
+    bad <- bad + 1L
+    subject <- strsplit(messages[[i]], "\n", fixed = TRUE)[[1]][1]
+    out <- c(out, sprintf("%s %s", substr(ids[i], 1L, 10L), subject), paste0("  ", p))
+  }
+  if (!bad) {
+    return(list(status = 0L, out = sprintf("%d commit message(s) checked, none with an %s",
+                                           length(messages),
+                                           "attribution trailer, chat link or generator line.")))
+  }
+  list(status = 1L, out = c(sprintf("%d of %d commit message(s) need rewording:", bad,
+                                    length(messages)),
+                            out,
+                            paste("Commit messages carry no attribution trailers, chat or",
+                                  "session links or \"Generated with\" lines. Reword the",
+                                  "commits (git rebase) and push again.")))
+}
+
+# The messages of the commits in base..head, named by commit, oldest first.
+commit_messages <- function() {
+  raw <- git("log", "--reverse", "--format=%H%x1f%B%x1e", paste0(base, "..", head))
+  recs <- strsplit(paste(raw, collapse = "\n"), "\x1e", fixed = TRUE)[[1]]
+  recs <- sub("^\n+", "", recs)
+  recs <- recs[nzchar(trimws(recs))]
+  parts <- strsplit(recs, "\x1f", fixed = TRUE)
+  stats::setNames(vapply(parts, function(x) paste(x[-1], collapse = ""), character(1)),
+                  vapply(parts, `[`, character(1), 1L))
+}
+
+check_commits <- function() {
+  v <- commits_verdict(commit_messages())
+  cat(v$out, sep = "\n")
+  v$status
+}
+
+# ---------------------------------------------------------------------------
+# Run as a script. Sourced, the file stops here having defined its functions.
+# ---------------------------------------------------------------------------
+
+if (sys.nframe() == 0L) {
+  modes <- c("tests", "deps", "lint", "namespace", "commits")
+  args <- commandArgs(trailingOnly = TRUE)
+  if (length(args) != 3L || !args[[1]] %in% modes) {
+    cat("usage: Rscript dev/ci/pr-checks.R <", paste(modes, collapse = "|"),
+        "> <base> <head>\n", sep = "")
+    quit(status = 2)
+  }
+  check <- args[[1]]
+  base  <- args[[2]]
+  head  <- args[[3]]
+
+  labels <- trimws(strsplit(Sys.getenv("PR_LABELS"), ",", fixed = TRUE)[[1]])
+  labels <- labels[nzchar(labels)]
+
+  status <- switch(check,
+                   tests     = check_tests(),
+                   deps      = check_deps(),
+                   lint      = check_lint(),
+                   namespace = check_namespace(),
+                   commits   = check_commits())
+  quit(status = status)
+}

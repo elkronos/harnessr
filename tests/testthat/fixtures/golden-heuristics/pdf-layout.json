@@ -1,0 +1,161 @@
+{
+  "mixed": {
+    "blocks": [
+      {
+        "kind": "heading",
+        "page": 1,
+        "section": "Abstract",
+        "text": "Abstract"
+      },
+      {
+        "kind": "body",
+        "page": 1,
+        "section": "Abstract",
+        "text": "The cohort comprised 482 participants recruited across nine clinical sites, and adherence exceeded 91 percent overall.\nThe cohort comprised 482 participants recruited across nine clinical sites, and adherence exceeded 91 percent overall.\nThe cohort comprised 482 participants recruited across nine clinical sites, and adherence exceeded 91 percent overall."
+      },
+      {
+        "kind": "body",
+        "page": 1,
+        "section": "Abstract",
+        "text": "Left 1: participants were randomised by site.\nLeft 2: participants were randomised by site.\nLeft 3: participants were randomised by site.\nLeft 4: participants were randomised by site.\nLeft 5: participants were randomised by site.\nLeft 6: participants were randomised by site.\nLeft 7: participants were randomised by site.\nLeft 8: participants were randomised by site.\n         Right 1: outcomes were assessed blind.\n         Right 2: outcomes were assessed blind.\n         Right 3: outcomes were assessed blind.\n         Right 4: outcomes were assessed blind.\n         Right 5: outcomes were assessed blind.\n         Right 6: outcomes were assessed blind.\n         Right 7: outcomes were assessed blind.\n         Right 8: outcomes were assessed blind."
+      },
+      {
+        "kind": "heading",
+        "page": 2,
+        "section": "Results",
+        "text": "Results"
+      },
+      {
+        "kind": "body",
+        "page": 2,
+        "section": "Results",
+        "text": "\nSite 1, clinic A    41 participants\nSite 2, clinic B    42 participants\nSite 3, clinic C    43 participants\nSite 4, clinic D    44 participants\nSite 5, clinic E    45 participants\nSite 6, clinic F    46 participants\nSite 7, clinic G    47 participants\nSite 8, clinic H    48 participants\nSite 9, clinic I    49 participants\nSite 10, clinic J   50 participants\nSite 11, clinic K   51 participants\nSite 12, clinic L   52 participants"
+      }
+    ],
+    "gutters": [54, null]
+  },
+  "single-column": {
+    "blocks": [
+      {
+        "kind": "body",
+        "page": 1,
+        "section": null,
+        "text": "Annual Report 2024"
+      },
+      {
+        "kind": "heading",
+        "page": 1,
+        "section": "Abstract",
+        "text": "Abstract"
+      },
+      {
+        "kind": "body",
+        "page": 1,
+        "section": "Abstract",
+        "text": "\nRevenue was 45.2 million dollars in fiscal 2024, up from 41.0 million.\nThe north region grew fastest, at 12.5 percent, while the south held level.\nCosts rose by 3.1 million dollars, most of it in staff and premises."
+      },
+      {
+        "kind": "heading",
+        "page": 1,
+        "section": "Results",
+        "text": "Results"
+      },
+      {
+        "kind": "body",
+        "page": 1,
+        "section": "Results",
+        "text": "\nThe north region grew fastest, at 12.5 percent, while the south held level.\nCosts rose by 3.1 million dollars, most of it in staff and premises.\nThe board approved a new multi−"
+      },
+      {
+        "kind": "body",
+        "page": 2,
+        "section": "Results",
+        "text": "component plan for the coming year, phased over three quarters.\nRevenue was 45.2 million dollars in fiscal 2024, up from 41.0 million."
+      },
+      {
+        "kind": "body",
+        "page": 2,
+        "section": "Results",
+        "text": "Table 1. Revenue by region, in millions of dollars"
+      },
+      {
+        "kind": "body",
+        "page": 2,
+        "section": "Results",
+        "text": "Region                                    2023                   2024\nNorth                                     12.1                   13.6\nSouth                                     15.0                   15.1\nEast                                      13.9                   16.5"
+      },
+      {
+        "kind": "heading",
+        "page": 3,
+        "section": "Discussion",
+        "text": "Discussion"
+      },
+      {
+        "kind": "body",
+        "page": 3,
+        "section": "Discussion",
+        "text": "\nCosts rose by 3.1 million dollars, most of it in staff and premises.\nThe north region grew fastest, at 12.5 percent, while the south held level.\nRevenue was 45.2 million dollars in fiscal 2024, up from 41.0 million."
+      }
+    ],
+    "gutters": [null, null, null]
+  },
+  "two-column": {
+    "blocks": [
+      {
+        "kind": "body",
+        "page": 1,
+        "section": null,
+        "text": "Spacing and Retention in Adult Learners: A Randomised Trial"
+      },
+      {
+        "kind": "heading",
+        "page": 1,
+        "section": "Introduction",
+        "text": "Introduction"
+      },
+      {
+        "kind": "body",
+        "page": 1,
+        "section": "Introduction",
+        "text": "\nLeft 1.1: the spacing effect was studied in adults.\nLeft 1.2: the spacing effect was studied in adults.\nLeft 1.3: the spacing effect was studied in adults.\nLeft 1.4: the spacing effect was studied in adults.\nLeft 1.5: the spacing effect was studied in adults.\nLeft 1.6: the spacing effect was studied in adults.\n   Right 1.1: retention fell when practice was massed.\n   Right 1.2: retention fell when practice was massed.\n   Right 1.3: retention fell when practice was massed.\n   Right 1.4: retention fell when practice was massed.\n   Right 1.5: retention fell when practice was massed.\n   Right 1.6: retention fell when practice was massed."
+      },
+      {
+        "kind": "body",
+        "page": 2,
+        "section": "Introduction",
+        "text": "Left 2.1: the spacing effect was studied in adults.\nLeft 2.2: the spacing effect was studied in adults.\nLeft 2.3: the spacing effect was studied in adults.\nLeft 2.4: the spacing effect was studied in adults.\nLeft 2.5: the spacing effect was studied in adults.\nLeft 2.6: the spacing effect was studied in adults.\n       Right 2.1: retention fell when practice was massed.\n       Right 2.2: retention fell when practice was massed.\n       Right 2.3: retention fell when practice was massed.\n       Right 2.4: retention fell when practice was massed.\n       Right 2.5: retention fell when practice was massed.\n       Right 2.6: retention fell when practice was massed."
+      },
+      {
+        "kind": "body",
+        "page": 2,
+        "section": "Introduction",
+        "text": "Figure 1. Retention after one week, by schedule, for all 482 participants across the nine sites."
+      },
+      {
+        "kind": "body",
+        "page": 2,
+        "section": "Introduction",
+        "text": "Left 2.7: spaced sessions were a week apart.\nLeft 2.8: spaced sessions were a week apart.\nLeft 2.9: spaced sessions were a week apart.\nLeft 2.10: spaced sessions were a week apart.\n       Right 2.7: massed sessions were on one day.\n       Right 2.8: massed sessions were on one day.\n       Right 2.9: massed sessions were on one day.\n       Right 2.10: massed sessions were on one day."
+      },
+      {
+        "kind": "heading",
+        "page": 3,
+        "section": "2. Methods",
+        "text": "2. Methods"
+      },
+      {
+        "kind": "body",
+        "page": 3,
+        "section": "2. Methods",
+        "text": "\nLeft 3.1: the spacing effect was studied in adults.\nLeft 3.2: the spacing effect was studied in adults.\nLeft 3.3: the spacing effect was studied in adults.\nLeft 3.4: the spacing effect was studied in adults.\nLeft 3.5: the spacing effect was studied in adults.\nLeft 3.6: the spacing effect was studied in adults.\n   Right 3.1: retention fell when practice was massed.\n   Right 3.2: retention fell when practice was massed.\n   Right 3.3: retention fell when practice was massed.\n   Right 3.4: retention fell when practice was massed.\n   Right 3.5: retention fell when practice was massed.\n   Right 3.6: retention fell when practice was massed."
+      },
+      {
+        "kind": "body",
+        "page": 4,
+        "section": "2. Methods",
+        "text": "Left 4.1: the spacing effect was studied in adults.\nLeft 4.2: the spacing effect was studied in adults.\nLeft 4.3: the spacing effect was studied in adults.\nLeft 4.4: the spacing effect was studied in adults.\nLeft 4.5: the spacing effect was studied in adults.\nLeft 4.6: the spacing effect was studied in adults.\n   Right 4.1: retention fell when practice was massed.\n   Right 4.2: retention fell when practice was massed.\n   Right 4.3: retention fell when practice was massed.\n   Right 4.4: retention fell when practice was massed.\n   Right 4.5: retention fell when practice was massed.\n   Right 4.6: retention fell when practice was massed."
+      }
+    ],
+    "gutters": [55, 59, 55, 55]
+  }
+}

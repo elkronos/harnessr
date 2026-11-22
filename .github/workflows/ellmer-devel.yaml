@@ -1,0 +1,77 @@
+name: ellmer-devel
+
+# The ellmer adapter (gr_ellmer_client()) reads parts of ellmer's API that
+# still change between releases. Once a week, and by hand, this installs
+# ellmer from its GitHub repository and runs every test file that exercises
+# the adapter, so a change upstream shows here before it reaches a release.
+# It never runs on pull requests: a failure here is news about ellmer, not
+# about the change. DESCRIPTION pins the oldest ellmer the tests support.
+
+on:
+  schedule:
+    - cron: '41 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ellmer-devel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ellmer-devel:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      OPENAI_API_KEY: ''
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"hard"'
+          extra-packages: |
+            any::testthat
+            any::withr
+            any::S7
+            github::tidyverse/ellmer
+
+      - name: Install package
+        run: R CMD INSTALL . --no-byte-compile
+        shell: bash
+
+      - name: Run the tests that exercise the ellmer adapter
+        run: |
+          Rscript -e '
+            suppressPackageStartupMessages({library(harnessr); library(testthat)})
+            gr_options(verbose = FALSE)
+            if (!requireNamespace("ellmer", quietly = TRUE)) {
+              cat("ellmer is missing: the workflow should have installed it.\n")
+              quit(status = 1)
+            }
+            cat("ellmer", as.character(utils::packageVersion("ellmer")), "\n")
+            files <- list.files("tests/testthat", pattern = "^test-.*[.]R$", full.names = TRUE)
+            files <- files[vapply(files, function(f)
+              any(grepl("ellmer", readLines(f, warn = FALSE), fixed = TRUE)), logical(1))]
+            cat(sprintf("%d test files mention ellmer.\n", length(files)))
+            res <- do.call(rbind, lapply(files, function(f)
+              as.data.frame(test_file(f, package = "harnessr", reporter = "summary",
+                                      stop_on_failure = FALSE))))
+            cat(sprintf("\nPASS %d  FAIL %d  ERROR %d  SKIP %d\n", sum(res$passed),
+                        sum(res$failed), sum(res$error), sum(res$skipped)))
+            # Listed, so a week in which the adapter tests skipped is not read
+            # as a pass. One test skips on purpose when ellmer is installed: it
+            # checks the message given when it is not.
+            if (any(res$skipped)) {
+              cat("Skipped:\n"); cat(paste0("  ", res$test[res$skipped]), sep = "\n")
+            }
+            if (sum(res$failed) + sum(res$error) > 0) quit(status = 1)
+          '
+        shell: bash

@@ -17,3 +17,6 @@
 ^dev$
 ^\.lintr$
 ^sim-results$
+^CONTRACT\.md$
+^CONTRIBUTING\.md$
+^NOTES-primitives\.md$
