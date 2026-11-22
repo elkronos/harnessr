@@ -29,7 +29,10 @@
 #'     none of these is an error that lists the names that are.}
 #' }
 #' An arm made by [hr_arm()] alone records no settings, so it cannot be
-#' swept by name; give a function that builds it instead.
+#' swept by name; give a function that builds it instead. The same holds for
+#' a chain from [hr_chain()] for now: it records its settings, but
+#' `hr_sweep()` cannot yet build it again from a row, so give a function
+#' that builds the chain.
 #'
 #' Rows that build the same configuration are collapsed: the first is kept
 #' and the others are dropped with a message of class `hr_sweep_collapsed`
@@ -98,6 +101,13 @@ hr_sweep <- function(base, grid, name = NULL) {
   if (inherits(base, "hr_arm")) {
     rebuild <- attr(base, "hr_rebuild", exact = TRUE)
     known <- attr(base, "hr_known", exact = TRUE)
+    if (!is.function(rebuild) && !is.null(attr(base, "hr_steps", exact = TRUE))) {
+      gr_abort(sprintf(paste0(
+        "Arm '%s' is a chain from hr_chain(), which hr_sweep() cannot rebuild from a ",
+        "grid yet. Give hr_sweep() a function of the grid's columns that builds the ",
+        "chain instead, such as function(k) hr_chain(..., name = \"c\")."),
+        base$name), class = "hr_bad_arm")
+    }
     if (!is.function(rebuild)) {
       gr_abort(sprintf(paste0(
         "Arm '%s' records no settings to override: it was not built by gr_arm(). Give ",

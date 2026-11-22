@@ -3,7 +3,8 @@
 # A step is a function of (input, ctx) that does one part of a run, with the
 # settings it was built with recorded beside it. A chain runs its steps in
 # order, each given what the one before returned, and is an ordinary hr_arm,
-# so hr_benchmark(), hr_sweep() and hr_report() take it as they take any arm.
+# so hr_benchmark() and hr_report() take it as they take any arm. hr_sweep()
+# takes a function that builds the chain; it cannot rebuild a chain itself.
 # The chain's configuration hash is built from its steps' code, the values
 # that code reads and their resolved settings, so two chains that would send
 # the same requests share it and two that would not do not.

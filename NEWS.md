@@ -664,7 +664,9 @@ sends the requests it sent before, with the same cache keys.
   function is built from the settings when the step is, so a bad setting
   fails there. `input` and `output` declare what the step takes and returns.
 * `hr_chain(..., name)` runs steps in order as one `hr_arm()`, which
-  `hr_benchmark()` and `hr_sweep()` take as they take any arm. Inside a
+  `hr_benchmark()` takes as it takes any arm. `hr_sweep()` takes a function
+  that builds the chain, such as `function(k) hr_chain(...)`; given a chain
+  itself, it stops with an error that says so. Inside a
   chain each step gets `ctx$step` and `ctx$step_params`, and `ctx$params` is
   the arm's. `hr_chain(old, judge = NULL, name = "nojudge")` derives a chain
   without one step; `x = step` replaces a step and a new name adds one. The

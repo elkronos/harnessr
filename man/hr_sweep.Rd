@@ -42,7 +42,10 @@ an override (see \code{\link[=gr_settings_table]{gr_settings_table()}}), or \cod
 none of these is an error that lists the names that are.}
 }
 An arm made by \code{\link[=hr_arm]{hr_arm()}} alone records no settings, so it cannot be
-swept by name; give a function that builds it instead.
+swept by name; give a function that builds it instead. The same holds for
+a chain from \code{\link[=hr_chain]{hr_chain()}} for now: it records its settings, but
+\code{hr_sweep()} cannot yet build it again from a row, so give a function
+that builds the chain.
 
 Rows that build the same configuration are collapsed: the first is kept
 and the others are dropped with a message of class \code{hr_sweep_collapsed}
