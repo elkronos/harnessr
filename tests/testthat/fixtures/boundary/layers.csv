@@ -84,6 +84,7 @@
 "bench_fold","core","function"
 "bench_governor","core","function"
 "bench_param_columns","core","function"
+"bench_signals","core","function"
 "boot_level","core","function"
 "brier_parts","core","function"
 "budget_spent","core","function"
