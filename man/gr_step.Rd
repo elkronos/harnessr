@@ -3,7 +3,7 @@
 \name{gr_step}
 \alias{gr_step}
 \alias{gr_step_retrieve}
-\title{Built-in steps for composing a run by hand}
+\title{Built-in steps for composing a run}
 \usage{
 gr_step(kind = c("ingest", "segment", "read"), ..., name = NULL)
 
@@ -23,7 +23,8 @@ other ranking settings of \code{\link[=gr_read_spec]{gr_read_spec()}}: \code{min
 \item{top_k}{How many chunks to keep, as in \code{\link[=gr_read_spec]{gr_read_spec()}}.}
 }
 \value{
-A function of \verb{(input, ctx)} with class \code{gr_step}.
+A function of \verb{(input, ctx)} with class
+\code{c("gr_step", "hr_step", "function")}.
 }
 \description{
 \code{gr_step()} builds one stage of a run as a step: a function of
@@ -48,12 +49,20 @@ items are lists with \code{question} and \code{document}); \code{"ingest"} adds 
 \code{doc}), and \code{gr_step_retrieve()} replaces \code{chunks} with the chunks it
 kept, best first, with their scores in a \code{score} column. \code{"read"} reads
 \code{chunks} (segmenting first when there are none) and returns the
-\link{gr_answer}, so it is the last step. Chaining them is a fold:
-\code{Reduce(function(x, step) step(x, ctx), steps, item)}.
+\link{gr_answer}. \code{\link[=hr_chain]{hr_chain()}} runs steps in order as one arm; by hand, the
+same is a fold: \code{Reduce(function(x, step) step(x, ctx), steps, item)}.
 
-Each step is a function with class \code{gr_step} and attributes \code{kind},
-\code{name} and \code{spec}, which \code{print()} shows. A later \code{hr_chain()} reads the
-same attributes, so the steps built now are the ones it will take.
+Each step is an \code{\link[=hr_step]{hr_step()}} with class \code{gr_step} added and the
+attributes \code{kind} and \code{spec}, which \code{print()} shows. Its settings are
+checked against the stage's schema: \code{\link[=gr_ingest_spec]{gr_ingest_spec()}}'s, \code{\link[=gr_segment_spec]{gr_segment_spec()}}'s
+or \code{\link[=gr_read_spec]{gr_read_spec()}}'s for \code{gr_step()}, and for \code{gr_step_retrieve()} the
+ranking settings \code{top_k}, \code{min_score}, \code{mmr}, \code{fusion}, \code{rrf_k},
+\code{lexical_blend}, \code{bm25_k1} and \code{bm25_b}. Any other setting passed to
+\code{gr_step_retrieve()} reaches \code{\link[=gr_read_spec]{gr_read_spec()}} as it is. A step declares
+what it takes and returns, which \code{\link[=hr_chain]{hr_chain()}} checks: ingest takes a
+document and returns a doc, segment takes a doc and returns chunks,
+retrieve takes and returns chunks, and read takes chunks and returns the
+answer.
 }
 \examples{
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
@@ -66,13 +75,13 @@ ans <- Reduce(function(x, step) step(x, ctx), steps, item)
 ans$chunks_used
 
 # The same steps as an arm a benchmark can run.
-arm <- hr_arm("segment-rank-read",
-              function(item, ctx) Reduce(function(x, step) step(x, ctx), steps, item))
+arm <- hr_chain(segment = steps[[1]], retrieve = steps[[2]], read = steps[[3]],
+                name = "segment-rank-read")
 steps[[2]]
 }
 \seealso{
-\code{\link[=hr_arm]{hr_arm()}} and \code{\link[=hr_benchmark]{hr_benchmark()}}, which run steps inside an arm;
-\code{\link[=gr_arm]{gr_arm()}} for a whole recipe as one arm.
+\code{\link[=hr_chain]{hr_chain()}}, which runs steps as one arm; \code{\link[=hr_step]{hr_step()}} for a
+step of your own; \code{\link[=gr_arm]{gr_arm()}} for a whole recipe as one arm.
 
 Other reading functions: 
 \code{\link{gr_answer}},
