@@ -24,20 +24,15 @@ retrieve_scores <- function(texts, question, client, spec, trace) {
        degraded = isTRUE(attr(emb, "embedding_fallback")))
 }
 
+#' The chunks `retrieve` selects, in rank order: scored by retrieve_scores(),
+#' floored by `min_score`, and picked by mmr_select() up to `top_k`. Shared
+#' with gr_step_retrieve(), which returns them without an answer request.
+#' @return `list(keep, scores, source, degraded, k, mmr)`; `keep` are row
+#'   indices of `d`.
 #' @noRd
-read_retrieve <- function(chunks, question, client, spec, trace) {
-  d <- chunks$chunks
-  # Nothing to rank. Carried on, the top-1 fallback below took order() of no
-  # scores, which is NA, and `[chunk NA]\nNA` went out as the only excerpt: the
-  # model answered from its own prior, partial = FALSE.
-  if (!nrow(d)) {
-    return(new_answer(.NOT_FOUND, "retrieve", question, integer(0), trace, partial = TRUE,
-                      notes = list(chunks = 0L, reason = "there are no chunks to read")))
-  }
+retrieve_select <- function(d, question, client, spec, trace) {
   ranked <- retrieve_scores(d$text, question, client, spec, trace)
   emb <- ranked$emb
-  src <- ranked$source
-  degraded_embed <- ranked$degraded
   scores <- ranked$scores
   k <- as.integer(clamp(spec$top_k, 1, nrow(d)))
   min_score <- as_num1(spec$min_score, -Inf)
@@ -52,8 +47,30 @@ read_retrieve <- function(chunks, question, client, spec, trace) {
   # head(), not [1]: of no scores that is nothing rather than NA, and d[NA, ]
   # is a row of NAs that fits any budget.
   if (!length(keep)) keep <- utils::head(order(scores, decreasing = TRUE), 1L)
+  list(keep = keep, scores = scores, source = ranked$source, degraded = ranked$degraded,
+       k = k, mmr = lambda)
+}
 
-  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate)
+#' @noRd
+read_retrieve <- function(chunks, question, client, spec, trace) {
+  d <- chunks$chunks
+  # Nothing to rank. Carried on, the top-1 fallback below took order() of no
+  # scores, which is NA, and `[chunk NA]\nNA` went out as the only excerpt: the
+  # model answered from its own prior, partial = FALSE.
+  if (!nrow(d)) {
+    return(new_answer(.NOT_FOUND, "retrieve", question, integer(0), trace, partial = TRUE,
+                      notes = list(chunks = 0L, reason = "there are no chunks to read")))
+  }
+  sel <- retrieve_select(d, question, client, spec, trace)
+  src <- sel$source
+  degraded_embed <- sel$degraded
+  scores <- sel$scores
+  k <- sel$k
+  lambda <- sel$mmr
+  keep <- sel$keep
+
+  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate,
+                              structure = answer_structure(spec))
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   fit <- fit_chunks(d, bud$input, order = keep)
   # Fit first, then arrange: what gets in is a relevance question, where it sits
@@ -71,14 +88,14 @@ read_retrieve <- function(chunks, question, client, spec, trace) {
                   top_scores = round(utils::head(sort(scores, decreasing = TRUE), 5), 4)))
   # Checked by the governor, as every request is: as an ensemble member this
   # can run after another member has spent the budget.
-  res <- gr_call(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
-                                         restate = restate_how(spec), premise = spec$premise),
-                 model = spec$model, max_output = spec$max_answer_tokens,
-                 temperature = spec$temperature, trace = trace, label = "retrieve.answer",
-                 effort = spec$effort)
+  res <- answer_request(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
+                                         restate = restate_how(spec), premise = spec$premise,
+                                         structure = answer_structure(spec)),
+                 spec, trace, "retrieve.answer", spec$max_answer_tokens,
+                 sources = reader_source_text(sub))
   cut <- as.integer(res$ok && reply_cut_off(res))
   out <- premise_reply(if (res$ok) res$text else .NOT_FOUND, spec$premise)
-  new_answer(out$text, "retrieve", question, sub$chunk_id, trace, premise = out$premise,
+  with_structure(new_answer(out$text, "retrieve", question, sub$chunk_id, trace, premise = out$premise,
              evidence = if (res$ok) evidence_table(sub$chunk_id, reader_source_text(sub), sub$page,
                                                    sub$section, scores[fit$idx],
                                                    kind = "verbatim"),
@@ -87,7 +104,7 @@ read_retrieve <- function(chunks, question, client, spec, trace) {
                           embedding_source = src, embedding_fallback = degraded_embed,
                           mmr = lambda,
                           context_order = as_chr1(spec$context_order, "relevance"),
-                          error = res$error))
+                          error = res$error)), res)
 }
 
 #' The one ranking `retrieve` and `iterative` both use: embedding similarity

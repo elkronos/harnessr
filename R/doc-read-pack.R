@@ -60,7 +60,7 @@ fit_chunks <- function(df, budget_tokens, order = NULL, prefix = FALSE) {
 
 #' Standard overhead accounting for a reader's prompt.
 #' @noRd
-prompt_overhead <- function(question, system_prompt, restate = "auto") {
+prompt_overhead <- function(question, system_prompt, restate = "auto", structure = NULL) {
   # The question is counted TWICE unless restatement is off, because that is how
   # many times it appears. `answer_messages()` adds a second copy before the body
   # once the body is long, and the body was sized against a budget computed here
@@ -72,7 +72,12 @@ prompt_overhead <- function(question, system_prompt, restate = "auto") {
   # costs the answer.
   again <- if (identical(as_chr1(restate, "auto"), "never")) 0L else
     gr_count_tokens(as_chr1(question))
-  sum(gr_count_tokens(c(as_chr1(question), as_chr1(system_prompt)))) + again + 64L
+  # A structured answer request (answer_structure()) adds its instructions to
+  # the system prompt; counted here so the excerpts are sized for them. Under
+  # a structured premise verdict the sentence rule is left out of what is
+  # sent, so this counts a little more than is sent, the safe direction.
+  extra <- if (is.null(structure)) 0L else gr_count_tokens(answer_structure_prompt(structure))
+  sum(gr_count_tokens(c(as_chr1(question), as_chr1(system_prompt)))) + again + 64L + extra
 }
 
 #' The most one request of a batch can cost: `input_tokens` in and the reply

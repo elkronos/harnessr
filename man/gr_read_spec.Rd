@@ -43,6 +43,7 @@ gr_read_spec(
   low_score = c("not_found", "read_top_k"),
   fusion = c("default", "rrf"),
   rrf_k = 60,
+  answer_format = c("parsed", "schema"),
   ...
 )
 }
@@ -294,6 +295,22 @@ fused score, which lies between 0 and \code{2 / (rrf_k + 1)}. Untested.}
 60, the value Cormack, Clarke and Buettcher (2009) use (\code{cited}); not
 tuned here. A larger \code{k} flattens the difference between top ranks.}
 
+\item{answer_format}{How the requests that answer the question report
+what they found. \code{"parsed"} (the default) sends the free-text requests
+sent before the setting existed and reads \code{NOT_IN_DOCUMENT} from the
+reply. \code{"schema"} sends them with a JSON schema that asks for \code{answer}
+and \code{outcome} (\code{"answered"} or \code{"not_found"}); a \code{"not_found"} reply
+becomes \code{NOT_IN_DOCUMENT}, and the model's own words go to
+\code{notes$structured$reply}. A reply that does not parse is read as free
+text (\code{notes$structured$parsed = FALSE}). It covers the answering
+request of \code{stuff}, \code{retrieve}, \code{rerank}, \code{skim}, \code{hierarchical},
+\code{preview} and \code{iterative}'s final answer, and each chunk's request of
+\code{map_reduce}; merges, \code{refine}'s drafts, \code{ensemble}'s adjudication and
+\code{iterative}'s steps (already structured) are sent as before. Either way
+the answer's \verb{$outcome} is set (see \link{gr_answer}). Untested: published
+comparisons of forced schemas and free text disagree, so the default
+stays \code{"parsed"} until a live comparison settles it.}
+
 \item{...}{Extra fields for custom readers.}
 }
 \value{
@@ -414,6 +431,7 @@ keeps the store and cache keys it had before they existed.
 \item \code{low_score} (default \code{"not_found"}, advanced): untested. "not_found", the behaviour before the setting existed: no answer request. Not measured.
 \item \code{fusion} (default \code{"default"}, advanced): untested. "default" keeps the 0.6.0 ranking of each reader. Reciprocal rank fusion is not compared with it here.
 \item \code{rrf_k} (default \code{60}, advanced): cited. Cormack, Clarke and Buettcher (2009), "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods", SIGIR, use k = 60; not tuned here.
+\item \code{answer_format} (default \code{"parsed"}, advanced): untested. "parsed", the requests sent before the setting existed. Published comparisons of forced schemas and free text disagree; owner decision DEC-05 keeps the question open until a live comparison.
 }
 }
 

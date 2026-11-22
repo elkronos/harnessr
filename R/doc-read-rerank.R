@@ -189,7 +189,8 @@ read_rerank <- function(chunks, question, client, spec, trace) {
 
   # The relevance scores judge usefulness, not truth, so the premise rule goes
   # only to the request that answers.
-  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate)
+  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate,
+                              structure = answer_structure(spec))
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   fit <- fit_chunks(d, bud$input, order = as.integer(keep_ord))
   fit$idx <- arrange_context(fit$idx, spec$context_order)
@@ -211,11 +212,11 @@ read_rerank <- function(chunks, question, client, spec, trace) {
                                           degraded_to_bm25 = degraded,
                                           context_order = as_chr1(spec$context_order, "relevance"),
                                           scores = round(utils::head(keep_sc, 10), 2)))
-  res <- gr_call(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
-                                         restate = restate_how(spec), premise = spec$premise),
-                 model = spec$model, max_output = spec$max_answer_tokens,
-                 temperature = spec$temperature, trace = trace, label = "rerank.answer",
-                 effort = spec$effort)
+  res <- answer_request(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
+                                         restate = restate_how(spec), premise = spec$premise,
+                                         structure = answer_structure(spec)),
+                 spec, trace, "rerank.answer", spec$max_answer_tokens,
+                 sources = reader_source_text(sub))
   cut <- as.integer(res$ok && reply_cut_off(res))
   out <- premise_reply(if (res$ok) res$text else .NOT_FOUND, spec$premise)
   # Under low_score = "read_top_k", what the answer request was sent scored
@@ -226,7 +227,7 @@ read_rerank <- function(chunks, question, client, spec, trace) {
       if (is_not_found(out$text)) list(retrieval_low_score = TRUE))
   }
   # No answer, no evidence; see stuff.
-  new_answer(out$text, "rerank", question, sub$chunk_id, trace, premise = out$premise,
+  with_structure(new_answer(out$text, "rerank", question, sub$chunk_id, trace, premise = out$premise,
              evidence = if (res$ok) evidence_table(sub$chunk_id, reader_source_text(sub), sub$page,
                                                    sub$section, sc[match(fit$idx, ii)],
                                                    kind = "verbatim"),
@@ -236,7 +237,7 @@ read_rerank <- function(chunks, question, client, spec, trace) {
                             dropped_chunks = length(fit$dropped),
                             scoring_failures = n_failed, unscorable = n_unscorable,
                             truncated_calls = cut, prefilter = prefilter$method,
-                            degraded_to_bm25 = degraded), low_notes))
+                            degraded_to_bm25 = degraded), low_notes)), res)
 }
 
 #' How many candidates low_score = "read_top_k" sends to the answer request

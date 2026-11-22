@@ -204,7 +204,8 @@ read_preview <- function(chunks, question, client, spec, trace) {
   # one call, instead of vanishing because the plan was more ambitious than the
   # context window. The planner and the skims judge where the answer is, not
   # whether the question holds, so the premise rule goes only to the answer.
-  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate)
+  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate,
+                              structure = answer_structure(spec))
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   # as.integer(), because `unlist()` on an empty list returns NULL, not
   # integer(0) -- and `fit_chunks()` reads `order %||% seq_len(nrow(df))`, so a
@@ -375,11 +376,11 @@ read_preview <- function(chunks, question, client, spec, trace) {
                                 extra, if (!is.null(rr)) list(reread = rr$note))))
   }
 
-  res2 <- gr_call(client, answer_messages(question, body, cite = spec$cite, restate = restate_how(spec),
-                                          premise = spec$premise),
-                  model = spec$model, max_output = spec$max_answer_tokens,
-                  temperature = spec$temperature, trace = trace, label = "preview.answer",
-                  effort = spec$effort)
+  res2 <- answer_request(client, answer_messages(question, body, cite = spec$cite, restate = restate_how(spec),
+                                          premise = spec$premise,
+                                         structure = answer_structure(spec)),
+                 spec, trace, "preview.answer", spec$max_answer_tokens,
+                 sources = reader_source_text(d))
   if (usable_text(res2) && reply_cut_off(res2)) cut <- cut + 1L
 
   used <- unique(c(d$chunk_id[keep_rows], if (!is.null(ev_skim)) ev_skim$chunk_id))
@@ -400,7 +401,7 @@ read_preview <- function(chunks, question, client, spec, trace) {
     if (!is.null(rr)) sent <- unique(c(sent, rr$sent))
   }
   # No answer, no evidence; see stuff.
-  new_answer(out$text, "preview", question, used, trace, premise = out$premise,
+  with_structure(new_answer(out$text, "preview", question, used, trace, premise = out$premise,
              chunks_sent = sent, evidence = if (usable_text(res2)) ev,
              # A run that deliberately did not read part of the document is
              # partial in the sense the word carries everywhere else here: the
@@ -416,7 +417,7 @@ read_preview <- function(chunks, question, client, spec, trace) {
                             failed_calls = failed, truncated_calls = cut, degraded = degraded,
                             tokens_skipped = sum(d$tokens[skipped_rows]),
                             tokens_truncated = truncated, dropped_chunks = ev_dropped),
-                       extra))
+                       extra)), res2)
 }
 
 #' Under reread_on = "not_found": the sections the plan did not have read in
@@ -435,12 +436,12 @@ preview_reread <- function(d, units, treat, question, client, spec, trace, bud) 
     trace_note(trace, "preview.reread", note)
     return(list(res = NULL, rows = integer(0), sent = integer(0), found = FALSE, note = note))
   }
-  res <- gr_call(client, answer_messages(question, render_chunks(d[keep, , drop = FALSE]),
+  res <- answer_request(client, answer_messages(question, render_chunks(d[keep, , drop = FALSE]),
                                          cite = spec$cite, restate = restate_how(spec),
-                                         premise = spec$premise),
-                 model = spec$model, max_output = spec$max_answer_tokens,
-                 temperature = spec$temperature, trace = trace, label = "preview.reread",
-                 effort = spec$effort)
+                                         premise = spec$premise,
+                                         structure = answer_structure(spec)),
+                 spec, trace, "preview.reread", spec$max_answer_tokens,
+                 sources = reader_source_text(d))
   out <- premise_reply(if (usable_text(res)) res$text else .NOT_FOUND, spec$premise)
   found <- usable_text(res) && !is_not_found(out$text)
   note <- list(sections = sum(treat != "read"), chunks = length(keep),
@@ -459,7 +460,7 @@ preview_reread_answer <- function(rr, d, question, trace, spec, n_units, plan_ta
                                   ev_dropped, extra, sent) {
   sub <- d[rr$rows, , drop = FALSE]
   cut <- as.integer(reply_cut_off(rr$res))
-  new_answer(rr$text, "preview", question, sub$chunk_id, trace, premise = rr$premise,
+  ans <- new_answer(rr$text, "preview", question, sub$chunk_id, trace, premise = rr$premise,
              chunks_sent = sent,
              evidence = evidence_table(sub$chunk_id, reader_source_text(sub), sub$page,
                                        sub$section, kind = "verbatim"),
@@ -473,4 +474,5 @@ preview_reread_answer <- function(rr, d, question, trace, spec, n_units, plan_ta
                             tokens_truncated = truncated,
                             dropped_chunks = ev_dropped + rr$dropped),
                        extra, list(reread = rr$note)))
+  with_structure(ans, rr$res)
 }

@@ -299,30 +299,30 @@ read_iterative <- function(chunks, question, client, spec, trace) {
   # provider after the whole loop had been paid for.
   fbud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens,
                     overhead = prompt_overhead(question, answer_system(spec$cite, spec$premise),
-                                               spec$restate))
+                                               spec$restate, structure = answer_structure(spec)))
   final <- iterative_fit(d, seen, seen_score, fbud$input, spec$context_order)
   sub <- d[final$rows, , drop = FALSE]
   res <- if (!nrow(sub)) {
     gr_result(FALSE, error = "no gathered chunk fits the context window")
   } else {
-    gr_call(client, answer_messages(question, final$body, cite = spec$cite,
-                                    restate = restate_how(spec), premise = spec$premise),
-            model = spec$model, max_output = spec$max_answer_tokens,
-            temperature = spec$temperature, trace = trace, label = "iterative.final",
-            effort = spec$effort)
+    answer_request(client, answer_messages(question, final$body, cite = spec$cite,
+                                    restate = restate_how(spec), premise = spec$premise,
+                                         structure = answer_structure(spec)),
+                 spec, trace, "iterative.final", spec$max_answer_tokens,
+                 sources = reader_source_text(sub))
   }
   # Partial already, since the loop did not finish; the count says why as well.
   cut <- as.integer(res$ok && reply_cut_off(res))
   out <- premise_reply(if (res$ok) res$text else .NOT_FOUND, spec$premise)
   # No answer, no evidence; see stuff.
-  new_answer(out$text, "iterative", question, sub$chunk_id, trace, premise = out$premise,
+  with_structure(new_answer(out$text, "iterative", question, sub$chunk_id, trace, premise = out$premise,
              evidence = if (res$ok) evidence_table(sub$chunk_id, reader_source_text(sub), sub$page,
                                                    sub$section, kind = "verbatim"),
              partial = TRUE,
              notes = list(rounds = rounds, chunks_seen = length(seen),
                           chunks_dropped = length(final$dropped), truncated_calls = cut,
                           queries = queries,
-                          stop_reason = done_reason, embedding_fallback = degraded_embed))
+                          stop_reason = done_reason, embedding_fallback = degraded_embed)), res)
 }
 
 #' What an iterative step under verify = TRUE adds to its instructions.

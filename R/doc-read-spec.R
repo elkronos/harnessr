@@ -395,6 +395,21 @@ gr_reader_signature <- function(reader) {
 #' @param rrf_k Under `fusion = "rrf"`, the constant `k`. \[1, 1e4\], default
 #'   60, the value Cormack, Clarke and Buettcher (2009) use (`cited`); not
 #'   tuned here. A larger `k` flattens the difference between top ranks.
+#' @param answer_format How the requests that answer the question report
+#'   what they found. `"parsed"` (the default) sends the free-text requests
+#'   sent before the setting existed and reads `NOT_IN_DOCUMENT` from the
+#'   reply. `"schema"` sends them with a JSON schema that asks for `answer`
+#'   and `outcome` (`"answered"` or `"not_found"`); a `"not_found"` reply
+#'   becomes `NOT_IN_DOCUMENT`, and the model's own words go to
+#'   `notes$structured$reply`. A reply that does not parse is read as free
+#'   text (`notes$structured$parsed = FALSE`). It covers the answering
+#'   request of `stuff`, `retrieve`, `rerank`, `skim`, `hierarchical`,
+#'   `preview` and `iterative`'s final answer, and each chunk's request of
+#'   `map_reduce`; merges, `refine`'s drafts, `ensemble`'s adjudication and
+#'   `iterative`'s steps (already structured) are sent as before. Either way
+#'   the answer's `$outcome` is set (see [gr_answer]). Untested: published
+#'   comparisons of forced schemas and free text disagree, so the default
+#'   stays `"parsed"` until a live comparison settles it.
 #' @param ... Extra fields for custom readers.
 #' @return A list of class `gr_read_spec`.
 #'
@@ -571,7 +586,8 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
                          lexical_blend = 0.5, unskip_k = 0L,
                          reread_on = c("never", "not_found"),
                          low_score = c("not_found", "read_top_k"),
-                         fusion = c("default", "rrf"), rrf_k = 60, ...) {
+                         fusion = c("default", "rrf"), rrf_k = 60,
+                         answer_format = c("parsed", "schema"), ...) {
   warn_near_miss(list(...), names(formals(gr_read_spec)), "read")
   # Every argument but `...` is checked and resolved by the schema
   # (.gr_read_schema): ranges clamped with a warning, a missing number taken
@@ -828,7 +844,14 @@ as_read_spec <- function(spec) {
            help = "Under fusion = 'rrf': the constant k in 1 / (k + rank).",
            evidence = ev_cited(paste0("Cormack, Clarke and Buettcher (2009), \"Reciprocal ",
                                       "Rank Fusion outperforms Condorcet and individual Rank ",
-                                      "Learning Methods\", SIGIR, use k = 60; not tuned here.")))
+                                      "Learning Methods\", SIGIR, use k = 60; not tuned here."))),
+  hr_param("answer_format", "enum", choices = c("parsed", "schema"), tier = "advanced",
+           help = paste0("How answering requests report their outcome: parsed from free text, ",
+                         "or in a JSON schema the request forces."),
+           evidence = ev_untested(paste0("\"parsed\", the requests sent before the setting ",
+                                         "existed. Published comparisons of forced schemas and ",
+                                         "free text disagree; owner decision DEC-05 keeps the ",
+                                         "question open until a live comparison.")))
 )
 
 #' The read settings that were constants in the code until they were declared
@@ -836,7 +859,7 @@ as_read_spec <- function(spec) {
 #' @noRd
 .gr_read_late_params <- c("accept_near_verbatim", "max_merge_levels", "restate_tokens",
                           "bm25_k1", "bm25_b", "lexical_blend", "unskip_k", "reread_on",
-                          "low_score", "fusion", "rrf_k")
+                          "low_score", "fusion", "rrf_k", "answer_format")
 
 #' The settings among `names` whose resolved value is not the schema's default,
 #' as a list to add to a spec. A spec is hashed whole into the corpus store and

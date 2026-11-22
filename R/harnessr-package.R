@@ -132,6 +132,15 @@
 #'     model's verdict, not a check harnessr made. Absent (`NULL`) for a spec
 #'     that did not ask, and for `screen` and `extract`, which answer no
 #'     question.}
+#'   \item{`outcome`}{Character(1), set by [gr_read()]: `"answered"`, an
+#'     answer not marked partial; `"partial"`, an answer marked partial;
+#'     `"not_found"`, `NOT_IN_DOCUMENT` from a run that read what it meant
+#'     to; `"refused"`, `NOT_IN_DOCUMENT` from a run a limit stopped; or
+#'     `"failed"`, `NOT_IN_DOCUMENT` from a run whose requests failed (the
+#'     notes give an `error`, or say every request failed). [is_not_found()]
+#'     reads it when given the answer. Under `answer_format = "schema"` in
+#'     [gr_read_spec()] the model reports the answered or not-found part in a
+#'     schema field, and `notes$structured` keeps what it said.}
 #'   \item{`partial`}{Logical(1). `TRUE` when anything degraded: a call failed,
 #'     chunks were dropped, a cap was hit, a strategy fell back, text was cut to
 #'     fit, or pages of the document never became text (a scan read without

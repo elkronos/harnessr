@@ -433,6 +433,11 @@ as_json.gr_answer <- function(x, pretty = TRUE, ...) {
   premise <- x[["premise", exact = TRUE]]
   as_json.default(c(list(answer = x$answer),
                     if (!is.null(premise)) list(premise = as_chr1(premise, NA_character_)),
+                    # Only when set, as gr_read() sets it.
+                    if (!is.null(x[["outcome", exact = TRUE]]))
+                      list(outcome = as_chr1(x$outcome, NA_character_)),
+                    if (is.list(x[["premise_verdict", exact = TRUE]]))
+                      list(premise_verdict = x$premise_verdict),
                     list(
     reader = x$reader, question = x$question,
     # Arrays at every length: `auto_unbox` wrote one chunk id as a number and
@@ -486,9 +491,18 @@ as_json.gr_answer <- function(x, pretty = TRUE, ...) {
 #' the whole response, which threw away every answer that happened to contain
 #' one of those phrases.
 #'
-#' @param x An answer string, or `ans$answer`.
+#' Given a [gr_answer] rather than a string, it reads the answer's
+#' `$outcome` (see [gr_answer]) when it has one: `TRUE` only for
+#' `"not_found"`, so a run a limit stopped (`"refused"`) or whose requests
+#' failed (`"failed"`) is not counted as the document lacking the answer. An
+#' answer without `$outcome` (one built by [new_answer()] outside [gr_read()],
+#' or read back from before the field existed) falls back to the sentinel
+#' test on `$answer`.
+#'
+#' @param x An answer string, `ans$answer`, or a [gr_answer].
 #' @return `TRUE` if the string is the not-found sentinel (or blank), or opens
-#'   with it as described above.
+#'   with it as described above; for an answer with an outcome, whether the
+#'   outcome is `"not_found"`.
 #' @seealso [gr_answer], [gr_compare()], whose `summary$not_found` column is
 #'   this predicate applied per recipe
 #' @family reading functions
@@ -501,7 +515,20 @@ as_json.gr_answer <- function(x, pretty = TRUE, ...) {
 #'
 #' # A real answer that merely mentions the sentinel is NOT not-found.
 #' is_not_found("The log said NOT_IN_DOCUMENT, but revenue was 45.2 million.")
+#'
+#' # An answer from gr_read() carries its outcome, which is read first.
+#' ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 400))
+#' ans <- gr_read(ch, "Who audited the accounts?",
+#'                gr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), "stuff")
+#' ans$outcome
+#' is_not_found(ans)
 is_not_found <- function(x) {
+  # An answer: its outcome when it has one, else its text.
+  if (is.list(x)) {
+    oc <- x[["outcome", exact = TRUE]]
+    if (is.character(oc) && length(oc) == 1L && !is.na(oc)) return(identical(oc, "not_found"))
+    x <- x[["answer", exact = TRUE]]
+  }
   x <- trimws(to_utf8(as_chr1(x)))
   if (!nzchar(x)) return(TRUE)
   # The sentinel alone, modulo surrounding punctuation and formatting, and a

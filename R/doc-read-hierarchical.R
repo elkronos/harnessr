@@ -60,7 +60,8 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
   # FALSE, not spec$cite: the merge call below asks for summaries without
   # citation markers, so that is the system prompt it sends. The premise rule
   # does go with it: a summary keeps the figures a contradiction rests on.
-  overhead <- prompt_overhead(question, answer_system(FALSE, spec$premise), spec$restate)
+  overhead <- prompt_overhead(question, answer_system(FALSE, spec$premise), spec$restate,
+                              structure = answer_structure(spec))
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
 
   level <- 1L
@@ -118,20 +119,20 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
   # it never saw. A limit refuses the request, and the summaries are handed
   # back below.
   from <- length(trace$steps)
-  res <- gr_call(client, answer_messages(question, body, cite = FALSE, label = "Summaries",
-                                         restate = restate_how(spec), premise = spec$premise),
-                 model = spec$model, max_output = spec$max_answer_tokens,
-                 temperature = spec$temperature, trace = trace, label = "hier.answer",
-                 effort = spec$effort)
+  res <- answer_request(client, answer_messages(question, body, cite = FALSE, label = "Summaries",
+                                         restate = restate_how(spec), premise = spec$premise,
+                                         structure = answer_structure(spec)),
+                 spec, trace, "hier.answer", spec$max_answer_tokens,
+                 sources = reader_source_text(d))
   # A refused request adds no step, so this records nothing for it.
   trace_state(trace, from, "hier.answer", tokens_in = gr_count_tokens(body))
   if (usable_text(res) && reply_cut_off(res)) cut <- cut + 1L
   # Summaries handed back in place of an answer are no reply to classify.
   out <- if (usable_text(res)) premise_reply(res$text, spec$premise)
          else list(text = body, premise = NULL)
-  new_answer(out$text, "hierarchical", question, d$chunk_id, trace, premise = out$premise,
+  with_structure(new_answer(out$text, "hierarchical", question, d$chunk_id, trace, premise = out$premise,
              partial = !usable_text(res) || summary_failures > 0 || truncated || cut > 0L,
              notes = list(chunks = nrow(d), levels = level, final_summaries = length(current),
                           failed_summaries = summary_failures, truncated_calls = cut,
-                          summaries_truncated = truncated, tokens_truncated = dropped))
+                          summaries_truncated = truncated, tokens_truncated = dropped)), res)
 }

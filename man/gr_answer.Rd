@@ -21,6 +21,15 @@ is then \code{answer} as well, so \code{is_not_found()} is \code{FALSE}. It is t
 model's verdict, not a check harnessr made. Absent (\code{NULL}) for a spec
 that did not ask, and for \code{screen} and \code{extract}, which answer no
 question.}
+\item{\code{outcome}}{Character(1), set by \code{\link[=gr_read]{gr_read()}}: \code{"answered"}, an
+answer not marked partial; \code{"partial"}, an answer marked partial;
+\code{"not_found"}, \code{NOT_IN_DOCUMENT} from a run that read what it meant
+to; \code{"refused"}, \code{NOT_IN_DOCUMENT} from a run a limit stopped; or
+\code{"failed"}, \code{NOT_IN_DOCUMENT} from a run whose requests failed (the
+notes give an \code{error}, or say every request failed). \code{\link[=is_not_found]{is_not_found()}}
+reads it when given the answer. Under \code{answer_format = "schema"} in
+\code{\link[=gr_read_spec]{gr_read_spec()}} the model reports the answered or not-found part in a
+schema field, and \code{notes$structured} keeps what it said.}
 \item{\code{partial}}{Logical(1). \code{TRUE} when anything degraded: a call failed,
 chunks were dropped, a cap was hit, a strategy fell back, text was cut to
 fit, or pages of the document never became text (a scan read without

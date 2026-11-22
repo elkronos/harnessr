@@ -8,7 +8,8 @@
 #' @noRd
 read_stuff <- function(chunks, question, client, spec, trace) {
   d <- chunks$chunks
-  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate)
+  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate,
+                              structure = answer_structure(spec))
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   fit <- fit_chunks(d, bud$input)
 
@@ -28,11 +29,11 @@ read_stuff <- function(chunks, question, client, spec, trace) {
                       notes = list(reason = "no chunk fits the context window")))
   }
   sub <- d[fit$idx, , drop = FALSE]
-  res <- gr_call(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
-                                    restate = restate_how(spec), premise = spec$premise),
-                 model = spec$model, max_output = spec$max_answer_tokens,
-                 temperature = spec$temperature, trace = trace, label = "stuff.answer",
-                 effort = spec$effort)
+  res <- answer_request(client, answer_messages(question, render_chunks(sub), cite = spec$cite,
+                                    restate = restate_how(spec), premise = spec$premise,
+                                         structure = answer_structure(spec)),
+                 spec, trace, "stuff.answer", spec$max_answer_tokens,
+                 sources = reader_source_text(sub))
   # One request, but not one past a limit: as an ensemble member this can run
   # after another member has spent the budget, and the governor refuses it.
   if (is_refused(res)) {
@@ -49,11 +50,11 @@ read_stuff <- function(chunks, question, client, spec, trace) {
   out <- premise_reply(if (ok) res$text else .NOT_FOUND, spec$premise)
   # The chunks are what an answer rests on. With no answer they are not
   # evidence of anything.
-  new_answer(out$text, "stuff", question, sub$chunk_id, trace,
+  with_structure(new_answer(out$text, "stuff", question, sub$chunk_id, trace,
              evidence = if (ok) evidence_table(sub$chunk_id, reader_source_text(sub), sub$page,
                                                sub$section, kind = "verbatim"),
              partial = !ok || length(fit$dropped) > 0 || cut > 0L,
              notes = list(dropped_chunks = length(fit$dropped), truncated_calls = cut,
                           error = res$error),
-             premise = out$premise)
+             premise = out$premise), res)
 }

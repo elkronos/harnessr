@@ -148,6 +148,7 @@
   read.context_order = "readers#set-context-order", read.restate = "readers#set-context-order",
   read.restate_tokens = "readers#set-context-order",
   read.verify = "readers#set-verify", read.cite = "readers#set-verify",
+  read.answer_format = "readers#set-answer-format",
   read.accept_near_verbatim = "readers#set-verify",
   read.effort = "readers#set-effort",
   read.max_merge_levels = "readers#set-merge-levels", read.fan_in = "readers#set-merge-levels",

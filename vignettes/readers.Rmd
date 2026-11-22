@@ -883,6 +883,49 @@ answers are marked partial (`ans$partial`, `ans$notes$unverified_evidence`),
 not in what is sent. Score it with a scorer that counts a partial answer as
 wrong, or compare the `partial` rate by hand.
 
+### Outcomes: `answer_format` {#set-answer-format}
+
+**What it controls.** Every answer carries `ans$outcome`: `"answered"`,
+`"partial"`, `"not_found"`, `"refused"` (a limit stopped the run) or
+`"failed"` (its requests failed), and `is_not_found(ans)` reads it.
+`answer_format` decides how the answering request reports the found or
+not-found part. `"parsed"` sends the free-text request and looks for
+`NOT_IN_DOCUMENT` in the reply. `"schema"` sends the request with a JSON
+schema holding `answer` and `outcome`, so a reply such as "The excerpt does
+not mention revenue" is a not-found when the model says so in `outcome`,
+not an answer. A forced schema costs a few prompt tokens and needs a
+provider that supports structured output; published comparisons disagree on
+whether it changes answer quality.
+
+**Signs it needs changing.** Answers that say in words that the document is
+silent, counted as answers because they lack the sentinel, point to
+`"schema"`. Replies that fail to parse (`notes$structured$parsed` is
+`FALSE`) point back to `"parsed"` for that provider.
+
+**Where the default came from.** `"parsed"` is what the readers sent before
+the setting existed (`untested`). The choice is left open until a live
+comparison on the default model settles it, so the default does not change
+here.
+
+**How to test it.**
+
+```{r}
+fields <- function(messages, params) {
+  if (identical(params$schema_name, "answer")) {
+    return('{"answer": "Revenue was 45.2 million dollars.", "outcome": "answered"}')
+  }
+  stand_in(messages, params)
+}
+bench <- hr_benchmark(hr_sweep(needle, list(answer_format = c("parsed", "schema"))), qa,
+                      runs = 5, client = gr_mock_client(fields), split = "dev",
+                      scorer = gr_scorer_answer())
+aggregate(cbind(tokens_in, correct) ~ param.answer_format, bench, mean)
+```
+
+The schema's instructions added 54 prompt tokens to each run. On a
+reference, compare `correct`, and how often answers come back not found, by
+`param.answer_format`.
+
 ### Reasoning: `effort` {#set-effort}
 
 **What it controls.** `effort` sets how much a reasoning model reasons, for

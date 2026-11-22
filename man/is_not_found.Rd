@@ -7,11 +7,12 @@
 is_not_found(x)
 }
 \arguments{
-\item{x}{An answer string, or \code{ans$answer}.}
+\item{x}{An answer string, \code{ans$answer}, or a \link{gr_answer}.}
 }
 \value{
 \code{TRUE} if the string is the not-found sentinel (or blank), or opens
-with it as described above.
+with it as described above; for an answer with an outcome, whether the
+outcome is \code{"not_found"}.
 }
 \description{
 Every reader is instructed to reply with exactly \code{"NOT_IN_DOCUMENT"} when the
@@ -39,6 +40,14 @@ The sentinel anywhere else in a reply, or opening a sentence that goes on
 The v1 test was \code{grepl("not found|no information|not applicable", ...)} over
 the whole response, which threw away every answer that happened to contain
 one of those phrases.
+
+Given a \link{gr_answer} rather than a string, it reads the answer's
+\verb{$outcome} (see \link{gr_answer}) when it has one: \code{TRUE} only for
+\code{"not_found"}, so a run a limit stopped (\code{"refused"}) or whose requests
+failed (\code{"failed"}) is not counted as the document lacking the answer. An
+answer without \verb{$outcome} (one built by \code{\link[=new_answer]{new_answer()}} outside \code{\link[=gr_read]{gr_read()}},
+or read back from before the field existed) falls back to the sentinel
+test on \verb{$answer}.
 }
 \examples{
 is_not_found("NOT_IN_DOCUMENT")
@@ -48,6 +57,13 @@ is_not_found("NOT_IN_DOCUMENT. The excerpt only covers costs.")
 
 # A real answer that merely mentions the sentinel is NOT not-found.
 is_not_found("The log said NOT_IN_DOCUMENT, but revenue was 45.2 million.")
+
+# An answer from gr_read() carries its outcome, which is read first.
+ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 400))
+ans <- gr_read(ch, "Who audited the accounts?",
+               gr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), "stuff")
+ans$outcome
+is_not_found(ans)
 }
 \seealso{
 \link{gr_answer}, \code{\link[=gr_compare]{gr_compare()}}, whose \code{summary$not_found} column is

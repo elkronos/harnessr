@@ -31,6 +31,19 @@ says what it trades off and how to test it with `hr_sweep()`.
   rankings for both, with `rrf_k = 60`, the constant Cormack, Clarke and
   Buettcher (2009) use.
 
+* Every answer from `gr_read()` carries `$outcome`: `"answered"`,
+  `"partial"`, `"not_found"`, `"refused"` (a limit stopped the run) or
+  `"failed"` (its requests failed). `is_not_found()` given an answer reads
+  it, so a refused or failed run no longer counts as the document lacking
+  the answer; given a string, or an answer without the field, it tests the
+  sentinel as before. `as_json()` writes the field.
+
+* `answer_format = "schema"` sends the answering requests with a JSON schema
+  holding `answer` and `outcome`, so the model reports a not-found in a
+  field rather than with the sentinel; `"parsed"`, the default, sends the
+  free-text requests as before. Owner decision DEC-05 keeps the default
+  until a live comparison of the two on the default model.
+
 ## Claims and the write-up: what each rests on
 
 * The claims and writing prompts now show each extracted value with its

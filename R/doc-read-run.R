@@ -105,6 +105,8 @@ gr_read <- function(chunks, question, client, spec = NULL, trace = NULL) {
   }
   out$warnings <- c(chunks[["warnings", exact = TRUE]] %||% character(0), rec$get())
   out$signature <- rd$signature
+  # What the read came to, as a value is_not_found() reads (answer_outcome()).
+  out$outcome <- answer_outcome(out)
   out
 }
 

@@ -13,15 +13,15 @@ read_map_reduce <- function(chunks, question, client, spec, trace) {
   # parallel batch to, since the workers cannot see what the run spends.
   worst <- batch_item_usd(client, spec$model, max_tokens_of(d$tokens) +
                             prompt_overhead(question, answer_system(spec$cite, spec$premise),
-                                            spec$restate),
+                                            spec$restate, structure = answer_structure(spec)),
                           spec$max_chunk_tokens)
   res <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
-    r <- gr_call(client, answer_messages(question, render_chunks(d[i, , drop = FALSE]),
-                                         cite = spec$cite, restate = restate_how(spec),
-                                         premise = spec$premise),
-                 model = spec$model, max_output = spec$max_chunk_tokens,
-                 temperature = spec$temperature, trace = trace, label = "map.answer",
-                 effort = spec$effort)
+    r <- answer_request(client, answer_messages(question, render_chunks(d[i, , drop = FALSE]),
+                                                cite = spec$cite, restate = restate_how(spec),
+                                                premise = spec$premise,
+                                                structure = answer_structure(spec)),
+                        spec, trace, "map.answer", spec$max_chunk_tokens,
+                        sources = reader_source_text(d[i, , drop = FALSE]))
     if (is_refused(r)) return(list(ok = FALSE, text = "", capped = TRUE))
     if (spec$delay_between_calls > 0) Sys.sleep(spec$delay_between_calls)
     list(ok = usable_text(r), text = r$text, capped = FALSE, cut = reply_cut_off(r))

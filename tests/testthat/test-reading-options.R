@@ -238,3 +238,108 @@ test_that("retrieve and iterative give the same order on the same inputs", {
                    ro_order("iterative", list(fusion = "rrf"), "lexical"))
   expect_length(ro_order("retrieve", list(fusion = "rrf"), "lexical"), 6L)
 })
+
+# ---------------------------------------------------------------------------
+# P3-09 and DEC-05: the outcome, and answer_format
+# ---------------------------------------------------------------------------
+
+ro_doc <- function() {
+  ro_chunks(c("The trial enrolled 40 participants.",
+              "None of the 40 participants dropped out before the end."))
+}
+
+test_that("every answer from gr_read() carries an outcome", {
+  ch <- ro_doc()
+  a <- quiet(gr_read(ch, "Did anyone drop out?",
+                     gr_mock_client(function(m, p) "None of the 40 participants dropped out."),
+                     "stuff"))
+  expect_identical(a$outcome, "answered")
+  expect_false(is_not_found(a))
+  a <- quiet(gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "NOT_IN_DOCUMENT"),
+                     "stuff"))
+  expect_identical(a$outcome, "not_found")
+  expect_true(is_not_found(a))
+  # A failed request is not a not-found.
+  a <- quiet(gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) stop("down")),
+                     "stuff"))
+  expect_identical(a$outcome, "failed")
+  expect_true(is_not_found(a$answer))
+  expect_false(is_not_found(a))
+  # A limit that stopped the run is a refusal.
+  stopped <- new_answer("NOT_IN_DOCUMENT", "stuff", "q", integer(0), gr_trace(), partial = TRUE,
+                        notes = list(call_cap_reached = 1))
+  expect_identical(harnessr:::answer_outcome(stopped), "refused")
+  # A partial answer.
+  ans <- new_answer("x", "stuff", "q", 1L, gr_trace(), partial = TRUE)
+  expect_identical(harnessr:::answer_outcome(ans), "partial")
+  # Without an outcome, the sentinel decides.
+  expect_true(is_not_found(new_answer("NOT_IN_DOCUMENT", "stuff", "q", integer(0), gr_trace())))
+  expect_true(is_not_found(list(answer = "NOT_IN_DOCUMENT")))
+  expect_false(is_not_found(list(answer = "NOT_IN_DOCUMENT", outcome = "failed")))
+  expect_match(harnessr::as_json(a), "\"outcome\"")
+})
+
+test_that("answer_format = 'parsed' is the default and sends no schema", {
+  expect_null(gr_read_spec("stuff")$answer_format)
+  expect_identical(gr_read_spec("stuff", answer_format = "schema")$answer_format, "schema")
+  expect_error(gr_read_spec("stuff", answer_format = "json"), class = "gr_bad_setting")
+  cl <- gr_mock_client(function(m, p) "NOT_IN_DOCUMENT")
+  quiet(gr_read(ro_doc(), "q?", cl, "stuff"))
+  expect_false(identical(cl$calls()[[1]]$params$schema_name, "answer"))
+})
+
+test_that("both formats classify the two example sentences", {
+  ch <- ro_doc()
+  q <- "Did anyone drop out?"
+  # Parsed: the reply as free text, the sentinel read from it.
+  parsed <- function(reply) quiet(gr_read(ch, q, gr_mock_client(function(m, p) reply), "stuff"))
+  expect_identical(parsed("None of the 40 participants dropped out.")$outcome, "answered")
+  expect_identical(parsed("NOT_IN_DOCUMENT. The excerpt does not mention revenue.")$outcome,
+                   "not_found")
+  # Without the sentinel, a free-text "does not mention" is read as an answer:
+  # the limit of the parsed path that the schema exists to test.
+  expect_identical(parsed("The excerpt does not mention revenue.")$outcome, "answered")
+  # Schema: the outcome is a field of the reply.
+  spec <- gr_read_spec("stuff", answer_format = "schema")
+  schema <- function(answer, outcome) {
+    cl <- gr_mock_client(function(m, p) {
+      expect_identical(p$schema_name, "answer")
+      jsonlite::toJSON(list(answer = answer, outcome = outcome), auto_unbox = TRUE)
+    })
+    quiet(gr_read(ch, q, cl, spec))
+  }
+  a <- schema("None of the 40 participants dropped out.", "answered")
+  expect_identical(a$outcome, "answered")
+  expect_identical(a$answer, "None of the 40 participants dropped out.")
+  expect_true(a$notes$structured$parsed)
+  b <- schema("The excerpt does not mention revenue.", "not_found")
+  expect_identical(b$outcome, "not_found")
+  expect_true(is_not_found(b))
+  expect_identical(b$answer, "NOT_IN_DOCUMENT")
+  expect_identical(b$notes$structured$reply, "The excerpt does not mention revenue.")
+  # A reply that does not parse is read as free text.
+  c <- quiet(gr_read(ch, q, gr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), spec))
+  expect_identical(c$outcome, "not_found")
+  expect_false(c$notes$structured$parsed)
+})
+
+test_that("answer_format = 'schema' reaches each covered reader's answer request", {
+  ch <- ro_chunks(sprintf("Revenue line %d was %d dollars.", 1:4, 100 + 1:4))
+  for (r in c("stuff", "retrieve", "map_reduce", "skim", "hierarchical")) {
+    cl <- gr_mock_client(function(m, p) {
+      if (identical(p$schema_name, "answer")) {
+        return('{"answer": "Revenue was 101 dollars.", "outcome": "answered"}')
+      }
+      if (grepl("extract evidence", m[[1]]$content, fixed = TRUE)) {
+        return("Revenue line 1 was 101 dollars.")
+      }
+      "Revenue was 101 dollars."
+    })
+    a <- quiet(gr_read(ch, "What was revenue line 1?", cl,
+                       gr_read_spec(r, answer_format = "schema")))
+    names <- vapply(cl$calls(), function(x) as.character(x$params$schema_name %||% ""), "")
+    expect_true("answer" %in% names, info = r)
+    expect_true(a$outcome %in% c("answered", "partial"), info = r)
+    expect_false(is_not_found(a), info = r)
+  }
+})
