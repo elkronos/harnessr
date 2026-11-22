@@ -31,6 +31,7 @@ r[order(r$signature), c("name", "signature", "cost_calls")]
 Other reading functions: 
 \code{\link{gr_answer}},
 \code{\link{gr_check_reader}()},
+\code{\link{gr_methods_text}()},
 \code{\link{gr_read}()},
 \code{\link{gr_read_spec}()},
 \code{\link{gr_reader_signature}()},

@@ -126,6 +126,7 @@ to compare several, \code{\link[=is_not_found]{is_not_found()}} to test the sent
 
 Other reading functions: 
 \code{\link{gr_check_reader}()},
+\code{\link{gr_methods_text}()},
 \code{\link{gr_read}()},
 \code{\link{gr_read_spec}()},
 \code{\link{gr_reader_signature}()},

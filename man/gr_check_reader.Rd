@@ -72,6 +72,7 @@ gr_check_reader("loose")
 
 Other reading functions: 
 \code{\link{gr_answer}},
+\code{\link{gr_methods_text}()},
 \code{\link{gr_read}()},
 \code{\link{gr_read_spec}()},
 \code{\link{gr_reader_signature}()},

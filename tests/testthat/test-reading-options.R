@@ -445,3 +445,58 @@ test_that("map_reduce drops a premise flag whose quote is absent", {
   expect_null(a2$notes$degradation)
   expect_identical(sort(as.integer(a2$notes$premise_chunks)), 1:2)
 })
+
+# ---------------------------------------------------------------------------
+# P1D-04: gr_methods_text()
+# ---------------------------------------------------------------------------
+
+test_that("gr_methods_text() describes an answer from its record only", {
+  ch <- ro_chunks(sprintf("Revenue line %d was %d dollars.", 1:4, 100 + 1:4))
+  cl <- gr_mock_client(function(m, p) "Revenue was 101 dollars.")
+  a <- quiet(gr_read(ch, "What was revenue line 1?", cl, gr_read_spec("retrieve", top_k = 2)))
+  txt <- gr_methods_text(a)
+  expect_s3_class(txt, "gr_methods_text")
+  expect_length(txt, 1L)
+  expect_match(txt, sprintf("harnessr %s", utils::packageVersion("harnessr")), fixed = TRUE)
+  expect_match(txt, "the 'retrieve' reader with these settings changed from their defaults: top_k = 2",
+               fixed = TRUE)
+  expect_match(txt, "1 model request(s), which asked for 'mock-model'", fixed = TRUE)
+  expect_match(txt, "The provider did not report which model answered them.", fixed = TRUE)
+  # Only what the trace holds: embeddings requests appear when it has them.
+  n_emb <- sum(vapply(harnessr:::answer_trace(a)$steps,
+                      function(s) identical(s$kind, "embedding"), logical(1)))
+  expect_identical(grepl("embeddings request(s)", txt, fixed = TRUE), n_emb > 0L)
+  sys <- cl$calls()[[1]]$messages[[1]]$content
+  expect_match(txt, paste("retrieve.answer", substr(harnessr:::hr_hash(sys), 1, 12)), fixed = TRUE)
+  expect_match(txt, "makes no claim beyond it", fixed = TRUE)
+  expect_false(grepl("—|–| -- ", txt))
+  out <- capture.output(print(txt))
+  expect_gt(length(out), 1L)
+  # A default spec says so.
+  a2 <- quiet(gr_read(ch, "What was revenue line 1?", cl, "stuff"))
+  expect_match(gr_methods_text(a2), "the 'stuff' reader at its default settings", fixed = TRUE)
+  # The served model, when the provider reported one.
+  tr <- gr_trace()
+  harnessr:::trace_record(tr, "x.answer", list(list(role = "system", content = "S")),
+                       list(ok = TRUE, text = "a", model = "m1", served_model = "m1-2026",
+                            usage = list(input = 3L, output = 1L)))
+  t2 <- gr_methods_text(tr)
+  expect_match(t2, "reported that 'm1-2026' answered 1 of them", fixed = TRUE)
+  expect_error(gr_methods_text(1), class = "gr_bad_setting")
+})
+
+test_that("gr_methods_text() describes a benchmark's design and requests", {
+  qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
+                        documents = gr_example(), answers = list("45.2 million"), split = "dev")
+  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  arms <- hr_sweep(gr_arm("needle", list(method = "structural", max_tokens = 120,
+                                          overlap_tokens = 0)),
+                   list(top_k = c(2, 4)))
+  bench <- quiet(hr_benchmark(arms, qa, runs = 2, client = cl, split = "dev",
+                              scorer = gr_scorer_answer()))
+  txt <- gr_methods_text(bench)
+  expect_match(txt, "The benchmark ran 2 arm(s)", fixed = TRUE)
+  expect_match(txt, "top_k = 2", fixed = TRUE)
+  expect_match(txt, "on 1 item(s), 2 run(s) per item, 4 run(s) in all", fixed = TRUE)
+  expect_match(txt, "model request(s)", fixed = TRUE)
+})

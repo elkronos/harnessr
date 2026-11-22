@@ -153,6 +153,7 @@ reference:
   - gr_trace_cost
   - gr_trace_save
   - as_json
+  - gr_methods_text
 
 - title: Caching and replaying runs
   desc: >
