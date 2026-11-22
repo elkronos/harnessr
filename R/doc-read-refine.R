@@ -41,6 +41,7 @@ read_refine <- function(chunks, question, client, spec, trace) {
     cut_tokens <- 0L
     kept_draft <- draft
     kept_ledger <- ledger
+    fit <- NULL
     if (!is.null(spec$context_policy)) {
       # Under a context policy the draft (or ledger) and the excerpt share the
       # input budget, and the policy decides which is cut and which part of
@@ -48,8 +49,21 @@ read_refine <- function(chunks, question, client, spec, trace) {
       state_name <- if (is_ledger) "ledger" else "draft"
       have <- if (is_ledger) ledger_text(ledger) else draft
       pieces <- stats::setNames(c(as_chr1(have, ""), excerpt), c(state_name, "excerpt"))
-      fit <- hr_context_fit(pieces, bud$input, spec$context_policy, trace = trace,
+      # A policy whose pinned pieces do not fit cannot be followed: the
+      # request would be refused as too long. Its own cuts are not made, and
+      # the even split below cuts the pieces instead.
+      fit <- hr_context_fit(pieces, bud$input, spec$context_policy, trace = NULL,
                             where = "refine")
+      if (!isTRUE(fit$fits)) {
+        policy_unfit_warning(trace, "refine", intersect(spec$context_policy$pin, names(pieces)),
+                             fit$tokens, bud$input)
+        fit <- NULL
+      } else if (length(fit$cut)) {
+        fit <- hr_context_fit(pieces, bud$input, spec$context_policy, trace = trace,
+                              where = "refine")
+      }
+    }
+    if (!is.null(fit)) {
       cuts <- length(fit$cut); cut_tokens <- as.integer(fit$tokens_dropped)
       excerpt <- fit$pieces[["excerpt"]]
       if (state_name %in% fit$cut) {

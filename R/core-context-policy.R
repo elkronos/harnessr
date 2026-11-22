@@ -237,6 +237,10 @@ log_cut <- function(trace, where, piece, keep, before, kept, n, marker, part) {
 #' merge findings to place them by the read's `context_order` as well; see
 #' [gr_read_spec()] for which packers those are.
 #'
+#' A pinned piece is never cut by the policy. When the pinned pieces alone
+#' do not fit, [hr_context_fit()] says so (`fits = FALSE`) and leaves the
+#' decision to its caller.
+#'
 #' [hr_context_fit()] applies a policy to a set of pieces. In the document
 #' layer, a read takes one as the `context_policy` setting of
 #' [gr_read_spec()]; `NULL`, the default, keeps each reader's own cuts.

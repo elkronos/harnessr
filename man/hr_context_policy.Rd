@@ -45,6 +45,10 @@ merge findings to place them by the read's \code{context_order} as well; see
 \code{\link[=gr_read_spec]{gr_read_spec()}} for which packers those are.
 }
 \details{
+A pinned piece is never cut by the policy. When the pinned pieces alone
+do not fit, \code{\link[=hr_context_fit]{hr_context_fit()}} says so (\code{fits = FALSE}) and leaves the
+decision to its caller.
+
 \code{\link[=hr_context_fit]{hr_context_fit()}} applies a policy to a set of pieces. In the document
 layer, a read takes one as the \code{context_policy} setting of
 \code{\link[=gr_read_spec]{gr_read_spec()}}; \code{NULL}, the default, keeps each reader's own cuts.

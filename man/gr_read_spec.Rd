@@ -367,9 +367,11 @@ piece;
 they left out;
 \item with \code{order_merges = TRUE}, the findings a merge combines and the
 member answers \code{ensemble} adjudicates are placed by \code{context_order}.
-The question and the instructions are never cut by any reader. Every
-cut is a \code{"truncate"} step of the trace that names the piece and the
-part dropped. Untested.
+The question and the instructions are never cut by any reader. When
+the pieces the policy pins do not fit a request, the reader warns once
+(class \code{gr_context_policy_unfit}) and cuts as it does without a policy,
+so the request still fits. Every cut is a \code{"truncate"} step of the
+trace that names the piece and the part dropped. Untested.
 }}
 
 \item{refine_state}{For \code{refine}: what is carried down the document.

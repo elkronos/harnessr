@@ -191,6 +191,39 @@ test_that("under a context policy refine fits its draft and excerpt together", {
   expect_null(cp_truncates(tr0)[[1]]$detail$keep)
 })
 
+test_that("a policy whose pinned pieces do not fit warns and refine cuts as without one", {
+  local_registries()
+  gr_register_model("cp-pin", context_window = 700, max_output = 100, input_usd = 1,
+                    output_usd = 1)
+  txt <- vapply(1:3, function(i) paste(rep(sprintf("Fact %d about the region.", i), 75),
+                                       collapse = " "), "")
+  ch <- cp_chunks(txt)
+  cl <- gr_mock_client(function(m, p) "An answer.")
+  pol <- hr_context_policy(pin = c("question", "instructions", "draft", "excerpt"))
+  tr <- gr_trace()
+  expect_warning(
+    a <- suppressMessages(gr_read(ch, "Q?", cl, gr_read_spec("refine", model = "cp-pin",
+                                                       max_answer_tokens = 100,
+                                                       context_policy = pol), trace = tr)),
+    class = "gr_context_policy_unfit")
+  tr0 <- gr_trace()
+  b <- quiet(gr_read(ch, "Q?", cl, gr_read_spec("refine", model = "cp-pin",
+                                                max_answer_tokens = 100), trace = tr0))
+  expect_identical(a$notes$failed_calls, b$notes$failed_calls)
+  expect_identical(a$notes$truncations, b$notes$truncations)
+  expect_gt(a$notes$truncations, 0L)
+  # A pinned piece that a packer has to cut is cut as before, with the warning.
+  long <- paste(rep("word", 200), collapse = " ")
+  spec <- list(context_policy = hr_context_policy(pin = c("question", "instructions", "outline")))
+  tr2 <- gr_trace()
+  expect_warning(out <- cut_piece(long, 10, "x", tr2, spec, "outline"),
+                 class = "gr_context_policy_unfit")
+  expect_identical(out$text, truncate_logged(long, 10, "x")$text)
+  # Once per cut site and run.
+  expect_no_warning(cut_piece(long, 10, "x", tr2, spec, "outline"))
+  expect_no_warning(cut_piece("short", 10, "y", gr_trace(), spec, "outline"))
+})
+
 test_that("refine_state = 'ledger' applies edits and answers from the list", {
   ch <- cp_chunks(c("Revenue was 40 million.", "Costs were 12 million.",
                     "Correction: revenue was 45.2 million, not 40 million."))

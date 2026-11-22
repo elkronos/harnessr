@@ -460,9 +460,11 @@ gr_reader_signature <- function(reader) {
 #'     they left out;
 #'   * with `order_merges = TRUE`, the findings a merge combines and the
 #'     member answers `ensemble` adjudicates are placed by `context_order`.
-#'   The question and the instructions are never cut by any reader. Every
-#'   cut is a `"truncate"` step of the trace that names the piece and the
-#'   part dropped. Untested.
+#'   The question and the instructions are never cut by any reader. When
+#'   the pieces the policy pins do not fit a request, the reader warns once
+#'   (class `gr_context_policy_unfit`) and cuts as it does without a policy,
+#'   so the request still fits. Every cut is a `"truncate"` step of the
+#'   trace that names the piece and the part dropped. Untested.
 #' @param refine_state For `refine`: what is carried down the document.
 #'   `"draft"` (the default) is the answer, rewritten by each request, as
 #'   before. `"ledger"` is a numbered list of findings: each request is shown
