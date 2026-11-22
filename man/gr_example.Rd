@@ -17,6 +17,3 @@ own.
 \examples{
 gr_ingest(gr_example())
 }
-\seealso{
-\code{\link[=readgpt_example]{readgpt_example()}}, its name before the package was renamed.
-}

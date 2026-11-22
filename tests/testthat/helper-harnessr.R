@@ -128,7 +128,6 @@ local_registries <- function(env = parent.frame()) {
   withr::defer({
     registry_restore(snap)
     gr_options(opts)
-    harnessr:::.warn_once_reset()
   }, envir = env)
   invisible(snap)
 }

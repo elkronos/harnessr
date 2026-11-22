@@ -176,7 +176,7 @@ Errors are classed, so you can catch a specific failure: `gr_auth_error`,
 compared, such as a lexical fallback vector against an API embedding.
 Degradations are classed warnings: `gr_segment_fallback`, `gr_embed_fallback`,
 `gr_rerank_degraded`, `gr_iterative_degraded`, `gr_ensemble_degenerate`,
-`gr_duplicate_recipe`, `gr_deprecated`, `gr_ocr_unavailable`, `gr_clamped` with
+`gr_duplicate_recipe`, `gr_ocr_unavailable`, `gr_clamped` with
 `hr_param_clamped` for a parameter moved to its nearest bound
 (`vignette("extending")`), `gr_parallel_share` for a parallel item whose
 share refused a later request (below), `gr_bad_correct` for a

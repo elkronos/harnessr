@@ -55,8 +55,8 @@ test_that("the confusion matrix and its rates are what they should be", {
   #   include/eligible 2 (d1, d7), include/not 1 (d2), rest/eligible 2 (d3, d6),
   #   rest/not 3; po = 5/8, pe = (3*4 + 5*4)/64 = 1/2, kappa = 0.125 / 0.5 = 1/4.
   expect_equal(kap(cal$agreement$strict), 1/4, tolerance = 1e-8)
-  # The 0.6.0 figure, kept for one release under its own name.
-  expect_equal(cal$kappa_legacy, 1/3, tolerance = 1e-8)
+  # The 0.6.0 figure on three labels against two is no longer reported.
+  expect_false("kappa_legacy" %in% names(cal))
   # And the 3x2 counts both tables are made from.
   expect_identical(as.integer(cal$decisions), c(2L, 1L, 1L, 1L, 0L, 3L))
 
@@ -128,8 +128,6 @@ test_that("PABAK, AC1 and kept-vs-excluded kappa match a hand calculation", {
   #
   # Strict include against the rest: a = 1, b = 1, c = 2, d = 8;
   #   pe = (2 * 3 + 10 * 9) / 144 = 96/144, kappa = (108 - 96) / (144 - 96) = 1/4.
-  # The 0.6.0 kappa on three labels against two: po = 8/12,
-  #   pe = (2 * 3 + 2 * 0 + 8 * 9) / 144 = 78/144, kappa = 18/66 = 3/11.
   scr <- screening_of(c("include", "include", "unclear", "unclear", rep("exclude", 8)))
   ref <- data.frame(document = paste0("d", 1:12, ".pdf"),
                     human_decision = c("include", "exclude", "include", "exclude",
@@ -149,7 +147,6 @@ test_that("PABAK, AC1 and kept-vs-excluded kappa match a hand calculation", {
   expect_equal(st(kept, "PPV"), 0.5, tolerance = 1e-12)
   expect_equal(st(kept, "NPV"), 7 / 8, tolerance = 1e-12)
   expect_equal(st(cal$agreement$strict, "kappa"), 0.25, tolerance = 1e-12)
-  expect_equal(cal$kappa_legacy, 3 / 11, tolerance = 1e-12)
   expect_false(kept$paradox)
 
   # The PABAK interval is the Wilson interval on po (9 of 12), mapped by 2p - 1.
@@ -277,7 +274,6 @@ test_that("a sample of exclusions reports what was lost, not a sensitivity", {
   # throughout, so it would be arithmetic on a constant.
   expect_true(is.na(cal$kappa))
   expect_null(cal$agreement)
-  expect_true(is.na(cal$kappa_legacy))
 
   # The number somebody actually acts on: what the rate implies for the whole
   # discarded pile. 10% of 85.

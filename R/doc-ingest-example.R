@@ -8,7 +8,6 @@
 #' own.
 #'
 #' @return Absolute path to the file.
-#' @seealso [readgpt_example()], its name before the package was renamed.
 #' @export
 #' @examples
 #' gr_ingest(gr_example())

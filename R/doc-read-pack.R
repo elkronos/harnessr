@@ -37,8 +37,8 @@ page_text <- function(p) {
 #' The multi-chunk readers (`stuff`, `retrieve`, `rerank`) go through this; the
 #' rest bound their prompts with `gr_truncate_tokens()` or `tree_merge()`. Every
 #' path is bounded one way or the other -- that is the failure mode that produced
-#' unbounded merge prompts and HTTP 400s in `gpt_read_chunked()` and
-#' `gpt_read_hierarchical()`.
+#' unbounded merge prompts and HTTP 400s in v1's chunked and hierarchical
+#' readers.
 #' @noRd
 fit_chunks <- function(df, budget_tokens, order = NULL, prefix = FALSE) {
   idx <- order %||% seq_len(nrow(df))

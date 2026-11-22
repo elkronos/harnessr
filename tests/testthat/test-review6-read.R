@@ -331,40 +331,6 @@ test_that("a comparison does not share a chunking that a limit cut short", {
 })
 
 # ---------------------------------------------------------------------------
-# read-methods-08: the v1 shims ran chunk text through gr_ingest() as a
-# source, and rebuilt a gr_chunks without its unread pages
-# ---------------------------------------------------------------------------
-
-test_that("the v1 shims read their chunks as given, and never as a source", {
-  local_registries()
-  cl <- gr_mock_client(function(m, p) "5 million")
-  # gr_ingest() takes a string for a path, a web address or text. Before, a
-  # chunk that was a web address was fetched.
-  testthat::local_mocked_bindings(gr_ingest = function(...) stop("gr_ingest() was called"),
-                                  .package = "harnessr")
-  for (x in c("Revenue was 5M.", "The final figures are in appendix.docx",
-              "http://127.0.0.1:9/compat-probe")) {
-    # Before: "Only 15 characters survived ingestion", "File not found", and a
-    # request to the address.
-    expect_identical(quiet(gpt_read_chunked(x, "What was revenue?", client = cl)), "5 million",
-                     info = x)
-  }
-  expect_identical(quiet(gpt_read_retrieval("Revenue was 5M.", "What was revenue?", client = cl)),
-                   "5 million")
-  expect_error(quiet(gpt_read_chunked(c("", "  "), "What was revenue?", client = cl)),
-               class = "gr_empty_chunks")
-
-  # A gr_chunks keeps what it knows: pages never read make the answer partial.
-  ch <- r6_chunks(c("Revenue was 5 million dollars in the year.",
-                    "Costs rose sharply in the second half."))
-  ch$unread_pages <- c(3L, 4L)
-  j <- jsonlite::fromJSON(quiet(gpt_read_chunked(ch, "What was revenue?", client = cl,
-                                                 return_json = TRUE)))
-  expect_true(j$partial)
-  expect_equal(j$notes$unread_pages, c(3L, 4L))
-})
-
-# ---------------------------------------------------------------------------
 # read-methods-04: skim ignored a failed consolidation of its evidence, and
 # asked for citations from a body with no chunk labels, checking them against
 # every chunk
