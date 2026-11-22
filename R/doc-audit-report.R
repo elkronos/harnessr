@@ -92,6 +92,11 @@
 #' @param open Open the report once it is written: in the RStudio viewer when
 #'   the file is under [tempdir()], and otherwise in the web browser. By
 #'   default only in an interactive session.
+#' @param recall A [gr_search_recall()] result, to add how many of a set of
+#'   papers already known to be relevant the search found, as relative
+#'   recall with its interval, and which seeds it missed. Last, so every
+#'   existing call keeps its meaning.
+#'
 #'
 #' @section An answer:
 #' With `answer`, the report shows the answer or says that it was not found,
@@ -173,7 +178,7 @@
 gr_audit_report <- function(path, screening = NULL, extraction = NULL,
                             synthesis = NULL, protocol = NULL, title = NULL,
                             claims = NULL, records = NULL, calibration = NULL,
-                            answer = NULL, open = interactive()) {
+                            answer = NULL, open = interactive(), recall = NULL) {
   # `claims` and `records` are APPENDED, not slotted in where they belong
   # thematically. Inserting `claims` fourth silently rebound the fourth
   # positional argument of every existing call -- gr_audit_report(p, s, x, syn)
@@ -186,7 +191,8 @@ gr_audit_report <- function(path, screening = NULL, extraction = NULL,
                     list(protocol, "gr_protocol", "protocol"),
                     list(claims, "gr_claims", "claims"),
                     list(records, "gr_records", "records"),
-                    list(calibration, "gr_calibration", "calibration"))) {
+                    list(calibration, "gr_calibration", "calibration"),
+                    list(recall, "gr_search_recall", "recall"))) {
     if (!is.null(pair[[1]]) && !inherits(pair[[1]], pair[[2]])) {
       gr_abort(sprintf("`%s` must be a %s object.", pair[[3]], pair[[2]]),
                class = "gr_bad_audit_input")
@@ -223,6 +229,7 @@ gr_audit_report <- function(path, screening = NULL, extraction = NULL,
     audit_synthesis(synthesis),
     # The search belongs to a review. A report on one answer has none to show.
     if (review || !is.null(records)) audit_search(records),
+    audit_search_recall(recall),
     audit_cost(screening = screening, extraction = extraction, synthesis = synthesis,
                reading = answer, claims = claims %||% synthesis$claims),
     audit_caveats(screening = !is.null(screening), answer = !is.null(answer),
@@ -1167,6 +1174,41 @@ audit_search <- function(records) {
     "<p class='sub'>What was searched, with what query and when. Reproducing the review",
     "starts here.</p>",
     html_table(tab), extra)
+}
+
+#' How much of a seed set of known papers the search found: the figure from
+#' gr_search_recall(), what it is relative to, and the seeds missed, with
+#' those the matching rules refused apart.
+#' @noRd
+audit_search_recall <- function(recall) {
+  if (!inherits(recall, "gr_search_recall")) return(NULL)
+  pct <- function(v) ifelse(is.na(v), "--", sprintf("%.1f%%", 100 * v))
+  r <- recall$recall
+  tab <- data.frame(tier = r$tier, found = r$found, seeds = r$n, recall = pct(r$estimate),
+                    interval = sprintf("%s to %s", pct(r$lower), pct(r$upper)),
+                    stringsAsFactors = FALSE)
+  show <- function(df) {
+    df[, intersect(c("seed", "label", "tier", "reason"), names(df)), drop = FALSE]
+  }
+  c("<h2>Known papers the search found</h2>",
+    sprintf(paste0("<p class='sub'>Known-item recall against %d seed paper(s), with %.0f%% ",
+                   "Clopper-Pearson intervals. %s</p>"),
+            nrow(recall$seeds), 100 * r$conf[1], esc(recall$note)),
+    html_table(tab, numeric_cols = c("found", "seeds")),
+    if (nrow(recall$excluded))
+      c(sprintf(paste0("<p class='sub'>%d seed(s) used to build the search are left out of the ",
+                       "figure: the search was written to find them.</p>"),
+                nrow(recall$excluded)),
+        html_table(show(recall$excluded))),
+    if (nrow(recall$refused))
+      c(sprintf(paste0("<p class='flag'>%d missed seed(s) were refused by the matching rules ",
+                       "rather than absent: check them by hand before reporting the ",
+                       "figure.</p>"), nrow(recall$refused))),
+    if (nrow(recall$missed))
+      c("<p><b>Seeds the search did not find</b></p>",
+        html_table(show(recall$missed),
+                   flag = list(reason = function(v) v %in% c("short_title", "multi_doi",
+                                                               "not_confirmed")))))
 }
 
 # --- an answer, and the passages behind it --------------------------------

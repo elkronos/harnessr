@@ -209,6 +209,38 @@ people name downloads. An ambiguous match is no match: two Smith 2019 papers and
 one `smith2019.pdf` claim nothing, because a coin flip presented as a match is
 how one paper's findings get attributed to another.
 
+### Does the search find the papers you already know?
+
+Before the search is final, test it against papers the team already knows are
+relevant: the seed set. `gr_search_recall()` matches each seed to the search's
+records by the same rules `gr_records()` uses for duplicates, and gives the
+share found with an exact interval. A seed used to write the search was bound
+to be found, so mark it `used_to_build` and it is left out of the figure:
+
+```{r}
+seeds <- data.frame(
+  title = c("Cognitive load and retention", "Spacing effects in vocabulary learning",
+            "Never obtained"),
+  year = c("2019", "2018", "2020"),
+  doi = c("10.1037/edu0000123", NA, "10.1000/zzz"),
+  authors = c("Smith, J.", "Ng, L.", "Gone, G."),
+  used_to_build = c(FALSE, FALSE, TRUE))
+known <- gr_search_recall(recs, seeds)
+known
+known$missed[, c("label", "reason")]
+```
+
+One of the two seeds kept out of the search was found, and its 95%
+Clopper-Pearson interval runs from 1.3% to 98.7%: two seeds say almost
+nothing, and a real seed set needs dozens. The figure is relative recall, the
+share of the known papers the search found, not of every relevant paper, and
+known papers are usually the easiest to find. `reason` says why each seed was
+missed. A seed the matching rules refused, for a title too short to tell papers
+apart or one shared by records with different DOIs, counts as missed and is
+listed in `$refused`, so check those by hand. `tier =` gives the figure for
+each group of seeds as well, and `gr_audit_report(recall = known)` adds it to
+the report.
+
 ## The review: protocol, screen, extract, write
 
 The single-document pipeline (ingest, segment, read) answers a question. A
@@ -1181,8 +1213,9 @@ gr_audit_report("audit.html", screening = screened, extraction = table,
                 calibration = cal)
 ```
 
-`records =` takes the search when the run had one, and every argument is
-optional except the path and at least one stage to report on.
+`records =` takes the search when the run had one, `recall =` a
+`gr_search_recall()` result, and every argument is optional except the path and
+at least one stage to report on.
 
 The report puts the failures near the top: unverified quotes, documents that
 could not be read, screening calls that failed or came back in the wrong form,

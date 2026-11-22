@@ -1,5 +1,24 @@
 # harnessr 0.6.0.9000
 
+## Checking the search, the files and the screening
+
+* New `gr_search_recall(records, known, tier, held_out)` measures a search
+  against a seed set of papers already known to be relevant: the share it
+  found, with a Clopper-Pearson interval from `hr_prop_ci()`, overall and for
+  each `tier`. Seeds are matched to records by the rules `gr_records()` uses
+  to find duplicates. A seed those rules refuse (a title under 12 letters or
+  digits, a title and year shared by records with different DOIs, or authors
+  or venues that disagree) counts as not found and is listed in `$refused`
+  with the reason. Seeds used to build the search, marked by a
+  `used_to_build` column or left out of `held_out`, are left out of the
+  figure and listed in `$excluded`. An empty seed set, or a tier left with no
+  seed, is refused. The help cites relative recall (Sampson et al. 2006) and
+  PRISMA-S.
+
+* `gr_audit_report()` gains `recall`, its last argument, which adds the
+  search's recall against the seed set and the seeds it missed. Calls that
+  pass arguments by position keep their meaning.
+
 ## Comparing methods and settings
 
 * A new guide, `vignette("compare")`, works through five comparisons offline,

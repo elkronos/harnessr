@@ -15,7 +15,8 @@ gr_audit_report(
   records = NULL,
   calibration = NULL,
   answer = NULL,
-  open = interactive()
+  open = interactive(),
+  recall = NULL
 )
 }
 \arguments{
@@ -58,6 +59,11 @@ answer" below.}
 \item{open}{Open the report once it is written: in the RStudio viewer when
 the file is under \code{\link[=tempdir]{tempdir()}}, and otherwise in the web browser. By
 default only in an interactive session.}
+
+\item{recall}{A \code{\link[=gr_search_recall]{gr_search_recall()}} result, to add how many of a set of
+papers already known to be relevant the search found, as relative
+recall with its interval, and which seeds it missed. Last, so every
+existing call keeps its meaning.}
 }
 \value{
 \code{path}, invisibly.
