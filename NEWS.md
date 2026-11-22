@@ -44,6 +44,16 @@ says what it trades off and how to test it with `hr_sweep()`.
   free-text requests as before. Owner decision DEC-05 keeps the default
   until a live comparison of the two on the default model.
 
+* `premise_verdict = "structured"`, with `premise = TRUE`, asks the
+  answering requests for a `premise_status` field and the `quote` from the
+  excerpts that contradicts the question, in a JSON schema, and checks the
+  quote with the span matcher `gr_verify_evidence()` uses. The answer gains
+  `$premise_verdict`. In `map_reduce`, a chunk's flag whose quote is absent
+  or not found in the chunk is dropped (`notes$premise_dropped`), and a
+  verified one goes to the merge and sets `notes$degradation` to
+  `"premise_flagged"`. The default, `"sentence"`, sends what `premise = TRUE`
+  sent before.
+
 ## Claims and the write-up: what each rests on
 
 * The claims and writing prompts now show each extracted value with its

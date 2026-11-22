@@ -405,7 +405,7 @@ is_recovered_error <- function(e) is.list(e) && isTRUE(e[["recovered", exact = T
   "cited_unknown", "cited_unparsed", "unread_pages", "queries",
   "members", "signatures", "answered", "partial_members",
   "not_reported", "unknown", "unsupported", "dropped_unverified", "unreadable", "unresolved",
-  "premise_chunks", "premise_members")
+  "premise_chunks", "premise_members", "premise_dropped", "degradation")
 
 #' An answer's notes as as_json() writes them: an object, with each field that
 #' lists things an array at every length (json_arrays()), an ensemble's

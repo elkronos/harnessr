@@ -1238,6 +1238,7 @@
 "premise_flagged","doc","function"
 "premise_record","doc","function"
 "premise_reply","doc","function"
+"premise_structured_notes","doc","function"
 "preview_label","doc","function"
 "preview_outline","doc","function"
 "preview_reread","doc","function"

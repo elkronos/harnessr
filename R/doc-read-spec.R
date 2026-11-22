@@ -410,6 +410,20 @@ gr_reader_signature <- function(reader) {
 #'   the answer's `$outcome` is set (see [gr_answer]). Untested: published
 #'   comparisons of forced schemas and free text disagree, so the default
 #'   stays `"parsed"` until a live comparison settles it.
+#' @param premise_verdict Under `premise = TRUE`, how a verdict is reported.
+#'   `"sentence"` (the default) is the `FALSE_PREMISE:` sentence in the
+#'   reply, as before. `"structured"` sends the answering requests that
+#'   `answer_format = "schema"` covers with a JSON schema holding
+#'   `premise_status` (`"holds"` or `"contradicted"`) and `quote`, the passage
+#'   of the excerpts that states the contrary, word for word. The quote is
+#'   checked with the matcher [gr_verify_evidence()] uses, against the
+#'   excerpts the request was shown, and the answer gains `$premise_verdict`
+#'   (see [gr_answer]). In `map_reduce` a chunk's flag stands only when its
+#'   quote is found in that chunk: a flag with no quote, or one not found, is
+#'   dropped with the chunk's reply (`notes$premise_dropped`), and a verified
+#'   one goes to the merge and sets `notes$degradation` to
+#'   `"premise_flagged"`. `"structured"` without `premise = TRUE` is refused
+#'   with a `gr_bad_setting` error. Untested.
 #' @param ... Extra fields for custom readers.
 #' @return A list of class `gr_read_spec`.
 #'
@@ -587,7 +601,8 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
                          reread_on = c("never", "not_found"),
                          low_score = c("not_found", "read_top_k"),
                          fusion = c("default", "rrf"), rrf_k = 60,
-                         answer_format = c("parsed", "schema"), ...) {
+                         answer_format = c("parsed", "schema"),
+                         premise_verdict = c("sentence", "structured"), ...) {
   warn_near_miss(list(...), names(formals(gr_read_spec)), "read")
   # Every argument but `...` is checked and resolved by the schema
   # (.gr_read_schema): ranges clamped with a warning, a missing number taken
@@ -598,6 +613,13 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
   if (isTRUE(p$accept_near_verbatim) && !isTRUE(p$verify)) {
     gr_abort(paste0("`accept_near_verbatim = TRUE` needs `verify = TRUE`: without `verify` ",
                     "no quotation is checked, so the setting has no effect."),
+             class = "gr_bad_setting")
+  }
+  # Without premise the verdict is never asked for, yet the setting would
+  # still move the spec's hash and keys.
+  if (identical(p$premise_verdict, "structured") && !isTRUE(p$premise)) {
+    gr_abort(paste0("`premise_verdict = \"structured\"` needs `premise = TRUE`: without it no ",
+                    "verdict is asked for, so the setting has no effect."),
              class = "gr_bad_setting")
   }
   spec <- structure(c(list(
@@ -851,7 +873,13 @@ as_read_spec <- function(spec) {
            evidence = ev_untested(paste0("\"parsed\", the requests sent before the setting ",
                                          "existed. Published comparisons of forced schemas and ",
                                          "free text disagree; owner decision DEC-05 keeps the ",
-                                         "question open until a live comparison.")))
+                                         "question open until a live comparison."))),
+  hr_param("premise_verdict", "enum", choices = c("sentence", "structured"), tier = "advanced",
+           depends_on = "premise = TRUE",
+           help = paste0("Under premise = TRUE: the verdict as a sentence in the reply, or as ",
+                         "schema fields with a quote that is checked against the excerpts."),
+           evidence = ev_untested(paste0("\"sentence\", the requests premise = TRUE sent ",
+                                         "before the setting existed. Not measured.")))
 )
 
 #' The read settings that were constants in the code until they were declared
@@ -859,7 +887,8 @@ as_read_spec <- function(spec) {
 #' @noRd
 .gr_read_late_params <- c("accept_near_verbatim", "max_merge_levels", "restate_tokens",
                           "bm25_k1", "bm25_b", "lexical_blend", "unskip_k", "reread_on",
-                          "low_score", "fusion", "rrf_k", "answer_format")
+                          "low_score", "fusion", "rrf_k", "answer_format",
+                          "premise_verdict")
 
 #' The settings among `names` whose resolved value is not the schema's default,
 #' as a list to add to a spec. A spec is hashed whole into the corpus store and

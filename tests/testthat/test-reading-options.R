@@ -343,3 +343,105 @@ test_that("answer_format = 'schema' reaches each covered reader's answer request
     expect_false(is_not_found(a), info = r)
   }
 })
+
+# ---------------------------------------------------------------------------
+# P1D-14: a structured premise verdict with its quote checked
+# ---------------------------------------------------------------------------
+
+ro_premise_doc <- function() {
+  ro_chunks(c("Revenue rose 12% in 2023, to 45.2 million dollars.",
+              "The company opened a second plant in Leipzig.",
+              "Staff numbers grew to 310."))
+}
+
+ro_verdict <- function(status, quote, answer = "Revenue rose 12% in 2023.") {
+  function(m, p) {
+    if (identical(p$schema_name, "answer")) {
+      return(jsonlite::toJSON(list(answer = answer, premise_status = status, quote = quote),
+                              auto_unbox = TRUE))
+    }
+    "Merged: revenue rose."
+  }
+}
+
+test_that("premise_verdict is opt-in and needs premise = TRUE", {
+  expect_null(gr_read_spec("stuff", premise = TRUE)$premise_verdict)
+  expect_identical(gr_read_spec("stuff", premise = TRUE,
+                                premise_verdict = "structured")$premise_verdict, "structured")
+  expect_error(gr_read_spec("stuff", premise_verdict = "structured"), class = "gr_bad_setting")
+  # Under premise = TRUE alone, the sentence rule is sent, with no schema.
+  cl <- gr_mock_client(function(m, p) "FALSE_PREMISE: Revenue rose.")
+  a <- quiet(gr_read(ro_premise_doc(), "Why did revenue fall?", cl,
+                     gr_read_spec("stuff", premise = TRUE)))
+  expect_false(identical(cl$calls()[[1]]$params$schema_name, "answer"))
+  expect_null(a$premise_verdict)
+  expect_identical(a$premise, "Revenue rose.")
+})
+
+test_that("a structured verdict carries its quote, checked against the excerpts", {
+  ch <- ro_premise_doc()
+  q <- "Why did revenue fall in 2023?"
+  spec <- gr_read_spec("stuff", premise = TRUE, premise_verdict = "structured")
+  cl <- gr_mock_client(ro_verdict("contradicted", "Revenue rose 12% in 2023"))
+  a <- quiet(gr_read(ch, q, cl, spec))
+  expect_identical(cl$calls()[[1]]$params$schema_name, "answer")
+  sys <- cl$calls()[[1]]$messages[[1]]$content
+  expect_match(sys, "premise_status", fixed = TRUE)
+  expect_false(grepl("FALSE_PREMISE:", sys, fixed = TRUE))
+  expect_identical(a$premise, "Revenue rose 12% in 2023.")
+  expect_identical(a$premise_verdict$premise_status, "contradicted")
+  expect_true(a$premise_verdict$quote_verified)
+  expect_false(is_not_found(a))
+  # A quote that is not in the excerpts is recorded as not verified.
+  a <- quiet(gr_read(ch, q, gr_mock_client(ro_verdict("contradicted", "Revenue doubled")), spec))
+  expect_false(a$premise_verdict$quote_verified)
+  # A premise that holds is an ordinary answer.
+  a <- quiet(gr_read(ch, "How much did revenue rise?",
+                     gr_mock_client(ro_verdict("holds", "", "It rose 12%.")), spec))
+  expect_identical(a$answer, "It rose 12%.")
+  expect_true(is.na(a$premise))
+  expect_identical(a$premise_verdict$premise_status, "holds")
+  expect_true(is.na(a$premise_verdict$quote))
+})
+
+test_that("map_reduce drops a premise flag whose quote is absent", {
+  ch <- ro_premise_doc()
+  q <- "Why did revenue fall in 2023?"
+  spec <- gr_read_spec("map_reduce", premise = TRUE, premise_verdict = "structured",
+                       parallel = FALSE)
+  # Chunk 1 flags with its own words; chunk 2 flags with a quote it does not
+  # hold; chunk 3 is silent.
+  cl <- gr_mock_client(function(m, p) {
+    if (identical(p$schema_name, "answer")) {
+      body <- m[[2]]$content
+      if (grepl("Revenue rose", body, fixed = TRUE)) {
+        return('{"answer": "Revenue rose 12%.", "premise_status": "contradicted", "quote": "Revenue rose 12% in 2023"}')
+      }
+      if (grepl("Leipzig", body, fixed = TRUE)) {
+        return('{"answer": "Revenue did not fall.", "premise_status": "contradicted", "quote": "Revenue never fell"}')
+      }
+      return('{"answer": "NOT_IN_DOCUMENT", "premise_status": "holds", "quote": ""}')
+    }
+    "FALSE_PREMISE: Revenue rose 12% in 2023."
+  })
+  a <- quiet(gr_read(ch, q, cl, spec))
+  expect_identical(as.integer(a$notes$premise_chunks), 1L)
+  expect_identical(as.integer(a$notes$premise_dropped), 2L)
+  expect_identical(a$notes$degradation, "premise_flagged")
+  expect_identical(as.integer(a$chunks_used), 1L)
+  # The merge saw only the verified finding.
+  merge <- Filter(function(x) identical(x$label, "reduce"), cl$calls())
+  if (length(merge)) {
+    body <- paste(vapply(merge[[1]]$messages, function(x) x$content, ""), collapse = "\n")
+    expect_false(grepl("did not fall", body, fixed = TRUE))
+  }
+  # Without the structured verdict, nothing is dropped.
+  cl2 <- gr_mock_client(function(m, p) {
+    if (grepl("Leipzig|Revenue rose", m[[2]]$content)) "FALSE_PREMISE: Revenue rose." else
+      "NOT_IN_DOCUMENT"
+  })
+  a2 <- quiet(gr_read(ch, q, cl2, gr_read_spec("map_reduce", premise = TRUE, parallel = FALSE)))
+  expect_null(a2$notes$premise_dropped)
+  expect_null(a2$notes$degradation)
+  expect_identical(sort(as.integer(a2$notes$premise_chunks)), 1:2)
+})

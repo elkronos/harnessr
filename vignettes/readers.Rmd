@@ -926,6 +926,55 @@ The schema's instructions added 54 prompt tokens to each run. On a
 reference, compare `correct`, and how often answers come back not found, by
 `param.answer_format`.
 
+### Premise checks: `premise` and `premise_verdict` {#set-premise}
+
+**What they control.** `premise = TRUE` tells the answering requests to say
+when the excerpts contradict an assumption in the question (see "Questions
+that assume something false"). `premise_verdict` decides how they say it.
+`"sentence"` is a `FALSE_PREMISE:` sentence in the reply. `"structured"`
+asks for a `premise_status` field and the `quote` from the excerpts that
+states the contrary, in a JSON schema, and checks the quote against the
+excerpts with the matcher `gr_verify_evidence()` uses; the answer gains
+`ans$premise_verdict`. In `map_reduce`, a chunk's verdict goes to the merge
+only when its quote is found in that chunk; the others are dropped and listed
+in `notes$premise_dropped`. The trade is a longer prompt and a schema the
+provider must support, for a verdict that has to point at its evidence.
+
+**Signs they need changing.** Questions that take something false for
+granted, answered on their own terms, point to `premise = TRUE`. Verdicts
+that the document does not bear out point to `"structured"`, which drops a
+`map_reduce` verdict with no quote behind it.
+
+**Where the defaults came from.** Both are off (`premise = FALSE`,
+`premise_verdict = "sentence"`), so a run sends the requests it sent before
+(`untested`).
+
+**How to test them.**
+
+```{r}
+verdict <- function(messages, params) {
+  if (identical(params$schema_name, "answer")) {
+    return(paste0('{"answer": "Revenue rose to 45.2 million dollars.", ',
+                  '"premise_status": "contradicted", ',
+                  '"quote": "reported revenue of 45.2 million dollars"}'))
+  }
+  stand_in(messages, params)
+}
+loaded <- gr_qa_reference(questions = c(fall = "Why did revenue fall in 2024?"),
+                          documents = gr_example(), answers = list("45.2 million"),
+                          split = "dev")
+stuffed <- gr_arm("thorough", list(method = "structural", max_tokens = 120,
+                                   overlap_tokens = 0, reader = "stuff", premise = TRUE))
+bench <- hr_benchmark(hr_sweep(stuffed, list(premise_verdict = c("sentence", "structured"))),
+                      loaded, runs = 5, client = gr_mock_client(verdict), split = "dev",
+                      scorer = gr_scorer_answer())
+aggregate(tokens_in ~ param.premise_verdict, bench, mean)
+```
+
+The structured request sent 64 prompt tokens more. Score the verdicts
+against labels of which questions are loaded, and count how often a
+structured verdict's quote verifies (`ans$premise_verdict$quote_verified`).
+
 ### Reasoning: `effort` {#set-effort}
 
 **What it controls.** `effort` sets how much a reasoning model reasons, for

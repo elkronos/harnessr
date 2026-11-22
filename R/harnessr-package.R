@@ -141,6 +141,13 @@
 #'     reads it when given the answer. Under `answer_format = "schema"` in
 #'     [gr_read_spec()] the model reports the answered or not-found part in a
 #'     schema field, and `notes$structured` keeps what it said.}
+#'   \item{`premise_verdict`}{Present only under `premise = TRUE` with
+#'     `premise_verdict = "structured"` in [gr_read_spec()], for readers whose
+#'     answering request is structured: a list with `premise_status`
+#'     (`"holds"` or `"contradicted"`), `quote` (the passage the model gave
+#'     for a contradiction, or `NA`) and `quote_verified` (whether the quote
+#'     was found in the excerpts sent, by the check [gr_verify_evidence()]
+#'     uses, or `NA` without a quote).}
 #'   \item{`partial`}{Logical(1). `TRUE` when anything degraded: a call failed,
 #'     chunks were dropped, a cap was hit, a strategy fell back, text was cut to
 #'     fit, or pages of the document never became text (a scan read without

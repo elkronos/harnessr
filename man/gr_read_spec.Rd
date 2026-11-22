@@ -44,6 +44,7 @@ gr_read_spec(
   fusion = c("default", "rrf"),
   rrf_k = 60,
   answer_format = c("parsed", "schema"),
+  premise_verdict = c("sentence", "structured"),
   ...
 )
 }
@@ -311,6 +312,21 @@ the answer's \verb{$outcome} is set (see \link{gr_answer}). Untested: published
 comparisons of forced schemas and free text disagree, so the default
 stays \code{"parsed"} until a live comparison settles it.}
 
+\item{premise_verdict}{Under \code{premise = TRUE}, how a verdict is reported.
+\code{"sentence"} (the default) is the \verb{FALSE_PREMISE:} sentence in the
+reply, as before. \code{"structured"} sends the answering requests that
+\code{answer_format = "schema"} covers with a JSON schema holding
+\code{premise_status} (\code{"holds"} or \code{"contradicted"}) and \code{quote}, the passage
+of the excerpts that states the contrary, word for word. The quote is
+checked with the matcher \code{\link[=gr_verify_evidence]{gr_verify_evidence()}} uses, against the
+excerpts the request was shown, and the answer gains \verb{$premise_verdict}
+(see \link{gr_answer}). In \code{map_reduce} a chunk's flag stands only when its
+quote is found in that chunk: a flag with no quote, or one not found, is
+dropped with the chunk's reply (\code{notes$premise_dropped}), and a verified
+one goes to the merge and sets \code{notes$degradation} to
+\code{"premise_flagged"}. \code{"structured"} without \code{premise = TRUE} is refused
+with a \code{gr_bad_setting} error. Untested.}
+
 \item{...}{Extra fields for custom readers.}
 }
 \value{
@@ -432,6 +448,7 @@ keeps the store and cache keys it had before they existed.
 \item \code{fusion} (default \code{"default"}, advanced): untested. "default" keeps the 0.6.0 ranking of each reader. Reciprocal rank fusion is not compared with it here.
 \item \code{rrf_k} (default \code{60}, advanced): cited. Cormack, Clarke and Buettcher (2009), "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods", SIGIR, use k = 60; not tuned here.
 \item \code{answer_format} (default \code{"parsed"}, advanced): untested. "parsed", the requests sent before the setting existed. Published comparisons of forced schemas and free text disagree; owner decision DEC-05 keeps the question open until a live comparison.
+\item \code{premise_verdict} (default \code{"sentence"}, advanced): untested. "sentence", the requests premise = TRUE sent before the setting existed. Not measured.
 }
 }
 
