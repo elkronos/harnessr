@@ -50,7 +50,11 @@ with \code{marker} between them on a line of its own. \code{"scored"} splits the
 into units (the elements of \code{text} when it has more than one, else its
 paragraphs, split at blank lines), keeps the units with the highest
 \code{scores} that fit, and joins them with a blank line in their original
-order, followed by \code{marker} when any unit was dropped. The result is never
+order, followed by \code{marker} when any unit was dropped; when no unit fits
+beside the marker, the units that fit without it are kept with no marker.
+With \code{marker = ""}, \code{"tail"} and \code{"both"} have the whole budget for text,
+as \code{"head"} does; \code{"both"} keeps only the start when the end has no room,
+and only the end when no word of the start fits. The result is never
 longer than \code{n} tokens.
 }
 \details{

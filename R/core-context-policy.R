@@ -23,7 +23,11 @@
 #' into units (the elements of `text` when it has more than one, else its
 #' paragraphs, split at blank lines), keeps the units with the highest
 #' `scores` that fit, and joins them with a blank line in their original
-#' order, followed by `marker` when any unit was dropped. The result is never
+#' order, followed by `marker` when any unit was dropped; when no unit fits
+#' beside the marker, the units that fit without it are kept with no marker.
+#' With `marker = ""`, `"tail"` and `"both"` have the whole budget for text,
+#' as `"head"` does; `"both"` keeps only the start when the end has no room,
+#' and only the end when no word of the start fits. The result is never
 #' longer than `n` tokens.
 #'
 #' With a `trace`, a cut writes a `"truncate"` step that records `where`,
@@ -89,23 +93,39 @@ hr_truncate <- function(text, n, keep = c("head", "tail", "both", "scored"), sco
   if (!validUTF8(text)) text <- to_utf8(text)
   mk <- trimws(marker)
   if (gr_count_tokens(mk) >= n / 2) mk <- ""
-  budget <- max(n - gr_count_tokens(mk) - 1L, 1L)
-  if (identical(keep, "tail")) {
+  # The marker and the space or line that joins it cost what they cost; with
+  # no marker the whole budget is the text's.
+  budget <- if (nzchar(mk)) max(n - gr_count_tokens(mk) - 1L, 1L) else n
+  tail_cut <- function() {
     kept <- tail_tokens(text, budget)
     out <- if (nzchar(mk) && nzchar(kept)) paste0(mk, " ", kept) else kept
     if (gr_count_tokens(out) > n) out <- kept
-    log_cut(trace, where, piece, keep, text, kept, n, "", "start")
+    log_cut(trace, where, piece, "tail", text, kept, n, "", if (nzchar(kept)) "start" else "all")
+    out
+  }
+  if (identical(keep, "tail")) return(tail_cut())
+  # "both": the start and the end, the budget split between them. The start
+  # takes the first half; when no word of the start fits in it, the start
+  # takes what the whole budget allows and the end what is left.
+  sep <- if (nzchar(mk)) paste0("\n", mk, "\n") else "\n"
+  first <- gr_truncate_tokens(text, max(budget %/% 2L, 1L), marker = "")
+  if (!nzchar(first)) first <- gr_truncate_tokens(text, budget, marker = "")
+  if (!nzchar(first)) {
+    # Not even the start fits: keep what the end allows, as "tail" does.
+    return(tail_cut())
+  }
+  rest <- substr(text, nchar(first) + 1L, nchar(text))
+  last <- tail_tokens(rest, max(budget - gr_count_tokens(first), 0L))
+  while (nzchar(last) && gr_count_tokens(paste0(first, sep, last)) > n) {
+    last <- tail_tokens(last, max(gr_count_tokens(last) - 2L, 0L))
+  }
+  if (!nzchar(last)) {
+    # No room for the end: keep the start, as "head" does.
+    out <- gr_truncate_tokens(text, n, marker)
+    log_cut(trace, where, piece, "both", text, out, n, marker, "end")
     return(out)
   }
-  # "both": the start and the end, the budget split between them.
-  first <- gr_truncate_tokens(text, max(budget %/% 2L, 1L), marker = "")
-  rest <- substr(text, nchar(first) + 1L, nchar(text))
-  last <- tail_tokens(rest, max(budget - gr_count_tokens(first) - 1L, 1L))
-  out <- paste0(first, if (nzchar(mk)) paste0("\n", mk, "\n") else "\n", last)
-  while (gr_count_tokens(out) > n && nzchar(last)) {
-    last <- tail_tokens(last, max(gr_count_tokens(last) - 2L, 0L))
-    out <- paste0(first, if (nzchar(mk)) paste0("\n", mk, "\n") else "\n", last)
-  }
+  out <- paste0(first, sep, last)
   log_cut(trace, where, piece, keep, text, paste0(first, last), n, "", "middle")
   out
 }
@@ -171,12 +191,20 @@ truncate_scored <- function(text, n, scores, marker, trace, where, piece) {
   if (gr_count_tokens(whole) <= n && n > 0L) return(whole)
   mk <- trimws(marker)
   if (gr_count_tokens(mk) >= n / 2) mk <- ""
-  budget <- n - gr_count_tokens(mk) - 1L
   ord <- order(-scores, seq_along(units))
-  kept <- integer(0)
-  for (i in ord) {
-    try_ids <- sort(c(kept, i))
-    if (gr_count_tokens(paste(units[try_ids], collapse = "\n\n")) <= budget) kept <- try_ids
+  pick <- function(budget) {
+    kept <- integer(0)
+    for (i in ord) {
+      try_ids <- sort(c(kept, i))
+      if (gr_count_tokens(paste(units[try_ids], collapse = "\n\n")) <= budget) kept <- try_ids
+    }
+    kept
+  }
+  kept <- pick(if (nzchar(mk)) n - gr_count_tokens(mk) - 1L else n)
+  # A unit that fits only without the marker is kept without it.
+  if (!length(kept) && nzchar(mk)) {
+    mk <- ""
+    kept <- pick(n)
   }
   body <- paste(units[kept], collapse = "\n\n")
   out <- if (length(kept) && nzchar(mk)) paste0(body, "\n\n", mk) else body

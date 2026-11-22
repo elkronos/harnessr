@@ -50,6 +50,45 @@ test_that("tail, both and scored keep the part asked for and stay within n", {
   expect_error(hr_truncate(cp_paras, 10, keep = "middle"), class = "gr_bad_setting")
 })
 
+test_that("tail and both use the whole budget when no marker is used", {
+  x <- "aaa bbb ccc ddd eee fff ggg hhh"
+  for (n in 4:12) {
+    head <- hr_truncate(x, n, marker = "")
+    tail <- hr_truncate(x, n, keep = "tail", marker = "")
+    both <- hr_truncate(x, n, keep = "both", marker = "")
+    # Where the start keeps a word, the end and both ends keep one too.
+    if (nzchar(head)) {
+      expect_true(nzchar(tail), info = n)
+      expect_match(both, "^aaa", info = n)
+    }
+    expect_true(endsWith(x, tail), info = n)
+    expect_false(grepl("^\\s*$", both) && nzchar(both), info = n)
+    expect_lte(gr_count_tokens(both), n)
+  }
+  # Nothing kept is "" and logged as all dropped, not a bare line break.
+  tr <- gr_trace()
+  expect_identical(hr_truncate(x, 3, keep = "both", marker = "", trace = tr), "")
+  expect_identical(cp_truncates(tr)[[1]]$detail$dropped_part, "all")
+  cjk <- strrep("\u65e5\u672c\u8a9e\u306e\u30c6\u30ad\u30b9\u30c8", 200)
+  expect_true(nzchar(hr_truncate(cjk, 5, keep = "tail")))
+  expect_true(nzchar(hr_truncate(cjk, 5, keep = "both")))
+  expect_false(identical(hr_truncate(cjk, 5, keep = "both"), "\n"))
+})
+
+test_that("scored keeps a unit at every budget where one fits, with or without the marker", {
+  u <- paste("Para", 1:6, "says something about revenue.")
+  kept <- vapply(6:40, function(n) {
+    out <- hr_truncate(u, n, keep = "scored", scores = 6:1)
+    expect_lte(gr_count_tokens(out), n)
+    sum(vapply(u, function(x) grepl(x, out, fixed = TRUE), TRUE))
+  }, numeric(1))
+  # The units kept never fall as the budget grows.
+  expect_true(all(diff(kept) >= 0))
+  one <- min(which(vapply(6:40, function(n) gr_count_tokens(u[1]) <= n, TRUE))) + 5L
+  expect_match(hr_truncate(u, one, keep = "scored", scores = 6:1), "^Para 1 ")
+  expect_match(hr_truncate(u, 16, keep = "scored", scores = 6:1), "^Para 1 ")
+})
+
 test_that("every cut writes a truncate step that names the piece and what was dropped", {
   tr <- gr_trace()
   invisible(hr_truncate(cp_paras, 20, keep = "tail", trace = tr, where = "demo", piece = "notes"))
