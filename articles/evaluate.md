@@ -644,6 +644,83 @@ partner is not), so phi there is undefined. The pooled phi then reads
 only the eight items of stratum “1”, where each arm’s errors fall on
 items of its own, and it comes out negative.
 
+### What a reader keeps: `gr_condensation_check()`
+
+A reader that carries a running draft through a document, as `refine`
+does, condenses as it goes, and can lose an early fact, take a value
+from a near-namesake, or keep a figure the document later corrected.
+[`gr_condensation_check()`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
+builds a benchmark that measures each of these without a model judge. It
+plants facts in a document (synthetic filler, or a text of your own),
+each with a question whose answer is the planted value; plants lures,
+the same measure for a near-namesake with another value; and states one
+fact wrongly near the start and corrects it near the end. Each document
+is given forwards and reversed by paragraph
+([`gr_reverse_text()`](https://elkronos.github.io/harnessr/reference/gr_reverse_text.md)),
+so a fact the forward reader meets last, the reverse reader meets first.
+
+``` r
+
+chk <- gr_condensation_check(n_facts = 4, n_lures = 1, paragraphs = 8)
+chk
+#> <gr_condensation_check> 1 document(s), forward and reversed, 8 item(s)
+#>   per order: 2 fact, 1 lure, 1 correction
+chk$items[chk$items$order == "forward", c("kind", "question", "answer", "lure", "superseded")]
+#>         kind                                              question answer  lure
+#> 1       lure      What was the floor area of the Northgate clinic?  3,565 4,120
+#> 2       fact How many yearly visits did the Riverside school have? 10,237  <NA>
+#> 3       fact        What was the budget of the Elm Street library?   42.5  <NA>
+#> 4 correction       What was the staff count of the Westfield mill?    321  <NA>
+#>   superseded
+#> 1       <NA>
+#> 2       <NA>
+#> 3       <NA>
+#> 4        264
+```
+
+The arms differ in how they carry the document. Here a stand-in model
+plays a reader whose draft takes the lure’s value and keeps the
+superseded figure, while a ledger of findings does not; on a real model
+the same code measures what each actually does.
+
+``` r
+
+facts <- chk$items
+condenser <- gr_mock_client(function(messages, params) {
+  text <- vapply(messages, function(m) m$content, "")
+  if (grepl("Reply with the edits", text[length(text)], fixed = TRUE)) return("ADD: noted.")
+  asks <- text[startsWith(text, "Question: ")]
+  row <- facts[facts$question == sub("^Question: ", "", asks[length(asks)]), ][1, ]
+  ledger <- any(grepl("<findings>", text, fixed = TRUE))
+  if (!ledger && row$kind == "lure") return(paste("It was", row$lure))
+  if (!ledger && row$kind == "correction") return(paste("It was", row$superseded))
+  paste("It was", row$answer)
+})
+arms <- hr_sweep(gr_arm("thorough", list(reader = "refine", method = "paragraph")),
+                 list(refine_state = c("draft", "ledger")))
+cb <- hr_benchmark(arms, chk$reference, runs = 5, client = condenser, scorer = chk$scorer)
+gr_condensation_summary(chk, cb)
+#>                            arm    order fact_recall lure_rate correction_won
+#> 1  thorough:refine_state=draft  forward         0.5         1              0
+#> 2  thorough:refine_state=draft reversed         0.5         1              0
+#> 3 thorough:refine_state=ledger  forward         1.0         0              1
+#> 4 thorough:refine_state=ledger reversed         1.0         0              1
+#>   late_recall runs
+#> 1         0.5   20
+#> 2         0.5   20
+#> 3         1.0   20
+#> 4         1.0   20
+```
+
+`fact_recall` is the share of runs whose answer holds the planted value,
+`lure_rate` the share of runs on lure items whose answer holds the
+lure’s, `correction_won` the share of runs on the corrected fact that
+give the new figure and not the old, and `late_recall` fact recall over
+the facts in the last third of the document as it was read.
+[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+reads the same benchmark with intervals, since the check’s `reference`
+and `scorer` are ordinary ones.
+
 ## Planning the size, and non-inferiority
 
 Often the question is whether a cheaper arm is worse than the one in use
@@ -714,10 +791,10 @@ plan <- hr_reference(ids, labels = rep("yes", n), cluster = docs, split = "test"
 design <- hr_mdd(n, n_clusters = 50, icc = 0.1, p_disc = 0.15)
 reg <- hr_register_contrasts(plan, hr_contrast("small", "large", margin = 0.10), design)
 reg
-#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-22T13:04:10.269Z
+#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-22T13:57:57.670Z
 #>  contrast       label        margin mdd cost_test
 #>  small vs large confirmatory 10.0   7.8 yes      
-#>   Margins and MDD in points; reference d453122a93af; hash 26e7408098ab
+#>   Margins and MDD in points; reference d453122a93af; hash 6dc36a135373
 ```
 
 Here the stand-in model finds each item easier or harder by document and

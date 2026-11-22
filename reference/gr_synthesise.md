@@ -30,7 +30,8 @@ gr_synthesise(
   coherence_rounds = 1L,
   figure_bands = c(about = 0.1, over = 0.25, under = 0.25),
   prominence = c(top = 1/3, middle = 1/3),
-  study_weights = NULL
+  study_weights = NULL,
+  revision_check = c("lexicon", "judge")
 )
 ```
 
@@ -287,6 +288,25 @@ gr_synthesise(
   rows, with a `study` column of ids) returning one non-negative number
   per row. Used only with `claims`.
 
+- revision_check:
+
+  What checks a kept revision pass beyond the citation, figure and
+  length checks. `"lexicon"` (the default) is the word-counting guard
+  against a stronger claim, as before. `"judge"` adds, behind it, a
+  model judge
+  ([`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md),
+  on `model`, its requests held to the run's limits) that grades each
+  sentence the revision changed against the draft sentences it came from
+  (those citing the same study, else the two sharing most of its words):
+  `"holds"`, `"stronger"` (it claims more, as "is associated with"
+  become "reduces") or `"not_entailed"`. It costs one request per
+  changed sentence. The judge is advisory: a flagged sentence is warned
+  about (`gr_revision_flagged`), counted in the `flagged` column of
+  `$coherence` and listed in `$revision_flags`, and the revision is kept
+  as it was. The judge is not validated against people's labels (see
+  [`hr_judge_validate()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md)),
+  so its flags are for a person to read. Untested.
+
 ## Value
 
 An object of class `gr_synthesis`:
@@ -324,6 +344,12 @@ An object of class `gr_synthesis`:
   was given and in its revision; `NA` for a pass that was not sent, or
   was refused by a check made before the length check, which comes
   last).
+
+- `revision_flags`:
+
+  Under `revision_check = "judge"` only: one row per sentence a kept
+  revision changed, with `pass`, `round`, `sentence`, `verdict` and the
+  judge's `reason`.
 
 - `unrendered`:
 
@@ -600,8 +626,8 @@ cl <- gr_mock_client(function(messages, params) {
 f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised trial. We enrolled 120 people.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1baf14753d7b.txt
-#> Extracting 'file1baf14753d7b.txt' with the 'txt' extractor.
+#> [1/1] file1b7d47696a.txt
+#> Extracting 'file1b7d47696a.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).

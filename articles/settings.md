@@ -19,10 +19,10 @@ table(settings$stage, settings$tier)[unique(settings$stage), ]
 #>              advanced basic
 #>   ingest           18     3
 #>   segment          17     3
-#>   read             39     8
+#>   read             42     8
 #>   screen           22    11
 #>   extract           7     3
-#>   synthesise       23     5
+#>   synthesise       24     5
 #>   evaluate         18     9
 #>   options          29     5
 ```
@@ -199,6 +199,9 @@ covers them.
 | [`rrf_k`](https://elkronos.github.io/harnessr/articles/readers.html#set-lexical) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `60` | advanced | cited | Under fusion = ‘rrf’: the constant k in 1 / (k + rank). |
 | [`answer_format`](https://elkronos.github.io/harnessr/articles/readers.html#set-answer-format) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `parsed` | advanced | untested | How answering requests report their outcome: parsed from free text, or in a JSON schema the request forces. |
 | [`premise_verdict`](https://elkronos.github.io/harnessr/articles/readers.html#set-premise) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `sentence` | advanced | untested | Under premise = TRUE: the verdict as a sentence in the reply, or as schema fields with a quote that is checked against the excerpts. |
+| [`context_policy`](https://elkronos.github.io/harnessr/articles/readers.html#set-context-policy) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `NULL` | advanced | untested | Which pieces of a request are never cut, which are cut first, and which part of a cut piece is kept. |
+| [`refine_state`](https://elkronos.github.io/harnessr/articles/readers.html#set-context-policy) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `draft` | advanced | untested | For refine: carry a rewritten draft down the document, or a numbered list of findings that each request adds to, replaces or drops from. |
+| [`effort_mode`](https://elkronos.github.io/harnessr/articles/runs.html#set-effort-mode) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `static` | advanced | untested | Under “escalate”, every stage starts at `effort` (“low” when unset), and the next stage is sent at “high” when a trigger fires. |
 | `recipe` | [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | `thorough` | basic |  | One recipe, applied to every document. |
 | `store` | [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | `NULL` | basic |  | Optional directory. |
 | `on_error` | [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | `continue` | advanced |  | “continue” (default) records the failure and moves on; “stop” aborts. |
@@ -315,6 +318,7 @@ and
 | [`figure_bands`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `c(about = 0.1, over = 0.25, under = 0.25)` | advanced | untested | How near a value a qualified figure must be to count as found in the check of figures (see “Figures”): a named numeric vector of about (the share either way that “about 1,200” covers), over (the share above that “more than 1,000” covers) and under (the share below that “fewer than 1,000” covers). |
 | [`prominence`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `c(top = 1/3, middle = 1/3)` | advanced | untested | How much of the writing prompt’s sentence budget the claims of a section get, by rank: c(top = , middle = ), the shares of a section’s claims (ranked by the sign test of their direction tally, lowest p first, with a claim more of whose studies contradict it than support it last, then by the weight of the studies behind them; see gr_claims(), “Direction of effect”) asked for “two or three sentences” and “one or two sentences”; the rest get “one sentence”, and a section of three claims or fewer gives each “two or three”. |
 | `study_weights` | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `NULL` | advanced |  | How much each study counts when claims are ranked, among claims whose sign tests tie (and so which tier each claim gets, see prominence): NULL (the default) for the package’s weight, 0.5 + 0.5 \* size + 0.5 \* filled, where size is log1p(n) over its largest value (the mean of the known ones when n is missing) and filled the share of a row’s filled cells whose quotations verified (0.5 when unknown). |
+| [`revision_check`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `lexicon` | advanced | untested | What checks a kept revision pass beyond the citation, figure and length checks. |
 
 ## Evaluation
 

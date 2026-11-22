@@ -206,7 +206,7 @@ are kept as <code>tokens$reasoning</code> and
 <span><span class="co">#&gt; List of 4</span></span>
 <span><span class="co">#&gt;  $ label      : chr "reduce"</span></span>
 <span><span class="co">#&gt;  $ attempts   : int 1</span></span>
-<span><span class="co">#&gt;  $ started_utc: chr "2026-11-22T13:05:22.456Z"</span></span>
+<span><span class="co">#&gt;  $ started_utc: chr "2026-11-22T13:58:53.410Z"</span></span>
 <span><span class="co">#&gt;  $ tokens     :List of 3</span></span>
 <span><span class="co">#&gt;   ..$ input     : int 296</span></span>
 <span><span class="co">#&gt;   ..$ output    : int 13</span></span>
@@ -283,10 +283,10 @@ credentials.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_trace.html">gr_trace</a></span><span class="op">(</span>owner <span class="op">=</span> <span class="st">"finance team"</span>, run_by <span class="op">=</span> <span class="st">"ana"</span>, purpose <span class="op">=</span> <span class="st">"Q3 check"</span><span class="op">)</span></span>
 <span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261122130522.980_be9c70&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261122135853.883_3f8bf0&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   cost: no cost recorded</span></span>
 <span><span class="co">#&gt;   actor: owner = finance team, run_by = ana, purpose = Q3 check </span></span>
-<span><span class="co">#&gt;   started: 2026-11-22T13:05:22.981Z</span></span>
+<span><span class="co">#&gt;   started: 2026-11-22T13:58:53.883Z</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">tr</span><span class="op">$</span><span class="va">config</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "options"   "r_version"</span></span></code></pre></div>
 <p><code>as_json(ans)</code> writes the answer with every prompt and
@@ -804,12 +804,13 @@ documents every setting.</p>
 <div class="section level2">
 <h2 id="choosing-the-settings">Choosing the settings<a class="anchor" aria-label="anchor" href="#choosing-the-settings"></a>
 </h2>
-<p>Two walkthroughs cover the settings that hold a run in: the limits
-every run has, and the governor a benchmark or a batch shares. Each says
-what the setting controls and what it trades off, the signs in your
-results that point to changing it, where its default came from, and how
-to test a change. <code><a href="../articles/settings.html">vignette("settings")</a></code> lists every option
-with its default.</p>
+<p>Three walkthroughs cover the settings that hold a run in: the limits
+every run has, the governor a benchmark or a batch shares, and effort
+that rises only when a stage needs it. Each says what the setting
+controls and what it trades off, the signs in your results that point to
+changing it, where its default came from, and how to test a change.
+<code><a href="../articles/settings.html">vignette("settings")</a></code> lists every option with its
+default.</p>
 <div class="section level3">
 <h3 id="set-limits">The global limits<a class="anchor" aria-label="anchor" href="#set-limits"></a>
 </h3>
@@ -904,6 +905,95 @@ multiply, and check how much of the governor was used:</p>
 <span><span class="co">#&gt;      60      60       0</span></span></code></pre></div>
 <p><code><a href="../articles/compare.html">vignette("compare")</a></code> sizes a governor this way for every
 benchmark it runs.</p>
+</div>
+<div class="section level3">
+<h3 id="set-effort-mode">Effort that rises when needed: <code>effort_mode</code><a class="anchor" aria-label="anchor" href="#set-effort-mode"></a>
+</h3>
+<p><strong>What it controls.</strong> With
+<code>effort_mode = "escalate"</code> a read starts every stage at its
+<code>effort</code> (<code>"low"</code> when <code>effort</code> is
+unset) and sends the next stage at <code>"high"</code> when something
+went wrong in the one before: a cut, a reply stopped at its output cap,
+a reply that is not the JSON asked for, <code>NOT_IN_DOCUMENT</code>
+from every request of the stage, a quotation <code>iterative</code>
+could not verify, or <code>ensemble</code> members that disagree. Effort
+changes only at a stage boundary, at most once a read, and the stage
+after a raised one goes back to the base effort. It trades the cost of
+reasoning at a high effort on every request against the cost of a wrong
+answer where low effort was not enough; a raise costs nothing but the
+raised stage’s reasoning.</p>
+<p><strong>Signs it needs changing.</strong> A fixed <code>"high"</code>
+effort whose bill is mostly reasoning on requests that a low effort
+answers as well; or answers at a fixed <code>"low"</code> that come back
+cut off, unparsed or not found. The trace shows each raise as an
+<code>"effort.escalate"</code> step, and <code><a href="../reference/hr_effort_log.html">hr_effort_log()</a></code>
+says which trigger fired and whether the raised stage fired it
+again.</p>
+<p><strong>Where the default came from.</strong> <code>"static"</code>
+sends the effort <code>effort</code> names, as before the setting
+existed (<code>untested</code>). Nothing has compared escalation with a
+fixed effort here; <code><a href="../reference/hr_effort_check.html">hr_effort_check()</a></code> makes that
+comparison.</p>
+<p><strong>How to test it.</strong> Here <code>refine</code> reads the
+report with a stand-in reasoning model that, at low effort, finds
+nothing in the first chunk, where <code>refine</code> drafts its
+answer:</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_model.html">gr_register_model</a></span><span class="op">(</span><span class="st">"priced-reasoner"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">8192</span>,</span>
+<span>                  input_usd <span class="op">=</span> <span class="fl">1</span>, output_usd <span class="op">=</span> <span class="fl">4</span>, reasoning <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">thinks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">effort</span>, <span class="st">"low"</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/startsWith.html" class="external-link">startsWith</a></span><span class="op">(</span><span class="va">messages</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, <span class="st">"&lt;excerpts&gt;"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="st">"NOT_IN_DOCUMENT"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="st">"Revenue was 45.2 million dollars."</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">efforts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">effort</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"thorough"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"sentence"</span>, max_tokens <span class="op">=</span> <span class="fl">150</span>, overlap_tokens <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>                          model <span class="op">=</span> <span class="st">"priced-reasoner"</span>, reader <span class="op">=</span> <span class="st">"refine"</span>,</span>
+<span>                          effort <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="va">effort</span> <span class="op">!=</span> <span class="st">"escalate"</span><span class="op">)</span> <span class="va">effort</span>,</span>
+<span>                          effort_mode <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="va">effort</span> <span class="op">==</span> <span class="st">"escalate"</span><span class="op">)</span> <span class="st">"escalate"</span> <span class="kw">else</span> <span class="st">"static"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"low"</span>, <span class="st">"high"</span>, <span class="st">"escalate"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">eb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">efforts</span>, <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">thinks</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>                   scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>                   governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_calls <span class="op">=</span> <span class="fl">200</span>, max_cost_usd <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sent</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">eb</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">eb</span>, <span class="st">"traces"</span><span class="op">)</span><span class="op">[[</span><span class="va">eb</span><span class="op">$</span><span class="va">ledger_id</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">effort</span><span class="op">)</span>, <span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>arm <span class="op">=</span> <span class="va">eb</span><span class="op">$</span><span class="va">arm</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, stage <span class="op">=</span> <span class="va">d</span><span class="op">$</span><span class="va">stage</span>, effort <span class="op">=</span> <span class="va">d</span><span class="op">$</span><span class="va">effort</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">sent</span><span class="op">$</span><span class="va">arm</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">sent</span><span class="op">$</span><span class="va">stage</span>, <span class="va">sent</span><span class="op">$</span><span class="va">effort</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                           </span></span>
+<span><span class="co">#&gt;                            refine.draft high refine.draft low</span></span>
+<span><span class="co">#&gt;   thorough:effort=escalate                 0                5</span></span>
+<span><span class="co">#&gt;   thorough:effort=high                     5                0</span></span>
+<span><span class="co">#&gt;   thorough:effort=low                      0                5</span></span>
+<span><span class="co">#&gt;                           </span></span>
+<span><span class="co">#&gt;                            refine.revise high refine.revise low</span></span>
+<span><span class="co">#&gt;   thorough:effort=escalate                 20                 0</span></span>
+<span><span class="co">#&gt;   thorough:effort=high                     20                 0</span></span>
+<span><span class="co">#&gt;   thorough:effort=low                       0                20</span></span>
+<span><span class="fu"><a href="../reference/hr_effort_log.html">hr_effort_log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">eb</span>, <span class="st">"traces"</span><span class="op">)</span><span class="op">[[</span><span class="va">eb</span><span class="op">$</span><span class="va">ledger_id</span><span class="op">[</span><span class="va">eb</span><span class="op">$</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"thorough:effort=escalate"</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;          after         stage        triggers   to calls resolved</span></span>
+<span><span class="co">#&gt; 1 refine.draft refine.revise not_in_document high     4     TRUE</span></span></code></pre></div>
+<p>At <code>"low"</code> every request went out low, and at
+<code>"high"</code> every one high. Under <code>"escalate"</code> the
+draft went out low and found nothing, which raised the four revisions
+after it to high, and the log says the raise resolved the trigger: the
+revisions found the figure. Four of the five requests of each run went
+out raised here, because the draft is one request; on a reader whose
+first stage is many requests (<code>map_reduce</code>’s chunks), the
+raised stage is the smaller share. <code><a href="../reference/hr_effort_check.html">hr_effort_check()</a></code> reads
+a benchmark of such arms with the non-inferiority test of
+<code><a href="../reference/hr_report.html">hr_report()</a></code>, which needs a reference with a test split and
+enough items and runs for intervals, so it runs on your own:</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">chk</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_effort_check.html">hr_effort_check</a></span><span class="op">(</span><span class="va">bench</span>, candidate <span class="op">=</span> <span class="st">"thorough:effort=escalate"</span>, margin <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
+<span><span class="va">chk</span><span class="op">$</span><span class="va">contrasts</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"reference"</span>, <span class="st">"estimate"</span>, <span class="st">"lower"</span>, <span class="st">"verdict"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">chk</span><span class="op">$</span><span class="va">cost</span></span></code></pre></div>
+<p>Register the margin with <code><a href="../reference/hr_contrast.html">hr_register_contrasts()</a></code> before
+the benchmark runs and pass it as <code>registration</code>; without
+one, the result is marked post hoc.</p>
 </div>
 </div>
 <div class="section level2">

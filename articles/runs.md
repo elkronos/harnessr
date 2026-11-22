@@ -141,7 +141,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 #> List of 4
 #>  $ label      : chr "reduce"
 #>  $ attempts   : int 1
-#>  $ started_utc: chr "2026-11-22T13:05:22.456Z"
+#>  $ started_utc: chr "2026-11-22T13:58:53.410Z"
 #>  $ tokens     :List of 3
 #>   ..$ input     : int 296
 #>   ..$ output    : int 13
@@ -224,10 +224,10 @@ are left out, since they can hold credentials.
 
 tr <- gr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
-#> <gr_trace run_20261122130522.980_be9c70>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261122135853.883_3f8bf0>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   cost: no cost recorded
 #>   actor: owner = finance team, run_by = ana, purpose = Q3 check 
-#>   started: 2026-11-22T13:05:22.981Z
+#>   started: 2026-11-22T13:58:53.883Z
 names(tr$config)
 #> [1] "options"   "r_version"
 ```
@@ -778,11 +778,11 @@ documents every setting.
 
 ## Choosing the settings
 
-Two walkthroughs cover the settings that hold a run in: the limits every
-run has, and the governor a benchmark or a batch shares. Each says what
-the setting controls and what it trades off, the signs in your results
-that point to changing it, where its default came from, and how to test
-a change.
+Three walkthroughs cover the settings that hold a run in: the limits
+every run has, the governor a benchmark or a batch shares, and effort
+that rises only when a stage needs it. Each says what the setting
+controls and what it trades off, the signs in your results that point to
+changing it, where its default came from, and how to test a change.
 [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
 lists every option with its default.
 
@@ -891,6 +891,103 @@ c(allowed = needed, used = attr(bench, "trace")$calls,
 
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
 sizes a governor this way for every benchmark it runs.
+
+### Effort that rises when needed: `effort_mode`
+
+**What it controls.** With `effort_mode = "escalate"` a read starts
+every stage at its `effort` (`"low"` when `effort` is unset) and sends
+the next stage at `"high"` when something went wrong in the one before:
+a cut, a reply stopped at its output cap, a reply that is not the JSON
+asked for, `NOT_IN_DOCUMENT` from every request of the stage, a
+quotation `iterative` could not verify, or `ensemble` members that
+disagree. Effort changes only at a stage boundary, at most once a read,
+and the stage after a raised one goes back to the base effort. It trades
+the cost of reasoning at a high effort on every request against the cost
+of a wrong answer where low effort was not enough; a raise costs nothing
+but the raised stage’s reasoning.
+
+**Signs it needs changing.** A fixed `"high"` effort whose bill is
+mostly reasoning on requests that a low effort answers as well; or
+answers at a fixed `"low"` that come back cut off, unparsed or not
+found. The trace shows each raise as an `"effort.escalate"` step, and
+[`hr_effort_log()`](https://elkronos.github.io/harnessr/reference/hr_effort_log.md)
+says which trigger fired and whether the raised stage fired it again.
+
+**Where the default came from.** `"static"` sends the effort `effort`
+names, as before the setting existed (`untested`). Nothing has compared
+escalation with a fixed effort here;
+[`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
+makes that comparison.
+
+**How to test it.** Here `refine` reads the report with a stand-in
+reasoning model that, at low effort, finds nothing in the first chunk,
+where `refine` drafts its answer:
+
+``` r
+
+gr_register_model("priced-reasoner", context_window = 128000, max_output = 8192,
+                  input_usd = 1, output_usd = 4, reasoning = TRUE)
+thinks <- gr_mock_client(function(messages, params) {
+  if (identical(params$effort, "low") &&
+      startsWith(messages[[2]]$content, "<excerpts>")) {
+    return("NOT_IN_DOCUMENT")
+  }
+  "Revenue was 45.2 million dollars."
+})
+efforts <- hr_sweep(function(effort) {
+  gr_arm("thorough", list(method = "sentence", max_tokens = 150, overlap_tokens = 0,
+                          model = "priced-reasoner", reader = "refine",
+                          effort = if (effort != "escalate") effort,
+                          effort_mode = if (effort == "escalate") "escalate" else "static"))
+}, list(effort = c("low", "high", "escalate")))
+eb <- hr_benchmark(efforts, qa, runs = 5, client = thinks, split = "dev",
+                   scorer = gr_scorer_answer(),
+                   governor = hr_governor(max_calls = 200, max_cost_usd = 1))
+sent <- do.call(rbind, lapply(seq_len(nrow(eb)), function(i) {
+  d <- as.data.frame(attr(eb, "traces")[[eb$ledger_id[i]]])
+  d <- d[!is.na(d$effort), ]
+  data.frame(arm = eb$arm[i], stage = d$stage, effort = d$effort)
+}))
+table(sent$arm, paste(sent$stage, sent$effort))
+#>                           
+#>                            refine.draft high refine.draft low
+#>   thorough:effort=escalate                 0                5
+#>   thorough:effort=high                     5                0
+#>   thorough:effort=low                      0                5
+#>                           
+#>                            refine.revise high refine.revise low
+#>   thorough:effort=escalate                 20                 0
+#>   thorough:effort=high                     20                 0
+#>   thorough:effort=low                       0                20
+hr_effort_log(attr(eb, "traces")[[eb$ledger_id[eb$arm == "thorough:effort=escalate"][1]]])
+#>          after         stage        triggers   to calls resolved
+#> 1 refine.draft refine.revise not_in_document high     4     TRUE
+```
+
+At `"low"` every request went out low, and at `"high"` every one high.
+Under `"escalate"` the draft went out low and found nothing, which
+raised the four revisions after it to high, and the log says the raise
+resolved the trigger: the revisions found the figure. Four of the five
+requests of each run went out raised here, because the draft is one
+request; on a reader whose first stage is many requests (`map_reduce`’s
+chunks), the raised stage is the smaller share.
+[`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
+reads a benchmark of such arms with the non-inferiority test of
+[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
+which needs a reference with a test split and enough items and runs for
+intervals, so it runs on your own:
+
+``` r
+
+chk <- hr_effort_check(bench, candidate = "thorough:effort=escalate", margin = 0.05)
+chk$contrasts[, c("reference", "estimate", "lower", "verdict")]
+chk$cost
+```
+
+Register the margin with
+[`hr_register_contrasts()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md)
+before the benchmark runs and pass it as `registration`; without one,
+the result is marked post hoc.
 
 ## Next
 

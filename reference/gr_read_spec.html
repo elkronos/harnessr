@@ -73,7 +73,7 @@
 <span>  max_levels <span class="op">=</span> <span class="fl">5L</span>,</span>
 <span>  max_rounds <span class="op">=</span> <span class="fl">4L</span>,</span>
 <span>  preview_tokens <span class="op">=</span> <span class="fl">1200L</span>,</span>
-<span>  restate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"always"</span>, <span class="st">"never"</span><span class="op">)</span>,</span>
+<span>  restate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"always"</span>, <span class="st">"never"</span>, <span class="st">"window"</span><span class="op">)</span>,</span>
 <span>  members <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  skim_model <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -97,6 +97,9 @@
 <span>  rrf_k <span class="op">=</span> <span class="fl">60</span>,</span>
 <span>  answer_format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"parsed"</span>, <span class="st">"schema"</span><span class="op">)</span>,</span>
 <span>  premise_verdict <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sentence"</span>, <span class="st">"structured"</span><span class="op">)</span>,</span>
+<span>  context_policy <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  refine_state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"draft"</span>, <span class="st">"ledger"</span><span class="op">)</span>,</span>
+<span>  effort_mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"static"</span>, <span class="st">"escalate"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -167,8 +170,13 @@ consecutive; <code>"edges"</code> puts the strongest first and second-strongest 
 burying the weakest in the middle, because transformers attend measurably
 better to the beginning and end of a long context than to its middle.
 Selection is unaffected. This decides only placement, and it applies to
-<code>retrieve</code> and <code>rerank</code>, the two readers that put several ranked chunks in
-one prompt.</p></dd>
+<code>retrieve</code>, <code>rerank</code> and <code>iterative</code>, the readers that put several ranked
+chunks in one prompt. Under a <code>context_policy</code> with <code>order_merges = TRUE</code>
+it also places the findings <code>map_reduce</code>, <code>skim</code> and the write-up merge
+combine and the member answers <code>ensemble</code> adjudicates. These have no
+relevance order, so <code>"relevance"</code> and <code>"document"</code> keep the order they
+come in (document order for findings, member order for an ensemble), and
+<code>"edges"</code> puts the first first and the second last.</p></dd>
 
 
 <dt id="arg-rerank-candidates-rerank-min-score">rerank_candidates, rerank_min_score<a class="anchor" aria-label="anchor" href="#arg-rerank-candidates-rerank-min-score"></a></dt>
@@ -203,7 +211,10 @@ this package manages; keeping its input small is the mitigation.</p></dd>
 <dt id="arg-restate">restate<a class="anchor" aria-label="anchor" href="#arg-restate"></a></dt>
 <dd><p>Whether to repeat the question before the excerpts as well as
 after them: <code>"auto"</code> when the body is long enough to bury the first ask,
-<code>"always"</code>, or <code>"never"</code>. A setting rather than a rule, because whether it
+<code>"always"</code>, or <code>"never"</code>. <code>"window"</code> repeats it once the excerpts pass the
+length the model attends to reliably, its effective window; no model's
+effective window is measured yet, so it repeats the question before
+excerpts longer than 50,000 tokens and warns (<code>gr_window_unmeasured</code>). A setting rather than a rule, because whether it
 helps is a question about your corpus and your model. Point <code><a href="gr_compare.html">gr_compare()</a></code>
 at two recipes differing only in this and find out.</p></dd>
 
@@ -464,6 +475,61 @@ one goes to the merge and sets <code>notes$degradation</code> to
 with a <code>gr_bad_setting</code> error. Untested.</p></dd>
 
 
+<dt id="arg-context-policy">context_policy<a class="anchor" aria-label="anchor" href="#arg-context-policy"></a></dt>
+<dd><p><code>NULL</code> (the default), or an <code><a href="hr_context_policy.html">hr_context_policy()</a></code>
+(or a named list of its arguments) that decides what a request keeps
+when its text does not fit. <code>NULL</code> keeps each reader's own cuts, which
+keep the start of what they cut. With a policy:</p><ul><li><p><code>refine</code> fits its state (<code>draft</code> or <code>ledger</code>) and the new <code>excerpt</code>
+into the input budget together, cutting the pieces the policy allows
+in the order it gives, in place of giving each half the budget;</p></li>
+<li><p>the merges of <code>map_reduce</code> and <code>skim</code> (<code>findings</code>), the summaries
+<code>hierarchical</code> combines (<code>summaries</code>), the outline and skimmed
+sections of <code>preview</code> (<code>outline</code>, <code>excerpts</code>) and the joined findings
+of a merge that gives up are cut with the policy's keep rule for that
+piece. These pieces have no scores, so the readers read a
+<code>"scored"</code> rule as <code>"head"</code>;</p></li>
+<li><p>the readers that pack whole chunks (<code>stuff</code>, <code>retrieve</code>, <code>rerank</code>,
+<code>preview</code>, <code>iterative</code>) write a <code>"truncate"</code> step naming the chunks
+they left out;</p></li>
+<li><p>with <code>order_merges = TRUE</code>, the findings a merge combines and the
+member answers <code>ensemble</code> adjudicates are placed by <code>context_order</code>.
+The question and the instructions are never cut by any reader. When
+the pieces the policy pins do not fit a request, the reader warns once
+(class <code>gr_context_policy_unfit</code>) and cuts as it does without a policy,
+so the request still fits. Every cut is a <code>"truncate"</code> step of the
+trace that names the piece and the part dropped. Untested.</p></li>
+</ul></dd>
+
+
+<dt id="arg-refine-state">refine_state<a class="anchor" aria-label="anchor" href="#arg-refine-state"></a></dt>
+<dd><p>For <code>refine</code>: what is carried down the document.
+<code>"draft"</code> (the default) is the answer, rewritten by each request, as
+before. <code>"ledger"</code> is a numbered list of findings: each request is shown
+it and one excerpt and replies with edits (<code>ADD: &lt;finding&gt;</code>,
+<code>REPLACE &lt;n&gt;: &lt;finding&gt;</code>, <code>DROP &lt;n&gt;</code>), which the code applies, so a
+finding no edit names is carried forward word for word and a corrected
+one is replaced rather than annotated. One more request,
+<code>refine.answer</code>, answers from the finished list; an empty list is
+<code>NOT_IN_DOCUMENT</code> with no request. <code>notes$ledger_items</code> counts the
+findings. Untested; <code><a href="gr_condensation_check.html">gr_condensation_check()</a></code> builds the test.</p></dd>
+
+
+<dt id="arg-effort-mode">effort_mode<a class="anchor" aria-label="anchor" href="#arg-effort-mode"></a></dt>
+<dd><p><code>"static"</code> (the default) sends each request at the
+effort <code>effort</code> names, as before. <code>"escalate"</code> starts every stage at
+<code>effort</code> (<code>"low"</code> when <code>effort</code> is unset) and sends the next stage at
+<code>"high"</code> when a trigger fired in the one before: a cut (a <code>"truncate"</code>
+step, or a reply stopped at its cap), a reply that is not the JSON asked
+for or does not fit its schema, <code>NOT_IN_DOCUMENT</code> from every request of
+the stage, a quotation <code>iterative</code> could not verify, or <code>ensemble</code>
+members that disagree. Effort changes only at a stage boundary, at most
+once a read, and the stage after a raised one goes back to <code>effort</code>. The
+spec's <code>effort</code> is then an <code><a href="hr_effort_escalate.html">hr_effort_escalate()</a></code> policy; each raise is
+an <code>"effort.escalate"</code> step of the trace, whether it resolved the
+trigger an <code>"effort.resolve"</code> step, and <code><a href="hr_effort_log.html">hr_effort_log()</a></code> lists both.
+<code><a href="hr_effort_check.html">hr_effort_check()</a></code> compares it with fixed levels. Untested.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Extra fields for custom readers.</p></dd>
 
@@ -585,6 +651,9 @@ keeps the store and cache keys it had before they existed.</p><ul><li><p><code>o
 <li><p><code>rrf_k</code> (default <code>60</code>, advanced): cited. Cormack, Clarke and Buettcher (2009), "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods", SIGIR, use k = 60; not tuned here.</p></li>
 <li><p><code>answer_format</code> (default <code>"parsed"</code>, advanced): untested. "parsed", the requests sent before the setting existed. Published comparisons of forced schemas and free text disagree; owner decision DEC-05 keeps the question open until a live comparison.</p></li>
 <li><p><code>premise_verdict</code> (default <code>"sentence"</code>, advanced): untested. "sentence", the requests premise = TRUE sent before the setting existed. Not measured.</p></li>
+<li><p><code>context_policy</code> (default <code>NULL</code>, advanced): untested. NULL: each reader cuts as it did before the setting existed, keeping the start of what it cuts. No policy has been compared with it.</p></li>
+<li><p><code>refine_state</code> (default <code>"draft"</code>, advanced): untested. "draft", the state refine carried before the setting existed. Not compared with "ledger"; gr_condensation_check() builds the test.</p></li>
+<li><p><code>effort_mode</code> (default <code>"static"</code>, advanced): untested. "static": the effort <code>effort</code> names, as before the setting existed. Not compared with "escalate"; hr_effort_check() makes the comparison.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="reasoning-effort">Reasoning effort<a class="anchor" aria-label="anchor" href="#reasoning-effort"></a></h2>
@@ -616,7 +685,7 @@ runs at different efforts never share answers. Unset, none of those keys
 change.</p>
 <p>The labels are the <code>stage</code> column of <code>as.data.frame(trace)</code>:
 <code>segment.context</code>, <code>segment.proposition</code>; <code>stuff.answer</code>; <code>map.answer</code>,
-<code>reduce</code>; <code>refine.draft</code>, <code>refine.revise</code>; <code>skim.extract</code>,
+<code>reduce</code>; <code>refine.draft</code>, <code>refine.revise</code>, <code>refine.answer</code>; <code>skim.extract</code>,
 <code>skim.consolidate</code>, <code>skim.answer</code>; <code>retrieve.answer</code>; <code>rerank.score</code>,
 <code>rerank.answer</code>; <code>hier.summarise.L1</code> (and <code>L2</code>, ...), <code>hier.answer</code>;
 <code>iterative.step</code>, <code>iterative.final</code>; <code>ensemble.adjudicate</code>; <code>preview.plan</code>,

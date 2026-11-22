@@ -111,12 +111,18 @@ then says which settings changed nothing that was sent.
 
 Other harness:
 [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md),
+[`gr_condensation_check()`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md),
 [`gr_qa_reference()`](https://elkronos.github.io/harnessr/reference/gr_qa_reference.md),
+[`gr_reverse_text()`](https://elkronos.github.io/harnessr/reference/gr_reverse_text.md),
 [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md),
 [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md),
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
 [`hr_contrast()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md),
 [`hr_drift_check()`](https://elkronos.github.io/harnessr/reference/hr_drift_check.md),
+[`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md),
+[`hr_effort_escalate()`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md),
+[`hr_effort_event()`](https://elkronos.github.io/harnessr/reference/hr_effort_event.md),
+[`hr_effort_log()`](https://elkronos.github.io/harnessr/reference/hr_effort_log.md),
 [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md),
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md),
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),

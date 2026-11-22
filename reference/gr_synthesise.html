@@ -84,7 +84,8 @@ rows it rests on.</p>
 <span>  coherence_rounds <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>  figure_bands <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>about <span class="op">=</span> <span class="fl">0.1</span>, over <span class="op">=</span> <span class="fl">0.25</span>, under <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span>,</span>
 <span>  prominence <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>top <span class="op">=</span> <span class="fl">1</span><span class="op">/</span><span class="fl">3</span>, middle <span class="op">=</span> <span class="fl">1</span><span class="op">/</span><span class="fl">3</span><span class="op">)</span>,</span>
-<span>  study_weights <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  study_weights <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  revision_check <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lexicon"</span>, <span class="st">"judge"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -315,6 +316,23 @@ and is not a quality score. Or a function of the studies table (the
 extraction's included rows, with a <code>study</code> column of ids) returning one
 non-negative number per row. Used only with <code>claims</code>.</p></dd>
 
+
+<dt id="arg-revision-check">revision_check<a class="anchor" aria-label="anchor" href="#arg-revision-check"></a></dt>
+<dd><p>What checks a kept revision pass beyond the
+citation, figure and length checks. <code>"lexicon"</code> (the default) is the
+word-counting guard against a stronger claim, as before. <code>"judge"</code> adds,
+behind it, a model judge (<code><a href="hr_judge.html">hr_judge()</a></code>, on <code>model</code>, its requests held to
+the run's limits) that grades each sentence the revision changed against
+the draft sentences it came from (those citing the same study, else the
+two sharing most of its words): <code>"holds"</code>, <code>"stronger"</code> (it claims more,
+as "is associated with" become "reduces") or <code>"not_entailed"</code>. It costs
+one request per changed sentence. The judge is advisory: a flagged
+sentence is warned about (<code>gr_revision_flagged</code>), counted in the
+<code>flagged</code> column of <code>$coherence</code> and listed in <code>$revision_flags</code>, and the
+revision is kept as it was. The judge is not validated against people's
+labels (see <code><a href="hr_judge_validate.html">hr_judge_validate()</a></code>), so its flags are for a person to
+read. Untested.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -346,6 +364,11 @@ if none ran: <code>pass</code> (which of <code>"structure"</code>, <code>"cut"</
 the text the pass was given and in its revision; <code>NA</code> for a pass
 that was not sent, or was refused by a check made before the length
 check, which comes last).</p></dd>
+
+<dt><code>revision_flags</code></dt>
+<dd><p>Under <code>revision_check = "judge"</code> only: one
+row per sentence a kept revision changed, with <code>pass</code>, <code>round</code>,
+<code>sentence</code>, <code>verdict</code> and the judge's <code>reason</code>.</p></dd>
 
 <dt><code>unrendered</code></dt>
 <dd><p>Studies a section cited honestly that <code>text</code> still
@@ -596,8 +619,8 @@ check and render an edited <code>text_marked</code> again</p></div>
 <span class="r-in"><span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".txt"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"We ran a randomised trial. We enrolled 120 people."</span>, <span class="va">f</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_extract.html">gr_extract</a></span><span class="op">(</span><span class="va">f</span>, <span class="va">fields</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1baf14753d7b.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1baf14753d7b.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1b7d47696a.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1b7d47696a.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'structural' (cap 900 tokens, overlap 90).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).</span>

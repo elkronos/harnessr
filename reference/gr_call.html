@@ -133,7 +133,10 @@ send none. One string, or a character vector named by label prefix,
 resolved against <code>label</code> as <code><a href="gr_read_spec.html">gr_read_spec()</a></code> describes. Sent only when
 <code>model</code> is a reasoning model (see <code><a href="gr_model_info.html">gr_model_info()</a></code>), as <code>reasoning = {effort}</code> on the Responses API and <code>reasoning_effort</code> on Chat Completions;
 a <code><a href="gr_mock_client.html">gr_mock_client()</a></code> or <code><a href="gr_backend_client.html">gr_backend_client()</a></code> handler finds it in
-<code>params$effort</code>. Must be named in full, since it follows <code>...</code>.</p></dd>
+<code>params$effort</code>. Must be named in full, since it follows <code>...</code>. It may
+also be an <code><a href="hr_effort_escalate.html">hr_effort_escalate()</a></code> policy, which sends the call at its
+base effort, or raised when a trigger fired in the stage before this
+call's; the trace carries the policy's state, so give one.</p></dd>
 
 
 <dt id="arg-draw-index">draw_index<a class="anchor" aria-label="anchor" href="#arg-draw-index"></a></dt>

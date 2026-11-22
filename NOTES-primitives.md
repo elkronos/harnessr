@@ -24,7 +24,11 @@ loses its last caller.
 | [`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md) | `agreement_part()`, `reviewer_summary()` | test-core-stats.R, test-screen-reviewers.R |
 | [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md) | [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md) | test-core-bench.R, test-core-bench-report.R |
 | [`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md) | [`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md), [`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md) | test-core-contract.R |
+| [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md) | `read_refine()`, under a read’s `context_policy` | test-context-policy.R |
+| [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md) | `check_context_policy()`, which resolves a read’s `context_policy` | test-context-policy.R |
 | [`hr_cost()`](https://elkronos.github.io/harnessr/reference/hr_cost.md) | the reader cost functions: `cost_extract()`, `cost_map_reduce()` and the rest | test-conformance.R, test-core-schema.R |
+| [`hr_effort_escalate()`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md) | `read_escalation()`, under a read’s `effort_mode = "escalate"` | test-effort-escalate.R |
+| [`hr_effort_event()`](https://elkronos.github.io/harnessr/reference/hr_effort_event.md) | `read_ensemble()`, `read_iterative()` and `read_screen()`, which report triggers | test-effort-escalate.R |
 | [`hr_ht_estimate()`](https://elkronos.github.io/harnessr/reference/hr_ht_estimate.md) | `screening_recall()` | test-core-stats.R |
 | [`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md) | the read, segment and ingest schemas (`.gr_read_schema` and the others) | test-core-schema.R, test-settings.R |
 | [`hr_prop_ci()`](https://elkronos.github.io/harnessr/reference/hr_prop_ci.md) | `reviewer_summary()`, `screening_recall()` | test-core-stats.R |
@@ -32,6 +36,7 @@ loses its last caller.
 | [`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md) | the read, segment and ingest schemas | test-core-schema.R, test-settings.R |
 | [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md) | [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md) | test-core-bench.R |
 | [`hr_signal()`](https://elkronos.github.io/harnessr/reference/hr_signal.md) | `read_ensemble()`, `read_iterative()`, `read_preview()` | test-core-signals.R |
+| [`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md) | `cut_piece()`, which the merge, `hierarchical` and `preview` packers call under a `context_policy` | test-context-policy.R |
 | [`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md), [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md), [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | test-core-schema.R, test-adversarial.R |
 
 ## Called by the tests only
@@ -54,6 +59,8 @@ documents, which is why they are core. Each has tests of its own.
 | [`hr_calibration_valid()`](https://elkronos.github.io/harnessr/reference/hr_calibration_valid.md) | test-core-signals.R | Says whether a calibration record is valid for a run. |
 | [`hr_contrast()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md) | test-core-bench-ni.R, test-core-bench-sim.R | A non-inferiority contrast between arms, registered before scoring. |
 | [`hr_drift_check()`](https://elkronos.github.io/harnessr/reference/hr_drift_check.md) | test-core-bench-drift.R | Checks an arm for drift against a frozen benchmark. |
+| [`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md) | test-effort-escalate.R | Compares any effort policy with fixed efforts on a benchmark, with the non-inferiority test. |
+| [`hr_effort_log()`](https://elkronos.github.io/harnessr/reference/hr_effort_log.md) | test-effort-escalate.R | The effort raises an escalation policy made on any run’s trace. |
 | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | test-pipeline-options.R | Says how far any benchmark’s arms fail on the same items. |
 | [`hr_gate_threshold()`](https://elkronos.github.io/harnessr/reference/hr_gate_threshold.md) | test-core-signals.R | Chooses a gate threshold by Learn-then-Test. |
 | [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md) | test-core-bench.R, test-claims.R | Limits on what a run may send, which a benchmark shares across its arms. |

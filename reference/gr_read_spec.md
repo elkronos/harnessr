@@ -22,7 +22,7 @@ gr_read_spec(
   max_levels = 5L,
   max_rounds = 4L,
   preview_tokens = 1200L,
-  restate = c("auto", "always", "never"),
+  restate = c("auto", "always", "never", "window"),
   members = NULL,
   cite = FALSE,
   skim_model = NULL,
@@ -46,6 +46,9 @@ gr_read_spec(
   rrf_k = 60,
   answer_format = c("parsed", "schema"),
   premise_verdict = c("sentence", "structured"),
+  context_policy = NULL,
+  refine_state = c("draft", "ledger"),
+  effort_mode = c("static", "escalate"),
   ...
 )
 ```
@@ -116,8 +119,14 @@ gr_read_spec(
   the weakest in the middle, because transformers attend measurably
   better to the beginning and end of a long context than to its middle.
   Selection is unaffected. This decides only placement, and it applies
-  to `retrieve` and `rerank`, the two readers that put several ranked
-  chunks in one prompt.
+  to `retrieve`, `rerank` and `iterative`, the readers that put several
+  ranked chunks in one prompt. Under a `context_policy` with
+  `order_merges = TRUE` it also places the findings `map_reduce`, `skim`
+  and the write-up merge combine and the member answers `ensemble`
+  adjudicates. These have no relevance order, so `"relevance"` and
+  `"document"` keep the order they come in (document order for findings,
+  member order for an ensemble), and `"edges"` puts the first first and
+  the second last.
 
 - rerank_candidates, rerank_min_score:
 
@@ -154,7 +163,11 @@ gr_read_spec(
 
   Whether to repeat the question before the excerpts as well as after
   them: `"auto"` when the body is long enough to bury the first ask,
-  `"always"`, or `"never"`. A setting rather than a rule, because
+  `"always"`, or `"never"`. `"window"` repeats it once the excerpts pass
+  the length the model attends to reliably, its effective window; no
+  model's effective window is measured yet, so it repeats the question
+  before excerpts longer than 50,000 tokens and warns
+  (`gr_window_unmeasured`). A setting rather than a rule, because
   whether it helps is a question about your corpus and your model. Point
   [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
   at two recipes differing only in this and find out.
@@ -437,6 +450,72 @@ gr_read_spec(
   `"structured"` without `premise = TRUE` is refused with a
   `gr_bad_setting` error. Untested.
 
+- context_policy:
+
+  `NULL` (the default), or an
+  [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+  (or a named list of its arguments) that decides what a request keeps
+  when its text does not fit. `NULL` keeps each reader's own cuts, which
+  keep the start of what they cut. With a policy:
+
+  - `refine` fits its state (`draft` or `ledger`) and the new `excerpt`
+    into the input budget together, cutting the pieces the policy allows
+    in the order it gives, in place of giving each half the budget;
+
+  - the merges of `map_reduce` and `skim` (`findings`), the summaries
+    `hierarchical` combines (`summaries`), the outline and skimmed
+    sections of `preview` (`outline`, `excerpts`) and the joined
+    findings of a merge that gives up are cut with the policy's keep
+    rule for that piece. These pieces have no scores, so the readers
+    read a `"scored"` rule as `"head"`;
+
+  - the readers that pack whole chunks (`stuff`, `retrieve`, `rerank`,
+    `preview`, `iterative`) write a `"truncate"` step naming the chunks
+    they left out;
+
+  - with `order_merges = TRUE`, the findings a merge combines and the
+    member answers `ensemble` adjudicates are placed by `context_order`.
+    The question and the instructions are never cut by any reader. When
+    the pieces the policy pins do not fit a request, the reader warns
+    once (class `gr_context_policy_unfit`) and cuts as it does without a
+    policy, so the request still fits. Every cut is a `"truncate"` step
+    of the trace that names the piece and the part dropped. Untested.
+
+- refine_state:
+
+  For `refine`: what is carried down the document. `"draft"` (the
+  default) is the answer, rewritten by each request, as before.
+  `"ledger"` is a numbered list of findings: each request is shown it
+  and one excerpt and replies with edits (`ADD: <finding>`,
+  `REPLACE <n>: <finding>`, `DROP <n>`), which the code applies, so a
+  finding no edit names is carried forward word for word and a corrected
+  one is replaced rather than annotated. One more request,
+  `refine.answer`, answers from the finished list; an empty list is
+  `NOT_IN_DOCUMENT` with no request. `notes$ledger_items` counts the
+  findings. Untested;
+  [`gr_condensation_check()`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
+  builds the test.
+
+- effort_mode:
+
+  `"static"` (the default) sends each request at the effort `effort`
+  names, as before. `"escalate"` starts every stage at `effort` (`"low"`
+  when `effort` is unset) and sends the next stage at `"high"` when a
+  trigger fired in the one before: a cut (a `"truncate"` step, or a
+  reply stopped at its cap), a reply that is not the JSON asked for or
+  does not fit its schema, `NOT_IN_DOCUMENT` from every request of the
+  stage, a quotation `iterative` could not verify, or `ensemble` members
+  that disagree. Effort changes only at a stage boundary, at most once a
+  read, and the stage after a raised one goes back to `effort`. The
+  spec's `effort` is then an
+  [`hr_effort_escalate()`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md)
+  policy; each raise is an `"effort.escalate"` step of the trace,
+  whether it resolved the trigger an `"effort.resolve"` step, and
+  [`hr_effort_log()`](https://elkronos.github.io/harnessr/reference/hr_effort_log.md)
+  lists both.
+  [`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
+  compares it with fixed levels. Untested.
+
 - ...:
 
   Extra fields for custom readers.
@@ -656,6 +735,18 @@ existed.
   "sentence", the requests premise = TRUE sent before the setting
   existed. Not measured.
 
+- `context_policy` (default `NULL`, advanced): untested. NULL: each
+  reader cuts as it did before the setting existed, keeping the start of
+  what it cuts. No policy has been compared with it.
+
+- `refine_state` (default `"draft"`, advanced): untested. "draft", the
+  state refine carried before the setting existed. Not compared with
+  "ledger"; gr_condensation_check() builds the test.
+
+- `effort_mode` (default `"static"`, advanced): untested. "static": the
+  effort `effort` names, as before the setting existed. Not compared
+  with "escalate"; hr_effort_check() makes the comparison.
+
 ## Reasoning effort
 
 The default models reason before they write a reply, and that reasoning
@@ -700,12 +791,12 @@ none of those keys change.
 
 The labels are the `stage` column of `as.data.frame(trace)`:
 `segment.context`, `segment.proposition`; `stuff.answer`; `map.answer`,
-`reduce`; `refine.draft`, `refine.revise`; `skim.extract`,
-`skim.consolidate`, `skim.answer`; `retrieve.answer`; `rerank.score`,
-`rerank.answer`; `hier.summarise.L1` (and `L2`, ...), `hier.answer`;
-`iterative.step`, `iterative.final`; `ensemble.adjudicate`;
-`preview.plan`, `preview.skim`, `preview.answer`; `screen.decide`;
-`extract.chunk`, `extract.resolve`; and, for
+`reduce`; `refine.draft`, `refine.revise`, `refine.answer`;
+`skim.extract`, `skim.consolidate`, `skim.answer`; `retrieve.answer`;
+`rerank.score`, `rerank.answer`; `hier.summarise.L1` (and `L2`, ...),
+`hier.answer`; `iterative.step`, `iterative.final`;
+`ensemble.adjudicate`; `preview.plan`, `preview.skim`, `preview.answer`;
+`screen.decide`; `extract.chunk`, `extract.resolve`; and, for
 [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
 [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
 and

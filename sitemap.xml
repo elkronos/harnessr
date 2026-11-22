@@ -41,6 +41,7 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_cleaners.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_client.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_compare.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/gr_condensation_check.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_count_tokens.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_document.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_ellmer_client.html</loc></url>
@@ -94,6 +95,7 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_replay_client.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_resolve.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_result.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/gr_reverse_text.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_scorer_answer.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_screen.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.html</loc></url>
@@ -129,9 +131,15 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_calibrate_signal.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_calibration_valid.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_check_module.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_context_fit.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_context_policy.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_contrast.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_cost.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_drift_check.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_effort_check.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_effort_escalate.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_effort_event.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_effort_log.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_error_correlation.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_gate_threshold.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_governor.html</loc></url>
@@ -154,6 +162,7 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_sweep.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_sweep_check.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_tfidf.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_truncate.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_validate.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/index.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/is_not_found.html</loc></url>

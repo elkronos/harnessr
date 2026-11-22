@@ -2,6 +2,130 @@
 
 ## harnessr 0.6.0.9000
 
+### Context, effort and revision checks
+
+Each option below is off by default, so a default spec sends the
+requests it sent before and keeps its store, cache and replay keys. Each
+new setting is declared with its evidence (`untested`), is listed by
+[`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md),
+and has a walkthrough that says how to test it with
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md).
+
+- `hr_truncate(text, n, keep)` cuts text to `n` tokens and keeps the
+  part asked for: the start (`"head"`, the default, which is
+  [`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md)
+  itself), the end (`"tail"`), both ends (`"both"`) or the units with
+  the highest `scores` (`"scored"`). With a trace, a cut writes a
+  `"truncate"` step naming the piece, the part dropped (`dropped_part`)
+  and the tokens it held.
+  [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+  states which pieces of a request are never cut (`pin`), which are cut
+  first (`cut_order`) and which part of each is kept (`keep`), and
+  [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
+  applies one to a set of named pieces.
+
+- [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
+  gains `context_policy`. With a policy, `refine` fits its state and the
+  new excerpt into the input budget together instead of halving it; the
+  merges of `map_reduce` and `skim`, `hierarchical`’s summaries and
+  `preview`’s outline and skims are cut under the policy’s keep rule for
+  their piece; and the readers that pack whole chunks (`stuff`,
+  `retrieve`, `rerank`, `iterative`, `preview`’s re-read) write a
+  `"truncate"` step naming the chunks they left out. Under
+  `order_merges = TRUE`, the findings a merge combines and the answers
+  `ensemble` adjudicates are placed by `context_order`. `NULL`, the
+  default, keeps each reader’s cuts as they were.
+
+- [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
+  gains `refine_state`. `"ledger"` makes `refine` carry a numbered list
+  of findings: each request replies with edits (`ADD`, `REPLACE n`,
+  `DROP n`) that the code applies, so a finding no edit names is kept
+  word for word and a corrected one is replaced, and one more request,
+  `refine.answer`, answers from the list. `"draft"`, the default,
+  rewrites the draft as before.
+
+- `restate` gains `"window"`, which repeats the question once the
+  excerpts pass the model’s effective window. No model’s window is
+  measured yet, so it uses 50,000 tokens and warns
+  (`gr_window_unmeasured`).
+
+- [`gr_condensation_check()`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
+  builds a benchmark of what a reader keeps as it condenses a document:
+  facts planted in a synthetic document or a text of your own, lures
+  (the same measure for a near-namesake, with another value) and a fact
+  stated wrongly early and corrected late, each document given forwards
+  and reversed by paragraph
+  ([`gr_reverse_text()`](https://elkronos.github.io/harnessr/reference/gr_reverse_text.md)).
+  It returns an
+  [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
+  and a scorer that finds the values in the answer with no model judge,
+  for
+  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+  to run arms that differ in `refine_state`, `context_policy` or the
+  reader; and
+  [`gr_condensation_summary()`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
+  gives each arm’s fact recall, lure rate, whether the correction won
+  and recall of the facts read last. The live comparison on real
+  documents is not part of this release.
+
+- [`hr_effort_escalate()`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md)
+  is an effort policy that starts every stage low and sends the next
+  stage raised when a trigger fired in the one before: a cut, a reply
+  stopped at its cap, a reply that is not the JSON asked for or does not
+  fit its schema, a reply the caller names (such as `NOT_IN_DOCUMENT`
+  from every request of a stage), or an event the caller reports with
+  [`hr_effort_event()`](https://elkronos.github.io/harnessr/reference/hr_effort_event.md).
+  Effort changes only at stage boundaries, at most `max_escalations`
+  times a run. The stage after a raised one goes back to the base effort
+  unless it fired a trigger too and a raise is left. A cut counts for
+  the stage whose request it was made for. Each raise is an
+  `"effort.escalate"` step of the trace and its outcome an
+  `"effort.resolve"` step;
+  [`hr_effort_log()`](https://elkronos.github.io/harnessr/reference/hr_effort_log.md)
+  lists them.
+  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
+  takes the policy as its `effort`.
+
+- [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
+  gains `effort_mode`. `"escalate"` makes the read’s `effort` such a
+  policy, starting at `effort` (`"low"` when unset) and raising to
+  `"high"`; `iterative` reports a quotation it could not verify,
+  `ensemble` members that disagree, and screening an unclear decision or
+  draws that disagree. `"static"`, the default, sends `effort` as
+  before.
+
+- [`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
+  compares an effort policy’s arm with fixed-effort arms on a benchmark,
+  with
+  [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)’s
+  non-inferiority test at a stated `margin` and Holm’s procedure over
+  the comparisons, and reports each arm’s accuracy, cost, requests per
+  run, raises and the requests sent raised. Without a registration from
+  [`hr_register_contrasts()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md)
+  the contrasts are marked post hoc. It plans nothing: there is no
+  effort planner.
+
+- [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+  gains `revision_check`. `"judge"` puts an advisory check behind the
+  word-counting guard of the `coherence` passes: each sentence a kept
+  revision changed is graded by
+  [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md),
+  its requests held to the run’s limits, against the draft sentences it
+  came from, as `"holds"`, `"stronger"` or `"not_entailed"`. A flagged
+  sentence is warned about (`gr_revision_flagged`), counted in a
+  `flagged` column of `$coherence` and listed in `$revision_flags`; the
+  revision is kept as it was. “Is associated with” made “reduces” passes
+  the word lists and is flagged by the judge; a hedge moved into another
+  sentence is not. `"lexicon"`, the default, sends no judge request.
+
+- Left out: a look-up step for `hierarchical` (reading the chunks behind
+  the summary an answer rests on) and showing `iterative` its earlier
+  queries. Each changes the requests of a reader in a way that needs its
+  own benchmark arm, and neither was needed for the policy itself.
+
+The read stage now has 50 settings and the synthesise stage 29, 224 in
+all.
+
 ### Reading options
 
 Each option below is off by default, so a default spec sends the

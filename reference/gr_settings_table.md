@@ -103,9 +103,9 @@ s <- gr_settings_table()
 table(s$stage)
 #> 
 #>   evaluate    extract     ingest    options       read     screen    segment 
-#>         27         10         21         34         47         33         20 
+#>         27         10         21         34         50         33         20 
 #> synthesise 
-#>         28 
+#>         29 
 s[s$tier == "basic", c("stage", "name", "default")]
 #>          stage           name                         default
 #> 1       ingest            ocr                            auto
@@ -119,42 +119,42 @@ s[s$tier == "basic", c("stage", "name", "default")]
 #> 49        read          model                            NULL
 #> 54        read          top_k                               6
 #> 64        read           cite                           FALSE
-#> 82        read         recipe                        thorough
-#> 83        read          store                            NULL
-#> 85        read  max_total_usd                            NULL
-#> 89      screen         recipe                        research
-#> 91      screen  screen_tokens                            NULL
-#> 93      screen  max_total_usd                            NULL
-#> 100     screen              n                              50
-#> 101     screen             of                        excluded
-#> 109     screen  recall_target                            0.95
-#> 110     screen           conf                            0.95
-#> 113     screen  recall_target                            0.95
-#> 114     screen           conf                            0.95
-#> 115     screen     prevalence                            NULL
-#> 119     screen         target                            0.95
-#> 122    extract         recipe                        research
-#> 124    extract        resolve                           first
-#> 125    extract  require_quote                           FALSE
-#> 132 synthesise          model                            NULL
-#> 140 synthesise   max_sections                               6
-#> 147 synthesise          model                            NULL
-#> 151 synthesise     cite_style                            auto
-#> 153 synthesise      coherence                           FALSE
-#> 160   evaluate           runs                               5
-#> 161   evaluate         scorer               hr_scorer_exact()
-#> 163   evaluate       governor                            NULL
-#> 167   evaluate           conf                            0.95
-#> 170   evaluate         method                            auto
-#> 174   evaluate           mode                          select
-#> 175   evaluate          model                            NULL
-#> 176   evaluate         orders                               2
-#> 179   evaluate        recipes c("fast", "needle", "thorough")
-#> 187    options        verbose                            TRUE
-#> 189    options          model                   gpt-5.6-terra
-#> 202    options      cache_dir                            NULL
-#> 206    options   max_cost_usd                               5
-#> 207    options      max_calls                             400
+#> 85        read         recipe                        thorough
+#> 86        read          store                            NULL
+#> 88        read  max_total_usd                            NULL
+#> 92      screen         recipe                        research
+#> 94      screen  screen_tokens                            NULL
+#> 96      screen  max_total_usd                            NULL
+#> 103     screen              n                              50
+#> 104     screen             of                        excluded
+#> 112     screen  recall_target                            0.95
+#> 113     screen           conf                            0.95
+#> 116     screen  recall_target                            0.95
+#> 117     screen           conf                            0.95
+#> 118     screen     prevalence                            NULL
+#> 122     screen         target                            0.95
+#> 125    extract         recipe                        research
+#> 127    extract        resolve                           first
+#> 128    extract  require_quote                           FALSE
+#> 135 synthesise          model                            NULL
+#> 143 synthesise   max_sections                               6
+#> 150 synthesise          model                            NULL
+#> 154 synthesise     cite_style                            auto
+#> 156 synthesise      coherence                           FALSE
+#> 164   evaluate           runs                               5
+#> 165   evaluate         scorer               hr_scorer_exact()
+#> 167   evaluate       governor                            NULL
+#> 171   evaluate           conf                            0.95
+#> 174   evaluate         method                            auto
+#> 178   evaluate           mode                          select
+#> 179   evaluate          model                            NULL
+#> 180   evaluate         orders                               2
+#> 183   evaluate        recipes c("fast", "needle", "thorough")
+#> 191    options        verbose                            TRUE
+#> 193    options          model                   gpt-5.6-terra
+#> 206    options      cache_dir                            NULL
+#> 210    options   max_cost_usd                               5
+#> 211    options      max_calls                             400
 gr_settings_table("synthesise")[, c("name", "default", "status")]
 #>                  name                                   default   status
 #> 1               model                                      NULL     <NA>
@@ -185,4 +185,5 @@ gr_settings_table("synthesise")[, c("name", "default", "status")]
 #> 26       figure_bands c(about = 0.1, over = 0.25, under = 0.25) untested
 #> 27         prominence                c(top = 1/3, middle = 1/3) untested
 #> 28      study_weights                                      NULL     <NA>
+#> 29     revision_check                                   lexicon untested
 ```

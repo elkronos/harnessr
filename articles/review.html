@@ -1677,7 +1677,8 @@ hand.</p>
 </div>
 <div class="section level3">
 <h3 id="set-synthesis">Synthesis: <code>unverified</code>, <code>coherence_rounds</code>,
-<code>figure_bands</code> and <code>prominence</code><a class="anchor" aria-label="anchor" href="#set-synthesis"></a>
+<code>figure_bands</code>, <code>prominence</code> and
+<code>revision_check</code><a class="anchor" aria-label="anchor" href="#set-synthesis"></a>
 </h3>
 <p><strong>What they control.</strong> <code>unverified</code>, on
 <code><a href="../reference/gr_claims.html">gr_claims()</a></code>, says whether the claims prompt leaves out a
@@ -1692,7 +1693,14 @@ a value a qualified figure must be to count as backed: “about 50” within
 below it. It sends nothing; it changes what <code>$figures</code>
 reports. <code>prominence</code> sets the shares of a section’s claims,
 by rank, that the writing prompt asks for two or three sentences and for
-one or two; it is used only with <code>claims</code>.</p>
+one or two; it is used only with <code>claims</code>.
+<code>revision_check = "judge"</code> puts a model judge behind the
+word-counting guard of the <code>coherence</code> passes: each sentence
+a kept revision changed is graded against the draft sentences it came
+from, and one that claims more (“is associated with” made “reduces”,
+which no word list catches) or says what they do not is flagged. It
+costs a request per changed sentence, and it only flags: the revision is
+kept as it was, and a person reads the flags.</p>
 <p><strong>Signs they need changing.</strong> A long
 <code>cm$unverified</code> list for values you can see in the documents
 points to the extraction’s quotes, not to <code>"include"</code>: look
@@ -1703,7 +1711,9 @@ another round. <code>$figures</code> rows with
 50 million” for 51.8) point to a wider <code>about</code>; rows backed
 for a figure you would call wrong point to a narrower one. Sections that
 give a minor claim as much space as the main finding point to a smaller
-<code>top</code> share.</p>
+<code>top</code> share. A kept revision whose claims read stronger than
+the draft’s, compared by hand with <code>$draft</code>, points to
+<code>revision_check = "judge"</code>.</p>
 <p><strong>Where the defaults came from.</strong>
 <code>unverified = "exclude"</code> follows the rule that a claim should
 rest on what the documents were found to say; it has not been compared
@@ -1714,10 +1724,11 @@ measured more than one round here.
 <code>figure_bands = c(about = 0.10, over = 0.25, under = 0.25)</code>
 was set when the check of figures was written, and
 <code>prominence = c(top = 1/3, middle = 1/3)</code>, thirds, when
-claims were added. All are <code>untested</code>.
-<code>prominence</code> shares out the sentence budget over claims
-ranked by the sign test of their direction tally, then by study
-weight.</p>
+claims were added. <code>revision_check = "lexicon"</code> keeps the
+guard as it was; the judge is not validated against people’s labels. All
+are <code>untested</code>. <code>prominence</code> shares out the
+sentence budget over claims ranked by the sign test of their direction
+tally, then by study weight.</p>
 <p><strong>How to test them.</strong> <code>figure_bands</code> is
 tested on a draft, with no request. Here the writer rounds 51.8 to
 “about 50”:</p>
@@ -1742,13 +1753,46 @@ tested on a draft, with no request. Here the writer rounds 51.8 to
 <span><span class="co">#&gt; 2  0.02     50  FALSE</span></span></code></pre></div>
 <p>“About 50” is within 10% of 51.8 but not within 2%, so under the
 narrower band the figure is unbacked and <code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code>
-warns. <code>coherence_rounds</code> and <code>prominence</code> change
-what is sent, so they are tested as arms. With <code>review_ref</code>
-an <code><a href="../reference/hr_reference.html">hr_reference()</a></code> of review questions labelled by a person,
+warns.</p>
+<p><code>revision_check</code> is tested on one revision. Here the
+revising model turns the draft’s “was higher in” into “caused”, and a
+stand-in judge calls that stronger:</p>
+<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">strengthen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"You grade one response"</span>, <span class="va">messages</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">stronger</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"caused"</span>, <span class="va">messages</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="kw">if</span> <span class="op">(</span><span class="va">stronger</span><span class="op">)</span> <span class="st">'{"verdict": "stronger", "reason": "A comparison became a cause."}'</span></span>
+<span>           <span class="kw">else</span> <span class="st">'{"verdict": "holds", "reason": "The same claim."}'</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"&lt;draft&gt;"</span>, <span class="va">messages</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">messages</span><span class="op">)</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="st">"## Findings\n\nThe southern market caused higher revenue [study 2]."</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="st">"Revenue was higher in the south [study 2]."</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lexicon"</span>, <span class="st">"judge"</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">check</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">syn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span><span class="va">table</span>, <span class="va">protocol</span>, client <span class="op">=</span> <span class="va">strengthen</span>,</span>
+<span>                                        coherence <span class="op">=</span> <span class="st">"register"</span>, revision_check <span class="op">=</span> <span class="va">check</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">syn</span><span class="op">$</span><span class="va">coherence</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">checks</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt;       pass round  ran kept lost added reason words_before words_after</span></span>
+<span><span class="co">#&gt; 1 register     1 TRUE TRUE &lt;NA&gt;  &lt;NA&gt;   &lt;NA&gt;            6           6</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[2]]</span></span>
+<span><span class="co">#&gt;       pass round  ran kept lost added reason words_before words_after flagged</span></span>
+<span><span class="co">#&gt; 1 register     1 TRUE TRUE &lt;NA&gt;  &lt;NA&gt;   &lt;NA&gt;            6           6       1</span></span></code></pre></div>
+<p>Both kept the revision: the word-counting guard finds no stronger
+word in “caused”, and the judge only flags. Under <code>"judge"</code>
+the <code>flagged</code> column counts the sentence, and
+<code>$revision_flags</code> holds it with the judge’s reason.</p>
+<p><code>coherence_rounds</code> and <code>prominence</code> change what
+is sent, so they are tested as arms. With <code>review_ref</code> an
+<code><a href="../reference/hr_reference.html">hr_reference()</a></code> of review questions labelled by a person,
 <code>my_scorer</code> an <code><a href="../reference/hr_scorer.html">hr_scorer()</a></code> (or a judge validated
 as in <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>) and <code>my_client</code> your
 client:</p>
-<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">rounds</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="st">"write"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span><span class="va">item</span><span class="op">$</span><span class="va">table</span>, <span class="va">item</span><span class="op">$</span><span class="va">protocol</span>, client <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">client</span>, coherence <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -1756,6 +1800,21 @@ client:</p>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>rounds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">review_ref</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">my_client</span>, scorer <span class="op">=</span> <span class="va">my_scorer</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hr_report.html">hr_report</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span></code></pre></div>
+<p><code>revision_check</code> is swept the same way, one arm per
+check:</p>
+<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">check_arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">check</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"write-"</span>, <span class="va">check</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span><span class="va">item</span><span class="op">$</span><span class="va">table</span>, <span class="va">item</span><span class="op">$</span><span class="va">protocol</span>, client <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">client</span>, coherence <span class="op">=</span> <span class="st">"register"</span>,</span>
+<span>                  revision_check <span class="op">=</span> <span class="va">check</span>, trace <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">$</span><span class="va">text</span></span>
+<span>  <span class="op">}</span>, params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>revision_check <span class="op">=</span> <span class="va">check</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>check <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lexicon"</span>, <span class="st">"judge"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">check_arms</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 2</span></span></code></pre></div>
+<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">check_arms</span>, <span class="va">review_ref</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">my_client</span>,</span>
+<span>                      scorer <span class="op">=</span> <span class="va">my_scorer</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_report.html">hr_report</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
@@ -1765,7 +1824,7 @@ client:</p>
 <p><code><a href="../reference/gr_flow.html">gr_flow()</a></code> returns the numbers a flow diagram is made of,
 from what the run already recorded. Every source is accounted for at
 every stage it reached, so the arithmetic closes:</p>
-<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_flow.html">gr_flow</a></span><span class="op">(</span><span class="va">screened</span>, <span class="va">table</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stage"</span>, <span class="st">"n"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;                      stage n</span></span>
 <span><span class="co">#&gt; 1            sources given 2</span></span>
@@ -1802,7 +1861,7 @@ whether the quote is there, what was written and which rows each claim
 rests on, every claim with the studies for and against it and where each
 one ended up, and what it cost. It takes the objects the run already
 produced:</p>
-<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="st">"audit.html"</span>, screening <span class="op">=</span> <span class="va">screened</span>, extraction <span class="op">=</span> <span class="va">table</span>,</span>
 <span>                synthesis <span class="op">=</span> <span class="va">from_claims</span>, claims <span class="op">=</span> <span class="va">cm</span>, protocol <span class="op">=</span> <span class="va">protocol</span>,</span>
 <span>                calibration <span class="op">=</span> <span class="va">cal</span><span class="op">)</span></span></code></pre></div>
@@ -1817,12 +1876,12 @@ times are shown side by side and not compared, so a report written
 months after the run shows both times and says nothing more. Only the
 version is checked: a stage run on a version other than the report’s is
 flagged:</p>
-<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb58"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".html"</span><span class="op">)</span>, screening <span class="op">=</span> <span class="va">screened</span>,</span>
 <span>                        extraction <span class="op">=</span> <span class="va">table</span>, open <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"UTC&lt;/td&gt;"</span>, <span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">page</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "&lt;tr&gt;&lt;td&gt;screening&lt;/td&gt;&lt;td&gt;2026-11-22 13:05:13 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;" </span></span>
-<span><span class="co">#&gt; [2] "&lt;tr&gt;&lt;td&gt;extraction&lt;/td&gt;&lt;td&gt;2026-11-22 13:05:14 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "&lt;tr&gt;&lt;td&gt;screening&lt;/td&gt;&lt;td&gt;2026-11-22 13:58:46 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;" </span></span>
+<span><span class="co">#&gt; [2] "&lt;tr&gt;&lt;td&gt;extraction&lt;/td&gt;&lt;td&gt;2026-11-22 13:58:47 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;"</span></span></code></pre></div>
 <p>The report puts the failures near the top: unverified quotes,
 documents that could not be read, screening calls that failed or came
 back in the wrong form, and citations pointing at rows that do not exist

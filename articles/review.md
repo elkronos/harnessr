@@ -1854,7 +1854,7 @@ short reports is one chunk and every agreement here is `"1/1"` and
 nothing conflicts. On documents cut into many chunks, a field with
 `"1/3"` and a conflict is one to read by hand.
 
-### Synthesis: `unverified`, `coherence_rounds`, `figure_bands` and `prominence`
+### Synthesis: `unverified`, `coherence_rounds`, `figure_bands`, `prominence` and `revision_check`
 
 **What they control.** `unverified`, on
 [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
@@ -1868,7 +1868,13 @@ than 50” within `over` above it, “fewer than 50” within `under` below
 it. It sends nothing; it changes what `$figures` reports. `prominence`
 sets the shares of a section’s claims, by rank, that the writing prompt
 asks for two or three sentences and for one or two; it is used only with
-`claims`.
+`claims`. `revision_check = "judge"` puts a model judge behind the
+word-counting guard of the `coherence` passes: each sentence a kept
+revision changed is graded against the draft sentences it came from, and
+one that claims more (“is associated with” made “reduces”, which no word
+list catches) or says what they do not is flagged. It costs a request
+per changed sentence, and it only flags: the revision is kept as it was,
+and a person reads the flags.
 
 **Signs they need changing.** A long `cm$unverified` list for values you
 can see in the documents points to the extraction’s quotes, not to
@@ -1878,7 +1884,9 @@ points to another round. `$figures` rows with `backed = FALSE` for a
 rounded figure that is right (“about 50 million” for 51.8) point to a
 wider `about`; rows backed for a figure you would call wrong point to a
 narrower one. Sections that give a minor claim as much space as the main
-finding point to a smaller `top` share.
+finding point to a smaller `top` share. A kept revision whose claims
+read stronger than the draft’s, compared by hand with `$draft`, points
+to `revision_check = "judge"`.
 
 **Where the defaults came from.** `unverified = "exclude"` follows the
 rule that a claim should rest on what the documents were found to say;
@@ -1889,9 +1897,10 @@ measured more than one round here.
 `figure_bands = c(about = 0.10, over = 0.25, under = 0.25)` was set when
 the check of figures was written, and
 `prominence = c(top = 1/3, middle = 1/3)`, thirds, when claims were
-added. All are `untested`. `prominence` shares out the sentence budget
-over claims ranked by the sign test of their direction tally, then by
-study weight.
+added. `revision_check = "lexicon"` keeps the guard as it was; the judge
+is not validated against people’s labels. All are `untested`.
+`prominence` shares out the sentence budget over claims ranked by the
+sign test of their direction tally, then by study weight.
 
 **How to test them.** `figure_bands` is tested on a draft, with no
 request. Here the writer rounds 51.8 to “about 50”:
@@ -1921,8 +1930,47 @@ rbind(bands(0.10), bands(0.02))
 “About 50” is within 10% of 51.8 but not within 2%, so under the
 narrower band the figure is unbacked and
 [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
-warns. `coherence_rounds` and `prominence` change what is sent, so they
-are tested as arms. With `review_ref` an
+warns.
+
+`revision_check` is tested on one revision. Here the revising model
+turns the draft’s “was higher in” into “caused”, and a stand-in judge
+calls that stronger:
+
+``` r
+
+strengthen <- gr_mock_client(function(messages, params) {
+  if (grepl("You grade one response", messages[[1]]$content, fixed = TRUE)) {
+    stronger <- grepl("caused", messages[[2]]$content, fixed = TRUE)
+    return(if (stronger) '{"verdict": "stronger", "reason": "A comparison became a cause."}'
+           else '{"verdict": "holds", "reason": "The same claim."}')
+  }
+  if (grepl("<draft>", messages[[length(messages)]]$content, fixed = TRUE)) {
+    return("## Findings\n\nThe southern market caused higher revenue [study 2].")
+  }
+  "Revenue was higher in the south [study 2]."
+})
+checks <- lapply(c("lexicon", "judge"), function(check) {
+  syn <- suppressWarnings(gr_synthesise(table, protocol, client = strengthen,
+                                        coherence = "register", revision_check = check))
+  syn$coherence
+})
+checks
+#> [[1]]
+#>       pass round  ran kept lost added reason words_before words_after
+#> 1 register     1 TRUE TRUE <NA>  <NA>   <NA>            6           6
+#> 
+#> [[2]]
+#>       pass round  ran kept lost added reason words_before words_after flagged
+#> 1 register     1 TRUE TRUE <NA>  <NA>   <NA>            6           6       1
+```
+
+Both kept the revision: the word-counting guard finds no stronger word
+in “caused”, and the judge only flags. Under `"judge"` the `flagged`
+column counts the sentence, and `$revision_flags` holds it with the
+judge’s reason.
+
+`coherence_rounds` and `prominence` change what is sent, so they are
+tested as arms. With `review_ref` an
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
 of review questions labelled by a person, `my_scorer` an
 [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md)
@@ -1939,6 +1987,27 @@ arms <- hr_sweep(function(rounds) {
   })
 }, list(rounds = c(1, 2, 3)))
 bench <- hr_benchmark(arms, review_ref, runs = 5, client = my_client, scorer = my_scorer)
+hr_report(bench)
+```
+
+`revision_check` is swept the same way, one arm per check:
+
+``` r
+
+check_arms <- hr_sweep(function(check) {
+  hr_arm(paste0("write-", check), function(item, ctx) {
+    gr_synthesise(item$table, item$protocol, client = ctx$client, coherence = "register",
+                  revision_check = check, trace = ctx$trace)$text
+  }, params = list(revision_check = check))
+}, list(check = c("lexicon", "judge")))
+length(check_arms)
+#> [1] 2
+```
+
+``` r
+
+bench <- hr_benchmark(check_arms, review_ref, runs = 5, client = my_client,
+                      scorer = my_scorer)
 hr_report(bench)
 ```
 
@@ -2016,8 +2085,8 @@ flagged:
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
                         extraction = table, open = FALSE)
 grep("UTC</td>", readLines(page), value = TRUE)
-#> [1] "<tr><td>screening</td><td>2026-11-22 13:05:13 UTC</td><td>0.6.0.9000</td></tr>" 
-#> [2] "<tr><td>extraction</td><td>2026-11-22 13:05:14 UTC</td><td>0.6.0.9000</td></tr>"
+#> [1] "<tr><td>screening</td><td>2026-11-22 13:58:46 UTC</td><td>0.6.0.9000</td></tr>" 
+#> [2] "<tr><td>extraction</td><td>2026-11-22 13:58:47 UTC</td><td>0.6.0.9000</td></tr>"
 ```
 
 The report puts the failures near the top: unverified quotes, documents

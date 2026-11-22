@@ -124,7 +124,7 @@ for reproducing a recorded run
 ``` r
 cache <- gr_cache(dir = file.path(tempdir(), "harnessr-example-cache"))
 cache
-#> <gr_cache> /tmp/Rtmpp5L8PE/harnessr-example-cache
+#> <gr_cache> /tmp/Rtmp12j7la/harnessr-example-cache
 #>   0 entries, 0.0 B on disk; 0 hit(s), 0 miss(es), 0 write(s)
 
 # Nothing is written until a call is cached.

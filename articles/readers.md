@@ -1304,6 +1304,96 @@ Eight findings merge in one level, so a cap of 1 sent the same requests
 as 6 on this report. Test the cap on your longest documents, where it
 can bind.
 
+### What a request keeps: `context_policy` and `refine_state`
+
+**What they control.** When the text a request carries does not fit, a
+reader cuts it, and every reader keeps the start of what it cuts.
+`context_policy`, an
+[`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md),
+states once what to do instead: which pieces are never cut (`pin`),
+which are cut first (`cut_order`), and which part of a cut piece is kept
+(`keep`: `"head"`, `"tail"` or `"both"` ends). The readers have no
+scores for their pieces, so they read a `"scored"` rule as `"head"`;
+[`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md)
+and
+[`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
+take scores directly. It applies to `refine`’s draft and excerpt, the
+findings a merge combines, `hierarchical`’s summaries and `preview`’s
+outline and skims. The readers that pack whole chunks write a
+`"truncate"` step naming the chunks they left out, and with
+`order_merges = TRUE` merges and the `ensemble` adjudication place their
+findings by `context_order`. `refine_state` decides what `refine`
+carries down the document: a draft it rewrites with each chunk
+(`"draft"`), or a numbered ledger of findings that each request adds to,
+replaces or drops from, with one more request at the end to answer from
+it (`"ledger"`). A rewritten draft can lose a finding no later chunk
+restores; a ledger keeps every finding no edit names, word for word, and
+costs one more request.
+
+**Signs they need changing.** `"truncate"` steps in the trace (`where`,
+`tokens_dropped`) on the requests whose answers are wrong say a cut lost
+what was needed; `dropped_part` says which part went. A fact stated
+early in a long document and missing from `refine`’s answer, or a figure
+that a later correction should have replaced, points to
+`refine_state = "ledger"`.
+[`gr_condensation_check()`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
+(see
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md))
+builds a test of exactly that.
+
+**Where the defaults came from.** `context_policy = NULL` keeps the cuts
+every reader made before the setting existed, and
+`refine_state = "draft"` the state `refine` carried. Neither has been
+compared with the alternatives (`untested`).
+
+**How to test them.**
+
+``` r
+
+ledger_reads <- gr_mock_client(function(messages, params) {
+  if (grepl("Reply with the edits", messages[[length(messages)]]$content, fixed = TRUE)) {
+    excerpt <- messages[[4]]$content
+    if (grepl("revenue of [0-9.]+ million", excerpt)) {
+      return("ADD: Revenue was 45.2 million dollars.")
+    }
+    return("NONE")
+  }
+  stand_in(messages, params)
+})
+arms <- hr_sweep(base, list(reader = "refine", refine_state = c("draft", "ledger")))
+bench <- hr_benchmark(arms, qa, runs = 5, client = ledger_reads, split = "dev",
+                      scorer = gr_scorer_answer())
+bench$calls <- calls(bench)
+aggregate(cbind(calls, tokens_in, correct) ~ param.refine_state, bench, mean)
+#>   param.refine_state calls tokens_in correct
+#> 1              draft     8      1839       1
+#> 2             ledger     9      2251       1
+```
+
+The ledger made 9 requests to the draft’s 8, the last one answering from
+the list, and sent 2251 prompt tokens to 1839, since its instructions
+are longer. Both answered right. To try a policy, give one arm an
+[`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+and compare the `"truncate"` steps of the two:
+
+``` r
+
+tight <- function(policy) {
+  gr_arm("thorough", list(method = "structural", max_tokens = 120, overlap_tokens = 0,
+                          reader = "refine", context_policy = policy))
+}
+arms <- hr_sweep(function(keep) {
+  tight(if (keep != "none") hr_context_policy(keep = keep))
+}, list(keep = c("none", "tail")))
+length(arms)
+#> [1] 2
+```
+
+The example report fits every request whole, so nothing is cut here; on
+your own long documents, run the arms with
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+as above.
+
 ### Preview safeguards: `unskip_k` and `reread_on`
 
 **What they control.** `preview` follows a plan its first request makes,

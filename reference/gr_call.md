@@ -90,7 +90,11 @@ gr_call(
   or
   [`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
   handler finds it in `params$effort`. Must be named in full, since it
-  follows `...`.
+  follows `...`. It may also be an
+  [`hr_effort_escalate()`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md)
+  policy, which sends the call at its base effort, or raised when a
+  trigger fired in the stage before this call's; the trace carries the
+  policy's state, so give one.
 
 - draw_index:
 

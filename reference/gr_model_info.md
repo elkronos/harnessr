@@ -52,7 +52,10 @@ Other cost and token functions:
 [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
 [`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md),
 [`gr_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_tokenizer.md),
-[`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md)
+[`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md),
+[`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
+[`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md),
+[`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md)
 
 ## Examples
 

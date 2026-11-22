@@ -214,6 +214,27 @@ trace every run records. See
 
   Truncate text to at most `n` tokens
 
+- [`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md)
+  : Cut text to a token count, keeping the part you choose
+
+- [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+  [`print(`*`<hr_context_policy>`*`)`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+  : Rules for what a request keeps when its text does not fit
+
+- [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
+  : Fit named pieces of text into a token budget under a context policy
+
+- [`hr_effort_escalate()`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md)
+  [`print(`*`<hr_effort_escalate>`*`)`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md)
+  : Reasoning effort that is raised for the next stage when a trigger
+  fires
+
+- [`hr_effort_event()`](https://elkronos.github.io/harnessr/reference/hr_effort_event.md)
+  : Report a trigger for an effort escalation
+
+- [`hr_effort_log()`](https://elkronos.github.io/harnessr/reference/hr_effort_log.md)
+  : The effort raises of a run
+
 - [`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
   : Compute a usable input-token budget for one model call
 
@@ -310,6 +331,9 @@ and
   : Build one arm per row of a grid of settings
 - [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
   : Find the settings of a sweep that changed nothing that was sent
+- [`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
+  [`print(`*`<hr_effort_check>`*`)`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
+  : Compare an effort policy with fixed efforts on a benchmark
 - [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
   [`hr_reference_add()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
   : A reference set to score arms against
@@ -326,6 +350,12 @@ and
   : A reference of questions about documents
 - [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md)
   : Score a reading recipe's answer against acceptable answers
+- [`gr_condensation_check()`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
+  [`print(`*`<gr_condensation_check>`*`)`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
+  [`gr_condensation_summary()`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
+  : A test of what a reader keeps as it condenses a document
+- [`gr_reverse_text()`](https://elkronos.github.io/harnessr/reference/gr_reverse_text.md)
+  : Reverse the order of a text's paragraphs or sentences
 
 ## Baselines
 

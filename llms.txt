@@ -240,7 +240,7 @@ change with
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md).
 The [settings
 reference](https://elkronos.github.io/harnessr/articles/settings.html)
-lists all 220 with their defaults, and
+lists all 224 with their defaults, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
 returns them in R.
 
@@ -248,10 +248,10 @@ returns them in R.
 |----|----|----|----|
 | ingest | 21 | `clean`, `ocr`, `min_chars` | [cleaning](https://elkronos.github.io/harnessr/articles/ingest.html#set-clean), [OCR](https://elkronos.github.io/harnessr/articles/ingest.html#set-ocr) |
 | segment | 20 | `method`, `max_tokens`, `overlap_tokens` | [segmenter](https://elkronos.github.io/harnessr/articles/segment.html#set-method), [size](https://elkronos.github.io/harnessr/articles/segment.html#set-max-tokens), [overlap](https://elkronos.github.io/harnessr/articles/segment.html#set-overlap), [context lines](https://elkronos.github.io/harnessr/articles/segment.html#set-contextual) |
-| read | 47 | `reader`, `model`, `top_k`, `cite`, `verify` | [reader](https://elkronos.github.io/harnessr/articles/readers.html#set-reader), [`top_k`](https://elkronos.github.io/harnessr/articles/readers.html#set-top-k), [`mmr`](https://elkronos.github.io/harnessr/articles/readers.html#set-mmr), [checks](https://elkronos.github.io/harnessr/articles/readers.html#set-verify), [effort](https://elkronos.github.io/harnessr/articles/readers.html#set-effort) |
+| read | 50 | `reader`, `model`, `top_k`, `cite`, `verify` | [reader](https://elkronos.github.io/harnessr/articles/readers.html#set-reader), [`top_k`](https://elkronos.github.io/harnessr/articles/readers.html#set-top-k), [`mmr`](https://elkronos.github.io/harnessr/articles/readers.html#set-mmr), [checks](https://elkronos.github.io/harnessr/articles/readers.html#set-verify), [effort](https://elkronos.github.io/harnessr/articles/readers.html#set-effort) |
 | screen | 33 | `screen_tokens`, `recall_target`, `conf` | [calibration](https://elkronos.github.io/harnessr/articles/review.html#set-calibration) |
 | extract | 10 | `resolve`, `require_quote` | [extraction](https://elkronos.github.io/harnessr/articles/review.html#set-extract) |
-| synthesise | 28 | `coherence`, `cite_style` | [synthesis](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) |
+| synthesise | 29 | `coherence`, `cite_style` | [synthesis](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) |
 | evaluate | 27 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html) |
 | options | 34 | `model`, `max_cost_usd`, `max_calls` | [limits](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) |
 
@@ -679,6 +679,27 @@ trace every run records. See
 
   Truncate text to at most `n` tokens
 
+- [`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md)
+  : Cut text to a token count, keeping the part you choose
+
+- [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+  [`print(`*`<hr_context_policy>`*`)`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+  : Rules for what a request keeps when its text does not fit
+
+- [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
+  : Fit named pieces of text into a token budget under a context policy
+
+- [`hr_effort_escalate()`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md)
+  [`print(`*`<hr_effort_escalate>`*`)`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md)
+  : Reasoning effort that is raised for the next stage when a trigger
+  fires
+
+- [`hr_effort_event()`](https://elkronos.github.io/harnessr/reference/hr_effort_event.md)
+  : Report a trigger for an effort escalation
+
+- [`hr_effort_log()`](https://elkronos.github.io/harnessr/reference/hr_effort_log.md)
+  : The effort raises of a run
+
 - [`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
   : Compute a usable input-token budget for one model call
 
@@ -775,6 +796,9 @@ and
   : Build one arm per row of a grid of settings
 - [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
   : Find the settings of a sweep that changed nothing that was sent
+- [`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
+  [`print(`*`<hr_effort_check>`*`)`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
+  : Compare an effort policy with fixed efforts on a benchmark
 - [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
   [`hr_reference_add()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
   : A reference set to score arms against
@@ -791,6 +815,12 @@ and
   : A reference of questions about documents
 - [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md)
   : Score a reading recipe's answer against acceptable answers
+- [`gr_condensation_check()`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
+  [`print(`*`<gr_condensation_check>`*`)`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
+  [`gr_condensation_summary()`](https://elkronos.github.io/harnessr/reference/gr_condensation_check.md)
+  : A test of what a reader keeps as it condenses a document
+- [`gr_reverse_text()`](https://elkronos.github.io/harnessr/reference/gr_reverse_text.md)
+  : Reverse the order of a text's paragraphs or sentences
 
 ## Baselines
 

@@ -93,10 +93,10 @@ default came from and how to test a change.</p>
 <span><span class="co">#&gt;              advanced basic</span></span>
 <span><span class="co">#&gt;   ingest           18     3</span></span>
 <span><span class="co">#&gt;   segment          17     3</span></span>
-<span><span class="co">#&gt;   read             39     8</span></span>
+<span><span class="co">#&gt;   read             42     8</span></span>
 <span><span class="co">#&gt;   screen           22    11</span></span>
 <span><span class="co">#&gt;   extract           7     3</span></span>
-<span><span class="co">#&gt;   synthesise       23     5</span></span>
+<span><span class="co">#&gt;   synthesise       24     5</span></span>
 <span><span class="co">#&gt;   evaluate         18     9</span></span>
 <span><span class="co">#&gt;   options          29     5</span></span></code></pre></div>
 <div class="section level2">
@@ -919,6 +919,35 @@ reply, or as schema fields with a quote that is checked against the
 excerpts.</td>
 </tr>
 <tr class="odd">
+<td align="left"><a href="readers.html#set-context-policy"><code>context_policy</code></a></td>
+<td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Which pieces of a request are never cut, which are cut
+first, and which part of a cut piece is kept.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="readers.html#set-context-policy"><code>refine_state</code></a></td>
+<td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
+<td align="left"><code>draft</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">For refine: carry a rewritten draft down the document,
+or a numbered list of findings that each request adds to, replaces or
+drops from.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="runs.html#set-effort-mode"><code>effort_mode</code></a></td>
+<td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
+<td align="left"><code>static</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Under “escalate”, every stage starts at
+<code>effort</code> (“low” when unset), and the next stage is sent at
+“high” when a trigger fires.</td>
+</tr>
+<tr class="even">
 <td align="left"><code>recipe</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>thorough</code></td>
@@ -926,7 +955,7 @@ excerpts.</td>
 <td align="left"></td>
 <td align="left">One recipe, applied to every document.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>store</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -934,7 +963,7 @@ excerpts.</td>
 <td align="left"></td>
 <td align="left">Optional directory.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>on_error</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>continue</code></td>
@@ -943,7 +972,7 @@ excerpts.</td>
 <td align="left">“continue” (default) records the failure and moves on;
 “stop” aborts.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>max_total_usd</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -953,7 +982,7 @@ excerpts.</td>
 remaining documents “skipped”, except any restored from store, which
 costs nothing.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>max_total_calls</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -963,7 +992,7 @@ costs nothing.</td>
 requests, marking the rest “skipped”, except any restored from store,
 which makes no request.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>keep_answers</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>TRUE</code></td>
@@ -971,7 +1000,7 @@ which makes no request.</td>
 <td align="left"></td>
 <td align="left">Keep every gr_answer in the result.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>recursive</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>FALSE</code></td>
@@ -1701,6 +1730,15 @@ see prominence): NULL (the default) for the package’s weight, 0.5 + 0.5
 * size + 0.5 * filled, where size is log1p(n) over its largest value
 (the mean of the known ones when n is missing) and filled the share of a
 row’s filled cells whose quotations verified (0.5 when unknown).</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="review.html#set-synthesis"><code>revision_check</code></a></td>
+<td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
+<td align="left"><code>lexicon</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">What checks a kept revision pass beyond the citation,
+figure and length checks.</td>
 </tr>
 </tbody>
 </table>
