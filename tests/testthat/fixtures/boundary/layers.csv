@@ -547,6 +547,7 @@
 "trace_inherit_draw","core","function"
 "trace_mark_recovered","core","function"
 "trace_note","core","function"
+"trace_push_steps","core","function"
 "trace_record","core","function"
 "trace_stamp","core","function"
 "trace_truncation","core","function"

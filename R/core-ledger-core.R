@@ -439,7 +439,36 @@ trace_record <- function(trace, label, messages, result, params = list(), second
   if (is.character(draw_scope) && length(draw_scope) == 1L && !is.na(draw_scope)) {
     step$draw_scope <- draw_scope
   }
-  trace$steps <- c(trace$steps, list(step))
+  trace_push_steps(trace, list(step))
+  invisible(NULL)
+}
+
+#' Add steps to the end of a trace's step list.
+#'
+#' The list is taken out of the trace before it grows: while the trace still
+#' holds it, R copies every earlier step on each append, and c() does the
+#' same, so a long trace cost time quadratic in its length. Taken out, the
+#' list is held only here and R grows it in place. `trace$steps` stays a
+#' plain list holding the same elements c() gave it.
+#' @noRd
+trace_push_steps <- function(trace, new) {
+  # Forced first: a caller's `new` may number its step from
+  # length(trace$steps), which reads 0 once the list is taken out.
+  force(new)
+  steps <- trace$steps
+  trace$steps <- NULL
+  if (is.null(steps)) steps <- list()
+  n <- length(steps)
+  if (length(new)) {
+    idx <- n + seq_along(new)
+    steps[idx] <- new
+    # Names as c() kept them: assignment drops the names of `new`.
+    if (!is.null(names(new))) {
+      if (is.null(names(steps))) names(steps) <- character(length(steps))
+      names(steps)[idx] <- names(new)
+    }
+  }
+  trace$steps <- steps
   invisible(NULL)
 }
 
@@ -467,7 +496,7 @@ trace_mark_recovered <- function(trace, from) {
 #' @noRd
 trace_note <- function(trace, label, detail = list()) {
   if (is.null(trace) || !inherits(trace, "gr_trace")) return(invisible(NULL))
-  trace$steps <- c(trace$steps, list(list(
+  trace_push_steps(trace, list(list(
     step = length(trace$steps) + 1L, label = as_chr1(label),
     at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OS3"),
     ok = TRUE, kind = "local", detail = detail
@@ -533,7 +562,7 @@ trace_absorb <- function(parent, child) {
   # Exact names: `$recipe` would match the `recipes` a comparison's trace keeps.
   src <- child$meta[["source", exact = TRUE]]
   rec <- as_chr1(child$meta[["recipe", exact = TRUE]], NA_character_)
-  parent$steps <- c(parent$steps, lapply(child$steps, function(st) {
+  trace_push_steps(parent, lapply(child$steps, function(st) {
     st$step <- st$step + off
     # Which document and recipe a folded-in step was about, so a corpus trace
     # can still be read request by request. A step folded in twice keeps its
