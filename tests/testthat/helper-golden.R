@@ -409,7 +409,48 @@ golden_stage_runs <- function() {
   )
 }
 
-golden_runs <- function() c(golden_recipe_runs(), golden_reader_runs(), golden_stage_runs())
+# Steps composed by hand inside an arm, and a recipe arm, each run by
+# hr_benchmark(). These two record the requests only: their prompts,
+# parameters and cache keys. The benchmark's trace and result carry the arms'
+# hashes and configurations, which hold the package version, so they are left
+# out, as are the "arms" attribute and the arms themselves.
+#
+# The composed arm's params are not empty, and nothing in them is a setting of
+# any step: a step must take its settings from where it was built, never from
+# ctx$params, and this record would change if one did.
+golden_request_run <- function(expr) {
+  r <- golden_run(expr)
+  list(calls = r$calls)
+}
+
+golden_compose_reference <- function() {
+  harnessr::gr_qa_reference(questions = c(revenue = golden_question),
+                            documents = harnessr::gr_example(),
+                            answers = list("45.2 million"), split = "test")
+}
+
+golden_compose_runs <- function() {
+  list(
+    `compose-steps` = function() golden_request_run(function(cl) {
+      steps <- list(harnessr::gr_step("segment"),
+                    harnessr::gr_step_retrieve(top_k = 4),
+                    harnessr::gr_step("read", reader = "stuff"))
+      arm <- harnessr::hr_arm("composed", function(item, ctx) {
+        Reduce(function(x, step) step(x, ctx), steps, item)
+      }, params = list(recipe = "x", top_k = 9))
+      harnessr::hr_benchmark(arm, golden_compose_reference(), runs = 1, client = cl,
+                             scorer = harnessr::gr_scorer_answer())
+    }),
+    `compose-bench` = function() golden_request_run(function(cl) {
+      harnessr::hr_benchmark(harnessr::gr_arm("needle"), golden_compose_reference(),
+                             runs = 2, client = cl, scorer = harnessr::gr_scorer_answer())
+    })
+  )
+}
+
+golden_runs <- function() {
+  c(golden_recipe_runs(), golden_reader_runs(), golden_stage_runs(), golden_compose_runs())
+}
 
 # ---------------------------------------------------------------------------
 # The exported API.

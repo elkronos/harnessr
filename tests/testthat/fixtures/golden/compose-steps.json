@@ -1,0 +1,22 @@
+{
+  "calls": [
+    {
+      "cache_key": "295ab55456856a5eec52fc64faac9aaa5dcbd012523b2fd796394a66d2b23d22",
+      "chars": [216, 1911, 35],
+      "label": "stuff.answer",
+      "messages": "55368e83687aca33",
+      "model": "mock-model",
+      "params": {
+        "draw_index": 1,
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 611,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "47ad42d0decd904b",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    }
+  ]
+}
