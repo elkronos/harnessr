@@ -651,6 +651,32 @@ requests it sent before, with the same cache keys, and no setting is added.
   adds `arm`, `run` and `item` columns; the benchmark's folded trace is not
   read, so each signal is listed once.
 
+## Steps and chains
+
+Nothing here changes a default or adds a setting: `gr_step()` and
+`gr_step_retrieve()` take the arguments they took, and a step built with them
+sends the requests it sent before, with the same cache keys.
+`vignette("compose")` shows the new functions at work.
+
+* `hr_step(name, fn)` builds a step: a function of `(input, ctx)` with the
+  settings it was built with recorded beside it. With a `schema`, its
+  settings are checked and resolved by `hr_validate()`; with `build`, the
+  function is built from the settings when the step is, so a bad setting
+  fails there. `input` and `output` declare what the step takes and returns.
+* `hr_chain(..., name)` runs steps in order as one `hr_arm()`, which
+  `hr_benchmark()` and `hr_sweep()` take as they take any arm. Inside a
+  chain each step gets `ctx$step` and `ctx$step_params`, and `ctx$params` is
+  the arm's. `hr_chain(old, judge = NULL, name = "nojudge")` derives a chain
+  without one step; `x = step` replaces a step and a new name adds one. The
+  arm records each step's settings as `"step.setting"`, and its
+  configuration is a hash of the steps' code, the values it reads and their
+  resolved settings. A step that takes chunks no earlier step returns warns
+  (`hr_chain_gap`), and a step that cannot follow an answer is an error
+  (`hr_bad_chain`).
+* `gr_step()` and `gr_step_retrieve()` now return `hr_step` objects (class
+  `c("gr_step", "hr_step", "function")`) checked against the ingest, segment
+  or read schema, with their input and output declared.
+
 ## Fixed
 
 * The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
