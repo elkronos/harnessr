@@ -40,7 +40,11 @@ The order is checked when the chain is built, from what each step
 declares it takes and returns. A step that takes \code{"chunks"} when no step
 before it returns chunks warns with class \code{hr_chain_gap}: a \code{\link[=gr_step]{gr_step()}}
 read step would cut the document at the default settings without saying
-so. After a step that returns \code{"answer"}, only steps that take
+so. A step that takes \code{"doc"} with no step before it returning one does
+not warn: a chain usually starts at the segment step, which reads the
+document at the default ingest settings, and a warning there would fire
+on almost every chain. Add an ingest step first to choose those
+settings. After a step that returns \code{"answer"}, only steps that take
 \code{"answer"} or \code{"state"}, or declare nothing, may follow; any other is an
 error of class \code{hr_bad_chain}.
 

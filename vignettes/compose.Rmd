@@ -105,7 +105,9 @@ head(hr_signals(bench, "judged")[, c("arm", "run", "item", "value")], 3)
 
 A step that takes chunks when no step before it returns chunks warns with
 class `hr_chain_gap`: a read step would cut the document at the default
-settings without saying so. After a step that returns the answer, only steps
+settings without saying so. A segment step first in a chain does not warn,
+though it reads the document at the default ingest settings; put an ingest
+step before it to choose them. After a step that returns the answer, only steps
 that take `"answer"` or `"state"`, or declare nothing, can follow.
 
 ```{r}

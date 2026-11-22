@@ -184,7 +184,11 @@ print.hr_step <- function(x, ...) {
 #' declares it takes and returns. A step that takes `"chunks"` when no step
 #' before it returns chunks warns with class `hr_chain_gap`: a [gr_step()]
 #' read step would cut the document at the default settings without saying
-#' so. After a step that returns `"answer"`, only steps that take
+#' so. A step that takes `"doc"` with no step before it returning one does
+#' not warn: a chain usually starts at the segment step, which reads the
+#' document at the default ingest settings, and a warning there would fire
+#' on almost every chain. Add an ingest step first to choose those
+#' settings. After a step that returns `"answer"`, only steps that take
 #' `"answer"` or `"state"`, or declare nothing, may follow; any other is an
 #' error of class `hr_bad_chain`.
 #'

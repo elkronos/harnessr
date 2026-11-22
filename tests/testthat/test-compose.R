@@ -239,6 +239,9 @@ test_that("hr_chain() warns about a gap and refuses a step that cannot follow an
                              name = "x"))
   expect_no_warning(hr_chain(ingest = gr_step("ingest"), segment = st$segment,
                              read = st$read, name = "x"))
+  # A segment step first takes the raw document and does not warn: most
+  # chains start there, so the "doc" input is left out of the check.
+  expect_no_warning(hr_chain(segment = st$segment, read = st$read, name = "x"))
   expect_error(hr_chain(segment = st$segment, read = st$read, retrieve = st$retrieve,
                         name = "x"), class = "hr_bad_chain")
   # A step that takes the answer, or declares nothing, may follow it.

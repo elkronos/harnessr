@@ -674,7 +674,9 @@ sends the requests it sent before, with the same cache keys.
   configuration is a hash of the steps' code, the values it reads and their
   resolved settings. A step that takes chunks no earlier step returns warns
   (`hr_chain_gap`), and a step that cannot follow an answer is an error
-  (`hr_bad_chain`).
+  (`hr_bad_chain`). A step that takes a document no earlier step returns
+  does not warn, since most chains start at the segment step, which
+  ingests at the default settings.
 * `gr_step()` and `gr_step_retrieve()` now return `hr_step` objects (class
   `c("gr_step", "hr_step", "function")`) checked against the ingest, segment
   or read schema, with their input and output declared.
