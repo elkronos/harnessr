@@ -199,9 +199,7 @@ test_that("hr_signals() of a benchmark includes the signals a reader recorded", 
 })
 
 test_that("an arm that uses neither judge nor note sends the requests it sent before", {
-  for (p in golden_needs) {
-    skip_if_not(requireNamespace(p, quietly = TRUE), sprintf("needs the '%s' package", p))
-  }
+  # digest and jsonlite, which the golden records need, are imported.
   runs <- golden_compose_runs()
   for (nm in names(runs)) {
     path <- file.path(golden_dir(), paste0(nm, ".json"))
