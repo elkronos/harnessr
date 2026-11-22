@@ -157,8 +157,18 @@ than fit one prompt -- the claims are kept unmerged, with a warning, and
 What the reconcile pass cannot check is MEANING. A merged claim keeps one
 member's wording and the union of every member's studies, so if the model
 groups two claims that say different things, the studies behind one are
-listed as supporting the other's wording. Such a merge is not detectable by
-counting; the merged claim's \code{note} names every other wording it absorbed so
+listed as supporting the other's wording. Two such errors are refused by
+counting words: findings that point in opposite directions ("improves Y"
+and "does not improve Y", "lowers Y" and "raises Y"), read from their
+negations and words of decrease, and claims naming different populations
+(adults, children, adolescents, infants, older people, women, men,
+students), read from the claim and its scope, are kept apart whatever the
+reply grouped, with a warning (\code{gr_claims_kept_apart}) and a \code{note}. The
+words are English and the lists short, so a merge they do not catch is
+still possible. The merged claim takes the wording of the member most
+studies support, then the one fewest contradict, then the first in a
+fixed order, not the longest, so the result does not depend on
+the order of the table. Its \code{note} names every other wording it absorbed so
 that it can be seen, and a group mixing claims of different \code{kind} is warned
 about.
 

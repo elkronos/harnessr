@@ -59,9 +59,18 @@ test_that("a flat groups array leaves the claims unmerged, with a warning", {
                "does not fit its schema ($.groups[0]: expected array", fixed = TRUE)
   expect_true(isTRUE(attr(r$value, "unmerged")))
   # A real single group of three still merges: it arrives as a 1 x 3 matrix.
+  # Three claims that agree, since claims differing in direction or population
+  # are kept apart whatever the reply groups (P3-07): the three above come
+  # back as two, the adults' benefit with the rare harms, the children's null
+  # finding on its own.
   cl <- gr_mock_client(function(m, p) '{"groups":[[1,2,3]]}')
-  expect_identical(nrow(quiet(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"),
+  agree <- r6c_rows(r6c_claim("Trials in adults found a benefit.", 1),
+                    r6c_claim("Cohorts of adults found a benefit.", 2),
+                    r6c_claim("Adults benefited in trials.", 3))
+  expect_identical(nrow(quiet(harnessr:::claims_reconcile(agree, "Q?", cl, gr_read_spec("stuff"),
                                                          gr_trace()))), 1L)
+  expect_identical(nrow(quiet(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"),
+                                                         gr_trace()))), 2L)
 })
 
 # ---------------------------------------------------------------------------
@@ -71,10 +80,19 @@ test_that("a flat groups array leaves the claims unmerged, with a warning", {
 test_that("a merged claim names the wordings it absorbed", {
   # Before: the "did not improve" wording took studies 1 and 2 from the
   # "improved" claim with note NA -- the merge left no trace at all.
-  claims <- r6c_rows(
+  # The opposite pair this test merged is now kept apart (P3-07), each noting
+  # the other; a pair saying the same thing is merged, under the wording more
+  # studies support, and names the wording it absorbed.
+  opposite <- r6c_rows(
     r6c_claim("The treatment improved symptoms in clinical samples.", 1),
     r6c_claim("The treatment did not improve symptoms in the community samples studied.", 2:3))
   cl <- gr_mock_client(function(m, p) '{"groups":[[1,2]]}')
+  got <- quiet(harnessr:::claims_reconcile(opposite, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  expect_identical(nrow(got), 2L)
+  expect_match(got$note, "kept apart from", fixed = TRUE)
+  claims <- r6c_rows(
+    r6c_claim("The treatment improved symptoms in clinical samples.", 1),
+    r6c_claim("The treatment improved symptoms in the community samples studied.", 2:3))
   got <- quiet(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
   expect_identical(nrow(got), 1L)
   expect_match(got$note, "merged with: 'The treatment improved symptoms in clinical samples.'",

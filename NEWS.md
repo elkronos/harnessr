@@ -54,6 +54,20 @@
   section whose claims name a moderator, since with no `moderators` declared
   every moderator is exploratory.
 
+* Claims reconciled across batches are no longer merged when they differ in
+  direction ("improves Y" and "does not improve Y", read from negations and
+  words of decrease, between findings) or in the population they name
+  (adults, children, adolescents, infants, older people, women, men,
+  students, from the claim and its scope), whatever the reconcile reply
+  grouped; such a group is split, with a `gr_claims_kept_apart` warning and a
+  `note` on each part. A merged claim takes the wording of the member most
+  studies support, then the one fewest contradict, then the first in a fixed
+  order, instead of the longest, so the claims no longer depend on the order
+  of the table. A new test shuffles a 24-study table five times and requires
+  at least 90% of claims to keep the same studies, direction and population.
+  Two tests that expected a merge of opposite claims now expect them kept
+  apart.
+
 ## Checking the search, the files and the screening
 
 * New `gr_search_recall(records, known, tier, held_out)` measures a search

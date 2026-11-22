@@ -112,8 +112,18 @@
 #' What the reconcile pass cannot check is MEANING. A merged claim keeps one
 #' member's wording and the union of every member's studies, so if the model
 #' groups two claims that say different things, the studies behind one are
-#' listed as supporting the other's wording. Such a merge is not detectable by
-#' counting; the merged claim's `note` names every other wording it absorbed so
+#' listed as supporting the other's wording. Two such errors are refused by
+#' counting words: findings that point in opposite directions ("improves Y"
+#' and "does not improve Y", "lowers Y" and "raises Y"), read from their
+#' negations and words of decrease, and claims naming different populations
+#' (adults, children, adolescents, infants, older people, women, men,
+#' students), read from the claim and its scope, are kept apart whatever the
+#' reply grouped, with a warning (`gr_claims_kept_apart`) and a `note`. The
+#' words are English and the lists short, so a merge they do not catch is
+#' still possible. The merged claim takes the wording of the member most
+#' studies support, then the one fewest contradict, then the first in a
+#' fixed order, not the longest, so the result does not depend on
+#' the order of the table. Its `note` names every other wording it absorbed so
 #' that it can be seen, and a group mixing claims of different `kind` is warned
 #' about.
 #'
@@ -743,6 +753,32 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
     gr_msg(sprintf("%d claim(s) were not placed by the reconcile pass and kept their own group.",
                    length(missed)))
   }
+  # Claims that differ in direction or in population are different claims,
+  # whatever the reply grouped: "improves Y in adults" and "does not improve Y"
+  # or "improves Y in children" cannot share one wording. Enforced here, by
+  # counting words, since the prompt saying so did not stop a merge.
+  apart <- list()
+  parts <- lapply(clean, function(v) {
+    sp <- claim_split_group(claims, v)
+    if (length(sp) > 1L) apart[[length(apart) + 1L]] <<- sp
+    sp
+  })
+  clean <- unlist(parts, recursive = FALSE)
+  kept_apart <- rep(NA_character_, n)
+  for (sp in apart) {
+    for (k in seq_along(sp)) {
+      others <- unlist(sp[-k], use.names = FALSE)
+      kept_apart[sp[[k]]] <- sprintf("kept apart from %s: differs in direction or population",
+                                     paste(sprintf("'%s'", claims$claim[others]), collapse = "; "))
+    }
+  }
+  if (length(apart)) {
+    gr_warn(sprintf(paste0("The reconcile pass grouped claims that differ in direction or in ",
+                           "population; %d group(s) were split so that each says one thing. ",
+                           "Their `note` names the claims they were kept apart from."),
+                    length(apart)),
+            class = "gr_claims_kept_apart")
+  }
   # A finding, a method and a gap cannot "say the same thing"; a group mixing
   # them is the model grouping by topic, and the merged claim keeps one kind.
   mixed <- vapply(clean, function(v) length(unique(claims$kind[v])) > 1L, logical(1))
@@ -752,24 +788,27 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
                            "`note` names the wordings merged in."), sum(mixed)),
             class = "gr_claims_merged")
   }
+  norm <- function(s) lower_text(gsub("[[:space:]]+", " ", trimws(s)))
   merged <- lapply(clean, function(v) {
-    first <- claims[v[1], , drop = FALSE]
-    # The longest text, because a claim stated over more studies is usually
-    # stated more fully, and the support is the union either way.
-    keep <- which.max(nchar(claims$claim[v]))
-    first$claim <- claims$claim[v][keep]
+    # The wording of the member most studies support, not the longest: a
+    # longer sentence is not a better-supported one, and the longest wording
+    # depended on which batch a study fell in. Ties go to fewer contradicting
+    # studies, then to the wording first in a fixed order, so the choice does
+    # not depend on the order of the table or of the batches.
+    keep <- wording_pick(claims, v)
+    first <- claims[v[keep], , drop = FALSE]
     # Every other wording, so a merge can be read back. Without it one claim
     # absorbing an opposite one ("did not improve symptoms" taking in "improved
     # symptoms") left the first claim's studies supporting the second's words,
     # with nothing anywhere to show that a merge had happened.
-    norm <- function(s) lower_text(gsub("[[:space:]]+", " ", trimws(s)))
-    others <- unique(claims$claim[v][-keep])
+    others <- sort(unique(claims$claim[v][-keep]), method = "radix")
     others <- others[norm(others) != norm(first$claim)]
     absorbed <- if (length(others)) sprintf("merged with: %s", paste(sprintf(
       "'%s'", others), collapse = "; ")) else NULL
-    mods <- stats::na.omit(claims$moderator[v])
-    first$moderator <- if (length(mods)) mods[1] else NA_character_
-    sc <- stats::na.omit(claims$scope[v])
+    mods <- sort(unique(stats::na.omit(claims$moderator[v])), method = "radix")
+    first$moderator <- if (!is.na(claims$moderator[v[keep]])) claims$moderator[v[keep]] else
+      if (length(mods)) mods[1] else NA_character_
+    sc <- sort(unique(stats::na.omit(claims$scope[v])), method = "radix")
     first$scope <- if (length(sc)) sc[which.max(nchar(sc))] else NA_character_
     sup <- sort(unique(unlist(claims$.support[v], use.names = FALSE)))
     con <- sort(unique(unlist(claims$.contradict[v], use.names = FALSE)))
@@ -781,7 +820,7 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
     # has to be told, because this is exactly the kind of loss the claims layer
     # exists to make visible.
     flipped <- intersect(con, sup)
-    nts <- c(stats::na.omit(claims$note[v]), absorbed)
+    nts <- c(stats::na.omit(claims$note[v]), absorbed, stats::na.omit(kept_apart[v]))
     if (length(flipped)) {
       nts <- c(nts, sprintf(paste0("study %s contradicted a claim merged into this one; ",
                                    "kept as supporting"), paste(flipped, collapse = ", ")))
@@ -792,6 +831,94 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
     first
   })
   reindex_claims(do.call(rbind, merged))
+}
+
+#' Which member of a merge group gives the merged claim its wording: the one
+#' with the most supporting studies, then the fewest contradicting, then the
+#' first in a fixed order of the wordings. A position in `v`.
+#' @noRd
+wording_pick <- function(claims, v) {
+  sup <- lengths(claims$.support[v])
+  con <- lengths(claims$.contradict[v])
+  key <- lower_text(gsub("[[:space:]]+", " ", trimws(claims$claim[v])))
+  order(-sup, con, key, method = "radix")[1]
+}
+
+#' Words that turn a claim's direction: a negation, and a verb or comparative
+#' of decrease. A claim with an even number of them points up, an odd number
+#' down ("lowers mortality" down, "does not lower mortality" up).
+#' @noRd
+.gr_claim_negation <- paste0("\\b(?:not|no|never|without|neither|nor|none)\\b|n't\\b|",
+                             "\\bfail(?:s|ed)? to\\b")
+.gr_claim_down <- paste0("\\b(?:decreas|reduc|lower|less\\b|fewer|wors|declin|diminish|",
+                         "drop|fell\\b|fall|shorter|smaller|impair)")
+
+#' The direction a claim's text points: 1 or -1, read from its negations and
+#' its words of decrease (see `.gr_claim_negation`).
+#' @noRd
+claim_direction <- function(text) {
+  low <- lower_text(as.character(text))
+  count <- function(re) vapply(gregexpr(re, low, perl = TRUE),
+                               function(m) sum(m > 0L), integer(1))
+  ifelse((count(.gr_claim_negation) + count(.gr_claim_down)) %% 2L == 0L, 1L, -1L)
+}
+
+#' Populations a claim may be about, each with the stems that name it.
+#' @noRd
+.gr_claim_populations <- list(
+  children = "\\b(?:child|children|paediatric|pediatric|kids?|pupils?)\\b",
+  adolescents = "\\b(?:adolescen\\w*|teen\\w*|youth)\\b",
+  infants = "\\b(?:infants?|newborns?|neonat\\w*|toddlers?|babies|baby)\\b",
+  older = "\\b(?:older|elderly|aged \\d+|geriatric)\\b",
+  adults = "\\badults?\\b",
+  women = "\\b(?:women|woman|female|females|girls?|mothers?|pregnan\\w*)\\b",
+  men = "\\b(?:men|man|male|males|boys?|fathers?)\\b",
+  students = "\\b(?:students?|undergraduates?)\\b")
+
+#' The populations a claim's text and scope name, as the names of
+#' `.gr_claim_populations`, sorted. "older adults" is "older" and "adults".
+#' @noRd
+claim_population <- function(text) {
+  low <- lower_text(as.character(text))
+  lapply(low, function(x) {
+    if (is.na(x)) return(character(0))
+    names(.gr_claim_populations)[vapply(.gr_claim_populations, grepl, logical(1), x = x,
+                                        perl = TRUE)]
+  })
+}
+
+#' A reconcile group split so that no two members of a part differ in
+#' direction (between two findings) or in population (both naming one, and
+#' not the same). Members are placed in a fixed order of their wording, each
+#' into the first part it agrees with, so the split does not depend on the
+#' order of the table. Returns a list of the parts, as row numbers.
+#' @noRd
+claim_split_group <- function(claims, v) {
+  if (length(v) < 2L) return(list(v))
+  v <- v[order(lower_text(gsub("[[:space:]]+", " ", trimws(claims$claim[v]))),
+               lengths(claims$.support[v]), method = "radix")]
+  dir <- claim_direction(claims$claim[v])
+  pop <- claim_population(paste(claims$claim[v], ifelse(is.na(claims$scope[v]), "",
+                                                        claims$scope[v])))
+  finding <- claims$kind[v] == "finding"
+  agree <- function(i, j) {
+    if (finding[i] && finding[j] && dir[i] != dir[j]) return(FALSE)
+    if (length(pop[[i]]) && length(pop[[j]]) && !identical(pop[[i]], pop[[j]])) return(FALSE)
+    TRUE
+  }
+  parts <- list()
+  for (i in seq_along(v)) {
+    placed <- FALSE
+    for (k in seq_along(parts)) {
+      if (all(vapply(parts[[k]], agree, logical(1), j = i))) {
+        parts[[k]] <- c(parts[[k]], i)
+        placed <- TRUE
+        break
+      }
+    }
+    if (!placed) parts[[length(parts) + 1L]] <- i
+  }
+  lapply(parts, function(p) v[p])
 }
 
 #' @noRd

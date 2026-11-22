@@ -262,3 +262,106 @@ test_that("an undeclared moderator is exploratory, has no Holm p, and is marked 
   expect_match(html, "<h3>Moderators</h3>", fixed = TRUE)
   expect_match(html, "Was the moderator specified before the analysis", fixed = TRUE)
 })
+
+# --- P3-07: reconciliation keeps direction and population, and is order-free ---
+
+test_that("a reconcile merge keeps claims of opposite direction or other populations apart", {
+  rows <- function(texts, sup) {
+    out <- data.frame(claim = texts, kind = "finding", moderator = NA_character_,
+                      scope = NA_character_, note = NA_character_, stringsAsFactors = FALSE)
+    out$.support <- sup
+    out$.contradict <- rep(list(integer(0)), length(texts))
+    out
+  }
+  cl <- gr_mock_client(function(m, p) '{"groups":[[1,2,3,4]]}')
+  claims <- rows(c("Exercise improves mood in adults.", "Exercise improves mood in children.",
+                   "Exercise does not improve mood in adults.", "Exercise improves adult mood."),
+                 list(1L, 2L, 3L, 4:5))
+  got <- NULL
+  expect_warning(got <- suppressMessages(ns$claims_reconcile(claims, "Q?", cl,
+                                                             gr_read_spec("stuff"), gr_trace())),
+                 class = "gr_claims_kept_apart")
+  expect_identical(nrow(got), 3L)
+  sup <- lapply(got$.support, sort)
+  expect_true(list(c(1L, 4L, 5L)) %in% sup)
+  expect_true(list(2L) %in% sup)
+  expect_true(list(3L) %in% sup)
+  # The adults' merged claim takes the wording two studies support, not the
+  # longest one.
+  expect_identical(got$claim[vapply(sup, identical, logical(1), c(1L, 4L, 5L))],
+                   "Exercise improves adult mood.")
+  expect_identical(ns$claim_direction(c("It lowers mortality.", "It does not lower mortality.",
+                                        "It works.", "It failed to work.")),
+                   c(-1L, 1L, 1L, -1L))
+  expect_identical(ns$claim_population("Older adults and children"),
+                   list(c("children", "older", "adults")))
+})
+
+# A corpus of 24 studies whose claims split by population and by direction,
+# drawn in batches of 5 by a mock that writes one claim per population and
+# direction in its batch, wording it with the batch's count, and a reconcile
+# mock that groups every claim into one, by topic. Shuffling the table must
+# leave the claims matched: the same studies, direction and population.
+shuffle_corpus <- function() {
+  n <- 24L
+  data.frame(document = sprintf("doc%02d.pdf", seq_len(n)),
+             document_id = sprintf("id%02d", seq_len(n)), status = "ok",
+             duplicate_of = NA_character_, n_filled = 2L, n_unverified = 0L,
+             conflicts = NA_character_,
+             population = rep(c("adults", "children"), length.out = n),
+             effect = rep(c("improved", "improved", "no change"), length.out = n),
+             stringsAsFactors = FALSE)
+}
+
+shuffle_client <- function() {
+  gr_mock_client(function(messages, params) {
+    txt <- as.character(messages[[length(messages)]]$content)
+    if (identical(params$schema_name, "claim_groups")) {
+      n <- length(gregexpr("(?m)^[0-9]+\\. ", txt, perl = TRUE)[[1]])
+      return(sprintf('{"groups":[[%s]]}', paste(seq_len(n), collapse = ",")))
+    }
+    blocks <- strsplit(sub("^<studies>\\n", "", sub("\\n</studies>$", "", txt)), "\\n\\n")[[1]]
+    field <- function(b, f) sub(sprintf("^(?s).*\\n%s: ([^\\n]+).*$", f), "\\1", b, perl = TRUE)
+    ids <- as.integer(sub("^\\[study ([0-9]+)\\].*$", "\\1", blocks))
+    eff <- field(blocks, "effect")
+    pop <- field(blocks, "population")
+    key <- paste(eff, pop)
+    claims <- vapply(split(seq_along(ids), key), function(ix) {
+      verb <- if (eff[ix[1]] == "improved") "improved" else "did not improve"
+      sprintf(paste0('{"claim":"The intervention %s outcomes in %s, in %d studies of this ',
+                     'batch.","kind":"finding","supported_by":[%s],"contradicted_by":[],',
+                     '"moderator":null,"scope":null}'),
+              verb, pop[ix[1]], length(ix), paste(ids[ix], collapse = ","))
+    }, character(1))
+    sprintf('{"claims":[%s]}', paste(claims, collapse = ","))
+  })
+}
+
+claim_signatures <- function(cm) {
+  docs <- function(id) {
+    s <- cm$support$study[cm$support$claim_id == id & cm$support$role == "supports"]
+    paste(sort(cm$studies$document[match(s, cm$studies$study)]), collapse = "|")
+  }
+  vapply(seq_len(nrow(cm$claims)), function(i) {
+    paste(ns$claim_direction(cm$claims$claim[i]),
+          paste(ns$claim_population(cm$claims$claim[i])[[1]], collapse = "+"),
+          docs(cm$claims$claim_id[i]), sep = " / ")
+  }, character(1))
+}
+
+test_that("shuffling the table leaves at least 90% of claims matched", {
+  tab <- shuffle_corpus()
+  run <- function(t) suppressWarnings(suppressMessages(
+    gr_claims(t, question = "Does it work?", client = shuffle_client(), max_claim_tokens = 600L)))
+  base <- run(tab)
+  # Four claims: improved and not improved, in adults and in children, each
+  # with every study of its kind, though the reconcile reply grouped all.
+  expect_identical(nrow(base$claims), 4L)
+  sig <- claim_signatures(base)
+  for (seed in 1:5) {
+    set.seed(seed)
+    shuffled <- run(tab[sample(nrow(tab)), , drop = FALSE])
+    matched <- mean(sig %in% claim_signatures(shuffled))
+    expect_gte(matched, 0.9)
+  }
+})
