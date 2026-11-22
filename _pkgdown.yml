@@ -187,6 +187,7 @@ reference:
   contents:
   - hr_benchmark
   - hr_report
+  - hr_error_correlation
   - hr_mdd
   - hr_contrast
   - hr_drift_check

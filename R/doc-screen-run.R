@@ -41,7 +41,10 @@ read_screen <- function(chunks, question, client, spec, trace) {
     gr_abort("There is nothing to screen: the document has no chunks.",
              class = "gr_empty_chunks")
   }
+  per_criterion <- identical(as_chr1(spec[["criteria_schema"]], "decision"), "per_criterion")
   listing <- criteria_prompt(include, exclude)
+  if (per_criterion) listing <- paste0(listing, "\n\n", .gr_per_criterion_instruction)
+  schema <- if (per_criterion) screen_schema_per_criterion(include, exclude) else .gr_screen_schema
   # "never": the message list below carries the question once.
   overhead <- prompt_overhead(paste(question, listing), .gr_prompts$screen_system, "never")
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
@@ -84,7 +87,7 @@ read_screen <- function(chunks, question, client, spec, trace) {
 
   # Checked by the governor, as every request is. A request a limit stopped was
   # not sent, so it is not a failed call; gr_read() names the limit.
-  out <- gr_call_json(client, list(
+  messages <- list(
     list(role = "system", content = .gr_prompts$screen_system),
     list(role = "user", content = paste0("Review question: ", question)),
     list(role = "user", content = listing),
@@ -93,42 +96,79 @@ read_screen <- function(chunks, question, client, spec, trace) {
       if (truncated) paste0("\n\n(This is the opening ", seen_tokens, " of about ",
                             sum(d$tokens), " tokens. If the excerpt does not settle the ",
                             "decision, answer 'unclear'.)") else ""))
-  ), schema = .gr_screen_schema, schema_name = "screening",
-     model = spec$model, max_output = spec$max_answer_tokens,
-     temperature = spec$temperature, trace = trace, label = "screen.decide",
-     effort = spec$effort)
-  capped <- is_refused(out$result)
+  )
+  # One request, or under `samples` above 1, that many draws of it (each its
+  # own draw_index, so a cache keeps them apart). At one sample the request
+  # is the one screening always sent.
+  n_samples <- max(1L, as_int1(spec[["samples"]], 1L))
+  # An index given to a call overrides the one hr_benchmark() puts on each
+  # run's trace, so draws 1 to n alone sent every run of a benchmark the same
+  # requests: a cache answered run 2 with run 1's replies. Run r sends draws
+  # (r - 1) * n + 1 to r * n; outside a benchmark (no index), 1 to n.
+  run <- if (inherits(trace, "gr_trace")) {
+    as_int1(get0("draw_index", envir = trace, inherits = FALSE), 0L)
+  } else 0L
+  if (is.na(run) || run < 1L) run <- 0L
+  first_draw <- if (run > 0L) (run - 1L) * n_samples else 0L
+  ask <- function(k) gr_call_json(client, messages, schema = schema, schema_name = "screening",
+                                  model = spec$model, max_output = spec$max_answer_tokens,
+                                  temperature = spec$temperature, trace = trace,
+                                  label = "screen.decide", effort = spec$effort,
+                                  draw_index = k)
+  # What one reply decides, held to the protocol.
+  judge <- function(out) {
+    capped <- is_refused(out$result)
 
-  v <- if (isTRUE(out$ok)) out$value else list()
-  failed <- !isTRUE(out$ok) && !capped
-  # No reply that could be read, no decision: NA, not "unclear". "Unclear" is a
-  # judgement the model made about an excerpt it read, and gr_flow() and
-  # gr_calibrate() count it as one. A provider outage recorded that way showed
-  # every document as a model deferral and none as unread.
-  # json_field(): `$` partial-matches, so a reply carrying `decisions` satisfied
-  # a read of `decision` and a real "include" was recorded from a key the schema
-  # never defined.
-  decision <- if (isTRUE(out$ok)) screen_decision(json_field(v, "decision")) else NA_character_
-  # Held to the protocol. The criterion used to be recorded as whatever the
-  # model wrote, so an adult trial excluded as "Conducted outside Europe" --
-  # a criterion no protocol listed -- left the review with nothing to say it
-  # happened, and the flow diagram gained a category nobody fixed in advance.
-  # An exclusion has to name one of the protocol's criteria; one that names
-  # another, or none, goes to a person as "unclear".
-  crit <- screen_criterion(decision, as_chr1(json_text(v, "criterion"), NA_character_),
-                           include, exclude)
-  reason <- as_chr1(json_text(v, "reason"), NA_character_)
-  if (crit$downgraded) reason <- downgrade_reason(crit$criterion, reason)
-  decision <- crit$decision
-  # Said in the notes, where partial_reasons() and gr_read_many() look. A reply
-  # that arrived but was not the JSON asked for has no transport error of its own.
-  error <- if (!failed) NA_character_ else {
-    res <- out$result
-    if (!is.null(res) && !isTRUE(res$ok)) as_chr1(res$error, "the request failed")
-    else paste0("the reply was not the JSON object the screening schema asks for",
-                if (length(out$problem)) sprintf(" (%s)", out$problem) else "")
+    v <- if (isTRUE(out$ok)) out$value else list()
+    failed <- !isTRUE(out$ok) && !capped
+    # No reply that could be read, no decision: NA, not "unclear". "Unclear" is a
+    # judgement the model made about an excerpt it read, and gr_flow() and
+    # gr_calibrate() count it as one. A provider outage recorded that way showed
+    # every document as a model deferral and none as unread.
+    # json_field(): `$` partial-matches, so a reply carrying `decisions` satisfied
+    # a read of `decision` and a real "include" was recorded from a key the schema
+    # never defined.
+    decision <- if (isTRUE(out$ok)) screen_decision(json_field(v, "decision")) else NA_character_
+    # Held to the protocol. The criterion used to be recorded as whatever the
+    # model wrote, so an adult trial excluded as "Conducted outside Europe" --
+    # a criterion no protocol listed -- left the review with nothing to say it
+    # happened, and the flow diagram gained a category nobody fixed in advance.
+    # An exclusion has to name one of the protocol's criteria; one that names
+    # another, or none, goes to a person as "unclear".
+    crit <- screen_criterion(decision, as_chr1(json_text(v, "criterion"), NA_character_),
+                             include, exclude)
+    reason <- as_chr1(json_text(v, "reason"), NA_character_)
+    if (crit$downgraded) reason <- downgrade_reason(crit$criterion, reason)
+    decision <- crit$decision
+    # criteria_schema = "per_criterion": each criterion's status, and an
+    # exclusion only where one of them shows it.
+    status <- NULL
+    if (per_criterion && isTRUE(out$ok)) {
+      status <- criteria_statuses(json_field(v, "criteria", scalar = FALSE), include, exclude)
+      if (identical(decision, "exclude") && !status_excludes(status, include, exclude)) {
+        decision <- "unclear"
+        reason <- per_criterion_reason(status, reason)
+      }
+    }
+    # Said in the notes, where partial_reasons() and gr_read_many() look. A reply
+    # that arrived but was not the JSON asked for has no transport error of its own.
+    error <- if (!failed) NA_character_ else {
+      res <- out$result
+      if (!is.null(res) && !isTRUE(res$ok)) as_chr1(res$error, "the request failed")
+      else paste0("the reply was not the JSON object the screening schema asks for",
+                  if (length(out$problem)) sprintf(" (%s)", out$problem) else "")
+    }
+    quote <- as_chr1(json_text(v, "quote"), "")
+    list(ok = isTRUE(out$ok), capped = capped, failed = failed, decision = decision,
+         reason = reason, criterion = crit$criterion, valid = crit$valid, error = error,
+         quote = quote, status = status)
   }
-  quote <- as_chr1(json_text(v, "quote"), "")
+  j <- if (n_samples == 1L) judge(ask(0L)) else
+    combine_draws(lapply(first_draw + seq_len(n_samples), function(k) judge(ask(k))),
+                  as_chr1(spec[["sample_rule"]], "include_if_any"))
+  capped <- j$capped; failed <- j$failed; decision <- j$decision; reason <- j$reason
+  error <- j$error; quote <- j$quote; status <- j$status
+  crit <- list(criterion = j$criterion, valid = j$valid)
   # Checked against the document's words, not a model's. A segmenter that puts
   # model-written text into `text` (a contextual header, propositions it
   # rewrote) keeps the original in `source_text`; NA, or no such column, means
@@ -149,15 +189,60 @@ read_screen <- function(chunks, question, client, spec, trace) {
              # right answer and a broken one in the same bucket. Nor is
              # truncation, which is recorded in its own columns because
              # title-and-abstract screening is a method, not a defect.
-             partial = !isTRUE(out$ok),
-             notes = list(decision = decision,
-                          reason = reason,
-                          criterion = crit$criterion,
-                          criterion_valid = crit$valid,
-                          seen_tokens = seen_tokens,
-                          document_tokens = as.integer(sum(d$tokens)),
-                          truncated = truncated,
-                          failed_call = failed, error = error))
+             partial = !isTRUE(j$ok),
+             notes = c(list(decision = decision,
+                            reason = reason,
+                            criterion = crit$criterion,
+                            criterion_valid = crit$valid,
+                            seen_tokens = seen_tokens,
+                            document_tokens = as.integer(sum(d$tokens)),
+                            truncated = truncated,
+                            failed_call = failed, error = error),
+                       if (!is.null(status)) list(criteria_status = status),
+                       j$draws))
+}
+
+#' One decision from several screening draws, under `samples` above 1.
+#'
+#' `rule = "include_if_any"`: include when any draw that was read included;
+#' exclude only when every draw was read and excluded; otherwise unclear, for
+#' a person. A document one draw would include is never lost to the others.
+#' `rule = "majority"`: the decision most draws that were read gave, unclear
+#' on a tie. The reason, criterion and quote are those of the first draw that
+#' gave the decision kept; an unclear made from a split says so. With no
+#' draw read, the first draw is returned as it is (failed, or stopped at a
+#' limit). `draws` holds what the notes and the table record: the draws'
+#' decisions and the share of draws read that included.
+#' @noRd
+combine_draws <- function(js, rule = "include_if_any") {
+  read <- Filter(function(j) isTRUE(j$ok), js)
+  dec <- vapply(read, function(j) as_chr1(j$decision, NA_character_), character(1))
+  draws <- list(samples = length(js), sample_rule = rule,
+                sample_decisions = paste(vapply(js, function(j)
+                  if (isTRUE(j$ok)) as_chr1(j$decision, "none") else "none", character(1)),
+                  collapse = ", "),
+                include_share = if (length(dec)) mean(dec %in% "include") else NA_real_)
+  if (!length(read)) return(c(js[[1]], list(draws = draws)))
+  pick <- if (identical(rule, "majority")) {
+    tab <- table(factor(dec, levels = c("include", "exclude", "unclear")))
+    top <- names(tab)[tab == max(tab)]
+    if (length(top) == 1L) top else "unclear"
+  } else if (any(dec %in% "include")) "include"
+    else if (length(read) == length(js) && all(dec %in% "exclude")) "exclude"
+    else "unclear"
+  first <- read[dec %in% pick]
+  out <- if (length(first)) first[[1]] else read[[1]]
+  if (!length(first)) {
+    out$decision <- "unclear"
+    out$reason <- sprintf(paste0("The %d screening draws did not settle it (%s), so a person ",
+                                 "should decide."), length(js), draws$sample_decisions)
+    out$criterion <- NA_character_
+    out$valid <- NA
+  }
+  out$capped <- FALSE
+  out$failed <- FALSE
+  out$error <- NA_character_
+  c(out, list(draws = draws))
 }
 
 #' Decide which documents a review should read
@@ -186,6 +271,33 @@ read_screen <- function(chunks, question, client, spec, trace) {
 #'   cap too small to show any of the document at all fails the document, with
 #'   an `error` naming `screen_tokens`. Either way the `truncated` and
 #'   `seen_tokens` columns say what was actually read.
+#' @param criteria_schema What each screening reply holds. `"decision"` (the
+#'   default) asks for a decision, a reason, the deciding criterion and a
+#'   quote, as before. `"per_criterion"` also asks, for every criterion,
+#'   whether the excerpt shows it `"met"`, `"not_met"` or `"not_reported"`,
+#'   and adds a `criteria_status` column to the table (`"criterion: status"`
+#'   pairs, separated by `"; "`). An exclusion then needs an inclusion
+#'   criterion `"not_met"` or an exclusion criterion `"met"`: a reply that
+#'   excludes with none of either, as when a criterion is not reported and
+#'   none is not met, is recorded as `"unclear"`, for a person to decide,
+#'   with a reason that says so. It changes the request (the schema and the
+#'   criteria message). Untested.
+#' @param samples How many times each document's screening request is sent,
+#'   from 1 to 20. At 1 (the default) it is sent once, as before. Above 1 it
+#'   is sent that many times, each a separate draw (a cache keeps each), and
+#'   the draws are combined by `sample_rule`; the table gains
+#'   `sample_decisions` (each draw's decision, `"none"` for one not read) and
+#'   `include_share` (the share of draws read that included). It multiplies
+#'   the screening requests by `samples`. In run r of [hr_benchmark()] the
+#'   draws are numbered (r - 1) * samples + 1 to r * samples, so each run
+#'   sends its own draws. Untested.
+#' @param sample_rule How draws are combined when `samples` is above 1.
+#'   `"include_if_any"` (the default) includes a document any draw included,
+#'   excludes one only when every draw was read and excluded it, and sends
+#'   the rest to a person as `"unclear"`, so a study one draw would keep is
+#'   not lost to the others. `"majority"` takes the decision most draws gave,
+#'   `"unclear"` on a tie. The reason, criterion and quote are the first draw's
+#'   that gave the decision kept. Untested.
 #' @param ... Recipe overrides, as in [gr_extract()].
 #'
 #' @return An object of class `gr_screening`:
@@ -275,7 +387,15 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
                       screen_tokens = NULL, on_error = c("continue", "stop"),
                       max_total_usd = NULL, max_total_calls = NULL,
                       keep_answers = FALSE, recursive = FALSE, trace = NULL,
-                      ...) {
+                      criteria_schema = c("decision", "per_criterion"), samples = 1L,
+                      sample_rule = c("include_if_any", "majority"), ...) {
+  criteria_schema <- match.arg(criteria_schema)
+  sample_rule <- match.arg(sample_rule)
+  if (!is.numeric(samples) || length(samples) != 1L || is.na(samples) || samples < 1 ||
+      samples > 20 || samples != round(samples)) {
+    gr_abort("`samples` must be a whole number from 1 to 20.", class = "gr_bad_setting")
+  }
+  samples <- as.integer(samples)
   if (!is.null(protocol)) {
     if (!inherits(protocol, "gr_protocol")) {
       gr_abort("`protocol` must come from gr_protocol().", class = "gr_bad_protocol")
@@ -304,6 +424,12 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
   rd$include <- include
   rd$exclude <- exclude
   rd$screen_tokens <- screen_tokens
+  # Only when not the default, so a default screening keeps its store keys.
+  if (!identical(criteria_schema, "decision")) rd$criteria_schema <- criteria_schema
+  if (samples > 1L) {
+    rd$samples <- samples
+    rd$sample_rule <- sample_rule
+  }
   rec <- gr_recipe(paste0(base$name, "+screen"), ingest = base$ingest,
                    segment = base$segment, read = rd)
 
@@ -316,7 +442,9 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
   docs <- out$summary$document
   answers <- out$answers[docs]
   names(answers) <- docs
-  tab <- screening_table(docs, answers, out$summary, include, exclude)
+  tab <- screening_table(docs, answers, out$summary, include, exclude,
+                         criteria_status = identical(criteria_schema, "per_criterion"),
+                         draws = samples > 1L)
   sets <- screening_sets(tab, out$sources)
 
   structure(list(
@@ -374,6 +502,74 @@ screening_sets <- function(tab, sources) {
     quote = list(type = c("string", "null"),
                  description = paste0("The sentence in the excerpt that decided it, copied ",
                                       "verbatim, or null if none does."))))
+
+#' What criteria_schema = "per_criterion" adds to the criteria message.
+#' @noRd
+.gr_per_criterion_instruction <- paste0(
+  "For every criterion above, report in `criteria` whether the excerpt shows the document ",
+  "meets it ('met'), shows it does not ('not_met'), or does not say ('not_reported'). ",
+  "Answer 'exclude' only if an inclusion criterion is 'not_met' or an exclusion criterion ",
+  "is 'met'. A criterion the excerpt does not report is not a reason to exclude.")
+
+#' The screening schema under criteria_schema = "per_criterion": the default
+#' one, plus `criteria`, one entry per criterion with its status.
+#' @noRd
+screen_schema_per_criterion <- function(include, exclude) {
+  sch <- .gr_screen_schema
+  sch$required <- c(sch$required, list("criteria"))
+  sch$properties$criteria <- list(
+    type = "array",
+    description = "Every criterion listed, each with what the excerpt shows about it.",
+    items = list(
+      type = "object", additionalProperties = FALSE,
+      required = list("criterion", "status"),
+      properties = list(
+        criterion = list(type = "string",
+                         description = "The criterion, copied from the list above."),
+        status = list(type = "string", enum = list("met", "not_met", "not_reported")))))
+  sch
+}
+
+#' Each criterion's status from a per-criterion reply, in the protocol's
+#' order and words: "met", "not_met" or "not_reported". A criterion the reply
+#' left out, named in other words or gave no status it could read is
+#' "not_reported": nothing was shown about it.
+#' @noRd
+criteria_statuses <- function(x, include, exclude) {
+  listed <- c(as.character(include), as.character(exclude))
+  out <- stats::setNames(rep("not_reported", length(listed)), listed)
+  rows <- if (is.data.frame(x)) lapply(seq_len(nrow(x)), function(i) as.list(x[i, , drop = FALSE]))
+          else if (is.list(x)) x else list()
+  keys <- criterion_key(listed)
+  for (r in rows) {
+    if (!is.list(r)) next
+    at <- match(criterion_key(as_chr1(r[["criterion"]], "")), keys)
+    st <- lower_text(trimws(as_chr1(r[["status"]], "")))
+    if (!is.na(at) && st %in% c("met", "not_met", "not_reported")) out[[at]] <- st
+  }
+  out
+}
+
+#' Whether per-criterion statuses show an exclusion: an inclusion criterion
+#' not met, or an exclusion criterion met. A reply whose criteria are met or
+#' not reported, with none not met, cannot be an exclusion.
+#' @noRd
+status_excludes <- function(status, include, exclude) {
+  any(status[as.character(include)] %in% "not_met") ||
+    any(status[as.character(exclude)] %in% "met")
+}
+
+#' The reason recorded for an exclusion its own per-criterion statuses do not
+#' show.
+#' @noRd
+per_criterion_reason <- function(status, reason) {
+  unrep <- names(status)[status == "not_reported"]
+  sprintf(paste0("Not excluded: the model excluded it, but reported no inclusion criterion ",
+                 "not met and no exclusion criterion met%s, so a person should decide. ",
+                 "Its reason: %s"),
+          if (length(unrep)) sprintf(" (not reported: %s)", paste(unrep, collapse = "; ")) else "",
+          ifelse(is.na(reason), "none given", reason))
+}
 
 #' @noRd
 criteria_prompt <- function(include, exclude) {

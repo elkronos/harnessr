@@ -640,14 +640,30 @@ audit_extraction <- function(extraction) {
   if (is.null(extraction)) return(NULL)
   t <- extraction$table
   drop <- c("document_id", "duplicate_of", "conflicts")
+  # The columns agreement_columns = TRUE adds say how a document agreed with
+  # itself, not what it reported: a conflict is flagged, as n_unverified is,
+  # and the sentence above the table says what the pair is.
+  pairs <- agreement_pair_columns(names(t))
+  conflict_cols <- pairs[endsWith(pairs, "_conflict")]
+  flags <- list(n_unverified = function(v) !is.na(v) & v > 0,
+                status = function(v) !v %in% c("ok", "restored", "duplicate"))
+  for (cc in conflict_cols) flags[[cc]] <- function(v) !is.na(v) & as.logical(v)
   c("<h2>What was extracted</h2>",
+    if (length(pairs)) paste0(
+      "<p class='sub'>Each <code>_agreement</code> column is not a field: it gives how many ",
+      "of the chunks that reported the field gave the value most of them gave, of all that ",
+      "reported it, and the <code>_conflict</code> column beside it is TRUE when the chunks ",
+      "disagreed.</p>"),
     html_table(t[, setdiff(names(t), drop), drop = FALSE],
                numeric_cols = intersect(c("n_filled", "n_unverified"), names(t)),
-               flag = list(n_unverified = function(v) !is.na(v) & v > 0,
-                           status = function(v) !v %in% c("ok", "restored", "duplicate"))),
+               flag = flags),
     if (any(!is.na(t$conflicts))) c(
       "<p class='sub'><strong>Documents that contradicted themselves.</strong> The field is named;",
-      "the value kept is the earlier one unless <code>resolve = \"model\"</code> was set.</p>",
+      paste0("The value kept is the earlier one under <code>resolve = \"first\"</code> (the ",
+             "default), the one most chunks gave under <code>resolve = \"vote\"</code> (the ",
+             "earlier of a tie), and the one a further call chose under ",
+             "<code>resolve = \"model\"</code>, or the earlier one when that call did not ",
+             "settle it.</p>"),
       html_table(t[!is.na(t$conflicts), c("document", "conflicts"), drop = FALSE])))
 }
 

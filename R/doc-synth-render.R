@@ -10,7 +10,11 @@
 study_fields <- function(used, hide = character(0)) {
   meta <- c("document", "document_id", "status", "duplicate_of", "error",
             "n_filled", "n_unverified", "conflicts", "study")
-  setdiff(names(used), c(meta, hide))
+  # The columns gr_extract(agreement_columns = TRUE) adds describe how the
+  # document agreed with itself, not the study: a field's pair is left out
+  # when both are there beside the field.
+  nms <- names(used)
+  setdiff(nms, c(meta, hide, agreement_pair_columns(nms)))
 }
 
 #' The table as text the model can cite.

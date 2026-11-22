@@ -32,11 +32,18 @@ seg_semantic <- function(doc, spec, client, trace) {
   if (identical(src, "lexical")) {
     gr_msg("Semantic segmentation is running on lexical fallback vectors, so boundaries reflect word overlap, not meaning.")
   }
-  d <- vapply(seq_len(nrow(emb) - 1L), function(i)
-    1 - cosine_similarity(emb[i, ], emb[i + 1L, ]), numeric(1))
-  pct <- spec$semantic_percentile %||% 90
-  thresh <- stats::quantile(d, pct / 100, names = FALSE)
-  cut_after <- which(d >= thresh)
+  rule <- as_chr1(spec[["semantic_threshold"]], "percentile")
+  if (identical(rule, "texttiling")) {
+    tt <- texttiling_cuts(emb, win)
+    cut_after <- tt$cut_after
+    thresh <- tt$cutoff
+  } else {
+    d <- vapply(seq_len(nrow(emb) - 1L), function(i)
+      1 - cosine_similarity(emb[i, ], emb[i + 1L, ]), numeric(1))
+    pct <- spec$semantic_percentile %||% 90
+    thresh <- stats::quantile(d, pct / 100, names = FALSE)
+    cut_after <- which(d >= thresh)
+  }
 
   starts <- c(1L, cut_after + 1L)
   ends <- c(cut_after, length(units))
@@ -60,15 +67,62 @@ seg_semantic <- function(doc, spec, client, trace) {
   # Respect the hard cap and the minimum: semantic boundaries decide *where*,
   # the packer decides *how much*.
   packed <- pack_units(pieces, spec$max_tokens, spec$overlap_tokens, spec$min_tokens,
-                       joiner = " ", meta = pmeta)
+                       joiner = " ", meta = pmeta,
+                       balanced = pack_balanced(spec), runt_forward = pack_runt_forward(spec))
   trace_note(trace, "segment.semantic",
-             list(units = length(units), boundaries = length(cut_after),
-                  threshold = round(thresh, 4), embedding_source = src))
-  out <- new_chunks(packed$text, "semantic", spec,
+             c(list(units = length(units), boundaries = length(cut_after),
+                    threshold = round(thresh, 4), embedding_source = src),
+               if (identical(rule, "texttiling")) list(rule = rule)))
+  # On lexical vectors the boundaries follow word overlap, not meaning, and
+  # the method says so, as "semantic->paragraph" does for its fallback. A
+  # label only: the requests and the chunks are what they were.
+  out <- new_chunks(packed$text, if (identical(src, "lexical")) "semantic->lexical" else "semantic",
+                    spec,
                     page = packed$meta$page %||% NA_integer_,
                     section = packed$meta$section %||% NA_character_,
                     block_id = packed$meta$block_id %||% NA_integer_)
   out$extra <- list(boundaries = length(cut_after), embedding_source = src,
                     distance_threshold = thresh)
   out
+}
+
+#' Boundaries by TextTiling's depth score (Hearst 1997), for
+#' semantic_threshold = "texttiling".
+#'
+#' `emb` holds one row per sentence unit: the embedding of the `win` units
+#' ending at it. The similarity at the gap after unit i is the cosine between
+#' the block of units ending at i and the block ending at i + win, which are
+#' the `win` units on each side of the gap: Hearst's block comparison, from
+#' the same vectors. Only gaps with a full block on each side are scored.
+#' A gap's depth is how far its similarity sits below the highest point
+#' reached climbing left from it, plus the same to the right. A gap is cut
+#' when it is a valley (lower than its scored neighbours), its depth exceeds
+#' Hearst's cutoff, the mean of the depths less half their standard
+#' deviation, and its depth exceeds the spread of the similarities (largest
+#' less smallest). The last test is not Hearst's: his cutoff is relative, so
+#' it cuts a text on a single topic as often as one on many.
+#' @return `list(cut_after, cutoff, similarity, depth)`; `cut_after` are unit
+#'   indices, as the percentile rule gives them.
+#' @noRd
+texttiling_cuts <- function(emb, win) {
+  n <- nrow(emb)
+  gaps <- seq_len(n - 1L)
+  gaps <- gaps[gaps >= win & gaps + win <= n]
+  none <- list(cut_after = integer(0), cutoff = NA_real_, similarity = numeric(0),
+               depth = numeric(0))
+  if (length(gaps) < 3L) return(none)
+  s <- vapply(gaps, function(i) cosine_similarity(emb[i, ], emb[i + win, ]), numeric(1))
+  k <- length(s)
+  depth <- vapply(seq_len(k), function(i) {
+    l <- s[i]; j <- i
+    while (j > 1L && s[j - 1L] >= l) { l <- s[j - 1L]; j <- j - 1L }
+    r <- s[i]; j <- i
+    while (j < k && s[j + 1L] >= r) { r <- s[j + 1L]; j <- j + 1L }
+    (l - s[i]) + (r - s[i])
+  }, numeric(1))
+  valley <- c(FALSE, s[-c(1L, k)] < s[-c(k - 1L, k)] & s[-c(1L, k)] <= s[-c(1L, 2L)], FALSE)
+  cutoff <- mean(depth) - stats::sd(depth) / 2
+  spread <- max(s) - min(s)
+  cut <- valley & depth > cutoff & depth > spread
+  list(cut_after = as.integer(gaps[cut]), cutoff = cutoff, similarity = s, depth = depth)
 }

@@ -142,18 +142,28 @@ seg_contextual <- function(doc, spec, client, trace) {
                                    "segment.contextual.document", trace,
                                    marker = "")$text
     sys_prompt <- "You situate an excerpt within its source document. Reply with one sentence, no preamble."
-    ask <- function(excerpt) paste0(
-      "<document>\n", doc_summary, "\n</document>\n\n<excerpt>\n", excerpt,
+    # Each excerpt's place in the document's headings, "Methods > Participants",
+    # so the model can place an excerpt that lies beyond the opening it is
+    # shown. A chunk that spans sections is sent without one.
+    paths <- chunk_section_paths(doc$blocks, d$section)
+    ask <- function(excerpt, path = "") paste0(
+      "<document>\n", doc_summary, "\n</document>\n\n",
+      if (nzchar(path)) paste0("<section_path>", path, "</section_path>\n\n") else "",
+      "<excerpt>\n", excerpt,
       "\n</excerpt>\n\nIn one sentence, say what this excerpt is about and where it fits in the document.")
     # The longest excerpt with its reply at the cap: what gr_lapply() holds a
     # parallel batch to, since the workers cannot see what the run spends.
-    worst <- seg_call_usd(client, sum(gr_count_tokens(c(sys_prompt, ask("")))) + max(d$tokens),
-                          reply_cap)
+    worst <- seg_call_usd(client, sum(gr_count_tokens(c(sys_prompt,
+                                                        ask("", paths[which.max(nchar(paths))])))) +
+                            max(d$tokens), reply_cap)
+    # The declared cost: one request per chunk, never more.
+    extra$cost <- segmenter_cost("contextual", spec, nrow(d))
+    trace_note(trace, "segment.cost", c(list(method = "contextual"), extra$cost))
     mark <- seg_trace_mark(trace)
     res <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
       r <- gr_call(client, list(
         list(role = "system", content = sys_prompt),
-        list(role = "user", content = ask(d$text[i]))
+        list(role = "user", content = ask(d$text[i], paths[i]))
       ), max_output = reply_cap, trace = trace, label = "segment.context",
          effort = spec$effort)
       if (is_refused(r)) return(list(text = "", why = "limit"))
@@ -248,23 +258,42 @@ seg_proposition <- function(doc, spec, client, trace) {
   # removed a tenth of the document from everything downstream; only a run in
   # which EVERY batch failed noticed, by falling back to sentences. A segmenter
   # must never lose text.
-  keep <- function(i) list(p = batches$text[i], kept = TRUE)
+  keep <- function(i, dropped = 0L) list(p = batches$text[i], kept = TRUE, dropped = dropped)
   sys_prompt <- paste0(
     "Decompose text into standalone propositions. Each proposition must be a single ",
     "self-contained factual statement: resolve every pronoun and abbreviation to the ",
     "entity it refers to, keep all numbers, dates and units verbatim, and add nothing ",
     "that is not stated in the text.")
+  # The end of the batch before each one, so a pronoun or a heading's subject
+  # that the batch takes from the text before it can be resolved. Taken from
+  # the document, not from the previous reply, so the batches still run
+  # independently, in parallel if asked.
+  # Off at proposition_context_tokens = 0, the default: each batch is sent
+  # alone, as before.
+  ctx_tokens <- as_int1(spec[["proposition_context_tokens"]], 0L)
+  context <- if (ctx_tokens > 0L) {
+    c("", vapply(batches$text[-length(batches$text)], function(x) tail_by_tokens(x, ctx_tokens),
+                 character(1), USE.NAMES = FALSE))
+  } else rep("", length(batches$text))
+  ask <- function(i) {
+    if (!nzchar(context[i])) return(batches$text[i])
+    paste0("<context>\n", context[i], "\n</context>\n\n<text>\n", batches$text[i],
+           "\n</text>\n\nDecompose only the text. Use the context, which comes just before it ",
+           "in the document, only to resolve what the text refers to.")
+  }
   prop_cap <- as_int1(spec$proposition_reply_tokens, 2000L)
+  drop_invented <- identical(as_chr1(spec[["proposition_check"]], "count"), "drop")
   # The largest batch with its reply at the cap: what gr_lapply() holds a
   # parallel batch to, since the workers cannot see what the run spends.
   worst <- seg_call_usd(client, gr_count_tokens(sys_prompt) +
-                          max(c(0L, gr_count_tokens(batches$text))), prop_cap)
+                          max(c(0L, gr_count_tokens(vapply(seq_along(batches$text), ask, "")))),
+                        prop_cap)
   mark <- seg_trace_mark(trace)
   res <- gr_lapply(seq_along(batches$text), function(i, trace) {
     # A request a limit refused keeps its batch as written, as a failed one does.
     out <- gr_call_json(client, list(
       list(role = "system", content = sys_prompt),
-      list(role = "user", content = batches$text[i])
+      list(role = "user", content = ask(i))
     ), schema = schema, schema_name = "propositions", trace = trace,
        label = "segment.proposition", max_output = prop_cap, effort = spec$effort)
     if (!out$ok) return(keep(i))
@@ -273,7 +302,15 @@ seg_proposition <- function(doc, spec, client, trace) {
     # (putting the literal R expression c("A.", "B.") into the document text).
     p <- prop_strings(json_field(out$value, "propositions", scalar = FALSE))
     p <- p[has_content(p)]
-    if (!length(p)) keep(i) else list(p = p, kept = FALSE)
+    # A proposition with no support in its batch was invented. It is counted,
+    # and under proposition_check = "drop" dropped; a batch left with none is
+    # then kept as written.
+    ok <- vapply(p, proposition_supported, logical(1), batch = batches$text[i],
+                 context = context[i], USE.NAMES = FALSE)
+    if (!drop_invented) return(list(p = p, kept = FALSE, dropped = 0L, unsupported = sum(!ok)))
+    dropped <- sum(!ok)
+    p <- p[ok]
+    if (!length(p)) keep(i, dropped) else list(p = p, kept = FALSE, dropped = dropped)
   }, parallel = spec$parallel, label = "proposition batch", trace = trace,
      client = client, item_usd = worst)
   # Every batch whose request failed is kept as written, or, when all of them
@@ -294,6 +331,13 @@ seg_proposition <- function(doc, spec, client, trace) {
                            "propositions."), sum(kept), length(kept)),
             class = "gr_segment_fallback")
   }
+  dropped <- vapply(res, function(r) as_int1(r$dropped, 0L), integer(1))
+  if (sum(dropped)) {
+    gr_warn(sprintf(paste0("%d proposition(s) were dropped as invented: nothing in the text ",
+                           "they were written from supports them (a number it does not give, ",
+                           "or words it mostly does not use)."), sum(dropped)),
+            class = "gr_proposition_dropped")
+  }
   props <- unlist(lapply(res, function(r) r$p), use.names = FALSE)
   # Which batch each proposition came from, so each chunk can name the
   # document text it was written from.
@@ -301,7 +345,14 @@ seg_proposition <- function(doc, spec, client, trace) {
   real <- has_content(props)
   props <- props[real]
   from <- from[real]
-  packed <- pack_units(props, spec$max_tokens, 0L, spec$min_tokens, joiner = "\n")
+  # Each proposition takes its batch's page and section, so the chunks carry
+  # them as every other segmenter's do.
+  bmeta <- batches$meta
+  pmeta <- if (is.data.frame(bmeta) && nrow(bmeta) == length(batches$text)) {
+    bmeta[from, c("page", "section"), drop = FALSE]
+  }
+  packed <- pack_units(props, spec$max_tokens, 0L, spec$min_tokens, joiner = "\n",
+                       meta = pmeta)
   # The propositions are the model's words, not the document's: a fact the
   # decomposing call added was checked against itself and verified, match 1.
   # `source_text` holds the batches each chunk's propositions came from, which
@@ -311,11 +362,86 @@ seg_proposition <- function(doc, spec, client, trace) {
     b <- seq(from[packed$span$first[k]], from[packed$span$last[k]])
     paste(batches$text[b], collapse = "\n\n")
   }, character(1))
-  out <- new_chunks(packed$text, "proposition", spec, source_text = source)
+  out <- new_chunks(packed$text, "proposition", spec, source_text = source,
+                    page = packed$meta$page %||% NA_integer_,
+                    section = packed$meta$section %||% NA_character_)
   # `propositions` counts propositions: a batch kept as written is a paragraph,
   # and counting it here reported a partly decomposed document as fully done.
   n_props <- sum(vapply(res[!kept], function(r) length(r$p), integer(1)))
   out$extra <- list(propositions = n_props, batches = length(batches$text),
-                    batches_kept_as_written = sum(kept))
+                    batches_kept_as_written = sum(kept),
+                    propositions_unsupported = sum(vapply(res, function(r)
+                      as_int1(r$unsupported, 0L), integer(1))) + sum(dropped),
+                    propositions_dropped = sum(dropped),
+                    cost = segmenter_cost("proposition", spec, length(batches$text)))
   out
+}
+
+#' Whether a proposition has support in the batch it was written from.
+#'
+#' Every number it states must be in the batch, and at least half of its
+#' words of three letters or more must be in the batch or the context it was
+#' sent with (a resolved pronoun names an entity the context may hold). A
+#' proposition that fails is one the model added, not one it rewrote: its
+#' figures, or most of its words, are not in the text.
+#'
+#' A number counts as in the batch when its digits are, or when its value is
+#' one the batch writes in another form (quote_numbers()): "1200" for
+#' "1,200", "12" for "twelve".
+#' @noRd
+proposition_supported <- function(p, batch, context = "") {
+  digits <- function(x) regmatches(x, gregexpr("[0-9]+", x))[[1]]
+  nums <- digits(p)
+  if (length(nums) && !all(nums %in% digits(batch))) {
+    vals <- abs(digit_numbers(fold_numerals(p)))
+    have <- quote_numbers(batch)
+    found <- vapply(vals, function(v) any(abs(have - v) <= 1e-9 * max(1, abs(v))),
+                    logical(1))
+    if (!length(vals) || !all(found)) return(FALSE)
+  }
+  w <- unique(lexical_terms(p, min_chars = 3L))
+  if (!length(w)) return(TRUE)
+  have <- unique(c(lexical_terms(batch, min_chars = 3L), lexical_terms(context, min_chars = 3L)))
+  mean(w %in% have) >= 0.5
+}
+
+#' The requests a model-calling segmenter declares: `calls` expected and
+#' `calls_max` at most, as a reader's cost function does. `contextual` makes
+#' one request per chunk under context_source = "llm" and none otherwise;
+#' `proposition` one per batch. `n` is the chunks, or the batches.
+#' @noRd
+segmenter_cost <- function(method, spec, n) {
+  n <- as.integer(n)
+  calls <- switch(method,
+                  contextual = if (identical(as_chr1(spec$context_source, "metadata"), "llm")) n
+                               else 0L,
+                  proposition = n,
+                  0L)
+  list(calls = calls, calls_max = calls)
+}
+
+#' Each chunk's section path, "Methods > Participants", from the document's
+#' headings: a Markdown heading's level is its number of #s, a numbered
+#' heading's ("2.1 Participants") its number of parts, any other heading's 1.
+#' A chunk with no section, or one that spans sections (NA), gets "".
+#' @noRd
+chunk_section_paths <- function(blocks, section) {
+  path_of <- character(0)
+  stack <- character(0)
+  is_head <- !is.na(blocks$kind) & blocks$kind == "heading"
+  for (i in which(is_head)) {
+    t <- trimws(blocks$text[i])
+    hashes <- regmatches(t, regexpr("^#{1,6}", t))
+    lvl <- if (length(hashes)) nchar(hashes) else {
+      num <- regmatches(t, regexpr("^[0-9]+(\\.[0-9]+)*", t))
+      if (length(num)) length(strsplit(num, ".", fixed = TRUE)[[1]]) else 1L
+    }
+    label <- trimws(sub("[ \t]+#+$", "", sub("^#{1,6}[ \t]*", "", t)))
+    stack <- c(utils::head(stack, lvl - 1L), label)
+    if (!label %in% names(path_of)) path_of[[label]] <- paste(stack, collapse = " > ")
+  }
+  vapply(section, function(s) {
+    if (is.na(s)) return("")
+    if (s %in% names(path_of)) path_of[[s]] else s
+  }, character(1), USE.NAMES = FALSE)
 }

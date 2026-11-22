@@ -78,7 +78,9 @@ seg_structural <- function(doc, spec, client, trace) {
     packed <- pack_units(b$text[body_idx],
                          max(spec$max_tokens - gr_count_tokens(prefix), 32L),
                          spec$overlap_tokens, spec$min_tokens,
-                         meta = b[body_idx, c("page", "section", "block_id"), drop = FALSE])
+                         meta = b[body_idx, c("page", "section", "block_id"), drop = FALSE],
+                         balanced = pack_balanced(spec),
+                         runt_forward = pack_runt_forward(spec))
     if (!length(packed$text)) next
     m <- packed$meta
     out <- c(out, paste0(prefix, packed$text))

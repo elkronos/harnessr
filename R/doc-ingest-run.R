@@ -31,6 +31,18 @@
 #' @param ocr_min_chars A page with fewer characters than this is treated as
 #'   needing OCR under `ocr = "auto"`. Zero or more; `Inf` marks every page.
 #'   Anything else warns and uses 40.
+#' @param ocr_trigger Under `ocr = "auto"`, which of a PDF page's text
+#'   `ocr_min_chars` is counted on. `"raw_text"` (the default) counts the
+#'   whole text layer, as before. `"after_running_lines"` counts what is left
+#'   once the running heads, feet and stamps that `layout = "auto"` drops are
+#'   taken out (with `layout_opts`), so a scanned page whose text layer holds
+#'   only a 60-character fax header or Bates stamp repeated on every page is
+#'   OCR-ed. Untested.
+#' @param ocr_confidence `TRUE` gives each block of a PDF page that OCR read
+#'   an `ocr_confidence` column: Tesseract's mean word confidence for the
+#'   page, from 0 to 100, from a second Tesseract pass over the page. `FALSE`
+#'   (the default) skips that pass, so OCR takes the time it did before, and
+#'   the blocks have no such column. Untested.
 #' @param min_chars Refuse the document if less than this much text survives.
 #' @param extractor Force a specific extractor name instead of dispatching on
 #'   the file extension.
@@ -99,7 +111,9 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
                            ocr_lang = "eng", ocr_dpi = 300, ocr_min_chars = 40L,
                            min_chars = 20L, extractor = NULL, parallel = NULL,
                            cleaner_opts = list(), layout = c("auto", "raw"),
-                           layout_opts = list()) {
+                           layout_opts = list(),
+                           ocr_trigger = c("raw_text", "after_running_lines"),
+                           ocr_confidence = FALSE) {
   p <- hr_validate(.gr_ingest_schema, mget(names(.gr_ingest_schema), environment()))
   spec <- structure(list(clean = p$clean, ocr = p$ocr, ocr_lang = p$ocr_lang,
                          ocr_dpi = p$ocr_dpi, ocr_min_chars = p$ocr_min_chars,
@@ -110,6 +124,9 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
   # Only when set, as `layout`: the spec is hashed into the document cache and
   # store keys.
   if (length(p$layout_opts)) spec$layout_opts <- p$layout_opts
+  # Only when set, for the same reason.
+  if (!identical(p$ocr_trigger, "raw_text")) spec$ocr_trigger <- p$ocr_trigger
+  if (isTRUE(p$ocr_confidence)) spec$ocr_confidence <- TRUE
   spec
 }
 
@@ -220,7 +237,17 @@ check_layout_opts <- function(x, p, params) {
            help = "Settings of the PDF running-head pass under layout = 'auto'.",
            evidence = ev_untested(paste0("Empty: the pass uses the values it was written with, ",
                                          "listed under `layout_opts`; none was tuned.")),
-           resolve = check_layout_opts)
+           resolve = check_layout_opts),
+  hr_param("ocr_trigger", "enum", choices = c("raw_text", "after_running_lines"),
+           tier = "advanced", depends_on = "ocr = \"auto\"",
+           help = "Which text of a PDF page ocr_min_chars is counted on under ocr = 'auto'.",
+           evidence = ev_untested(paste0("\"raw_text\" counts the whole text layer, as before; ",
+                                         "not compared with \"after_running_lines\"."))),
+  hr_param("ocr_confidence", "boolean", default = FALSE, tier = "advanced",
+           depends_on = "ocr = \"auto\" or \"always\"",
+           help = "Record Tesseract's confidence on a PDF page's OCR blocks (a second pass).",
+           evidence = ev_untested(paste0("FALSE: OCR runs one Tesseract pass per page, as ",
+                                         "before. Not compared with TRUE.")))
 )
 
 #' Ingest a document into cleaned, provenance-bearing text blocks
@@ -266,7 +293,11 @@ check_layout_opts <- function(x, p, params) {
 #'   dropped, and read again when next asked for.
 #' @param trace Optional `gr_trace`.
 #' @return A `gr_document`: a list with `blocks` (data frame), `text`, `source`,
-#'   `spec` and `stats`.
+#'   `spec` and `stats`. Each block carries `table_id` and `table_rows`: for a
+#'   row of a table (a block of kind `"table"`; each unbroken run of them is
+#'   one table), the table's number in the document and the rows of it the
+#'   block holds, as `"3"` or, for a Markdown table read as one block,
+#'   `"1-12"`; `NA` for any other block.
 #' @export
 #' @seealso [gr_ingest_spec()] for the options, [gr_cleaners()] for the step
 #'   names, [gr_extractors()] for the formats, [gr_document] for what comes
@@ -410,7 +441,14 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
     # Which blocks the Markdown extractor took a four-space indent off (see
     # extract_md()), read before as_blocks(), which keeps no attributes.
     indented <- attr(raw, "gr_indented", exact = TRUE)
+    # Tesseract's confidence per page, for the pages OCR read (extract_pdf()).
+    ocr_conf <- attr(raw, "gr_ocr_confidence", exact = TRUE)
     blocks <- as_blocks(raw)
+    if (is.numeric(ocr_conf) && length(ocr_conf)) {
+      pg <- suppressWarnings(as.integer(blocks$page))
+      at <- ifelse(!is.na(pg) & pg >= 1L & pg <= length(ocr_conf), pg, NA_integer_)
+      blocks$ocr_confidence <- ifelse(blocks$kind == "ocr", ocr_conf[at], NA_real_)
+    }
     blocks$text <- to_utf8(blocks$text)
     source_type <- as_chr1(ex$name, NA_character_)
     if (!is.logical(indented) || length(indented) != nrow(blocks)) indented <- NULL
@@ -458,6 +496,11 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
   }
 
   blocks$block_id <- seq_len(nrow(blocks))
+  # Which table each row of a table belongs to, and which row it is.
+  # Provenance only: no block's text changes.
+  tp <- table_provenance(blocks$kind, blocks$text)
+  blocks$table_id <- tp$table_id
+  blocks$table_rows <- tp$table_rows
   doc <- structure(list(
     blocks = blocks,
     text = mark_utf8(paste(blocks$text, collapse = "\n\n")),
@@ -585,4 +628,59 @@ ocr_threshold <- function(x, default = 40L) {
     return(default)
   }
   if (is.finite(n) && n <= .Machine$integer.max) as.integer(n) else n
+}
+
+#' Table provenance from the blocks' kinds.
+#'
+#' The extractors give a table as blocks of kind `"table"`: one block per row
+#' from Word and HTML, and one block holding every row of a pipe table from
+#' Markdown and text. Each unbroken run of table blocks is one table:
+#' `table_id` numbers the tables of the document in order, and `table_rows`
+#' gives the rows of its table a block holds, as "3" or "1-12", counting the
+#' table's first row as 1 and not counting a Markdown separator line
+#' (`|---|`). Both are `NA` for a block that is not part of a table. A table
+#' nested in a cell of another is read as rows after the row that holds it,
+#' so it counts as part of the table around it.
+#' @noRd
+table_provenance <- function(kind, text) {
+  is_tab <- !is.na(kind) & kind == "table"
+  n <- length(kind)
+  start <- is_tab & !c(FALSE, is_tab[-n])
+  id <- ifelse(is_tab, cumsum(start), NA_integer_)
+  rows <- rep(NA_character_, n)
+  for (t in unique(id[is_tab])) {
+    at <- which(id == t)
+    k <- vapply(text[at], function(x) length(table_lines(x)), integer(1), USE.NAMES = FALSE)
+    k <- pmax(k, 1L)
+    last <- cumsum(k); first <- last - k + 1L
+    rows[at] <- ifelse(first == last, as.character(first), paste0(first, "-", last))
+  }
+  list(table_id = as.integer(id), table_rows = rows)
+}
+
+#' The rows of a table block's text: its non-blank lines when every one of
+#' them has a cell divider ("|"), else the whole block as one row, with a Markdown
+#' separator line (`|---|:--:|`) joined to the row before it rather than
+#' counted as a row.
+#' @noRd
+table_lines <- function(x) {
+  l <- strsplit(as_chr1(x, ""), "\n", fixed = FALSE)[[1]]
+  l <- l[nzchar(trimws(l))]
+  # A row from Word or HTML whose cell held a line break is still one row:
+  # only a block whose every line has a cell divider is read as several.
+  if (length(l) < 2L || !all(grepl("|", l, fixed = TRUE))) {
+    return(if (length(l)) paste(l, collapse = "\n") else l)
+  }
+  sep <- grepl("^\\s*\\|?\\s*:?-{3,}:?\\s*(\\|\\s*:?-{3,}:?\\s*)*\\|?\\s*$", l, perl = TRUE)
+  sep[1] <- FALSE
+  grp <- cumsum(!sep)
+  vapply(split(l, grp), paste, character(1), collapse = "\n", USE.NAMES = FALSE)
+}
+
+#' A `table_rows` value as its first and last row.
+#' @noRd
+table_rows_range <- function(x) {
+  a <- suppressWarnings(as.integer(sub("-.*$", "", x)))
+  b <- suppressWarnings(as.integer(sub("^.*-", "", x)))
+  cbind(first = a, last = b)
 }

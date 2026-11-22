@@ -30,7 +30,8 @@
   hr_report = list(stage = "evaluate", inputs = c("bench", "registration")),
   hr_judge = list(stage = "evaluate", inputs = c("candidates", "client", "reference", "rubric",
                                                  "schema", "trace")),
-  gr_compare = list(stage = "evaluate", inputs = c("source", "question", "client", "correct"))
+  gr_compare = list(stage = "evaluate", inputs = c("source", "question", "client", "correct")),
+  hr_error_correlation = list(stage = "evaluate", inputs = "bench")
 )
 
 #' The arguments of those functions most runs set, as "function.argument".
@@ -66,7 +67,28 @@
   gr_screen_sample_size.conf = ev_untested(
     "The conventional 95% level; a choice, not a tuned value."),
   gr_extract.resolve = ev_untested(paste0(
-    "\"first\" costs nothing and records each disagreement; not compared with \"model\".")),
+    "\"first\" costs nothing and records each disagreement; not compared with \"model\" ",
+    "or \"vote\".")),
+  gr_screen.criteria_schema = ev_untested(paste0(
+    "\"decision\" is the reply screening was written with; not compared with ",
+    "\"per_criterion\".")),
+  gr_screen.samples = ev_untested("One request per document, as before; not compared."),
+  gr_screen.sample_rule = ev_untested(paste0(
+    "\"include_if_any\" so that no study one draw would keep is lost; not compared with ",
+    "\"majority\".")),
+  hr_error_correlation.strata = ev_untested(paste0(
+    "NULL: strata of difficulty read from the same runs; a rule, not a tuned value.")),
+  hr_error_correlation.seed = ev_untested(paste0(
+    "Any fixed seed makes the hand-check sample repeatable; the value itself is not tuned.")),
+  hr_error_correlation.n_strata = ev_untested(paste0(
+    "Three strata of difficulty, set when the metric was added; not compared.")),
+  hr_error_correlation.n_check = ev_untested(paste0(
+    "Ten items, a sample one person can read in a sitting; a choice, not a tuned value.")),
+  hr_error_correlation.held_out = ev_untested(paste0(
+    "Only the rows that count as evidence, as hr_report() reads them; a rule, not a tuned ",
+    "value.")),
+  gr_extract.agreement_columns = ev_untested(
+    "Off, so the table keeps the columns it had; it changes no request."),
   gr_extract.require_quote = ev_untested(paste0(
     "Off, so no extracted value is thrown away unasked; n_unverified counts the same ",
     "values without dropping them.")),
@@ -130,6 +152,7 @@
   "ingest.cleaner_opts.header_min_repeats" = "ingest#set-clean",
   ingest.ocr = "ingest#set-ocr", ingest.ocr_lang = "ingest#set-ocr",
   ingest.ocr_dpi = "ingest#set-ocr", ingest.ocr_min_chars = "ingest#set-ocr",
+  ingest.ocr_trigger = "ingest#set-ocr", ingest.ocr_confidence = "ingest#set-ocr",
   segment.method = "segment#set-method",
   segment.max_tokens = "segment#set-max-tokens",
   segment.overlap_tokens = "segment#set-overlap",
@@ -138,6 +161,12 @@
   segment.context_document_tokens = "segment#set-contextual",
   segment.proposition_batch_tokens = "segment#set-contextual",
   segment.proposition_reply_tokens = "segment#set-contextual",
+  segment.semantic_threshold = "segment#set-semantic",
+  segment.table_packing = "segment#set-tables",
+  segment.proposition_check = "segment#set-contextual",
+  segment.proposition_context_tokens = "segment#set-contextual",
+  segment.packing = "segment#set-packing", segment.runt_merge = "segment#set-packing",
+  segment.min_tokens = "segment#set-packing",
   read.reader = "readers#set-reader", read.skim_model = "readers#set-reader",
   read.summary_model = "readers#set-reader",
   read.top_k = "readers#set-top-k", read.min_score = "readers#set-top-k",
@@ -157,18 +186,26 @@
   read.unskip_k = "readers#set-preview", read.reread_on = "readers#set-preview",
   read.low_score = "readers#set-low-score", read.rerank_min_score = "readers#set-low-score",
   read.rerank_candidates = "readers#set-low-score",
+  screen.criteria_schema = "review#set-screen-reply",
+  screen.samples = "review#set-screen-reply", screen.sample_rule = "review#set-screen-reply",
   screen.gr_calibrate.recall_target = "review#set-calibration",
   screen.gr_calibrate.conf = "review#set-calibration",
   screen.gr_calibrate.max_width = "review#set-calibration",
   screen.gr_screen_sample_size.recall_target = "review#set-calibration",
   screen.gr_screen_sample_size.conf = "review#set-calibration",
   extract.resolve = "review#set-extract", extract.require_quote = "review#set-extract",
+  extract.agreement_columns = "review#set-extract",
   synthesise.coherence = "review#set-synthesis",
   synthesise.coherence_rounds = "review#set-synthesis",
   synthesise.figure_bands = "review#set-synthesis",
   synthesise.prominence = "review#set-synthesis",
   synthesise.unverified = "review#set-synthesis",
   evaluate.governor = "runs#set-governor",
+  evaluate.hr_error_correlation.strata = "evaluate#set-errcorr",
+  evaluate.hr_error_correlation.n_strata = "evaluate#set-errcorr",
+  evaluate.hr_error_correlation.n_check = "evaluate#set-errcorr",
+  evaluate.hr_error_correlation.held_out = "evaluate#set-errcorr",
+  evaluate.hr_error_correlation.seed = "evaluate#set-errcorr",
   options.max_cost_usd = "runs#set-limits", options.max_calls = "runs#set-limits",
   options.max_tokens_total = "runs#set-limits", options.max_output_tokens = "runs#set-limits",
   options.allowed_models = "runs#set-limits", options.allow_unpriced = "runs#set-limits")
@@ -198,8 +235,8 @@
 #'     the functions of each stage ([gr_screen()], [gr_reference()],
 #'     [gr_calibrate()], [gr_screen_sample_size()] and [gr_stop_test()];
 #'     [gr_extract()]; [gr_claims()], [gr_outline()], [gr_gaps()] and
-#'     [gr_synthesise()]; [hr_benchmark()], [hr_report()], [hr_judge()] and
-#'     [gr_compare()]), leaving out the inputs a call works on (the
+#'     [gr_synthesise()]; [hr_benchmark()], [hr_report()], [hr_judge()],
+#'     [gr_compare()] and [hr_error_correlation()]), leaving out the inputs a call works on (the
 #'     documents, the client, the trace). Defaults are the functions' own,
 #'     and descriptions the first sentence of each argument's help.}
 #'   \item{`options`}{Every [gr_options()] option, with its default, the

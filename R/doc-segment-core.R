@@ -111,7 +111,12 @@ new_chunks <- function(text, method, spec, page = NA_integer_, section = NA_char
 #' from page 3 is not wholly from page 4.
 #' @noRd
 pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
-                       joiner = "\n\n", meta = NULL, can_split = TRUE) {
+                       joiner = "\n\n", meta = NULL, can_split = TRUE, balanced = FALSE,
+                       runt_forward = FALSE) {
+  if (isTRUE(balanced)) {
+    return(pack_units_balanced(units, max_tokens, overlap_tokens, min_tokens, joiner, meta,
+                               can_split, runt_forward))
+  }
   units <- vapply(units %||% character(0), as_chr1, character(1), USE.NAMES = FALSE)
   keep <- has_content(units)
   units <- units[keep]
@@ -238,7 +243,7 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
   # Merge runt chunks forward so a stray one-line paragraph does not become its
   # own API call.
   if (min_tokens > 0L && length(out) > 1L) {
-    merged <- character(0); mmeta <- list(); mspan <- list()
+    merged <- character(0); mmeta <- list(); mspan <- list(); mown <- character(0)
     for (j in seq_along(out)) {
       tks <- gr_count_tokens(out[[j]])
       # Measure the JOINED text, not the sum of the two counts. Every estimate
@@ -252,6 +257,7 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
       cand <- if (length(merged)) paste(merged[[length(merged)]], own[[j]], sep = joiner) else ""
       if (length(merged) && tks < min_tokens && gr_count_tokens(cand) <= max_tokens) {
         merged[[length(merged)]] <- cand
+        mown[[length(merged)]] <- paste(mown[[length(merged)]], own[[j]], sep = joiner)
         # The absorbed runt's provenance has to be folded in too. Keeping only
         # the host chunk's meta made the merged chunk claim a page it now only
         # partly comes from -- the same lie, arrived at from the other side.
@@ -260,8 +266,23 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
         mspan[[length(merged)]] <- c(mspan[[length(merged)]][1], out_span[[j]][2])
       } else {
         merged[[length(merged) + 1L]] <- out[[j]]
+        mown[[length(merged)]] <- own[[j]]
         mmeta[[length(merged)]] <- if (j <= length(out_meta)) out_meta[[j]] else NA
         mspan[[length(merged)]] <- out_span[[j]]
+      }
+    }
+    # runt_merge = "both": the first chunk has no chunk before it, so a runt
+    # there was never merged. It is merged forward, into the start of the
+    # second, when the two fit the cap. Only the second's own text follows
+    # it: the overlap the second opens with is the runt's own end.
+    if (isTRUE(runt_forward) && length(merged) > 1L &&
+        gr_count_tokens(merged[[1]]) < min_tokens) {
+      cand <- paste(merged[[1]], mown[[2]], sep = joiner)
+      if (gr_count_tokens(cand) <= max_tokens) {
+        merged[[2]] <- cand
+        mmeta[[2]] <- combine_meta(mmeta[[1]], mmeta[[2]])
+        mspan[[2]] <- c(mspan[[1]][1], mspan[[2]][2])
+        merged <- merged[-1L]; mmeta <- mmeta[-1L]; mspan <- mspan[-1L]
       }
     }
     out <- merged; out_meta <- mmeta; out_span <- mspan
@@ -277,6 +298,70 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
   span <- data.frame(first = vapply(out_span, `[`, integer(1), 1L),
                      last = vapply(out_span, `[`, integer(1), 2L))
   list(text = out, meta = meta_out, span = span)
+}
+
+#' pack_units() under packing = "balanced".
+#'
+#' The greedy packer fills each chunk to the cap and leaves the remainder in
+#' the last, so 1,250 tokens under a 500 cap become 500, 500 and 250. This
+#' keeps the number of chunks the greedy packer makes, k, and evens their
+#' sizes: units are cut into k runs at the unit boundaries nearest to each
+#' k-th of the total, and each run is one chunk. With overlap, each chunk
+#' after the first opens with the tail of the one before when it still fits,
+#' as the greedy packer does. When a run does not fit the cap as one chunk,
+#' or a unit had to be split for the cap, the greedy chunks are kept.
+#' @noRd
+pack_units_balanced <- function(units, max_tokens, overlap_tokens, min_tokens, joiner, meta,
+                                can_split, runt_forward) {
+  base <- pack_units(units, max_tokens, overlap_tokens, min_tokens, joiner = joiner,
+                     meta = meta, can_split = can_split, runt_forward = runt_forward)
+  k <- length(base$text)
+  if (k <= 1L) return(base)
+  u <- vapply(units %||% character(0), as_chr1, character(1), USE.NAMES = FALSE)
+  keep <- has_content(u)
+  origin <- which(keep)
+  u <- u[keep]
+  m <- if (is.null(meta)) NULL else meta[keep, , drop = FALSE]
+  utk <- gr_count_tokens(u)
+  if (any(utk > max_tokens) || length(u) < k) return(base)
+  cum <- cumsum(utk)
+  # The unit each of the first k - 1 chunks ends at: the boundary nearest to
+  # j/k of the total, kept in order and leaving each run at least one unit.
+  ends <- integer(0)
+  for (g in seq_len(k - 1L)) {
+    lo <- if (length(ends)) ends[length(ends)] + 1L else 1L
+    hi <- length(u) - (k - g)
+    if (lo > hi) return(base)
+    cand <- lo:hi
+    ends <- c(ends, cand[which.min(abs(cum[cand] - g * cum[length(cum)] / k))])
+  }
+  ends <- c(ends, length(u))
+  starts <- c(1L, utils::head(ends, -1L) + 1L)
+  own <- vapply(seq_len(k), function(g) paste(u[starts[g]:ends[g]], collapse = joiner),
+                character(1))
+  if (any(gr_count_tokens(own) > max_tokens)) return(base)
+  text <- own
+  from <- starts
+  overlap_tokens <- as.integer(clamp(overlap_tokens, 0, max_tokens - 1L))
+  if (overlap_tokens > 0L) {
+    for (g in seq_len(k)[-1L]) {
+      want <- min(overlap_tokens, max(max_tokens - gr_count_tokens(own[g]), 0L))
+      tail_txt <- if (want > 0L) tail_by_tokens(own[g - 1L], want) else ""
+      while (nzchar(tail_txt) &&
+             gr_count_tokens(paste(tail_txt, own[g], sep = joiner)) > max_tokens) {
+        want <- want - 1L
+        tail_txt <- if (want > 0L) tail_by_tokens(own[g - 1L], want) else ""
+      }
+      if (nzchar(tail_txt)) {
+        text[g] <- paste(tail_txt, own[g], sep = joiner)
+        from[g] <- ends[g - 1L]
+      }
+    }
+  }
+  out_meta <- if (is.null(m)) NULL else
+    do.call(rbind, lapply(seq_len(k), function(g) meta_over(m, from[g], ends[g])))
+  list(text = text, meta = out_meta,
+       span = data.frame(first = origin[starts], last = origin[ends]))
 }
 
 #' Provenance for a chunk built from units `from:to`.

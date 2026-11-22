@@ -75,6 +75,125 @@ says what it trades off and how to test it with `hr_sweep()`.
   requests; they are composed by hand for now, and carry the attributes a
   later `hr_chain()` will read.
 
+## Pipeline options
+
+Each option below is off by default, so a default run sends the requests it
+sent before, keeps its store, cache and replay keys, and returns the tables
+it returned. Each is declared with its evidence (`untested` unless a source
+is named), is listed by `gr_settings_table()`, and has a walkthrough that
+says how to test it with `hr_sweep()`. The settings come to 219 in all.
+
+* `gr_extract()` gains `resolve = "vote"`, which keeps the value most of a
+  document's chunks gave, for no extra request; a tie goes to the earliest
+  of the tied values, as `"first"` chooses. `agreement_columns = TRUE` adds
+  `<field>_agreement` (how many of the chunks that reported a field give its
+  most common value, as `"2/3"`) and `<field>_conflict` to the table. An
+  abstract that says 240 and two results paragraphs that say 236 give 240
+  under `"first"`, 236 under `"vote"`, and `"2/3"` with a conflict under
+  both. Each answer's `notes$agreement` holds the same counts.
+
+* `gr_screen()` gains `criteria_schema`. At `"per_criterion"` each reply
+  also gives every criterion's status, `"met"`, `"not_met"` or
+  `"not_reported"`, which the table holds in `criteria_status`, and an
+  exclusion needs an inclusion criterion `"not_met"` or an exclusion
+  criterion `"met"`: a reply that excludes with a criterion not reported and
+  none not met is recorded as `"unclear"`, for a person. The default,
+  `"decision"`, sends the request and schema it sent before.
+
+* `gr_screen()` gains `samples` and `sample_rule`. Above 1 sample, each
+  document's screening request is sent that many times as separate draws
+  (each with its own `draw_index`, so a cache keeps them apart), and
+  `"include_if_any"` includes a document any draw included, excludes one
+  only when every draw excluded it, and leaves the rest `"unclear"`;
+  `"majority"` takes the decision most draws gave. The table gains
+  `sample_decisions` and `include_share`. At the default, 1, one request
+  is sent as before.
+
+* `gr_segment_spec()` gains `packing` and `runt_merge`. `packing =
+  "balanced"` keeps the number of chunks greedy packing makes and evens
+  their sizes (`paragraph`, `sentence`, `recursive`, `structural`,
+  `semantic`). `runt_merge = "both"` merges a first chunk under
+  `min_tokens` forward into the second, which the backward merge could not
+  reach. The defaults, `"greedy"` and `"backward"`, pack as before.
+
+* `gr_segment_spec()` gains `semantic_threshold`. At `"texttiling"`, the
+  `semantic` segmenter cuts by TextTiling's depth score (Hearst 1997): the
+  similarity between the windows before and after each gap, read from the
+  same embeddings, cut at valleys deeper than Hearst's cutoff and than the
+  spread of the similarities, so a text on one topic gets at most about one
+  cut instead of one gap in ten. The default, `"percentile"`, cuts as
+  before.
+
+* Every block of a document says which table it is a row of, if any:
+  `gr_ingest()` adds `table_id` and `table_rows` to `$blocks` (each unbroken
+  run of `"table"` blocks is one table; `table_rows` is `"3"` for a row
+  from Word or HTML, `"1-12"` for a Markdown table read as one block), and
+  `paragraph` chunks of a document with a table carry `table_id` and
+  `table_rows` for the rows they hold. This is provenance only: no text and
+  no request changes, and a document with no table gets no new chunk
+  columns.
+
+* `gr_segment_spec()` gains `table_packing`. At `"grouped"`, `paragraph`
+  packs each table on its own and opens every chunk of it with the table's
+  header row, so a 60-row table cut into three chunks gives three chunks
+  that each start with the header. The default, `"rows"`, packs rows as
+  before.
+
+* `gr_ingest_spec()` gains `ocr_trigger`. At `"after_running_lines"`, under
+  `ocr = "auto"`, a PDF page is counted against `ocr_min_chars` once the
+  running heads, feet and stamps the layout pass drops are taken out, so a
+  scanned page whose text layer holds only a 60-character fax header or
+  Bates stamp is OCR-ed. The default, `"raw_text"`, counts the whole text
+  layer as before.
+
+* The blocks of a PDF page OCR read now have `kind = "ocr"` (headings keep
+  `"heading"`), as the blocks OCR reads from a Word file's images and from
+  image files always had. This changes the blocks of a document at the
+  default settings when tesseract and magick are installed and a page is
+  OCR-ed: it is a fix, since the blocks did not say their text came from
+  OCR, and no text and no request changes. Without tesseract nothing
+  changes.
+
+* `gr_ingest_spec()` gains `ocr_confidence`. At `TRUE`, the blocks of a PDF
+  page OCR read carry `ocr_confidence`, Tesseract's mean word confidence for
+  the page, from a second Tesseract pass over each OCR-ed page. The default,
+  `FALSE`, runs one pass, as before, and adds no column.
+
+* An embedded image in a Word file whose OCR fails now raises a
+  `gr_ocr_failed` warning naming the image, as a PDF page does; before, its
+  text was lost with nothing said.
+
+* `contextual` with `context_source = "llm"` now sends each chunk's section
+  path from the document's headings (`"Methods > Participants"`) with its
+  request, and declares its cost, one request per chunk and no more, in
+  `$extra$cost` and a `segment.cost` trace step. `proposition` keeps the page and
+  section of each batch on its chunks, and counts propositions with no
+  support in their batch (a number it does not give in any form, "1,200"
+  for "1200" or "twelve" for "12", or most words absent)
+  in `$extra$propositions_unsupported`. The new setting
+  `proposition_check = "drop"` drops them, counting them in
+  `$extra$propositions_dropped` with a `gr_proposition_dropped` warning; the
+  default, `"count"`, keeps every proposition as before. The new setting
+  `proposition_context_tokens` sends each batch that many tokens from the
+  end of the batch before it, as context; at its default, 0, each batch is
+  sent alone as before. The section path changes what `contextual` sends
+  under `"llm"`, an opt-in setting of an opt-in segmenter, so its cache and
+  replay keys change; no default segmenter sends anything new, and the
+  golden runs, which use neither segmenter, are unchanged.
+
+* `semantic` run on lexical vectors now reports its method as
+  `"semantic->lexical"`, as it reports `"semantic->paragraph"` when it falls
+  back. This is a label fix: the chunks and the requests are unchanged.
+
+* New `hr_error_correlation()` says how far a benchmark's arms fail on the
+  same items: the phi coefficient between each pair's errors within strata
+  of item difficulty (or strata you give), pooled over the strata; the
+  share of items both got wrong where they gave the same wrong answer (Kim
+  et al. 2025); and a sample of items every arm got wrong, for a person to
+  check. It reads the benchmark's rows and sends nothing. Yen's Q3 from a
+  one-parameter mixed model is not computed, since it would need lme4,
+  which harnessr does not depend on.
+
 ## Claims and the write-up: what each rests on
 
 * The claims and writing prompts now show each extracted value with its

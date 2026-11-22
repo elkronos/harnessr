@@ -20,6 +20,9 @@ gr_screen(
   keep_answers = FALSE,
   recursive = FALSE,
   trace = NULL,
+  criteria_schema = c("decision", "per_criterion"),
+  samples = 1L,
+  sample_rule = c("include_if_any", "majority"),
   ...
 )
 }
@@ -50,6 +53,36 @@ an \code{error} naming \code{screen_tokens}. Either way the \code{truncated} and
 \item{max_total_calls, trace}{As \code{\link[=gr_read_many]{gr_read_many()}}. Pass the same \code{trace} to
 \code{\link[=gr_extract]{gr_extract()}} and \code{\link[=gr_synthesise]{gr_synthesise()}} and it accumulates the whole review,
 while each stage keeps its own for its own cost and its own ceiling.}
+
+\item{criteria_schema}{What each screening reply holds. \code{"decision"} (the
+default) asks for a decision, a reason, the deciding criterion and a
+quote, as before. \code{"per_criterion"} also asks, for every criterion,
+whether the excerpt shows it \code{"met"}, \code{"not_met"} or \code{"not_reported"},
+and adds a \code{criteria_status} column to the table (\code{"criterion: status"}
+pairs, separated by \code{"; "}). An exclusion then needs an inclusion
+criterion \code{"not_met"} or an exclusion criterion \code{"met"}: a reply that
+excludes with none of either, as when a criterion is not reported and
+none is not met, is recorded as \code{"unclear"}, for a person to decide,
+with a reason that says so. It changes the request (the schema and the
+criteria message). Untested.}
+
+\item{samples}{How many times each document's screening request is sent,
+from 1 to 20. At 1 (the default) it is sent once, as before. Above 1 it
+is sent that many times, each a separate draw (a cache keeps each), and
+the draws are combined by \code{sample_rule}; the table gains
+\code{sample_decisions} (each draw's decision, \code{"none"} for one not read) and
+\code{include_share} (the share of draws read that included). It multiplies
+the screening requests by \code{samples}. In run r of \code{\link[=hr_benchmark]{hr_benchmark()}} the
+draws are numbered (r - 1) * samples + 1 to r * samples, so each run
+sends its own draws. Untested.}
+
+\item{sample_rule}{How draws are combined when \code{samples} is above 1.
+\code{"include_if_any"} (the default) includes a document any draw included,
+excludes one only when every draw was read and excluded it, and sends
+the rest to a person as \code{"unclear"}, so a study one draw would keep is
+not lost to the others. \code{"majority"} takes the decision most draws gave,
+\code{"unclear"} on a tie. The reason, criterion and quote are the first draw's
+that gave the decision kept. Untested.}
 
 \item{...}{Recipe overrides, as in \code{\link[=gr_extract]{gr_extract()}}.}
 }

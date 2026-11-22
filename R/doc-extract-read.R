@@ -177,7 +177,8 @@ read_extract <- function(chunks, question, client, spec, trace) {
                             unsupported else character(0),
                           unreadable = rec$unreadable,
                           unresolved = rec$unresolved,
-                          conflicts = rec$conflicts, failed_calls = failed,
+                          conflicts = rec$conflicts, agreement = rec$agreement,
+                          failed_calls = failed,
                           record = record))
 }
 
@@ -187,6 +188,8 @@ read_extract <- function(chunks, question, client, spec, trace) {
 #' default) takes the earliest chunk's value and records the conflict, so a run
 #' never silently doubles in price because a document repeated itself
 #' inconsistently. `resolve = "model"` spends one call per conflicted field.
+#' `resolve = "vote"` takes the value most chunk hits give, the earliest of a
+#' tie, for no call.
 #' Chunks that agree on a value pool their quotes: the value is cited with the
 #' best one any of them gave (best_supported_hit()).
 #'
@@ -196,7 +199,8 @@ read_extract <- function(chunks, question, client, spec, trace) {
 #' named by why: "rejected" (the adjudicating call chose none of the values),
 #' "failed" (it failed, or its reply chose nothing it could) or "limit" (a
 #' request limit was reached first, so it was not made). The first value is
-#' kept for each.
+#' kept for each. `agreement` gives, for each field some chunk reported, how
+#' many of the chunk hits give its most common value, as "2/3".
 #' @noRd
 reconcile_fields <- function(got, fields, d, client, spec, trace) {
   record <- empty_record(fields)
@@ -204,7 +208,8 @@ reconcile_fields <- function(got, fields, d, client, spec, trace) {
   unreadable <- character(0)
   unresolved <- character(0)
   ev_chunk <- integer(0); ev_quote <- character(0); ev_field <- character(0)
-  resolve <- match.arg(as_chr1(spec[["resolve"]] %||% "first"), c("first", "model"))
+  agreement <- character(0)
+  resolve <- match.arg(as_chr1(spec[["resolve"]] %||% "first"), c("first", "model", "vote"))
   src <- extract_verbatim_source(d)
   # Whether a quote is verbatim in a chunk does not depend on the field it is
   # cited for, and a model often quotes one sentence for several fields.
@@ -272,6 +277,16 @@ reconcile_fields <- function(got, fields, d, client, spec, trace) {
     # the document states word for word.
     reps <- lapply(unique(keys), function(k) best_supported_hit(hits[keys == k]))
     chosen <- reps[[1]]
+    # How many chunk hits give the most common value, of all the hits: "2/3"
+    # when two of three chunks that reported the field agree. Counted the same
+    # way whatever `resolve` is, so the agreement says how far the document
+    # agrees with itself, not how far it agrees with the value kept.
+    counts <- vapply(unique(keys), function(k) sum(keys == k), integer(1), USE.NAMES = FALSE)
+    agreement[[nm]] <- sprintf("%d/%d", max(counts), length(hits))
+    # resolve = "vote": the value most chunk hits give. which.max() takes the
+    # first of a tie, and `reps` is in order of first appearance, so a tie is
+    # broken as "first" breaks every conflict: the earliest chunk's value.
+    if (identical(resolve, "vote")) chosen <- reps[[which.max(counts)]]
 
     if (length(reps) > 1L) {
       conflicts[[nm]] <- vapply(reps, function(h) value_key(h$value), character(1))
@@ -293,7 +308,7 @@ reconcile_fields <- function(got, fields, d, client, spec, trace) {
   }
   list(record = record, conflicts = conflicts, evidence_chunk = ev_chunk,
        evidence_quote = ev_quote, evidence_field = ev_field,
-       unreadable = unreadable, unresolved = unresolved)
+       unreadable = unreadable, unresolved = unresolved, agreement = agreement)
 }
 
 #' The pieces of a quotation, in the order they are quoted.

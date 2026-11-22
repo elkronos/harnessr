@@ -191,7 +191,8 @@ register_builtin_segmenters <- function() {
     description = "Cut where consecutive embeddings diverge most. One embedding pass.")
   gr_register_segmenter("contextual", seg_contextual, calls = "segment.context", cost = "free",
     needs_client = FALSE,
-    description = "Paragraph chunks prefixed with where they sit; context_source='llm' writes it per chunk.")
+    description = paste0("Paragraph chunks prefixed with where they sit; context_source='llm' ",
+                         "writes it per chunk, one request each (calls_max = chunks)."))
   gr_register_segmenter("proposition", seg_proposition, calls = "segment.proposition",
     cost = "llm", needs_client = TRUE,
     description = "Rewrite into standalone factual statements. Expensive; best for dense factual recall.")

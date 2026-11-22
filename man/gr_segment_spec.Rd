@@ -19,6 +19,12 @@ gr_segment_spec(
   context_reply_tokens = 90L,
   context_document_tokens = 1500L,
   proposition_reply_tokens = 2000L,
+  semantic_threshold = c("percentile", "texttiling"),
+  table_packing = c("rows", "grouped"),
+  proposition_check = c("count", "drop"),
+  proposition_context_tokens = 0L,
+  packing = c("greedy", "balanced"),
+  runt_merge = c("backward", "both"),
   ...
 )
 }
@@ -42,7 +48,8 @@ count the overlap it opens with, so one that carries a sentence from the
 page before reports \code{NA} rather than the page it goes on to.}
 
 \item{min_tokens}{A chunk smaller than this is merged \strong{backward} into the
-chunk before it. Ignored by \code{page} and \code{fixed}.}
+chunk before it (and, with \code{runt_merge = "both"}, a first chunk smaller
+than this forward into the one after it). Ignored by \code{page} and \code{fixed}.}
 
 \item{separators}{For \code{method = "recursive"}: the cascade, strongest first.
 Each piece keeps the separator it was cut at; past the last one, text is
@@ -60,7 +67,11 @@ sentences to embed together, and how extreme a distance counts as a
 boundary (higher = fewer, larger chunks).}
 
 \item{context_source}{For \code{method = "contextual"}: \code{"metadata"} (free) or
-\code{"llm"} (one call per chunk). Room for the context line is held back from
+\code{"llm"} (one call per chunk, never more: \verb{$extra$cost} declares
+\code{calls_max} as the number of chunks, and a \code{segment.cost} trace step
+records it). Under \code{"llm"} each request carries the opening of the
+document (\code{context_document_tokens}) and the chunk's section path, as
+\code{"Methods > Participants"}, from the document's headings. Room for the context line is held back from
 each chunk's text before packing (\code{context_reply_tokens} for \code{"llm"}, the
 longest header the document could need for \code{"metadata"}, never more than
 half of \code{max_tokens}), so no chunk is cut again once its header is added,
@@ -70,7 +81,12 @@ keeps its text without a context line; \verb{$extra$blurbs_missing} counts
 them and a \code{"gr_segment_fallback"} warning says so, which also reaches
 the answer's warnings.}
 
-\item{proposition_batch_tokens}{For \code{method = "proposition"}: batch size.}
+\item{proposition_batch_tokens}{For \code{method = "proposition"}: batch size.
+A proposition with no support in its batch (a number the batch does not
+give, or fewer than half of its words found in the batch and any
+context it was sent with) is counted in
+\verb{$extra$propositions_unsupported}; see \code{proposition_check}. The chunks
+keep the page and section of the batches they come from.}
 
 \item{parallel}{Parallelise per-chunk model work in segmenters that do any.}
 
@@ -85,6 +101,65 @@ model can place the excerpt. [100, 1e6], default 1500. Untested.}
 
 \item{proposition_reply_tokens}{For \code{method = "proposition"}: the output cap
 of each batch's request. [100, 1e6], default 2000. Untested.}
+
+\item{semantic_threshold}{For \code{method = "semantic"}: how boundaries are
+chosen. \code{"percentile"} (the default) cuts wherever the distance between
+two consecutive windows reaches the \code{semantic_percentile} of all of them,
+so about one gap in ten is cut whatever the text is about.
+\code{"texttiling"} cuts by depth score, as TextTiling does (Hearst, M. A.
+1997, "TextTiling: segmenting text into multi-paragraph subtopic
+passages", Computational Linguistics 23(1), 33-64): each gap's
+similarity is the cosine between the \code{semantic_window} sentences before
+it and the \code{semantic_window} after it (the same windows, so no extra
+embedding request), its depth is how far that similarity sits below the
+nearest peak on each side, summed, and a gap is cut when it is a valley
+whose depth exceeds Hearst's cutoff (the mean depth less half its
+standard deviation) and also exceeds the spread of the similarities
+(largest less smallest). That second test is added here, not Hearst's,
+so a text on one topic gets at most about one cut. \code{semantic_percentile}
+is not used under \code{"texttiling"}. Untested.}
+
+\item{table_packing}{For \code{method = "paragraph"}: how the rows of a table
+are packed. \code{"rows"} (the default) packs them as any other blocks, as
+before. \code{"grouped"} packs each table on its own: its first row, taken
+for the header, opens every chunk of the table, followed by as many rows
+as fit under \code{max_tokens}, joined by line breaks and with no overlap, so
+a 60-row table that needs three chunks gives three, each starting with
+the header. A table that fits is one chunk. Under either, the chunks of
+a document with a table carry \code{table_id} and \code{table_rows} (as \code{"2-21"})
+saying which table and rows they hold. Untested.}
+
+\item{proposition_check}{For \code{method = "proposition"}: what happens to a
+proposition with no support in its batch. \code{"count"} (the default) keeps
+it, as before, and counts it in \verb{$extra$propositions_unsupported}.
+\code{"drop"} drops it as invented, counts it in
+\verb{$extra$propositions_dropped} as well, and warns
+(\code{gr_proposition_dropped}); a batch left with no proposition is kept as
+written. Untested.}
+
+\item{proposition_context_tokens}{For \code{method = "proposition"}: how many
+tokens from the end of the batch before each batch's request carries, as
+context the model may use to resolve what the batch refers back to but
+is told not to decompose. Taken from the document, so the batches still
+run independently. [0, 2000], default 0, which sends each batch alone,
+as before. Untested.}
+
+\item{packing}{How \code{paragraph}, \code{sentence}, \code{recursive}, \code{structural} and
+\code{semantic} pack their units into chunks. \code{"greedy"} (the default) fills
+each chunk to \code{max_tokens} and leaves the remainder in the last, as
+before: 1,250 tokens under a 500 cap become 500, 500 and 250.
+\code{"balanced"} keeps the number of chunks greedy packing makes, k, and
+evens their sizes: it cuts the units at the unit boundaries nearest to
+each k-th of the total tokens (about 420 each in that example). No unit
+is split for it: when a unit is longer than \code{max_tokens}, or a run
+between two cuts does not fit under it, the greedy chunks are kept.
+Untested.}
+
+\item{runt_merge}{Which way a chunk under \code{min_tokens} is merged.
+\code{"backward"} (the default) merges it into the chunk before, as before, so
+a runt that is the first chunk stays on its own. \code{"both"} also merges a
+first chunk under \code{min_tokens} forward into the second, when the two fit
+under \code{max_tokens}. Nothing is merged at \code{min_tokens = 0}. Untested.}
 
 \item{...}{Extra fields for custom segmenters.}
 }
@@ -125,6 +200,12 @@ store and cache keys it had before they existed.
 \item \code{context_reply_tokens} (default \code{90}, advanced): untested. The cap the code had as a constant; not tuned.
 \item \code{context_document_tokens} (default \code{1500}, advanced): untested. The length the code had as a constant; not tuned.
 \item \code{proposition_reply_tokens} (default \code{2000}, advanced): untested. The cap the code had as a constant; not tuned.
+\item \code{semantic_threshold} (default \code{"percentile"}, advanced): untested. "percentile" is the rule semantic was written with; not compared with "texttiling".
+\item \code{table_packing} (default \code{"rows"}, advanced): untested. "rows" packs a table's rows as any other blocks, as before; not compared with "grouped".
+\item \code{proposition_check} (default \code{"count"}, advanced): untested. "count" keeps every proposition, as before, and counts the unsupported; not compared with "drop".
+\item \code{proposition_context_tokens} (default \code{0}, advanced): untested. 0 sends each batch alone, as before; not tuned.
+\item \code{packing} (default \code{"greedy"}, advanced): untested. "greedy" fills each chunk to the cap, as before; not compared with "balanced".
+\item \code{runt_merge} (default \code{"backward"}, advanced): untested. "backward" merges into the chunk before, as before; not compared with "both".
 }
 }
 

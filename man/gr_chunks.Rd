@@ -11,7 +11,12 @@ Returned by \code{\link[=gr_segment]{gr_segment()}}. Summarise with \code{\link[
 \describe{
 \item{\code{chunks}}{Data frame, one row per chunk, with columns \code{chunk_id},
 \code{text}, \code{tokens}, \code{chars}, \code{page}, \code{section}, \code{block_id}, and sometimes
-\code{source_text}.}
+\code{source_text}, \code{table_id} and \code{table_rows}.}
+\item{\code{chunks$table_id}, \code{chunks$table_rows}}{Set by \code{paragraph} for a
+document with a table: the table a chunk's rows come from (its number
+in the document, as in the blocks of \code{\link[=gr_ingest]{gr_ingest()}}) and which rows, as
+\code{"2-21"}. \code{NA} for a chunk with no table row, or with rows of two
+tables. Provenance only: nothing is added to \code{text}.}
 \item{\code{chunks$source_text}}{Optional. The document text a chunk was made
 from, for a segmenter that puts text of its own into \code{text}:
 \code{proposition} fills it with the passage the propositions were written

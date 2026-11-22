@@ -47,7 +47,11 @@ dropped, and read again when next asked for.}
 }
 \value{
 A \code{gr_document}: a list with \code{blocks} (data frame), \code{text}, \code{source},
-\code{spec} and \code{stats}.
+\code{spec} and \code{stats}. Each block carries \code{table_id} and \code{table_rows}: for a
+row of a table (a block of kind \code{"table"}; each unbroken run of them is
+one table), the table's number in the document and the rows of it the
+block holds, as \code{"3"} or, for a Markdown table read as one block,
+\code{"1-12"}; \code{NA} for any other block.
 }
 \description{
 The first axis. Extraction happens once and is cached, so one file read can
