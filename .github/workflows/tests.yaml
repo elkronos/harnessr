@@ -157,8 +157,13 @@ jobs:
                 gr_extract(d, protocol, recipe = "fast", client = gr_mock_client(function(m, p) {
                   seen <- paste(vapply(m, function(z) as.character(z$content), character(1)),
                                 collapse = " ")
-                  if (grepl("45.2", seen, fixed = TRUE)) "{\"region\":\"north\",\"revenue\":45.2}"
-                  else "{\"region\":\"south\",\"revenue\":51.8}"
+                  # With the quotes, which gr_claims() needs: a value whose quote
+                  # does not verify is left out of the claims prompt.
+                  r <- if (grepl("45.2", seen, fixed = TRUE)) c("north", "45.2") else c("south", "51.8")
+                  sprintf(paste0("{\"region\":\"%s\",\"revenue\":%s,",
+                                 "\"region__quote\":\"%s region.\",",
+                                 "\"revenue__quote\":\"Revenue was %s million dollars.\"}"),
+                          r[1], r[2], tools::toTitleCase(r[1]), r[2])
                 }))
               }), eval.env = env, assign.env = env)
               delayedAssign("cm", gr_claims(x, question = protocol$question, client = cl),
