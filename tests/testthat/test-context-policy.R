@@ -234,6 +234,45 @@ test_that("refine_state = 'ledger' applies edits and answers from the list", {
   expect_equal(cost_refine(st, gr_read_spec("refine"))$calls, 3)
 })
 
+test_that("a cut ledger keeps only whole findings", {
+  L <- sprintf(paste("The budget of site %d was %d.5 million dollars in the fiscal year",
+                     "that ended in June of the following year."), 1:11, 41:51)
+  t <- ledger_text(L)
+  for (n in c(150, 200, 270, 280, 300)) {
+    kept <- ledger_whole(L, gr_truncate_tokens(t, n, ""))
+    expect_true(all(kept %in% L), info = n)
+    expect_identical(kept, L[seq_along(kept)], info = n)
+  }
+  for (k in c("tail", "both")) {
+    kept <- ledger_whole(L, hr_truncate(t, 200, keep = k, marker = ""))
+    expect_true(length(kept) > 0L && all(kept %in% L), info = k)
+  }
+  # In a read, under the default cut and under a policy, every finding the
+  # last request carries is one the ledger was given whole.
+  local_registries()
+  gr_register_model("cp-led", context_window = 900, max_output = 100)
+  ch <- cp_chunks(sprintf("Site %d reported its budget for the year.", 1:4))
+  for (pol in list(NULL, hr_context_policy(pin = c("question", "instructions", "excerpt")))) {
+    seen <- list()
+    cl <- gr_mock_client(function(m, p) {
+      seen[[length(seen) + 1L]] <<- m
+      if (grepl("Reply with the edits", m[[length(m)]]$content, fixed = TRUE)) {
+        return(paste0("ADD: ", L, collapse = "\n"))
+      }
+      "Done."
+    })
+    quiet(gr_read(ch, "What were the budgets?", cl,
+                  gr_read_spec("refine", model = "cp-led", max_answer_tokens = 100,
+                               refine_state = "ledger", context_policy = pol)))
+    sent <- unlist(lapply(seen, function(m) {
+      body <- vapply(m, function(x) as.character(x$content), "")
+      ledger_from_text(paste(body[grepl("^<ledger>|^1\\. ", body)], collapse = "\n"))
+    }))
+    sent <- sub("\n?</ledger>$", "", sent)
+    expect_true(all(sent %in% L), info = if (is.null(pol)) "default" else "policy")
+  }
+})
+
 test_that("order_merges places findings and members by context_order", {
   ch <- cp_chunks(sprintf("Region %s reported revenue.", c("A", "B", "C", "D")))
   merges <- list()

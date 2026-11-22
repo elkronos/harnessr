@@ -53,8 +53,14 @@ read_refine <- function(chunks, question, client, spec, trace) {
       cuts <- length(fit$cut); cut_tokens <- as.integer(fit$tokens_dropped)
       excerpt <- fit$pieces[["excerpt"]]
       if (state_name %in% fit$cut) {
-        if (is_ledger) ledger <- ledger_from_text(fit$pieces[["ledger"]])
-        else draft <- fit$pieces[["draft"]]
+        if (is_ledger) {
+          # A finding the cut went through is dropped whole.
+          ledger <- ledger_whole(ledger, fit$pieces[["ledger"]])
+          cut_tokens <- cut_tokens + as.integer(max(gr_count_tokens(fit$pieces[["ledger"]]) -
+                                                      gr_count_tokens(ledger_text(ledger)), 0))
+        } else {
+          draft <- fit$pieces[["draft"]]
+        }
       }
     } else {
       if (gr_count_tokens(excerpt) > half) {
@@ -68,7 +74,10 @@ read_refine <- function(chunks, question, client, spec, trace) {
       if (is_ledger && length(ledger) && gr_count_tokens(ledger_text(ledger)) > half) {
         t <- truncate_logged(ledger_text(ledger), half, "refine.ledger", trace,
                              chunk_id = d$chunk_id[i], marker = "")
-        ledger <- ledger_from_text(t$text); cuts <- cuts + 1L; cut_tokens <- cut_tokens + t$dropped
+        all_tokens <- gr_count_tokens(ledger_text(ledger))
+        ledger <- ledger_whole(ledger, t$text); cuts <- cuts + 1L
+        cut_tokens <- cut_tokens + as.integer(max(all_tokens -
+                                                    gr_count_tokens(ledger_text(ledger)), 0))
       }
     }
     # The draft as this request carries it, for the state length below.
@@ -185,6 +194,15 @@ ledger_from_text <- function(text) {
   lines <- trimws(strsplit(as_chr1(text, ""), "\n", fixed = TRUE)[[1]])
   lines <- lines[grepl("^[0-9]+\\.\\s+\\S", lines)]
   sub("^[0-9]+\\.\\s+", "", lines)
+}
+
+#' The findings of a ledger that a cut of its text kept whole. A numbered
+#' line the cut went through is a finding cut short, and is dropped, so every
+#' finding carried forward is one the ledger holds word for word.
+#' @noRd
+ledger_whole <- function(ledger, text) {
+  kept <- ledger_from_text(text)
+  kept[kept %in% ledger]
 }
 
 #' The messages of one ledger edit.
