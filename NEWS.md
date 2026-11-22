@@ -16,6 +16,13 @@ says what it trades off and how to test it with `hr_sweep()`.
   `NOT_IN_DOCUMENT` answer with one request (`preview.reread`) over the
   sections not read in full (`notes$reread`).
 
+* `rerank` records `notes$retrieval_low_score = TRUE`, and a
+  `rerank.low_score` trace step, when every candidate the model scored is
+  below `rerank_min_score`; before, only the reason string said so. The new
+  setting `low_score = "read_top_k"` sends the 5 best-scored candidates to
+  the answer request in that case instead of answering `NOT_IN_DOCUMENT`
+  unasked, and marks a `NOT_IN_DOCUMENT` reply with `retrieval_low_score`.
+
 ## Claims and the write-up: what each rests on
 
 * The claims and writing prompts now show each extracted value with its

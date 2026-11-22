@@ -372,6 +372,14 @@ gr_reader_signature <- function(reader) {
 #'   answer replaces the not-found when it finds one; `notes$reread` and a
 #'   `preview.reread` trace step say what was sent and whether it found an
 #'   answer. It costs at most one request. Untested.
+#' @param low_score For `rerank`, what happens when every candidate the model
+#'   scored is below `rerank_min_score`. `"not_found"` (the default) makes no
+#'   answer request and returns `NOT_IN_DOCUMENT`, as before, now with
+#'   `notes$retrieval_low_score = TRUE` and a `rerank.low_score` trace step.
+#'   `"read_top_k"` sends the 5 best-scored candidates to the answer request
+#'   anyway (`notes$read_below_min_score = TRUE`), and marks a
+#'   `NOT_IN_DOCUMENT` reply with `notes$retrieval_low_score = TRUE`. It costs
+#'   the answer request the default does not make. Untested.
 #' @param ... Extra fields for custom readers.
 #' @return A list of class `gr_read_spec`.
 #'
@@ -546,7 +554,8 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
                          verify = FALSE, accept_near_verbatim = FALSE, max_merge_levels = 6L,
                          restate_tokens = 1200L, bm25_k1 = 1.5, bm25_b = 0.75,
                          lexical_blend = 0.5, unskip_k = 0L,
-                         reread_on = c("never", "not_found"), ...) {
+                         reread_on = c("never", "not_found"),
+                         low_score = c("not_found", "read_top_k"), ...) {
   warn_near_miss(list(...), names(formals(gr_read_spec)), "read")
   # Every argument but `...` is checked and resolved by the schema
   # (.gr_read_schema): ranges clamped with a warning, a missing number taken
@@ -785,14 +794,21 @@ as_read_spec <- function(spec) {
            help = paste0("For preview: under \"not_found\", an answer that found nothing reads ",
                          "the sections not read in full in one more request."),
            evidence = ev_untested(paste0("\"never\", so a run makes the requests it made ",
-                                         "before the setting existed. Not measured.")))
+                                         "before the setting existed. Not measured."))),
+  hr_param("low_score", "enum", choices = c("not_found", "read_top_k"), tier = "advanced",
+           depends_on = "reader = \"rerank\"",
+           help = paste0("For rerank: when every candidate scores below rerank_min_score, ",
+                         "answer not found, or send the 5 best to the answer request."),
+           evidence = ev_untested(paste0("\"not_found\", the behaviour before the setting ",
+                                         "existed: no answer request. Not measured.")))
 )
 
 #' The read settings that were constants in the code until they were declared
 #' in the schema. gr_read_spec() stores each only when it is not its default.
 #' @noRd
 .gr_read_late_params <- c("accept_near_verbatim", "max_merge_levels", "restate_tokens",
-                          "bm25_k1", "bm25_b", "lexical_blend", "unskip_k", "reread_on")
+                          "bm25_k1", "bm25_b", "lexical_blend", "unskip_k", "reread_on",
+                          "low_score")
 
 #' The settings among `names` whose resolved value is not the schema's default,
 #' as a list to add to a spec. A spec is hashed whole into the corpus store and

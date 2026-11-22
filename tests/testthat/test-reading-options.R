@@ -114,3 +114,60 @@ test_that("reread_on raises the preview's worst case by one request", {
   more <- harnessr:::cost_preview(st, gr_read_spec("preview", reread_on = "not_found"))
   expect_identical(as.integer(more$calls_max), as.integer(base$calls_max) + 1L)
 })
+
+# ---------------------------------------------------------------------------
+# P1D-07: rerank when every candidate scores low
+# ---------------------------------------------------------------------------
+
+ro_rerank_client <- function(score = 1, answer = "NOT_IN_DOCUMENT") {
+  gr_mock_client(function(m, p) {
+    if (identical(p$schema_name, "relevance")) {
+      return(sprintf('{"score": %d, "reason": "weak"}', as.integer(score)))
+    }
+    answer
+  })
+}
+
+ro_rerank_doc <- function() {
+  ro_chunks(sprintf("Budget line %d mentions revenue planning for year %d.", 1:8, 2010 + 1:8))
+}
+
+test_that("rerank records retrieval_low_score when every candidate scores low", {
+  ch <- ro_rerank_doc()
+  cl <- ro_rerank_client(score = 1)
+  tr <- gr_trace()
+  a <- quiet(gr_read(ch, "What was revenue?", cl, "rerank", trace = tr))
+  expect_true(is_not_found(a$answer))
+  expect_true(a$notes$retrieval_low_score)
+  expect_false(a$partial)
+  expect_false("rerank.answer" %in% vapply(cl$calls(), function(x) x$label, ""))
+  low <- ro_steps(tr, "rerank.low_score")
+  expect_length(low, 1L)
+  expect_identical(low[[1]]$detail$action, "not_found")
+  # A candidate at the cut is not low.
+  a2 <- quiet(gr_read(ch, "What was revenue?", ro_rerank_client(score = 4, answer = "x"),
+                      "rerank"))
+  expect_null(a2$notes$retrieval_low_score)
+})
+
+test_that("low_score = 'read_top_k' sends the top 5 and marks a not-found", {
+  ch <- ro_rerank_doc()
+  spec <- gr_read_spec("rerank", low_score = "read_top_k", top_k = 2)
+  expect_identical(spec$low_score, "read_top_k")
+  expect_null(gr_read_spec("rerank")$low_score)
+  cl <- ro_rerank_client(score = 1)
+  a <- quiet(gr_read(ch, "What was revenue?", cl, spec))
+  calls <- cl$calls()
+  last <- calls[[length(calls)]]
+  expect_identical(last$label, "rerank.answer")
+  expect_length(regmatches(last$messages[[2]]$content,
+                           gregexpr("\\[chunk [0-9]+\\]", last$messages[[2]]$content))[[1]], 5L)
+  expect_true(is_not_found(a$answer))
+  expect_true(a$notes$retrieval_low_score)
+  expect_true(a$notes$read_below_min_score)
+  # An answer found below the cut is kept, and says what it read.
+  a2 <- quiet(gr_read(ch, "What was revenue?", ro_rerank_client(1, "Revenue was 4."), spec))
+  expect_identical(a2$answer, "Revenue was 4.")
+  expect_null(a2$notes$retrieval_low_score)
+  expect_true(a2$notes$read_below_min_score)
+})

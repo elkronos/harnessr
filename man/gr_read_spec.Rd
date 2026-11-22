@@ -40,6 +40,7 @@ gr_read_spec(
   lexical_blend = 0.5,
   unskip_k = 0L,
   reread_on = c("never", "not_found"),
+  low_score = c("not_found", "read_top_k"),
   ...
 )
 }
@@ -265,6 +266,15 @@ answer replaces the not-found when it finds one; \code{notes$reread} and a
 \code{preview.reread} trace step say what was sent and whether it found an
 answer. It costs at most one request. Untested.}
 
+\item{low_score}{For \code{rerank}, what happens when every candidate the model
+scored is below \code{rerank_min_score}. \code{"not_found"} (the default) makes no
+answer request and returns \code{NOT_IN_DOCUMENT}, as before, now with
+\code{notes$retrieval_low_score = TRUE} and a \code{rerank.low_score} trace step.
+\code{"read_top_k"} sends the 5 best-scored candidates to the answer request
+anyway (\code{notes$read_below_min_score = TRUE}), and marks a
+\code{NOT_IN_DOCUMENT} reply with \code{notes$retrieval_low_score = TRUE}. It costs
+the answer request the default does not make. Untested.}
+
 \item{...}{Extra fields for custom readers.}
 }
 \value{
@@ -382,6 +392,7 @@ keeps the store and cache keys it had before they existed.
 \item \code{lexical_blend} (default \code{0.5}, advanced): untested. An even blend, set when the offline path was written.
 \item \code{unskip_k} (default \code{0}, advanced): untested. Off (0), so the plan is followed as it was before the setting existed. Not measured.
 \item \code{reread_on} (default \code{"never"}, advanced): untested. "never", so a run makes the requests it made before the setting existed. Not measured.
+\item \code{low_score} (default \code{"not_found"}, advanced): untested. "not_found", the behaviour before the setting existed: no answer request. Not measured.
 }
 }
 

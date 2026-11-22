@@ -152,6 +152,8 @@
   read.max_merge_levels = "readers#set-merge-levels", read.fan_in = "readers#set-merge-levels",
   read.max_levels = "readers#set-merge-levels",
   read.unskip_k = "readers#set-preview", read.reread_on = "readers#set-preview",
+  read.low_score = "readers#set-low-score", read.rerank_min_score = "readers#set-low-score",
+  read.rerank_candidates = "readers#set-low-score",
   screen.gr_calibrate.recall_target = "review#set-calibration",
   screen.gr_calibrate.conf = "review#set-calibration",
   screen.gr_calibrate.max_width = "review#set-calibration",

@@ -151,7 +151,24 @@ read_rerank <- function(chunks, question, client, spec, trace) {
   # "nothing scored high enough" guard below did not fire, and d[NA, ] put
   # `[chunk NA]` in the prompt. The model then answered from the question alone
   # and the answer came back partial = FALSE.
-  keep_ord <- keep_ord[!is.na(keep_sc) & keep_sc >= thresh]
+  above <- !is.na(keep_sc) & keep_sc >= thresh
+  # Every candidate the model judged scored below the cut: the retrieval found
+  # nothing it rated relevant. Said in so many words, in the notes and the
+  # trace, rather than only in the reason string.
+  low <- !degraded && !any(above) && any(!is.na(keep_sc))
+  low_score <- as_chr1(spec$low_score, "not_found")
+  low_read <- low && identical(low_score, "read_top_k")
+  if (low) {
+    trace_note(trace, "rerank.low_score",
+               list(min_score = thresh, best = max(keep_sc, na.rm = TRUE),
+                    action = if (low_read) "read_top_k" else "not_found"))
+  }
+  keep_ord <- if (low_read) {
+    # low_score = "read_top_k": the 5 best-scored candidates go to the answer
+    # request anyway, so a scorer that undersells the right chunk does not
+    # end the run; a NOT_IN_DOCUMENT from it is marked below.
+    utils::head(keep_ord[!is.na(keep_sc)], .gr_rerank_low_top)
+  } else keep_ord[above]
   if (!length(keep_ord)) {
     # Partial only when something was not judged. Every candidate scored and
     # every score low is a CORRECT negative, and marking it partial put a right
@@ -161,11 +178,14 @@ read_rerank <- function(chunks, question, client, spec, trace) {
     # never looked at.
     return(new_answer(.NOT_FOUND, "rerank", question, integer(0), trace,
                       partial = unjudged || identical(prefilter$method, "spread"),
-                      notes = list(candidates = m, scoring_failures = n_failed,
-                                   unscorable = n_unscorable, prefilter = prefilter$method,
-                                   reason = sprintf("no candidate scored >= %g", thresh))))
+                      notes = c(list(candidates = m, scoring_failures = n_failed,
+                                     unscorable = n_unscorable, prefilter = prefilter$method,
+                                     reason = sprintf("no candidate scored >= %g", thresh)),
+                                if (low) list(retrieval_low_score = TRUE))))
   }
-  keep_ord <- utils::head(keep_ord, as.integer(clamp(spec$top_k, 1, length(keep_ord))))
+  if (!low_read) {
+    keep_ord <- utils::head(keep_ord, as.integer(clamp(spec$top_k, 1, length(keep_ord))))
+  }
 
   # The relevance scores judge usefulness, not truth, so the premise rule goes
   # only to the request that answers.
@@ -198,6 +218,13 @@ read_rerank <- function(chunks, question, client, spec, trace) {
                  effort = spec$effort)
   cut <- as.integer(res$ok && reply_cut_off(res))
   out <- premise_reply(if (res$ok) res$text else .NOT_FOUND, spec$premise)
+  # Under low_score = "read_top_k", what the answer request was sent scored
+  # below the cut. A NOT_IN_DOCUMENT from it carries retrieval_low_score, as
+  # the default's not-found does; an answer says it read below the cut.
+  low_notes <- if (low_read) {
+    c(list(low_score = "read_top_k", read_below_min_score = TRUE),
+      if (is_not_found(out$text)) list(retrieval_low_score = TRUE))
+  }
   # No answer, no evidence; see stuff.
   new_answer(out$text, "rerank", question, sub$chunk_id, trace, premise = out$premise,
              evidence = if (res$ok) evidence_table(sub$chunk_id, reader_source_text(sub), sub$page,
@@ -205,9 +232,14 @@ read_rerank <- function(chunks, question, client, spec, trace) {
                                                    kind = "verbatim"),
              partial = !res$ok || degraded || unjudged || cut > 0L ||
                identical(prefilter$method, "spread") || length(fit$dropped) > 0L,
-             notes = list(chunks = nrow(d), candidates = m, used = nrow(sub),
-                          dropped_chunks = length(fit$dropped),
-                          scoring_failures = n_failed, unscorable = n_unscorable,
-                          truncated_calls = cut, prefilter = prefilter$method,
-                          degraded_to_bm25 = degraded))
+             notes = c(list(chunks = nrow(d), candidates = m, used = nrow(sub),
+                            dropped_chunks = length(fit$dropped),
+                            scoring_failures = n_failed, unscorable = n_unscorable,
+                            truncated_calls = cut, prefilter = prefilter$method,
+                            degraded_to_bm25 = degraded), low_notes))
 }
+
+#' How many candidates low_score = "read_top_k" sends to the answer request
+#' when every one scored below rerank_min_score.
+#' @noRd
+.gr_rerank_low_top <- 5L

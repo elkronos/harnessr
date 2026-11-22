@@ -971,6 +971,41 @@ never answers `NOT_IN_DOCUMENT`, and `hr_sweep_check()` lists those arms as
 sending the same requests as the arms without it. Test it on questions your
 reader misses.
 
+### Low rerank scores: `low_score` {#set-low-score}
+
+**What it controls.** `rerank` drops every candidate the model scores below
+`rerank_min_score` (4 of 10). When that drops all of them, the default
+(`low_score = "not_found"`) makes no answer request and returns
+`NOT_IN_DOCUMENT` with `notes$retrieval_low_score = TRUE`. `"read_top_k"`
+sends the 5 best-scored candidates to the answer request anyway: one request
+more on those questions, in exchange for not trusting the scorer's
+pessimism. A not-found from that request carries `retrieval_low_score` too,
+and any answer from it carries `read_below_min_score`.
+
+**Signs it needs changing.** `NOT_IN_DOCUMENT` with `retrieval_low_score`
+on questions the document answers, where the trace's `rerank.score` replies
+rate the right chunk low, points to `"read_top_k"` or a lower
+`rerank_min_score`. Answers from chunks that do not hold them, after
+switching, point back.
+
+**Where the default came from.** `"not_found"` is what `rerank` did before
+the setting existed (`untested`). `rerank_min_score = 4` was set when the
+reader was written and not tuned.
+
+**How to test it.** Here a cut of 10 rejects every candidate:
+
+```{r}
+ranks <- gr_arm("thorough", list(method = "structural", max_tokens = 120,
+                                 overlap_tokens = 0, reader = "rerank",
+                                 rerank_min_score = 10))
+bench <- sweep(hr_sweep(ranks, list(low_score = c("not_found", "read_top_k"))))
+bench$calls <- calls(bench)
+aggregate(cbind(calls, correct) ~ param.low_score, bench, mean)
+```
+
+At the default the run ends after the scoring requests and is wrong;
+`"read_top_k"` makes the answer request and gets the figure.
+
 ```{r include = FALSE}
 gr_options(old)
 ```
