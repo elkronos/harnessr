@@ -74,8 +74,9 @@
   than one batch and the reconcile reply merges or groups them: the merged
   claim's wording, and the number of claims where a group is split, feed the
   `gr_outline()` and `gr_synthesise()` prompts, so those requests, and their
-  cache and replay keys, differ from before. A new test shuffles a 24-study table five times and requires
-  at least 90% of claims to keep the same studies, direction and population.
+  cache and replay keys, differ from before. A new test shuffles a 24-study
+  table five times and requires at least 90% of claims to keep the same
+  studies, direction and population.
   Two tests that expected a merge of opposite claims now expect them kept
   apart.
 
