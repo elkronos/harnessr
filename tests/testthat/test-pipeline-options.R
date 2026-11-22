@@ -915,3 +915,10 @@ test_that("hr_error_correlation() checks its inputs", {
   one <- po_blind_bench(everies = 4)
   expect_error(hr_error_correlation(one), class = "gr_bad_setting")
 })
+
+test_that("every setting of hr_error_correlation() is marked untested", {
+  s <- gr_settings_table()
+  st <- s[s$where == "hr_error_correlation()", c("name", "status")]
+  expect_setequal(st$name, c("strata", "n_strata", "n_check", "held_out", "seed"))
+  expect_true(all(st$status == "untested"))
+})

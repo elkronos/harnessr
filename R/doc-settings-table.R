@@ -76,6 +76,10 @@
   gr_screen.sample_rule = ev_untested(paste0(
     "\"include_if_any\" so that no study one draw would keep is lost; not compared with ",
     "\"majority\".")),
+  hr_error_correlation.strata = ev_untested(paste0(
+    "NULL: strata of difficulty read from the same runs; a rule, not a tuned value.")),
+  hr_error_correlation.seed = ev_untested(paste0(
+    "Any fixed seed makes the hand-check sample repeatable; the value itself is not tuned.")),
   hr_error_correlation.n_strata = ev_untested(paste0(
     "Three strata of difficulty, set when the metric was added; not compared.")),
   hr_error_correlation.n_check = ev_untested(paste0(

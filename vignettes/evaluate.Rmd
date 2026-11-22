@@ -428,7 +428,8 @@ benchmark where most errors fall on a few items.
 
 **Where the defaults came from.** Three difficulty strata, a sample of ten and
 reading only held-out rows were set when the metric was added and have not
-been compared (`untested`).
+been compared. `strata = NULL` reads difficulty from the same runs, and `seed`
+only makes the hand-check sample repeatable. All five are `untested`.
 
 **How to test it.** Here three arms share a blind spot on the first three
 items and each also fails items of its own, built with `hr_sweep()`:
