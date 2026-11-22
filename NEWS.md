@@ -33,7 +33,9 @@
   studies, and `low_power`, `TRUE` for a tally of 5 studies or fewer, where
   no split can reach p < 0.05. Sections rank their claims by `sign_p`, lowest
   first, then by study weight, so a 5-of-5 claim now ranks above a contested
-  3-to-3 one. `print()` gives each claim's tally and p (5 of 5 prints
+  3-to-3 one. A claim that more of its studies contradict than support ranks
+  after every other, the least contradicted first: `sign_p` is two-sided, and
+  alone it ranked 1 supporting and 8 contradicting (p = 0.039) above 5 of 5. `print()` gives each claim's tally and p (5 of 5 prints
   p = 0.0625) and warns of low power, citing Campbell et al. 2020 (SWiM) and
   Boon and Thomson 2021; the audit report adds `sign_p`. This changes what is
   sent at the default settings for a section given claims in a different

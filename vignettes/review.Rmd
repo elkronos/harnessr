@@ -1024,7 +1024,8 @@ nrow(cm$unverified)
 `sign_p` is the exact sign test of each claim's direction tally, its
 supporting studies out of all it names. A section ranks its claims by it, so a
 claim five studies agree on comes before one three support and three
-contradict. With five studies or fewer no tally can reach p < 0.05, and
+contradict. The test is two-sided, so a claim that more of its studies
+contradict than support is ranked last instead, however small its p. With five studies or fewer no tally can reach p < 0.05, and
 `print(cm)` says so: read such a tally as a count of directions (Campbell et
 al. 2020; Boon and Thomson 2021). A moderator a claim names is tested in
 `cm$moderators`: declared in advance (`moderators =`) or exploratory, with

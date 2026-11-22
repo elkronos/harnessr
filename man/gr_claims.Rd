@@ -183,10 +183,14 @@ is reported with the number of studies it held rather than passed over.
 A claim's tally is a direction-of-effect count: how many of the studies it
 names point its way. Each claim carries the exact sign test of that count,
 the binomial probability of a split at least as uneven if each study were
-as likely to point either way, and claims are ranked by it, lowest p
-first, wherever they are ranked (\code{print()}, and the sentence budget
-\code{\link[=gr_synthesise]{gr_synthesise()}} gives each claim). The number of studies voting was the
-rank before, which put a contested 3-to-3 claim above an agreed 5-of-5 one.
+as likely to point either way (\code{sign_p}, two-sided), and claims are
+ranked by it, lowest p first, wherever they are ranked (\code{print()}, and
+the sentence budget \code{\link[=gr_synthesise]{gr_synthesise()}} gives each claim). A two-sided test
+is as small for a tally against the claim as for one in its favour (1 of
+9 gives 0.039, below 5 of 5 at 0.0625), so a claim that more of its
+studies contradict than support ranks after every other claim, the least
+contradicted of those first. The number of studies voting was the rank
+before, which put a contested 3-to-3 claim above an agreed 5-of-5 one.
 A sign test is weak: with 5 studies or fewer no split, however even or
 uneven, can reach p < 0.05, and \code{print()} warns of low power. Read such a
 tally as a count of directions, not as evidence of an effect or of none.

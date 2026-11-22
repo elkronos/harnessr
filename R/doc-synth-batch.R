@@ -173,7 +173,8 @@
 #' @param prominence How much of the writing prompt's sentence budget the
 #'   claims of a section get, by rank: `c(top = , middle = )`, the shares of a
 #'   section's claims (ranked by the sign test of their direction tally, lowest
-#'   p first, then by the weight of the studies behind them; see
+#'   p first, with a claim more of whose studies contradict it than support it
+#'   last, then by the weight of the studies behind them; see
 #'   [gr_claims()], "Direction of effect") asked for "two or three sentences"
 #'   and "one or two
 #'   sentences"; the rest get "one sentence", and a section of three claims

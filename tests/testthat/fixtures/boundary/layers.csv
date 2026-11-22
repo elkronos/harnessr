@@ -835,6 +835,7 @@
 "cited_chunks","doc","function"
 "cited_ids","doc","function"
 "cited_verbatim","doc","function"
+"claim_against","doc","function"
 "claim_batches","doc","function"
 "claim_direction","doc","function"
 "claim_order","doc","function"

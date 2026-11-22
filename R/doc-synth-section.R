@@ -8,12 +8,18 @@
 #' across six studies above an agreement across five, and put a 3-to-3 split
 #' first among claims; a direction tally says how far the studies agree, and
 #' the sign test says how unlikely that agreement is by chance (Campbell et al.
-#' 2020; Boon and Thomson 2021). Ties, which are common with few studies, are
-#' broken by the weight of the studies behind the claim, then by claim number.
+#' 2020; Boon and Thomson 2021). The test is two-sided, so it reads a tally
+#' against the claim as certain as one for it: 1 supporting and 8
+#' contradicting (p = 0.039) ranked above 5 of 5 (p = 0.0625). A claim more of
+#' whose studies contradict it than support it (claim_against()) therefore
+#' ranks after every other, and among those the least contradicted first.
+#' Ties, which are common with few studies, are broken by the weight of the
+#' studies behind the claim, then by claim number.
 #' @noRd
 claim_order <- function(claims, support, weights) {
   if (!nrow(claims)) return(integer(0))
   certainty <- sign_test(claims$n_support, claims$n_support + claims$n_contradict)
+  against <- claim_against(claims$n_support, claims$n_contradict)
   # A study with no weight is UNKNOWN, not weightless: it takes the mean of the
   # weights that ARE known across the table -- or 1, the middle of
   # study_weight()'s 0.5-1.5 scale, if none is. Imputing per claim instead gave a
@@ -31,7 +37,16 @@ claim_order <- function(claims, support, weights) {
     w[is.na(w)] <- neutral
     sum(w)
   }, numeric(1))
-  order(certainty, -mass, claims$claim_id)
+  order(against, ifelse(against, -certainty, certainty), -mass, claims$claim_id)
+}
+
+#' Whether more of a claim's studies contradict it than support it: such a
+#' claim ranks after every other (claim_order()). FALSE where a count is NA.
+#' @noRd
+claim_against <- function(n_support, n_contradict) {
+  out <- as.integer(n_contradict) > as.integer(n_support)
+  out[is.na(out)] <- FALSE
+  out
 }
 
 #' The exact two-sided sign test of `k` studies in a claim's direction out

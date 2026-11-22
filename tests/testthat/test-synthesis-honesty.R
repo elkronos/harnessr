@@ -183,6 +183,24 @@ test_that("claims are ranked by certainty, not by how many studies vote", {
   expect_identical(attr(blocks, "claim_id"), c(2L, 1L, 3L))
 })
 
+test_that("a claim most of its studies contradict ranks last, not first", {
+  # Two-sided, 1 of 9 (p = 0.039) ranked above 5 of 5 (p = 0.0625), and
+  # 1 of 6 (p = 0.219) above 3 of 3 (p = 0.25).
+  none <- data.frame(claim_id = integer(0), study = integer(0))
+  cl <- data.frame(claim_id = 1:3, n_support = c(5L, 1L, 1L), n_contradict = c(0L, 5L, 8L))
+  expect_identical(ns$claim_order(cl, none, c()), 1:3)
+  cl <- data.frame(claim_id = 1:3, n_support = c(3L, 1L, 1L), n_contradict = c(3L, 0L, 0L))
+  cl$n_support[1] <- 1L; cl$n_contradict[1] <- 6L
+  expect_identical(ns$claim_order(cl, none, c()), c(2L, 3L, 1L))
+  cl <- data.frame(claim_id = 1:3, n_support = c(3L, 1L, 2L), n_contradict = c(0L, 6L, 2L))
+  sup <- data.frame(claim_id = c(1, 1, 1, 2, 3, 3), study = 1:6)
+  expect_identical(ns$claim_order(cl, sup, c()), c(1L, 3L, 2L))
+  cl <- data.frame(claim_id = 1:2, n_support = c(1L, 3L), n_contradict = c(5L, 0L))
+  expect_identical(ns$claim_order(cl, none, c()), 2:1)
+  expect_identical(ns$claim_against(c(1L, 3L, 2L, NA), c(5L, 0L, 2L, 1L)),
+                   c(TRUE, FALSE, FALSE, FALSE))
+})
+
 test_that("print() gives each claim's tally and sign test, and warns of low power", {
   tab <- data.frame(document = paste0(letters[1:5], ".pdf"), status = "ok",
                     duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,

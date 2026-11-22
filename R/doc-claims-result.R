@@ -95,12 +95,14 @@ print.gr_claims <- function(x, ...) {
                 sum(x$claims$n_contradict > 0L & !is.na(x$claims$moderator))))
     single <- sum(x$claims$n_support == 1L)
     if (single) cat(sprintf("  %d resting on a single study\n", single))
-    # Ranked by certainty, as a section ranks them (claim_order()); a claims
+    # Ranked by certainty, as a section ranks them (claim_order()), with a
+    # claim more of whose studies contradict it than support it last; a claims
     # table saved before the tally existed is ranked from its counts.
     cw <- x$claims
     p <- cw$sign_p %||% sign_test(cw$n_support, cw$n_support + cw$n_contradict)
     low <- sign_test_min(cw$n_support + cw$n_contradict) > 0.05
-    ord <- order(p, cw$claim_id)
+    against <- claim_against(cw$n_support, cw$n_contradict)
+    ord <- order(against, ifelse(against, -p, p), cw$claim_id)
     for (i in utils::head(ord, 5L)) {
       cat(sprintf("  [%d] %s\n", cw$claim_id[i], substr(cw$claim[i], 1, 96)))
       cat(sprintf("      %d of %d studies in its direction, sign test p = %s%s\n",
