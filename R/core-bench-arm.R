@@ -169,8 +169,8 @@ fn_fingerprint <- function(f, values = FALSE, follow = FALSE, seen = list(), dep
   global <- identical(env, globalenv())
   if (nzchar(nm) && !global) return(list(code = code, env = nm))
   if (!values) return(list(code = code, env = if (global) nm else "<closure>"))
-  used <- unique(c(all.names(body(f)),
-                   unlist(lapply(formals(f), function(d) all.names(d)), use.names = FALSE)))
+  used <- unique(c(fp_names(body(f)),
+                   unlist(lapply(formals(f), fp_names), use.names = FALSE)))
   # A name the function takes as an argument is not read from its
   # environment, so a global `item` or `ctx` left over from testing is not
   # part of the arm.
@@ -190,6 +190,26 @@ fn_fingerprint <- function(f, values = FALSE, follow = FALSE, seen = list(), dep
     fingerprint_value(x)
   })
   list(code = code, env = stats::setNames(vals, used))
+}
+
+#' The names an expression reads, as all.names() gives them, but without the
+#' name on the right of `$` or `@`: in `ctx$step_params$marks`, `marks` is a
+#' field, not a variable, so a variable of that name in the function's
+#' environment is not part of what the function reads.
+#' @noRd
+fp_names <- function(e) {
+  if (is.name(e)) return(as.character(e))
+  if (is.call(e)) {
+    head <- e[[1L]]
+    if ((identical(head, as.name("$")) || identical(head, as.name("@"))) && length(e) == 3L) {
+      return(c(as.character(head), fp_names(e[[2L]])))
+    }
+    return(unlist(lapply(as.list(e), fp_names), use.names = FALSE))
+  }
+  if (is.pairlist(e) || is.expression(e)) {
+    return(unlist(lapply(as.list(e), fp_names), use.names = FALSE))
+  }
+  character()
 }
 
 #' A value with every function in it reduced to its code, so the hash of the

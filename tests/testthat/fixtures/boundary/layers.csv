@@ -209,6 +209,7 @@
 "format_setting_value","core","function"
 "format_settings","core","function"
 "format_trace_cost","core","function"
+"fp_names","core","function"
 "gate_deff","core","function"
 "governor_check","core","function"
 "governor_exhausted","core","function"

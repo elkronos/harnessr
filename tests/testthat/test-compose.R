@@ -340,6 +340,32 @@ test_that("steps that differ only in the values their code reads give different 
   expect_identical(a$run("q", NULL), "Answer briefly: q")
 })
 
+test_that("a factory argument named like a setting does not enter the configuration", {
+  sc <- hr_schema(hr_param("marks", "integer", default = 1L, min = 0, max = 5))
+  shout <- function(marks = NULL) {
+    hr_step("shout", function(input, ctx) paste0(input, strrep("!", ctx$step_params$marks)),
+            params = if (is.null(marks)) list() else list(marks = marks), schema = sc)
+  }
+  cfg <- function(s) attr(hr_chain(s, name = "c"), "hr_config")
+  # `marks` in ctx$step_params$marks is a field, not the factory's argument.
+  expect_identical(cfg(shout()), cfg(shout(1L)))
+  expect_false(identical(cfg(shout()), cfg(shout(3L))))
+  expect_identical(hr_chain(shout(2L), name = "c")$run("a", list()), "a!!")
+  # A value the code reads as a variable still counts.
+  e <- new.env()
+  assign("text", "zzz", envir = e)
+  f <- function(input, ctx) ctx$call(input)$text
+  environment(f) <- e
+  fp1 <- attr(hr_step("s", f), "fingerprint")
+  assign("text", "yyy", envir = e)
+  expect_identical(attr(hr_step("s", f), "fingerprint"), fp1)
+  g <- function(input, ctx) paste(text, ctx$text)
+  environment(g) <- e
+  fp2 <- attr(hr_step("s", g), "fingerprint")
+  assign("text", "xxx", envir = e)
+  expect_false(identical(attr(hr_step("s", g), "fingerprint"), fp2))
+})
+
 test_that("settings change the configuration; a setting at its default does not", {
   st <- compose_steps()
   two <- hr_chain(segment = st$segment, retrieve = gr_step_retrieve(top_k = 2),
