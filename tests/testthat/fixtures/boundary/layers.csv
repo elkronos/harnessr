@@ -724,6 +724,7 @@
 "agreement_cells","doc","function"
 "agreement_field","doc","function"
 "agreement_levels","doc","function"
+"agreement_pair_columns","doc","function"
 "agreement_part","doc","function"
 "agreement_read","doc","function"
 "agreement_row","doc","function"

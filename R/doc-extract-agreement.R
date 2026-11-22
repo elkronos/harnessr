@@ -14,6 +14,18 @@
 .gr_extract_bookkeeping <- c("document", "document_id", "n_filled", "n_unverified",
                              "conflicts", "status", "duplicate_of", "error")
 
+#' The columns gr_extract(agreement_columns = TRUE) adds beside a field:
+#' `<field>_agreement` and `<field>_conflict`, for each field whose two
+#' columns are both in `nms` beside the field itself. They describe how a
+#' document agreed with itself, not the study, so they are never compared or
+#' shown as fields.
+#' @noRd
+agreement_pair_columns <- function(nms) {
+  stem <- sub("_agreement$", "", nms[endsWith(nms, "_agreement")])
+  stem <- stem[stem %in% nms & paste0(stem, "_conflict") %in% nms]
+  c(paste0(stem, "_agreement"), paste0(stem, "_conflict"))
+}
+
 #' The label "not reported" takes as a nominal category.
 #' @noRd
 .gr_not_reported <- "not reported"
@@ -150,7 +162,9 @@ gr_extract_agreement <- function(x, y, fields = NULL, levels = NULL, by = "docum
   nms <- if (is.character(fields)) unique(fields)
          else if (!is.null(schema)) names(schema)
          else setdiff(intersect(names(tx$table), names(ty$table)),
-                      c(by, .gr_extract_bookkeeping))
+                      c(by, .gr_extract_bookkeeping,
+                        agreement_pair_columns(names(tx$table)),
+                        agreement_pair_columns(names(ty$table))))
   if (!length(nms)) gr_abort("There are no fields to compare.", class = "gr_bad_setting")
   for (side in list(tx, ty)) {
     miss <- setdiff(nms, names(side$table))

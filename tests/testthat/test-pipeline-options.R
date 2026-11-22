@@ -120,6 +120,34 @@ test_that("the agreement columns are not shown to synthesis as study fields", {
   expect_identical(harnessr:::study_fields(used), c("n", "own_agreement"))
 })
 
+test_that("the audit report gives each resolve rule and marks the agreement columns", {
+  a <- po_sample_file()
+  x <- po_quiet(gr_extract(a, po_sample_fields(), client = po_sample_client(),
+                           recipe = "thorough", max_tokens = 48, resolve = "vote",
+                           agreement_columns = TRUE))
+  h <- tempfile(fileext = ".html")
+  po_quiet(gr_audit_report(h, extraction = x, open = FALSE))
+  html <- paste(readLines(h, warn = FALSE), collapse = "\n")
+  expect_false(grepl("earlier one unless", html, fixed = TRUE))
+  expect_match(html, "the one most chunks gave under <code>resolve = \"vote\"</code>",
+               fixed = TRUE)
+  expect_match(html, "<code>_agreement</code> column is not a field", fixed = TRUE)
+  expect_match(html, "<span class='flag'>TRUE</span>", fixed = TRUE)
+})
+
+test_that("gr_extract_agreement() does not compare the agreement columns as fields", {
+  a <- po_sample_file()
+  x <- po_quiet(gr_extract(a, po_sample_fields(), client = po_sample_client(),
+                           recipe = "thorough", max_tokens = 48, agreement_columns = TRUE))
+  y <- x$table
+  y$n_agreement <- "1/3"
+  ag <- po_quiet(gr_extract_agreement(x$table, y))
+  fields_compared <- unique(as.character(ag$table$field))
+  expect_setequal(fields_compared, c("n", "arm"))
+  expect_identical(harnessr:::agreement_pair_columns(names(x$table)),
+                   c("n_agreement", "arm_agreement", "n_conflict", "arm_conflict"))
+})
+
 test_that("resolve is swept as arms, one per value", {
   arms <- hr_sweep(function(resolve) {
     hr_arm(paste0("extract-", resolve), function(item, ctx) {

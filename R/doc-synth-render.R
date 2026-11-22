@@ -14,9 +14,7 @@ study_fields <- function(used, hide = character(0)) {
   # document agreed with itself, not the study: a field's pair is left out
   # when both are there beside the field.
   nms <- names(used)
-  stem <- sub("_agreement$", "", nms[endsWith(nms, "_agreement")])
-  stem <- stem[stem %in% nms & paste0(stem, "_conflict") %in% nms]
-  setdiff(nms, c(meta, hide, paste0(stem, "_agreement"), paste0(stem, "_conflict")))
+  setdiff(nms, c(meta, hide, agreement_pair_columns(nms)))
 }
 
 #' The table as text the model can cite.
