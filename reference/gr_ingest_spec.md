@@ -67,11 +67,13 @@ gr_ingest_spec(
   `references_after` (0.4)
 
   :   For the `references` cleaner (in the `academic` and `legacy`
-      presets): a References, Bibliography or Works cited heading ends
-      the text only when it starts at or after this share of the text,
-      so an entry in a table of contents does not cut the document. A
-      number in \[0, 1\]; a value that cannot be read warns and uses
-      0.4. Untested: set when the cleaner was written.
+      presets): a References, Bibliography or Works cited heading, on a
+      line of its own and optionally numbered or a Markdown heading such
+      as `## References`, and not inside a fenced code block, ends the
+      text only when it starts at or after this share of the text, so an
+      entry in a table of contents does not cut the document. A number
+      in \[0, 1\]; a value that cannot be read warns and uses 0.4.
+      Untested: set when the cleaner was written.
 
   `header_max_chars` (80)
 
@@ -186,11 +188,11 @@ vapply(c("none", "minimal", "standard", "academic", "scan"),
 #> Ingested 19 block(s), ~586 tokens (0 chars removed by cleaning).
 #> Using cached ingestion for this document + settings.
 #> Extracting 'annual_report.md' with the 'md' extractor.
-#> Ingested 15 block(s), ~541 tokens (93 chars removed by cleaning).
+#> Ingested 13 block(s), ~499 tokens (203 chars removed by cleaning).
 #> Extracting 'annual_report.md' with the 'md' extractor.
 #> Ingested 17 block(s), ~574 tokens (12 chars removed by cleaning).
 #>     none  minimal standard academic     scan 
-#>     1858     1858     1846     1765     1846 
+#>     1858     1858     1846     1655     1846 
 
 # Or name the steps yourself; see gr_cleaners() for what is available.
 gr_ingest_spec(clean = c("page_numbers", "references"), ocr = "never")$clean

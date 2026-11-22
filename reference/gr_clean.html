@@ -90,7 +90,13 @@ figure filters that need digits to match.</p></dd>
 <code>.blocks</code>, all the blocks as they stand before that step, for a step that
 decides by what the rest of the document says (as <code>hyphenation</code> and
 <code>headers_footers</code> do); and <code>.pages</code>, a page per block, where the caller
-gives one (<code><a href="gr_ingest.html">gr_ingest()</a></code> does).</p></dd>
+gives one (<code><a href="gr_ingest.html">gr_ingest()</a></code> does); and <code>.source_type</code>, the name of the
+extractor that read the file (<code>"md"</code>, <code>"pdf"</code>, <code>"txt"</code> ...), which
+<code><a href="gr_ingest.html">gr_ingest()</a></code> gives for a file and which <code>references</code> reads (see
+<code><a href="gr_cleaners.html">gr_cleaners()</a></code>). For a Markdown file <code><a href="gr_ingest.html">gr_ingest()</a></code> also gives
+<code>.indented</code>, a logical per block, <code>TRUE</code> where the file indented the
+block's first line four or more spaces; the extractor takes that indent
+off the text.</p></dd>
 
 </dl></div>
     <div class="section level2">

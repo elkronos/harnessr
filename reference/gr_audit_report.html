@@ -79,7 +79,8 @@ each claim rests on, and what the run cost.</p>
 <span>  records <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  calibration <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  answer <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  recall <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -144,6 +145,13 @@ answer" below.</p></dd>
 the file is under <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code>, and otherwise in the web browser. By
 default only in an interactive session.</p></dd>
 
+
+<dt id="arg-recall">recall<a class="anchor" aria-label="anchor" href="#arg-recall"></a></dt>
+<dd><p>A <code><a href="gr_search_recall.html">gr_search_recall()</a></code> result, to add how many of a set of
+papers already known to be relevant the search found, as relative
+recall with its interval, and which seeds it missed. Last, so every
+existing call keeps its meaning.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -186,6 +194,39 @@ credited to, so an unverified quote shown with a page was not found on it.</p>
 declined to make, fields nothing supported and citations pointing at rows that
 do not exist are all counted near the top. An audit that showed only what
 worked would look like diligence and be the opposite.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="when-each-stage-ran">When each stage ran<a class="anchor" aria-label="anchor" href="#when-each-stage-ran"></a></h2>
+
+
+<p>Under the title, the report gives the time it was written and the harnessr
+version that wrote it, and then, for each stage passed, when that stage
+ran and the version that ran it, from the stage's own trace. The times are
+shown side by side and not compared: a reader sees from them how long after
+the run the report was written. Only the version is checked: a stage whose
+version differs from the report's is flagged. A stage saved without that
+record says "not recorded".</p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-each-check-looks-at">What each check looks at<a class="anchor" aria-label="anchor" href="#what-each-check-looks-at"></a></h2>
+
+
+<p>"What this report does not establish" says what each check behind a
+"verified" or a count of failures looks at: the quote check (the quoted
+sentence is in the chunk), the value check behind <code>n_unverified</code> (a number
+is one the quote states), and, for a write-up, the citation check (the row
+exists and the section was given it) and the figures check (the figure is
+in what the writer was shown for that sentence). None of them confirms a
+value or a sentence is right.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="files-and-their-records">Files and their records<a class="anchor" aria-label="anchor" href="#files-and-their-records"></a></h2>
+
+
+<p>When the screening, the extraction or a <code>gr_corpus</code> was read from a
+<code><a href="gr_records.html">gr_records()</a></code>, a section says how many files name their record's title
+or DOI in their opening text and lists those that do not (the <code>identity</code>
+column of <code><a href="gr_read_many.html">gr_read_many()</a></code>).</p>
     </div>
     <div class="section level2">
     <h2 id="an-answer">An answer<a class="anchor" aria-label="anchor" href="#an-answer"></a></h2>
@@ -265,14 +306,14 @@ an <code>effort</code> column.</p>
 <span class="r-in"><span><span class="op">}</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".txt"</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"We ran a randomised trial."</span>, <span class="va">f</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_extract.html">gr_extract</a></span><span class="op">(</span><span class="va">f</span>, <span class="va">fields</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1c3a10f0da54.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1c3a10f0da54.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1bc226c2a6ff.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1bc226c2a6ff.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~10 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'structural' (cap 900 tokens, overlap 90).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu">gr_audit_report</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".html"</span><span class="op">)</span>, extraction <span class="op">=</span> <span class="va">x</span>, open <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Audit report written to /tmp/RtmpWpni3M/file1c3a16bbae4e.html</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Audit report written to /tmp/RtmpgGIzxe/file1bc22cf0b369.html</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
 <span class="r-in"><span></span></span>
@@ -283,7 +324,7 @@ an <code>effort</code> column.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'stuff' (all|1|none) over 1 chunk(s).</span>
 <span class="r-in"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="fu">gr_audit_report</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".html"</span><span class="op">)</span>, answer <span class="op">=</span> <span class="va">ans</span>, open <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Audit report written to /tmp/RtmpWpni3M/file1c3a4c000250.html</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Audit report written to /tmp/RtmpgGIzxe/file1bc24219d2fc.html</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

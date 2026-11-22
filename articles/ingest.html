@@ -383,12 +383,12 @@ addresses, which are sometimes the answer.</li>
 <code>references</code> cuts everything from a line reading just
 “References”, “Bibliography” or “Works cited” to the end of the
 document, when that line starts at or after 40% of the text, so a table
-of contents near the start does not cut the document.
+of contents near the start does not cut the document. The line may be
+numbered (“7. References”) or a Markdown heading (“## References”); a
+line inside a fenced code block is not a heading.
 <code>cleaner_opts = list(references_after = )</code> moves that share,
 a number from 0 to 1. The cut loses the reference list if your question
-is about the sources. A Markdown heading such as
-<code>## References</code> is not such a line, so it does not trigger
-the cut.</li>
+is about the sources.</li>
 </ul>
 <p>Cleaning cannot be undone later: no reader can recover what it
 removes. Know what each choice costs before you make it.</p>
@@ -442,7 +442,7 @@ included; for comparison only</td>
 <span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">presets</span>, <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/gr_ingest_spec.html">gr_ingest_spec</a></span><span class="op">(</span>clean <span class="op">=</span> <span class="va">p</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">stats</span><span class="op">$</span><span class="va">chars</span>,</span>
 <span>       <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;     none  minimal standard academic     scan   legacy </span></span>
-<span><span class="co">#&gt;     1858     1858     1846     1765     1846     1659</span></span></code></pre></div>
+<span><span class="co">#&gt;     1858     1858     1846     1655     1846     1558</span></span></code></pre></div>
 <p>Or name the cleaners yourself:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tidy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -521,7 +521,7 @@ calling a model and without an API key:</p>
 <span></span>
 <span><span class="va">inv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_inventory.html">gr_inventory</a></span><span class="op">(</span><span class="va">inbox</span><span class="op">)</span></span>
 <span><span class="va">inv</span></span>
-<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/Rtmp1uob6l/inbox</span></span>
+<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/Rtmpl2YcsX/inbox</span></span>
 <span><span class="co">#&gt;   4 file(s), 1.9 KB; 2 readable</span></span>
 <span><span class="co">#&gt;   2 ready, 1 no_extractor, 1 empty</span></span>
 <span><span class="co">#&gt;   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)</span></span>
@@ -679,17 +679,18 @@ was sent:</p>
 <span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">tokens_in</span> <span class="op">~</span> <span class="va">param.clean</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   param.clean tokens_in</span></span>
-<span><span class="co">#&gt; 1    academic       585</span></span>
+<span><span class="co">#&gt; 1    academic       549</span></span>
 <span><span class="co">#&gt; 2        none       619</span></span>
 <span><span class="co">#&gt; 3        scan       611</span></span>
 <span><span class="co">#&gt; 4    standard       611</span></span>
 <span><span class="fu"><a href="../reference/hr_sweep_check.html">hr_sweep_check</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span>
 <span><span class="co">#&gt;               arm             same_as runs requests                settings</span></span>
 <span><span class="co">#&gt; 1 fast:clean=scan fast:clean=standard    5        5 clean: standard vs scan</span></span></code></pre></div>
-<p>On the example report, <code>"academic"</code> sends 26 fewer prompt
-tokens than <code>"standard"</code>, because it drops the caption lines,
-and <code>"none"</code> sends 8 more. <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code>
-finds that <code>"scan"</code> sent exactly the requests
+<p>On the example report, <code>"academic"</code> sends 62 fewer prompt
+tokens than <code>"standard"</code>, because it drops the caption lines
+and the reference list after the <code>## References</code> heading, and
+<code>"none"</code> sends 8 more. <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code> finds
+that <code>"scan"</code> sent exactly the requests
 <code>"standard"</code> sent: the example has no running heads, so on it
 that comparison would measure nothing but run-to-run spread. The same
 check tells you whether a <code>references_after</code> sweep reaches
@@ -706,13 +707,12 @@ your documents at all:</p>
 <span><span class="co">#&gt; 1 fast:cleaner_opts=list(references_after = 0.4)    5        5</span></span>
 <span><span class="co">#&gt;                                                                     settings</span></span>
 <span><span class="co">#&gt; 1 cleaner_opts: list(references_after = 0.4) vs list(references_after = 0.8)</span></span></code></pre></div>
-<p>Both values sent the same requests, although the example report ends
-with a <code>## References</code> heading. The <code>references</code>
-cleaner cuts only at a line that reads “References”, “Bibliography” or
-“Works cited” alone, optionally numbered, so a Markdown heading with its
-<code>#</code> marks is never cut, wherever it falls. Run the sweep on
-documents whose heading stands alone that way, as text extracted from a
-PDF usually does, with questions whose answers sit near the end.</p>
+<p>Both values sent the same requests. The example report’s
+<code>## References</code> heading starts 94% of the way through its
+text, after both 40% and 80%, so both values cut the text at the same
+line. A <code>references_after</code> sweep changes what is sent only
+for a document whose heading falls between the two values. Run it on
+your own documents, with questions whose answers sit near the end.</p>
 </div>
 <div class="section level3">
 <h3 id="set-ocr">OCR settings<a class="anchor" aria-label="anchor" href="#set-ocr"></a>

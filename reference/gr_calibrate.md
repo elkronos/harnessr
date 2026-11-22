@@ -190,6 +190,14 @@ An object of class `gr_calibration`:
   statistic, the scope being the frame, a stratum or `"weighted"`),
   `notes` and `conf`.
 
+- `worst_case`:
+
+  The sensitivity analysis described under "Recall is relative to the
+  reference": `rule`, `conflicts` (records the reviewers split on),
+  `changed` (those the consensus had settled as not eligible), `recall`,
+  `lost` and `verdict` as above, `missed` and `note`. With one decision
+  per document it repeats the main figures.
+
 ## Two sensitivities, and the gap between them
 
 `"unclear"` is a deferral, not a miss. A record the screener could not
@@ -380,6 +388,22 @@ AC1 intervals hold up better there. On any other frame the sample is one
 simple random sample, the figures are unweighted, and sensitivity and
 specificity have Wilson intervals, as in `$metrics`.
 
+## Recall is relative to the reference
+
+Recall here is the share of the records the person judged eligible that
+the screener kept. A study the person wrongly excluded is not counted
+against the screener, so the figure is relative to the reference, not to
+every eligible study; print() and
+[`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
+say so wherever they report it.
+
+With several reviewers the consensus settles each record they split on.
+`$worst_case` works out recall, records lost and the verdict again with
+every such record counted as eligible, the worst case for the screener,
+and print() and the audit report show it beside the main estimate. Under
+`rule = "any_include"` the consensus already does this, so the two
+agree.
+
 ## References
 
 Lewis, D. D., Yang, E. and Frieder, O. (2021). Certifying one-phase
@@ -412,7 +436,8 @@ Other corpus functions:
 [`gr_reference_consensus()`](https://elkronos.github.io/harnessr/reference/gr_reference_consensus.md),
 [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md),
 [`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md),
-[`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
+[`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md),
+[`gr_search_recall()`](https://elkronos.github.io/harnessr/reference/gr_search_recall.md)
 
 ## Examples
 
@@ -453,6 +478,9 @@ gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref)
 #>   recall 75.0%  [75.0%, 75.0%]; 95% one-sided lower bound 75.0%
 #>   eligible records excluded: about 1 of 4; 95% upper bound 1
 #>   recall target 95.0% at 95% confidence: not met
+#>   (recall is relative to the reference: the share of the records the person
+#>    judged eligible that the screener kept, not of every eligible study; a
+#>    study the reference missed is not counted)
 #>   ! 1 eligible study was excluded by the screener:
 #>       d6.pdf
 #>   ! only 4 eligible studies in the sample. Every rate above rests on

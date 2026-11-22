@@ -429,7 +429,7 @@ knitr::kable(gr_cleaners()[, c("name", "stage", "default_on", "description")])
 | headers_footers | early | FALSE | Drop running heads and feet: short lines repeated at the top or bottom of many pages, or at the edge of blocks where pages are not known |
 | hyphenation | early | TRUE | Rejoin words split across line breaks by PDF layout (‘mito-’, ‘LIA-’ in capitals); a compound the document writes with its hyphen elsewhere (‘follow-up’) keeps it; number ranges (‘18-’) and compounds (‘Anglo-’) are left alone |
 | page_numbers | early | TRUE | Drop decorated page-number lines (‘Page 4’, ‘- 12 -’, ‘\[12\]’, and ‘12.’ unless the line before runs on into it); bare numbers are kept |
-| references | early | FALSE | Drop a trailing bibliography, from a References/Bibliography heading to the end |
+| references | early | FALSE | Drop a trailing bibliography, from a References/Bibliography heading to the end; in a Markdown file a line indented 4 or more spaces is code, not a heading |
 | urls | early | FALSE | Remove URLs (OFF by default: URLs are often the answer) |
 | ascii_only | late | FALSE | Transliterate to ASCII (drops accents and non-Latin scripts) |
 | collapse_whitespace | late | TRUE | Collapse runs of spaces/tabs and 2+ consecutive blank lines, and trim block edges; preserves paragraph breaks |

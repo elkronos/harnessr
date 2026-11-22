@@ -20,7 +20,8 @@ gr_audit_report(
   records = NULL,
   calibration = NULL,
   answer = NULL,
-  open = interactive()
+  open = interactive(),
+  recall = NULL
 )
 ```
 
@@ -102,6 +103,14 @@ gr_audit_report(
   otherwise in the web browser. By default only in an interactive
   session.
 
+- recall:
+
+  A
+  [`gr_search_recall()`](https://elkronos.github.io/harnessr/reference/gr_search_recall.md)
+  result, to add how many of a set of papers already known to be
+  relevant the search found, as relative recall with its interval, and
+  which seeds it missed. Last, so every existing call keeps its meaning.
+
 ## Value
 
 `path`, invisibly.
@@ -139,6 +148,34 @@ Unverified quotes, documents that could not be read, screening calls the
 model declined to make, fields nothing supported and citations pointing
 at rows that do not exist are all counted near the top. An audit that
 showed only what worked would look like diligence and be the opposite.
+
+## When each stage ran
+
+Under the title, the report gives the time it was written and the
+harnessr version that wrote it, and then, for each stage passed, when
+that stage ran and the version that ran it, from the stage's own trace.
+The times are shown side by side and not compared: a reader sees from
+them how long after the run the report was written. Only the version is
+checked: a stage whose version differs from the report's is flagged. A
+stage saved without that record says "not recorded".
+
+## What each check looks at
+
+"What this report does not establish" says what each check behind a
+"verified" or a count of failures looks at: the quote check (the quoted
+sentence is in the chunk), the value check behind `n_unverified` (a
+number is one the quote states), and, for a write-up, the citation check
+(the row exists and the section was given it) and the figures check (the
+figure is in what the writer was shown for that sentence). None of them
+confirms a value or a sentence is right.
+
+## Files and their records
+
+When the screening, the extraction or a `gr_corpus` was read from a
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
+a section says how many files name their record's title or DOI in their
+opening text and lists those that do not (the `identity` column of
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)).
 
 ## An answer
 
@@ -235,14 +272,14 @@ cl <- gr_mock_client(function(messages, params) {
 })
 f <- tempfile(fileext = ".txt"); writeLines("We ran a randomised trial.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1c3a10f0da54.txt
-#> Extracting 'file1c3a10f0da54.txt' with the 'txt' extractor.
+#> [1/1] file1bc226c2a6ff.txt
+#> Extracting 'file1bc226c2a6ff.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~10 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).
 
 out <- gr_audit_report(tempfile(fileext = ".html"), extraction = x, open = FALSE)
-#> Audit report written to /tmp/RtmpWpni3M/file1c3a16bbae4e.html
+#> Audit report written to /tmp/RtmpgGIzxe/file1bc22cf0b369.html
 file.exists(out)
 #> [1] TRUE
 
@@ -253,5 +290,5 @@ ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl2)
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
 page <- gr_audit_report(tempfile(fileext = ".html"), answer = ans, open = FALSE)
-#> Audit report written to /tmp/RtmpWpni3M/file1c3a4c000250.html
+#> Audit report written to /tmp/RtmpgGIzxe/file1bc24219d2fc.html
 ```

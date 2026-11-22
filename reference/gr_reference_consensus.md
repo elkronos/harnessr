@@ -81,7 +81,8 @@ Other corpus functions:
 [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md),
 [`gr_resolve()`](https://elkronos.github.io/harnessr/reference/gr_resolve.md),
 [`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md),
-[`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md)
+[`gr_search()`](https://elkronos.github.io/harnessr/reference/gr_search.md),
+[`gr_search_recall()`](https://elkronos.github.io/harnessr/reference/gr_search_recall.md)
 
 ## Examples
 

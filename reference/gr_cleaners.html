@@ -77,6 +77,13 @@ writes the compound whole somewhere, and otherwise joins the two halves.
 (a PDF's, form feeds in text, or <code>.pages</code> given to <code><a href="gr_clean.html">gr_clean()</a></code>); without
 pages it takes a short line with a letter in it repeated at the edge of its
 block, so a label that is a block of its own and recurs can go with them.</p>
+<p><code>references</code> cuts at a References, Bibliography or Works cited heading on
+its own line, indented or not, since PDF and plain text indent headings. In
+Markdown a line indented four or more spaces is code, not a heading, so for
+a Markdown file (<code>.source_type</code> <code>"md"</code>, which <code><a href="gr_ingest.html">gr_ingest()</a></code> gives when the
+md extractor read the file) the heading may be indented three spaces at
+most. Text passed to <code><a href="gr_clean.html">gr_clean()</a></code> without <code>.source_type</code> is treated as
+PDF and plain text are.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -115,7 +122,7 @@ block, so a label that is a block of its own and recurs can go with them.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3                                                                                                                         Drop running heads and feet: short lines repeated at the top or bottom of many pages, or at the edge of blocks where pages are not known</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4  Rejoin words split across line breaks by PDF layout ('mito-\\nchondria', 'LIA-\\nBLE' in capitals); a compound the document writes with its hyphen elsewhere ('follow-up') keeps it; number ranges ('18-\\n65') and compounds ('Anglo-\\nSaxon') are left alone</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5                                                                                                                           Drop decorated page-number lines ('Page 4', '- 12 -', '[12]', and '12.' unless the line before runs on into it); bare numbers are kept</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6                                                                                                                                                                                  Drop a trailing bibliography, from a References/Bibliography heading to the end</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6                                                                                                      Drop a trailing bibliography, from a References/Bibliography heading to the end; in a Markdown file a line indented 4 or more spaces is code, not a heading</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 7                                                                                                                                                                                                          Remove URLs (OFF by default: URLs are often the answer)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8                                                                                                                                                                                                     Transliterate to ASCII (drops accents and non-Latin scripts)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9                                                                                                                                                    Collapse runs of spaces/tabs and 2+ consecutive blank lines, and trim block edges; preserves paragraph breaks</span>

@@ -144,6 +144,8 @@ report, with the screening measured against a hand-screened sample. See
   : Record how the search was run
 - [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
   : Read a search export, and say what the search found
+- [`gr_search_recall()`](https://elkronos.github.io/harnessr/reference/gr_search_recall.md)
+  : Measure a search against papers you already know are relevant
 - [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
   : Decide which documents a review should read
 - [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md)

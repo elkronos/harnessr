@@ -230,6 +230,13 @@ was formed), <code>conflicts</code> (documents they disagreed on), <code>consens
 reviewers, scope and statistic, the scope being the frame, a stratum
 or <code>"weighted"</code>), <code>notes</code> and <code>conf</code>.</p></dd>
 
+<dt><code>worst_case</code></dt>
+<dd><p>The sensitivity analysis described under "Recall
+is relative to the reference": <code>rule</code>, <code>conflicts</code> (records the
+reviewers split on), <code>changed</code> (those the consensus had settled as
+not eligible), <code>recall</code>, <code>lost</code> and <code>verdict</code> as above, <code>missed</code> and
+<code>note</code>. With one decision per document it repeats the main figures.</p></dd>
+
 
 </dl></div>
     <div class="section level2">
@@ -414,6 +421,21 @@ frame the sample is one simple random sample, the figures are unweighted,
 and sensitivity and specificity have Wilson intervals, as in <code>$metrics</code>.</p>
     </div>
     <div class="section level2">
+    <h2 id="recall-is-relative-to-the-reference">Recall is relative to the reference<a class="anchor" aria-label="anchor" href="#recall-is-relative-to-the-reference"></a></h2>
+
+
+<p>Recall here is the share of the records the person judged eligible that
+the screener kept. A study the person wrongly excluded is not counted
+against the screener, so the figure is relative to the reference, not to
+every eligible study; print() and <code><a href="gr_audit_report.html">gr_audit_report()</a></code> say so wherever they
+report it.</p>
+<p>With several reviewers the consensus settles each record they split on.
+<code>$worst_case</code> works out recall, records lost and the verdict again with
+every such record counted as eligible, the worst case for the screener,
+and print() and the audit report show it beside the main estimate. Under
+<code>rule = "any_include"</code> the consensus already does this, so the two agree.</p>
+    </div>
+    <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Lewis, D. D., Yang, E. and Frieder, O. (2021). Certifying one-phase
 technology-assisted reviews. <em>Proceedings of the 30th ACM International
@@ -438,7 +460,8 @@ Statistical Psychology</em> 61(1), 29-48.</p>
 <code><a href="gr_reference_consensus.html">gr_reference_consensus()</a></code>,
 <code><a href="gr_resolve.html">gr_resolve()</a></code>,
 <code><a href="gr_screen_sample_size.html">gr_screen_sample_size()</a></code>,
-<code><a href="gr_search.html">gr_search()</a></code></p></div>
+<code><a href="gr_search.html">gr_search()</a></code>,
+<code><a href="gr_search_recall.html">gr_search_recall()</a></code></p></div>
     </div>
 
     <div class="section level2">
@@ -479,6 +502,9 @@ Statistical Psychology</em> 61(1), 29-48.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   recall 75.0%  [75.0%, 75.0%]; 95% one-sided lower bound 75.0%</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   eligible records excluded: about 1 of 4; 95% upper bound 1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   recall target 95.0% at 95% confidence: not met</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   (recall is relative to the reference: the share of the records the person</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    judged eligible that the screener kept, not of every eligible study; a</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    study the reference missed is not counted)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ! 1 eligible study was excluded by the screener:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       d6.pdf</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ! only 4 eligible studies in the sample. Every rate above rests on</span>

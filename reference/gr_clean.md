@@ -38,7 +38,16 @@ gr_clean(text, steps = NULL, opts = list())
   `headers_footers` do); and `.pages`, a page per block, where the
   caller gives one
   ([`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
-  does).
+  does); and `.source_type`, the name of the extractor that read the
+  file (`"md"`, `"pdf"`, `"txt"` ...), which
+  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
+  gives for a file and which `references` reads (see
+  [`gr_cleaners()`](https://elkronos.github.io/harnessr/reference/gr_cleaners.md)).
+  For a Markdown file
+  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
+  also gives `.indented`, a logical per block, `TRUE` where the file
+  indented the block's first line four or more spaces; the extractor
+  takes that indent off the text.
 
 ## Value
 

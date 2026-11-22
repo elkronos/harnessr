@@ -2,6 +2,87 @@
 
 ## harnessr 0.6.0.9000
 
+### Checking the search, the files and the screening
+
+- New `gr_search_recall(records, known, tier, held_out)` measures a
+  search against a seed set of papers already known to be relevant: the
+  share it found, with a Clopper-Pearson interval from
+  [`hr_prop_ci()`](https://elkronos.github.io/harnessr/reference/hr_prop_ci.md),
+  overall and for each `tier`. Seeds are matched to records by the rules
+  [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
+  uses to find duplicates. A seed those rules refuse (a title under 12
+  letters or digits, a title and year shared by records with different
+  DOIs, or authors or venues that disagree) counts as not found and is
+  listed in `$refused` with the reason. Seeds used to build the search,
+  marked by a `used_to_build` column or left out of `held_out`, are left
+  out of the figure and listed in `$excluded`. When `known` is a
+  [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
+  that holds two exports of one paper, the copy its `duplicate_of` marks
+  is counted once with the seed it copies and listed in `$copies`. An
+  empty seed set, a tier with no seed or none left, and a `tier` string
+  that names no column of `known` (with one seed too) are refused. The
+  help cites relative recall (Sampson et al. 2006) and PRISMA-S.
+
+- [`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
+  gains `recall`, its last argument, which adds the search’s recall
+  against the seed set and the seeds it missed. Calls that pass
+  arguments by position keep their meaning.
+
+- [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
+  and so
+  [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+  and
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+  check that each file is the paper its record names when the sources
+  come from a
+  [`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md):
+  the first 6,000 characters of its text are searched for the record’s
+  DOI, as a whole DOI, and title, with any HTML markup such as `<i>`
+  taken out of the record’s title. When the recipe’s cleaning removes
+  digits (`remove_numbers`, in the `"legacy"` preset), the DOI is not
+  looked for and the title is compared without its digits. A last
+  `identity` column of `$summary` holds `TRUE`, `FALSE` or `NA` (nothing
+  to check), and `FALSE` warns with class `gr_identity_mismatch` and is
+  added to `warnings`. Nothing is dropped and
+  [`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
+  is unchanged. [`print()`](https://rdrr.io/r/base/print.html) counts
+  the mismatches, and the audit report lists them. A row restored from
+  `store` keeps its check only when the run that stored it checked the
+  file against the same record; otherwise `identity` is `NA`, the stored
+  warning is dropped, and a note in `warnings` says the check needs the
+  document read again. A run without records has no new column, even for
+  rows it restores from a store a run over records wrote, and those rows
+  lose the stored warning.
+
+- The `references` cleaner no longer cuts a Markdown file at a line
+  indented four or more spaces (” \# References”), which in Markdown is
+  code, not a heading. PDF and plain text still allow any indent.
+  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
+  tells the cleaners what read the file in `.source_type`.
+
+- Screening recall now says what it is relative to.
+  [`print()`](https://rdrr.io/r/base/print.html) on a
+  [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+  result and the audit report state that recall is the share of the
+  records the person judged eligible that the screener kept, wherever
+  they report recall or sensitivity. The audit report now gives recall
+  with its interval and one-sided bound as well.
+
+- [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+  gains `$worst_case`, a sensitivity analysis that counts every record
+  the reviewers split on as eligible and works out recall, records lost
+  and the verdict again. With several reviewers,
+  [`print()`](https://rdrr.io/r/base/print.html) and the audit report
+  show it beside the main estimate. With one decision per document it
+  repeats the main figures.
+
+- The audit report’s header gives, for each stage, when it ran and the
+  harnessr version that ran it, from the stage’s own trace, beside the
+  time and version that wrote the report. A stage run on another version
+  is flagged. “What this report does not establish” now says what each
+  check looks at: the quote check, the value check behind
+  `n_unverified`, and for a write-up the citation and figures checks.
+
 ### Comparing methods and settings
 
 - A new guide,
@@ -212,6 +293,28 @@ has a measurement behind it.
   `cite` and `verify`, and the rest are `advanced`. No default changed.
 
 ### Fixed
+
+- The `references` cleaner, in the `"academic"` and `"legacy"` presets,
+  now cuts at a Markdown heading such as `## References` or
+  `### 7. References`, with or without closing `#` marks, and not at a
+  line inside a fenced code block, such as a `# references` comment. It
+  matched only a line that held the word alone, so a Markdown document
+  kept its reference list under both presets. The example report ends
+  with `## References`, so under `"academic"` it now sends 62 fewer
+  prompt tokens than under `"standard"`, not 26. The `research` and
+  `legacy` recipes send shorter requests for such a document, and so do
+  [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+  and
+  [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
+  whose default recipe is `research`: at their defaults their requests
+  and cache keys change for a Markdown document with a references
+  heading in its last 60%, so a
+  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
+  built before this misses for those documents. The golden records of
+  the two recipes and the two stages were recorded again. Requests under
+  the `"standard"` preset, the default of
+  [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+  do not change.
 
 - [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
   [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md),

@@ -300,11 +300,12 @@ below are off by default, for these reasons:
 - `references` cuts everything from a line reading just “References”,
   “Bibliography” or “Works cited” to the end of the document, when that
   line starts at or after 40% of the text, so a table of contents near
-  the start does not cut the document.
+  the start does not cut the document. The line may be numbered (“7.
+  References”) or a Markdown heading (“## References”); a line inside a
+  fenced code block is not a heading.
   `cleaner_opts = list(references_after = )` moves that share, a number
   from 0 to 1. The cut loses the reference list if your question is
-  about the sources. A Markdown heading such as `## References` is not
-  such a line, so it does not trigger the cut.
+  about the sources.
 
 Cleaning cannot be undone later: no reader can recover what it removes.
 Know what each choice costs before you make it.
@@ -330,7 +331,7 @@ presets <- c("none", "minimal", "standard", "academic", "scan", "legacy")
 vapply(presets, function(p) gr_ingest(gr_example(), gr_ingest_spec(clean = p))$stats$chars,
        integer(1))
 #>     none  minimal standard academic     scan   legacy 
-#>     1858     1858     1846     1765     1846     1659
+#>     1858     1858     1846     1655     1846     1558
 ```
 
 Or name the cleaners yourself:
@@ -425,7 +426,7 @@ invisible(file.create(file.path(inbox, "empty.txt")))
 
 inv <- gr_inventory(inbox)
 inv
-#> <gr_inventory> /tmp/Rtmp1uob6l/inbox
+#> <gr_inventory> /tmp/Rtmpl2YcsX/inbox
 #>   4 file(s), 1.9 KB; 2 readable
 #>   2 ready, 1 no_extractor, 1 empty
 #>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)
@@ -554,7 +555,7 @@ bench <- hr_benchmark(arms, qa, runs = 5, client = says, split = "dev",
                       scorer = gr_scorer_answer())
 aggregate(tokens_in ~ param.clean, bench, mean)
 #>   param.clean tokens_in
-#> 1    academic       585
+#> 1    academic       549
 #> 2        none       619
 #> 3        scan       611
 #> 4    standard       611
@@ -563,9 +564,9 @@ hr_sweep_check(bench)
 #> 1 fast:clean=scan fast:clean=standard    5        5 clean: standard vs scan
 ```
 
-On the example report, `"academic"` sends 26 fewer prompt tokens than
-`"standard"`, because it drops the caption lines, and `"none"` sends 8
-more.
+On the example report, `"academic"` sends 62 fewer prompt tokens than
+`"standard"`, because it drops the caption lines and the reference list
+after the `## References` heading, and `"none"` sends 8 more.
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 finds that `"scan"` sent exactly the requests `"standard"` sent: the
 example has no running heads, so on it that comparison would measure
@@ -587,13 +588,12 @@ hr_sweep_check(hr_benchmark(arms, qa, runs = 5, client = says, split = "dev",
 #> 1 cleaner_opts: list(references_after = 0.4) vs list(references_after = 0.8)
 ```
 
-Both values sent the same requests, although the example report ends
-with a `## References` heading. The `references` cleaner cuts only at a
-line that reads “References”, “Bibliography” or “Works cited” alone,
-optionally numbered, so a Markdown heading with its `#` marks is never
-cut, wherever it falls. Run the sweep on documents whose heading stands
-alone that way, as text extracted from a PDF usually does, with
-questions whose answers sit near the end.
+Both values sent the same requests. The example report’s `## References`
+heading starts 94% of the way through its text, after both 40% and 80%,
+so both values cut the text at the same line. A `references_after` sweep
+changes what is sent only for a document whose heading falls between the
+two values. Run it on your own documents, with questions whose answers
+sit near the end.
 
 ### OCR settings
 

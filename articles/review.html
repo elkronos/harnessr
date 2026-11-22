@@ -292,6 +292,77 @@ which is how people name downloads. An ambiguous match is no match: two
 Smith 2019 papers and one <code>smith2019.pdf</code> claim nothing,
 because a coin flip presented as a match is how one paper’s findings get
 attributed to another.</p>
+<div class="section level3">
+<h3 id="does-the-search-find-the-papers-you-already-know">Does the search find the papers you already know?<a class="anchor" aria-label="anchor" href="#does-the-search-find-the-papers-you-already-know"></a>
+</h3>
+<p>Before the search is final, test it against papers the team already
+knows are relevant: the seed set. <code><a href="../reference/gr_search_recall.html">gr_search_recall()</a></code>
+matches each seed to the search’s records by the same rules
+<code><a href="../reference/gr_records.html">gr_records()</a></code> uses for duplicates, and gives the share found
+with an exact interval. A seed used to write the search was bound to be
+found, so mark it <code>used_to_build</code> and it is left out of the
+figure:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">seeds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  title <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Cognitive load and retention"</span>, <span class="st">"Spacing effects in vocabulary learning"</span>,</span>
+<span>            <span class="st">"Never obtained"</span><span class="op">)</span>,</span>
+<span>  year <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2019"</span>, <span class="st">"2018"</span>, <span class="st">"2020"</span><span class="op">)</span>,</span>
+<span>  doi <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"10.1037/edu0000123"</span>, <span class="cn">NA</span>, <span class="st">"10.1000/zzz"</span><span class="op">)</span>,</span>
+<span>  authors <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Smith, J."</span>, <span class="st">"Ng, L."</span>, <span class="st">"Gone, G."</span><span class="op">)</span>,</span>
+<span>  used_to_build <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">FALSE</span>, <span class="cn">FALSE</span>, <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">known</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_search_recall.html">gr_search_recall</a></span><span class="op">(</span><span class="va">recs</span>, <span class="va">seeds</span><span class="op">)</span></span>
+<span><span class="va">known</span></span>
+<span><span class="co">#&gt; &lt;gr_search_recall&gt; 1 of 2 seed(s) found among 3 record(s)</span></span>
+<span><span class="co">#&gt;   all              1/2    50.0%  [1.3%, 98.7%]</span></span>
+<span><span class="co">#&gt;   (95% Clopper-Pearson intervals)</span></span>
+<span><span class="co">#&gt;   Recall is relative to the seed set: the share of the papers already known</span></span>
+<span><span class="co">#&gt;   to be relevant that the search found, not the share of every relevant</span></span>
+<span><span class="co">#&gt;   paper.</span></span>
+<span><span class="co">#&gt;   1 seed(s) used to build the search are left out (see $excluded)</span></span>
+<span><span class="co">#&gt;     missed: Ng 2018: Spacing effects in vocabulary learning (not_in_records)</span></span>
+<span><span class="va">known</span><span class="op">$</span><span class="va">missed</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"label"</span>, <span class="st">"reason"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;                                             label         reason</span></span>
+<span><span class="co">#&gt; 1 Ng 2018: Spacing effects in vocabulary learning not_in_records</span></span></code></pre></div>
+<p>One of the two seeds kept out of the search was found, and its 95%
+Clopper-Pearson interval runs from 1.3% to 98.7%: two seeds say almost
+nothing, and a real seed set needs dozens. The figure is relative
+recall, the share of the known papers the search found, not of every
+relevant paper, and known papers are usually the easiest to find.
+<code>reason</code> says why each seed was missed. A seed the matching
+rules refused, for a title too short to tell papers apart or one shared
+by records with different DOIs, counts as missed and is listed in
+<code>$refused</code>, so check those by hand. <code>tier =</code> gives
+the figure for each group of seeds as well, and
+<code>gr_audit_report(recall = known)</code> adds it to the report.</p>
+</div>
+<div class="section level3">
+<h3 id="is-each-file-the-paper-its-record-names">Is each file the paper its record names?<a class="anchor" aria-label="anchor" href="#is-each-file-the-paper-its-record-names"></a>
+</h3>
+<p>A record matched to a file by first author and year can get another
+paper by the same author in the same year. When the documents come from
+a record set, <code><a href="../reference/gr_read_many.html">gr_read_many()</a></code>, <code><a href="../reference/gr_screen.html">gr_screen()</a></code> and
+<code><a href="../reference/gr_extract.html">gr_extract()</a></code> look for the record’s DOI and title in the
+opening of each document’s text, and say in an <code>identity</code>
+column whether they found either:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">said</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"A randomised trial."</span><span class="op">)</span></span>
+<span><span class="va">read</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read_many.html">gr_read_many</a></span><span class="op">(</span><span class="va">recs</span>, <span class="st">"What was the design?"</span>, <span class="st">"fast"</span>, client <span class="op">=</span> <span class="va">said</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in gr_read_many(recs, "What was the design?", "fast", client = said):</span></span>
+<span><span class="co">#&gt; 'smith2019.txt' may not be the paper its record names: the opening of its text</span></span>
+<span><span class="co">#&gt; has neither the record's title nor its DOI. It is read and kept; check the file</span></span>
+<span><span class="co">#&gt; by hand (the `identity` column is FALSE).</span></span>
+<span><span class="va">read</span><span class="op">$</span><span class="va">summary</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"identity"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;        document identity</span></span>
+<span><span class="co">#&gt; 1 smith2019.txt    FALSE</span></span></code></pre></div>
+<p><code>smith2019.txt</code> was matched to “Cognitive load and
+retention” by its name, but its text is about spacing and prints neither
+that title nor the DOI, so <code>identity</code> is <code>FALSE</code>
+and the run warns with class <code>gr_identity_mismatch</code>. Nothing
+is dropped and <code><a href="../reference/gr_flow.html">gr_flow()</a></code> counts the same: the column, the
+<code>warnings</code> cell and the audit report say which files to check
+by hand. <code>NA</code> means there was nothing to check, such as a
+record with only a short title.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="the-review-protocol-screen-extract-write">The review: protocol, screen, extract, write<a class="anchor" aria-label="anchor" href="#the-review-protocol-screen-extract-write"></a>
@@ -329,7 +400,7 @@ own.</p>
 count, what to collect from the ones that do, and what the write-up has
 to cover. Fixing it first matters because a criterion invented while
 reading is a criterion fitted to what was found.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">protocol</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_protocol.html">gr_protocol</a></span><span class="op">(</span></span>
 <span>  <span class="st">"revenue-review"</span>,</span>
 <span>  question <span class="op">=</span> <span class="st">"How did revenue change across the regional reports?"</span>,</span>
@@ -369,7 +440,7 @@ than a forced guess, because forcing a binary call on an excerpt that
 does not settle it is how automated screening loses studies.</p>
 <p>This stand-in screener includes the northern report and cannot decide
 about the southern one:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">screener</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">seen</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">messages</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">content</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span></span>
@@ -394,7 +465,7 @@ so running again asks again.</p>
 <p><code>screened$forward</code> holds the included and unclear records,
 the set to read at full text, and <code>screened$deferred</code> holds
 the unclear ones, for a person to settle:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">screened</span><span class="op">$</span><span class="va">forward</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "north.txt" "south.txt"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">screened</span><span class="op">$</span><span class="va">deferred</span><span class="op">)</span></span>
@@ -405,7 +476,7 @@ the table and as a <code>"screen.resolve"</code> step in the trace.
 <code>forward</code>, <code>deferred</code> and <code>included</code>
 are rebuilt, and the screener’s own decision is kept in
 <code>screener_decision</code>:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">screened</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_resolve.html">gr_resolve</a></span><span class="op">(</span><span class="va">screened</span>, <span class="st">"south.txt"</span>, <span class="st">"include"</span>, by <span class="op">=</span> <span class="st">"A. Reviewer"</span>,</span>
 <span>                       reason <span class="op">=</span> <span class="st">"The report covers fiscal 2025 actuals."</span><span class="op">)</span></span>
 <span><span class="va">screened</span><span class="op">$</span><span class="va">table</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"decision"</span>, <span class="st">"screener_decision"</span>, <span class="st">"resolved_by"</span><span class="op">)</span><span class="op">]</span></span>
@@ -440,7 +511,7 @@ and blind spots, so they agree most confidently where they are both
 wrong. Only a reference standard settles it. <code><a href="../reference/gr_reference.html">gr_reference()</a></code>
 draws a sample for a person to screen by hand, and
 <code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code> compares the two.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># A screening run: 340 discarded, 72 kept.</span></span>
 <span><span class="va">big</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/structure.html" class="external-link">structure</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>table <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  document <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"rec%03d.pdf"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">412</span><span class="op">)</span>,</span>
@@ -488,7 +559,7 @@ opens accented names intact.</p>
 <p>A sample drawn from everything screened (<code>of = "all"</code>)
 supports the rest. This one is the eight-record example from
 <code><a href="../reference/gr_calibrate.html">?gr_calibrate</a></code>:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tab</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>document <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"d"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">8</span>, <span class="st">".pdf"</span><span class="op">)</span>,</span>
 <span>                  decision <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"include"</span>, <span class="st">"include"</span>, <span class="st">"unclear"</span>, <span class="st">"exclude"</span>,</span>
 <span>                               <span class="st">"exclude"</span>, <span class="st">"exclude"</span>, <span class="st">"include"</span>, <span class="st">"exclude"</span><span class="op">)</span>,</span>
@@ -526,6 +597,9 @@ supports the rest. This one is the eight-record example from
 <span><span class="co">#&gt;   recall 75.0%  [75.0%, 75.0%]; 95% one-sided lower bound 75.0%</span></span>
 <span><span class="co">#&gt;   eligible records excluded: about 1 of 4; 95% upper bound 1</span></span>
 <span><span class="co">#&gt;   recall target 95.0% at 95% confidence: not met</span></span>
+<span><span class="co">#&gt;   (recall is relative to the reference: the share of the records the person</span></span>
+<span><span class="co">#&gt;    judged eligible that the screener kept, not of every eligible study; a</span></span>
+<span><span class="co">#&gt;    study the reference missed is not counted)</span></span>
 <span><span class="co">#&gt;   ! 1 eligible study was excluded by the screener:</span></span>
 <span><span class="co">#&gt;       d6.pdf</span></span>
 <span><span class="co">#&gt;   ! only 4 eligible studies in the sample. Every rate above rests on</span></span>
@@ -552,7 +626,7 @@ kappa next to PABAK and Gwet’s AC1, with intervals, the prevalence and
 bias indices, and the class-wise sensitivity, specificity, PPV and NPV,
 because at a few eligible records in a hundred kappa moves with
 prevalence as much as with agreement:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cal</span><span class="op">$</span><span class="va">agreement</span><span class="op">$</span><span class="va">kept</span><span class="op">$</span><span class="va">stats</span></span>
 <span><span class="co">#&gt;             statistic estimate      lower     upper</span></span>
 <span><span class="co">#&gt; 1  observed agreement     0.75  0.4092754 0.9285208</span></span>
@@ -607,6 +681,11 @@ claim, because it counts none of the eligible records that were kept.
 The design that can is the one people use anyway: judge every record the
 screener kept, and a sample of what it excluded.
 <code>of = "stacked"</code> draws both in one sheet.</p>
+<p>Recall here is relative to the reference: the share of the records
+the person judged eligible that the screener kept. An eligible study the
+person also excluded is not counted against the screener, and
+<code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and the audit report say so wherever they give
+recall.</p>
 <p>The target fixes how many exclusions to judge. Recall is K / (K + M),
 with K the eligible records kept and M the eligible records excluded, so
 a target is a cap on M. If a pilot suggests about 50 of the 72 kept
@@ -614,7 +693,7 @@ records are eligible, 95% recall allows floor(50 x 0.05 / 0.95) = 2 of
 them to have been lost. <code><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size()</a></code> gives the
 number of the 340 exclusions to judge so that, if none of them turns out
 eligible, the bound on M is 2:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size</a></span><span class="op">(</span>frame <span class="op">=</span> <span class="st">"stacked"</span>, max_lost <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>                      frame_n <span class="op">=</span> <span class="fl">340</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"frame"</span>, <span class="st">"max_lost"</span>, <span class="st">"frame_n"</span>, <span class="st">"n"</span>, <span class="st">"n_binomial"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;     frame max_lost frame_n   n n_binomial</span></span>
@@ -628,13 +707,13 @@ which at 5% prevalence means drawing 1180 records. A frame of 500
 records at that prevalence holds about 25 eligible records, too few for
 any sample of it to show the target, so the size is the whole frame;
 judged whole, recall is known exactly:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size</a></span><span class="op">(</span><span class="fl">0.95</span>, <span class="fl">0.95</span>, prevalence <span class="op">=</span> <span class="fl">0.05</span>,</span>
 <span>                      frame_n <span class="op">=</span> <span class="fl">500</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"positives"</span>, <span class="st">"n"</span>, <span class="st">"n_binomial"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   positives   n n_binomial</span></span>
 <span><span class="co">#&gt; 1        59 500       1180</span></span></code></pre></div>
 <p>So draw every kept record and 215 of the exclusions:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">stacked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_reference.html">gr_reference</a></span><span class="op">(</span><span class="va">big</span>, n <span class="op">=</span> <span class="fl">215</span>, of <span class="op">=</span> <span class="st">"stacked"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">stacked</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 287</span></span>
@@ -666,7 +745,7 @@ would be [1, 1].</p>
 <p>One eligible record among the sampled exclusions is enough to miss
 the target. It stands for 340 / 215 records, and the bound has to allow
 for more than that:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">one_miss</span> <span class="op">&lt;-</span> <span class="va">stacked</span></span>
 <span><span class="va">one_miss</span><span class="op">$</span><span class="va">human_decision</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="op">!</span><span class="va">kept</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"include"</span></span>
 <span><span class="va">missed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_calibrate.html">gr_calibrate</a></span><span class="op">(</span><span class="va">big</span>, <span class="va">one_miss</span><span class="op">)</span></span>
@@ -700,7 +779,7 @@ left, and the first point where screening may stop at <code>alpha</code>
 (Callaghan and Muller-Hansen 2020). Here 1,000 records are screened in
 ranked order: the first 100 are relevant, the next 400 are not, and 500
 are unread:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">seen</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">100</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">400</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/gr_stop_test.html">gr_stop_test</a></span><span class="op">(</span><span class="va">seen</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;gr_stop_test&gt; recall target 0.95, alpha 0.05, 500 of 1000 records screened</span></span>
@@ -722,7 +801,7 @@ how far two people agree is the yardstick for how far a screener agrees
 with either. <code>gr_reference(reviewers = k)</code> writes one
 decision column per reviewer and a <code>consensus</code> column for an
 adjudicator:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pair</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_reference.html">gr_reference</a></span><span class="op">(</span><span class="va">big</span>, n <span class="op">=</span> <span class="fl">40</span>, of <span class="op">=</span> <span class="st">"all"</span>, seed <span class="op">=</span> <span class="fl">2</span>, reviewers <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">pair</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "document"         "human_decision_1" "human_decision_2" "consensus"       </span></span>
@@ -737,7 +816,7 @@ adjudicator:</p>
 <p><code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code> compares the screener with the reviewers’
 consensus, and it will not guess one: a disagreement nobody settled
 stops it, saying how many there were.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_calibrate.html">gr_calibrate</a></span><span class="op">(</span><span class="va">big</span>, <span class="va">pair</span><span class="op">)</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; 3 of 40 document(s) were judged differently by the reviewers and have no `consensus` decision, starting with 'rec038.pdf'. Fill `consensus` where they disagree, or form one with gr_reference_consensus(rule = "majority") or rule = "any_include".</span></span></code></pre></div>
 <p><code><a href="../reference/gr_reference_consensus.html">gr_reference_consensus()</a></code> forms one decision per document
@@ -750,14 +829,14 @@ forward unless every reviewer excluded it, and
 <code>"adjudicated"</code> takes the <code>consensus</code> column and
 stops where it is empty. <code>consensus_from</code> says how each row’s
 decision was reached:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_reference_consensus.html">gr_reference_consensus</a></span><span class="op">(</span><span class="va">pair</span>, <span class="st">"majority"</span><span class="op">)</span><span class="op">$</span><span class="va">consensus_from</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;  tie kept unanimous </span></span>
 <span><span class="co">#&gt;         3        37</span></span></code></pre></div>
 <p>Here an adjudicator settles the three instead, and the calibration
 runs:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pair</span><span class="op">$</span><span class="va">consensus</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">11</span>, <span class="fl">25</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"exclude"</span></span>
 <span><span class="va">both</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_calibrate.html">gr_calibrate</a></span><span class="op">(</span><span class="va">big</span>, <span class="va">pair</span><span class="op">)</span></span>
 <span><span class="va">both</span><span class="op">$</span><span class="va">reviewers</span><span class="op">$</span><span class="va">agreement</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"statistic"</span>, <span class="st">"estimate"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span><span class="op">)</span><span class="op">]</span></span>
@@ -776,6 +855,30 @@ runs:</p>
 <span><span class="co">#&gt; 2        1 specificity      1.0 0.8864866 1.0000000 30</span></span>
 <span><span class="co">#&gt; 3        2 sensitivity      1.0 0.7224672 1.0000000 10</span></span>
 <span><span class="co">#&gt; 4        2 specificity      0.9 0.7437892 0.9654001 30</span></span></code></pre></div>
+<p>The adjudicator settled the three conflicts as not eligible, and
+recall is measured against that. <code>$worst_case</code> measures it
+again with every record the reviewers split on counted as eligible, the
+worst case for the screener, and <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> shows it beside
+the main estimate:</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">both</span><span class="op">$</span><span class="va">recall</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  estimate     lower     upper </span></span>
+<span><span class="co">#&gt; 1.0000000 0.6915029 1.0000000</span></span>
+<span><span class="va">both</span><span class="op">$</span><span class="va">worst_case</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"conflicts"</span>, <span class="st">"changed"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; $conflicts</span></span>
+<span><span class="co">#&gt; [1] 3</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $changed</span></span>
+<span><span class="co">#&gt; [1] 3</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">both</span><span class="op">$</span><span class="va">worst_case</span><span class="op">$</span><span class="va">recall</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"estimate"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  estimate     lower     upper </span></span>
+<span><span class="co">#&gt; 0.7692308 0.4618685 0.9496189</span></span></code></pre></div>
+<p>The screener excluded all three, so counted as eligible they are
+three misses and recall falls. If the two figures lead to different
+conclusions, the review’s claim rests on how the conflicts were settled,
+and the report should say so. Under <code>rule = "any_include"</code>
+the consensus already counts conflicts as eligible, and the two
+agree.</p>
 <p><code>$reviewers</code> gives every pair of reviewers the observed
 agreement, kappa, PABAK, AC1 and the prevalence and bias indices from
 <code><a href="../reference/hr_agreement.html">hr_agreement()</a></code>, never kappa alone, and Krippendorff’s alpha
@@ -795,7 +898,7 @@ document, and every filled cell carries the sentence it came from,
 checked against the chunk it was attributed to. A paragraph about one
 paper cannot be compared with a paragraph about two hundred others; a
 table can be sorted, counted, filtered and published.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">extractor</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">seen</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">messages</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">content</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span></span>
@@ -822,7 +925,7 @@ row: zero means every value in it can be pointed at in the document.
 <code>table$evidence</code> is the long form, one row per supported
 cell, with the quote, the page it is on, and whether the quote appears
 there.</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">table</span><span class="op">$</span><span class="va">evidence</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document_id"</span>, <span class="st">"field"</span>, <span class="st">"quote"</span>, <span class="st">"verified"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;        document_id   field                                            quote</span></span>
 <span><span class="co">#&gt; 1 f0651bef6287278d  region Revenue was 45.2 million dollars in fiscal 2024.</span></span>
@@ -858,7 +961,7 @@ Krippendorff’s alpha at the field’s level of measurement: interval for
 <code>integer</code> and <code>number</code> fields and nominal
 otherwise, unless <code>levels =</code> names another. Here a model and
 a person extracted two fields from 40 studies:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fields</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_fields.html">gr_fields</a></span><span class="op">(</span></span>
 <span>  design <span class="op">=</span> <span class="fu"><a href="../reference/gr_field.html">gr_field</a></span><span class="op">(</span><span class="st">"Study design"</span>, type <span class="op">=</span> <span class="st">"enum"</span>, values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"rct"</span>, <span class="st">"cohort"</span>, <span class="st">"case series"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  n      <span class="op">=</span> <span class="fu"><a href="../reference/gr_field.html">gr_field</a></span><span class="op">(</span><span class="st">"Number randomised"</span>, type <span class="op">=</span> <span class="st">"integer"</span><span class="op">)</span><span class="op">)</span></span>
@@ -912,7 +1015,7 @@ because it was not read.</p>
 </h3>
 <p><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code> makes one call per section of the
 outline, and every section cites the rows it rests on:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Revenue was higher in the southern region, at 51.8 million dollars [study 2],"</span>,</span>
 <span>        <span class="st">"than in the northern, at 45.2 million [study 1]."</span><span class="op">)</span></span>
@@ -939,7 +1042,7 @@ Duplicates never reach the write-up, so no study is counted twice.</p>
 says they found, and the figures are what a reader copies out of a
 review. So every number in the write-up is also looked for in the rows
 its sentence cites, as the writer was shown them:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">review</span><span class="op">$</span><span class="va">sections</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"section"</span>, <span class="st">"n_cited"</span>, <span class="st">"n_unbacked"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;    section n_cited n_unbacked</span></span>
 <span><span class="co">#&gt; 1 Findings       2          0</span></span>
@@ -967,7 +1070,7 @@ names the studies when the table can name all of them;
 produced, <code>"numeric"</code> gives <code>(1, 2)</code>, and
 <code>"marker"</code> leaves <code>[study 1]</code> as written. A
 protocol for that adds the bibliographic fields:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">protocol</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_protocol.html">gr_protocol</a></span><span class="op">(</span></span>
 <span>  <span class="st">"spacing-review"</span>,</span>
 <span>  question <span class="op">=</span> <span class="st">"Does spaced practice improve retention in adult learners?"</span>,</span>
@@ -985,7 +1088,7 @@ protocol for that adds the bibliographic fields:</p>
 <span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code> takes the extraction table, so the shape
 it needs is easy to show directly:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">studies</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  document <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"smith.pdf"</span>, <span class="st">"lee.pdf"</span>, <span class="st">"garcia.pdf"</span><span class="op">)</span>,</span>
 <span>  status <span class="op">=</span> <span class="st">"ok"</span>, duplicate_of <span class="op">=</span> <span class="cn">NA_character_</span>, n_filled <span class="op">=</span> <span class="fl">4L</span>,</span>
@@ -1108,7 +1211,7 @@ effect size is an argument about measurement.</p>
 first. Each claim names the studies that support it, the studies that
 contradict it, and the field that distinguishes them. The stand-in below
 plays all three stages that follow:</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">claim_writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">sys</span> <span class="op">&lt;-</span> <span class="va">messages</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"turn a table of studies"</span>, <span class="va">sys</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -1160,7 +1263,7 @@ contain (a declared category nobody studied, a dimension with no
 variation, a claim nobody has replicated, a disagreement nothing
 explains) in R, with no model call, so the gap list is something you can
 check by counting:</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">outline</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_outline.html">gr_outline</a></span><span class="op">(</span><span class="va">cm</span>, client <span class="op">=</span> <span class="va">claim_writer</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">outline</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Where revenue is higher" "What is missing"</span></span>
@@ -1176,7 +1279,7 @@ pairs of claims that one puts together and the other apart. One that
 groups the claims as an earlier one did, whatever its headings, is
 dropped. Nothing ranks them, and <code><a href="../reference/gr_outline_pick.html">gr_outline_pick()</a></code> hands
 back the one you choose:</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">two</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_outline.html">gr_outline</a></span><span class="op">(</span><span class="va">cm</span>, client <span class="op">=</span> <span class="va">claim_writer</span>, alternatives <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">two</span>, <span class="st">"comparison"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"alternative"</span>, <span class="st">"sections"</span>, <span class="st">"claims_per_section"</span>, <span class="st">"distance"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   alternative sections claims_per_section distance</span></span>
@@ -1188,7 +1291,7 @@ back the one you choose:</p>
 claims here. The first outline is the same whatever
 <code>alternatives</code> says, and a review written from a picked one
 records which it was.</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">from_claims</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span><span class="va">table</span>, outline <span class="op">=</span> <span class="va">outline</span>, question <span class="op">=</span> <span class="va">protocol</span><span class="op">$</span><span class="va">question</span>,</span>
 <span>                             client <span class="op">=</span> <span class="va">claim_writer</span>, claims <span class="op">=</span> <span class="va">cm</span>,</span>
 <span>                             gaps <span class="op">=</span> <span class="fu"><a href="../reference/gr_gaps.html">gr_gaps</a></span><span class="op">(</span><span class="va">cm</span>, extraction <span class="op">=</span> <span class="va">table</span><span class="op">)</span><span class="op">)</span></span>
@@ -1269,7 +1372,7 @@ written (<code>untested</code>).</p>
 <p><strong>How to test them.</strong> Nothing here calls a model, so the
 effect of each value is computed directly. On the stacked sheet above,
 judged with no misses:</p>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">targets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.90</span>, <span class="fl">0.95</span>, <span class="fl">0.97</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>recall_target <span class="op">=</span> <span class="va">targets</span>,</span>
 <span>           met <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">targets</span>, <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="op">{</span></span>
@@ -1293,7 +1396,7 @@ confidence it falls to 0.926. A sample of everything screened needs 29
 eligible records with no miss to show 90%, 59 to show 95% and 99 to show
 97%. <code>max_width</code> decides whether the sample of 60 exclusions
 above is enough:</p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>width_0.10 <span class="op">=</span> <span class="fu"><a href="../reference/gr_calibrate.html">gr_calibrate</a></span><span class="op">(</span><span class="va">big</span>, <span class="va">check</span><span class="op">)</span><span class="op">$</span><span class="va">adequate</span>,</span>
 <span>  width_0.20 <span class="op">=</span> <span class="fu"><a href="../reference/gr_calibrate.html">gr_calibrate</a></span><span class="op">(</span><span class="va">big</span>, <span class="va">check</span>, max_width <span class="op">=</span> <span class="fl">0.20</span><span class="op">)</span><span class="op">$</span><span class="va">adequate</span><span class="op">)</span></span>
 <span><span class="co">#&gt; width_0.10 width_0.20 </span></span>
@@ -1330,7 +1433,7 @@ counts the same values without dropping them. Both are
 <p><strong>How to test them.</strong> <code>require_quote</code> changes
 no request, only which values are kept, so its effect shows on one
 run:</p>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">strict</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_extract.html">gr_extract</a></span><span class="op">(</span><span class="va">screened</span>, <span class="va">protocol</span>, client <span class="op">=</span> <span class="va">extractor</span>, recipe <span class="op">=</span> <span class="st">"fast"</span>,</span>
 <span>                     require_quote <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>kept_all <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">table</span><span class="op">$</span><span class="va">table</span><span class="op">$</span><span class="va">revenue</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -1345,7 +1448,7 @@ chunks disagree, so it is tested as arms on a labelled reference, one
 arm per value. With <code>fields_ref</code> an
 <code><a href="../reference/hr_reference.html">hr_reference()</a></code> of documents labelled with a person’s value
 for one field and <code>my_client</code> your client:</p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">resolve</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="st">"extract"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="../reference/gr_extract.html">gr_extract</a></span><span class="op">(</span><span class="va">item</span>, <span class="va">protocol</span>, client <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">client</span>, resolve <span class="op">=</span> <span class="va">resolve</span>,</span>
@@ -1390,7 +1493,7 @@ claims were added. All are <code>untested</code>.</p>
 <p><strong>How to test them.</strong> <code>figure_bands</code> is
 tested on a draft, with no request. Here the writer rounds 51.8 to
 “about 50”:</p>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rounder</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="st">"Revenue was about 50 million dollars in the south [study 2]."</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
@@ -1417,7 +1520,7 @@ an <code><a href="../reference/hr_reference.html">hr_reference()</a></code> of r
 <code>my_scorer</code> an <code><a href="../reference/hr_scorer.html">hr_scorer()</a></code> (or a judge validated
 as in <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>) and <code>my_client</code> your
 client:</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">rounds</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="st">"write"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span><span class="va">item</span><span class="op">$</span><span class="va">table</span>, <span class="va">item</span><span class="op">$</span><span class="va">protocol</span>, client <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">client</span>, coherence <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -1434,7 +1537,7 @@ client:</p>
 <p><code><a href="../reference/gr_flow.html">gr_flow()</a></code> returns the numbers a flow diagram is made of,
 from what the run already recorded. Every source is accounted for at
 every stage it reached, so the arithmetic closes:</p>
-<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_flow.html">gr_flow</a></span><span class="op">(</span><span class="va">screened</span>, <span class="va">table</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stage"</span>, <span class="st">"n"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;                      stage n</span></span>
 <span><span class="co">#&gt; 1            sources given 2</span></span>
@@ -1471,19 +1574,37 @@ whether the quote is there, what was written and which rows each claim
 rests on, every claim with the studies for and against it and where each
 one ended up, and what it cost. It takes the objects the run already
 produced:</p>
-<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="st">"audit.html"</span>, screening <span class="op">=</span> <span class="va">screened</span>, extraction <span class="op">=</span> <span class="va">table</span>,</span>
 <span>                synthesis <span class="op">=</span> <span class="va">from_claims</span>, claims <span class="op">=</span> <span class="va">cm</span>, protocol <span class="op">=</span> <span class="va">protocol</span>,</span>
 <span>                calibration <span class="op">=</span> <span class="va">cal</span><span class="op">)</span></span></code></pre></div>
-<p><code>records =</code> takes the search when the run had one, and
+<p><code>records =</code> takes the search when the run had one,
+<code>recall =</code> a <code><a href="../reference/gr_search_recall.html">gr_search_recall()</a></code> result, and
 every argument is optional except the path and at least one stage to
 report on.</p>
+<p>The report’s header gives the time it was written and the harnessr
+version that wrote it, and below them, for each stage, when that stage
+ran and the version that ran it, read from the stage’s own trace. The
+times are shown side by side and not compared, so a report written
+months after the run shows both times and says nothing more. Only the
+version is checked: a stage run on a version other than the report’s is
+flagged:</p>
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".html"</span><span class="op">)</span>, screening <span class="op">=</span> <span class="va">screened</span>,</span>
+<span>                        extraction <span class="op">=</span> <span class="va">table</span>, open <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"UTC&lt;/td&gt;"</span>, <span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">page</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "&lt;tr&gt;&lt;td&gt;screening&lt;/td&gt;&lt;td&gt;2026-11-22 05:51:18 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;" </span></span>
+<span><span class="co">#&gt; [2] "&lt;tr&gt;&lt;td&gt;extraction&lt;/td&gt;&lt;td&gt;2026-11-22 05:51:20 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;"</span></span></code></pre></div>
 <p>The report puts the failures near the top: unverified quotes,
 documents that could not be read, screening calls that failed or came
 back in the wrong form, and citations pointing at rows that do not exist
 are counted there. It also states what the checking does not establish:
 that a quoted sentence occurs in the document is not evidence that it
-supports the value taken from it.</p>
+supports the value taken from it. It says what each check looks at: a
+quote is in the chunk it was credited to, a number is one its quote
+states, a citation names a row the section was given, and a figure in
+the write-up is in what the writer was shown for that sentence. None of
+them confirms that a value or a sentence is right.</p>
 </div>
 <div class="section level2">
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>

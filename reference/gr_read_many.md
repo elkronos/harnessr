@@ -174,6 +174,37 @@ which the model said what the document states instead of the question's
 premise, or `NA` when it reported nothing contradicting it. Such a row's
 `answer` is that sentence and its `not_found` is `FALSE`.
 
+When the sources come from a
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md),
+or a
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+result that carries one, there is one more column, last: `identity`,
+whether the file is the paper its record names. The first 6,000
+characters of the cleaned text are searched for the record's DOI, as a
+whole DOI, and for its title, compared as deduplication compares titles
+(letters and digits only, case and accents folded, HTML markup such as
+`<i>` taken out of the record's title). When the recipe's cleaning
+removes digits (`remove_numbers`, as the legacy preset does), the DOI is
+not looked for and the title is compared without its digits. `TRUE` when
+either is there; `FALSE` when the record has a title of 12 or more
+letters or digits and neither is there, which warns with class
+`gr_identity_mismatch` and adds the warning to `warnings`; `NA` when
+there was nothing to check (no text, a skipped row, a record with only a
+DOI the opening does not print, or a short title). A record matched to
+its file by first author and year is the case this catches: another
+paper by the same author in the same year. Nothing is dropped and
+[`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
+counts the same; the column says which documents to check by hand. A row
+restored from `store` keeps its check only when the run that stored it
+checked the file against the same record (the same title and DOI).
+Otherwise its `identity` is `NA`, the stored mismatch warning is taken
+out of `warnings`, and a note there says that the check needs the
+document read again, because the store does not keep the document's
+text. A run over files alone has no `identity` column, even for a row it
+restores from a store that a run over a
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
+wrote, and that row loses the stored mismatch warning.
+
 `document` is a filename and `document_id` is the hash of the cleaned
 text (and of the pages that never became text, when there are any). Cite
 with the second: a filename changes when the file is renamed, collides
@@ -274,34 +305,34 @@ b <- tempfile(fileext = ".txt"); writeLines("Revenue was 51.8 million.", b)
 
 out <- gr_read_many(c(a, b), "What was revenue?", "fast", client = cl)
 #> 2 document(s), and gr_options(max_calls) is 400 PER DOCUMENT, so this run may make up to 800 call(s). Pass max_total_calls = to cap the run.
-#> [1/2] file1c3ac510214.txt
-#> Extracting 'file1c3ac510214.txt' with the 'txt' extractor.
+#> [1/2] file1bc26c6c7b05.txt
+#> Extracting 'file1bc26c6c7b05.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~11 tokens (0 chars removed by cleaning).
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
-#> [2/2] file1c3a56e6ab43.txt
-#> Extracting 'file1c3a56e6ab43.txt' with the 'txt' extractor.
+#> [2/2] file1bc21f7f340a.txt
+#> Extracting 'file1bc21f7f340a.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~11 tokens (0 chars removed by cleaning).
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
 out$summary[, c("document", "answer", "not_found", "status")]
 #>               document                            answer not_found status
-#> 1  file1c3ac510214.txt Revenue was 45.2 million dollars.     FALSE     ok
-#> 2 file1c3a56e6ab43.txt Revenue was 45.2 million dollars.     FALSE     ok
+#> 1 file1bc26c6c7b05.txt Revenue was 45.2 million dollars.     FALSE     ok
+#> 2 file1bc21f7f340a.txt Revenue was 45.2 million dollars.     FALSE     ok
 
 # A missing file is one bad row, not a failed run.
 bad <- gr_read_many(c(a, "no-such-file.txt"), "What was revenue?", "fast", client = cl)
 #> 2 document(s), and gr_options(max_calls) is 400 PER DOCUMENT, so this run may make up to 800 call(s). Pass max_total_calls = to cap the run.
-#> [1/2] file1c3ac510214.txt
+#> [1/2] file1bc26c6c7b05.txt
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
 #> [2/2] no-such-file.txt
 #> Warning: Document 'no-such-file.txt' failed: File not found: 'no-such-file.txt'. If you meant to pass document text rather than a path, it must not end in something that looks like a file extension.
 bad$summary[, c("document", "status", "error")]
-#>              document status
-#> 1 file1c3ac510214.txt     ok
-#> 2    no-such-file.txt failed
+#>               document status
+#> 1 file1bc26c6c7b05.txt     ok
+#> 2     no-such-file.txt failed
 #>                                                                                                                                                       error
 #> 1                                                                                                                                                      <NA>
 #> 2 File not found: 'no-such-file.txt'. If you meant to pass document text rather than a path, it must not end in something that looks like a file extension.

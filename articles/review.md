@@ -277,6 +277,87 @@ Smith 2019 papers and one `smith2019.pdf` claim nothing, because a coin
 flip presented as a match is how one paper’s findings get attributed to
 another.
 
+### Does the search find the papers you already know?
+
+Before the search is final, test it against papers the team already
+knows are relevant: the seed set.
+[`gr_search_recall()`](https://elkronos.github.io/harnessr/reference/gr_search_recall.md)
+matches each seed to the search’s records by the same rules
+[`gr_records()`](https://elkronos.github.io/harnessr/reference/gr_records.md)
+uses for duplicates, and gives the share found with an exact interval. A
+seed used to write the search was bound to be found, so mark it
+`used_to_build` and it is left out of the figure:
+
+``` r
+
+seeds <- data.frame(
+  title = c("Cognitive load and retention", "Spacing effects in vocabulary learning",
+            "Never obtained"),
+  year = c("2019", "2018", "2020"),
+  doi = c("10.1037/edu0000123", NA, "10.1000/zzz"),
+  authors = c("Smith, J.", "Ng, L.", "Gone, G."),
+  used_to_build = c(FALSE, FALSE, TRUE))
+known <- gr_search_recall(recs, seeds)
+known
+#> <gr_search_recall> 1 of 2 seed(s) found among 3 record(s)
+#>   all              1/2    50.0%  [1.3%, 98.7%]
+#>   (95% Clopper-Pearson intervals)
+#>   Recall is relative to the seed set: the share of the papers already known
+#>   to be relevant that the search found, not the share of every relevant
+#>   paper.
+#>   1 seed(s) used to build the search are left out (see $excluded)
+#>     missed: Ng 2018: Spacing effects in vocabulary learning (not_in_records)
+known$missed[, c("label", "reason")]
+#>                                             label         reason
+#> 1 Ng 2018: Spacing effects in vocabulary learning not_in_records
+```
+
+One of the two seeds kept out of the search was found, and its 95%
+Clopper-Pearson interval runs from 1.3% to 98.7%: two seeds say almost
+nothing, and a real seed set needs dozens. The figure is relative
+recall, the share of the known papers the search found, not of every
+relevant paper, and known papers are usually the easiest to find.
+`reason` says why each seed was missed. A seed the matching rules
+refused, for a title too short to tell papers apart or one shared by
+records with different DOIs, counts as missed and is listed in
+`$refused`, so check those by hand. `tier =` gives the figure for each
+group of seeds as well, and `gr_audit_report(recall = known)` adds it to
+the report.
+
+### Is each file the paper its record names?
+
+A record matched to a file by first author and year can get another
+paper by the same author in the same year. When the documents come from
+a record set,
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+and
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+look for the record’s DOI and title in the opening of each document’s
+text, and say in an `identity` column whether they found either:
+
+``` r
+
+said <- gr_mock_client(function(m, p) "A randomised trial.")
+read <- gr_read_many(recs, "What was the design?", "fast", client = said)
+#> Warning in gr_read_many(recs, "What was the design?", "fast", client = said):
+#> 'smith2019.txt' may not be the paper its record names: the opening of its text
+#> has neither the record's title nor its DOI. It is read and kept; check the file
+#> by hand (the `identity` column is FALSE).
+read$summary[, c("document", "identity")]
+#>        document identity
+#> 1 smith2019.txt    FALSE
+```
+
+`smith2019.txt` was matched to “Cognitive load and retention” by its
+name, but its text is about spacing and prints neither that title nor
+the DOI, so `identity` is `FALSE` and the run warns with class
+`gr_identity_mismatch`. Nothing is dropped and
+[`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
+counts the same: the column, the `warnings` cell and the audit report
+say which files to check by hand. `NA` means there was nothing to check,
+such as a record with only a short title.
+
 ## The review: protocol, screen, extract, write
 
 The single-document pipeline (ingest, segment, read) answers a question.
@@ -549,6 +630,9 @@ cal
 #>   recall 75.0%  [75.0%, 75.0%]; 95% one-sided lower bound 75.0%
 #>   eligible records excluded: about 1 of 4; 95% upper bound 1
 #>   recall target 95.0% at 95% confidence: not met
+#>   (recall is relative to the reference: the share of the records the person
+#>    judged eligible that the screener kept, not of every eligible study; a
+#>    study the reference missed is not counted)
 #>   ! 1 eligible study was excluded by the screener:
 #>       d6.pdf
 #>   ! only 4 eligible studies in the sample. Every rate above rests on
@@ -638,6 +722,12 @@ claim, because it counts none of the eligible records that were kept.
 The design that can is the one people use anyway: judge every record the
 screener kept, and a sample of what it excluded. `of = "stacked"` draws
 both in one sheet.
+
+Recall here is relative to the reference: the share of the records the
+person judged eligible that the screener kept. An eligible study the
+person also excluded is not counted against the screener, and
+[`print()`](https://rdrr.io/r/base/print.html) and the audit report say
+so wherever they give recall.
 
 The target fixes how many exclusions to judge. Recall is K / (K + M),
 with K the eligible records kept and M the eligible records excluded, so
@@ -844,6 +934,34 @@ both$reviewers$sensitivity[, c("reviewer", "statistic", "estimate", "lower", "up
 #> 3        2 sensitivity      1.0 0.7224672 1.0000000 10
 #> 4        2 specificity      0.9 0.7437892 0.9654001 30
 ```
+
+The adjudicator settled the three conflicts as not eligible, and recall
+is measured against that. `$worst_case` measures it again with every
+record the reviewers split on counted as eligible, the worst case for
+the screener, and [`print()`](https://rdrr.io/r/base/print.html) shows
+it beside the main estimate:
+
+``` r
+
+unlist(both$recall[c("estimate", "lower", "upper")])
+#>  estimate     lower     upper 
+#> 1.0000000 0.6915029 1.0000000
+both$worst_case[c("conflicts", "changed")]
+#> $conflicts
+#> [1] 3
+#> 
+#> $changed
+#> [1] 3
+unlist(both$worst_case$recall[c("estimate", "lower", "upper")])
+#>  estimate     lower     upper 
+#> 0.7692308 0.4618685 0.9496189
+```
+
+The screener excluded all three, so counted as eligible they are three
+misses and recall falls. If the two figures lead to different
+conclusions, the review’s claim rests on how the conflicts were settled,
+and the report should say so. Under `rule = "any_include"` the consensus
+already counts conflicts as eligible, and the two agree.
 
 `$reviewers` gives every pair of reviewers the observed agreement,
 kappa, PABAK, AC1 and the prevalence and bias indices from
@@ -1619,15 +1737,38 @@ gr_audit_report("audit.html", screening = screened, extraction = table,
                 calibration = cal)
 ```
 
-`records =` takes the search when the run had one, and every argument is
-optional except the path and at least one stage to report on.
+`records =` takes the search when the run had one, `recall =` a
+[`gr_search_recall()`](https://elkronos.github.io/harnessr/reference/gr_search_recall.md)
+result, and every argument is optional except the path and at least one
+stage to report on.
+
+The report’s header gives the time it was written and the harnessr
+version that wrote it, and below them, for each stage, when that stage
+ran and the version that ran it, read from the stage’s own trace. The
+times are shown side by side and not compared, so a report written
+months after the run shows both times and says nothing more. Only the
+version is checked: a stage run on a version other than the report’s is
+flagged:
+
+``` r
+
+page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
+                        extraction = table, open = FALSE)
+grep("UTC</td>", readLines(page), value = TRUE)
+#> [1] "<tr><td>screening</td><td>2026-11-22 05:51:18 UTC</td><td>0.6.0.9000</td></tr>" 
+#> [2] "<tr><td>extraction</td><td>2026-11-22 05:51:20 UTC</td><td>0.6.0.9000</td></tr>"
+```
 
 The report puts the failures near the top: unverified quotes, documents
 that could not be read, screening calls that failed or came back in the
 wrong form, and citations pointing at rows that do not exist are counted
 there. It also states what the checking does not establish: that a
 quoted sentence occurs in the document is not evidence that it supports
-the value taken from it.
+the value taken from it. It says what each check looks at: a quote is in
+the chunk it was credited to, a number is one its quote states, a
+citation names a row the section was given, and a figure in the write-up
+is in what the writer was shown for that sentence. None of them confirms
+that a value or a sentence is right.
 
 ## Next
 
