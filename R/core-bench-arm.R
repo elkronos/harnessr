@@ -139,8 +139,14 @@ arm_parts <- function(arm, values = TRUE) {
 }
 
 #' A function as code plus where it runs, without any address.
+#'
+#' With `follow = TRUE` (what arm_config() uses), a function found among the
+#' values is hashed with the values its own code reads, and so on down, so a
+#' run function that calls a helper closure holding a prompt differs from one
+#' whose helper holds another prompt. `seen` stops a function that calls
+#' itself, and `depth` stops a chain longer than eight.
 #' @noRd
-fn_fingerprint <- function(f, values = FALSE) {
+fn_fingerprint <- function(f, values = FALSE, follow = FALSE, seen = list(), depth = 0L) {
   code <- deparse(f)
   env <- environment(f)
   if (is.null(env)) return(list(code = code, env = "<primitive>"))
@@ -159,9 +165,18 @@ fn_fingerprint <- function(f, values = FALSE) {
   # part of the arm.
   used <- setdiff(used, names(formals(f)))
   used <- sort(intersect(used, ls(env, all.names = TRUE)))
+  seen <- c(seen, list(f))
   vals <- lapply(used, function(v) {
-    fingerprint_value(tryCatch(get(v, envir = env, inherits = FALSE),
-                               error = function(e) "<unavailable>"))
+    x <- tryCatch(get(v, envir = env, inherits = FALSE),
+                  error = function(e) "<unavailable>")
+    if (follow && is.function(x)) {
+      if (depth >= 8L || any(vapply(seen, identical, logical(1), x))) {
+        return(fn_fingerprint(x, values = FALSE))
+      }
+      return(fn_fingerprint(x, values = TRUE, follow = TRUE, seen = seen,
+                            depth = depth + 1L))
+    }
+    fingerprint_value(x)
   })
   list(code = code, env = stats::setNames(vals, used))
 }

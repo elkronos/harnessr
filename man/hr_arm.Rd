@@ -96,6 +96,8 @@ Other harness:
 \code{\link{hr_mdd}()},
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},
-\code{\link{hr_scorer}()}
+\code{\link{hr_scorer}()},
+\code{\link{hr_sweep}()},
+\code{\link{hr_sweep_check}()}
 }
 \concept{harness}

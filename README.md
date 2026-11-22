@@ -185,6 +185,25 @@ spending limit, and `hr_report()` gives accuracy, paired differences and cost
 with intervals that treat the questions about one document as a cluster. See
 `vignette("evaluate")`.
 
+## What you can change
+
+Every setting has a default, and five guides end with walkthroughs of the
+important ones: what each trades off, the signs in your results that point to
+changing it, where its default came from and how to test a change with
+`hr_sweep()`. The [settings reference](https://elkronos.github.io/harnessr/articles/settings.html) lists all 195 with
+their defaults, and `gr_settings_table()` returns them in R.
+
+| stage | settings | most used | walkthroughs |
+|---|---|---|---|
+| ingest | 19 | `clean`, `ocr`, `min_chars` | [cleaning](https://elkronos.github.io/harnessr/articles/ingest.html#set-clean), [OCR](https://elkronos.github.io/harnessr/articles/ingest.html#set-ocr) |
+| segment | 14 | `method`, `max_tokens`, `overlap_tokens` | [segmenter](https://elkronos.github.io/harnessr/articles/segment.html#set-method), [size](https://elkronos.github.io/harnessr/articles/segment.html#set-max-tokens), [overlap](https://elkronos.github.io/harnessr/articles/segment.html#set-overlap), [context lines](https://elkronos.github.io/harnessr/articles/segment.html#set-contextual) |
+| read | 40 | `reader`, `model`, `top_k`, `cite`, `verify` | [reader](https://elkronos.github.io/harnessr/articles/readers.html#set-reader), [`top_k`](https://elkronos.github.io/harnessr/articles/readers.html#set-top-k), [`mmr`](https://elkronos.github.io/harnessr/articles/readers.html#set-mmr), [checks](https://elkronos.github.io/harnessr/articles/readers.html#set-verify), [effort](https://elkronos.github.io/harnessr/articles/readers.html#set-effort) |
+| screen | 30 | `screen_tokens`, `recall_target`, `conf` | [calibration](https://elkronos.github.io/harnessr/articles/review.html#set-calibration) |
+| extract | 9 | `resolve`, `require_quote` | [extraction](https://elkronos.github.io/harnessr/articles/review.html#set-extract) |
+| synthesise | 27 | `coherence`, `cite_style` | [synthesis](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) |
+| evaluate | 22 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html) |
+| options | 34 | `model`, `max_cost_usd`, `max_calls` | [limits](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) |
+
 ## What an answer gives back
 
 `print(ans)` sums up the cost, where the evidence came from and, when the answer
@@ -287,6 +306,7 @@ Each guide is on the website and, once installed, in R as `vignette("name")`.
 | [Measuring and comparing configurations](https://elkronos.github.io/harnessr/articles/evaluate.html) (`evaluate`) | Reference sets and label sheets, benchmarks and their intervals, non-inferiority, judges, baselines, drift, signals |
 | [Comparing methods and settings](https://elkronos.github.io/harnessr/articles/compare.html) (`compare`) | Worked comparisons of readers, segmenters and chunk sizes, one setting over its values, screening settings and a judge against labels, and how to read each report |
 | [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`) | The governor, effort, traces, caching, replay |
+| [Settings reference](https://elkronos.github.io/harnessr/articles/settings.html) (`settings`) | Every setting of every stage with its default and where it came from, and the extractors, cleaners, segmenters, readers, embedders and recipes |
 | [Extending harnessr](https://elkronos.github.io/harnessr/articles/extending.html) (`extending`) | Registering your own extractors, cleaners, segmenters, readers and embedders, and checking them |
 
 ## Development

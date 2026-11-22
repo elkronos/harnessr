@@ -82,6 +82,12 @@ they graded the run's answers, they did not make them. The match is exact, so
 \code{"model-x"} and \code{"model-x-2026-01"} differ. Nothing is refused; see the
 note \code{\link[=hr_report]{hr_report()}} adds.}
 \item{\code{reportable}}{\code{FALSE} for rows on the dev split.}
+\item{\verb{param.<name>}}{One column per setting the arms record: the
+settings of an arm built by \code{\link[=gr_arm]{gr_arm()}} (\code{param.recipe},
+\code{param.top_k} and so on) or by \code{\link[=hr_sweep]{hr_sweep()}}, \code{NA} for an arm that
+does not record that setting. A setting whose values are not all
+single values is written as text. A benchmark of arms made by
+\code{\link[=hr_arm]{hr_arm()}} alone has none.}
 }
 Attributes record the arms (\code{arms}: name, version, hash, derived_from),
 the reference hash, \code{runs}, \code{split}, \code{seed}, the scorer's name, and the
@@ -153,6 +159,11 @@ marked \code{reportable = FALSE}: dev is for tuning, and its scores are not
 evidence. The reference is locked when scoring starts (see
 \code{\link[=hr_reference]{hr_reference()}}).
 
+Two arms that resolve to the same configuration warn (class
+\code{hr_same_config}) before anything runs: their differences could only be
+run-to-run spread. Arms from \code{\link[=gr_arm]{gr_arm()}} resolve alike when their recipes
+do; any other two arms when everything but their names is the same.
+
 Fewer than 5 runs warns (class \code{hr_few_runs}): with fewer, run-to-run
 spread cannot be told from the differences between arms, and interval
 reports are expected to refuse such a benchmark unless it is labelled
@@ -190,6 +201,8 @@ Other harness:
 \code{\link{hr_mdd}()},
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},
-\code{\link{hr_scorer}()}
+\code{\link{hr_scorer}()},
+\code{\link{hr_sweep}()},
+\code{\link{hr_sweep_check}()}
 }
 \concept{harness}

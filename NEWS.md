@@ -11,6 +11,58 @@
   for them and simultaneous intervals where three arms are compared. A last
   section shows the same steps on your own documents, writing results to a
   directory you name.
+* **A settings reference.** `vignette("settings")` prints every setting of
+  every stage from `gr_settings_table()` when it is built, each important one
+  linked to its walkthrough, and the extractors, cleaners and presets,
+  segmenters, readers, embedders and recipes from their registries. The README
+  and `vignette("harnessr")` gain a "What you can change" section: one row per
+  stage with its count of settings, the most used, and links to the
+  walkthroughs; Get started also gives the basic settings of each stage with
+  when to change each.
+* **Settings walkthroughs.** Five guides end with a "Choosing the settings"
+  section, one walkthrough per important setting or group: what it controls
+  and trades off, the signs in your results that point to changing it, where
+  its default came from (measured, cited or untested), and how to test it
+  with `hr_sweep()`. `vignette("ingest")` covers cleaning presets with
+  `references_after`, and OCR; `vignette("segment")` the segmenter,
+  `max_tokens`, `overlap_tokens`, and `contextual` and `proposition`;
+  `vignette("readers")` the reader, `top_k`, `mmr`, word matching
+  (`lexical_blend` and BM25), `context_order` with `restate`, `verify` with
+  `cite`, `effort` and `max_merge_levels`; `vignette("review")` screening
+  calibration, extraction's `resolve` and `require_quote`, and synthesis's
+  `coherence_rounds`, `figure_bands` and `prominence`; `vignette("runs")` the
+  global limits and the governor. The offline examples run on the stand-in
+  models and report what each value sent: on the example report, `"scan"`
+  cleaning sent the same requests as `"standard"`, a merge cap of 6 the same
+  as a cap of 1, and `mmr = 0.7` at `top_k = 3` and `verify` the same as the
+  value before them.
+* **`hr_sweep()`** builds one arm per row of a grid of settings. The base is
+  an arm from `gr_arm()`, whose settings each row overrides by name, or a
+  function of the grid's columns that returns an arm. A column that is not a
+  setting is an error (class `hr_unknown_setting`) listing the settings that
+  are, and rows that build the same configuration are dropped with a message
+  (class `hr_sweep_collapsed`).
+* **`hr_benchmark()`** adds a `param.<name>` column for each setting the arms
+  record (arms from `gr_arm()` or `hr_sweep()`), after `reportable`, so a sweep
+  is summarised with `aggregate(correct ~ param.top_k, bench, mean)`. It warns
+  (class `hr_same_config`) when two arms resolve to the same configuration:
+  two recipe arms whose settings resolve to the same recipe, or two other arms
+  that differ only in name.
+* **`hr_sweep_check()`** lists the arms of a benchmark that sent
+  byte-identical requests to an earlier arm on every item and run, and the
+  recorded settings that differ between them. Those settings changed nothing
+  that was sent: `top_k` under the `fast` recipe, which sends the whole
+  document, is one.
+* **`gr_settings_table()`** returns every setting of every stage in one table
+  of 195 rows: the ingest, segment and read schemas (with the entries of
+  `cleaner_opts` and `layout_opts` the built-in code reads), the arguments of
+  the screening, extraction, synthesis and evaluation functions, and every
+  `gr_options()` option. Each row has its stage, the function that takes it,
+  its default, tier, evidence status and source, the first sentence of its
+  help, and the guide section that explains how to choose it. It is built
+  from the schemas, the option rules, the functions' arguments and the
+  installed help when it is called, and a test fails when a declared setting
+  is missing from it.
 * **`gr_settings()`** returns the schema of the read, segment or ingest
   settings, and `as.data.frame()` of a schema gives each setting's default,
   range, tier, evidence status and source.

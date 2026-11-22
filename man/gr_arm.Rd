@@ -58,7 +58,11 @@ as \code{\link[=answer_document]{answer_document()}} does; it needs a document t
 
 The arm's \code{params} are the recipe's name and the settings, and its version
 is the version of harnessr, since readers and prompts change between
-versions.
+versions. The arm also records them as its settings, which \code{\link[=hr_benchmark]{hr_benchmark()}}
+reports in \verb{param.<name>} columns and \code{\link[=hr_sweep]{hr_sweep()}} overrides by name. Two
+recipe arms whose settings resolve to the same recipe (a setting given at
+the recipe's own value, say) have the same configuration, and
+\code{\link[=hr_benchmark]{hr_benchmark()}} warns when it is given both.
 }
 \examples{
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
@@ -86,6 +90,8 @@ Other harness:
 \code{\link{hr_mdd}()},
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},
-\code{\link{hr_scorer}()}
+\code{\link{hr_scorer}()},
+\code{\link{hr_sweep}()},
+\code{\link{hr_sweep_check}()}
 }
 \concept{harness}
