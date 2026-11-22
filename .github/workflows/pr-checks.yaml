@@ -6,14 +6,23 @@ name: pr-checks
 #
 #   Rscript dev/ci/pr-checks.R tests origin/main HEAD
 #
-# tests  A pull request may not drop an expect_*() call from tests/ or add a
-#        skip(), skip_if*() or skip_on_*() call without the label
-#        tests-reviewed. An expect_ line that is edited counts as removed.
+# tests  A pull request may not drop an expect_*() call from tests/, add a
+#        skip(), skip_if*() or skip_on_*() call, or add a row to a list that
+#        may only shrink (fixtures/boundary/allowed.csv and
+#        doc-uses-internal.csv) without the label tests-reviewed. An expect_
+#        line that is edited counts as removed.
 # deps   A pull request may not add a package to Depends, Imports, LinkingTo
 #        or Suggests without the label deps-reviewed, and every package it
 #        adds must be on CRAN.
 # lint   lintr, with the repository's .lintr, on the files under R/ that the
 #        pull request changes.
+# namespace
+#        A pull request may not remove an export() from NAMESPACE without the
+#        label exports-reviewed.
+# commits
+#        No commit message in the pull request may carry a Co-Authored-By
+#        trailer, a chat or session link, or a "Generated with" line. No label
+#        allows it; reword the commit. Only commit messages are read.
 #
 # Adding or removing a label reruns the checks, so a label added after review
 # turns a red check green without a new push.
@@ -98,4 +107,41 @@ jobs:
 
       - name: Lint changed files under R/
         run: Rscript dev/ci/pr-checks.R lint "$BASE_SHA" "$HEAD_SHA"
+        shell: bash
+
+  namespace:
+    name: no unreviewed export removals
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Check exports removed from NAMESPACE
+        run: Rscript dev/ci/pr-checks.R namespace "$BASE_SHA" "$HEAD_SHA"
+        shell: bash
+
+  commits:
+    name: no attribution in commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Every commit of the pull request is read, which needs the history.
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Check the pull request's commit messages
+        run: Rscript dev/ci/pr-checks.R commits "$BASE_SHA" "$HEAD_SHA"
         shell: bash
