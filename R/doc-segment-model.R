@@ -384,11 +384,21 @@ seg_proposition <- function(doc, spec, client, trace) {
 #' sent with (a resolved pronoun names an entity the context may hold). A
 #' proposition that fails is one the model added, not one it rewrote: its
 #' figures, or most of its words, are not in the text.
+#'
+#' A number counts as in the batch when its digits are, or when its value is
+#' one the batch writes in another form (quote_numbers()): "1200" for
+#' "1,200", "12" for "twelve".
 #' @noRd
 proposition_supported <- function(p, batch, context = "") {
   digits <- function(x) regmatches(x, gregexpr("[0-9]+", x))[[1]]
   nums <- digits(p)
-  if (length(nums) && !all(nums %in% digits(batch))) return(FALSE)
+  if (length(nums) && !all(nums %in% digits(batch))) {
+    vals <- abs(digit_numbers(fold_numerals(p)))
+    have <- quote_numbers(batch)
+    found <- vapply(vals, function(v) any(abs(have - v) <= 1e-9 * max(1, abs(v))),
+                    logical(1))
+    if (!length(vals) || !all(found)) return(FALSE)
+  }
   w <- unique(lexical_terms(p, min_chars = 3L))
   if (!length(w)) return(TRUE)
   have <- unique(c(lexical_terms(batch, min_chars = 3L), lexical_terms(context, min_chars = 3L)))

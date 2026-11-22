@@ -164,7 +164,8 @@ says how to test it with `hr_sweep()`. The settings come to 219 in all.
   request, and declares its cost, one request per chunk and no more, in
   `$extra$cost` and a `segment.cost` trace step. `proposition` keeps the page and
   section of each batch on its chunks, and counts propositions with no
-  support in their batch (a number it does not give, or most words absent)
+  support in their batch (a number it does not give in any form, "1,200"
+  for "1200" or "twelve" for "12", or most words absent)
   in `$extra$propositions_unsupported`. The new setting
   `proposition_check = "drop"` drops them, counting them in
   `$extra$propositions_dropped` with a `gr_proposition_dropped` warning; the

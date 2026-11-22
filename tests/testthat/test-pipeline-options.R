@@ -614,6 +614,15 @@ test_that("proposition keeps page and section, carries context, and drops invent
                  class = "gr_proposition_dropped")
   expect_true(harnessr:::proposition_supported("Revenue was 45 million.", "Revenue was 45 million."))
   expect_false(harnessr:::proposition_supported("Revenue was 46 million.", "Revenue was 45 million."))
+  # A number written in another form than the batch's is still the batch's.
+  expect_true(harnessr:::proposition_supported("The trial enrolled 1200 adults.",
+                                               "The trial enrolled 1,200 adults."))
+  expect_true(harnessr:::proposition_supported("Follow-up lasted 12 weeks.",
+                                               "Follow-up lasted twelve weeks."))
+  expect_false(harnessr:::proposition_supported("The trial enrolled 1300 adults.",
+                                                "The trial enrolled 1,200 adults."))
+  expect_false(harnessr:::proposition_supported("Follow-up lasted 13 weeks.",
+                                                "Follow-up lasted twelve weeks."))
   # A resolved pronoun names what the context gave.
   expect_true(harnessr:::proposition_supported("Northwind reported revenue growth.",
                                                "It reported revenue growth.",
