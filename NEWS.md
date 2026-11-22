@@ -637,6 +637,20 @@ says where its default came from; almost none has a measurement behind it.
   `basic` parameters: the read spec's are `reader`, `model`, `top_k`, `cite`
   and `verify`, and the rest are `advanced`. No default changed.
 
+## Benchmarks
+
+Nothing here changes a default: an arm that uses neither shortcut sends the
+requests it sent before, with the same cache keys, and no setting is added.
+
+* `hr_arm()`'s `ctx` gains `judge(candidates, ...)`, which calls `hr_judge()`
+  with the benchmark's client and `trace = ctx$trace`, so the judge's
+  requests go out at the run's draw and its cost is in the run's `usd` once.
+  Pass `rubric` as `hr_judge()` needs. It also gains `note(name, value, refs
+  = NULL)`, which records a signal about the run's item with `hr_signal()`.
+* `hr_signals()` accepts an `hr_bench`. It reads each run's own trace and
+  adds `arm`, `run` and `item` columns; the benchmark's folded trace is not
+  read, so each signal is listed once.
+
 ## Fixed
 
 * The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
