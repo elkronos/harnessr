@@ -39,16 +39,19 @@ An object of class \code{hr_effort_escalate}.
 A policy for a call's \code{effort} (\code{\link[=gr_call]{gr_call()}}) or a read's \code{effort_mode}
 (\code{\link[=gr_read_spec]{gr_read_spec()}}). Every stage starts at \code{base} (one level, or a map named
 by call stem, resolved as a static effort is). When a trigger in \code{on}
-fired during a stage, the next stage is sent at \code{to}, and the stage after
-that goes back to \code{base}. At most \code{max_escalations} raises happen in one
-run (one trace). A stage is a call label up to its second dot, with a
+fired during a stage, the next stage is sent at \code{to}. The stage after a
+raised one goes back to \code{base} unless a trigger fired in the raised stage
+too and a raise is left: at most \code{max_escalations} raises happen in one
+run (one trace), so at the default of 1 it always goes back. A stage is a call label up to its second dot, with a
 merge level (\code{.level2}), a summary level (\code{.L2}) and a judge's order
 (\code{.o2}) left off, so \code{map.answer} and \code{reduce} are stages and
 \code{reduce.level1} belongs to \code{reduce}.
 }
 \details{
 The triggers the core sees for itself are \code{"truncated"} (a \code{"truncate"}
-step of the trace, or a reply cut off at its output cap),
+step of the trace, or a reply cut off at its output cap; a cut made while
+a stage packs its requests belongs to that stage, including one made
+before its first request),
 \code{"parse_failure"} (a reply to \code{\link[=gr_call_json]{gr_call_json()}} that is not JSON) and
 \code{"schema_failure"} (one that does not fit the schema). \code{replies} names
 replies that are triggers: a named character vector from trigger to the

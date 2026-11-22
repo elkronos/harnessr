@@ -73,6 +73,63 @@ test_that("a raise that does not resolve its trigger is logged as unresolved", {
   expect_identical(log$calls, 1L)
 })
 
+test_that("a cut counts for the stage whose request it was made for", {
+  pol <- hr_effort_escalate()
+  cl <- gr_mock_client(function(m, p) paste("done at", p$effort))
+  long <- paste(rep("word", 200), collapse = " ")
+  call <- function(tr, label) gr_call(cl, "x", model = ee_model, trace = tr, label = label,
+                                      effort = pol)$text
+  # A cut made while stage b packs its first request belongs to b: b goes out
+  # at base and the stage after it is raised.
+  tr <- gr_trace()
+  expect_identical(call(tr, "a.x"), "done at low")
+  hr_truncate(long, 10, trace = tr, where = "b.input")
+  expect_identical(call(tr, "b.x"), "done at low")
+  expect_identical(call(tr, "c.x"), "done at high")
+  log <- hr_effort_log(tr)
+  expect_identical(log$after, "b.x")
+  expect_identical(log$stage, "c.x")
+  expect_identical(log$triggers, "truncated")
+  # A cut made before the run's first request belongs to the first stage.
+  tr2 <- gr_trace()
+  hr_truncate(long, 10, trace = tr2, where = "a.input")
+  expect_identical(call(tr2, "a.x"), "done at low")
+  expect_identical(call(tr2, "b.x"), "done at high")
+  expect_identical(hr_effort_log(tr2)$after, "a.x")
+  # An event reported after a stage's last request still belongs to it.
+  tr3 <- gr_trace()
+  call(tr3, "a.x")
+  hr_effort_event(tr3, "unclear")
+  expect_identical(call(tr3, "b.x"), "done at high")
+  expect_identical(hr_effort_log(tr3)$after, "a.x")
+  # In a read: refine cuts the excerpt of its first chunk before the draft
+  # request, so the cut is the draft's and the revisions are raised.
+  local_registries()
+  gr_register_model("ee-tiny", context_window = 700, max_output = 100, reasoning = TRUE)
+  txt <- vapply(1:3, function(i) paste(rep(sprintf("Fact %d about the region.", i), 30),
+                                       collapse = " "), "")
+  ch <- new_chunks(txt, "precomputed", gr_segment_spec(max_tokens = 300))
+  tr4 <- gr_trace()
+  quiet(gr_read(ch, "Q?", cl, gr_read_spec("refine", model = "ee-tiny", effort_mode = "escalate"),
+                trace = tr4))
+  ef <- ee_efforts(tr4)
+  expect_identical(ef$effort[ef$stage == "refine.draft"], "low")
+  expect_true(all(ef$effort[ef$stage == "refine.revise"] == "high"))
+  expect_identical(hr_effort_log(tr4)$after, "refine.draft")
+})
+
+test_that("a raised stage that fires again raises the next one while raises are left", {
+  pol <- hr_effort_escalate(max_escalations = 2)
+  cl <- gr_mock_client(function(m, p) paste("done at", p$effort))
+  tr <- gr_trace()
+  sent <- vapply(c("a.x", "b.x", "c.x", "d.x"), function(lab) {
+    out <- gr_call(cl, "x", model = ee_model, trace = tr, label = lab, effort = pol)$text
+    hr_effort_event(tr, "unclear")
+    out
+  }, "")
+  expect_identical(unname(sent), c("done at low", "done at high", "done at high", "done at low"))
+})
+
 test_that("a reply sentinel fires only when every request of the stage gave it", {
   pol <- hr_effort_escalate(replies = c(not_in_document = "NOT_IN_DOCUMENT"))
   seen <- character(0)

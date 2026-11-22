@@ -27,15 +27,18 @@
 #' A policy for a call's `effort` ([gr_call()]) or a read's `effort_mode`
 #' ([gr_read_spec()]). Every stage starts at `base` (one level, or a map named
 #' by call stem, resolved as a static effort is). When a trigger in `on`
-#' fired during a stage, the next stage is sent at `to`, and the stage after
-#' that goes back to `base`. At most `max_escalations` raises happen in one
-#' run (one trace). A stage is a call label up to its second dot, with a
+#' fired during a stage, the next stage is sent at `to`. The stage after a
+#' raised one goes back to `base` unless a trigger fired in the raised stage
+#' too and a raise is left: at most `max_escalations` raises happen in one
+#' run (one trace), so at the default of 1 it always goes back. A stage is a call label up to its second dot, with a
 #' merge level (`.level2`), a summary level (`.L2`) and a judge's order
 #' (`.o2`) left off, so `map.answer` and `reduce` are stages and
 #' `reduce.level1` belongs to `reduce`.
 #'
 #' The triggers the core sees for itself are `"truncated"` (a `"truncate"`
-#' step of the trace, or a reply cut off at its output cap),
+#' step of the trace, or a reply cut off at its output cap; a cut made while
+#' a stage packs its requests belongs to that stage, including one made
+#' before its first request),
 #' `"parse_failure"` (a reply to [gr_call_json()] that is not JSON) and
 #' `"schema_failure"` (one that does not fit the schema). `replies` names
 #' replies that are triggers: a named character vector from trigger to the
@@ -139,6 +142,9 @@ effort_state <- function(trace) {
   st <- new.env(parent = emptyenv())
   st$stage <- NULL
   st$from <- length(trace$steps) + 1L
+  # Cuts are counted from the trace's start: a cut made while the first stage
+  # packed its first request belongs to that stage.
+  st$cut_from <- 1L
   # Requests already on the trace were sent before the policy saw one: by a
   # batch whose items each had a trace of their own (gr_lapply()), folded in
   # since. They are the stage before this one, from the trace's start.
@@ -159,21 +165,36 @@ effort_state <- function(trace) {
   st
 }
 
-#' The triggers that fired in the steps of a trace from `from` on.
+#' The triggers that fired in a stage. Requests and reported events count
+#' from step `from` on. A cut belongs to the stage whose request it was made
+#' for: it counts from `cut_from` up to the stage's last request, and a cut
+#' after that request was made while the next stage packed its first one.
+#' Returns the triggers with attribute `"cut_to"`, the last step counted for
+#' cuts.
 #' @noRd
-effort_fired <- function(trace, from, policy) {
+effort_fired <- function(trace, from, policy, cut_from = from) {
   steps <- trace$steps
-  if (from > length(steps)) return(character(0))
-  steps <- steps[from:length(steps)]
+  n <- length(steps)
+  is_req <- vapply(steps, function(s) !identical(s$kind, "local") &&
+                     !identical(s$kind, "embedding"), logical(1))
+  last_req <- if (from <= n) which(is_req & seq_len(n) >= from) else integer(0)
+  cut_to <- if (length(last_req)) max(last_req) else from - 1L
   fired <- character(0)
   reqs <- list()
-  for (s in steps) {
+  lo <- min(from, cut_from)
+  for (i in seq_len(max(n - lo + 1L, 0L)) + lo - 1L) {
+    s <- steps[[i]]
     lab <- as_chr1(s$label, "")
     if (identical(s$kind, "local")) {
-      if (identical(lab, "truncate")) fired <- c(fired, "truncated")
-      if (identical(lab, "effort.event")) fired <- c(fired, as_chr1(s$detail$event, ""))
+      if (identical(lab, "truncate") && i >= cut_from && i <= cut_to) {
+        fired <- c(fired, "truncated")
+      }
+      if (identical(lab, "effort.event") && i >= from) {
+        fired <- c(fired, as_chr1(s$detail$event, ""))
+      }
       next
     }
+    if (i < from) next
     if (identical(s$kind, "embedding")) next
     reqs[[length(reqs) + 1L]] <- s
     if (tolower(as_chr1(s$finish_reason, "")) %in% .hr_cut_off_finish) {
@@ -187,7 +208,7 @@ effort_fired <- function(trace, from, policy) {
       if (all(startsWith(texts, rep[[k]]))) fired <- c(fired, names(rep)[k])
     }
   }
-  intersect(unique(fired[nzchar(fired)]), policy$on)
+  structure(intersect(unique(fired[nzchar(fired)]), policy$on), cut_to = cut_to)
 }
 
 #' The effort one call goes out with under an escalation policy, moving the
@@ -212,7 +233,9 @@ escalate_effort <- function(policy, label, trace) {
 #' when a trigger fired in the one that ended.
 #' @noRd
 effort_boundary <- function(st, policy, stage, trace) {
-  fired <- effort_fired(trace, st$from, policy)
+  fired <- effort_fired(trace, st$from, policy, st$cut_from %||% st$from)
+  cut_to <- attr(fired, "cut_to")
+  fired <- as.character(fired)
   if (isTRUE(st$raised) && length(st$log)) {
     k <- length(st$log)
     again <- intersect(st$raised_for, fired)
@@ -239,6 +262,8 @@ effort_boundary <- function(st, policy, stage, trace) {
   }
   st$stage <- stage
   st$calls <- 0L
+  # The cuts after the ended stage's last request were made for this one.
+  st$cut_from <- cut_to + 1L
   st$from <- length(trace$steps) + 1L
   invisible(NULL)
 }
@@ -303,7 +328,8 @@ hr_effort_log <- function(trace) {
     # The run ended in the raised stage: settle it from what it recorded.
     on <- strsplit(log[[k]]$triggers, ", ", fixed = TRUE)[[1]]
     pol <- list(on = on, replies = st$replies)
-    again <- intersect(on, effort_fired(trace, st$from, pol))
+    again <- intersect(on, as.character(effort_fired(trace, st$from, pol,
+                                                     st$cut_from %||% st$from)))
     log[[k]]$resolved <- !length(again)
     log[[k]]$calls <- st$calls
   }

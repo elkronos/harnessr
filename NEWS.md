@@ -57,8 +57,9 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
   not fit its schema, a reply the caller names (such as `NOT_IN_DOCUMENT`
   from every request of a stage), or an event the caller reports with
   `hr_effort_event()`. Effort changes only at stage boundaries, at most
-  `max_escalations` times a run, and the stage after a raised one goes back
-  to the base effort. Each raise is an `"effort.escalate"` step of the
+  `max_escalations` times a run. The stage after a raised one goes back to
+  the base effort unless it fired a trigger too and a raise is left. A cut
+  counts for the stage whose request it was made for. Each raise is an `"effort.escalate"` step of the
   trace and its outcome an `"effort.resolve"` step; `hr_effort_log()` lists
   them. `gr_call()` takes the policy as its `effort`.
 
