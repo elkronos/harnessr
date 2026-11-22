@@ -365,3 +365,50 @@ test_that("shuffling the table leaves at least 90% of claims matched", {
     expect_gte(matched, 0.9)
   }
 })
+
+# --- P3-08: figures matched to fields, with pool size and chance ----------
+
+figure_table <- function() {
+  data.frame(document = sprintf("s%02d.pdf", 1:10), status = "ok", duplicate_of = NA_character_,
+             n_filled = 4L, n_unverified = 0L, conflicts = NA_character_,
+             n = c(236, 120, 85, 410, 57, 330, 98, 150, 275, 66),
+             response_pct = c(41, 53, 63, 38, 47, 55, 29, 71, 44, 61),
+             weeks = c(12, 24, 16, 26, 52, 8, 10, 30, 36, 18),
+             age = c(34, 45, 51, 67, 72, 39, 58, 43, 62, 49),
+             stringsAsFactors = FALSE)
+}
+
+test_that("an uncited 63% in a 40-number pool is unbacked; n = 236 linked to its field is backed", {
+  cl <- gr_mock_client(function(m, p) {
+    paste0("Response reached 63% across the literature. The largest trial had n = 236. ",
+           "Response was 63% in one trial [study 3].")
+  })
+  s <- suppressWarnings(gr_synthesise(figure_table(), question = "Q?",
+                                      outline = c(Findings = "What"), client = cl))
+  fig <- s$figures
+  uncited <- fig[fig$number == "63" & is.na(fig$studies), ]
+  expect_false(uncited$backed)
+  expect_identical(uncited$pool, 40L)
+  # 2 forms (63 and 0.63) among 90 two-digit numbers, 40 times over.
+  expect_equal(uncited$chance, 1 - (1 - 2 / 90)^40)
+  expect_true(is.na(uncited$field))
+  n236 <- fig[fig$number == "236", ]
+  expect_true(n236$backed)
+  expect_identical(n236$basis, "rows shown")
+  expect_identical(n236$field, "n (study 1)")
+  cited <- fig[fig$number == "63" & !is.na(fig$studies), ]
+  expect_true(cited$backed)
+  expect_identical(cited$field, "response_pct (study 3)")
+  expect_identical(cited$pool, 4L)
+  expect_identical(s$sections$n_unbacked, 1L)
+})
+
+test_that("the chance of a coincidental match grows with the pool and shrinks with digits", {
+  ch <- ns$figure_chance(c("63", "236", "300", "0.45", "45.2"), c(1, 1, 1, 1, 1), 40)
+  expect_equal(ch, 1 - (1 - 1 / c(90, 900, 900, 90, 900))^40)
+  expect_true(is.na(ns$figure_chance("", 1, 40)))
+  expect_true(ns$figure_field_named("The largest trial had n = 236.", "n"))
+  expect_false(ns$figure_field_named("Of 236 people, few left.", "n"))
+  expect_true(ns$figure_field_named("The sample size was 236.", "sample_size"))
+  expect_false(ns$figure_field_named("The sample was 236.", "sample_size"))
+})

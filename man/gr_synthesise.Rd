@@ -279,8 +279,12 @@ against the rows it cites: \code{stage} (\code{"draft"} for the sections as
 written, \code{"final"} for the revised text when a kept revision pass
 changed it), \code{section} (the heading it stands under), \code{sentence}, \code{number}
 (as written), \code{studies} (the studies the sentence cites, comma-joined,
-or NA), \code{backed}, and \code{basis}, what it was found in (NA when it was
-not). See "Figures" below.}
+or NA), \code{backed}, \code{basis}, what it was found in (NA when it was
+not), \code{field}, the extracted field it reports, as \code{"n (study 2)"},
+when a row's own value of that field is the figure, \code{pool}, how many
+distinct values the rows it was checked against hold, and \code{chance},
+the chance of a match among that many by coincidence. See "Figures"
+below.}
 \item{\code{sentences}}{Every sentence of the text as published, linked to
 the records it rests on: \code{section}, \code{sentence}, \code{studies} (the
 studies it cites, comma-joined, or NA), \code{verified} (those of them
@@ -350,10 +354,29 @@ every number in every sentence is looked for in what the writer was shown
 for that sentence: the rows it cites, as the writing prompt showed them; the
 question, the section's heading and brief, \code{style}, and the gaps a closing
 section was given; and with \code{claims}, the claims given to the section that
-rest on a cited study. A sentence that cites nothing is checked against
-every row its section was shown. This runs on the draft, and again on the
-revised text when a kept revision pass changed it; it sends nothing, so it
-is always on, and it changes no request.
+rest on a cited study. This runs on the draft, and again on the revised text
+when a kept revision pass changed it; it sends nothing, so it is always on,
+and it changes no request.
+
+Each figure found in a row is linked to the field it reports where it can:
+\code{field} names the field, and the study, whose own value is the figure. Each
+figure also carries \code{pool}, how many distinct values the rows it was
+checked against hold, and \code{chance}, the chance that one of them matches it
+by coincidence: \code{1 - (1 - m / N)^pool}, with \code{N} the count of numbers with
+as many significant digits as the figure (90 for "63") and \code{m} the forms
+it is compared in (2 for "63\%"). That takes the values to be spread
+evenly, so it is a yardstick, not a measured probability. A sentence that
+cites nothing is checked against every row its section was shown, where
+matches by chance are common, so a figure found there counts only when
+its \code{chance} is below 0.05 or the sentence names the field it matched
+("n = 236" for a field \code{n} of 236). An uncited "63\%" among 40 numbers,
+with a chance of about 0.59, is unbacked; and a figure qualified by
+"about" or "more than" counts as near a row's value only in a sentence
+that cites the row.
+
+The check is diagnostic only. \code{backed} marks no section partial, stops
+nothing, and is not a measure of accuracy: no benchmark has validated it
+against a person checking the figures.
 
 A figure counts as found in any form a faithful copy may give it: \code{.61} for
 0.61, \code{45.20} for 45.2, \code{1204} for 1,204, \verb{12 450} for 12,450 (grouped by

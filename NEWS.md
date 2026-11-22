@@ -68,6 +68,20 @@
   Two tests that expected a merge of opposite claims now expect them kept
   apart.
 
+* The figures check of `gr_synthesise()` links each figure found in a row to
+  the field it reports, in a new `field` column of `$figures` (`"n (study
+  2)"`), and gives `pool`, how many distinct values the rows it was checked
+  against hold, and `chance`, the chance of a match among them by
+  coincidence, from the digits the figure was written with. A sentence that
+  cites nothing is still checked against every row its section was shown,
+  but a figure found there now counts only when its `chance` is below 0.05 or
+  the sentence names the field it matched: an uncited "63%" among 40 numbers
+  is unbacked, and "n = 236" matching a field `n` of 236 is backed. A
+  qualified figure ("about 50") counts as near a row's value only in a
+  sentence that cites the row. The check stays diagnostic only: it marks
+  nothing partial and sends nothing. The audit report adds `pool` and
+  `chance` to its unbacked figures.
+
 ## Checking the search, the files and the screening
 
 * New `gr_search_recall(records, known, tier, held_out)` measures a search

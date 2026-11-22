@@ -1074,19 +1074,36 @@ audit_figures <- function(synthesis, revised = FALSE) {
   c("<h3>Figures checked against the rows</h3>",
     sprintf(paste0("<p class='sub'>Every number in a sentence of the %s was looked for in the ",
                    "rows that sentence cites, as the writer was shown them (a sentence citing ",
-                   "nothing: every row its section was shown), and in the question, the ",
-                   "section's brief and, with claims, the claims behind those rows. %d figure(s) ",
-                   "were checked. Found means copied, not right: a figure the row carries can ",
-                   "still be the wrong one for the sentence.</p>"),
-            if (stage == "final") "published text" else "text", nrow(pub)),
+                   "nothing: every row its section was shown, where a figure counts only if its ",
+                   "chance of matching by coincidence is below 0.05 or the sentence names the ",
+                   "field it matched), and in the question, the section's brief and, with ",
+                   "claims, the claims behind those rows. %d figure(s) were checked%s. Found ",
+                   "means copied, not right: a figure the row carries can still be the wrong ",
+                   "one for the sentence. The check is diagnostic only: it marks nothing ",
+                   "partial.</p>"),
+            if (stage == "final") "published text" else "text", nrow(pub),
+            if (!is.null(pub$field) && any(!is.na(pub$field)))
+              sprintf(", %d of them linked to the field they report", sum(!is.na(pub$field)))
+            else ""),
     if (!is.null(found)) html_table(found, numeric_cols = "figures"),
     if (nrow(bad)) c(
       paste0("<p class='flag'>These figures are in nothing the sentence was written from. ",
              "Each is arithmetic the sentence does not show, or the writer's invention. The ",
              "sections are not marked partial for them: that is about citations.</p>"),
-      html_table(bad[, intersect(c("stage", "section", "number", "studies", "sentence"),
-                                 names(bad)), drop = FALSE]))
+      html_table(figure_rows_shown(bad[, intersect(c("stage", "section", "number", "studies",
+                                                     "pool", "chance", "sentence"),
+                                                   names(bad)), drop = FALSE]),
+                 numeric_cols = "pool"))
     else if (nrow(fig)) "<p class='ok'>Every figure was found in what its sentence was written from.</p>")
+}
+
+#' A figures table with `chance` as text, to two significant digits.
+#' @noRd
+figure_rows_shown <- function(x) {
+  if (!is.null(x$chance)) {
+    x$chance <- ifelse(is.na(x$chance), NA_character_, formatC(signif(x$chance, 2), format = "g"))
+  }
+  x
 }
 
 #' @noRd
