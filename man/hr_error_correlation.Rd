@@ -91,10 +91,11 @@ package (lme4) that harnessr does not depend on. \verb{$q3} says so.
 \examples{
 ref <- hr_reference(sprintf("q\%02d", 1:12), labels = rep("yes", 12),
                     cluster = sprintf("c\%02d", 1:12), split = "test")
-says <- function(wrong_on) hr_arm(paste0("wrong-", length(wrong_on)), function(item, ctx) {
+says <- function(name, wrong_on) hr_arm(name, function(item, ctx) {
   if (item \%in\% wrong_on) "no" else "yes"
 })
-arms <- list(says(c("q01", "q02", "q03")), says(c("q01", "q02", "q04")))
+arms <- list(says("arm_a", c("q01", "q02", "q03")),
+             says("arm_b", c("q01", "q02", "q04")))
 bench <- suppressWarnings(hr_benchmark(arms, ref, runs = 1, client = NULL))
 ec <- hr_error_correlation(bench, n_strata = 1)
 ec$pairs
