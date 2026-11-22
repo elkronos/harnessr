@@ -114,6 +114,7 @@ reference:
   - gr_register_protocol
   - gr_search
   - gr_records
+  - gr_search_recall
   - gr_screen
   - gr_reference
   - gr_reference_consensus

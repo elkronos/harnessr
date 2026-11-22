@@ -206,6 +206,31 @@ corpus_models_have <- function(models) {
 #' `NA` when it reported nothing contradicting it. Such a row's `answer` is that
 #' sentence and its `not_found` is `FALSE`.
 #'
+#' When the sources come from a [gr_records()], or a [gr_screen()] result
+#' that carries one, there is one more column, last: `identity`, whether the
+#' file is the paper its record names. The first 6,000 characters of the
+#' cleaned text are searched for the record's DOI, as a whole DOI, and for its
+#' title, compared as deduplication compares titles (letters and digits only,
+#' case and accents folded, HTML markup such as `<i>` taken out of the
+#' record's title). When the recipe's cleaning removes digits
+#' (`remove_numbers`, as the legacy preset does), the DOI is not looked for
+#' and the title is compared without its digits. `TRUE` when either is there; `FALSE` when the record has
+#' a title of 12 or more letters or digits and neither is there, which warns
+#' with class `gr_identity_mismatch` and adds the warning to `warnings`; `NA`
+#' when there was nothing to check (no text, a skipped row, a record with
+#' only a DOI the opening does not print, or a short title). A record matched
+#' to its file by first author and year is the case this catches: another
+#' paper by the same author in the same year. Nothing is dropped and
+#' [gr_flow()] counts the same; the column says which documents to check by
+#' hand. A row restored from `store` keeps its check only when the run that
+#' stored it checked the file against the same record (the same title and
+#' DOI). Otherwise its `identity` is `NA`, the stored mismatch warning is
+#' taken out of `warnings`, and a note there says that the check needs the
+#' document read again, because the store does not keep the document's text.
+#' A run over files alone has no `identity` column, even for a row it restores
+#' from a store that a run over a [gr_records()] wrote, and that row loses the
+#' stored mismatch warning.
+#'
 #' `document` is a filename and `document_id` is the hash of the cleaned text
 #' (and of the pages that never became text, when there are any). Cite with the
 #' second: a filename changes when the file is renamed, collides between
@@ -354,6 +379,9 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
   # Carried through so gr_extract()'s table can join to bibliographic fields the
   # export supplied, rather than to ones a model read off a title page.
   from_records <- attr(sources, "record_set")
+  # Only with records to check against, so a run over files alone keeps the
+  # columns it had.
+  check_identity <- inherits(from_records, "gr_records")
 
   # A given trace is the PARENT, and this run still gets its own -- the same
   # arrangement this function already uses for each document below. Running
@@ -436,6 +464,10 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     # marked every paper already in the store "skipped", with no values.
     key <- if (is.null(store)) NULL else corpus_key(src, question, rec, client)
     restored <- if (is.null(key)) NULL else corpus_restore(store, key)
+    # The record this run pairs the source with, and what a stored check must
+    # have been made against to hold in this run (see restored_identity()).
+    src_record <- if (check_identity) source_record(src, from_records) else NULL
+    checked_against <- identity_fingerprint(src_record, check_identity)
     if (!is.null(restored)) {
       gr_msg(sprintf("[%d/%d] %s, restored from store", i, length(sources), lab))
       restored$row$document <- lab
@@ -449,6 +481,10 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       if (check_premise && is.null(restored$row[["premise", exact = TRUE]])) {
         restored$row$premise <- answer_premise(restored$answer)
       }
+      # The store key does not depend on the record set, so the check the
+      # entry was saved with holds only for the record it was made against.
+      restored$row <- restored_identity(restored$row, restored$identity_of, src_record,
+                                        check_identity, lab)
       # A restored document is never ingested, so its text is not available to
       # hash here. The hash travels in the store entry instead -- otherwise a
       # resumed run would restore the first copy and then pay to read the second,
@@ -541,11 +577,23 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     # What this document's ingestion recorded. Reset for every document: `doc`
     # below still holds the previous one when this ingestion fails.
     doc_w <- NULL
+    # Whether the file is the paper its record names: NA until the text is in.
+    ident <- NA
     out <- withCallingHandlers(tryCatch({
       doc <- gr_ingest(src, rec$ingest, trace = sub)
       # From the document, not from what was raised just now: a document served
       # from the ingestion cache raises nothing a second time.
       doc_w <- doc$warnings
+      # Before anything is read: a wrong file is worth knowing about whatever
+      # happens to its answer. It warns and goes on; nothing is dropped.
+      if (check_identity) {
+        ident <- check_record_identity(doc$text, src_record, lab,
+                                       steps = doc$stats$clean_steps)
+        if (!is.null(attr(ident, "message"))) {
+          gr_warn(attr(ident, "message"), class = "gr_identity_mismatch")
+          attr(ident, "message") <- NULL
+        }
+      }
       # Identity is the CLEANED text, not the bytes: the same paper exported by
       # two databases differs in metadata and whitespace and is the same
       # document. Hashing before segmentation also means the check costs one
@@ -619,12 +667,15 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       r[c("calls", "cached", "tokens_in", "tokens_out")] <- 0L
       r$cost_usd <- cost
       r$seconds <- secs
+      # Its own file's check, not the first copy's.
       rows[[i]] <- r
+      if (check_identity) rows[[i]] <- identity_row(rows[[i]], ident, doc_rec)
       dup_answer <- answers[[first]]
       if (keep_answers && !is.null(dup_answer)) answers[[lab]] <- dup_answer
       # Saved under its OWN key, so a resumed run restores it instead of paying
       # to rediscover that it is a duplicate.
-      if (!is.null(key)) corpus_save(store, key, rows[[i]], dup_answer, out$hash)
+      if (!is.null(key)) corpus_save(store, key, rows[[i]], dup_answer, out$hash,
+                                        identity_of = checked_against)
     } else if (!is.null(stopped_by <- limit_note(out))) {
       # Not read in full, so not a result: reported and handled as a failure,
       # kept out of the store so a resumed run with a higher limit reads it
@@ -649,9 +700,17 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       rows[[i]] <- corpus_row(lab, status = "ok", answer = out, trace = sub,
                               seconds = secs, cost = cost,
                               document_id = attr(out, "doc_hash"), premise = check_premise)
+      # Before the store saves the row, so a resumed run restores the check.
+      if (check_identity) rows[[i]] <- identity_row(rows[[i]], ident, doc_rec)
       if (keep_answers) answers[[lab]] <- out
       assign(attr(out, "doc_hash"), i, envir = seen)
-      if (!is.null(key)) corpus_save(store, key, rows[[i]], out, attr(out, "doc_hash"))
+      if (!is.null(key)) corpus_save(store, key, rows[[i]], out, attr(out, "doc_hash"),
+                                        identity_of = checked_against)
+    }
+
+    # A document whose read failed after its text came in was still checked.
+    if (check_identity && is.null(rows[[i]][["identity", exact = TRUE]])) {
+      rows[[i]] <- identity_row(rows[[i]], ident, doc_rec)
     }
 
     # A ceiling on a cost nobody can compute is not a ceiling. Say so once,
@@ -699,6 +758,15 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     }
   }
 
+  # Every row has the column, so they bind: a skipped row and a failed one
+  # say NA, and so does a restored one whose stored check was not made
+  # against this run's record (see restored_identity()). A run without a
+  # record set has no column.
+  rows <- lapply(rows, function(r) {
+    if (!check_identity) r$identity <- NULL
+    else if (is.null(r[["identity", exact = TRUE]])) r$identity <- NA
+    r
+  })
   structure(list(summary = do.call(rbind, rows), answers = answers,
                  # The sources as they were actually read, aligned row for row
                  # with `summary`. `summary$document` is a LABEL -- a basename,
@@ -740,6 +808,11 @@ print.gr_corpus <- function(x, ...) {
   }
   cat(sprintf("  this run: %s, %s\n", format_call_counts(x$trace),
               format_trace_cost(x$trace)))
+  wrong <- if (is.null(s[["identity"]])) 0L else sum(s$identity %in% FALSE)
+  if (wrong) {
+    cat(sprintf(paste0("  ! %d document(s) may not be the paper their record names: the opening ",
+                       "has neither its title nor its DOI (see the `identity` column)\n"), wrong))
+  }
   warned <- if (is.null(s$warnings)) 0L else sum(!is.na(s$warnings))
   if (warned) {
     cat(sprintf("  %d document(s) raised warnings (see the `warnings` column)\n", warned))
@@ -1038,6 +1111,23 @@ corpus_unfinished_row <- function(document, ans, why, trace, seconds, cost, prem
   row$not_found <- NA
   # Not a result either way, so no verdict: the partial answer keeps it.
   if (isTRUE(premise)) row$premise <- NA_character_
+  row
+}
+
+#' A summary row with its `identity` check, and the mismatch warning in its
+#' `warnings` cell when the check failed and the cell does not hold it yet: an
+#' answered row takes its warnings from the answer, which the check is not
+#' part of.
+#' @noRd
+identity_row <- function(row, ident, rec) {
+  row$identity <- ident
+  if (identical(ident, FALSE)) {
+    got <- rec$get()
+    m <- unname(got[names(got) == "gr_identity_mismatch"])
+    w <- row$warnings
+    have <- if (is.na(w)) character(0) else strsplit(w, " | ", fixed = TRUE)[[1]]
+    row$warnings <- corpus_warnings(c(have, m))
+  }
   row
 }
 

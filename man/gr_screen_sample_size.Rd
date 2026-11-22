@@ -119,6 +119,7 @@ Other corpus functions:
 \code{\link{gr_reference}()},
 \code{\link{gr_reference_consensus}()},
 \code{\link{gr_resolve}()},
-\code{\link{gr_search}()}
+\code{\link{gr_search}()},
+\code{\link{gr_search_recall}()}
 }
 \concept{corpus functions}

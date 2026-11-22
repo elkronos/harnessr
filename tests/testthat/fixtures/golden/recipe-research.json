@@ -1,19 +1,19 @@
 {
   "calls": [
     {
-      "cache_key": "c95a0d83e23b38f10caed65d0f86c9b6d933786484ce7547fa56bb265a8ad8c2",
-      "chars": [600, 35, 1716],
+      "cache_key": "93d846c07c914185b7afbd5a27a214931769fdc72d3ddd3910a67b957ec1ab5c",
+      "chars": [600, 35, 1845],
       "label": "iterative.step",
-      "messages": "aa01be1dd56bfc5b",
+      "messages": "8f9d8caaf88a3865",
       "model": "mock-model",
       "params": {
         "max_output": 1500,
         "model": "mock-model",
-        "prompt_tokens": 674,
+        "prompt_tokens": 708,
         "schema_name": "iterative_step",
         "temperature": null
       },
-      "request": "549ffcf7bb1a26a1",
+      "request": "dd2b92f03514f344",
       "roles": ["system", "user", "user"],
       "schema": "7af19e282e21f51c"
     }
@@ -70,7 +70,7 @@
     "steps": [
       {
         "detail": {
-          "blocks": 15,
+          "blocks": 13,
           "cached": false,
           "clean_steps": [
             "page_numbers",
@@ -82,7 +82,7 @@
             "collapse_whitespace"
           ],
           "source": "annual_report.md",
-          "tokens": 541
+          "tokens": 499
         },
         "kind": "local",
         "label": "ingest",
@@ -94,17 +94,17 @@
       {
         "detail": {
           "max": 155,
-          "mean": 85.5,
-          "median": 87.5,
+          "mean": 94.8,
+          "median": 101,
           "method": "structural",
           "min": 16,
-          "n": 6,
+          "n": 5,
           "over_cap": 0,
           "settings": {
             "max_tokens": 900,
             "overlap_tokens": 90
           },
-          "total_tokens": 513
+          "total_tokens": 474
         },
         "kind": "local",
         "label": "segment",
@@ -115,7 +115,7 @@
       },
       {
         "detail": {
-          "chunks": 6,
+          "chunks": 5,
           "embed_calls": 0,
           "est_calls": 5,
           "est_cost_usd": 0,
@@ -138,7 +138,7 @@
       {
         "detail": {
           "dim": 64,
-          "n": 6,
+          "n": 5,
           "source": "api"
         },
         "kind": "local",
@@ -174,7 +174,7 @@
         "params": {
           "max_output": 1500,
           "model": "mock-model",
-          "prompt_tokens": 674,
+          "prompt_tokens": 708,
           "schema_name": "iterative_step",
           "temperature": null
         },
@@ -189,16 +189,16 @@
           "schema_name": "iterative_step",
           "temperature": null
         },
-        "prompt": "aa01be1dd56bfc5b",
+        "prompt": "8f9d8caaf88a3865",
         "recipe": "research",
-        "replay_key": "50276541ce837d8ebe1e7c9ef6feaff12b055965e028053739a1a8f9487dfe65",
+        "replay_key": "c7a5ffe321ffbc78e8281bb8fbd930f322a55b80c32fbdc50421553a9f567a42",
         "response": "9a095d0f912f5e21",
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
         "step": 6,
         "tokens": {
-          "input": 674,
+          "input": 708,
           "output": 40,
           "provenance": "estimated"
         }
@@ -242,7 +242,7 @@
       "errors": 0,
       "steps": 8,
       "tokens_cached_in": 0,
-      "tokens_in": 674,
+      "tokens_in": 708,
       "tokens_out": 40,
       "tokens_reasoning": 0,
       "usage_estimated": 1

@@ -20,7 +20,13 @@ figure filters that need digits to match.}
 \code{.blocks}, all the blocks as they stand before that step, for a step that
 decides by what the rest of the document says (as \code{hyphenation} and
 \code{headers_footers} do); and \code{.pages}, a page per block, where the caller
-gives one (\code{\link[=gr_ingest]{gr_ingest()}} does).}
+gives one (\code{\link[=gr_ingest]{gr_ingest()}} does); and \code{.source_type}, the name of the
+extractor that read the file (\code{"md"}, \code{"pdf"}, \code{"txt"} ...), which
+\code{\link[=gr_ingest]{gr_ingest()}} gives for a file and which \code{references} reads (see
+\code{\link[=gr_cleaners]{gr_cleaners()}}). For a Markdown file \code{\link[=gr_ingest]{gr_ingest()}} also gives
+\code{.indented}, a logical per block, \code{TRUE} where the file indented the
+block's first line four or more spaces; the extractor takes that indent
+off the text.}
 }
 \value{
 The cleaned character vector, with a \code{"gr_clean_log"} attribute

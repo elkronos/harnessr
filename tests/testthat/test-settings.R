@@ -410,6 +410,78 @@ test_that("references_after sets where a bibliography heading may end the text",
   expect_false(grepl("Later line", doc$text, fixed = TRUE))
 })
 
+test_that("the references cleaner cuts at a Markdown heading", {
+  body <- paste(sprintf("Body line %d of the paper.", 1:10), collapse = "\n")
+  refs <- "[1] First source.\n[2] Second source."
+  for (h in c("## References", "# Bibliography", "### 7. References",
+              "## References ##", "  ## Works cited")) {
+    out <- as.character(gr_clean(paste(body, h, refs, sep = "\n"), steps = "references"))
+    expect_false(grepl("First source", out, fixed = TRUE), info = h)
+    expect_match(out, "Body line 10", fixed = TRUE)
+  }
+  # Not a heading: a # mark with no space, closing marks with no space, more
+  # than six marks, and a heading with words after the keyword.
+  for (h in c("#References", "## References#", "####### References",
+              "## References and notes")) {
+    x <- paste(body, h, refs, sep = "\n")
+    expect_identical(as.character(gr_clean(x, steps = "references")), x, info = h)
+  }
+  # The share rule still applies: a heading before 40% is kept.
+  early <- paste("## References", body, sep = "\n")
+  expect_identical(as.character(gr_clean(early, steps = "references")), early)
+  # A "# references" comment in a fenced code block is code, not a heading.
+  long <- paste(rep("Body sentence about results and methods here.", 40), collapse = "\n")
+  for (fence in c("```", "~~~")) {
+    code <- paste0(long, "\n", fence, "\n# references\nx <- 1\n", fence, "\n", refs)
+    expect_identical(as.character(gr_clean(code, steps = "references")), code, info = fence)
+    after <- paste0(code, "\n## References\n[3] Third source.")
+    cut <- as.character(gr_clean(after, steps = "references"))
+    expect_match(cut, "x <- 1", fixed = TRUE)
+    expect_false(grepl("Third source", cut, fixed = TRUE))
+  }
+  # A fence that never closes is not taken as one.
+  open_fence <- paste(body, "```", "## References", refs, sep = "\n")
+  expect_false(grepl("First source", as.character(gr_clean(open_fence, steps = "references")),
+                     fixed = TRUE))
+  # The example report ends with "## References": the academic preset now
+  # cuts its reference list and the standard preset does not.
+  ex <- quiet(gr_ingest(gr_example(), gr_ingest_spec(clean = "academic")))
+  expect_false(grepl("Northwind Instruments, Annual Report 2023", ex$text, fixed = TRUE))
+  st <- quiet(gr_ingest(gr_example(), gr_ingest_spec(clean = "standard")))
+  expect_match(st$text, "Northwind Instruments, Annual Report 2023", fixed = TRUE)
+})
+
+test_that("in Markdown a references line indented four spaces is code, not a heading", {
+  body <- paste(rep("Body sentence about results and methods here.", 40), collapse = "\n")
+  tail <- "[1] First source.\n[2] Second source."
+  for (h in c("    # References", "\t# References", "     References")) {
+    x <- paste(body, h, tail, sep = "\n")
+    # Without a source type, as for PDF and plain text, indentation is allowed.
+    expect_false(grepl("First source", as.character(gr_clean(x, steps = "references")),
+                       fixed = TRUE), info = h)
+    for (type in c("pdf", "txt")) {
+      out <- gr_clean(x, steps = "references", opts = list(.source_type = type))
+      expect_false(grepl("First source", as.character(out), fixed = TRUE), info = h)
+    }
+    md <- gr_clean(x, steps = "references", opts = list(.source_type = "md"))
+    expect_identical(as.character(md), x, info = h)
+  }
+  # Up to three spaces is still a Markdown heading.
+  x <- paste(body, "   # References", tail, sep = "\n")
+  md <- gr_clean(x, steps = "references", opts = list(.source_type = "md"))
+  expect_false(grepl("First source", as.character(md), fixed = TRUE))
+
+  # gr_ingest() gives the source type: the same text as .md and as .txt.
+  text <- c(body, "", "    # References", "", "[1] First source.")
+  f_md <- tempfile(fileext = ".md"); writeLines(text, f_md)
+  f_txt <- tempfile(fileext = ".txt"); writeLines(text, f_txt)
+  spec <- gr_ingest_spec(clean = "references")
+  expect_match(quiet(gr_ingest(f_md, spec))$text, "First source", fixed = TRUE)
+  expect_false(grepl("First source", quiet(gr_ingest(f_txt, spec))$text, fixed = TRUE))
+  expect_match(subset(gr_cleaners(), name == "references")$description,
+               "indented 4 or more spaces", fixed = TRUE)
+})
+
 test_that("layout_opts is checked and changes which running lines are dropped", {
   expect_error(gr_ingest_spec(layout_opts = list(deep = 3)), class = "gr_bad_setting")
   expect_warning(sp <- gr_ingest_spec(layout_opts = list(share = 2)), class = "gr_clamped")

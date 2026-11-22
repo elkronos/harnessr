@@ -92,6 +92,34 @@
 #' @param open Open the report once it is written: in the RStudio viewer when
 #'   the file is under [tempdir()], and otherwise in the web browser. By
 #'   default only in an interactive session.
+#' @param recall A [gr_search_recall()] result, to add how many of a set of
+#'   papers already known to be relevant the search found, as relative
+#'   recall with its interval, and which seeds it missed. Last, so every
+#'   existing call keeps its meaning.
+#'
+#' @section When each stage ran:
+#' Under the title, the report gives the time it was written and the harnessr
+#' version that wrote it, and then, for each stage passed, when that stage
+#' ran and the version that ran it, from the stage's own trace. The times are
+#' shown side by side and not compared: a reader sees from them how long after
+#' the run the report was written. Only the version is checked: a stage whose
+#' version differs from the report's is flagged. A stage saved without that
+#' record says "not recorded".
+#'
+#' @section What each check looks at:
+#' "What this report does not establish" says what each check behind a
+#' "verified" or a count of failures looks at: the quote check (the quoted
+#' sentence is in the chunk), the value check behind `n_unverified` (a number
+#' is one the quote states), and, for a write-up, the citation check (the row
+#' exists and the section was given it) and the figures check (the figure is
+#' in what the writer was shown for that sentence). None of them confirms a
+#' value or a sentence is right.
+#'
+#' @section Files and their records:
+#' When the screening, the extraction or a `gr_corpus` was read from a
+#' [gr_records()], a section says how many files name their record's title
+#' or DOI in their opening text and lists those that do not (the `identity`
+#' column of [gr_read_many()]).
 #'
 #' @section An answer:
 #' With `answer`, the report shows the answer or says that it was not found,
@@ -173,7 +201,7 @@
 gr_audit_report <- function(path, screening = NULL, extraction = NULL,
                             synthesis = NULL, protocol = NULL, title = NULL,
                             claims = NULL, records = NULL, calibration = NULL,
-                            answer = NULL, open = interactive()) {
+                            answer = NULL, open = interactive(), recall = NULL) {
   # `claims` and `records` are APPENDED, not slotted in where they belong
   # thematically. Inserting `claims` fourth silently rebound the fourth
   # positional argument of every existing call -- gr_audit_report(p, s, x, syn)
@@ -186,7 +214,8 @@ gr_audit_report <- function(path, screening = NULL, extraction = NULL,
                     list(protocol, "gr_protocol", "protocol"),
                     list(claims, "gr_claims", "claims"),
                     list(records, "gr_records", "records"),
-                    list(calibration, "gr_calibration", "calibration"))) {
+                    list(calibration, "gr_calibration", "calibration"),
+                    list(recall, "gr_search_recall", "recall"))) {
     if (!is.null(pair[[1]]) && !inherits(pair[[1]], pair[[2]])) {
       gr_abort(sprintf("`%s` must be a %s object.", pair[[3]], pair[[2]]),
                class = "gr_bad_audit_input")
@@ -211,10 +240,12 @@ gr_audit_report <- function(path, screening = NULL, extraction = NULL,
   records <- records %||% screening$records %||% extraction$records
   review <- !is.null(screening) || !is.null(extraction) || !is.null(synthesis)
   body <- c(
-    audit_header(title, question, protocol, screening, extraction, synthesis, answer),
+    audit_header(title, question, protocol, screening, extraction, synthesis, answer,
+                 claims = claims %||% synthesis$claims),
     audit_answer(answer),
     audit_protocol(protocol, extraction, screening, synthesis),
     audit_flow(screening, extraction, records, claims %||% synthesis$claims),
+    audit_identity(screening, extraction, answer),
     audit_screening(screening),
     audit_calibration(calibration),
     audit_extraction(extraction),
@@ -223,10 +254,12 @@ gr_audit_report <- function(path, screening = NULL, extraction = NULL,
     audit_synthesis(synthesis),
     # The search belongs to a review. A report on one answer has none to show.
     if (review || !is.null(records)) audit_search(records),
+    audit_search_recall(recall),
     audit_cost(screening = screening, extraction = extraction, synthesis = synthesis,
                reading = answer, claims = claims %||% synthesis$claims),
     audit_caveats(screening = !is.null(screening), answer = !is.null(answer),
-                  quotes = review || answer_has_quotes(answer))
+                  quotes = review || answer_has_quotes(answer),
+                  values = !is.null(extraction), written = !is.null(synthesis))
   )
   write_utf8_lines(c(audit_head(title), body, "</body>", "</html>"), path)
   gr_msg(sprintf("Audit report written to %s", path))
@@ -297,20 +330,75 @@ audit_head <- function(title) {
     '</style>', '</head>', '<body>')
 }
 
+#' The header: what ran, when each stage ran and on which version, and when
+#' the report was written and by which version.
+#'
+#' The report is often written long after the run, by a later version, and a
+#' header that gave only the report's own time and version stated those as
+#' the run's. Each stage's time and version come from its trace, which records
+#' both when it is made (gr_trace()).
 #' @noRd
 audit_header <- function(title, question, protocol, screening, extraction, synthesis,
-                         answer = NULL) {
+                         answer = NULL, claims = NULL) {
   ran <- c(if (!is.null(screening)) "screened", if (!is.null(extraction)) "extracted",
            if (!is.null(synthesis)) "synthesised",
            if (inherits(answer, "gr_answer")) "answered",
            if (inherits(answer, "gr_corpus"))
              sprintf("answered across %d document(s)", NROW(answer$summary)))
+  version <- as.character(utils::packageVersion("harnessr"))
   c(sprintf("<h1>%s</h1>", esc(title %||% "harnessr audit report")),
     if (nzchar(question)) sprintf("<p><strong>Question.</strong> %s</p>", esc(question)),
-    sprintf("<p class='sub'>Stages run: %s. Generated %s by harnessr %s.</p>",
+    sprintf("<p class='sub'>Stages run: %s. Report written %s by harnessr %s.</p>",
             esc(paste(ran, collapse = ", ")),
             esc(format(Sys.time(), "%Y-%m-%d %H:%M %Z")),
-            esc(as.character(utils::packageVersion("harnessr")))))
+            esc(version)),
+    audit_stage_runs(list(screening = screening, extraction = extraction, claims = claims,
+                          synthesis = synthesis,
+                          reading = if (inherits(answer, "gr_corpus")) answer,
+                          answer = if (inherits(answer, "gr_answer")) answer),
+                     version))
+}
+
+#' When each stage ran and the harnessr version that ran it, from its trace.
+#'
+#' `started` is when the stage's trace was made, shown in UTC, and the
+#' version is the one gr_trace() records in `meta` (under its old name,
+#' `readgpt`). A stage saved without a trace, or with one from before either
+#' was recorded, says "not recorded". A version other than the report's is
+#' flagged: prompts and readers change between versions.
+#' @noRd
+audit_stage_runs <- function(stages, version) {
+  stages <- Filter(Negate(is.null), stages)
+  if (!length(stages)) return(NULL)
+  rows <- lapply(names(stages), function(nm) {
+    tr <- tryCatch(stages[[nm]][["trace", exact = TRUE]], error = function(e) NULL)
+    get <- function(f) {
+      tryCatch(if (is.environment(tr) || is.list(tr)) tr[[f]], error = function(e) NULL)
+    }
+    started <- get("started")
+    when <- if (inherits(started, "POSIXct") && length(started) == 1L && !is.na(started)) {
+      format(started, "%Y-%m-%d %H:%M:%S UTC", tz = "UTC")
+    } else if (is.character(started) && length(started) == 1L && !is.na(started)) {
+      started
+    } else NA_character_
+    meta <- get("meta")
+    ver <- if (is.list(meta)) as_chr1(meta[["readgpt", exact = TRUE]] %||%
+                                        meta[["harnessr", exact = TRUE]], NA_character_)
+           else NA_character_
+    data.frame(stage = nm, started = when, harnessr = ver, stringsAsFactors = FALSE)
+  })
+  tab <- do.call(rbind, rows)
+  differs <- !is.na(tab$harnessr) & tab$harnessr != version
+  tab$started[is.na(tab$started)] <- "not recorded"
+  tab$harnessr[is.na(tab$harnessr)] <- "not recorded"
+  c("<p class='sub'>When each stage ran, and the harnessr version that ran it, from the stage's",
+    "own trace. They can differ from the report's.</p>",
+    html_table(tab, flag = list(harnessr = function(v) differs)),
+    if (any(differs))
+      sprintf(paste0("<p class='flag'>%s ran on a harnessr version other than this report's ",
+                     "(%s). Prompts and readers change between versions, so read the run as ",
+                     "that version made it.</p>"),
+              esc(paste(tab$stage[differs], collapse = ", ")), esc(version)))
 }
 
 #' The protocol, checked against what the run recorded using.
@@ -489,6 +577,38 @@ audit_flow <- function(screening, extraction, records = NULL, claims = NULL) {
   c("<h2>What happened to every document</h2>",
     "<p class='sub'>Every source is accounted for at every stage it reached.</p>",
     html_table(fl, numeric_cols = "n"))
+}
+
+#' Whether each file is the paper its record names, from the `identity`
+#' column gr_read_many() adds when its sources carry a record set. One table
+#' per stage that has the column; nothing for a run without records, or one
+#' made before the check existed.
+#' @noRd
+audit_identity <- function(screening = NULL, extraction = NULL, answer = NULL) {
+  stages <- list(screening = screening$summary, extraction = extraction$summary,
+                 reading = if (inherits(answer, "gr_corpus")) answer$summary)
+  stages <- Filter(function(s) is.data.frame(s) && !is.null(s[["identity"]]), stages)
+  if (!length(stages)) return(NULL)
+  per <- lapply(names(stages), function(nm) {
+    s <- stages[[nm]]
+    id <- as.logical(s$identity)
+    wrong <- s[id %in% FALSE, intersect(c("document", "status"), names(s)), drop = FALSE]
+    c(sprintf(paste0("<p><b>%s:</b> %d of %d document(s) name their record's title or DOI in ",
+                     "their opening text, %s do not, %d could not be checked.</p>"),
+              esc(nm), sum(id %in% TRUE), length(id),
+              if (any(id %in% FALSE)) sprintf("<span class='flag'>%d</span>", sum(id %in% FALSE))
+              else "0",
+              sum(is.na(id))),
+      if (nrow(wrong)) html_table(wrong))
+  })
+  c("<h2>Is each file the paper its record names?</h2>",
+    paste0("<p class='sub'>The first 6,000 characters of each document's text are searched for ",
+           "its record's DOI and title. A document that has neither may be another paper ",
+           "matched to the record (by first author and year, say). It was read and kept, and the ",
+           "counts above include it; check it by hand. A document could not be checked when it ",
+           "had no text, was not read in this run, or its record has only a DOI the opening does ",
+           "not print or a title too short to tell papers apart.</p>"),
+    unlist(per, use.names = FALSE))
 }
 
 #' @noRd
@@ -974,7 +1094,8 @@ claims_cost_stage <- function(claims, outline_trace = NULL) {
 }
 
 #' @noRd
-audit_caveats <- function(screening = TRUE, answer = FALSE, quotes = TRUE) {
+audit_caveats <- function(screening = TRUE, answer = FALSE, quotes = TRUE, values = FALSE,
+                          written = FALSE) {
   c("<h2>What this report does not establish</h2>",
     "<div class='note'>",
     if (quotes) c(
@@ -984,6 +1105,25 @@ audit_caveats <- function(screening = TRUE, answer = FALSE, quotes = TRUE) {
       "right. A correct quote read wrongly looks exactly like a correct quote read rightly. What",
       "the check rules out is the quote having been invented, which is the failure that is",
       "otherwise invisible.</p>"),
+    # Each check the report calls verified, and what it looks at, so that no
+    # column is read as more than its check.
+    if (values || written) c(
+      "<p><strong>What each check looks at.</strong></p>", "<ul>",
+      if (quotes)
+        "<li>Quote: the quoted sentence occurs in the chunk it was credited to.</li>",
+      if (values) c(
+        "<li>Value (<code>n_unverified</code> counts the values that fail it): for a number or",
+        "whole-number field, the value is one of the numbers its quote states, in digits or",
+        "words; for any other field, the quote is a passage of two words or more, or the value",
+        "itself. It does not confirm the value answers the field's question.</li>"),
+      if (written) c(
+        "<li>Citation: each <code>[study n]</code> names a row that exists and that the section",
+        "was given. It does not confirm the row says what the sentence says.</li>",
+        "<li>Figure: each figure in the write-up is found, at the precision it was written to, in",
+        "what the writer was shown for that sentence (the rows it cites, the question, the",
+        "section's brief and the claims resting on those rows). It checks that the figure was",
+        "copied, not that it is the right figure for the sentence or that the row is right.</li>"),
+      "</ul>"),
     # What resolve_evidence_pages() does: it leaves the chunk's page on a span
     # it cannot place on one page. Said as it is -- "left without one" was
     # printed above a fabricated quote listed with page 1.
@@ -1133,7 +1273,43 @@ audit_calibration <- function(calibration) {
     "<p class='flag'>%d eligible stud%s excluded by the screener: %s.</p>",
     nrow(calibration$missed), if (nrow(calibration$missed) == 1L) "y was" else "ies were",
     esc(paste(report_url(utils::head(calibration$missed$document, 8)), collapse = ", ")))
-  c("<h2>How good the screening is</h2>", head, html_table(tab), counts, kap, proj, warn, miss)
+  c("<h2>How good the screening is</h2>", head, html_table(tab), counts, kap, proj,
+    audit_calibration_recall(calibration), warn, miss)
+}
+
+#' Recall from a calibration, the worst case beside it when several reviewers
+#' judged the sample, and what recall is relative to. Nothing for a
+#' calibration saved before these fields existed, or one whose frame gives no
+#' recall.
+#' @noRd
+audit_calibration_recall <- function(calibration) {
+  pct <- function(v) if (is.null(v) || is.na(v)) "--" else sprintf("%.1f%%", 100 * v)
+  r <- calibration[["recall", exact = TRUE]]
+  main <- if (is.list(r) && !is.na(r$estimate)) {
+    sprintf(paste0("<p><b>Recall:</b> %s (%s to %s, %.0f%%); one-sided lower bound %s.</p>"),
+            pct(r$estimate), pct(r$lower), pct(r$upper), 100 * r$conf, pct(r$bound))
+  }
+  w <- calibration[["worst_case", exact = TRUE]]
+  worst <- if (is.list(w) && !is.null(calibration[["reviewers", exact = TRUE]])) {
+    wr <- w$recall; wl <- w$lost
+    figs <- c(if (is.list(wr) && !is.na(wr$estimate))
+                sprintf("recall %s (%s to %s), one-sided lower bound %s", pct(wr$estimate),
+                        pct(wr$lower), pct(wr$upper), pct(wr$bound)),
+              if (is.list(wl) && !is.na(wl$bound))
+                sprintf("about %.0f eligible record(s) excluded, upper bound %.0f",
+                        wl$estimate, wl$bound),
+              if (is.list(w$verdict) && !is.na(w$verdict$met))
+                sprintf("recall target %s", if (w$verdict$met) "met" else "not met"))
+    sprintf("<p><b>Worst case, %s:</b> %s. %s</p>", esc(w$rule),
+            if (length(figs)) esc(paste(figs, collapse = "; ")) else "no recall figure",
+            esc(w$note))
+  }
+  caveat <- if (calibration_reports_recall(calibration)) {
+    paste0("<p class='sub'>Recall is relative to the reference: the share of the records the ",
+           "person judged eligible that the screener kept, not of every eligible study. A study ",
+           "the reference missed is not counted.</p>")
+  }
+  c(main, worst, caveat)
 }
 
 #' The search, as the review has to report it.
@@ -1167,6 +1343,41 @@ audit_search <- function(records) {
     "<p class='sub'>What was searched, with what query and when. Reproducing the review",
     "starts here.</p>",
     html_table(tab), extra)
+}
+
+#' How much of a seed set of known papers the search found: the figure from
+#' gr_search_recall(), what it is relative to, and the seeds missed, with
+#' those the matching rules refused apart.
+#' @noRd
+audit_search_recall <- function(recall) {
+  if (!inherits(recall, "gr_search_recall")) return(NULL)
+  pct <- function(v) ifelse(is.na(v), "--", sprintf("%.1f%%", 100 * v))
+  r <- recall$recall
+  tab <- data.frame(tier = r$tier, found = r$found, seeds = r$n, recall = pct(r$estimate),
+                    interval = sprintf("%s to %s", pct(r$lower), pct(r$upper)),
+                    stringsAsFactors = FALSE)
+  show <- function(df) {
+    df[, intersect(c("seed", "label", "tier", "reason"), names(df)), drop = FALSE]
+  }
+  c("<h2>Known papers the search found</h2>",
+    sprintf(paste0("<p class='sub'>Known-item recall against %d seed paper(s), with %.0f%% ",
+                   "Clopper-Pearson intervals. %s</p>"),
+            nrow(recall$seeds), 100 * r$conf[1], esc(recall$note)),
+    html_table(tab, numeric_cols = c("found", "seeds")),
+    if (nrow(recall$excluded))
+      c(sprintf(paste0("<p class='sub'>%d seed(s) used to build the search are left out of the ",
+                       "figure: the search was written to find them.</p>"),
+                nrow(recall$excluded)),
+        html_table(show(recall$excluded))),
+    if (nrow(recall$refused))
+      c(sprintf(paste0("<p class='flag'>%d missed seed(s) were refused by the matching rules ",
+                       "rather than absent: check them by hand before reporting the ",
+                       "figure.</p>"), nrow(recall$refused))),
+    if (nrow(recall$missed))
+      c("<p><b>Seeds the search did not find</b></p>",
+        html_table(show(recall$missed),
+                   flag = list(reason = function(v) v %in% c("short_title", "multi_doi",
+                                                               "not_confirmed")))))
 }
 
 # --- an answer, and the passages behind it --------------------------------
@@ -1686,7 +1897,8 @@ audit_corpus <- function(x) {
   # is what says it is a copy either way.
   dup_of <- if (is.null(s$duplicate_of)) rep(NA_character_, nrow(s)) else as.character(s$duplicate_of)
   keep <- intersect(c("document", "status", if (any(!is.na(dup_of))) "duplicate_of", "answer",
-                      "partial", "reader", "calls", "cost_usd", "seconds", "error", "warnings"),
+                      "partial", "reader", "calls", "cost_usd", "seconds", "error", "warnings",
+                      "identity"),
                     names(s))
   tab <- s[, keep, drop = FALSE]
   if (!is.null(tab$answer)) {
@@ -1726,7 +1938,8 @@ audit_corpus <- function(x) {
             nrow(s)),
     html_table(tab, numeric_cols = intersect(c("calls", "cost_usd", "seconds"), names(tab)),
                flag = list(status = function(v) v %in% c("failed", "skipped"),
-                           partial = function(v) isTRUE_vec(v))),
+                           partial = function(v) isTRUE_vec(v),
+                           identity = function(v) v %in% FALSE)),
     # Said only when there were answers to keep: a run in which every document
     # failed has none either way, and each row says why.
     if (!length(answers) && any(s$status %in% c("ok", "restored", "duplicate")))

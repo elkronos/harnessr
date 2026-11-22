@@ -68,6 +68,7 @@ Other corpus functions:
 \code{\link{gr_reference}()},
 \code{\link{gr_reference_consensus}()},
 \code{\link{gr_resolve}()},
-\code{\link{gr_screen_sample_size}()}
+\code{\link{gr_screen_sample_size}()},
+\code{\link{gr_search_recall}()}
 }
 \concept{corpus functions}

@@ -209,6 +209,59 @@ people name downloads. An ambiguous match is no match: two Smith 2019 papers and
 one `smith2019.pdf` claim nothing, because a coin flip presented as a match is
 how one paper's findings get attributed to another.
 
+### Does the search find the papers you already know?
+
+Before the search is final, test it against papers the team already knows are
+relevant: the seed set. `gr_search_recall()` matches each seed to the search's
+records by the same rules `gr_records()` uses for duplicates, and gives the
+share found with an exact interval. A seed used to write the search was bound
+to be found, so mark it `used_to_build` and it is left out of the figure:
+
+```{r}
+seeds <- data.frame(
+  title = c("Cognitive load and retention", "Spacing effects in vocabulary learning",
+            "Never obtained"),
+  year = c("2019", "2018", "2020"),
+  doi = c("10.1037/edu0000123", NA, "10.1000/zzz"),
+  authors = c("Smith, J.", "Ng, L.", "Gone, G."),
+  used_to_build = c(FALSE, FALSE, TRUE))
+known <- gr_search_recall(recs, seeds)
+known
+known$missed[, c("label", "reason")]
+```
+
+One of the two seeds kept out of the search was found, and its 95%
+Clopper-Pearson interval runs from 1.3% to 98.7%: two seeds say almost
+nothing, and a real seed set needs dozens. The figure is relative recall, the
+share of the known papers the search found, not of every relevant paper, and
+known papers are usually the easiest to find. `reason` says why each seed was
+missed. A seed the matching rules refused, for a title too short to tell papers
+apart or one shared by records with different DOIs, counts as missed and is
+listed in `$refused`, so check those by hand. `tier =` gives the figure for
+each group of seeds as well, and `gr_audit_report(recall = known)` adds it to
+the report.
+
+### Is each file the paper its record names?
+
+A record matched to a file by first author and year can get another paper by
+the same author in the same year. When the documents come from a record set,
+`gr_read_many()`, `gr_screen()` and `gr_extract()` look for the record's DOI
+and title in the opening of each document's text, and say in an `identity`
+column whether they found either:
+
+```{r}
+said <- gr_mock_client(function(m, p) "A randomised trial.")
+read <- gr_read_many(recs, "What was the design?", "fast", client = said)
+read$summary[, c("document", "identity")]
+```
+
+`smith2019.txt` was matched to "Cognitive load and retention" by its name, but
+its text is about spacing and prints neither that title nor the DOI, so
+`identity` is `FALSE` and the run warns with class `gr_identity_mismatch`.
+Nothing is dropped and `gr_flow()` counts the same: the column, the
+`warnings` cell and the audit report say which files to check by hand. `NA`
+means there was nothing to check, such as a record with only a short title.
+
 ## The review: protocol, screen, extract, write
 
 The single-document pipeline (ingest, segment, read) answers a question. A
@@ -445,6 +498,11 @@ the eligible records that were kept. The design that can is the one people use
 anyway: judge every record the screener kept, and a sample of what it excluded.
 `of = "stacked"` draws both in one sheet.
 
+Recall here is relative to the reference: the share of the records the person
+judged eligible that the screener kept. An eligible study the person also
+excluded is not counted against the screener, and `print()` and the audit
+report say so wherever they give recall.
+
 The target fixes how many exclusions to judge. Recall is K / (K + M), with K
 the eligible records kept and M the eligible records excluded, so a target is
 a cap on M. If a pilot suggests about 50 of the 72 kept records are eligible,
@@ -590,6 +648,23 @@ both <- gr_calibrate(big, pair)
 both$reviewers$agreement[, c("statistic", "estimate", "lower", "upper")]
 both$reviewers$sensitivity[, c("reviewer", "statistic", "estimate", "lower", "upper", "n")]
 ```
+
+The adjudicator settled the three conflicts as not eligible, and recall is
+measured against that. `$worst_case` measures it again with every record the
+reviewers split on counted as eligible, the worst case for the screener, and
+`print()` shows it beside the main estimate:
+
+```{r}
+unlist(both$recall[c("estimate", "lower", "upper")])
+both$worst_case[c("conflicts", "changed")]
+unlist(both$worst_case$recall[c("estimate", "lower", "upper")])
+```
+
+The screener excluded all three, so counted as eligible they are three misses
+and recall falls. If the two figures lead to different conclusions, the
+review's claim rests on how the conflicts were settled, and the report should
+say so. Under `rule = "any_include"` the consensus already counts conflicts as
+eligible, and the two agree.
 
 `$reviewers` gives every pair of reviewers the observed agreement, kappa,
 PABAK, AC1 and the prevalence and bias indices from `hr_agreement()`, never
@@ -1181,14 +1256,32 @@ gr_audit_report("audit.html", screening = screened, extraction = table,
                 calibration = cal)
 ```
 
-`records =` takes the search when the run had one, and every argument is
-optional except the path and at least one stage to report on.
+`records =` takes the search when the run had one, `recall =` a
+`gr_search_recall()` result, and every argument is optional except the path and
+at least one stage to report on.
+
+The report's header gives the time it was written and the harnessr version
+that wrote it, and below them, for each stage, when that stage ran and the
+version that ran it, read from the stage's own trace. The times are shown
+side by side and not compared, so a report written months after the run shows
+both times and says nothing more. Only the version is checked: a stage run on
+a version other than the report's is flagged:
+
+```{r}
+page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
+                        extraction = table, open = FALSE)
+grep("UTC</td>", readLines(page), value = TRUE)
+```
 
 The report puts the failures near the top: unverified quotes, documents that
 could not be read, screening calls that failed or came back in the wrong form,
 and citations pointing at rows that do not exist are counted there. It also
 states what the checking does not establish: that a quoted sentence occurs in
-the document is not evidence that it supports the value taken from it.
+the document is not evidence that it supports the value taken from it. It says
+what each check looks at: a quote is in the chunk it was credited to, a number
+is one its quote states, a citation names a row the section was given, and a
+figure in the write-up is in what the writer was shown for that sentence.
+None of them confirms that a value or a sentence is right.
 
 ```{r include = FALSE}
 gr_options(old)

@@ -317,8 +317,16 @@ extract_md <- function(path, opts) {
   title <- trimws(sub("[ \t]+#+$", "", sub("^ {0,3}#+[ \t]+", "", text)))
   last <- cummax(ifelse(kind == "heading", seq_along(kind), 0L))
   section <- ifelse(last > 0L, title[pmax(last, 1L)], NA_character_)
-  as_blocks(data.frame(text = unname(text), section = unname(section), kind = kind,
-                       stringsAsFactors = FALSE))
+  out <- as_blocks(data.frame(text = unname(text), section = unname(section), kind = kind,
+                              stringsAsFactors = FALSE))
+  # Which prose blocks started four or more spaces (or a tab) in: in Markdown
+  # an indented code block or the rest of a list item, never a heading. The
+  # indent is taken off above, so gr_ingest() hands this to the cleaners as
+  # `.indented` (the `references` cleaner reads it). Every block has content,
+  # so as_blocks() kept them all and this lines up with its rows.
+  indented <- !in_code[first] & grepl("^(?: {4}| {0,3}\t)", lines[first], perl = TRUE)
+  if (length(indented) == nrow(out)) attr(out, "gr_indented") <- unname(indented)
+  out
 }
 
 #' @noRd

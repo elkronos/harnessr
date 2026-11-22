@@ -188,6 +188,46 @@ screening_recall <- function(of, kept, eligible, tab, recall_target, conf, max_l
        strata = strata, verdict = verdict)
 }
 
+#' Recall with every reviewer conflict counted as eligible.
+#'
+#' A sensitivity analysis beside the main estimate. The consensus settles a
+#' record the reviewers split on, and a rule that settles it as not eligible
+#' credits the screener for excluding it. Here each such record is eligible
+#' instead, the worst case for the screener, and recall, records lost and the
+#' verdict are worked out again from the same strata. With one decision per
+#' document there are no conflicts, and the figures are the main ones.
+#' @noRd
+worst_case_recall <- function(of, kept, eligible, rows, tab, recall_target, conf, max_lost,
+                              multi = FALSE) {
+  conflict <- rep(FALSE, length(eligible))
+  if (multi) {
+    cols <- reviewer_columns(rows)
+    if (length(cols)) {
+      D <- do.call(cbind, lapply(cols, function(cl) reviewer_decisions(rows[[cl]], cl)))
+      conflict <- rowSums(D == "include", na.rm = TRUE) > 0 &
+        rowSums(D == "exclude", na.rm = TRUE) > 0
+    }
+  }
+  worst <- eligible | conflict
+  rec <- screening_recall(of, kept, worst, tab, recall_target, conf, max_lost)
+  changed <- sum(conflict & !eligible)
+  list(rule = "reviewer conflicts counted as eligible",
+       conflicts = sum(conflict), changed = changed,
+       recall = rec$recall, lost = rec$lost, verdict = rec$verdict,
+       missed = rows[worst & !kept, , drop = FALSE],
+       note = if (!multi) {
+         "One decision per document: there are no reviewer conflicts, so the worst case is the main estimate."
+       } else if (!sum(conflict)) {
+         "The reviewers agreed on every record, so the worst case is the main estimate."
+       } else if (!changed) {
+         sprintf(paste0("The consensus already counts all %d conflict(s) as eligible, so the ",
+                        "worst case is the main estimate."), sum(conflict))
+       } else {
+         sprintf(paste0("%d record(s) the reviewers split on and the consensus settled as not ",
+                        "eligible are counted as eligible."), changed)
+       })
+}
+
 #' How many records to judge by hand to show a recall target
 #'
 #' Sizes a reference sample for [gr_calibrate()] so that, if the sample turns

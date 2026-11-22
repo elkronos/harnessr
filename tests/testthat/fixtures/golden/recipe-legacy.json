@@ -1,19 +1,19 @@
 {
   "calls": [
     {
-      "cache_key": "500eabdbaeb74cb4099dc2bcba8e090c6d652c65f2f9f4e8fa4111ccdd769d16",
-      "chars": [216, 1720, 35],
+      "cache_key": "9d17d008e63d569c25d3c4b15a3f19da4b1505ccb8bb49d0933839b2f696aecc",
+      "chars": [216, 1615, 35],
       "label": "map.answer",
-      "messages": "20a7b604956fcf26",
+      "messages": "e4e3a06dbcc504eb",
       "model": "mock-model",
       "params": {
         "max_output": 700,
         "model": "mock-model",
-        "prompt_tokens": 511,
+        "prompt_tokens": 483,
         "schema_name": "result",
         "temperature": null
       },
-      "request": "30fc57c6b364ef33",
+      "request": "fcbb2635a8657632",
       "roles": ["system", "user", "user"],
       "schema": null
     }
@@ -70,7 +70,7 @@
     "steps": [
       {
         "detail": {
-          "blocks": 15,
+          "blocks": 13,
           "cached": false,
           "clean_steps": [
             "page_numbers",
@@ -82,7 +82,7 @@
             "collapse_whitespace"
           ],
           "source": "annual_report.md",
-          "tokens": 469
+          "tokens": 435
         },
         "kind": "local",
         "label": "ingest",
@@ -93,17 +93,17 @@
       },
       {
         "detail": {
-          "max": 423,
-          "mean": 423,
-          "median": 423,
+          "max": 395,
+          "mean": 395,
+          "median": 395,
           "method": "paragraph",
-          "min": 423,
+          "min": 395,
           "n": 1,
           "over_cap": 0,
           "settings": {
             "max_tokens": 3000
           },
-          "total_tokens": 423
+          "total_tokens": 395
         },
         "kind": "local",
         "label": "segment",
@@ -144,7 +144,7 @@
         "params": {
           "max_output": 700,
           "model": "mock-model",
-          "prompt_tokens": 511,
+          "prompt_tokens": 483,
           "schema_name": "result",
           "temperature": null
         },
@@ -159,16 +159,16 @@
           "schema_name": null,
           "temperature": null
         },
-        "prompt": "20a7b604956fcf26",
+        "prompt": "e4e3a06dbcc504eb",
         "recipe": "legacy",
-        "replay_key": "af8143e2e27a661c02d9051db944432716b0ce79ae523e99b579fd39a364e01e",
+        "replay_key": "4c7af09f1c949ad9202217cf959c0b4e143629b518a9b69b5c632321b9c23a16",
         "response": "5e372c1edd7906c1",
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
         "step": 4,
         "tokens": {
-          "input": 511,
+          "input": 483,
           "output": 26,
           "provenance": "estimated"
         }
@@ -183,7 +183,7 @@
       "errors": 0,
       "steps": 4,
       "tokens_cached_in": 0,
-      "tokens_in": 511,
+      "tokens_in": 483,
       "tokens_out": 26,
       "tokens_reasoning": 0,
       "usage_estimated": 1

@@ -21,7 +21,7 @@
       "type": "function"
     },
     "gr_audit_report": {
-      "formals": ["path", "screening = NULL", "extraction = NULL", "synthesis = NULL", "protocol = NULL", "title = NULL", "claims = NULL", "records = NULL", "calibration = NULL", "answer = NULL", "open = interactive()"],
+      "formals": ["path", "screening = NULL", "extraction = NULL", "synthesis = NULL", "protocol = NULL", "title = NULL", "claims = NULL", "records = NULL", "calibration = NULL", "answer = NULL", "open = interactive()", "recall = NULL"],
       "type": "function"
     },
     "gr_backend_client": {
@@ -302,6 +302,10 @@
     },
     "gr_search": {
       "formals": ["databases", "dates = NULL", "limits = NULL", "registration = NA_character_", "other = NULL", "notes = NULL"],
+      "type": "function"
+    },
+    "gr_search_recall": {
+      "formals": ["records", "known", "tier = NULL", "held_out = NULL", "conf = 0.95"],
       "type": "function"
     },
     "gr_seg_boundaries": {
@@ -784,6 +788,11 @@
     },
     "print.gr_search": {
       "class": "gr_search",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_search_recall": {
+      "class": "gr_search_recall",
       "formals": ["x", "..."],
       "generic": "print"
     },
