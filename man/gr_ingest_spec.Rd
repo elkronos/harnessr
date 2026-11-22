@@ -46,7 +46,8 @@ list. The built-in cleaners read these:
 \item{\code{references_after} (0.4)}{For the \code{references} cleaner (in the
 \code{academic} and \code{legacy} presets): a References, Bibliography or Works
 cited heading, on a line of its own and optionally numbered or a
-Markdown heading such as \verb{## References}, ends the text only when it
+Markdown heading such as \verb{## References}, and not inside a fenced
+code block, ends the text only when it
 starts at or after this
 share of the text, so an entry in a table of contents does not cut
 the document. A number in [0, 1]; a value that cannot be read

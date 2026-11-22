@@ -106,3 +106,81 @@ test_that("a run without records keeps its columns, and a store keeps the check"
   expect_true(all(again$summary$status == "restored"))
   expect_identical(again$summary$identity, first$summary$identity)
 })
+
+test_that("a DOI counts only as a whole DOI", {
+  ri <- harnessr:::record_identity
+  title <- "Spaced practice and long-term retention in adults: a randomised trial"
+  body <- strrep("Lorem ipsum. ", 50)
+  # Another paper in the same DOI series: the record's DOI is a prefix of it.
+  expect_false(ri(paste("Other paper entirely about sleep\ndoi:10.1000/sp12", body),
+                  title, "10.1000/sp1"))
+  expect_true(is.na(ri(paste("doi:10.1000/sp1.5", body), NA, "10.1000/sp1")))
+  expect_true(is.na(ri(paste("doi:10.7554/eLife.12345", body), NA, "10.7554/eLife.1234")))
+  # The DOI itself, at the end of a sentence, in brackets or in an address.
+  expect_true(ri(paste("See doi:10.1000/sp1.", body), NA, "10.1000/sp1"))
+  expect_true(ri(paste("(https://doi.org/10.1000/SP1)", body), NA, "10.1000/sp1"))
+  expect_true(ri(paste("doi.org/10.1000/sp1\nJ. Smith", body), NA, "10.1000/sp1"))
+  # A DOI with characters a pattern would read as special.
+  expect_true(ri("doi: 10.1002/(SICI)1097-0258(1998)17:8 and more", NA,
+                 "10.1002/(sici)1097-0258(1998)17:8"))
+})
+
+test_that("HTML markup in a record title is taken out before the comparison", {
+  ri <- harnessr:::record_identity
+  ris <- tempfile(fileext = ".ris")
+  writeLines(c("TY  - JOUR", "AU  - Smith, J.",
+               "TI  - Growth of <i>Escherichia coli</i> in cold storage", "PY  - 2019",
+               "ER  - "), ris)
+  r <- gr_records(ris)
+  expect_match(r$records$title, "<i>", fixed = TRUE)
+  page <- "Growth of Escherichia coli in cold storage\nJ Smith\nAbstract ..."
+  expect_true(ri(page, r$records$title, NA))
+  expect_true(ri("Diet & exercise in older adults trial", "Diet &amp; exercise in older adults trial",
+                 NA))
+  expect_false(ri("Sleep and memory consolidation in students", r$records$title, NA))
+})
+
+test_that("after remove_numbers the title is compared without its digits", {
+  ri <- harnessr:::record_identity
+  title <- "COVID-19 vaccination uptake in 2021 among older adults"
+  stripped <- gsub("\\d+", " ", paste(title, "doi:10.1000/cv19", sep = "\n"))
+  expect_false(ri(stripped, title, "10.1000/cv19"))
+  expect_true(ri(stripped, title, "10.1000/cv19", digits = FALSE))
+  expect_false(ri("Sleep and memory in students", title, "10.1000/cv19", digits = FALSE))
+
+  d <- tempfile("idl"); dir.create(d)
+  writeLines(c(title, "doi:10.1000/cv19", "J. Smith", "Revenue was 45.2 million dollars."),
+             file.path(d, "Smith 2021.txt"))
+  writeLines(c("Spaced practice and long-term retention", "https://doi.org/10.1000/sp1",
+               "A. Okafor", "Revenue was 45.2 million dollars."), file.path(d, "Okafor 2019.txt"))
+  ris <- tempfile(fileext = ".ris")
+  writeLines(c("TY  - JOUR", "AU  - Smith, J.", paste("TI  -", title), "PY  - 2021",
+               "DO  - 10.1000/cv19", "ER  - ",
+               "TY  - JOUR", "AU  - Okafor, A.", "TI  - Spaced practice and long-term retention",
+               "PY  - 2019", "DO  - 10.1000/sp1", "ER  - "), ris)
+  recs <- gr_records(ris, files = d)
+  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  for (rc in c("fast", "legacy")) {
+    expect_no_warning(out <- suppressMessages(gr_read_many(recs, "What was revenue?", rc,
+                                                           client = cl)),
+                      class = "gr_identity_mismatch")
+    expect_identical(out$summary$identity, c(TRUE, TRUE), info = rc)
+  }
+})
+
+test_that("a run without records drops the check from rows a records run stored", {
+  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  recs <- identity_corpus()
+  store <- tempfile("store")
+  first <- suppressWarnings(suppressMessages(
+    gr_read_many(recs, "What was revenue?", "fast", client = cl, store = store)))
+  expect_false(is.null(first$summary$identity))
+  new <- tempfile(fileext = ".txt"); writeLines("Revenue was 45.2 million dollars.", new)
+  out <- suppressMessages(gr_read_many(c(recs$records$file, new), "What was revenue?", "fast",
+                                       client = cl, store = store))
+  expect_identical(nrow(out$summary), 4L)
+  expect_identical(sum(out$summary$status == "restored"), 3L)
+  expect_null(out$summary$identity)
+  expect_identical(names(out$summary), names(
+    suppressMessages(gr_read_many(new, "What was revenue?", "fast", client = cl))$summary))
+})

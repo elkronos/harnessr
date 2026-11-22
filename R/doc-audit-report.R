@@ -100,8 +100,9 @@
 #' @section When each stage ran:
 #' Under the title, the report gives the time it was written and the harnessr
 #' version that wrote it, and then, for each stage passed, when that stage
-#' ran and the version that ran it, from the stage's own trace. A report
-#' written later than the run, or by another version, says so; a stage whose
+#' ran and the version that ran it, from the stage's own trace. The times are
+#' shown side by side and not compared: a reader sees from them how long after
+#' the run the report was written. Only the version is checked: a stage whose
 #' version differs from the report's is flagged. A stage saved without that
 #' record says "not recorded".
 #'

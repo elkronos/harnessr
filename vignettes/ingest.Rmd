@@ -228,7 +228,8 @@ by default, for these reasons:
   "Bibliography" or "Works cited" to the end of the document, when that line
   starts at or after 40% of the text, so a table of contents near the start
   does not cut the document. The line may be numbered ("7. References") or a
-  Markdown heading ("## References"). `cleaner_opts = list(references_after = )`
+  Markdown heading ("## References"); a line inside a fenced code block is
+  not a heading. `cleaner_opts = list(references_after = )`
   moves that share, a number from 0 to 1. The cut loses the reference list if
   your question is about the sources.
 

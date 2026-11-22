@@ -25,18 +25,46 @@
 #' there. `NA` when there is nothing to check: no text, or a record with only
 #' a DOI the opening does not print (many older papers never print theirs),
 #' or only a short title.
+#'
+#' The DOI counts only as a whole DOI: one that runs on into more DOI
+#' characters ("10.1000/sp12" for the record's "10.1000/sp1") is another
+#' paper in the same series. Inline HTML markup in the title ("<i>", as
+#' Crossref, Scopus and Web of Science export it) is taken out before the key
+#' is made, and the five basic HTML entities are read as their characters.
+#' With `digits = FALSE`, for text a cleaner has taken the digits out of
+#' (remove_numbers), the DOI is not looked for and the title is compared
+#' without its digits.
 #' @noRd
-record_identity <- function(text, title = NA_character_, doi = NA_character_) {
+record_identity <- function(text, title = NA_character_, doi = NA_character_, digits = TRUE) {
   txt <- as_chr1(text, "")
   if (!nzchar(trimws(txt))) return(NA)
   head <- substr(txt, 1L, .gr_identity_chars)
   doi <- lower_text(trimws(as_chr1(doi, NA_character_)))
-  if (!is.na(doi) && nzchar(doi) && grepl(doi, lower_text(head), fixed = TRUE)) return(TRUE)
-  tk <- title_key(as_chr1(title, NA_character_))
-  if (is.na(tk) || nchar(tk) < 12L) return(NA)
+  if (digits && !is.na(doi) && nzchar(doi) &&
+      grepl(paste0("(?<![\\p{L}\\p{N}])", literal_pattern(doi),
+                   "(?![\\p{L}\\p{N}]|[-._;()/:]+[\\p{L}\\p{N}])"),
+            lower_text(head), perl = TRUE)) return(TRUE)
+  tk <- title_key(plain_title(as_chr1(title, NA_character_)))
   hk <- title_key(head)
+  if (!digits) {
+    tk <- gsub("\\p{N}+", "", tk, perl = TRUE)
+    hk <- gsub("\\p{N}+", "", hk, perl = TRUE)
+  }
+  if (is.na(tk) || nchar(tk) < 12L) return(NA)
   if (!is.na(hk) && grepl(tk, hk, fixed = TRUE)) return(TRUE)
   FALSE
+}
+
+#' A record title without inline HTML markup: tags out, and &amp;, &lt;,
+#' &gt;, &quot; and &#39; read as their characters.
+#' @noRd
+plain_title <- function(x) {
+  if (is.na(x)) return(x)
+  x <- gsub("</?[A-Za-z][A-Za-z0-9]*(?:\\s[^<>]*)?/?>", "", x, perl = TRUE)
+  from <- c("&lt;", "&gt;", "&quot;", "&#39;", "&amp;")
+  to <- c("<", ">", "\"", "'", "&")
+  for (i in seq_along(from)) x <- gsub(from[i], to[i], x, fixed = TRUE)
+  x
 }
 
 #' The record a corpus source was matched to, as a one-row frame, or NULL.
@@ -65,16 +93,19 @@ source_record <- function(src, record_set) {
 #' Check one ingested document against its record: the result of
 #' record_identity(), or NA without a record, with the sentence to warn with
 #' on a mismatch as its `message` attribute. The caller warns, so the
-#' warning names the function the user called.
+#' warning names the function the user called. `steps` are the cleaning steps
+#' the text went through: after remove_numbers no digit is left, so the DOI
+#' cannot be found and the title is compared without its digits.
 #' @noRd
-check_record_identity <- function(doc_text, record, label) {
+check_record_identity <- function(doc_text, record, label, steps = character(0)) {
   if (is.null(record)) return(NA)
-  ok <- record_identity(doc_text, record$title, record$doi)
+  digits <- !("remove_numbers" %in% steps)
+  ok <- record_identity(doc_text, record$title, record$doi, digits = digits)
   if (identical(ok, FALSE)) {
     attr(ok, "message") <- sprintf(paste0(
       "'%s' may not be the paper its record names: the opening of its text has neither the ",
       "record's title%s. It is read and kept; check the file by hand (the `identity` column ",
-      "is FALSE)."), label, if (is.na(record$doi)) "" else " nor its DOI")
+      "is FALSE)."), label, if (is.na(record$doi) || !digits) "" else " nor its DOI")
   }
   ok
 }

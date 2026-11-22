@@ -367,7 +367,10 @@ register_builtin_cleaners <- function() {
       # mention of "references" is not a match; and it must start at or after
       # `references_after` (0.4 by default) of the text, that is, anywhere
       # after the first 40%, so a References entry in a table of contents
-      # does not truncate the document. The first such heading ends the text.
+      # does not truncate the document. A line inside a fenced code block
+      # ("```" or "~~~" to the matching closing fence) is code, not a heading,
+      # so a "# references" comment there does not match. The first such
+      # heading ends the text.
       m <- gregexpr(paste0("(?mi)^[ \t]*(?:#{1,6}[ \t]+)?(?:\\d+\\.?[ \t]*)?",
                            "(references|bibliography|works cited)[ \t:]*(?:(?<=[ \t])#+[ \t]*)?$"),
                     x, perl = TRUE)[[1]]
@@ -376,6 +379,7 @@ register_builtin_cleaners <- function() {
       pos <- as.integer(m)
       total <- nchar(x)
       cand <- pos[pos >= total * after]
+      cand <- cand[!in_code_fence(x, cand)]
       if (!length(cand)) return(x)
       substr(x, 1, max(cand[1] - 1L, 0L))
     })
@@ -503,6 +507,38 @@ document_compounds <- function(texts, memo = NULL) {
     out <- unique(lower_text(mark_utf8(out)))
   }
   if (is.environment(memo)) memo$compounds <- out
+  out
+}
+
+#' Whether each position of `x` lies inside a fenced Markdown code block.
+#'
+#' A fence is a line that starts with up to three spaces and three or more
+#' backticks or tildes; the block ends at the next fence line of the same
+#' character at least as long. A fence that is never closed is not taken as
+#' one, so a stray run of backticks in a PDF's text does not hide every
+#' heading after it.
+#' @noRd
+in_code_fence <- function(x, pos) {
+  out <- rep(FALSE, length(pos))
+  if (!length(pos)) return(out)
+  f <- gregexpr("(?m)^ {0,3}(`{3,}|~{3,})", x, perl = TRUE)[[1]]
+  if (f[1] == -1) return(out)
+  starts <- as.integer(f)
+  runs <- substring(x, starts, starts + attr(f, "match.length") - 1L)
+  runs <- trimws(runs)
+  i <- 1L
+  while (i < length(starts)) {
+    ch <- substr(runs[i], 1L, 1L)
+    close <- which(seq_along(starts) > i & substr(runs, 1L, 1L) == ch &
+                     nchar(runs) >= nchar(runs[i]))
+    if (!length(close)) {
+      i <- i + 1L
+      next
+    }
+    j <- close[1]
+    out <- out | (pos > starts[i] & pos < starts[j])
+    i <- j + 1L
+  }
   out
 }
 

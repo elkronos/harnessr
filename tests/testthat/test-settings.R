@@ -429,6 +429,20 @@ test_that("the references cleaner cuts at a Markdown heading", {
   # The share rule still applies: a heading before 40% is kept.
   early <- paste("## References", body, sep = "\n")
   expect_identical(as.character(gr_clean(early, steps = "references")), early)
+  # A "# references" comment in a fenced code block is code, not a heading.
+  long <- paste(rep("Body sentence about results and methods here.", 40), collapse = "\n")
+  for (fence in c("```", "~~~")) {
+    code <- paste0(long, "\n", fence, "\n# references\nx <- 1\n", fence, "\n", refs)
+    expect_identical(as.character(gr_clean(code, steps = "references")), code, info = fence)
+    after <- paste0(code, "\n## References\n[3] Third source.")
+    cut <- as.character(gr_clean(after, steps = "references"))
+    expect_match(cut, "x <- 1", fixed = TRUE)
+    expect_false(grepl("Third source", cut, fixed = TRUE))
+  }
+  # A fence that never closes is not taken as one.
+  open_fence <- paste(body, "```", "## References", refs, sep = "\n")
+  expect_false(grepl("First source", as.character(gr_clean(open_fence, steps = "references")),
+                     fixed = TRUE))
   # The example report ends with "## References": the academic preset now
   # cuts its reference list and the standard preset does not.
   ex <- quiet(gr_ingest(gr_example(), gr_ingest_spec(clean = "academic")))

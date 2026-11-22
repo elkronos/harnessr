@@ -11,9 +11,12 @@
   or venues that disagree) counts as not found and is listed in `$refused`
   with the reason. Seeds used to build the search, marked by a
   `used_to_build` column or left out of `held_out`, are left out of the
-  figure and listed in `$excluded`. An empty seed set, or a tier left with no
-  seed, is refused. The help cites relative recall (Sampson et al. 2006) and
-  PRISMA-S.
+  figure and listed in `$excluded`. When `known` is a `gr_records()` that
+  holds two exports of one paper, the copy its `duplicate_of` marks is
+  counted once with the seed it copies and listed in `$copies`. An empty seed
+  set, a tier with no seed or none left, and a `tier` string that names no
+  column of `known` (with one seed too) are refused. The help cites relative
+  recall (Sampson et al. 2006) and PRISMA-S.
 
 * `gr_audit_report()` gains `recall`, its last argument, which adds the
   search's recall against the seed set and the seeds it missed. Calls that
@@ -22,11 +25,15 @@
 * `gr_read_many()`, and so `gr_screen()` and `gr_extract()`, check that each
   file is the paper its record names when the sources come from a
   `gr_records()`: the first 6,000 characters of its text are searched for
-  the record's DOI and title. A last `identity` column of `$summary` holds
+  the record's DOI, as a whole DOI, and title, with any HTML markup such as
+  `<i>` taken out of the record's title. When the recipe's cleaning removes
+  digits (`remove_numbers`, in the `"legacy"` preset), the DOI is not looked
+  for and the title is compared without its digits. A last `identity` column of `$summary` holds
   `TRUE`, `FALSE` or `NA` (nothing to check), and `FALSE` warns with class
   `gr_identity_mismatch` and is added to `warnings`. Nothing is dropped and
   `gr_flow()` is unchanged. `print()` counts the mismatches, and the audit
-  report lists them. A run without records has no new column.
+  report lists them. A run without records has no new column, even for rows
+  it restores from a store a run over records wrote.
 
 * Screening recall now says what it is relative to. `print()` on a
   `gr_calibrate()` result and the audit report state that recall is the share
@@ -211,7 +218,8 @@ says where its default came from; almost none has a measurement behind it.
 
 * The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
   cuts at a Markdown heading such as `## References` or `### 7. References`,
-  with or without closing `#` marks. It matched only a line that held the
+  with or without closing `#` marks, and not at a line inside a fenced code
+  block, such as a `# references` comment. It matched only a line that held the
   word alone, so a Markdown document kept its reference list under both
   presets. The example report ends with `## References`, so under
   `"academic"` it now sends 62 fewer prompt tokens than under `"standard"`,

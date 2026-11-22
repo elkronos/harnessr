@@ -1262,9 +1262,10 @@ at least one stage to report on.
 
 The report's header gives the time it was written and the harnessr version
 that wrote it, and below them, for each stage, when that stage ran and the
-version that ran it, read from the stage's own trace. A report written months
-after the run, or by a later version, says so, and a stage run on a version
-other than the report's is flagged:
+version that ran it, read from the stage's own trace. The times are shown
+side by side and not compared, so a report written months after the run shows
+both times and says nothing more. Only the version is checked: a stage run on
+a version other than the report's is flagged:
 
 ```{r}
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,

@@ -14,13 +14,19 @@ ones used). Every row counts, duplicates included.}
 \item{known}{The seed set: a \code{\link[=gr_records]{gr_records()}} read from an export of the
 papers, or a data frame with \code{doi}, or \code{title} and \code{year}, and where it
 has them \code{authors} and \code{venue}. A logical \code{used_to_build} column marks
-the seeds used to write the search. An empty seed set is refused.}
+the seeds used to write the search. An empty seed set is refused. A row
+whose \code{duplicate_of} names another seed's \code{record_id} (two exports of one
+paper, as \code{\link[=gr_records]{gr_records()}} marks them) is a copy of that seed: the paper is
+counted once, as used to build the search when any copy is, and the copy
+is listed in \verb{$copies}.}
 
 \item{tier}{\code{NULL}, the name of a column of \code{known}, or one value per seed:
 a grouping set by a person (say, core papers and the rest), to report
-recall for each group as well as overall. A seed without a tier, and a
-tier left with no seed once the seeds used to build the search are out,
-are refused.}
+recall for each group as well as overall. A single string is always read
+as a column name, even with one seed. A seed without a tier, a tier with
+no seed (an unused factor level), a tier left with no seed once the seeds
+used to build the search are out, and copies of one paper given
+different tiers are refused.}
 
 \item{held_out}{\code{NULL}, or the seeds kept out of the search: a logical
 vector with one value per seed, or their row numbers. Every other seed is
@@ -35,13 +41,15 @@ An object of class \code{gr_search_recall}:
 \item{\code{recall}}{One row for all seeds (\code{tier} is \code{"all"}) and one per
 tier: \code{found}, \code{n} (seeds counted), \code{estimate}, \code{lower}, \code{upper},
 \code{method} (\code{"clopper_pearson"}) and \code{conf}.}
-\item{\code{seeds}}{One row per seed: \code{seed} (its row in \code{known}), \code{label},
+\item{\code{seeds}}{One row per distinct seed: \code{seed} (its row in \code{known}), \code{label},
 \code{tier}, \code{used_to_build}, \code{found} (\code{NA} for a seed left out),
 \code{record_id} (the record it matched) and \code{reason}.}
 \item{\code{missed}}{The seeds counted and not found, with \code{reason}.}
 \item{\code{refused}}{The missed seeds the matching rules refused, as
 described above.}
 \item{\code{excluded}}{The seeds left out as used to build the search.}
+\item{\code{copies}}{The rows of \code{known} that are copies of another seed:
+\code{seed} (the copy's row) and \code{copy_of} (the row it is a copy of).}
 \item{\code{note}}{The sentence saying what the figure is relative to.}
 }
 }

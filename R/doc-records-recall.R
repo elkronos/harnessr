@@ -68,12 +68,18 @@
 #' @param known The seed set: a [gr_records()] read from an export of the
 #'   papers, or a data frame with `doi`, or `title` and `year`, and where it
 #'   has them `authors` and `venue`. A logical `used_to_build` column marks
-#'   the seeds used to write the search. An empty seed set is refused.
+#'   the seeds used to write the search. An empty seed set is refused. A row
+#'   whose `duplicate_of` names another seed's `record_id` (two exports of one
+#'   paper, as [gr_records()] marks them) is a copy of that seed: the paper is
+#'   counted once, as used to build the search when any copy is, and the copy
+#'   is listed in `$copies`.
 #' @param tier `NULL`, the name of a column of `known`, or one value per seed:
 #'   a grouping set by a person (say, core papers and the rest), to report
-#'   recall for each group as well as overall. A seed without a tier, and a
-#'   tier left with no seed once the seeds used to build the search are out,
-#'   are refused.
+#'   recall for each group as well as overall. A single string is always read
+#'   as a column name, even with one seed. A seed without a tier, a tier with
+#'   no seed (an unused factor level), a tier left with no seed once the seeds
+#'   used to build the search are out, and copies of one paper given
+#'   different tiers are refused.
 #' @param held_out `NULL`, or the seeds kept out of the search: a logical
 #'   vector with one value per seed, or their row numbers. Every other seed is
 #'   counted as used to build the search. A seed marked both `held_out` and
@@ -84,13 +90,15 @@
 #'     \item{`recall`}{One row for all seeds (`tier` is `"all"`) and one per
 #'       tier: `found`, `n` (seeds counted), `estimate`, `lower`, `upper`,
 #'       `method` (`"clopper_pearson"`) and `conf`.}
-#'     \item{`seeds`}{One row per seed: `seed` (its row in `known`), `label`,
+#'     \item{`seeds`}{One row per distinct seed: `seed` (its row in `known`), `label`,
 #'       `tier`, `used_to_build`, `found` (`NA` for a seed left out),
 #'       `record_id` (the record it matched) and `reason`.}
 #'     \item{`missed`}{The seeds counted and not found, with `reason`.}
 #'     \item{`refused`}{The missed seeds the matching rules refused, as
 #'       described above.}
 #'     \item{`excluded`}{The seeds left out as used to build the search.}
+#'     \item{`copies`}{The rows of `known` that are copies of another seed:
+#'       `seed` (the copy's row) and `copy_of` (the row it is a copy of).}
 #'     \item{`note`}{The sentence saying what the figure is relative to.}
 #'   }
 #' @references
@@ -149,12 +157,34 @@ gr_search_recall <- function(records, known, tier = NULL, held_out = NULL, conf 
   }
   used <- seed_used(seeds_raw, held_out, n)
   tiers <- seed_tiers(seeds_raw, tier, n)
+  # Two exports of one paper are one seed: counted twice, both copies raised
+  # `n` and, when found, `found`.
+  copy_of <- seed_copies(seeds_raw)
+  rows <- seq_len(n)
+  copies <- data.frame(seed = which(!is.na(copy_of)), copy_of = copy_of[!is.na(copy_of)])
+  for (c in copies$seed) {
+    used[copy_of[c]] <- used[copy_of[c]] || used[c]
+    if (!is.null(tiers) && as.character(tiers[c]) != as.character(tiers[copy_of[c]])) {
+      gr_abort(sprintf(paste0("Seed rows %d and %d are copies of one paper (`duplicate_of`) ",
+                              "with different tiers, '%s' and '%s'. Give them one tier."),
+                       copy_of[c], c, as.character(tiers[copy_of[c]]), as.character(tiers[c])),
+               class = "gr_bad_seeds")
+    }
+  }
+  if (nrow(copies)) {
+    keep <- is.na(copy_of)
+    seeds_raw <- seeds_raw[keep, , drop = FALSE]
+    used <- used[keep]
+    if (!is.null(tiers)) tiers <- tiers[keep]
+    rows <- rows[keep]
+    n <- length(rows)
+  }
   seeds <- recall_frame(seeds_raw, "known")
 
   match <- seed_matches(recs, seeds)
   found <- !is.na(match$record_id)
   label <- seed_label(seeds)
-  tab <- data.frame(seed = seq_len(n), label = label,
+  tab <- data.frame(seed = rows, label = label,
                     tier = if (is.null(tiers)) NA_character_ else tiers,
                     used_to_build = used, found = ifelse(used, NA, found),
                     record_id = match$record_id, reason = match$reason,
@@ -170,6 +200,13 @@ gr_search_recall <- function(records, known, tier = NULL, held_out = NULL, conf 
   groups <- list(all = counted)
   if (!is.null(tiers)) {
     lv <- if (is.factor(tiers)) levels(tiers) else unique(as.character(tiers))
+    none <- setdiff(lv, as.character(tiers))
+    if (length(none)) {
+      gr_abort(sprintf(paste0("Tier %s has no seed in it at all. Drop the unused factor ",
+                              "level (droplevels()) or add seeds to it."),
+                       paste(sprintf("'%s'", none), collapse = ", ")),
+               class = "gr_bad_seeds")
+    }
     for (t in lv) groups[[t]] <- counted & as.character(tiers) == t
     empty <- names(groups)[-1][vapply(groups[-1], function(g) !any(g), logical(1))]
     if (length(empty)) {
@@ -195,6 +232,7 @@ gr_search_recall <- function(records, known, tier = NULL, held_out = NULL, conf 
   rownames(excluded) <- NULL
   structure(list(
     recall = recall, seeds = tab, missed = missed, refused = refused, excluded = excluded,
+    copies = copies,
     n_records = nrow(recs),
     note = paste0("Recall is relative to the seed set: the share of the papers already known ",
                   "to be relevant that the search found, not the share of every relevant paper.")
@@ -216,6 +254,10 @@ print.gr_search_recall <- function(x, ...) {
   if (nrow(x$excluded)) {
     cat(sprintf("  %d seed(s) used to build the search are left out (see $excluded)\n",
                 nrow(x$excluded)))
+  }
+  if (NROW(x$copies)) {
+    cat(sprintf("  %d seed row(s) are copies of another seed (duplicate_of), counted once (see $copies)\n",
+                nrow(x$copies)))
   }
   if (nrow(x$refused)) {
     cat(sprintf(paste0("  ! %d missed seed(s) were refused by the matching rules, not absent: ",
@@ -281,13 +323,31 @@ seed_used <- function(seeds, held_out, n) {
   !keep
 }
 
-#' Each seed's tier, or NULL.
+#' Each seed's row it is a copy of (by `duplicate_of` and `record_id`), or NA
+#' for a seed that is no copy. A `duplicate_of` that names no row of `known`
+#' leaves its row a seed of its own.
+#' @noRd
+seed_copies <- function(seeds) {
+  dup <- seeds[["duplicate_of"]]
+  id <- seeds[["record_id"]]
+  out <- rep(NA_integer_, nrow(seeds))
+  if (is.null(dup) || is.null(id)) return(out)
+  hit <- match(dup, id, incomparables = NA)
+  # Only a copy of a row that is no copy itself, so a chain cannot drop both.
+  hit[!is.na(hit) & !is.na(dup[hit])] <- NA_integer_
+  hit[!is.na(hit) & hit == seq_along(hit)] <- NA_integer_
+  as.integer(hit)
+}
+
+#' Each seed's tier, or NULL. A single string is a column name, whatever the
+#' number of seeds: with one seed it could also be read as that seed's tier,
+#' and a misspelt column name was then taken as one with no error.
 #' @noRd
 seed_tiers <- function(seeds, tier, n) {
   if (is.null(tier)) return(NULL)
   v <- if (is.character(tier) && length(tier) == 1L && !is.na(tier) && tier %in% names(seeds)) {
     seeds[[tier]]
-  } else if (is.character(tier) && length(tier) == 1L && n != 1L) {
+  } else if (is.character(tier) && length(tier) == 1L) {
     gr_abort(sprintf("`known` has no column '%s' to read tiers from.", tier),
              class = "gr_bad_seeds")
   } else tier

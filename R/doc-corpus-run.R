@@ -209,9 +209,12 @@ corpus_models_have <- function(models) {
 #' When the sources come from a [gr_records()], or a [gr_screen()] result
 #' that carries one, there is one more column, last: `identity`, whether the
 #' file is the paper its record names. The first 6,000 characters of the
-#' cleaned text are searched for the record's DOI and for its title, compared
-#' as deduplication compares titles (letters and digits only, case and
-#' accents folded). `TRUE` when either is there; `FALSE` when the record has
+#' cleaned text are searched for the record's DOI, as a whole DOI, and for its
+#' title, compared as deduplication compares titles (letters and digits only,
+#' case and accents folded, HTML markup such as `<i>` taken out of the
+#' record's title). When the recipe's cleaning removes digits
+#' (`remove_numbers`, as the legacy preset does), the DOI is not looked for
+#' and the title is compared without its digits. `TRUE` when either is there; `FALSE` when the record has
 #' a title of 12 or more letters or digits and neither is there, which warns
 #' with class `gr_identity_mismatch` and adds the warning to `warnings`; `NA`
 #' when there was nothing to check (no text, a row that was skipped or
@@ -219,7 +222,9 @@ corpus_models_have <- function(models) {
 #' the opening does not print, or a short title). A record matched to its file
 #' by first author and year is the case this catches: another paper by the
 #' same author in the same year. Nothing is dropped and [gr_flow()] counts the
-#' same; the column says which documents to check by hand.
+#' same; the column says which documents to check by hand. A run over files
+#' alone has no `identity` column, even for a row it restores from a store
+#' that a run over a [gr_records()] wrote.
 #'
 #' `document` is a filename and `document_id` is the hash of the cleaned text
 #' (and of the pages that never became text, when there are any). Cite with the
@@ -569,7 +574,8 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       # Before anything is read: a wrong file is worth knowing about whatever
       # happens to its answer. It warns and goes on; nothing is dropped.
       if (check_identity) {
-        ident <- check_record_identity(doc$text, source_record(src, from_records), lab)
+        ident <- check_record_identity(doc$text, source_record(src, from_records), lab,
+                                       steps = doc$stats$clean_steps)
         if (!is.null(attr(ident, "message"))) {
           gr_warn(attr(ident, "message"), class = "gr_identity_mismatch")
           attr(ident, "message") <- NULL
@@ -737,14 +743,17 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     }
   }
 
-  if (check_identity) {
-    # Every row has the column, so they bind: a restored row saved before the
-    # check existed, a skipped one and a failed one say NA.
-    rows <- lapply(rows, function(r) {
-      if (is.null(r[["identity", exact = TRUE]])) r$identity <- NA
-      r
-    })
-  }
+  # Every row has the column, so they bind: a restored row saved before the
+  # check existed, a skipped one and a failed one say NA. A run without a
+  # record set has no column, and a row it restores from a store a run over
+  # a gr_records() wrote loses the one it was saved with: the store's key does
+  # not depend on the record set, so the same file restores into both kinds
+  # of run.
+  rows <- lapply(rows, function(r) {
+    if (!check_identity) r$identity <- NULL
+    else if (is.null(r[["identity", exact = TRUE]])) r$identity <- NA
+    r
+  })
   structure(list(summary = do.call(rbind, rows), answers = answers,
                  # The sources as they were actually read, aligned row for row
                  # with `summary`. `summary$document` is a LABEL -- a basename,

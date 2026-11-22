@@ -177,3 +177,59 @@ test_that("gr_audit_report() takes the recall as a last argument, and old calls 
   expect_error(gr_audit_report(old, extraction = x, open = FALSE, recall = list()),
                class = "gr_bad_audit_input")
 })
+
+test_that("two exports of one seed paper in a gr_records() count as one seed", {
+  ris <- tempfile(fileext = ".ris")
+  writeLines(c("TY  - JOUR", "AU  - Smith, J.",
+               "TI  - Spaced practice and long-term retention in adults", "PY  - 2019",
+               "DO  - 10.1000/sp1", "ER  - ",
+               "TY  - JOUR", "AU  - Smith, J.",
+               "TI  - Spaced practice and long-term retention in adults", "PY  - 2019",
+               "DO  - 10.1000/sp1", "ER  - ",
+               "TY  - JOUR", "AU  - Diaz, M.",
+               "TI  - Sleep and memory consolidation in students", "PY  - 2020",
+               "DO  - 10.1000/sl9", "ER  - "), ris)
+  k <- gr_records(ris)
+  expect_identical(k$records$duplicate_of[2], k$records$record_id[1])
+  rec <- data.frame(title = "Spaced practice and long-term retention in adults", year = "2019",
+                    doi = "10.1000/sp1", authors = "Smith, J.", stringsAsFactors = FALSE)
+  r <- gr_search_recall(rec, k)
+  expect_identical(r$recall$found, 1L)
+  expect_identical(r$recall$n, 2L)
+  expect_equal(r$recall$estimate, 0.5)
+  # The seeds keep their rows in `known`; the copy is listed, not counted.
+  expect_identical(r$seeds$seed, c(1L, 3L))
+  expect_identical(r$copies$seed, 2L)
+  expect_identical(r$copies$copy_of, 1L)
+  expect_output(print(r), "1 seed row(s) are copies of another seed", fixed = TRUE)
+  # A copy used to build the search makes its paper used; held_out counts rows of `known`.
+  u <- gr_search_recall(rec, k, held_out = c(1, 3))
+  expect_identical(u$recall$n, 1L)
+  expect_identical(u$excluded$seed, 1L)
+  # Copies given different tiers are refused.
+  expect_error(gr_search_recall(rec, k, tier = c("a", "b", "a")),
+               "copies of one paper", class = "gr_bad_seeds")
+  expect_identical(gr_search_recall(rec, k, tier = c("a", "a", "b"))$recall$n, c(2L, 1L, 1L))
+})
+
+test_that("a tier string is always a column name, and an unused level is named as such", {
+  rec <- data.frame(title = c("Spaced practice and long-term retention",
+                              "Sleep and memory consolidation study"),
+                    year = "2019", doi = NA, authors = "Smith, J.", stringsAsFactors = FALSE)
+  one <- data.frame(title = "Spaced practice and long-term retention", year = "2019",
+                    doi = NA, authors = "Smith, J.", tier = "a", stringsAsFactors = FALSE)
+  # With one seed a misspelt column name was taken as that seed's tier.
+  expect_error(gr_search_recall(rec, one, tier = "nocol"), "no column 'nocol'",
+               class = "gr_bad_seeds")
+  expect_identical(gr_search_recall(rec, one, tier = "tier")$recall$tier, c("all", "a"))
+  expect_identical(gr_search_recall(rec, one, tier = factor("a"))$recall$tier, c("all", "a"))
+  three <- data.frame(title = c("Spaced practice and long-term retention",
+                                "Sleep and memory consolidation study",
+                                "Nothing like this at all here"),
+                      year = "2019", doi = NA, authors = "Smith, J.", stringsAsFactors = FALSE)
+  e <- tryCatch(gr_search_recall(rec, three,
+                                 tier = factor(c("a", "b", "a"), levels = c("a", "b", "c"))),
+                error = function(e) conditionMessage(e))
+  expect_match(e, "Tier 'c' has no seed in it at all", fixed = TRUE)
+  expect_false(grepl("used to build", e, fixed = TRUE))
+})
