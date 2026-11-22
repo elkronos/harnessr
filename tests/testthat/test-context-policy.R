@@ -325,6 +325,10 @@ test_that("order_merges places findings and members by context_order", {
   expect_identical(first_of(merges[[2]]), c("Region A", "Region C", "Region D", "Region B"))
   expect_identical(merge_order(4, list(context_policy = pol, context_order = "document")), 1:4)
   expect_identical(merge_order(4, list(context_order = "edges")), 1:4)
+  # The readers have no scores for their pieces: "scored" is read as "head".
+  expect_identical(piece_keep(hr_context_policy(keep = "scored"), "findings"), "head")
+  expect_identical(piece_keep(hr_context_policy(keep = c(outline = "tail", "scored")),
+                              "outline"), "tail")
 })
 
 test_that("under a context policy a chunk packer names the chunks it left out", {

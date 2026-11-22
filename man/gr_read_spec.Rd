@@ -361,7 +361,8 @@ in the order it gives, in place of giving each half the budget;
 \code{hierarchical} combines (\code{summaries}), the outline and skimmed
 sections of \code{preview} (\code{outline}, \code{excerpts}) and the joined findings
 of a merge that gives up are cut with the policy's keep rule for that
-piece;
+piece. These pieces have no scores, so the readers read a
+\code{"scored"} rule as \code{"head"};
 \item the readers that pack whole chunks (\code{stuff}, \code{retrieve}, \code{rerank},
 \code{preview}, \code{iterative}) write a \code{"truncate"} step naming the chunks
 they left out;

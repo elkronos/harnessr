@@ -1048,8 +1048,9 @@ on this report. Test the cap on your longest documents, where it can bind.
 cuts it, and every reader keeps the start of what it cuts. `context_policy`,
 an `hr_context_policy()`, states once what to do instead: which pieces are
 never cut (`pin`), which are cut first (`cut_order`), and which part of a cut
-piece is kept (`keep`: `"head"`, `"tail"`, `"both"` ends, or the
-`"scored"` units). It applies to `refine`'s draft and excerpt, the findings a
+piece is kept (`keep`: `"head"`, `"tail"` or `"both"` ends). The readers have
+no scores for their pieces, so they read a `"scored"` rule as `"head"`;
+`hr_truncate()` and `hr_context_fit()` take scores directly. It applies to `refine`'s draft and excerpt, the findings a
 merge combines, `hierarchical`'s summaries and `preview`'s outline and skims.
 The readers that pack whole chunks write a `"truncate"` step naming the chunks
 they left out, and with `order_merges = TRUE` merges and the `ensemble`

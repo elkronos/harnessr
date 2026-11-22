@@ -454,7 +454,8 @@ gr_reader_signature <- function(reader) {
 #'     `hierarchical` combines (`summaries`), the outline and skimmed
 #'     sections of `preview` (`outline`, `excerpts`) and the joined findings
 #'     of a merge that gives up are cut with the policy's keep rule for that
-#'     piece;
+#'     piece. These pieces have no scores, so the readers read a
+#'     `"scored"` rule as `"head"`;
 #'   * the readers that pack whole chunks (`stuff`, `retrieve`, `rerank`,
 #'     `preview`, `iterative`) write a `"truncate"` step naming the chunks
 #'     they left out;
