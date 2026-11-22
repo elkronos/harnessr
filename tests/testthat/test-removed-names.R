@@ -5,8 +5,8 @@
 # (gr_calibrate()'s `$kappa_legacy`) or a condition class (`gr_deprecated`).
 # A function must not come back as an export or as a function defined in the
 # namespace. Every name, whatever it is, must not come back as an object of
-# the namespace or as a string or symbol in the code of any of its
-# functions. NEWS.md is installed with the package, so this runs on the
+# the namespace or as a string, symbol or argument name in the code of any of
+# its functions. NEWS.md is installed with the package, so this runs on the
 # installed copy.
 
 # The rows of the table under the first "## Removed" heading.
@@ -46,22 +46,42 @@ removed_items <- function() {
              stringsAsFactors = FALSE)
 }
 
-# Every string and symbol in the code of the namespace's functions.
+# Every string, symbol and argument name in a function or a piece of code.
+# Argument names count because a removed option or field comes back as one:
+# options(readgpt.api_key = k), list(kappa_legacy = kappa).
+code_walk <- function(x) {
+  if (is.function(x)) return(c(code_walk(formals(x)), code_walk(body(x))))
+  if (is.character(x)) return(x)
+  if (is.name(x)) return(as.character(x))
+  if (is.call(x) || is.pairlist(x) || is.list(x)) {
+    tags <- names(x)
+    return(c(tags[!is.na(tags) & nzchar(tags)],
+             unlist(lapply(as.list(x), code_walk), use.names = FALSE)))
+  }
+  character(0)
+}
+
+# The atoms of every function in the namespace.
 code_atoms <- function() {
   ns <- asNamespace("harnessr")
-  walk <- function(x) {
-    if (is.function(x)) return(c(walk(formals(x)), walk(body(x))))
-    if (is.character(x)) return(x)
-    if (is.name(x)) return(as.character(x))
-    if (is.call(x) || is.pairlist(x) || is.list(x)) {
-      return(unlist(lapply(as.list(x), walk), use.names = FALSE))
-    }
-    character(0)
-  }
   objs <- ls(ns, all.names = TRUE)
   funs <- Filter(function(n) is.function(get(n, envir = ns)), objs)
-  unique(unlist(lapply(funs, function(n) walk(get(n, envir = ns))), use.names = FALSE))
+  unique(unlist(lapply(funs, function(n) code_walk(get(n, envir = ns))), use.names = FALSE))
 }
+
+test_that("the code walk sees strings, symbols and argument names", {
+  f <- function(k) {
+    old <- options(readgpt.api_key = k)
+    out <- structure(list(kappa = 1, kappa_legacy = 2), class = c(gr_deprecated = "x"))
+    getOption("readgpt.allow_local_urls")
+    out$old_field
+  }
+  atoms <- code_walk(f)
+  for (a in c("readgpt.api_key", "kappa_legacy", "gr_deprecated",
+              "readgpt.allow_local_urls", "old_field", "k")) {
+    expect_true(a %in% atoms, label = a)
+  }
+})
 
 test_that("the Removed table of NEWS.md is read", {
   items <- removed_items()

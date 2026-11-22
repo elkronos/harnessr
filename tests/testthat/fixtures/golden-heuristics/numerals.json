@@ -210,6 +210,26 @@
     "numbers": [3000000]
   },
   {
+    "input": "three billion people",
+    "language": ["en"],
+    "numbers": [3000000000]
+  },
+  {
+    "input": "two trillion yen",
+    "language": ["en"],
+    "numbers": [2000000000000]
+  },
+  {
+    "input": "five lakh rupees",
+    "language": ["en"],
+    "numbers": [500000]
+  },
+  {
+    "input": "two crore",
+    "language": ["en"],
+    "numbers": [20000000]
+  },
+  {
     "input": "2.4k",
     "language": ["en"],
     "numbers": [2.4, 2400]

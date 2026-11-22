@@ -502,7 +502,8 @@ golden_numeral_corpus <- c(
   # Currencies and scales.
   "$1.2 million", "$3bn", "$1.2 bn", "US$ 2.5bn", "\u00a31,250", "\u20ac45,2 Mio.",
   "\u00a53\u4e07", "1,2 millions d'euros", "1,2 Millionen Euro", "1,2 millones de d\u00f3lares",
-  "three million dollars", "2.4k",
+  "three million dollars", "three billion people", "two trillion yen", "five lakh rupees",
+  "two crore", "2.4k",
   # Words and fractions.
   "twenty-one", "one hundred and five", "two and a half", "a quarter", "two thirds",
   "one in five", "1 in 5", "\u00bd", "\u00be of patients", "a dozen", "nineteen ninety-nine",

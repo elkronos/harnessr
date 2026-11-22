@@ -10,9 +10,9 @@ the core.
 The list was made from the installed namespace on 2026-11-22: document layer
 callers with the boundary test's parsing (`tests/testthat/helper-boundary.R`,
 functions only, plus the schemas `R/doc-*.R` builds at load), and test
-callers by searching `tests/testthat/test-*.R`. `test-primitives-notes.R`
-fails when an `hr_` export is missing from the tables below or a row names
-one that is not exported. Update this file when an `hr_` export is added,
+callers by searching `tests/testthat/test-*.R`. A test in
+`tests/testthat/test-contract-files.R` fails when an `hr_` export is missing
+from the tables below or a row names one that is not exported. Update this file when an `hr_` export is added,
 removed or gains or loses its last caller.
 
 ## Called by the document layer
@@ -80,11 +80,20 @@ test.
 
 ## Other parts of the core under review
 
-- The embedding request path, `gr_embed()`, still calls two document layer
-  functions, `resolve_embedder()` and `lexical_embed()`. Both crossings are
-  listed in `tests/testthat/fixtures/boundary/allowed.csv` with the change
-  that removes them: embedders become a registered module kind and the core
-  looks them up in the registry.
+- `tests/testthat/fixtures/boundary/allowed.csv` lists three calls from the
+  core into the document layer, each with the change that removes it:
+  - The embedding request path, `gr_embed()`, calls `resolve_embedder()` and
+    `lexical_embed()`. These go when embedders become a registered module
+    kind and the core looks them up in the registry.
+  - `segment_effort()` (`R/core-effort-static.R`) hands a segmenter the
+    effort its own requests resolve to, and calls `segment_effort_label()`
+    (`R/doc-segment-run.R`) to learn the label a built-in segmenter's
+    requests carry. This goes when each segmenter declares its own call
+    stems and the label function is deleted.
 - `tests/testthat/fixtures/boundary/doc-uses-internal.csv` lists the core
   functions that are not exported and that the document layer still uses.
   The list may only shrink.
+- The refactor plan also named an effective-window probe. No function in
+  `R/` probes a model's context window: the core reads it from the model
+  table (`gr_model_info()`, filled by `gr_register_model()`), so there is
+  nothing to review.

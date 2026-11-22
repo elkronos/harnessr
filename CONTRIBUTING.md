@@ -20,7 +20,9 @@ Every test uses an offline mock client, so no key is needed and no request
 leaves your machine. The tests workflow on GitHub runs the same suite, then
 runs every R block of the README, knits every guide with no key and no
 network, and fails if any of that left a new or changed file in the
-repository.
+repository that `git status` reports. Files `.gitignore` names are not
+reported, so output that matches one of its patterns (`docs/`, `*.Rout`,
+`readgpt_history_*.json`, `sim-results/`) passes that check unseen.
 
 Three scripts rewrite the fixtures the tests compare against. Run them from
 the repository root, and only when you mean to change what they record:
@@ -60,9 +62,13 @@ check locally; the modes are `tests`, `deps`, `lint`, `namespace` and
   Each exported core `hr_` function needs a caller in the document layer or
   the tests, listed in `NOTES-primitives.md`. A change to what a module must
   do changes the contract version; see `CONTRACT.md`.
-- **Results go outside the package.** Tests, guides and examples write to
-  `tempdir()` or a directory the user chose, never into the repository.
-  Live runs and their results are kept outside the repository too.
+- **Results go outside the package.** Tests, guides and help page
+  examples write to `tempdir()` or a directory the user chose, never into
+  the repository. Live runs and their results are kept outside the
+  repository too. Two README examples are the exception:
+  `gr_audit_report("answer.html", ...)` and `gr_audit_report("audit.html", ...)`
+  write to the working directory, so `.gitignore` names `/answer.html` and
+  `/audit.html`.
 
 ### What harnessr does not do
 

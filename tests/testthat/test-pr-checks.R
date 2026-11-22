@@ -75,6 +75,12 @@ test_that("commit messages with attribution, chat links or generator lines fail"
     bare_host = "Fix it\n\nDiscussed at claude.ai/chat/abc.",
     chatgpt = "Fix it\n\nhttps://chatgpt.com/share/abc",
     session = "Fix it\n\nAgent-Session: https://example.com/sessions/42",
+    session_id = "Fix it\n\nX-Session-Id: https://foo.dev/s/1",
+    co_developed = "Fix it\n\nCo-Developed-By: Someone <s@example.com>",
+    subdomain = "Fix x\n\nSee https://www.claude.ai/share/abc",
+    subdomain_bare = "Fix x\n\nSee www.chatgpt.com/share/abc",
+    pathed_host = "Fix x\n\nAsked at huggingface.co/chat",
+    port = "Fix x\n\nclaude.ai:443/chat/abc",
     generated = "Fix it\n\n\U0001F916 Generated with [Some Tool](https://example.com)",
     generated_plain = "Fix it\n\nGenerated with a tool")
   for (nm in names(bad)) {
@@ -93,7 +99,11 @@ test_that("commit messages that only mention tools or AI terms pass", {
     b = "Record golden fixtures\n\nThe fixtures were generated with dev/record-golden.R.",
     c = "Document the Claude and OpenAI clients\n\nSee https://docs.anthropic.com/ and https://example.ai/x.",
     d = "Read co-authored papers correctly\n\nA paper co-authored by two groups keeps both.",
-    e = "Mention notclaude.ai.example.com in a test fixture")
+    e = "Mention notclaude.ai.example.com in a test fixture",
+    f = "Mention Claude and ChatGPT in docs; the claude.ai option name",
+    g = "Name chatgpt.com and claude.ai. Both are hosts, not links.",
+    h = "Link https://claude.ai.example.com/x and https://notclaude.ai/x",
+    i = "Keep the session: one request per session")
   for (nm in names(ok)) {
     expect_identical(pc$commit_problems(ok[[nm]]), character(0), label = nm)
   }

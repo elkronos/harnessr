@@ -47,11 +47,13 @@
 #            Renaming counts as a removal. Only export() is compared, not
 #            S3method() or exportPattern().
 # commits    Fails when the message of a commit in <base>..<head> has a
-#            Co-Authored-By trailer, a link to a chat or a session (claude.ai,
-#            chatgpt.com and the like, or a trailer such as "X-Session: <url>"),
-#            or a line that starts with "Generated with". No label allows
-#            it: reword the commit. It reads commit messages only, never the
-#            files, which may mention any tool.
+#            Co-Authored-By, Co-Developed-By or other "Co-...-By" trailer, a
+#            link to a chat or a session (claude.ai, chatgpt.com and the
+#            like, or a subdomain of one, or a trailer such as
+#            "X-Session-Id: <url>"), or a line that starts with "Generated
+#            with". A host named in prose, with no scheme and no path, is not
+#            a link. No label allows it: reword the commit. It reads commit
+#            messages only, never the files, which may mention any tool.
 #
 # Sourced rather than run (source("dev/ci/pr-checks.R")), the file only
 # defines its functions, so the tests in tests/testthat/test-pr-checks.R can
@@ -302,11 +304,28 @@ chat_hosts <- c("claude[.]ai", "chatgpt[.]com", "chat[.]openai[.]com",
                 "copilot[.]microsoft[.]com", "perplexity[.]ai", "poe[.]com",
                 "chat[.]deepseek[.]com", "chat[.]mistral[.]ai", "huggingface[.]co/chat")
 
+# A link is a host with a scheme (https://claude.ai) or with a path
+# (claude.ai/chat/abc), on the host itself or any subdomain of it
+# (www.claude.ai). A host named in prose ("the claude.ai option name") is not
+# a link. The host must end where the name ends, so notclaude.ai.example.com
+# is not one of them.
+# A listed host that carries a path of its own (huggingface.co/chat) is a
+# link wherever it appears.
+chat_link <- local({
+  sub <- "(?:[a-z0-9-]+[.])*"
+  hosts <- paste0(sub, "(?:", paste(chat_hosts, collapse = "|"), ")")
+  pathed <- paste0(sub, "(?:", paste(grep("/", chat_hosts, value = TRUE), collapse = "|"), ")")
+  end <- "(?![a-z0-9-]|[.][a-z0-9])"
+  paste0("(?:https?://", hosts, end, ")",
+         "|(?:(?<![a-z0-9.-])", hosts, "(?::[0-9]+)?[/?#])",
+         "|(?:(?<![a-z0-9.-])", pathed, end, ")")
+})
+
 commit_rules <- list(
-  "a Co-Authored-By trailer" = "^[[:space:]]*co-authored-by[[:space:]]*:",
-  "a chat or session link" = paste0("(^|[^a-z0-9.-])(", paste(chat_hosts, collapse = "|"),
-                                    ")([/:?#[:space:]]|$)"),
-  "a session trailer" = "^[[:space:]]*[a-z0-9-]*session[[:space:]]*:[[:space:]]*https?://",
+  "a Co-Authored-By trailer or one like it" = "^[[:space:]]*co-[a-z-]*by[[:space:]]*:",
+  "a chat or session link" = chat_link,
+  "a session trailer" =
+    "^[[:space:]]*[a-z0-9-]*session[a-z0-9-]*[[:space:]]*:[[:space:]]*https?://",
   "a \"Generated with\" line" = "^[^[:alnum:]]*generated with([^[:alnum:]]|$)"
 )
 
