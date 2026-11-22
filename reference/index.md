@@ -343,9 +343,6 @@ and
 - [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
   [`gr_arms()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
   : A reading recipe as an arm of a benchmark
-- [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
-  [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
-  : Built-in steps for composing a run by hand
 - [`gr_qa_reference()`](https://elkronos.github.io/harnessr/reference/gr_qa_reference.md)
   : A reference of questions about documents
 - [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md)
@@ -356,6 +353,21 @@ and
   : A test of what a reader keeps as it condenses a document
 - [`gr_reverse_text()`](https://elkronos.github.io/harnessr/reference/gr_reverse_text.md)
   : Reverse the order of a text's paragraphs or sentences
+
+## Compose steps and chains
+
+Build a run from steps (ingest, segment, retrieve, read, or a function
+of your own), run them in order as one arm, and derive a chain by
+dropping or replacing a step. See
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md).
+
+- [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md)
+  : A step of a run, with the settings it was built with
+- [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+  : Run steps in order as one arm
+- [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  : Built-in steps for composing a run
 
 ## Baselines
 

@@ -283,6 +283,7 @@ Other harness:
 [`gr_reverse_text()`](https://elkronos.github.io/harnessr/reference/gr_reverse_text.md),
 [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md),
 [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md),
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md),
 [`hr_contrast()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md),
 [`hr_drift_check()`](https://elkronos.github.io/harnessr/reference/hr_drift_check.md),
 [`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md),
@@ -293,6 +294,7 @@ Other harness:
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md),
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
 [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md),
+[`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md),
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 

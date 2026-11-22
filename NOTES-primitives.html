@@ -27,6 +27,7 @@
     <li><a class="dropdown-item" href="articles/review.html">Many documents and literature reviews</a></li>
     <li><a class="dropdown-item" href="articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="articles/settings.html">Settings reference</a></li>
     <li><a class="dropdown-item" href="articles/extending.html">Extending harnessr</a></li>
@@ -118,6 +119,11 @@
 <code>read_ensemble()</code>, <code>read_iterative()</code>, <code>read_preview()</code>
 </td>
 <td>test-core-signals.R</td>
+</tr><tr><td><code><a href="reference/hr_step.html">hr_step()</a></code></td>
+<td>
+<code><a href="reference/gr_step.html">gr_step()</a></code>, <code><a href="reference/gr_step.html">gr_step_retrieve()</a></code>
+</td>
+<td>test-compose.R, test-reading-options.R</td>
 </tr><tr><td><code><a href="reference/hr_truncate.html">hr_truncate()</a></code></td>
 <td>
 <code>cut_piece()</code>, which the merge, <code>hierarchical</code> and <code>preview</code> packers call under a <code>context_policy</code>
@@ -159,6 +165,9 @@
 </tr><tr><td><code><a href="reference/hr_calibration_valid.html">hr_calibration_valid()</a></code></td>
 <td>test-core-signals.R</td>
 <td>Says whether a calibration record is valid for a run.</td>
+</tr><tr><td><code><a href="reference/hr_chain.html">hr_chain()</a></code></td>
+<td>test-compose.R</td>
+<td>Runs any steps in order as one arm, and derives a chain by dropping or replacing a step.</td>
 </tr><tr><td><code><a href="reference/hr_contrast.html">hr_contrast()</a></code></td>
 <td>test-core-bench-ni.R, test-core-bench-sim.R</td>
 <td>A non-inferiority contrast between arms, registered before scoring.</td>

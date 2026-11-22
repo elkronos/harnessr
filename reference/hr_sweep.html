@@ -33,6 +33,7 @@ summarised with aggregate() or hr_report() like any other comparison."></head><b
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
@@ -111,7 +112,10 @@ none of these is an error that lists the names that are.</p></dd>
 
 
 </dl><p>An arm made by <code><a href="hr_arm.html">hr_arm()</a></code> alone records no settings, so it cannot be
-swept by name; give a function that builds it instead.</p>
+swept by name; give a function that builds it instead. The same holds for
+a chain from <code><a href="hr_chain.html">hr_chain()</a></code> for now: it records its settings, but
+<code>hr_sweep()</code> cannot yet build it again from a row, so give a function
+that builds the chain.</p>
 <p>Rows that build the same configuration are collapsed: the first is kept
 and the others are dropped with a message of class <code>hr_sweep_collapsed</code>
 naming them. Two arms from <code><a href="gr_arm.html">gr_arm()</a></code> have the same configuration when
@@ -144,6 +148,7 @@ that was sent.</p>
 <code><a href="gr_scorer_answer.html">gr_scorer_answer()</a></code>,
 <code><a href="hr_arm.html">hr_arm()</a></code>,
 <code><a href="hr_benchmark.html">hr_benchmark()</a></code>,
+<code><a href="hr_chain.html">hr_chain()</a></code>,
 <code><a href="hr_contrast.html">hr_contrast()</a></code>,
 <code><a href="hr_drift_check.html">hr_drift_check()</a></code>,
 <code><a href="hr_effort_check.html">hr_effort_check()</a></code>,
@@ -154,6 +159,7 @@ that was sent.</p>
 <code><a href="hr_reference.html">hr_reference()</a></code>,
 <code><a href="hr_report.html">hr_report()</a></code>,
 <code><a href="hr_scorer.html">hr_scorer()</a></code>,
+<code><a href="hr_step.html">hr_step()</a></code>,
 <code><a href="hr_sweep_check.html">hr_sweep_check()</a></code></p></div>
     </div>
 

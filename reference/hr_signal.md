@@ -50,8 +50,9 @@ hr_signals(x, name = NULL)
 - x:
 
   For `hr_signals()`: a `gr_trace`, an object holding one in `$trace`
-  (an answer, a stage result), or a list of these, such as the answers
-  of several runs.
+  (an answer, a stage result), a list of these, such as the answers of
+  several runs, or an `hr_bench` from
+  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md).
 
 ## Value
 
@@ -68,6 +69,15 @@ for text) and `refs` (the references for that value as a JSON object, or
 `NA`). A trace reached more than once in `x` (the same trace object, as
 the answers of one comparison share it) lists each step once; two
 separate traces are both read, even with the same `run_id`.
+
+Given an `hr_bench`, it reads the trace of each run
+(`attr(x, "traces")`) and adds `arm`, `run` and `item` after `run_id`,
+which is the run's `ledger_id`. `item` is the benchmark's item, and
+`item_id` stays what the signal recorded: the item for a note made with
+`ctx$note()`, `NA` for one a reader recorded without an item. The
+benchmark's own trace holds the same steps folded in and is not read, so
+each signal is listed once. A benchmark subset to some rows lists the
+signals of those runs.
 
 ## Details
 
@@ -115,9 +125,9 @@ hr_signal("demo.confident", TRUE, tr, item_id = "q1")
 hr_signal("demo.confident", c(0.9, 0.2), tr, item_id = c("q2", "q3"))
 hr_signals(tr)
 #>                          run_id step source recipe         signal    type
-#> 1 run_20261122135552.252_152a05    1   <NA>   <NA> demo.confident logical
-#> 2 run_20261122135552.252_152a05    2   <NA>   <NA> demo.confident numeric
-#> 3 run_20261122135552.252_152a05    2   <NA>   <NA> demo.confident numeric
+#> 1 run_20261122203253.158_4cf93d    1   <NA>   <NA> demo.confident logical
+#> 2 run_20261122203253.158_4cf93d    2   <NA>   <NA> demo.confident numeric
+#> 3 run_20261122203253.158_4cf93d    2   <NA>   <NA> demo.confident numeric
 #>   item_id index value score refs
 #> 1      q1     1  TRUE   1.0 <NA>
 #> 2      q2     1   0.9   0.9 <NA>
@@ -134,7 +144,23 @@ ans <- gr_read(ch, "What was revenue?", cl, "iterative")
 #> Reading with 'iterative' (topk|rounds*2|forward) over 5 chunk(s).
 hr_signals(ans)
 #>                          run_id step source recipe                  signal
-#> 1 run_20261122135552.284_61feb6    5   <NA>   <NA> gr.iterative.can_answer
+#> 1 run_20261122203253.206_4f4043    5   <NA>   <NA> gr.iterative.can_answer
 #>      type item_id index value score        refs
 #> 1 logical    <NA>     1  TRUE     1 {"round":1}
+
+# An arm in a benchmark records signals with ctx$note(), and hr_signals()
+# reads them back with the arm, run and item of each.
+ref <- hr_reference(list(q1 = "France"), "Paris", "a", split = "test")
+arm <- hr_arm("noted", function(item, ctx) {
+  ctx$note("demo.sure", ctx$run > 2)
+  "Paris"
+})
+bench <- hr_benchmark(arm, ref, runs = 5)
+hr_signals(bench)[, c("arm", "run", "item", "signal", "value")]
+#>     arm run item    signal value
+#> 1 noted   1   q1 demo.sure FALSE
+#> 2 noted   2   q1 demo.sure FALSE
+#> 3 noted   3   q1 demo.sure  TRUE
+#> 4 noted   4   q1 demo.sure  TRUE
+#> 5 noted   5   q1 demo.sure  TRUE
 ```

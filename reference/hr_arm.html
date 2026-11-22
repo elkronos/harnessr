@@ -33,6 +33,7 @@ which the benchmark's scorer then compares with the item's label."></head><body>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
@@ -154,6 +155,19 @@ failed, or the reply's result with the reason in <code>error</code> when the rep
 does not meet the schema. An arm that returns that result is scored as
 an error.</p></dd>
 
+<dt><code>judge</code></dt>
+<dd><p>A judgement, <code>ctx$judge(candidates, ...)</code>, for
+<code>hr_judge(candidates, ctx$client, ..., trace = ctx$trace)</code>. <code>...</code> takes
+the other arguments of <code><a href="hr_judge.html">hr_judge()</a></code> and must include <code>rubric</code>. The
+judge's requests go out at the run's draw, are held to the run's
+governor and are folded into <code>ctx$trace</code>, so their cost is in the
+run's <code>usd</code> once. It returns the <code>hr_judge</code> result.</p></dd>
+
+<dt><code>note</code></dt>
+<dd><p>A signal about this run, <code>ctx$note(name, value, refs = NULL)</code>, for <code>hr_signal(name, value, trace = ctx$trace, item_id = ctx$item_id, refs = refs)</code>. It sends no request. <code><a href="hr_signal.html">hr_signals()</a></code> given
+the benchmark reads the notes back, with the arm, run and item of
+each.</p></dd>
+
 <dt><code>item_id</code>, <code>arm</code>, <code>run</code>, <code>params</code></dt>
 <dd><p>The item's id, the arm's name,
 the run number and the arm's <code>params</code>.</p></dd>
@@ -170,6 +184,7 @@ the run number and the arm's <code>params</code>.</p></dd>
 <code><a href="gr_reverse_text.html">gr_reverse_text()</a></code>,
 <code><a href="gr_scorer_answer.html">gr_scorer_answer()</a></code>,
 <code><a href="hr_benchmark.html">hr_benchmark()</a></code>,
+<code><a href="hr_chain.html">hr_chain()</a></code>,
 <code><a href="hr_contrast.html">hr_contrast()</a></code>,
 <code><a href="hr_drift_check.html">hr_drift_check()</a></code>,
 <code><a href="hr_effort_check.html">hr_effort_check()</a></code>,
@@ -180,6 +195,7 @@ the run number and the arm's <code>params</code>.</p></dd>
 <code><a href="hr_reference.html">hr_reference()</a></code>,
 <code><a href="hr_report.html">hr_report()</a></code>,
 <code><a href="hr_scorer.html">hr_scorer()</a></code>,
+<code><a href="hr_step.html">hr_step()</a></code>,
 <code><a href="hr_sweep.html">hr_sweep()</a></code>,
 <code><a href="hr_sweep_check.html">hr_sweep_check()</a></code></p></div>
     </div>

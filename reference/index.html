@@ -27,6 +27,7 @@
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
     <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
@@ -918,13 +919,6 @@
 
         <dt>
 
-          <code><a href="gr_step.html">gr_step()</a></code> <code><a href="gr_step.html">gr_step_retrieve()</a></code>
-
-        </dt>
-        <dd>Built-in steps for composing a run by hand</dd>
-
-        <dt>
-
           <code><a href="gr_qa_reference.html">gr_qa_reference()</a></code>
 
         </dt>
@@ -950,6 +944,36 @@
 
         </dt>
         <dd>Reverse the order of a text's paragraphs or sentences</dd>
+      </dl></div><div class="section level2">
+      <h2 id="compose-steps-and-chains">Compose steps and chains<a class="anchor" aria-label="anchor" href="#compose-steps-and-chains"></a></h2>
+
+      <div class="section-desc"><p>Build a run from steps (ingest, segment, retrieve, read, or a function of your own), run them in order as one arm, and derive a chain by dropping or replacing a step. See <code><a href="../articles/compose.html">vignette("compose")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_step.html">hr_step()</a></code>
+
+        </dt>
+        <dd>A step of a run, with the settings it was built with</dd>
+
+        <dt>
+
+          <code><a href="hr_chain.html">hr_chain()</a></code>
+
+        </dt>
+        <dd>Run steps in order as one arm</dd>
+
+        <dt>
+
+          <code><a href="gr_step.html">gr_step()</a></code> <code><a href="gr_step.html">gr_step_retrieve()</a></code>
+
+        </dt>
+        <dd>Built-in steps for composing a run</dd>
       </dl></div><div class="section level2">
       <h2 id="baselines">Baselines<a class="anchor" aria-label="anchor" href="#baselines"></a></h2>
 

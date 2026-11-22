@@ -390,6 +390,7 @@ Each guide is on the website and, once installed, in R as
 | [Many documents and literature reviews](https://elkronos.github.io/harnessr/articles/review.html) (`review`) | Search, screening, calibration and recall, several reviewers, extraction, claims, synthesis, the audit report |
 | [Measuring and comparing configurations](https://elkronos.github.io/harnessr/articles/evaluate.html) (`evaluate`) | Reference sets and label sheets, benchmarks and their intervals, non-inferiority, judges, baselines, drift, signals |
 | [Comparing methods and settings](https://elkronos.github.io/harnessr/articles/compare.html) (`compare`) | Worked comparisons of readers, segmenters and chunk sizes, one setting over its values, screening settings and a judge against labels, and how to read each report |
+| [Composing steps into chains](https://elkronos.github.io/harnessr/articles/compose.html) (`compose`) | Steps of your own and the built-in ones, chains run as one arm, deriving a chain by dropping or replacing a step, and what a chain checks |
 | [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`) | The governor, effort, traces, caching, replay |
 | [Settings reference](https://elkronos.github.io/harnessr/articles/settings.html) (`settings`) | Every setting of every stage with its default and where it came from, and the extractors, cleaners, segmenters, readers, embedders and recipes |
 | [Extending harnessr](https://elkronos.github.io/harnessr/articles/extending.html) (`extending`) | Registering your own extractors, cleaners, segmenters, readers and embedders, and checking them |
@@ -808,9 +809,6 @@ and
 - [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
   [`gr_arms()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
   : A reading recipe as an arm of a benchmark
-- [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
-  [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
-  : Built-in steps for composing a run by hand
 - [`gr_qa_reference()`](https://elkronos.github.io/harnessr/reference/gr_qa_reference.md)
   : A reference of questions about documents
 - [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md)
@@ -821,6 +819,21 @@ and
   : A test of what a reader keeps as it condenses a document
 - [`gr_reverse_text()`](https://elkronos.github.io/harnessr/reference/gr_reverse_text.md)
   : Reverse the order of a text's paragraphs or sentences
+
+## Compose steps and chains
+
+Build a run from steps (ingest, segment, retrieve, read, or a function
+of your own), run them in order as one arm, and derive a chain by
+dropping or replacing a step. See
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md).
+
+- [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md)
+  : A step of a run, with the settings it was built with
+- [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+  : Run steps in order as one arm
+- [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  : Built-in steps for composing a run
 
 ## Baselines
 
@@ -985,6 +998,8 @@ One guide per topic, in the order a run uses them.
   configurations](https://elkronos.github.io/harnessr/articles/evaluate.md):
 - [Comparing methods and
   settings](https://elkronos.github.io/harnessr/articles/compare.md):
+- [Composing steps into
+  chains](https://elkronos.github.io/harnessr/articles/compose.md):
 - [Cost, limits and reproducible
   runs](https://elkronos.github.io/harnessr/articles/runs.md):
 - [Settings

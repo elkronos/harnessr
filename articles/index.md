@@ -24,6 +24,8 @@ One guide per topic, in the order a run uses them.
   configurations](https://elkronos.github.io/harnessr/articles/evaluate.md):
 - [Comparing methods and
   settings](https://elkronos.github.io/harnessr/articles/compare.md):
+- [Composing steps into
+  chains](https://elkronos.github.io/harnessr/articles/compose.md):
 - [Cost, limits and reproducible
   runs](https://elkronos.github.io/harnessr/articles/runs.md):
 - [Settings

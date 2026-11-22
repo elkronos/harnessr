@@ -36,6 +36,7 @@ loses its last caller.
 | [`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md) | the read, segment and ingest schemas | test-core-schema.R, test-settings.R |
 | [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md) | [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md) | test-core-bench.R |
 | [`hr_signal()`](https://elkronos.github.io/harnessr/reference/hr_signal.md) | `read_ensemble()`, `read_iterative()`, `read_preview()` | test-core-signals.R |
+| [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md) | [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md), [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md) | test-compose.R, test-reading-options.R |
 | [`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md) | `cut_piece()`, which the merge, `hierarchical` and `preview` packers call under a `context_policy` | test-context-policy.R |
 | [`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md), [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md), [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | test-core-schema.R, test-adversarial.R |
 
@@ -57,6 +58,7 @@ documents, which is why they are core. Each has tests of its own.
 | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | test-core-bench.R and the other test-core-bench files | Runs any arms against a reference set. |
 | [`hr_calibrate_signal()`](https://elkronos.github.io/harnessr/reference/hr_calibrate_signal.md) | test-core-signals.R, test-labels.R | Calibrates a self-signal against graded items, for any module. |
 | [`hr_calibration_valid()`](https://elkronos.github.io/harnessr/reference/hr_calibration_valid.md) | test-core-signals.R | Says whether a calibration record is valid for a run. |
+| [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md) | test-compose.R | Runs any steps in order as one arm, and derives a chain by dropping or replacing a step. |
 | [`hr_contrast()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md) | test-core-bench-ni.R, test-core-bench-sim.R | A non-inferiority contrast between arms, registered before scoring. |
 | [`hr_drift_check()`](https://elkronos.github.io/harnessr/reference/hr_drift_check.md) | test-core-bench-drift.R | Checks an arm for drift against a frozen benchmark. |
 | [`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md) | test-effort-escalate.R | Compares any effort policy with fixed efforts on a benchmark, with the non-inferiority test. |

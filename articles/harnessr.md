@@ -552,6 +552,9 @@ covers each of these.
 - [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md):
   many documents and literature reviews, from a search export to a
   written review.
+- [`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md):
+  building a run of your own from steps, and comparing it with the
+  recipes.
 - [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
   cost, limits, the trace, caching and replaying a run.
 - [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md):

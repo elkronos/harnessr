@@ -239,7 +239,7 @@ ask <- function(name, model) {
 ask("large", "mock-large")
 #> <hr_arm large> version 0.0.1
 #>   params: model = mock-large 
-#>   hash: dc2928258ae6
+#>   hash: 4a659e23a5b4
 ```
 
 The arm records a SHA-256 hash of its name, code, settings and
@@ -791,10 +791,10 @@ plan <- hr_reference(ids, labels = rep("yes", n), cluster = docs, split = "test"
 design <- hr_mdd(n, n_clusters = 50, icc = 0.1, p_disc = 0.15)
 reg <- hr_register_contrasts(plan, hr_contrast("small", "large", margin = 0.10), design)
 reg
-#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-22T13:57:57.670Z
+#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-22T20:36:01.829Z
 #>  contrast       label        margin mdd cost_test
 #>  small vs large confirmatory 10.0   7.8 yes      
-#>   Margins and MDD in points; reference d453122a93af; hash 6dc36a135373
+#>   Margins and MDD in points; reference d453122a93af; hash 91415bd70701
 ```
 
 Here the stand-in model finds each item easier or harder by document and

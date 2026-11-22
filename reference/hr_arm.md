@@ -118,6 +118,26 @@ package is hashed by its code and the package's name.
   meet the schema. An arm that returns that result is scored as an
   error.
 
+- `judge`:
+
+  A judgement, `ctx$judge(candidates, ...)`, for
+  `hr_judge(candidates, ctx$client, ..., trace = ctx$trace)`. `...`
+  takes the other arguments of
+  [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)
+  and must include `rubric`. The judge's requests go out at the run's
+  draw, are held to the run's governor and are folded into `ctx$trace`,
+  so their cost is in the run's `usd` once. It returns the `hr_judge`
+  result.
+
+- `note`:
+
+  A signal about this run, `ctx$note(name, value, refs = NULL)`, for
+  `hr_signal(name, value, trace = ctx$trace, item_id = ctx$item_id, refs = refs)`.
+  It sends no request.
+  [`hr_signals()`](https://elkronos.github.io/harnessr/reference/hr_signal.md)
+  given the benchmark reads the notes back, with the arm, run and item
+  of each.
+
 - `item_id`, `arm`, `run`, `params`:
 
   The item's id, the arm's name, the run number and the arm's `params`.
@@ -135,6 +155,7 @@ Other harness:
 [`gr_reverse_text()`](https://elkronos.github.io/harnessr/reference/gr_reverse_text.md),
 [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md),
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md),
 [`hr_contrast()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md),
 [`hr_drift_check()`](https://elkronos.github.io/harnessr/reference/hr_drift_check.md),
 [`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md),
@@ -145,6 +166,7 @@ Other harness:
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md),
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
 [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md),
+[`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md),
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 

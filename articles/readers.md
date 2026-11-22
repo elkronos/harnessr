@@ -1530,8 +1530,9 @@ The hand-built arm ranks with `retrieve`’s ranking and then reads the
 two chunks it kept with `stuff`, so it sent 267 prompt tokens to the
 `"needle"` recipe’s 797.
 [`?gr_step`](https://elkronos.github.io/harnessr/reference/gr_step.md)
-says what passes between the steps; `hr_chain()`, which will take the
-same steps, is not in this release.
+says what passes between the steps;
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md),
+which will take the same steps, is not in this release.
 
 ## Next
 

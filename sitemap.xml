@@ -5,6 +5,7 @@
 <url><loc>https://elkronos.github.io/harnessr/LICENSE-text.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/NOTES-primitives.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/compare.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/articles/compose.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/evaluate.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/extending.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/harnessr.html</loc></url>
@@ -130,6 +131,7 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_benchmark.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_calibrate_signal.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_calibration_valid.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_chain.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_check_module.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_context_fit.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_context_policy.html</loc></url>
@@ -159,6 +161,7 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_scorer_judge.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_signal.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_signal_policy.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_step.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_sweep.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_sweep_check.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_tfidf.html</loc></url>

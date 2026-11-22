@@ -216,7 +216,9 @@ that says what it trades off and how to test it with
   [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)
   run function they use the run’s `ctx$client` and `ctx$trace`, so a
   benchmark counts and limits their requests; they are composed by hand
-  for now, and carry the attributes a later `hr_chain()` will read.
+  for now, and carry the attributes a later
+  [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+  will read.
 
 ### Pipeline options
 
@@ -790,6 +792,71 @@ has a measurement behind it.
   parameter’s tier and evidence status. Each schema keeps at most five
   `basic` parameters: the read spec’s are `reader`, `model`, `top_k`,
   `cite` and `verify`, and the rest are `advanced`. No default changed.
+
+### Benchmarks
+
+Nothing here changes a default: an arm that uses neither shortcut sends
+the requests it sent before, with the same cache keys, and no setting is
+added.
+
+- [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)’s
+  `ctx` gains `judge(candidates, ...)`, which calls
+  [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)
+  with the benchmark’s client and `trace = ctx$trace`, so the judge’s
+  requests go out at the run’s draw and its cost is in the run’s `usd`
+  once. Pass `rubric` as
+  [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)
+  needs. It also gains `note(name, value, refs = NULL)`, which records a
+  signal about the run’s item with
+  [`hr_signal()`](https://elkronos.github.io/harnessr/reference/hr_signal.md).
+- [`hr_signals()`](https://elkronos.github.io/harnessr/reference/hr_signal.md)
+  accepts an `hr_bench`. It reads each run’s own trace and adds `arm`,
+  `run` and `item` columns; the benchmark’s folded trace is not read, so
+  each signal is listed once.
+
+### Steps and chains
+
+Nothing here changes a default or adds a setting:
+[`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+and
+[`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+take the arguments they took, and a step built with them sends the
+requests it sent before, with the same cache keys.
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
+shows the new functions at work.
+
+- `hr_step(name, fn)` builds a step: a function of `(input, ctx)` with
+  the settings it was built with recorded beside it. With a `schema`,
+  its settings are checked and resolved by
+  [`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md);
+  with `build`, the function is built from the settings when the step
+  is, so a bad setting fails there. `input` and `output` declare what
+  the step takes and returns.
+- `hr_chain(..., name)` runs steps in order as one
+  [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md),
+  which
+  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+  takes as it takes any arm.
+  [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
+  takes a function that builds the chain, such as
+  `function(k) hr_chain(...)`; given a chain itself, it stops with an
+  error that says so. Inside a chain each step gets `ctx$step` and
+  `ctx$step_params`, and `ctx$params` is the arm’s.
+  `hr_chain(old, judge = NULL, name = "nojudge")` derives a chain
+  without one step; `x = step` replaces a step and a new name adds one.
+  The arm records each step’s settings as `"step.setting"`, and its
+  configuration is a hash of the steps’ code, the values it reads and
+  their resolved settings. A step that takes chunks no earlier step
+  returns warns (`hr_chain_gap`), and a step that cannot follow an
+  answer is an error (`hr_bad_chain`). A step that takes a document no
+  earlier step returns does not warn, since most chains start at the
+  segment step, which ingests at the default settings.
+- [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  and
+  [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  now return `hr_step` objects (class
+  `c("gr_step", "hr_step", "function")`) checked against the ingest,
+  segment or read schema, with their input and output declared.
 
 ### Fixed
 

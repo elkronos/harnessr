@@ -1,4 +1,4 @@
-# Built-in steps for composing a run by hand
+# Built-in steps for composing a run
 
 `gr_step()` builds one stage of a run as a step: a function of
 `(input, ctx)` that ingests, segments or reads. `gr_step_retrieve()`
@@ -50,7 +50,8 @@ gr_step_retrieve(top_k = 6L, ..., name = NULL)
 
 ## Value
 
-A function of `(input, ctx)` with class `gr_step`.
+A function of `(input, ctx)` with class
+`c("gr_step", "hr_step", "function")`.
 
 ## Details
 
@@ -70,21 +71,37 @@ items are lists with `question` and `document`); `"ingest"` adds `doc`,
 `doc`), and `gr_step_retrieve()` replaces `chunks` with the chunks it
 kept, best first, with their scores in a `score` column. `"read"` reads
 `chunks` (segmenting first when there are none) and returns the
-[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
-so it is the last step. Chaining them is a fold:
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md).
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+runs steps in order as one arm; by hand, the same is a fold:
 `Reduce(function(x, step) step(x, ctx), steps, item)`.
 
-Each step is a function with class `gr_step` and attributes `kind`,
-`name` and `spec`, which [`print()`](https://rdrr.io/r/base/print.html)
-shows. A later `hr_chain()` reads the same attributes, so the steps
-built now are the ones it will take.
+Each step is an
+[`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md)
+with class `gr_step` added and the attributes `kind` and `spec`, which
+[`print()`](https://rdrr.io/r/base/print.html) shows. Its settings are
+checked against the stage's schema:
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)'s,
+[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md)'s
+or
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)'s
+for `gr_step()`, and for `gr_step_retrieve()` the ranking settings
+`top_k`, `min_score`, `mmr`, `fusion`, `rrf_k`, `lexical_blend`,
+`bm25_k1` and `bm25_b`. Any other setting passed to `gr_step_retrieve()`
+reaches
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
+as it is. A step declares what it takes and returns, which
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+checks: ingest takes a document and returns a doc, segment takes a doc
+and returns chunks, retrieve takes and returns chunks, and read takes
+chunks and returns the answer.
 
 ## See also
 
-[`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)
-and
-[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
-which run steps inside an arm;
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md),
+which runs steps as one arm;
+[`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md)
+for a step of your own;
 [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
 for a whole recipe as one arm.
 
@@ -117,8 +134,8 @@ ans$chunks_used
 #> [1] 2 6
 
 # The same steps as an arm a benchmark can run.
-arm <- hr_arm("segment-rank-read",
-              function(item, ctx) Reduce(function(x, step) step(x, ctx), steps, item))
+arm <- hr_chain(segment = steps[[1]], retrieve = steps[[2]], read = steps[[3]],
+                name = "segment-rank-read")
 steps[[2]]
 #> <gr_step> retrieve (retrieve): top_k=2
 ```

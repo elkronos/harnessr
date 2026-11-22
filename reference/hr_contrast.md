@@ -127,6 +127,7 @@ Other harness:
 [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md),
 [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md),
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md),
 [`hr_drift_check()`](https://elkronos.github.io/harnessr/reference/hr_drift_check.md),
 [`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md),
 [`hr_effort_escalate()`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md),
@@ -136,6 +137,7 @@ Other harness:
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md),
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
 [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md),
+[`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md),
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 
@@ -153,11 +155,11 @@ reg <- hr_register_contrasts(ref, list(
   hr_contrast("short", "long", margin = 0.10),
   hr_contrast("skim", "long", margin = 0.05, confirmatory = FALSE)), design)
 reg
-#> <hr_contrast_registration> 2 contrast(s), 1 confirmatory; registered 2026-11-22T13:55:43.963Z
+#> <hr_contrast_registration> 2 contrast(s), 1 confirmatory; registered 2026-11-22T20:32:41.923Z
 #>  contrast      label        margin mdd cost_test
 #>  short vs long confirmatory 10.0   8.2 yes      
 #>  skim vs long  exploratory  5.0    8.2 yes      
-#>   Margins and MDD in points; reference db69600f91ae; hash fd1db3737b00
+#>   Margins and MDD in points; reference db69600f91ae; hash 9462b543d8e7
 try(hr_register_contrasts(ref, hr_contrast("skim", "long", margin = 0.05), design))
 #> Error in hr_register_contrasts(ref, hr_contrast("skim", "long", margin = 0.05),  : 
 #>   The margin of skim vs long (5.0 points) is below the design MDD of 8.2 points (80% power, one-sided alpha 0.025 after Holm over 1 contrast(s)), so the design cannot support a non-inferiority claim at it. Widen the margin, enlarge the design, or register the contrast with confirmatory = FALSE as exploratory.
