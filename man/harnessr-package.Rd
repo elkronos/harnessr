@@ -37,9 +37,7 @@ Over a set of documents it also screens (\code{\link[=gr_screen]{gr_screen()}}),
 (\code{\link[=gr_extract]{gr_extract()}}) and synthesises what was found (\code{\link[=gr_synthesise]{gr_synthesise()}}).
 
 harnessr was called readgpt up to version 0.6.0. Requests, cache keys and
-recordings are unchanged by the rename. The \code{readgpt.api_key} and
-\code{readgpt.allow_local_urls} options are still read, with a warning, when
-their \code{harnessr.} names are not set.
+recordings are unchanged by the rename.
 
 Any ingest x any segmenter x any reader composes. \code{\link[=gr_recipe]{gr_recipe()}} binds one of
 each into a named pipeline; \code{\link[=answer_document]{answer_document()}} runs one; \code{\link[=gr_compare]{gr_compare()}} runs

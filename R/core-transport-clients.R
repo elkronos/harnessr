@@ -2,8 +2,7 @@
 
 #' Resolve the API key
 #'
-#' Looks in `key`, then the `harnessr.api_key` option (or, failing that, the
-#' deprecated `readgpt.api_key`), then `OPENAI_API_KEY`.
+#' Looks in `key`, then the `harnessr.api_key` option, then `OPENAI_API_KEY`.
 #' Never prints or logs the key.
 #'
 #' Spaces and line endings around the key are dropped, so a key read from a
@@ -62,7 +61,7 @@ gr_api_key <- function(key = NULL) {
 #' error ("Server returned nothing") that never mentioned the key.
 #' @noRd
 api_key_value <- function(key = NULL) {
-  k <- key %||% renamed_option("harnessr.api_key", "readgpt.api_key", "") %||% ""
+  k <- key %||% getOption("harnessr.api_key", "") %||% ""
   k <- trimws(as_chr1(k))
   if (!nzchar(k)) k <- trimws(as_chr1(Sys.getenv("OPENAI_API_KEY")))
   if (grepl("[[:cntrl:]]", k)) {

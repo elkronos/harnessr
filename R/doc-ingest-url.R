@@ -163,8 +163,7 @@ url_charset <- function(type) {
 #' services hand out a download.
 #' @noRd
 url_download <- function(url, dest, max_bytes = .gr_max_download_bytes,
-                         allow_local = isTRUE(renamed_option("harnessr.allow_local_urls",
-                                                             "readgpt.allow_local_urls")),
+                         allow_local = isTRUE(getOption("harnessr.allow_local_urls")),
                          lookup = url_addresses) {
   agent <- sprintf("harnessr/%s", tryCatch(as.character(utils::packageVersion("harnessr")),
                                            error = function(e) "dev"))

@@ -367,9 +367,8 @@ as_screening_table <- function(screening) {
 #' left empty and `$agreement$kept$note` says why.
 #'
 #' 0.6.0 computed kappa on the screener's three labels against the person's
-#' two, so every `"unclear"` counted as a disagreement. That figure is kept as
-#' `$kappa_legacy` for this release only, so a number already quoted can be
-#' traced; it is not the screener's agreement with a person.
+#' two, so every `"unclear"` counted as a disagreement. That figure is no
+#' longer reported; it is not the screener's agreement with a person.
 #'
 #' The rate of `"unclear"` decisions is the metric `"deferred to a person"`,
 #' with its interval, and the 3x2 counts behind both tables are in
@@ -536,8 +535,6 @@ as_screening_table <- function(screening) {
 #'       against the rest), each a list of `table`, `n`, `stats` (one row per
 #'       statistic: `statistic`, `estimate`, `lower`, `upper`) and `paradox`.
 #'       `NULL` for a sample of one stratum.}
-#'     \item{`kappa_legacy`}{Deprecated: the 0.6.0 kappa on the screener's
-#'       three labels against the person's two. Removed in the next release.}
 #'     \item{`decisions`}{The 3x2 counts: the screener's include, unclear and
 #'       exclude by the person's eligible and not.}
 #'     \item{`missed`}{The eligible studies the screener excluded: the rows
@@ -853,10 +850,6 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
     strict = agreement_binary(strict, eligible))
   kappa <- if (one_stratum) NA_real_ else
     agreement$kept$stats$estimate[agreement$kept$stats$statistic == "kappa"]
-  # The 3x2 figure 0.6.0 reported, kept for one release so a number already
-  # quoted can be traced. It is not the screener's agreement with a person.
-  kappa_legacy <- if (one_stratum) NA_real_ else
-    cohen_kappa(model, ifelse(eligible, "include", "exclude"))
   decisions <- table(screener = factor(model, levels = c("include", "unclear", "exclude")),
                      person = factor(ifelse(eligible, "eligible", "not eligible"),
                                      levels = c("eligible", "not eligible")))
@@ -913,7 +906,6 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
     counts = counts,
     metrics = metrics,
     kappa = kappa,
-    kappa_legacy = kappa_legacy,
     agreement = agreement,
     decisions = decisions,
     missed = rows[eligible & !kept, , drop = FALSE],

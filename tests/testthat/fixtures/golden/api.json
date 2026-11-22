@@ -4,28 +4,8 @@
       "formals": ["source", "question", "recipe = \"auto\"", "client = NULL", "return = c(\"answer\", \"text\", \"json\")", "trace = NULL", "..."],
       "type": "function"
     },
-    "answer_question": {
-      "formals": ["file_path", "question", "mode = \"Chunked\"", "use_parallel = FALSE", "refine = FALSE", "return_json = FALSE", "client = NULL", "..."],
-      "type": "function"
-    },
     "as_json": {
       "formals": ["x", "pretty = TRUE", "..."],
-      "type": "function"
-    },
-    "gpt_read_chunked": {
-      "formals": ["chunks", "question", "client = NULL", "return_json = FALSE", "..."],
-      "type": "function"
-    },
-    "gpt_read_hierarchical": {
-      "formals": ["chunks", "question", "client = NULL", "return_json = FALSE", "..."],
-      "type": "function"
-    },
-    "gpt_read_multipass": {
-      "formals": ["chunks", "question", "client = NULL", "return_json = FALSE", "..."],
-      "type": "function"
-    },
-    "gpt_read_retrieval": {
-      "formals": ["chunks", "question", "client = NULL", "return_json = FALSE", "..."],
       "type": "function"
     },
     "gr_api_key": {
@@ -578,14 +558,6 @@
     },
     "new_chunks": {
       "formals": ["text", "method", "spec", "page = NA_integer_", "section = NA_character_", "block_id = NA_integer_", "extra = list()", "source_text = NULL"],
-      "type": "function"
-    },
-    "parse_text": {
-      "formals": ["file_path", "chunk_token_limit = 3000", "chunk_method = c(\"naive\", \"semantic\")", "remove_whitespace = TRUE", "remove_special_chars = FALSE", "remove_numbers = FALSE", "ocr_lang = \"eng\"", "client = NULL"],
-      "type": "function"
-    },
-    "readgpt_example": {
-      "formals": [],
       "type": "function"
     }
   },

@@ -69,8 +69,6 @@ sample of one stratum.}
 against the rest), each a list of \code{table}, \code{n}, \code{stats} (one row per
 statistic: \code{statistic}, \code{estimate}, \code{lower}, \code{upper}) and \code{paradox}.
 \code{NULL} for a sample of one stratum.}
-\item{\code{kappa_legacy}}{Deprecated: the 0.6.0 kappa on the screener's
-three labels against the person's two. Removed in the next release.}
 \item{\code{decisions}}{The 3x2 counts: the screener's include, unclear and
 exclude by the person's eligible and not.}
 \item{\code{missed}}{The eligible studies the screener excluded: the rows
@@ -172,9 +170,8 @@ the kappa and AC1 intervals would be a point or close to one, so they are
 left empty and \verb{$agreement$kept$note} says why.
 
 0.6.0 computed kappa on the screener's three labels against the person's
-two, so every \code{"unclear"} counted as a disagreement. That figure is kept as
-\verb{$kappa_legacy} for this release only, so a number already quoted can be
-traced; it is not the screener's agreement with a person.
+two, so every \code{"unclear"} counted as a disagreement. That figure is no
+longer reported; it is not the screener's agreement with a person.
 
 The rate of \code{"unclear"} decisions is the metric \code{"deferred to a person"},
 with its interval, and the 3x2 counts behind both tables are in

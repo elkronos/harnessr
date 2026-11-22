@@ -232,6 +232,29 @@ says where its default came from; almost none has a measurement behind it.
   the request failed or the reply does not meet the schema, which the
   scorers count as an error.
 
+## Removed
+
+The deprecated names are removed. Each one warned and pointed to its
+replacement; calling a removed function is now an error, and a removed option
+is ignored. Caches, recordings and stores written before the rename still
+read: the `readgpt-cache-v2` and `readgpt-replay-v1` keys and the cache
+directory `tools::R_user_dir("readgpt", "cache")` are still looked up, and the
+corpus store key is computed as before.
+
+| Removed | Use instead |
+|---|---|
+| `answer_question()` | `answer_document()`, or `gr_compare()` for several recipes |
+| `parse_text()` | `gr_ingest()`, then `gr_segment()` |
+| `gpt_read_chunked()` | `gr_read()` with `reader = "map_reduce"` |
+| `gpt_read_retrieval()` | `gr_read()` with `reader = "skim"` |
+| `gpt_read_hierarchical()` | `gr_read()` with `reader = "hierarchical"` |
+| `gpt_read_multipass()` | `gr_read()` with `reader = "ensemble"` |
+| `readgpt_example()` | `gr_example()` |
+| `options(readgpt.api_key =)` | `options(harnessr.api_key =)` |
+| `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` |
+| `gr_calibrate()`'s `$kappa_legacy` | `$kappa`; `$decisions` holds the 3x2 counts the old figure came from |
+| the `gr_deprecated` warning class | none: nothing warns about an old name now |
+
 ## Renamed
 
 * **The package is now called harnessr.** readgpt grew a general core for
@@ -246,8 +269,7 @@ says where its default came from; almost none has a measurement behind it.
   below.
 
 * **`readgpt_example()` is now `gr_example()`**, which returns the same path to
-  the bundled example document. `readgpt_example()` still works, with one
-  `gr_deprecated` warning per session naming the new function.
+  the bundled example document. The old name is removed (see "Removed").
 
 * **Requests, cache keys and recordings are unchanged by the rename.** Every
   request is sent as 0.6.0 sent it, and the corpus store key is the one 0.6.0
@@ -258,8 +280,7 @@ says where its default came from; almost none has a measurement behind it.
 
 * **Two options are renamed**: `readgpt.api_key` is now `harnessr.api_key`, and
   `readgpt.allow_local_urls` is now `harnessr.allow_local_urls`. The old names
-  are still read when the new ones are not set, with one `gr_deprecated`
-  warning per session naming the new option.
+  are no longer read (see "Removed").
 
 * The help pages now suggest `tools::R_user_dir("harnessr", "cache")` for a
   cache that lasts. With that directory set, entries readgpt kept in
@@ -556,8 +577,8 @@ says where its default came from; almost none has a measurement behind it.
   primary table is now kept (include or unclear) against excluded, the
   definition sensitivity uses, and `$agreement$strict` holds strict include
   against the rest as a secondary table. On the eight-record example in
-  `?gr_calibrate` kappa moves from 0.33 to 0.50. The old figure is
-  `$kappa_legacy` for this release only, and is removed in the next.
+  `?gr_calibrate` kappa moves from 0.33 to 0.50. The old figure is no longer
+  reported (see "Removed").
 
 * **Kappa is no longer reported alone.** Each agreement table carries Cohen's
   kappa, PABAK and Gwet's AC1 with intervals, the prevalence and bias indices,

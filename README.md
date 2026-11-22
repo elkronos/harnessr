@@ -11,8 +11,9 @@ with every claim citing the row it rests on. Every model call is budgeted,
 recorded and checked, and can be cached.
 
 harnessr was called readgpt up to version 0.6.0, and so was its GitHub
-repository. Requests, cache keys and recordings are unchanged by the rename;
-the `readgpt.*` options are still read, with a warning (see `NEWS.md`).
+repository. Requests, cache keys and recordings are unchanged by the rename,
+and caches and recordings made under the old name still answer. The old
+function and option names are removed (see `NEWS.md`).
 
 The [guides](#guides) explain each part in depth and all run offline, without a
 key. Start with `vignette("harnessr")`. They are also on the website,
@@ -334,7 +335,7 @@ for the README blocks, so a real key can never change a result.
 
 ## Migrating from v1
 
-The old entry points still work and map onto the new pipeline, warning once:
+The v1 entry points are removed. Each one has a replacement:
 
 | v1 | now |
 |---|---|
@@ -344,8 +345,11 @@ The old entry points still work and map onto the new pipeline, warning once:
 | `gpt_read_retrieval()` | `gr_read(ch, q, cl, "skim")` |
 | `gpt_read_hierarchical()` | `gr_read(ch, q, cl, "hierarchical")` |
 | `gpt_read_multipass()` | `gr_read(ch, q, cl, "ensemble")` |
+| `readgpt_example()` | `gr_example()` |
+| `options(readgpt.api_key =)` | `options(harnessr.api_key =)` |
+| `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` |
 
-Three behaviour changes are deliberate and will alter your results:
+Three behaviour changes from v1 are deliberate and will alter your results:
 
 1. **`mode` no longer defaults to all five modes.** `answer_question(f, q)` in v1
    ran every mode: 41 API calls on an 8-paragraph document, where one was
@@ -357,9 +361,10 @@ Three behaviour changes are deliberate and will alter your results:
    default was unreachable from `answer_question()`, so every figure, date and
    percentage was deleted before the model saw the document.
 
-v1's `refine = TRUE` is mapped to citations only. Its verification pass is not
-reproduced because it could never run: it called a `search_text()` function
-that was never defined anywhere in the repository.
+For v1's `refine = TRUE`, ask for citations with `cite = TRUE` in
+`gr_read_spec()`. Its verification pass has no replacement because it could
+never run: it called a `search_text()` function that was never defined
+anywhere in the repository.
 
 The v1 source is kept under `legacy/` for reference and A/B comparison. It is
 not loaded by the package. To reproduce its ingestion and chunking under the

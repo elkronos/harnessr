@@ -527,10 +527,6 @@ test_that("as_json survives every object that embeds a trace", {
     expect_true(any(grepl("readgpt", names(flat), fixed = TRUE)) ||
                   any(grepl("revenue", as.character(flat), ignore.case = TRUE)))
   }
-  j <- quiet(answer_question(gr_example(), "What was revenue?", mode = "Chunked",
-                             return_json = TRUE, client = mock_echo()))
-  parsed <- jsonlite::fromJSON(as.character(j), simplifyVector = FALSE)
-  expect_true(all(c("answers", "summary", "trace") %in% names(parsed)))
 })
 
 test_that("as_json preserves an explicit null rather than dropping the field", {
@@ -539,60 +535,6 @@ test_that("as_json preserves an explicit null rather than dropping the field", {
   parsed <- jsonlite::fromJSON(j, simplifyVector = FALSE)
   expect_true("c" %in% names(parsed))
   expect_null(parsed$c)
-})
-
-test_that("a deprecation warning survives a handler that turns it into an error", {
-  harnessr:::.warn_once_reset()
-  on.exit(harnessr:::.warn_once_reset(), add = TRUE)
-  # Marking the id BEFORE emitting meant options(warn = 2) consumed the one and
-  # only notice: the user saw a failure, fixed the handler, and got silence.
-  expect_error(withr::with_options(list(warn = 2), harnessr:::.warn_once("t", "boom")))
-  expect_warning(harnessr:::.warn_once("t", "boom"), class = "gr_deprecated")
-  expect_silent(harnessr:::.warn_once("t", "boom"))
-})
-
-test_that("every v1 shim runs and does not reproduce the v1 bug it replaced", {
-  # Mutation survivor: the whole of compat.R could be deleted without a failure.
-  harnessr:::.warn_once_reset()
-  on.exit(harnessr:::.warn_once_reset(), add = TRUE)
-  expect_warning(answer_question(gr_example(), "What was revenue?",
-                                 mode = "Chunked", client = mock_echo()),
-                 class = "gr_deprecated")
-  a <- quiet(answer_question(gr_example(), "What was revenue?",
-                             mode = "Chunked", client = mock_echo()))
-  expect_type(a, "character")
-
-  # WHICH reader each shim maps to, not merely that it returned a string.
-  # mock_echo() answers anything, so pointing all four shims at one reader left
-  # the suite green -- the shims ran, and nothing checked they ran the right
-  # thing. The call labels are the traversal, which is what a shim promises.
-  labels <- function(fn, ...) {
-    cl <- mock_echo()
-    harnessr:::.warn_once_reset()
-    invisible(quiet(suppressWarnings(fn(gr_example(), "What was revenue?",
-                                        client = cl, ...))))
-    paste(sort(unique(vapply(cl$calls(), function(x) as_chr1(x$label), character(1)))),
-          collapse = ",")
-  }
-  seen <- c(chunked = labels(gpt_read_chunked), retrieval = labels(gpt_read_retrieval),
-            hierarchical = labels(gpt_read_hierarchical))
-  expect_equal(length(unique(seen)), 3L, label = paste(seen, collapse = " | "))
-  expect_match(seen[["retrieval"]], "skim")
-  expect_match(seen[["hierarchical"]], "hier")
-
-  # v1 stripped every digit by default, so no question about a figure could be
-  # answered. parse_text() must not do that any more.
-  chunks <- quiet(parse_text(gr_example(), chunk_token_limit = 200))
-  expect_type(chunks, "character")
-  expect_gt(length(chunks), 1L)
-  expect_true(any(grepl("[0-9]", chunks)))
-
-  for (f in list(gpt_read_chunked, gpt_read_retrieval, gpt_read_hierarchical,
-                 gpt_read_multipass)) {
-    out <- quiet(f(chunks[1:2], "What was revenue?", client = mock_echo()))
-    expect_type(out, "character")
-    expect_true(nzchar(out))
-  }
 })
 
 test_that("gr_options stores an explicit NULL instead of ignoring it", {
