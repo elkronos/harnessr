@@ -61,6 +61,15 @@ says what it trades off and how to test it with `hr_sweep()`.
   each system prompt by stage. It reads only the record and makes no claim
   beyond it.
 
+* New `gr_step()` builds one stage of a run (`"ingest"`, `"segment"` or
+  `"read"`) as a step, a function of `(input, ctx)`, with its settings
+  checked when the step is built, and `gr_step_retrieve()` returns the
+  chunks `retrieve` would send, ranked and scored, without the answer
+  request. Inside an `hr_arm()` run function they use the run's
+  `ctx$client` and `ctx$trace`, so a benchmark counts and limits their
+  requests; they are composed by hand for now, and carry the attributes a
+  later `hr_chain()` will read.
+
 ## Claims and the write-up: what each rests on
 
 * The claims and writing prompts now show each extracted value with its

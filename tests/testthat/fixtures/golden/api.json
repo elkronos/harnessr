@@ -356,6 +356,14 @@
       "formals": ["stage = NULL"],
       "type": "function"
     },
+    "gr_step": {
+      "formals": ["kind = c(\"ingest\", \"segment\", \"read\")", "...", "name = NULL"],
+      "type": "function"
+    },
+    "gr_step_retrieve": {
+      "formals": ["top_k = 6L", "...", "name = NULL"],
+      "type": "function"
+    },
     "gr_stop_test": {
       "formals": ["screened_order", "target = 0.95", "alpha = 0.05", "n_total = NULL"],
       "type": "function"
@@ -806,6 +814,11 @@
     },
     "print.gr_search_recall": {
       "class": "gr_search_recall",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_step": {
+      "class": "gr_step",
       "formals": ["x", "..."],
       "generic": "print"
     },

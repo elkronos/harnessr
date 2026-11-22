@@ -196,6 +196,7 @@ reference:
   - hr_reference
   - hr_scorer
   - gr_arm
+  - gr_step
   - gr_qa_reference
   - gr_scorer_answer
 

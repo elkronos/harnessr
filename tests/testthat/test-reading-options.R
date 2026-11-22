@@ -500,3 +500,81 @@ test_that("gr_methods_text() describes a benchmark's design and requests", {
   expect_match(txt, "on 1 item(s), 2 run(s) per item, 4 run(s) in all", fixed = TRUE)
   expect_match(txt, "model request(s)", fixed = TRUE)
 })
+
+# ---------------------------------------------------------------------------
+# Built-in steps: gr_step() and gr_step_retrieve()
+# ---------------------------------------------------------------------------
+
+test_that("a step's spec is checked when the step is built", {
+  expect_error(gr_step("read", reader = "no_such_reader"))
+  expect_error(gr_step("read", premise = "yes"), class = "gr_bad_setting")
+  expect_error(gr_step("segment", method = "nope"))
+  expect_error(gr_step("summarise"))
+  expect_error(gr_step_retrieve(fusion = "max"), class = "gr_bad_setting")
+  expect_warning(gr_step_retrieve(top_k = 0), class = "gr_clamped")
+  s <- gr_step("read", reader = "stuff", name = "answer")
+  expect_s3_class(s, "gr_step")
+  expect_true(is.function(s))
+  expect_identical(attr(s, "kind"), "read")
+  expect_identical(attr(s, "name"), "answer")
+  expect_s3_class(attr(s, "spec"), "gr_read_spec")
+  expect_identical(attr(gr_step_retrieve(3), "spec")$top_k, 3L)
+  expect_output(print(gr_step_retrieve(3)), "<gr_step> retrieve \\(retrieve\\): top_k=3")
+})
+
+test_that("steps chain by hand and record on ctx$trace", {
+  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  tr <- gr_trace()
+  ctx <- list(client = cl, trace = tr)
+  steps <- list(gr_step("ingest"),
+                gr_step("segment", method = "structural", max_tokens = 120, overlap_tokens = 0),
+                gr_step_retrieve(top_k = 2),
+                gr_step("read", reader = "stuff"))
+  item <- list(question = "What was revenue in 2024?", document = gr_example())
+  ans <- quiet(Reduce(function(x, step) step(x, ctx), steps, item))
+  expect_s3_class(ans, "gr_answer")
+  expect_identical(ans$answer, "Revenue was 45.2 million dollars.")
+  expect_length(ans$chunks_used, 2L)
+  labels <- vapply(tr$steps, function(s) as_chr1(s$label), "")
+  expect_true("step.retrieve" %in% labels)
+  expect_true("stuff.answer" %in% labels)
+  # The retrieve step made no answer request.
+  expect_false("retrieve.answer" %in% labels)
+  expect_length(Filter(function(x) identical(x$label, "stuff.answer"), cl$calls()), 1L)
+})
+
+test_that("gr_step_retrieve() keeps what the retrieve reader would send", {
+  ch <- ro_rank_doc()
+  q <- "What was revenue in 2024?"
+  cl <- gr_mock_client(function(m, p) "45.2 million")
+  st <- quiet(gr_step_retrieve(top_k = 3)(list(question = q, chunks = ch), list(client = cl)))
+  a <- quiet(gr_read(ch, q, cl, gr_read_spec("retrieve", top_k = 3)))
+  expect_identical(as.integer(st$chunks$chunks$chunk_id), as.integer(a$chunks_used))
+  expect_true(all(diff(st$chunks$chunks$score) <= 0))
+  expect_s3_class(st$chunks, "gr_chunks")
+  expect_identical(st$question, q)
+})
+
+test_that("steps run inside an hr_arm() under a benchmark", {
+  qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
+                        documents = gr_example(), answers = list("45.2 million"), split = "dev")
+  steps <- list(gr_step("segment", method = "structural", max_tokens = 120, overlap_tokens = 0),
+                gr_step_retrieve(top_k = 2), gr_step("read", reader = "stuff"))
+  arm <- hr_arm("steps", function(item, ctx) Reduce(function(x, s) s(x, ctx), steps, item))
+  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  bench <- quiet(hr_benchmark(list(arm), qa, runs = 2, client = cl, split = "dev",
+                              scorer = gr_scorer_answer()))
+  expect_true(all(bench$correct))
+  expect_true(all(bench$tokens_in > 0))
+  expect_true(all(is.na(bench$failure_kind) | bench$failure_kind == ""))
+})
+
+test_that("a step needs what it reads", {
+  expect_error(gr_step("read", reader = "stuff")(list(document = gr_example()),
+                                                 list(client = gr_mock_client())),
+               "question", class = "gr_bad_setting")
+  expect_error(gr_step("ingest")(list(question = "q"), NULL), "document",
+               class = "gr_bad_setting")
+  expect_error(gr_step_retrieve()(list(question = "q", chunks = ro_rank_doc()), NULL),
+               "ctx\\$client", class = "gr_bad_setting")
+})

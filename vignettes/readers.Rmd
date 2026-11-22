@@ -1118,6 +1118,32 @@ aggregate(cbind(calls, correct) ~ param.low_score, bench, mean)
 At the default the run ends after the scoring requests and is wrong;
 `"read_top_k"` makes the answer request and gets the figure.
 
+## Composing a run from steps
+
+`gr_step()` builds one stage of a run (ingest, segment or read) as a step, a
+function of `(input, ctx)`, and `gr_step_retrieve()` ranks the chunks and
+keeps the best, as `retrieve` does, without asking for an answer. Each
+step's settings are checked when it is built. Inside an `hr_arm()` the
+steps use the run's client and trace, so a benchmark counts and limits
+their requests:
+
+```{r}
+steps <- list(gr_step("segment", method = "structural", max_tokens = 120,
+                      overlap_tokens = 0),
+              gr_step_retrieve(top_k = 2),
+              gr_step("read", reader = "stuff"))
+steps[[2]]
+by_hand <- hr_arm("rank-then-stuff",
+                  function(item, ctx) Reduce(function(x, step) step(x, ctx), steps, item))
+bench <- sweep(list(by_hand, needle))
+aggregate(cbind(tokens_in, correct) ~ arm, bench, mean)
+```
+
+The hand-built arm ranks with `retrieve`'s ranking and then reads the two
+chunks it kept with `stuff`, so it sent 267 prompt tokens to the `"needle"`
+recipe's 797. `?gr_step` says what passes between the steps; `hr_chain()`,
+which will take the same steps, is not in this release.
+
 ```{r include = FALSE}
 gr_options(old)
 ```

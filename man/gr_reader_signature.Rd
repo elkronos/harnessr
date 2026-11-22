@@ -43,6 +43,7 @@ Other reading functions:
 \code{\link{gr_read_spec}()},
 \code{\link{gr_readers}()},
 \code{\link{gr_register_reader}()},
+\code{\link{gr_step}()},
 \code{\link{is_not_found}()},
 \code{\link{new_answer}()}
 }

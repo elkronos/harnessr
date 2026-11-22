@@ -78,6 +78,7 @@ Other reading functions:
 \code{\link{gr_reader_signature}()},
 \code{\link{gr_readers}()},
 \code{\link{gr_register_reader}()},
+\code{\link{gr_step}()},
 \code{\link{new_answer}()}
 }
 \concept{reading functions}
