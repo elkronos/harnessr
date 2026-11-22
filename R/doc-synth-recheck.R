@@ -59,7 +59,8 @@ content_stems <- function(text) {
 #' without a hedge or a word of contrast. No model is asked.
 #'
 #' A sentence states claim C when it stands in a section C was given (any
-#' section, for a heading the outline does not have), cites a study C rests
+#' section, for a heading that is not one of `sections`, the write-up's
+#' own), cites a study C rests
 #' on either way, points in C's direction (claim_direction()), and shares at
 #' least two content words with C (one, for a claim with fewer than two). If
 #' it then cites a study on C's contradicting side and carries no hedge
@@ -67,7 +68,8 @@ content_stems <- function(text) {
 #' reports that study as agreeing with a claim it contradicts. One row per
 #' sentence, claim and study: `section`, `sentence`, `claim_id`, `study`.
 #' @noRd
-contradiction_flags <- function(text_marked, claims, claim_sections = NULL, word = "study") {
+contradiction_flags <- function(text_marked, claims, claim_sections = NULL,
+                                sections = character(0), word = "study") {
   empty <- data.frame(section = character(0), sentence = character(0), claim_id = integer(0),
                       study = integer(0), stringsAsFactors = FALSE)
   if (!inherits(claims, "gr_claims") || !NROW(claims$claims)) return(empty)
@@ -84,7 +86,7 @@ contradiction_flags <- function(text_marked, claims, claim_sections = NULL, word
     given <- if (is.data.frame(claim_sections) && !is.na(head) &&
                  head %in% as.character(claim_sections$section)) {
       as.integer(claim_sections$claim_id[as.character(claim_sections$section) == head])
-    } else cw$claim_id
+    } else if (!is.na(head) && head %in% sections) integer(0) else cw$claim_id
     for (s in measured_sentences(pc$text[k], word)) {
       ids <- cited_ids(s, word)
       if (!length(ids)) next
@@ -230,7 +232,8 @@ gr_recheck <- function(synthesis, text_marked = synthesis$text_marked) {
   x$sentences <- sentence_links(text_marked, used, study_verified(used, x$values))
   x$uncited <- synth_uncited(used, ok, if (is.data.frame(sec_st)) sec_st else
     data.frame(section = character(0), study = integer(0)))
-  x$contradictions <- contradiction_flags(text_marked, x$claims, x$claim_sections)
+  x$contradictions <- contradiction_flags(text_marked, x$claims, x$claim_sections,
+                                          sections = x$sections$section)
   x$recheck <- list(unknown = unknown, unsupplied = unsupplied, unparsed = unparsed)
   x
 }

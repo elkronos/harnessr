@@ -538,4 +538,11 @@ test_that("a sentence citing a contradicting study for its claim, unhedged, is f
   expect_match(html, "Citations of a contradicting study, unhedged", fixed = TRUE)
   # Without claims there is nothing to contradict.
   expect_identical(nrow(ns$contradiction_flags("A [study 1].", NULL)), 0L)
+  # A section of the write-up given no claim states none; a heading the
+  # write-up did not have is read against every claim.
+  txt <- "## Gaps\n\nExercise improved mood in adults [study 1] [study 3]."
+  expect_identical(nrow(ns$contradiction_flags(txt, cm, s$claim_sections,
+                                               sections = c("Findings", "Gaps"))), 0L)
+  expect_identical(nrow(ns$contradiction_flags(txt, cm, s$claim_sections,
+                                               sections = "Findings")), 1L)
 })

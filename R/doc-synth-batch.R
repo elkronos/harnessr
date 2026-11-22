@@ -288,7 +288,8 @@
 #'       and cite a study on its contradicting side with no hedge ("may",
 #'       "suggest") and no word of contrast ("however", "mixed"): `section`,
 #'       `sentence`, `claim_id`, `study`. A sentence states a claim when it
-#'       stands in a section the claim was given, points in the claim's
+#'       stands in a section the claim was given (any claim, under a heading
+#'       the write-up did not have), points in the claim's
 #'       direction and shares at least two content words with it. Found by
 #'       counting words, with no model; a flag says where to look, and marks
 #'       nothing partial.}
@@ -818,7 +819,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
                                         if (is.null(claims)) NULL else
                                           data.frame(section = as.character(assign_map$section),
                                                      claim_id = as.integer(assign_map$claim_id),
-                                                     stringsAsFactors = FALSE))
+                                                     stringsAsFactors = FALSE),
+                                        sections = sections$section)
 
   out <- structure(list(
     text = append_references(published, refs),
