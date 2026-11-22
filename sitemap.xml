@@ -16,12 +16,7 @@
 <url><loc>https://elkronos.github.io/harnessr/index.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/news/index.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/answer_document.html</loc></url>
-<url><loc>https://elkronos.github.io/harnessr/reference/answer_question.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/as_json.html</loc></url>
-<url><loc>https://elkronos.github.io/harnessr/reference/gpt_read_chunked.html</loc></url>
-<url><loc>https://elkronos.github.io/harnessr/reference/gpt_read_hierarchical.html</loc></url>
-<url><loc>https://elkronos.github.io/harnessr/reference/gpt_read_multipass.html</loc></url>
-<url><loc>https://elkronos.github.io/harnessr/reference/gpt_read_retrieval.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_answer.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_api_key.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_arm.html</loc></url>
@@ -156,8 +151,6 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/is_not_found.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/new_answer.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/new_chunks.html</loc></url>
-<url><loc>https://elkronos.github.io/harnessr/reference/parse_text.html</loc></url>
-<url><loc>https://elkronos.github.io/harnessr/reference/readgpt_example.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/sub-.gr_reference_frame.html</loc></url>
 </urlset>
 

@@ -141,7 +141,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 #> List of 4
 #>  $ label      : chr "reduce"
 #>  $ attempts   : int 1
-#>  $ started_utc: chr "2026-11-22T01:04:13.661Z"
+#>  $ started_utc: chr "2026-11-22T01:33:12.186Z"
 #>  $ tokens     :List of 3
 #>   ..$ input     : int 296
 #>   ..$ output    : int 13
@@ -224,10 +224,10 @@ are left out, since they can hold credentials.
 
 tr <- gr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
-#> <gr_trace run_20261122010413.968_0c292a>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261122013312.669_bde6ae>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   cost: no cost recorded
 #>   actor: owner = finance team, run_by = ana, purpose = Q3 check 
-#>   started: 2026-11-22T01:04:13.969Z
+#>   started: 2026-11-22T01:33:12.669Z
 names(tr$config)
 #> [1] "options"   "r_version"
 ```
@@ -251,9 +251,8 @@ for a setting outside its choices
 such as a lexical fallback vector against an API embedding. Degradations
 are classed warnings: `gr_segment_fallback`, `gr_embed_fallback`,
 `gr_rerank_degraded`, `gr_iterative_degraded`, `gr_ensemble_degenerate`,
-`gr_duplicate_recipe`, `gr_deprecated`, `gr_ocr_unavailable`,
-`gr_clamped` with `hr_param_clamped` for a parameter moved to its
-nearest bound
+`gr_duplicate_recipe`, `gr_ocr_unavailable`, `gr_clamped` with
+`hr_param_clamped` for a parameter moved to its nearest bound
 ([`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)),
 `gr_parallel_share` for a parallel item whose share refused a later
 request (below), `gr_bad_correct` for a

@@ -77,6 +77,9 @@ remotes::install_github("elkronos/harnessr", build_vignettes = TRUE)
 ```
 
 The package and its repository were called readgpt up to version 0.6.0.
+Caches and recordings made under that name still answer. The v1
+functions and the `readgpt.*` options are removed; `NEWS.md` lists each
+one with its replacement.
 
 `build_vignettes = TRUE` also installs these guides, so
 [`vignette()`](https://rdrr.io/r/utils/vignette.html) can open them.

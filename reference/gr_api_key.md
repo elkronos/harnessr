@@ -1,8 +1,7 @@
 # Resolve the API key
 
-Looks in `key`, then the `harnessr.api_key` option (or, failing that,
-the deprecated `readgpt.api_key`), then `OPENAI_API_KEY`. Never prints
-or logs the key.
+Looks in `key`, then the `harnessr.api_key` option, then
+`OPENAI_API_KEY`. Never prints or logs the key.
 
 ## Usage
 

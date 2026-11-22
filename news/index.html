@@ -103,11 +103,53 @@
 <li><p><code><a href="../reference/hr_arm.html">hr_arm()</a></code>’s <code>ctx</code> gains <code>call_json(messages, schema, ...)</code>, a structured call sent through the same client, trace, governor and draw as <code>ctx$call()</code>. It returns the parsed reply, or a failed <code>gr_result</code> when the request failed or the reply does not meet the schema, which the scorers count as an error.</p></li>
 </ul></div>
 <div class="section level3">
+<h3 id="removed-0-6-0-9000">Removed<a class="anchor" aria-label="anchor" href="#removed-0-6-0-9000"></a></h3>
+<p>The deprecated names are removed. Each one warned and pointed to its replacement; calling a removed function is now an error, and a removed option is ignored. Caches, recordings and stores written before the rename still read: the <code>readgpt-cache-v2</code> and <code>readgpt-replay-v1</code> keys and the cache directory <code>tools::R_user_dir("readgpt", "cache")</code> are still looked up, and the corpus store key is computed as before.</p>
+<table class="table"><colgroup><col width="50%"><col width="50%"></colgroup><thead><tr><th>Removed</th>
+<th>Use instead</th>
+</tr></thead><tbody><tr><td><code>answer_question()</code></td>
+<td>
+<code><a href="../reference/answer_document.html">answer_document()</a></code>, or <code><a href="../reference/gr_compare.html">gr_compare()</a></code> for several recipes</td>
+</tr><tr><td><code>parse_text()</code></td>
+<td>
+<code><a href="../reference/gr_ingest.html">gr_ingest()</a></code>, then <code><a href="../reference/gr_segment.html">gr_segment()</a></code>
+</td>
+</tr><tr><td><code>gpt_read_chunked()</code></td>
+<td>
+<code><a href="../reference/gr_read.html">gr_read()</a></code> with <code>reader = "map_reduce"</code>
+</td>
+</tr><tr><td><code>gpt_read_retrieval()</code></td>
+<td>
+<code><a href="../reference/gr_read.html">gr_read()</a></code> with <code>reader = "skim"</code>
+</td>
+</tr><tr><td><code>gpt_read_hierarchical()</code></td>
+<td>
+<code><a href="../reference/gr_read.html">gr_read()</a></code> with <code>reader = "hierarchical"</code>
+</td>
+</tr><tr><td><code>gpt_read_multipass()</code></td>
+<td>
+<code><a href="../reference/gr_read.html">gr_read()</a></code> with <code>reader = "ensemble"</code>
+</td>
+</tr><tr><td><code>readgpt_example()</code></td>
+<td><code><a href="../reference/gr_example.html">gr_example()</a></code></td>
+</tr><tr><td><code>options(readgpt.api_key =)</code></td>
+<td><code>options(harnessr.api_key =)</code></td>
+</tr><tr><td><code>options(readgpt.allow_local_urls =)</code></td>
+<td><code>options(harnessr.allow_local_urls =)</code></td>
+</tr><tr><td>
+<code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code>’s <code>$kappa_legacy</code>
+</td>
+<td>
+<code>$kappa</code>; <code>$decisions</code> holds the 3x2 counts the old figure came from</td>
+</tr><tr><td>the <code>gr_deprecated</code> warning class</td>
+<td>none: nothing warns about an old name now</td>
+</tr></tbody></table></div>
+<div class="section level3">
 <h3 id="renamed-0-6-0-9000">Renamed<a class="anchor" aria-label="anchor" href="#renamed-0-6-0-9000"></a></h3>
-<ul><li><p><strong>The package is now called harnessr.</strong> readgpt grew a general core for model calls (clients, spending limits, a response cache, recordings that replay offline, traces) under its document-reading layer, and the new name says so. Load it with <code><a href="https://github.com/elkronos/harnessr" class="external-link">library(harnessr)</a></code>. The GitHub repository is renamed to <code>elkronos/harnessr</code> too, and GitHub sends the old address there, so <code>remotes::install_github("elkronos/harnessr")</code> installs it and the old <code>elkronos/readgpt</code> still works. The website moves to <a href="https://elkronos.github.io/harnessr/" class="uri">https://elkronos.github.io/harnessr/</a>. No exported function, class, argument or prompt changes name in this release except <code><a href="../reference/readgpt_example.html">readgpt_example()</a></code>, below.</p></li>
-<li><p><strong><code><a href="../reference/readgpt_example.html">readgpt_example()</a></code> is now <code><a href="../reference/gr_example.html">gr_example()</a></code></strong>, which returns the same path to the bundled example document. <code><a href="../reference/readgpt_example.html">readgpt_example()</a></code> still works, with one <code>gr_deprecated</code> warning per session naming the new function.</p></li>
+<ul><li><p><strong>The package is now called harnessr.</strong> readgpt grew a general core for model calls (clients, spending limits, a response cache, recordings that replay offline, traces) under its document-reading layer, and the new name says so. Load it with <code><a href="https://github.com/elkronos/harnessr" class="external-link">library(harnessr)</a></code>. The GitHub repository is renamed to <code>elkronos/harnessr</code> too, and GitHub sends the old address there, so <code>remotes::install_github("elkronos/harnessr")</code> installs it and the old <code>elkronos/readgpt</code> still works. The website moves to <a href="https://elkronos.github.io/harnessr/" class="uri">https://elkronos.github.io/harnessr/</a>. No exported function, class, argument or prompt changes name in this release except <code>readgpt_example()</code>, below.</p></li>
+<li><p><strong><code>readgpt_example()</code> is now <code><a href="../reference/gr_example.html">gr_example()</a></code></strong>, which returns the same path to the bundled example document. The old name is removed (see “Removed”).</p></li>
 <li><p><strong>Requests, cache keys and recordings are unchanged by the rename.</strong> Every request is sent as 0.6.0 sent it, and the corpus store key is the one 0.6.0 computed. The response-cache and replay keys change later in this release (see “Cache and replay keys” below), and the keys 0.6.0 computed are still looked up, so a warm cache, a recording made for <code><a href="../reference/gr_replay_client.html">gr_replay_client()</a></code> and a <code><a href="../reference/gr_read_many.html">gr_read_many()</a></code> store all keep answering.</p></li>
-<li><p><strong>Two options are renamed</strong>: <code>readgpt.api_key</code> is now <code>harnessr.api_key</code>, and <code>readgpt.allow_local_urls</code> is now <code>harnessr.allow_local_urls</code>. The old names are still read when the new ones are not set, with one <code>gr_deprecated</code> warning per session naming the new option.</p></li>
+<li><p><strong>Two options are renamed</strong>: <code>readgpt.api_key</code> is now <code>harnessr.api_key</code>, and <code>readgpt.allow_local_urls</code> is now <code>harnessr.allow_local_urls</code>. The old names are no longer read (see “Removed”).</p></li>
 <li><p>The help pages now suggest <code>tools::R_user_dir("harnessr", "cache")</code> for a cache that lasts. With that directory set, entries readgpt kept in <code>tools::R_user_dir("readgpt", "cache")</code> are read too, after it; new entries are written only to the new directory, and the old one is never cleared. The per-session default is now <code>file.path(tempdir(), "harnessr-cache")</code>.</p></li>
 <li><p>Text that named the package now says harnessr: the URL fetcher’s user agent (<code>harnessr/&lt;version&gt;</code>), the audit report’s title and footer, messages, and the Shiny app’s title. A trace’s <code>meta</code> still records the version under <code>readgpt</code>, so traces written before and after the rename read the same way.</p></li>
 </ul></div>
@@ -161,7 +203,7 @@
 </ul></div>
 <div class="section level3">
 <h3 id="screening-0-6-0-9000">Screening<a class="anchor" aria-label="anchor" href="#screening-0-6-0-9000"></a></h3>
-<ul><li><p><strong><code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code> computes kappa on kept against excluded.</strong> 0.6.0 took kappa over the screener’s three labels (include, unclear, exclude) against the person’s two, so every <code>"unclear"</code> counted as a disagreement, while sensitivity in the same object counted an unclear record as kept. The primary table is now kept (include or unclear) against excluded, the definition sensitivity uses, and <code>$agreement$strict</code> holds strict include against the rest as a secondary table. On the eight-record example in <code><a href="../reference/gr_calibrate.html">?gr_calibrate</a></code> kappa moves from 0.33 to 0.50. The old figure is <code>$kappa_legacy</code> for this release only, and is removed in the next.</p></li>
+<ul><li><p><strong><code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code> computes kappa on kept against excluded.</strong> 0.6.0 took kappa over the screener’s three labels (include, unclear, exclude) against the person’s two, so every <code>"unclear"</code> counted as a disagreement, while sensitivity in the same object counted an unclear record as kept. The primary table is now kept (include or unclear) against excluded, the definition sensitivity uses, and <code>$agreement$strict</code> holds strict include against the rest as a secondary table. On the eight-record example in <code><a href="../reference/gr_calibrate.html">?gr_calibrate</a></code> kappa moves from 0.33 to 0.50. The old figure is no longer reported (see “Removed”).</p></li>
 <li><p><strong>Kappa is no longer reported alone.</strong> Each agreement table carries Cohen’s kappa, PABAK and Gwet’s AC1 with intervals, the prevalence and bias indices, and the class-wise sensitivity, specificity, PPV and NPV; <code>$agreement$kept$paradox</code> flags a table whose prevalence index is above 0.8 in absolute value, where kappa says more about prevalence than agreement. <code>$decisions</code> holds the 3x2 counts, and <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and the audit report show them with the agreement set. The rate of <code>"unclear"</code> decisions is the existing <code>"deferred to a person"</code> metric, with its interval.</p></li>
 <li><p><strong>The kappa interval is a bootstrap over documents.</strong> It is a percentile bootstrap with B = 2000 under a fixed seed, so the same sample gives the same interval and the session’s random stream is untouched; B and the seed are in <code>$agreement$kept$bootstrap</code>. AC1 keeps Gwet’s (2008) variance. Where the screener and the person agree on every record, disagree on every record, or the sample holds fewer than 10 records, the kappa and AC1 intervals are left empty (NA) with a <code>$note</code> saying why, instead of a zero-width interval such as [1.00, 1.00].</p></li>
 <li><p><code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> on a calibration now shows the 3x2 counts on every sample, including one drawn from a single stratum. The audit report’s calibration section shows the same counts, and sensitivity, specificity, PPV and NPV with intervals beside kappa, PABAK and AC1.</p></li>

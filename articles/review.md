@@ -609,8 +609,8 @@ records, as here, the kappa and AC1 intervals are left empty with a
 Before this release kappa was taken over the screener’s three labels
 against the person’s two, so every `"unclear"` counted as a
 disagreement. On this example that gave 0.33 where the
-kept-against-excluded figure is 0.50. The old figure is
-`cal$kappa_legacy` for this release only, and is removed in the next.
+kept-against-excluded figure is 0.50. The old figure is no longer
+reported.
 
 A rate from three observations is not a finding. The intervals on the
 rates are Wilson score intervals, which stay sensible at zero and one

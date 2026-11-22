@@ -314,6 +314,29 @@ has a measurement behind it.
   failed or the reply does not meet the schema, which the scorers count
   as an error.
 
+### Removed
+
+The deprecated names are removed. Each one warned and pointed to its
+replacement; calling a removed function is now an error, and a removed
+option is ignored. Caches, recordings and stores written before the
+rename still read: the `readgpt-cache-v2` and `readgpt-replay-v1` keys
+and the cache directory `tools::R_user_dir("readgpt", "cache")` are
+still looked up, and the corpus store key is computed as before.
+
+| Removed | Use instead |
+|----|----|
+| `answer_question()` | [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md), or [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) for several recipes |
+| `parse_text()` | [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md), then [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md) |
+| `gpt_read_chunked()` | [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md) with `reader = "map_reduce"` |
+| `gpt_read_retrieval()` | [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md) with `reader = "skim"` |
+| `gpt_read_hierarchical()` | [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md) with `reader = "hierarchical"` |
+| `gpt_read_multipass()` | [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md) with `reader = "ensemble"` |
+| `readgpt_example()` | [`gr_example()`](https://elkronos.github.io/harnessr/reference/gr_example.md) |
+| `options(readgpt.api_key =)` | `options(harnessr.api_key =)` |
+| `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` |
+| [`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)’s `$kappa_legacy` | `$kappa`; `$decisions` holds the 3x2 counts the old figure came from |
+| the `gr_deprecated` warning class | none: nothing warns about an old name now |
+
 ### Renamed
 
 - **The package is now called harnessr.** readgpt grew a general core
@@ -327,16 +350,12 @@ has a measurement behind it.
   `elkronos/readgpt` still works. The website moves to
   <https://elkronos.github.io/harnessr/>. No exported function, class,
   argument or prompt changes name in this release except
-  [`readgpt_example()`](https://elkronos.github.io/harnessr/reference/readgpt_example.md),
-  below.
+  `readgpt_example()`, below.
 
-- **[`readgpt_example()`](https://elkronos.github.io/harnessr/reference/readgpt_example.md)
-  is now
+- **`readgpt_example()` is now
   [`gr_example()`](https://elkronos.github.io/harnessr/reference/gr_example.md)**,
-  which returns the same path to the bundled example document.
-  [`readgpt_example()`](https://elkronos.github.io/harnessr/reference/readgpt_example.md)
-  still works, with one `gr_deprecated` warning per session naming the
-  new function.
+  which returns the same path to the bundled example document. The old
+  name is removed (see “Removed”).
 
 - **Requests, cache keys and recordings are unchanged by the rename.**
   Every request is sent as 0.6.0 sent it, and the corpus store key is
@@ -351,9 +370,8 @@ has a measurement behind it.
 
 - **Two options are renamed**: `readgpt.api_key` is now
   `harnessr.api_key`, and `readgpt.allow_local_urls` is now
-  `harnessr.allow_local_urls`. The old names are still read when the new
-  ones are not set, with one `gr_deprecated` warning per session naming
-  the new option.
+  `harnessr.allow_local_urls`. The old names are no longer read (see
+  “Removed”).
 
 - The help pages now suggest `tools::R_user_dir("harnessr", "cache")`
   for a cache that lasts. With that directory set, entries readgpt kept
@@ -734,8 +752,8 @@ has a measurement behind it.
   include against the rest as a secondary table. On the eight-record
   example in
   [`?gr_calibrate`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
-  kappa moves from 0.33 to 0.50. The old figure is `$kappa_legacy` for
-  this release only, and is removed in the next.
+  kappa moves from 0.33 to 0.50. The old figure is no longer reported
+  (see “Removed”).
 
 - **Kappa is no longer reported alone.** Each agreement table carries
   Cohen’s kappa, PABAK and Gwet’s AC1 with intervals, the prevalence and

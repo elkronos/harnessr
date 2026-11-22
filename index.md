@@ -17,8 +17,8 @@ model call is budgeted, recorded and checked, and can be cached.
 
 harnessr was called readgpt up to version 0.6.0, and so was its GitHub
 repository. Requests, cache keys and recordings are unchanged by the
-rename; the `readgpt.*` options are still read, with a warning (see
-`NEWS.md`).
+rename, and caches and recordings made under the old name still answer.
+The old function and option names are removed (see `NEWS.md`).
 
 The [guides](#guides) explain each part in depth and all run offline,
 without a key. Start with
@@ -421,19 +421,22 @@ real key can never change a result.
 
 ## Migrating from v1
 
-The old entry points still work and map onto the new pipeline, warning
-once:
+The v1 entry points are removed. Each one has a replacement:
 
 | v1 | now |
 |----|----|
 | `answer_question(f, q, mode = "Chunked")` | `answer_document(f, q, "thorough")` |
 | `parse_text(f, chunk_method = "semantic")` | `gr_ingest(f)` → `gr_segment(doc, "semantic")` |
-| [`gpt_read_chunked()`](https://elkronos.github.io/harnessr/reference/gpt_read_chunked.md) | `gr_read(ch, q, cl, "map_reduce")` |
-| [`gpt_read_retrieval()`](https://elkronos.github.io/harnessr/reference/gpt_read_retrieval.md) | `gr_read(ch, q, cl, "skim")` |
-| [`gpt_read_hierarchical()`](https://elkronos.github.io/harnessr/reference/gpt_read_hierarchical.md) | `gr_read(ch, q, cl, "hierarchical")` |
-| [`gpt_read_multipass()`](https://elkronos.github.io/harnessr/reference/gpt_read_multipass.md) | `gr_read(ch, q, cl, "ensemble")` |
+| `gpt_read_chunked()` | `gr_read(ch, q, cl, "map_reduce")` |
+| `gpt_read_retrieval()` | `gr_read(ch, q, cl, "skim")` |
+| `gpt_read_hierarchical()` | `gr_read(ch, q, cl, "hierarchical")` |
+| `gpt_read_multipass()` | `gr_read(ch, q, cl, "ensemble")` |
+| `readgpt_example()` | [`gr_example()`](https://elkronos.github.io/harnessr/reference/gr_example.md) |
+| `options(readgpt.api_key =)` | `options(harnessr.api_key =)` |
+| `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` |
 
-Three behaviour changes are deliberate and will alter your results:
+Three behaviour changes from v1 are deliberate and will alter your
+results:
 
 1.  **`mode` no longer defaults to all five modes.**
     `answer_question(f, q)` in v1 ran every mode: 41 API calls on an
@@ -443,13 +446,13 @@ Three behaviour changes are deliberate and will alter your results:
     cost, and its answer relative to `mode = "Chunked"` alone.
 3.  **Digits are no longer stripped by default.** v1’s
     `remove_numbers = TRUE` default was unreachable from
-    [`answer_question()`](https://elkronos.github.io/harnessr/reference/answer_question.md),
-    so every figure, date and percentage was deleted before the model
-    saw the document.
+    `answer_question()`, so every figure, date and percentage was
+    deleted before the model saw the document.
 
-v1’s `refine = TRUE` is mapped to citations only. Its verification pass
-is not reproduced because it could never run: it called a
-`search_text()` function that was never defined anywhere in the
+For v1’s `refine = TRUE`, ask for citations with `cite = TRUE` in
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
+Its verification pass has no replacement because it could never run: it
+called a `search_text()` function that was never defined anywhere in the
 repository.
 
 The v1 source is kept under `legacy/` for reference and A/B comparison.

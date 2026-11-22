@@ -62,9 +62,7 @@ and synthesises what was found
 ([`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)).
 
 harnessr was called readgpt up to version 0.6.0. Requests, cache keys
-and recordings are unchanged by the rename. The `readgpt.api_key` and
-`readgpt.allow_local_urls` options are still read, with a warning, when
-their `harnessr.` names are not set.
+and recordings are unchanged by the rename.
 
 Any ingest x any segmenter x any reader composes.
 [`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)

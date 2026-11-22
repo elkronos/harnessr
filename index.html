@@ -69,7 +69,7 @@
 </h1></div>
 <p><a href="https://github.com/elkronos/harnessr/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/elkronos/harnessr/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://github.com/elkronos/harnessr/actions/workflows/tests.yaml" class="external-link"><img src="https://github.com/elkronos/harnessr/actions/workflows/tests.yaml/badge.svg" alt="tests"></a></p>
 <p>For one document, <code><a href="reference/answer_document.html">answer_document()</a></code> picks an ingest, a segmentation and a reading strategy, and returns an answer with a trace of everything it did. For a folder, <code><a href="reference/gr_screen.html">gr_screen()</a></code> decides which documents count, <code><a href="reference/gr_extract.html">gr_extract()</a></code> fills a typed schema across all of them, and <code><a href="reference/gr_synthesise.html">gr_synthesise()</a></code> writes the result up with every claim citing the row it rests on. Every model call is budgeted, recorded and checked, and can be cached.</p>
-<p>harnessr was called readgpt up to version 0.6.0, and so was its GitHub repository. Requests, cache keys and recordings are unchanged by the rename; the <code>readgpt.*</code> options are still read, with a warning (see <code>NEWS.md</code>).</p>
+<p>harnessr was called readgpt up to version 0.6.0, and so was its GitHub repository. Requests, cache keys and recordings are unchanged by the rename, and caches and recordings made under the old name still answer. The old function and option names are removed (see <code>NEWS.md</code>).</p>
 <p>The <a href="#guides">guides</a> explain each part in depth and all run offline, without a key. Start with <code><a href="articles/harnessr.html">vignette("harnessr")</a></code>. They are also on the website, <a href="https://elkronos.github.io/harnessr/" class="uri">https://elkronos.github.io/harnessr/</a>, with the reference for every function.</p>
 <div class="section level2">
 <h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
@@ -400,7 +400,7 @@
 <div class="section level2">
 <h2 id="migrating-from-v1">Migrating from v1<a class="anchor" aria-label="anchor" href="#migrating-from-v1"></a>
 </h2>
-<p>The old entry points still work and map onto the new pipeline, warning once:</p>
+<p>The v1 entry points are removed. Each one has a replacement:</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -422,33 +422,45 @@
 </td>
 </tr>
 <tr>
-<td><code><a href="reference/gpt_read_chunked.html">gpt_read_chunked()</a></code></td>
+<td><code>gpt_read_chunked()</code></td>
 <td><code>gr_read(ch, q, cl, "map_reduce")</code></td>
 </tr>
 <tr>
-<td><code><a href="reference/gpt_read_retrieval.html">gpt_read_retrieval()</a></code></td>
+<td><code>gpt_read_retrieval()</code></td>
 <td><code>gr_read(ch, q, cl, "skim")</code></td>
 </tr>
 <tr>
-<td><code><a href="reference/gpt_read_hierarchical.html">gpt_read_hierarchical()</a></code></td>
+<td><code>gpt_read_hierarchical()</code></td>
 <td><code>gr_read(ch, q, cl, "hierarchical")</code></td>
 </tr>
 <tr>
-<td><code><a href="reference/gpt_read_multipass.html">gpt_read_multipass()</a></code></td>
+<td><code>gpt_read_multipass()</code></td>
 <td><code>gr_read(ch, q, cl, "ensemble")</code></td>
+</tr>
+<tr>
+<td><code>readgpt_example()</code></td>
+<td><code><a href="reference/gr_example.html">gr_example()</a></code></td>
+</tr>
+<tr>
+<td><code>options(readgpt.api_key =)</code></td>
+<td><code>options(harnessr.api_key =)</code></td>
+</tr>
+<tr>
+<td><code>options(readgpt.allow_local_urls =)</code></td>
+<td><code>options(harnessr.allow_local_urls =)</code></td>
 </tr>
 </tbody>
 </table>
-<p>Three behaviour changes are deliberate and will alter your results:</p>
+<p>Three behaviour changes from v1 are deliberate and will alter your results:</p>
 <ol style="list-style-type: decimal">
 <li>
 <strong><code>mode</code> no longer defaults to all five modes.</strong> <code>answer_question(f, q)</code> in v1 ran every mode: 41 API calls on an 8-paragraph document, where one was expected.</li>
 <li>
 <strong>Modes no longer contaminate each other.</strong> In v1, <code>mode = c("Chunked", "Semantic")</code> changed Chunked’s chunking, its cost, and its answer relative to <code>mode = "Chunked"</code> alone.</li>
 <li>
-<strong>Digits are no longer stripped by default.</strong> v1’s <code>remove_numbers = TRUE</code> default was unreachable from <code><a href="reference/answer_question.html">answer_question()</a></code>, so every figure, date and percentage was deleted before the model saw the document.</li>
+<strong>Digits are no longer stripped by default.</strong> v1’s <code>remove_numbers = TRUE</code> default was unreachable from <code>answer_question()</code>, so every figure, date and percentage was deleted before the model saw the document.</li>
 </ol>
-<p>v1’s <code>refine = TRUE</code> is mapped to citations only. Its verification pass is not reproduced because it could never run: it called a <code>search_text()</code> function that was never defined anywhere in the repository.</p>
+<p>For v1’s <code>refine = TRUE</code>, ask for citations with <code>cite = TRUE</code> in <code><a href="reference/gr_read_spec.html">gr_read_spec()</a></code>. Its verification pass has no replacement because it could never run: it called a <code>search_text()</code> function that was never defined anywhere in the repository.</p>
 <p>The v1 source is kept under <code>legacy/</code> for reference and A/B comparison. It is not loaded by the package. To reproduce its ingestion and chunking under the current code, use the <code>legacy</code> recipe, which reproduces its digit stripping, 3000-token paragraph chunks and lack of overlap. The regression suite in <code>tests/testthat/</code> reproduces each of these defects against the current code.</p>
 </div>
 </div>

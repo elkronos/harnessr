@@ -206,7 +206,7 @@ are kept as <code>tokens$reasoning</code> and
 <span><span class="co">#&gt; List of 4</span></span>
 <span><span class="co">#&gt;  $ label      : chr "reduce"</span></span>
 <span><span class="co">#&gt;  $ attempts   : int 1</span></span>
-<span><span class="co">#&gt;  $ started_utc: chr "2026-11-22T01:04:13.661Z"</span></span>
+<span><span class="co">#&gt;  $ started_utc: chr "2026-11-22T01:33:12.186Z"</span></span>
 <span><span class="co">#&gt;  $ tokens     :List of 3</span></span>
 <span><span class="co">#&gt;   ..$ input     : int 296</span></span>
 <span><span class="co">#&gt;   ..$ output    : int 13</span></span>
@@ -283,10 +283,10 @@ credentials.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_trace.html">gr_trace</a></span><span class="op">(</span>owner <span class="op">=</span> <span class="st">"finance team"</span>, run_by <span class="op">=</span> <span class="st">"ana"</span>, purpose <span class="op">=</span> <span class="st">"Q3 check"</span><span class="op">)</span></span>
 <span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261122010413.968_0c292a&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261122013312.669_bde6ae&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   cost: no cost recorded</span></span>
 <span><span class="co">#&gt;   actor: owner = finance team, run_by = ana, purpose = Q3 check </span></span>
-<span><span class="co">#&gt;   started: 2026-11-22T01:04:13.969Z</span></span>
+<span><span class="co">#&gt;   started: 2026-11-22T01:33:12.669Z</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">tr</span><span class="op">$</span><span class="va">config</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "options"   "r_version"</span></span></code></pre></div>
 <p><code>as_json(ans)</code> writes the answer with every prompt and
@@ -312,9 +312,8 @@ against an API embedding. Degradations are classed warnings:
 <code>gr_segment_fallback</code>, <code>gr_embed_fallback</code>,
 <code>gr_rerank_degraded</code>, <code>gr_iterative_degraded</code>,
 <code>gr_ensemble_degenerate</code>, <code>gr_duplicate_recipe</code>,
-<code>gr_deprecated</code>, <code>gr_ocr_unavailable</code>,
-<code>gr_clamped</code> with <code>hr_param_clamped</code> for a
-parameter moved to its nearest bound
+<code>gr_ocr_unavailable</code>, <code>gr_clamped</code> with
+<code>hr_param_clamped</code> for a parameter moved to its nearest bound
 (<code><a href="../articles/extending.html">vignette("extending")</a></code>), <code>gr_parallel_share</code> for
 a parallel item whose share refused a later request (below),
 <code>gr_bad_correct</code> for a <code><a href="../reference/gr_compare.html">gr_compare()</a></code>

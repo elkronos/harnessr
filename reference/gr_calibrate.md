@@ -111,11 +111,6 @@ An object of class `gr_calibration`:
   `statistic`, `estimate`, `lower`, `upper`) and `paradox`. `NULL` for a
   sample of one stratum.
 
-- `kappa_legacy`:
-
-  Deprecated: the 0.6.0 kappa on the screener's three labels against the
-  person's two. Removed in the next release.
-
 - `decisions`:
 
   The 3x2 counts: the screener's include, unclear and exclude by the
@@ -247,9 +242,8 @@ records, the kappa and AC1 intervals would be a point or close to one,
 so they are left empty and `$agreement$kept$note` says why.
 
 0.6.0 computed kappa on the screener's three labels against the person's
-two, so every `"unclear"` counted as a disagreement. That figure is kept
-as `$kappa_legacy` for this release only, so a number already quoted can
-be traced; it is not the screener's agreement with a person.
+two, so every `"unclear"` counted as a disagreement. That figure is no
+longer reported; it is not the screener's agreement with a person.
 
 The rate of `"unclear"` decisions is the metric
 `"deferred to a person"`, with its interval, and the 3x2 counts behind

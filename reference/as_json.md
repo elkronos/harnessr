@@ -61,7 +61,8 @@ cleaning steps an ingest ran), which are arrays at every length.
 ``` r
 cl <- gr_mock_client(function(m, p) "45.2 million dollars")
 ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
-#> Using cached ingestion for this document + settings.
+#> Extracting 'annual_report.md' with the 'md' extractor.
+#> Ingested 17 block(s), ~574 tokens (12 chars removed by cleaning).
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
 

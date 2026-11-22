@@ -14,11 +14,6 @@ gr_example()
 
 Absolute path to the file.
 
-## See also
-
-[`readgpt_example()`](https://elkronos.github.io/harnessr/reference/readgpt_example.md),
-its name before the package was renamed.
-
 ## Examples
 
 ``` r

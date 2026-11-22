@@ -162,10 +162,6 @@ against the rest), each a list of <code>table</code>, <code>n</code>, <code>stat
 statistic: <code>statistic</code>, <code>estimate</code>, <code>lower</code>, <code>upper</code>) and <code>paradox</code>.
 <code>NULL</code> for a sample of one stratum.</p></dd>
 
-<dt><code>kappa_legacy</code></dt>
-<dd><p>Deprecated: the 0.6.0 kappa on the screener's
-three labels against the person's two. Removed in the next release.</p></dd>
-
 <dt><code>decisions</code></dt>
 <dd><p>The 3x2 counts: the screener's include, unclear and
 exclude by the person's eligible and not.</p></dd>
@@ -288,9 +284,8 @@ record, disagree on every record, or the sample has fewer than 10 records,
 the kappa and AC1 intervals would be a point or close to one, so they are
 left empty and <code>$agreement$kept$note</code> says why.</p>
 <p>0.6.0 computed kappa on the screener's three labels against the person's
-two, so every <code>"unclear"</code> counted as a disagreement. That figure is kept as
-<code>$kappa_legacy</code> for this release only, so a number already quoted can be
-traced; it is not the screener's agreement with a person.</p>
+two, so every <code>"unclear"</code> counted as a disagreement. That figure is no
+longer reported; it is not the screener's agreement with a person.</p>
 <p>The rate of <code>"unclear"</code> decisions is the metric <code>"deferred to a person"</code>,
 with its interval, and the 3x2 counts behind both tables are in
 <code>$decisions</code>.</p>

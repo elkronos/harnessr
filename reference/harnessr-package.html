@@ -86,9 +86,7 @@ returns a <a href="gr_answer.html">gr_answer</a>.</p></dd>
 </dl><p>Over a set of documents it also screens (<code><a href="gr_screen.html">gr_screen()</a></code>), extracts fields
 (<code><a href="gr_extract.html">gr_extract()</a></code>) and synthesises what was found (<code><a href="gr_synthesise.html">gr_synthesise()</a></code>).</p>
 <p>harnessr was called readgpt up to version 0.6.0. Requests, cache keys and
-recordings are unchanged by the rename. The <code>readgpt.api_key</code> and
-<code>readgpt.allow_local_urls</code> options are still read, with a warning, when
-their <code>harnessr.</code> names are not set.</p>
+recordings are unchanged by the rename.</p>
 <p>Any ingest x any segmenter x any reader composes. <code><a href="gr_recipe.html">gr_recipe()</a></code> binds one of
 each into a named pipeline; <code><a href="answer_document.html">answer_document()</a></code> runs one; <code><a href="gr_compare.html">gr_compare()</a></code> runs
 several over one document and reports how they differ.</p>
