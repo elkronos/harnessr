@@ -490,6 +490,8 @@ synth_revise <- function(drafted, question, client, spec, trace, style = NULL,
   text <- as_chr1(drafted)
   report <- list()
   steps <- character(0)
+  judging <- identical(spec[["revision_check", exact = TRUE]], "judge")
+  flags <- list()
   # Every pass is measured by strength_guard(), whose words are English. On a
   # draft in another language it could refuse nothing, so a pass that turned
   # "three small trials suggest" into "trials prove" was kept and published.
@@ -517,6 +519,17 @@ synth_revise <- function(drafted, question, client, spec, trace, style = NULL,
       # NA for a pass refused before its length was measured, or never sent.
       words_before = as_int1(step$words_before, NA_integer_),
       words_after = as_int1(step$words_after, NA_integer_), stringsAsFactors = FALSE)
+    # Under revision_check = "judge", the sentences the judge flagged, as a
+    # column of this frame only then, so the default report keeps its shape.
+    if (judging) {
+      jd <- step[["judged", exact = TRUE]]
+      report[[length(report)]]$flagged <- if (is.null(jd)) NA_integer_ else
+        sum(jd$verdict %in% c("stronger", "not_entailed"))
+      if (!is.null(jd) && nrow(jd)) {
+        flags[[length(flags) + 1L]] <- cbind(data.frame(pass = pass, round = round,
+                                                        stringsAsFactors = FALSE), jd)
+      }
+    }
     changed <- isTRUE(step$kept) && !identical(step$text, text)
     if (isTRUE(step$kept)) {
       text <- step$text
@@ -529,8 +542,14 @@ synth_revise <- function(drafted, question, client, spec, trace, style = NULL,
                lost = character(0), added = character(0), reason = character(0),
                words_before = integer(0), words_after = integer(0), stringsAsFactors = FALSE)
   rownames(rep_df) <- NULL
+  if (judging && !"flagged" %in% names(rep_df)) rep_df$flagged <- integer(0)
   list(text = if (identical(text, as_chr1(drafted))) NULL else text, report = rep_df,
-       steps = steps)
+       steps = steps,
+       flags = if (judging) {
+         if (length(flags)) do.call(rbind, flags) else
+           data.frame(pass = character(0), round = integer(0), sentence = character(0),
+                      verdict = character(0), reason = character(0), stringsAsFactors = FALSE)
+       })
 }
 
 #' Every provider's spelling of "stopped at the output limit".
@@ -675,5 +694,95 @@ revise_once <- function(drafted, question, client, spec, trace, style, pass) {
             class = "gr_revision_uncut")
     return(c(list(ran = TRUE, kept = FALSE, reason = len$reason), words))
   }
-  c(list(ran = TRUE, kept = TRUE, text = res$text, reason = NA_character_), words)
+  # revision_check = "judge": every sentence the kept revision changed is
+  # graded against the draft sentences it came from. Advisory: a flag is
+  # reported and warned about, and the revision stands.
+  judged <- if (identical(spec[["revision_check", exact = TRUE]], "judge")) {
+    judge_revision(drafted, res$text, client, spec, trace)
+  }
+  if (!is.null(judged)) {
+    bad <- judged[judged$verdict %in% c("stronger", "not_entailed"), , drop = FALSE]
+    if (nrow(bad)) {
+      gr_warn(sprintf(paste0("The judge flagged %d sentence(s) of the '%s' pass as claiming more ",
+                             "than the draft (advisory; the revision was kept): %s"),
+                      nrow(bad), pass, paste(sprintf("\"%s\" (%s)", bad$sentence, bad$verdict),
+                                             collapse = "; ")),
+              class = "gr_revision_flagged")
+    }
+  }
+  c(list(ran = TRUE, kept = TRUE, text = res$text, reason = NA_character_), words,
+    if (!is.null(judged)) list(judged = judged))
+}
+
+# ---------------------------------------------------------------------------
+# revision_check = "judge": an advisory check behind the lexicon guard.
+# The guard counts words, so a revision that turns "is associated with" into
+# "reduces" passes it: neither phrase is a hedge or a booster. Each sentence
+# the revision changed is graded by a model judge (hr_judge(), so its
+# requests are held to the run's governor) against the draft sentences it
+# came from: does it follow from them, and does it claim no more? A sentence
+# the judge finds stronger, or not entailed, is flagged. The check is
+# advisory: it flags and warns, and never changes or discards the revision.
+# ---------------------------------------------------------------------------
+
+#' What the revision judge decides, in words.
+#' @noRd
+.gr_revision_rubric <- paste(
+  "The reference is one or more sentences of a draft review; the response is a revised",
+  "sentence. Grade 'holds' when everything the response claims follows from the reference",
+  "and no claim is stronger: no hedge dropped from a claim, no association made a cause, no",
+  "'some' made 'all'. Moving a hedge into another sentence while the claim keeps it is fine.",
+  "Grade 'stronger' when the response claims more than the reference supports, and",
+  "'not_entailed' when it says something the reference does not say at all.")
+
+#' The judge's reply schema: one of three grades and a reason.
+#' @noRd
+.gr_revision_schema <- list(
+  type = "object", additionalProperties = FALSE, required = list("verdict", "reason"),
+  properties = list(verdict = list(type = "string",
+                                   enum = list("holds", "stronger", "not_entailed")),
+                    reason = list(type = "string")))
+
+#' The draft sentences a revised sentence came from: those citing a study
+#' it cites, else the two that share most of its words.
+#' @noRd
+revision_sources <- function(sentence, draft_sents, word = "study") {
+  ids <- cited_ids(sentence, word)
+  if (length(ids)) {
+    hit <- vapply(draft_sents, function(s) any(cited_ids(s, word) %in% ids), logical(1))
+    if (any(hit)) return(draft_sents[hit])
+  }
+  words <- function(x) unique(strsplit(lower_text(gsub("[^[:alnum:] ]", " ", x)), " +")[[1]])
+  w <- words(sentence)
+  share <- vapply(draft_sents, function(s) {
+    d <- words(s)
+    length(intersect(w, d)) / max(length(union(w, d)), 1L)
+  }, numeric(1))
+  draft_sents[utils::head(order(-share), 2L)]
+}
+
+#' Grade each sentence a revision changed against the draft sentences it came
+#' from. Returns a data frame of `sentence`, `verdict` (`"holds"`,
+#' `"stronger"`, `"not_entailed"`, or `NA` when the judge gave none) and
+#' `reason`, one row per changed sentence.
+#' @noRd
+judge_revision <- function(before, after, client, spec, trace, word = "study") {
+  draft <- trimws(measured_sentences(before, word))
+  revised <- trimws(measured_sentences(after, word))
+  changed <- revised[nzchar(revised) & !revised %in% draft]
+  out <- data.frame(sentence = character(0), verdict = character(0), reason = character(0),
+                    stringsAsFactors = FALSE)
+  for (s in changed) {
+    ref <- paste(revision_sources(s, draft, word), collapse = " ")
+    if (!nzchar(trimws(ref))) next
+    j <- tryCatch(hr_judge(c(revision = s), client, mode = "grade", reference = ref,
+                           model = spec$model, orders = 1, rubric = .gr_revision_rubric,
+                           schema = .gr_revision_schema, trace = trace),
+                  error = function(e) NULL)
+    ok <- !is.null(j) && identical(j$outcome, "answered")
+    out[nrow(out) + 1L, ] <- list(s, if (ok) as_chr1(j$value) else NA_character_,
+                                  if (ok) as_chr1(j$verdicts$reason[1], NA_character_)
+                                  else "the judge gave no verdict")
+  }
+  out
 }

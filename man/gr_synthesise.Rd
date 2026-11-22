@@ -26,7 +26,8 @@ gr_synthesise(
   coherence_rounds = 1L,
   figure_bands = c(about = 0.1, over = 0.25, under = 0.25),
   prominence = c(top = 1/3, middle = 1/3),
-  study_weights = NULL
+  study_weights = NULL,
+  revision_check = c("lexicon", "judge")
 )
 }
 \arguments{
@@ -217,6 +218,21 @@ whose quotations verified (0.5 when unknown). That formula is untested,
 and is not a quality score. Or a function of the studies table (the
 extraction's included rows, with a \code{study} column of ids) returning one
 non-negative number per row. Used only with \code{claims}.}
+
+\item{revision_check}{What checks a kept revision pass beyond the
+citation, figure and length checks. \code{"lexicon"} (the default) is the
+word-counting guard against a stronger claim, as before. \code{"judge"} adds,
+behind it, a model judge (\code{\link[=hr_judge]{hr_judge()}}, on \code{model}, its requests held to
+the run's limits) that grades each sentence the revision changed against
+the draft sentences it came from (those citing the same study, else the
+two sharing most of its words): \code{"holds"}, \code{"stronger"} (it claims more,
+as "is associated with" become "reduces") or \code{"not_entailed"}. It costs
+one request per changed sentence. The judge is advisory: a flagged
+sentence is warned about (\code{gr_revision_flagged}), counted in the
+\code{flagged} column of \verb{$coherence} and listed in \verb{$revision_flags}, and the
+revision is kept as it was. The judge is not validated against people's
+labels (see \code{\link[=hr_judge_validate]{hr_judge_validate()}}), so its flags are for a person to
+read. Untested.}
 }
 \value{
 An object of class \code{gr_synthesis}:
@@ -238,6 +254,9 @@ if none ran: \code{pass} (which of \code{"structure"}, \code{"cut"}, \code{"regi
 the text the pass was given and in its revision; \code{NA} for a pass
 that was not sent, or was refused by a check made before the length
 check, which comes last).}
+\item{\code{revision_flags}}{Under \code{revision_check = "judge"} only: one
+row per sentence a kept revision changed, with \code{pass}, \code{round},
+\code{sentence}, \code{verdict} and the judge's \code{reason}.}
 \item{\code{unrendered}}{Studies a section cited honestly that \code{text} still
 shows as \verb{[study N]} somewhere, because a kept revision moved or
 reworded a citation of the same study that another section made

@@ -108,7 +108,7 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
   truncated <- gr_count_tokens(body) > bud$input
   dropped <- 0L
   if (truncated) {
-    t <- truncate_logged(body, bud$input, "hier.summaries", trace, level = level)
+    t <- cut_piece(body, bud$input, "hier.summaries", trace, spec, "summaries", level = level)
     body <- t$text; dropped <- t$dropped
     gr_warn(sprintf("Hierarchical summaries still exceed the budget after %d level(s); truncating.", level),
             class = "gr_overflow")

@@ -75,6 +75,7 @@ read_retrieve <- function(chunks, question, client, spec, trace) {
                               structure = answer_structure(spec))
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   fit <- fit_chunks(d, bud$input, order = keep)
+  log_dropped_chunks(trace, "retrieve.chunks", d, fit$dropped, spec)
   # Fit first, then arrange: what gets in is a relevance question, where it sits
   # in the prompt is a positional-attention one, and answering them in the other
   # order would let placement decide what gets dropped.

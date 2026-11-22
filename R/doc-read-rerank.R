@@ -193,6 +193,7 @@ read_rerank <- function(chunks, question, client, spec, trace) {
                               structure = answer_structure(spec))
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   fit <- fit_chunks(d, bud$input, order = as.integer(keep_ord))
+  log_dropped_chunks(trace, "rerank.chunks", d, fit$dropped, spec)
   fit$idx <- arrange_context(fit$idx, spec$context_order)
   sub <- d[fit$idx, , drop = FALSE]
   # Checked as `retrieve` checks it. Unchecked, a chunk the model had judged

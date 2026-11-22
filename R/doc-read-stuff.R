@@ -12,6 +12,7 @@ read_stuff <- function(chunks, question, client, spec, trace) {
                               structure = answer_structure(spec))
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   fit <- fit_chunks(d, bud$input)
+  log_dropped_chunks(trace, "stuff.chunks", d, fit$dropped, spec)
 
   if (length(fit$dropped)) {
     msg <- sprintf(paste0("The document is ~%d tokens but only ~%d fit in one '%s' prompt; ",

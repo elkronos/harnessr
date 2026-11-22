@@ -230,6 +230,8 @@ read_iterative <- function(chunks, question, client, spec, trace) {
           trace_note(trace, "iterative.unverified",
                      list(round = rounds, quotes = nrow(quotes),
                           failed = sum(!quotes$verified)))
+          # A trigger for effort_mode = "escalate"; recorded only under it.
+          hr_effort_event(trace, "verify_failed")
           nq <- as_chr1(json_text(out$value, "next_query"))
           if (nzchar(nq) && !nq %in% queries) queries <- c(queries, nq)
           next
@@ -301,6 +303,7 @@ read_iterative <- function(chunks, question, client, spec, trace) {
                     overhead = prompt_overhead(question, answer_system(spec$cite, spec$premise),
                                                spec$restate, structure = answer_structure(spec)))
   final <- iterative_fit(d, seen, seen_score, fbud$input, spec$context_order)
+  log_dropped_chunks(trace, "iterative.chunks", d, final$dropped, spec)
   sub <- d[final$rows, , drop = FALSE]
   res <- if (!nrow(sub)) {
     gr_result(FALSE, error = "no gathered chunk fits the context window")

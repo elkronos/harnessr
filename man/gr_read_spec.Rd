@@ -21,7 +21,7 @@ gr_read_spec(
   max_levels = 5L,
   max_rounds = 4L,
   preview_tokens = 1200L,
-  restate = c("auto", "always", "never"),
+  restate = c("auto", "always", "never", "window"),
   members = NULL,
   cite = FALSE,
   skim_model = NULL,
@@ -45,6 +45,9 @@ gr_read_spec(
   rrf_k = 60,
   answer_format = c("parsed", "schema"),
   premise_verdict = c("sentence", "structured"),
+  context_policy = NULL,
+  refine_state = c("draft", "ledger"),
+  effort_mode = c("static", "escalate"),
   ...
 )
 }
@@ -92,8 +95,13 @@ consecutive; \code{"edges"} puts the strongest first and second-strongest last,
 burying the weakest in the middle, because transformers attend measurably
 better to the beginning and end of a long context than to its middle.
 Selection is unaffected. This decides only placement, and it applies to
-\code{retrieve} and \code{rerank}, the two readers that put several ranked chunks in
-one prompt.}
+\code{retrieve}, \code{rerank} and \code{iterative}, the readers that put several ranked
+chunks in one prompt. Under a \code{context_policy} with \code{order_merges = TRUE}
+it also places the findings \code{map_reduce}, \code{skim} and the write-up merge
+combine and the member answers \code{ensemble} adjudicates. These have no
+relevance order, so \code{"relevance"} and \code{"document"} keep the order they
+come in (document order for findings, member order for an ensemble), and
+\code{"edges"} puts the first first and the second last.}
 
 \item{rerank_candidates, rerank_min_score}{For \code{rerank}: how many chunks to
 score, and the score below which a chunk is discarded. The candidates are
@@ -118,7 +126,10 @@ this package manages; keeping its input small is the mitigation.}
 
 \item{restate}{Whether to repeat the question before the excerpts as well as
 after them: \code{"auto"} when the body is long enough to bury the first ask,
-\code{"always"}, or \code{"never"}. A setting rather than a rule, because whether it
+\code{"always"}, or \code{"never"}. \code{"window"} repeats it once the excerpts pass the
+length the model attends to reliably, its effective window; no model's
+effective window is measured yet, so it repeats the question before
+excerpts longer than 50,000 tokens and warns (\code{gr_window_unmeasured}). A setting rather than a rule, because whether it
 helps is a question about your corpus and your model. Point \code{\link[=gr_compare]{gr_compare()}}
 at two recipes differing only in this and find out.}
 
@@ -338,6 +349,57 @@ one goes to the merge and sets \code{notes$degradation} to
 \code{"premise_flagged"}. \code{"structured"} without \code{premise = TRUE} is refused
 with a \code{gr_bad_setting} error. Untested.}
 
+\item{context_policy}{\code{NULL} (the default), or an \code{\link[=hr_context_policy]{hr_context_policy()}}
+(or a named list of its arguments) that decides what a request keeps
+when its text does not fit. \code{NULL} keeps each reader's own cuts, which
+keep the start of what they cut. With a policy:
+\itemize{
+\item \code{refine} fits its state (\code{draft} or \code{ledger}) and the new \code{excerpt}
+into the input budget together, cutting the pieces the policy allows
+in the order it gives, in place of giving each half the budget;
+\item the merges of \code{map_reduce} and \code{skim} (\code{findings}), the summaries
+\code{hierarchical} combines (\code{summaries}), the outline and skimmed
+sections of \code{preview} (\code{outline}, \code{excerpts}) and the joined findings
+of a merge that gives up are cut with the policy's keep rule for that
+piece. These pieces have no scores, so the readers read a
+\code{"scored"} rule as \code{"head"};
+\item the readers that pack whole chunks (\code{stuff}, \code{retrieve}, \code{rerank},
+\code{preview}, \code{iterative}) write a \code{"truncate"} step naming the chunks
+they left out;
+\item with \code{order_merges = TRUE}, the findings a merge combines and the
+member answers \code{ensemble} adjudicates are placed by \code{context_order}.
+The question and the instructions are never cut by any reader. When
+the pieces the policy pins do not fit a request, the reader warns once
+(class \code{gr_context_policy_unfit}) and cuts as it does without a policy,
+so the request still fits. Every cut is a \code{"truncate"} step of the
+trace that names the piece and the part dropped. Untested.
+}}
+
+\item{refine_state}{For \code{refine}: what is carried down the document.
+\code{"draft"} (the default) is the answer, rewritten by each request, as
+before. \code{"ledger"} is a numbered list of findings: each request is shown
+it and one excerpt and replies with edits (\verb{ADD: <finding>},
+\verb{REPLACE <n>: <finding>}, \verb{DROP <n>}), which the code applies, so a
+finding no edit names is carried forward word for word and a corrected
+one is replaced rather than annotated. One more request,
+\code{refine.answer}, answers from the finished list; an empty list is
+\code{NOT_IN_DOCUMENT} with no request. \code{notes$ledger_items} counts the
+findings. Untested; \code{\link[=gr_condensation_check]{gr_condensation_check()}} builds the test.}
+
+\item{effort_mode}{\code{"static"} (the default) sends each request at the
+effort \code{effort} names, as before. \code{"escalate"} starts every stage at
+\code{effort} (\code{"low"} when \code{effort} is unset) and sends the next stage at
+\code{"high"} when a trigger fired in the one before: a cut (a \code{"truncate"}
+step, or a reply stopped at its cap), a reply that is not the JSON asked
+for or does not fit its schema, \code{NOT_IN_DOCUMENT} from every request of
+the stage, a quotation \code{iterative} could not verify, or \code{ensemble}
+members that disagree. Effort changes only at a stage boundary, at most
+once a read, and the stage after a raised one goes back to \code{effort}. The
+spec's \code{effort} is then an \code{\link[=hr_effort_escalate]{hr_effort_escalate()}} policy; each raise is
+an \code{"effort.escalate"} step of the trace, whether it resolved the
+trigger an \code{"effort.resolve"} step, and \code{\link[=hr_effort_log]{hr_effort_log()}} lists both.
+\code{\link[=hr_effort_check]{hr_effort_check()}} compares it with fixed levels. Untested.}
+
 \item{...}{Extra fields for custom readers.}
 }
 \value{
@@ -460,6 +522,9 @@ keeps the store and cache keys it had before they existed.
 \item \code{rrf_k} (default \code{60}, advanced): cited. Cormack, Clarke and Buettcher (2009), "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods", SIGIR, use k = 60; not tuned here.
 \item \code{answer_format} (default \code{"parsed"}, advanced): untested. "parsed", the requests sent before the setting existed. Published comparisons of forced schemas and free text disagree; owner decision DEC-05 keeps the question open until a live comparison.
 \item \code{premise_verdict} (default \code{"sentence"}, advanced): untested. "sentence", the requests premise = TRUE sent before the setting existed. Not measured.
+\item \code{context_policy} (default \code{NULL}, advanced): untested. NULL: each reader cuts as it did before the setting existed, keeping the start of what it cuts. No policy has been compared with it.
+\item \code{refine_state} (default \code{"draft"}, advanced): untested. "draft", the state refine carried before the setting existed. Not compared with "ledger"; gr_condensation_check() builds the test.
+\item \code{effort_mode} (default \code{"static"}, advanced): untested. "static": the effort \code{effort} names, as before the setting existed. Not compared with "escalate"; hr_effort_check() makes the comparison.
 }
 }
 
@@ -494,7 +559,7 @@ change.
 
 The labels are the \code{stage} column of \code{as.data.frame(trace)}:
 \code{segment.context}, \code{segment.proposition}; \code{stuff.answer}; \code{map.answer},
-\code{reduce}; \code{refine.draft}, \code{refine.revise}; \code{skim.extract},
+\code{reduce}; \code{refine.draft}, \code{refine.revise}, \code{refine.answer}; \code{skim.extract},
 \code{skim.consolidate}, \code{skim.answer}; \code{retrieve.answer}; \code{rerank.score},
 \code{rerank.answer}; \code{hier.summarise.L1} (and \code{L2}, ...), \code{hier.answer};
 \code{iterative.step}, \code{iterative.final}; \code{ensemble.adjudicate}; \code{preview.plan},

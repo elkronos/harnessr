@@ -192,6 +192,20 @@
 #'   and is not a quality score. Or a function of the studies table (the
 #'   extraction's included rows, with a `study` column of ids) returning one
 #'   non-negative number per row. Used only with `claims`.
+#' @param revision_check What checks a kept revision pass beyond the
+#'   citation, figure and length checks. `"lexicon"` (the default) is the
+#'   word-counting guard against a stronger claim, as before. `"judge"` adds,
+#'   behind it, a model judge ([hr_judge()], on `model`, its requests held to
+#'   the run's limits) that grades each sentence the revision changed against
+#'   the draft sentences it came from (those citing the same study, else the
+#'   two sharing most of its words): `"holds"`, `"stronger"` (it claims more,
+#'   as "is associated with" become "reduces") or `"not_entailed"`. It costs
+#'   one request per changed sentence. The judge is advisory: a flagged
+#'   sentence is warned about (`gr_revision_flagged`), counted in the
+#'   `flagged` column of `$coherence` and listed in `$revision_flags`, and the
+#'   revision is kept as it was. The judge is not validated against people's
+#'   labels (see [hr_judge_validate()]), so its flags are for a person to
+#'   read. Untested.
 #' @param effort Reasoning effort, or `NULL` (the default) to send none: one
 #'   string, or a character vector named by stage, as `effort` in
 #'   [gr_read_spec()]. The calls here are labelled `synthesise.section`,
@@ -221,6 +235,9 @@
 #'       the text the pass was given and in its revision; `NA` for a pass
 #'       that was not sent, or was refused by a check made before the length
 #'       check, which comes last).}
+#'     \item{`revision_flags`}{Under `revision_check = "judge"` only: one
+#'       row per sentence a kept revision changed, with `pass`, `round`,
+#'       `sentence`, `verdict` and the judge's `reason`.}
 #'     \item{`unrendered`}{Studies a section cited honestly that `text` still
 #'       shows as `[study N]` somewhere, because a kept revision moved or
 #'       reworded a citation of the same study that another section made
@@ -446,8 +463,10 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
                           references = TRUE, claims = NULL, gaps = NULL,
                           trace = NULL, effort = NULL, coherence_rounds = 1L,
                           figure_bands = c(about = 0.10, over = 0.25, under = 0.25),
-                          prominence = c(top = 1/3, middle = 1/3), study_weights = NULL) {
+                          prominence = c(top = 1/3, middle = 1/3), study_weights = NULL,
+                          revision_check = c("lexicon", "judge")) {
   cite_style <- match.arg(cite_style)
+  revision_check <- match.arg(revision_check)
   coherence_rounds <- clamp_warn(na_default(coherence_rounds, 1L, "coherence_rounds"),
                                  1, 10, "coherence_rounds")
   figure_bands <- check_figure_bands(figure_bands)
@@ -618,6 +637,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   # sized for a large one. Settled once here, so the sections, the merges and
   # the revision passes all size for, and ask, the same model.
   spec <- resolve_read_model(spec, client)
+  # Only when asked, so a default write-up's spec is the one it always was.
+  if (identical(revision_check, "judge")) spec$revision_check <- "judge"
   # The parent, not the counter -- see as_parent_trace(). Running the write-up on
   # a trace that screening had already spent meant the call cap refused
   # every section and the review came back as a list of empty headings.
@@ -863,6 +884,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   # Added only when there is something to say, so a write-up from a single
   # outline is the object it always was.
   if (!is.null(chosen)) out$outline_alternative <- chosen
+  # Only under revision_check = "judge".
+  if (!is.null(revised$flags)) out$revision_flags <- revised$flags
   if (inherits(outline_trace, "gr_trace")) out$outline_trace <- outline_trace
   out
 }

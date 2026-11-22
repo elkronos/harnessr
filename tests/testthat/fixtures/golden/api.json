@@ -88,6 +88,14 @@
       "formals": ["source", "question", "recipes = c(\"fast\", \"needle\", \"thorough\")", "client = NULL", "allow_duplicates = FALSE", "on_error = c(\"continue\", \"stop\")", "correct = NULL", "..."],
       "type": "function"
     },
+    "gr_condensation_check": {
+      "formals": ["text = NULL", "n_facts = 6L", "n_lures = 2L", "correction = TRUE", "n_documents = 1L", "paragraphs = 12L", "orders = c(\"forward\", \"reversed\")", "seed = 1L", "split = \"test\""],
+      "type": "function"
+    },
+    "gr_condensation_summary": {
+      "formals": ["check", "bench"],
+      "type": "function"
+    },
     "gr_count_tokens": {
       "formals": ["text", "model = NULL"],
       "type": "function"
@@ -225,7 +233,7 @@
       "type": "function"
     },
     "gr_read_spec": {
-      "formals": ["reader = \"map_reduce\"", "model = NULL", "temperature = NULL", "max_answer_tokens = 1500L", "max_chunk_tokens = 700L", "max_summary_tokens = 500L", "top_k = 6L", "min_score = -Inf", "mmr = 1", "context_order = c(\"relevance\", \"document\", \"edges\")", "rerank_candidates = 20L", "rerank_min_score = 4", "fan_in = 5L", "max_levels = 5L", "max_rounds = 4L", "preview_tokens = 1200L", "restate = c(\"auto\", \"always\", \"never\")", "members = NULL", "cite = FALSE", "skim_model = NULL", "summary_model = NULL", "parallel = NULL", "delay_between_calls = 0", "on_overflow = c(\"warn\", \"error\")", "effort = NULL", "premise = FALSE", "verify = FALSE", "accept_near_verbatim = FALSE", "max_merge_levels = 6L", "restate_tokens = 1200L", "bm25_k1 = 1.5", "bm25_b = 0.75", "lexical_blend = 0.5", "unskip_k = 0L", "reread_on = c(\"never\", \"not_found\")", "low_score = c(\"not_found\", \"read_top_k\")", "fusion = c(\"default\", \"rrf\")", "rrf_k = 60", "answer_format = c(\"parsed\", \"schema\")", "premise_verdict = c(\"sentence\", \"structured\")", "..."],
+      "formals": ["reader = \"map_reduce\"", "model = NULL", "temperature = NULL", "max_answer_tokens = 1500L", "max_chunk_tokens = 700L", "max_summary_tokens = 500L", "top_k = 6L", "min_score = -Inf", "mmr = 1", "context_order = c(\"relevance\", \"document\", \"edges\")", "rerank_candidates = 20L", "rerank_min_score = 4", "fan_in = 5L", "max_levels = 5L", "max_rounds = 4L", "preview_tokens = 1200L", "restate = c(\"auto\", \"always\", \"never\", \"window\")", "members = NULL", "cite = FALSE", "skim_model = NULL", "summary_model = NULL", "parallel = NULL", "delay_between_calls = 0", "on_overflow = c(\"warn\", \"error\")", "effort = NULL", "premise = FALSE", "verify = FALSE", "accept_near_verbatim = FALSE", "max_merge_levels = 6L", "restate_tokens = 1200L", "bm25_k1 = 1.5", "bm25_b = 0.75", "lexical_blend = 0.5", "unskip_k = 0L", "reread_on = c(\"never\", \"not_found\")", "low_score = c(\"not_found\", \"read_top_k\")", "fusion = c(\"default\", \"rrf\")", "rrf_k = 60", "answer_format = c(\"parsed\", \"schema\")", "premise_verdict = c(\"sentence\", \"structured\")", "context_policy = NULL", "refine_state = c(\"draft\", \"ledger\")", "effort_mode = c(\"static\", \"escalate\")", "..."],
       "type": "function"
     },
     "gr_reader_signature": {
@@ -294,6 +302,10 @@
     },
     "gr_resolve": {
       "formals": ["screening", "document", "decision", "by", "reason = NA_character_", "at = Sys.time()"],
+      "type": "function"
+    },
+    "gr_reverse_text": {
+      "formals": ["text", "unit = c(\"paragraph\", \"sentence\")"],
       "type": "function"
     },
     "gr_scorer_answer": {
@@ -369,7 +381,7 @@
       "type": "function"
     },
     "gr_synthesise": {
-      "formals": ["extraction", "protocol = NULL", "outline = NULL", "question = NULL", "client = NULL", "model = NULL", "max_section_tokens = 1200L", "temperature = NULL", "include_unclear = FALSE", "cite_style = c(\"auto\", \"marker\", \"author-year\", \"numeric\")", "bib = NULL", "style = NULL", "coherence = FALSE", "references = TRUE", "claims = NULL", "gaps = NULL", "trace = NULL", "effort = NULL", "coherence_rounds = 1L", "figure_bands = c(about = 0.1, over = 0.25, under = 0.25)", "prominence = c(top = 1/3, middle = 1/3)", "study_weights = NULL"],
+      "formals": ["extraction", "protocol = NULL", "outline = NULL", "question = NULL", "client = NULL", "model = NULL", "max_section_tokens = 1200L", "temperature = NULL", "include_unclear = FALSE", "cite_style = c(\"auto\", \"marker\", \"author-year\", \"numeric\")", "bib = NULL", "style = NULL", "coherence = FALSE", "references = TRUE", "claims = NULL", "gaps = NULL", "trace = NULL", "effort = NULL", "coherence_rounds = 1L", "figure_bands = c(about = 0.1, over = 0.25, under = 0.25)", "prominence = c(top = 1/3, middle = 1/3)", "study_weights = NULL", "revision_check = c(\"lexicon\", \"judge\")"],
       "type": "function"
     },
     "gr_tokenizer": {
@@ -444,6 +456,14 @@
       "formals": ["fn", "run", "rules = list()", "kind = \"module\"", "name = NA_character_"],
       "type": "function"
     },
+    "hr_context_fit": {
+      "formals": ["pieces", "budget", "policy = hr_context_policy()", "scores = NULL", "trace = NULL", "where = \"context\""],
+      "type": "function"
+    },
+    "hr_context_policy": {
+      "formals": ["pin = c(\"question\", \"instructions\")", "cut_order = character(0)", "keep = \"head\"", "order_merges = FALSE"],
+      "type": "function"
+    },
     "hr_contrast": {
       "formals": ["new", "reference", "margin", "confirmatory = TRUE", "cost_test = TRUE"],
       "type": "function"
@@ -454,6 +474,22 @@
     },
     "hr_drift_check": {
       "formals": ["frozen", "arm", "runs = 5", "alpha = 0.05", "alert = NULL", "client", "reference", "scorer = hr_scorer_exact()", "governor = NULL", "B = 2000", "seed = NULL"],
+      "type": "function"
+    },
+    "hr_effort_check": {
+      "formals": ["bench", "candidate", "comparators = NULL", "margin = 0.05", "registration = NULL", "cost_test = TRUE", "B = 2000", "seed = 1"],
+      "type": "function"
+    },
+    "hr_effort_escalate": {
+      "formals": ["base = \"low\"", "to = \"high\"", "on = .hr_escalate_triggers", "max_escalations = 1L", "replies = NULL"],
+      "type": "function"
+    },
+    "hr_effort_event": {
+      "formals": ["trace", "event", "..."],
+      "type": "function"
+    },
+    "hr_effort_log": {
+      "formals": ["trace"],
       "type": "function"
     },
     "hr_error_correlation": {
@@ -566,6 +602,10 @@
     },
     "hr_tfidf": {
       "formals": ["texts", "min_df = 2", "max_features = 5000"],
+      "type": "function"
+    },
+    "hr_truncate": {
+      "formals": ["text", "n", "keep = c(\"head\", \"tail\", \"both\", \"scored\")", "scores = NULL", "marker = \" ...[truncated]\"", "trace = NULL", "where = \"truncate\"", "piece = NULL"],
       "type": "function"
     },
     "hr_validate": {
@@ -736,6 +776,11 @@
       "formals": ["x", "..."],
       "generic": "print"
     },
+    "print.gr_condensation_check": {
+      "class": "gr_condensation_check",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
     "print.gr_corpus": {
       "class": "gr_corpus",
       "formals": ["x", "..."],
@@ -886,6 +931,11 @@
       "formals": ["x", "..."],
       "generic": "print"
     },
+    "print.hr_context_policy": {
+      "class": "hr_context_policy",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
     "print.hr_contrast": {
       "class": "hr_contrast",
       "formals": ["x", "..."],
@@ -899,6 +949,16 @@
     "print.hr_drift_check": {
       "class": "hr_drift_check",
       "formals": ["x", "digits = 3", "..."],
+      "generic": "print"
+    },
+    "print.hr_effort_check": {
+      "class": "hr_effort_check",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_effort_escalate": {
+      "class": "hr_effort_escalate",
+      "formals": ["x", "..."],
       "generic": "print"
     },
     "print.hr_error_correlation": {

@@ -81,12 +81,18 @@ bench
 \code{\link[=hr_report]{hr_report()}}, \code{\link[=gr_compare]{gr_compare()}} for a single descriptive comparison
 
 Other harness: 
+\code{\link{gr_condensation_check}()},
 \code{\link{gr_qa_reference}()},
+\code{\link{gr_reverse_text}()},
 \code{\link{gr_scorer_answer}()},
 \code{\link{hr_arm}()},
 \code{\link{hr_benchmark}()},
 \code{\link{hr_contrast}()},
 \code{\link{hr_drift_check}()},
+\code{\link{hr_effort_check}()},
+\code{\link{hr_effort_escalate}()},
+\code{\link{hr_effort_event}()},
+\code{\link{hr_effort_log}()},
 \code{\link{hr_mdd}()},
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},

@@ -70,7 +70,7 @@ preview_label <- function(d, rows) {
 
 #' One line per unit: what it is, how big, and enough text to judge it by.
 #' @noRd
-preview_outline <- function(d, units, budget, trace = NULL) {
+preview_outline <- function(d, units, budget, trace = NULL, spec = list()) {
   first_words <- function(x, n) {
     w <- strsplit(trimws(as_chr1(x)), "[[:space:]]+")[[1]]
     paste(utils::head(w, n), collapse = " ")
@@ -98,7 +98,7 @@ preview_outline <- function(d, units, budget, trace = NULL) {
     body <- paste(lines, collapse = "\n")
     if (gr_count_tokens(body) <= budget) return(body)
   }
-  truncate_logged(body, budget, "preview.outline", trace)$text
+  cut_piece(body, budget, "preview.outline", trace, spec, "outline")$text
 }
 
 #' @noRd
@@ -108,7 +108,7 @@ read_preview <- function(chunks, question, client, spec, trace) {
   n_units <- length(units)
 
   outline <- preview_outline(d, units, as.integer(clamp(spec$preview_tokens %||% 1200L, 100, 1e5)),
-                              trace)
+                              trace, spec)
   schema <- list(type = "object", additionalProperties = FALSE,
                  required = list("sections"),
                  properties = list(sections = list(
@@ -255,7 +255,8 @@ read_preview <- function(chunks, question, client, spec, trace) {
       # had looked at a section it had seen half of.
       lost <- 0L
       if (gr_count_tokens(body) > cap) {
-        t <- truncate_logged(body, cap, "preview.skim", trace, chunk_ids = d$chunk_id[rows])
+        t <- cut_piece(body, cap, "preview.skim", trace, spec, "excerpts",
+                       chunk_ids = d$chunk_id[rows])
         body <- t$text; lost <- t$dropped
       }
       r <- gr_call(client, list(
@@ -435,6 +436,7 @@ preview_reread <- function(d, units, treat, question, client, spec, trace, bud) 
   rows <- sort(as.integer(unlist(units[treat != "read"], use.names = FALSE)))
   if (!length(rows)) return(NULL)
   fit <- fit_chunks(d, bud$input, order = rows)
+  log_dropped_chunks(trace, "preview.reread.chunks", d, fit$dropped, spec)
   keep <- sort(as.integer(fit$idx))
   if (!length(keep)) {
     note <- list(sections = sum(treat != "read"), chunks = 0L, found = FALSE,

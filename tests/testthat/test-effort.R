@@ -395,14 +395,15 @@ test_that("gr_screen() and gr_extract() take it through `...`", {
 
 test_that("gr_claims(), gr_outline() and gr_synthesise() take it at the end of their arguments", {
   # gr_claims() gained `unverified` and `moderators` after it, gr_outline()
-  # `alternatives`, and gr_synthesise() the settings that were constants; all
+  # `alternatives`, and gr_synthesise() the settings that were constants and
+  # then `revision_check`; all
   # are past every argument an existing call can reach by position.
   expect_identical(utils::tail(names(formals(gr_claims)), 3L),
                    c("effort", "unverified", "moderators"))
   expect_identical(utils::tail(names(formals(gr_outline)), 2L), c("effort", "alternatives"))
-  expect_identical(utils::tail(names(formals(gr_synthesise)), 5L),
+  expect_identical(utils::tail(names(formals(gr_synthesise)), 6L),
                    c("effort", "coherence_rounds", "figure_bands", "prominence",
-                     "study_weights"))
+                     "study_weights", "revision_check"))
   tab <- data.frame(
     document = c("a.pdf", "b.pdf"), status = "ok", duplicate_of = NA_character_,
     n_filled = 2L, n_unverified = 0L, conflicts = NA_character_,
