@@ -32,7 +32,11 @@
 #'   sentences to embed together, and how extreme a distance counts as a
 #'   boundary (higher = fewer, larger chunks).
 #' @param context_source For `method = "contextual"`: `"metadata"` (free) or
-#'   `"llm"` (one call per chunk). Room for the context line is held back from
+#'   `"llm"` (one call per chunk, never more: `$extra$cost` declares
+#'   `calls_max` as the number of chunks, and a `segment.cost` trace step
+#'   records it). Under `"llm"` each request carries the opening of the
+#'   document (`context_document_tokens`) and the chunk's section path, as
+#'   `"Methods > Participants"`, from the document's headings. Room for the context line is held back from
 #'   each chunk's text before packing (`context_reply_tokens` for `"llm"`, the
 #'   longest header the document could need for `"metadata"`, never more than
 #'   half of `max_tokens`), so no chunk is cut again once its header is added,
@@ -42,6 +46,17 @@
 #'   them and a `"gr_segment_fallback"` warning says so, which also reaches
 #'   the answer's warnings.
 #' @param proposition_batch_tokens For `method = "proposition"`: batch size.
+#'   A proposition with no support in its batch (a number the batch does not
+#'   give, or fewer than half of its words found in the batch and any
+#'   context it was sent with) is counted in
+#'   `$extra$propositions_unsupported`; see `proposition_check`. The chunks
+#'   keep the page and section of the batches they come from.
+#' @param proposition_context_tokens For `method = "proposition"`: how many
+#'   tokens from the end of the batch before each batch's request carries, as
+#'   context the model may use to resolve what the batch refers back to but
+#'   is told not to decompose. Taken from the document, so the batches still
+#'   run independently. \[0, 2000\], default 0, which sends each batch alone,
+#'   as before. Untested.
 #' @param parallel Parallelise per-chunk model work in segmenters that do any.
 #' @param context_reply_tokens For `method = "contextual"` with
 #'   `context_source = "llm"`: the output cap of each context-line request, and
@@ -68,6 +83,13 @@
 #'   (largest less smallest). That second test is added here, not Hearst's,
 #'   so a text on one topic gets at most about one cut. `semantic_percentile`
 #'   is not used under `"texttiling"`. Untested.
+#' @param proposition_check For `method = "proposition"`: what happens to a
+#'   proposition with no support in its batch. `"count"` (the default) keeps
+#'   it, as before, and counts it in `$extra$propositions_unsupported`.
+#'   `"drop"` drops it as invented, counts it in
+#'   `$extra$propositions_dropped` as well, and warns
+#'   (`gr_proposition_dropped`); a batch left with no proposition is kept as
+#'   written. Untested.
 #' @param table_packing For `method = "paragraph"`: how the rows of a table
 #'   are packed. `"rows"` (the default) packs them as any other blocks, as
 #'   before. `"grouped"` packs each table on its own: its first row, taken
@@ -115,7 +137,9 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
                             context_reply_tokens = 90L, context_document_tokens = 1500L,
                             proposition_reply_tokens = 2000L,
                             semantic_threshold = c("percentile", "texttiling"),
-                            table_packing = c("rows", "grouped"), ...) {
+                            table_packing = c("rows", "grouped"),
+                            proposition_check = c("count", "drop"),
+                            proposition_context_tokens = 0L, ...) {
   warn_near_miss(list(...), names(formals(gr_segment_spec)), "segment")
   # Out-of-range settings are clamped rather than accepted, but the clamp is
   # ANNOUNCED. Silently rewriting a user's parameter is how v1 ended up feeding
@@ -210,7 +234,15 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
   hr_param("table_packing", "enum", choices = c("rows", "grouped"), tier = "advanced",
            help = "For paragraph: how the rows of a table are packed into chunks.",
            evidence = ev_untested(paste0("\"rows\" packs a table's rows as any other blocks, as ",
-                                         "before; not compared with \"grouped\".")))
+                                         "before; not compared with \"grouped\"."))),
+  hr_param("proposition_check", "enum", choices = c("count", "drop"), tier = "advanced",
+           help = "For proposition: whether a proposition with no support in its batch is dropped.",
+           evidence = ev_untested(paste0("\"count\" keeps every proposition, as before, and counts ",
+                                         "the unsupported; not compared with \"drop\"."))),
+  hr_param("proposition_context_tokens", "integer", default = 0L, min = 0, max = 2000,
+           tier = "advanced", cost_class = "per_unit",
+           help = "For proposition: tokens of the batch before that each batch's request carries.",
+           evidence = ev_untested("0 sends each batch alone, as before; not tuned."))
 )
 
 #' The segment settings that were constants in the code until they were
@@ -219,7 +251,8 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
 #' @noRd
 .gr_segment_late_params <- c("context_reply_tokens", "context_document_tokens",
                              "proposition_reply_tokens", "semantic_threshold",
-                             "table_packing")
+                             "table_packing", "proposition_check",
+                             "proposition_context_tokens")
 
 #' The settings of a segment spec that differ from its defaults, as
 #' read_settings() does for a read spec.

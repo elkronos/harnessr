@@ -337,7 +337,7 @@
       "type": "function"
     },
     "gr_segment_spec": {
-      "formals": ["method = \"paragraph\"", "max_tokens = 1200L", "overlap_tokens = 0L", "min_tokens = 0L", "separators = NULL", "prefix_section = TRUE", "semantic_window = 2L", "semantic_percentile = 90", "context_source = c(\"metadata\", \"llm\")", "proposition_batch_tokens = 900L", "parallel = NULL", "context_reply_tokens = 90L", "context_document_tokens = 1500L", "proposition_reply_tokens = 2000L", "semantic_threshold = c(\"percentile\", \"texttiling\")", "table_packing = c(\"rows\", \"grouped\")", "..."],
+      "formals": ["method = \"paragraph\"", "max_tokens = 1200L", "overlap_tokens = 0L", "min_tokens = 0L", "separators = NULL", "prefix_section = TRUE", "semantic_window = 2L", "semantic_percentile = 90", "context_source = c(\"metadata\", \"llm\")", "proposition_batch_tokens = 900L", "parallel = NULL", "context_reply_tokens = 90L", "context_document_tokens = 1500L", "proposition_reply_tokens = 2000L", "semantic_threshold = c(\"percentile\", \"texttiling\")", "table_packing = c(\"rows\", \"grouped\")", "proposition_check = c(\"count\", \"drop\")", "proposition_context_tokens = 0L", "..."],
       "type": "function"
     },
     "gr_segmenters": {

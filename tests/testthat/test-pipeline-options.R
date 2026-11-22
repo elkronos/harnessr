@@ -468,3 +468,124 @@ test_that("criteria_schema is checked and swept as arms", {
   }, list(criteria_schema = c("decision", "per_criterion")))
   expect_length(arms, 2L)
 })
+
+# ---------------------------------------------------------------------------
+# P4-06: contextual (llm) section paths and cost; proposition provenance,
+# context and invented propositions
+# ---------------------------------------------------------------------------
+
+po_sections_file <- function() {
+  long <- function(w) paste(rep(sprintf("The %s section reports one more finding here.", w), 12),
+                            collapse = " ")
+  f <- tempfile(fileext = ".md")
+  writeLines(c("# Report", "", "## Methods", "", "### Participants", "",
+               "We enrolled 120 adults in Leeds.", "", "## Results", "",
+               "Revenue was 45.2 million dollars.", "", "## Appendix", "", long("appendix"),
+               "", "## Glossary", "", long("glossary")), f)
+  f
+}
+
+po_recording_client <- function(propositions = NULL) {
+  seen <- new.env()
+  seen$asks <- character(0)
+  cl <- gr_mock_client(function(m, p) {
+    seen$asks <- c(seen$asks, m[[2]]$content)
+    if (grepl("Decompose", m[[1]]$content, fixed = TRUE)) {
+      return(propositions(m[[2]]$content))
+    }
+    "Context line."
+  })
+  list(client = cl, seen = seen)
+}
+
+test_that("contextual under llm sends each chunk's section path and declares its cost", {
+  r <- po_recording_client()
+  ch <- po_quiet(gr_segment(po_sections_file(),
+                            gr_segment_spec("contextual", context_source = "llm", max_tokens = 40),
+                            client = r$client))
+  n <- nrow(ch$chunks)
+  expect_identical(ch$extra$cost, list(calls = n, calls_max = n))
+  expect_length(r$seen$asks, n)
+  expect_true(any(grepl("<section_path>Report > Methods > Participants</section_path>",
+                        r$seen$asks, fixed = TRUE)))
+  expect_true(any(grepl("<section_path>Report > Glossary</section_path>", r$seen$asks,
+                        fixed = TRUE)))
+  # The metadata source sends nothing and declares nothing.
+  meta <- po_quiet(gr_segment(po_sections_file(), gr_segment_spec("contextual", max_tokens = 40)))
+  expect_null(meta$extra$cost)
+  expect_identical(harnessr:::segmenter_cost("contextual", gr_segment_spec("contextual"), 7L),
+                   list(calls = 0L, calls_max = 0L))
+  paths <- harnessr:::chunk_section_paths(
+    data.frame(text = c("1 Intro", "1.1 Aims", "Body", "2 Methods"),
+               kind = c("heading", "heading", "body", "heading")),
+    c("1.1 Aims", NA, "2 Methods", "Elsewhere"))
+  expect_identical(paths, c("1 Intro > 1.1 Aims", "", "2 Methods", "Elsewhere"))
+})
+
+test_that("proposition keeps page and section, carries context, and drops invented ones", {
+  r <- po_recording_client(function(ask) {
+    if (grepl("appendix section", ask, fixed = TRUE) && !grepl("glossary", ask, fixed = TRUE)) {
+      return(paste0('{"propositions":["The appendix section reports one more finding.",',
+                    '"The appendix lists 999 patients.",',
+                    '"Purple elephants dance gracefully tonight."]}'))
+    }
+    if (grepl("glossary section", ask, fixed = TRUE)) {
+      return(sprintf('{"propositions":["%s"]}',
+                     paste(rep("The glossary section reports one more finding here.", 3),
+                           collapse = " ")))
+    }
+    '{"propositions":["Revenue was 45.2 million dollars."]}'
+  })
+  f <- po_sections_file()
+  # By default an unsupported proposition is kept and counted.
+  kept <- po_quiet(gr_segment(f, gr_segment_spec("proposition", max_tokens = 40,
+                                                 proposition_batch_tokens = 200),
+                              client = r$client))
+  expect_identical(kept$extra$propositions_unsupported, 2L)
+  expect_identical(kept$extra$propositions_dropped, 0L)
+  expect_true(any(grepl("999", kept$chunks$text, fixed = TRUE)))
+  expect_null(gr_segment_spec("proposition")$proposition_check)
+  # Each batch alone by default, as before.
+  expect_false(any(grepl("<context>", r$seen$asks, fixed = TRUE)))
+  r$seen$asks <- character(0)
+  ch <- po_quiet(gr_segment(f, gr_segment_spec("proposition", max_tokens = 40,
+                                               proposition_batch_tokens = 200,
+                                               proposition_check = "drop",
+                                               proposition_context_tokens = 120),
+                            client = r$client))
+  expect_identical(ch$extra$propositions_dropped, 2L)
+  expect_identical(ch$extra$propositions_unsupported, 2L)
+  expect_false(any(grepl("999|elephants", ch$chunks$text)))
+  # Each chunk carries its batch's section where the batch has one.
+  gl <- ch$chunks[grepl("glossary", ch$chunks$text, fixed = TRUE), ]
+  expect_identical(unique(gl$section), "Glossary")
+  # Every batch after the first is sent the end of the one before it.
+  asks <- r$seen$asks
+  expect_false(grepl("<context>", asks[1], fixed = TRUE))
+  expect_true(all(grepl("<context>", asks[-1], fixed = TRUE)))
+  expect_identical(ch$extra$cost, list(calls = length(asks), calls_max = length(asks)))
+  expect_warning(gr_segment(f, gr_segment_spec("proposition", max_tokens = 60,
+                                               proposition_batch_tokens = 200,
+                                               proposition_check = "drop"),
+                            client = r$client),
+                 class = "gr_proposition_dropped")
+  expect_true(harnessr:::proposition_supported("Revenue was 45 million.", "Revenue was 45 million."))
+  expect_false(harnessr:::proposition_supported("Revenue was 46 million.", "Revenue was 45 million."))
+  # A resolved pronoun names what the context gave.
+  expect_true(harnessr:::proposition_supported("Northwind reported revenue growth.",
+                                               "It reported revenue growth.",
+                                               context = "Northwind Instruments"))
+})
+
+test_that("context_source and the proposition settings are swept as recipe arms", {
+  arms <- hr_sweep(gr_arm("needle", list(method = "contextual")),
+                   list(context_source = c("metadata", "llm")))
+  expect_length(arms, 2L)
+  arms <- hr_sweep(gr_arm("needle", list(method = "proposition")),
+                   list(proposition_check = c("count", "drop")))
+  expect_length(arms, 2L)
+  arms <- hr_sweep(gr_arm("needle", list(method = "proposition")),
+                   list(proposition_context_tokens = c(0, 120)))
+  expect_length(arms, 2L)
+  expect_null(gr_segment_spec("proposition")$proposition_context_tokens)
+})

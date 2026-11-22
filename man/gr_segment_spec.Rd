@@ -21,6 +21,8 @@ gr_segment_spec(
   proposition_reply_tokens = 2000L,
   semantic_threshold = c("percentile", "texttiling"),
   table_packing = c("rows", "grouped"),
+  proposition_check = c("count", "drop"),
+  proposition_context_tokens = 0L,
   ...
 )
 }
@@ -62,7 +64,11 @@ sentences to embed together, and how extreme a distance counts as a
 boundary (higher = fewer, larger chunks).}
 
 \item{context_source}{For \code{method = "contextual"}: \code{"metadata"} (free) or
-\code{"llm"} (one call per chunk). Room for the context line is held back from
+\code{"llm"} (one call per chunk, never more: \verb{$extra$cost} declares
+\code{calls_max} as the number of chunks, and a \code{segment.cost} trace step
+records it). Under \code{"llm"} each request carries the opening of the
+document (\code{context_document_tokens}) and the chunk's section path, as
+\code{"Methods > Participants"}, from the document's headings. Room for the context line is held back from
 each chunk's text before packing (\code{context_reply_tokens} for \code{"llm"}, the
 longest header the document could need for \code{"metadata"}, never more than
 half of \code{max_tokens}), so no chunk is cut again once its header is added,
@@ -72,7 +78,12 @@ keeps its text without a context line; \verb{$extra$blurbs_missing} counts
 them and a \code{"gr_segment_fallback"} warning says so, which also reaches
 the answer's warnings.}
 
-\item{proposition_batch_tokens}{For \code{method = "proposition"}: batch size.}
+\item{proposition_batch_tokens}{For \code{method = "proposition"}: batch size.
+A proposition with no support in its batch (a number the batch does not
+give, or fewer than half of its words found in the batch and any
+context it was sent with) is counted in
+\verb{$extra$propositions_unsupported}; see \code{proposition_check}. The chunks
+keep the page and section of the batches they come from.}
 
 \item{parallel}{Parallelise per-chunk model work in segmenters that do any.}
 
@@ -115,6 +126,21 @@ the header. A table that fits is one chunk. Under either, the chunks of
 a document with a table carry \code{table_id} and \code{table_rows} (as \code{"2-21"})
 saying which table and rows they hold. Untested.}
 
+\item{proposition_check}{For \code{method = "proposition"}: what happens to a
+proposition with no support in its batch. \code{"count"} (the default) keeps
+it, as before, and counts it in \verb{$extra$propositions_unsupported}.
+\code{"drop"} drops it as invented, counts it in
+\verb{$extra$propositions_dropped} as well, and warns
+(\code{gr_proposition_dropped}); a batch left with no proposition is kept as
+written. Untested.}
+
+\item{proposition_context_tokens}{For \code{method = "proposition"}: how many
+tokens from the end of the batch before each batch's request carries, as
+context the model may use to resolve what the batch refers back to but
+is told not to decompose. Taken from the document, so the batches still
+run independently. [0, 2000], default 0, which sends each batch alone,
+as before. Untested.}
+
 \item{...}{Extra fields for custom segmenters.}
 }
 \value{
@@ -156,6 +182,8 @@ store and cache keys it had before they existed.
 \item \code{proposition_reply_tokens} (default \code{2000}, advanced): untested. The cap the code had as a constant; not tuned.
 \item \code{semantic_threshold} (default \code{"percentile"}, advanced): untested. "percentile" is the rule semantic was written with; not compared with "texttiling".
 \item \code{table_packing} (default \code{"rows"}, advanced): untested. "rows" packs a table's rows as any other blocks, as before; not compared with "grouped".
+\item \code{proposition_check} (default \code{"count"}, advanced): untested. "count" keeps every proposition, as before, and counts the unsupported; not compared with "drop".
+\item \code{proposition_context_tokens} (default \code{0}, advanced): untested. 0 sends each batch alone, as before; not tuned.
 }
 }
 

@@ -147,6 +147,8 @@
   segment.proposition_reply_tokens = "segment#set-contextual",
   segment.semantic_threshold = "segment#set-semantic",
   segment.table_packing = "segment#set-tables",
+  segment.proposition_check = "segment#set-contextual",
+  segment.proposition_context_tokens = "segment#set-contextual",
   read.reader = "readers#set-reader", read.skim_model = "readers#set-reader",
   read.summary_model = "readers#set-reader",
   read.top_k = "readers#set-top-k", read.min_score = "readers#set-top-k",

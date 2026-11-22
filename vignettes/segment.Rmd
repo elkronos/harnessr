@@ -228,8 +228,11 @@ cat(ctx$chunks$text[2])
 ```
 
 With `context_source = "llm"` a model writes the line instead, one call per
-chunk, from the chunk and the document's first 1,500 tokens. The mock client below
-stands in for that model:
+chunk, from the chunk, the document's first 1,500 tokens and the chunk's
+section path from the document's headings (`"Report > Results"`), so a chunk
+from deep in a long document can be placed. It makes one request per chunk and
+never more: `$extra$cost` declares `calls` and `calls_max` as the number of
+chunks. The mock client below stands in for that model:
 
 ```{r}
 writer <- gr_mock_client(function(messages, params) "This excerpt reports the 2024 results.")
@@ -254,6 +257,7 @@ quotation from the chunk is checked against that, never against the line:
 
 ```{r}
 ctx_llm$chunks$source_text[2]
+unlist(ctx_llm$extra$cost)
 ```
 
 ## Segmenters that call a model
@@ -270,10 +274,18 @@ Three segmenters spend something, and each takes a `client`:
 - `proposition` sends the document in batches of about
   `proposition_batch_tokens` (default 900) and has the model rewrite each into
   standalone factual statements, with pronouns resolved and numbers kept as
-  written. Its chunks are the model's words, so `source_text` holds the passage
-  each was written from, and quotes are checked against that. A batch that
-  cannot be rewritten is kept as written rather than dropped, with a warning,
-  and counted in `$extra$batches_kept_as_written`.
+  written. With `proposition_context_tokens` above 0, each batch's request
+  also carries that many tokens from the end of the batch before it, so what
+  it refers back to can be resolved. Its chunks are the model's words,
+  so `source_text` holds the passage each was written from, and quotes are
+  checked against that; each chunk keeps the page and section of its passage.
+  A proposition with no support in its passage (a number the passage does not
+  give, or most of its words absent) is counted in
+  `$extra$propositions_unsupported`; with `proposition_check = "drop"` it is
+  also dropped as invented, counted in `$extra$propositions_dropped`, with a
+  `gr_proposition_dropped` warning. A
+  batch that cannot be rewritten is kept as written rather than dropped, with
+  a warning, and counted in `$extra$batches_kept_as_written`.
 
 ```{r}
 cl <- gr_mock_client(function(messages, params) "unused")
@@ -560,6 +572,12 @@ from the model-written versions.
 
 **Where the defaults came from.** `context_source = "metadata"` was chosen as
 the source that makes no request, and has not been compared with `"llm"`.
+The section path `"llm"` sends and the test that finds an invented
+proposition (every number in the passage, half its words in the passage or
+its context) were set when they were written; neither was tuned.
+`proposition_check = "count"` keeps every proposition, and
+`proposition_context_tokens = 0` sends each batch alone, as before; neither
+has been compared with the alternatives.
 `proposition_batch_tokens` (900), `context_reply_tokens` (90),
 `context_document_tokens` (1500) and `proposition_reply_tokens` (2000) are the
 values the code had as constants; none was tuned (`untested`).
@@ -586,6 +604,10 @@ bench <- hr_benchmark(arms, my_reference, runs = 5, client = my_client, split = 
                       scorer = gr_scorer_answer())
 aggregate(cbind(correct, usd) ~ param.method + param.context_source, bench, mean)
 ```
+
+`proposition_check = "drop"` changes no request, only which propositions are
+kept, so `$extra$propositions_unsupported` on one segmentation shows what it
+would drop before you sweep it.
 
 `context_source` is stored in the recipe even under a segmenter that ignores
 it, so give it the value the other rows use for every row where it does

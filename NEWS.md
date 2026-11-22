@@ -143,6 +143,23 @@ says how to test it with `hr_sweep()`.
   `gr_ocr_failed` warning naming the image, as a PDF page does; before, its
   text was lost with nothing said.
 
+* `contextual` with `context_source = "llm"` now sends each chunk's section
+  path from the document's headings (`"Methods > Participants"`) with its
+  request, and declares its cost, one request per chunk and no more, in
+  `$extra$cost` and a `segment.cost` trace step. `proposition` keeps the page and
+  section of each batch on its chunks, and counts propositions with no
+  support in their batch (a number it does not give, or most words absent)
+  in `$extra$propositions_unsupported`. The new setting
+  `proposition_check = "drop"` drops them, counting them in
+  `$extra$propositions_dropped` with a `gr_proposition_dropped` warning; the
+  default, `"count"`, keeps every proposition as before. The new setting
+  `proposition_context_tokens` sends each batch that many tokens from the
+  end of the batch before it, as context; at its default, 0, each batch is
+  sent alone as before. The section path changes what `contextual` sends
+  under `"llm"`, an opt-in setting of an opt-in segmenter, so its cache and
+  replay keys change; no default segmenter sends anything new, and the
+  golden runs, which use neither segmenter, are unchanged.
+
 * `semantic` run on lexical vectors now reports its method as
   `"semantic->lexical"`, as it reports `"semantic->paragraph"` when it falls
   back. This is a label fix: the chunks and the requests are unchanged.
