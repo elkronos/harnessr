@@ -498,6 +498,11 @@ the eligible records that were kept. The design that can is the one people use
 anyway: judge every record the screener kept, and a sample of what it excluded.
 `of = "stacked"` draws both in one sheet.
 
+Recall here is relative to the reference: the share of the records the person
+judged eligible that the screener kept. An eligible study the person also
+excluded is not counted against the screener, and `print()` and the audit
+report say so wherever they give recall.
+
 The target fixes how many exclusions to judge. Recall is K / (K + M), with K
 the eligible records kept and M the eligible records excluded, so a target is
 a cap on M. If a pilot suggests about 50 of the 72 kept records are eligible,
@@ -643,6 +648,23 @@ both <- gr_calibrate(big, pair)
 both$reviewers$agreement[, c("statistic", "estimate", "lower", "upper")]
 both$reviewers$sensitivity[, c("reviewer", "statistic", "estimate", "lower", "upper", "n")]
 ```
+
+The adjudicator settled the three conflicts as not eligible, and recall is
+measured against that. `$worst_case` measures it again with every record the
+reviewers split on counted as eligible, the worst case for the screener, and
+`print()` shows it beside the main estimate:
+
+```{r}
+unlist(both$recall[c("estimate", "lower", "upper")])
+both$worst_case[c("conflicts", "changed")]
+unlist(both$worst_case$recall[c("estimate", "lower", "upper")])
+```
+
+The screener excluded all three, so counted as eligible they are three misses
+and recall falls. If the two figures lead to different conclusions, the
+review's claim rests on how the conflicts were settled, and the report should
+say so. Under `rule = "any_include"` the consensus already counts conflicts as
+eligible, and the two agree.
 
 `$reviewers` gives every pair of reviewers the observed agreement, kappa,
 PABAK, AC1 and the prevalence and bias indices from `hr_agreement()`, never

@@ -1178,7 +1178,43 @@ audit_calibration <- function(calibration) {
     "<p class='flag'>%d eligible stud%s excluded by the screener: %s.</p>",
     nrow(calibration$missed), if (nrow(calibration$missed) == 1L) "y was" else "ies were",
     esc(paste(report_url(utils::head(calibration$missed$document, 8)), collapse = ", ")))
-  c("<h2>How good the screening is</h2>", head, html_table(tab), counts, kap, proj, warn, miss)
+  c("<h2>How good the screening is</h2>", head, html_table(tab), counts, kap, proj,
+    audit_calibration_recall(calibration), warn, miss)
+}
+
+#' Recall from a calibration, the worst case beside it when several reviewers
+#' judged the sample, and what recall is relative to. Nothing for a
+#' calibration saved before these fields existed, or one whose frame gives no
+#' recall.
+#' @noRd
+audit_calibration_recall <- function(calibration) {
+  pct <- function(v) if (is.null(v) || is.na(v)) "--" else sprintf("%.1f%%", 100 * v)
+  r <- calibration[["recall", exact = TRUE]]
+  main <- if (is.list(r) && !is.na(r$estimate)) {
+    sprintf(paste0("<p><b>Recall:</b> %s (%s to %s, %.0f%%); one-sided lower bound %s.</p>"),
+            pct(r$estimate), pct(r$lower), pct(r$upper), 100 * r$conf, pct(r$bound))
+  }
+  w <- calibration[["worst_case", exact = TRUE]]
+  worst <- if (is.list(w) && !is.null(calibration[["reviewers", exact = TRUE]])) {
+    wr <- w$recall; wl <- w$lost
+    figs <- c(if (is.list(wr) && !is.na(wr$estimate))
+                sprintf("recall %s (%s to %s), one-sided lower bound %s", pct(wr$estimate),
+                        pct(wr$lower), pct(wr$upper), pct(wr$bound)),
+              if (is.list(wl) && !is.na(wl$bound))
+                sprintf("about %.0f eligible record(s) excluded, upper bound %.0f",
+                        wl$estimate, wl$bound),
+              if (is.list(w$verdict) && !is.na(w$verdict$met))
+                sprintf("recall target %s", if (w$verdict$met) "met" else "not met"))
+    sprintf("<p><b>Worst case, %s:</b> %s. %s</p>", esc(w$rule),
+            if (length(figs)) esc(paste(figs, collapse = "; ")) else "no recall figure",
+            esc(w$note))
+  }
+  caveat <- if (calibration_reports_recall(calibration)) {
+    paste0("<p class='sub'>Recall is relative to the reference: the share of the records the ",
+           "person judged eligible that the screener kept, not of every eligible study. A study ",
+           "the reference missed is not counted.</p>")
+  }
+  c(main, worst, caveat)
 }
 
 #' The search, as the review has to report it.

@@ -109,6 +109,11 @@ was formed), \code{conflicts} (documents they disagreed on), \code{consensus}
 \code{lower}, \code{upper}, \code{n}, \code{method}), \code{agreement} (one row per pair of
 reviewers, scope and statistic, the scope being the frame, a stratum
 or \code{"weighted"}), \code{notes} and \code{conf}.}
+\item{\code{worst_case}}{The sensitivity analysis described under "Recall
+is relative to the reference": \code{rule}, \code{conflicts} (records the
+reviewers split on), \code{changed} (those the consensus had settled as
+not eligible), \code{recall}, \code{lost} and \code{verdict} as above, \code{missed} and
+\code{note}. With one decision per document it repeats the main figures.}
 }
 }
 \description{
@@ -303,6 +308,21 @@ coverage for a nominal 95\% at 30), and \verb{$reviewers$notes} says so; the
 observed agreement, PABAK and AC1 intervals hold up better there. On any other
 frame the sample is one simple random sample, the figures are unweighted,
 and sensitivity and specificity have Wilson intervals, as in \verb{$metrics}.
+}
+
+\section{Recall is relative to the reference}{
+
+Recall here is the share of the records the person judged eligible that
+the screener kept. A study the person wrongly excluded is not counted
+against the screener, so the figure is relative to the reference, not to
+every eligible study; print() and \code{\link[=gr_audit_report]{gr_audit_report()}} say so wherever they
+report it.
+
+With several reviewers the consensus settles each record they split on.
+\verb{$worst_case} works out recall, records lost and the verdict again with
+every such record counted as eligible, the worst case for the screener,
+and print() and the audit report show it beside the main estimate. Under
+\code{rule = "any_include"} the consensus already does this, so the two agree.
 }
 
 \examples{

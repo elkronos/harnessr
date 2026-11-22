@@ -575,7 +575,24 @@ as_screening_table <- function(screening) {
 #'       `lower`, `upper`, `n`, `method`), `agreement` (one row per pair of
 #'       reviewers, scope and statistic, the scope being the frame, a stratum
 #'       or `"weighted"`), `notes` and `conf`.}
+#'     \item{`worst_case`}{The sensitivity analysis described under "Recall
+#'       is relative to the reference": `rule`, `conflicts` (records the
+#'       reviewers split on), `changed` (those the consensus had settled as
+#'       not eligible), `recall`, `lost` and `verdict` as above, `missed` and
+#'       `note`. With one decision per document it repeats the main figures.}
 #'   }
+#' @section Recall is relative to the reference:
+#' Recall here is the share of the records the person judged eligible that
+#' the screener kept. A study the person wrongly excluded is not counted
+#' against the screener, so the figure is relative to the reference, not to
+#' every eligible study; print() and [gr_audit_report()] say so wherever they
+#' report it.
+#'
+#' With several reviewers the consensus settles each record they split on.
+#' `$worst_case` works out recall, records lost and the verdict again with
+#' every such record counted as eligible, the worst case for the screener,
+#' and print() and the audit report show it beside the main estimate. Under
+#' `rule = "any_include"` the consensus already does this, so the two agree.
 #' @references
 #' Lewis, D. D., Yang, E. and Frieder, O. (2021). Certifying one-phase
 #' technology-assisted reviews. *Proceedings of the 30th ACM International
@@ -945,6 +962,8 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
   # Only with several reviewers, so a one-reviewer calibration is the object it
   # was before.
   if (!is.null(reviewers)) out$reviewers <- reviewers
+  out$worst_case <- worst_case_recall(of, kept, eligible, rows, tab, recall_target, conf,
+                                      max_lost, multi = !is.null(panel))
   out
 }
 
@@ -1347,7 +1366,40 @@ print_calibration_recall <- function(x) {
                 if (is.na(v$max_lost)) "" else sprintf(" (or at most %s lost)", format(v$max_lost)),
                 if (v$met) "met" else "not met"))
   }
+  # Beside the main estimate, with several reviewers: the same figures with
+  # every record they split on counted as eligible.
+  w <- x[["worst_case", exact = TRUE]]
+  if (is.list(w) && !is.null(x[["reviewers", exact = TRUE]])) {
+    wr <- w$recall; wl <- w$lost
+    cat(sprintf("  worst case, %s (%d conflict(s), %d changed):\n", w$rule,
+                as.integer(w$conflicts), as.integer(w$changed)))
+    if (is.list(wr) && !is.na(wr$estimate)) {
+      cat(sprintf("    recall %s  [%s, %s]; one-sided lower bound %s\n", pct(wr$estimate),
+                  pct(wr$lower), pct(wr$upper), pct(wr$bound)))
+    }
+    if (is.list(wl) && !is.na(wl$bound)) {
+      cat(sprintf("    eligible records excluded: about %.0f; upper bound %.0f\n",
+                  wl$estimate, wl$bound))
+    }
+    if (is.list(w$verdict) && !is.na(w$verdict$met)) {
+      cat(sprintf("    recall target %s\n", if (w$verdict$met) "met" else "not met"))
+    }
+  }
+  if (calibration_reports_recall(x)) {
+    cat(paste0("  (recall is relative to the reference: the share of the records the person\n",
+               "   judged eligible that the screener kept, not of every eligible study; a\n",
+               "   study the reference missed is not counted)\n"))
+  }
   invisible(NULL)
+}
+
+#' Whether a calibration reports a recall figure: recall itself, or a
+#' sensitivity row, which is recall under another name.
+#' @noRd
+calibration_reports_recall <- function(x) {
+  r <- x[["recall", exact = TRUE]]
+  (is.list(r) && !is.na(r$estimate)) ||
+    any(grepl("^sensitivity", as.character(x$metrics$metric)) & !is.na(x$metrics$estimate))
 }
 
 #' The 3x2 counts of a calibration's print: the screener's three labels

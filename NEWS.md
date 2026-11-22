@@ -28,6 +28,18 @@
   `gr_flow()` is unchanged. `print()` counts the mismatches, and the audit
   report lists them. A run without records has no new column.
 
+* Screening recall now says what it is relative to. `print()` on a
+  `gr_calibrate()` result and the audit report state that recall is the share
+  of the records the person judged eligible that the screener kept, wherever
+  they report recall or sensitivity. The audit report now gives recall with
+  its interval and one-sided bound as well.
+
+* `gr_calibrate()` gains `$worst_case`, a sensitivity analysis that counts
+  every record the reviewers split on as eligible and works out recall,
+  records lost and the verdict again. With several reviewers, `print()` and
+  the audit report show it beside the main estimate. With one decision per
+  document it repeats the main figures.
+
 ## Comparing methods and settings
 
 * A new guide, `vignette("compare")`, works through five comparisons offline,
