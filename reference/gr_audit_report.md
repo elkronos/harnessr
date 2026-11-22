@@ -235,14 +235,14 @@ cl <- gr_mock_client(function(messages, params) {
 })
 f <- tempfile(fileext = ".txt"); writeLines("We ran a randomised trial.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1b9332a8a624.txt
-#> Extracting 'file1b9332a8a624.txt' with the 'txt' extractor.
+#> [1/1] file1c3a10f0da54.txt
+#> Extracting 'file1c3a10f0da54.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~10 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).
 
 out <- gr_audit_report(tempfile(fileext = ".html"), extraction = x, open = FALSE)
-#> Audit report written to /tmp/RtmpS8DBLK/file1b9333eb6465.html
+#> Audit report written to /tmp/RtmpWpni3M/file1c3a16bbae4e.html
 file.exists(out)
 #> [1] TRUE
 
@@ -253,5 +253,5 @@ ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl2)
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
 page <- gr_audit_report(tempfile(fileext = ".html"), answer = ans, open = FALSE)
-#> Audit report written to /tmp/RtmpS8DBLK/file1b93561154d1.html
+#> Audit report written to /tmp/RtmpWpni3M/file1c3a4c000250.html
 ```

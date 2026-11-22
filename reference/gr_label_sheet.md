@@ -237,7 +237,7 @@ gr_label_sheet("qa", qa)
 
 path <- file.path(tempdir(), "qa-labels.csv")
 gr_label_sheet("qa", qa, path = path)
-#> Wrote 3 item(s) to '/tmp/RtmpS8DBLK/qa-labels.csv', with instructions in '/tmp/RtmpS8DBLK/qa-labels_instructions.txt'. Read the filled sheet back with gr_read_labels().
+#> Wrote 3 item(s) to '/tmp/RtmpWpni3M/qa-labels.csv', with instructions in '/tmp/RtmpWpni3M/qa-labels_instructions.txt'. Read the filled sheet back with gr_read_labels().
 readLines(sub("[.]csv$", "_instructions.txt", path))
 #>  [1] "Labelling instructions: qa sheet"                                             
 #>  [2] ""                                                                             

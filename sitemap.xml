@@ -1,6 +1,9 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://elkronos.github.io/harnessr/404.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/CONTRACT.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/CONTRIBUTING.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/LICENSE-text.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/NOTES-primitives.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/compare.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/evaluate.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/extending.html</loc></url>

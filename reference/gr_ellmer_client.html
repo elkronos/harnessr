@@ -97,7 +97,13 @@ The context window is what sizes your chunks, so a wrong one is not cosmetic.</p
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>ellmer is a suggested dependency: this function is the only thing in the
-package that needs it.</p>
+package that needs it. It needs ellmer 0.4.0 or later.</p>
+<p>The adapter is maintained on a best-effort basis. ellmer's API still
+changes between releases, and the adapter reads parts of it that are not
+promised to stay (the slots of its model and turn objects, <code>Chat$new()</code>).
+A weekly check runs the adapter's tests against ellmer's development
+version, but a new ellmer release can still break it before a harnessr
+release catches up. The built-in <code><a href="gr_client.html">gr_client()</a></code> does not depend on ellmer.</p>
     </div>
     <div class="section level2">
     <h2 id="requirements-on-the-chat">Requirements on the chat<a class="anchor" aria-label="anchor" href="#requirements-on-the-chat"></a></h2>

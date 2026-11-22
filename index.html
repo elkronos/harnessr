@@ -386,7 +386,12 @@
 </tr>
 <tr>
 <td><code>pr-checks.yaml</code></td>
-<td>fails a pull request that drops an <code>expect_*()</code> call or adds a <code>skip()</code> without the label <code>tests-reviewed</code>, or adds a dependency without the label <code>deps-reviewed</code> (an added package must be on CRAN either way), and lints the changed files under <code>R/</code>
+<td>fails a pull request that drops an <code>expect_*()</code> call, adds a <code>skip()</code> or adds a row to a list that may only shrink without the label <code>tests-reviewed</code>, adds a dependency without the label <code>deps-reviewed</code> (an added package must be on CRAN either way), or removes an export without the label <code>exports-reviewed</code>; fails any commit message with a <code>Co-Authored-By</code> trailer, a chat or session link or a “Generated with” line; and lints the changed files under <code>R/</code>
+</td>
+</tr>
+<tr>
+<td><code>ellmer-devel.yaml</code></td>
+<td>runs weekly and by hand, never on pull requests: installs ellmer from its GitHub repository and runs every test file that exercises <code><a href="reference/gr_ellmer_client.html">gr_ellmer_client()</a></code>
 </td>
 </tr>
 <tr>
@@ -481,6 +486,12 @@
 </ul>
 </div>
 
+<div class="community">
+<h2 data-toc-skip>Community</h2>
+<ul class="list-unstyled">
+<li><a href="CONTRIBUTING.html">Contributing guide</a></li>
+</ul>
+</div>
 
 <div class="citation">
 <h2 data-toc-skip>Citation</h2>
