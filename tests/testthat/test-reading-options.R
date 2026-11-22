@@ -171,3 +171,70 @@ test_that("low_score = 'read_top_k' sends the top 5 and marks a not-found", {
   expect_null(a2$notes$retrieval_low_score)
   expect_true(a2$notes$read_below_min_score)
 })
+
+# ---------------------------------------------------------------------------
+# P1D-10: one fusion function for retrieve and iterative
+# ---------------------------------------------------------------------------
+
+ro_rank_doc <- function() {
+  ro_chunks(c("Revenue rose to 45.2 million dollars in fiscal 2024.",
+              "The margin on revenue was 41 percent, with revenue growth steady.",
+              "Staff numbers grew to 310 across two plants.",
+              "Currency exposure is the principal risk named.",
+              "Revenue guidance for next year is 49 to 52 million.",
+              "The auditors signed the accounts without qualification."))
+}
+
+ro_order <- function(reader, spec_args, embedder = NULL) {
+  local_registries()
+  if (!is.null(embedder)) gr_options(embedder = embedder)
+  ch <- ro_rank_doc()
+  cl <- gr_mock_client(function(m, p) {
+    if (identical(p$schema_name, "iterative_step")) {
+      return('{"can_answer": true, "answer": "45.2 million", "next_query": ""}')
+    }
+    "45.2 million"
+  })
+  spec <- do.call(gr_read_spec, c(list(reader, top_k = 6L), spec_args))
+  a <- quiet(gr_read(ch, "What was revenue in 2024?", cl, spec))
+  as.integer(a$chunks_used)
+}
+
+test_that("fusion is off by default and rrf_k is cited", {
+  expect_null(gr_read_spec("retrieve")$fusion)
+  expect_null(gr_read_spec("retrieve")$rrf_k)
+  expect_identical(gr_read_spec("retrieve", fusion = "rrf")$fusion, "rrf")
+  expect_identical(gr_read_spec("retrieve", fusion = "rrf", rrf_k = 10)$rrf_k, 10)
+  s <- gr_settings("read")
+  expect_identical(s$rrf_k$evidence$status, "cited")
+  expect_match(s$rrf_k$evidence$source, "Cormack, Clarke and Buettcher \\(2009\\)")
+  expect_identical(s$rrf_k$default, 60)
+})
+
+test_that("the default fusion keeps the 0.6.0 blend and rrf is rank based", {
+  ns <- asNamespace("harnessr")
+  texts <- ro_rank_doc()$chunks$text
+  dense <- c(0.9, 0.5, 0.1, 0.2, 0.7, 0.3)
+  q <- "What was revenue?"
+  expect_identical(ns$fuse_scores(dense, texts, q, list()), dense)
+  bm <- ns$bm25_scores(texts, q)
+  expect_equal(ns$fuse_scores(dense, texts, q, list(), lexical = TRUE),
+               0.5 * dense + 0.5 * ns$scale01(bm))
+  r <- ns$fuse_scores(dense, texts, q, list(fusion = "rrf"))
+  want <- 1 / (60 + rank(-dense, ties.method = "min")) + 1 / (60 + rank(-bm, ties.method = "min"))
+  expect_equal(r, want)
+  expect_equal(ns$rrf_scores(list(c(3, 2, 1)), k = 1), c(1 / 2, 1 / 3, 1 / 4))
+  # A non-finite score ranks last.
+  expect_equal(ns$rrf_scores(list(c(NA, 2, 1)), k = 1), c(1 / 4, 1 / 2, 1 / 3))
+})
+
+test_that("retrieve and iterative give the same order on the same inputs", {
+  # Embeddings that are not lexical: the default ranks alike.
+  expect_identical(ro_order("retrieve", list()), ro_order("iterative", list()))
+  # Under rrf, on lexical embeddings as well.
+  expect_identical(ro_order("retrieve", list(fusion = "rrf")),
+                   ro_order("iterative", list(fusion = "rrf")))
+  expect_identical(ro_order("retrieve", list(fusion = "rrf"), "lexical"),
+                   ro_order("iterative", list(fusion = "rrf"), "lexical"))
+  expect_length(ro_order("retrieve", list(fusion = "rrf"), "lexical"), 6L)
+})

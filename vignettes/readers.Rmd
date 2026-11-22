@@ -763,7 +763,7 @@ requests were the same; only 0.3 changed them on this report. A sweep of
 `mmr` is worth running only on documents that repeat themselves, and
 `hr_sweep_check()` says when it reached none.
 
-### Word matching: `lexical_blend`, `bm25_k1` and `bm25_b` {#set-lexical}
+### Word matching: `lexical_blend`, `bm25_k1`, `bm25_b` and `fusion` {#set-lexical}
 
 **What they control.** With lexical embeddings (`gr_options(embedder =
 "lexical")`), `retrieve` scores chunks by a blend of cosine similarity and
@@ -792,6 +792,26 @@ hr_sweep_check(bench)
 
 Each value of `lexical_blend` picked different chunks here, while `bm25_b` at
 0.3 picked the same three as at 0.75.
+
+`fusion` decides how the two rankings are combined, for `retrieve` and
+`iterative` alike. `"default"` is the blend above, which `retrieve` applies
+only on lexical embeddings and `iterative` never did; `"rrf"` is reciprocal
+rank fusion (Cormack, Clarke and Buettcher 2009), which adds
+`1 / (rrf_k + rank)` from each ranking, with any embeddings. It uses ranks,
+not scores, so one ranking's scale cannot swamp the other's, at the price of
+ignoring how far apart the scores are. Its constant `rrf_k = 60` is the
+paper's (`cited`); `fusion` itself is `untested`. Neither costs a request.
+
+```{r}
+bench <- sweep(hr_sweep(needle, expand.grid(top_k = 2, fusion = c("default", "rrf"),
+                                            rrf_k = c(60, 5))))
+hr_sweep_check(bench)
+```
+
+On this report `"rrf"` picked the same two chunks as the blend, and `rrf_k`
+does nothing under `"default"`, so `hr_sweep_check()` lists both as sending
+the same requests. Where they do differ, compare `correct` by `param.fusion`
+on a reference.
 
 ### Placement: `context_order` and `restate` {#set-context-order}
 

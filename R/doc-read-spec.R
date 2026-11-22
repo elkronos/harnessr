@@ -380,6 +380,21 @@ gr_reader_signature <- function(reader) {
 #'   anyway (`notes$read_below_min_score = TRUE`), and marks a
 #'   `NOT_IN_DOCUMENT` reply with `notes$retrieval_low_score = TRUE`. It costs
 #'   the answer request the default does not make. Untested.
+#' @param fusion For `retrieve` and `iterative`: how the embedding ranking and
+#'   the BM25 word-matching ranking are combined. Both readers rank through
+#'   one function. `"default"` keeps each reader's 0.6.0 ranking: `retrieve`
+#'   blends cosine with BM25 by `lexical_blend` when the embeddings are
+#'   lexical and uses cosine alone otherwise, and `iterative` uses cosine
+#'   alone, so on embeddings that are not lexical the two rank alike.
+#'   `"rrf"` is reciprocal rank fusion (Cormack, Clarke and Buettcher 2009,
+#'   "Reciprocal Rank Fusion outperforms Condorcet and individual Rank
+#'   Learning Methods"): each chunk scores the sum of `1 / (rrf_k + rank)`
+#'   over the two rankings, whatever the embeddings, and both readers fuse
+#'   alike. It costs no request. Under `"rrf"`, `min_score` applies to the
+#'   fused score, which lies between 0 and `2 / (rrf_k + 1)`. Untested.
+#' @param rrf_k Under `fusion = "rrf"`, the constant `k`. \[1, 1e4\], default
+#'   60, the value Cormack, Clarke and Buettcher (2009) use (`cited`); not
+#'   tuned here. A larger `k` flattens the difference between top ranks.
 #' @param ... Extra fields for custom readers.
 #' @return A list of class `gr_read_spec`.
 #'
@@ -555,7 +570,8 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
                          restate_tokens = 1200L, bm25_k1 = 1.5, bm25_b = 0.75,
                          lexical_blend = 0.5, unskip_k = 0L,
                          reread_on = c("never", "not_found"),
-                         low_score = c("not_found", "read_top_k"), ...) {
+                         low_score = c("not_found", "read_top_k"),
+                         fusion = c("default", "rrf"), rrf_k = 60, ...) {
   warn_near_miss(list(...), names(formals(gr_read_spec)), "read")
   # Every argument but `...` is checked and resolved by the schema
   # (.gr_read_schema): ranges clamped with a warning, a missing number taken
@@ -800,7 +816,19 @@ as_read_spec <- function(spec) {
            help = paste0("For rerank: when every candidate scores below rerank_min_score, ",
                          "answer not found, or send the 5 best to the answer request."),
            evidence = ev_untested(paste0("\"not_found\", the behaviour before the setting ",
-                                         "existed: no answer request. Not measured.")))
+                                         "existed: no answer request. Not measured."))),
+  hr_param("fusion", "enum", choices = c("default", "rrf"), tier = "advanced",
+           help = paste0("For retrieve and iterative: how embedding similarity and BM25 ",
+                         "are combined into one ranking."),
+           evidence = ev_untested(paste0("\"default\" keeps the 0.6.0 ranking of each reader. ",
+                                         "Reciprocal rank fusion is not compared with it ",
+                                         "here."))),
+  hr_param("rrf_k", "number", default = 60, min = 1, max = 1e4, tier = "advanced",
+           depends_on = "fusion = \"rrf\"",
+           help = "Under fusion = 'rrf': the constant k in 1 / (k + rank).",
+           evidence = ev_cited(paste0("Cormack, Clarke and Buettcher (2009), \"Reciprocal ",
+                                      "Rank Fusion outperforms Condorcet and individual Rank ",
+                                      "Learning Methods\", SIGIR, use k = 60; not tuned here.")))
 )
 
 #' The read settings that were constants in the code until they were declared
@@ -808,7 +836,7 @@ as_read_spec <- function(spec) {
 #' @noRd
 .gr_read_late_params <- c("accept_near_verbatim", "max_merge_levels", "restate_tokens",
                           "bm25_k1", "bm25_b", "lexical_blend", "unskip_k", "reread_on",
-                          "low_score")
+                          "low_score", "fusion", "rrf_k")
 
 #' The settings among `names` whose resolved value is not the schema's default,
 #' as a list to add to a spec. A spec is hashed whole into the corpus store and

@@ -23,6 +23,14 @@ says what it trades off and how to test it with `hr_sweep()`.
   the answer request in that case instead of answering `NOT_IN_DOCUMENT`
   unasked, and marks a `NOT_IN_DOCUMENT` reply with `retrieval_low_score`.
 
+* `retrieve` and `iterative` rank chunks through one fusion function. At
+  `fusion = "default"` each keeps its 0.6.0 ranking (`retrieve` blends cosine
+  with BM25 on lexical embeddings, `iterative` uses cosine), so the two give
+  the same order on the same inputs whenever the embeddings are not lexical.
+  `fusion = "rrf"` is reciprocal rank fusion of the cosine and BM25
+  rankings for both, with `rrf_k = 60`, the constant Cormack, Clarke and
+  Buettcher (2009) use.
+
 ## Claims and the write-up: what each rests on
 
 * The claims and writing prompts now show each extracted value with its

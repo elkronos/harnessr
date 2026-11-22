@@ -121,6 +121,10 @@ read_iterative <- function(chunks, question, client, spec, trace) {
     }
     degraded_embed <- degraded_embed || isTRUE(attr(q_emb, "embedding_fallback"))
     sc <- if (nrow(rank_emb)) cosine_against(rank_emb, q_vec) else rep(0, nrow(d))
+    # The ranking retrieve uses (fuse_scores()). At the default it is the
+    # cosine scores as they are, as this reader always ranked; under
+    # fusion = "rrf" both readers fuse cosine with BM25 the same way.
+    sc <- fuse_scores(sc, d$text, q, spec, lexical = FALSE)
     # -Inf, not removal: mmr_select() treats a non-finite relevance as ineligible,
     # which is how a chunk already read stays out of this round without
     # renumbering everything around it.

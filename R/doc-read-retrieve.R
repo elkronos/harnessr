@@ -17,13 +17,9 @@ retrieve_scores <- function(texts, question, client, spec, trace) {
   src <- attr(emb, "embedding_source") %||% "api"
   scores <- if (nrow(emb) >= 2L) cosine_against(emb[-1, , drop = FALSE], emb[1, ])
             else rep(0, length(texts))
-  if (identical(src, "lexical")) {
-    # Blend in BM25 so the offline path is at least a real lexical retriever.
-    w <- as_num1(spec$lexical_blend, 0.5)
-    scores <- w * scores + (1 - w) * scale01(bm25_scores(texts, question,
-                                                         k1 = as_num1(spec$bm25_k1, 1.5),
-                                                         b = as_num1(spec$bm25_b, 0.75)))
-  }
+  # Blend in BM25 on the offline path, so it is at least a real lexical
+  # retriever (fuse_scores()).
+  scores <- fuse_scores(scores, texts, question, spec, lexical = identical(src, "lexical"))
   list(scores = scores, emb = emb, source = src,
        degraded = isTRUE(attr(emb, "embedding_fallback")))
 }
@@ -92,6 +88,49 @@ read_retrieve <- function(chunks, question, client, spec, trace) {
                           mmr = lambda,
                           context_order = as_chr1(spec$context_order, "relevance"),
                           error = res$error))
+}
+
+#' The one ranking `retrieve` and `iterative` both use: embedding similarity
+#' fused with BM25 word matching, by `spec$fusion`.
+#'
+#' `"default"` keeps each reader's 0.6.0 ranking: the cosine scores as they
+#' are, blended with min-max scaled BM25 by `lexical_blend` when `lexical` is
+#' TRUE. `retrieve` passes `lexical = TRUE` when its embeddings are lexical;
+#' `iterative` never blended, and passes FALSE, so its ranking is unchanged.
+#' On the same scores, texts and query the two then rank alike whenever the
+#' embeddings are not lexical.
+#'
+#' `"rrf"` is reciprocal rank fusion (Cormack, Clarke and Buettcher 2009):
+#' each chunk scores the sum of `1 / (rrf_k + rank)` over the cosine ranking
+#' and the BM25 ranking, with ties sharing the better rank. Both readers fuse
+#' the same way under it, whatever the embeddings, so they rank alike.
+#' @return Numeric scores, one per text, higher is better.
+#' @noRd
+fuse_scores <- function(dense, texts, query, spec, lexical = FALSE) {
+  fusion <- as_chr1(spec$fusion, "default")
+  bm25 <- function() bm25_scores(texts, query, k1 = as_num1(spec$bm25_k1, 1.5),
+                                 b = as_num1(spec$bm25_b, 0.75))
+  if (identical(fusion, "rrf")) {
+    if (!length(dense)) return(dense)
+    return(rrf_scores(list(dense, bm25()), as_num1(spec$rrf_k, 60)))
+  }
+  if (!isTRUE(lexical)) return(dense)
+  w <- as_num1(spec$lexical_blend, 0.5)
+  w * dense + (1 - w) * scale01(bm25())
+}
+
+#' Reciprocal rank fusion of several score vectors over the same items:
+#' `sum(1 / (k + rank))`, rank 1 the highest score, ties at the lowest rank
+#' they share. A non-finite score ranks last.
+#' @noRd
+rrf_scores <- function(scores, k = 60) {
+  out <- numeric(length(scores[[1]]))
+  for (s in scores) {
+    s <- as.numeric(s)
+    s[!is.finite(s)] <- -Inf
+    out <- out + 1 / (k + rank(-s, ties.method = "min"))
+  }
+  out
 }
 
 #' @noRd

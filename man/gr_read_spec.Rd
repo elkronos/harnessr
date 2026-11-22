@@ -41,6 +41,8 @@ gr_read_spec(
   unskip_k = 0L,
   reread_on = c("never", "not_found"),
   low_score = c("not_found", "read_top_k"),
+  fusion = c("default", "rrf"),
+  rrf_k = 60,
   ...
 )
 }
@@ -275,6 +277,23 @@ anyway (\code{notes$read_below_min_score = TRUE}), and marks a
 \code{NOT_IN_DOCUMENT} reply with \code{notes$retrieval_low_score = TRUE}. It costs
 the answer request the default does not make. Untested.}
 
+\item{fusion}{For \code{retrieve} and \code{iterative}: how the embedding ranking and
+the BM25 word-matching ranking are combined. Both readers rank through
+one function. \code{"default"} keeps each reader's 0.6.0 ranking: \code{retrieve}
+blends cosine with BM25 by \code{lexical_blend} when the embeddings are
+lexical and uses cosine alone otherwise, and \code{iterative} uses cosine
+alone, so on embeddings that are not lexical the two rank alike.
+\code{"rrf"} is reciprocal rank fusion (Cormack, Clarke and Buettcher 2009,
+"Reciprocal Rank Fusion outperforms Condorcet and individual Rank
+Learning Methods"): each chunk scores the sum of \code{1 / (rrf_k + rank)}
+over the two rankings, whatever the embeddings, and both readers fuse
+alike. It costs no request. Under \code{"rrf"}, \code{min_score} applies to the
+fused score, which lies between 0 and \code{2 / (rrf_k + 1)}. Untested.}
+
+\item{rrf_k}{Under \code{fusion = "rrf"}, the constant \code{k}. [1, 1e4], default
+60, the value Cormack, Clarke and Buettcher (2009) use (\code{cited}); not
+tuned here. A larger \code{k} flattens the difference between top ranks.}
+
 \item{...}{Extra fields for custom readers.}
 }
 \value{
@@ -393,6 +412,8 @@ keeps the store and cache keys it had before they existed.
 \item \code{unskip_k} (default \code{0}, advanced): untested. Off (0), so the plan is followed as it was before the setting existed. Not measured.
 \item \code{reread_on} (default \code{"never"}, advanced): untested. "never", so a run makes the requests it made before the setting existed. Not measured.
 \item \code{low_score} (default \code{"not_found"}, advanced): untested. "not_found", the behaviour before the setting existed: no answer request. Not measured.
+\item \code{fusion} (default \code{"default"}, advanced): untested. "default" keeps the 0.6.0 ranking of each reader. Reciprocal rank fusion is not compared with it here.
+\item \code{rrf_k} (default \code{60}, advanced): cited. Cormack, Clarke and Buettcher (2009), "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods", SIGIR, use k = 60; not tuned here.
 }
 }
 
