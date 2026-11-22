@@ -764,6 +764,7 @@
 "audit_screening","doc","function"
 "audit_search","doc","function"
 "audit_search_recall","doc","function"
+"audit_stage_runs","doc","function"
 "audit_synthesis","doc","function"
 "auto_candidate","doc","function"
 "auto_shared_warnings","doc","function"

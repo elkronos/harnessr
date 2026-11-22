@@ -1260,11 +1260,27 @@ gr_audit_report("audit.html", screening = screened, extraction = table,
 `gr_search_recall()` result, and every argument is optional except the path and
 at least one stage to report on.
 
+The report's header gives the time it was written and the harnessr version
+that wrote it, and below them, for each stage, when that stage ran and the
+version that ran it, read from the stage's own trace. A report written months
+after the run, or by a later version, says so, and a stage run on a version
+other than the report's is flagged:
+
+```{r}
+page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
+                        extraction = table, open = FALSE)
+grep("UTC</td>", readLines(page), value = TRUE)
+```
+
 The report puts the failures near the top: unverified quotes, documents that
 could not be read, screening calls that failed or came back in the wrong form,
 and citations pointing at rows that do not exist are counted there. It also
 states what the checking does not establish: that a quoted sentence occurs in
-the document is not evidence that it supports the value taken from it.
+the document is not evidence that it supports the value taken from it. It says
+what each check looks at: a quote is in the chunk it was credited to, a number
+is one its quote states, a citation names a row the section was given, and a
+figure in the write-up is in what the writer was shown for that sentence.
+None of them confirms that a value or a sentence is right.
 
 ```{r include = FALSE}
 gr_options(old)

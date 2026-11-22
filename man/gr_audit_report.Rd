@@ -110,6 +110,27 @@ do not exist are all counted near the top. An audit that showed only what
 worked would look like diligence and be the opposite.
 }
 
+\section{When each stage ran}{
+
+Under the title, the report gives the time it was written and the harnessr
+version that wrote it, and then, for each stage passed, when that stage
+ran and the version that ran it, from the stage's own trace. A report
+written later than the run, or by another version, says so; a stage whose
+version differs from the report's is flagged. A stage saved without that
+record says "not recorded".
+}
+
+\section{What each check looks at}{
+
+"What this report does not establish" says what each check behind a
+"verified" or a count of failures looks at: the quote check (the quoted
+sentence is in the chunk), the value check behind \code{n_unverified} (a number
+is one the quote states), and, for a write-up, the citation check (the row
+exists and the section was given it) and the figures check (the figure is
+in what the writer was shown for that sentence). None of them confirms a
+value or a sentence is right.
+}
+
 \section{Files and their records}{
 
 When the screening, the extraction or a \code{gr_corpus} was read from a

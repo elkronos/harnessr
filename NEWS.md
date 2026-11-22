@@ -40,6 +40,13 @@
   the audit report show it beside the main estimate. With one decision per
   document it repeats the main figures.
 
+* The audit report's header gives, for each stage, when it ran and the
+  harnessr version that ran it, from the stage's own trace, beside the time
+  and version that wrote the report. A stage run on another version is
+  flagged. "What this report does not establish" now says what each check
+  looks at: the quote check, the value check behind `n_unverified`, and for a
+  write-up the citation and figures checks.
+
 ## Comparing methods and settings
 
 * A new guide, `vignette("compare")`, works through five comparisons offline,

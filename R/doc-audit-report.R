@@ -97,6 +97,23 @@
 #'   recall with its interval, and which seeds it missed. Last, so every
 #'   existing call keeps its meaning.
 #'
+#' @section When each stage ran:
+#' Under the title, the report gives the time it was written and the harnessr
+#' version that wrote it, and then, for each stage passed, when that stage
+#' ran and the version that ran it, from the stage's own trace. A report
+#' written later than the run, or by another version, says so; a stage whose
+#' version differs from the report's is flagged. A stage saved without that
+#' record says "not recorded".
+#'
+#' @section What each check looks at:
+#' "What this report does not establish" says what each check behind a
+#' "verified" or a count of failures looks at: the quote check (the quoted
+#' sentence is in the chunk), the value check behind `n_unverified` (a number
+#' is one the quote states), and, for a write-up, the citation check (the row
+#' exists and the section was given it) and the figures check (the figure is
+#' in what the writer was shown for that sentence). None of them confirms a
+#' value or a sentence is right.
+#'
 #' @section Files and their records:
 #' When the screening, the extraction or a `gr_corpus` was read from a
 #' [gr_records()], a section says how many files name their record's title
@@ -222,7 +239,8 @@ gr_audit_report <- function(path, screening = NULL, extraction = NULL,
   records <- records %||% screening$records %||% extraction$records
   review <- !is.null(screening) || !is.null(extraction) || !is.null(synthesis)
   body <- c(
-    audit_header(title, question, protocol, screening, extraction, synthesis, answer),
+    audit_header(title, question, protocol, screening, extraction, synthesis, answer,
+                 claims = claims %||% synthesis$claims),
     audit_answer(answer),
     audit_protocol(protocol, extraction, screening, synthesis),
     audit_flow(screening, extraction, records, claims %||% synthesis$claims),
@@ -239,7 +257,8 @@ gr_audit_report <- function(path, screening = NULL, extraction = NULL,
     audit_cost(screening = screening, extraction = extraction, synthesis = synthesis,
                reading = answer, claims = claims %||% synthesis$claims),
     audit_caveats(screening = !is.null(screening), answer = !is.null(answer),
-                  quotes = review || answer_has_quotes(answer))
+                  quotes = review || answer_has_quotes(answer),
+                  values = !is.null(extraction), written = !is.null(synthesis))
   )
   write_utf8_lines(c(audit_head(title), body, "</body>", "</html>"), path)
   gr_msg(sprintf("Audit report written to %s", path))
@@ -310,20 +329,75 @@ audit_head <- function(title) {
     '</style>', '</head>', '<body>')
 }
 
+#' The header: what ran, when each stage ran and on which version, and when
+#' the report was written and by which version.
+#'
+#' The report is often written long after the run, by a later version, and a
+#' header that gave only the report's own time and version stated those as
+#' the run's. Each stage's time and version come from its trace, which records
+#' both when it is made (gr_trace()).
 #' @noRd
 audit_header <- function(title, question, protocol, screening, extraction, synthesis,
-                         answer = NULL) {
+                         answer = NULL, claims = NULL) {
   ran <- c(if (!is.null(screening)) "screened", if (!is.null(extraction)) "extracted",
            if (!is.null(synthesis)) "synthesised",
            if (inherits(answer, "gr_answer")) "answered",
            if (inherits(answer, "gr_corpus"))
              sprintf("answered across %d document(s)", NROW(answer$summary)))
+  version <- as.character(utils::packageVersion("harnessr"))
   c(sprintf("<h1>%s</h1>", esc(title %||% "harnessr audit report")),
     if (nzchar(question)) sprintf("<p><strong>Question.</strong> %s</p>", esc(question)),
-    sprintf("<p class='sub'>Stages run: %s. Generated %s by harnessr %s.</p>",
+    sprintf("<p class='sub'>Stages run: %s. Report written %s by harnessr %s.</p>",
             esc(paste(ran, collapse = ", ")),
             esc(format(Sys.time(), "%Y-%m-%d %H:%M %Z")),
-            esc(as.character(utils::packageVersion("harnessr")))))
+            esc(version)),
+    audit_stage_runs(list(screening = screening, extraction = extraction, claims = claims,
+                          synthesis = synthesis,
+                          reading = if (inherits(answer, "gr_corpus")) answer,
+                          answer = if (inherits(answer, "gr_answer")) answer),
+                     version))
+}
+
+#' When each stage ran and the harnessr version that ran it, from its trace.
+#'
+#' `started` is when the stage's trace was made, shown in UTC, and the
+#' version is the one gr_trace() records in `meta` (under its old name,
+#' `readgpt`). A stage saved without a trace, or with one from before either
+#' was recorded, says "not recorded". A version other than the report's is
+#' flagged: prompts and readers change between versions.
+#' @noRd
+audit_stage_runs <- function(stages, version) {
+  stages <- Filter(Negate(is.null), stages)
+  if (!length(stages)) return(NULL)
+  rows <- lapply(names(stages), function(nm) {
+    tr <- tryCatch(stages[[nm]][["trace", exact = TRUE]], error = function(e) NULL)
+    get <- function(f) {
+      tryCatch(if (is.environment(tr) || is.list(tr)) tr[[f]], error = function(e) NULL)
+    }
+    started <- get("started")
+    when <- if (inherits(started, "POSIXct") && length(started) == 1L && !is.na(started)) {
+      format(started, "%Y-%m-%d %H:%M:%S UTC", tz = "UTC")
+    } else if (is.character(started) && length(started) == 1L && !is.na(started)) {
+      started
+    } else NA_character_
+    meta <- get("meta")
+    ver <- if (is.list(meta)) as_chr1(meta[["readgpt", exact = TRUE]] %||%
+                                        meta[["harnessr", exact = TRUE]], NA_character_)
+           else NA_character_
+    data.frame(stage = nm, started = when, harnessr = ver, stringsAsFactors = FALSE)
+  })
+  tab <- do.call(rbind, rows)
+  differs <- !is.na(tab$harnessr) & tab$harnessr != version
+  tab$started[is.na(tab$started)] <- "not recorded"
+  tab$harnessr[is.na(tab$harnessr)] <- "not recorded"
+  c("<p class='sub'>When each stage ran, and the harnessr version that ran it, from the stage's",
+    "own trace. They can differ from the report's.</p>",
+    html_table(tab, flag = list(harnessr = function(v) differs)),
+    if (any(differs))
+      sprintf(paste0("<p class='flag'>%s ran on a harnessr version other than this report's ",
+                     "(%s). Prompts and readers change between versions, so read the run as ",
+                     "that version made it.</p>"),
+              esc(paste(tab$stage[differs], collapse = ", ")), esc(version)))
 }
 
 #' The protocol, checked against what the run recorded using.
@@ -1019,7 +1093,8 @@ claims_cost_stage <- function(claims, outline_trace = NULL) {
 }
 
 #' @noRd
-audit_caveats <- function(screening = TRUE, answer = FALSE, quotes = TRUE) {
+audit_caveats <- function(screening = TRUE, answer = FALSE, quotes = TRUE, values = FALSE,
+                          written = FALSE) {
   c("<h2>What this report does not establish</h2>",
     "<div class='note'>",
     if (quotes) c(
@@ -1029,6 +1104,25 @@ audit_caveats <- function(screening = TRUE, answer = FALSE, quotes = TRUE) {
       "right. A correct quote read wrongly looks exactly like a correct quote read rightly. What",
       "the check rules out is the quote having been invented, which is the failure that is",
       "otherwise invisible.</p>"),
+    # Each check the report calls verified, and what it looks at, so that no
+    # column is read as more than its check.
+    if (values || written) c(
+      "<p><strong>What each check looks at.</strong></p>", "<ul>",
+      if (quotes)
+        "<li>Quote: the quoted sentence occurs in the chunk it was credited to.</li>",
+      if (values) c(
+        "<li>Value (<code>n_unverified</code> counts the values that fail it): for a number or",
+        "whole-number field, the value is one of the numbers its quote states, in digits or",
+        "words; for any other field, the quote is a passage of two words or more, or the value",
+        "itself. It does not confirm the value answers the field's question.</li>"),
+      if (written) c(
+        "<li>Citation: each <code>[study n]</code> names a row that exists and that the section",
+        "was given. It does not confirm the row says what the sentence says.</li>",
+        "<li>Figure: each figure in the write-up is found, at the precision it was written to, in",
+        "what the writer was shown for that sentence (the rows it cites, the question, the",
+        "section's brief and the claims resting on those rows). It checks that the figure was",
+        "copied, not that it is the right figure for the sentence or that the row is right.</li>"),
+      "</ul>"),
     # What resolve_evidence_pages() does: it leaves the chunk's page on a span
     # it cannot place on one page. Said as it is -- "left without one" was
     # printed above a fabricated quote listed with page 1.
