@@ -75,6 +75,9 @@ reason for every one, and nothing dropped on the way.</p>
 <span>  keep_answers <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  recursive <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  trace <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  criteria_schema <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"decision"</span>, <span class="st">"per_criterion"</span><span class="op">)</span>,</span>
+<span>  samples <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  sample_rule <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"include_if_any"</span>, <span class="st">"majority"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -120,6 +123,42 @@ an <code>error</code> naming <code>screen_tokens</code>. Either way the <code>tr
 <dd><p>As <code><a href="gr_read_many.html">gr_read_many()</a></code>. Pass the same <code>trace</code> to
 <code><a href="gr_extract.html">gr_extract()</a></code> and <code><a href="gr_synthesise.html">gr_synthesise()</a></code> and it accumulates the whole review,
 while each stage keeps its own for its own cost and its own ceiling.</p></dd>
+
+
+<dt id="arg-criteria-schema">criteria_schema<a class="anchor" aria-label="anchor" href="#arg-criteria-schema"></a></dt>
+<dd><p>What each screening reply holds. <code>"decision"</code> (the
+default) asks for a decision, a reason, the deciding criterion and a
+quote, as before. <code>"per_criterion"</code> also asks, for every criterion,
+whether the excerpt shows it <code>"met"</code>, <code>"not_met"</code> or <code>"not_reported"</code>,
+and adds a <code>criteria_status</code> column to the table (<code>"criterion: status"</code>
+pairs, separated by <code>"; "</code>). An exclusion then needs an inclusion
+criterion <code>"not_met"</code> or an exclusion criterion <code>"met"</code>: a reply that
+excludes with none of either, as when a criterion is not reported and
+none is not met, is recorded as <code>"unclear"</code>, for a person to decide,
+with a reason that says so. It changes the request (the schema and the
+criteria message). Untested.</p></dd>
+
+
+<dt id="arg-samples">samples<a class="anchor" aria-label="anchor" href="#arg-samples"></a></dt>
+<dd><p>How many times each document's screening request is sent,
+from 1 to 20. At 1 (the default) it is sent once, as before. Above 1 it
+is sent that many times, each a separate draw (a cache keeps each), and
+the draws are combined by <code>sample_rule</code>; the table gains
+<code>sample_decisions</code> (each draw's decision, <code>"none"</code> for one not read) and
+<code>include_share</code> (the share of draws read that included). It multiplies
+the screening requests by <code>samples</code>. In run r of <code><a href="hr_benchmark.html">hr_benchmark()</a></code> the
+draws are numbered (r - 1) * samples + 1 to r * samples, so each run
+sends its own draws. Untested.</p></dd>
+
+
+<dt id="arg-sample-rule">sample_rule<a class="anchor" aria-label="anchor" href="#arg-sample-rule"></a></dt>
+<dd><p>How draws are combined when <code>samples</code> is above 1.
+<code>"include_if_any"</code> (the default) includes a document any draw included,
+excludes one only when every draw was read and excluded it, and sends
+the rest to a person as <code>"unclear"</code>, so a study one draw would keep is
+not lost to the others. <code>"majority"</code> takes the decision most draws gave,
+<code>"unclear"</code> on a tie. The reason, criterion and quote are the first draw's
+that gave the decision kept. Untested.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -232,14 +271,14 @@ removed" count and every one of them still has a row; see <code><a href="gr_read
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu">gr_screen</span><span class="op">(</span><span class="va">f</span>, question <span class="op">=</span> <span class="st">"Does the treatment work?"</span>,</span></span>
 <span class="r-in"><span>               include <span class="op">=</span> <span class="st">"Reports a randomised comparison"</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1ba775ba70ac.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1ba775ba70ac.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1baf157c9f4a.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1baf157c9f4a.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~15 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'structural' (cap 900 tokens, overlap 90).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'screen' (head|1|none) over 1 chunk(s).</span>
 <span class="r-in"><span><span class="va">s</span><span class="op">$</span><span class="va">table</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"decision"</span>, <span class="st">"reason"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               document decision                           reason</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1ba775ba70ac.txt  include Reports a randomised comparison.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1baf157c9f4a.txt  include Reports a randomised comparison.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

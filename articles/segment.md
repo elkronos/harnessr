@@ -310,8 +310,12 @@ cat(ctx$chunks$text[2])
 ```
 
 With `context_source = "llm"` a model writes the line instead, one call
-per chunk, from the chunk and the document’s first 1,500 tokens. The
-mock client below stands in for that model:
+per chunk, from the chunk, the document’s first 1,500 tokens and the
+chunk’s section path from the document’s headings
+(`"Report > Results"`), so a chunk from deep in a long document can be
+placed. It makes one request per chunk and never more: `$extra$cost`
+declares `calls` and `calls_max` as the number of chunks. The mock
+client below stands in for that model:
 
 ``` r
 
@@ -345,6 +349,9 @@ against the line:
 
 ctx_llm$chunks$source_text[2]
 #> [1] "Northwind Instruments reported revenue of 45.2 million dollars in fiscal 2024,\nup from 38.7 million in 2023. Gross margin improved to 41 percent from 37\npercent."
+unlist(ctx_llm$extra$cost)
+#>     calls calls_max 
+#>        14        14
 ```
 
 ## Segmenters that call a model
@@ -354,17 +361,27 @@ Three segmenters spend something, and each takes a `client`:
 - `semantic` embeds the text a few sentences at a time
   (`semantic_window`, default 2) and cuts where two neighbouring windows
   differ most: at distances above the `semantic_percentile` (default 90;
-  higher gives fewer, larger chunks). The packer then holds the pieces
-  to the cap and the minimum.
+  higher gives fewer, larger chunks), or, with
+  `semantic_threshold = "texttiling"`, at the deep valleys of the
+  similarity between neighbouring windows (see below). The packer then
+  holds the pieces to the cap and the minimum.
 - `contextual` with `context_source = "llm"` makes one call per chunk,
   as above.
 - `proposition` sends the document in batches of about
   `proposition_batch_tokens` (default 900) and has the model rewrite
   each into standalone factual statements, with pronouns resolved and
-  numbers kept as written. Its chunks are the model’s words, so
-  `source_text` holds the passage each was written from, and quotes are
-  checked against that. A batch that cannot be rewritten is kept as
-  written rather than dropped, with a warning, and counted in
+  numbers kept as written. With `proposition_context_tokens` above 0,
+  each batch’s request also carries that many tokens from the end of the
+  batch before it, so what it refers back to can be resolved. Its chunks
+  are the model’s words, so `source_text` holds the passage each was
+  written from, and quotes are checked against that; each chunk keeps
+  the page and section of its passage. A proposition with no support in
+  its passage (a number the passage does not give, or most of its words
+  absent) is counted in `$extra$propositions_unsupported`; with
+  `proposition_check = "drop"` it is also dropped as invented, counted
+  in `$extra$propositions_dropped`, with a `gr_proposition_dropped`
+  warning. A batch that cannot be rewritten is kept as written rather
+  than dropped, with a warning, and counted in
   `$extra$batches_kept_as_written`.
 
 ``` r
@@ -372,14 +389,16 @@ Three segmenters spend something, and each takes a `client`:
 cl <- gr_mock_client(function(messages, params) "unused")
 sem <- gr_segment(doc, list(method = "semantic", max_tokens = 120), client = cl)
 gr_chunk_stats(sem)
-#>     method n total_tokens min median  mean max over_cap
-#> 1 semantic 5          528  93    106 105.6 116        0
+#>              method n total_tokens min median  mean max over_cap
+#> 1 semantic->lexical 5          528  93    106 105.6 116        0
 sem$extra$embedding_source
 #> [1] "lexical"
 ```
 
 `embedding_source` is `"lexical"` here, so the boundaries reflect shared
-words, not meaning. With a real embeddings endpoint it is `"api"`.
+words, not meaning, and `$method` says so: `"semantic->lexical"`. With a
+real embeddings endpoint it is `"api"`, and the method is `"semantic"`.
+The label is all that differs; the chunks and the requests are the same.
 
 These requests count against the run’s limits,
 `gr_options(max_calls =, max_cost_usd =)`, like any other. Called
@@ -392,7 +411,7 @@ cost:
 
 gr_trace_summary(ctx_llm$trace)[, c("calls", "tokens_in", "tokens_out")]
 #>   calls tokens_in tokens_out
-#> 1    14      8639        196
+#> 1    14      9104        196
 ```
 
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
@@ -593,6 +612,186 @@ aggregate(tokens_in ~ param.overlap_tokens, bench, mean)
 At 100-token chunks, 50 tokens of overlap sent 24% more prompt tokens
 than none (829 against 669).
 
+### Packing: `packing`, `min_tokens` and `runt_merge`
+
+**What they control.** How units (paragraphs, sentences, pieces) are
+packed into chunks under the cap. `packing = "greedy"` fills each chunk
+to `max_tokens` and leaves the remainder in the last chunk; `"balanced"`
+keeps the same number of chunks and evens their sizes. `min_tokens`
+merges a chunk smaller than it into the chunk before it;
+`runt_merge = "both"` also merges a first chunk smaller than it forward
+into the second, which the backward rule cannot reach, since nothing
+comes before it.
+
+**Signs they need changing.** A last chunk much smaller than the others,
+in a reader that weighs chunks alike (`retrieve` scoring, `map_reduce`
+notes), points to `"balanced"`. A document whose first chunk is only its
+title, sent as a request of its own, points to `min_tokens` with
+`runt_merge = "both"`.
+
+**Where the defaults came from.** `"greedy"`, `min_tokens = 0` and
+`"backward"` are how chunks were packed before these settings existed;
+none has been compared with the alternatives (`untested`).
+
+**How to test them.** The chunk sizes show what they do, for nothing:
+
+``` r
+
+paras <- sprintf("Paragraph %02d reports the year's results in some detail, %s.", 1:25,
+                 "with a few more words to give it some length")
+long_doc <- gr_ingest(paste(c("Annual review", paras), collapse = "\n\n"))
+sizes <- function(...) gr_segment(long_doc, gr_segment_spec("paragraph", ...))$chunks$tokens
+sizes(max_tokens = 300)
+#> [1] 256 252 197
+sizes(max_tokens = 300, packing = "balanced")
+#> [1] 229 252 225
+```
+
+Greedy packing leaves 197 tokens in the last of three chunks; balanced
+packing makes three of 229, 252 and 225. What they do to answers is
+tested with arms:
+
+``` r
+
+bench <- sweep(hr_sweep(gr_arm("needle", list(method = "paragraph", max_tokens = 150)),
+                        list(packing = c("greedy", "balanced"))))
+aggregate(tokens_in ~ param.packing, bench, mean)
+#>   param.packing tokens_in
+#> 1      balanced       901
+#> 2        greedy       876
+```
+
+The two sent different requests here, 901 prompt tokens for `"balanced"`
+against 876 for `"greedy"`, because `retrieve` picked chunks of
+different sizes; whether answers change is what a benchmark on your own
+reference measures.
+
+### Semantic boundaries: `semantic_threshold`
+
+**What it controls.** How `semantic` turns the distances between
+neighbouring windows into cuts. `"percentile"` cuts every gap whose
+distance reaches the `semantic_percentile` of them all, so about one gap
+in ten is cut whether the text changes topic or not. `"texttiling"` cuts
+by depth score, the rule of TextTiling (Hearst 1997): it compares the
+`semantic_window` sentences before each gap with those after it, finds
+the valleys of that similarity, and cuts a valley only when it is deep,
+both by Hearst’s cutoff and by being deeper than the similarities
+spread. A text on one topic then gets at most about one cut, and a
+change of topic gets one. It uses the same embeddings, so it sends the
+same requests.
+
+**Signs it needs changing.** Under `semantic`, chunks that end in the
+middle of an argument on a page with no change of subject point to
+`"texttiling"`. A long document whose sections run together into a few
+large chunks under `"texttiling"` points back to `"percentile"`.
+
+**Where the default came from.** `"percentile"` is the rule `semantic`
+was written with; it has not been compared with `"texttiling"`
+(`untested`).
+
+**How to test it.** It sends the same embedding request either way, so
+the first test is free: count the cuts.
+
+``` r
+
+by_rule <- sapply(c("percentile", "texttiling"), function(rule) {
+  gr_segment(doc, gr_segment_spec("semantic", max_tokens = 1200,
+                                  semantic_threshold = rule), client = cl)$extra$boundaries
+})
+by_rule
+#> percentile texttiling 
+#>          3          2
+```
+
+The example report has a few short sections, and `"texttiling"` cuts it
+twice where `"percentile"` cuts it three times. What the cuts do to
+answers is tested with arms:
+
+``` r
+
+bench <- sweep(hr_sweep(gr_arm("needle"),
+                        list(semantic_threshold = c("percentile", "texttiling"))))
+aggregate(tokens_in ~ param.semantic_threshold, bench, mean)
+#>   param.semantic_threshold tokens_in
+#> 1               percentile       676
+#> 2               texttiling       675
+```
+
+Under `"needle"`, whose chunks are at most 500 tokens, the two sent
+nearly the same prompt tokens here (676 and 675): the packer, not the
+boundaries, sets most of each chunk’s size.
+
+### Tables: `table_packing`
+
+**What it controls.** How `paragraph` packs the rows of a table.
+`"rows"` packs them as it packs any other blocks, so a long table is cut
+wherever the cap falls and only its first chunk carries the header row.
+`"grouped"` packs each table on its own and opens every chunk of it with
+the header row, then as many rows as fit. Either way, a document’s
+blocks and the chunks of a document with a table say which table and
+which rows they hold (`table_id` and `table_rows`); that is provenance
+only and adds nothing to the text.
+
+**Signs it needs changing.** Answers that read a figure from the wrong
+column of a long table, or that cannot say what a row’s numbers are,
+point to `"grouped"`, so every chunk of rows says what its columns are.
+Many small tables, each smaller than a chunk, gain nothing from it.
+
+**Where the default came from.** `"rows"` is how tables were packed
+before the setting existed; it has not been compared with `"grouped"`
+(`untested`).
+
+**How to test it.** The chunks show what it does, for nothing:
+
+``` r
+
+tab <- tempfile(fileext = ".md")
+writeLines(c("# Sales by region", "",
+             "| region | units | revenue |", "|---|---|---|",
+             sprintf("| region %02d | %d | %d |", 1:30, 100 + 1:30, 1000 + 7 * 1:30)), tab)
+tab_doc <- gr_ingest(tab)
+by_packing <- lapply(c(rows = "rows", grouped = "grouped"), function(p) {
+  gr_segment(tab_doc, gr_segment_spec("paragraph", max_tokens = 150, table_packing = p))
+})
+lapply(by_packing, function(ch) ch$chunks[, c("chunk_id", "tokens", "table_id", "table_rows")])
+#> $rows
+#>   chunk_id tokens table_id table_rows
+#> 1        1    101        1       1-31
+#> 2        2    138        1       1-31
+#> 3        3    138        1       1-31
+#> 4        4     15        1       1-31
+#> 
+#> $grouped
+#>   chunk_id tokens table_id table_rows
+#> 1        1      8       NA       <NA>
+#> 2        2    117        1        1-9
+#> 3        3    117        1      10-17
+#> 4        4    117        1      18-25
+#> 5        5     93        1      26-31
+sapply(by_packing, function(ch) sum(startsWith(ch$chunks$text, "| region | units |")))
+#>    rows grouped 
+#>       0       4
+```
+
+Under `"rows"` the table, which Markdown gives as one block, is packed
+after the heading and cut wherever the cap falls, so no chunk opens with
+the header row and each piece reports the rows of the whole block,
+`"1-31"`. Under `"grouped"` every chunk of rows opens with the header,
+and `table_rows` says which rows each holds. A table from Word or HTML
+comes one row per block, and then `"rows"` gives each chunk its own
+range too. What it does to answers is tested with arms on a reference
+whose documents have tables, with `my_tables` that reference and
+`my_client` your client:
+
+``` r
+
+arms <- hr_sweep(gr_arm("thorough", list(method = "paragraph")),
+                 list(table_packing = c("rows", "grouped")))
+bench <- hr_benchmark(arms, my_tables, runs = 5, client = my_client, split = "dev",
+                      scorer = gr_scorer_answer())
+hr_report(bench)
+```
+
 ### Context lines and propositions: `contextual` and `proposition`
 
 **What they control.** `contextual` starts each chunk with a line saying
@@ -615,10 +814,15 @@ versions.
 
 **Where the defaults came from.** `context_source = "metadata"` was
 chosen as the source that makes no request, and has not been compared
-with `"llm"`. `proposition_batch_tokens` (900), `context_reply_tokens`
-(90), `context_document_tokens` (1500) and `proposition_reply_tokens`
-(2000) are the values the code had as constants; none was tuned
-(`untested`).
+with `"llm"`. The section path `"llm"` sends and the test that finds an
+invented proposition (every number in the passage, half its words in the
+passage or its context) were set when they were written; neither was
+tuned. `proposition_check = "count"` keeps every proposition, and
+`proposition_context_tokens = 0` sends each batch alone, as before;
+neither has been compared with the alternatives.
+`proposition_batch_tokens` (900), `context_reply_tokens` (90),
+`context_document_tokens` (1500) and `proposition_reply_tokens` (2000)
+are the values the code had as constants; none was tuned (`untested`).
 
 **How to test them.** Compare `contextual` with the segmenter it builds
 on:
@@ -648,6 +852,10 @@ bench <- hr_benchmark(arms, my_reference, runs = 5, client = my_client, split = 
                       scorer = gr_scorer_answer())
 aggregate(cbind(correct, usd) ~ param.method + param.context_source, bench, mean)
 ```
+
+`proposition_check = "drop"` changes no request, only which propositions
+are kept, so `$extra$propositions_unsupported` on one segmentation shows
+what it would drop before you sweep it.
 
 `context_source` is stored in the recipe even under a segmenter that
 ignores it, so give it the value the other rows use for every row where

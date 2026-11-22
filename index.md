@@ -240,19 +240,19 @@ change with
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md).
 The [settings
 reference](https://elkronos.github.io/harnessr/articles/settings.html)
-lists all 203 with their defaults, and
+lists all 220 with their defaults, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
 returns them in R.
 
 | stage | settings | most used | walkthroughs |
 |----|----|----|----|
-| ingest | 19 | `clean`, `ocr`, `min_chars` | [cleaning](https://elkronos.github.io/harnessr/articles/ingest.html#set-clean), [OCR](https://elkronos.github.io/harnessr/articles/ingest.html#set-ocr) |
-| segment | 14 | `method`, `max_tokens`, `overlap_tokens` | [segmenter](https://elkronos.github.io/harnessr/articles/segment.html#set-method), [size](https://elkronos.github.io/harnessr/articles/segment.html#set-max-tokens), [overlap](https://elkronos.github.io/harnessr/articles/segment.html#set-overlap), [context lines](https://elkronos.github.io/harnessr/articles/segment.html#set-contextual) |
+| ingest | 21 | `clean`, `ocr`, `min_chars` | [cleaning](https://elkronos.github.io/harnessr/articles/ingest.html#set-clean), [OCR](https://elkronos.github.io/harnessr/articles/ingest.html#set-ocr) |
+| segment | 20 | `method`, `max_tokens`, `overlap_tokens` | [segmenter](https://elkronos.github.io/harnessr/articles/segment.html#set-method), [size](https://elkronos.github.io/harnessr/articles/segment.html#set-max-tokens), [overlap](https://elkronos.github.io/harnessr/articles/segment.html#set-overlap), [context lines](https://elkronos.github.io/harnessr/articles/segment.html#set-contextual) |
 | read | 47 | `reader`, `model`, `top_k`, `cite`, `verify` | [reader](https://elkronos.github.io/harnessr/articles/readers.html#set-reader), [`top_k`](https://elkronos.github.io/harnessr/articles/readers.html#set-top-k), [`mmr`](https://elkronos.github.io/harnessr/articles/readers.html#set-mmr), [checks](https://elkronos.github.io/harnessr/articles/readers.html#set-verify), [effort](https://elkronos.github.io/harnessr/articles/readers.html#set-effort) |
-| screen | 30 | `screen_tokens`, `recall_target`, `conf` | [calibration](https://elkronos.github.io/harnessr/articles/review.html#set-calibration) |
-| extract | 9 | `resolve`, `require_quote` | [extraction](https://elkronos.github.io/harnessr/articles/review.html#set-extract) |
+| screen | 33 | `screen_tokens`, `recall_target`, `conf` | [calibration](https://elkronos.github.io/harnessr/articles/review.html#set-calibration) |
+| extract | 10 | `resolve`, `require_quote` | [extraction](https://elkronos.github.io/harnessr/articles/review.html#set-extract) |
 | synthesise | 28 | `coherence`, `cite_style` | [synthesis](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) |
-| evaluate | 22 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html) |
+| evaluate | 27 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html) |
 | options | 34 | `model`, `max_cost_usd`, `max_calls` | [limits](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) |
 
 ## What an answer gives back

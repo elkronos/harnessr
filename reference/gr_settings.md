@@ -43,7 +43,7 @@ An
 
 ``` r
 gr_settings("segment")
-#> <hr_schema> 14 parameter(s)
+#> <hr_schema> 20 parameter(s)
 #>   context_source             enum          advanced  untested  metadata|llm
 #>   max_tokens                 integer       basic     untested  [32, 1e+06]
 #>   overlap_tokens             integer       basic     untested  [0, f()]
@@ -58,6 +58,12 @@ gr_settings("segment")
 #>   context_reply_tokens       integer       advanced  untested  [16, 4000]
 #>   context_document_tokens    integer       advanced  untested  [100, 1e+06]
 #>   proposition_reply_tokens   integer       advanced  untested  [100, 1e+06]
+#>   semantic_threshold         enum          advanced  untested  percentile|texttiling
+#>   table_packing              enum          advanced  untested  rows|grouped
+#>   proposition_check          enum          advanced  untested  count|drop
+#>   proposition_context_tokens integer       advanced  untested  [0, 2000]
+#>   packing                    enum          advanced  untested  greedy|balanced
+#>   runt_merge                 enum          advanced  untested  backward|both
 s <- as.data.frame(gr_settings("read"))
 s[s$tier == "basic", c("name", "default", "status")]
 #>      name    default   status

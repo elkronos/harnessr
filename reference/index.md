@@ -289,6 +289,8 @@ and
   [`print(`*`<hr_bench_report>`*`)`](https://elkronos.github.io/harnessr/reference/hr_report.md)
   [`as_json(`*`<hr_bench_report>`*`)`](https://elkronos.github.io/harnessr/reference/hr_report.md)
   : Report a benchmark with intervals
+- [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md)
+  : Correlated errors between the arms of a benchmark
 - [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
   [`hr_n_needed()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)
   [`print(`*`<hr_mdd>`*`)`](https://elkronos.github.io/harnessr/reference/hr_mdd.md)

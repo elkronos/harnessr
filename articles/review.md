@@ -1665,28 +1665,138 @@ than 10 points and narrower than 20, so the sample is adequate under the
 wider bar only. A wider bar does not make the sample say more; it says
 less is enough.
 
-### Extraction: `resolve` and `require_quote`
+### Screening replies: `criteria_schema`, `samples` and `sample_rule`
+
+**What it controls.** What each screening reply holds. `"decision"` asks
+for a decision, a reason, the deciding criterion and a quote.
+`"per_criterion"` also asks, for every criterion of the protocol,
+whether the excerpt shows it `"met"`, `"not_met"` or `"not_reported"`,
+records them in a `criteria_status` column, and holds an exclusion to
+them: a reply that excludes a document although no inclusion criterion
+is `"not_met"` and no exclusion criterion is `"met"` (for example, when
+the excerpt does not report a criterion) is recorded as `"unclear"`, for
+a person to decide. `samples` sends each screening request that many
+times, as separate draws, and `sample_rule` combines them:
+`"include_if_any"` includes a document any draw included and excludes
+one only when every draw excluded it, so a study one draw would keep is
+not lost to the others; `"majority"` takes the decision most draws gave.
+The table then records each draw’s decision (`sample_decisions`) and the
+share that included (`include_share`).
+
+**Signs it needs changing.** Exclusions whose reasons say the excerpt
+does not mention something (“the age of participants is not given”) are
+exclusions for missing information, which is how screening loses
+studies; `"per_criterion"` sends those to a person. A review that
+reports, for each record, which criteria it met needs the column.
+Decisions that change when the same record is screened again (compare
+two runs at a temperature above 0) point to `samples` above 1, at that
+many times the screening requests.
+
+**Where the defaults came from.** `"decision"` is the reply screening
+was written with; it has not been compared with `"per_criterion"`.
+`samples = 1` sends one request per document, as before, and
+`"include_if_any"` was chosen so that no study a draw would keep is
+lost; neither has been compared (`untested`).
+
+**How to test it.** It changes the request, a schema and one more
+instruction, so the first test is what it does to the same reply. This
+stand-in excludes the southern report for a figure it says is not
+reported:
+
+``` r
+
+strict_screener <- gr_mock_client(function(messages, params) {
+  seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
+                collapse = " ")
+  south <- grepl("51.8", seen, fixed = TRUE)
+  sprintf(paste0('{"decision":"%s","reason":"%s","criterion":"Reports a revenue figure",',
+                 '"quote":null,"criteria":[',
+                 '{"criterion":"Reports a revenue figure","status":"%s"},',
+                 '{"criterion":"Is a forecast rather than a result","status":"not_met"}]}'),
+          if (south) "exclude" else "include",
+          if (south) "The excerpt does not say." else "Reports revenue.",
+          if (south) "not_reported" else "met")
+})
+per <- gr_screen(reports, protocol, client = strict_screener,
+                 criteria_schema = "per_criterion")
+per$table[, c("document", "decision", "criteria_status")]
+#>    document decision
+#> 1 north.txt  include
+#> 2 south.txt  unclear
+#>                                                                       criteria_status
+#> 1          Reports a revenue figure: met; Is a forecast rather than a result: not_met
+#> 2 Reports a revenue figure: not_reported; Is a forecast rather than a result: not_met
+```
+
+The southern report is held back as `"unclear"` instead of excluded.
+Three draws from a stand-in that includes the southern report once in
+three show `include_if_any`:
+
+``` r
+
+draws <- gr_mock_client(function(messages, params) {
+  seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
+                collapse = " ")
+  keep <- !grepl("51.8", seen, fixed = TRUE) || identical(params$draw_index, 2L)
+  sprintf('{"decision":"%s","reason":"Draw %d.","criterion":"Reports a revenue figure","quote":null}',
+          if (keep) "include" else "exclude", params$draw_index)
+})
+sampled <- gr_screen(reports, protocol, client = draws, samples = 3)
+sampled$table[, c("document", "decision", "sample_decisions", "include_share")]
+#>    document decision          sample_decisions include_share
+#> 1 north.txt  include include, include, include     1.0000000
+#> 2 south.txt  include exclude, include, exclude     0.3333333
+```
+
+On your own records, compare the two with labels, one arm per value, as
+in “Knowing how good the screening is” above, with `labelled` an
+[`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
+of a person’s decisions:
+
+``` r
+
+arms <- hr_sweep(function(criteria_schema) {
+  hr_arm(paste0("screen-", criteria_schema), function(item, ctx) {
+    gr_screen(item, protocol, client = ctx$client, criteria_schema = criteria_schema,
+              trace = ctx$trace)$table$decision
+  })
+}, list(criteria_schema = c("decision", "per_criterion")))
+bench <- hr_benchmark(arms, labelled, runs = 5, client = my_client)
+hr_report(bench)
+```
+
+`samples` is swept the same way, `list(samples = c(1, 3))`, at three
+times the screening requests for the second arm.
+
+### Extraction: `resolve`, `agreement_columns` and `require_quote`
 
 **What they control.** `resolve` decides what happens when two chunks of
 one document give different values for a field: `"first"` keeps the
 earlier one and records the disagreement in `conflicts`, for nothing;
-`"model"` spends one request per disagreeing field to choose.
-`require_quote = TRUE` drops any value whose quotation does not verify,
-so the table holds fewer values, each with a quotation found in the
-document.
+`"vote"` keeps the value most chunks gave, also for nothing, with a tie
+going to the earliest value as under `"first"`; `"model"` spends one
+request per disagreeing field to choose. `agreement_columns = TRUE` adds
+a `<field>_agreement` column (how many of the chunks that reported the
+field give its most common value, as `"2/3"`) and a `<field>_conflict`
+column for each field; it changes no request. `require_quote = TRUE`
+drops any value whose quotation does not verify, so the table holds
+fewer values, each with a quotation found in the document.
 
 **Signs they need changing.** Many rows with `conflicts` filled, on
 fields where the later value is the right one (a corrected figure, a
-final sample size after dropouts), point to `resolve = "model"`.
+final sample size after dropouts), point to `resolve = "model"`, or to
+`"vote"` when the value most chunks repeat is usually the right one;
+turn on `agreement_columns` to see how lopsided each conflict is.
 `n_unverified` above zero on fields you will publish points to
 `require_quote = TRUE`, or to reading those values by hand. A protocol
 that says “no quote, no datum” needs it on.
 
 **Where the defaults came from.** `"first"` costs nothing and keeps
-every disagreement visible; it has not been compared with `"model"`.
-`require_quote = FALSE`, so no extracted value is thrown away unasked;
-`n_unverified` counts the same values without dropping them. Both are
-`untested`.
+every disagreement visible; it has not been compared with `"model"` or
+`"vote"`. `agreement_columns = FALSE` keeps the table’s columns as they
+were. `require_quote = FALSE`, so no extracted value is thrown away
+unasked; `n_unverified` counts the same values without dropping them.
+Both are `untested`.
 
 **How to test them.** `require_quote` changes no request, only which
 values are kept, so its effect shows on one run:
@@ -1719,10 +1829,30 @@ arms <- hr_sweep(function(resolve) {
     gr_extract(item, protocol, client = ctx$client, resolve = resolve,
                trace = ctx$trace)$table$revenue
   })
-}, list(resolve = c("first", "model")))
+}, list(resolve = c("first", "vote", "model")))
 bench <- hr_benchmark(arms, fields_ref, runs = 5, client = my_client)
 hr_report(bench)
 ```
+
+`"first"` and `"vote"` send the same requests, so
+`hr_sweep_check(bench)` lists the `"vote"` arm as sending what `"first"`
+sent: only the value kept differs. `agreement_columns` changes no
+request either, so one run shows it:
+
+``` r
+
+agreed <- gr_extract(screened, protocol, client = extractor, recipe = "fast",
+                     agreement_columns = TRUE)
+agreed$table[, c("document", "revenue", "revenue_agreement", "revenue_conflict")]
+#>    document revenue revenue_agreement revenue_conflict
+#> 1 north.txt    45.2               1/1            FALSE
+#> 2 south.txt    51.8               1/1            FALSE
+```
+
+The `"fast"` recipe cuts chunks of up to 4,000 tokens, so each of these
+short reports is one chunk and every agreement here is `"1/1"` and
+nothing conflicts. On documents cut into many chunks, a field with
+`"1/3"` and a conflict is one to read by hand.
 
 ### Synthesis: `unverified`, `coherence_rounds`, `figure_bands` and `prominence`
 
@@ -1886,8 +2016,8 @@ flagged:
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
                         extraction = table, open = FALSE)
 grep("UTC</td>", readLines(page), value = TRUE)
-#> [1] "<tr><td>screening</td><td>2026-11-22 11:54:46 UTC</td><td>0.6.0.9000</td></tr>" 
-#> [2] "<tr><td>extraction</td><td>2026-11-22 11:54:47 UTC</td><td>0.6.0.9000</td></tr>"
+#> [1] "<tr><td>screening</td><td>2026-11-22 13:05:13 UTC</td><td>0.6.0.9000</td></tr>" 
+#> [2] "<tr><td>extraction</td><td>2026-11-22 13:05:14 UTC</td><td>0.6.0.9000</td></tr>"
 ```
 
 The report puts the failures near the top: unverified quotes, documents

@@ -561,6 +561,89 @@ Everything is in the returned list (`rpt$accuracy`, `rpt$contrasts`,
 [`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
 writes it out.
 
+### Errors the arms share
+
+**What it controls.**
+[`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md)
+says how far the arms’ errors go together: the phi coefficient between
+each pair’s errors within strata of item difficulty (`n_strata`, or your
+own `strata`), the share of items both got wrong where they gave the
+same wrong answer, and a sample of `n_check` items every arm got wrong,
+for a person to read. Two arms with good accuracy that fail on the same
+items gain little from being combined, or from checking each other. It
+reads the benchmark’s rows (with `held_out = TRUE`, only those that
+count as evidence) and sends nothing. Yen’s Q3, the residual correlation
+of an item response model, is not computed: it needs a mixed-model
+package harnessr does not depend on.
+
+**Signs it needs reading.** A plan to vote across arms, to use one arm
+to check another, or to call two arms’ agreement a sign of being right;
+or a benchmark where most errors fall on a few items.
+
+**Where the defaults came from.** Three difficulty strata, a sample of
+ten and reading only held-out rows were set when the metric was added
+and have not been compared. `strata = NULL` reads difficulty from the
+same runs, and `seed` only makes the hand-check sample repeatable. All
+five are `untested`.
+
+**How to test it.** Here three arms share a blind spot on the first
+three items and each also fails items of its own, built with
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md):
+
+``` r
+
+truth <- hr_reference(sprintf("q%02d", 1:12), labels = rep("yes", 12),
+                      cluster = sprintf("c%02d", 1:12), split = "test")
+blind <- function(every) {
+  hr_arm(paste0("every-", every), function(item, ctx) {
+    n <- as.integer(sub("q", "", item))
+    if (n <= 3 || n %% every == 0) "no" else "yes"
+  }, params = list(every = every))
+}
+eb <- hr_benchmark(hr_sweep(blind, list(every = c(4, 5, 6))), truth, runs = 5,
+                   client = NULL)
+ec <- hr_error_correlation(eb, n_strata = 1)
+ec$pairs[, c("arm_a", "arm_b", "phi_pooled", "both_wrong", "same_wrong_rate")]
+#>             arm_a           arm_b phi_pooled both_wrong same_wrong_rate
+#> 1 every-4:every=4 every-5:every=5  0.1690309          3               1
+#> 2 every-4:every=4 every-6:every=6  0.5070926          4               1
+#> 3 every-5:every=5 every-6:every=6  0.3142857          3               1
+ec$check
+#>   item every-4:every=4 every-5:every=5 every-6:every=6
+#> 1  q01              no              no              no
+#> 2  q02              no              no              no
+#> 3  q03              no              no              no
+```
+
+Every pair is positively correlated, and every pair that is wrong
+together gives the same wrong answer, “no”: the three items every arm
+gets wrong carry most of it. With difficulty strata (`n_strata = 3`, the
+default) the items are cut by the share of runs that got them wrong:
+
+``` r
+
+ec3 <- hr_error_correlation(eb)
+table(ec3$strata)
+#> 
+#> 1 3 
+#> 8 4
+ec3$phi[, c("arm_a", "arm_b", "stratum", "items", "both_wrong", "phi")]
+#>             arm_a           arm_b stratum items both_wrong        phi
+#> 1 every-4:every=4 every-5:every=5       1     8          0 -0.3333333
+#> 2 every-4:every=4 every-5:every=5       3     4          3         NA
+#> 3 every-4:every=4 every-6:every=6       1     8          0 -0.2182179
+#> 4 every-4:every=4 every-6:every=6       3     4          4         NA
+#> 5 every-5:every=5 every-6:every=6       1     8          0 -0.2182179
+#> 6 every-5:every=5 every-6:every=6       3     4          3         NA
+```
+
+Tied shares leave two strata, not three. Stratum “3” holds q01 to q03
+and q12, which every-4 and every-6 get wrong as well. In it, one arm of
+each pair is wrong on all four items (every-5 is right on q12, but its
+partner is not), so phi there is undefined. The pooled phi then reads
+only the eight items of stratum “1”, where each arm’s errors fall on
+items of its own, and it comes out negative.
+
 ## Planning the size, and non-inferiority
 
 Often the question is whether a cheaper arm is worse than the one in use
@@ -631,10 +714,10 @@ plan <- hr_reference(ids, labels = rep("yes", n), cluster = docs, split = "test"
 design <- hr_mdd(n, n_clusters = 50, icc = 0.1, p_disc = 0.15)
 reg <- hr_register_contrasts(plan, hr_contrast("small", "large", margin = 0.10), design)
 reg
-#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-22T11:53:48.863Z
+#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-22T13:04:10.269Z
 #>  contrast       label        margin mdd cost_test
 #>  small vs large confirmatory 10.0   7.8 yes      
-#>   Margins and MDD in points; reference d453122a93af; hash 7ca7348b5b9c
+#>   Margins and MDD in points; reference d453122a93af; hash 26e7408098ab
 ```
 
 Here the stand-in model finds each item easier or harder by document and

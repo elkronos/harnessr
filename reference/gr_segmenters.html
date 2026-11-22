@@ -108,17 +108,17 @@ none).</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8     semantic embedding         TRUE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9     sentence      free        FALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10  structural      free        FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                 description</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1                                                                      one chunk per bullet</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2  Paragraph chunks prefixed with where they sit; context_source='llm' writes it per chunk.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3                         Uniform token windows, ignoring structure. The control condition.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4                              One chunk per page. For forms, invoices and scanned records.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5                                  Greedy packing of the author's paragraphs up to the cap.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6     Rewrite into standalone factual statements. Expensive; best for dense factual recall.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7                            Cascade through separators, using the strongest one that fits.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8                        Cut where consecutive embeddings diverge most. One embedding pass.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9                           Sentence-boundary packing; tighter, more chunks, cleaner edges.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10                         Never merge across headings; each chunk keeps its section title.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                        description</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                                                                                                             one chunk per bullet</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  Paragraph chunks prefixed with where they sit; context_source='llm' writes it per chunk, one request each (calls_max = chunks).</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3                                                                Uniform token windows, ignoring structure. The control condition.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4                                                                     One chunk per page. For forms, invoices and scanned records.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5                                                                         Greedy packing of the author's paragraphs up to the cap.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6                                            Rewrite into standalone factual statements. Expensive; best for dense factual recall.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7                                                                   Cascade through separators, using the strongest one that fits.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8                                                               Cut where consecutive embeddings diverge most. One embedding pass.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9                                                                  Sentence-boundary packing; tighter, more chunks, cleaner edges.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10                                                                Never merge across headings; each chunk keeps its section title.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                  calls</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1            by_bullet</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2      segment.context</span>

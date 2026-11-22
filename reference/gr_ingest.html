@@ -124,7 +124,11 @@ dropped, and read again when next asked for.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>gr_document</code>: a list with <code>blocks</code> (data frame), <code>text</code>, <code>source</code>,
-<code>spec</code> and <code>stats</code>.</p>
+<code>spec</code> and <code>stats</code>. Each block carries <code>table_id</code> and <code>table_rows</code>: for a
+row of a table (a block of kind <code>"table"</code>; each unbroken run of them is
+one table), the table's number in the document and the rows of it the
+block holds, as <code>"3"</code> or, for a Markdown table read as one block,
+<code>"1-12"</code>; <code>NA</code> for any other block.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

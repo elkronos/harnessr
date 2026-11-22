@@ -521,7 +521,7 @@ calling a model and without an API key:</p>
 <span></span>
 <span><span class="va">inv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_inventory.html">gr_inventory</a></span><span class="op">(</span><span class="va">inbox</span><span class="op">)</span></span>
 <span><span class="va">inv</span></span>
-<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/Rtmpr10xOp/inbox</span></span>
+<span><span class="co">#&gt; &lt;gr_inventory&gt; /tmp/RtmptCb8oo/inbox</span></span>
 <span><span class="co">#&gt;   4 file(s), 1.9 KB; 2 readable</span></span>
 <span><span class="co">#&gt;   2 ready, 1 no_extractor, 1 empty</span></span>
 <span><span class="co">#&gt;   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)</span></span>
@@ -721,26 +721,43 @@ your own documents, with questions whose answers sit near the end.</p>
 pages are read as pictures: <code>"auto"</code> reads a page by OCR only
 when it has fewer than <code>ocr_min_chars</code> characters of text
 (40), <code>"always"</code> reads every page that way and
-<code>"never"</code> none. <code>ocr_dpi</code> is the resolution the
-page is rendered at, and <code>ocr_lang</code> the Tesseract language.
-OCR costs seconds per page and adds recognition errors; not running it
-on a scanned page leaves that page empty.</p>
+<code>"never"</code> none. <code>ocr_trigger</code> says which text
+those characters are counted on: <code>"raw_text"</code> counts the
+page’s whole text layer, and <code>"after_running_lines"</code> counts
+what is left once the running heads, feet and stamps the layout pass
+drops are taken out. <code>ocr_dpi</code> is the resolution the page is
+rendered at, and <code>ocr_lang</code> the Tesseract language. OCR costs
+seconds per page and adds recognition errors; not running it on a
+scanned page leaves that page empty. The blocks of a page OCR read have
+<code>kind = "ocr"</code> (its headings keep <code>"heading"</code>).
+<code>ocr_confidence = TRUE</code> gives them an
+<code>ocr_confidence</code> column, Tesseract’s mean word confidence for
+the page, from 0 to 100; it runs a second Tesseract pass over each
+OCR-ed page, so OCR takes about twice as long, and it is off by
+default.</p>
 <p><strong>Signs it needs changing.</strong>
 <code>doc$stats$unread_pages</code> lists pages that came back empty,
 and an answer from such a document is marked partial. A scanned page
 with a printed header or stamp can carry more than 40 characters of text
-and so skip OCR under <code>"auto"</code>: raise
-<code>ocr_min_chars</code>. Misread numbers or letters in OCR text (a
-quotation that fails verification against a page that plainly says it)
-point to a higher <code>ocr_dpi</code> or the right
-<code>ocr_lang</code>.</p>
+and so skip OCR under <code>"auto"</code>: set
+<code>ocr_trigger = "after_running_lines"</code> when the stamp repeats
+on every page, or raise <code>ocr_min_chars</code> when it does not.
+Under <code>ocr_confidence = TRUE</code>, a low
+<code>ocr_confidence</code> on the blocks an answer cites says to read
+that page by hand. Misread numbers or letters in OCR text (a quotation
+that fails verification against a page that plainly says it) point to a
+higher <code>ocr_dpi</code> or the right <code>ocr_lang</code>.</p>
 <p><strong>Where the defaults came from.</strong>
 <code>ocr_dpi = 300</code> follows Tesseract’s documentation on
 improving output quality (<code>cited</code>). <code>ocr = "auto"</code>
 runs OCR only where a page has no text layer, and no other choice has
 been compared. <code>ocr_min_chars = 40</code> was set when OCR was
 added and has not been tuned, and <code>ocr_lang = "eng"</code> is
-English because the package’s own examples are in English. All three are
+English because the package’s own examples are in English.
+<code>ocr_trigger = "raw_text"</code> is how pages were chosen before
+the setting existed, and has not been compared with
+<code>"after_running_lines"</code>. <code>ocr_confidence = FALSE</code>
+keeps OCR to the one Tesseract pass it always ran. All of them are
 <code>untested</code>.</p>
 <p><strong>How to test it.</strong> OCR needs a scanned file and the
 tesseract and magick packages, so this runs on your own documents, with
@@ -755,6 +772,22 @@ own client:</p>
 <p>A row from <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code> means no page crossed the
 threshold between the two values, so they read the documents the same
 way.</p>
+<p><code>ocr_trigger</code> is swept the same way, and decides which
+pages are read before any request, so
+<code>doc$stats$unread_pages</code> and the <code>"ocr"</code> blocks of
+each ingestion show its effect for nothing:</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"scanned"</span><span class="op">)</span>,</span>
+<span>                 <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>ocr_trigger <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"raw_text"</span>, <span class="st">"after_running_lines"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">my_reference</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">my_client</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">correct</span> <span class="op">~</span> <span class="va">param.ocr_trigger</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span></code></pre></div>
+<p><code>ocr_confidence</code> changes no text and no request, so a
+sweep of it shows the same answers; what it buys is the column, at the
+cost of the second pass, which <code><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time()</a></code> around each
+<code><a href="../reference/gr_ingest.html">gr_ingest()</a></code> shows:</p>
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"scanned"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>ocr_confidence <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">FALSE</span>, <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -763,7 +796,7 @@ way.</p>
 <p>A format harnessr does not know, or a clean-up step your documents
 need, can be added and then used exactly like a built-in one. A cleaner
 that drops lines marked “CONFIDENTIAL”:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_cleaner.html">gr_register_cleaner</a></span><span class="op">(</span><span class="st">"drop_confidential"</span>, stage <span class="op">=</span> <span class="st">"early"</span>,</span>
 <span>  fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">opts</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"(?mi)^\\s*CONFIDENTIAL.*$"</span>, <span class="st">""</span>, <span class="va">x</span>, perl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>  description <span class="op">=</span> <span class="st">"Remove lines marked CONFIDENTIAL"</span><span class="op">)</span></span>

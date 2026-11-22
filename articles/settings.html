@@ -91,13 +91,13 @@ default came from and how to test a change.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span>, <span class="va">settings</span><span class="op">$</span><span class="va">tier</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span><span class="op">)</span>, <span class="op">]</span></span>
 <span><span class="co">#&gt;             </span></span>
 <span><span class="co">#&gt;              advanced basic</span></span>
-<span><span class="co">#&gt;   ingest           16     3</span></span>
-<span><span class="co">#&gt;   segment          11     3</span></span>
+<span><span class="co">#&gt;   ingest           18     3</span></span>
+<span><span class="co">#&gt;   segment          17     3</span></span>
 <span><span class="co">#&gt;   read             39     8</span></span>
-<span><span class="co">#&gt;   screen           19    11</span></span>
-<span><span class="co">#&gt;   extract           6     3</span></span>
+<span><span class="co">#&gt;   screen           22    11</span></span>
+<span><span class="co">#&gt;   extract           7     3</span></span>
 <span><span class="co">#&gt;   synthesise       23     5</span></span>
-<span><span class="co">#&gt;   evaluate         13     9</span></span>
+<span><span class="co">#&gt;   evaluate         18     9</span></span>
 <span><span class="co">#&gt;   options          29     5</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="reading-the-tables">Reading the tables<a class="anchor" aria-label="anchor" href="#reading-the-tables"></a>
@@ -260,6 +260,24 @@ type.</td>
 ‘auto’.</td>
 </tr>
 <tr class="even">
+<td align="left"><a href="ingest.html#set-ocr"><code>ocr_trigger</code></a></td>
+<td align="left"><code><a href="../reference/gr_ingest_spec.html">gr_ingest_spec()</a></code></td>
+<td align="left"><code>raw_text</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Which text of a PDF page ocr_min_chars is counted on
+under ocr = ‘auto’.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="ingest.html#set-ocr"><code>ocr_confidence</code></a></td>
+<td align="left"><code><a href="../reference/gr_ingest_spec.html">gr_ingest_spec()</a></code></td>
+<td align="left"><code>FALSE</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Record Tesseract’s confidence on a PDF page’s OCR
+blocks (a second pass).</td>
+</tr>
+<tr class="even">
 <td align="left"><a href="ingest.html#set-clean"><code>cleaner_opts.references_after</code></a></td>
 <td align="left"><code><a href="../reference/gr_ingest_spec.html">gr_ingest_spec()</a></code></td>
 <td align="left"><code>0.4</code></td>
@@ -342,11 +360,11 @@ covers them.</p>
 <table class="table">
 <colgroup>
 <col width="18%">
-<col width="13%">
+<col width="12%">
 <col width="8%">
-<col width="6%">
-<col width="6%">
-<col width="48%">
+<col width="5%">
+<col width="5%">
+<col width="50%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">setting</th>
@@ -383,7 +401,7 @@ covers them.</p>
 next chunk.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>min_tokens</code></td>
+<td align="left"><a href="segment.html#set-packing"><code>min_tokens</code></a></td>
 <td align="left"><code><a href="../reference/gr_segment_spec.html">gr_segment_spec()</a></code></td>
 <td align="left"><code>0</code></td>
 <td align="left">advanced</td>
@@ -475,6 +493,58 @@ request carries.</td>
 <td align="left">untested</td>
 <td align="left">For proposition: the output cap of each batch’s
 request.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="segment.html#set-semantic"><code>semantic_threshold</code></a></td>
+<td align="left"><code><a href="../reference/gr_segment_spec.html">gr_segment_spec()</a></code></td>
+<td align="left"><code>percentile</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">For semantic: how the distances between windows are cut
+into boundaries.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="segment.html#set-tables"><code>table_packing</code></a></td>
+<td align="left"><code><a href="../reference/gr_segment_spec.html">gr_segment_spec()</a></code></td>
+<td align="left"><code>rows</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">For paragraph: how the rows of a table are packed into
+chunks.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="segment.html#set-contextual"><code>proposition_check</code></a></td>
+<td align="left"><code><a href="../reference/gr_segment_spec.html">gr_segment_spec()</a></code></td>
+<td align="left"><code>count</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">For proposition: whether a proposition with no support
+in its batch is dropped.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="segment.html#set-contextual"><code>proposition_context_tokens</code></a></td>
+<td align="left"><code><a href="../reference/gr_segment_spec.html">gr_segment_spec()</a></code></td>
+<td align="left"><code>0</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">For proposition: tokens of the batch before that each
+batch’s request carries.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="segment.html#set-packing"><code>packing</code></a></td>
+<td align="left"><code><a href="../reference/gr_segment_spec.html">gr_segment_spec()</a></code></td>
+<td align="left"><code>greedy</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">How units are packed into chunks under the cap.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="segment.html#set-packing"><code>runt_merge</code></a></td>
+<td align="left"><code><a href="../reference/gr_segment_spec.html">gr_segment_spec()</a></code></td>
+<td align="left"><code>backward</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Which way a chunk under min_tokens is merged.</td>
 </tr>
 </tbody>
 </table>
@@ -922,12 +992,12 @@ measure the screening against a person, and of the sample size and
 stopping tests. <code><a href="../articles/review.html">vignette("review")</a></code> covers them.</p>
 <table class="table">
 <colgroup>
-<col width="7%">
+<col width="6%">
 <col width="10%">
-<col width="4%">
+<col width="6%">
 <col width="3%">
 <col width="3%">
-<col width="71%">
+<col width="69%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">setting</th>
@@ -1010,6 +1080,31 @@ which makes no request.</td>
 directory.</td>
 </tr>
 <tr class="odd">
+<td align="left"><a href="review.html#set-screen-reply"><code>criteria_schema</code></a></td>
+<td align="left"><code><a href="../reference/gr_screen.html">gr_screen()</a></code></td>
+<td align="left"><code>decision</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">What each screening reply holds.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="review.html#set-screen-reply"><code>samples</code></a></td>
+<td align="left"><code><a href="../reference/gr_screen.html">gr_screen()</a></code></td>
+<td align="left"><code>1</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">How many times each document’s screening request is
+sent, from 1 to 20.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="review.html#set-screen-reply"><code>sample_rule</code></a></td>
+<td align="left"><code><a href="../reference/gr_screen.html">gr_screen()</a></code></td>
+<td align="left"><code>include_if_any</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">How draws are combined when samples is above 1.</td>
+</tr>
+<tr class="even">
 <td align="left"><code>n</code></td>
 <td align="left"><code><a href="../reference/gr_reference.html">gr_reference()</a></code></td>
 <td align="left"><code>50</code></td>
@@ -1017,7 +1112,7 @@ directory.</td>
 <td align="left"></td>
 <td align="left">How many to draw: a whole number of at least 1.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>of</code></td>
 <td align="left"><code><a href="../reference/gr_reference.html">gr_reference()</a></code></td>
 <td align="left"><code>excluded</code></td>
@@ -1027,7 +1122,7 @@ directory.</td>
 and unclear), “all”, or “stacked” (every kept record and a sample of the
 excluded ones).</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>seed</code></td>
 <td align="left"><code><a href="../reference/gr_reference.html">gr_reference()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1037,7 +1132,7 @@ excluded ones).</td>
 is drawn after set.seed(seed) and your session’s random number stream is
 put back afterwards.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>blind</code></td>
 <td align="left"><code><a href="../reference/gr_reference.html">gr_reference()</a></code></td>
 <td align="left"><code>TRUE</code></td>
@@ -1046,7 +1141,7 @@ put back afterwards.</td>
 <td align="left">Leave the model’s decision and reason out of the
 file.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>frame</code></td>
 <td align="left"><code><a href="../reference/gr_reference.html">gr_reference()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1055,7 +1150,7 @@ file.</td>
 <td align="left">The same as of, under the name gr_screen_sample_size()
 uses.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>reviewers</code></td>
 <td align="left"><code><a href="../reference/gr_reference.html">gr_reference()</a></code></td>
 <td align="left"><code>1</code></td>
@@ -1063,7 +1158,7 @@ uses.</td>
 <td align="left"></td>
 <td align="left">How many people will judge each record.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>positive</code></td>
 <td align="left"><code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code></td>
 <td align="left"><code>include</code></td>
@@ -1072,7 +1167,7 @@ uses.</td>
 <td align="left">Which human decision counts as eligible: “include” or
 “exclude”.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>min_positives</code></td>
 <td align="left"><code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code></td>
 <td align="left"><code>10</code></td>
@@ -1081,7 +1176,7 @@ uses.</td>
 <td align="left">For an “all” sample: below this many eligible studies
 the sensitivity estimate is reported but marked inadequate.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>of</code></td>
 <td align="left"><code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1091,7 +1186,7 @@ the sensitivity estimate is reported but marked inadequate.</td>
 from: “excluded”, “kept”, “all” or “stacked”; anything else is an
 error.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><a href="review.html#set-calibration"><code>recall_target</code></a></td>
 <td align="left"><code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code></td>
 <td align="left"><code>0.95</code></td>
@@ -1100,7 +1195,7 @@ error.</td>
 <td align="left">The recall the screener should reach, strictly between
 0 and 1.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><a href="review.html#set-calibration"><code>conf</code></a></td>
 <td align="left"><code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code></td>
 <td align="left"><code>0.95</code></td>
@@ -1108,7 +1203,7 @@ error.</td>
 <td align="left">untested</td>
 <td align="left">Confidence level of the recall and loss bounds.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>max_lost</code></td>
 <td align="left"><code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1117,7 +1212,7 @@ error.</td>
 <td align="left">Optional: the most eligible records the screener may
 have excluded.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><a href="review.html#set-calibration"><code>max_width</code></a></td>
 <td align="left"><code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code></td>
 <td align="left"><code>0.1</code></td>
@@ -1127,7 +1222,7 @@ have excluded.</td>
 proportion, its headline rate may have for the sample to be
 adequate.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><a href="review.html#set-calibration"><code>recall_target</code></a></td>
 <td align="left"><code><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size()</a></code></td>
 <td align="left"><code>0.95</code></td>
@@ -1135,7 +1230,7 @@ adequate.</td>
 <td align="left">untested</td>
 <td align="left">The recall to show, strictly between 0 and 1.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><a href="review.html#set-calibration"><code>conf</code></a></td>
 <td align="left"><code><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size()</a></code></td>
 <td align="left"><code>0.95</code></td>
@@ -1143,7 +1238,7 @@ adequate.</td>
 <td align="left">untested</td>
 <td align="left">Confidence level of the one-sided bound.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>prevalence</code></td>
 <td align="left"><code><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1153,7 +1248,7 @@ adequate.</td>
 for frame = “all”: turns the eligible records needed into records to
 draw.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>frame</code></td>
 <td align="left"><code><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size()</a></code></td>
 <td align="left"><code>all</code></td>
@@ -1162,7 +1257,7 @@ draw.</td>
 <td align="left">“all”, “excluded” or “stacked”, as in
 gr_reference().</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>max_lost</code></td>
 <td align="left"><code><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1171,7 +1266,7 @@ gr_reference().</td>
 <td align="left">For “excluded” and “stacked”: the most eligible records
 the screener may have excluded while still meeting the target.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>frame_n</code></td>
 <td align="left"><code><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1181,7 +1276,7 @@ the screener may have excluded while still meeting the target.</td>
 records for “excluded” and “stacked”, everything screened for “all”,
 where with prevalence it caps the draw at the whole frame.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>target</code></td>
 <td align="left"><code><a href="../reference/gr_stop_test.html">gr_stop_test()</a></code></td>
 <td align="left"><code>0.95</code></td>
@@ -1189,7 +1284,7 @@ where with prevalence it caps the draw at the whole frame.</td>
 <td align="left"></td>
 <td align="left">Recall level, strictly between 0 and 1.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>alpha</code></td>
 <td align="left"><code><a href="../reference/gr_stop_test.html">gr_stop_test()</a></code></td>
 <td align="left"><code>0.05</code></td>
@@ -1197,7 +1292,7 @@ where with prevalence it caps the draw at the whole frame.</td>
 <td align="left"></td>
 <td align="left">Significance level, strictly between 0 and 1.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>n_total</code></td>
 <td align="left"><code><a href="../reference/gr_stop_test.html">gr_stop_test()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1215,12 +1310,12 @@ where with prevalence it caps the draw at the whole frame.</td>
 it in <code>...</code> are the ingest and segment settings above.</p>
 <table class="table">
 <colgroup>
-<col width="7%">
 <col width="6%">
 <col width="4%">
 <col width="3%">
-<col width="3%">
-<col width="74%">
+<col width="2%">
+<col width="2%">
+<col width="79%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">setting</th>
@@ -1311,6 +1406,18 @@ which makes no request.</td>
 <td align="left"></td>
 <td align="left">Descend into subdirectories when sources is a
 directory.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="review.html#set-extract"><code>agreement_columns</code></a></td>
+<td align="left"><code><a href="../reference/gr_extract.html">gr_extract()</a></code></td>
+<td align="left"><code>FALSE</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Add two columns per field to table, after the field
+columns: <field>_agreement, how many of the chunks that reported the
+field give its most common value, of all that reported it (“2/3”), and
+<field>_conflict, TRUE when they gave more than one value.</field></field>
+</td>
 </tr>
 </tbody>
 </table>
@@ -1608,11 +1715,11 @@ row’s filled cells whose quotations verified (0.5 when unknown).</td>
 <table class="table">
 <colgroup>
 <col width="7%">
-<col width="6%">
-<col width="13%">
+<col width="9%">
+<col width="12%">
 <col width="3%">
-<col width="2%">
-<col width="66%">
+<col width="3%">
+<col width="64%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">setting</th>
@@ -1812,6 +1919,52 @@ measure variance).</td>
 <td align="left"></td>
 <td align="left">“continue” keeps going and records the failure; “stop”
 aborts the whole comparison.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="evaluate.html#set-errcorr"><code>strata</code></a></td>
+<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">NULL to stratify by difficulty, or each item’s stratum:
+a vector named by item, or one value per item in the order of
+unique(bench$item).</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="evaluate.html#set-errcorr"><code>n_strata</code></a></td>
+<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
+<td align="left"><code>3</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">How many difficulty strata, when strata is NULL: a
+whole number from 1 to 10, default 3.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="evaluate.html#set-errcorr"><code>n_check</code></a></td>
+<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
+<td align="left"><code>10</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">How many items every arm got wrong to sample for a hand
+check: a whole number, 0 or more, default 10.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="evaluate.html#set-errcorr"><code>held_out</code></a></td>
+<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
+<td align="left"><code>TRUE</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">TRUE (the default) reads only the rows that count as
+evidence (reportable, so not the dev split); FALSE reads every row.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="evaluate.html#set-errcorr"><code>seed</code></a></td>
+<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
+<td align="left"><code>1</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">The seed of the private random stream the sample is
+drawn with; the caller’s random state is left as it was.</td>
 </tr>
 </tbody>
 </table>
@@ -2413,10 +2566,10 @@ it spends: <code>free</code>, one embedding pass, or model requests.</p>
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_segmenters.html">gr_segmenters</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"cost"</span>, <span class="st">"needs_client"</span>, <span class="st">"description"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
-<col width="9%">
-<col width="8%">
-<col width="10%">
-<col width="71%">
+<col width="7%">
+<col width="6%">
+<col width="7%">
+<col width="78%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">name</th>
@@ -2430,7 +2583,8 @@ it spends: <code>free</code>, one embedding pass, or model requests.</p>
 <td align="left">free</td>
 <td align="left">FALSE</td>
 <td align="left">Paragraph chunks prefixed with where they sit;
-context_source=‘llm’ writes it per chunk.</td>
+context_source=‘llm’ writes it per chunk, one request each (calls_max =
+chunks).</td>
 </tr>
 <tr class="even">
 <td align="left">fixed</td>

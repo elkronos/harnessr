@@ -16,7 +16,9 @@ gr_ingest_spec(
   parallel = NULL,
   cleaner_opts = list(),
   layout = c("auto", "raw"),
-  layout_opts = list()
+  layout_opts = list(),
+  ocr_trigger = c("raw_text", "after_running_lines"),
+  ocr_confidence = FALSE
 )
 ```
 
@@ -112,6 +114,24 @@ gr_ingest_spec(
   PDF reader was written and are untested. An unknown name is an error.
   Stored in the spec only when it is not empty.
 
+- ocr_trigger:
+
+  Under `ocr = "auto"`, which of a PDF page's text `ocr_min_chars` is
+  counted on. `"raw_text"` (the default) counts the whole text layer, as
+  before. `"after_running_lines"` counts what is left once the running
+  heads, feet and stamps that `layout = "auto"` drops are taken out
+  (with `layout_opts`), so a scanned page whose text layer holds only a
+  60-character fax header or Bates stamp repeated on every page is
+  OCR-ed. Untested.
+
+- ocr_confidence:
+
+  `TRUE` gives each block of a PDF page that OCR read an
+  `ocr_confidence` column: Tesseract's mean word confidence for the
+  page, from 0 to 100, from a second Tesseract pass over the page.
+  `FALSE` (the default) skips that pass, so OCR takes the time it did
+  before, and the blocks have no such column. Untested.
+
 ## Value
 
 A list of class `gr_ingest_spec`.
@@ -158,6 +178,13 @@ in
 - `layout_opts` (default [`list()`](https://rdrr.io/r/base/list.html),
   advanced): untested. Empty: the pass uses the values it was written
   with, listed under `layout_opts`; none was tuned.
+
+- `ocr_trigger` (default `"raw_text"`, advanced): untested. "raw_text"
+  counts the whole text layer, as before; not compared with
+  "after_running_lines".
+
+- `ocr_confidence` (default `FALSE`, advanced): untested. FALSE: OCR
+  runs one Tesseract pass per page, as before. Not compared with TRUE.
 
 ## See also
 

@@ -24,6 +24,9 @@ gr_screen(
   keep_answers = FALSE,
   recursive = FALSE,
   trace = NULL,
+  criteria_schema = c("decision", "per_criterion"),
+  samples = 1L,
+  sample_rule = c("include_if_any", "majority"),
   ...
 )
 ```
@@ -79,6 +82,43 @@ gr_screen(
   [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
   and it accumulates the whole review, while each stage keeps its own
   for its own cost and its own ceiling.
+
+- criteria_schema:
+
+  What each screening reply holds. `"decision"` (the default) asks for a
+  decision, a reason, the deciding criterion and a quote, as before.
+  `"per_criterion"` also asks, for every criterion, whether the excerpt
+  shows it `"met"`, `"not_met"` or `"not_reported"`, and adds a
+  `criteria_status` column to the table (`"criterion: status"` pairs,
+  separated by `"; "`). An exclusion then needs an inclusion criterion
+  `"not_met"` or an exclusion criterion `"met"`: a reply that excludes
+  with none of either, as when a criterion is not reported and none is
+  not met, is recorded as `"unclear"`, for a person to decide, with a
+  reason that says so. It changes the request (the schema and the
+  criteria message). Untested.
+
+- samples:
+
+  How many times each document's screening request is sent, from 1
+  to 20. At 1 (the default) it is sent once, as before. Above 1 it is
+  sent that many times, each a separate draw (a cache keeps each), and
+  the draws are combined by `sample_rule`; the table gains
+  `sample_decisions` (each draw's decision, `"none"` for one not read)
+  and `include_share` (the share of draws read that included). It
+  multiplies the screening requests by `samples`. In run r of
+  [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+  the draws are numbered (r - 1) \* samples + 1 to r \* samples, so each
+  run sends its own draws. Untested.
+
+- sample_rule:
+
+  How draws are combined when `samples` is above 1. `"include_if_any"`
+  (the default) includes a document any draw included, excludes one only
+  when every draw was read and excluded it, and sends the rest to a
+  person as `"unclear"`, so a study one draw would keep is not lost to
+  the others. `"majority"` takes the decision most draws gave,
+  `"unclear"` on a tie. The reason, criterion and quote are the first
+  draw's that gave the decision kept. Untested.
 
 - ...:
 
@@ -204,12 +244,12 @@ writeLines("We randomly assigned participants to two groups.", f)
 
 s <- gr_screen(f, question = "Does the treatment work?",
                include = "Reports a randomised comparison", client = cl)
-#> [1/1] file1ba775ba70ac.txt
-#> Extracting 'file1ba775ba70ac.txt' with the 'txt' extractor.
+#> [1/1] file1baf157c9f4a.txt
+#> Extracting 'file1baf157c9f4a.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~15 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'screen' (head|1|none) over 1 chunk(s).
 s$table[, c("document", "decision", "reason")]
 #>               document decision                           reason
-#> 1 file1ba775ba70ac.txt  include Reports a randomised comparison.
+#> 1 file1baf157c9f4a.txt  include Reports a randomised comparison.
 ```

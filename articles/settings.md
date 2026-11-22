@@ -17,13 +17,13 @@ settings <- gr_settings_table()
 table(settings$stage, settings$tier)[unique(settings$stage), ]
 #>             
 #>              advanced basic
-#>   ingest           16     3
-#>   segment          11     3
+#>   ingest           18     3
+#>   segment          17     3
 #>   read             39     8
-#>   screen           19    11
-#>   extract           6     3
+#>   screen           22    11
+#>   extract           7     3
 #>   synthesise       23     5
-#>   evaluate         13     9
+#>   evaluate         18     9
 #>   options          29     5
 ```
 
@@ -109,6 +109,8 @@ covers them.
 | `parallel` | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | `NULL` | advanced | untested | Parallelise page-level OCR. |
 | [`cleaner_opts`](https://elkronos.github.io/harnessr/articles/ingest.html#set-clean) | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | [`list()`](https://rdrr.io/r/base/list.html) | advanced | untested | Extra options passed to individual cleaners. |
 | `layout_opts` | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | [`list()`](https://rdrr.io/r/base/list.html) | advanced | untested | Settings of the PDF running-head pass under layout = ‘auto’. |
+| [`ocr_trigger`](https://elkronos.github.io/harnessr/articles/ingest.html#set-ocr) | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | `raw_text` | advanced | untested | Which text of a PDF page ocr_min_chars is counted on under ocr = ‘auto’. |
+| [`ocr_confidence`](https://elkronos.github.io/harnessr/articles/ingest.html#set-ocr) | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | `FALSE` | advanced | untested | Record Tesseract’s confidence on a PDF page’s OCR blocks (a second pass). |
 | [`cleaner_opts.references_after`](https://elkronos.github.io/harnessr/articles/ingest.html#set-clean) | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | `0.4` | advanced | untested | For the references cleaner: the share of the text after which a References heading ends the text. |
 | [`cleaner_opts.header_max_chars`](https://elkronos.github.io/harnessr/articles/ingest.html#set-clean) | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | `80` | advanced | untested | For the headers_footers cleaner: the longest line that can be taken for a running head or foot. |
 | [`cleaner_opts.header_min_repeats`](https://elkronos.github.io/harnessr/articles/ingest.html#set-clean) | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | `3` | advanced | untested | For headers_footers: how many times a line must recur to be taken for a running head; values below 3 are read as 3. |
@@ -129,7 +131,7 @@ covers them.
 | [`context_source`](https://elkronos.github.io/harnessr/articles/segment.html#set-contextual) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `metadata` | advanced | untested | For contextual: where the context line comes from. |
 | [`max_tokens`](https://elkronos.github.io/harnessr/articles/segment.html#set-max-tokens) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `1200` | basic | untested | Hard cap on chunk size, in tokens. |
 | [`overlap_tokens`](https://elkronos.github.io/harnessr/articles/segment.html#set-overlap) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `0` | basic | untested | Tokens of trailing context copied into the start of the next chunk. |
-| `min_tokens` | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `0` | advanced | untested | A smaller chunk is merged into the one before it. |
+| [`min_tokens`](https://elkronos.github.io/harnessr/articles/segment.html#set-packing) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `0` | advanced | untested | A smaller chunk is merged into the one before it. |
 | [`method`](https://elkronos.github.io/harnessr/articles/segment.html#set-method) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `paragraph` | basic | untested | The segmentation strategy. |
 | `separators` | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `NULL` | advanced | untested | For recursive: the separator cascade, strongest first. |
 | `prefix_section` | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `TRUE` | advanced | untested | For structural: prepend the heading. |
@@ -140,6 +142,12 @@ covers them.
 | [`context_reply_tokens`](https://elkronos.github.io/harnessr/articles/segment.html#set-contextual) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `90` | advanced | untested | For contextual under llm: the output cap of each context-line request. |
 | [`context_document_tokens`](https://elkronos.github.io/harnessr/articles/segment.html#set-contextual) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `1500` | advanced | untested | For contextual under llm: how much of the document each request carries. |
 | [`proposition_reply_tokens`](https://elkronos.github.io/harnessr/articles/segment.html#set-contextual) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `2000` | advanced | untested | For proposition: the output cap of each batch’s request. |
+| [`semantic_threshold`](https://elkronos.github.io/harnessr/articles/segment.html#set-semantic) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `percentile` | advanced | untested | For semantic: how the distances between windows are cut into boundaries. |
+| [`table_packing`](https://elkronos.github.io/harnessr/articles/segment.html#set-tables) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `rows` | advanced | untested | For paragraph: how the rows of a table are packed into chunks. |
+| [`proposition_check`](https://elkronos.github.io/harnessr/articles/segment.html#set-contextual) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `count` | advanced | untested | For proposition: whether a proposition with no support in its batch is dropped. |
+| [`proposition_context_tokens`](https://elkronos.github.io/harnessr/articles/segment.html#set-contextual) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `0` | advanced | untested | For proposition: tokens of the batch before that each batch’s request carries. |
+| [`packing`](https://elkronos.github.io/harnessr/articles/segment.html#set-packing) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `greedy` | advanced | untested | How units are packed into chunks under the cap. |
+| [`runt_merge`](https://elkronos.github.io/harnessr/articles/segment.html#set-packing) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `backward` | advanced | untested | Which way a chunk under min_tokens is merged. |
 
 ## Read
 
@@ -222,6 +230,9 @@ covers them.
 | `max_total_calls` | [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) | `NULL` | advanced |  | Stop before a document once the run has made this many requests, marking the rest “skipped”, except any restored from store, which makes no request. |
 | `keep_answers` | [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) | `FALSE` | advanced |  | Keep the underlying gr_answer objects in \$answers. |
 | `recursive` | [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) | `FALSE` | advanced |  | Descend into subdirectories when sources is a directory. |
+| [`criteria_schema`](https://elkronos.github.io/harnessr/articles/review.html#set-screen-reply) | [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) | `decision` | advanced | untested | What each screening reply holds. |
+| [`samples`](https://elkronos.github.io/harnessr/articles/review.html#set-screen-reply) | [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) | `1` | advanced | untested | How many times each document’s screening request is sent, from 1 to 20. |
+| [`sample_rule`](https://elkronos.github.io/harnessr/articles/review.html#set-screen-reply) | [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) | `include_if_any` | advanced | untested | How draws are combined when samples is above 1. |
 | `n` | [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md) | `50` | basic |  | How many to draw: a whole number of at least 1. |
 | `of` | [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md) | `excluded` | basic |  | Which rows to sample from: “excluded”, “kept” (include and unclear), “all”, or “stacked” (every kept record and a sample of the excluded ones). |
 | `seed` | [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md) | `NULL` | advanced |  | A seed for the draw, so it is reproducible: the sample is drawn after set.seed(seed) and your session’s random number stream is put back afterwards. |
@@ -263,6 +274,7 @@ settings above.
 | `max_total_calls` | [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | `NULL` | advanced |  | Stop before a document once the run has made this many requests, marking the rest “skipped”, except any restored from store, which makes no request. |
 | `keep_answers` | [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | `FALSE` | advanced |  | Keep the underlying gr_answer objects in \$answers. |
 | `recursive` | [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | `FALSE` | advanced |  | Descend into subdirectories when sources is a directory. |
+| [`agreement_columns`](https://elkronos.github.io/harnessr/articles/review.html#set-extract) | [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | `FALSE` | advanced | untested | Add two columns per field to table, after the field columns: \_agreement, how many of the chunks that reported the field give its most common value, of all that reported it (“2/3”), and \_conflict, TRUE when they gave more than one value. |
 
 ## Synthesis
 
@@ -341,6 +353,11 @@ cover them.
 | `recipes` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `c("fast", "needle", "thorough")` | basic |  | A character vector of recipe names, or a list of gr_recipes. |
 | `allow_duplicates` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `FALSE` | advanced |  | Run duplicates anyway (useful at temperature \> 0 to measure variance). |
 | `on_error` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `continue` | advanced |  | “continue” keeps going and records the failure; “stop” aborts the whole comparison. |
+| [`strata`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `NULL` | advanced | untested | NULL to stratify by difficulty, or each item’s stratum: a vector named by item, or one value per item in the order of unique(bench\$item). |
+| [`n_strata`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `3` | advanced | untested | How many difficulty strata, when strata is NULL: a whole number from 1 to 10, default 3. |
+| [`n_check`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `10` | advanced | untested | How many items every arm got wrong to sample for a hand check: a whole number, 0 or more, default 10. |
+| [`held_out`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `TRUE` | advanced | untested | TRUE (the default) reads only the rows that count as evidence (reportable, so not the dev split); FALSE reads every row. |
+| [`seed`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `1` | advanced | untested | The seed of the private random stream the sample is drawn with; the caller’s random state is left as it was. |
 
 ## Options
 
@@ -480,7 +497,7 @@ knitr::kable(gr_segmenters()[, c("name", "cost", "needs_client", "description")]
 
 | name | cost | needs_client | description |
 |:---|:---|:---|:---|
-| contextual | free | FALSE | Paragraph chunks prefixed with where they sit; context_source=‘llm’ writes it per chunk. |
+| contextual | free | FALSE | Paragraph chunks prefixed with where they sit; context_source=‘llm’ writes it per chunk, one request each (calls_max = chunks). |
 | fixed | free | FALSE | Uniform token windows, ignoring structure. The control condition. |
 | page | free | FALSE | One chunk per page. For forms, invoices and scanned records. |
 | paragraph | free | FALSE | Greedy packing of the author’s paragraphs up to the cap. |

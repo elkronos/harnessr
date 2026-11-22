@@ -469,7 +469,7 @@ settings <- gr_settings_table()
 table(factor(settings$stage, unique(settings$stage)))
 #> 
 #>     ingest    segment       read     screen    extract synthesise   evaluate 
-#>         19         14         47         30          9         28         22 
+#>         21         20         47         33         10         28         27 
 #>    options 
 #>         34
 ```

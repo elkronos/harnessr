@@ -11,7 +11,15 @@ Summarise with
 
   Data frame, one row per chunk, with columns `chunk_id`, `text`,
   `tokens`, `chars`, `page`, `section`, `block_id`, and sometimes
-  `source_text`.
+  `source_text`, `table_id` and `table_rows`.
+
+- `chunks$table_id`, `chunks$table_rows`:
+
+  Set by `paragraph` for a document with a table: the table a chunk's
+  rows come from (its number in the document, as in the blocks of
+  [`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md))
+  and which rows, as `"2-21"`. `NA` for a chunk with no table row, or
+  with rows of two tables. Provenance only: nothing is added to `text`.
 
 - `chunks$source_text`:
 

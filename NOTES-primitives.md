@@ -54,6 +54,7 @@ documents, which is why they are core. Each has tests of its own.
 | [`hr_calibration_valid()`](https://elkronos.github.io/harnessr/reference/hr_calibration_valid.md) | test-core-signals.R | Says whether a calibration record is valid for a run. |
 | [`hr_contrast()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md) | test-core-bench-ni.R, test-core-bench-sim.R | A non-inferiority contrast between arms, registered before scoring. |
 | [`hr_drift_check()`](https://elkronos.github.io/harnessr/reference/hr_drift_check.md) | test-core-bench-drift.R | Checks an arm for drift against a frozen benchmark. |
+| [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | test-pipeline-options.R | Says how far any benchmark’s arms fail on the same items. |
 | [`hr_gate_threshold()`](https://elkronos.github.io/harnessr/reference/hr_gate_threshold.md) | test-core-signals.R | Chooses a gate threshold by Learn-then-Test. |
 | [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md) | test-core-bench.R, test-claims.R | Limits on what a run may send, which a benchmark shares across its arms. |
 | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | test-core-judge.R, test-judge-draws.R | Judges any candidates with a model, in more than one order. |

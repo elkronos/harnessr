@@ -67,7 +67,9 @@
 <span>  parallel <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cleaner_opts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  layout <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"raw"</span><span class="op">)</span>,</span>
-<span>  layout_opts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  layout_opts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  ocr_trigger <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"raw_text"</span>, <span class="st">"after_running_lines"</span><span class="op">)</span>,</span>
+<span>  ocr_confidence <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -163,6 +165,24 @@ Names left out keep these defaults, which were set when the PDF reader
 was written and are untested. An unknown name is an error. Stored in the
 spec only when it is not empty.</p></dd>
 
+
+<dt id="arg-ocr-trigger">ocr_trigger<a class="anchor" aria-label="anchor" href="#arg-ocr-trigger"></a></dt>
+<dd><p>Under <code>ocr = "auto"</code>, which of a PDF page's text
+<code>ocr_min_chars</code> is counted on. <code>"raw_text"</code> (the default) counts the
+whole text layer, as before. <code>"after_running_lines"</code> counts what is left
+once the running heads, feet and stamps that <code>layout = "auto"</code> drops are
+taken out (with <code>layout_opts</code>), so a scanned page whose text layer holds
+only a 60-character fax header or Bates stamp repeated on every page is
+OCR-ed. Untested.</p></dd>
+
+
+<dt id="arg-ocr-confidence">ocr_confidence<a class="anchor" aria-label="anchor" href="#arg-ocr-confidence"></a></dt>
+<dd><p><code>TRUE</code> gives each block of a PDF page that OCR read
+an <code>ocr_confidence</code> column: Tesseract's mean word confidence for the
+page, from 0 to 100, from a second Tesseract pass over the page. <code>FALSE</code>
+(the default) skips that pass, so OCR takes the time it did before, and
+the blocks have no such column. Untested.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -184,6 +204,8 @@ spec only when it is not empty.</p></dd>
 <li><p><code>parallel</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.</p></li>
 <li><p><code>cleaner_opts</code> (default <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>, advanced): untested. Empty: each cleaner uses its own defaults, listed under <code>cleaner_opts</code>.</p></li>
 <li><p><code>layout_opts</code> (default <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>, advanced): untested. Empty: the pass uses the values it was written with, listed under <code>layout_opts</code>; none was tuned.</p></li>
+<li><p><code>ocr_trigger</code> (default <code>"raw_text"</code>, advanced): untested. "raw_text" counts the whole text layer, as before; not compared with "after_running_lines".</p></li>
+<li><p><code>ocr_confidence</code> (default <code>FALSE</code>, advanced): untested. FALSE: OCR runs one Tesseract pass per page, as before. Not compared with TRUE.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

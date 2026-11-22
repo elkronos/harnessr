@@ -16,7 +16,7 @@ gr_extract(
   recipe = "research",
   client = NULL,
   store = NULL,
-  resolve = c("first", "model"),
+  resolve = c("first", "model", "vote"),
   require_quote = FALSE,
   on_error = c("continue", "stop"),
   max_total_usd = NULL,
@@ -24,6 +24,7 @@ gr_extract(
   keep_answers = FALSE,
   recursive = FALSE,
   trace = NULL,
+  agreement_columns = FALSE,
   ...
 )
 ```
@@ -83,8 +84,11 @@ gr_extract(
   first value is kept, as with `"first"`, and a warning (in the row's
   `summary$warnings`) names the field. If it chooses none of the values,
   the first value is kept but is not verified, so `n_unverified` counts
-  it and `require_quote` drops it. Two spellings of one string (case,
-  quote marks, a trailing full stop) are one value, not a disagreement.
+  it and `require_quote` drops it. `"vote"` takes the value the most
+  chunks gave, for no extra call; a tie goes to the earliest of the tied
+  values, as `"first"` would choose, and the disagreement is still
+  recorded. Two spellings of one string (case, quote marks, a trailing
+  full stop) are one value, not a disagreement.
 
 - require_quote:
 
@@ -108,6 +112,16 @@ gr_extract(
   large corpus this is what runs you out of memory; the tables do not
   need them.
 
+- agreement_columns:
+
+  Add two columns per field to `table`, after the field columns:
+  `<field>_agreement`, how many of the chunks that reported the field
+  give its most common value, of all that reported it (`"2/3"`), and
+  `<field>_conflict`, `TRUE` when they gave more than one value. `FALSE`
+  by default, which leaves the table as it was; it changes no request. A
+  field no chunk reported has agreement `NA` and conflict `FALSE`.
+  Untested.
+
 - ...:
 
   Recipe overrides, as in
@@ -124,12 +138,15 @@ An object of class `gr_extraction`:
 
   One row per document: `document`, one column per field in the schema
   and of that field's type, then `n_filled`, `n_unverified`,
-  `conflicts`, `status`, `duplicate_of`, `error`. `status` is the run
-  status from `summary`, except that a document some of whose extraction
-  requests failed is `"incomplete"` (or `"failed"` if all did), and one
-  whose extraction requests all succeeded is not `"failed"` for another
-  request's failure; see the section on `NA` below. A document whose
-  cleaned text repeats one already read is not read again (see
+  `conflicts`, `status`, `duplicate_of`, `error` (with
+  `agreement_columns = TRUE`, a `<field>_agreement` and a
+  `<field>_conflict` column for each field after the field columns).
+  `status` is the run status from `summary`, except that a document some
+  of whose extraction requests failed is `"incomplete"` (or `"failed"`
+  if all did), and one whose extraction requests all succeeded is not
+  `"failed"` for another request's failure; see the section on `NA`
+  below. A document whose cleaned text repeats one already read is not
+  read again (see
   [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)),
   so `subset(x$table, is.na(duplicate_of))` is the set of distinct
   documents.
@@ -297,14 +314,14 @@ f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised controlled trial. We enrolled 120 participants.", f)
 
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1ba72044e853.txt
-#> Extracting 'file1ba72044e853.txt' with the 'txt' extractor.
+#> [1/1] file1baf5df2e436.txt
+#> Extracting 'file1baf5df2e436.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~22 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).
 x$table[, c("document", "design", "n", "n_unverified", "status")]
 #>               document                      design   n n_unverified status
-#> 1 file1ba72044e853.txt randomised controlled trial 120            0     ok
+#> 1 file1baf5df2e436.txt randomised controlled trial 120            0     ok
 x$evidence[, c("field", "quote", "verified")]
 #>    field                                 quote verified
 #> 1 design We ran a randomised controlled trial.     TRUE

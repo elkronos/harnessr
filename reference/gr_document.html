@@ -61,9 +61,16 @@
 
 <dl><dt><code>blocks</code></dt>
 <dd><p>Data frame of cleaned text blocks with provenance:
-<code>text</code>, <code>page</code>, <code>section</code>, <code>kind</code>, <code>block_id</code>. <code>page</code> is set only by the
-PDF extractor; <code>kind</code> is one of <code>"body"</code>, <code>"heading"</code>, <code>"code"</code>,
-<code>"table"</code>, <code>"footnote"</code>, <code>"ocr"</code>.</p></dd>
+<code>text</code>, <code>page</code>, <code>section</code>, <code>kind</code>, <code>block_id</code>, <code>table_id</code>,
+<code>table_rows</code>, and <code>ocr_confidence</code> when a PDF page was OCR-ed. <code>page</code>
+is set only by the PDF extractor; <code>kind</code> is one of <code>"body"</code>,
+<code>"heading"</code>, <code>"code"</code>, <code>"table"</code>, <code>"footnote"</code>, <code>"ocr"</code> (text that came
+from OCR: a PDF page's blocks other than its headings, a Word file's
+images, an image file). <code>table_id</code> and <code>table_rows</code> say which table a
+<code>"table"</code> block is a row of and which rows it holds (see
+<code><a href="gr_ingest.html">gr_ingest()</a></code>). <code>ocr_confidence</code> is tesseract's mean word confidence,
+0 to 100, for the page an <code>"ocr"</code> block of a PDF came from, <code>NA</code> for
+other blocks.</p></dd>
 
 <dt><code>text</code></dt>
 <dd><p>All blocks joined with blank lines.</p></dd>

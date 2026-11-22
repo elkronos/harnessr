@@ -101,7 +101,7 @@ before building arms with <code><a href="gr_arm.html">gr_arm()</a></code>.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">gr_settings</span><span class="op">(</span><span class="st">"segment"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;hr_schema&gt; 14 parameter(s)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;hr_schema&gt; 20 parameter(s)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   context_source             enum          advanced  untested  metadata|llm</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   max_tokens                 integer       basic     untested  [32, 1e+06]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   overlap_tokens             integer       basic     untested  [0, f()]</span>
@@ -116,6 +116,12 @@ before building arms with <code><a href="gr_arm.html">gr_arm()</a></code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   context_reply_tokens       integer       advanced  untested  [16, 4000]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   context_document_tokens    integer       advanced  untested  [100, 1e+06]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   proposition_reply_tokens   integer       advanced  untested  [100, 1e+06]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   semantic_threshold         enum          advanced  untested  percentile|texttiling</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   table_packing              enum          advanced  untested  rows|grouped</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   proposition_check          enum          advanced  untested  count|drop</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   proposition_context_tokens integer       advanced  untested  [0, 2000]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   packing                    enum          advanced  untested  greedy|balanced</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   runt_merge                 enum          advanced  untested  backward|both</span>
 <span class="r-in"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">gr_settings</span><span class="op">(</span><span class="st">"read"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">s</span><span class="op">[</span><span class="va">s</span><span class="op">$</span><span class="va">tier</span> <span class="op">==</span> <span class="st">"basic"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"default"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      name    default   status</span>

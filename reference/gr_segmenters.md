@@ -57,17 +57,17 @@ gr_segmenters()
 #> 8     semantic embedding         TRUE
 #> 9     sentence      free        FALSE
 #> 10  structural      free        FALSE
-#>                                                                                 description
-#> 1                                                                      one chunk per bullet
-#> 2  Paragraph chunks prefixed with where they sit; context_source='llm' writes it per chunk.
-#> 3                         Uniform token windows, ignoring structure. The control condition.
-#> 4                              One chunk per page. For forms, invoices and scanned records.
-#> 5                                  Greedy packing of the author's paragraphs up to the cap.
-#> 6     Rewrite into standalone factual statements. Expensive; best for dense factual recall.
-#> 7                            Cascade through separators, using the strongest one that fits.
-#> 8                        Cut where consecutive embeddings diverge most. One embedding pass.
-#> 9                           Sentence-boundary packing; tighter, more chunks, cleaner edges.
-#> 10                         Never merge across headings; each chunk keeps its section title.
+#>                                                                                                                        description
+#> 1                                                                                                             one chunk per bullet
+#> 2  Paragraph chunks prefixed with where they sit; context_source='llm' writes it per chunk, one request each (calls_max = chunks).
+#> 3                                                                Uniform token windows, ignoring structure. The control condition.
+#> 4                                                                     One chunk per page. For forms, invoices and scanned records.
+#> 5                                                                         Greedy packing of the author's paragraphs up to the cap.
+#> 6                                            Rewrite into standalone factual statements. Expensive; best for dense factual recall.
+#> 7                                                                   Cascade through separators, using the strongest one that fits.
+#> 8                                                               Cut where consecutive embeddings diverge most. One embedding pass.
+#> 9                                                                  Sentence-boundary packing; tighter, more chunks, cleaner edges.
+#> 10                                                                Never merge across headings; each chunk keeps its section title.
 #>                  calls
 #> 1            by_bullet
 #> 2      segment.context

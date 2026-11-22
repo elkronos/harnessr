@@ -70,9 +70,10 @@ setting, so it says what the installed code does:
   [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md);
   [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
   [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
-  [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)
+  [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md),
+  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
   and
-  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)),
+  [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md)),
   leaving out the inputs a call works on (the documents, the client, the
   trace). Defaults are the functions' own, and descriptions the first
   sentence of each argument's help.
@@ -102,7 +103,7 @@ s <- gr_settings_table()
 table(s$stage)
 #> 
 #>   evaluate    extract     ingest    options       read     screen    segment 
-#>         22          9         19         34         47         30         14 
+#>         27         10         21         34         47         33         20 
 #> synthesise 
 #>         28 
 s[s$tier == "basic", c("stage", "name", "default")]
@@ -110,50 +111,50 @@ s[s$tier == "basic", c("stage", "name", "default")]
 #> 1       ingest            ocr                            auto
 #> 3       ingest          clean                        standard
 #> 7       ingest      min_chars                              20
-#> 21     segment     max_tokens                            1200
-#> 22     segment overlap_tokens                               0
-#> 24     segment         method                       paragraph
-#> 38        read         verify                           FALSE
-#> 40        read         reader                      map_reduce
-#> 41        read          model                            NULL
-#> 46        read          top_k                               6
-#> 56        read           cite                           FALSE
-#> 74        read         recipe                        thorough
-#> 75        read          store                            NULL
-#> 77        read  max_total_usd                            NULL
-#> 81      screen         recipe                        research
-#> 83      screen  screen_tokens                            NULL
-#> 85      screen  max_total_usd                            NULL
-#> 89      screen              n                              50
-#> 90      screen             of                        excluded
-#> 98      screen  recall_target                            0.95
-#> 99      screen           conf                            0.95
-#> 102     screen  recall_target                            0.95
-#> 103     screen           conf                            0.95
-#> 104     screen     prevalence                            NULL
-#> 108     screen         target                            0.95
-#> 111    extract         recipe                        research
-#> 113    extract        resolve                           first
-#> 114    extract  require_quote                           FALSE
-#> 120 synthesise          model                            NULL
-#> 128 synthesise   max_sections                               6
-#> 135 synthesise          model                            NULL
-#> 139 synthesise     cite_style                            auto
-#> 141 synthesise      coherence                           FALSE
-#> 148   evaluate           runs                               5
-#> 149   evaluate         scorer               hr_scorer_exact()
-#> 151   evaluate       governor                            NULL
-#> 155   evaluate           conf                            0.95
-#> 158   evaluate         method                            auto
-#> 162   evaluate           mode                          select
-#> 163   evaluate          model                            NULL
-#> 164   evaluate         orders                               2
-#> 167   evaluate        recipes c("fast", "needle", "thorough")
-#> 170    options        verbose                            TRUE
-#> 172    options          model                   gpt-5.6-terra
-#> 185    options      cache_dir                            NULL
-#> 189    options   max_cost_usd                               5
-#> 190    options      max_calls                             400
+#> 23     segment     max_tokens                            1200
+#> 24     segment overlap_tokens                               0
+#> 26     segment         method                       paragraph
+#> 46        read         verify                           FALSE
+#> 48        read         reader                      map_reduce
+#> 49        read          model                            NULL
+#> 54        read          top_k                               6
+#> 64        read           cite                           FALSE
+#> 82        read         recipe                        thorough
+#> 83        read          store                            NULL
+#> 85        read  max_total_usd                            NULL
+#> 89      screen         recipe                        research
+#> 91      screen  screen_tokens                            NULL
+#> 93      screen  max_total_usd                            NULL
+#> 100     screen              n                              50
+#> 101     screen             of                        excluded
+#> 109     screen  recall_target                            0.95
+#> 110     screen           conf                            0.95
+#> 113     screen  recall_target                            0.95
+#> 114     screen           conf                            0.95
+#> 115     screen     prevalence                            NULL
+#> 119     screen         target                            0.95
+#> 122    extract         recipe                        research
+#> 124    extract        resolve                           first
+#> 125    extract  require_quote                           FALSE
+#> 132 synthesise          model                            NULL
+#> 140 synthesise   max_sections                               6
+#> 147 synthesise          model                            NULL
+#> 151 synthesise     cite_style                            auto
+#> 153 synthesise      coherence                           FALSE
+#> 160   evaluate           runs                               5
+#> 161   evaluate         scorer               hr_scorer_exact()
+#> 163   evaluate       governor                            NULL
+#> 167   evaluate           conf                            0.95
+#> 170   evaluate         method                            auto
+#> 174   evaluate           mode                          select
+#> 175   evaluate          model                            NULL
+#> 176   evaluate         orders                               2
+#> 179   evaluate        recipes c("fast", "needle", "thorough")
+#> 187    options        verbose                            TRUE
+#> 189    options          model                   gpt-5.6-terra
+#> 202    options      cache_dir                            NULL
+#> 206    options   max_cost_usd                               5
+#> 207    options      max_calls                             400
 gr_settings_table("synthesise")[, c("name", "default", "status")]
 #>                  name                                   default   status
 #> 1               model                                      NULL     <NA>

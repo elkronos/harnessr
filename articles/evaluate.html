@@ -563,6 +563,83 @@ Everything is in the returned list (<code>rpt$accuracy</code>,
 <code>rpt$cost</code>, <code>rpt$frontier</code>,
 <code>rpt$failures</code>, <code>rpt$variance</code>,
 <code>rpt$notes</code>), and <code><a href="../reference/as_json.html">as_json()</a></code> writes it out.</p>
+<div class="section level3">
+<h3 id="set-errcorr">Errors the arms share<a class="anchor" aria-label="anchor" href="#set-errcorr"></a>
+</h3>
+<p><strong>What it controls.</strong>
+<code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code> says how far the arms’ errors go
+together: the phi coefficient between each pair’s errors within strata
+of item difficulty (<code>n_strata</code>, or your own
+<code>strata</code>), the share of items both got wrong where they gave
+the same wrong answer, and a sample of <code>n_check</code> items every
+arm got wrong, for a person to read. Two arms with good accuracy that
+fail on the same items gain little from being combined, or from checking
+each other. It reads the benchmark’s rows (with
+<code>held_out = TRUE</code>, only those that count as evidence) and
+sends nothing. Yen’s Q3, the residual correlation of an item response
+model, is not computed: it needs a mixed-model package harnessr does not
+depend on.</p>
+<p><strong>Signs it needs reading.</strong> A plan to vote across arms,
+to use one arm to check another, or to call two arms’ agreement a sign
+of being right; or a benchmark where most errors fall on a few
+items.</p>
+<p><strong>Where the defaults came from.</strong> Three difficulty
+strata, a sample of ten and reading only held-out rows were set when the
+metric was added and have not been compared. <code>strata = NULL</code>
+reads difficulty from the same runs, and <code>seed</code> only makes
+the hand-check sample repeatable. All five are
+<code>untested</code>.</p>
+<p><strong>How to test it.</strong> Here three arms share a blind spot
+on the first three items and each also fails items of its own, built
+with <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code>:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">truth</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_reference.html">hr_reference</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"q%02d"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">12</span><span class="op">)</span>, labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"yes"</span>, <span class="fl">12</span><span class="op">)</span>,</span>
+<span>                      cluster <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"c%02d"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">12</span><span class="op">)</span>, split <span class="op">=</span> <span class="st">"test"</span><span class="op">)</span></span>
+<span><span class="va">blind</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">every</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"every-"</span>, <span class="va">every</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"q"</span>, <span class="st">""</span>, <span class="va">item</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="va">n</span> <span class="op">&lt;=</span> <span class="fl">3</span> <span class="op">||</span> <span class="va">n</span> <span class="op"><a href="https://rdrr.io/r/base/Arithmetic.html" class="external-link">%%</a></span> <span class="va">every</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="st">"no"</span> <span class="kw">else</span> <span class="st">"yes"</span></span>
+<span>  <span class="op">}</span>, params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>every <span class="op">=</span> <span class="va">every</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">eb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">blind</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>every <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">5</span>, <span class="fl">6</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, <span class="va">truth</span>, runs <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>                   client <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+<span><span class="va">ec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_error_correlation.html">hr_error_correlation</a></span><span class="op">(</span><span class="va">eb</span>, n_strata <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">ec</span><span class="op">$</span><span class="va">pairs</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"arm_a"</span>, <span class="st">"arm_b"</span>, <span class="st">"phi_pooled"</span>, <span class="st">"both_wrong"</span>, <span class="st">"same_wrong_rate"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;             arm_a           arm_b phi_pooled both_wrong same_wrong_rate</span></span>
+<span><span class="co">#&gt; 1 every-4:every=4 every-5:every=5  0.1690309          3               1</span></span>
+<span><span class="co">#&gt; 2 every-4:every=4 every-6:every=6  0.5070926          4               1</span></span>
+<span><span class="co">#&gt; 3 every-5:every=5 every-6:every=6  0.3142857          3               1</span></span>
+<span><span class="va">ec</span><span class="op">$</span><span class="va">check</span></span>
+<span><span class="co">#&gt;   item every-4:every=4 every-5:every=5 every-6:every=6</span></span>
+<span><span class="co">#&gt; 1  q01              no              no              no</span></span>
+<span><span class="co">#&gt; 2  q02              no              no              no</span></span>
+<span><span class="co">#&gt; 3  q03              no              no              no</span></span></code></pre></div>
+<p>Every pair is positively correlated, and every pair that is wrong
+together gives the same wrong answer, “no”: the three items every arm
+gets wrong carry most of it. With difficulty strata
+(<code>n_strata = 3</code>, the default) the items are cut by the share
+of runs that got them wrong:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ec3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_error_correlation.html">hr_error_correlation</a></span><span class="op">(</span><span class="va">eb</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">ec3</span><span class="op">$</span><span class="va">strata</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; 1 3 </span></span>
+<span><span class="co">#&gt; 8 4</span></span>
+<span><span class="va">ec3</span><span class="op">$</span><span class="va">phi</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"arm_a"</span>, <span class="st">"arm_b"</span>, <span class="st">"stratum"</span>, <span class="st">"items"</span>, <span class="st">"both_wrong"</span>, <span class="st">"phi"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;             arm_a           arm_b stratum items both_wrong        phi</span></span>
+<span><span class="co">#&gt; 1 every-4:every=4 every-5:every=5       1     8          0 -0.3333333</span></span>
+<span><span class="co">#&gt; 2 every-4:every=4 every-5:every=5       3     4          3         NA</span></span>
+<span><span class="co">#&gt; 3 every-4:every=4 every-6:every=6       1     8          0 -0.2182179</span></span>
+<span><span class="co">#&gt; 4 every-4:every=4 every-6:every=6       3     4          4         NA</span></span>
+<span><span class="co">#&gt; 5 every-5:every=5 every-6:every=6       1     8          0 -0.2182179</span></span>
+<span><span class="co">#&gt; 6 every-5:every=5 every-6:every=6       3     4          3         NA</span></span></code></pre></div>
+<p>Tied shares leave two strata, not three. Stratum “3” holds q01 to q03
+and q12, which every-4 and every-6 get wrong as well. In it, one arm of
+each pair is wrong on all four items (every-5 is right on q12, but its
+partner is not), so phi there is undefined. The pooled phi then reads
+only the eight items of stratum “1”, where each arm’s errors fall on
+items of its own, and it comes out negative.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="planning-the-size-and-non-inferiority">Planning the size, and non-inferiority<a class="anchor" aria-label="anchor" href="#planning-the-size-and-non-inferiority"></a>
@@ -577,7 +654,7 @@ the intra-cluster correlation of the paired item difference (ICC_D,
 taken from a pilot on the dev split) and the share of items on which the
 arms disagree (<code>p_disc</code>). For 480 questions over 80
 documents:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_mdd.html">hr_mdd</a></span><span class="op">(</span><span class="fl">480</span>, n_clusters <span class="op">=</span> <span class="fl">80</span>, icc <span class="op">=</span> <span class="fl">0.2</span>, p_disc <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;hr_mdd&gt; 8.2 points at 80% power, one-sided alpha 0.025</span></span>
 <span><span class="co">#&gt;   480 items in 80 clusters (m = 6, 6 after cv 0), ICC_D 0.2: DE 2, n_eff 240</span></span>
@@ -592,7 +669,7 @@ the information of 240. With nine confirmatory contrasts, Holm’s first
 step tests at 0.025 / 9, and the detectable difference grows from 8.2 to
 10.7 points. <code><a href="../reference/hr_mdd.html">hr_n_needed()</a></code> turns it round, giving the items
 needed for a margin:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_mdd.html">hr_n_needed</a></span><span class="op">(</span><span class="fl">0.08</span>, m <span class="op">=</span> <span class="fl">6</span>, icc <span class="op">=</span> <span class="fl">0.2</span>, p_disc <span class="op">=</span> <span class="fl">0.2</span>, n_contrasts <span class="op">=</span> <span class="fl">9</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;hr_n_needed&gt; 8.0 points at 80% power, one-sided alpha 0.002778 (0.025 / 9 contrasts, Holm worst case)</span></span>
 <span><span class="co">#&gt;   n_eff 419 effective items; DE 2, so 840 items in 140 clusters of 6</span></span></code></pre></div>
@@ -612,7 +689,7 @@ class <code>hr_margin_below_mdd</code>, since it claims more than the
 items can show; <code>confirmatory = FALSE</code> registers it as
 exploratory instead. A reference a benchmark has already begun to score
 is refused with class <code>hr_registration_after_scoring</code>.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">300</span></span>
 <span><span class="va">ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"q%03d"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">n</span><span class="op">)</span></span>
 <span><span class="va">docs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"doc%02d"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">50</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">6</span><span class="op">)</span></span>
@@ -621,14 +698,14 @@ is refused with class <code>hr_registration_after_scoring</code>.</p>
 <span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mdd.html">hr_mdd</a></span><span class="op">(</span><span class="va">n</span>, n_clusters <span class="op">=</span> <span class="fl">50</span>, icc <span class="op">=</span> <span class="fl">0.1</span>, p_disc <span class="op">=</span> <span class="fl">0.15</span><span class="op">)</span></span>
 <span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_contrast.html">hr_register_contrasts</a></span><span class="op">(</span><span class="va">plan</span>, <span class="fu"><a href="../reference/hr_contrast.html">hr_contrast</a></span><span class="op">(</span><span class="st">"small"</span>, <span class="st">"large"</span>, margin <span class="op">=</span> <span class="fl">0.10</span><span class="op">)</span>, <span class="va">design</span><span class="op">)</span></span>
 <span><span class="va">reg</span></span>
-<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-22T11:53:48.863Z</span></span>
+<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-22T13:04:10.269Z</span></span>
 <span><span class="co">#&gt;  contrast       label        margin mdd cost_test</span></span>
 <span><span class="co">#&gt;  small vs large confirmatory 10.0   7.8 yes      </span></span>
-<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash 7ca7348b5b9c</span></span></code></pre></div>
+<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash 26e7408098ab</span></span></code></pre></div>
 <p>Here the stand-in model finds each item easier or harder by document
 and by item, and <code>mock-small</code> is a little worse on every one.
 The governor allows the 3000 calls the benchmark needs:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">11</span><span class="op">)</span></span>
 <span><span class="va">ease</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">docs</span><span class="op">)</span><span class="op">)</span><span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">0</span>, <span class="fl">1.5</span><span class="op">)</span>, <span class="va">ids</span><span class="op">)</span></span>
 <span><span class="va">grader</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
@@ -680,7 +757,7 @@ under the letters A, B and so on, never their names, and each item is
 asked in two orders. A verdict that changes with the order, mapped back
 to the candidate it names, is <code>"unresolved"</code>, never a pick.
 This stand-in always picks whatever is shown first:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">first</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">'{"verdict": "A", "reason": "It is first."}'</span><span class="op">)</span></span>
 <span><span class="va">j</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_judge.html">hr_judge</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>short <span class="op">=</span> <span class="st">"Revenue was 45.2 million."</span>, long <span class="op">=</span> <span class="st">"Revenue was 51.8 million."</span><span class="op">)</span>,</span>
 <span>              <span class="va">first</span>, mode <span class="op">=</span> <span class="st">"select"</span>, rubric <span class="op">=</span> <span class="st">"Which candidate gives fiscal 2024 revenue?"</span><span class="op">)</span></span>
@@ -705,7 +782,7 @@ fewer than 50 human-positive or 50 human-negative items, with class
 lowered: at 10% prevalence, 100 labels hold 10 positives and a
 sensitivity interval of about plus or minus 0.3. The judge’s decisions
 here are simulated as right 90% of the time:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_model.html">gr_register_model</a></span><span class="op">(</span><span class="st">"mock-judge"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">1</span>, output_usd <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_judge_config.html">hr_judge_config</a></span><span class="op">(</span><span class="st">"mock-judge"</span>, <span class="st">"Does the response give the reference's answer?"</span>,</span>
@@ -729,7 +806,7 @@ it will be used. Whether they are good enough for your purpose is a
 decision to make before labelling; the function measures and does not
 admit. The record is keyed by the configuration’s hash, and
 <code><a href="../reference/hr_judge_validate.html">hr_judge_valid()</a></code> says when it no longer holds:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_judge_validate.html">hr_judge_valid</a></span><span class="op">(</span><span class="va">v</span>, <span class="va">cfg</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu"><a href="../reference/hr_judge_validate.html">hr_judge_valid</a></span><span class="op">(</span><span class="va">v</span>, <span class="fu"><a href="../reference/hr_judge_config.html">hr_judge_config</a></span><span class="op">(</span><span class="st">"mock-judge"</span>, <span class="st">"Is the response right?"</span>, mode <span class="op">=</span> <span class="st">"grade"</span><span class="op">)</span><span class="op">)</span></span>
@@ -743,7 +820,7 @@ unresolved judgement counts as wrong and a failed one as an error, so an
 arm’s accuracy cannot rise on the items the judge could not settle, and
 the judge’s requests stay in the scorer’s own trace, out of the
 benchmark’s cost columns:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">grader_judge</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">shown</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">".*Response to grade:"</span>, <span class="st">""</span>, <span class="va">messages</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span><span class="op">)</span></span>
 <span>  <span class="va">ok</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"45.2 million"</span>, <span class="va">shown</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -757,7 +834,7 @@ benchmark’s cost columns:</p>
 labels on a sample, by prediction-powered inference (PPI++ by default).
 Here a lenient judge passes 30% of wrong answers on 1000 items, and
 people label 150 of them:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span>
 <span><span class="va">truth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">1</span>, <span class="fl">0.6</span><span class="op">)</span></span>
 <span><span class="va">lenient</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">truth</span> <span class="op">==</span> <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">1</span>, <span class="fl">0.95</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">1</span>, <span class="fl">0.3</span><span class="op">)</span><span class="op">)</span></span>
@@ -785,7 +862,7 @@ on tf-idf features (<code><a href="../reference/hr_tfidf.html">hr_tfidf()</a></c
 item is predicted by a model that never saw it, with the vocabulary
 fitted on each training fold only. Folds are stratified by label, or
 keep each <code>cluster</code> whole:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">words</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">pool</span>, <span class="va">n</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="va">pool</span>, <span class="fl">6</span>, <span class="cn">TRUE</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span>, <span class="st">""</span><span class="op">)</span></span>
 <span><span class="va">abstracts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">words</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"masks"</span>, <span class="st">"infection"</span>, <span class="st">"trial"</span>, <span class="st">"ward"</span>, <span class="st">"virus"</span><span class="op">)</span>, <span class="fl">10</span><span class="op">)</span>,</span>
@@ -805,7 +882,7 @@ it starts from one relevant and one irrelevant record, refits after each
 batch, and screens the record with the highest predicted relevance next.
 It reports the records screened to reach 95% recall and <a href="mailto:WSS@95" class="email">WSS@95</a>, the share left unread at
 that recall less the 5% a random order would leave:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ranked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_baseline_ranker.html">hr_baseline_ranker</a></span><span class="op">(</span><span class="va">abstracts</span>, <span class="va">relevant</span><span class="op">)</span></span>
 <span><span class="va">ranked</span></span>
 <span><span class="co">#&gt; &lt;hr_baseline_ranker&gt; logistic, 60 records, 10 relevant, 9 fits</span></span>
@@ -824,7 +901,7 @@ frozen benchmark and compares the two item by item, with
 <code>alpha</code> and an optional <code>alert</code> fixed in the call
 before anything is rerun. Here the model has since learned two capitals
 wrong:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">six</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_reference.html">hr_reference</a></span><span class="op">(</span></span>
 <span>  items <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>q1 <span class="op">=</span> <span class="st">"France"</span>, q2 <span class="op">=</span> <span class="st">"Peru"</span>, q3 <span class="op">=</span> <span class="st">"Chad"</span>, q4 <span class="op">=</span> <span class="st">"Fiji"</span>, q5 <span class="op">=</span> <span class="st">"Chile"</span>, q6 <span class="op">=</span> <span class="st">"Laos"</span><span class="op">)</span>,</span>
 <span>  labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Paris"</span>, <span class="st">"Lima"</span>, <span class="st">"N'Djamena"</span>, <span class="st">"Suva"</span>, <span class="st">"Santiago"</span>, <span class="st">"Vientiane"</span><span class="op">)</span>,</span>
@@ -875,7 +952,7 @@ says which sections its plan would skip, and <code>ensemble</code> says
 how it settled its members. <code><a href="../reference/hr_signal.html">hr_signal()</a></code> records such a
 value as a local step in the trace, which sends no request and changes
 no cache key, and <code><a href="../reference/hr_signal.html">hr_signals()</a></code> reads them back:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reader</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="st">'{"can_answer": true, "answer": "45.2 million dollars", "next_query": ""}'</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
@@ -897,7 +974,7 @@ cluster bootstrap interval. The record is keyed by the served model, its
 version, the task, format, prompt hash, effort, module and contract
 version. The graded set here is simulated, 1200 items in 120
 documents:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">1200</span></span>
 <span><span class="va">answerable</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">0.8</span></span>
@@ -930,7 +1007,7 @@ the bound is taken on an effective number of items,
 measured over the calibration half’s clusters at each threshold.
 <code>alpha</code> has no default, since it is a decision about the
 task:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_gate_threshold.html">hr_gate_threshold</a></span><span class="op">(</span><span class="va">cal</span>, <span class="st">"stop"</span>, alpha <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">cal</span><span class="op">$</span><span class="va">gate</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"threshold"</span>, <span class="st">"n"</span>, <span class="st">"k"</span>, <span class="st">"deff"</span>, <span class="st">"ucb"</span>, <span class="st">"coverage"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   threshold   n k     deff        ucb coverage status</span></span>
@@ -949,7 +1026,7 @@ as a logical one, stays advisory. A graded set with a <code>split</code>
 column, as <code><a href="../reference/hr_assign_splits.html">hr_assign_splits()</a></code> gives, is calibrated on its
 <code>calibration</code> rows alone. Even then the signal gates only
 through a policy, and only for a run whose key matches the record:</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">policy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_signal_policy.html">hr_signal_policy</a></span><span class="op">(</span><span class="st">"gr.iterative.can_answer"</span>, <span class="st">"stop"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_signal_policy.html">hr_apply_signal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.95</span>, <span class="fl">0.4</span><span class="op">)</span>, <span class="va">policy</span>, <span class="va">cal</span>, <span class="va">key</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"value"</span>, <span class="st">"p"</span>, <span class="st">"gated"</span>, <span class="st">"act"</span>, <span class="st">"route"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   value         p gated   act       route</span></span>
@@ -976,7 +1053,7 @@ nothing gates on a signal.</p>
 intervals for a proportion. Use Wilson for a descriptive rate and
 Clopper-Pearson for an “at least” or “at most” claim, read as a
 one-sided bound:</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_prop_ci.html">hr_prop_ci</a></span><span class="op">(</span><span class="fl">46</span>, <span class="fl">50</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"est"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span>, <span class="st">"method"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;    est     lower     upper method</span></span>
 <span><span class="co">#&gt; 1 0.92 0.8116175 0.9684505 wilson</span></span>
@@ -991,7 +1068,7 @@ given. Kappa is never reported alone, since it moves with prevalence as
 much as with agreement. For a matrix of coders, or an ordinal, interval
 or ratio level, it reports Krippendorff’s alpha instead, and only
 percent agreement below 30 items.</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">screener</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"keep"</span>, <span class="st">"drop"</span>, <span class="st">"keep"</span>, <span class="st">"drop"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">9</span>, <span class="fl">6</span>, <span class="fl">45</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">person</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"keep"</span>, <span class="st">"keep"</span>, <span class="st">"drop"</span>, <span class="st">"drop"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">9</span>, <span class="fl">6</span>, <span class="fl">45</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_agreement.html">hr_agreement</a></span><span class="op">(</span><span class="va">screener</span>, <span class="va">person</span>, positive <span class="op">=</span> <span class="st">"keep"</span>, B <span class="op">=</span> <span class="fl">200</span><span class="op">)</span><span class="op">$</span><span class="va">stats</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="op">]</span></span>
@@ -1009,7 +1086,7 @@ alternative annotator test of Calderon, Reichart and Dror (2025), which
 asks whether a model’s labels can stand in for those of three or more
 people, with the margin set by the people’s declared expertise
 (<code>expertise</code> has no default):</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span></span>
 <span><span class="va">gold</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"c"</span><span class="op">)</span>, <span class="fl">80</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">noisy</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">80</span><span class="op">)</span> <span class="op">&lt;</span> <span class="va">p</span>, <span class="va">gold</span>, <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"c"</span><span class="op">)</span>, <span class="fl">80</span>, <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>

@@ -65,7 +65,11 @@ gr_ingest(source, spec = NULL, cache = NULL, trace = NULL)
 ## Value
 
 A `gr_document`: a list with `blocks` (data frame), `text`, `source`,
-`spec` and `stats`.
+`spec` and `stats`. Each block carries `table_id` and `table_rows`: for
+a row of a table (a block of kind `"table"`; each unbroken run of them
+is one table), the table's number in the document and the rows of it the
+block holds, as `"3"` or, for a Markdown table read as one block,
+`"1-12"`; `NA` for any other block.
 
 ## See also
 

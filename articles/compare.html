@@ -188,7 +188,7 @@ its default. <code><a href="../reference/gr_settings.html">gr_settings()</a></co
 shows each setting’s tier and evidence status:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_settings.html">gr_settings</a></span><span class="op">(</span><span class="st">"segment"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; &lt;hr_schema&gt; 14 parameter(s)</span></span>
+<span><span class="co">#&gt; &lt;hr_schema&gt; 20 parameter(s)</span></span>
 <span><span class="co">#&gt;   context_source             enum          advanced  untested  metadata|llm</span></span>
 <span><span class="co">#&gt;   max_tokens                 integer       basic     untested  [32, 1e+06]</span></span>
 <span><span class="co">#&gt;   overlap_tokens             integer       basic     untested  [0, f()]</span></span>
@@ -202,7 +202,13 @@ shows each setting’s tier and evidence status:</p>
 <span><span class="co">#&gt;   parallel                   boolean       advanced  untested  </span></span>
 <span><span class="co">#&gt;   context_reply_tokens       integer       advanced  untested  [16, 4000]</span></span>
 <span><span class="co">#&gt;   context_document_tokens    integer       advanced  untested  [100, 1e+06]</span></span>
-<span><span class="co">#&gt;   proposition_reply_tokens   integer       advanced  untested  [100, 1e+06]</span></span></code></pre></div>
+<span><span class="co">#&gt;   proposition_reply_tokens   integer       advanced  untested  [100, 1e+06]</span></span>
+<span><span class="co">#&gt;   semantic_threshold         enum          advanced  untested  percentile|texttiling</span></span>
+<span><span class="co">#&gt;   table_packing              enum          advanced  untested  rows|grouped</span></span>
+<span><span class="co">#&gt;   proposition_check          enum          advanced  untested  count|drop</span></span>
+<span><span class="co">#&gt;   proposition_context_tokens integer       advanced  untested  [0, 2000]</span></span>
+<span><span class="co">#&gt;   packing                    enum          advanced  untested  greedy|balanced</span></span>
+<span><span class="co">#&gt;   runt_merge                 enum          advanced  untested  backward|both</span></span></code></pre></div>
 <p><code>basic</code> marks the few settings most comparisons vary; the
 read schema’s are <code>reader</code>, <code>model</code>,
 <code>top_k</code>, <code>cite</code> and <code>verify</code>.

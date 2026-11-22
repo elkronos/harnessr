@@ -62,7 +62,14 @@
 <dl><dt><code>chunks</code></dt>
 <dd><p>Data frame, one row per chunk, with columns <code>chunk_id</code>,
 <code>text</code>, <code>tokens</code>, <code>chars</code>, <code>page</code>, <code>section</code>, <code>block_id</code>, and sometimes
-<code>source_text</code>.</p></dd>
+<code>source_text</code>, <code>table_id</code> and <code>table_rows</code>.</p></dd>
+
+<dt><code>chunks$table_id</code>, <code>chunks$table_rows</code></dt>
+<dd><p>Set by <code>paragraph</code> for a
+document with a table: the table a chunk's rows come from (its number
+in the document, as in the blocks of <code><a href="gr_ingest.html">gr_ingest()</a></code>) and which rows, as
+<code>"2-21"</code>. <code>NA</code> for a chunk with no table row, or with rows of two
+tables. Provenance only: nothing is added to <code>text</code>.</p></dd>
 
 <dt><code>chunks$source_text</code></dt>
 <dd><p>Optional. The document text a chunk was made

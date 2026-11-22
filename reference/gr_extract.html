@@ -69,7 +69,7 @@ per field, with a separate long table saying where every value came from.</p>
 <span>  recipe <span class="op">=</span> <span class="st">"research"</span>,</span>
 <span>  client <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  store <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  resolve <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"first"</span>, <span class="st">"model"</span><span class="op">)</span>,</span>
+<span>  resolve <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"first"</span>, <span class="st">"model"</span>, <span class="st">"vote"</span><span class="op">)</span>,</span>
 <span>  require_quote <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  on_error <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"continue"</span>, <span class="st">"stop"</span><span class="op">)</span>,</span>
 <span>  max_total_usd <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -77,6 +77,7 @@ per field, with a separate long table saying where every value came from.</p>
 <span>  keep_answers <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  recursive <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  trace <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  agreement_columns <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -127,8 +128,11 @@ fails, or a request limit is reached before it can be made, the first
 value is kept, as with <code>"first"</code>, and a warning (in the row's
 <code>summary$warnings</code>) names the field. If it chooses none of the values,
 the first value is kept but is not verified, so <code>n_unverified</code> counts it
-and <code>require_quote</code> drops it. Two spellings of one string (case, quote
-marks, a trailing full stop) are one value, not a disagreement.</p></dd>
+and <code>require_quote</code> drops it. <code>"vote"</code> takes the value the most chunks
+gave, for no extra call; a tie goes to the earliest of the tied values,
+as <code>"first"</code> would choose, and the disagreement is still recorded. Two
+spellings of one string (case, quote marks, a trailing full stop) are
+one value, not a disagreement.</p></dd>
 
 
 <dt id="arg-require-quote">require_quote<a class="anchor" aria-label="anchor" href="#arg-require-quote"></a></dt>
@@ -150,6 +154,16 @@ They hold every chunk's source text, so for a large corpus this is what
 runs you out of memory; the tables do not need them.</p></dd>
 
 
+<dt id="arg-agreement-columns">agreement_columns<a class="anchor" aria-label="anchor" href="#arg-agreement-columns"></a></dt>
+<dd><p>Add two columns per field to <code>table</code>, after the
+field columns: <code>&lt;field&gt;_agreement</code>, how many of the chunks that reported
+the field give its most common value, of all that reported it (<code>"2/3"</code>),
+and <code>&lt;field&gt;_conflict</code>, <code>TRUE</code> when they gave more than one value.
+<code>FALSE</code> by default, which leaves the table as it was; it changes no
+request. A field no chunk reported has agreement <code>NA</code> and conflict
+<code>FALSE</code>. Untested.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Recipe overrides, as in <code><a href="gr_read_many.html">gr_read_many()</a></code>. <code>max_tokens =</code> is the
 one that matters here, because it decides how many chunks each document is
@@ -161,7 +175,10 @@ cut into and therefore how many calls it costs.</p></dd>
     <p>An object of class <code>gr_extraction</code>:</p><dl><dt><code>table</code></dt>
 <dd><p>One row per document: <code>document</code>, one column per field in
 the schema and of that field's type, then <code>n_filled</code>, <code>n_unverified</code>,
-<code>conflicts</code>, <code>status</code>, <code>duplicate_of</code>, <code>error</code>. <code>status</code> is the run
+<code>conflicts</code>, <code>status</code>, <code>duplicate_of</code>, <code>error</code> (with
+<code>agreement_columns = TRUE</code>, a <code>&lt;field&gt;_agreement</code> and a
+<code>&lt;field&gt;_conflict</code> column for each field after the field columns).
+<code>status</code> is the run
 status from <code>summary</code>, except that a document some of whose extraction
 requests failed is <code>"incomplete"</code> (or <code>"failed"</code> if all did), and one
 whose extraction requests all succeeded is not <code>"failed"</code> for another
@@ -316,14 +333,14 @@ the sentence it was taken from and a check that the sentence is really there.</p
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"We ran a randomised controlled trial. We enrolled 120 participants."</span>, <span class="va">f</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu">gr_extract</span><span class="op">(</span><span class="va">f</span>, <span class="va">fields</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1ba72044e853.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1ba72044e853.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1baf5df2e436.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1baf5df2e436.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~22 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'structural' (cap 900 tokens, overlap 90).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).</span>
 <span class="r-in"><span><span class="va">x</span><span class="op">$</span><span class="va">table</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"design"</span>, <span class="st">"n"</span>, <span class="st">"n_unverified"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               document                      design   n n_unverified status</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1ba72044e853.txt randomised controlled trial 120            0     ok</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1baf5df2e436.txt randomised controlled trial 120            0     ok</span>
 <span class="r-in"><span><span class="va">x</span><span class="op">$</span><span class="va">evidence</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"field"</span>, <span class="st">"quote"</span>, <span class="st">"verified"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    field                                 quote verified</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 design We ran a randomised controlled trial.     TRUE</span>

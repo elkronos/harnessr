@@ -426,7 +426,7 @@ invisible(file.create(file.path(inbox, "empty.txt")))
 
 inv <- gr_inventory(inbox)
 inv
-#> <gr_inventory> /tmp/Rtmpr10xOp/inbox
+#> <gr_inventory> /tmp/RtmptCb8oo/inbox
 #>   4 file(s), 1.9 KB; 2 readable
 #>   2 ready, 1 no_extractor, 1 empty
 #>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)
@@ -600,25 +600,39 @@ sit near the end.
 **What it controls.** `ocr` decides which pages are read as pictures:
 `"auto"` reads a page by OCR only when it has fewer than `ocr_min_chars`
 characters of text (40), `"always"` reads every page that way and
-`"never"` none. `ocr_dpi` is the resolution the page is rendered at, and
-`ocr_lang` the Tesseract language. OCR costs seconds per page and adds
-recognition errors; not running it on a scanned page leaves that page
-empty.
+`"never"` none. `ocr_trigger` says which text those characters are
+counted on: `"raw_text"` counts the page’s whole text layer, and
+`"after_running_lines"` counts what is left once the running heads, feet
+and stamps the layout pass drops are taken out. `ocr_dpi` is the
+resolution the page is rendered at, and `ocr_lang` the Tesseract
+language. OCR costs seconds per page and adds recognition errors; not
+running it on a scanned page leaves that page empty. The blocks of a
+page OCR read have `kind = "ocr"` (its headings keep `"heading"`).
+`ocr_confidence = TRUE` gives them an `ocr_confidence` column,
+Tesseract’s mean word confidence for the page, from 0 to 100; it runs a
+second Tesseract pass over each OCR-ed page, so OCR takes about twice as
+long, and it is off by default.
 
 **Signs it needs changing.** `doc$stats$unread_pages` lists pages that
 came back empty, and an answer from such a document is marked partial. A
 scanned page with a printed header or stamp can carry more than 40
-characters of text and so skip OCR under `"auto"`: raise
-`ocr_min_chars`. Misread numbers or letters in OCR text (a quotation
-that fails verification against a page that plainly says it) point to a
-higher `ocr_dpi` or the right `ocr_lang`.
+characters of text and so skip OCR under `"auto"`: set
+`ocr_trigger = "after_running_lines"` when the stamp repeats on every
+page, or raise `ocr_min_chars` when it does not. Under
+`ocr_confidence = TRUE`, a low `ocr_confidence` on the blocks an answer
+cites says to read that page by hand. Misread numbers or letters in OCR
+text (a quotation that fails verification against a page that plainly
+says it) point to a higher `ocr_dpi` or the right `ocr_lang`.
 
 **Where the defaults came from.** `ocr_dpi = 300` follows Tesseract’s
 documentation on improving output quality (`cited`). `ocr = "auto"` runs
 OCR only where a page has no text layer, and no other choice has been
 compared. `ocr_min_chars = 40` was set when OCR was added and has not
 been tuned, and `ocr_lang = "eng"` is English because the package’s own
-examples are in English. All three are `untested`.
+examples are in English. `ocr_trigger = "raw_text"` is how pages were
+chosen before the setting existed, and has not been compared with
+`"after_running_lines"`. `ocr_confidence = FALSE` keeps OCR to the one
+Tesseract pass it always ran. All of them are `untested`.
 
 **How to test it.** OCR needs a scanned file and the tesseract and
 magick packages, so this runs on your own documents, with a reference
@@ -639,6 +653,31 @@ A row from
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 means no page crossed the threshold between the two values, so they read
 the documents the same way.
+
+`ocr_trigger` is swept the same way, and decides which pages are read
+before any request, so `doc$stats$unread_pages` and the `"ocr"` blocks
+of each ingestion show its effect for nothing:
+
+``` r
+
+arms <- hr_sweep(gr_arm("scanned"),
+                 list(ocr_trigger = c("raw_text", "after_running_lines")))
+bench <- hr_benchmark(arms, my_reference, runs = 5, client = my_client, split = "dev",
+                      scorer = gr_scorer_answer())
+aggregate(correct ~ param.ocr_trigger, bench, mean)
+```
+
+`ocr_confidence` changes no text and no request, so a sweep of it shows
+the same answers; what it buys is the column, at the cost of the second
+pass, which [`system.time()`](https://rdrr.io/r/base/system.time.html)
+around each
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
+shows:
+
+``` r
+
+arms <- hr_sweep(gr_arm("scanned"), list(ocr_confidence = c(FALSE, TRUE)))
+```
 
 ## Adding your own
 
