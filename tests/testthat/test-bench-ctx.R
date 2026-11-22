@@ -1,4 +1,5 @@
-# test-bench-ctx.R: the judge and note shortcuts an arm's ctx carries.
+# test-bench-ctx.R: the judge and note shortcuts an arm's ctx carries, and
+# hr_signals() given a benchmark.
 
 ctx_reference <- function() {
   gr_qa_reference(questions = c(revenue = "What was revenue in 2024?",
@@ -137,6 +138,64 @@ test_that("ctx$note records a signal on the run's trace about the item", {
   expect_identical(s$item_id, rep(b$item[1], 3L))
   expect_identical(s$score, c(0, 0.25, 0.75))
   expect_identical(s$refs, c(NA, '{"part":1}', '{"part":2}'))
+})
+
+test_that("hr_signals() reads a benchmark once per run, with arm, run and item", {
+  noted <- hr_arm("noted", function(item, ctx) {
+    ctx$note("demo.sure", ctx$run == 1)
+    "45.2 million"
+  })
+  plain <- hr_arm("plain", function(item, ctx) "12,400")
+  b <- quiet(hr_benchmark(list(noted, plain), ctx_reference(), runs = 2,
+                          client = gr_mock_client(function(m, p) "x"),
+                          scorer = gr_scorer_answer()))
+  s <- hr_signals(b)
+  expect_identical(names(s)[1:4], c("run_id", "arm", "run", "item"))
+  expect_identical(setdiff(names(s), c("arm", "run", "item")),
+                   names(hr_signals(gr_trace())))
+  # One row per note: two items by two runs of the arm that notes. The
+  # benchmark's own trace holds the same steps and is not read again.
+  expect_identical(nrow(s), 4L)
+  expect_false(anyDuplicated(s[, c("arm", "run", "item", "step", "index")]) > 0L)
+  expect_identical(unique(s$arm), "noted")
+  expect_identical(s$item, s$item_id)
+  expect_setequal(paste(s$item, s$run), c("revenue 1", "revenue 2", "units 1", "units 2"))
+  expect_identical(s$score, ifelse(s$run == 1L, 1, 0))
+  key <- match(s$run_id, b$ledger_id)
+  expect_false(anyNA(key))
+  expect_identical(s$arm, b$arm[key])
+  expect_identical(s$run, b$run[key])
+  expect_identical(s$item, b$item[key])
+  # The folded trace holds the same signals, which a direct read would double.
+  folded <- hr_signals(attr(b, "trace"))
+  expect_identical(nrow(folded), 4L)
+  # name filters as it does for a trace.
+  expect_identical(nrow(hr_signals(b, "nothing")), 0L)
+  expect_identical(names(hr_signals(b, "nothing")), names(s))
+  # A benchmark subset to some rows lists the signals of those runs.
+  sub <- b[b$run == 2L, ]
+  expect_identical(hr_signals(sub)$run, c(2L, 2L))
+  # A benchmark that lost its traces says so.
+  bare <- b
+  attr(bare, "traces") <- NULL
+  expect_error(hr_signals(bare), class = "gr_bad_trace")
+})
+
+test_that("hr_signals() of a benchmark includes the signals a reader recorded", {
+  cl <- gr_mock_client(function(m, p) {
+    '{"can_answer": true, "answer": "45.2 million dollars", "next_query": ""}'
+  })
+  arm <- hr_arm("iter", function(item, ctx) {
+    ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150),
+                     trace = ctx$trace)
+    gr_read(ch, item$question, ctx$client, "iterative", trace = ctx$trace)$answer
+  })
+  b <- quiet(hr_benchmark(arm, ctx_reference(), runs = 1, client = cl,
+                          scorer = gr_scorer_answer()))
+  s <- hr_signals(b, "gr.iterative.can_answer")
+  expect_gt(nrow(s), 0L)
+  expect_setequal(unique(s$item), b$item)
+  expect_identical(s$arm, rep("iter", nrow(s)))
 })
 
 test_that("an arm that uses neither judge nor note sends the requests it sent before", {
