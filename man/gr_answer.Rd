@@ -21,6 +21,24 @@ is then \code{answer} as well, so \code{is_not_found()} is \code{FALSE}. It is t
 model's verdict, not a check harnessr made. Absent (\code{NULL}) for a spec
 that did not ask, and for \code{screen} and \code{extract}, which answer no
 question.}
+\item{\code{outcome}}{Character(1), set by \code{\link[=gr_read]{gr_read()}}: \code{"answered"}, an
+answer not marked partial; \code{"partial"}, an answer marked partial;
+\code{"not_found"}, \code{NOT_IN_DOCUMENT} from a run that read what it meant
+to; \code{"refused"}, \code{NOT_IN_DOCUMENT} from a run a limit stopped; or
+\code{"failed"}, \code{NOT_IN_DOCUMENT} from a run that got no reply to read
+(every model request it made failed, or the notes give an \code{error}),
+whichever reader made it. \code{\link[=is_not_found]{is_not_found()}}
+reads it when given the answer. Under \code{answer_format = "schema"} in
+\code{\link[=gr_read_spec]{gr_read_spec()}} the model reports the answered or not-found part in a
+schema field, and \code{notes$structured} keeps what it said.}
+\item{\code{premise_verdict}}{Present only under \code{premise = TRUE} with
+\code{premise_verdict = "structured"} in \code{\link[=gr_read_spec]{gr_read_spec()}}, for readers whose
+answering request is structured: a list with \code{premise_status}
+(\code{"holds"} or \code{"contradicted"}), \code{quote} (the passage the model gave
+for a contradiction, or \code{NA}) and \code{quote_verified} (whether the quote
+was found in the excerpts sent, by the check \code{\link[=gr_verify_evidence]{gr_verify_evidence()}}
+uses, and, where those were passages or summaries a model wrote, in
+the document too; \code{NA} without a quote).}
 \item{\code{partial}}{Logical(1). \code{TRUE} when anything degraded: a call failed,
 chunks were dropped, a cap was hit, a strategy fell back, text was cut to
 fit, or pages of the document never became text (a scan read without
@@ -110,11 +128,13 @@ to compare several, \code{\link[=is_not_found]{is_not_found()}} to test the sent
 
 Other reading functions: 
 \code{\link{gr_check_reader}()},
+\code{\link{gr_methods_text}()},
 \code{\link{gr_read}()},
 \code{\link{gr_read_spec}()},
 \code{\link{gr_reader_signature}()},
 \code{\link{gr_readers}()},
 \code{\link{gr_register_reader}()},
+\code{\link{gr_step}()},
 \code{\link{is_not_found}()},
 \code{\link{new_answer}()}
 }

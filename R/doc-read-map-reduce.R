@@ -13,18 +13,19 @@ read_map_reduce <- function(chunks, question, client, spec, trace) {
   # parallel batch to, since the workers cannot see what the run spends.
   worst <- batch_item_usd(client, spec$model, max_tokens_of(d$tokens) +
                             prompt_overhead(question, answer_system(spec$cite, spec$premise),
-                                            spec$restate),
+                                            spec$restate, structure = answer_structure(spec)),
                           spec$max_chunk_tokens)
   res <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
-    r <- gr_call(client, answer_messages(question, render_chunks(d[i, , drop = FALSE]),
+    r <- answer_request(client, answer_messages(question, render_chunks(d[i, , drop = FALSE]),
                                          cite = spec$cite, restate = restate_how(spec),
-                                         premise = spec$premise),
-                 model = spec$model, max_output = spec$max_chunk_tokens,
-                 temperature = spec$temperature, trace = trace, label = "map.answer",
-                 effort = spec$effort)
+                                         premise = spec$premise,
+                                         structure = answer_structure(spec)),
+                 spec, trace, "map.answer", spec$max_chunk_tokens,
+                 sources = reader_source_text(d[i, , drop = FALSE]))
     if (is_refused(r)) return(list(ok = FALSE, text = "", capped = TRUE))
     if (spec$delay_between_calls > 0) Sys.sleep(spec$delay_between_calls)
-    list(ok = usable_text(r), text = r$text, capped = FALSE, cut = reply_cut_off(r))
+    list(ok = usable_text(r), text = r$text, capped = FALSE, cut = reply_cut_off(r),
+         structured = r[["structured", exact = TRUE]])
   }, parallel = spec$parallel, label = "chunk", trace = trace, client = client, item_usd = worst)
 
   ok <- vapply(res, function(r) isTRUE(r$ok), logical(1))
@@ -33,6 +34,7 @@ read_map_reduce <- function(chunks, question, client, spec, trace) {
   # into the literal string "NULL" and spliced it into the merge prompt as if it
   # were a finding.
   useful <- ok & !vapply(texts, is_not_found, logical(1))
+  premise_dropped <- NULL
   # With the premise checked, a chunk's reply is one of three things, and the
   # two that are not answers are not alike. A chunk that only lacked the answer
   # is silent and is dropped, as it always was; on a long document most are.
@@ -50,6 +52,18 @@ read_map_reduce <- function(chunks, question, client, spec, trace) {
     # "FALSE_PREMISE: NOT_IN_DOCUMENT" is a chunk that found nothing.
     useful <- useful & !vapply(pr, function(p) is_not_found(p$text), logical(1))
     flagged <- flagged & useful
+    # premise_verdict = "structured": a chunk's flag stands only with a quote
+    # found in that chunk (answer_request() checks it with span_match()). A
+    # flag whose quote is absent, or not in the chunk, is dropped with the
+    # chunk's reply, which said nothing else; the chunks are listed in
+    # notes$premise_dropped.
+    if (isTRUE(answer_structure(spec)$premise)) {
+      backed <- vapply(res, function(r) isTRUE(r$structured$quote_verified), logical(1))
+      unbacked <- flagged & !backed
+      premise_dropped <- d$chunk_id[unbacked]
+      useful <- useful & !unbacked
+      flagged <- flagged & backed
+    }
     pieces[flagged] <- vapply(pr[flagged], function(p) premise_finding(p$premise), character(1))
   }
   # A finding cut off at the output cap goes into the merge all the same, and
@@ -75,7 +89,8 @@ read_map_reduce <- function(chunks, question, client, spec, trace) {
     return(new_answer(.NOT_FOUND, "map_reduce", question, integer(0), trace,
                       chunks_sent = d$chunk_id[!capped],
                       partial = n_failed > 0 || any(capped),
-                      notes = list(chunks = nrow(d), failed_calls = n_failed, reason = why)))
+                      notes = c(list(chunks = nrow(d), failed_calls = n_failed, reason = why),
+                                premise_structured_notes(premise_dropped, FALSE))))
   }
   # merge_system_prompt(FALSE) is the prompt tree_merge() defaults to.
   merged <- tree_merge(client, question, pieces[useful], spec, trace, label = "reduce",
@@ -105,6 +120,17 @@ read_map_reduce <- function(chunks, question, client, spec, trace) {
                             merge_failures = merge_failed,
                             truncated_calls = cut, truncations = merge_cut,
                             merge_levels = merged$levels, merge_ok = merged$ok),
-                       if (isTRUE(spec$premise)) list(premise_chunks = d$chunk_id[flagged])),
+                       if (isTRUE(spec$premise)) list(premise_chunks = d$chunk_id[flagged]),
+                       premise_structured_notes(premise_dropped, any(flagged))),
              premise = out$premise)
+}
+
+#' What map_reduce records of its chunks' structured premise verdicts: the
+#' chunks whose flag was dropped for want of a quote found in them, and
+#' `degradation = "premise_flagged"` when a flag with a verified quote went to
+#' the merge. Nothing when the verdicts are not structured.
+#' @noRd
+premise_structured_notes <- function(dropped, flagged) {
+  if (is.null(dropped)) return(NULL)
+  c(list(premise_dropped = dropped), if (isTRUE(flagged)) list(degradation = "premise_flagged"))
 }

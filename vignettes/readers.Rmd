@@ -763,7 +763,7 @@ requests were the same; only 0.3 changed them on this report. A sweep of
 `mmr` is worth running only on documents that repeat themselves, and
 `hr_sweep_check()` says when it reached none.
 
-### Word matching: `lexical_blend`, `bm25_k1` and `bm25_b` {#set-lexical}
+### Word matching: `lexical_blend`, `bm25_k1`, `bm25_b` and `fusion` {#set-lexical}
 
 **What they control.** With lexical embeddings (`gr_options(embedder =
 "lexical")`), `retrieve` scores chunks by a blend of cosine similarity and
@@ -792,6 +792,31 @@ hr_sweep_check(bench)
 
 Each value of `lexical_blend` picked different chunks here, while `bm25_b` at
 0.3 picked the same three as at 0.75.
+
+`fusion` decides how the two rankings are combined, for `retrieve` and
+`iterative` alike. `"default"` is the blend above, which `retrieve` applies
+only on lexical embeddings and `iterative` never did; `"rrf"` is reciprocal
+rank fusion (Cormack, Clarke and Buettcher 2009), which adds
+`1 / (rrf_k + rank)` from each ranking, with any embeddings. It uses ranks,
+not scores, so one ranking's scale cannot swamp the other's, at the price of
+ignoring how far apart the scores are. Its constant `rrf_k = 60` is the
+paper's (`cited`); `fusion` itself is `untested`. Neither costs a request.
+A fused score lies between 0 and `2 / (rrf_k + 1)`, so a `min_score` set for
+cosine passes no chunk under `"rrf"`; `retrieve` then reads its best chunk
+alone and sets `notes$below_min_score`. Under `mmr` below 1, the fused scores
+are rescaled to 0 to 1 before they are weighed against similarity.
+
+```{r}
+bench <- sweep(hr_sweep(needle, expand.grid(top_k = 2, fusion = c("default", "rrf"),
+                                            rrf_k = c(60, 5))))
+hr_sweep_check(bench)
+```
+
+On this report `"rrf"` with `rrf_k = 60` picked the same two chunks as the
+blend, and `rrf_k` does nothing under `"default"`, so `hr_sweep_check()` lists
+both as sending the same requests. `"rrf"` with `rrf_k = 5` is not listed: it
+sent different requests. Where arms differ, compare `correct` by
+`param.fusion` and `param.rrf_k` on a reference.
 
 ### Placement: `context_order` and `restate` {#set-context-order}
 
@@ -863,6 +888,101 @@ answers are marked partial (`ans$partial`, `ans$notes$unverified_evidence`),
 not in what is sent. Score it with a scorer that counts a partial answer as
 wrong, or compare the `partial` rate by hand.
 
+### Outcomes: `answer_format` {#set-answer-format}
+
+**What it controls.** Every answer carries `ans$outcome`: `"answered"`,
+`"partial"`, `"not_found"`, `"refused"` (a limit stopped the run) or
+`"failed"` (every model request the run made failed, whichever reader made
+it), and `is_not_found(ans)` reads it.
+`answer_format` decides how the answering request reports the found or
+not-found part. `"parsed"` sends the free-text request and looks for
+`NOT_IN_DOCUMENT` in the reply. `"schema"` sends the request with a JSON
+schema holding `answer` and `outcome`, so a reply such as "The excerpt does
+not mention revenue" is a not-found when the model says so in `outcome`,
+not an answer. A forced schema costs a few prompt tokens and needs a
+provider that supports structured output; published comparisons disagree on
+whether it changes answer quality.
+
+**Signs it needs changing.** Answers that say in words that the document is
+silent, counted as answers because they lack the sentinel, point to
+`"schema"`. Replies that fail to parse (`notes$structured$parsed` is
+`FALSE`) point back to `"parsed"` for that provider.
+
+**Where the default came from.** `"parsed"` is what the readers sent before
+the setting existed (`untested`). The choice is left open until a live
+comparison on the default model settles it, so the default does not change
+here.
+
+**How to test it.**
+
+```{r}
+fields <- function(messages, params) {
+  if (identical(params$schema_name, "answer")) {
+    return('{"answer": "Revenue was 45.2 million dollars.", "outcome": "answered"}')
+  }
+  stand_in(messages, params)
+}
+bench <- hr_benchmark(hr_sweep(needle, list(answer_format = c("parsed", "schema"))), qa,
+                      runs = 5, client = gr_mock_client(fields), split = "dev",
+                      scorer = gr_scorer_answer())
+aggregate(cbind(tokens_in, correct) ~ param.answer_format, bench, mean)
+```
+
+The schema's instructions added 54 prompt tokens to each run. On a
+reference, compare `correct`, and how often answers come back not found, by
+`param.answer_format`.
+
+### Premise checks: `premise` and `premise_verdict` {#set-premise}
+
+**What they control.** `premise = TRUE` tells the answering requests to say
+when the excerpts contradict an assumption in the question (see "Questions
+that assume something false"). `premise_verdict` decides how they say it.
+`"sentence"` is a `FALSE_PREMISE:` sentence in the reply. `"structured"`
+asks for a `premise_status` field and the `quote` from the excerpts that
+states the contrary, in a JSON schema, and checks the quote against the
+excerpts that request was shown with the matcher `gr_verify_evidence()`
+uses (and against the document, where it was shown passages or summaries a
+model wrote); the answer gains
+`ans$premise_verdict`. In `map_reduce`, a chunk's verdict goes to the merge
+only when its quote is found in that chunk; the others are dropped and listed
+in `notes$premise_dropped`. The trade is a longer prompt and a schema the
+provider must support, for a verdict that has to point at its evidence.
+
+**Signs they need changing.** Questions that take something false for
+granted, answered on their own terms, point to `premise = TRUE`. Verdicts
+that the document does not bear out point to `"structured"`, which drops a
+`map_reduce` verdict with no quote behind it.
+
+**Where the defaults came from.** Both are off (`premise = FALSE`,
+`premise_verdict = "sentence"`), so a run sends the requests it sent before
+(`untested`).
+
+**How to test them.**
+
+```{r}
+verdict <- function(messages, params) {
+  if (identical(params$schema_name, "answer")) {
+    return(paste0('{"answer": "Revenue rose to 45.2 million dollars.", ',
+                  '"premise_status": "contradicted", ',
+                  '"quote": "reported revenue of 45.2 million dollars"}'))
+  }
+  stand_in(messages, params)
+}
+loaded <- gr_qa_reference(questions = c(fall = "Why did revenue fall in 2024?"),
+                          documents = gr_example(), answers = list("45.2 million"),
+                          split = "dev")
+stuffed <- gr_arm("thorough", list(method = "structural", max_tokens = 120,
+                                   overlap_tokens = 0, reader = "stuff", premise = TRUE))
+bench <- hr_benchmark(hr_sweep(stuffed, list(premise_verdict = c("sentence", "structured"))),
+                      loaded, runs = 5, client = gr_mock_client(verdict), split = "dev",
+                      scorer = gr_scorer_answer())
+aggregate(tokens_in ~ param.premise_verdict, bench, mean)
+```
+
+The structured request sent 64 prompt tokens more. Score the verdicts
+against labels of which questions are loaded, and count how often a
+structured verdict's quote verifies (`ans$premise_verdict$quote_verified`).
+
 ### Reasoning: `effort` {#set-effort}
 
 **What it controls.** `effort` sets how much a reasoning model reasons, for
@@ -921,6 +1041,116 @@ hr_sweep_check(bench)
 
 Eight findings merge in one level, so a cap of 1 sent the same requests as 6
 on this report. Test the cap on your longest documents, where it can bind.
+
+### Preview safeguards: `unskip_k` and `reread_on` {#set-preview}
+
+**What they control.** `preview` follows a plan its first request makes, and
+a section the plan skips is never read. `unskip_k` reads the `k` sections
+that match the question's words best (BM25 over each section's text) even
+when the plan skips them, so a plan cannot drop the one section that holds
+the question's words; it costs no request, but the answer prompt grows by the
+sections it adds. `reread_on = "not_found"` follows an answer of
+`NOT_IN_DOCUMENT` with one more request over the sections not read in full,
+so it trades at most one request for a second look. Every skip is in the
+trace as a `preview.skip` step with its score, whatever the settings.
+
+**Signs they need changing.** `NOT_IN_DOCUMENT` from `preview` for a fact
+you can find, where `ans$notes$plan` shows its section skipped, or a
+`preview.skip` step in the trace with a high score, points to `unskip_k = 1`.
+Not-found answers on questions you know the document answers point to
+`reread_on = "not_found"`.
+
+**Where the defaults came from.** Both are off (`unskip_k = 0`,
+`reread_on = "never"`), so `preview` makes the requests it made before they
+existed (`untested`).
+
+**How to test them.** Here the plan skips the summary, which holds the
+revenue figure:
+
+```{r}
+skips_summary <- function(messages, params) {
+  if (identical(params$schema_name, "reading_plan")) {
+    return(paste0('{"sections": [{"id": 1, "treatment": "read", "reason": "Title."}, ',
+                  '{"id": 2, "treatment": "skip", "reason": "A summary repeats."}]}'))
+  }
+  stand_in(messages, params)
+}
+looks <- gr_arm("thorough", list(method = "structural", max_tokens = 120,
+                                 overlap_tokens = 0, reader = "preview"))
+bench <- hr_benchmark(hr_sweep(looks, expand.grid(unskip_k = c(0, 1),
+                                                  reread_on = c("never", "not_found"))),
+                      qa, runs = 5, client = gr_mock_client(skips_summary), split = "dev",
+                      scorer = gr_scorer_answer())
+aggregate(tokens_in ~ param.unskip_k + param.reread_on, bench, mean)
+hr_sweep_check(bench)
+```
+
+`unskip_k = 1` put the summary back into the answer prompt, 106 prompt
+tokens more. `reread_on` sent nothing more here, because the stand-in model
+never answers `NOT_IN_DOCUMENT`, and `hr_sweep_check()` lists those arms as
+sending the same requests as the arms without it. Test it on questions your
+reader misses.
+
+### Low rerank scores: `low_score` {#set-low-score}
+
+**What it controls.** `rerank` drops every candidate the model scores below
+`rerank_min_score` (4 of 10). When that drops all of them, the default
+(`low_score = "not_found"`) makes no answer request and returns
+`NOT_IN_DOCUMENT` with `notes$retrieval_low_score = TRUE`. `"read_top_k"`
+sends the 5 best-scored candidates to the answer request anyway: one request
+more on those questions, in exchange for not trusting the scorer's
+pessimism. A not-found from that request carries `retrieval_low_score` too,
+and any answer from it carries `read_below_min_score`.
+
+**Signs it needs changing.** `NOT_IN_DOCUMENT` with `retrieval_low_score`
+on questions the document answers, where the trace's `rerank.score` replies
+rate the right chunk low, points to `"read_top_k"` or a lower
+`rerank_min_score`. Answers from chunks that do not hold them, after
+switching, point back.
+
+**Where the default came from.** `"not_found"` is what `rerank` did before
+the setting existed (`untested`). `rerank_min_score = 4` was set when the
+reader was written and not tuned.
+
+**How to test it.** Here a cut of 10 rejects every candidate:
+
+```{r}
+ranks <- gr_arm("thorough", list(method = "structural", max_tokens = 120,
+                                 overlap_tokens = 0, reader = "rerank",
+                                 rerank_min_score = 10))
+bench <- sweep(hr_sweep(ranks, list(low_score = c("not_found", "read_top_k"))))
+bench$calls <- calls(bench)
+aggregate(cbind(calls, correct) ~ param.low_score, bench, mean)
+```
+
+At the default the run ends after the scoring requests and is wrong;
+`"read_top_k"` makes the answer request and gets the figure.
+
+## Composing a run from steps
+
+`gr_step()` builds one stage of a run (ingest, segment or read) as a step, a
+function of `(input, ctx)`, and `gr_step_retrieve()` ranks the chunks and
+keeps the best, as `retrieve` does, without asking for an answer. Each
+step's settings are checked when it is built. Inside an `hr_arm()` the
+steps use the run's client and trace, so a benchmark counts and limits
+their requests:
+
+```{r}
+steps <- list(gr_step("segment", method = "structural", max_tokens = 120,
+                      overlap_tokens = 0),
+              gr_step_retrieve(top_k = 2),
+              gr_step("read", reader = "stuff"))
+steps[[2]]
+by_hand <- hr_arm("rank-then-stuff",
+                  function(item, ctx) Reduce(function(x, step) step(x, ctx), steps, item))
+bench <- sweep(list(by_hand, needle))
+aggregate(cbind(tokens_in, correct) ~ arm, bench, mean)
+```
+
+The hand-built arm ranks with `retrieve`'s ranking and then reads the two
+chunks it kept with `stuff`, so it sent 267 prompt tokens to the `"needle"`
+recipe's 797. `?gr_step` says what passes between the steps; `hr_chain()`,
+which will take the same steps, is not in this release.
 
 ```{r include = FALSE}
 gr_options(old)

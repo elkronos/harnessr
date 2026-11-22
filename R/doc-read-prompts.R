@@ -166,17 +166,24 @@ restate_tail <- function(body, question, how = "auto") {
 #' `cite = TRUE`, and the excerpts are then sized to fill the gap.
 #'
 #' `premise`: the premise rule (read-premise.R) is appended here, so every
-#' reader that budgets with this string budgets for it.
+#' reader that budgets with this string budgets for it. `structure`, from
+#' answer_structure(), adds the instructions of a structured answer request.
 #' @noRd
-answer_system <- function(cite = FALSE, premise = FALSE) {
+answer_system <- function(cite = FALSE, premise = FALSE, structure = NULL) {
   base <- if (isTRUE(cite)) .gr_prompts$answer_system_cited else .gr_prompts$answer_system
-  if (isTRUE(premise)) paste0(base, .gr_premise_prompts$answer) else base
+  # A structured premise verdict has its own instructions, in place of the
+  # sentence rule.
+  sentence <- isTRUE(premise) && !isTRUE(structure$premise)
+  out <- if (sentence) paste0(base, .gr_premise_prompts$answer) else base
+  # A structured answer request (answer_structure()) says how to fill its
+  # fields. NULL, the default, adds nothing.
+  if (is.null(structure)) out else paste0(out, answer_structure_prompt(structure))
 }
 
 #' Build the standard question-answering message list.
 #' @noRd
 answer_messages <- function(question, body, cite = FALSE, label = "Excerpts",
-                            restate = "auto", premise = FALSE) {
+                            restate = "auto", premise = FALSE, structure = NULL) {
   # The question is already LAST here, which is the position that gets followed.
   # What was missing is the other end: over a few thousand tokens of excerpt, an
   # instruction that appears once at the bottom is easy to lose track of on the
@@ -184,7 +191,7 @@ answer_messages <- function(question, body, cite = FALSE, label = "Excerpts",
   # nothing that indexes these positionally shifts.
   lead <- if (restate_now(body, restate)) paste0("Question: ", question, "\n\n") else ""
   list(
-    list(role = "system", content = answer_system(cite, premise)),
+    list(role = "system", content = answer_system(cite, premise, structure)),
     list(role = "user", content = paste0(lead, "<", tolower(label), ">\n", body,
                                          "\n</", tolower(label), ">")),
     list(role = "user", content = paste0("Question: ", question))

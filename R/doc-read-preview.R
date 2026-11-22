@@ -171,13 +171,41 @@ read_preview <- function(chunks, question, client, spec, trace) {
     hr_signal("gr.preview.skip", treat == "skip", trace,
               refs = list(section = seq_len(n_units), treatment = treat))
   }
+  # Each section's word-matching score against the question: BM25 over the
+  # section's text, the score rerank prefilters with. Local, so it costs no
+  # request. It is what a skip is logged with, and what `unskip_k` reads.
+  unit_score <- bm25_scores(vapply(units, function(rows) paste(d$text[rows], collapse = "\n"),
+                                   character(1)),
+                            question, k1 = as_num1(spec$bm25_k1, 1.5),
+                            b = as_num1(spec$bm25_b, 0.75))
+  planned_skip <- which(treat == "skip")
+  # unskip_k (off at 0): the k sections that match the question's words best
+  # are read whatever the plan said, so a plan cannot skip the one section
+  # that holds the question's words. A section that shares no word with the
+  # question is never unskipped, since a score of 0 ranks nothing.
+  unskip_k <- as.integer(as_num1(spec$unskip_k, 0))
+  unskipped <- integer(0)
+  if (!degraded && unskip_k > 0L && length(planned_skip)) {
+    top <- utils::head(order(unit_score, decreasing = TRUE), unskip_k)
+    unskipped <- sort(top[unit_score[top] > 0 & treat[top] == "skip"])
+    treat[unskipped] <- "read"
+  }
+  # Each section the plan skipped, with its score and whether unskip_k
+  # overrode the plan, so a skip that lost the answer can be found in the
+  # trace. Nothing is noted when the plan skipped nothing.
+  for (i in planned_skip) {
+    trace_note(trace, "preview.skip", list(section = i, label = preview_label(d, units[[i]]),
+                                           score = round(unit_score[i], 4),
+                                           unskipped = i %in% unskipped))
+  }
 
   # Budget the sections marked `read`, in document order. What does not fit is
   # DEMOTED to skim rather than dropped: the section still gets looked at, for
   # one call, instead of vanishing because the plan was more ambitious than the
   # context window. The planner and the skims judge where the answer is, not
   # whether the question holds, so the premise rule goes only to the answer.
-  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate)
+  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate,
+                              structure = answer_structure(spec))
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   # as.integer(), because `unlist()` on an empty list returns NULL, not
   # integer(0) -- and `fit_chunks()` reads `order %||% seq_len(nrow(df))`, so a
@@ -320,33 +348,66 @@ read_preview <- function(chunks, question, client, spec, trace) {
   # model saw, so a citation of one could never be caught.
   sent <- unique(d$chunk_id[c(keep_rows, skim_sent)])
 
+  reread_on <- as_chr1(spec$reread_on, "never")
+  extra <- c(if (unskip_k > 0L) list(unskipped = unskipped))
   if (!nzchar(trimws(body))) {
+    # Nothing was read, so with reread_on = "not_found" the sections that were
+    # not read in full are read now, in one answer request.
+    rr <- if (identical(reread_on, "not_found"))
+      preview_reread(d, units, treat, question, client, spec, trace, bud)
+    if (!is.null(rr) && rr$found) {
+      return(preview_reread_answer(rr, d, question, trace, spec, n_units, plan_tab, treat,
+                                   demoted, failed, degraded, skipped_rows, truncated,
+                                   ev_dropped, extra, sent))
+    }
     # The same counts the ordinary return carries. Omitting them left
     # `notes$skipped` NULL on exactly the run where everything was skipped,
     # which is the run somebody inspecting that field is looking at.
     return(new_answer(.NOT_FOUND, "preview", question, integer(0), trace, partial = TRUE,
-                      chunks_sent = sent,
-                      notes = list(sections = n_units, plan = plan_tab,
-                                   read = sum(treat == "read"), skimmed = sum(treat == "skim"),
-                                   skipped = sum(treat == "skip"),
-                                   demoted_to_skim = length(demoted), failed_calls = failed,
-                                   degraded = degraded,
-                                   tokens_skipped = sum(d$tokens[skipped_rows]),
-                                   tokens_truncated = truncated, dropped_chunks = ev_dropped,
-                                   reason = "the plan skipped every section, or every skim failed")))
+                      chunks_sent = unique(c(sent, rr$sent)),
+                      notes = c(list(sections = n_units, plan = plan_tab,
+                                     read = sum(treat == "read"), skimmed = sum(treat == "skim"),
+                                     skipped = sum(treat == "skip"),
+                                     demoted_to_skim = length(demoted), failed_calls = failed,
+                                     degraded = degraded,
+                                     tokens_skipped = sum(d$tokens[skipped_rows]),
+                                     tokens_truncated = truncated, dropped_chunks = ev_dropped,
+                                     reason = "the plan skipped every section, or every skim failed"),
+                                extra, if (!is.null(rr)) list(reread = rr$note))))
   }
 
-  res2 <- gr_call(client, answer_messages(question, body, cite = spec$cite, restate = restate_how(spec),
-                                          premise = spec$premise),
-                  model = spec$model, max_output = spec$max_answer_tokens,
-                  temperature = spec$temperature, trace = trace, label = "preview.answer",
-                  effort = spec$effort)
+  res2 <- answer_request(client, answer_messages(question, body, cite = spec$cite, restate = restate_how(spec),
+                                          premise = spec$premise,
+                                         structure = answer_structure(spec)),
+                 spec, trace, "preview.answer", spec$max_answer_tokens,
+                 # What the request was shown: the rows read in full and the
+                 # passages the skims extracted, which must also be in the
+                 # document. Not every chunk: a section the plan skipped
+                 # reached no request.
+                 sources = c(reader_source_text(d[keep_rows, , drop = FALSE]),
+                             if (!is.null(ev_skim)) ev_skim$text),
+                 document = reader_source_text(d))
   if (usable_text(res2) && reply_cut_off(res2)) cut <- cut + 1L
 
   used <- unique(c(d$chunk_id[keep_rows], if (!is.null(ev_skim)) ev_skim$chunk_id))
   out <- premise_reply(if (usable_text(res2)) res2$text else .NOT_FOUND, spec$premise)
+  # reread_on = "not_found": an answer that came back and found nothing in what
+  # was read sends the sections that were not read in full, skipped, skimmed
+  # or demoted, to one more answer request. A failed answer request is not a
+  # not-found and is not retried here.
+  if (identical(reread_on, "not_found") && usable_text(res2) && is_not_found(out$text)) {
+    rr <- preview_reread(d, units, treat, question, client, spec, trace, bud)
+    if (!is.null(rr)) extra$reread <- rr$note
+    if (!is.null(rr) && rr$found) {
+      return(preview_reread_answer(rr, d, question, trace, spec, n_units, plan_tab, treat,
+                                   demoted, failed, degraded, skipped_rows, truncated,
+                                   ev_dropped, extra[setdiff(names(extra), "reread")],
+                                   unique(c(sent, rr$sent))))
+    }
+    if (!is.null(rr)) sent <- unique(c(sent, rr$sent))
+  }
   # No answer, no evidence; see stuff.
-  new_answer(out$text, "preview", question, used, trace, premise = out$premise,
+  with_structure(new_answer(out$text, "preview", question, used, trace, premise = out$premise,
              chunks_sent = sent, evidence = if (usable_text(res2)) ev,
              # A run that deliberately did not read part of the document is
              # partial in the sense the word carries everywhere else here: the
@@ -356,10 +417,68 @@ read_preview <- function(chunks, question, client, spec, trace) {
              # the same reason `skip` does.
              partial = !res2$ok || failed > 0L || not_sent > 0L || any(treat == "skip") ||
                degraded || truncated > 0L || cut > 0L || ev_dropped > 0L,
-             notes = list(sections = n_units, plan = plan_tab,
-                          read = sum(treat == "read"), skimmed = sum(treat == "skim"),
-                          skipped = sum(treat == "skip"), demoted_to_skim = length(demoted),
-                          failed_calls = failed, truncated_calls = cut, degraded = degraded,
-                          tokens_skipped = sum(d$tokens[skipped_rows]),
-                          tokens_truncated = truncated, dropped_chunks = ev_dropped))
+             notes = c(list(sections = n_units, plan = plan_tab,
+                            read = sum(treat == "read"), skimmed = sum(treat == "skim"),
+                            skipped = sum(treat == "skip"), demoted_to_skim = length(demoted),
+                            failed_calls = failed, truncated_calls = cut, degraded = degraded,
+                            tokens_skipped = sum(d$tokens[skipped_rows]),
+                            tokens_truncated = truncated, dropped_chunks = ev_dropped),
+                       extra)), res2)
+}
+
+#' Under reread_on = "not_found": the sections the plan did not have read in
+#' full (skipped, skimmed or demoted), in document order, fitted whole to one
+#' answer request and sent to it. NULL when every section was read.
+#' @return `list(res, rows, sent, found, text, premise, note)`.
+#' @noRd
+preview_reread <- function(d, units, treat, question, client, spec, trace, bud) {
+  rows <- sort(as.integer(unlist(units[treat != "read"], use.names = FALSE)))
+  if (!length(rows)) return(NULL)
+  fit <- fit_chunks(d, bud$input, order = rows)
+  keep <- sort(as.integer(fit$idx))
+  if (!length(keep)) {
+    note <- list(sections = sum(treat != "read"), chunks = 0L, found = FALSE,
+                 reason = "no chunk of the sections not read fits one request")
+    trace_note(trace, "preview.reread", note)
+    return(list(res = NULL, rows = integer(0), sent = integer(0), found = FALSE, note = note))
+  }
+  res <- answer_request(client, answer_messages(question, render_chunks(d[keep, , drop = FALSE]),
+                                         cite = spec$cite, restate = restate_how(spec),
+                                         premise = spec$premise,
+                                         structure = answer_structure(spec)),
+                 spec, trace, "preview.reread", spec$max_answer_tokens,
+                 sources = reader_source_text(d[keep, , drop = FALSE]))
+  out <- premise_reply(if (usable_text(res)) res$text else .NOT_FOUND, spec$premise)
+  found <- usable_text(res) && !is_not_found(out$text)
+  note <- list(sections = sum(treat != "read"), chunks = length(keep),
+               dropped_chunks = length(fit$dropped), found = found)
+  trace_note(trace, "preview.reread", note)
+  list(res = res, rows = keep, sent = d$chunk_id[keep], found = found, text = out$text,
+       premise = out$premise, dropped = length(fit$dropped), note = note)
+}
+
+#' The answer a re-read found. The re-read sent every section the plan had
+#' not read in full, so the answer is partial only when part of them did not
+#' fit, a skim failed, the plan could not be used, or a reply was cut off.
+#' @noRd
+preview_reread_answer <- function(rr, d, question, trace, spec, n_units, plan_tab, treat,
+                                  demoted, failed, degraded, skipped_rows, truncated,
+                                  ev_dropped, extra, sent) {
+  sub <- d[rr$rows, , drop = FALSE]
+  cut <- as.integer(reply_cut_off(rr$res))
+  ans <- new_answer(rr$text, "preview", question, sub$chunk_id, trace, premise = rr$premise,
+             chunks_sent = sent,
+             evidence = evidence_table(sub$chunk_id, reader_source_text(sub), sub$page,
+                                       sub$section, kind = "verbatim"),
+             partial = rr$dropped > 0L || failed > 0L || degraded || truncated > 0L ||
+               ev_dropped > 0L || cut > 0L,
+             notes = c(list(sections = n_units, plan = plan_tab,
+                            read = sum(treat == "read"), skimmed = sum(treat == "skim"),
+                            skipped = sum(treat == "skip"), demoted_to_skim = length(demoted),
+                            failed_calls = failed, truncated_calls = cut, degraded = degraded,
+                            tokens_skipped = sum(d$tokens[skipped_rows]),
+                            tokens_truncated = truncated,
+                            dropped_chunks = ev_dropped + rr$dropped),
+                       extra, list(reread = rr$note)))
+  with_structure(ans, rr$res)
 }

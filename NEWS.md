@@ -1,5 +1,80 @@
 # harnessr 0.6.0.9000
 
+## Reading options
+
+Each option below is off by default, so a default spec sends the requests it
+sent before and keeps its store, cache and replay keys. Each is declared with
+its evidence (`untested` unless a source is named), is listed by
+`gr_settings_table()`, and has a walkthrough in `vignette("readers")` that
+says what it trades off and how to test it with `hr_sweep()`.
+
+* `preview` logs each section its plan skips as a `preview.skip` step in the
+  trace, with the section's BM25 score against the question. Two settings
+  guard against a plan that skips the answer: `unskip_k` reads the `k`
+  sections that match the question's words best even when the plan skips
+  them (`notes$unskipped`), and `reread_on = "not_found"` follows a
+  `NOT_IN_DOCUMENT` answer with one request (`preview.reread`) over the
+  sections not read in full (`notes$reread`).
+
+* `rerank` records `notes$retrieval_low_score = TRUE`, and a
+  `rerank.low_score` trace step, when every candidate the model scored is
+  below `rerank_min_score`; before, only the reason string said so. The new
+  setting `low_score = "read_top_k"` sends the 5 best-scored candidates to
+  the answer request in that case instead of answering `NOT_IN_DOCUMENT`
+  unasked, and marks a `NOT_IN_DOCUMENT` reply with `retrieval_low_score`.
+
+* `retrieve` and `iterative` rank chunks through one fusion function. At
+  `fusion = "default"` each keeps its 0.6.0 ranking (`retrieve` blends cosine
+  with BM25 on lexical embeddings, `iterative` uses cosine), so the two give
+  the same order on the same inputs whenever the embeddings are not lexical.
+  `fusion = "rrf"` is reciprocal rank fusion of the cosine and BM25
+  rankings for both, with `rrf_k = 60`, the constant Cormack, Clarke and
+  Buettcher (2009) use.
+
+* Every answer from `gr_read()` carries `$outcome`: `"answered"`,
+  `"partial"`, `"not_found"`, `"refused"` (a limit stopped the run) or
+  `"failed"` (every model request it made failed, or the reader reports an
+  error), for every reader. `is_not_found()` given an answer reads
+  it, so a refused or failed run no longer counts as the document lacking
+  the answer; given a string, or an answer without the field, it tests the
+  sentinel as before. `as_json()` writes the field.
+
+* `answer_format = "schema"` sends the answering requests with a JSON schema
+  holding `answer` and `outcome`, so the model reports a not-found in a
+  field rather than with the sentinel; `"parsed"`, the default, sends the
+  free-text requests as before. Owner decision DEC-05 keeps the default
+  until a live comparison of the two on the default model.
+
+* `premise_verdict = "structured"`, with `premise = TRUE`, asks the
+  answering requests for a `premise_status` field and the `quote` from the
+  excerpts that contradicts the question, in a JSON schema, and checks the
+  quote with the span matcher `gr_verify_evidence()` uses against what the
+  request was shown (and the document, where that was text a model wrote,
+  as in `skim` and `hierarchical`). The answer gains
+  `$premise_verdict`. In `map_reduce`, a chunk's flag whose quote is absent
+  or not found in the chunk is dropped (`notes$premise_dropped`), and a
+  verified one goes to the merge and sets `notes$degradation` to
+  `"premise_flagged"`. The default, `"sentence"`, sends what `premise = TRUE`
+  sent before.
+
+* New `gr_methods_text()` writes a plain paragraph for a methods section
+  from a result, a trace or a benchmark: the harnessr version, the models
+  asked for and the models the provider said answered, request and run
+  counts, the tokens sent (a request a cache or a recording answered sent
+  none, and its recorded tokens are given apart), the settings changed from
+  their defaults, and a hash of
+  each system prompt by stage. It reads only the record and makes no claim
+  beyond it.
+
+* New `gr_step()` builds one stage of a run (`"ingest"`, `"segment"` or
+  `"read"`) as a step, a function of `(input, ctx)`, with its settings
+  checked when the step is built, and `gr_step_retrieve()` returns the
+  chunks `retrieve` would send, ranked and scored, without the answer
+  request. Inside an `hr_arm()` run function they use the run's
+  `ctx$client` and `ctx$trace`, so a benchmark counts and limits their
+  requests; they are composed by hand for now, and carry the attributes a
+  later `hr_chain()` will read.
+
 ## Claims and the write-up: what each rests on
 
 * The claims and writing prompts now show each extracted value with its

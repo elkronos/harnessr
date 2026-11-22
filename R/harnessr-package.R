@@ -132,6 +132,24 @@
 #'     model's verdict, not a check harnessr made. Absent (`NULL`) for a spec
 #'     that did not ask, and for `screen` and `extract`, which answer no
 #'     question.}
+#'   \item{`outcome`}{Character(1), set by [gr_read()]: `"answered"`, an
+#'     answer not marked partial; `"partial"`, an answer marked partial;
+#'     `"not_found"`, `NOT_IN_DOCUMENT` from a run that read what it meant
+#'     to; `"refused"`, `NOT_IN_DOCUMENT` from a run a limit stopped; or
+#'     `"failed"`, `NOT_IN_DOCUMENT` from a run that got no reply to read
+#'     (every model request it made failed, or the notes give an `error`),
+#'     whichever reader made it. [is_not_found()]
+#'     reads it when given the answer. Under `answer_format = "schema"` in
+#'     [gr_read_spec()] the model reports the answered or not-found part in a
+#'     schema field, and `notes$structured` keeps what it said.}
+#'   \item{`premise_verdict`}{Present only under `premise = TRUE` with
+#'     `premise_verdict = "structured"` in [gr_read_spec()], for readers whose
+#'     answering request is structured: a list with `premise_status`
+#'     (`"holds"` or `"contradicted"`), `quote` (the passage the model gave
+#'     for a contradiction, or `NA`) and `quote_verified` (whether the quote
+#'     was found in the excerpts sent, by the check [gr_verify_evidence()]
+#'     uses, and, where those were passages or summaries a model wrote, in
+#'     the document too; `NA` without a quote).}
 #'   \item{`partial`}{Logical(1). `TRUE` when anything degraded: a call failed,
 #'     chunks were dropped, a cap was hit, a strategy fell back, text was cut to
 #'     fit, or pages of the document never became text (a scan read without

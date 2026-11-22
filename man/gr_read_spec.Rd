@@ -38,6 +38,13 @@ gr_read_spec(
   bm25_k1 = 1.5,
   bm25_b = 0.75,
   lexical_blend = 0.5,
+  unskip_k = 0L,
+  reread_on = c("never", "not_found"),
+  low_score = c("not_found", "read_top_k"),
+  fusion = c("default", "rrf"),
+  rrf_k = 60,
+  answer_format = c("parsed", "schema"),
+  premise_verdict = c("sentence", "structured"),
   ...
 )
 }
@@ -66,7 +73,9 @@ automatically for any model whose registry entry has
 \item{min_score}{For \code{retrieve}: chunks scoring below this are dropped, but
 if that would leave nothing the single best chunk is used anyway. \code{-Inf}
 disables the filter. Not a cosine similarity when embeddings fall back to
-lexical vectors: the score is then a blend of cosine and BM25.}
+lexical vectors: the score is then a blend of cosine and BM25, and under
+\code{fusion = "rrf"} it is the fused score (see \code{fusion}). When no chunk
+passes, the answer's \code{notes$below_min_score} is \code{TRUE}.}
 
 \item{mmr}{Diversity of selection, for \code{retrieve} and \code{iterative}. \code{1} (the
 default) is plain top-k. Below 1, chunks are picked greedily by
@@ -244,6 +253,91 @@ weight of the cosine score, with \code{1 - lexical_blend} on the BM25 score.
 [0, 1], default 0.5, an even blend chosen when the offline path was
 written. Untested.}
 
+\item{unskip_k}{For \code{preview}: how many of the sections that match the
+question's words best (BM25 over each section's text) are read in full
+even when the plan skips them. A section that shares no word with the
+question is never unskipped. [0, 100], default 0, which follows the
+plan as before. With \code{unskip_k = 1}, a plan that skips the only section
+holding the question's words is overridden. Whatever its value, each
+section the plan skipped is logged in the trace as a \code{preview.skip} step
+with its score and whether it was unskipped, and \code{notes$unskipped} lists
+the sections it overrode. Untested.}
+
+\item{reread_on}{For \code{preview}: \code{"never"} (the default) or \code{"not_found"}.
+Under \code{"not_found"}, an answer request that came back \code{NOT_IN_DOCUMENT}
+is followed by one more (\code{preview.reread}) over the sections the plan
+did not have read in full (skipped, skimmed, or demoted for lack of
+room), fitted whole to one request in document order. The re-read's
+answer replaces the not-found when it finds one; \code{notes$reread} and a
+\code{preview.reread} trace step say what was sent and whether it found an
+answer. It costs at most one request. Untested.}
+
+\item{low_score}{For \code{rerank}, what happens when every candidate the model
+scored is below \code{rerank_min_score}. \code{"not_found"} (the default) makes no
+answer request and returns \code{NOT_IN_DOCUMENT}, as before, now with
+\code{notes$retrieval_low_score = TRUE} and a \code{rerank.low_score} trace step.
+\code{"read_top_k"} sends the 5 best-scored candidates to the answer request
+anyway (\code{notes$read_below_min_score = TRUE}), and marks a
+\code{NOT_IN_DOCUMENT} reply with \code{notes$retrieval_low_score = TRUE}. It costs
+the answer request the default does not make. Untested.}
+
+\item{fusion}{For \code{retrieve} and \code{iterative}: how the embedding ranking and
+the BM25 word-matching ranking are combined. Both readers rank through
+one function. \code{"default"} keeps each reader's 0.6.0 ranking: \code{retrieve}
+blends cosine with BM25 by \code{lexical_blend} when the embeddings are
+lexical and uses cosine alone otherwise, and \code{iterative} uses cosine
+alone, so on embeddings that are not lexical the two rank alike.
+\code{"rrf"} is reciprocal rank fusion (Cormack, Clarke and Buettcher 2009,
+"Reciprocal Rank Fusion outperforms Condorcet and individual Rank
+Learning Methods"): each chunk scores the sum of \code{1 / (rrf_k + rank)}
+over the two rankings, whatever the embeddings, and both readers fuse
+alike. It costs no request. Under \code{"rrf"}, \code{min_score} applies to the
+fused score, which lies between 0 and \code{2 / (rrf_k + 1)}, about 0.033 at
+the default \code{rrf_k}: a floor chosen for cosine, such as 0.1, passes no
+chunk, so \code{retrieve} reads its best chunk alone and sets
+\code{notes$below_min_score}. With \code{mmr} below 1, the fused scores are
+rescaled to [0, 1] over the chunks still eligible before they are
+weighed against similarity, which lies between 0 and 1; the order, and
+so the plain top-k pick, is unchanged. Untested.}
+
+\item{rrf_k}{Under \code{fusion = "rrf"}, the constant \code{k}. [1, 1e4], default
+60, the value Cormack, Clarke and Buettcher (2009) use (\code{cited}); not
+tuned here. A larger \code{k} flattens the difference between top ranks.}
+
+\item{answer_format}{How the requests that answer the question report
+what they found. \code{"parsed"} (the default) sends the free-text requests
+sent before the setting existed and reads \code{NOT_IN_DOCUMENT} from the
+reply. \code{"schema"} sends them with a JSON schema that asks for \code{answer}
+and \code{outcome} (\code{"answered"} or \code{"not_found"}); a \code{"not_found"} reply
+becomes \code{NOT_IN_DOCUMENT}, and the model's own words go to
+\code{notes$structured$reply}. A reply that does not parse is read as free
+text (\code{notes$structured$parsed = FALSE}). It covers the answering
+request of \code{stuff}, \code{retrieve}, \code{rerank}, \code{skim}, \code{hierarchical},
+\code{preview} and \code{iterative}'s final answer, and each chunk's request of
+\code{map_reduce}; merges, \code{refine}'s drafts, \code{ensemble}'s adjudication and
+\code{iterative}'s steps (already structured) are sent as before. Either way
+the answer's \verb{$outcome} is set (see \link{gr_answer}). Untested: published
+comparisons of forced schemas and free text disagree, so the default
+stays \code{"parsed"} until a live comparison settles it.}
+
+\item{premise_verdict}{Under \code{premise = TRUE}, how a verdict is reported.
+\code{"sentence"} (the default) is the \verb{FALSE_PREMISE:} sentence in the
+reply, as before. \code{"structured"} sends the answering requests that
+\code{answer_format = "schema"} covers with a JSON schema holding
+\code{premise_status} (\code{"holds"} or \code{"contradicted"}) and \code{quote}, the passage
+of the excerpts that states the contrary, word for word. The quote is
+checked with the matcher \code{\link[=gr_verify_evidence]{gr_verify_evidence()}} uses, against the
+excerpts the request was shown. Where those are passages or summaries a
+model wrote (\code{skim}, \code{hierarchical} and the skimmed sections of
+\code{preview}), the quote must also be found in the document. The answer
+gains \verb{$premise_verdict}
+(see \link{gr_answer}). In \code{map_reduce} a chunk's flag stands only when its
+quote is found in that chunk: a flag with no quote, or one not found, is
+dropped with the chunk's reply (\code{notes$premise_dropped}), and a verified
+one goes to the merge and sets \code{notes$degradation} to
+\code{"premise_flagged"}. \code{"structured"} without \code{premise = TRUE} is refused
+with a \code{gr_bad_setting} error. Untested.}
+
 \item{...}{Extra fields for custom readers.}
 }
 \value{
@@ -322,9 +416,9 @@ Each setting's default, its tier (\code{basic} for the few most users change,
 means no measurement backs the value; \code{cited} names the published source it
 comes from. The settings added as declared parameters
 (\code{accept_near_verbatim}, \code{max_merge_levels}, \code{restate_tokens}, \code{bm25_k1},
-\code{bm25_b}, \code{lexical_blend}) are stored in the spec only when they are not
-their default, so a default spec keeps the store and cache keys it had
-before they existed.
+\code{bm25_b}, \code{lexical_blend}, and the reading options added after them) are
+stored in the spec only when they are not their default, so a default spec
+keeps the store and cache keys it had before they existed.
 \itemize{
 \item \code{on_overflow} (default \code{"warn"}, advanced): untested. Chosen so that a document too long for one request still gets an answer that says what was cut.
 \item \code{context_order} (default \code{"relevance"}, advanced): untested. The order the readers used before the setting existed; the alternatives were added to be compared, and no comparison is recorded.
@@ -359,6 +453,13 @@ before they existed.
 \item \code{bm25_k1} (default \code{1.5}, advanced): cited. Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give k1 between 1.2 and 2.0 as usual; not tuned here.
 \item \code{bm25_b} (default \code{0.75}, advanced): cited. Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give b = 0.75 as usual; not tuned here.
 \item \code{lexical_blend} (default \code{0.5}, advanced): untested. An even blend, set when the offline path was written.
+\item \code{unskip_k} (default \code{0}, advanced): untested. Off (0), so the plan is followed as it was before the setting existed. Not measured.
+\item \code{reread_on} (default \code{"never"}, advanced): untested. "never", so a run makes the requests it made before the setting existed. Not measured.
+\item \code{low_score} (default \code{"not_found"}, advanced): untested. "not_found", the behaviour before the setting existed: no answer request. Not measured.
+\item \code{fusion} (default \code{"default"}, advanced): untested. "default" keeps the 0.6.0 ranking of each reader. Reciprocal rank fusion is not compared with it here.
+\item \code{rrf_k} (default \code{60}, advanced): cited. Cormack, Clarke and Buettcher (2009), "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods", SIGIR, use k = 60; not tuned here.
+\item \code{answer_format} (default \code{"parsed"}, advanced): untested. "parsed", the requests sent before the setting existed. Published comparisons of forced schemas and free text disagree; owner decision DEC-05 keeps the question open until a live comparison.
+\item \code{premise_verdict} (default \code{"sentence"}, advanced): untested. "sentence", the requests premise = TRUE sent before the setting existed. Not measured.
 }
 }
 
@@ -455,10 +556,12 @@ is_not_found(ans$answer)
 Other reading functions: 
 \code{\link{gr_answer}},
 \code{\link{gr_check_reader}()},
+\code{\link{gr_methods_text}()},
 \code{\link{gr_read}()},
 \code{\link{gr_reader_signature}()},
 \code{\link{gr_readers}()},
 \code{\link{gr_register_reader}()},
+\code{\link{gr_step}()},
 \code{\link{is_not_found}()},
 \code{\link{new_answer}()}
 }

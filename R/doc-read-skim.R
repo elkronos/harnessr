@@ -52,7 +52,8 @@ read_skim <- function(chunks, question, client, spec, trace) {
                        source_text = reader_source_text(d)[keep], kind = "extracted")
   # The extraction step copies passages and judges nothing, so the premise
   # rule goes only to the request that answers.
-  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate)
+  overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate,
+                              structure = answer_structure(spec))
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   pieces <- sprintf("[chunk %d]\n%s", ev$chunk_id, ev$text)
   body <- paste(pieces, collapse = "\n\n")
@@ -86,16 +87,19 @@ read_skim <- function(chunks, question, client, spec, trace) {
     sent <- intersect(ev$chunk_id, cited_chunks(body))
     cite <- isTRUE(spec$cite) && length(sent) > 0L
   }
-  res2 <- gr_call(client, answer_messages(question, body, cite = cite, label = "Evidence",
-                                          restate = restate_how(spec), premise = spec$premise),
-                  model = spec$model, max_output = spec$max_answer_tokens,
-                  temperature = spec$temperature, trace = trace, label = "skim.answer",
-                  effort = spec$effort)
+  res2 <- answer_request(client, answer_messages(question, body, cite = cite, label = "Evidence",
+                                          restate = restate_how(spec), premise = spec$premise,
+                                         structure = answer_structure(spec)),
+                 spec, trace, "skim.answer", spec$max_answer_tokens,
+                 # The request was shown the passages, or their consolidation,
+                 # not the chunks: a quote counts when it is in what was shown
+                 # and in the document.
+                 sources = body, document = reader_source_text(d))
   if (usable_text(res2) && reply_cut_off(res2)) cut <- cut + 1L
   out <- premise_reply(if (usable_text(res2)) res2$text else .NOT_FOUND, spec$premise)
   # No answer, no evidence; see stuff. The passages found are counted in the
   # notes all the same.
-  new_answer(out$text, "skim", question, ev$chunk_id, trace, premise = out$premise,
+  with_structure(new_answer(out$text, "skim", question, ev$chunk_id, trace, premise = out$premise,
              chunks_sent = sent, evidence = if (usable_text(res2)) ev,
              partial = any(!ok) || !res2$ok || cut > 0L || !merge_ok || merge_failed > 0L ||
                merge_cut > 0L,
@@ -110,5 +114,5 @@ read_skim <- function(chunks, question, client, spec, trace) {
                        # failed; when one did, the trace's error says more
                        # than "merge made no progress".
                        if (!is.null(merge_error) && !merge_failed)
-                         list(error = as_chr1(merge_error))))
+                         list(error = as_chr1(merge_error)))), res2)
 }

@@ -105,6 +105,13 @@ gr_read <- function(chunks, question, client, spec = NULL, trace = NULL) {
   }
   out$warnings <- c(chunks[["warnings", exact = TRUE]] %||% character(0), rec$get())
   out$signature <- rd$signature
+  # What the read came to, as a value is_not_found() reads (answer_outcome()).
+  # The run's own steps: this read's part of the trace passed in, or the whole
+  # of the trace a custom reader kept for itself.
+  run_steps <- if (inherits(trace, "gr_trace") && identical(out[["trace", exact = TRUE]], trace)) {
+    utils::tail(trace$steps, max(0L, length(trace$steps) - from + 1L))
+  } else if (inherits(out[["trace", exact = TRUE]], "gr_trace")) out$trace$steps
+  out$outcome <- answer_outcome(out, run_steps)
   out
 }
 
