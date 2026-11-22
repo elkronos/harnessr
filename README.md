@@ -327,6 +327,7 @@ made; `--check` runs a full `R CMD check`.
 | `R-CMD-check.yaml` | full `R CMD check` on macOS and Ubuntu, current R and the previous release |
 | `pkgdown.yaml` | builds the website on pull requests and on pushes to the main branch, and publishes it except from a pull request |
 | `pr-checks.yaml` | fails a pull request that drops an `expect_*()` call, adds a `skip()` or adds a row to a list that may only shrink without the label `tests-reviewed`, adds a dependency without the label `deps-reviewed` (an added package must be on CRAN either way), or removes an export without the label `exports-reviewed`; fails any commit message with a `Co-Authored-By` trailer, a chat or session link or a "Generated with" line; and lints the changed files under `R/` |
+| `ellmer-devel.yaml` | runs weekly and by hand, never on pull requests: installs ellmer from its GitHub repository and runs every test file that exercises `gr_ellmer_client()` |
 | `validation.yaml` | runs nightly and by hand, never on pull requests: simulates clustered benchmarks to check the coverage of `hr_report()`'s intervals (`dev/sim-coverage.R`) and `hr_mdd()` against a power simulation (`dev/sim-power.R`), 2000 replicates each, and keeps the tables as an artifact |
 
 `Rscript dev/ci/pr-checks.R tests origin/main HEAD` runs the pull-request checks

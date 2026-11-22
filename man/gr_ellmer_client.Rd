@@ -30,7 +30,14 @@ context budgeting, cost rails, traces, caching and replay unchanged around it.
 }
 \details{
 ellmer is a suggested dependency: this function is the only thing in the
-package that needs it.
+package that needs it. It needs ellmer 0.4.0 or later.
+
+The adapter is maintained on a best-effort basis. ellmer's API still
+changes between releases, and the adapter reads parts of it that are not
+promised to stay (the slots of its model and turn objects, \code{Chat$new()}).
+A weekly check runs the adapter's tests against ellmer's development
+version, but a new ellmer release can still break it before a harnessr
+release catches up. The built-in \code{\link[=gr_client]{gr_client()}} does not depend on ellmer.
 }
 \section{Requirements on the chat}{
 
