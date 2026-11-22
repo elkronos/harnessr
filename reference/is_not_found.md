@@ -21,12 +21,14 @@ is_not_found(x)
 
 - x:
 
-  An answer string, or `ans$answer`.
+  An answer string, `ans$answer`, or a
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md).
 
 ## Value
 
 `TRUE` if the string is the not-found sentinel (or blank), or opens with
-it as described above.
+it as described above; for an answer with an outcome, whether the
+outcome is `"not_found"`.
 
 ## Details
 
@@ -48,6 +50,20 @@ The v1 test was `grepl("not found|no information|not applicable", ...)`
 over the whole response, which threw away every answer that happened to
 contain one of those phrases.
 
+Given a
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
+rather than a string, it reads the answer's `$outcome` (see
+[gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md))
+when it has one: `TRUE` only for `"not_found"`, so a run a limit stopped
+(`"refused"`) or whose requests failed (`"failed"`) is not counted as
+the document lacking the answer. An answer without `$outcome` (one built
+by
+[`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
+outside
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
+or read back from before the field existed) falls back to the sentinel
+test on `$answer`.
+
 ## See also
 
 [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
@@ -57,11 +73,13 @@ whose `summary$not_found` column is this predicate applied per recipe
 Other reading functions:
 [`gr_answer`](https://elkronos.github.io/harnessr/reference/gr_answer.md),
 [`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
+[`gr_methods_text()`](https://elkronos.github.io/harnessr/reference/gr_methods_text.md),
 [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
 [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
 [`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
 [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
 [`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md),
 [`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
 
 ## Examples
@@ -79,4 +97,16 @@ is_not_found("NOT_IN_DOCUMENT. The excerpt only covers costs.")
 # A real answer that merely mentions the sentinel is NOT not-found.
 is_not_found("The log said NOT_IN_DOCUMENT, but revenue was 45.2 million.")
 #> [1] FALSE
+
+# An answer from gr_read() carries its outcome, which is read first.
+ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 400))
+#> Using cached ingestion for this document + settings.
+#> Segmenting with 'sentence' (cap 400 tokens, overlap 0).
+ans <- gr_read(ch, "Who audited the accounts?",
+               gr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), "stuff")
+#> Reading with 'stuff' (all|1|none) over 2 chunk(s).
+ans$outcome
+#> [1] "not_found"
+is_not_found(ans)
+#> [1] TRUE
 ```

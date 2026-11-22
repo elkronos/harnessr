@@ -90,6 +90,13 @@
 <span>  bm25_k1 <span class="op">=</span> <span class="fl">1.5</span>,</span>
 <span>  bm25_b <span class="op">=</span> <span class="fl">0.75</span>,</span>
 <span>  lexical_blend <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  unskip_k <span class="op">=</span> <span class="fl">0L</span>,</span>
+<span>  reread_on <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"never"</span>, <span class="st">"not_found"</span><span class="op">)</span>,</span>
+<span>  low_score <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"not_found"</span>, <span class="st">"read_top_k"</span><span class="op">)</span>,</span>
+<span>  fusion <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"default"</span>, <span class="st">"rrf"</span><span class="op">)</span>,</span>
+<span>  rrf_k <span class="op">=</span> <span class="fl">60</span>,</span>
+<span>  answer_format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"parsed"</span>, <span class="st">"schema"</span><span class="op">)</span>,</span>
+<span>  premise_verdict <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sentence"</span>, <span class="st">"structured"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -137,7 +144,9 @@ automatically for any model whose registry entry has
 <dd><p>For <code>retrieve</code>: chunks scoring below this are dropped, but
 if that would leave nothing the single best chunk is used anyway. <code>-Inf</code>
 disables the filter. Not a cosine similarity when embeddings fall back to
-lexical vectors: the score is then a blend of cosine and BM25.</p></dd>
+lexical vectors: the score is then a blend of cosine and BM25, and under
+<code>fusion = "rrf"</code> it is the fused score (see <code>fusion</code>). When no chunk
+passes, the answer's <code>notes$below_min_score</code> is <code>TRUE</code>.</p></dd>
 
 
 <dt id="arg-mmr">mmr<a class="anchor" aria-label="anchor" href="#arg-mmr"></a></dt>
@@ -356,6 +365,105 @@ weight of the cosine score, with <code>1 - lexical_blend</code> on the BM25 scor
 written. Untested.</p></dd>
 
 
+<dt id="arg-unskip-k">unskip_k<a class="anchor" aria-label="anchor" href="#arg-unskip-k"></a></dt>
+<dd><p>For <code>preview</code>: how many of the sections that match the
+question's words best (BM25 over each section's text) are read in full
+even when the plan skips them. A section that shares no word with the
+question is never unskipped. [0, 100], default 0, which follows the
+plan as before. With <code>unskip_k = 1</code>, a plan that skips the only section
+holding the question's words is overridden. Whatever its value, each
+section the plan skipped is logged in the trace as a <code>preview.skip</code> step
+with its score and whether it was unskipped, and <code>notes$unskipped</code> lists
+the sections it overrode. Untested.</p></dd>
+
+
+<dt id="arg-reread-on">reread_on<a class="anchor" aria-label="anchor" href="#arg-reread-on"></a></dt>
+<dd><p>For <code>preview</code>: <code>"never"</code> (the default) or <code>"not_found"</code>.
+Under <code>"not_found"</code>, an answer request that came back <code>NOT_IN_DOCUMENT</code>
+is followed by one more (<code>preview.reread</code>) over the sections the plan
+did not have read in full (skipped, skimmed, or demoted for lack of
+room), fitted whole to one request in document order. The re-read's
+answer replaces the not-found when it finds one; <code>notes$reread</code> and a
+<code>preview.reread</code> trace step say what was sent and whether it found an
+answer. It costs at most one request. Untested.</p></dd>
+
+
+<dt id="arg-low-score">low_score<a class="anchor" aria-label="anchor" href="#arg-low-score"></a></dt>
+<dd><p>For <code>rerank</code>, what happens when every candidate the model
+scored is below <code>rerank_min_score</code>. <code>"not_found"</code> (the default) makes no
+answer request and returns <code>NOT_IN_DOCUMENT</code>, as before, now with
+<code>notes$retrieval_low_score = TRUE</code> and a <code>rerank.low_score</code> trace step.
+<code>"read_top_k"</code> sends the 5 best-scored candidates to the answer request
+anyway (<code>notes$read_below_min_score = TRUE</code>), and marks a
+<code>NOT_IN_DOCUMENT</code> reply with <code>notes$retrieval_low_score = TRUE</code>. It costs
+the answer request the default does not make. Untested.</p></dd>
+
+
+<dt id="arg-fusion">fusion<a class="anchor" aria-label="anchor" href="#arg-fusion"></a></dt>
+<dd><p>For <code>retrieve</code> and <code>iterative</code>: how the embedding ranking and
+the BM25 word-matching ranking are combined. Both readers rank through
+one function. <code>"default"</code> keeps each reader's 0.6.0 ranking: <code>retrieve</code>
+blends cosine with BM25 by <code>lexical_blend</code> when the embeddings are
+lexical and uses cosine alone otherwise, and <code>iterative</code> uses cosine
+alone, so on embeddings that are not lexical the two rank alike.
+<code>"rrf"</code> is reciprocal rank fusion (Cormack, Clarke and Buettcher 2009,
+"Reciprocal Rank Fusion outperforms Condorcet and individual Rank
+Learning Methods"): each chunk scores the sum of <code>1 / (rrf_k + rank)</code>
+over the two rankings, whatever the embeddings, and both readers fuse
+alike. It costs no request. Under <code>"rrf"</code>, <code>min_score</code> applies to the
+fused score, which lies between 0 and <code>2 / (rrf_k + 1)</code>, about 0.033 at
+the default <code>rrf_k</code>: a floor chosen for cosine, such as 0.1, passes no
+chunk, so <code>retrieve</code> reads its best chunk alone and sets
+<code>notes$below_min_score</code>. With <code>mmr</code> below 1, the fused scores are
+rescaled to [0, 1] over the chunks still eligible before they are
+weighed against similarity, which lies between 0 and 1; the order, and
+so the plain top-k pick, is unchanged. Untested.</p></dd>
+
+
+<dt id="arg-rrf-k">rrf_k<a class="anchor" aria-label="anchor" href="#arg-rrf-k"></a></dt>
+<dd><p>Under <code>fusion = "rrf"</code>, the constant <code>k</code>. [1, 1e4], default
+60, the value Cormack, Clarke and Buettcher (2009) use (<code>cited</code>); not
+tuned here. A larger <code>k</code> flattens the difference between top ranks.</p></dd>
+
+
+<dt id="arg-answer-format">answer_format<a class="anchor" aria-label="anchor" href="#arg-answer-format"></a></dt>
+<dd><p>How the requests that answer the question report
+what they found. <code>"parsed"</code> (the default) sends the free-text requests
+sent before the setting existed and reads <code>NOT_IN_DOCUMENT</code> from the
+reply. <code>"schema"</code> sends them with a JSON schema that asks for <code>answer</code>
+and <code>outcome</code> (<code>"answered"</code> or <code>"not_found"</code>); a <code>"not_found"</code> reply
+becomes <code>NOT_IN_DOCUMENT</code>, and the model's own words go to
+<code>notes$structured$reply</code>. A reply that does not parse is read as free
+text (<code>notes$structured$parsed = FALSE</code>). It covers the answering
+request of <code>stuff</code>, <code>retrieve</code>, <code>rerank</code>, <code>skim</code>, <code>hierarchical</code>,
+<code>preview</code> and <code>iterative</code>'s final answer, and each chunk's request of
+<code>map_reduce</code>; merges, <code>refine</code>'s drafts, <code>ensemble</code>'s adjudication and
+<code>iterative</code>'s steps (already structured) are sent as before. Either way
+the answer's <code>$outcome</code> is set (see <a href="gr_answer.html">gr_answer</a>). Untested: published
+comparisons of forced schemas and free text disagree, so the default
+stays <code>"parsed"</code> until a live comparison settles it.</p></dd>
+
+
+<dt id="arg-premise-verdict">premise_verdict<a class="anchor" aria-label="anchor" href="#arg-premise-verdict"></a></dt>
+<dd><p>Under <code>premise = TRUE</code>, how a verdict is reported.
+<code>"sentence"</code> (the default) is the <code>FALSE_PREMISE:</code> sentence in the
+reply, as before. <code>"structured"</code> sends the answering requests that
+<code>answer_format = "schema"</code> covers with a JSON schema holding
+<code>premise_status</code> (<code>"holds"</code> or <code>"contradicted"</code>) and <code>quote</code>, the passage
+of the excerpts that states the contrary, word for word. The quote is
+checked with the matcher <code><a href="gr_verify_evidence.html">gr_verify_evidence()</a></code> uses, against the
+excerpts the request was shown. Where those are passages or summaries a
+model wrote (<code>skim</code>, <code>hierarchical</code> and the skimmed sections of
+<code>preview</code>), the quote must also be found in the document. The answer
+gains <code>$premise_verdict</code>
+(see <a href="gr_answer.html">gr_answer</a>). In <code>map_reduce</code> a chunk's flag stands only when its
+quote is found in that chunk: a flag with no quote, or one not found, is
+dropped with the chunk's reply (<code>notes$premise_dropped</code>), and a verified
+one goes to the merge and sets <code>notes$degradation</code> to
+<code>"premise_flagged"</code>. <code>"structured"</code> without <code>premise = TRUE</code> is refused
+with a <code>gr_bad_setting</code> error. Untested.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Extra fields for custom readers.</p></dd>
 
@@ -435,9 +543,9 @@ with each argument.</p>
 means no measurement backs the value; <code>cited</code> names the published source it
 comes from. The settings added as declared parameters
 (<code>accept_near_verbatim</code>, <code>max_merge_levels</code>, <code>restate_tokens</code>, <code>bm25_k1</code>,
-<code>bm25_b</code>, <code>lexical_blend</code>) are stored in the spec only when they are not
-their default, so a default spec keeps the store and cache keys it had
-before they existed.</p><ul><li><p><code>on_overflow</code> (default <code>"warn"</code>, advanced): untested. Chosen so that a document too long for one request still gets an answer that says what was cut.</p></li>
+<code>bm25_b</code>, <code>lexical_blend</code>, and the reading options added after them) are
+stored in the spec only when they are not their default, so a default spec
+keeps the store and cache keys it had before they existed.</p><ul><li><p><code>on_overflow</code> (default <code>"warn"</code>, advanced): untested. Chosen so that a document too long for one request still gets an answer that says what was cut.</p></li>
 <li><p><code>context_order</code> (default <code>"relevance"</code>, advanced): untested. The order the readers used before the setting existed; the alternatives were added to be compared, and no comparison is recorded.</p></li>
 <li><p><code>restate</code> (default <code>"auto"</code>, advanced): untested. A setting so that gr_compare() can measure it on a corpus; no measurement is recorded.</p></li>
 <li><p><code>premise</code> (default <code>FALSE</code>, advanced): untested. Off, so a run sends the requests it sent before the check existed.</p></li>
@@ -470,6 +578,13 @@ before they existed.</p><ul><li><p><code>on_overflow</code> (default <code>"warn
 <li><p><code>bm25_k1</code> (default <code>1.5</code>, advanced): cited. Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give k1 between 1.2 and 2.0 as usual; not tuned here.</p></li>
 <li><p><code>bm25_b</code> (default <code>0.75</code>, advanced): cited. Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give b = 0.75 as usual; not tuned here.</p></li>
 <li><p><code>lexical_blend</code> (default <code>0.5</code>, advanced): untested. An even blend, set when the offline path was written.</p></li>
+<li><p><code>unskip_k</code> (default <code>0</code>, advanced): untested. Off (0), so the plan is followed as it was before the setting existed. Not measured.</p></li>
+<li><p><code>reread_on</code> (default <code>"never"</code>, advanced): untested. "never", so a run makes the requests it made before the setting existed. Not measured.</p></li>
+<li><p><code>low_score</code> (default <code>"not_found"</code>, advanced): untested. "not_found", the behaviour before the setting existed: no answer request. Not measured.</p></li>
+<li><p><code>fusion</code> (default <code>"default"</code>, advanced): untested. "default" keeps the 0.6.0 ranking of each reader. Reciprocal rank fusion is not compared with it here.</p></li>
+<li><p><code>rrf_k</code> (default <code>60</code>, advanced): cited. Cormack, Clarke and Buettcher (2009), "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods", SIGIR, use k = 60; not tuned here.</p></li>
+<li><p><code>answer_format</code> (default <code>"parsed"</code>, advanced): untested. "parsed", the requests sent before the setting existed. Published comparisons of forced schemas and free text disagree; owner decision DEC-05 keeps the question open until a live comparison.</p></li>
+<li><p><code>premise_verdict</code> (default <code>"sentence"</code>, advanced): untested. "sentence", the requests premise = TRUE sent before the setting existed. Not measured.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="reasoning-effort">Reasoning effort<a class="anchor" aria-label="anchor" href="#reasoning-effort"></a></h2>
@@ -533,10 +648,12 @@ tokens whatever the effort, and the cost limits are checked at that cap.</p>
 <p>Other reading functions:
 <code><a href="gr_answer.html">gr_answer</a></code>,
 <code><a href="gr_check_reader.html">gr_check_reader()</a></code>,
+<code><a href="gr_methods_text.html">gr_methods_text()</a></code>,
 <code><a href="gr_read.html">gr_read()</a></code>,
 <code><a href="gr_reader_signature.html">gr_reader_signature()</a></code>,
 <code><a href="gr_readers.html">gr_readers()</a></code>,
 <code><a href="gr_register_reader.html">gr_register_reader()</a></code>,
+<code><a href="gr_step.html">gr_step()</a></code>,
 <code><a href="is_not_found.html">is_not_found()</a></code>,
 <code><a href="new_answer.html">new_answer()</a></code></p></div>
     </div>

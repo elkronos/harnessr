@@ -1241,8 +1241,8 @@ themselves, and <code><a href="../reference/hr_sweep_check.html">hr_sweep_check(
 none.</p>
 </div>
 <div class="section level3">
-<h3 id="set-lexical">Word matching: <code>lexical_blend</code>, <code>bm25_k1</code> and
-<code>bm25_b</code><a class="anchor" aria-label="anchor" href="#set-lexical"></a>
+<h3 id="set-lexical">Word matching: <code>lexical_blend</code>, <code>bm25_k1</code>,
+<code>bm25_b</code> and <code>fusion</code><a class="anchor" aria-label="anchor" href="#set-lexical"></a>
 </h3>
 <p><strong>What they control.</strong> With lexical embeddings
 (<code>gr_options(embedder = "lexical")</code>), <code>retrieve</code>
@@ -1278,6 +1278,40 @@ offline path was written (<code>untested</code>).</p>
 <p>Each value of <code>lexical_blend</code> picked different chunks
 here, while <code>bm25_b</code> at 0.3 picked the same three as at
 0.75.</p>
+<p><code>fusion</code> decides how the two rankings are combined, for
+<code>retrieve</code> and <code>iterative</code> alike.
+<code>"default"</code> is the blend above, which <code>retrieve</code>
+applies only on lexical embeddings and <code>iterative</code> never did;
+<code>"rrf"</code> is reciprocal rank fusion (Cormack, Clarke and
+Buettcher 2009), which adds <code>1 / (rrf_k + rank)</code> from each
+ranking, with any embeddings. It uses ranks, not scores, so one
+ranking’s scale cannot swamp the other’s, at the price of ignoring how
+far apart the scores are. Its constant <code>rrf_k = 60</code> is the
+paper’s (<code>cited</code>); <code>fusion</code> itself is
+<code>untested</code>. Neither costs a request. A fused score lies
+between 0 and <code>2 / (rrf_k + 1)</code>, so a <code>min_score</code>
+set for cosine passes no chunk under <code>"rrf"</code>;
+<code>retrieve</code> then reads its best chunk alone and sets
+<code>notes$below_min_score</code>. Under <code>mmr</code> below 1, the
+fused scores are rescaled to 0 to 1 before they are weighed against
+similarity.</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">needle</span>, <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">2</span>, fusion <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"default"</span>, <span class="st">"rrf"</span><span class="op">)</span>,</span>
+<span>                                            rrf_k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">60</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hr_sweep_check.html">hr_sweep_check</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                                     arm                                same_as</span></span>
+<span><span class="co">#&gt; 1    needle:top_k=2,fusion=rrf,rrf_k=60 needle:top_k=2,fusion=default,rrf_k=60</span></span>
+<span><span class="co">#&gt; 2 needle:top_k=2,fusion=default,rrf_k=5 needle:top_k=2,fusion=default,rrf_k=60</span></span>
+<span><span class="co">#&gt;   runs requests               settings</span></span>
+<span><span class="co">#&gt; 1    5        5 fusion: default vs rrf</span></span>
+<span><span class="co">#&gt; 2    5        5         rrf_k: 60 vs 5</span></span></code></pre></div>
+<p>On this report <code>"rrf"</code> with <code>rrf_k = 60</code> picked
+the same two chunks as the blend, and <code>rrf_k</code> does nothing
+under <code>"default"</code>, so <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code> lists
+both as sending the same requests. <code>"rrf"</code> with
+<code>rrf_k = 5</code> is not listed: it sent different requests. Where
+arms differ, compare <code>correct</code> by <code>param.fusion</code>
+and <code>param.rrf_k</code> on a reference.</p>
 </div>
 <div class="section level3">
 <h3 id="set-context-order">Placement: <code>context_order</code> and <code>restate</code><a class="anchor" aria-label="anchor" href="#set-context-order"></a>
@@ -1303,7 +1337,7 @@ comparison could measure it, and nothing has.
 <code>restate_tokens = 1200</code> is an arbitrary number, kept from
 when it was a constant. Both are <code>untested</code>.</p>
 <p><strong>How to test them.</strong></p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">needle</span>, <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>                                            context_order <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"relevance"</span>, <span class="st">"edges"</span>, <span class="st">"document"</span><span class="op">)</span>,</span>
 <span>                                            restate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"never"</span>, <span class="st">"always"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -1354,7 +1388,7 @@ sends the requests and accepts the answers it did before they existed
 well; on the labelled quotation set, 25 of 46 quotations with one
 content word swapped score <code>near_verbatim</code>.</p>
 <p><strong>How to test them.</strong></p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">precise</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"precise"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span>,</span>
 <span>                                  overlap_tokens <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">precise</span>, <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>cite <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">FALSE</span>, <span class="cn">TRUE</span><span class="op">)</span>, verify <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">FALSE</span>, <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -1379,6 +1413,109 @@ not in what is sent. Score it with a scorer that counts a partial answer
 as wrong, or compare the <code>partial</code> rate by hand.</p>
 </div>
 <div class="section level3">
+<h3 id="set-answer-format">Outcomes: <code>answer_format</code><a class="anchor" aria-label="anchor" href="#set-answer-format"></a>
+</h3>
+<p><strong>What it controls.</strong> Every answer carries
+<code>ans$outcome</code>: <code>"answered"</code>,
+<code>"partial"</code>, <code>"not_found"</code>, <code>"refused"</code>
+(a limit stopped the run) or <code>"failed"</code> (every model request
+the run made failed, whichever reader made it), and
+<code>is_not_found(ans)</code> reads it. <code>answer_format</code>
+decides how the answering request reports the found or not-found part.
+<code>"parsed"</code> sends the free-text request and looks for
+<code>NOT_IN_DOCUMENT</code> in the reply. <code>"schema"</code> sends
+the request with a JSON schema holding <code>answer</code> and
+<code>outcome</code>, so a reply such as “The excerpt does not mention
+revenue” is a not-found when the model says so in <code>outcome</code>,
+not an answer. A forced schema costs a few prompt tokens and needs a
+provider that supports structured output; published comparisons disagree
+on whether it changes answer quality.</p>
+<p><strong>Signs it needs changing.</strong> Answers that say in words
+that the document is silent, counted as answers because they lack the
+sentinel, point to <code>"schema"</code>. Replies that fail to parse
+(<code>notes$structured$parsed</code> is <code>FALSE</code>) point back
+to <code>"parsed"</code> for that provider.</p>
+<p><strong>Where the default came from.</strong> <code>"parsed"</code>
+is what the readers sent before the setting existed
+(<code>untested</code>). The choice is left open until a live comparison
+on the default model settles it, so the default does not change
+here.</p>
+<p><strong>How to test it.</strong></p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fields</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">schema_name</span>, <span class="st">"answer"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="st">'{"answer": "Revenue was 45.2 million dollars.", "outcome": "answered"}'</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="fu">stand_in</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">needle</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>answer_format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"parsed"</span>, <span class="st">"schema"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, <span class="va">qa</span>,</span>
+<span>                      runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">fields</span><span class="op">)</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">tokens_in</span>, <span class="va">correct</span><span class="op">)</span> <span class="op">~</span> <span class="va">param.answer_format</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   param.answer_format tokens_in correct</span></span>
+<span><span class="co">#&gt; 1              parsed       797       1</span></span>
+<span><span class="co">#&gt; 2              schema       851       1</span></span></code></pre></div>
+<p>The schema’s instructions added 54 prompt tokens to each run. On a
+reference, compare <code>correct</code>, and how often answers come back
+not found, by <code>param.answer_format</code>.</p>
+</div>
+<div class="section level3">
+<h3 id="set-premise">Premise checks: <code>premise</code> and
+<code>premise_verdict</code><a class="anchor" aria-label="anchor" href="#set-premise"></a>
+</h3>
+<p><strong>What they control.</strong> <code>premise = TRUE</code> tells
+the answering requests to say when the excerpts contradict an assumption
+in the question (see “Questions that assume something false”).
+<code>premise_verdict</code> decides how they say it.
+<code>"sentence"</code> is a <code>FALSE_PREMISE:</code> sentence in the
+reply. <code>"structured"</code> asks for a <code>premise_status</code>
+field and the <code>quote</code> from the excerpts that states the
+contrary, in a JSON schema, and checks the quote against the excerpts
+that request was shown with the matcher
+<code><a href="../reference/gr_verify_evidence.html">gr_verify_evidence()</a></code> uses (and against the document, where
+it was shown passages or summaries a model wrote); the answer gains
+<code>ans$premise_verdict</code>. In <code>map_reduce</code>, a chunk’s
+verdict goes to the merge only when its quote is found in that chunk;
+the others are dropped and listed in <code>notes$premise_dropped</code>.
+The trade is a longer prompt and a schema the provider must support, for
+a verdict that has to point at its evidence.</p>
+<p><strong>Signs they need changing.</strong> Questions that take
+something false for granted, answered on their own terms, point to
+<code>premise = TRUE</code>. Verdicts that the document does not bear
+out point to <code>"structured"</code>, which drops a
+<code>map_reduce</code> verdict with no quote behind it.</p>
+<p><strong>Where the defaults came from.</strong> Both are off
+(<code>premise = FALSE</code>,
+<code>premise_verdict = "sentence"</code>), so a run sends the requests
+it sent before (<code>untested</code>).</p>
+<p><strong>How to test them.</strong></p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">verdict</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">schema_name</span>, <span class="st">"answer"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">'{"answer": "Revenue rose to 45.2 million dollars.", '</span>,</span>
+<span>                  <span class="st">'"premise_status": "contradicted", '</span>,</span>
+<span>                  <span class="st">'"quote": "reported revenue of 45.2 million dollars"}'</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="fu">stand_in</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">loaded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_qa_reference.html">gr_qa_reference</a></span><span class="op">(</span>questions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>fall <span class="op">=</span> <span class="st">"Why did revenue fall in 2024?"</span><span class="op">)</span>,</span>
+<span>                          documents <span class="op">=</span> <span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, answers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"45.2 million"</span><span class="op">)</span>,</span>
+<span>                          split <span class="op">=</span> <span class="st">"dev"</span><span class="op">)</span></span>
+<span><span class="va">stuffed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"thorough"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span>,</span>
+<span>                                   overlap_tokens <span class="op">=</span> <span class="fl">0</span>, reader <span class="op">=</span> <span class="st">"stuff"</span>, premise <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">stuffed</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>premise_verdict <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sentence"</span>, <span class="st">"structured"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                      <span class="va">loaded</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">verdict</span><span class="op">)</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">tokens_in</span> <span class="op">~</span> <span class="va">param.premise_verdict</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   param.premise_verdict tokens_in</span></span>
+<span><span class="co">#&gt; 1              sentence       780</span></span>
+<span><span class="co">#&gt; 2            structured       844</span></span></code></pre></div>
+<p>The structured request sent 64 prompt tokens more. Score the verdicts
+against labels of which questions are loaded, and count how often a
+structured verdict’s quote verifies
+(<code>ans$premise_verdict$quote_verified</code>).</p>
+</div>
+<div class="section level3">
 <h3 id="set-effort">Reasoning: <code>effort</code><a class="anchor" aria-label="anchor" href="#set-effort"></a>
 </h3>
 <p><strong>What it controls.</strong> <code>effort</code> sets how much
@@ -1401,7 +1538,7 @@ measured default.</p>
 <p><strong>How to test it.</strong> Effort is sent only to a model
 harnessr lists as a reasoning model, so the arms name one. A map goes in
 a list column:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">luna</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"thorough"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span>,</span>
 <span>                                overlap_tokens <span class="op">=</span> <span class="fl">0</span>, model <span class="op">=</span> <span class="st">"gpt-5.6-luna"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">luna</span>, <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -1433,7 +1570,7 @@ lower one.</p>
 <p><strong>Where the default came from.</strong> 6, the cap the merge
 code had as a constant; not tuned (<code>untested</code>).</p>
 <p><strong>How to test it.</strong></p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">base</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>max_merge_levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">6</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/hr_sweep_check.html">hr_sweep_check</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                           arm                     same_as runs requests</span></span>
@@ -1444,6 +1581,141 @@ code had as a constant; not tuned (<code>untested</code>).</p>
 requests as 6 on this report. Test the cap on your longest documents,
 where it can bind.</p>
 </div>
+<div class="section level3">
+<h3 id="set-preview">Preview safeguards: <code>unskip_k</code> and
+<code>reread_on</code><a class="anchor" aria-label="anchor" href="#set-preview"></a>
+</h3>
+<p><strong>What they control.</strong> <code>preview</code> follows a
+plan its first request makes, and a section the plan skips is never
+read. <code>unskip_k</code> reads the <code>k</code> sections that match
+the question’s words best (BM25 over each section’s text) even when the
+plan skips them, so a plan cannot drop the one section that holds the
+question’s words; it costs no request, but the answer prompt grows by
+the sections it adds. <code>reread_on = "not_found"</code> follows an
+answer of <code>NOT_IN_DOCUMENT</code> with one more request over the
+sections not read in full, so it trades at most one request for a second
+look. Every skip is in the trace as a <code>preview.skip</code> step
+with its score, whatever the settings.</p>
+<p><strong>Signs they need changing.</strong>
+<code>NOT_IN_DOCUMENT</code> from <code>preview</code> for a fact you
+can find, where <code>ans$notes$plan</code> shows its section skipped,
+or a <code>preview.skip</code> step in the trace with a high score,
+points to <code>unskip_k = 1</code>. Not-found answers on questions you
+know the document answers point to
+<code>reread_on = "not_found"</code>.</p>
+<p><strong>Where the defaults came from.</strong> Both are off
+(<code>unskip_k = 0</code>, <code>reread_on = "never"</code>), so
+<code>preview</code> makes the requests it made before they existed
+(<code>untested</code>).</p>
+<p><strong>How to test them.</strong> Here the plan skips the summary,
+which holds the revenue figure:</p>
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">skips_summary</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">schema_name</span>, <span class="st">"reading_plan"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">'{"sections": [{"id": 1, "treatment": "read", "reason": "Title."}, '</span>,</span>
+<span>                  <span class="st">'{"id": 2, "treatment": "skip", "reason": "A summary repeats."}]}'</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="fu">stand_in</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">looks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"thorough"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span>,</span>
+<span>                                 overlap_tokens <span class="op">=</span> <span class="fl">0</span>, reader <span class="op">=</span> <span class="st">"preview"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">looks</span>, <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>unskip_k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>                                                  reread_on <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"never"</span>, <span class="st">"not_found"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                      <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">skips_summary</span><span class="op">)</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">tokens_in</span> <span class="op">~</span> <span class="va">param.unskip_k</span> <span class="op">+</span> <span class="va">param.reread_on</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   param.unskip_k param.reread_on tokens_in</span></span>
+<span><span class="co">#&gt; 1              0           never      1537</span></span>
+<span><span class="co">#&gt; 2              1           never      1643</span></span>
+<span><span class="co">#&gt; 3              0       not_found      1537</span></span>
+<span><span class="co">#&gt; 4              1       not_found      1643</span></span>
+<span><span class="fu"><a href="../reference/hr_sweep_check.html">hr_sweep_check</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                                       arm                             same_as</span></span>
+<span><span class="co">#&gt; 1 thorough:unskip_k=0,reread_on=not_found thorough:unskip_k=0,reread_on=never</span></span>
+<span><span class="co">#&gt; 2 thorough:unskip_k=1,reread_on=not_found thorough:unskip_k=1,reread_on=never</span></span>
+<span><span class="co">#&gt;   runs requests                      settings</span></span>
+<span><span class="co">#&gt; 1    5       10 reread_on: never vs not_found</span></span>
+<span><span class="co">#&gt; 2    5       10 reread_on: never vs not_found</span></span></code></pre></div>
+<p><code>unskip_k = 1</code> put the summary back into the answer
+prompt, 106 prompt tokens more. <code>reread_on</code> sent nothing more
+here, because the stand-in model never answers
+<code>NOT_IN_DOCUMENT</code>, and <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code> lists
+those arms as sending the same requests as the arms without it. Test it
+on questions your reader misses.</p>
+</div>
+<div class="section level3">
+<h3 id="set-low-score">Low rerank scores: <code>low_score</code><a class="anchor" aria-label="anchor" href="#set-low-score"></a>
+</h3>
+<p><strong>What it controls.</strong> <code>rerank</code> drops every
+candidate the model scores below <code>rerank_min_score</code> (4 of
+10). When that drops all of them, the default
+(<code>low_score = "not_found"</code>) makes no answer request and
+returns <code>NOT_IN_DOCUMENT</code> with
+<code>notes$retrieval_low_score = TRUE</code>. <code>"read_top_k"</code>
+sends the 5 best-scored candidates to the answer request anyway: one
+request more on those questions, in exchange for not trusting the
+scorer’s pessimism. A not-found from that request carries
+<code>retrieval_low_score</code> too, and any answer from it carries
+<code>read_below_min_score</code>.</p>
+<p><strong>Signs it needs changing.</strong>
+<code>NOT_IN_DOCUMENT</code> with <code>retrieval_low_score</code> on
+questions the document answers, where the trace’s
+<code>rerank.score</code> replies rate the right chunk low, points to
+<code>"read_top_k"</code> or a lower <code>rerank_min_score</code>.
+Answers from chunks that do not hold them, after switching, point
+back.</p>
+<p><strong>Where the default came from.</strong>
+<code>"not_found"</code> is what <code>rerank</code> did before the
+setting existed (<code>untested</code>).
+<code>rerank_min_score = 4</code> was set when the reader was written
+and not tuned.</p>
+<p><strong>How to test it.</strong> Here a cut of 10 rejects every
+candidate:</p>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ranks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"thorough"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span>,</span>
+<span>                                 overlap_tokens <span class="op">=</span> <span class="fl">0</span>, reader <span class="op">=</span> <span class="st">"rerank"</span>,</span>
+<span>                                 rerank_min_score <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">ranks</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>low_score <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"not_found"</span>, <span class="st">"read_top_k"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bench</span><span class="op">$</span><span class="va">calls</span> <span class="op">&lt;-</span> <span class="fu">calls</span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">calls</span>, <span class="va">correct</span><span class="op">)</span> <span class="op">~</span> <span class="va">param.low_score</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   param.low_score calls correct</span></span>
+<span><span class="co">#&gt; 1       not_found     8       0</span></span>
+<span><span class="co">#&gt; 2      read_top_k     9       1</span></span></code></pre></div>
+<p>At the default the run ends after the scoring requests and is wrong;
+<code>"read_top_k"</code> makes the answer request and gets the
+figure.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="composing-a-run-from-steps">Composing a run from steps<a class="anchor" aria-label="anchor" href="#composing-a-run-from-steps"></a>
+</h2>
+<p><code><a href="../reference/gr_step.html">gr_step()</a></code> builds one stage of a run (ingest, segment or
+read) as a step, a function of <code>(input, ctx)</code>, and
+<code><a href="../reference/gr_step.html">gr_step_retrieve()</a></code> ranks the chunks and keeps the best, as
+<code>retrieve</code> does, without asking for an answer. Each step’s
+settings are checked when it is built. Inside an <code><a href="../reference/hr_arm.html">hr_arm()</a></code>
+the steps use the run’s client and trace, so a benchmark counts and
+limits their requests:</p>
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">steps</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"segment"</span>, method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span>,</span>
+<span>                      overlap_tokens <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
+<span>              <span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>,</span>
+<span>              <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"read"</span>, reader <span class="op">=</span> <span class="st">"stuff"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">steps</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="co">#&gt; &lt;gr_step&gt; retrieve (retrieve): top_k=2</span></span>
+<span><span class="va">by_hand</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="st">"rank-then-stuff"</span>,</span>
+<span>                  <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">step</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/step.html" class="external-link">step</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">ctx</span><span class="op">)</span>, <span class="va">steps</span>, <span class="va">item</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">by_hand</span>, <span class="va">needle</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">tokens_in</span>, <span class="va">correct</span><span class="op">)</span> <span class="op">~</span> <span class="va">arm</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;               arm tokens_in correct</span></span>
+<span><span class="co">#&gt; 1          needle       797       1</span></span>
+<span><span class="co">#&gt; 2 rank-then-stuff       267       1</span></span></code></pre></div>
+<p>The hand-built arm ranks with <code>retrieve</code>’s ranking and
+then reads the two chunks it kept with <code>stuff</code>, so it sent
+267 prompt tokens to the <code>"needle"</code> recipe’s 797.
+<code><a href="../reference/gr_step.html">?gr_step</a></code> says what passes between the steps;
+<code>hr_chain()</code>, which will take the same steps, is not in this
+release.</p>
 </div>
 <div class="section level2">
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>

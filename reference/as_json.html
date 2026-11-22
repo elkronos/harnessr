@@ -122,8 +122,8 @@ ingest ran), which are arrays at every length.</p>
 <span class="r-in"><span><span class="co"># The answer plus every prompt and response from the same single run.</span></span></span>
 <span class="r-in"><span><span class="va">txt</span> <span class="op">&lt;-</span> <span class="fu">as_json</span><span class="op">(</span><span class="va">ans</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu">jsonlite</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/jsonlite/man/fromJSON.html" class="external-link">fromJSON</a></span><span class="op">(</span><span class="va">txt</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "answer"      "reader"      "question"    "partial"     "chunks_used"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6] "notes"       "evidence"    "warnings"    "trace"      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "answer"      "outcome"     "reader"      "question"    "partial"    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [6] "chunks_used" "notes"       "evidence"    "warnings"    "trace"      </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

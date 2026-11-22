@@ -28,6 +28,35 @@ and, with three extra fields, by
   Absent (`NULL`) for a spec that did not ask, and for `screen` and
   `extract`, which answer no question.
 
+- `outcome`:
+
+  Character(1), set by
+  [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md):
+  `"answered"`, an answer not marked partial; `"partial"`, an answer
+  marked partial; `"not_found"`, `NOT_IN_DOCUMENT` from a run that read
+  what it meant to; `"refused"`, `NOT_IN_DOCUMENT` from a run a limit
+  stopped; or `"failed"`, `NOT_IN_DOCUMENT` from a run that got no reply
+  to read (every model request it made failed, or the notes give an
+  `error`), whichever reader made it.
+  [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md)
+  reads it when given the answer. Under `answer_format = "schema"` in
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
+  the model reports the answered or not-found part in a schema field,
+  and `notes$structured` keeps what it said.
+
+- `premise_verdict`:
+
+  Present only under `premise = TRUE` with
+  `premise_verdict = "structured"` in
+  [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+  for readers whose answering request is structured: a list with
+  `premise_status` (`"holds"` or `"contradicted"`), `quote` (the passage
+  the model gave for a contradiction, or `NA`) and `quote_verified`
+  (whether the quote was found in the excerpts sent, by the check
+  [`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md)
+  uses, and, where those were passages or summaries a model wrote, in
+  the document too; `NA` without a quote).
+
 - `partial`:
 
   Logical(1). `TRUE` when anything degraded: a call failed, chunks were
@@ -161,11 +190,13 @@ to build one in a custom reader
 
 Other reading functions:
 [`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
+[`gr_methods_text()`](https://elkronos.github.io/harnessr/reference/gr_methods_text.md),
 [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
 [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
 [`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
 [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
 [`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md),
 [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md),
 [`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
 

@@ -133,7 +133,7 @@ setting, <code><a href="../articles/settings.html">vignette("settings")</a></cod
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">stage</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   evaluate    extract     ingest    options       read     screen    segment </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         22          9         19         34         40         30         14 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         22          9         19         34         47         30         14 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> synthesise </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         28 </span>
 <span class="r-in"><span><span class="va">s</span><span class="op">[</span><span class="va">s</span><span class="op">$</span><span class="va">tier</span> <span class="op">==</span> <span class="st">"basic"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stage"</span>, <span class="st">"name"</span>, <span class="st">"default"</span><span class="op">)</span><span class="op">]</span></span></span>
@@ -149,42 +149,42 @@ setting, <code><a href="../articles/settings.html">vignette("settings")</a></cod
 <span class="r-out co"><span class="r-pr">#&gt;</span> 41        read          model                            NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 46        read          top_k                               6</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 56        read           cite                           FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 67        read         recipe                        thorough</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 68        read          store                            NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 70        read  max_total_usd                            NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 74      screen         recipe                        research</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 76      screen  screen_tokens                            NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 78      screen  max_total_usd                            NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 82      screen              n                              50</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 83      screen             of                        excluded</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 91      screen  recall_target                            0.95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 92      screen           conf                            0.95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 95      screen  recall_target                            0.95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 96      screen           conf                            0.95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 97      screen     prevalence                            NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 101     screen         target                            0.95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 104    extract         recipe                        research</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 106    extract        resolve                           first</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 107    extract  require_quote                           FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 113 synthesise          model                            NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 121 synthesise   max_sections                               6</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 128 synthesise          model                            NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 132 synthesise     cite_style                            auto</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 134 synthesise      coherence                           FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 141   evaluate           runs                               5</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 142   evaluate         scorer               hr_scorer_exact()</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 144   evaluate       governor                            NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 148   evaluate           conf                            0.95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 151   evaluate         method                            auto</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 155   evaluate           mode                          select</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 156   evaluate          model                            NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 157   evaluate         orders                               2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 160   evaluate        recipes c("fast", "needle", "thorough")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 163    options        verbose                            TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 165    options          model                   gpt-5.6-terra</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 178    options      cache_dir                            NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 182    options   max_cost_usd                               5</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 183    options      max_calls                             400</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 74        read         recipe                        thorough</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 75        read          store                            NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 77        read  max_total_usd                            NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 81      screen         recipe                        research</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 83      screen  screen_tokens                            NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 85      screen  max_total_usd                            NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 89      screen              n                              50</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 90      screen             of                        excluded</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 98      screen  recall_target                            0.95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 99      screen           conf                            0.95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 102     screen  recall_target                            0.95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 103     screen           conf                            0.95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 104     screen     prevalence                            NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 108     screen         target                            0.95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 111    extract         recipe                        research</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 113    extract        resolve                           first</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 114    extract  require_quote                           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 120 synthesise          model                            NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 128 synthesise   max_sections                               6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 135 synthesise          model                            NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 139 synthesise     cite_style                            auto</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 141 synthesise      coherence                           FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 148   evaluate           runs                               5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 149   evaluate         scorer               hr_scorer_exact()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 151   evaluate       governor                            NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 155   evaluate           conf                            0.95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 158   evaluate         method                            auto</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 162   evaluate           mode                          select</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 163   evaluate          model                            NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 164   evaluate         orders                               2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 167   evaluate        recipes c("fast", "needle", "thorough")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 170    options        verbose                            TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 172    options          model                   gpt-5.6-terra</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 185    options      cache_dir                            NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 189    options   max_cost_usd                               5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 190    options      max_calls                             400</span>
 <span class="r-in"><span><span class="fu">gr_settings_table</span><span class="op">(</span><span class="st">"synthesise"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"default"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                  name                                   default   status</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1               model                                      NULL     &lt;NA&gt;</span>

@@ -233,6 +233,9 @@ trace every run records. See
 - [`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
   : Serialise an object to JSON
 
+- [`gr_methods_text()`](https://elkronos.github.io/harnessr/reference/gr_methods_text.md)
+  : A methods paragraph from a run's record
+
 ## Caching and replaying runs
 
 Paying for a request once, and replaying a recorded run without a model.
@@ -314,6 +317,9 @@ and
 - [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
   [`gr_arms()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
   : A reading recipe as an arm of a benchmark
+- [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  : Built-in steps for composing a run by hand
 - [`gr_qa_reference()`](https://elkronos.github.io/harnessr/reference/gr_qa_reference.md)
   : A reference of questions about documents
 - [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md)

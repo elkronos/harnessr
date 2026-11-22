@@ -39,6 +39,13 @@ gr_read_spec(
   bm25_k1 = 1.5,
   bm25_b = 0.75,
   lexical_blend = 0.5,
+  unskip_k = 0L,
+  reread_on = c("never", "not_found"),
+  low_score = c("not_found", "read_top_k"),
+  fusion = c("default", "rrf"),
+  rrf_k = 60,
+  answer_format = c("parsed", "schema"),
+  premise_verdict = c("sentence", "structured"),
   ...
 )
 ```
@@ -86,7 +93,9 @@ gr_read_spec(
   For `retrieve`: chunks scoring below this are dropped, but if that
   would leave nothing the single best chunk is used anyway. `-Inf`
   disables the filter. Not a cosine similarity when embeddings fall back
-  to lexical vectors: the score is then a blend of cosine and BM25.
+  to lexical vectors: the score is then a blend of cosine and BM25, and
+  under `fusion = "rrf"` it is the fused score (see `fusion`). When no
+  chunk passes, the answer's `notes$below_min_score` is `TRUE`.
 
 - mmr:
 
@@ -325,6 +334,109 @@ gr_read_spec(
   default 0.5, an even blend chosen when the offline path was written.
   Untested.
 
+- unskip_k:
+
+  For `preview`: how many of the sections that match the question's
+  words best (BM25 over each section's text) are read in full even when
+  the plan skips them. A section that shares no word with the question
+  is never unskipped. \[0, 100\], default 0, which follows the plan as
+  before. With `unskip_k = 1`, a plan that skips the only section
+  holding the question's words is overridden. Whatever its value, each
+  section the plan skipped is logged in the trace as a `preview.skip`
+  step with its score and whether it was unskipped, and
+  `notes$unskipped` lists the sections it overrode. Untested.
+
+- reread_on:
+
+  For `preview`: `"never"` (the default) or `"not_found"`. Under
+  `"not_found"`, an answer request that came back `NOT_IN_DOCUMENT` is
+  followed by one more (`preview.reread`) over the sections the plan did
+  not have read in full (skipped, skimmed, or demoted for lack of room),
+  fitted whole to one request in document order. The re-read's answer
+  replaces the not-found when it finds one; `notes$reread` and a
+  `preview.reread` trace step say what was sent and whether it found an
+  answer. It costs at most one request. Untested.
+
+- low_score:
+
+  For `rerank`, what happens when every candidate the model scored is
+  below `rerank_min_score`. `"not_found"` (the default) makes no answer
+  request and returns `NOT_IN_DOCUMENT`, as before, now with
+  `notes$retrieval_low_score = TRUE` and a `rerank.low_score` trace
+  step. `"read_top_k"` sends the 5 best-scored candidates to the answer
+  request anyway (`notes$read_below_min_score = TRUE`), and marks a
+  `NOT_IN_DOCUMENT` reply with `notes$retrieval_low_score = TRUE`. It
+  costs the answer request the default does not make. Untested.
+
+- fusion:
+
+  For `retrieve` and `iterative`: how the embedding ranking and the BM25
+  word-matching ranking are combined. Both readers rank through one
+  function. `"default"` keeps each reader's 0.6.0 ranking: `retrieve`
+  blends cosine with BM25 by `lexical_blend` when the embeddings are
+  lexical and uses cosine alone otherwise, and `iterative` uses cosine
+  alone, so on embeddings that are not lexical the two rank alike.
+  `"rrf"` is reciprocal rank fusion (Cormack, Clarke and Buettcher 2009,
+  "Reciprocal Rank Fusion outperforms Condorcet and individual Rank
+  Learning Methods"): each chunk scores the sum of `1 / (rrf_k + rank)`
+  over the two rankings, whatever the embeddings, and both readers fuse
+  alike. It costs no request. Under `"rrf"`, `min_score` applies to the
+  fused score, which lies between 0 and `2 / (rrf_k + 1)`, about 0.033
+  at the default `rrf_k`: a floor chosen for cosine, such as 0.1, passes
+  no chunk, so `retrieve` reads its best chunk alone and sets
+  `notes$below_min_score`. With `mmr` below 1, the fused scores are
+  rescaled to \[0, 1\] over the chunks still eligible before they are
+  weighed against similarity, which lies between 0 and 1; the order, and
+  so the plain top-k pick, is unchanged. Untested.
+
+- rrf_k:
+
+  Under `fusion = "rrf"`, the constant `k`. \[1, 1e4\], default 60, the
+  value Cormack, Clarke and Buettcher (2009) use (`cited`); not tuned
+  here. A larger `k` flattens the difference between top ranks.
+
+- answer_format:
+
+  How the requests that answer the question report what they found.
+  `"parsed"` (the default) sends the free-text requests sent before the
+  setting existed and reads `NOT_IN_DOCUMENT` from the reply. `"schema"`
+  sends them with a JSON schema that asks for `answer` and `outcome`
+  (`"answered"` or `"not_found"`); a `"not_found"` reply becomes
+  `NOT_IN_DOCUMENT`, and the model's own words go to
+  `notes$structured$reply`. A reply that does not parse is read as free
+  text (`notes$structured$parsed = FALSE`). It covers the answering
+  request of `stuff`, `retrieve`, `rerank`, `skim`, `hierarchical`,
+  `preview` and `iterative`'s final answer, and each chunk's request of
+  `map_reduce`; merges, `refine`'s drafts, `ensemble`'s adjudication and
+  `iterative`'s steps (already structured) are sent as before. Either
+  way the answer's `$outcome` is set (see
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)).
+  Untested: published comparisons of forced schemas and free text
+  disagree, so the default stays `"parsed"` until a live comparison
+  settles it.
+
+- premise_verdict:
+
+  Under `premise = TRUE`, how a verdict is reported. `"sentence"` (the
+  default) is the `FALSE_PREMISE:` sentence in the reply, as before.
+  `"structured"` sends the answering requests that
+  `answer_format = "schema"` covers with a JSON schema holding
+  `premise_status` (`"holds"` or `"contradicted"`) and `quote`, the
+  passage of the excerpts that states the contrary, word for word. The
+  quote is checked with the matcher
+  [`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md)
+  uses, against the excerpts the request was shown. Where those are
+  passages or summaries a model wrote (`skim`, `hierarchical` and the
+  skimmed sections of `preview`), the quote must also be found in the
+  document. The answer gains `$premise_verdict` (see
+  [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)).
+  In `map_reduce` a chunk's flag stands only when its quote is found in
+  that chunk: a flag with no quote, or one not found, is dropped with
+  the chunk's reply (`notes$premise_dropped`), and a verified one goes
+  to the merge and sets `notes$degradation` to `"premise_flagged"`.
+  `"structured"` without `premise = TRUE` is refused with a
+  `gr_bad_setting` error. Untested.
+
 - ...:
 
   Extra fields for custom readers.
@@ -406,9 +518,10 @@ Each setting's default, its tier (`basic` for the few most users change,
 means no measurement backs the value; `cited` names the published source
 it comes from. The settings added as declared parameters
 (`accept_near_verbatim`, `max_merge_levels`, `restate_tokens`,
-`bm25_k1`, `bm25_b`, `lexical_blend`) are stored in the spec only when
-they are not their default, so a default spec keeps the store and cache
-keys it had before they existed.
+`bm25_k1`, `bm25_b`, `lexical_blend`, and the reading options added
+after them) are stored in the spec only when they are not their default,
+so a default spec keeps the store and cache keys it had before they
+existed.
 
 - `on_overflow` (default `"warn"`, advanced): untested. Chosen so that a
   document too long for one request still gets an answer that says what
@@ -516,6 +629,33 @@ keys it had before they existed.
 - `lexical_blend` (default `0.5`, advanced): untested. An even blend,
   set when the offline path was written.
 
+- `unskip_k` (default `0`, advanced): untested. Off (0), so the plan is
+  followed as it was before the setting existed. Not measured.
+
+- `reread_on` (default `"never"`, advanced): untested. "never", so a run
+  makes the requests it made before the setting existed. Not measured.
+
+- `low_score` (default `"not_found"`, advanced): untested. "not_found",
+  the behaviour before the setting existed: no answer request. Not
+  measured.
+
+- `fusion` (default `"default"`, advanced): untested. "default" keeps
+  the 0.6.0 ranking of each reader. Reciprocal rank fusion is not
+  compared with it here.
+
+- `rrf_k` (default `60`, advanced): cited. Cormack, Clarke and Buettcher
+  (2009), "Reciprocal Rank Fusion outperforms Condorcet and individual
+  Rank Learning Methods", SIGIR, use k = 60; not tuned here.
+
+- `answer_format` (default `"parsed"`, advanced): untested. "parsed",
+  the requests sent before the setting existed. Published comparisons of
+  forced schemas and free text disagree; owner decision DEC-05 keeps the
+  question open until a live comparison.
+
+- `premise_verdict` (default `"sentence"`, advanced): untested.
+  "sentence", the requests premise = TRUE sent before the setting
+  existed. Not measured.
+
 ## Reasoning effort
 
 The default models reason before they write a reply, and that reasoning
@@ -605,10 +745,12 @@ for the available readers and their call costs,
 Other reading functions:
 [`gr_answer`](https://elkronos.github.io/harnessr/reference/gr_answer.md),
 [`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
+[`gr_methods_text()`](https://elkronos.github.io/harnessr/reference/gr_methods_text.md),
 [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
 [`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
 [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
 [`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md),
 [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md),
 [`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
 

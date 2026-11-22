@@ -75,6 +75,28 @@ model's verdict, not a check harnessr made. Absent (<code>NULL</code>) for a spe
 that did not ask, and for <code>screen</code> and <code>extract</code>, which answer no
 question.</p></dd>
 
+<dt><code>outcome</code></dt>
+<dd><p>Character(1), set by <code><a href="gr_read.html">gr_read()</a></code>: <code>"answered"</code>, an
+answer not marked partial; <code>"partial"</code>, an answer marked partial;
+<code>"not_found"</code>, <code>NOT_IN_DOCUMENT</code> from a run that read what it meant
+to; <code>"refused"</code>, <code>NOT_IN_DOCUMENT</code> from a run a limit stopped; or
+<code>"failed"</code>, <code>NOT_IN_DOCUMENT</code> from a run that got no reply to read
+(every model request it made failed, or the notes give an <code>error</code>),
+whichever reader made it. <code><a href="is_not_found.html">is_not_found()</a></code>
+reads it when given the answer. Under <code>answer_format = "schema"</code> in
+<code><a href="gr_read_spec.html">gr_read_spec()</a></code> the model reports the answered or not-found part in a
+schema field, and <code>notes$structured</code> keeps what it said.</p></dd>
+
+<dt><code>premise_verdict</code></dt>
+<dd><p>Present only under <code>premise = TRUE</code> with
+<code>premise_verdict = "structured"</code> in <code><a href="gr_read_spec.html">gr_read_spec()</a></code>, for readers whose
+answering request is structured: a list with <code>premise_status</code>
+(<code>"holds"</code> or <code>"contradicted"</code>), <code>quote</code> (the passage the model gave
+for a contradiction, or <code>NA</code>) and <code>quote_verified</code> (whether the quote
+was found in the excerpts sent, by the check <code><a href="gr_verify_evidence.html">gr_verify_evidence()</a></code>
+uses, and, where those were passages or summaries a model wrote, in
+the document too; <code>NA</code> without a quote).</p></dd>
+
 <dt><code>partial</code></dt>
 <dd><p>Logical(1). <code>TRUE</code> when anything degraded: a call failed,
 chunks were dropped, a cap was hit, a strategy fell back, text was cut to
@@ -177,11 +199,13 @@ to compare several, <code><a href="is_not_found.html">is_not_found()</a></code> 
 <p><code><a href="gr_read.html">gr_read()</a></code>, <code><a href="answer_document.html">answer_document()</a></code>, <code><a href="as_json.html">as_json()</a></code></p>
 <p>Other reading functions:
 <code><a href="gr_check_reader.html">gr_check_reader()</a></code>,
+<code><a href="gr_methods_text.html">gr_methods_text()</a></code>,
 <code><a href="gr_read.html">gr_read()</a></code>,
 <code><a href="gr_read_spec.html">gr_read_spec()</a></code>,
 <code><a href="gr_reader_signature.html">gr_reader_signature()</a></code>,
 <code><a href="gr_readers.html">gr_readers()</a></code>,
 <code><a href="gr_register_reader.html">gr_register_reader()</a></code>,
+<code><a href="gr_step.html">gr_step()</a></code>,
 <code><a href="is_not_found.html">is_not_found()</a></code>,
 <code><a href="new_answer.html">new_answer()</a></code></p></div>
     </div>

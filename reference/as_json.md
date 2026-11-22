@@ -69,6 +69,6 @@ ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 # The answer plus every prompt and response from the same single run.
 txt <- as_json(ans)
 names(jsonlite::fromJSON(txt))
-#> [1] "answer"      "reader"      "question"    "partial"     "chunks_used"
-#> [6] "notes"       "evidence"    "warnings"    "trace"      
+#>  [1] "answer"      "outcome"     "reader"      "question"    "partial"    
+#>  [6] "chunks_used" "notes"       "evidence"    "warnings"    "trace"      
 ```

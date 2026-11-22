@@ -88,13 +88,14 @@ or space around it), and treats a blank answer as not-found too.</p>
 
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>An answer string, or <code>ans$answer</code>.</p></dd>
+<dd><p>An answer string, <code>ans$answer</code>, or a <a href="gr_answer.html">gr_answer</a>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p><code>TRUE</code> if the string is the not-found sentinel (or blank), or opens
-with it as described above.</p>
+with it as described above; for an answer with an outcome, whether the
+outcome is <code>"not_found"</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -111,6 +112,13 @@ The sentinel anywhere else in a reply, or opening a sentence that goes on
 <p>The v1 test was <code>grepl("not found|no information|not applicable", ...)</code> over
 the whole response, which threw away every answer that happened to contain
 one of those phrases.</p>
+<p>Given a <a href="gr_answer.html">gr_answer</a> rather than a string, it reads the answer's
+<code>$outcome</code> (see <a href="gr_answer.html">gr_answer</a>) when it has one: <code>TRUE</code> only for
+<code>"not_found"</code>, so a run a limit stopped (<code>"refused"</code>) or whose requests
+failed (<code>"failed"</code>) is not counted as the document lacking the answer. An
+answer without <code>$outcome</code> (one built by <code><a href="new_answer.html">new_answer()</a></code> outside <code><a href="gr_read.html">gr_read()</a></code>,
+or read back from before the field existed) falls back to the sentinel
+test on <code>$answer</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -119,11 +127,13 @@ this predicate applied per recipe</p>
 <p>Other reading functions:
 <code><a href="gr_answer.html">gr_answer</a></code>,
 <code><a href="gr_check_reader.html">gr_check_reader()</a></code>,
+<code><a href="gr_methods_text.html">gr_methods_text()</a></code>,
 <code><a href="gr_read.html">gr_read()</a></code>,
 <code><a href="gr_read_spec.html">gr_read_spec()</a></code>,
 <code><a href="gr_reader_signature.html">gr_reader_signature()</a></code>,
 <code><a href="gr_readers.html">gr_readers()</a></code>,
 <code><a href="gr_register_reader.html">gr_register_reader()</a></code>,
+<code><a href="gr_step.html">gr_step()</a></code>,
 <code><a href="new_answer.html">new_answer()</a></code></p></div>
     </div>
 
@@ -141,6 +151,18 @@ this predicate applied per recipe</p>
 <span class="r-in"><span><span class="co"># A real answer that merely mentions the sentinel is NOT not-found.</span></span></span>
 <span class="r-in"><span><span class="fu">is_not_found</span><span class="op">(</span><span class="st">"The log said NOT_IN_DOCUMENT, but revenue was 45.2 million."</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># An answer from gr_read() carries its outcome, which is read first.</span></span></span>
+<span class="r-in"><span><span class="va">ch</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="fu"><a href="gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"sentence"</span>, max_tokens <span class="op">=</span> <span class="fl">400</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Using cached ingestion for this document + settings.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'sentence' (cap 400 tokens, overlap 0).</span>
+<span class="r-in"><span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">ch</span>, <span class="st">"Who audited the accounts?"</span>,</span></span>
+<span class="r-in"><span>               <span class="fu"><a href="gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"NOT_IN_DOCUMENT"</span><span class="op">)</span>, <span class="st">"stuff"</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'stuff' (all|1|none) over 2 chunk(s).</span>
+<span class="r-in"><span><span class="va">ans</span><span class="op">$</span><span class="va">outcome</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "not_found"</span>
+<span class="r-in"><span><span class="fu">is_not_found</span><span class="op">(</span><span class="va">ans</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

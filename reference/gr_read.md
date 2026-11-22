@@ -52,10 +52,12 @@ Check `$partial` before trusting `$answer`.
 Other reading functions:
 [`gr_answer`](https://elkronos.github.io/harnessr/reference/gr_answer.md),
 [`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
+[`gr_methods_text()`](https://elkronos.github.io/harnessr/reference/gr_methods_text.md),
 [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
 [`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
 [`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md),
 [`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
+[`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md),
 [`is_not_found()`](https://elkronos.github.io/harnessr/reference/is_not_found.md),
 [`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md)
 

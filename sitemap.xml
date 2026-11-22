@@ -60,6 +60,7 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_ingest_spec.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_inventory.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_label_sheet.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/gr_methods_text.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_mock_client.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_model_info.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_model_limits.html</loc></url>
@@ -107,6 +108,7 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_settings.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_settings_table.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/gr_step.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_stop_test.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_synthesise.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_tokenizer.html</loc></url>

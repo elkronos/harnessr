@@ -19,7 +19,7 @@ table(settings$stage, settings$tier)[unique(settings$stage), ]
 #>              advanced basic
 #>   ingest           16     3
 #>   segment          11     3
-#>   read             32     8
+#>   read             39     8
 #>   screen           19    11
 #>   extract           6     3
 #>   synthesise       23     5
@@ -154,7 +154,7 @@ covers them.
 | `on_overflow` | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `warn` | advanced | untested | For stuff: truncate with a warning, or stop, when the document does not fit. |
 | [`context_order`](https://elkronos.github.io/harnessr/articles/readers.html#set-context-order) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `relevance` | advanced | untested | Where the selected chunks sit in the prompt. |
 | [`restate`](https://elkronos.github.io/harnessr/articles/readers.html#set-context-order) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `auto` | advanced | untested | Whether to repeat the question before the excerpts as well as after. |
-| `premise` | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `FALSE` | advanced | untested | Check the question’s assumptions against the document. |
+| [`premise`](https://elkronos.github.io/harnessr/articles/readers.html#set-premise) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `FALSE` | advanced | untested | Check the question’s assumptions against the document. |
 | [`verify`](https://elkronos.github.io/harnessr/articles/readers.html#set-verify) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `FALSE` | basic | untested | Check the answer’s quotations against the chunks they cite. |
 | [`effort`](https://elkronos.github.io/harnessr/articles/readers.html#set-effort) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `NULL` | advanced | untested | Reasoning effort, one level or a map named by call stem. |
 | [`reader`](https://elkronos.github.io/harnessr/articles/readers.html#set-reader) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `map_reduce` | basic | untested | The reading strategy. |
@@ -166,8 +166,8 @@ covers them.
 | [`top_k`](https://elkronos.github.io/harnessr/articles/readers.html#set-top-k) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `6` | basic | untested | Chunks to use, for retrieve, rerank and iterative. |
 | [`min_score`](https://elkronos.github.io/harnessr/articles/readers.html#set-top-k) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `-Inf` | advanced | untested | For retrieve: chunks scoring below this are dropped. |
 | [`mmr`](https://elkronos.github.io/harnessr/articles/readers.html#set-mmr) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `1` | advanced | untested | Relevance against diversity when selecting chunks; 1 is plain top-k. |
-| `rerank_candidates` | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `20` | advanced | untested | For rerank: how many chunks to score. |
-| `rerank_min_score` | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `4` | advanced | untested | For rerank: the score below which a chunk is discarded. |
+| [`rerank_candidates`](https://elkronos.github.io/harnessr/articles/readers.html#set-low-score) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `20` | advanced | untested | For rerank: how many chunks to score. |
+| [`rerank_min_score`](https://elkronos.github.io/harnessr/articles/readers.html#set-low-score) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `4` | advanced | untested | For rerank: the score below which a chunk is discarded. |
 | [`fan_in`](https://elkronos.github.io/harnessr/articles/readers.html#set-merge-levels) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `5` | advanced | untested | For hierarchical: summaries combined per call. |
 | [`max_levels`](https://elkronos.github.io/harnessr/articles/readers.html#set-merge-levels) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `5` | advanced | untested | For hierarchical: the recursion depth cap. |
 | `max_rounds` | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `4` | advanced | untested | For iterative: retrieve-assess cycles. |
@@ -184,6 +184,13 @@ covers them.
 | [`bm25_k1`](https://elkronos.github.io/harnessr/articles/readers.html#set-lexical) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `1.5` | advanced | cited | BM25 term-frequency saturation, for rerank’s prefilter and lexical retrieve. |
 | [`bm25_b`](https://elkronos.github.io/harnessr/articles/readers.html#set-lexical) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `0.75` | advanced | cited | BM25 length normalisation, for rerank’s prefilter and lexical retrieve. |
 | [`lexical_blend`](https://elkronos.github.io/harnessr/articles/readers.html#set-lexical) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `0.5` | advanced | untested | For retrieve on lexical embeddings: the weight of cosine against BM25. |
+| [`unskip_k`](https://elkronos.github.io/harnessr/articles/readers.html#set-preview) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `0` | advanced | untested | For preview: the sections that best match the question’s words, read even when the plan skips them. |
+| [`reread_on`](https://elkronos.github.io/harnessr/articles/readers.html#set-preview) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `never` | advanced | untested | For preview: under “not_found”, an answer that found nothing reads the sections not read in full in one more request. |
+| [`low_score`](https://elkronos.github.io/harnessr/articles/readers.html#set-low-score) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `not_found` | advanced | untested | For rerank: when every candidate scores below rerank_min_score, answer not found, or send the 5 best to the answer request. |
+| [`fusion`](https://elkronos.github.io/harnessr/articles/readers.html#set-lexical) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `default` | advanced | untested | For retrieve and iterative: how embedding similarity and BM25 are combined into one ranking. |
+| [`rrf_k`](https://elkronos.github.io/harnessr/articles/readers.html#set-lexical) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `60` | advanced | cited | Under fusion = ‘rrf’: the constant k in 1 / (k + rank). |
+| [`answer_format`](https://elkronos.github.io/harnessr/articles/readers.html#set-answer-format) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `parsed` | advanced | untested | How answering requests report their outcome: parsed from free text, or in a JSON schema the request forces. |
+| [`premise_verdict`](https://elkronos.github.io/harnessr/articles/readers.html#set-premise) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `sentence` | advanced | untested | Under premise = TRUE: the verdict as a sentence in the reply, or as schema fields with a quote that is checked against the excerpts. |
 | `recipe` | [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | `thorough` | basic |  | One recipe, applied to every document. |
 | `store` | [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | `NULL` | basic |  | Optional directory. |
 | `on_error` | [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | `continue` | advanced |  | “continue” (default) records the failure and moves on; “stop” aborts. |

@@ -93,7 +93,7 @@ default came from and how to test a change.</p>
 <span><span class="co">#&gt;              advanced basic</span></span>
 <span><span class="co">#&gt;   ingest           16     3</span></span>
 <span><span class="co">#&gt;   segment          11     3</span></span>
-<span><span class="co">#&gt;   read             32     8</span></span>
+<span><span class="co">#&gt;   read             39     8</span></span>
 <span><span class="co">#&gt;   screen           19    11</span></span>
 <span><span class="co">#&gt;   extract           6     3</span></span>
 <span><span class="co">#&gt;   synthesise       23     5</span></span>
@@ -530,7 +530,7 @@ document does not fit.</td>
 well as after.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>premise</code></td>
+<td align="left"><a href="readers.html#set-premise"><code>premise</code></a></td>
 <td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
 <td align="left"><code>FALSE</code></td>
 <td align="left">advanced</td>
@@ -631,7 +631,7 @@ dropped.</td>
 plain top-k.</td>
 </tr>
 <tr class="even">
-<td align="left"><code>rerank_candidates</code></td>
+<td align="left"><a href="readers.html#set-low-score"><code>rerank_candidates</code></a></td>
 <td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
 <td align="left"><code>20</code></td>
 <td align="left">advanced</td>
@@ -639,7 +639,7 @@ plain top-k.</td>
 <td align="left">For rerank: how many chunks to score.</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>rerank_min_score</code></td>
+<td align="left"><a href="readers.html#set-low-score"><code>rerank_min_score</code></a></td>
 <td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
 <td align="left"><code>4</code></td>
 <td align="left">advanced</td>
@@ -784,6 +784,71 @@ lexical retrieve.</td>
 cosine against BM25.</td>
 </tr>
 <tr class="even">
+<td align="left"><a href="readers.html#set-preview"><code>unskip_k</code></a></td>
+<td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
+<td align="left"><code>0</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">For preview: the sections that best match the
+question’s words, read even when the plan skips them.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="readers.html#set-preview"><code>reread_on</code></a></td>
+<td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
+<td align="left"><code>never</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">For preview: under “not_found”, an answer that found
+nothing reads the sections not read in full in one more request.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="readers.html#set-low-score"><code>low_score</code></a></td>
+<td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
+<td align="left"><code>not_found</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">For rerank: when every candidate scores below
+rerank_min_score, answer not found, or send the 5 best to the answer
+request.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="readers.html#set-lexical"><code>fusion</code></a></td>
+<td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
+<td align="left"><code>default</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">For retrieve and iterative: how embedding similarity
+and BM25 are combined into one ranking.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="readers.html#set-lexical"><code>rrf_k</code></a></td>
+<td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
+<td align="left"><code>60</code></td>
+<td align="left">advanced</td>
+<td align="left">cited</td>
+<td align="left">Under fusion = ‘rrf’: the constant k in 1 / (k +
+rank).</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="readers.html#set-answer-format"><code>answer_format</code></a></td>
+<td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
+<td align="left"><code>parsed</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">How answering requests report their outcome: parsed
+from free text, or in a JSON schema the request forces.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="readers.html#set-premise"><code>premise_verdict</code></a></td>
+<td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
+<td align="left"><code>sentence</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Under premise = TRUE: the verdict as a sentence in the
+reply, or as schema fields with a quote that is checked against the
+excerpts.</td>
+</tr>
+<tr class="odd">
 <td align="left"><code>recipe</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>thorough</code></td>
@@ -791,7 +856,7 @@ cosine against BM25.</td>
 <td align="left"></td>
 <td align="left">One recipe, applied to every document.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>store</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -799,7 +864,7 @@ cosine against BM25.</td>
 <td align="left"></td>
 <td align="left">Optional directory.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>on_error</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>continue</code></td>
@@ -808,7 +873,7 @@ cosine against BM25.</td>
 <td align="left">“continue” (default) records the failure and moves on;
 “stop” aborts.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>max_total_usd</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -818,7 +883,7 @@ cosine against BM25.</td>
 remaining documents “skipped”, except any restored from store, which
 costs nothing.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>max_total_calls</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -828,7 +893,7 @@ costs nothing.</td>
 requests, marking the rest “skipped”, except any restored from store,
 which makes no request.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>keep_answers</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>TRUE</code></td>
@@ -836,7 +901,7 @@ which makes no request.</td>
 <td align="left"></td>
 <td align="left">Keep every gr_answer in the result.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>recursive</code></td>
 <td align="left"><code><a href="../reference/gr_read_many.html">gr_read_many()</a></code></td>
 <td align="left"><code>FALSE</code></td>
