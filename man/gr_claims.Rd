@@ -16,7 +16,8 @@ gr_claims(
   trace = NULL,
   bib = NULL,
   effort = NULL,
-  unverified = c("exclude", "include")
+  unverified = c("exclude", "include"),
+  moderators = NULL
 )
 }
 \arguments{
@@ -69,13 +70,22 @@ carries the quotes: a bare table's values are shown as they are, with no
 check, and nothing is left out. The default is untested: it follows the
 rule that a claim should rest on what the documents were found to say,
 and no benchmark has compared the two.}
+
+\item{moderators}{The columns you expected, before reading, to explain a
+disagreement between studies: a character vector of column names, or
+\code{NULL} (the default) for none. A claim's moderator is "declared" when it
+is one of these, and is then tested with the others for multiplicity
+(Holm). Any other moderator the model names is "exploratory", and so is
+any split of one study against one. See "Moderators" below. Naming a
+column changes nothing that is sent.}
 }
 \value{
 An object of class \code{gr_claims}:
 \describe{
 \item{\code{claims}}{One row per claim: \code{claim_id}, \code{claim}, \code{kind},
-\code{moderator}, \code{scope}, \code{n_support}, \code{n_contradict}, \code{sign_p},
-\code{low_power}, \code{note}. \code{sign_p} is the exact two-sided sign test of the
+\code{moderator}, \code{moderator_status} (\code{"declared"}, \code{"exploratory"} or
+NA), \code{scope}, \code{n_support}, \code{n_contradict}, \code{sign_p}, \code{low_power},
+\code{note}. \code{sign_p} is the exact two-sided sign test of the
 claim's direction tally, \code{n_support} of \code{n_support + n_contradict}
 studies: 5 of 5 gives 0.0625. \code{low_power} is \code{TRUE} when the tally is
 5 studies or fewer, so that no split of it can reach p < 0.05. See
@@ -96,6 +106,12 @@ and field: \code{study}, \code{document}, \code{field}, \code{value}, \code{stat
 (\code{"verified"}, \code{"unverified"} or \code{"not reported"}) and \code{quote} (the
 verified quote, else the closest one given, else \code{NA}). Empty for a
 bare table, which carries no quotes.}
+\item{\code{moderators}}{One row per claim that names a moderator:
+\code{claim_id}, \code{moderator}, \code{declared}, \code{exploratory}, \code{n_support} and
+\code{n_contradict} (the studies on each side that report it),
+\code{fisher_p}, \code{min_p} and \code{holm_p}. See "Moderators" below.}
+\item{\code{declared}}{The \code{moderators} named in advance that the model
+was shown.}
 \item{\code{unverified}}{The unverified values, listed apart: \code{study},
 \code{document}, \code{field}, \code{value}, \code{quote} and \code{shown}, whether the
 prompt showed them (\code{unverified = "include"}).}
@@ -168,6 +184,42 @@ This follows SWiM's guidance on vote counting by direction of effect
 (Campbell et al. 2020, BMJ 368:l6890) and Boon and Thomson (2021,
 Research Synthesis Methods 12:29-33) on direction tallies and their sign
 test.
+}
+
+\section{Moderators}{
+
+A moderator is kept only when it separates a claim's supporting studies
+from its contradicting ones (see "What makes a claim checkable"). Kept, it
+is tested. \code{fisher_p} is Fisher's exact test, two-sided, of the 2 x 2
+table of side (supports, contradicts) against which side's values a study
+has; \code{min_p} is the smallest p a table with those margins can give. Since a
+kept moderator splits the studies perfectly, the two are equal: the test
+says how much a split that clean can show with that few studies. One study
+on each side gives p = 1, which is why a 1-vs-1 split is always
+"exploratory": it is a coincidence as often as an explanation. For the
+moderators named in \code{moderators}, \code{holm_p} adjusts \code{fisher_p} for their
+number by Holm's method; an exploratory moderator has none, since the
+number of columns the model looked through is not known. The writing
+prompt marks an exploratory moderator as such.
+
+These are between-study comparisons of direction, not tests of an
+interaction on effect sizes. Assess each moderator you rely on against the
+ICEMAN items for effect modification (Schandelmaier et al. 2020, CMAJ
+192:E901-E906); harnessr scores none of them, and lists them, with what it
+reports on each, in the audit report:
+\itemize{
+\item Is the effect modification based on comparison within studies
+rather than between them? (Here it is between studies.)
+\item Was the moderator specified before the analysis? (\code{declared}.)
+\item Was the direction of the effect modification hypothesised in
+advance, and correctly?
+\item Does a test for interaction suggest that chance is an unlikely
+explanation? (\code{fisher_p} tests directions only.)
+\item Was only a small number of moderators tested, or was the number
+allowed for? (\code{holm_p}, over the declared ones.)
+\item For a continuous moderator, were arbitrary cut points avoided?
+\item Is the effect modification consistent across related outcomes?
+}
 }
 
 \examples{

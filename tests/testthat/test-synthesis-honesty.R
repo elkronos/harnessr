@@ -196,3 +196,69 @@ test_that("print() gives each claim's tally and sign test, and warns of low powe
                fixed = TRUE)
   expect_match(out, "Campbell et al. 2020; Boon and Thomson 2021", fixed = TRUE)
 })
+
+# --- P3-06: moderators, declared or exploratory, tested ------------------------
+
+moderator_table <- function() {
+  data.frame(document = paste0(letters[1:5], ".pdf"), status = "ok",
+             duplicate_of = NA_character_, n_filled = 2L, n_unverified = 0L,
+             conflicts = NA_character_,
+             design = c("trial", "trial", "trial", "survey", "survey"),
+             setting = c("urban", "rural", "urban", "rural", "urban"),
+             stringsAsFactors = FALSE)
+}
+
+test_that("a 1-vs-1 split is exploratory and can show nothing", {
+  tab <- moderator_table()[c(1, 4), ]
+  rc <- recording_client(function(kind, m) one_claim("[1]", "[2]", '"design"'))
+  cm <- gr_claims(tab, question = "Q?", client = rc$client, moderators = "design")
+  mt <- cm$moderators
+  expect_identical(nrow(mt), 1L)
+  expect_true(mt$declared)
+  expect_true(mt$exploratory)
+  expect_equal(mt$fisher_p, 1)
+  expect_equal(mt$min_p, 1)
+  expect_identical(cm$claims$moderator_status, "exploratory")
+})
+
+test_that("a declared moderator reports Fisher, Holm and the smallest attainable p", {
+  tab <- moderator_table()
+  # Two claims, each split 3 trials against 2 surveys by design.
+  reply <- paste0('{"claims":[',
+    '{"claim":"Trials find it.","kind":"finding","supported_by":[1,2,3],',
+    '"contradicted_by":[4,5],"moderator":"design","scope":null},',
+    '{"claim":"Trials find it again.","kind":"finding","supported_by":[1,2,3],',
+    '"contradicted_by":[4,5],"moderator":"design","scope":null}]}')
+  rc <- recording_client(function(kind, m) reply)
+  cm <- gr_claims(tab, question = "Q?", client = rc$client, moderators = c("design", "setting"))
+  mt <- cm$moderators
+  expect_identical(nrow(mt), 2L)
+  expect_true(all(mt$declared))
+  expect_false(any(mt$exploratory))
+  # 3 vs 2, split perfectly: 1 / choose(5, 2).
+  expect_equal(mt$fisher_p, c(0.1, 0.1))
+  expect_equal(mt$min_p, mt$fisher_p)
+  expect_equal(mt$holm_p, stats::p.adjust(c(0.1, 0.1), "holm"))
+  expect_identical(cm$declared, c("design", "setting"))
+  out <- paste(capture.output(print(cm)), collapse = "\n")
+  expect_match(out, "design, declared, 3 vs 2 studies, Fisher p = 0.1 (smallest attainable 0.1), Holm p = 0.2",
+               fixed = TRUE)
+  expect_match(out, "ICEMAN items (Schandelmaier et al. 2020)", fixed = TRUE)
+})
+
+test_that("an undeclared moderator is exploratory, has no Holm p, and is marked so to the writer", {
+  tab <- moderator_table()
+  rc <- recording_client(function(kind, m) one_claim("[1,2,3]", "[4,5]", '"design"'))
+  cm <- gr_claims(tab, question = "Q?", client = rc$client)
+  expect_true(cm$moderators$exploratory)
+  expect_true(is.na(cm$moderators$holm_p))
+  blocks <- ns$render_claims(cm$claims, cm$support, stats::setNames(rep(1, 5), 1:5))
+  expect_match(blocks, "distinguished by: design (exploratory)", fixed = TRUE)
+  expect_warning(gr_claims(tab, question = "Q?", client = rc$client, moderators = "dose"),
+                 class = "gr_moderator_unknown")
+  expect_error(gr_claims(tab, question = "Q?", client = rc$client, moderators = 1),
+               class = "gr_bad_setting")
+  html <- paste(ns$audit_claims(NULL, cm), collapse = "\n")
+  expect_match(html, "<h3>Moderators</h3>", fixed = TRUE)
+  expect_match(html, "Was the moderator specified before the analysis", fixed = TRUE)
+})

@@ -20,7 +20,7 @@
   gr_extract = list(stage = "extract", inputs = c("sources", "fields", "goal", "client",
                                                   "trace")),
   gr_claims = list(stage = "synthesise", inputs = c("extraction", "question", "protocol",
-                                                    "client", "trace", "bib")),
+                                                    "client", "trace", "bib", "moderators")),
   gr_outline = list(stage = "synthesise", inputs = c("claims", "question", "client", "trace")),
   gr_gaps = list(stage = "synthesise", inputs = c("claims", "extraction", "bib")),
   gr_synthesise = list(stage = "synthesise",

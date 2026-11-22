@@ -138,6 +138,40 @@
 #' Research Synthesis Methods 12:29-33) on direction tallies and their sign
 #' test.
 #'
+#' @section Moderators:
+#' A moderator is kept only when it separates a claim's supporting studies
+#' from its contradicting ones (see "What makes a claim checkable"). Kept, it
+#' is tested. `fisher_p` is Fisher's exact test, two-sided, of the 2 x 2
+#' table of side (supports, contradicts) against which side's values a study
+#' has; `min_p` is the smallest p a table with those margins can give. Since a
+#' kept moderator splits the studies perfectly, the two are equal: the test
+#' says how much a split that clean can show with that few studies. One study
+#' on each side gives p = 1, which is why a 1-vs-1 split is always
+#' "exploratory": it is a coincidence as often as an explanation. For the
+#' moderators named in `moderators`, `holm_p` adjusts `fisher_p` for their
+#' number by Holm's method; an exploratory moderator has none, since the
+#' number of columns the model looked through is not known. The writing
+#' prompt marks an exploratory moderator as such.
+#'
+#' These are between-study comparisons of direction, not tests of an
+#' interaction on effect sizes. Assess each moderator you rely on against the
+#' ICEMAN items for effect modification (Schandelmaier et al. 2020, CMAJ
+#' 192:E901-E906); harnessr scores none of them, and lists them, with what it
+#' reports on each, in the audit report:
+#' \itemize{
+#'   \item Is the effect modification based on comparison within studies
+#'     rather than between them? (Here it is between studies.)
+#'   \item Was the moderator specified before the analysis? (`declared`.)
+#'   \item Was the direction of the effect modification hypothesised in
+#'     advance, and correctly?
+#'   \item Does a test for interaction suggest that chance is an unlikely
+#'     explanation? (`fisher_p` tests directions only.)
+#'   \item Was only a small number of moderators tested, or was the number
+#'     allowed for? (`holm_p`, over the declared ones.)
+#'   \item For a continuous moderator, were arbitrary cut points avoided?
+#'   \item Is the effect modification consistent across related outcomes?
+#' }
+#'
 #' @param extraction A [gr_extract()] result, or a data frame shaped like its
 #'   `$table`.
 #' @param question The review question. Taken from `protocol` if omitted.
@@ -178,11 +212,19 @@
 #'   check, and nothing is left out. The default is untested: it follows the
 #'   rule that a claim should rest on what the documents were found to say,
 #'   and no benchmark has compared the two.
+#' @param moderators The columns you expected, before reading, to explain a
+#'   disagreement between studies: a character vector of column names, or
+#'   `NULL` (the default) for none. A claim's moderator is "declared" when it
+#'   is one of these, and is then tested with the others for multiplicity
+#'   (Holm). Any other moderator the model names is "exploratory", and so is
+#'   any split of one study against one. See "Moderators" below. Naming a
+#'   column changes nothing that is sent.
 #' @return An object of class `gr_claims`:
 #'   \describe{
 #'     \item{`claims`}{One row per claim: `claim_id`, `claim`, `kind`,
-#'       `moderator`, `scope`, `n_support`, `n_contradict`, `sign_p`,
-#'       `low_power`, `note`. `sign_p` is the exact two-sided sign test of the
+#'       `moderator`, `moderator_status` (`"declared"`, `"exploratory"` or
+#'       NA), `scope`, `n_support`, `n_contradict`, `sign_p`, `low_power`,
+#'       `note`. `sign_p` is the exact two-sided sign test of the
 #'       claim's direction tally, `n_support` of `n_support + n_contradict`
 #'       studies: 5 of 5 gives 0.0625. `low_power` is `TRUE` when the tally is
 #'       5 studies or fewer, so that no split of it can reach p < 0.05. See
@@ -203,6 +245,12 @@
 #'       (`"verified"`, `"unverified"` or `"not reported"`) and `quote` (the
 #'       verified quote, else the closest one given, else `NA`). Empty for a
 #'       bare table, which carries no quotes.}
+#'     \item{`moderators`}{One row per claim that names a moderator:
+#'       `claim_id`, `moderator`, `declared`, `exploratory`, `n_support` and
+#'       `n_contradict` (the studies on each side that report it),
+#'       `fisher_p`, `min_p` and `holm_p`. See "Moderators" below.}
+#'     \item{`declared`}{The `moderators` named in advance that the model
+#'       was shown.}
 #'     \item{`unverified`}{The unverified values, listed apart: `study`,
 #'       `document`, `field`, `value`, `quote` and `shown`, whether the
 #'       prompt showed them (`unverified = "include"`).}
@@ -229,8 +277,12 @@
 gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NULL,
                       model = NULL, temperature = NULL, max_claim_tokens = 1600L,
                       include_unclear = FALSE, trace = NULL, bib = NULL, effort = NULL,
-                      unverified = c("exclude", "include")) {
+                      unverified = c("exclude", "include"), moderators = NULL) {
   unverified <- match.arg(unverified)
+  if (!is.null(moderators) && (!is.character(moderators) || anyNA(moderators))) {
+    gr_abort("`moderators` must be NULL or a character vector of column names.",
+             class = "gr_bad_setting")
+  }
   tab <- if (inherits(extraction, "gr_extraction")) extraction$table else extraction
   if (!is.data.frame(tab) || !nrow(tab)) {
     gr_abort("`extraction` must be a gr_extraction, or a data frame shaped like its $table.",
@@ -301,6 +353,20 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   withheld <- withheld_values(values, identical(unverified, "exclude"))
   shown <- blank_withheld(used, withheld)
   rendered <- render_studies(used, hide = hidden, values = values, withhold = withheld)
+  # A moderator declared in advance must be a column the model is shown; one
+  # that is not could never be named, and would read as tested and absent.
+  declared <- unique(as.character(moderators))
+  stray <- setdiff(declared, study_fields(used, hide = hidden))
+  if (length(stray)) {
+    gr_warn(sprintf(paste0("`moderators` names %s, which %s not a column the claims model is ",
+                           "shown, so no claim can name %s; %s ignored."),
+                    paste0("'", stray, "'", collapse = ", "),
+                    if (length(stray) == 1L) "is" else "are",
+                    if (length(stray) == 1L) "it" else "them",
+                    if (length(stray) == 1L) "it is" else "they are"),
+            class = "gr_moderator_unknown")
+    declared <- setdiff(declared, stray)
+  }
   # "never": claims_batch() sends the question once.
   overhead <- prompt_overhead(question, .gr_prompts$claims_system, "never")
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
@@ -377,7 +443,8 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
                    "There is nothing for gr_outline() or gr_synthesise(claims = ) to work from."),
             class = "gr_no_claims")
     return(new_claims(empty_claim_rows(), used, question, empty_dropped(), trace, lost_studies,
-                      hidden = hidden, values = values, unverified = unverified))
+                      hidden = hidden, values = values, unverified = unverified,
+                      declared = declared))
   }
   if (length(lost)) {
     gr_warn(lost_msg, class = if (length(cut_off)) c("gr_claims_truncated", "gr_claims_batch_failed")
@@ -396,7 +463,8 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
                    "a model citing study numbers that are not in the table."),
             class = "gr_no_claims")
     return(new_claims(empty_claim_rows(), used, question, checked$dropped, trace, lost_studies,
-                      hidden = hidden, values = values, unverified = unverified))
+                      hidden = hidden, values = values, unverified = unverified,
+                      declared = declared))
   }
   # Claims can repeat only across batches that returned some.
   final <- if (sum(vapply(raw, function(r) NROW(r) > 0L, logical(1))) > 1L) {
@@ -406,9 +474,13 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   # that told a member's two sides apart may not tell the merged claim's apart.
   # Checked again on what is actually returned.
   again <- claims_moderators(final, shown)
+  # Each moderator kept, tested: declared in advance or exploratory, with the
+  # Fisher p of its split and the smallest p its margins allow.
+  tests <- moderator_tests(again$claims, shown, declared)
+  again$claims$moderator_status <- moderator_status(again$claims, tests)
   new_claims(again$claims, used, question, rbind(checked$dropped, again$dropped), trace,
              lost_studies, hidden = hidden, unmerged = isTRUE(attr(final, "unmerged")),
-             values = values, unverified = unverified)
+             values = values, unverified = unverified, declared = declared, moderators = tests)
 }
 
 #' What a claims reply costs, for sizing batches by it.

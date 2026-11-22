@@ -8,14 +8,16 @@
 #' @noRd
 new_claims <- function(claims, used, question, dropped, trace, lost = integer(0),
                        hidden = character(0), unmerged = FALSE, values = NULL,
-                       unverified = "exclude") {
+                       unverified = "exclude", declared = character(0), moderators = NULL) {
   claims <- reindex_claims(claims)
   support <- claim_support_table(claims)
   n_sup <- vapply(claims$.support, length, integer(1))
   n_con <- vapply(claims$.contradict, length, integer(1))
   wide <- data.frame(
     claim_id = claims$claim_id, claim = claims$claim, kind = claims$kind,
-    moderator = claims$moderator, scope = claims$scope,
+    moderator = claims$moderator,
+    moderator_status = claims$moderator_status %||% rep(NA_character_, nrow(claims)),
+    scope = claims$scope,
     n_support = n_sup, n_contradict = n_con,
     # The direction tally's exact sign test, and whether the tally is too
     # small for any split of it to reach p < 0.05.
@@ -27,6 +29,8 @@ new_claims <- function(claims, used, question, dropped, trace, lost = integer(0)
                  dropped = dropped, partial = length(lost) > 0L, lost = as.integer(lost),
                  unmerged = isTRUE(unmerged), hidden = as.character(hidden),
                  values = values %||% value_status(NULL, used, character(0)),
+                 moderators = moderators %||% moderator_tests(claims[0, , drop = FALSE], used),
+                 declared = as.character(declared),
                  unverified = claims_unverified(values, unverified),
                  trace = trace), class = "gr_claims")
 }
@@ -104,6 +108,22 @@ print.gr_claims <- function(x, ...) {
                   format_sign_p(p[i]), if (isTRUE(low[i])) " (low power)" else ""))
     }
     if (nrow(cw) > 5L) cat(sprintf("  ... and %d more\n", nrow(cw) - 5L))
+    mt <- x$moderators %||% NULL
+    if (NROW(mt)) {
+      cat(sprintf("  %d moderator(s) named, %d declared in advance; see $moderators\n",
+                  nrow(mt), sum(mt$declared)))
+      for (j in utils::head(seq_len(nrow(mt)), 5L)) {
+        cat(sprintf("    claim %d: %s, %s, %d vs %d studies, Fisher p = %s (smallest attainable %s)%s\n",
+                    mt$claim_id[j], mt$moderator[j],
+                    if (mt$exploratory[j]) "exploratory" else "declared",
+                    mt$n_support[j], mt$n_contradict[j], format_sign_p(mt$fisher_p[j]),
+                    format_sign_p(mt$min_p[j]),
+                    if (!is.na(mt$holm_p[j])) sprintf(", Holm p = %s", format_sign_p(mt$holm_p[j]))
+                    else ""))
+      }
+      cat(paste0("  assess each against the ICEMAN items (Schandelmaier et al. 2020), listed in\n",
+                 "  ?gr_claims; harnessr scores none of them\n"))
+    }
     if (any(isTRUE_vec(low))) {
       cat(paste0("  low power: a tally of 5 or fewer studies cannot reach p < 0.05 by a sign\n",
                  "  test however it falls, so read it as a count of directions, not as evidence\n",

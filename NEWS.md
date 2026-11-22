@@ -40,6 +40,20 @@
   order: the claims block lists them, and assigns their sentence budgets, by
   the new rank.
 
+* `gr_claims()` gains `moderators`, last: the columns you expected, before
+  reading, to explain a disagreement. Each moderator a claim names is now
+  tested, in `$moderators`: `declared` (named in `moderators`) or
+  `exploratory` (not declared, or one study against one), Fisher's exact
+  `fisher_p` of the split, `min_p`, the smallest p a split with those numbers
+  of studies can give, and `holm_p`, Holm's adjustment over the declared
+  moderators. `$claims` gains `moderator_status`. `print()` and the audit
+  report give the tests and list the ICEMAN items (Schandelmaier et al.
+  2020) to assess each moderator against; harnessr scores none of them. The
+  writing prompt marks an exploratory moderator, `distinguished by: design
+  (exploratory)`, which changes what is sent at the default settings for a
+  section whose claims name a moderator, since with no `moderators` declared
+  every moderator is exploratory.
+
 ## Checking the search, the files and the screening
 
 * New `gr_search_recall(records, known, tier, held_out)` measures a search

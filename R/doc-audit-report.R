@@ -788,6 +788,7 @@ audit_claims <- function(synthesis, claims = NULL) {
     "<h3>Every claim, study by study</h3>",
     html_table(detail, numeric_cols = c("claim_id", "study"),
                flag = list(role = function(v) v == "contradicts")),
+    audit_moderators(cm),
     audit_unverified(cm),
     if (nrow(cm$dropped))
       c("<h3>Removed or cleared in verification</h3>",
@@ -797,6 +798,32 @@ audit_claims <- function(synthesis, claims = NULL) {
                        "the others took a study number or a moderator off a claim that was ",
                        "kept.</p>")),
         html_table(cm$dropped)))
+}
+
+#' The moderators the claims name, tested (moderator_tests()), and the ICEMAN
+#' items a person should assess them against. NULL when no claim names one,
+#' or for a claims table made before the test.
+#' @noRd
+audit_moderators <- function(cm) {
+  mt <- cm$moderators %||% NULL
+  if (!NROW(mt)) return(NULL)
+  show <- mt
+  for (col in c("fisher_p", "min_p", "holm_p")) show[[col]] <- format_sign_p(show[[col]])
+  c("<h3>Moderators</h3>",
+    sprintf(paste0("<p class='sub'>%d claim(s) name a field that separates the supporting from ",
+                   "the contradicting studies; %d of those fields were declared in advance. ",
+                   "fisher_p is Fisher's exact test of the split, two-sided, and min_p the ",
+                   "smallest p a split with those numbers of studies can give; holm_p adjusts ",
+                   "the declared ones for their number. A moderator not declared, or splitting ",
+                   "one study from one, is exploratory. These compare directions between ",
+                   "studies; they are not tests of an interaction on effect sizes.</p>"),
+            nrow(mt), sum(isTRUE_vec(mt$declared))),
+    html_table(show, numeric_cols = c("claim_id", "n_support", "n_contradict"),
+               flag = list(exploratory = function(v) v %in% c("TRUE", TRUE))),
+    paste0("<p class='sub'>Assess each moderator you rely on against these ICEMAN items ",
+           "(Schandelmaier et al. 2020). harnessr scores none of them; the last column says ",
+           "what it reports that bears on each.</p>"),
+    html_table(.gr_iceman_items))
 }
 
 #' The extracted values whose quotes did not verify, as the claims stage

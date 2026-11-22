@@ -515,6 +515,8 @@ render_claims <- function(cw, support, weights, collapse = TRUE, prominence = NU
     tier[seq_len(n_top)] <- "two or three sentences"
     if (n_mid > 0L) tier[n_top + seq_len(n_mid)] <- "one or two sentences"
   }
+  # `%||%` for claims drawn before moderators were tested.
+  status <- cw$moderator_status %||% rep(NA_character_, n)
   ids <- function(id, role) {
     v <- sort(support$study[support$claim_id == id & support$role == role])
     if (!length(v)) return(NULL)
@@ -526,7 +528,9 @@ render_claims <- function(cw, support, weights, collapse = TRUE, prominence = NU
             cw$claim[i],
             sprintf("supported by: %s", ids(id, "supports")),
             if (cw$n_contradict[i]) sprintf("contradicted by: %s", ids(id, "contradicts")),
-            if (!is.na(cw$moderator[i])) sprintf("distinguished by: %s", cw$moderator[i]),
+            if (!is.na(cw$moderator[i]))
+              sprintf("distinguished by: %s%s", cw$moderator[i],
+                      if (identical(status[i], "exploratory")) " (exploratory)" else ""),
             if (cw$n_contradict[i] && is.na(cw$moderator[i]))
               "the disagreement is not explained by anything in the table",
             if (!is.na(cw$scope[i])) sprintf("scope: %s", cw$scope[i])),
