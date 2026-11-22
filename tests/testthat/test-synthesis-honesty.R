@@ -421,6 +421,19 @@ test_that("an uncited 63% in a 40-number pool is unbacked; n = 236 linked to its
   expect_identical(s$sections$n_unbacked, 1L)
 })
 
+test_that("a field named for one figure does not back another in the sentence", {
+  cl <- gr_mock_client(function(m, p) {
+    "In the largest trial (n = 410), 57 participants dropped out."
+  })
+  tab <- figure_table()
+  s <- suppressWarnings(gr_synthesise(tab, question = "Q?",
+                                      outline = c(Findings = "What"), client = cl))
+  fig <- s$figures[s$figures$stage == "draft", ]
+  expect_true(fig$backed[fig$number == "410"])
+  expect_false(fig$backed[fig$number == "57"])
+  expect_true(is.na(fig$field[fig$number == "57"]))
+})
+
 test_that("the chance of a coincidental match grows with the pool and shrinks with digits", {
   ch <- ns$figure_chance(c("63", "236", "300", "0.45", "45.2"), c(1, 1, 1, 1, 1), 40)
   expect_equal(ch, 1 - (1 - 1 / c(90, 900, 900, 90, 900))^40)
@@ -429,6 +442,14 @@ test_that("the chance of a coincidental match grows with the pool and shrinks wi
   expect_false(ns$figure_field_named("Of 236 people, few left.", "n"))
   expect_true(ns$figure_field_named("The sample size was 236.", "sample_size"))
   expect_false(ns$figure_field_named("The sample was 236.", "sample_size"))
+  # Named for the figure itself, not anywhere in the sentence.
+  s1 <- "In the largest trial (n = 410), 57 participants dropped out."
+  expect_true(ns$figure_field_named(s1, "n", "410"))
+  expect_false(ns$figure_field_named(s1, "n", "57"))
+  expect_true(ns$figure_field_named("The largest trial had n = 1,236.", "n", "1,236"))
+  s2 <- "The sample size was 1,236, and 57 people left."
+  expect_true(ns$figure_field_named(s2, "sample_size", "1,236"))
+  expect_false(ns$figure_field_named(s2, "sample_size", "57"))
 })
 
 # --- Uncited studies: a count, never a quota --------------------------------

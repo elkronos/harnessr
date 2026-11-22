@@ -528,21 +528,45 @@ figure_chance <- function(value, forms, pool) {
   out
 }
 
-#' Whether a sentence names a field: "n = 236" or "n: 236" for a one-letter
-#' field, else every word of the field's name of three letters or more
-#' ("sample_size" in "the sample size was 236").
+#' Whether a sentence names a field for a figure: "n = 236" or "n: 236" for
+#' a one-letter field, else every word of the field's name of three letters or
+#' more ("sample_size" in "the sample size was 236"). With `written`, the
+#' figure as the sentence writes it, the name must belong to that figure: a
+#' short field written just before it ("n = 410" names 410, not the 57 later
+#' in the sentence), a longer one in the same clause (the text between the
+#' commas, semicolons or brackets around it). Without, anywhere in the
+#' sentence.
 #' @noRd
-figure_field_named <- function(sentence, field) {
-  low <- lower_text(sentence)
+figure_field_named <- function(sentence, field, written = NULL) {
+  low <- lower_text(gsub("\u00a0", " ", sentence, fixed = TRUE))
   words <- strsplit(lower_text(gsub("[_.]+", " ", field)), "[[:space:]]+")[[1]]
   words <- words[nzchar(words)]
   if (!length(words)) return(FALSE)
-  if (length(words) == 1L && nchar(words) <= 2L) {
-    return(grepl(sprintf("\\b%s[[:space:]]*[=:]", words), low, perl = TRUE))
+  short <- length(words) == 1L && nchar(words) <= 2L
+  if (!short) words <- words[nchar(words) >= 3L]
+  if (!length(words)) return(FALSE)
+  has_words <- function(x) {
+    all(vapply(words, function(w) grepl(paste0("\\b", w), x, perl = TRUE), logical(1)))
   }
-  words <- words[nchar(words) >= 3L]
-  length(words) > 0L &&
-    all(vapply(words, function(w) grepl(paste0("\\b", w), low, perl = TRUE), logical(1)))
+  if (is.null(written)) {
+    if (short) return(grepl(sprintf("\\b%s[[:space:]]*[=:]", words), low, perl = TRUE))
+    return(has_words(low))
+  }
+  fig <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", lower_text(gsub("\u00a0", " ", written,
+                                                                     fixed = TRUE)))
+  if (short) {
+    return(grepl(sprintf("\\b%s[[:space:]]*[=:][[:space:]]*%s(?![0-9])", words, fig), low,
+                 perl = TRUE))
+  }
+  at <- gregexpr(sprintf("(?<![0-9.])%s(?![0-9])", fig), low, perl = TRUE)[[1]]
+  if (at[1] < 0L) return(FALSE)
+  # A comma inside a number ("1,200") does not end a clause.
+  cuts <- c(0L, gregexpr("[;()]|,(?![0-9])", low, perl = TRUE)[[1]], nchar(low) + 1L)
+  cuts <- sort(unique(cuts[cuts >= 0L]))
+  any(vapply(as.integer(at), function(pos) {
+    from <- max(cuts[cuts < pos]); to <- min(cuts[cuts > pos])
+    has_words(substr(low, from + 1L, to - 1L))
+  }, logical(1)))
 }
 
 #' Check every figure in a write-up against what its sentence was written from.
@@ -737,8 +761,10 @@ synth_figures <- function(sections, final, used, rendered, question, claims = NU
         # 40 numbers more often than not. It counts only when that chance is
         # small, or when the sentence names the field the figure matched
         # ("n = 236" and a field `n` of 236).
+        # Named for this figure, not anywhere in the sentence: "In the largest
+        # trial (n = 410), 57 dropped out" names n for 410, not for 57.
         named <- hit[vapply(sub(" \\(study [^)]*\\)$", "", hit), figure_field_named,
-                            logical(1), sentence = sentence)]
+                            logical(1), sentence = joined, written = f$written[k])]
         if (length(named) || isTRUE(chance[k] < 0.05)) {
           field[k] <<- if (length(named)) paste(named, collapse = "; ")
                        else if (length(hit)) paste(hit, collapse = "; ") else NA_character_

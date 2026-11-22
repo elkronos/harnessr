@@ -364,8 +364,10 @@
 #' evenly, so it is a yardstick, not a measured probability. A sentence that
 #' cites nothing is checked against every row its section was shown, where
 #' matches by chance are common, so a figure found there counts only when
-#' its `chance` is below 0.05 or the sentence names the field it matched
-#' ("n = 236" for a field `n` of 236). An uncited "63%" among 40 numbers,
+#' its `chance` is below 0.05 or the sentence names, for that figure, the
+#' field it matched ("n = 236" for a field `n` of 236; a one-letter field
+#' just before the figure, a longer name in the same clause, so "(n = 410),
+#' 57 dropped out" names `n` for 410 and not for 57). An uncited "63%" among 40 numbers,
 #' with a chance of about 0.59, is unbacked; and a figure qualified by
 #' "about" or "more than" counts as near a row's value only in a sentence
 #' that cites the row.
