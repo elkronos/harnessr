@@ -104,7 +104,7 @@ table(s$stage)
 #>   evaluate    extract     ingest    options       read     screen    segment 
 #>         22          9         19         34         40         30         14 
 #> synthesise 
-#>         27 
+#>         28 
 s[s$tier == "basic", c("stage", "name", "default")]
 #>          stage           name                         default
 #> 1       ingest            ocr                            auto
@@ -136,24 +136,24 @@ s[s$tier == "basic", c("stage", "name", "default")]
 #> 106    extract        resolve                           first
 #> 107    extract  require_quote                           FALSE
 #> 113 synthesise          model                            NULL
-#> 120 synthesise   max_sections                               6
-#> 127 synthesise          model                            NULL
-#> 131 synthesise     cite_style                            auto
-#> 133 synthesise      coherence                           FALSE
-#> 140   evaluate           runs                               5
-#> 141   evaluate         scorer               hr_scorer_exact()
-#> 143   evaluate       governor                            NULL
-#> 147   evaluate           conf                            0.95
-#> 150   evaluate         method                            auto
-#> 154   evaluate           mode                          select
-#> 155   evaluate          model                            NULL
-#> 156   evaluate         orders                               2
-#> 159   evaluate        recipes c("fast", "needle", "thorough")
-#> 162    options        verbose                            TRUE
-#> 164    options          model                   gpt-5.6-terra
-#> 177    options      cache_dir                            NULL
-#> 181    options   max_cost_usd                               5
-#> 182    options      max_calls                             400
+#> 121 synthesise   max_sections                               6
+#> 128 synthesise          model                            NULL
+#> 132 synthesise     cite_style                            auto
+#> 134 synthesise      coherence                           FALSE
+#> 141   evaluate           runs                               5
+#> 142   evaluate         scorer               hr_scorer_exact()
+#> 144   evaluate       governor                            NULL
+#> 148   evaluate           conf                            0.95
+#> 151   evaluate         method                            auto
+#> 155   evaluate           mode                          select
+#> 156   evaluate          model                            NULL
+#> 157   evaluate         orders                               2
+#> 160   evaluate        recipes c("fast", "needle", "thorough")
+#> 163    options        verbose                            TRUE
+#> 165    options          model                   gpt-5.6-terra
+#> 178    options      cache_dir                            NULL
+#> 182    options   max_cost_usd                               5
+#> 183    options      max_calls                             400
 gr_settings_table("synthesise")[, c("name", "default", "status")]
 #>                  name                                   default   status
 #> 1               model                                      NULL     <NA>
@@ -161,26 +161,27 @@ gr_settings_table("synthesise")[, c("name", "default", "status")]
 #> 3    max_claim_tokens                                      1600     <NA>
 #> 4     include_unclear                                     FALSE     <NA>
 #> 5              effort                                      NULL     <NA>
-#> 6               model                                      NULL     <NA>
-#> 7         temperature                                      NULL     <NA>
-#> 8        max_sections                                         6     <NA>
-#> 9             closing                           What is missing     <NA>
-#> 10 max_outline_tokens                                      NULL     <NA>
-#> 11             effort                                      NULL     <NA>
-#> 12       alternatives                                         1     <NA>
-#> 13          max_cells                                        40     <NA>
-#> 14       min_reported                                       0.5     <NA>
-#> 15              model                                      NULL     <NA>
-#> 16 max_section_tokens                                      1200     <NA>
-#> 17        temperature                                      NULL     <NA>
-#> 18    include_unclear                                     FALSE     <NA>
-#> 19         cite_style                                      auto     <NA>
-#> 20              style                                      NULL     <NA>
-#> 21          coherence                                     FALSE untested
-#> 22         references                                      TRUE     <NA>
-#> 23             effort                                      NULL     <NA>
-#> 24   coherence_rounds                                         1 untested
-#> 25       figure_bands c(about = 0.1, over = 0.25, under = 0.25) untested
-#> 26         prominence                c(top = 1/3, middle = 1/3) untested
-#> 27      study_weights                                      NULL     <NA>
+#> 6          unverified                                   exclude untested
+#> 7               model                                      NULL     <NA>
+#> 8         temperature                                      NULL     <NA>
+#> 9        max_sections                                         6     <NA>
+#> 10            closing                           What is missing     <NA>
+#> 11 max_outline_tokens                                      NULL     <NA>
+#> 12             effort                                      NULL     <NA>
+#> 13       alternatives                                         1     <NA>
+#> 14          max_cells                                        40     <NA>
+#> 15       min_reported                                       0.5     <NA>
+#> 16              model                                      NULL     <NA>
+#> 17 max_section_tokens                                      1200     <NA>
+#> 18        temperature                                      NULL     <NA>
+#> 19    include_unclear                                     FALSE     <NA>
+#> 20         cite_style                                      auto     <NA>
+#> 21              style                                      NULL     <NA>
+#> 22          coherence                                     FALSE untested
+#> 23         references                                      TRUE     <NA>
+#> 24             effort                                      NULL     <NA>
+#> 25   coherence_rounds                                         1 untested
+#> 26       figure_bands c(about = 0.1, over = 0.25, under = 0.25) untested
+#> 27         prominence                c(top = 1/3, middle = 1/3) untested
+#> 28      study_weights                                      NULL     <NA>
 ```

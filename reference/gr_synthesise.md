@@ -91,7 +91,9 @@ gr_synthesise(
   matching forgives. A rendered citation is therefore a fact about the
   extraction rather than something the model asserted.
   `$sections$text_marked` and `$text_marked` keep the marker form so the
-  check can be re-run on the published prose.
+  check can be re-run on the published prose:
+  [`gr_recheck()`](https://elkronos.github.io/harnessr/reference/gr_recheck.md)
+  runs it, and renders the citations again, on an edited copy.
 
 - bib:
 
@@ -261,25 +263,29 @@ gr_synthesise(
 
   How much of the writing prompt's sentence budget the claims of a
   section get, by rank: `c(top = , middle = )`, the shares of a
-  section's claims (ranked by how many studies, and how much weight,
-  stand behind them) asked for "two or three sentences" and "one or two
-  sentences"; the rest get "one sentence", and a section of three claims
-  or fewer gives each "two or three". Default
+  section's claims (ranked by the sign test of their direction tally,
+  lowest p first, with a claim more of whose studies contradict it than
+  support it last, then by the weight of the studies behind them; see
+  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+  "Direction of effect") asked for "two or three sentences" and "one or
+  two sentences"; the rest get "one sentence", and a section of three
+  claims or fewer gives each "two or three". Default
   `c(top = 1/3, middle = 1/3)`, thirds, set when claims were added and
   untested. Each share is in \[0, 1\] and the two add up to at most 1.
   At least one claim is always in the top tier. Used only with `claims`.
 
 - study_weights:
 
-  How much each study counts when claims are ranked (and so which tier
-  each claim gets, see `prominence`): `NULL` (the default) for the
-  package's weight, `0.5 + 0.5 * size + 0.5 * filled`, where `size` is
-  `log1p(n)` over its largest value (the mean of the known ones when `n`
-  is missing) and `filled` the share of a row's filled cells whose
-  quotations verified (0.5 when unknown). That formula is untested, and
-  is not a quality score. Or a function of the studies table (the
-  extraction's included rows, with a `study` column of ids) returning
-  one non-negative number per row. Used only with `claims`.
+  How much each study counts when claims are ranked, among claims whose
+  sign tests tie (and so which tier each claim gets, see `prominence`):
+  `NULL` (the default) for the package's weight,
+  `0.5 + 0.5 * size + 0.5 * filled`, where `size` is `log1p(n)` over its
+  largest value (the mean of the known ones when `n` is missing) and
+  `filled` the share of a row's filled cells whose quotations verified
+  (0.5 when unknown). That formula is untested, and is not a quality
+  score. Or a function of the studies table (the extraction's included
+  rows, with a `study` column of ids) returning one non-negative number
+  per row. Used only with `claims`.
 
 ## Value
 
@@ -372,8 +378,64 @@ An object of class `gr_synthesis`:
   for the revised text when a kept revision pass changed it), `section`
   (the heading it stands under), `sentence`, `number` (as written),
   `studies` (the studies the sentence cites, comma-joined, or NA),
-  `backed`, and `basis`, what it was found in (NA when it was not). See
-  "Figures" below.
+  `backed`, `basis`, what it was found in (NA when it was not), `field`,
+  the extracted field it reports, as `"n (study 2)"`, when a row's own
+  value of that field is the figure, `pool`, how many distinct values
+  the rows it was checked against hold, and `chance`, the chance of a
+  match among that many by coincidence. See "Figures" below.
+
+- `sentences`:
+
+  Every sentence of the text as published, linked to the records it
+  rests on: `section`, `sentence`, `studies` (the studies it cites,
+  comma-joined, or NA), `verified` (those of them that are verified
+  records: studies with at least one value whose quote verified),
+  `linked` (`TRUE` when it cites at least one verified record; `NA` when
+  the table cannot say) and `flag`: `"cites no study"`,
+  `"cites no verified record"`, or NA. A flag marks nothing partial; it
+  says where to look. With a bare table, a study is a verified record
+  when `n_filled` is above `n_unverified`.
+
+- `uncited`:
+
+  The studies the text as published cites nowhere, from the final cited
+  set (the one the reference list follows): `study`, `document`,
+  `document_id` and `shown`, whether any section's prompt held the
+  study. A study shown and left uncited is one the writer passed over;
+  one not shown was never in front of it. A count, not a quota: nothing
+  asks that every study be cited.
+
+- `contradictions`:
+
+  With `claims`, sentences that state a claim and cite a study on its
+  contradicting side with no hedge ("may", "suggest") and no word of
+  contrast ("however", "mixed"): `section`, `sentence`, `claim_id`,
+  `study`. A sentence states a claim when it stands in a section the
+  claim was given (any claim, under a heading the write-up did not
+  have), points in the claim's direction in one of its clauses and
+  shares at least two content words with it. Found by counting words,
+  with no model; a flag says where to look, and marks nothing partial.
+
+- `section_studies`:
+
+  The studies each section was shown: `section`, `study`.
+  [`gr_recheck()`](https://elkronos.github.io/harnessr/reference/gr_recheck.md)
+  reads it.
+
+- `closing`,`style`,`figure_bands`,`bib_columns`:
+
+  The closing section, the `style` and `figure_bands` given, and the
+  bibliographic columns the run used, which
+  [`gr_recheck()`](https://elkronos.github.io/harnessr/reference/gr_recheck.md)
+  reads.
+
+- `values`:
+
+  Each extracted value of the studies with its check and quote, as
+  `$values` of
+  [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md).
+  The writing prompts show each value with these, the unverified ones
+  marked as such.
 
 - `studies`:
 
@@ -449,10 +511,31 @@ every number in every sentence is looked for in what the writer was
 shown for that sentence: the rows it cites, as the writing prompt showed
 them; the question, the section's heading and brief, `style`, and the
 gaps a closing section was given; and with `claims`, the claims given to
-the section that rest on a cited study. A sentence that cites nothing is
-checked against every row its section was shown. This runs on the draft,
-and again on the revised text when a kept revision pass changed it; it
-sends nothing, so it is always on, and it changes no request.
+the section that rest on a cited study. This runs on the draft, and
+again on the revised text when a kept revision pass changed it; it sends
+nothing, so it is always on, and it changes no request.
+
+Each figure found in a row is linked to the field it reports where it
+can: `field` names the field, and the study, whose own value is the
+figure. Each figure also carries `pool`, how many distinct values the
+rows it was checked against hold, and `chance`, the chance that one of
+them matches it by coincidence: `1 - (1 - m / N)^pool`, with `N` the
+count of numbers with as many significant digits as the figure (90 for
+"63") and `m` the forms it is compared in (2 for "63%"). That takes the
+values to be spread evenly, so it is a yardstick, not a measured
+probability. A sentence that cites nothing is checked against every row
+its section was shown, where matches by chance are common, so a figure
+found there counts only when its `chance` is below 0.05 or the sentence
+names, for that figure, the field it matched ("n = 236" for a field `n`
+of 236; a one-letter field just before the figure, a longer name in the
+same clause, so "(n = 410), 57 dropped out" names `n` for 410 and not
+for 57). An uncited "63%" among 40 numbers, with a chance of about 0.59,
+is unbacked; and a figure qualified by "about" or "more than" counts as
+near a row's value only in a sentence that cites the row.
+
+The check is diagnostic only. `backed` marks no section partial, stops
+nothing, and is not a measure of accuracy: no benchmark has validated it
+against a person checking the figures.
 
 A figure counts as found in any form a faithful copy may give it: `.61`
 for 0.61, `45.20` for 45.2, `1204` for 1,204, `12 450` for 12,450
@@ -496,7 +579,9 @@ whether its citations can be trusted, and those are checked apart.
 
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
 [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
-[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md),
+[`gr_recheck()`](https://elkronos.github.io/harnessr/reference/gr_recheck.md)
+to check and render an edited `text_marked` again
 
 ## Examples
 
@@ -515,8 +600,8 @@ cl <- gr_mock_client(function(messages, params) {
 f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised trial. We enrolled 120 people.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1bc21b5b8072.txt
-#> Extracting 'file1bc21b5b8072.txt' with the 'txt' extractor.
+#> [1/1] file1c507d11806e.txt
+#> Extracting 'file1c507d11806e.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).

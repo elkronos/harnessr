@@ -240,7 +240,7 @@ change with
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md).
 The [settings
 reference](https://elkronos.github.io/harnessr/articles/settings.html)
-lists all 195 with their defaults, and
+lists all 196 with their defaults, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
 returns them in R.
 
@@ -251,7 +251,7 @@ returns them in R.
 | read | 40 | `reader`, `model`, `top_k`, `cite`, `verify` | [reader](https://elkronos.github.io/harnessr/articles/readers.html#set-reader), [`top_k`](https://elkronos.github.io/harnessr/articles/readers.html#set-top-k), [`mmr`](https://elkronos.github.io/harnessr/articles/readers.html#set-mmr), [checks](https://elkronos.github.io/harnessr/articles/readers.html#set-verify), [effort](https://elkronos.github.io/harnessr/articles/readers.html#set-effort) |
 | screen | 30 | `screen_tokens`, `recall_target`, `conf` | [calibration](https://elkronos.github.io/harnessr/articles/review.html#set-calibration) |
 | extract | 9 | `resolve`, `require_quote` | [extraction](https://elkronos.github.io/harnessr/articles/review.html#set-extract) |
-| synthesise | 27 | `coherence`, `cite_style` | [synthesis](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) |
+| synthesise | 28 | `coherence`, `cite_style` | [synthesis](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) |
 | evaluate | 22 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html) |
 | options | 34 | `model`, `max_cost_usd`, `max_calls` | [limits](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) |
 

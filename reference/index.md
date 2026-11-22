@@ -178,6 +178,8 @@ report, with the screening measured against a hand-screened sample. See
   : What a body of work does not cover
 - [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
   : Write a review from an extraction table
+- [`gr_recheck()`](https://elkronos.github.io/harnessr/reference/gr_recheck.md)
+  : Check and render an edited write-up again
 - [`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)
   : Count what happened to every document
 - [`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)

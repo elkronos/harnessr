@@ -96,7 +96,7 @@ default came from and how to test a change.</p>
 <span><span class="co">#&gt;   read             32     8</span></span>
 <span><span class="co">#&gt;   screen           19    11</span></span>
 <span><span class="co">#&gt;   extract           6     3</span></span>
-<span><span class="co">#&gt;   synthesise       22     5</span></span>
+<span><span class="co">#&gt;   synthesise       23     5</span></span>
 <span><span class="co">#&gt;   evaluate         13     9</span></span>
 <span><span class="co">#&gt;   options          29     5</span></span></code></pre></div>
 <div class="section level2">
@@ -1257,12 +1257,12 @@ directory.</td>
 <code><a href="../reference/gr_gaps.html">gr_gaps()</a></code> and <code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code>.</p>
 <table class="table">
 <colgroup>
-<col width="4%">
 <col width="3%">
-<col width="9%">
+<col width="2%">
+<col width="7%">
 <col width="1%">
 <col width="1%">
-<col width="78%">
+<col width="83%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">setting</th>
@@ -1316,6 +1316,16 @@ one string, or a character vector named by stage, as effort in
 gr_read_spec().</td>
 </tr>
 <tr class="even">
+<td align="left"><a href="review.html#set-synthesis"><code>unverified</code></a></td>
+<td align="left"><code><a href="../reference/gr_claims.html">gr_claims()</a></code></td>
+<td align="left"><code>exclude</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">What the claims prompt does with an extracted value
+whose quote did not verify, or that came with no quote (see
+gr_extract(), “Verifying it”).</td>
+</tr>
+<tr class="odd">
 <td align="left"><code>model</code></td>
 <td align="left"><code><a href="../reference/gr_outline.html">gr_outline()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1323,7 +1333,7 @@ gr_read_spec().</td>
 <td align="left"></td>
 <td align="left">Passed to the model call.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>temperature</code></td>
 <td align="left"><code><a href="../reference/gr_outline.html">gr_outline()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1331,7 +1341,7 @@ gr_read_spec().</td>
 <td align="left"></td>
 <td align="left">Passed to the model call.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>max_sections</code></td>
 <td align="left"><code><a href="../reference/gr_outline.html">gr_outline()</a></code></td>
 <td align="left"><code>6</code></td>
@@ -1339,7 +1349,7 @@ gr_read_spec().</td>
 <td align="left"></td>
 <td align="left">Upper bound on sections, before the closing one.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>closing</code></td>
 <td align="left"><code><a href="../reference/gr_outline.html">gr_outline()</a></code></td>
 <td align="left"><code>What is missing</code></td>
@@ -1348,7 +1358,7 @@ gr_read_spec().</td>
 <td align="left">The heading of the closing section, which receives gap
 claims and anything unplaced.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>max_outline_tokens</code></td>
 <td align="left"><code><a href="../reference/gr_outline.html">gr_outline()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1356,7 +1366,7 @@ claims and anything unplaced.</td>
 <td align="left"></td>
 <td align="left">The reply limit for the outline call.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>effort</code></td>
 <td align="left"><code><a href="../reference/gr_outline.html">gr_outline()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1366,7 +1376,7 @@ claims and anything unplaced.</td>
 one string, or a character vector named by stage, as effort in
 gr_read_spec().</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>alternatives</code></td>
 <td align="left"><code><a href="../reference/gr_outline.html">gr_outline()</a></code></td>
 <td align="left"><code>1</code></td>
@@ -1374,7 +1384,7 @@ gr_read_spec().</td>
 <td align="left"></td>
 <td align="left">How many outlines to ask for, from 1 to 10.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>max_cells</code></td>
 <td align="left"><code><a href="../reference/gr_gaps.html">gr_gaps()</a></code></td>
 <td align="left"><code>40</code></td>
@@ -1383,7 +1393,7 @@ gr_read_spec().</td>
 <td align="left">Cap on reported empty combinations, which grow as the
 product of two fields’ sizes.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>min_reported</code></td>
 <td align="left"><code><a href="../reference/gr_gaps.html">gr_gaps()</a></code></td>
 <td align="left"><code>0.5</code></td>
@@ -1392,7 +1402,7 @@ product of two fields’ sizes.</td>
 <td align="left">A field missing for more than this fraction of studies
 is reported as not reported.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>model</code></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1400,7 +1410,7 @@ is reported as not reported.</td>
 <td align="left"></td>
 <td align="left">Overrides for the writing calls.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>max_section_tokens</code></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>1200</code></td>
@@ -1408,7 +1418,7 @@ is reported as not reported.</td>
 <td align="left"></td>
 <td align="left">Overrides for the writing calls.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>temperature</code></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1416,7 +1426,7 @@ is reported as not reported.</td>
 <td align="left"></td>
 <td align="left">Overrides for the writing calls.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>include_unclear</code></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>FALSE</code></td>
@@ -1424,7 +1434,7 @@ is reported as not reported.</td>
 <td align="left"></td>
 <td align="left">Write from rows whose extraction was incomplete.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>cite_style</code></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>auto</code></td>
@@ -1432,7 +1442,7 @@ is reported as not reported.</td>
 <td align="left"></td>
 <td align="left">How citations appear in the finished prose.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>style</code></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1441,7 +1451,7 @@ is reported as not reported.</td>
 <td align="left">A register instruction appended to the writing prompts,
 such as “formal academic; hedge claims; past tense for findings”.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><a href="review.html#set-synthesis"><code>coherence</code></a></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>FALSE</code></td>
@@ -1451,7 +1461,7 @@ such as “formal academic; hedge claims; past tense for findings”.</td>
 three, FALSE for none, or any of “structure” (reorder and merge), “cut”
 (remove repetition) and “register” (polish sentences) by name.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><code>references</code></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>TRUE</code></td>
@@ -1460,7 +1470,7 @@ three, FALSE for none, or any of “structure” (reorder and merge), “cut”
 <td align="left">Append a ## References section built from the studies
 the finished text actually cites.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>effort</code></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>NULL</code></td>
@@ -1470,7 +1480,7 @@ the finished text actually cites.</td>
 one string, or a character vector named by stage, as effort in
 gr_read_spec().</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><a href="review.html#set-synthesis"><code>coherence_rounds</code></a></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>1</code></td>
@@ -1480,7 +1490,7 @@ gr_read_spec().</td>
 revises the text the round before it kept, and the pass stops at the
 first round that is discarded or changes nothing.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><a href="review.html#set-synthesis"><code>figure_bands</code></a></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>c(about = 0.1, over = 0.25, under = 0.25)</code></td>
@@ -1492,7 +1502,7 @@ about (the share either way that “about 1,200” covers), over (the share
 above that “more than 1,000” covers) and under (the share below that
 “fewer than 1,000” covers).</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left"><a href="review.html#set-synthesis"><code>prominence</code></a></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>c(top = 1/3, middle = 1/3)</code></td>
@@ -1500,23 +1510,25 @@ above that “more than 1,000” covers) and under (the share below that
 <td align="left">untested</td>
 <td align="left">How much of the writing prompt’s sentence budget the
 claims of a section get, by rank: c(top = , middle = ), the shares of a
-section’s claims (ranked by how many studies, and how much weight, stand
-behind them) asked for “two or three sentences” and “one or two
-sentences”; the rest get “one sentence”, and a section of three claims
-or fewer gives each “two or three”.</td>
+section’s claims (ranked by the sign test of their direction tally,
+lowest p first, with a claim more of whose studies contradict it than
+support it last, then by the weight of the studies behind them; see
+gr_claims(), “Direction of effect”) asked for “two or three sentences”
+and “one or two sentences”; the rest get “one sentence”, and a section
+of three claims or fewer gives each “two or three”.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left"><code>study_weights</code></td>
 <td align="left"><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code></td>
 <td align="left"><code>NULL</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
-<td align="left">How much each study counts when claims are ranked (and
-so which tier each claim gets, see prominence): NULL (the default) for
-the package’s weight, 0.5 + 0.5 * size + 0.5 * filled, where size is
-log1p(n) over its largest value (the mean of the known ones when n is
-missing) and filled the share of a row’s filled cells whose quotations
-verified (0.5 when unknown).</td>
+<td align="left">How much each study counts when claims are ranked,
+among claims whose sign tests tie (and so which tier each claim gets,
+see prominence): NULL (the default) for the package’s weight, 0.5 + 0.5
+* size + 0.5 * filled, where size is log1p(n) over its largest value
+(the mean of the known ones when n is missing) and filled the share of a
+row’s filled cells whose quotations verified (0.5 when unknown).</td>
 </tr>
 </tbody>
 </table>

@@ -22,7 +22,7 @@ table(settings$stage, settings$tier)[unique(settings$stage), ]
 #>   read             32     8
 #>   screen           19    11
 #>   extract           6     3
-#>   synthesise       22     5
+#>   synthesise       23     5
 #>   evaluate         13     9
 #>   options          29     5
 ```
@@ -273,6 +273,7 @@ and
 | `max_claim_tokens` | [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md) | `1600` | advanced |  | Passed to the model call. |
 | `include_unclear` | [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md) | `FALSE` | advanced |  | Keep rows with nothing extracted. |
 | `effort` | [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md) | `NULL` | advanced |  | Reasoning effort, or NULL (the default) to send none: one string, or a character vector named by stage, as effort in gr_read_spec(). |
+| [`unverified`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) | [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md) | `exclude` | advanced | untested | What the claims prompt does with an extracted value whose quote did not verify, or that came with no quote (see gr_extract(), “Verifying it”). |
 | `model` | [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md) | `NULL` | advanced |  | Passed to the model call. |
 | `temperature` | [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md) | `NULL` | advanced |  | Passed to the model call. |
 | `max_sections` | [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md) | `6` | basic |  | Upper bound on sections, before the closing one. |
@@ -293,8 +294,8 @@ and
 | `effort` | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `NULL` | advanced |  | Reasoning effort, or NULL (the default) to send none: one string, or a character vector named by stage, as effort in gr_read_spec(). |
 | [`coherence_rounds`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `1` | advanced | untested | How many rounds each coherence pass may run: each round revises the text the round before it kept, and the pass stops at the first round that is discarded or changes nothing. |
 | [`figure_bands`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `c(about = 0.1, over = 0.25, under = 0.25)` | advanced | untested | How near a value a qualified figure must be to count as found in the check of figures (see “Figures”): a named numeric vector of about (the share either way that “about 1,200” covers), over (the share above that “more than 1,000” covers) and under (the share below that “fewer than 1,000” covers). |
-| [`prominence`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `c(top = 1/3, middle = 1/3)` | advanced | untested | How much of the writing prompt’s sentence budget the claims of a section get, by rank: c(top = , middle = ), the shares of a section’s claims (ranked by how many studies, and how much weight, stand behind them) asked for “two or three sentences” and “one or two sentences”; the rest get “one sentence”, and a section of three claims or fewer gives each “two or three”. |
-| `study_weights` | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `NULL` | advanced |  | How much each study counts when claims are ranked (and so which tier each claim gets, see prominence): NULL (the default) for the package’s weight, 0.5 + 0.5 \* size + 0.5 \* filled, where size is log1p(n) over its largest value (the mean of the known ones when n is missing) and filled the share of a row’s filled cells whose quotations verified (0.5 when unknown). |
+| [`prominence`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `c(top = 1/3, middle = 1/3)` | advanced | untested | How much of the writing prompt’s sentence budget the claims of a section get, by rank: c(top = , middle = ), the shares of a section’s claims (ranked by the sign test of their direction tally, lowest p first, with a claim more of whose studies contradict it than support it last, then by the weight of the studies behind them; see gr_claims(), “Direction of effect”) asked for “two or three sentences” and “one or two sentences”; the rest get “one sentence”, and a section of three claims or fewer gives each “two or three”. |
+| `study_weights` | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `NULL` | advanced |  | How much each study counts when claims are ranked, among claims whose sign tests tie (and so which tier each claim gets, see prominence): NULL (the default) for the package’s weight, 0.5 + 0.5 \* size + 0.5 \* filled, where size is log1p(n) over its largest value (the mean of the known ones when n is missing) and filled the share of a row’s filled cells whose quotations verified (0.5 when unknown). |
 
 ## Evaluation
 
