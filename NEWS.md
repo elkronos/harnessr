@@ -27,6 +27,19 @@
   report lists them and the values the claims prompt left out. Nothing is
   marked partial for a flag.
 
+* Claims are ranked by the certainty of their direction tally, not by how
+  many studies vote. Each claim in `gr_claims()$claims` gains `sign_p`, the
+  exact two-sided sign test of `n_support` of `n_support + n_contradict`
+  studies, and `low_power`, `TRUE` for a tally of 5 studies or fewer, where
+  no split can reach p < 0.05. Sections rank their claims by `sign_p`, lowest
+  first, then by study weight, so a 5-of-5 claim now ranks above a contested
+  3-to-3 one. `print()` gives each claim's tally and p (5 of 5 prints
+  p = 0.0625) and warns of low power, citing Campbell et al. 2020 (SWiM) and
+  Boon and Thomson 2021; the audit report adds `sign_p`. This changes what is
+  sent at the default settings for a section given claims in a different
+  order: the claims block lists them, and assigns their sentence budgets, by
+  the new rank.
+
 ## Checking the search, the files and the screening
 
 * New `gr_search_recall(records, known, tier, held_out)` measures a search

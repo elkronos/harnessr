@@ -155,3 +155,44 @@ test_that("the audit report lists the unverified values and the unlinked sentenc
   expect_match(html, "Sentences and the records they rest on", fixed = TRUE)
   expect_match(html, "1 of 2 sentence(s) are linked", fixed = TRUE)
 })
+
+# --- P3-05: direction tallies and their sign test rank the claims ---------
+
+test_that("the sign test gives 5 of 5 as 0.0625, and 5 studies or fewer are low power", {
+  expect_equal(ns$sign_test(5L, 5L), 0.0625)
+  expect_equal(ns$sign_test(c(1L, 3L, 9L, 0L), c(1L, 6L, 10L, 0L)),
+               c(1, 1, stats::binom.test(9, 10)$p.value, NA))
+  expect_equal(ns$sign_test_min(c(5L, 6L)), c(0.0625, 0.03125))
+  expect_identical(ns$format_sign_p(c(0.0625, 1, NA)), c("0.0625", "1", "NA"))
+})
+
+test_that("claims are ranked by certainty, not by how many studies vote", {
+  # Claim 1: a 3-to-3 split over six studies. Claim 2: 5 of 5 agreeing.
+  # Claim 3: one study.
+  cw <- data.frame(claim_id = 1:3, claim = c("Split.", "Agreed.", "Lone."),
+                   kind = "finding", moderator = NA_character_, scope = NA_character_,
+                   n_support = c(3L, 5L, 1L), n_contradict = c(3L, 0L, 0L),
+                   stringsAsFactors = FALSE)
+  support <- data.frame(claim_id = c(rep(1L, 6), rep(2L, 5), 3L),
+                        study = c(1:6, 1:5, 7L),
+                        role = c(rep("supports", 3), rep("contradicts", 3), rep("supports", 6)),
+                        stringsAsFactors = FALSE)
+  w <- stats::setNames(rep(1, 7), 1:7)
+  expect_identical(ns$claim_order(cw, support, w), c(2L, 1L, 3L))
+  blocks <- ns$render_claims(cw, support, w, collapse = FALSE, prominence = c(top = 1/3, middle = 1/3))
+  expect_identical(attr(blocks, "claim_id"), c(2L, 1L, 3L))
+})
+
+test_that("print() gives each claim's tally and sign test, and warns of low power", {
+  tab <- data.frame(document = paste0(letters[1:5], ".pdf"), status = "ok",
+                    duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,
+                    conflicts = NA_character_, finding = "better", stringsAsFactors = FALSE)
+  cl <- gr_mock_client(function(m, p) one_claim("[1,2,3,4,5]"))
+  cm <- gr_claims(tab, question = "Q?", client = cl)
+  expect_equal(cm$claims$sign_p, 0.0625)
+  expect_true(cm$claims$low_power)
+  out <- paste(capture.output(print(cm)), collapse = "\n")
+  expect_match(out, "5 of 5 studies in its direction, sign test p = 0.0625 (low power)",
+               fixed = TRUE)
+  expect_match(out, "Campbell et al. 2020; Boon and Thomson 2021", fixed = TRUE)
+})

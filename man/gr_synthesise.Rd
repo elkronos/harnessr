@@ -195,16 +195,19 @@ this changes what \verb{$figures} reports, never a request.}
 
 \item{prominence}{How much of the writing prompt's sentence budget the
 claims of a section get, by rank: \code{c(top = , middle = )}, the shares of a
-section's claims (ranked by how many studies, and how much weight, stand
-behind them) asked for "two or three sentences" and "one or two
+section's claims (ranked by the sign test of their direction tally, lowest
+p first, then by the weight of the studies behind them; see
+\code{\link[=gr_claims]{gr_claims()}}, "Direction of effect") asked for "two or three sentences"
+and "one or two
 sentences"; the rest get "one sentence", and a section of three claims
 or fewer gives each "two or three". Default \code{c(top = 1/3, middle = 1/3)},
 thirds, set when claims were added and untested. Each share is in
 [0, 1] and the two add up to at most 1. At least one claim is always
 in the top tier. Used only with \code{claims}.}
 
-\item{study_weights}{How much each study counts when claims are ranked
-(and so which tier each claim gets, see \code{prominence}): \code{NULL} (the
+\item{study_weights}{How much each study counts when claims are ranked,
+among claims whose sign tests tie (and so which tier each claim gets, see
+\code{prominence}): \code{NULL} (the
 default) for the package's weight, \code{0.5 + 0.5 * size + 0.5 * filled},
 where \code{size} is \code{log1p(n)} over its largest value (the mean of the known
 ones when \code{n} is missing) and \code{filled} the share of a row's filled cells

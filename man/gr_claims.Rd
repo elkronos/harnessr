@@ -74,7 +74,12 @@ and no benchmark has compared the two.}
 An object of class \code{gr_claims}:
 \describe{
 \item{\code{claims}}{One row per claim: \code{claim_id}, \code{claim}, \code{kind},
-\code{moderator}, \code{scope}, \code{n_support}, \code{n_contradict}, \code{note}.}
+\code{moderator}, \code{scope}, \code{n_support}, \code{n_contradict}, \code{sign_p},
+\code{low_power}, \code{note}. \code{sign_p} is the exact two-sided sign test of the
+claim's direction tally, \code{n_support} of \code{n_support + n_contradict}
+studies: 5 of 5 gives 0.0625. \code{low_power} is \code{TRUE} when the tally is
+5 studies or fewer, so that no split of it can reach p < 0.05. See
+"Direction of effect" below.}
 \item{\code{support}}{Long: \code{claim_id}, \code{study}, \code{role} (\code{"supports"} or
 \code{"contradicts"}). Join it to \verb{$studies} to reach documents and quotes.}
 \item{\code{studies}}{The rows the claims were drawn from, numbered.}
@@ -145,6 +150,24 @@ A batch is limited by the reply as well as by the context window, because the
 reply names every study it uses: with the default \code{max_claim_tokens} a batch
 holds about 30 studies. A batch whose reply is cut off, or whose call fails,
 is reported with the number of studies it held rather than passed over.
+}
+
+\section{Direction of effect}{
+
+A claim's tally is a direction-of-effect count: how many of the studies it
+names point its way. Each claim carries the exact sign test of that count,
+the binomial probability of a split at least as uneven if each study were
+as likely to point either way, and claims are ranked by it, lowest p
+first, wherever they are ranked (\code{print()}, and the sentence budget
+\code{\link[=gr_synthesise]{gr_synthesise()}} gives each claim). The number of studies voting was the
+rank before, which put a contested 3-to-3 claim above an agreed 5-of-5 one.
+A sign test is weak: with 5 studies or fewer no split, however even or
+uneven, can reach p < 0.05, and \code{print()} warns of low power. Read such a
+tally as a count of directions, not as evidence of an effect or of none.
+This follows SWiM's guidance on vote counting by direction of effect
+(Campbell et al. 2020, BMJ 368:l6890) and Boon and Thomson (2021,
+Research Synthesis Methods 12:29-33) on direction tallies and their sign
+test.
 }
 
 \examples{

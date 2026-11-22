@@ -11,11 +11,16 @@ new_claims <- function(claims, used, question, dropped, trace, lost = integer(0)
                        unverified = "exclude") {
   claims <- reindex_claims(claims)
   support <- claim_support_table(claims)
+  n_sup <- vapply(claims$.support, length, integer(1))
+  n_con <- vapply(claims$.contradict, length, integer(1))
   wide <- data.frame(
     claim_id = claims$claim_id, claim = claims$claim, kind = claims$kind,
     moderator = claims$moderator, scope = claims$scope,
-    n_support = vapply(claims$.support, length, integer(1)),
-    n_contradict = vapply(claims$.contradict, length, integer(1)),
+    n_support = n_sup, n_contradict = n_con,
+    # The direction tally's exact sign test, and whether the tally is too
+    # small for any split of it to reach p < 0.05.
+    sign_p = sign_test(n_sup, n_sup + n_con),
+    low_power = sign_test_min(n_sup + n_con) > 0.05,
     note = claims$note, stringsAsFactors = FALSE)
   rownames(wide) <- NULL
   structure(list(claims = wide, support = support, studies = used, question = question,
@@ -41,6 +46,13 @@ claims_unverified <- function(values, mode = "exclude") {
   un$shown <- rep(identical(mode, "include"), nrow(un))
   rownames(un) <- NULL
   un
+}
+
+#' A sign test p as print() and the audit report give it: four significant
+#' digits, so 5 of 5 reads 0.0625 and 1 of 1 reads 1.
+#' @noRd
+format_sign_p <- function(p) {
+  ifelse(is.na(p), "NA", trimws(formatC(signif(p, 4), format = "g", digits = 4)))
 }
 
 #' Long form, the shape `$citations` already uses: one row per claim per study.
@@ -79,11 +91,24 @@ print.gr_claims <- function(x, ...) {
                 sum(x$claims$n_contradict > 0L & !is.na(x$claims$moderator))))
     single <- sum(x$claims$n_support == 1L)
     if (single) cat(sprintf("  %d resting on a single study\n", single))
-    for (i in seq_len(min(5L, nrow(x$claims)))) {
-      cat(sprintf("  [%d] %s\n", x$claims$claim_id[i],
-                  substr(x$claims$claim[i], 1, 96)))
+    # Ranked by certainty, as a section ranks them (claim_order()); a claims
+    # table saved before the tally existed is ranked from its counts.
+    cw <- x$claims
+    p <- cw$sign_p %||% sign_test(cw$n_support, cw$n_support + cw$n_contradict)
+    low <- sign_test_min(cw$n_support + cw$n_contradict) > 0.05
+    ord <- order(p, cw$claim_id)
+    for (i in utils::head(ord, 5L)) {
+      cat(sprintf("  [%d] %s\n", cw$claim_id[i], substr(cw$claim[i], 1, 96)))
+      cat(sprintf("      %d of %d studies in its direction, sign test p = %s%s\n",
+                  cw$n_support[i], cw$n_support[i] + cw$n_contradict[i],
+                  format_sign_p(p[i]), if (isTRUE(low[i])) " (low power)" else ""))
     }
-    if (nrow(x$claims) > 5L) cat(sprintf("  ... and %d more\n", nrow(x$claims) - 5L))
+    if (nrow(cw) > 5L) cat(sprintf("  ... and %d more\n", nrow(cw) - 5L))
+    if (any(isTRUE_vec(low))) {
+      cat(paste0("  low power: a tally of 5 or fewer studies cannot reach p < 0.05 by a sign\n",
+                 "  test however it falls, so read it as a count of directions, not as evidence\n",
+                 "  of an effect (Campbell et al. 2020; Boon and Thomson 2021)\n"))
+    }
   }
   if (nrow(x$dropped)) {
     cat(sprintf("  %d dropped in verification; see $dropped\n", nrow(x$dropped)))

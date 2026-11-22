@@ -747,8 +747,11 @@ audit_claims <- function(synthesis, claims = NULL) {
   # a line saying the assignment was not recorded.
   sec <- synthesis[["claim_sections", exact = TRUE]] %||% attr(synthesis$outline, "claims")
   sec_ok <- is.data.frame(sec) && all(c("section", "claim_id") %in% names(sec))
-  tab <- cm$claims[, c("claim_id", "claim", "kind", "moderator", "scope",
-                       "n_support", "n_contradict"), drop = FALSE]
+  tab <- cm$claims[, intersect(c("claim_id", "claim", "kind", "moderator", "scope",
+                                 "n_support", "n_contradict", "sign_p"), names(cm$claims)),
+                   drop = FALSE]
+  if (!is.null(tab$sign_p)) tab$sign_p <- format_sign_p(tab$sign_p)
+  low <- cm$claims$low_power %||% logical(0)
   if (sec_ok) tab$section <- as.character(sec$section)[match(tab$claim_id, sec$claim_id)]
   sup <- cm$support
   docs <- cm$studies$document[match(sup$study, cm$studies$study)]
@@ -767,6 +770,12 @@ audit_claims <- function(synthesis, claims = NULL) {
             if (open) sprintf("<span class='flag'>%d of those with nothing in the table to explain the disagreement</span>", open)
             else "<span class='ok'>each with a distinguishing field named</span>",
             lone),
+    if (any(isTRUE_vec(low)))
+      sprintf(paste0("<p class='sub'>sign_p is the exact sign test of each claim's direction ",
+                     "tally. %d claim(s) rest on 5 studies or fewer, where no tally can reach ",
+                     "p &lt; 0.05: read those as counts of directions, not as evidence of an ",
+                     "effect (Campbell et al. 2020; Boon and Thomson 2021).</p>"),
+              sum(isTRUE_vec(low))),
     lost_note,
     unmerged_note,
     if (!is.null(synthesis) && !sec_ok)

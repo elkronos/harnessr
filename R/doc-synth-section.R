@@ -2,14 +2,18 @@
 
 #' Order claims by how much of the section they have earned.
 #'
-#' Breadth first -- a claim resting on nine studies says more about a literature
-#' than one resting on one -- then the weight of the studies behind it. Contested
-#' claims count their contradicting studies too: a disagreement across six
-#' studies is more of the story than an agreement across two.
+#' By certainty first: the exact sign test of the claim's direction tally, its
+#' supporting studies out of all the studies it names (sign_test()), lowest p
+#' first. A count of votes, `n_support + n_contradict`, ranked a disagreement
+#' across six studies above an agreement across five, and put a 3-to-3 split
+#' first among claims; a direction tally says how far the studies agree, and
+#' the sign test says how unlikely that agreement is by chance (Campbell et al.
+#' 2020; Boon and Thomson 2021). Ties, which are common with few studies, are
+#' broken by the weight of the studies behind the claim, then by claim number.
 #' @noRd
 claim_order <- function(claims, support, weights) {
   if (!nrow(claims)) return(integer(0))
-  breadth <- claims$n_support + claims$n_contradict
+  certainty <- sign_test(claims$n_support, claims$n_support + claims$n_contradict)
   # A study with no weight is UNKNOWN, not weightless: it takes the mean of the
   # weights that ARE known across the table -- or 1, the middle of
   # study_weight()'s 0.5-1.5 scale, if none is. Imputing per claim instead gave a
@@ -27,7 +31,28 @@ claim_order <- function(claims, support, weights) {
     w[is.na(w)] <- neutral
     sum(w)
   }, numeric(1))
-  order(-breadth, -mass, claims$claim_id)
+  order(certainty, -mass, claims$claim_id)
+}
+
+#' The exact two-sided sign test of `k` studies in a claim's direction out
+#' of `n`: the binomial probability, with p = 0.5, of a split at least as
+#' uneven as `k` to `n - k`. 5 of 5 is 0.0625. NA where `n` is 0. Vectorised.
+#' @noRd
+sign_test <- function(k, n) {
+  k <- as.integer(k); n <- as.integer(n)
+  vapply(seq_along(k), function(i) {
+    if (is.na(n[i]) || is.na(k[i]) || n[i] < 1L) return(NA_real_)
+    min(1, 2 * stats::pbinom(min(k[i], n[i] - k[i]), n[i], 0.5))
+  }, numeric(1))
+}
+
+#' The smallest p a sign test of `n` studies can give: every study in one
+#' direction. Above 0.05 for 5 or fewer, so no tally that small can reach
+#' p < 0.05, however it falls.
+#' @noRd
+sign_test_min <- function(n) {
+  n <- as.integer(n)
+  ifelse(is.na(n) | n < 1L, NA_real_, pmin(1, 2 * 0.5^n))
 }
 
 # --- internals -------------------------------------------------------------

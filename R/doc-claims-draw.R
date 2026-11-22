@@ -122,6 +122,22 @@
 #' holds about 30 studies. A batch whose reply is cut off, or whose call fails,
 #' is reported with the number of studies it held rather than passed over.
 #'
+#' @section Direction of effect:
+#' A claim's tally is a direction-of-effect count: how many of the studies it
+#' names point its way. Each claim carries the exact sign test of that count,
+#' the binomial probability of a split at least as uneven if each study were
+#' as likely to point either way, and claims are ranked by it, lowest p
+#' first, wherever they are ranked (`print()`, and the sentence budget
+#' [gr_synthesise()] gives each claim). The number of studies voting was the
+#' rank before, which put a contested 3-to-3 claim above an agreed 5-of-5 one.
+#' A sign test is weak: with 5 studies or fewer no split, however even or
+#' uneven, can reach p < 0.05, and `print()` warns of low power. Read such a
+#' tally as a count of directions, not as evidence of an effect or of none.
+#' This follows SWiM's guidance on vote counting by direction of effect
+#' (Campbell et al. 2020, BMJ 368:l6890) and Boon and Thomson (2021,
+#' Research Synthesis Methods 12:29-33) on direction tallies and their sign
+#' test.
+#'
 #' @param extraction A [gr_extract()] result, or a data frame shaped like its
 #'   `$table`.
 #' @param question The review question. Taken from `protocol` if omitted.
@@ -165,7 +181,12 @@
 #' @return An object of class `gr_claims`:
 #'   \describe{
 #'     \item{`claims`}{One row per claim: `claim_id`, `claim`, `kind`,
-#'       `moderator`, `scope`, `n_support`, `n_contradict`, `note`.}
+#'       `moderator`, `scope`, `n_support`, `n_contradict`, `sign_p`,
+#'       `low_power`, `note`. `sign_p` is the exact two-sided sign test of the
+#'       claim's direction tally, `n_support` of `n_support + n_contradict`
+#'       studies: 5 of 5 gives 0.0625. `low_power` is `TRUE` when the tally is
+#'       5 studies or fewer, so that no split of it can reach p < 0.05. See
+#'       "Direction of effect" below.}
 #'     \item{`support`}{Long: `claim_id`, `study`, `role` (`"supports"` or
 #'       `"contradicts"`). Join it to `$studies` to reach documents and quotes.}
 #'     \item{`studies`}{The rows the claims were drawn from, numbered.}
