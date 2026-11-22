@@ -82,6 +82,30 @@
   nothing partial and sends nothing. The audit report adds `pool` and
   `chance` to its unbacked figures.
 
+* `gr_synthesise()` gains `$uncited`, the studies the text as published
+  cites nowhere, from the final cited set the reference list follows, with
+  `shown`, whether any section's prompt held the study. `print()` gives one
+  line and the audit report a table. It is a count, not a quota: nothing asks
+  that every study be cited. The result also keeps `$section_studies` (the
+  studies each section was shown), `$closing` and `$bib_columns`.
+
+* New `gr_recheck(synthesis, text_marked)` checks and renders an edited
+  write-up again. Edit `$text_marked`, the marker form, and pass it back: a
+  marker naming a row that does not exist, or a study the section under
+  whose heading it stands was not shown, is left as a marker, counted in
+  `$recheck` and warned about (`gr_recheck_citations`); the citations and
+  reference list are rendered from the edit; and `$figures` (stage
+  `"edited"`), `$sentences`, `$uncited` and `$contradictions` are worked out
+  again. Nothing is sent.
+
+* `gr_synthesise()` gains `$contradictions`: with `claims`, sentences that
+  state a claim and cite a study on its contradicting side with no hedge
+  ("may", "suggest") and no word of contrast ("however", "mixed"). A
+  sentence states a claim when it stands in a section the claim was given,
+  points in the claim's direction and shares at least two content words
+  with it. It is found by counting words, with no model; `print()` counts
+  them and the audit report lists them. Nothing is marked partial.
+
 ## Checking the search, the files and the screening
 
 * New `gr_search_recall(records, known, tier, held_out)` measures a search

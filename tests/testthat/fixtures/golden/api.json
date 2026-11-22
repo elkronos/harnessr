@@ -232,6 +232,10 @@
       "formals": [],
       "type": "function"
     },
+    "gr_recheck": {
+      "formals": ["synthesis", "text_marked = synthesis$text_marked"],
+      "type": "function"
+    },
     "gr_recipe": {
       "formals": ["name = NULL", "ingest = NULL", "segment = NULL", "read = NULL"],
       "type": "function"

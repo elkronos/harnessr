@@ -446,6 +446,8 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
                      stringsAsFactors = FALSE),
     # Which markers in THIS section must stay markers when the prose is rendered.
     unsupplied = leave,
+    # The studies this section was shown, for `$uncited` and gr_recheck().
+    shown = as.integer(shown),
     citations = if (!length(known)) NULL else
       data.frame(section = heading, study = known,
                  # A table with no `document` column is one gr_synthesise()

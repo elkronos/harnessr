@@ -65,7 +65,8 @@ name in the table, and near-misses (Smith for Smyth, 2019 for 2018) are
 both the errors that matter and the ones fuzzy matching forgives. A
 rendered citation is therefore a fact about the extraction rather than
 something the model asserted. \verb{$sections$text_marked} and \verb{$text_marked}
-keep the marker form so the check can be re-run on the published prose.}
+keep the marker form so the check can be re-run on the published prose:
+\code{\link[=gr_recheck]{gr_recheck()}} runs it, and renders the citations again, on an edited copy.}
 
 \item{bib}{Which columns carry bibliographic identity, as a named list of
 \code{citation}, \code{authors}, \code{year}, \code{title}, \code{venue}, \code{doi}. Omitted, the
@@ -293,6 +294,24 @@ quote verified), \code{linked} (\code{TRUE} when it cites at least one verified
 record; \code{NA} when the table cannot say) and \code{flag}: \code{"cites no study"}, \code{"cites no verified record"}, or NA. A flag marks nothing
 partial; it says where to look. With a bare table, a study is a
 verified record when \code{n_filled} is above \code{n_unverified}.}
+\item{\code{uncited}}{The studies the text as published cites nowhere,
+from the final cited set (the one the reference list follows):
+\code{study}, \code{document}, \code{document_id} and \code{shown}, whether any section's
+prompt held the study. A study shown and left uncited is one the
+writer passed over; one not shown was never in front of it. A count,
+not a quota: nothing asks that every study be cited.}
+\item{\code{contradictions}}{With \code{claims}, sentences that state a claim
+and cite a study on its contradicting side with no hedge ("may",
+"suggest") and no word of contrast ("however", "mixed"): \code{section},
+\code{sentence}, \code{claim_id}, \code{study}. A sentence states a claim when it
+stands in a section the claim was given, points in the claim's
+direction and shares at least two content words with it. Found by
+counting words, with no model; a flag says where to look, and marks
+nothing partial.}
+\item{\code{section_studies}}{The studies each section was shown:
+\code{section}, \code{study}. \code{\link[=gr_recheck]{gr_recheck()}} reads it.}
+\item{\code{closing},\code{bib_columns}}{The closing section and the
+bibliographic columns the run used, which \code{\link[=gr_recheck]{gr_recheck()}} reads.}
 \item{\code{values}}{Each extracted value of the studies with its check and
 quote, as \verb{$values} of \code{\link[=gr_claims]{gr_claims()}}. The writing prompts show each
 value with these, the unverified ones marked as such.}
@@ -440,5 +459,6 @@ s$sections[, c("section", "n_cited", "n_unknown", "n_unbacked")]
 s$figures[, c("number", "studies", "backed", "basis")]
 }
 \seealso{
-\code{\link[=gr_extract]{gr_extract()}}, \code{\link[=gr_protocol]{gr_protocol()}}, \code{\link[=gr_screen]{gr_screen()}}
+\code{\link[=gr_extract]{gr_extract()}}, \code{\link[=gr_protocol]{gr_protocol()}}, \code{\link[=gr_screen]{gr_screen()}}, \code{\link[=gr_recheck]{gr_recheck()}} to
+check and render an edited \code{text_marked} again
 }

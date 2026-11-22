@@ -866,6 +866,40 @@ audit_sentences <- function(synthesis) {
         html_table(bad[, c("section", "sentence", "studies", "flag"), drop = FALSE])))
 }
 
+#' The studies the published text cites nowhere (`$uncited`), and whether
+#' each was shown to a section. A count, not a quota. NULL for a synthesis
+#' made before the field.
+#' @noRd
+audit_uncited <- function(synthesis) {
+  un <- synthesis[["uncited", exact = TRUE]]
+  if (!is.data.frame(un)) return(NULL)
+  n <- nrow(synthesis$studies)
+  if (!nrow(un)) {
+    return(c("<h3>Studies the text does not cite</h3>",
+             sprintf("<p class='ok'>The text cites every one of the %d studies.</p>", n)))
+  }
+  c("<h3>Studies the text does not cite</h3>",
+    sprintf(paste0("<p class='sub'>%d of the %d studies are cited nowhere in the text as ",
+                   "published; %d of them were shown to a section. This is a count, not a ",
+                   "quota: a review need not cite every study, but one it was shown and passed ",
+                   "over is worth a look.</p>"), nrow(un), n, sum(isTRUE_vec(un$shown))),
+    html_table(un[, intersect(c("study", "document", "shown"), names(un)), drop = FALSE],
+               numeric_cols = "study"))
+}
+
+#' Sentences that cite a study contradicting the claim they state, without a
+#' hedge (`$contradictions`). NULL when there are none.
+#' @noRd
+audit_contradictions <- function(synthesis) {
+  cf <- synthesis[["contradictions", exact = TRUE]]
+  if (!is.data.frame(cf) || !nrow(cf)) return(NULL)
+  c("<h3>Citations of a contradicting study, unhedged</h3>",
+    sprintf(paste0("<p class='flag'>%d sentence(s) state a claim and cite a study that ",
+                   "contradicts it, with no hedge and no word of contrast. Found by counting ",
+                   "words, with no model: read each one.</p>"), length(unique(cf$sentence))),
+    html_table(cf, numeric_cols = c("claim_id", "study")))
+}
+
 #' What was written, and what each part of it rests on.
 #'
 #' The sections and their citation tables are the draft. A kept revision pass
@@ -1008,6 +1042,8 @@ audit_synthesis <- function(synthesis) {
                  numeric_cols = c("words_before", "words_after"))),
     audit_figures(synthesis, revised),
     audit_sentences(synthesis),
+    audit_contradictions(synthesis),
+    audit_uncited(synthesis),
     if (isTRUE(synthesis$skipped > 0L))
       sprintf(paste0("<p class='sub'>%d row(s) were left out of the write-up: a duplicate, a ",
                      "document that could not be read in full, or one with nothing ",

@@ -412,3 +412,130 @@ test_that("the chance of a coincidental match grows with the pool and shrinks wi
   expect_true(ns$figure_field_named("The sample size was 236.", "sample_size"))
   expect_false(ns$figure_field_named("The sample was 236.", "sample_size"))
 })
+
+# --- Uncited studies: a count, never a quota --------------------------------
+
+test_that("$uncited lists the studies the final text cites nowhere, and whether each was shown", {
+  tab <- figure_table()[1:4, ]
+  cl <- gr_mock_client(function(m, p) "The largest trial had 236 people [study 1]. Another had 120 [study 2].")
+  s <- suppressWarnings(gr_synthesise(tab, question = "Q?", outline = c(Findings = "What"),
+                                      client = cl))
+  expect_identical(s$uncited$study, 3:4)
+  expect_true(all(s$uncited$shown))
+  expect_identical(s$uncited$document, c("s03.pdf", "s04.pdf"))
+  expect_setequal(s$section_studies$study, 1:4)
+  out <- paste(capture.output(print(s)), collapse = "\n")
+  expect_match(out, "2 of 4 studies cited nowhere in the text, 2 of them shown to a section",
+               fixed = TRUE)
+  expect_match(out, "a count, not a quota", fixed = TRUE)
+  html <- paste(ns$audit_synthesis(s), collapse = "\n")
+  expect_match(html, "Studies the text does not cite", fixed = TRUE)
+  expect_match(html, "This is a count, not a quota", fixed = TRUE)
+})
+
+test_that("a study no section was shown is uncited and not shown", {
+  x <- honesty_extraction()
+  rc <- recording_client(function(kind, m) {
+    if (identical(kind, "claims")) return(one_claim("[1]"))
+    if (identical(kind, "outline")) {
+      return(paste0('{"sections":[{"heading":"Findings","brief":"What","claims":[1],',
+                    '"rationale":null}]}'))
+    }
+    "Trials enrolled 120 people [study 1]."
+  })
+  cm <- suppressWarnings(suppressMessages(gr_claims(x, question = "Q?", client = rc$client)))
+  o <- suppressWarnings(gr_outline(cm, client = rc$client))
+  s <- suppressWarnings(gr_synthesise(x, question = "Q?", outline = o, claims = cm,
+                                      client = rc$client))
+  expect_identical(s$uncited$study, 2L)
+  expect_false(s$uncited$shown)
+})
+
+# --- gr_recheck(): an edited text_marked checked and rendered again ---------
+
+test_that("gr_recheck() renders an edited text and checks its citations again", {
+  tab <- data.frame(document = c("a.pdf", "b.pdf", "c.pdf"), status = "ok", n_filled = 2L,
+                    n_unverified = 0L, citation = c("Smith, 2019", "Lee, 2021", "Ode, 2020"),
+                    n = c(120L, 300L, 45L), stringsAsFactors = FALSE)
+  cl <- gr_mock_client(function(m, p) "One trial enrolled 120 people [study 1].")
+  s <- suppressWarnings(gr_synthesise(tab, question = "Q?", outline = c(Findings = "Size"),
+                                      client = cl))
+  expect_identical(s$cite_style, "author-year")
+  # Unchanged, it renders as gr_synthesise() did.
+  same <- gr_recheck(s)
+  expect_identical(same$text, s$text)
+  expect_identical(same$references, s$references)
+  edited <- paste0(s$text_marked, " Another enrolled 300 people [study 2]. ",
+                   "A third enrolled 999 [study 9].")
+  warned <- tryCatch(gr_recheck(s, edited), gr_recheck_citations = function(w) "warned")
+  expect_identical(warned, "warned")
+  r <- suppressWarnings(gr_recheck(s, edited))
+  expect_identical(r$recheck$unknown, 9L)
+  expect_match(r$text, "(Lee, 2021)", fixed = TRUE)
+  expect_match(r$text, "[study 9]", fixed = TRUE)
+  expect_true(any(grepl("Lee", r$references)))
+  expect_identical(r$uncited$study, 3L)
+  expect_true("edited" %in% r$figures$stage)
+  expect_identical(attr(r$figures, "published"), "edited")
+  expect_false(r$figures$backed[r$figures$stage == "edited" & r$figures$number == "999"])
+  expect_identical(r$text_marked, edited)
+  expect_identical(r$sections, s$sections)
+  expect_error(gr_recheck(s, c("a", "b")), class = "gr_bad_synthesis")
+  expect_error(gr_recheck(list(), "a"), class = "gr_bad_synthesis")
+})
+
+test_that("gr_recheck() leaves a marker for a study the heading's section was not shown", {
+  x <- honesty_extraction()
+  rc <- recording_client(function(kind, m) {
+    if (identical(kind, "claims")) return(one_claim("[1]"))
+    if (identical(kind, "outline")) {
+      return(paste0('{"sections":[{"heading":"Findings","brief":"What","claims":[1],',
+                    '"rationale":null}]}'))
+    }
+    "Trials enrolled 120 people [study 1]."
+  })
+  cm <- suppressWarnings(suppressMessages(gr_claims(x, question = "Q?", client = rc$client)))
+  o <- suppressWarnings(gr_outline(cm, client = rc$client))
+  s <- suppressWarnings(gr_synthesise(x, question = "Q?", outline = o, claims = cm,
+                                      client = rc$client))
+  r <- suppressWarnings(gr_recheck(s, paste0(s$text_marked, " A cohort had 300 [study 2].")))
+  expect_identical(r$recheck$unsupplied, 2L)
+  expect_identical(r$recheck$unknown, integer(0))
+  expect_match(r$text, "[study 2]", fixed = TRUE)
+})
+
+# --- A contradicting study cited without a hedge --------------------------
+
+test_that("a sentence citing a contradicting study for its claim, unhedged, is flagged", {
+  tab <- data.frame(document = paste0(letters[1:3], ".pdf"), status = "ok", n_filled = 1L,
+                    n_unverified = 0L, finding = c("better", "better", "worse"),
+                    stringsAsFactors = FALSE)
+  rc <- recording_client(function(kind, m) {
+    if (identical(kind, "claims")) {
+      return(paste0('{"claims":[{"claim":"Exercise improves mood in adults.","kind":"finding",',
+                    '"supported_by":[1,2],"contradicted_by":[3],"moderator":null,"scope":null}]}'))
+    }
+    if (identical(kind, "outline")) {
+      return(paste0('{"sections":[{"heading":"Findings","brief":"What","claims":[1],',
+                    '"rationale":null}]}'))
+    }
+    paste0("Exercise improved mood in adults [study 1] [study 2] [study 3]. ",
+           "Exercise may improve mood, though one trial disagreed [study 1] [study 3]. ",
+           "Exercise did not improve mood in one trial [study 3].")
+  })
+  cm <- gr_claims(tab, question = "Q?", client = rc$client)
+  o <- suppressWarnings(gr_outline(cm, client = rc$client))
+  s <- suppressWarnings(gr_synthesise(tab, question = "Q?", outline = o, claims = cm,
+                                      client = rc$client))
+  cf <- s$contradictions
+  expect_identical(nrow(cf), 1L)
+  expect_identical(cf$study, 3L)
+  expect_identical(cf$claim_id, 1L)
+  expect_match(cf$sentence, "^Exercise improved mood in adults")
+  out <- paste(capture.output(print(s)), collapse = "\n")
+  expect_match(out, "1 sentence(s) cite a study that contradicts the claim they state", fixed = TRUE)
+  html <- paste(ns$audit_synthesis(s), collapse = "\n")
+  expect_match(html, "Citations of a contradicting study, unhedged", fixed = TRUE)
+  # Without claims there is nothing to contradict.
+  expect_identical(nrow(ns$contradiction_flags("A [study 1].", NULL)), 0L)
+})

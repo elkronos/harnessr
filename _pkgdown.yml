@@ -131,6 +131,7 @@ reference:
   - gr_outline_pick
   - gr_gaps
   - gr_synthesise
+  - gr_recheck
   - gr_flow
   - gr_audit_report
 
