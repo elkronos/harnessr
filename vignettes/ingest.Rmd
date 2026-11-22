@@ -227,10 +227,10 @@ by default, for these reasons:
 - `references` cuts everything from a line reading just "References",
   "Bibliography" or "Works cited" to the end of the document, when that line
   starts at or after 40% of the text, so a table of contents near the start
-  does not cut the document. `cleaner_opts = list(references_after = )`
+  does not cut the document. The line may be numbered ("7. References") or a
+  Markdown heading ("## References"). `cleaner_opts = list(references_after = )`
   moves that share, a number from 0 to 1. The cut loses the reference list if
-  your question is about the sources. A Markdown heading such as
-  `## References` is not such a line, so it does not trigger the cut.
+  your question is about the sources.
 
 Cleaning cannot be undone later: no reader can recover what it removes. Know
 what each choice costs before you make it.
@@ -432,8 +432,9 @@ aggregate(tokens_in ~ param.clean, bench, mean)
 hr_sweep_check(bench)
 ```
 
-On the example report, `"academic"` sends 26 fewer prompt tokens than
-`"standard"`, because it drops the caption lines, and `"none"` sends 8 more.
+On the example report, `"academic"` sends 62 fewer prompt tokens than
+`"standard"`, because it drops the caption lines and the reference list after
+the `## References` heading, and `"none"` sends 8 more.
 `hr_sweep_check()` finds that `"scan"` sent exactly the requests `"standard"`
 sent: the example has no running heads, so on it that comparison would measure
 nothing but run-to-run spread. The same check tells you whether a
@@ -447,13 +448,11 @@ hr_sweep_check(hr_benchmark(arms, qa, runs = 5, client = says, split = "dev",
                             scorer = gr_scorer_answer()))
 ```
 
-Both values sent the same requests, although the example report ends with a
-`## References` heading. The `references` cleaner cuts only at a line that
-reads "References", "Bibliography" or "Works cited" alone, optionally
-numbered, so a Markdown heading with its `#` marks is never cut, wherever it
-falls. Run the sweep on documents whose heading stands alone that way, as text
-extracted from a PDF usually does, with questions whose answers sit near the
-end.
+Both values sent the same requests. The example report's `## References`
+heading starts 94% of the way through its text, after both 40% and 80%, so
+both values cut the text at the same line. A `references_after` sweep changes
+what is sent only for a document whose heading falls between the two values.
+Run it on your own documents, with questions whose answers sit near the end.
 
 ### OCR settings {#set-ocr}
 

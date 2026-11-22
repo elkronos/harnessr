@@ -1,24 +1,24 @@
 {
   "calls": [
     {
-      "cache_key": "a55a987e64574f92e84c5c0045a7f35e534c1b98a2e577ded00ff4bbf10e2489",
-      "chars": [601, 40, 70, 1980],
+      "cache_key": "ea74d6c5d1921252bc578c2f8209d1942dee85ae481ea3e9bbecd650b9f29dcd",
+      "chars": [601, 40, 70, 1843],
       "label": "screen.decide",
-      "messages": "71f66221b7ee3b0a",
+      "messages": "515176195bc7fa01",
       "model": "mock-model",
       "params": {
         "max_output": 1500,
         "model": "mock-model",
-        "prompt_tokens": 751,
+        "prompt_tokens": 706,
         "schema_name": "screening",
         "temperature": null
       },
-      "request": "9bcc23d2d06c7a29",
+      "request": "cf6510a28ad96e91",
       "roles": ["system", "user", "user", "user"],
       "schema": "c1ebbae0985e31d3"
     }
   ],
-  "result": "598aac9bdc19bb81",
+  "result": "7f0ed97b5193e18f",
   "trace": {
     "actor": {
       "approved_by": null,
@@ -70,7 +70,7 @@
     "steps": [
       {
         "detail": {
-          "blocks": 15,
+          "blocks": 13,
           "cached": false,
           "clean_steps": [
             "page_numbers",
@@ -82,7 +82,7 @@
             "collapse_whitespace"
           ],
           "source": "annual_report.md",
-          "tokens": 541
+          "tokens": 499
         },
         "kind": "local",
         "label": "ingest",
@@ -94,17 +94,17 @@
       {
         "detail": {
           "max": 155,
-          "mean": 85.5,
-          "median": 87.5,
+          "mean": 94.8,
+          "median": 101,
           "method": "structural",
           "min": 16,
-          "n": 6,
+          "n": 5,
           "over_cap": 0,
           "settings": {
             "max_tokens": 900,
             "overlap_tokens": 90
           },
-          "total_tokens": 513
+          "total_tokens": 474
         },
         "kind": "local",
         "label": "segment",
@@ -115,7 +115,7 @@
       },
       {
         "detail": {
-          "chunks": 6,
+          "chunks": 5,
           "embed_calls": 0,
           "est_calls": 1,
           "est_cost_usd": 0,
@@ -150,7 +150,7 @@
         "params": {
           "max_output": 1500,
           "model": "mock-model",
-          "prompt_tokens": 751,
+          "prompt_tokens": 706,
           "schema_name": "screening",
           "temperature": null
         },
@@ -165,16 +165,16 @@
           "schema_name": "screening",
           "temperature": null
         },
-        "prompt": "71f66221b7ee3b0a",
+        "prompt": "515176195bc7fa01",
         "recipe": "research+screen",
-        "replay_key": "ee4cf66f60d6660eb632a27537e54180557b8cd0ef567f398361dc8ed1bb5cc1",
+        "replay_key": "31252de930b1a05891e68887d2b93aa901e0f3468fab121af37c0799fd54520d",
         "response": "40cca6177efa0bcc",
         "response_id": null,
         "served_model": null,
         "source": "annual_report.md",
         "step": 4,
         "tokens": {
-          "input": 751,
+          "input": 706,
           "output": 98,
           "provenance": "estimated"
         }
@@ -189,7 +189,7 @@
       "errors": 0,
       "steps": 4,
       "tokens_cached_in": 0,
-      "tokens_in": 751,
+      "tokens_in": 706,
       "tokens_out": 98,
       "tokens_reasoning": 0,
       "usage_estimated": 1

@@ -362,12 +362,14 @@ register_builtin_cleaners <- function() {
     description = "Drop a trailing bibliography, from a References/Bibliography heading to the end",
     fn = function(x, o) {
       # Correct version of the old one-liner. The heading must be on its own
-      # line, optionally numbered, so a mid-sentence mention of "references"
-      # is not a match; and it must start at or after `references_after` (0.4
-      # by default) of the text, that is, anywhere after the first 40%, so a
-      # References entry in a table of contents does not truncate the
-      # document. The first such heading ends the text.
-      m <- gregexpr("(?mi)^[ \t]*(?:\\d+\\.?[ \t]*)?(references|bibliography|works cited)[ \t:]*$",
+      # line, optionally numbered and optionally a Markdown heading ("##
+      # References", with or without closing # marks), so a mid-sentence
+      # mention of "references" is not a match; and it must start at or after
+      # `references_after` (0.4 by default) of the text, that is, anywhere
+      # after the first 40%, so a References entry in a table of contents
+      # does not truncate the document. The first such heading ends the text.
+      m <- gregexpr(paste0("(?mi)^[ \t]*(?:#{1,6}[ \t]+)?(?:\\d+\\.?[ \t]*)?",
+                           "(references|bibliography|works cited)[ \t:]*(?:(?<=[ \t])#+[ \t]*)?$"),
                     x, perl = TRUE)[[1]]
       if (m[1] == -1) return(x)
       after <- references_after(o)

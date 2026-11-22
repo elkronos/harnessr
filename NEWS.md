@@ -162,6 +162,21 @@ says where its default came from; almost none has a measurement behind it.
 
 ## Fixed
 
+* The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
+  cuts at a Markdown heading such as `## References` or `### 7. References`,
+  with or without closing `#` marks. It matched only a line that held the
+  word alone, so a Markdown document kept its reference list under both
+  presets. The example report ends with `## References`, so under
+  `"academic"` it now sends 62 fewer prompt tokens than under `"standard"`,
+  not 26. The `research` and `legacy` recipes send shorter requests for such a
+  document, and so do `gr_screen()` and `gr_extract()`, whose default recipe
+  is `research`: at their defaults their requests and cache keys change for a
+  Markdown document with a references heading in its last 60%, so a
+  `gr_cache()` built before this misses for those documents. The golden
+  records of the two recipes and the two stages were recorded again. Requests
+  under the `"standard"` preset, the default of `answer_document()`, do not
+  change.
+
 * `gr_claims()`, `gr_outline()`, `gr_synthesise()` and `gr_read_many()` now
   send their requests at the draw index and draw scope of the trace they are
   given. Each records on a trace of its own, which did not carry them, so its
