@@ -52,7 +52,8 @@ The triggers the core sees for itself are \code{"truncated"} (a \code{"truncate"
 step of the trace, or a reply cut off at its output cap; a cut made while
 a stage packs its requests belongs to that stage, including one made
 before its first request),
-\code{"parse_failure"} (a reply to \code{\link[=gr_call_json]{gr_call_json()}} that is not JSON) and
+\code{"parse_failure"} (a reply to a structured request, such as
+\code{ctx$call_json()}, that is not JSON) and
 \code{"schema_failure"} (one that does not fit the schema). \code{replies} names
 replies that are triggers: a named character vector from trigger to the
 text a reply starts with, such as \code{c(not_in_document = "NOT_IN_DOCUMENT")};

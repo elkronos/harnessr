@@ -39,7 +39,8 @@
 #' step of the trace, or a reply cut off at its output cap; a cut made while
 #' a stage packs its requests belongs to that stage, including one made
 #' before its first request),
-#' `"parse_failure"` (a reply to [gr_call_json()] that is not JSON) and
+#' `"parse_failure"` (a reply to a structured request, such as
+#' `ctx$call_json()`, that is not JSON) and
 #' `"schema_failure"` (one that does not fit the schema). `replies` names
 #' replies that are triggers: a named character vector from trigger to the
 #' text a reply starts with, such as `c(not_in_document = "NOT_IN_DOCUMENT")`;
