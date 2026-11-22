@@ -76,7 +76,10 @@
     "One round per pass, as before the setting existed. paper-orchestra runs up to 3 ",
     "rounds, with no recorded evidence for that number.")),
   gr_synthesise.figure_bands = ev_untested("Set when the check of figures was written."),
-  gr_synthesise.prominence = ev_untested("Thirds, set when claims were added.")
+  gr_synthesise.prominence = ev_untested("Thirds, set when claims were added."),
+  gr_claims.unverified = ev_untested(paste0(
+    "\"exclude\", so a claim rests on what the documents were found to say; not compared ",
+    "with \"include\"."))
 )
 
 #' The entries of an ingest spec's `cleaner_opts` the built-in cleaners
@@ -158,6 +161,7 @@
   synthesise.coherence_rounds = "review#set-synthesis",
   synthesise.figure_bands = "review#set-synthesis",
   synthesise.prominence = "review#set-synthesis",
+  synthesise.unverified = "review#set-synthesis",
   evaluate.governor = "runs#set-governor",
   options.max_cost_usd = "runs#set-limits", options.max_calls = "runs#set-limits",
   options.max_tokens_total = "runs#set-limits", options.max_output_tokens = "runs#set-limits",

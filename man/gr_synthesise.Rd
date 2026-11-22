@@ -278,6 +278,17 @@ changed it), \code{section} (the heading it stands under), \code{sentence}, \cod
 (as written), \code{studies} (the studies the sentence cites, comma-joined,
 or NA), \code{backed}, and \code{basis}, what it was found in (NA when it was
 not). See "Figures" below.}
+\item{\code{sentences}}{Every sentence of the text as published, linked to
+the records it rests on: \code{section}, \code{sentence}, \code{studies} (the
+studies it cites, comma-joined, or NA), \code{verified} (those of them
+that are verified records: studies with at least one value whose
+quote verified), \code{linked} (\code{TRUE} when it cites at least one verified
+record; \code{NA} when the table cannot say) and \code{flag}: \code{"cites no study"}, \code{"cites no verified record"}, or NA. A flag marks nothing
+partial; it says where to look. With a bare table, a study is a
+verified record when \code{n_filled} is above \code{n_unverified}.}
+\item{\code{values}}{Each extracted value of the studies with its check and
+quote, as \verb{$values} of \code{\link[=gr_claims]{gr_claims()}}. The writing prompts show each
+value with these, the unverified ones marked as such.}
 \item{\code{studies}}{The rows that were written from, with the \code{study} number
 each was cited by.}
 \item{\code{claims}}{The \code{\link[=gr_claims]{gr_claims()}} result written from, or \code{NULL}. When

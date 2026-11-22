@@ -1,5 +1,32 @@
 # harnessr 0.6.0.9000
 
+## Claims and the write-up: what each rests on
+
+* The claims and writing prompts now show each extracted value with its
+  check and its quote, as `n: 120 (verified quote: "We enrolled 120
+  people.")`, when they are given a `gr_extract()` result. This changes what
+  is sent at the default settings: every claims and section request made
+  from an extraction carries the quotes, so its cache and replay keys change
+  and earlier cached replies for these requests are not reused. A bare table
+  carries no quotes and is sent as before.
+
+* `gr_claims()` gains `unverified`, last. At its default, `"exclude"`, a
+  value whose quote did not verify, or that came with no quote, is left out
+  of the claims prompt, so no claim rests on it, and a study with no value
+  left is not sent. `"include"` shows them, marked unverified with the quote
+  that was given. The result gains `$values`, every value with its status
+  (`"verified"`, `"unverified"` or `"not reported"`) and quote, and
+  `$unverified`, the unverified values listed apart; `print()` counts them.
+  The default is untested.
+
+* `gr_synthesise()` shows the unverified values to the writer, marked, and
+  gains `$values` and `$sentences`: every sentence of the text as published,
+  linked to the studies it cites that are verified records (with at least
+  one value whose quote verified), or flagged as citing no study or no
+  verified record. `print()` counts the flagged sentences, and the audit
+  report lists them and the values the claims prompt left out. Nothing is
+  marked partial for a flag.
+
 ## Checking the search, the files and the screening
 
 * New `gr_search_recall(records, known, tier, held_out)` measures a search

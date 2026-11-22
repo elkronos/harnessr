@@ -779,6 +779,7 @@ audit_claims <- function(synthesis, claims = NULL) {
     "<h3>Every claim, study by study</h3>",
     html_table(detail, numeric_cols = c("claim_id", "study"),
                flag = list(role = function(v) v == "contradicts")),
+    audit_unverified(cm),
     if (nrow(cm$dropped))
       c("<h3>Removed or cleared in verification</h3>",
         sprintf(paste0("<p class='sub'>A claims table that looks thin has to be tellable from a ",
@@ -787,6 +788,46 @@ audit_claims <- function(synthesis, claims = NULL) {
                        "the others took a study number or a moderator off a claim that was ",
                        "kept.</p>")),
         html_table(cm$dropped)))
+}
+
+#' The extracted values whose quotes did not verify, as the claims stage
+#' listed them: left out of its prompt, or shown marked. `%||%` for a claims
+#' table made before the field existed.
+#' @noRd
+audit_unverified <- function(cm) {
+  un <- cm$unverified %||% NULL
+  if (!NROW(un)) return(NULL)
+  c("<h3>Values whose quotes did not verify</h3>",
+    sprintf(paste0("<p class='sub'>%d extracted value(s) came with no quote, or a quote that ",
+                   "does not state them in the document. %s</p>"),
+            nrow(un),
+            if (all(isTRUE_vec(un$shown)))
+              "They were shown to the claims model, each marked unverified."
+            else "They were left out of the claims prompt, so no claim rests on them."),
+    html_table(un[, intersect(c("study", "document", "field", "value", "quote", "shown"),
+                              names(un)), drop = FALSE],
+               numeric_cols = "study"))
+}
+
+#' The sentences of the published text that cite no verified record, from
+#' `$sentences` (sentence_links()). NULL for a synthesis made before it.
+#' @noRd
+audit_sentences <- function(synthesis) {
+  sl <- synthesis[["sentences", exact = TRUE]]
+  if (!is.data.frame(sl) || !nrow(sl)) return(NULL)
+  bad <- sl[!is.na(sl$flag), , drop = FALSE]
+  c("<h3>Sentences and the records they rest on</h3>",
+    sprintf(paste0("<p class='sub'>Each sentence of the text as published was linked to the ",
+                   "studies it cites that are verified records: studies with at least one value ",
+                   "whose quote verified. %d of %d sentence(s) are linked.%s</p>"),
+            sum(isTRUE_vec(sl$linked)), nrow(sl),
+            if (anyNA(sl$linked)) " For the rest, the table could not say which records are verified."
+            else ""),
+    if (nrow(bad))
+      c(sprintf(paste0("<p class='flag'>%d sentence(s) cite no study, or only studies with no ",
+                       "verified value. Nothing is marked partial for this; read them before ",
+                       "relying on them.</p>"), nrow(bad)),
+        html_table(bad[, c("section", "sentence", "studies", "flag"), drop = FALSE])))
 }
 
 #' What was written, and what each part of it rests on.
@@ -930,6 +971,7 @@ audit_synthesis <- function(synthesis) {
                                       "reason"), names(rep_df)), drop = FALSE],
                  numeric_cols = c("words_before", "words_after"))),
     audit_figures(synthesis, revised),
+    audit_sentences(synthesis),
     if (isTRUE(synthesis$skipped > 0L))
       sprintf(paste0("<p class='sub'>%d row(s) were left out of the write-up: a duplicate, a ",
                      "document that could not be read in full, or one with nothing ",

@@ -15,7 +15,8 @@ gr_claims(
   include_unclear = FALSE,
   trace = NULL,
   bib = NULL,
-  effort = NULL
+  effort = NULL,
+  unverified = c("exclude", "include")
 )
 }
 \arguments{
@@ -57,6 +58,17 @@ string, or a character vector named by stage, as \code{effort} in
 judgement, the stage most worth a higher effort. The reasoning counts
 against the same reply limit, so a high effort can leave a batch's reply
 cut off, which is reported as such (\code{gr_claims_truncated}).}
+
+\item{unverified}{What the claims prompt does with an extracted value whose
+quote did not verify, or that came with no quote (see \code{\link[=gr_extract]{gr_extract()}},
+"Verifying it"). \code{"exclude"} (the default) leaves it out of the prompt, so
+no claim rests on it, and lists it in \verb{$unverified}; \code{"include"} shows it,
+marked unverified with the quote that was given. Either way each value
+shown carries its check and its quote. Only a \code{\link[=gr_extract]{gr_extract()}} result
+carries the quotes: a bare table's values are shown as they are, with no
+check, and nothing is left out. The default is untested: it follows the
+rule that a claim should rest on what the documents were found to say,
+and no benchmark has compared the two.}
 }
 \value{
 An object of class \code{gr_claims}:
@@ -74,6 +86,14 @@ for a call or cost limit.}
 \item{\code{unmerged}}{\code{TRUE} when claims from several batches could not be
 reconciled, so one finding may appear as more than one claim.}
 \item{\code{hidden}}{The columns withheld from the model as bibliographic.}
+\item{\code{values}}{Each extracted value of the studies, one row per study
+and field: \code{study}, \code{document}, \code{field}, \code{value}, \code{status}
+(\code{"verified"}, \code{"unverified"} or \code{"not reported"}) and \code{quote} (the
+verified quote, else the closest one given, else \code{NA}). Empty for a
+bare table, which carries no quotes.}
+\item{\code{unverified}}{The unverified values, listed apart: \code{study},
+\code{document}, \code{field}, \code{value}, \code{quote} and \code{shown}, whether the
+prompt showed them (\code{unverified = "include"}).}
 }
 }
 \description{

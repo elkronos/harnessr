@@ -152,6 +152,16 @@
 #'   judgement, the stage most worth a higher effort. The reasoning counts
 #'   against the same reply limit, so a high effort can leave a batch's reply
 #'   cut off, which is reported as such (`gr_claims_truncated`).
+#' @param unverified What the claims prompt does with an extracted value whose
+#'   quote did not verify, or that came with no quote (see [gr_extract()],
+#'   "Verifying it"). `"exclude"` (the default) leaves it out of the prompt, so
+#'   no claim rests on it, and lists it in `$unverified`; `"include"` shows it,
+#'   marked unverified with the quote that was given. Either way each value
+#'   shown carries its check and its quote. Only a [gr_extract()] result
+#'   carries the quotes: a bare table's values are shown as they are, with no
+#'   check, and nothing is left out. The default is untested: it follows the
+#'   rule that a claim should rest on what the documents were found to say,
+#'   and no benchmark has compared the two.
 #' @return An object of class `gr_claims`:
 #'   \describe{
 #'     \item{`claims`}{One row per claim: `claim_id`, `claim`, `kind`,
@@ -167,6 +177,14 @@
 #'     \item{`unmerged`}{`TRUE` when claims from several batches could not be
 #'       reconciled, so one finding may appear as more than one claim.}
 #'     \item{`hidden`}{The columns withheld from the model as bibliographic.}
+#'     \item{`values`}{Each extracted value of the studies, one row per study
+#'       and field: `study`, `document`, `field`, `value`, `status`
+#'       (`"verified"`, `"unverified"` or `"not reported"`) and `quote` (the
+#'       verified quote, else the closest one given, else `NA`). Empty for a
+#'       bare table, which carries no quotes.}
+#'     \item{`unverified`}{The unverified values, listed apart: `study`,
+#'       `document`, `field`, `value`, `quote` and `shown`, whether the
+#'       prompt showed them (`unverified = "include"`).}
 #'   }
 #' @seealso [gr_outline()] to derive sections from these claims,
 #'   [gr_synthesise()] to write from them, [gr_gaps()] for what they do not
@@ -189,7 +207,9 @@
 #' cm$support
 gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NULL,
                       model = NULL, temperature = NULL, max_claim_tokens = 1600L,
-                      include_unclear = FALSE, trace = NULL, bib = NULL, effort = NULL) {
+                      include_unclear = FALSE, trace = NULL, bib = NULL, effort = NULL,
+                      unverified = c("exclude", "include")) {
+  unverified <- match.arg(unverified)
   tab <- if (inherits(extraction, "gr_extraction")) extraction$table else extraction
   if (!is.data.frame(tab) || !nrow(tab)) {
     gr_abort("`extraction` must be a gr_extraction, or a data frame shaped like its $table.",
@@ -252,7 +272,14 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   # a moderator, and gr_synthesise(bib =) then pasted both into a prompt whose
   # studies block had withheld that column.
   hidden <- unlist(bib_columns(used, bib), use.names = FALSE)
-  rendered <- render_studies(used, hide = hidden)
+  # Each value with its check and quote, and the unverified ones left out
+  # unless asked for: a claim about the literature should rest on what the
+  # documents were found to say. `shown` is the table as the model saw it, and
+  # what a moderator is checked against.
+  values <- value_status(extraction, used, study_fields(used, hide = hidden))
+  withheld <- withheld_values(values, identical(unverified, "exclude"))
+  shown <- blank_withheld(used, withheld)
+  rendered <- render_studies(used, hide = hidden, values = values, withhold = withheld)
   # "never": claims_batch() sends the question once.
   overhead <- prompt_overhead(question, .gr_prompts$claims_system, "never")
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
@@ -262,8 +289,17 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   # input window alone, a 128k model put 300 studies in one call with a
   # 1600-token reply; the JSON was cut off, did not parse, and every study in
   # the batch contributed nothing.
-  groups <- synth_batches(rendered, bud$input, max_n = claims_per_batch(bud$output))
-  index <- attr(groups, "index")
+  # A study every one of whose values was left out shows the model a number
+  # and nothing else, and a claim could cite it for anything. It is not sent;
+  # a claim naming it is then dropped as naming a study its batch was not shown.
+  sendable <- which(grepl("\n[^\n]", rendered))
+  if (length(sendable) < nrow(used)) {
+    gr_msg(sprintf(paste0("%d study/studies not shown to the claims model: every value of each ",
+                          "was unverified and left out (see `$unverified`)."),
+                   nrow(used) - length(sendable)))
+  }
+  groups <- synth_batches(rendered[sendable], bud$input, max_n = claims_per_batch(bud$output))
+  index <- lapply(attr(groups, "index"), function(ix) sendable[ix])
 
   raw <- list()
   not_sent <- 0L
@@ -310,14 +346,17 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   got <- do.call(rbind, raw[!vapply(raw, is.null, logical(1))])
   if (is.null(got) || !nrow(got)) {
     gr_warn(paste0("No claims came back. ",
-                   if (not_sent == length(groups)) sprintf("No batch was sent: the run had reached its %s. ",
+                   if (!length(groups)) paste0(
+                     "No study was sent: every value was unverified and left out of the ",
+                     "prompt; `unverified = \"include\"` shows them, marked. ")
+                   else if (not_sent == length(groups)) sprintf("No batch was sent: the run had reached its %s. ",
                                                            cap_name(trace))
                    else if (length(lost)) paste0(lost_msg, " ")
                    else "The model returned none. ",
                    "There is nothing for gr_outline() or gr_synthesise(claims = ) to work from."),
             class = "gr_no_claims")
     return(new_claims(empty_claim_rows(), used, question, empty_dropped(), trace, lost_studies,
-                      hidden = hidden))
+                      hidden = hidden, values = values, unverified = unverified))
   }
   if (length(lost)) {
     gr_warn(lost_msg, class = if (length(cut_off)) c("gr_claims_truncated", "gr_claims_batch_failed")
@@ -330,13 +369,13 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   # accepted, and carry an explanation drawn from a column render_studies()
   # withheld precisely so it could not be used. An invented explanation for a
   # real disagreement is the most convincing error this layer can make.
-  checked <- claims_verify(got, used, cols = study_fields(used, hide = hidden))
+  checked <- claims_verify(got, shown, cols = study_fields(used, hide = hidden))
   if (!nrow(checked$claims)) {
     gr_warn(paste0("Every claim was dropped in verification; see `$dropped`. The usual cause is ",
                    "a model citing study numbers that are not in the table."),
             class = "gr_no_claims")
     return(new_claims(empty_claim_rows(), used, question, checked$dropped, trace, lost_studies,
-                      hidden = hidden))
+                      hidden = hidden, values = values, unverified = unverified))
   }
   # Claims can repeat only across batches that returned some.
   final <- if (sum(vapply(raw, function(r) NROW(r) > 0L, logical(1))) > 1L) {
@@ -345,9 +384,10 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   # A merge changes which studies sit on each side of a claim, so a moderator
   # that told a member's two sides apart may not tell the merged claim's apart.
   # Checked again on what is actually returned.
-  again <- claims_moderators(final, used)
+  again <- claims_moderators(final, shown)
   new_claims(again$claims, used, question, rbind(checked$dropped, again$dropped), trace,
-             lost_studies, hidden = hidden, unmerged = isTRUE(attr(final, "unmerged")))
+             lost_studies, hidden = hidden, unmerged = isTRUE(attr(final, "unmerged")),
+             values = values, unverified = unverified)
 }
 
 #' What a claims reply costs, for sizing batches by it.

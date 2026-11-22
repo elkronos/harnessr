@@ -261,6 +261,18 @@
 #'       (as written), `studies` (the studies the sentence cites, comma-joined,
 #'       or NA), `backed`, and `basis`, what it was found in (NA when it was
 #'       not). See "Figures" below.}
+#'     \item{`sentences`}{Every sentence of the text as published, linked to
+#'       the records it rests on: `section`, `sentence`, `studies` (the
+#'       studies it cites, comma-joined, or NA), `verified` (those of them
+#'       that are verified records: studies with at least one value whose
+#'       quote verified), `linked` (`TRUE` when it cites at least one verified
+#'       record; `NA` when the table cannot say) and `flag`: `"cites no
+#'       study"`, `"cites no verified record"`, or NA. A flag marks nothing
+#'       partial; it says where to look. With a bare table, a study is a
+#'       verified record when `n_filled` is above `n_unverified`.}
+#'     \item{`values`}{Each extracted value of the studies with its check and
+#'       quote, as `$values` of [gr_claims()]. The writing prompts show each
+#'       value with these, the unverified ones marked as such.}
 #'     \item{`studies`}{The rows that were written from, with the `study` number
 #'       each was cited by.}
 #'     \item{`claims`}{The [gr_claims()] result written from, or `NULL`. When
@@ -580,7 +592,13 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   #
   # If a bibliographic value is also a FINDING -- publication year as
   # chronology, say -- extract it a second time under a name of its own.
-  rendered <- render_studies(used, hide = unlist(bib_columns(used, bib), use.names = FALSE))
+  hide_cols <- unlist(bib_columns(used, bib), use.names = FALSE)
+  # Each extracted value with its check and quote, the unverified ones marked
+  # as such: the writer is told which values the documents were found to
+  # state. gr_claims() leaves the unverified ones out; a section may still
+  # need to say what a study reported, so here they are shown, marked.
+  values <- value_status(extraction, used, study_fields(used, hide = hide_cols))
+  rendered <- render_studies(used, hide = hide_cols, values = values)
   # gr_gaps() returns a table; a section wants lines. Accepting both means the
   # caller never has to know which. Lines of text are one block: as several
   # strings they were not "nonblank" and reached no section.
@@ -742,6 +760,9 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   # is a fault the check reported, not a citation to follow up.
   cited <- setdiff(cited_ids(final_marked, "study"), left)
   refs <- if (isTRUE(references)) reference_list(used, keys, cited, cols, resolved) else NULL
+  # Every sentence of the text as published, linked to a verified record it
+  # cites, or flagged. It sends nothing.
+  sentences <- sentence_links(final_marked, used, study_verified(used, values))
 
   out <- structure(list(
     text = append_references(published, refs),
@@ -751,6 +772,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
     references = refs,
     citations = citations %||% synth_empty_citations(),
     figures = figs$table,
+    sentences = sentences,
+    values = values,
     studies = used,
     skipped = sum(!keep),
     question = question,
@@ -849,6 +872,18 @@ print.gr_synthesis <- function(x, ...) {
                          "study is behind them as written; check them before quoting (see ",
                          "$figures). No section is partial for it: that is about citations\n"),
                   bad, if (final) "revised text" else "text"))
+    }
+  }
+  # `[[` exact for a synthesis made before the field existed.
+  sl <- x[["sentences", exact = TRUE]]
+  if (is.data.frame(sl) && nrow(sl)) {
+    none <- sum(sl$flag %in% "cites no study")
+    unver <- sum(sl$flag %in% "cites no verified record")
+    if (none || unver) {
+      cat(sprintf(paste0("  %d of %d sentence(s) not linked to a verified record: %d cite%s no ",
+                         "study, %d cite%s only studies with no verified value; see $sentences\n"),
+                  none + unver, nrow(sl), none, if (none == 1L) "s" else "",
+                  unver, if (unver == 1L) "s" else ""))
     }
   }
   unr <- x$unrendered %||% integer(0)

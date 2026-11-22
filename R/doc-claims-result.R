@@ -7,7 +7,8 @@
 #' run over claims that needed it.
 #' @noRd
 new_claims <- function(claims, used, question, dropped, trace, lost = integer(0),
-                       hidden = character(0), unmerged = FALSE) {
+                       hidden = character(0), unmerged = FALSE, values = NULL,
+                       unverified = "exclude") {
   claims <- reindex_claims(claims)
   support <- claim_support_table(claims)
   wide <- data.frame(
@@ -20,7 +21,26 @@ new_claims <- function(claims, used, question, dropped, trace, lost = integer(0)
   structure(list(claims = wide, support = support, studies = used, question = question,
                  dropped = dropped, partial = length(lost) > 0L, lost = as.integer(lost),
                  unmerged = isTRUE(unmerged), hidden = as.character(hidden),
+                 values = values %||% value_status(NULL, used, character(0)),
+                 unverified = claims_unverified(values, unverified),
                  trace = trace), class = "gr_claims")
+}
+
+#' The unverified values, listed apart from the claims: `study`, `document`,
+#' `field`, `value`, `quote` (the quote given, which did not verify, or NA)
+#' and `shown`, whether the claims prompt showed it (`unverified = "include"`).
+#' @noRd
+claims_unverified <- function(values, mode = "exclude") {
+  if (!NROW(values)) {
+    return(data.frame(study = integer(0), document = character(0), field = character(0),
+                      value = character(0), quote = character(0), shown = logical(0),
+                      stringsAsFactors = FALSE))
+  }
+  un <- values[values$status == "unverified", c("study", "document", "field", "value", "quote"),
+               drop = FALSE]
+  un$shown <- rep(identical(mode, "include"), nrow(un))
+  rownames(un) <- NULL
+  un
 }
 
 #' Long form, the shape `$citations` already uses: one row per claim per study.
@@ -67,6 +87,13 @@ print.gr_claims <- function(x, ...) {
   }
   if (nrow(x$dropped)) {
     cat(sprintf("  %d dropped in verification; see $dropped\n", nrow(x$dropped)))
+  }
+  # `%||%` for a claims table saved before the field existed.
+  un <- x$unverified %||% NULL
+  if (NROW(un)) {
+    cat(sprintf(paste0("  %d unverified value(s) %s; see $unverified\n"), nrow(un),
+                if (all(un$shown)) "shown to the model, marked unverified"
+                else "left out of the claims prompt"))
   }
   # `%||%` for a claims table saved before the field existed.
   if (length(x$lost %||% integer(0))) {
