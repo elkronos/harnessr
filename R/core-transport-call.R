@@ -172,7 +172,10 @@ print.gr_result <- function(x, ...) {
 #'   `model` is a reasoning model (see [gr_model_info()]), as `reasoning =
 #'   {effort}` on the Responses API and `reasoning_effort` on Chat Completions;
 #'   a [gr_mock_client()] or [gr_backend_client()] handler finds it in
-#'   `params$effort`. Must be named in full, since it follows `...`.
+#'   `params$effort`. Must be named in full, since it follows `...`. It may
+#'   also be an [hr_effort_escalate()] policy, which sends the call at its
+#'   base effort, or raised when a trigger fired in the stage before this
+#'   call's; the trace carries the policy's state, so give one.
 #' @param draw_index Which draw of a sampled request this is: 0 (the default)
 #'   for an ordinary call, or 1, 2, ... for repeated draws of the same request.
 #'   Above 0 it is part of the [gr_cache()] key, so N identical calls with
@@ -311,6 +314,10 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   # both for every run that never asked for an effort.
   # The setting itself goes on to a replay, which must not let this session's
   # registry decide what the recording session sent (replay_lookup()).
+  # An escalation policy resolves to one level for this call, moving the
+  # trace's state across a stage boundary first (core-effort-escalate.R). The
+  # level is what the replay key and a replay see, as a static map's is.
+  if (inherits(effort, "hr_effort_escalate")) effort <- escalate_effort(effort, label, trace)
   effort_map <- effort
   effort <- effort_to_send(effort, label, info)
   if (!is.null(effort)) params$effort <- effort
@@ -945,5 +952,13 @@ gr_call_json <- function(client, messages, schema, schema_name = "result",
   res <- send(client, messages, schema = schema, schema_name = schema_name, ...)
   if (!res$ok) return(list(ok = FALSE, value = NULL, result = res, problem = NULL))
   out <- json_reply(res$text, schema, allow_empty, own_scalars)
+  # Under an escalation policy a reply that is not the JSON asked for is a
+  # trigger for the next stage.
+  a <- list(...)
+  if (!out$ok && inherits(a[["effort", exact = TRUE]], "hr_effort_escalate")) {
+    hr_effort_event(a[["trace", exact = TRUE]],
+                    if (identical(out$problem, "not JSON")) "parse_failure" else "schema_failure",
+                    label = as_chr1(a[["label", exact = TRUE]], "call"))
+  }
   list(ok = out$ok, value = out$value, result = res, problem = out$problem)
 }

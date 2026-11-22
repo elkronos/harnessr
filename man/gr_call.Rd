@@ -56,7 +56,10 @@ send none. One string, or a character vector named by label prefix,
 resolved against \code{label} as \code{\link[=gr_read_spec]{gr_read_spec()}} describes. Sent only when
 \code{model} is a reasoning model (see \code{\link[=gr_model_info]{gr_model_info()}}), as \code{reasoning = {effort}} on the Responses API and \code{reasoning_effort} on Chat Completions;
 a \code{\link[=gr_mock_client]{gr_mock_client()}} or \code{\link[=gr_backend_client]{gr_backend_client()}} handler finds it in
-\code{params$effort}. Must be named in full, since it follows \code{...}.}
+\code{params$effort}. Must be named in full, since it follows \code{...}. It may
+also be an \code{\link[=hr_effort_escalate]{hr_effort_escalate()}} policy, which sends the call at its
+base effort, or raised when a trigger fired in the stage before this
+call's; the trace carries the policy's state, so give one.}
 
 \item{draw_index}{Which draw of a sampled request this is: 0 (the default)
 for an ordinary call, or 1, 2, ... for repeated draws of the same request.

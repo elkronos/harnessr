@@ -150,6 +150,9 @@ reference:
   - hr_truncate
   - hr_context_policy
   - hr_context_fit
+  - hr_effort_escalate
+  - hr_effort_event
+  - hr_effort_log
   - gr_budget
   - gr_trace
   - gr_trace_summary
@@ -197,6 +200,7 @@ reference:
   - hr_arm
   - hr_sweep
   - hr_sweep_check
+  - hr_effort_check
   - hr_reference
   - hr_scorer
   - gr_arm

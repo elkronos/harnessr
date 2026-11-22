@@ -25,6 +25,8 @@ removed or gains or loses its last caller.
 | `hr_context_fit()` | `read_refine()`, under a read's `context_policy` | test-context-policy.R |
 | `hr_context_policy()` | `check_context_policy()`, which resolves a read's `context_policy` | test-context-policy.R |
 | `hr_cost()` | the reader cost functions: `cost_extract()`, `cost_map_reduce()` and the rest | test-conformance.R, test-core-schema.R |
+| `hr_effort_escalate()` | `read_escalation()`, under a read's `effort_mode = "escalate"` | test-effort-escalate.R |
+| `hr_effort_event()` | `read_ensemble()`, `read_iterative()` and `read_screen()`, which report triggers | test-effort-escalate.R |
 | `hr_ht_estimate()` | `screening_recall()` | test-core-stats.R |
 | `hr_param()` | the read, segment and ingest schemas (`.gr_read_schema` and the others) | test-core-schema.R, test-settings.R |
 | `hr_prop_ci()` | `reviewer_summary()`, `screening_recall()` | test-core-stats.R |
@@ -55,6 +57,8 @@ they are core. Each has tests of its own.
 | `hr_calibration_valid()` | test-core-signals.R | Says whether a calibration record is valid for a run. |
 | `hr_contrast()` | test-core-bench-ni.R, test-core-bench-sim.R | A non-inferiority contrast between arms, registered before scoring. |
 | `hr_drift_check()` | test-core-bench-drift.R | Checks an arm for drift against a frozen benchmark. |
+| `hr_effort_check()` | test-effort-escalate.R | Compares any effort policy with fixed efforts on a benchmark, with the non-inferiority test. |
+| `hr_effort_log()` | test-effort-escalate.R | The effort raises an escalation policy made on any run's trace. |
 | `hr_error_correlation()` | test-pipeline-options.R | Says how far any benchmark's arms fail on the same items. |
 | `hr_gate_threshold()` | test-core-signals.R | Chooses a gate threshold by Learn-then-Test. |
 | `hr_governor()` | test-core-bench.R, test-claims.R | Limits on what a run may send, which a benchmark shares across its arms. |

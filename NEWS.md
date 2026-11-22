@@ -51,12 +51,36 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
   whether the correction won and recall of the facts read last. The live
   comparison on real documents is not part of this release.
 
+* `hr_effort_escalate()` is an effort policy that starts every stage low and
+  sends the next stage raised when a trigger fired in the one before: a cut,
+  a reply stopped at its cap, a reply that is not the JSON asked for or does
+  not fit its schema, a reply the caller names (such as `NOT_IN_DOCUMENT`
+  from every request of a stage), or an event the caller reports with
+  `hr_effort_event()`. Effort changes only at stage boundaries, at most
+  `max_escalations` times a run, and the stage after a raised one goes back
+  to the base effort. Each raise is an `"effort.escalate"` step of the
+  trace and its outcome an `"effort.resolve"` step; `hr_effort_log()` lists
+  them. `gr_call()` takes the policy as its `effort`.
+
+* `gr_read_spec()` gains `effort_mode`. `"escalate"` makes the read's
+  `effort` such a policy, starting at `effort` (`"low"` when unset) and
+  raising to `"high"`; `iterative` reports a quotation it could not verify,
+  `ensemble` members that disagree, and screening an unclear decision or
+  draws that disagree. `"static"`, the default, sends `effort` as before.
+
+* `hr_effort_check()` compares an effort policy's arm with fixed-effort
+  arms on a benchmark, with `hr_report()`'s non-inferiority test at a stated
+  `margin` and Holm's procedure over the comparisons, and reports each arm's
+  accuracy, cost, requests per run, raises and the requests sent raised.
+  Without a registration from `hr_register_contrasts()` the contrasts are
+  marked post hoc. It plans nothing: there is no effort planner.
+
 * Left out: a look-up step for `hierarchical` (reading the chunks behind the
   summary an answer rests on) and showing `iterative` its earlier queries.
   Each changes the requests of a reader in a way that needs its own
   benchmark arm, and neither was needed for the policy itself.
 
-The read stage now has 49 settings, 222 in all.
+The read stage now has 50 settings, 223 in all.
 
 ## Reading options
 

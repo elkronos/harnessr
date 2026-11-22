@@ -47,6 +47,7 @@ gr_read_spec(
   premise_verdict = c("sentence", "structured"),
   context_policy = NULL,
   refine_state = c("draft", "ledger"),
+  effort_mode = c("static", "escalate"),
   ...
 )
 }
@@ -382,6 +383,20 @@ one is replaced rather than annotated. One more request,
 \code{NOT_IN_DOCUMENT} with no request. \code{notes$ledger_items} counts the
 findings. Untested; \code{\link[=gr_condensation_check]{gr_condensation_check()}} builds the test.}
 
+\item{effort_mode}{\code{"static"} (the default) sends each request at the
+effort \code{effort} names, as before. \code{"escalate"} starts every stage at
+\code{effort} (\code{"low"} when \code{effort} is unset) and sends the next stage at
+\code{"high"} when a trigger fired in the one before: a cut (a \code{"truncate"}
+step, or a reply stopped at its cap), a reply that is not the JSON asked
+for or does not fit its schema, \code{NOT_IN_DOCUMENT} from every request of
+the stage, a quotation \code{iterative} could not verify, or \code{ensemble}
+members that disagree. Effort changes only at a stage boundary, at most
+once a read, and the stage after a raised one goes back to \code{effort}. The
+spec's \code{effort} is then an \code{\link[=hr_effort_escalate]{hr_effort_escalate()}} policy; each raise is
+an \code{"effort.escalate"} step of the trace, whether it resolved the
+trigger an \code{"effort.resolve"} step, and \code{\link[=hr_effort_log]{hr_effort_log()}} lists both.
+\code{\link[=hr_effort_check]{hr_effort_check()}} compares it with fixed levels. Untested.}
+
 \item{...}{Extra fields for custom readers.}
 }
 \value{
@@ -506,6 +521,7 @@ keeps the store and cache keys it had before they existed.
 \item \code{premise_verdict} (default \code{"sentence"}, advanced): untested. "sentence", the requests premise = TRUE sent before the setting existed. Not measured.
 \item \code{context_policy} (default \code{NULL}, advanced): untested. NULL: each reader cuts as it did before the setting existed, keeping the start of what it cuts. No policy has been compared with it.
 \item \code{refine_state} (default \code{"draft"}, advanced): untested. "draft", the state refine carried before the setting existed. Not compared with "ledger"; gr_condensation_check() builds the test.
+\item \code{effort_mode} (default \code{"static"}, advanced): untested. "static": the effort \code{effort} names, as before the setting existed. Not compared with "escalate"; hr_effort_check() makes the comparison.
 }
 }
 

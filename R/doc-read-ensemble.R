@@ -93,6 +93,12 @@ read_ensemble <- function(chunks, question, client, spec, trace) {
   # A member that reported the premise false goes to the adjudication as a
   # finding that says so, with the sentinel the merge rule looks for; without
   # it, the correction would read as one more answer to the question asked.
+  # Members that answered differently are a trigger for effort_mode =
+  # "escalate", which then sends the adjudication raised; recorded only
+  # under it.
+  said <- unique(tolower(trimws(vapply(results[usable], function(r) as_chr1(r$answer, ""),
+                                       character(1)))))
+  if (length(said) > 1L) hr_effort_event(trace, "disagreement", members = members[usable])
   findings <- vapply(results[usable], function(r) {
     if (premise_flagged(r) && isTRUE(spec$premise)) premise_finding(r$premise) else r$answer
   }, character(1))

@@ -41,6 +41,9 @@
 #' @noRd
 check_effort <- function(effort, arg = "effort") {
   if (is.null(effort)) return(NULL)
+  # A policy that raises the effort as the run goes (core-effort-escalate.R)
+  # was checked when it was built.
+  if (inherits(effort, "hr_effort_escalate")) return(effort)
   if (is.factor(effort)) effort <- stats::setNames(as.character(effort), names(effort))
   shape <- function(why) {
     gr_abort(sprintf(paste0("`%s` %s. Give one reasoning effort (\"low\"), or a character vector ",
@@ -90,6 +93,10 @@ check_effort <- function(effort, arg = "effort") {
 #' @noRd
 check_effort_stems <- function(effort, stems, arg = "effort") {
   if (is.null(effort)) return(NULL)
+  if (inherits(effort, "hr_effort_escalate")) {
+    check_effort_stems(effort$base, stems, arg)
+    return(effort)
+  }
   keys <- effort_keys(effort)
   stems <- unique(stems[!is.na(stems) & nzchar(stems)])
   bad <- keys[nzchar(keys) & !stem_known(keys, stems)]
@@ -218,6 +225,9 @@ effort_body <- function(body, effort, api) {
 #' @noRd
 segment_effort <- function(segment, read) {
   effort <- read[["effort", exact = TRUE]]
+  # Under an escalation policy a segmenter's requests go out at the base
+  # effort: segmenting comes before the read's first stage boundary.
+  if (inherits(effort, "hr_effort_escalate")) effort <- effort$base
   if (is.null(effort) || is.null(segment)) return(segment)
   label <- segment_effort_label(segment)
   if (!is.na(label)) {

@@ -473,6 +473,19 @@ gr_reader_signature <- function(reader) {
 #'   `refine.answer`, answers from the finished list; an empty list is
 #'   `NOT_IN_DOCUMENT` with no request. `notes$ledger_items` counts the
 #'   findings. Untested; [gr_condensation_check()] builds the test.
+#' @param effort_mode `"static"` (the default) sends each request at the
+#'   effort `effort` names, as before. `"escalate"` starts every stage at
+#'   `effort` (`"low"` when `effort` is unset) and sends the next stage at
+#'   `"high"` when a trigger fired in the one before: a cut (a `"truncate"`
+#'   step, or a reply stopped at its cap), a reply that is not the JSON asked
+#'   for or does not fit its schema, `NOT_IN_DOCUMENT` from every request of
+#'   the stage, a quotation `iterative` could not verify, or `ensemble`
+#'   members that disagree. Effort changes only at a stage boundary, at most
+#'   once a read, and the stage after a raised one goes back to `effort`. The
+#'   spec's `effort` is then an [hr_effort_escalate()] policy; each raise is
+#'   an `"effort.escalate"` step of the trace, whether it resolved the
+#'   trigger an `"effort.resolve"` step, and [hr_effort_log()] lists both.
+#'   [hr_effort_check()] compares it with fixed levels. Untested.
 #' @param ... Extra fields for custom readers.
 #' @return A list of class `gr_read_spec`.
 #'
@@ -652,7 +665,8 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
                          fusion = c("default", "rrf"), rrf_k = 60,
                          answer_format = c("parsed", "schema"),
                          premise_verdict = c("sentence", "structured"),
-                         context_policy = NULL, refine_state = c("draft", "ledger"), ...) {
+                         context_policy = NULL, refine_state = c("draft", "ledger"),
+                         effort_mode = c("static", "escalate"), ...) {
   warn_near_miss(list(...), names(formals(gr_read_spec)), "read")
   # Every argument but `...` is checked and resolved by the schema
   # (.gr_read_schema): ranges clamped with a warning, a missing number taken
@@ -708,7 +722,9 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
   # gr_compare()'s check that two recipes differ, and an `effort = NULL` entry
   # would be a new element in every spec, so every store made before the
   # setting existed would have missed and every document been paid for again.
-  if (!is.null(p$effort)) list(effort = p$effort),
+  # Under effort_mode = "escalate" it is the policy that raises it.
+  if (identical(p$effort_mode, "escalate")) list(effort = read_escalation(p$effort))
+  else if (!is.null(p$effort)) list(effort = p$effort),
   # In the spec only when it is TRUE. The whole spec is hashed into the keys a
   # corpus store files answers under (corpus_key()) and gr_compare() tells
   # recipes apart by, so a field present in every spec, FALSE or not, would
@@ -949,8 +965,26 @@ as_read_spec <- function(spec) {
                          "list of findings that each request adds to, replaces or drops from."),
            evidence = ev_untested(paste0("\"draft\", the state refine carried before the ",
                                          "setting existed. Not compared with \"ledger\"; ",
-                                         "gr_condensation_check() builds the test.")))
+                                         "gr_condensation_check() builds the test."))),
+  hr_param("effort_mode", "enum", choices = c("static", "escalate"), tier = "advanced",
+           cost_class = "per_call_constant",
+           help = paste0("Under \"escalate\", every stage starts at `effort` (\"low\" when ",
+                         "unset), and the next stage is sent at \"high\" when a trigger fires."),
+           evidence = ev_untested(paste0("\"static\": the effort `effort` names, as before the ",
+                                         "setting existed. Not compared with \"escalate\"; ",
+                                         "hr_effort_check() makes the comparison.")))
 )
+
+#' The escalation policy of effort_mode = "escalate": every stage at `effort`
+#' ("low" when unset), the next stage at "high" when a trigger fires, once a
+#' read, and NOT_IN_DOCUMENT from every request of a stage counted as a
+#' trigger.
+#' @noRd
+read_escalation <- function(effort) {
+  if (inherits(effort, "hr_effort_escalate")) return(effort)
+  hr_effort_escalate(base = effort %||% "low", to = "high",
+                     replies = c(not_in_document = .NOT_FOUND))
+}
 
 #' A read spec's context policy: NULL, an hr_context_policy(), or a list of
 #' its arguments.
@@ -970,7 +1004,7 @@ check_context_policy <- function(x) {
 .gr_read_late_params <- c("accept_near_verbatim", "max_merge_levels", "restate_tokens",
                           "bm25_k1", "bm25_b", "lexical_blend", "unskip_k", "reread_on",
                           "low_score", "fusion", "rrf_k", "answer_format",
-                          "premise_verdict", "context_policy", "refine_state")
+                          "premise_verdict", "context_policy", "refine_state", "effort_mode")
 
 #' The settings among `names` whose resolved value is not the schema's default,
 #' as a list to add to a spec. A spec is hashed whole into the corpus store and

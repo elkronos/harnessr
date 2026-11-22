@@ -167,6 +167,11 @@ read_screen <- function(chunks, question, client, spec, trace) {
     combine_draws(lapply(first_draw + seq_len(n_samples), function(k) judge(ask(k))),
                   as_chr1(spec[["sample_rule"]], "include_if_any"))
   capped <- j$capped; failed <- j$failed; decision <- j$decision; reason <- j$reason
+  # Triggers for effort_mode = "escalate"; recorded only under it.
+  if (identical(decision, "unclear")) hr_effort_event(trace, "unclear")
+  drawn <- strsplit(as_chr1(j[["draws", exact = TRUE]]$sample_decisions, ""), ", ",
+                    fixed = TRUE)[[1]]
+  if (length(unique(setdiff(drawn, "none"))) > 1L) hr_effort_event(trace, "disagreement")
   error <- j$error; quote <- j$quote; status <- j$status
   crit <- list(criterion = j$criterion, valid = j$valid)
   # Checked against the document's words, not a model's. A segmenter that puts
