@@ -68,6 +68,9 @@
   gr_extract.resolve = ev_untested(paste0(
     "\"first\" costs nothing and records each disagreement; not compared with \"model\" ",
     "or \"vote\".")),
+  gr_screen.criteria_schema = ev_untested(paste0(
+    "\"decision\" is the reply screening was written with; not compared with ",
+    "\"per_criterion\".")),
   gr_extract.agreement_columns = ev_untested(
     "Off, so the table keeps the columns it had; it changes no request."),
   gr_extract.require_quote = ev_untested(paste0(
@@ -163,6 +166,7 @@
   read.unskip_k = "readers#set-preview", read.reread_on = "readers#set-preview",
   read.low_score = "readers#set-low-score", read.rerank_min_score = "readers#set-low-score",
   read.rerank_candidates = "readers#set-low-score",
+  screen.criteria_schema = "review#set-screen-reply",
   screen.gr_calibrate.recall_target = "review#set-calibration",
   screen.gr_calibrate.conf = "review#set-calibration",
   screen.gr_calibrate.max_width = "review#set-calibration",

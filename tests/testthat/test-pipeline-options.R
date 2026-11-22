@@ -370,3 +370,101 @@ test_that("ocr_trigger is swept as recipe arms", {
   arms <- hr_sweep(gr_arm("scanned"), list(ocr_trigger = c("raw_text", "after_running_lines")))
   expect_length(arms, 2L)
 })
+
+# ---------------------------------------------------------------------------
+# P1D-13: criteria_schema = "per_criterion"
+# ---------------------------------------------------------------------------
+
+po_screen_file <- function() {
+  f <- tempfile(fileext = ".txt")
+  writeLines(paste("We randomly assigned 120 adults to two groups and report",
+                   "the primary outcome at twelve weeks."), f)
+  f
+}
+po_include <- c("Randomised comparison", "Enrols adults")
+po_exclude <- "Animal study"
+
+po_screener <- function(reply) {
+  seen <- new.env()
+  cl <- gr_mock_client(function(messages, params) {
+    seen$messages <- messages
+    seen$params <- params
+    reply
+  })
+  list(client = cl, seen = seen)
+}
+
+test_that("the default screening schema and request are as before", {
+  s <- po_screener('{"decision":"include","reason":"An RCT.","criterion":null,"quote":null}')
+  x <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                          exclude = po_exclude, client = s$client))
+  expect_false("criteria_status" %in% names(x$table))
+  txt <- po_text(s$seen$messages)
+  expect_false(grepl("not_reported", txt, fixed = TRUE))
+  expect_identical(harnessr:::.gr_screen_schema$required,
+                   list("decision", "reason", "criterion", "quote"))
+})
+
+test_that("per_criterion asks for each criterion's status and records it", {
+  s <- po_screener(paste0(
+    '{"decision":"include","reason":"An RCT in adults.","criterion":null,"quote":null,',
+    '"criteria":[{"criterion":"Randomised comparison","status":"met"},',
+    '{"criterion":"Enrols adults","status":"met"},',
+    '{"criterion":"Animal study","status":"not_met"}]}'))
+  x <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                          exclude = po_exclude, client = s$client,
+                          criteria_schema = "per_criterion"))
+  expect_match(po_text(s$seen$messages), "not_reported", fixed = TRUE)
+  expect_identical(x$table$decision, "include")
+  expect_identical(x$table$criteria_status,
+                   "Randomised comparison: met; Enrols adults: met; Animal study: not_met")
+})
+
+test_that("an exclusion with a criterion not reported and none not met becomes unclear", {
+  s <- po_screener(paste0(
+    '{"decision":"exclude","reason":"Age is not given.","criterion":"Enrols adults",',
+    '"quote":null,"criteria":[{"criterion":"Randomised comparison","status":"met"},',
+    '{"criterion":"Enrols adults","status":"not_reported"},',
+    '{"criterion":"Animal study","status":"not_met"}]}'))
+  x <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                          exclude = po_exclude, client = s$client,
+                          criteria_schema = "per_criterion"))
+  expect_identical(x$table$decision, "unclear")
+  expect_match(x$table$reason, "not reported: Enrols adults", fixed = TRUE)
+  # The same reply under the default schema is an exclusion, as before.
+  d <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                          exclude = po_exclude, client = s$client))
+  expect_identical(d$table$decision, "exclude")
+})
+
+test_that("an exclusion that a criterion shows stands", {
+  for (st in list(c("not_met", "met", "not_met"), c("met", "met", "met"))) {
+    s <- po_screener(sprintf(paste0(
+      '{"decision":"exclude","reason":"Fails.","criterion":"%s","quote":null,',
+      '"criteria":[{"criterion":"Randomised comparison","status":"%s"},',
+      '{"criterion":"Enrols adults","status":"%s"},',
+      '{"criterion":"Animal study","status":"%s"}]}'),
+      if (st[1] == "not_met") "Randomised comparison" else "Animal study", st[1], st[2], st[3]))
+    x <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                            exclude = po_exclude, client = s$client,
+                            criteria_schema = "per_criterion"))
+    expect_identical(x$table$decision, "exclude")
+  }
+  # A criterion left out of the reply counts as not reported.
+  st <- harnessr:::criteria_statuses(list(list(criterion = "enrols adults.", status = "met")),
+                                     po_include, po_exclude)
+  expect_identical(unname(st), c("not_reported", "met", "not_reported"))
+})
+
+test_that("criteria_schema is checked and swept as arms", {
+  expect_error(gr_screen(po_screen_file(), question = "q", include = "x",
+                         criteria_schema = "nope"))
+  arms <- hr_sweep(function(criteria_schema) {
+    hr_arm(paste0("screen-", criteria_schema), function(item, ctx) {
+      gr_screen(item, question = "Does it work?", include = po_include, exclude = po_exclude,
+                client = ctx$client, criteria_schema = criteria_schema,
+                trace = ctx$trace)$table$decision
+    })
+  }, list(criteria_schema = c("decision", "per_criterion")))
+  expect_length(arms, 2L)
+})

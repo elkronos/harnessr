@@ -41,7 +41,7 @@ print.gr_screening <- function(x, ...) {
 
 #' @noRd
 screening_table <- function(docs, answers, summary, include = character(0),
-                            exclude = character(0)) {
+                            exclude = character(0), criteria_status = FALSE) {
   note <- function(d, field, default) {
     a <- answers[[d]]
     if (is.null(a)) default else {
@@ -100,6 +100,19 @@ screening_table <- function(docs, answers, summary, include = character(0),
   tab$decision <- crit$decision
   tab$criterion <- crit$criterion
   tab$criterion_valid <- crit$valid
+  # criteria_schema = "per_criterion": each criterion's status, after the
+  # deciding criterion's columns.
+  if (isTRUE(criteria_status)) {
+    st <- vapply(docs, function(d) {
+      v <- note(d, "criteria_status", NULL)
+      if (is.null(v) || !length(v)) NA_character_
+      else paste(sprintf("%s: %s", names(v), v), collapse = "; ")
+    }, character(1), USE.NAMES = FALSE)
+    st[unread] <- NA_character_
+    at <- match("criterion_valid", names(tab))
+    tab <- cbind(tab[, seq_len(at), drop = FALSE], criteria_status = st,
+                 tab[, -seq_len(at), drop = FALSE], stringsAsFactors = FALSE)
+  }
   rownames(tab) <- NULL
   tab
 }

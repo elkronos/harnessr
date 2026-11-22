@@ -92,6 +92,14 @@ says how to test it with `hr_sweep()`.
   under `"first"`, 236 under `"vote"`, and `"2/3"` with a conflict under
   both. Each answer's `notes$agreement` holds the same counts.
 
+* `gr_screen()` gains `criteria_schema`. At `"per_criterion"` each reply
+  also gives every criterion's status, `"met"`, `"not_met"` or
+  `"not_reported"`, which the table holds in `criteria_status`, and an
+  exclusion needs an inclusion criterion `"not_met"` or an exclusion
+  criterion `"met"`: a reply that excludes with a criterion not reported and
+  none not met is recorded as `"unclear"`, for a person. The default,
+  `"decision"`, sends the request and schema it sent before.
+
 * `gr_segment_spec()` gains `semantic_threshold`. At `"texttiling"`, the
   `semantic` segmenter cuts by TextTiling's depth score (Hearst 1997): the
   similarity between the windows before and after each gap, read from the

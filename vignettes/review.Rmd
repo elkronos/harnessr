@@ -1206,6 +1206,64 @@ The interval on the rate of eligible records among those 60 is wider than 10
 points and narrower than 20, so the sample is adequate under the wider bar
 only. A wider bar does not make the sample say more; it says less is enough.
 
+### Screening replies: `criteria_schema` {#set-screen-reply}
+
+**What it controls.** What each screening reply holds. `"decision"` asks for
+a decision, a reason, the deciding criterion and a quote. `"per_criterion"`
+also asks, for every criterion of the protocol, whether the excerpt shows it
+`"met"`, `"not_met"` or `"not_reported"`, records them in a
+`criteria_status` column, and holds an exclusion to them: a reply that
+excludes a document although no inclusion criterion is `"not_met"` and no
+exclusion criterion is `"met"` (for example, when the excerpt does not report
+a criterion) is recorded as `"unclear"`, for a person to decide.
+
+**Signs it needs changing.** Exclusions whose reasons say the excerpt does
+not mention something ("the age of participants is not given") are
+exclusions for missing information, which is how screening loses studies;
+`"per_criterion"` sends those to a person. A review that reports, for each
+record, which criteria it met needs the column.
+
+**Where the default came from.** `"decision"` is the reply screening was
+written with; it has not been compared with `"per_criterion"` (`untested`).
+
+**How to test it.** It changes the request, a schema and one more
+instruction, so the first test is what it does to the same reply. This
+stand-in excludes the southern report for a figure it says is not reported:
+
+```{r}
+strict_screener <- gr_mock_client(function(messages, params) {
+  seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
+                collapse = " ")
+  south <- grepl("51.8", seen, fixed = TRUE)
+  sprintf(paste0('{"decision":"%s","reason":"%s","criterion":"Reports a revenue figure",',
+                 '"quote":null,"criteria":[',
+                 '{"criterion":"Reports a revenue figure","status":"%s"},',
+                 '{"criterion":"Is a forecast rather than a result","status":"not_met"}]}'),
+          if (south) "exclude" else "include",
+          if (south) "The excerpt does not say." else "Reports revenue.",
+          if (south) "not_reported" else "met")
+})
+per <- gr_screen(reports, protocol, client = strict_screener,
+                 criteria_schema = "per_criterion")
+per$table[, c("document", "decision", "criteria_status")]
+```
+
+The southern report is held back as `"unclear"` instead of excluded. On your
+own records, compare the two with labels, one arm per value, as in "Knowing
+how good the screening is" above, with `labelled` an `hr_reference()` of a
+person's decisions:
+
+```{r eval = FALSE}
+arms <- hr_sweep(function(criteria_schema) {
+  hr_arm(paste0("screen-", criteria_schema), function(item, ctx) {
+    gr_screen(item, protocol, client = ctx$client, criteria_schema = criteria_schema,
+              trace = ctx$trace)$table$decision
+  })
+}, list(criteria_schema = c("decision", "per_criterion")))
+bench <- hr_benchmark(arms, labelled, runs = 5, client = my_client)
+hr_report(bench)
+```
+
 ### Extraction: `resolve`, `agreement_columns` and `require_quote` {#set-extract}
 
 **What they control.** `resolve` decides what happens when two chunks of one

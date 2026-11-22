@@ -41,7 +41,10 @@ read_screen <- function(chunks, question, client, spec, trace) {
     gr_abort("There is nothing to screen: the document has no chunks.",
              class = "gr_empty_chunks")
   }
+  per_criterion <- identical(as_chr1(spec[["criteria_schema"]], "decision"), "per_criterion")
   listing <- criteria_prompt(include, exclude)
+  if (per_criterion) listing <- paste0(listing, "\n\n", .gr_per_criterion_instruction)
+  schema <- if (per_criterion) screen_schema_per_criterion(include, exclude) else .gr_screen_schema
   # "never": the message list below carries the question once.
   overhead <- prompt_overhead(paste(question, listing), .gr_prompts$screen_system, "never")
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
@@ -93,7 +96,7 @@ read_screen <- function(chunks, question, client, spec, trace) {
       if (truncated) paste0("\n\n(This is the opening ", seen_tokens, " of about ",
                             sum(d$tokens), " tokens. If the excerpt does not settle the ",
                             "decision, answer 'unclear'.)") else ""))
-  ), schema = .gr_screen_schema, schema_name = "screening",
+  ), schema = schema, schema_name = "screening",
      model = spec$model, max_output = spec$max_answer_tokens,
      temperature = spec$temperature, trace = trace, label = "screen.decide",
      effort = spec$effort)
@@ -120,6 +123,16 @@ read_screen <- function(chunks, question, client, spec, trace) {
   reason <- as_chr1(json_text(v, "reason"), NA_character_)
   if (crit$downgraded) reason <- downgrade_reason(crit$criterion, reason)
   decision <- crit$decision
+  # criteria_schema = "per_criterion": each criterion's status, and an
+  # exclusion only where one of them shows it.
+  status <- NULL
+  if (per_criterion && isTRUE(out$ok)) {
+    status <- criteria_statuses(json_field(v, "criteria", scalar = FALSE), include, exclude)
+    if (identical(decision, "exclude") && !status_excludes(status, include, exclude)) {
+      decision <- "unclear"
+      reason <- per_criterion_reason(status, reason)
+    }
+  }
   # Said in the notes, where partial_reasons() and gr_read_many() look. A reply
   # that arrived but was not the JSON asked for has no transport error of its own.
   error <- if (!failed) NA_character_ else {
@@ -157,7 +170,8 @@ read_screen <- function(chunks, question, client, spec, trace) {
                           seen_tokens = seen_tokens,
                           document_tokens = as.integer(sum(d$tokens)),
                           truncated = truncated,
-                          failed_call = failed, error = error))
+                          failed_call = failed, error = error,
+                          criteria_status = status))
 }
 
 #' Decide which documents a review should read
@@ -186,6 +200,17 @@ read_screen <- function(chunks, question, client, spec, trace) {
 #'   cap too small to show any of the document at all fails the document, with
 #'   an `error` naming `screen_tokens`. Either way the `truncated` and
 #'   `seen_tokens` columns say what was actually read.
+#' @param criteria_schema What each screening reply holds. `"decision"` (the
+#'   default) asks for a decision, a reason, the deciding criterion and a
+#'   quote, as before. `"per_criterion"` also asks, for every criterion,
+#'   whether the excerpt shows it `"met"`, `"not_met"` or `"not_reported"`,
+#'   and adds a `criteria_status` column to the table (`"criterion: status"`
+#'   pairs, separated by `"; "`). An exclusion then needs an inclusion
+#'   criterion `"not_met"` or an exclusion criterion `"met"`: a reply that
+#'   excludes with none of either, as when a criterion is not reported and
+#'   none is not met, is recorded as `"unclear"`, for a person to decide,
+#'   with a reason that says so. It changes the request (the schema and the
+#'   criteria message). Untested.
 #' @param ... Recipe overrides, as in [gr_extract()].
 #'
 #' @return An object of class `gr_screening`:
@@ -275,7 +300,8 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
                       screen_tokens = NULL, on_error = c("continue", "stop"),
                       max_total_usd = NULL, max_total_calls = NULL,
                       keep_answers = FALSE, recursive = FALSE, trace = NULL,
-                      ...) {
+                      criteria_schema = c("decision", "per_criterion"), ...) {
+  criteria_schema <- match.arg(criteria_schema)
   if (!is.null(protocol)) {
     if (!inherits(protocol, "gr_protocol")) {
       gr_abort("`protocol` must come from gr_protocol().", class = "gr_bad_protocol")
@@ -304,6 +330,8 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
   rd$include <- include
   rd$exclude <- exclude
   rd$screen_tokens <- screen_tokens
+  # Only when not the default, so a default screening keeps its store keys.
+  if (!identical(criteria_schema, "decision")) rd$criteria_schema <- criteria_schema
   rec <- gr_recipe(paste0(base$name, "+screen"), ingest = base$ingest,
                    segment = base$segment, read = rd)
 
@@ -316,7 +344,8 @@ gr_screen <- function(sources, protocol = NULL, question = NULL, include = NULL,
   docs <- out$summary$document
   answers <- out$answers[docs]
   names(answers) <- docs
-  tab <- screening_table(docs, answers, out$summary, include, exclude)
+  tab <- screening_table(docs, answers, out$summary, include, exclude,
+                         criteria_status = identical(criteria_schema, "per_criterion"))
   sets <- screening_sets(tab, out$sources)
 
   structure(list(
@@ -374,6 +403,74 @@ screening_sets <- function(tab, sources) {
     quote = list(type = c("string", "null"),
                  description = paste0("The sentence in the excerpt that decided it, copied ",
                                       "verbatim, or null if none does."))))
+
+#' What criteria_schema = "per_criterion" adds to the criteria message.
+#' @noRd
+.gr_per_criterion_instruction <- paste0(
+  "For every criterion above, report in `criteria` whether the excerpt shows the document ",
+  "meets it ('met'), shows it does not ('not_met'), or does not say ('not_reported'). ",
+  "Answer 'exclude' only if an inclusion criterion is 'not_met' or an exclusion criterion ",
+  "is 'met'. A criterion the excerpt does not report is not a reason to exclude.")
+
+#' The screening schema under criteria_schema = "per_criterion": the default
+#' one, plus `criteria`, one entry per criterion with its status.
+#' @noRd
+screen_schema_per_criterion <- function(include, exclude) {
+  sch <- .gr_screen_schema
+  sch$required <- c(sch$required, list("criteria"))
+  sch$properties$criteria <- list(
+    type = "array",
+    description = "Every criterion listed, each with what the excerpt shows about it.",
+    items = list(
+      type = "object", additionalProperties = FALSE,
+      required = list("criterion", "status"),
+      properties = list(
+        criterion = list(type = "string",
+                         description = "The criterion, copied from the list above."),
+        status = list(type = "string", enum = list("met", "not_met", "not_reported")))))
+  sch
+}
+
+#' Each criterion's status from a per-criterion reply, in the protocol's
+#' order and words: "met", "not_met" or "not_reported". A criterion the reply
+#' left out, named in other words or gave no status it could read is
+#' "not_reported": nothing was shown about it.
+#' @noRd
+criteria_statuses <- function(x, include, exclude) {
+  listed <- c(as.character(include), as.character(exclude))
+  out <- stats::setNames(rep("not_reported", length(listed)), listed)
+  rows <- if (is.data.frame(x)) lapply(seq_len(nrow(x)), function(i) as.list(x[i, , drop = FALSE]))
+          else if (is.list(x)) x else list()
+  keys <- criterion_key(listed)
+  for (r in rows) {
+    if (!is.list(r)) next
+    at <- match(criterion_key(as_chr1(r[["criterion"]], "")), keys)
+    st <- lower_text(trimws(as_chr1(r[["status"]], "")))
+    if (!is.na(at) && st %in% c("met", "not_met", "not_reported")) out[[at]] <- st
+  }
+  out
+}
+
+#' Whether per-criterion statuses show an exclusion: an inclusion criterion
+#' not met, or an exclusion criterion met. A reply whose criteria are met or
+#' not reported, with none not met, cannot be an exclusion.
+#' @noRd
+status_excludes <- function(status, include, exclude) {
+  any(status[as.character(include)] %in% "not_met") ||
+    any(status[as.character(exclude)] %in% "met")
+}
+
+#' The reason recorded for an exclusion its own per-criterion statuses do not
+#' show.
+#' @noRd
+per_criterion_reason <- function(status, reason) {
+  unrep <- names(status)[status == "not_reported"]
+  sprintf(paste0("Not excluded: the model excluded it, but reported no inclusion criterion ",
+                 "not met and no exclusion criterion met%s, so a person should decide. ",
+                 "Its reason: %s"),
+          if (length(unrep)) sprintf(" (not reported: %s)", paste(unrep, collapse = "; ")) else "",
+          ifelse(is.na(reason), "none given", reason))
+}
 
 #' @noRd
 criteria_prompt <- function(include, exclude) {

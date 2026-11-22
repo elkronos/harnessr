@@ -20,6 +20,7 @@ gr_screen(
   keep_answers = FALSE,
   recursive = FALSE,
   trace = NULL,
+  criteria_schema = c("decision", "per_criterion"),
   ...
 )
 }
@@ -50,6 +51,18 @@ an \code{error} naming \code{screen_tokens}. Either way the \code{truncated} and
 \item{max_total_calls, trace}{As \code{\link[=gr_read_many]{gr_read_many()}}. Pass the same \code{trace} to
 \code{\link[=gr_extract]{gr_extract()}} and \code{\link[=gr_synthesise]{gr_synthesise()}} and it accumulates the whole review,
 while each stage keeps its own for its own cost and its own ceiling.}
+
+\item{criteria_schema}{What each screening reply holds. \code{"decision"} (the
+default) asks for a decision, a reason, the deciding criterion and a
+quote, as before. \code{"per_criterion"} also asks, for every criterion,
+whether the excerpt shows it \code{"met"}, \code{"not_met"} or \code{"not_reported"},
+and adds a \code{criteria_status} column to the table (\code{"criterion: status"}
+pairs, separated by \code{"; "}). An exclusion then needs an inclusion
+criterion \code{"not_met"} or an exclusion criterion \code{"met"}: a reply that
+excludes with none of either, as when a criterion is not reported and
+none is not met, is recorded as \code{"unclear"}, for a person to decide,
+with a reason that says so. It changes the request (the schema and the
+criteria message). Untested.}
 
 \item{...}{Recipe overrides, as in \code{\link[=gr_extract]{gr_extract()}}.}
 }

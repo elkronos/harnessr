@@ -301,7 +301,7 @@
       "type": "function"
     },
     "gr_screen": {
-      "formals": ["sources", "protocol = NULL", "question = NULL", "include = NULL", "exclude = NULL", "recipe = \"research\"", "client = NULL", "store = NULL", "screen_tokens = NULL", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = FALSE", "recursive = FALSE", "trace = NULL", "..."],
+      "formals": ["sources", "protocol = NULL", "question = NULL", "include = NULL", "exclude = NULL", "recipe = \"research\"", "client = NULL", "store = NULL", "screen_tokens = NULL", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = FALSE", "recursive = FALSE", "trace = NULL", "criteria_schema = c(\"decision\", \"per_criterion\")", "..."],
       "type": "function"
     },
     "gr_screen_sample_size": {
