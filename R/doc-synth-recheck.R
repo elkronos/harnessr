@@ -9,17 +9,20 @@
 #' the studies each section was shown, so `shown` says whether a section's
 #' prompt held the study at all: an uncited study that was shown is one the
 #' writer passed over; one that was not was never put in front of it. A count,
-#' not a quota: nothing asks that every study be cited.
+#' not a quota: nothing asks that every study be cited. `shown` is NA when
+#' `section_studies` is not a table, as for a synthesis saved before it was
+#' kept: what each section was shown is then unknown.
 #' @noRd
 synth_uncited <- function(used, cited, section_studies) {
   left <- !used$study %in% cited
-  shown_any <- unique(as.integer(section_studies$study %||% integer(0)))
+  known <- is.data.frame(section_studies)
+  shown_any <- if (known) unique(as.integer(section_studies$study)) else integer(0)
   data.frame(study = used$study[left],
              document = if (is.null(used$document)) rep(NA_character_, sum(left))
                         else as.character(used$document[left]),
              document_id = if (is.null(used$document_id)) rep(NA_character_, sum(left))
                            else as.character(used$document_id[left]),
-             shown = used$study[left] %in% shown_any,
+             shown = if (known) used$study[left] %in% shown_any else rep(NA, sum(left)),
              stringsAsFactors = FALSE)
 }
 
@@ -130,11 +133,16 @@ contradiction_flags <- function(text_marked, claims, claim_sections = NULL,
 #' not shown, is left as a marker and counted; one the check cannot read is
 #' counted. Each is warned about (`gr_recheck_citations`). A heading the
 #' write-up did not have is checked against every study any section was
-#' shown. The figures are checked against the rows their sentence cites, as
+#' shown. A study cited honestly under one heading keeps its rendered
+#' citation and its reference even where another heading cites it without
+#' being shown it. The figures are checked against the rows their sentence
+#' cites, with the `style` and `figure_bands` the write-up was made with, as
 #' the revised text of a write-up is (`stage` `"edited"` in `$figures`); the
 #' sentences are linked to verified records again; and `$uncited` and
 #' `$contradictions` are worked out again. The sections, their counts and
 #' `$draft` are left as written: they describe the draft, not the edit.
+#' For a synthesis saved before `$section_studies` was kept, `shown` in
+#' `$uncited` is `NA`, since what each section was shown is not known.
 #'
 #' @param synthesis A [gr_synthesise()] result.
 #' @param text_marked The edited write-up, in the marker form of
@@ -188,18 +196,24 @@ gr_recheck <- function(synthesis, text_marked = synthesis$text_marked) {
   heads <- c(NA_character_,
              trimws(sub("[ \t]+#+[ \t]*$", "", sub("^#{1,6}[[:space:]]+", "", lines[is_head]))))
   unsupplied <- integer(0)
+  # The studies some piece rendered: a study one heading cites without being
+  # shown it, and another cites honestly, is cited by the published text and
+  # keeps its reference, as in gr_synthesise().
+  ok <- integer(0)
   pieces <- vapply(sort(unique(group)), function(g) {
     piece <- paste(lines[group == g], collapse = "\n")
     head <- heads[g + 1L]
     shown <- if (is.data.frame(sec_st) && !is.na(head) && head %in% sec_st$section)
       sec_st$study[sec_st$section == head] else shown_all
-    leave <- setdiff(intersect(cited_ids(piece, word), used$study), shown)
+    here <- intersect(cited_ids(piece, word), used$study)
+    leave <- setdiff(here, shown)
     unsupplied <<- c(unsupplied, leave)
+    ok <<- c(ok, setdiff(here, leave))
     render_citations(piece, used, keys, style, leave = leave)
   }, character(1))
   unsupplied <- sort(unique(unsupplied))
+  ok <- sort(unique(ok))
   published <- paste(pieces, collapse = "\n")
-  ok <- setdiff(intersect(cited, used$study), unsupplied)
   refs <- if (length(x$references)) reference_list(used, keys, ok, cols, style) else NULL
   if (length(unknown) || length(unsupplied) || length(unparsed)) {
     gr_warn(sprintf(paste0("The edited text cites %s. Those markers are left as written and kept ",
@@ -218,9 +232,13 @@ gr_recheck <- function(synthesis, text_marked = synthesis$text_marked) {
 
   hide <- unlist(cols, use.names = FALSE)
   rendered <- render_studies(used, hide = hide, values = x$values)
+  # The register text and the bands the write-up was checked with, so an
+  # unchanged text gets the figures gr_synthesise() gave it. A synthesis saved
+  # before they were kept is checked with no style and the default bands.
   figs <- synth_figures(x$sections, text_marked, used, rendered, x$question, claims = x$claims,
                         assign_map = x$claim_sections, gaps = x$gaps,
-                        closing = x$closing %||% NA_character_, hide = hide)
+                        closing = x$closing %||% NA_character_, style = x[["style", exact = TRUE]],
+                        hide = hide, bands = x[["figure_bands", exact = TRUE]] %||% .gr_figure_bands)
   ft <- figs$table
   ft$stage[ft$stage == "final"] <- "edited"
   attr(ft, "published") <- "edited"
@@ -230,8 +248,7 @@ gr_recheck <- function(synthesis, text_marked = synthesis$text_marked) {
   x$references <- refs
   x$figures <- ft
   x$sentences <- sentence_links(text_marked, used, study_verified(used, x$values))
-  x$uncited <- synth_uncited(used, ok, if (is.data.frame(sec_st)) sec_st else
-    data.frame(section = character(0), study = integer(0)))
+  x$uncited <- synth_uncited(used, ok, sec_st)
   x$contradictions <- contradiction_flags(text_marked, x$claims, x$claim_sections,
                                           sections = x$sections$section)
   x$recheck <- list(unknown = unknown, unsupplied = unsupplied, unparsed = unparsed)

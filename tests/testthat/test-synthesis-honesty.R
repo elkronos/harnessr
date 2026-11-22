@@ -502,6 +502,91 @@ test_that("gr_recheck() renders an edited text and checks its citations again", 
   expect_error(gr_recheck(list(), "a"), class = "gr_bad_synthesis")
 })
 
+# Three studies: claim 1 (Mood) rests on 1 and 2 and is contradicted by 3;
+# claim 2 (Size) rests on study 1. The Mood section is shown 1 to 3, the Size
+# section study 1 only.
+recheck_mood_size <- function() {
+  tab <- data.frame(document = c("a.pdf", "b.pdf", "c.pdf"), status = "ok", n_filled = 2L,
+                    n_unverified = 0L, citation = c("Smith, 2019", "Lee, 2021", "Ode, 2020"),
+                    finding = c("better", "better", "worse"), n = c(120L, 300L, 45L),
+                    stringsAsFactors = FALSE)
+  cl <- gr_mock_client(function(m, p) {
+    if (identical(p$schema_name, "claim_groups")) return('{"groups":[[1],[2]]}')
+    if (!is.null(p$schema) && grepl("claim", p$schema_name) &&
+        !grepl("section|outline", p$schema_name)) {
+      return(paste0('{"claims":[{"claim":"Exercise improves mood.","kind":"finding",',
+                    '"supported_by":[1,2],"contradicted_by":[3],"moderator":null,"scope":null},',
+                    '{"claim":"Trials were small.","kind":"finding","supported_by":[1],',
+                    '"contradicted_by":[],"moderator":null,"scope":null}]}'))
+    }
+    if (!is.null(p$schema)) {
+      return(paste0('{"sections":[{"heading":"Mood","brief":"Mood","claims":[1],',
+                    '"rationale":null},{"heading":"Size","brief":"Size","claims":[2],',
+                    '"rationale":null}]}'))
+    }
+    all <- paste(vapply(m, function(x) as.character(x$content), ""), collapse = " ")
+    if (grepl("Size", all)) "One trial enrolled 120 people [study 1]."
+    else "Exercise improved mood [study 1] [study 2]."
+  })
+  cm <- suppressWarnings(suppressMessages(gr_claims(tab, question = "Q?", client = cl)))
+  o <- suppressWarnings(gr_outline(cm, client = cl))
+  list(tab = tab, cl = cl, cm = cm,
+       s = suppressWarnings(gr_synthesise(tab, question = "Q?", outline = o, claims = cm,
+                                          client = cl)))
+}
+
+test_that("gr_recheck() keeps the reference of a study another heading cites honestly", {
+  s <- recheck_mood_size()$s
+  expect_identical(sort(s$section_studies$study[s$section_studies$section == "Size"]), 1L)
+  # Size now also cites study 2, which it was not shown; Mood still cites it,
+  # and was shown it.
+  ed <- sub("120 people [study 1].", "120 people [study 1], another 300 [study 2].",
+            s$text_marked, fixed = TRUE)
+  r <- suppressWarnings(gr_recheck(s, ed))
+  expect_identical(r$recheck$unsupplied, 2L)
+  expect_match(r$text, "Lee, 2021; Smith, 2019", fixed = TRUE)
+  expect_match(r$text, "another 300 [study 2]", fixed = TRUE)
+  expect_true(any(grepl("Lee", r$references)))
+  expect_identical(r$uncited$study, 3L)
+  # Cited nowhere else, it is kept out of the references and listed uncited.
+  ed2 <- gsub("[study 1] [study 2].", "[study 1].", ed, fixed = TRUE)
+  r2 <- suppressWarnings(gr_recheck(s, ed2))
+  expect_false(any(grepl("Lee", r2$references)))
+  expect_identical(r2$uncited$study, 2:3)
+})
+
+test_that("gr_recheck() says shown is unknown for a synthesis saved without section_studies", {
+  s <- recheck_mood_size()$s
+  r <- gr_recheck(s, gsub(" [study 2]", "", s$text_marked, fixed = TRUE))
+  expect_identical(r$uncited$shown, c(TRUE, TRUE))
+  old <- s
+  old$section_studies <- NULL
+  r <- gr_recheck(old, gsub(" [study 2]", "", old$text_marked, fixed = TRUE))
+  expect_identical(r$uncited$study, 2:3)
+  expect_identical(r$uncited$shown, c(NA, NA))
+})
+
+test_that("gr_recheck() checks figures with the style and bands the write-up used", {
+  tab <- data.frame(document = c("a.pdf", "b.pdf"), status = "ok", n_filled = 1L,
+                    n_unverified = 0L, n = c(120L, 300L), stringsAsFactors = FALSE)
+  cl <- gr_mock_client(function(m, p) {
+    "One trial enrolled about 130 people [study 1]. Each part ran to 250 words [study 2]."
+  })
+  s <- suppressWarnings(gr_synthesise(tab, question = "Q?", outline = c(Findings = "Size"),
+                                      client = cl, style = "Keep each part to 250 words.",
+                                      figure_bands = c(about = 0.05)))
+  expect_identical(s$style, "Keep each part to 250 words.")
+  expect_equal(s$figure_bands[["about"]], 0.05)
+  r <- suppressWarnings(gr_recheck(s))
+  keep <- c("number", "backed", "basis")
+  ed <- r$figures[r$figures$stage == "edited", keep]
+  dr <- s$figures[s$figures$stage == "draft", keep]
+  rownames(ed) <- rownames(dr) <- NULL
+  expect_identical(ed, dr)
+  expect_false(ed$backed[ed$number == "130"])
+  expect_true(ed$backed[ed$number == "250"])
+})
+
 test_that("gr_recheck() leaves a marker for a study the heading's section was not shown", {
   x <- honesty_extraction()
   rc <- recording_client(function(kind, m) {

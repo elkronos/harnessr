@@ -36,11 +36,16 @@ does not exist, or a study the section under whose heading it stands was
 not shown, is left as a marker and counted; one the check cannot read is
 counted. Each is warned about (\code{gr_recheck_citations}). A heading the
 write-up did not have is checked against every study any section was
-shown. The figures are checked against the rows their sentence cites, as
+shown. A study cited honestly under one heading keeps its rendered
+citation and its reference even where another heading cites it without
+being shown it. The figures are checked against the rows their sentence
+cites, with the \code{style} and \code{figure_bands} the write-up was made with, as
 the revised text of a write-up is (\code{stage} \code{"edited"} in \verb{$figures}); the
 sentences are linked to verified records again; and \verb{$uncited} and
 \verb{$contradictions} are worked out again. The sections, their counts and
 \verb{$draft} are left as written: they describe the draft, not the edit.
+For a synthesis saved before \verb{$section_studies} was kept, \code{shown} in
+\verb{$uncited} is \code{NA}, since what each section was shown is not known.
 }
 \examples{
 tab <- data.frame(document = c("a.pdf", "b.pdf"), status = "ok",

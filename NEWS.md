@@ -89,7 +89,8 @@
   `shown`, whether any section's prompt held the study. `print()` gives one
   line and the audit report a table. It is a count, not a quota: nothing asks
   that every study be cited. The result also keeps `$section_studies` (the
-  studies each section was shown), `$closing` and `$bib_columns`.
+  studies each section was shown), `$closing`, `$style`, `$figure_bands` and
+  `$bib_columns`.
 
 * New `gr_recheck(synthesis, text_marked)` checks and renders an edited
   write-up again. Edit `$text_marked`, the marker form, and pass it back: a
@@ -98,7 +99,11 @@
   `$recheck` and warned about (`gr_recheck_citations`); the citations and
   reference list are rendered from the edit; and `$figures` (stage
   `"edited"`), `$sentences`, `$uncited` and `$contradictions` are worked out
-  again. Nothing is sent.
+  again, the figures with the `style` and `figure_bands` the write-up was
+  made with. A study one heading cites without being shown it keeps its
+  reference when another heading cites it honestly. On a synthesis saved
+  before `$section_studies` was kept, `shown` in `$uncited` is `NA`.
+  Nothing is sent.
 
 * `gr_synthesise()` gains `$contradictions`: with `claims`, sentences that
   state a claim and cite a study on its contradicting side with no hedge

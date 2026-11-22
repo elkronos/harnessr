@@ -312,8 +312,9 @@ counting words, with no model; a flag says where to look, and marks
 nothing partial.}
 \item{\code{section_studies}}{The studies each section was shown:
 \code{section}, \code{study}. \code{\link[=gr_recheck]{gr_recheck()}} reads it.}
-\item{\code{closing},\code{bib_columns}}{The closing section and the
-bibliographic columns the run used, which \code{\link[=gr_recheck]{gr_recheck()}} reads.}
+\item{\code{closing},\code{style},\code{figure_bands},\code{bib_columns}}{The closing
+section, the \code{style} and \code{figure_bands} given, and the bibliographic
+columns the run used, which \code{\link[=gr_recheck]{gr_recheck()}} reads.}
 \item{\code{values}}{Each extracted value of the studies with its check and
 quote, as \verb{$values} of \code{\link[=gr_claims]{gr_claims()}}. The writing prompts show each
 value with these, the unverified ones marked as such.}

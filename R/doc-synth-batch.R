@@ -296,8 +296,9 @@
 #'       nothing partial.}
 #'     \item{`section_studies`}{The studies each section was shown:
 #'       `section`, `study`. [gr_recheck()] reads it.}
-#'     \item{`closing`,`bib_columns`}{The closing section and the
-#'       bibliographic columns the run used, which [gr_recheck()] reads.}
+#'     \item{`closing`,`style`,`figure_bands`,`bib_columns`}{The closing
+#'       section, the `style` and `figure_bands` given, and the bibliographic
+#'       columns the run used, which [gr_recheck()] reads.}
 #'     \item{`values`}{Each extracted value of the studies with its check and
 #'       quote, as `$values` of [gr_claims()]. The writing prompts show each
 #'       value with these, the unverified ones marked as such.}
@@ -849,6 +850,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
                  claim_id = as.integer(assign_map$claim_id), stringsAsFactors = FALSE),
     gaps = gaps,
     closing = closing,
+    style = style,
+    figure_bands = figure_bands,
     bib_columns = cols,
     cite_style = resolved,
     coherence = revised$report,
