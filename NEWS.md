@@ -32,8 +32,17 @@
   `TRUE`, `FALSE` or `NA` (nothing to check), and `FALSE` warns with class
   `gr_identity_mismatch` and is added to `warnings`. Nothing is dropped and
   `gr_flow()` is unchanged. `print()` counts the mismatches, and the audit
-  report lists them. A run without records has no new column, even for rows
-  it restores from a store a run over records wrote.
+  report lists them. A row restored from `store` keeps its check only when
+  the run that stored it checked the file against the same record; otherwise
+  `identity` is `NA`, the stored warning is dropped, and a note in `warnings`
+  says the check needs the document read again. A run without records has no
+  new column, even for rows it restores from a store a run over records
+  wrote, and those rows lose the stored warning.
+
+* The `references` cleaner no longer cuts a Markdown file at a line indented
+  four or more spaces ("    # References"), which in Markdown is code, not a
+  heading. PDF and plain text still allow any indent. `gr_ingest()` tells the
+  cleaners what read the file in `.source_type`.
 
 * Screening recall now says what it is relative to. `print()` on a
   `gr_calibrate()` result and the audit report state that recall is the share

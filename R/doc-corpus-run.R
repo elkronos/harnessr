@@ -217,14 +217,19 @@ corpus_models_have <- function(models) {
 #' and the title is compared without its digits. `TRUE` when either is there; `FALSE` when the record has
 #' a title of 12 or more letters or digits and neither is there, which warns
 #' with class `gr_identity_mismatch` and adds the warning to `warnings`; `NA`
-#' when there was nothing to check (no text, a row that was skipped or
-#' restored from a store written before the check, a record with only a DOI
-#' the opening does not print, or a short title). A record matched to its file
-#' by first author and year is the case this catches: another paper by the
-#' same author in the same year. Nothing is dropped and [gr_flow()] counts the
-#' same; the column says which documents to check by hand. A run over files
-#' alone has no `identity` column, even for a row it restores from a store
-#' that a run over a [gr_records()] wrote.
+#' when there was nothing to check (no text, a skipped row, a record with
+#' only a DOI the opening does not print, or a short title). A record matched
+#' to its file by first author and year is the case this catches: another
+#' paper by the same author in the same year. Nothing is dropped and
+#' [gr_flow()] counts the same; the column says which documents to check by
+#' hand. A row restored from `store` keeps its check only when the run that
+#' stored it checked the file against the same record (the same title and
+#' DOI). Otherwise its `identity` is `NA`, the stored mismatch warning is
+#' taken out of `warnings`, and a note there says that the check needs the
+#' document read again, because the store does not keep the document's text.
+#' A run over files alone has no `identity` column, even for a row it restores
+#' from a store that a run over a [gr_records()] wrote, and that row loses the
+#' stored mismatch warning.
 #'
 #' `document` is a filename and `document_id` is the hash of the cleaned text
 #' (and of the pages that never became text, when there are any). Cite with the
@@ -459,6 +464,10 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     # marked every paper already in the store "skipped", with no values.
     key <- if (is.null(store)) NULL else corpus_key(src, question, rec, client)
     restored <- if (is.null(key)) NULL else corpus_restore(store, key)
+    # The record this run pairs the source with, and what a stored check must
+    # have been made against to hold in this run (see restored_identity()).
+    src_record <- if (check_identity) source_record(src, from_records) else NULL
+    checked_against <- identity_fingerprint(src_record, check_identity)
     if (!is.null(restored)) {
       gr_msg(sprintf("[%d/%d] %s, restored from store", i, length(sources), lab))
       restored$row$document <- lab
@@ -472,6 +481,10 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       if (check_premise && is.null(restored$row[["premise", exact = TRUE]])) {
         restored$row$premise <- answer_premise(restored$answer)
       }
+      # The store key does not depend on the record set, so the check the
+      # entry was saved with holds only for the record it was made against.
+      restored$row <- restored_identity(restored$row, restored$identity_of, src_record,
+                                        check_identity, lab)
       # A restored document is never ingested, so its text is not available to
       # hash here. The hash travels in the store entry instead -- otherwise a
       # resumed run would restore the first copy and then pay to read the second,
@@ -574,7 +587,7 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       # Before anything is read: a wrong file is worth knowing about whatever
       # happens to its answer. It warns and goes on; nothing is dropped.
       if (check_identity) {
-        ident <- check_record_identity(doc$text, source_record(src, from_records), lab,
+        ident <- check_record_identity(doc$text, src_record, lab,
                                        steps = doc$stats$clean_steps)
         if (!is.null(attr(ident, "message"))) {
           gr_warn(attr(ident, "message"), class = "gr_identity_mismatch")
@@ -661,7 +674,8 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       if (keep_answers && !is.null(dup_answer)) answers[[lab]] <- dup_answer
       # Saved under its OWN key, so a resumed run restores it instead of paying
       # to rediscover that it is a duplicate.
-      if (!is.null(key)) corpus_save(store, key, rows[[i]], dup_answer, out$hash)
+      if (!is.null(key)) corpus_save(store, key, rows[[i]], dup_answer, out$hash,
+                                        identity_of = checked_against)
     } else if (!is.null(stopped_by <- limit_note(out))) {
       # Not read in full, so not a result: reported and handled as a failure,
       # kept out of the store so a resumed run with a higher limit reads it
@@ -690,7 +704,8 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       if (check_identity) rows[[i]] <- identity_row(rows[[i]], ident, doc_rec)
       if (keep_answers) answers[[lab]] <- out
       assign(attr(out, "doc_hash"), i, envir = seen)
-      if (!is.null(key)) corpus_save(store, key, rows[[i]], out, attr(out, "doc_hash"))
+      if (!is.null(key)) corpus_save(store, key, rows[[i]], out, attr(out, "doc_hash"),
+                                        identity_of = checked_against)
     }
 
     # A document whose read failed after its text came in was still checked.
@@ -743,12 +758,10 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     }
   }
 
-  # Every row has the column, so they bind: a restored row saved before the
-  # check existed, a skipped one and a failed one say NA. A run without a
-  # record set has no column, and a row it restores from a store a run over
-  # a gr_records() wrote loses the one it was saved with: the store's key does
-  # not depend on the record set, so the same file restores into both kinds
-  # of run.
+  # Every row has the column, so they bind: a skipped row and a failed one
+  # say NA, and so does a restored one whose stored check was not made
+  # against this run's record (see restored_identity()). A run without a
+  # record set has no column.
   rows <- lapply(rows, function(r) {
     if (!check_identity) r$identity <- NULL
     else if (is.null(r[["identity", exact = TRUE]])) r$identity <- NA

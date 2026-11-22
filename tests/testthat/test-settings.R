@@ -451,6 +451,37 @@ test_that("the references cleaner cuts at a Markdown heading", {
   expect_match(st$text, "Northwind Instruments, Annual Report 2023", fixed = TRUE)
 })
 
+test_that("in Markdown a references line indented four spaces is code, not a heading", {
+  body <- paste(rep("Body sentence about results and methods here.", 40), collapse = "\n")
+  tail <- "[1] First source.\n[2] Second source."
+  for (h in c("    # References", "\t# References", "     References")) {
+    x <- paste(body, h, tail, sep = "\n")
+    # Without a source type, as for PDF and plain text, indentation is allowed.
+    expect_false(grepl("First source", as.character(gr_clean(x, steps = "references")),
+                       fixed = TRUE), info = h)
+    for (type in c("pdf", "txt")) {
+      out <- gr_clean(x, steps = "references", opts = list(.source_type = type))
+      expect_false(grepl("First source", as.character(out), fixed = TRUE), info = h)
+    }
+    md <- gr_clean(x, steps = "references", opts = list(.source_type = "md"))
+    expect_identical(as.character(md), x, info = h)
+  }
+  # Up to three spaces is still a Markdown heading.
+  x <- paste(body, "   # References", tail, sep = "\n")
+  md <- gr_clean(x, steps = "references", opts = list(.source_type = "md"))
+  expect_false(grepl("First source", as.character(md), fixed = TRUE))
+
+  # gr_ingest() gives the source type: the same text as .md and as .txt.
+  text <- c(body, "", "    # References", "", "[1] First source.")
+  f_md <- tempfile(fileext = ".md"); writeLines(text, f_md)
+  f_txt <- tempfile(fileext = ".txt"); writeLines(text, f_txt)
+  spec <- gr_ingest_spec(clean = "references")
+  expect_match(quiet(gr_ingest(f_md, spec))$text, "First source", fixed = TRUE)
+  expect_false(grepl("First source", quiet(gr_ingest(f_txt, spec))$text, fixed = TRUE))
+  expect_match(subset(gr_cleaners(), name == "references")$description,
+               "indented 4 or more spaces", fixed = TRUE)
+})
+
 test_that("layout_opts is checked and changes which running lines are dropped", {
   expect_error(gr_ingest_spec(layout_opts = list(deep = 3)), class = "gr_bad_setting")
   expect_warning(sp <- gr_ingest_spec(layout_opts = list(share = 2)), class = "gr_clamped")

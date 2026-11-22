@@ -86,6 +86,14 @@ gr_register_cleaner <- function(name, fn, stage = c("early", "late"), descriptio
 #' pages it takes a short line with a letter in it repeated at the edge of its
 #' block, so a label that is a block of its own and recurs can go with them.
 #'
+#' `references` cuts at a References, Bibliography or Works cited heading on
+#' its own line, indented or not, since PDF and plain text indent headings. In
+#' Markdown a line indented four or more spaces is code, not a heading, so for
+#' a Markdown file (`.source_type` `"md"`, which [gr_ingest()] gives when the
+#' md extractor read the file) the heading may be indented three spaces at
+#' most. Text passed to [gr_clean()] without `.source_type` is treated as
+#' PDF and plain text are.
+#'
 #' @return A data frame with `name`, `stage`, `scope`, `default_on` and
 #'   `description`.
 #' @seealso [gr_clean()], [gr_register_cleaner()], [gr_ingest_spec()]
@@ -124,7 +132,13 @@ gr_cleaners <- function() {
 #'   `.blocks`, all the blocks as they stand before that step, for a step that
 #'   decides by what the rest of the document says (as `hyphenation` and
 #'   `headers_footers` do); and `.pages`, a page per block, where the caller
-#'   gives one ([gr_ingest()] does).
+#'   gives one ([gr_ingest()] does); and `.source_type`, the name of the
+#'   extractor that read the file (`"md"`, `"pdf"`, `"txt"` ...), which
+#'   [gr_ingest()] gives for a file and which `references` reads (see
+#'   [gr_cleaners()]). For a Markdown file [gr_ingest()] also gives
+#'   `.indented`, a logical per block, `TRUE` where the file indented the
+#'   block's first line four or more spaces; the extractor takes that indent
+#'   off the text.
 #' @return The cleaned character vector, with a `"gr_clean_log"` attribute
 #'   recording characters removed per step.
 #' @export
@@ -359,7 +373,9 @@ register_builtin_cleaners <- function() {
     })
 
   gr_register_cleaner("references", stage = "early", default_on = FALSE, scope = "document",
-    description = "Drop a trailing bibliography, from a References/Bibliography heading to the end",
+    description = paste0("Drop a trailing bibliography, from a References/Bibliography heading ",
+                         "to the end; in a Markdown file a line indented 4 or more spaces is ",
+                         "code, not a heading"),
     fn = function(x, o) {
       # Correct version of the old one-liner. The heading must be on its own
       # line, optionally numbered and optionally a Markdown heading ("##
@@ -371,7 +387,16 @@ register_builtin_cleaners <- function() {
       # ("```" or "~~~" to the matching closing fence) is code, not a heading,
       # so a "# references" comment there does not match. The first such
       # heading ends the text.
-      m <- gregexpr(paste0("(?mi)^[ \t]*(?:#{1,6}[ \t]+)?(?:\\d+\\.?[ \t]*)?",
+      #
+      # Indentation before the heading is allowed, because PDF and plain text
+      # indent headings. In Markdown a line indented four or more spaces (or a
+      # tab) is an indented code block or the rest of a paragraph, never a
+      # heading, so for a Markdown source (`.source_type` "md", which
+      # gr_ingest() gives for a file the md extractor read) at most three
+      # spaces are allowed, as extract_md() allows for its headings.
+      md <- identical(o[[".source_type", exact = TRUE]], "md")
+      m <- gregexpr(paste0("(?mi)^", if (md) " {0,3}" else "[ \t]*",
+                           "(?:#{1,6}[ \t]+)?(?:\\d+\\.?[ \t]*)?",
                            "(references|bibliography|works cited)[ \t:]*(?:(?<=[ \t])#+[ \t]*)?$"),
                     x, perl = TRUE)[[1]]
       if (m[1] == -1) return(x)
@@ -380,6 +405,9 @@ register_builtin_cleaners <- function() {
       total <- nchar(x)
       cand <- pos[pos >= total * after]
       cand <- cand[!in_code_fence(x, cand)]
+      # A block the Markdown extractor took a four-space indent off still
+      # started indented in the file (`.indented`, from gr_ingest()).
+      if (md) cand <- cand[!at_indented_block(x, cand, o)]
       if (!length(cand)) return(x)
       substr(x, 1, max(cand[1] - 1L, 0L))
     })
@@ -508,6 +536,23 @@ document_compounds <- function(texts, memo = NULL) {
   }
   if (is.environment(memo)) memo$compounds <- out
   out
+}
+
+#' Whether each position of `x` is the start of a block that `.indented` in
+#' `o` marks: one whose first line the Markdown extractor took an indent of
+#' four or more spaces off. `x` must be the blocks in `o$.blocks` joined as
+#' gr_clean() joins them, so the positions can be placed; otherwise, or
+#' without `.indented`, nothing is.
+#' @noRd
+at_indented_block <- function(x, pos, o) {
+  out <- rep(FALSE, length(pos))
+  ind <- o[[".indented", exact = TRUE]]
+  blocks <- o[[".blocks", exact = TRUE]]
+  if (!length(pos) || !is.logical(ind) || !is.character(blocks) ||
+      length(ind) != length(blocks) || !any(ind %in% TRUE) ||
+      !identical(paste(blocks, collapse = "\n\n"), x)) return(out)
+  starts <- cumsum(c(1L, nchar(blocks) + 2L))[seq_along(blocks)]
+  pos %in% starts[ind %in% TRUE]
 }
 
 #' Whether each position of `x` lies inside a fenced Markdown code block.

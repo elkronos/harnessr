@@ -139,14 +139,19 @@ record's title). When the recipe's cleaning removes digits
 and the title is compared without its digits. \code{TRUE} when either is there; \code{FALSE} when the record has
 a title of 12 or more letters or digits and neither is there, which warns
 with class \code{gr_identity_mismatch} and adds the warning to \code{warnings}; \code{NA}
-when there was nothing to check (no text, a row that was skipped or
-restored from a store written before the check, a record with only a DOI
-the opening does not print, or a short title). A record matched to its file
-by first author and year is the case this catches: another paper by the
-same author in the same year. Nothing is dropped and \code{\link[=gr_flow]{gr_flow()}} counts the
-same; the column says which documents to check by hand. A run over files
-alone has no \code{identity} column, even for a row it restores from a store
-that a run over a \code{\link[=gr_records]{gr_records()}} wrote.
+when there was nothing to check (no text, a skipped row, a record with
+only a DOI the opening does not print, or a short title). A record matched
+to its file by first author and year is the case this catches: another
+paper by the same author in the same year. Nothing is dropped and
+\code{\link[=gr_flow]{gr_flow()}} counts the same; the column says which documents to check by
+hand. A row restored from \code{store} keeps its check only when the run that
+stored it checked the file against the same record (the same title and
+DOI). Otherwise its \code{identity} is \code{NA}, the stored mismatch warning is
+taken out of \code{warnings}, and a note there says that the check needs the
+document read again, because the store does not keep the document's text.
+A run over files alone has no \code{identity} column, even for a row it restores
+from a store that a run over a \code{\link[=gr_records]{gr_records()}} wrote, and that row loses the
+stored mismatch warning.
 
 \code{document} is a filename and \code{document_id} is the hash of the cleaned text
 (and of the pages that never became text, when there are any). Cite with the

@@ -184,3 +184,75 @@ test_that("a run without records drops the check from rows a records run stored"
   expect_identical(names(out$summary), names(
     suppressMessages(gr_read_many(new, "What was revenue?", "fast", client = cl))$summary))
 })
+
+test_that("the mismatch message names what was looked for", {
+  cri <- harnessr:::check_record_identity
+  page <- "Sleep and memory consolidation in students\nJ. Smith\nRevenue was 45.2 million."
+  title <- "Spaced practice and long-term retention in adults"
+  both <- attr(cri(page, list(title = title, doi = "10.1000/sp1"), "a.txt"), "message")
+  expect_match(both, "has neither the record's title nor its DOI.", fixed = TRUE)
+  no_doi <- attr(cri(page, list(title = title, doi = NA_character_), "a.txt"), "message")
+  expect_match(no_doi, "does not have the record's title, and the record has no DOI.",
+               fixed = TRUE)
+  stripped <- attr(cri(page, list(title = title, doi = "10.1000/sp1"), "a.txt",
+                       steps = "remove_numbers"), "message")
+  expect_match(stripped, paste0("does not have the record's title (its DOI was not looked ",
+                                "for, because the cleaning took the digits out)."), fixed = TRUE)
+  for (m in c(both, no_doi, stripped)) {
+    expect_match(m, "^'a.txt' may not be the paper its record names: the opening of its text")
+    expect_false(grepl("neither the record's title.", m, fixed = TRUE) &&
+                   !grepl(" nor ", m, fixed = TRUE))
+  }
+})
+
+test_that("a restored row keeps its check only for the record it was checked against", {
+  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  recs <- identity_corpus()
+  store <- tempfile("store")
+  first <- suppressWarnings(suppressMessages(
+    gr_read_many(recs, "What was revenue?", "fast", client = cl, store = store)))
+  smith <- function(x) x$summary[x$summary$document == "Smith 2019.txt", ]
+  expect_false(smith(first)$identity)
+
+  # The same record set: the check and its warning are kept.
+  same <- suppressMessages(gr_read_many(recs, "What was revenue?", "fast", client = cl,
+                                        store = store))
+  expect_true(all(same$summary$status == "restored"))
+  expect_identical(same$summary$identity, first$summary$identity)
+  expect_identical(same$summary$warnings, first$summary$warnings)
+
+  # Another record set pairs the file with its right record: the stored FALSE
+  # and its warning do not carry over, and a note says the check needs the
+  # document read again.
+  ris <- tempfile(fileext = ".ris")
+  writeLines(c("TY  - JOUR", "AU  - Smith, J.",
+               "TI  - Sleep and memory consolidation in students", "PY  - 2019", "ER  - "), ris)
+  r2 <- gr_records(ris, files = dirname(recs$records$file[1]))
+  expect_no_warning(other <- suppressMessages(gr_read_many(r2, "What was revenue?", "fast",
+                                                           client = cl, store = store)))
+  s <- smith(other)
+  expect_identical(s$status, "restored")
+  expect_true(is.na(s$identity))
+  expect_false(grepl("may not be the paper", s$warnings, fixed = TRUE))
+  expect_match(s$warnings, "needs the document read again", fixed = TRUE)
+  # Read without the store, the check is made against this record.
+  fresh <- suppressMessages(gr_read_many(r2, "What was revenue?", "fast", client = cl))
+  expect_true(smith(fresh)$identity)
+
+  # A run over the files alone drops the old warning with the column.
+  files <- suppressMessages(gr_read_many(recs$records$file, "What was revenue?", "fast",
+                                         client = cl, store = store))
+  expect_null(files$summary$identity)
+  expect_false(any(grepl("may not be the paper", files$summary$warnings, fixed = TRUE)))
+
+  # An entry that does not say what it was checked against (one written
+  # before the store kept it) restores with identity NA and the note.
+  for (f in list.files(store, full.names = TRUE)) {
+    e <- readRDS(f); e$identity_of <- NULL; saveRDS(e, f)
+  }
+  old <- suppressMessages(gr_read_many(recs, "What was revenue?", "fast", client = cl,
+                                       store = store))
+  expect_true(all(is.na(old$summary$identity)))
+  expect_true(all(grepl("needs the document read again", old$summary$warnings, fixed = TRUE)))
+  expect_false(any(grepl("may not be the paper", old$summary$warnings, fixed = TRUE)))
+})

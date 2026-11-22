@@ -101,11 +101,73 @@ check_record_identity <- function(doc_text, record, label, steps = character(0))
   if (is.null(record)) return(NA)
   digits <- !("remove_numbers" %in% steps)
   ok <- record_identity(doc_text, record$title, record$doi, digits = digits)
-  if (identical(ok, FALSE)) {
-    attr(ok, "message") <- sprintf(paste0(
-      "'%s' may not be the paper its record names: the opening of its text has neither the ",
-      "record's title%s. It is read and kept; check the file by hand (the `identity` column ",
-      "is FALSE)."), label, if (is.na(record$doi) || !digits) "" else " nor its DOI")
-  }
+  if (identical(ok, FALSE)) attr(ok, "message") <- identity_message(label, record$doi, digits)
   ok
+}
+
+#' The words every identity mismatch message starts with after the label.
+#' restored_identity() finds an old run's message in a `warnings` cell by them.
+#' @noRd
+.gr_identity_marker <- "may not be the paper its record names: the opening of its text"
+
+#' The sentence a mismatch warns with. It names what was looked for: the
+#' title and the DOI, the title alone when the record has no DOI, or the
+#' title alone with the reason when the cleaning took the digits out and the
+#' DOI could not be looked for.
+#' @noRd
+identity_message <- function(label, doi, digits) {
+  has_doi <- !is.na(as_chr1(doi, NA_character_)) && nzchar(trimws(doi))
+  what <- if (has_doi && digits) {
+    "has neither the record's title nor its DOI"
+  } else if (has_doi) {
+    paste0("does not have the record's title (its DOI was not looked for, because the ",
+           "cleaning took the digits out)")
+  } else {
+    "does not have the record's title, and the record has no DOI"
+  }
+  sprintf(paste0("'%s' %s %s. It is read and kept; check the file by hand (the `identity` ",
+                 "column is FALSE)."), label, .gr_identity_marker, what)
+}
+
+#' What a stored identity check was made against: a hash of the record's
+#' title and DOI, or "none" for a source with no record. NULL for a run with
+#' no record set, which made no check.
+#' @noRd
+identity_fingerprint <- function(record, check = TRUE) {
+  if (!check) return(NULL)
+  if (is.null(record)) return("none")
+  gr_hash(list("readgpt-identity-v1", as_chr1(record$title, NA_character_),
+               as_chr1(record$doi, NA_character_)))
+}
+
+#' A row restored from a store, with an identity check that fits this run.
+#'
+#' The store key does not depend on the record set, so the same entry
+#' restores into runs that pair the file with different records, or with
+#' none. The stored `identity` and its warning hold only for the record the
+#' storing run checked. `stored` is that record's identity_fingerprint() as
+#' the entry keeps it (NULL for an entry written before it was kept, or by a
+#' run with no record set), and `record` is this run's record for the source.
+#'
+#' With the same record the row is kept as stored. Otherwise the old run's
+#' mismatch warning is taken out of `warnings`, and in a run with a record set
+#' `identity` is NA; when this run has a record for the source, a note in
+#' `warnings` says that the check needs the document read again. The store
+#' does not keep the document's text, so the check cannot be made here.
+#' @noRd
+restored_identity <- function(row, stored, record, check, label) {
+  now <- identity_fingerprint(record, check)
+  if (!is.null(now) && identical(stored, now)) return(row)
+  w <- row[["warnings", exact = TRUE]]
+  have <- if (is.null(w) || is.na(w)) character(0) else strsplit(w, " | ", fixed = TRUE)[[1]]
+  have <- have[!grepl(.gr_identity_marker, have, fixed = TRUE)]
+  if (check && !is.null(record)) {
+    have <- c(have, sprintf(paste0(
+      "'%s' was restored from `store`, and the stored result was not checked against this ",
+      "run's record for it. Whether it is the paper its record names needs the document read ",
+      "again: run without `store`, or delete its entry (the `identity` column is NA)."), label))
+  }
+  row$warnings <- corpus_warnings(have)
+  row$identity <- if (check) NA else NULL
+  row
 }

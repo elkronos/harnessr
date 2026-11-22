@@ -407,8 +407,13 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
     npages <- if (is.numeric(npages) && length(npages) == 1L) as_int1(npages, NA_integer_)
               else NA_integer_
     if (!is.na(npages) && npages < 1L) npages <- NA_integer_
+    # Which blocks the Markdown extractor took a four-space indent off (see
+    # extract_md()), read before as_blocks(), which keeps no attributes.
+    indented <- attr(raw, "gr_indented", exact = TRUE)
     blocks <- as_blocks(raw)
     blocks$text <- to_utf8(blocks$text)
+    source_type <- as_chr1(ex$name, NA_character_)
+    if (!is.logical(indented) || length(indented) != nrow(blocks)) indented <- NULL
   } else {
     txt <- paste(vapply(source, as_chr1, character(1), USE.NAMES = FALSE), collapse = "\n\n")
     txt <- to_utf8(txt)
@@ -417,6 +422,8 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
     npages <- NA_integer_
     src <- "<inline text>"
     label <- src
+    source_type <- NULL
+    indented <- NULL
   }
   unread <- sort(unique(as.integer(unread[!is.na(unread)])))
 
@@ -426,6 +433,10 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
   # stands on its page (headers_footers) can see the pages.
   clean_opts <- utils::modifyList(as.list(spec), spec$cleaner_opts %||% list())
   clean_opts[[".pages"]] <- blocks$page
+  # What read the file, so a step can tell Markdown from PDF and plain text
+  # (`references` does). Inline text has none.
+  if (!is.null(source_type)) clean_opts[[".source_type"]] <- source_type
+  if (!is.null(indented)) clean_opts[[".indented"]] <- indented
   cleaned <- withCallingHandlers(
     gr_clean(blocks$text, steps = steps, opts = clean_opts),
     gr_warning = rec$record)

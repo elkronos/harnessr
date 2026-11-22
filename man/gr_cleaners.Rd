@@ -23,6 +23,14 @@ writes the compound whole somewhere, and otherwise joins the two halves.
 (a PDF's, form feeds in text, or \code{.pages} given to \code{\link[=gr_clean]{gr_clean()}}); without
 pages it takes a short line with a letter in it repeated at the edge of its
 block, so a label that is a block of its own and recurs can go with them.
+
+\code{references} cuts at a References, Bibliography or Works cited heading on
+its own line, indented or not, since PDF and plain text indent headings. In
+Markdown a line indented four or more spaces is code, not a heading, so for
+a Markdown file (\code{.source_type} \code{"md"}, which \code{\link[=gr_ingest]{gr_ingest()}} gives when the
+md extractor read the file) the heading may be indented three spaces at
+most. Text passed to \code{\link[=gr_clean]{gr_clean()}} without \code{.source_type} is treated as
+PDF and plain text are.
 }
 \examples{
 gr_cleaners()

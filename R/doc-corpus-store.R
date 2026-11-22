@@ -140,8 +140,10 @@ corpus_entry <- function(entry) {
   }
   h <- .subset2(entry, "doc_hash")
   if (!is.character(h) || length(h) != 1L || is.na(h)) h <- NULL
+  idf <- .subset2(entry, "identity_of")
+  if (!is.character(idf) || length(idf) != 1L || is.na(idf)) idf <- NULL
   list(format = fmt, key = .subset2(entry, "key"), created = .subset2(entry, "created"),
-       row = row, answer = ans, doc_hash = h)
+       row = row, answer = ans, doc_hash = h, identity_of = idf)
 }
 
 #' Atomic vectors and lists, all the way down, attributes included.
@@ -195,7 +197,7 @@ corpus_trace_rebuild <- function(x) {
 #' Written to a temporary name and renamed, so an interrupt cannot leave a half
 #' entry that a later run would have to tell from a real one.
 #' @noRd
-corpus_save <- function(store, key, row, answer, doc_hash = NULL) {
+corpus_save <- function(store, key, row, answer, doc_hash = NULL, identity_of = NULL) {
   path <- corpus_store_path(store, key)
   tmp <- paste0(path, ".tmp-", Sys.getpid())
   # Format 2: the answer's trace is saved as a plain list rather than as the
@@ -203,12 +205,15 @@ corpus_save <- function(store, key, row, answer, doc_hash = NULL) {
   # corpus_restore() can refuse anything that is not. `doc_hash` is additive
   # and did not move the format: an entry written before it existed is still a
   # perfectly good answer, it just cannot seed duplicate detection.
+  # `identity_of` is additive in the same way: what the row's `identity` check
+  # was made against (identity_fingerprint()), so a run with another record
+  # set does not take it over.
   if (!is.null(answer) && is.environment(answer$trace)) {
     answer$trace <- as.list.environment(answer$trace, all.names = TRUE)
   }
   ok <- tryCatch({
     saveRDS(list(format = 2L, key = key, created = Sys.time(), row = row,
-                 answer = answer, doc_hash = doc_hash),
+                 answer = answer, doc_hash = doc_hash, identity_of = identity_of),
             tmp, compress = TRUE)
     file.rename(tmp, path)
   }, error = function(e) FALSE, warning = function(w) FALSE)
