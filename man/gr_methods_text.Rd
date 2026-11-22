@@ -19,8 +19,10 @@ Writes what a run's record says about how it was made as one plain
 paragraph, for the methods section of a paper or a report: the harnessr
 version, the models the requests asked for and the models the provider
 said answered, how many requests were made and how many a cache
-answered, the tokens sent and received, the settings changed from their
-defaults, and a hash of each distinct system prompt, by stage. For a
+answered, the tokens sent and received (a request a cache or a recording
+answered sent nothing, and its recorded tokens are given apart), the
+settings changed from their defaults, and a hash of each distinct system
+prompt, by stage. For a
 benchmark it adds the arms, items, runs per item and the scorer.
 }
 \details{

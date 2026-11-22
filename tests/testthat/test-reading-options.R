@@ -610,6 +610,27 @@ test_that("gr_methods_text() describes an answer from its record only", {
   expect_error(gr_methods_text(1), class = "gr_bad_setting")
 })
 
+test_that("gr_methods_text() does not count a cached request's tokens as sent", {
+  cache <- gr_cache(tempfile())
+  cl <- gr_cache_client(gr_mock_client(function(m, p) "Revenue was 45.2 million."), cache)
+  ch <- ro_chunks(sprintf("Revenue line %d was %d dollars.", 1:3, 100 + 1:3))
+  x1 <- quiet(gr_read(ch, "What was revenue?", cl, "map_reduce"))
+  t1 <- gr_methods_text(x1)
+  expect_match(t1, "They sent [0-9,]+ prompt token\\(s\\) and received")
+  x2 <- quiet(gr_read(ch, "What was revenue?", cl, "map_reduce"))
+  t2 <- gr_methods_text(x2)
+  expect_false(grepl("They sent", t2, fixed = TRUE))
+  expect_false(grepl("sent to the provider", t2, fixed = TRUE))
+  expect_match(t2, "All [0-9]+ answered from a cache or a recording sent nothing")
+  # Some sent, some from the cache.
+  x3 <- quiet(gr_read(ch, "What was revenue in 2024?", cl, gr_read_spec("map_reduce")))
+  tr <- gr_trace()
+  tr$steps <- c(harnessr:::answer_trace(x2)$steps, harnessr:::answer_trace(x1)$steps)
+  t3 <- gr_methods_text(tr)
+  expect_match(t3, "The [0-9]+ sent to the provider carried [0-9,]+ prompt token\\(s\\)")
+  expect_match(t3, "The [0-9]+ answered from a cache or a recording sent nothing")
+})
+
 test_that("gr_methods_text() describes a benchmark's design and requests", {
   qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
                         documents = gr_example(), answers = list("45.2 million"), split = "dev")

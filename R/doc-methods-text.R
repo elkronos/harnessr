@@ -6,8 +6,10 @@
 #' paragraph, for the methods section of a paper or a report: the harnessr
 #' version, the models the requests asked for and the models the provider
 #' said answered, how many requests were made and how many a cache
-#' answered, the tokens sent and received, the settings changed from their
-#' defaults, and a hash of each distinct system prompt, by stage. For a
+#' answered, the tokens sent and received (a request a cache or a recording
+#' answered sent nothing, and its recorded tokens are given apart), the
+#' settings changed from their defaults, and a hash of each distinct system
+#' prompt, by stage. For a
 #' benchmark it adds the arms, items, runs per item and the scorer.
 #'
 #' Everything in it is read from the record: the trace's request steps and
@@ -116,7 +118,12 @@ methods_requests <- function(trace) {
   model <- vapply(req, function(s) as_chr1(s$model, NA_character_), character(1))
   served <- vapply(req, function(s) as_chr1(s$served_model, NA_character_), character(1))
   cached <- vapply(req, function(s) isTRUE(s$cached), logical(1))
-  tok <- function(f) sum(vapply(req[!emb], function(s) as_int1(s$tokens[[f]], 0L), integer(1)))
+  tok <- function(f, which) {
+    sum(vapply(req[which], function(s) as_int1(s$tokens[[f]], 0L), integer(1)))
+  }
+  tokens <- function(which) {
+    c(format(tok("input", which), big.mark = ","), format(tok("output", which), big.mark = ","))
+  }
   named <- function(m) {
     m <- unique(m[!is.na(m) & nzchar(m)])
     if (length(m)) methods_list(sprintf("'%s'", m)) else "a model the record does not name"
@@ -131,9 +138,26 @@ methods_requests <- function(trace) {
     } else {
       sprintf("The provider reported that %s answered %d of them.", named(sv), sum(!is.na(sv)))
     })
-    out <- c(out, sprintf("They sent %s prompt token(s) and received %s reply token(s).",
-                          format(tok("input"), big.mark = ","),
-                          format(tok("output"), big.mark = ",")))
+    # Only a request that went out sent anything. One a cache or a recording
+    # answered keeps the tokens of the request it stands for, which this run
+    # did not send.
+    live <- !emb & !cached
+    held <- !emb & cached
+    if (!any(held)) {
+      out <- c(out, sprintf("They sent %s prompt token(s) and received %s reply token(s).",
+                            tokens(live)[1], tokens(live)[2]))
+    } else {
+      if (any(live)) {
+        out <- c(out, sprintf(paste0("The %d sent to the provider carried %s prompt token(s) ",
+                                     "and received %s reply token(s)."),
+                              sum(live), tokens(live)[1], tokens(live)[2]))
+      }
+      out <- c(out, sprintf(paste0("%s %d answered from a cache or a recording sent nothing; ",
+                                   "their record holds %s prompt token(s) and %s reply ",
+                                   "token(s) from the requests that first made them."),
+                            if (any(live)) "The" else "All", sum(held),
+                            tokens(held)[1], tokens(held)[2]))
+    }
   }
   if (any(emb)) {
     out <- c(out, sprintf("It made %d embeddings request(s), to %s.", sum(emb), named(model[emb])))

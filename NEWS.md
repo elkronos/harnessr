@@ -60,7 +60,9 @@ says what it trades off and how to test it with `hr_sweep()`.
 * New `gr_methods_text()` writes a plain paragraph for a methods section
   from a result, a trace or a benchmark: the harnessr version, the models
   asked for and the models the provider said answered, request and run
-  counts, tokens, the settings changed from their defaults, and a hash of
+  counts, the tokens sent (a request a cache or a recording answered sent
+  none, and its recorded tokens are given apart), the settings changed from
+  their defaults, and a hash of
   each system prompt by stage. It reads only the record and makes no claim
   beyond it.
 
