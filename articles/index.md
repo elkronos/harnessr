@@ -26,5 +26,7 @@ One guide per topic, in the order a run uses them.
   settings](https://elkronos.github.io/harnessr/articles/compare.md):
 - [Cost, limits and reproducible
   runs](https://elkronos.github.io/harnessr/articles/runs.md):
+- [Settings
+  reference](https://elkronos.github.io/harnessr/articles/settings.md):
 - [Extending
   harnessr](https://elkronos.github.io/harnessr/articles/extending.md):

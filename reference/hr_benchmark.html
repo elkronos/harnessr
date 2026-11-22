@@ -34,6 +34,7 @@ same order."></head><body>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
@@ -189,6 +190,14 @@ note <code><a href="hr_report.html">hr_report()</a></code> adds.</p></dd>
 <dt><code>reportable</code></dt>
 <dd><p><code>FALSE</code> for rows on the dev split.</p></dd>
 
+<dt><code>param.&lt;name&gt;</code></dt>
+<dd><p>One column per setting the arms record: the
+settings of an arm built by <code><a href="gr_arm.html">gr_arm()</a></code> (<code>param.recipe</code>,
+<code>param.top_k</code> and so on) or by <code><a href="hr_sweep.html">hr_sweep()</a></code>, <code>NA</code> for an arm that
+does not record that setting. A setting whose values are not all
+single values is written as text. A benchmark of arms made by
+<code><a href="hr_arm.html">hr_arm()</a></code> alone has none.</p></dd>
+
 
 </dl><p>Attributes record the arms (<code>arms</code>: name, version, hash, derived_from),
 the reference hash, <code>runs</code>, <code>split</code>, <code>seed</code>, the scorer's name, and the
@@ -251,6 +260,10 @@ on the <code>"dev"</code> split are
 marked <code>reportable = FALSE</code>: dev is for tuning, and its scores are not
 evidence. The reference is locked when scoring starts (see
 <code><a href="hr_reference.html">hr_reference()</a></code>).</p>
+<p>Two arms that resolve to the same configuration warn (class
+<code>hr_same_config</code>) before anything runs: their differences could only be
+run-to-run spread. Arms from <code><a href="gr_arm.html">gr_arm()</a></code> resolve alike when their recipes
+do; any other two arms when everything but their names is the same.</p>
 <p>Fewer than 5 runs warns (class <code>hr_few_runs</code>): with fewer, run-to-run
 spread cannot be told from the differences between arms, and interval
 reports are expected to refuse such a benchmark unless it is labelled
@@ -272,7 +285,9 @@ caller's random state is left as it was.</p>
 <code><a href="hr_mdd.html">hr_mdd()</a></code>,
 <code><a href="hr_reference.html">hr_reference()</a></code>,
 <code><a href="hr_report.html">hr_report()</a></code>,
-<code><a href="hr_scorer.html">hr_scorer()</a></code></p></div>
+<code><a href="hr_scorer.html">hr_scorer()</a></code>,
+<code><a href="hr_sweep.html">hr_sweep()</a></code>,
+<code><a href="hr_sweep_check.html">hr_sweep_check()</a></code></p></div>
     </div>
 
     <div class="section level2">

@@ -44,6 +44,7 @@
     <li><a class="dropdown-item" href="articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="articles/settings.html">Settings reference</a></li>
     <li><a class="dropdown-item" href="articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="articles/index.html">More articles...</a></li>
@@ -156,6 +157,99 @@
 <p>To choose a recipe or a model on more than one document, <code><a href="reference/hr_benchmark.html">hr_benchmark()</a></code> runs each configuration several times over a labelled set of questions under one spending limit, and <code><a href="reference/hr_report.html">hr_report()</a></code> gives accuracy, paired differences and cost with intervals that treat the questions about one document as a cluster. See <code><a href="articles/evaluate.html">vignette("evaluate")</a></code>.</p>
 </div>
 <div class="section level2">
+<h2 id="what-you-can-change">What you can change<a class="anchor" aria-label="anchor" href="#what-you-can-change"></a>
+</h2>
+<p>Every setting has a default, and five guides end with walkthroughs of the important ones: what each trades off, the signs in your results that point to changing it, where its default came from and how to test a change with <code><a href="reference/hr_sweep.html">hr_sweep()</a></code>. The <a href="https://elkronos.github.io/harnessr/articles/settings.html">settings reference</a> lists all 195 with their defaults, and <code><a href="reference/gr_settings_table.html">gr_settings_table()</a></code> returns them in R.</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr>
+<th>stage</th>
+<th>settings</th>
+<th>most used</th>
+<th>walkthroughs</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>ingest</td>
+<td>19</td>
+<td>
+<code>clean</code>, <code>ocr</code>, <code>min_chars</code>
+</td>
+<td>
+<a href="https://elkronos.github.io/harnessr/articles/ingest.html#set-clean">cleaning</a>, <a href="https://elkronos.github.io/harnessr/articles/ingest.html#set-ocr">OCR</a>
+</td>
+</tr>
+<tr>
+<td>segment</td>
+<td>14</td>
+<td>
+<code>method</code>, <code>max_tokens</code>, <code>overlap_tokens</code>
+</td>
+<td>
+<a href="https://elkronos.github.io/harnessr/articles/segment.html#set-method">segmenter</a>, <a href="https://elkronos.github.io/harnessr/articles/segment.html#set-max-tokens">size</a>, <a href="https://elkronos.github.io/harnessr/articles/segment.html#set-overlap">overlap</a>, <a href="https://elkronos.github.io/harnessr/articles/segment.html#set-contextual">context lines</a>
+</td>
+</tr>
+<tr>
+<td>read</td>
+<td>40</td>
+<td>
+<code>reader</code>, <code>model</code>, <code>top_k</code>, <code>cite</code>, <code>verify</code>
+</td>
+<td>
+<a href="https://elkronos.github.io/harnessr/articles/readers.html#set-reader">reader</a>, <a href="https://elkronos.github.io/harnessr/articles/readers.html#set-top-k"><code>top_k</code></a>, <a href="https://elkronos.github.io/harnessr/articles/readers.html#set-mmr"><code>mmr</code></a>, <a href="https://elkronos.github.io/harnessr/articles/readers.html#set-verify">checks</a>, <a href="https://elkronos.github.io/harnessr/articles/readers.html#set-effort">effort</a>
+</td>
+</tr>
+<tr>
+<td>screen</td>
+<td>30</td>
+<td>
+<code>screen_tokens</code>, <code>recall_target</code>, <code>conf</code>
+</td>
+<td><a href="https://elkronos.github.io/harnessr/articles/review.html#set-calibration">calibration</a></td>
+</tr>
+<tr>
+<td>extract</td>
+<td>9</td>
+<td>
+<code>resolve</code>, <code>require_quote</code>
+</td>
+<td><a href="https://elkronos.github.io/harnessr/articles/review.html#set-extract">extraction</a></td>
+</tr>
+<tr>
+<td>synthesise</td>
+<td>27</td>
+<td>
+<code>coherence</code>, <code>cite_style</code>
+</td>
+<td><a href="https://elkronos.github.io/harnessr/articles/review.html#set-synthesis">synthesis</a></td>
+</tr>
+<tr>
+<td>evaluate</td>
+<td>22</td>
+<td>
+<code>runs</code>, <code>governor</code>, <code>scorer</code>
+</td>
+<td>
+<a href="https://elkronos.github.io/harnessr/articles/runs.html#set-governor">governor</a>, <a href="https://elkronos.github.io/harnessr/articles/compare.html">comparing</a>
+</td>
+</tr>
+<tr>
+<td>options</td>
+<td>34</td>
+<td>
+<code>model</code>, <code>max_cost_usd</code>, <code>max_calls</code>
+</td>
+<td><a href="https://elkronos.github.io/harnessr/articles/runs.html#set-limits">limits</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
 <h2 id="what-an-answer-gives-back">What an answer gives back<a class="anchor" aria-label="anchor" href="#what-an-answer-gives-back"></a>
 </h2>
 <p><code>print(ans)</code> sums up the cost, where the evidence came from and, when the answer is partial, why:</p>
@@ -249,6 +343,11 @@
 <td>
 <a href="https://elkronos.github.io/harnessr/articles/runs.html">Cost, limits and reproducible runs</a> (<code>runs</code>)</td>
 <td>The governor, effort, traces, caching, replay</td>
+</tr>
+<tr>
+<td>
+<a href="https://elkronos.github.io/harnessr/articles/settings.html">Settings reference</a> (<code>settings</code>)</td>
+<td>Every setting of every stage with its default and where it came from, and the extractors, cleaners, segmenters, readers, embedders and recipes</td>
 </tr>
 <tr>
 <td>

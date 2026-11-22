@@ -42,6 +42,7 @@
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
@@ -505,6 +506,261 @@ requests; <code>"fast"</code> and <code>"needle"</code> make one.
 to use it, and how to change a recipe’s settings or build your own.</p>
 </div>
 <div class="section level2">
+<h2 id="what-you-can-change">What you can change<a class="anchor" aria-label="anchor" href="#what-you-can-change"></a>
+</h2>
+<p>A recipe is a set of settings, and every one of them can be changed.
+They are grouped by the stage of a run they belong to:</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_settings_table.html">gr_settings_table</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span>, <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     ingest    segment       read     screen    extract synthesise   evaluate </span></span>
+<span><span class="co">#&gt;         19         14         40         30          9         27         22 </span></span>
+<span><span class="co">#&gt;    options </span></span>
+<span><span class="co">#&gt;         34</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>stage</th>
+<th>where you set it</th>
+<th>guide</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>ingest</td>
+<td>
+<code><a href="../reference/gr_ingest_spec.html">gr_ingest_spec()</a></code>, or by name in
+<code><a href="../reference/answer_document.html">answer_document()</a></code>
+</td>
+<td><code><a href="../articles/ingest.html">vignette("ingest")</a></code></td>
+</tr>
+<tr class="even">
+<td>segment</td>
+<td>
+<code><a href="../reference/gr_segment_spec.html">gr_segment_spec()</a></code>, or by name</td>
+<td><code><a href="../articles/segment.html">vignette("segment")</a></code></td>
+</tr>
+<tr class="odd">
+<td>read</td>
+<td>
+<code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code>, or by name; <code><a href="../reference/gr_read_many.html">gr_read_many()</a></code>
+for a folder</td>
+<td><code><a href="../articles/readers.html">vignette("readers")</a></code></td>
+</tr>
+<tr class="even">
+<td>screen, extract, synthesise</td>
+<td>the arguments of <code><a href="../reference/gr_screen.html">gr_screen()</a></code>,
+<code><a href="../reference/gr_extract.html">gr_extract()</a></code>, <code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code> and the
+functions beside them</td>
+<td><code><a href="../articles/review.html">vignette("review")</a></code></td>
+</tr>
+<tr class="odd">
+<td>evaluate</td>
+<td>the arguments of <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code>,
+<code><a href="../reference/hr_report.html">hr_report()</a></code> and <code><a href="../reference/hr_judge.html">hr_judge()</a></code>
+</td>
+<td>
+<code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>,
+<code><a href="../articles/compare.html">vignette("compare")</a></code>
+</td>
+</tr>
+<tr class="even">
+<td>options</td>
+<td>
+<code><a href="../reference/gr_options.html">gr_options()</a></code>, for the whole session</td>
+<td><code><a href="../articles/runs.html">vignette("runs")</a></code></td>
+</tr>
+</tbody>
+</table>
+<p>Most runs change a few of them, which
+<code><a href="../reference/gr_settings_table.html">gr_settings_table()</a></code> marks <code>basic</code>. The ones that
+matter first, with their defaults and when to change each:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>stage</th>
+<th>setting (default)</th>
+<th>change it when</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>ingest</td>
+<td>
+<code>clean</code> (<code>"standard"</code>)</td>
+<td>the text carries captions, a reference list or running heads you do
+not want read (<code>"academic"</code>, <code>"scan"</code>), or a
+cleaner removed something you need</td>
+</tr>
+<tr class="even">
+<td>ingest</td>
+<td>
+<code>ocr</code> (<code>"auto"</code>)</td>
+<td>scanned pages that carry a printed header or stamp of 40 or more
+characters come back holding only that text (<code>"always"</code>), or
+pages of figures in a born-digital file are read by OCR for nothing
+(<code>"never"</code>)</td>
+</tr>
+<tr class="odd">
+<td>ingest</td>
+<td>
+<code>min_chars</code> (20)</td>
+<td>short documents are refused that should be read, or near-empty
+extractions get through</td>
+</tr>
+<tr class="even">
+<td>segment</td>
+<td>
+<code>method</code> (<code>"paragraph"</code>)</td>
+<td>the document has headings to cut at (<code>"structural"</code>),
+pages that stand alone (<code>"page"</code>), or no paragraph breaks
+(<code>"sentence"</code>)</td>
+</tr>
+<tr class="odd">
+<td>segment</td>
+<td>
+<code>max_tokens</code> (1200)</td>
+<td>a reader that sends every chunk makes too many requests (raise it),
+or one that picks a few sends too much text around the answer (lower
+it)</td>
+</tr>
+<tr class="even">
+<td>segment</td>
+<td>
+<code>overlap_tokens</code> (0)</td>
+<td>answers fall across the cut between two chunks</td>
+</tr>
+<tr class="odd">
+<td>read</td>
+<td>
+<code>reader</code> (<code>"map_reduce"</code>)</td>
+<td>the question is one fact in a long document
+(<code>"retrieve"</code>), or needs exact quotations
+(<code>"skim"</code>); see “Choosing a recipe” above</td>
+</tr>
+<tr class="even">
+<td>read</td>
+<td>
+<code>model</code> (the client’s)</td>
+<td>a cheaper model answers as well on your documents, or a stronger one
+is needed</td>
+</tr>
+<tr class="odd">
+<td>read</td>
+<td>
+<code>top_k</code> (6)</td>
+<td>the chunk with the answer is not among those sent (raise it), or the
+prompt carries many unrelated chunks (lower it)</td>
+</tr>
+<tr class="even">
+<td>read</td>
+<td>
+<code>cite</code> (<code>FALSE</code>)</td>
+<td>you need to trace each statement to a chunk and a page</td>
+</tr>
+<tr class="odd">
+<td>read</td>
+<td>
+<code>verify</code> (<code>FALSE</code>)</td>
+<td>you will act on quotations without reading the source</td>
+</tr>
+<tr class="even">
+<td>read</td>
+<td>
+<code>recipe</code>, <code>store</code> and
+<code>max_total_usd</code> of <code><a href="../reference/gr_read_many.html">gr_read_many()</a></code>
+</td>
+<td>a folder needs another recipe, a run long enough to be interrupted,
+or a cap on the whole run</td>
+</tr>
+<tr class="odd">
+<td>screen</td>
+<td>
+<code>screen_tokens</code> of <code><a href="../reference/gr_screen.html">gr_screen()</a></code> (all that
+fits)</td>
+<td>you screen on titles and abstracts, or the deciding sentence lies
+past the cap</td>
+</tr>
+<tr class="even">
+<td>screen</td>
+<td>
+<code>recall_target</code> and <code>conf</code> (0.95 each),
+<code>n</code> and <code>of</code> of <code><a href="../reference/gr_reference.html">gr_reference()</a></code>
+</td>
+<td>your protocol promises a different recall, or the sample is too
+small to show it</td>
+</tr>
+<tr class="odd">
+<td>extract</td>
+<td>
+<code>resolve</code> (<code>"first"</code>)</td>
+<td>chunks of one document disagree and the later value is the right
+one</td>
+</tr>
+<tr class="even">
+<td>extract</td>
+<td>
+<code>require_quote</code> (<code>FALSE</code>)</td>
+<td>the protocol says no quote, no datum</td>
+</tr>
+<tr class="odd">
+<td>synthesise</td>
+<td>
+<code>coherence</code> (<code>FALSE</code>)</td>
+<td>the sections read as separate pieces, with terms that drift and
+studies introduced twice</td>
+</tr>
+<tr class="even">
+<td>synthesise</td>
+<td>
+<code>cite_style</code> (<code>"auto"</code>)</td>
+<td>the review needs numbered citations or plain markers</td>
+</tr>
+<tr class="odd">
+<td>evaluate</td>
+<td>
+<code>runs</code> (5) of <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code>
+</td>
+<td>the report’s notes ask for 10</td>
+</tr>
+<tr class="even">
+<td>evaluate</td>
+<td>
+<code>governor</code> of <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> (the options’
+limits)</td>
+<td>always, for a benchmark: size it for arms x items x runs x requests
+per run</td>
+</tr>
+<tr class="odd">
+<td>options</td>
+<td>
+<code>max_cost_usd</code> (5) and <code>max_calls</code> (400)</td>
+<td>a run is stopped that should finish, or you want a mistake to stop
+sooner</td>
+</tr>
+<tr class="even">
+<td>options</td>
+<td>
+<code>cache_dir</code> (a temporary directory)</td>
+<td>a long run should be paid for once and survive the session</td>
+</tr>
+</tbody>
+</table>
+<p><code><a href="../articles/settings.html">vignette("settings")</a></code> lists every setting with its
+default and where the default came from, and links each important one to
+a walkthrough that says what it trades off, the signs that point to
+changing it and how to test a change. <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> builds one
+arm per value of a setting so the values can be compared, as
+<code><a href="../articles/compare.html">vignette("compare")</a></code> shows.</p>
+</div>
+<div class="section level2">
 <h2 id="more-than-one-document">More than one document<a class="anchor" aria-label="anchor" href="#more-than-one-document"></a>
 </h2>
 <p>For a folder of documents, <code><a href="../reference/gr_read_many.html">gr_read_many()</a></code> asks the same
@@ -538,7 +794,10 @@ replaying a run.</li>
 <code><a href="../articles/extending.html">vignette("extending")</a></code>: adding your own extractors,
 cleaners, segmenters, readers and embedders.</li>
 <li>
-<code><a href="../reference/gr_options.html">?gr_options</a></code>: every setting, with its default.</li>
+<code><a href="../articles/settings.html">vignette("settings")</a></code>: every setting of every stage,
+with its default and where the default came from.</li>
+<li>
+<code><a href="../reference/gr_options.html">?gr_options</a></code>: every option, with its default.</li>
 </ul>
 <p><code>browseVignettes("harnessr")</code> lists all the guides.</p>
 </div>

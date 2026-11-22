@@ -455,6 +455,70 @@ and `"needle"` make one.
 explains each reading strategy and when to use it, and how to change a
 recipe’s settings or build your own.
 
+## What you can change
+
+A recipe is a set of settings, and every one of them can be changed.
+They are grouped by the stage of a run they belong to:
+
+``` r
+
+settings <- gr_settings_table()
+table(factor(settings$stage, unique(settings$stage)))
+#> 
+#>     ingest    segment       read     screen    extract synthesise   evaluate 
+#>         19         14         40         30          9         27         22 
+#>    options 
+#>         34
+```
+
+| stage | where you set it | guide |
+|----|----|----|
+| ingest | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md), or by name in [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md) | [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md) |
+| segment | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md), or by name | [`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md) |
+| read | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md), or by name; [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) for a folder | [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md) |
+| screen, extract, synthesise | the arguments of [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md), [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md), [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) and the functions beside them | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
+| evaluate | the arguments of [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md), [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) and [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md), [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md) |
+| options | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md), for the whole session | [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
+
+Most runs change a few of them, which
+[`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
+marks `basic`. The ones that matter first, with their defaults and when
+to change each:
+
+| stage | setting (default) | change it when |
+|----|----|----|
+| ingest | `clean` (`"standard"`) | the text carries captions, a reference list or running heads you do not want read (`"academic"`, `"scan"`), or a cleaner removed something you need |
+| ingest | `ocr` (`"auto"`) | scanned pages that carry a printed header or stamp of 40 or more characters come back holding only that text (`"always"`), or pages of figures in a born-digital file are read by OCR for nothing (`"never"`) |
+| ingest | `min_chars` (20) | short documents are refused that should be read, or near-empty extractions get through |
+| segment | `method` (`"paragraph"`) | the document has headings to cut at (`"structural"`), pages that stand alone (`"page"`), or no paragraph breaks (`"sentence"`) |
+| segment | `max_tokens` (1200) | a reader that sends every chunk makes too many requests (raise it), or one that picks a few sends too much text around the answer (lower it) |
+| segment | `overlap_tokens` (0) | answers fall across the cut between two chunks |
+| read | `reader` (`"map_reduce"`) | the question is one fact in a long document (`"retrieve"`), or needs exact quotations (`"skim"`); see “Choosing a recipe” above |
+| read | `model` (the client’s) | a cheaper model answers as well on your documents, or a stronger one is needed |
+| read | `top_k` (6) | the chunk with the answer is not among those sent (raise it), or the prompt carries many unrelated chunks (lower it) |
+| read | `cite` (`FALSE`) | you need to trace each statement to a chunk and a page |
+| read | `verify` (`FALSE`) | you will act on quotations without reading the source |
+| read | `recipe`, `store` and `max_total_usd` of [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | a folder needs another recipe, a run long enough to be interrupted, or a cap on the whole run |
+| screen | `screen_tokens` of [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md) (all that fits) | you screen on titles and abstracts, or the deciding sentence lies past the cap |
+| screen | `recall_target` and `conf` (0.95 each), `n` and `of` of [`gr_reference()`](https://elkronos.github.io/harnessr/reference/gr_reference.md) | your protocol promises a different recall, or the sample is too small to show it |
+| extract | `resolve` (`"first"`) | chunks of one document disagree and the later value is the right one |
+| extract | `require_quote` (`FALSE`) | the protocol says no quote, no datum |
+| synthesise | `coherence` (`FALSE`) | the sections read as separate pieces, with terms that drift and studies introduced twice |
+| synthesise | `cite_style` (`"auto"`) | the review needs numbered citations or plain markers |
+| evaluate | `runs` (5) of [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | the report’s notes ask for 10 |
+| evaluate | `governor` of [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) (the options’ limits) | always, for a benchmark: size it for arms x items x runs x requests per run |
+| options | `max_cost_usd` (5) and `max_calls` (400) | a run is stopped that should finish, or you want a mistake to stop sooner |
+| options | `cache_dir` (a temporary directory) | a long run should be paid for once and survive the session |
+
+[`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
+lists every setting with its default and where the default came from,
+and links each important one to a walkthrough that says what it trades
+off, the signs that point to changing it and how to test a change.
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
+builds one arm per value of a setting so the values can be compared, as
+[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
+shows.
+
 ## More than one document
 
 For a folder of documents,
@@ -490,8 +554,11 @@ covers each of these.
 - [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md):
   adding your own extractors, cleaners, segmenters, readers and
   embedders.
+- [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md):
+  every setting of every stage, with its default and where the default
+  came from.
 - [`?gr_options`](https://elkronos.github.io/harnessr/reference/gr_options.md):
-  every setting, with its default.
+  every option, with its default.
 
 `browseVignettes("harnessr")` lists all the guides.
 

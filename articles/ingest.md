@@ -425,7 +425,7 @@ invisible(file.create(file.path(inbox, "empty.txt")))
 
 inv <- gr_inventory(inbox)
 inv
-#> <gr_inventory> /tmp/RtmpX7V44A/inbox
+#> <gr_inventory> /tmp/RtmpDwZCJ1/inbox
 #>   4 file(s), 1.9 KB; 2 readable
 #>   2 ready, 1 no_extractor, 1 empty
 #>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)
@@ -490,6 +490,155 @@ unlist(inv$totals[c("readable", "tokens", "cost_floor_usd")])
 #>       readable         tokens cost_floor_usd 
 #>       2.000000     549.000000       0.013098
 ```
+
+## Choosing the settings
+
+Two groups of ingest settings change what the model is given: cleaning
+and OCR. Each walkthrough below says what the setting controls and what
+it trades off, the signs in your results that point to changing it,
+where its default came from, and how to test a change.
+[`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
+lists every ingest setting with its default.
+
+The tests use
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
+which builds one arm per value of a setting, and
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
+which runs every arm on a reference of questions. Here they run on one
+question and a stand-in model that always gives the right answer, so
+they show how a sweep is built and read, not which value is better.
+[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
+runs sweeps on a reference with dev and test splits and reads them with
+intervals.
+
+``` r
+
+qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
+                      documents = gr_example(), answers = list("45.2 million"),
+                      split = "dev")
+says <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+```
+
+### Cleaning presets and `references_after`
+
+**What it controls.** `clean` chooses the cleaners that run on the
+extracted text, by preset or by name (see “Presets” above), and
+`cleaner_opts = list(references_after = )` sets where the `references`
+cleaner may cut. Cleaning trades noise against loss: page numbers,
+running heads and captions cost tokens and can mislead retrieval, but a
+cleaner that removes too much removes it for good, and no later setting
+can bring it back.
+
+**Signs it needs changing.** An answer of `NOT_IN_DOCUMENT` for a fact
+you can see in the file, or a quotation that fails verification, can
+mean a cleaner removed the text; look in `doc$stats$clean_log` for a
+cleaner that removed far more than the others. Answers that quote page
+headers or figure captions as if they were findings point the other way,
+to `"academic"` or `"scan"`. Under `"academic"`, an answer about a
+paper’s sources that says they are not in the document means the
+reference list was cut. A document whose table of contents has a
+“References” line after the first 40% of its text is cut there; raise
+`references_after` for such documents.
+
+**Where the defaults came from.** `"standard"` was chosen as the preset
+for born-digital text and has not been compared with the others.
+`references_after` is 0.4, set when the cleaner was written. Both are
+`untested` in `gr_settings_table("ingest")`.
+
+**How to test it.** Sweep the presets and look at what was sent:
+
+``` r
+
+arms <- hr_sweep(gr_arm("fast"), list(clean = c("standard", "academic", "scan", "none")))
+bench <- hr_benchmark(arms, qa, runs = 5, client = says, split = "dev",
+                      scorer = gr_scorer_answer())
+aggregate(tokens_in ~ param.clean, bench, mean)
+#>   param.clean tokens_in
+#> 1    academic       585
+#> 2        none       619
+#> 3        scan       611
+#> 4    standard       611
+hr_sweep_check(bench)
+#>               arm             same_as runs requests                settings
+#> 1 fast:clean=scan fast:clean=standard    5        5 clean: standard vs scan
+```
+
+On the example report, `"academic"` sends 26 fewer prompt tokens than
+`"standard"`, because it drops the caption lines, and `"none"` sends 8
+more.
+[`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
+finds that `"scan"` sent exactly the requests `"standard"` sent: the
+example has no running heads, so on it that comparison would measure
+nothing but run-to-run spread. The same check tells you whether a
+`references_after` sweep reaches your documents at all:
+
+``` r
+
+arms <- hr_sweep(gr_arm("fast", list(clean = "academic")),
+                 data.frame(cleaner_opts = I(list(list(references_after = 0.4),
+                                                  list(references_after = 0.8)))))
+hr_sweep_check(hr_benchmark(arms, qa, runs = 5, client = says, split = "dev",
+                            scorer = gr_scorer_answer()))
+#>                                              arm
+#> 1 fast:cleaner_opts=list(references_after = 0.8)
+#>                                          same_as runs requests
+#> 1 fast:cleaner_opts=list(references_after = 0.4)    5        5
+#>                                                                     settings
+#> 1 cleaner_opts: list(references_after = 0.4) vs list(references_after = 0.8)
+```
+
+Both values sent the same requests, although the example report ends
+with a `## References` heading. The `references` cleaner cuts only at a
+line that reads “References”, “Bibliography” or “Works cited” alone,
+optionally numbered, so a Markdown heading with its `#` marks is never
+cut, wherever it falls. Run the sweep on documents whose heading stands
+alone that way, as text extracted from a PDF usually does, with
+questions whose answers sit near the end.
+
+### OCR settings
+
+**What it controls.** `ocr` decides which pages are read as pictures:
+`"auto"` reads a page by OCR only when it has fewer than `ocr_min_chars`
+characters of text (40), `"always"` reads every page that way and
+`"never"` none. `ocr_dpi` is the resolution the page is rendered at, and
+`ocr_lang` the Tesseract language. OCR costs seconds per page and adds
+recognition errors; not running it on a scanned page leaves that page
+empty.
+
+**Signs it needs changing.** `doc$stats$unread_pages` lists pages that
+came back empty, and an answer from such a document is marked partial. A
+scanned page with a printed header or stamp can carry more than 40
+characters of text and so skip OCR under `"auto"`: raise
+`ocr_min_chars`. Misread numbers or letters in OCR text (a quotation
+that fails verification against a page that plainly says it) point to a
+higher `ocr_dpi` or the right `ocr_lang`.
+
+**Where the defaults came from.** `ocr_dpi = 300` follows Tesseract’s
+documentation on improving output quality (`cited`). `ocr = "auto"` runs
+OCR only where a page has no text layer, and no other choice has been
+compared. `ocr_min_chars = 40` was set when OCR was added and has not
+been tuned, and `ocr_lang = "eng"` is English because the package’s own
+examples are in English. All three are `untested`.
+
+**How to test it.** OCR needs a scanned file and the tesseract and
+magick packages, so this runs on your own documents, with a reference
+built from them by
+[`gr_qa_reference()`](https://elkronos.github.io/harnessr/reference/gr_qa_reference.md)
+and your own client:
+
+``` r
+
+arms <- hr_sweep(gr_arm("scanned"), list(ocr_min_chars = c(40, 200, 1000)))
+bench <- hr_benchmark(arms, my_reference, runs = 5, client = my_client, split = "dev",
+                      scorer = gr_scorer_answer())
+aggregate(correct ~ param.ocr_min_chars, bench, mean)
+hr_sweep_check(bench)
+```
+
+A row from
+[`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
+means no page crossed the threshold between the two values, so they read
+the documents the same way.
 
 ## Adding your own
 

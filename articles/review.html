@@ -42,6 +42,7 @@
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
@@ -1226,12 +1227,215 @@ studies conflict, both are reported and the conflict is named, because
 check.</p>
 </div>
 <div class="section level2">
+<h2 id="choosing-the-settings">Choosing the settings<a class="anchor" aria-label="anchor" href="#choosing-the-settings"></a>
+</h2>
+<p>Each walkthrough below takes one group of review settings: what it
+controls and what it trades off, the signs in your results that point to
+changing it, where its default came from, and how to test a change.
+<code><a href="../articles/settings.html">vignette("settings")</a></code> lists every argument of every review
+stage with its default.</p>
+<p>A setting of a review stage is tested the way a reading setting is:
+as arms of a benchmark, one per value, on a reference a person labelled.
+<code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> builds them from a function of the setting, and
+“Screening settings” in <code><a href="../articles/compare.html">vignette("compare")</a></code> compares two
+values of <code>screen_tokens</code> that way on 16 records, with
+intervals. Where a setting changes no request, the walkthrough shows its
+effect on the objects above instead.</p>
+<div class="section level3">
+<h3 id="set-calibration">Screening calibration: <code>recall_target</code>, <code>conf</code>
+and <code>max_width</code><a class="anchor" aria-label="anchor" href="#set-calibration"></a>
+</h3>
+<p><strong>What they control.</strong> <code>recall_target</code> is the
+recall the screener must be shown to reach, and <code>conf</code> the
+confidence of that showing: <code><a href="../reference/gr_calibrate.html">gr_calibrate()</a></code> says the target
+is met when the one-sided lower bound on recall at <code>conf</code> is
+at least the target. <code><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size()</a></code> takes the same
+two and says how many records a person must judge. Raising either asks
+for more records judged by hand. <code>max_width</code> is the widest
+interval a sample of one stratum may have for its headline rate to count
+as adequate.</p>
+<p><strong>Signs they need changing.</strong> These are choices for the
+review, not tuning: set them before you see the sample, from what the
+review promises. A protocol that promises 95% recall needs
+<code>recall_target = 0.95</code>; a field that reports recall at 90% or
+99% needs that instead. A <code>$verdict</code> that is not met with no
+misses in the sample means the sample is too small for the target, not
+that the screener failed; draw the size
+<code><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size()</a></code> gives.</p>
+<p><strong>Where the defaults came from.</strong>
+<code>recall_target = 0.95</code> is a target reviews commonly set, and
+<code>conf = 0.95</code> the conventional level; both are choices, not
+measured values. <code>max_width = 0.10</code> was set when the rule was
+written (<code>untested</code>).</p>
+<p><strong>How to test them.</strong> Nothing here calls a model, so the
+effect of each value is computed directly. On the stacked sheet above,
+judged with no misses:</p>
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">targets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.90</span>, <span class="fl">0.95</span>, <span class="fl">0.97</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>recall_target <span class="op">=</span> <span class="va">targets</span>,</span>
+<span>           met <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">targets</span>, <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="op">{</span></span>
+<span>             <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_calibrate.html">gr_calibrate</a></span><span class="op">(</span><span class="va">big</span>, <span class="va">stacked</span>, recall_target <span class="op">=</span> <span class="va">t</span><span class="op">)</span><span class="op">$</span><span class="va">verdict</span><span class="op">$</span><span class="va">met</span><span class="op">)</span></span>
+<span>           <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   recall_target   met</span></span>
+<span><span class="co">#&gt; 1          0.90  TRUE</span></span>
+<span><span class="co">#&gt; 2          0.95  TRUE</span></span>
+<span><span class="co">#&gt; 3          0.97 FALSE</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_calibrate.html">gr_calibrate</a></span><span class="op">(</span><span class="va">big</span>, <span class="va">stacked</span>, conf <span class="op">=</span> <span class="fl">0.99</span><span class="op">)</span><span class="op">$</span><span class="va">recall</span><span class="op">$</span><span class="va">bound</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.926</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">targets</span>, <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/gr_screen_sample_size.html">gr_screen_sample_size</a></span><span class="op">(</span>recall_target <span class="op">=</span> <span class="va">t</span>, conf <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"recall_target"</span>, <span class="st">"positives"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   recall_target positives</span></span>
+<span><span class="co">#&gt; 1          0.90        29</span></span>
+<span><span class="co">#&gt; 2          0.95        59</span></span>
+<span><span class="co">#&gt; 3          0.97        99</span></span></code></pre></div>
+<p>The bound of 0.962 meets 90% and 95% but not 97%, and at 99%
+confidence it falls to 0.926. A sample of everything screened needs 29
+eligible records with no miss to show 90%, 59 to show 95% and 99 to show
+97%. <code>max_width</code> decides whether the sample of 60 exclusions
+above is enough:</p>
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>width_0.10 <span class="op">=</span> <span class="fu"><a href="../reference/gr_calibrate.html">gr_calibrate</a></span><span class="op">(</span><span class="va">big</span>, <span class="va">check</span><span class="op">)</span><span class="op">$</span><span class="va">adequate</span>,</span>
+<span>  width_0.20 <span class="op">=</span> <span class="fu"><a href="../reference/gr_calibrate.html">gr_calibrate</a></span><span class="op">(</span><span class="va">big</span>, <span class="va">check</span>, max_width <span class="op">=</span> <span class="fl">0.20</span><span class="op">)</span><span class="op">$</span><span class="va">adequate</span><span class="op">)</span></span>
+<span><span class="co">#&gt; width_0.10 width_0.20 </span></span>
+<span><span class="co">#&gt;      FALSE       TRUE</span></span></code></pre></div>
+<p>The interval on the rate of eligible records among those 60 is wider
+than 10 points and narrower than 20, so the sample is adequate under the
+wider bar only. A wider bar does not make the sample say more; it says
+less is enough.</p>
+</div>
+<div class="section level3">
+<h3 id="set-extract">Extraction: <code>resolve</code> and <code>require_quote</code><a class="anchor" aria-label="anchor" href="#set-extract"></a>
+</h3>
+<p><strong>What they control.</strong> <code>resolve</code> decides what
+happens when two chunks of one document give different values for a
+field: <code>"first"</code> keeps the earlier one and records the
+disagreement in <code>conflicts</code>, for nothing;
+<code>"model"</code> spends one request per disagreeing field to choose.
+<code>require_quote = TRUE</code> drops any value whose quotation does
+not verify, so the table holds fewer values, each with a quotation found
+in the document.</p>
+<p><strong>Signs they need changing.</strong> Many rows with
+<code>conflicts</code> filled, on fields where the later value is the
+right one (a corrected figure, a final sample size after dropouts),
+point to <code>resolve = "model"</code>. <code>n_unverified</code> above
+zero on fields you will publish points to
+<code>require_quote = TRUE</code>, or to reading those values by hand. A
+protocol that says “no quote, no datum” needs it on.</p>
+<p><strong>Where the defaults came from.</strong> <code>"first"</code>
+costs nothing and keeps every disagreement visible; it has not been
+compared with <code>"model"</code>. <code>require_quote = FALSE</code>,
+so no extracted value is thrown away unasked; <code>n_unverified</code>
+counts the same values without dropping them. Both are
+<code>untested</code>.</p>
+<p><strong>How to test them.</strong> <code>require_quote</code> changes
+no request, only which values are kept, so its effect shows on one
+run:</p>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">strict</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_extract.html">gr_extract</a></span><span class="op">(</span><span class="va">screened</span>, <span class="va">protocol</span>, client <span class="op">=</span> <span class="va">extractor</span>, recipe <span class="op">=</span> <span class="st">"fast"</span>,</span>
+<span>                     require_quote <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>kept_all <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">table</span><span class="op">$</span><span class="va">table</span><span class="op">$</span><span class="va">revenue</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  kept_quoted <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">strict</span><span class="op">$</span><span class="va">table</span><span class="op">$</span><span class="va">revenue</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    kept_all kept_quoted </span></span>
+<span><span class="co">#&gt;           2           2</span></span></code></pre></div>
+<p>Every value the stand-in gave carries a quotation found in its
+document, so both keep the same values here. On your own documents,
+compare the two tables with <code><a href="../reference/gr_extract_agreement.html">gr_extract_agreement()</a></code> against
+a person’s, as above. <code>resolve</code> changes requests only where
+chunks disagree, so it is tested as arms on a labelled reference, one
+arm per value. With <code>fields_ref</code> an
+<code><a href="../reference/hr_reference.html">hr_reference()</a></code> of documents labelled with a person’s value
+for one field and <code>my_client</code> your client:</p>
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">resolve</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="st">"extract"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="../reference/gr_extract.html">gr_extract</a></span><span class="op">(</span><span class="va">item</span>, <span class="va">protocol</span>, client <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">client</span>, resolve <span class="op">=</span> <span class="va">resolve</span>,</span>
+<span>               trace <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">$</span><span class="va">table</span><span class="op">$</span><span class="va">revenue</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>resolve <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"first"</span>, <span class="st">"model"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">fields_ref</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">my_client</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hr_report.html">hr_report</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="set-synthesis">Synthesis: <code>coherence_rounds</code>, <code>figure_bands</code>
+and <code>prominence</code><a class="anchor" aria-label="anchor" href="#set-synthesis"></a>
+</h3>
+<p><strong>What they control.</strong> <code>coherence_rounds</code> is
+how many rounds each revision pass of <code>coherence</code> may run;
+each round is a request, and every round is checked as a single pass is.
+<code>figure_bands</code> sets how near a value a qualified figure must
+be to count as backed: “about 50” within <code>about</code> of a value
+(10%), “more than 50” within <code>over</code> above it, “fewer than 50”
+within <code>under</code> below it. It sends nothing; it changes what
+<code>$figures</code> reports. <code>prominence</code> sets the shares
+of a section’s claims, by rank, that the writing prompt asks for two or
+three sentences and for one or two; it is used only with
+<code>claims</code>.</p>
+<p><strong>Signs they need changing.</strong> A <code>$coherence</code>
+table where the last allowed round still changed the text, with nothing
+discarded, points to another round. <code>$figures</code> rows with
+<code>backed = FALSE</code> for a rounded figure that is right (“about
+50 million” for 51.8) point to a wider <code>about</code>; rows backed
+for a figure you would call wrong point to a narrower one. Sections that
+give a minor claim as much space as the main finding point to a smaller
+<code>top</code> share.</p>
+<p><strong>Where the defaults came from.</strong>
+<code>coherence_rounds = 1</code>, one round per pass, as before the
+setting existed. paper-orchestra runs up to 3 rounds, with no recorded
+evidence for that number, and nothing has measured more than one round
+here.
+<code>figure_bands = c(about = 0.10, over = 0.25, under = 0.25)</code>
+was set when the check of figures was written, and
+<code>prominence = c(top = 1/3, middle = 1/3)</code>, thirds, when
+claims were added. All are <code>untested</code>.</p>
+<p><strong>How to test them.</strong> <code>figure_bands</code> is
+tested on a draft, with no request. Here the writer rounds 51.8 to
+“about 50”:</p>
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rounder</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="st">"Revenue was about 50 million dollars in the south [study 2]."</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">bands</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">about</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">syn</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span><span class="va">table</span>, <span class="va">protocol</span>, client <span class="op">=</span> <span class="va">rounder</span>,</span>
+<span>                       figure_bands <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>about <span class="op">=</span> <span class="va">about</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>about <span class="op">=</span> <span class="va">about</span>, <span class="va">syn</span><span class="op">$</span><span class="va">figures</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"number"</span>, <span class="st">"backed"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu">bands</span><span class="op">(</span><span class="fl">0.10</span><span class="op">)</span>, <span class="fu">bands</span><span class="op">(</span><span class="fl">0.02</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in synth_figures(sections, revised$text, used, rendered, question, : 1</span></span>
+<span><span class="co">#&gt; figure(s) in the review are not in the rows their sentence cites, nor in</span></span>
+<span><span class="co">#&gt; anything else the writer was shown (50 in 'Findings'). Each is arithmetic the</span></span>
+<span><span class="co">#&gt; sentence does not show, or the writer's invention: check it against its study</span></span>
+<span><span class="co">#&gt; before quoting it (see `$figures`). No section is marked partial for this,</span></span>
+<span><span class="co">#&gt; which is about citations, and those are checked apart.</span></span>
+<span><span class="co">#&gt;   about number backed</span></span>
+<span><span class="co">#&gt; 1  0.10     50   TRUE</span></span>
+<span><span class="co">#&gt; 2  0.02     50  FALSE</span></span></code></pre></div>
+<p>“About 50” is within 10% of 51.8 but not within 2%, so under the
+narrower band the figure is unbacked and <code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code>
+warns. <code>coherence_rounds</code> and <code>prominence</code> change
+what is sent, so they are tested as arms. With <code>review_ref</code>
+an <code><a href="../reference/hr_reference.html">hr_reference()</a></code> of review questions labelled by a person,
+<code>my_scorer</code> an <code><a href="../reference/hr_scorer.html">hr_scorer()</a></code> (or a judge validated
+as in <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>) and <code>my_client</code> your
+client:</p>
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">rounds</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="st">"write"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span><span class="va">item</span><span class="op">$</span><span class="va">table</span>, <span class="va">item</span><span class="op">$</span><span class="va">protocol</span>, client <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">client</span>, coherence <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>                  coherence_rounds <span class="op">=</span> <span class="va">rounds</span>, trace <span class="op">=</span> <span class="va">ctx</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">$</span><span class="va">text</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>rounds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">review_ref</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">my_client</span>, scorer <span class="op">=</span> <span class="va">my_scorer</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hr_report.html">hr_report</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
 <h2 id="counting-and-reporting-the-run">Counting and reporting the run<a class="anchor" aria-label="anchor" href="#counting-and-reporting-the-run"></a>
 </h2>
 <p><code><a href="../reference/gr_flow.html">gr_flow()</a></code> returns the numbers a flow diagram is made of,
 from what the run already recorded. Every source is accounted for at
 every stage it reached, so the arithmetic closes:</p>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_flow.html">gr_flow</a></span><span class="op">(</span><span class="va">screened</span>, <span class="va">table</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stage"</span>, <span class="st">"n"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;                      stage n</span></span>
 <span><span class="co">#&gt; 1            sources given 2</span></span>
@@ -1268,7 +1472,7 @@ whether the quote is there, what was written and which rows each claim
 rests on, every claim with the studies for and against it and where each
 one ended up, and what it cost. It takes the objects the run already
 produced:</p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="st">"audit.html"</span>, screening <span class="op">=</span> <span class="va">screened</span>, extraction <span class="op">=</span> <span class="va">table</span>,</span>
 <span>                synthesis <span class="op">=</span> <span class="va">from_claims</span>, claims <span class="op">=</span> <span class="va">cm</span>, protocol <span class="op">=</span> <span class="va">protocol</span>,</span>
 <span>                calibration <span class="op">=</span> <span class="va">cal</span><span class="op">)</span></span></code></pre></div>

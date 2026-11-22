@@ -1337,6 +1337,232 @@ studies conflict, both are reported and the conflict is named, because
 “the model decided this one was wrong” is not something anyone can
 check.
 
+## Choosing the settings
+
+Each walkthrough below takes one group of review settings: what it
+controls and what it trades off, the signs in your results that point to
+changing it, where its default came from, and how to test a change.
+[`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
+lists every argument of every review stage with its default.
+
+A setting of a review stage is tested the way a reading setting is: as
+arms of a benchmark, one per value, on a reference a person labelled.
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
+builds them from a function of the setting, and “Screening settings” in
+[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
+compares two values of `screen_tokens` that way on 16 records, with
+intervals. Where a setting changes no request, the walkthrough shows its
+effect on the objects above instead.
+
+### Screening calibration: `recall_target`, `conf` and `max_width`
+
+**What they control.** `recall_target` is the recall the screener must
+be shown to reach, and `conf` the confidence of that showing:
+[`gr_calibrate()`](https://elkronos.github.io/harnessr/reference/gr_calibrate.md)
+says the target is met when the one-sided lower bound on recall at
+`conf` is at least the target.
+[`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md)
+takes the same two and says how many records a person must judge.
+Raising either asks for more records judged by hand. `max_width` is the
+widest interval a sample of one stratum may have for its headline rate
+to count as adequate.
+
+**Signs they need changing.** These are choices for the review, not
+tuning: set them before you see the sample, from what the review
+promises. A protocol that promises 95% recall needs
+`recall_target = 0.95`; a field that reports recall at 90% or 99% needs
+that instead. A `$verdict` that is not met with no misses in the sample
+means the sample is too small for the target, not that the screener
+failed; draw the size
+[`gr_screen_sample_size()`](https://elkronos.github.io/harnessr/reference/gr_screen_sample_size.md)
+gives.
+
+**Where the defaults came from.** `recall_target = 0.95` is a target
+reviews commonly set, and `conf = 0.95` the conventional level; both are
+choices, not measured values. `max_width = 0.10` was set when the rule
+was written (`untested`).
+
+**How to test them.** Nothing here calls a model, so the effect of each
+value is computed directly. On the stacked sheet above, judged with no
+misses:
+
+``` r
+
+targets <- c(0.90, 0.95, 0.97)
+data.frame(recall_target = targets,
+           met = vapply(targets, function(t) {
+             isTRUE(gr_calibrate(big, stacked, recall_target = t)$verdict$met)
+           }, logical(1)))
+#>   recall_target   met
+#> 1          0.90  TRUE
+#> 2          0.95  TRUE
+#> 3          0.97 FALSE
+round(gr_calibrate(big, stacked, conf = 0.99)$recall$bound, 3)
+#> [1] 0.926
+do.call(rbind, lapply(targets, function(t) {
+  gr_screen_sample_size(recall_target = t, conf = 0.95)[, c("recall_target", "positives")]
+}))
+#>   recall_target positives
+#> 1          0.90        29
+#> 2          0.95        59
+#> 3          0.97        99
+```
+
+The bound of 0.962 meets 90% and 95% but not 97%, and at 99% confidence
+it falls to 0.926. A sample of everything screened needs 29 eligible
+records with no miss to show 90%, 59 to show 95% and 99 to show 97%.
+`max_width` decides whether the sample of 60 exclusions above is enough:
+
+``` r
+
+c(width_0.10 = gr_calibrate(big, check)$adequate,
+  width_0.20 = gr_calibrate(big, check, max_width = 0.20)$adequate)
+#> width_0.10 width_0.20 
+#>      FALSE       TRUE
+```
+
+The interval on the rate of eligible records among those 60 is wider
+than 10 points and narrower than 20, so the sample is adequate under the
+wider bar only. A wider bar does not make the sample say more; it says
+less is enough.
+
+### Extraction: `resolve` and `require_quote`
+
+**What they control.** `resolve` decides what happens when two chunks of
+one document give different values for a field: `"first"` keeps the
+earlier one and records the disagreement in `conflicts`, for nothing;
+`"model"` spends one request per disagreeing field to choose.
+`require_quote = TRUE` drops any value whose quotation does not verify,
+so the table holds fewer values, each with a quotation found in the
+document.
+
+**Signs they need changing.** Many rows with `conflicts` filled, on
+fields where the later value is the right one (a corrected figure, a
+final sample size after dropouts), point to `resolve = "model"`.
+`n_unverified` above zero on fields you will publish points to
+`require_quote = TRUE`, or to reading those values by hand. A protocol
+that says “no quote, no datum” needs it on.
+
+**Where the defaults came from.** `"first"` costs nothing and keeps
+every disagreement visible; it has not been compared with `"model"`.
+`require_quote = FALSE`, so no extracted value is thrown away unasked;
+`n_unverified` counts the same values without dropping them. Both are
+`untested`.
+
+**How to test them.** `require_quote` changes no request, only which
+values are kept, so its effect shows on one run:
+
+``` r
+
+strict <- gr_extract(screened, protocol, client = extractor, recipe = "fast",
+                     require_quote = TRUE)
+c(kept_all = sum(!is.na(table$table$revenue)),
+  kept_quoted = sum(!is.na(strict$table$revenue)))
+#>    kept_all kept_quoted 
+#>           2           2
+```
+
+Every value the stand-in gave carries a quotation found in its document,
+so both keep the same values here. On your own documents, compare the
+two tables with
+[`gr_extract_agreement()`](https://elkronos.github.io/harnessr/reference/gr_extract_agreement.md)
+against a person’s, as above. `resolve` changes requests only where
+chunks disagree, so it is tested as arms on a labelled reference, one
+arm per value. With `fields_ref` an
+[`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
+of documents labelled with a person’s value for one field and
+`my_client` your client:
+
+``` r
+
+arms <- hr_sweep(function(resolve) {
+  hr_arm("extract", function(item, ctx) {
+    gr_extract(item, protocol, client = ctx$client, resolve = resolve,
+               trace = ctx$trace)$table$revenue
+  })
+}, list(resolve = c("first", "model")))
+bench <- hr_benchmark(arms, fields_ref, runs = 5, client = my_client)
+hr_report(bench)
+```
+
+### Synthesis: `coherence_rounds`, `figure_bands` and `prominence`
+
+**What they control.** `coherence_rounds` is how many rounds each
+revision pass of `coherence` may run; each round is a request, and every
+round is checked as a single pass is. `figure_bands` sets how near a
+value a qualified figure must be to count as backed: “about 50” within
+`about` of a value (10%), “more than 50” within `over` above it, “fewer
+than 50” within `under` below it. It sends nothing; it changes what
+`$figures` reports. `prominence` sets the shares of a section’s claims,
+by rank, that the writing prompt asks for two or three sentences and for
+one or two; it is used only with `claims`.
+
+**Signs they need changing.** A `$coherence` table where the last
+allowed round still changed the text, with nothing discarded, points to
+another round. `$figures` rows with `backed = FALSE` for a rounded
+figure that is right (“about 50 million” for 51.8) point to a wider
+`about`; rows backed for a figure you would call wrong point to a
+narrower one. Sections that give a minor claim as much space as the main
+finding point to a smaller `top` share.
+
+**Where the defaults came from.** `coherence_rounds = 1`, one round per
+pass, as before the setting existed. paper-orchestra runs up to 3
+rounds, with no recorded evidence for that number, and nothing has
+measured more than one round here.
+`figure_bands = c(about = 0.10, over = 0.25, under = 0.25)` was set when
+the check of figures was written, and
+`prominence = c(top = 1/3, middle = 1/3)`, thirds, when claims were
+added. All are `untested`.
+
+**How to test them.** `figure_bands` is tested on a draft, with no
+request. Here the writer rounds 51.8 to “about 50”:
+
+``` r
+
+rounder <- gr_mock_client(function(messages, params) {
+  "Revenue was about 50 million dollars in the south [study 2]."
+})
+bands <- function(about) {
+  syn <- gr_synthesise(table, protocol, client = rounder,
+                       figure_bands = c(about = about))
+  cbind(about = about, syn$figures[, c("number", "backed")])
+}
+rbind(bands(0.10), bands(0.02))
+#> Warning in synth_figures(sections, revised$text, used, rendered, question, : 1
+#> figure(s) in the review are not in the rows their sentence cites, nor in
+#> anything else the writer was shown (50 in 'Findings'). Each is arithmetic the
+#> sentence does not show, or the writer's invention: check it against its study
+#> before quoting it (see `$figures`). No section is marked partial for this,
+#> which is about citations, and those are checked apart.
+#>   about number backed
+#> 1  0.10     50   TRUE
+#> 2  0.02     50  FALSE
+```
+
+“About 50” is within 10% of 51.8 but not within 2%, so under the
+narrower band the figure is unbacked and
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+warns. `coherence_rounds` and `prominence` change what is sent, so they
+are tested as arms. With `review_ref` an
+[`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
+of review questions labelled by a person, `my_scorer` an
+[`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md)
+(or a judge validated as in
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md))
+and `my_client` your client:
+
+``` r
+
+arms <- hr_sweep(function(rounds) {
+  hr_arm("write", function(item, ctx) {
+    gr_synthesise(item$table, item$protocol, client = ctx$client, coherence = TRUE,
+                  coherence_rounds = rounds, trace = ctx$trace)$text
+  })
+}, list(rounds = c(1, 2, 3)))
+bench <- hr_benchmark(arms, review_ref, runs = 5, client = my_client, scorer = my_scorer)
+hr_report(bench)
+```
+
 ## Counting and reporting the run
 
 [`gr_flow()`](https://elkronos.github.io/harnessr/reference/gr_flow.md)

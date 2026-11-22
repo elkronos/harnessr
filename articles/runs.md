@@ -141,7 +141,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 #> List of 4
 #>  $ label      : chr "reduce"
 #>  $ attempts   : int 1
-#>  $ started_utc: chr "2026-11-21T23:18:57.649Z"
+#>  $ started_utc: chr "2026-11-22T01:04:13.661Z"
 #>  $ tokens     :List of 3
 #>   ..$ input     : int 296
 #>   ..$ output    : int 13
@@ -224,10 +224,10 @@ are left out, since they can hold credentials.
 
 tr <- gr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
-#> <gr_trace run_20261121231858.126_f55775>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261122010413.968_0c292a>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   cost: no cost recorded
 #>   actor: owner = finance team, run_by = ana, purpose = Q3 check 
-#>   started: 2026-11-21T23:18:58.126Z
+#>   started: 2026-11-22T01:04:13.969Z
 names(tr$config)
 #> [1] "options"   "r_version"
 ```
@@ -776,6 +776,122 @@ non-positive input budget; it raises an error that says what to change
 instead.
 [`?gr_options`](https://elkronos.github.io/harnessr/reference/gr_options.md)
 documents every setting.
+
+## Choosing the settings
+
+Two walkthroughs cover the settings that hold a run in: the limits every
+run has, and the governor a benchmark or a batch shares. Each says what
+the setting controls and what it trades off, the signs in your results
+that point to changing it, where its default came from, and how to test
+a change.
+[`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
+lists every option with its default.
+
+### The global limits
+
+**What they control.** `max_cost_usd` and `max_calls` hold every run,
+and `max_tokens_total`, `max_output_tokens`, `allowed_models` and
+`allow_unpriced` hold it further when set (see “Limits” above). A limit
+that is too low ends runs early, with partial answers; one that is too
+high lets a mistake, such as a reader that sends every chunk of a long
+document at a small chunk size, cost what it costs.
+
+**Signs they need changing.** An answer with `partial = TRUE` and
+`cost_cap_reached` or `call_cap_reached` in its notes, a trace whose
+`stop_reason` is set, or an error of class `gr_call_cap` or
+`gr_cost_cap` before the first request means a limit stopped the run.
+Raise it only after checking that the run should cost that much:
+[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md)
+and
+[`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
+say so before anything is sent. A run that spends far less than its
+limit, every time, can have the limit lowered to catch the run that does
+not. A refusal with `stop_reason = "output"` means a request’s output
+cap was larger than `max_output_tokens` allows, and lowering the
+reader’s caps (`max_answer_tokens`, `max_chunk_tokens`) fits it.
+
+**Where the defaults came from.** \$5 and 400 calls are limits for one
+read, chosen so a mistake costs little; they are choices, not measured
+values, and `gr_settings_table("options")` declares no evidence for
+them. The others are off by default, and `allow_unpriced = FALSE`
+because a limit that cannot see what a request costs is not a limit.
+
+**How to test them.** A limit belongs to the run, not to an arm, so what
+a sweep can test is which settings fit under it. A reader’s output caps
+decide how much of the limit each request reserves, so sweep the merge’s
+cap and hold each arm’s five runs to the same \$0.02:
+
+``` r
+
+qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
+                      documents = gr_example(), answers = list("45.2 million"),
+                      split = "dev")
+arms <- hr_sweep(gr_arm("thorough", list(method = "sentence", max_tokens = 150,
+                                         overlap_tokens = 0, model = "priced-mock")),
+                 list(max_answer_tokens = c(1500, 500)))
+vapply(arms, function(arm) {
+  b <- suppressWarnings(hr_benchmark(arm, qa, runs = 5, client = cl, split = "dev",
+                                     scorer = gr_scorer_answer(),
+                                     governor = hr_governor(max_cost_usd = 0.02)))
+  c(stopped = sum(b$failure_kind %in% "budget_stop"), usd = sum(b$usd))
+}, numeric(2))
+#>         thorough:max_answer_tokens=1500 thorough:max_answer_tokens=500
+#> stopped                        3.000000                        0.00000
+#> usd                            0.013344                        0.01485
+```
+
+With the merge’s reply capped at 1500 tokens, 3 of the 5 runs were
+stopped before their merge, since each merge reserves \$0.012 of output;
+capped at 500, all five finished within the same limit.
+[`suppressWarnings()`](https://rdrr.io/r/base/warning.html) hides the
+`hr_budget_stopped` warning each benchmark gives; in your own runs, read
+it.
+
+### The governor of a benchmark or a batch
+
+**What it controls.**
+[`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)
+holds limits for more than one run. `hr_benchmark(governor = )` holds
+the whole benchmark to it, each run to what the runs before it left;
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
+and the review stages hold their documents to the governor of the trace
+they are given. Sized too small, the last arms or documents are refused;
+sized too large, a mistake in one arm spends the budget meant for all of
+them.
+
+**Signs it needs changing.**
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+warns with class `hr_budget_stopped`, naming how many runs were stopped
+and by which limit, and the stopped runs have
+`failure_kind = "budget_stop"`. Arms late in the list stopped more than
+early ones is the sign of a governor too small for the whole benchmark
+rather than an arm that costs too much.
+
+**Where the default came from.** `governor = NULL` takes the limits from
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+when the benchmark starts, and those are set for one read (400 calls),
+while a benchmark of two arms on 300 items for 5 runs needs several
+thousand. Size it for the benchmark: arms x items x runs x requests per
+run.
+
+**How to test it.** Count the requests one run makes, multiply, and
+check how much of the governor was used:
+
+``` r
+
+per_run <- 6  # map_reduce over five chunks: five chunk requests and a merge
+needed <- length(arms) * 1 * 5 * per_run
+bench <- hr_benchmark(arms, qa, runs = 5, client = cl, split = "dev",
+                      scorer = gr_scorer_answer(),
+                      governor = hr_governor(max_calls = needed, max_cost_usd = 1))
+c(allowed = needed, used = attr(bench, "trace")$calls,
+  stopped = sum(bench$failure_kind %in% "budget_stop"))
+#> allowed    used stopped 
+#>      60      60       0
+```
+
+[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
+sizes a governor this way for every benchmark it runs.
 
 ## Next
 

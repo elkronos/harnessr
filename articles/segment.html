@@ -42,6 +42,7 @@
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
@@ -523,6 +524,193 @@ reading is paid for more than once:</p>
 <span><span class="co">#&gt; 2   by_section structural      8 retrieve           2</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="choosing-the-settings">Choosing the settings<a class="anchor" aria-label="anchor" href="#choosing-the-settings"></a>
+</h2>
+<p>Each walkthrough below takes one segmentation setting or group: what
+it controls and what it trades off, the signs in your results that point
+to changing it, where its default came from, and how to test a change.
+<code><a href="../articles/settings.html">vignette("settings")</a></code> lists every segmentation setting with
+its default.</p>
+<p>The free statistics above (<code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code>, and
+<code><a href="../reference/gr_seg_recall.html">gr_seg_recall()</a></code> and <code><a href="../reference/gr_seg_pk.html">gr_seg_pk()</a></code> in
+<code><a href="../articles/compare.html">vignette("compare")</a></code>) are the first test of a chunking,
+since they cost nothing. What a chunking does to answers is tested with
+arms: <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> builds one arm per value and
+<code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> runs them on a reference. Here the arms run
+on one question and a stand-in model that always answers correctly, so
+the examples show how a sweep is built and read, not which value is
+better. <code><a href="../articles/compare.html">vignette("compare")</a></code> runs a grid of segmenters and
+chunk sizes on dev, then compares one choice on test with intervals.</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">qa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_qa_reference.html">gr_qa_reference</a></span><span class="op">(</span>questions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>revenue <span class="op">=</span> <span class="st">"What was revenue in 2024?"</span><span class="op">)</span>,</span>
+<span>                      documents <span class="op">=</span> <span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, answers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"45.2 million"</span><span class="op">)</span>,</span>
+<span>                      split <span class="op">=</span> <span class="st">"dev"</span><span class="op">)</span></span>
+<span><span class="va">says</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span>
+<span><span class="va">sweep</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">arms</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">says</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>               scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="set-method">Which segmenter<a class="anchor" aria-label="anchor" href="#set-method"></a>
+</h3>
+<p><strong>What it controls.</strong> <code>method</code> is where the
+cuts fall: on a ruler (<code>fixed</code>), at the author’s paragraphs,
+sentences or headings, at pages, or where the embeddings shift
+(<code>semantic</code>). Each is a guess about where meaning breaks. A
+cut through the middle of a table or an argument separates the parts a
+model needs together; chunks that keep whole sections are larger and
+fewer.</p>
+<p><strong>Signs it needs changing.</strong> An answer that gives half a
+figure, or a quotation that stops mid-sentence, points to cuts in the
+wrong places: look at the chunks around it with
+<code>chunks$chunks$text</code>. <code><a href="../reference/gr_seg_recall.html">gr_seg_recall()</a></code> reporting
+the answer outside the top chunks for one segmenter and inside for
+another is the same sign, measured. A document with headings that a
+<code>paragraph</code> chunking runs across is a candidate for
+<code>structural</code>; a form or invoice for <code>page</code>.</p>
+<p><strong>Where the default came from.</strong> <code>paragraph</code>
+was chosen because it needs no model or embedder; it has not been
+compared with the others (<code>untested</code>). Each recipe sets its
+own: <code>"needle"</code> uses <code>semantic</code>,
+<code>"precise"</code> uses <code>sentence</code>.</p>
+<p><strong>How to test it.</strong> Sweep it on the recipe you use:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"needle"</span><span class="op">)</span>,</span>
+<span>                        <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"paragraph"</span>, <span class="st">"sentence"</span>, <span class="st">"structural"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">tokens_in</span> <span class="op">~</span> <span class="va">param.method</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   param.method tokens_in</span></span>
+<span><span class="co">#&gt; 1    paragraph       676</span></span>
+<span><span class="co">#&gt; 2     sentence       667</span></span>
+<span><span class="co">#&gt; 3   structural       690</span></span></code></pre></div>
+<p>All three sent different requests here
+(<code>hr_sweep_check(bench)</code> has no rows), and
+<code>structural</code> sent the most, 690 prompt tokens against 667 for
+<code>sentence</code>, because its chunks carry their headings.</p>
+</div>
+<div class="section level3">
+<h3 id="set-max-tokens">Chunk size: <code>max_tokens</code><a class="anchor" aria-label="anchor" href="#set-max-tokens"></a>
+</h3>
+<p><strong>What it controls.</strong> <code>max_tokens</code> caps every
+chunk. Smaller chunks make more requests for a reader that sends every
+chunk, and let a reader that picks the best few send less text around
+the answer; larger chunks keep more context together and cost fewer
+requests.</p>
+<p><strong>Signs it needs changing.</strong> Under
+<code>map_reduce</code> or <code>skim</code>, a cost dominated by the
+number of requests (<code><a href="../reference/gr_trace_summary.html">gr_trace_summary()</a></code>) points to larger
+chunks. Under <code>retrieve</code>, an answer that is right but rests
+on long chunks of unrelated text points to smaller ones, and an answer
+split across two chunks, of which only one was picked, points to larger
+ones or to overlap.</p>
+<p><strong>Where the default came from.</strong> 1200 tokens was set
+when the segmenters were written and not tuned (<code>untested</code>).
+The recipes set their own, from 500 (<code>"needle"</code>) to 4000
+(<code>"fast"</code>).</p>
+<p><strong>How to test it.</strong></p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"needle"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>max_tokens <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">200</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">tokens_in</span> <span class="op">~</span> <span class="va">param.max_tokens</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   param.max_tokens tokens_in</span></span>
+<span><span class="co">#&gt; 1              100       829</span></span>
+<span><span class="co">#&gt; 2              200       737</span></span>
+<span><span class="co">#&gt; 3              500       676</span></span></code></pre></div>
+<p>Under <code>retrieve</code>, smaller chunks sent more here, 829
+prompt tokens at 100 against 676 at 500. At 100 the report became eight
+chunks holding 704 tokens, since each repeats the recipe’s 50 tokens of
+overlap, and <code>retrieve</code> sent all eight (the recipe’s
+<code>top_k</code> is 8); at 500 it became two chunks of 563 tokens.
+Whether the answers change is what a benchmark on your own reference
+measures.</p>
+</div>
+<div class="section level3">
+<h3 id="set-overlap">Overlap: <code>overlap_tokens</code><a class="anchor" aria-label="anchor" href="#set-overlap"></a>
+</h3>
+<p><strong>What it controls.</strong> <code>overlap_tokens</code> copies
+the end of each chunk into the start of the next, so a sentence near a
+cut is whole in at least one chunk. It costs duplicated tokens in every
+request that carries both chunks, and for a reader that sends every
+chunk, in every request (see “Overlap” above).</p>
+<p><strong>Signs it needs changing.</strong> An answer that needs the
+end of one chunk and the start of the next, such as a figure in one and
+its unit in the other, points to more overlap. A bill that grew with no
+change in answers points to less.</p>
+<p><strong>Where the default came from.</strong> 0, so no text is sent
+twice; it has not been compared with other values
+(<code>untested</code>). Several recipes set 10% of their chunk
+size.</p>
+<p><strong>How to test it.</strong></p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"needle"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>max_tokens <span class="op">=</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                        <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>overlap_tokens <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">20</span>, <span class="fl">50</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">tokens_in</span> <span class="op">~</span> <span class="va">param.overlap_tokens</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   param.overlap_tokens tokens_in</span></span>
+<span><span class="co">#&gt; 1                    0       669</span></span>
+<span><span class="co">#&gt; 2                   20       769</span></span>
+<span><span class="co">#&gt; 3                   50       829</span></span></code></pre></div>
+<p>At 100-token chunks, 50 tokens of overlap sent 24% more prompt tokens
+than none (829 against 669).</p>
+</div>
+<div class="section level3">
+<h3 id="set-contextual">Context lines and propositions: <code>contextual</code> and
+<code>proposition</code><a class="anchor" aria-label="anchor" href="#set-contextual"></a>
+</h3>
+<p><strong>What they control.</strong> <code>contextual</code> starts
+each chunk with a line saying where it sits, built from the file’s
+metadata for nothing, or written by a model with
+<code>context_source = "llm"</code> (one request per chunk, capped at
+<code>context_reply_tokens</code>, from the first
+<code>context_document_tokens</code> of the document).
+<code>proposition</code> has a model rewrite the text into standalone
+statements, one request per <code>proposition_batch_tokens</code> of
+text. Both help a chunk retrieved on its own to make sense; both put
+words in the chunk that are not the document’s, which is why quotations
+are checked against <code>source_text</code>.</p>
+<p><strong>Signs they are needed.</strong> Answers that confuse two
+sections that say similar things (“revenue rose” in the 2023 and the
+2024 section), or retrieval that picks a chunk whose subject is a
+pronoun, point to <code>contextual</code>. Dense factual text where each
+sentence leans on the one before points to <code>proposition</code>. A
+segmentation bill that is a large share of the run
+(<code>ctx$trace</code>) points away from the model-written
+versions.</p>
+<p><strong>Where the defaults came from.</strong>
+<code>context_source = "metadata"</code> was chosen as the source that
+makes no request, and has not been compared with <code>"llm"</code>.
+<code>proposition_batch_tokens</code> (900),
+<code>context_reply_tokens</code> (90),
+<code>context_document_tokens</code> (1500) and
+<code>proposition_reply_tokens</code> (2000) are the values the code had
+as constants; none was tuned (<code>untested</code>).</p>
+<p><strong>How to test them.</strong> Compare <code>contextual</code>
+with the segmenter it builds on:</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"needle"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>max_tokens <span class="op">=</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                        <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"paragraph"</span>, <span class="st">"contextual"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">tokens_in</span> <span class="op">~</span> <span class="va">param.method</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   param.method tokens_in</span></span>
+<span><span class="co">#&gt; 1   contextual       726</span></span>
+<span><span class="co">#&gt; 2    paragraph       807</span></span></code></pre></div>
+<p><code>contextual</code> sent 81 fewer prompt tokens here. The room it
+holds back for its lines makes its chunks smaller, 73 tokens on average
+against 81, and the recipe’s eight chunks then hold less text.
+<code>proposition</code> and <code>context_source = "llm"</code> need a
+model that writes real statements, so they run on your own reference and
+client:</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"needle"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"paragraph"</span>, <span class="st">"contextual"</span>, <span class="st">"contextual"</span>, <span class="st">"proposition"</span><span class="op">)</span>,</span>
+<span>  context_source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"metadata"</span>, <span class="st">"metadata"</span>, <span class="st">"llm"</span>, <span class="st">"metadata"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">my_reference</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">my_client</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">correct</span>, <span class="va">usd</span><span class="op">)</span> <span class="op">~</span> <span class="va">param.method</span> <span class="op">+</span> <span class="va">param.context_source</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span></code></pre></div>
+<p><code>context_source</code> is stored in the recipe even under a
+segmenter that ignores it, so give it the value the other rows use for
+every row where it does nothing, as above; a row that changes nothing
+else would otherwise be a second arm sending the same requests, which
+<code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code> would then report.</p>
+</div>
+</div>
+<div class="section level2">
 <h2 id="previewing-chunks-in-the-shiny-app">Previewing chunks in the Shiny app<a class="anchor" aria-label="anchor" href="#previewing-chunks-in-the-shiny-app"></a>
 </h2>
 <p>The bundled app has a control for every segmentation setting:
@@ -530,7 +718,7 @@ segmenter, <code>max_tokens</code>, overlap and minimum chunk size. Its
 “Preview chunking” button shows how the current settings cut the
 document before anything is spent on reading. For a segmenter that calls
 a model, the button says so.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">shiny</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"shiny"</span>, package <span class="op">=</span> <span class="st">"harnessr"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><code>GPTREAD_DOC_ROOTS</code> (colon-separated) sets which folders
 the app can read. Unset, it defaults to <code>~/Documents</code>,

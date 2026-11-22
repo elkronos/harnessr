@@ -159,6 +159,19 @@ item x arm x run and the columns
 
   `FALSE` for rows on the dev split.
 
+- `param.<name>`:
+
+  One column per setting the arms record: the settings of an arm built
+  by
+  [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
+  (`param.recipe`, `param.top_k` and so on) or by
+  [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
+  `NA` for an arm that does not record that setting. A setting whose
+  values are not all single values is written as text. A benchmark of
+  arms made by
+  [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)
+  alone has none.
+
 Attributes record the arms (`arms`: name, version, hash, derived_from),
 the reference hash, `runs`, `split`, `seed`, the scorer's name, and the
 traces. [`print()`](https://rdrr.io/r/base/print.html) shows each arm's
@@ -240,6 +253,13 @@ and its scores are not evidence. The reference is locked when scoring
 starts (see
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)).
 
+Two arms that resolve to the same configuration warn (class
+`hr_same_config`) before anything runs: their differences could only be
+run-to-run spread. Arms from
+[`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
+resolve alike when their recipes do; any other two arms when everything
+but their names is the same.
+
 Fewer than 5 runs warns (class `hr_few_runs`): with fewer, run-to-run
 spread cannot be told from the differences between arms, and interval
 reports are expected to refuse such a benchmark unless it is labelled
@@ -266,7 +286,9 @@ Other harness:
 [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md),
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md),
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
-[`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md)
+[`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md),
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
+[`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 
 ## Examples
 

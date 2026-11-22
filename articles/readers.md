@@ -786,6 +786,385 @@ Two habits make all of this cheaper: run
 before you spend anything, and keep `gr_options(max_cost_usd = ...)` set
 to something you would not mind paying by accident.
 
+## Choosing the settings
+
+Each walkthrough below takes one reading setting or group: what it
+controls and what it trades off, the signs in your results that point to
+changing it, where its default came from, and how to test a change.
+[`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
+lists every reading setting with its default, and `gr_settings("read")`
+gives each one’s evidence.
+
+The tests use
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
+which builds one arm per value of a setting, and
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
+which runs the arms on a reference. Here they run on one question about
+the example report and the stand-in model above, so they show what each
+value sends and what
+[`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
+reports, not which value answers better.
+[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
+sweeps `top_k` on a reference of 32 questions with dev and test splits
+and reads the result with intervals.
+
+``` r
+
+qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
+                      documents = gr_example(), answers = list("45.2 million"),
+                      split = "dev")
+reads <- gr_mock_client(stand_in)
+sweep <- function(arms) {
+  hr_benchmark(arms, qa, runs = 5, client = reads, split = "dev",
+               scorer = gr_scorer_answer())
+}
+calls <- function(bench) {
+  vapply(attr(bench, "traces")[bench$ledger_id], function(t) nrow(as.data.frame(t)),
+         integer(1))
+}
+```
+
+### Which reader
+
+**What it controls.** The reader decides how the chunks reach the model
+(see “The readers” above). The main trade is between readers that send
+every chunk (`map_reduce`, `refine`, `hierarchical`, `skim`), whose cost
+grows with the document and which cannot miss a chunk, and readers that
+pick a few (`retrieve`, `rerank`, `iterative`), whose cost does not grow
+with the document and which answer only from what they picked. Among the
+first group, `map_reduce` reads each chunk alone, `refine` carries a
+draft through the document in order, `hierarchical` answers from
+summaries, and `skim` answers from passages it quotes, which `verify`
+can check. `skim_model` and `summary_model` put the per-chunk work of
+`skim` and `hierarchical` on a cheaper model.
+
+**Signs it needs changing.** `NOT_IN_DOCUMENT` from `retrieve` for a
+fact you can find in the file, with `ans$evidence` holding other chunks,
+means the pick missed: try a reader that sends every chunk, or `rerank`.
+A bill that grows with every page added, for one-fact questions, points
+the other way. An answer that misses how an argument develops points to
+`refine`; one that needs exact wording to `skim`.
+
+**Where the default came from.**
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
+defaults to `map_reduce`, chosen because it reads the whole document at
+any length; no comparison of readers is recorded (`untested`).
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
+chooses `"fast"` or `"thorough"` by length (`auto_max_tokens` in
+[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)).
+
+**How to test it.** Sweep the reader on one segmentation:
+
+``` r
+
+base <- gr_arm("thorough", list(method = "structural", max_tokens = 120,
+                                overlap_tokens = 0))
+bench <- sweep(hr_sweep(base, list(reader = c("map_reduce", "refine", "hierarchical",
+                                              "skim", "retrieve"))))
+bench$calls <- calls(bench)
+aggregate(cbind(calls, tokens_in) ~ param.reader, bench, mean)
+#>   param.reader calls tokens_in
+#> 1 hierarchical     9      1273
+#> 2   map_reduce     9      1559
+#> 3       refine     8      1839
+#> 4     retrieve     1       584
+#> 5         skim     9      1328
+```
+
+On eight chunks the four readers that send every chunk make 8 or 9
+requests and send 1273 to 1839 prompt tokens; `retrieve` makes one
+request of 584. `refine` sends the most because every request carries
+the draft so far.
+
+### How many chunks: `top_k` and `min_score`
+
+**What it controls.** `top_k` is how many chunks `retrieve` and `rerank`
+send, and how many `iterative` adds each round. More chunks make it
+likelier the answer is among them, and make the prompt longer and the
+answer’s evidence noisier. `min_score` drops chunks less similar to the
+question than a floor, keeping the best one.
+
+**Signs it needs changing.** `NOT_IN_DOCUMENT` where `ans$evidence`
+holds chunks next to the one with the answer points to a larger `top_k`,
+and so does
+[`gr_seg_recall()`](https://elkronos.github.io/harnessr/reference/gr_seg_recall.md)
+finding the answer at rank 5 when `top_k` is 4. An answer built from
+several unrelated chunks, or a cost per question far above what one fact
+needs, points to a smaller one.
+
+**Where the default came from.** 6, a common starting value for
+retrieval, not tuned here (`untested`). `"needle"` uses 8.
+
+**How to test it.**
+
+``` r
+
+needle <- gr_arm("needle", list(method = "structural", max_tokens = 120))
+bench <- sweep(hr_sweep(needle, list(top_k = c(2, 4, 8, 12))))
+aggregate(tokens_in ~ param.top_k, bench, mean)
+#>   param.top_k tokens_in
+#> 1           2       289
+#> 2           4       449
+#> 3           8       797
+#> 4          12       909
+```
+
+The prompt grows from 289 tokens at `top_k = 2` to 909 at 12. In
+[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
+a `top_k` sweep on a different arm, the `"fast"` recipe with the
+`retrieve` reader and 40-token sentence chunks, found `top_k = 2` more
+accurate than 4 on 32 test questions, with an interval from 1.8 to 12.0
+points, and cheaper. That result is for its arm and its stand-in model;
+yours is found the same way.
+
+### Diversity: `mmr`
+
+**What it controls.** Below 1, `mmr` trades relevance for diversity when
+`retrieve` and `iterative` pick chunks, so near-duplicates do not fill
+every place (see “Choosing and placing chunks” above). It costs nothing.
+
+**Signs it needs changing.** `ans$evidence` holding several chunks that
+say the same thing, from a document that repeats itself (an abstract, a
+summary, a conclusion), points to `mmr` below 1. Answers that miss the
+best chunk after lowering it point back up.
+
+**Where the default came from.** 1, plain top-k, the selection used
+before the setting existed (`untested`). 0.7 is a common starting point
+for a balance.
+
+**How to test it.**
+
+``` r
+
+bench <- sweep(hr_sweep(needle, expand.grid(top_k = 3, mmr = c(1, 0.7, 0.3))))
+hr_sweep_check(bench)
+#>                      arm              same_as runs requests      settings
+#> 1 needle:top_k=3,mmr=0.7 needle:top_k=3,mmr=1    5        5 mmr: 1 vs 0.7
+```
+
+At 0.7 the three chunks picked were the ones plain top-k picked, so the
+requests were the same; only 0.3 changed them on this report. A sweep of
+`mmr` is worth running only on documents that repeat themselves, and
+[`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
+says when it reached none.
+
+### Word matching: `lexical_blend`, `bm25_k1` and `bm25_b`
+
+**What they control.** With lexical embeddings
+(`gr_options(embedder = "lexical")`), `retrieve` scores chunks by a
+blend of cosine similarity and BM25, with `lexical_blend` the weight on
+cosine. `bm25_k1` sets how fast repeated words stop adding to a chunk’s
+score, and `bm25_b` how much long chunks are penalised; `rerank` uses
+BM25 to choose its candidates.
+
+**Signs they need changing.** Retrieval that picks long chunks which
+mention the question’s words once each, over a short chunk that answers
+it, points to a higher `bm25_b` or a lower `lexical_blend`. With real
+embeddings these settings do nothing for `retrieve`, and
+[`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
+shows it.
+
+**Where the defaults came from.** Robertson and Zaragoza (2009) give
+`bm25_b = 0.75` as the usual value and `bm25_k1` between 1.2 and 2.0;
+1.5 lies inside that range (`cited`). Neither was tuned here.
+`lexical_blend = 0.5`, an even blend, was set when the offline path was
+written (`untested`).
+
+**How to test them.**
+
+``` r
+
+bench <- sweep(hr_sweep(needle, expand.grid(top_k = 2, lexical_blend = c(0, 0.5, 1))))
+hr_sweep_check(bench)
+#> [1] arm      same_as  runs     requests settings
+#> <0 rows> (or 0-length row.names)
+bench <- sweep(hr_sweep(needle, expand.grid(top_k = 3, bm25_b = c(0.75, 0.3))))
+hr_sweep_check(bench)
+#>                         arm                    same_as runs requests
+#> 1 needle:top_k=3,bm25_b=0.3 needle:top_k=3,bm25_b=0.75    5        5
+#>              settings
+#> 1 bm25_b: 0.75 vs 0.3
+```
+
+Each value of `lexical_blend` picked different chunks here, while
+`bm25_b` at 0.3 picked the same three as at 0.75.
+
+### Placement: `context_order` and `restate`
+
+**What they control.** `context_order` puts the chosen chunks in order
+of relevance, in document order, or with the best at the two ends of the
+prompt (`"edges"`). `restate` repeats the question before the excerpts;
+under `"auto"` that happens when they are longer than `restate_tokens`
+(1200). Both change only where text sits, not which text is sent, and
+`restate` adds the question’s length to each request.
+
+**Signs they need changing.** Right answers from short prompts and
+misses from long ones, with the answer’s chunk sent each time, point to
+placement: `"edges"`, or `restate = "always"`. Answers that misread
+chunks that follow on from each other point to `"document"`.
+
+**Where the defaults came from.** `"relevance"` is the order the readers
+used before the setting existed; the alternatives were added to be
+compared, and no comparison is recorded. `restate = "auto"` was added so
+a comparison could measure it, and nothing has. `restate_tokens = 1200`
+is an arbitrary number, kept from when it was a constant. Both are
+`untested`.
+
+**How to test them.**
+
+``` r
+
+bench <- sweep(hr_sweep(needle, expand.grid(top_k = 3,
+                                            context_order = c("relevance", "edges", "document"),
+                                            restate = c("never", "always"))))
+aggregate(tokens_in ~ param.context_order + param.restate, bench, mean)
+#>   param.context_order param.restate tokens_in
+#> 1            document        always       388
+#> 2               edges        always       388
+#> 3           relevance        always       388
+#> 4            document         never       377
+#> 5               edges         never       377
+#> 6           relevance         never       377
+hr_sweep_check(bench)
+#>                                                    arm
+#> 1  needle:top_k=3,context_order=document,restate=never
+#> 2 needle:top_k=3,context_order=document,restate=always
+#>                                                 same_as runs requests
+#> 1  needle:top_k=3,context_order=relevance,restate=never    5        5
+#> 2 needle:top_k=3,context_order=relevance,restate=always    5        5
+#>                               settings
+#> 1 context_order: relevance vs document
+#> 2 context_order: relevance vs document
+```
+
+Repeating the question added 11 prompt tokens per request. `"document"`
+sent what `"relevance"` sent, because the three chunks chosen were
+already in document order; `"edges"` changed the requests.
+
+### Checking the answer: `verify` and `cite`
+
+**What they control.** `cite = TRUE` asks the model to cite the chunks
+it used (see “Asking for citations”), which lengthens the prompt a
+little and lets a citation to a chunk never sent be caught.
+`verify = TRUE` checks each quotation in the answer against the chunk it
+names, after the reply, and marks the answer partial when one is not
+found (see “Checking what an answer rests on”); under `iterative` it
+also requires quotations before the loop may stop.
+`accept_near_verbatim` lets a near-verbatim quotation count there.
+
+**Signs they are needed.** Answers you cannot trace to a page, or a
+reviewer asking where a figure came from, point to `cite`. Any answer
+you will act on without reading the source points to `verify`; so does a
+reader that quotes (`skim`), whose quotations are the model’s words
+until checked.
+
+**Where the defaults came from.** Both are off, so a run sends the
+requests and accepts the answers it did before they existed
+(`untested`). `accept_near_verbatim` is off as well; on the labelled
+quotation set, 25 of 46 quotations with one content word swapped score
+`near_verbatim`.
+
+**How to test them.**
+
+``` r
+
+precise <- gr_arm("precise", list(method = "structural", max_tokens = 120,
+                                  overlap_tokens = 0))
+bench <- sweep(hr_sweep(precise, expand.grid(cite = c(FALSE, TRUE), verify = c(FALSE, TRUE))))
+aggregate(tokens_in ~ param.cite + param.verify, bench, mean)
+#>   param.cite param.verify tokens_in
+#> 1      FALSE        FALSE      1328
+#> 2       TRUE        FALSE      1350
+#> 3      FALSE         TRUE      1328
+#> 4       TRUE         TRUE      1350
+hr_sweep_check(bench)
+#>                              arm                         same_as runs requests
+#> 1 precise:cite=FALSE,verify=TRUE precise:cite=FALSE,verify=FALSE    5       45
+#> 2  precise:cite=TRUE,verify=TRUE  precise:cite=TRUE,verify=FALSE    5       45
+#>                settings
+#> 1 verify: FALSE vs TRUE
+#> 2 verify: FALSE vs TRUE
+```
+
+`cite` added 22 prompt tokens to each run. `verify` sent the same
+requests as no check, as it should: it acts on the reply, so its effect
+is in which answers are marked partial (`ans$partial`,
+`ans$notes$unverified_evidence`), not in what is sent. Score it with a
+scorer that counts a partial answer as wrong, or compare the `partial`
+rate by hand.
+
+### Reasoning: `effort`
+
+**What it controls.** `effort` sets how much a reasoning model reasons,
+for every request or by stage (see “Reasoning effort, stage by stage”).
+Reasoning is billed as output and shares the reply’s cap, so lower
+effort is cheaper and faster, and higher effort can help the few
+requests that judge or combine.
+
+**Signs it needs changing.** `tokens_reasoning` in a benchmark, or the
+trace, taking most of the output of per-chunk requests points to `"low"`
+for those stages. A reply cut off (`finish_reason = "length"`) at
+`"high"` needs a larger `max_answer_tokens`. Merges or final answers
+that miss what the per-chunk answers found point to more effort at
+`reduce` or `*.answer`.
+
+**Where the default came from.** Unset: no effort is sent, and the
+provider’s own default applies (`untested`).
+[`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
+gives a starting profile, low for the many mechanical requests and high
+for the few that judge, which is not a measured default.
+
+**How to test it.** Effort is sent only to a model harnessr lists as a
+reasoning model, so the arms name one. A map goes in a list column:
+
+``` r
+
+luna <- gr_arm("thorough", list(method = "structural", max_tokens = 120,
+                                overlap_tokens = 0, model = "gpt-5.6-luna"))
+bench <- sweep(hr_sweep(luna, data.frame(effort = I(list(
+  "low", c(map = "low", reduce = "high"), "high")))))
+unique(bench$arm)
+#> [1] "thorough:effort=low"                                
+#> [2] "thorough:effort=c(map = \"low\", reduce = \"high\")"
+#> [3] "thorough:effort=high"
+```
+
+Compare `usd`, `tokens_reasoning` and `correct` by `param.effort` on
+your own reference. The stand-in model reports no reasoning tokens, so
+here only the requests differ.
+
+### Merges: `max_merge_levels`
+
+**What it controls.** When the findings of `map_reduce`, `skim` and the
+other merging readers do not fit one merge request, they are merged in
+levels. `max_merge_levels` caps the levels; past it the reader returns
+its findings unmerged and cut, and marks the answer partial. `fan_in`
+and `max_levels` play the same parts for `hierarchical`’s summaries.
+
+**Signs it needs changing.** A partial answer whose notes say a merge
+fell back to joining the answers, on a very long document, points to a
+higher cap (or to larger chunks, which make fewer findings). A cost
+dominated by `reduce` requests points to a lower one.
+
+**Where the default came from.** 6, the cap the merge code had as a
+constant; not tuned (`untested`).
+
+**How to test it.**
+
+``` r
+
+bench <- sweep(hr_sweep(base, list(max_merge_levels = c(1, 6))))
+hr_sweep_check(bench)
+#>                           arm                     same_as runs requests
+#> 1 thorough:max_merge_levels=6 thorough:max_merge_levels=1    5       45
+#>                   settings
+#> 1 max_merge_levels: 1 vs 6
+```
+
+Eight findings merge in one level, so a cap of 1 sent the same requests
+as 6 on this report. Test the cap on your longest documents, where it
+can bind.
+
 ## Next
 
 - [`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md):

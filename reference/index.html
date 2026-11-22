@@ -28,6 +28,7 @@
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
@@ -754,7 +755,7 @@
       </dl></div><div class="section level2">
       <h2 id="benchmarks">Benchmarks<a class="anchor" aria-label="anchor" href="#benchmarks"></a></h2>
 
-      <div class="section-desc"><p>Compare configurations on a labelled reference: arms, the reference and its splits, scorers, and repeated runs held to one spending limit. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>.</p></div>
+      <div class="section-desc"><p>Compare configurations on a labelled reference: arms, sweeps of a setting, the reference and its splits, scorers, and repeated runs held to one spending limit. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> and <code><a href="../articles/compare.html">vignette("compare")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -802,6 +803,20 @@
 
         </dt>
         <dd>A configuration to compare in a benchmark</dd>
+
+        <dt>
+
+          <code><a href="hr_sweep.html">hr_sweep()</a></code>
+
+        </dt>
+        <dd>Build one arm per row of a grid of settings</dd>
+
+        <dt>
+
+          <code><a href="hr_sweep_check.html">hr_sweep_check()</a></code>
+
+        </dt>
+        <dd>Find the settings of a sweep that changed nothing that was sent</dd>
 
         <dt>
 
@@ -1064,6 +1079,13 @@
 
         </dt>
         <dd>The settings of a read, segment or ingest spec</dd>
+
+        <dt>
+
+          <code><a href="gr_settings_table.html">gr_settings_table()</a></code>
+
+        </dt>
+        <dd>Every setting of every stage</dd>
 
         <dt>
 

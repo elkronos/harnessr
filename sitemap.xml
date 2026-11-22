@@ -11,6 +11,7 @@
 <url><loc>https://elkronos.github.io/harnessr/articles/review.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/runs.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/articles/segment.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/articles/settings.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/authors.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/index.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/news/index.html</loc></url>
@@ -105,6 +106,7 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_segmenters.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_settings.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/gr_settings_table.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_stop_test.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_synthesise.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/gr_tokenizer.html</loc></url>
@@ -146,6 +148,8 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_scorer_judge.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_signal.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_signal_policy.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_sweep.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_sweep_check.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_tfidf.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_validate.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/index.html</loc></url>

@@ -32,6 +32,7 @@ one from gr_qa_reference(). gr_arms() builds one arm per recipe."></head><body>
     <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
     <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
     <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
@@ -119,7 +120,11 @@ limits leave room for it. When they do not, the run returns a
 as <code><a href="answer_document.html">answer_document()</a></code> does; it needs a document that is not yet chunked.</p>
 <p>The arm's <code>params</code> are the recipe's name and the settings, and its version
 is the version of harnessr, since readers and prompts change between
-versions.</p>
+versions. The arm also records them as its settings, which <code><a href="hr_benchmark.html">hr_benchmark()</a></code>
+reports in <code>param.&lt;name&gt;</code> columns and <code><a href="hr_sweep.html">hr_sweep()</a></code> overrides by name. Two
+recipe arms whose settings resolve to the same recipe (a setting given at
+the recipe's own value, say) have the same configuration, and
+<code><a href="hr_benchmark.html">hr_benchmark()</a></code> warns when it is given both.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -135,7 +140,9 @@ versions.</p>
 <code><a href="hr_mdd.html">hr_mdd()</a></code>,
 <code><a href="hr_reference.html">hr_reference()</a></code>,
 <code><a href="hr_report.html">hr_report()</a></code>,
-<code><a href="hr_scorer.html">hr_scorer()</a></code></p></div>
+<code><a href="hr_scorer.html">hr_scorer()</a></code>,
+<code><a href="hr_sweep.html">hr_sweep()</a></code>,
+<code><a href="hr_sweep_check.html">hr_sweep_check()</a></code></p></div>
     </div>
 
     <div class="section level2">

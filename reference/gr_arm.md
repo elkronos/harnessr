@@ -93,7 +93,15 @@ does; it needs a document that is not yet chunked.
 
 The arm's `params` are the recipe's name and the settings, and its
 version is the version of harnessr, since readers and prompts change
-between versions.
+between versions. The arm also records them as its settings, which
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+reports in `param.<name>` columns and
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
+overrides by name. Two recipe arms whose settings resolve to the same
+recipe (a setting given at the recipe's own value, say) have the same
+configuration, and
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
+warns when it is given both.
 
 ## See also
 
@@ -114,7 +122,9 @@ Other harness:
 [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md),
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md),
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
-[`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md)
+[`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md),
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
+[`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 
 ## Examples
 

@@ -268,9 +268,12 @@ whether a model’s labels can stand in for people’s. See
 
 ## Benchmarks
 
-Compare configurations on a labelled reference: arms, the reference and
-its splits, scorers, and repeated runs held to one spending limit. See
-[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
+Compare configurations on a labelled reference: arms, sweeps of a
+setting, the reference and its splits, scorers, and repeated runs held
+to one spending limit. See
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
+and
+[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md).
 
 - [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
   [`print(`*`<hr_bench>`*`)`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
@@ -294,6 +297,10 @@ its splits, scorers, and repeated runs held to one spending limit. See
   : Check an arm for drift against a frozen benchmark
 - [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)
   : A configuration to compare in a benchmark
+- [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
+  : Build one arm per row of a grid of settings
+- [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
+  : Find the settings of a sweep that changed nothing that was sent
 - [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
   [`hr_reference_add()`](https://elkronos.github.io/harnessr/reference/hr_reference.md)
   : A reference set to score arms against
@@ -422,6 +429,9 @@ built-in. See
 
 - [`gr_settings()`](https://elkronos.github.io/harnessr/reference/gr_settings.md)
   : The settings of a read, segment or ingest spec
+
+- [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
+  : Every setting of every stage
 
 - [`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md)
   [`as.data.frame(`*`<hr_schema>`*`)`](https://elkronos.github.io/harnessr/reference/hr_schema.md)

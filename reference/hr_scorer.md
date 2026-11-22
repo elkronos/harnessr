@@ -96,7 +96,9 @@ Other harness:
 [`hr_drift_check()`](https://elkronos.github.io/harnessr/reference/hr_drift_check.md),
 [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md),
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md),
-[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
+[`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 
 ## Examples
 
