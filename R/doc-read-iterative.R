@@ -301,6 +301,7 @@ read_iterative <- function(chunks, question, client, spec, trace) {
                     overhead = prompt_overhead(question, answer_system(spec$cite, spec$premise),
                                                spec$restate, structure = answer_structure(spec)))
   final <- iterative_fit(d, seen, seen_score, fbud$input, spec$context_order)
+  log_dropped_chunks(trace, "iterative.chunks", d, final$dropped, spec)
   sub <- d[final$rows, , drop = FALSE]
   res <- if (!nrow(sub)) {
     gr_result(FALSE, error = "no gathered chunk fits the context window")

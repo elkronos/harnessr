@@ -1,5 +1,51 @@
 # harnessr 0.6.0.9000
 
+## Context, effort and revision checks
+
+Each option below is off by default, so a default spec sends the requests it
+sent before and keeps its store, cache and replay keys. Each new setting is
+declared with its evidence (`untested`), is listed by `gr_settings_table()`,
+and has a walkthrough that says how to test it with `hr_sweep()`.
+
+* `hr_truncate(text, n, keep)` cuts text to `n` tokens and keeps the part
+  asked for: the start (`"head"`, the default, which is
+  `gr_truncate_tokens()` itself), the end (`"tail"`), both ends (`"both"`)
+  or the units with the highest `scores` (`"scored"`). With a trace, a cut
+  writes a `"truncate"` step naming the piece, the part dropped
+  (`dropped_part`) and the tokens it held. `hr_context_policy()` states
+  which pieces of a request are never cut (`pin`), which are cut first
+  (`cut_order`) and which part of each is kept (`keep`), and
+  `hr_context_fit()` applies one to a set of named pieces.
+
+* `gr_read_spec()` gains `context_policy`. With a policy, `refine` fits its
+  state and the new excerpt into the input budget together instead of
+  halving it; the merges of `map_reduce` and `skim`, `hierarchical`'s
+  summaries and `preview`'s outline and skims are cut under the policy's
+  keep rule for their piece; and the readers that pack whole chunks
+  (`stuff`, `retrieve`, `rerank`, `iterative`, `preview`'s re-read) write a
+  `"truncate"` step naming the chunks they left out. Under
+  `order_merges = TRUE`, the findings a merge combines and the answers
+  `ensemble` adjudicates are placed by `context_order`. `NULL`, the default,
+  keeps each reader's cuts as they were.
+
+* `gr_read_spec()` gains `refine_state`. `"ledger"` makes `refine` carry a
+  numbered list of findings: each request replies with edits (`ADD`,
+  `REPLACE n`, `DROP n`) that the code applies, so a finding no edit names
+  is kept word for word and a corrected one is replaced, and one more
+  request, `refine.answer`, answers from the list. `"draft"`, the default,
+  rewrites the draft as before.
+
+* `restate` gains `"window"`, which repeats the question once the excerpts
+  pass the model's effective window. No model's window is measured yet, so
+  it uses 50,000 tokens and warns (`gr_window_unmeasured`).
+
+* Left out: a look-up step for `hierarchical` (reading the chunks behind the
+  summary an answer rests on) and showing `iterative` its earlier queries.
+  Each changes the requests of a reader in a way that needs its own
+  benchmark arm, and neither was needed for the policy itself.
+
+The read stage now has 49 settings, 222 in all.
+
 ## Reading options
 
 Each option below is off by default, so a default spec sends the requests it

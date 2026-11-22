@@ -181,6 +181,8 @@
   read.premise = "readers#set-premise", read.premise_verdict = "readers#set-premise",
   read.accept_near_verbatim = "readers#set-verify",
   read.effort = "readers#set-effort",
+  read.context_policy = "readers#set-context-policy",
+  read.refine_state = "readers#set-context-policy",
   read.max_merge_levels = "readers#set-merge-levels", read.fan_in = "readers#set-merge-levels",
   read.max_levels = "readers#set-merge-levels",
   read.unskip_k = "readers#set-preview", read.reread_on = "readers#set-preview",

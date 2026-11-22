@@ -48,6 +48,9 @@ Other cost and token functions:
 \code{\link{gr_models}()},
 \code{\link{gr_register_model}()},
 \code{\link{gr_set_tokenizer}()},
-\code{\link{gr_tokenizer}()}
+\code{\link{gr_tokenizer}()},
+\code{\link{hr_context_fit}()},
+\code{\link{hr_context_policy}()},
+\code{\link{hr_truncate}()}
 }
 \concept{cost and token functions}

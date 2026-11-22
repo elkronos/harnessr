@@ -147,6 +147,9 @@ reference:
   - gr_tokenizer
   - gr_set_tokenizer
   - gr_truncate_tokens
+  - hr_truncate
+  - hr_context_policy
+  - hr_context_fit
   - gr_budget
   - gr_trace
   - gr_trace_summary

@@ -43,7 +43,9 @@ cost_map_reduce <- function(stats, params) {
 
 #' @noRd
 cost_refine <- function(stats, params) {
-  hr_cost(calls = stats$n_chunks, batched = FALSE,
+  # Under refine_state = "ledger", one more request answers from the list.
+  extra <- if (identical(params$refine_state, "ledger")) 1L else 0L
+  hr_cost(calls = stats$n_chunks + extra, batched = FALSE,
           sends = list(list(tokens = stats$tokens, model = params$model)))
 }
 

@@ -31,6 +31,12 @@
     "You revise a draft answer using a new excerpt. Add what the excerpt supports, correct what ",
     "it contradicts, and leave the rest of the draft alone. Return the complete revised answer, ",
     "not a description of your edits."),
+  refine_ledger_system = paste0(
+    "You keep a numbered ledger of findings that bear on a question, one excerpt at a time. ",
+    "Add each finding the new excerpt supports that the ledger lacks, with its figures, names ",
+    "and dates exactly as the excerpt gives them. When the excerpt corrects a finding, replace ",
+    "that finding; do not annotate it. When the excerpt shows a finding is wrong, drop it. ",
+    "Leave every other finding alone."),
   synthesise_system = paste0(
     "You write the '%s' section of a review, using only the study records supplied. Cite the ",
     "record behind every claim with its bracketed id, e.g. [study 3], and cite more than one ",
@@ -138,9 +144,20 @@
 #' threshold reaches restate_now() wherever the mode is passed.
 #' @noRd
 restate_how <- function(spec) {
-  structure(as_chr1(spec$restate, "auto"),
-            tokens = as_num1(spec$restate_tokens, .gr_restate_tokens))
+  how <- as_chr1(spec$restate, "auto")
+  # "window": repeat the question once the excerpts pass the length the model
+  # attends to reliably. No model's effective window is measured yet, so the
+  # fixed threshold below applies, and gr_read_spec() says so.
+  if (identical(how, "window")) {
+    return(structure("auto", tokens = .gr_restate_window_tokens))
+  }
+  structure(how, tokens = as_num1(spec$restate_tokens, .gr_restate_tokens))
 }
+
+#' The threshold restate = "window" uses until a model's effective window is
+#' measured: the question is repeated before excerpts longer than this.
+#' @noRd
+.gr_restate_window_tokens <- 50000L
 
 #' @noRd
 restate_now <- function(body, how = "auto") {

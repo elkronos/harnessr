@@ -211,7 +211,10 @@ gr_reader_signature <- function(reader) {
 #'   irrelevant chunks because they are different.
 #' @param restate Whether to repeat the question before the excerpts as well as
 #'   after them: `"auto"` when the body is long enough to bury the first ask,
-#'   `"always"`, or `"never"`. A setting rather than a rule, because whether it
+#'   `"always"`, or `"never"`. `"window"` repeats it once the excerpts pass the
+#'   length the model attends to reliably, its effective window; no model's
+#'   effective window is measured yet, so it repeats the question before
+#'   excerpts longer than 50,000 tokens and warns (`gr_window_unmeasured`). A setting rather than a rule, because whether it
 #'   helps is a question about your corpus and your model. Point [gr_compare()]
 #'   at two recipes differing only in this and find out.
 #' @param context_order Where the selected chunks sit in the prompt.
@@ -221,8 +224,13 @@ gr_reader_signature <- function(reader) {
 #'   burying the weakest in the middle, because transformers attend measurably
 #'   better to the beginning and end of a long context than to its middle.
 #'   Selection is unaffected. This decides only placement, and it applies to
-#'   `retrieve` and `rerank`, the two readers that put several ranked chunks in
-#'   one prompt.
+#'   `retrieve`, `rerank` and `iterative`, the readers that put several ranked
+#'   chunks in one prompt. Under a `context_policy` with `order_merges = TRUE`
+#'   it also places the findings `map_reduce`, `skim` and the write-up merge
+#'   combine and the member answers `ensemble` adjudicates. These have no
+#'   relevance order, so `"relevance"` and `"document"` keep the order they
+#'   come in (document order for findings, member order for an ensemble), and
+#'   `"edges"` puts the first first and the second last.
 #' @param rerank_candidates,rerank_min_score For `rerank`: how many chunks to
 #'   score, and the score below which a chunk is discarded. The candidates are
 #'   the chunks the word-matching prefilter ranks highest. When no chunk shares
@@ -435,6 +443,36 @@ gr_reader_signature <- function(reader) {
 #'   one goes to the merge and sets `notes$degradation` to
 #'   `"premise_flagged"`. `"structured"` without `premise = TRUE` is refused
 #'   with a `gr_bad_setting` error. Untested.
+#' @param context_policy `NULL` (the default), or an [hr_context_policy()]
+#'   (or a named list of its arguments) that decides what a request keeps
+#'   when its text does not fit. `NULL` keeps each reader's own cuts, which
+#'   keep the start of what they cut. With a policy:
+#'   * `refine` fits its state (`draft` or `ledger`) and the new `excerpt`
+#'     into the input budget together, cutting the pieces the policy allows
+#'     in the order it gives, in place of giving each half the budget;
+#'   * the merges of `map_reduce` and `skim` (`findings`), the summaries
+#'     `hierarchical` combines (`summaries`), the outline and skimmed
+#'     sections of `preview` (`outline`, `excerpts`) and the joined findings
+#'     of a merge that gives up are cut with the policy's keep rule for that
+#'     piece;
+#'   * the readers that pack whole chunks (`stuff`, `retrieve`, `rerank`,
+#'     `preview`, `iterative`) write a `"truncate"` step naming the chunks
+#'     they left out;
+#'   * with `order_merges = TRUE`, the findings a merge combines and the
+#'     member answers `ensemble` adjudicates are placed by `context_order`.
+#'   The question and the instructions are never cut by any reader. Every
+#'   cut is a `"truncate"` step of the trace that names the piece and the
+#'   part dropped. Untested.
+#' @param refine_state For `refine`: what is carried down the document.
+#'   `"draft"` (the default) is the answer, rewritten by each request, as
+#'   before. `"ledger"` is a numbered list of findings: each request is shown
+#'   it and one excerpt and replies with edits (`ADD: <finding>`,
+#'   `REPLACE <n>: <finding>`, `DROP <n>`), which the code applies, so a
+#'   finding no edit names is carried forward word for word and a corrected
+#'   one is replaced rather than annotated. One more request,
+#'   `refine.answer`, answers from the finished list; an empty list is
+#'   `NOT_IN_DOCUMENT` with no request. `notes$ledger_items` counts the
+#'   findings. Untested; [gr_condensation_check()] builds the test.
 #' @param ... Extra fields for custom readers.
 #' @return A list of class `gr_read_spec`.
 #'
@@ -537,7 +575,7 @@ gr_reader_signature <- function(reader) {
 #'
 #' The labels are the `stage` column of `as.data.frame(trace)`:
 #' `segment.context`, `segment.proposition`; `stuff.answer`; `map.answer`,
-#' `reduce`; `refine.draft`, `refine.revise`; `skim.extract`,
+#' `reduce`; `refine.draft`, `refine.revise`, `refine.answer`; `skim.extract`,
 #' `skim.consolidate`, `skim.answer`; `retrieve.answer`; `rerank.score`,
 #' `rerank.answer`; `hier.summarise.L1` (and `L2`, ...), `hier.answer`;
 #' `iterative.step`, `iterative.final`; `ensemble.adjudicate`; `preview.plan`,
@@ -601,7 +639,7 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
                          mmr = 1, context_order = c("relevance", "document", "edges"),
                          rerank_candidates = 20L, rerank_min_score = 4,
                          fan_in = 5L, max_levels = 5L, max_rounds = 4L,
-                         preview_tokens = 1200L, restate = c("auto", "always", "never"),
+                         preview_tokens = 1200L, restate = c("auto", "always", "never", "window"),
                          members = NULL, cite = FALSE,
                          skim_model = NULL, summary_model = NULL,
                          parallel = NULL, delay_between_calls = 0,
@@ -613,7 +651,8 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
                          low_score = c("not_found", "read_top_k"),
                          fusion = c("default", "rrf"), rrf_k = 60,
                          answer_format = c("parsed", "schema"),
-                         premise_verdict = c("sentence", "structured"), ...) {
+                         premise_verdict = c("sentence", "structured"),
+                         context_policy = NULL, refine_state = c("draft", "ledger"), ...) {
   warn_near_miss(list(...), names(formals(gr_read_spec)), "read")
   # Every argument but `...` is checked and resolved by the schema
   # (.gr_read_schema): ranges clamped with a warning, a missing number taken
@@ -632,6 +671,12 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
     gr_abort(paste0("`premise_verdict = \"structured\"` needs `premise = TRUE`: without it no ",
                     "verdict is asked for, so the setting has no effect."),
              class = "gr_bad_setting")
+  }
+  if (identical(p$restate, "window")) {
+    gr_warn(paste0("restate = \"window\" repeats the question once the excerpts pass the ",
+                   "model's effective window. No model's effective window is measured yet, so ",
+                   "the question is repeated before excerpts longer than 50,000 tokens."),
+            class = "gr_window_unmeasured")
   }
   spec <- structure(c(list(
     reader = p$reader,
@@ -711,7 +756,7 @@ as_read_spec <- function(spec) {
            evidence = ev_untested(paste0("The order the readers used before the setting ",
                                          "existed; the alternatives were added to be compared, ",
                                          "and no comparison is recorded."))),
-  hr_param("restate", "enum", choices = c("auto", "always", "never"),
+  hr_param("restate", "enum", choices = c("auto", "always", "never", "window"),
            help = "Whether to repeat the question before the excerpts as well as after.",
            tier = "advanced",
            evidence = ev_untested(paste0("A setting so that gr_compare() can measure it on a ",
@@ -890,8 +935,34 @@ as_read_spec <- function(spec) {
            help = paste0("Under premise = TRUE: the verdict as a sentence in the reply, or as ",
                          "schema fields with a quote that is checked against the excerpts."),
            evidence = ev_untested(paste0("\"sentence\", the requests premise = TRUE sent ",
-                                         "before the setting existed. Not measured.")))
+                                         "before the setting existed. Not measured."))),
+  hr_param("context_policy", "named_map", default = NULL, tier = "advanced",
+           help = paste0("Which pieces of a request are never cut, which are cut first, and ",
+                         "which part of a cut piece is kept."),
+           evidence = ev_untested(paste0("NULL: each reader cuts as it did before the setting ",
+                                         "existed, keeping the start of what it cuts. No ",
+                                         "policy has been compared with it.")),
+           resolve = function(x, p, params) check_context_policy(x)),
+  hr_param("refine_state", "enum", choices = c("draft", "ledger"), tier = "advanced",
+           cost_class = "per_call_constant", depends_on = "reader = \"refine\"",
+           help = paste0("For refine: carry a rewritten draft down the document, or a numbered ",
+                         "list of findings that each request adds to, replaces or drops from."),
+           evidence = ev_untested(paste0("\"draft\", the state refine carried before the ",
+                                         "setting existed. Not compared with \"ledger\"; ",
+                                         "gr_condensation_check() builds the test.")))
 )
+
+#' A read spec's context policy: NULL, an hr_context_policy(), or a list of
+#' its arguments.
+#' @noRd
+check_context_policy <- function(x) {
+  if (is.null(x) || inherits(x, "hr_context_policy")) return(x)
+  if (is.list(x) && (!length(x) || all(nzchar(names(x) %||% "")))) {
+    return(do.call(hr_context_policy, x))
+  }
+  gr_abort(paste0("`context_policy` must be NULL, an hr_context_policy(), or a named list of ",
+                  "its arguments."), class = "gr_bad_setting")
+}
 
 #' The read settings that were constants in the code until they were declared
 #' in the schema. gr_read_spec() stores each only when it is not its default.
@@ -899,7 +970,7 @@ as_read_spec <- function(spec) {
 .gr_read_late_params <- c("accept_near_verbatim", "max_merge_levels", "restate_tokens",
                           "bm25_k1", "bm25_b", "lexical_blend", "unskip_k", "reread_on",
                           "low_score", "fusion", "rrf_k", "answer_format",
-                          "premise_verdict")
+                          "premise_verdict", "context_policy", "refine_state")
 
 #' The settings among `names` whose resolved value is not the schema's default,
 #' as a list to add to a spec. A spec is hashed whole into the corpus store and

@@ -22,6 +22,8 @@ removed or gains or loses its last caller.
 | `hr_agreement()` | `agreement_part()`, `reviewer_summary()` | test-core-stats.R, test-screen-reviewers.R |
 | `hr_arm()` | `gr_arm()` | test-core-bench.R, test-core-bench-report.R |
 | `hr_check_module()` | `gr_check_reader()`, `gr_check_segmenter()` | test-core-contract.R |
+| `hr_context_fit()` | `read_refine()`, under a read's `context_policy` | test-context-policy.R |
+| `hr_context_policy()` | `check_context_policy()`, which resolves a read's `context_policy` | test-context-policy.R |
 | `hr_cost()` | the reader cost functions: `cost_extract()`, `cost_map_reduce()` and the rest | test-conformance.R, test-core-schema.R |
 | `hr_ht_estimate()` | `screening_recall()` | test-core-stats.R |
 | `hr_param()` | the read, segment and ingest schemas (`.gr_read_schema` and the others) | test-core-schema.R, test-settings.R |
@@ -30,6 +32,7 @@ removed or gains or loses its last caller.
 | `hr_schema()` | the read, segment and ingest schemas | test-core-schema.R, test-settings.R |
 | `hr_scorer()` | `gr_scorer_answer()` | test-core-bench.R |
 | `hr_signal()` | `read_ensemble()`, `read_iterative()`, `read_preview()` | test-core-signals.R |
+| `hr_truncate()` | `cut_piece()`, which the merge, `hierarchical` and `preview` packers call under a `context_policy` | test-context-policy.R |
 | `hr_validate()` | `gr_read_spec()`, `gr_segment_spec()`, `gr_ingest_spec()` | test-core-schema.R, test-adversarial.R |
 
 ## Called by the tests only

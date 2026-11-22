@@ -96,8 +96,11 @@ read_ensemble <- function(chunks, question, client, spec, trace) {
   findings <- vapply(results[usable], function(r) {
     if (premise_flagged(r) && isTRUE(spec$premise)) premise_finding(r$premise) else r$answer
   }, character(1))
-  body <- paste(sprintf("<finding source=\"%s\">\n%s\n</finding>", members[usable], findings),
-                collapse = "\n\n")
+  # Under a context policy with order_merges = TRUE, the members' answers are
+  # placed by context_order; otherwise in member order.
+  at <- merge_order(length(findings), spec)
+  body <- paste(sprintf("<finding source=\"%s\">\n%s\n</finding>", members[usable][at],
+                        findings[at]), collapse = "\n\n")
   # The adjudication is a request like the members' own, checked by the
   # governor before it is sent.
   res <- gr_call(client, list(

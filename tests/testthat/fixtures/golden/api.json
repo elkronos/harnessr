@@ -225,7 +225,7 @@
       "type": "function"
     },
     "gr_read_spec": {
-      "formals": ["reader = \"map_reduce\"", "model = NULL", "temperature = NULL", "max_answer_tokens = 1500L", "max_chunk_tokens = 700L", "max_summary_tokens = 500L", "top_k = 6L", "min_score = -Inf", "mmr = 1", "context_order = c(\"relevance\", \"document\", \"edges\")", "rerank_candidates = 20L", "rerank_min_score = 4", "fan_in = 5L", "max_levels = 5L", "max_rounds = 4L", "preview_tokens = 1200L", "restate = c(\"auto\", \"always\", \"never\")", "members = NULL", "cite = FALSE", "skim_model = NULL", "summary_model = NULL", "parallel = NULL", "delay_between_calls = 0", "on_overflow = c(\"warn\", \"error\")", "effort = NULL", "premise = FALSE", "verify = FALSE", "accept_near_verbatim = FALSE", "max_merge_levels = 6L", "restate_tokens = 1200L", "bm25_k1 = 1.5", "bm25_b = 0.75", "lexical_blend = 0.5", "unskip_k = 0L", "reread_on = c(\"never\", \"not_found\")", "low_score = c(\"not_found\", \"read_top_k\")", "fusion = c(\"default\", \"rrf\")", "rrf_k = 60", "answer_format = c(\"parsed\", \"schema\")", "premise_verdict = c(\"sentence\", \"structured\")", "..."],
+      "formals": ["reader = \"map_reduce\"", "model = NULL", "temperature = NULL", "max_answer_tokens = 1500L", "max_chunk_tokens = 700L", "max_summary_tokens = 500L", "top_k = 6L", "min_score = -Inf", "mmr = 1", "context_order = c(\"relevance\", \"document\", \"edges\")", "rerank_candidates = 20L", "rerank_min_score = 4", "fan_in = 5L", "max_levels = 5L", "max_rounds = 4L", "preview_tokens = 1200L", "restate = c(\"auto\", \"always\", \"never\", \"window\")", "members = NULL", "cite = FALSE", "skim_model = NULL", "summary_model = NULL", "parallel = NULL", "delay_between_calls = 0", "on_overflow = c(\"warn\", \"error\")", "effort = NULL", "premise = FALSE", "verify = FALSE", "accept_near_verbatim = FALSE", "max_merge_levels = 6L", "restate_tokens = 1200L", "bm25_k1 = 1.5", "bm25_b = 0.75", "lexical_blend = 0.5", "unskip_k = 0L", "reread_on = c(\"never\", \"not_found\")", "low_score = c(\"not_found\", \"read_top_k\")", "fusion = c(\"default\", \"rrf\")", "rrf_k = 60", "answer_format = c(\"parsed\", \"schema\")", "premise_verdict = c(\"sentence\", \"structured\")", "context_policy = NULL", "refine_state = c(\"draft\", \"ledger\")", "..."],
       "type": "function"
     },
     "gr_reader_signature": {
@@ -444,6 +444,14 @@
       "formals": ["fn", "run", "rules = list()", "kind = \"module\"", "name = NA_character_"],
       "type": "function"
     },
+    "hr_context_fit": {
+      "formals": ["pieces", "budget", "policy = hr_context_policy()", "scores = NULL", "trace = NULL", "where = \"context\""],
+      "type": "function"
+    },
+    "hr_context_policy": {
+      "formals": ["pin = c(\"question\", \"instructions\")", "cut_order = character(0)", "keep = \"head\"", "order_merges = FALSE"],
+      "type": "function"
+    },
     "hr_contrast": {
       "formals": ["new", "reference", "margin", "confirmatory = TRUE", "cost_test = TRUE"],
       "type": "function"
@@ -566,6 +574,10 @@
     },
     "hr_tfidf": {
       "formals": ["texts", "min_df = 2", "max_features = 5000"],
+      "type": "function"
+    },
+    "hr_truncate": {
+      "formals": ["text", "n", "keep = c(\"head\", \"tail\", \"both\", \"scored\")", "scores = NULL", "marker = \" ...[truncated]\"", "trace = NULL", "where = \"truncate\"", "piece = NULL"],
       "type": "function"
     },
     "hr_validate": {
@@ -883,6 +895,11 @@
     },
     "print.hr_conformance": {
       "class": "hr_conformance",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_context_policy": {
+      "class": "hr_context_policy",
       "formals": ["x", "..."],
       "generic": "print"
     },

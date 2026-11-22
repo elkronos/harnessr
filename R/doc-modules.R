@@ -120,7 +120,7 @@ register_builtin_readers <- function() {
     signature = "all|N+logN|tree", cost_calls = "N + merges",
     description = "Answer each chunk independently, then tree-reduce. Parallel, order-independent.")
   gr_register_reader("refine", read_refine,
-    calls = c("refine.draft", "refine.revise"), cost = cost_refine,
+    calls = c("refine.draft", "refine.revise", "refine.answer"), cost = cost_refine,
     signature = "all|N|forward", cost_calls = "N",
     description = "Sequential draft-and-revise down the document. Order matters; not parallelisable.")
   gr_register_reader("skim", read_skim,

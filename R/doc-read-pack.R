@@ -131,3 +131,60 @@ reader_source_text <- function(d) {
   src <- as.character(src)
   ifelse(is.na(src), txt, src)
 }
+
+#' Cut one piece of a request to `n` tokens: as truncate_logged() always has
+#' when the spec has no context policy, and under the policy's keep rule for
+#' piece `name` when it has one. A policy that pins the piece cannot leave it
+#' longer than the request has room for, so the piece is then cut as before.
+#' Returns what truncate_logged() returns: `text` and `dropped`.
+#' @noRd
+cut_piece <- function(text, n, where, trace, spec, name, marker = " ...[truncated]", ...) {
+  pol <- spec[["context_policy", exact = TRUE]]
+  if (is.null(pol) || name %in% pol$pin) {
+    return(truncate_logged(text, n, where, trace, marker = marker, ...))
+  }
+  out <- hr_truncate(text, n, keep = piece_keep(pol, name), marker = marker, trace = trace,
+                     where = where, piece = name)
+  list(text = out, dropped = as.integer(max(gr_count_tokens(as_chr1(text, "")) -
+                                              gr_count_tokens(out), 0)))
+}
+
+#' The keep rule a context policy gives a piece: its own, else the unnamed
+#' rule, else "head". "scored" needs scores, which these packers do not have,
+#' so it is read as "head".
+#' @noRd
+piece_keep <- function(policy, name) {
+  keep <- policy$keep
+  kn <- names(keep) %||% rep("", length(keep))
+  kn[is.na(kn)] <- ""
+  rule <- if (name %in% kn) keep[[which(kn == name)[1]]]
+          else if (any(!nzchar(kn))) keep[[which(!nzchar(kn))[1]]] else "head"
+  if (identical(unname(rule), "scored")) "head" else unname(rule)
+}
+
+#' Under a context policy, write the chunks a packer left out to the trace as
+#' a "truncate" step, so every cut names what it dropped. Nothing is written
+#' without a policy, or when nothing was left out.
+#' @noRd
+log_dropped_chunks <- function(trace, where, d, dropped, spec) {
+  if (is.null(spec[["context_policy", exact = TRUE]]) || !length(dropped)) {
+    return(invisible(NULL))
+  }
+  trace_note(trace, "truncate", list(
+    where = where, piece = "chunks", keep = "whole chunks",
+    dropped_part = paste("chunks", paste(d$chunk_id[dropped], collapse = ", ")),
+    tokens_dropped = as.integer(sum(gr_count_tokens(render_chunks(d[dropped, , drop = FALSE]))))))
+  invisible(NULL)
+}
+
+#' Indices of `n` items placed by `context_order`, for packers whose items
+#' have no relevance order (findings, member answers), under a context policy
+#' with `order_merges = TRUE`; `seq_len(n)` otherwise.
+#' @noRd
+merge_order <- function(n, spec) {
+  pol <- spec[["context_policy", exact = TRUE]]
+  if (is.null(pol) || !isTRUE(pol$order_merges)) return(seq_len(n))
+  how <- as_chr1(spec$context_order, "relevance")
+  if (identical(how, "document")) return(seq_len(n))
+  arrange_context(seq_len(n), how)
+}

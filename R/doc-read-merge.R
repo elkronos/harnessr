@@ -19,6 +19,9 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
   # NULL, and gr_budget() and gr_call() fall back to different models on NULL.
   spec$model <- spec$model %||% as_chr1(client[["model", exact = TRUE]], gr_options("model"))
   pieces <- pieces[has_content(pieces)]
+  # Under a context policy with order_merges = TRUE, the findings are placed
+  # by context_order; otherwise they keep the order they came in.
+  pieces <- pieces[merge_order(length(pieces), spec)]
   if (!length(pieces)) return(list(text = .NOT_FOUND, ok = FALSE, levels = 0L,
                                    truncated_calls = 0L, failed = 0L))
   if (length(pieces) == 1L) return(list(text = pieces[[1]], ok = TRUE, levels = 0L,
@@ -59,8 +62,8 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
       big <- pieces[over]
       room <- pmax(1, bud$input - (pts[over] - gr_count_tokens(big)))
       pieces[over] <- vapply(seq_along(big), function(k) {
-        truncate_logged(big[k], room[k], paste0(label, ".input"), trace,
-                        level = level, piece = which(over)[k])$text
+        cut_piece(big[k], room[k], paste0(label, ".input"), trace, spec, "findings",
+                  level = level, piece = which(over)[k])$text
       }, character(1), USE.NAMES = FALSE)
       truncated <- truncated + sum(over)
       pts <- sized(pieces)
@@ -158,6 +161,7 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
 #' @noRd
 merge_giveup <- function(pieces, spec, trace = NULL, label = "merge") {
   cap <- as.integer(clamp((spec$max_answer_tokens %||% 800L) * 3L, 200L, 8000L))
-  truncate_logged(paste(pieces, collapse = "\n\n---\n\n"), cap, paste0(label, ".giveup"),
-                  trace, marker = "\n\n...[merge failed; findings above are truncated]")$text
+  cut_piece(paste(pieces, collapse = "\n\n---\n\n"), cap, paste0(label, ".giveup"),
+            trace, spec, "findings",
+            marker = "\n\n...[merge failed; findings above are truncated]")$text
 }
