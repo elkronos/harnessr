@@ -35,7 +35,8 @@ planted between. Its own text must not mention the planted places.}
 corrected late.}
 
 \item{n_documents}{Synthetic documents to build, each its own cluster;
-1 when \code{text} is given.}
+1 when \code{text} is given. A document's forward and reversed copies carry
+the same facts, so they share its cluster.}
 
 \item{paragraphs}{Filler paragraphs per synthetic document, at least
 \code{n_facts}.}

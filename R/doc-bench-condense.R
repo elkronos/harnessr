@@ -102,7 +102,8 @@ gr_reverse_text <- function(text, unit = c("paragraph", "sentence")) {
 #' @param correction Whether the last fact is stated wrongly early and
 #'   corrected late.
 #' @param n_documents Synthetic documents to build, each its own cluster;
-#'   1 when `text` is given.
+#'   1 when `text` is given. A document's forward and reversed copies carry
+#'   the same facts, so they share its cluster.
 #' @param paragraphs Filler paragraphs per synthetic document, at least
 #'   `n_facts`.
 #' @param orders `"forward"`, `"reversed"` or both.
@@ -211,7 +212,7 @@ gr_condensation_check <- function(text = NULL, n_facts = 6L, n_lures = 2L, corre
     c(answer = items$answer[i], lure = items$lure[i], superseded = items$superseded[i])
   })
   ref <- hr_reference(payload, labels = labels,
-                      cluster = paste(items$document, items$order, sep = "."), split = split)
+                      cluster = items$document, split = split)
   structure(list(reference = ref, scorer = hr_scorer(score_condensation, name = "condensation"),
                  items = items, documents = docs),
             class = "gr_condensation_check")

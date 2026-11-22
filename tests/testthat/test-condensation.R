@@ -42,6 +42,8 @@ test_that("gr_condensation_check() plants facts, lures and a correction in both 
   p <- chk$reference$items[[1]]
   expect_named(p, c("question", "document"))
   expect_output(print(chk), "2 document")
+  # A document's forward and reversed copies hold the same facts: one cluster.
+  expect_setequal(unique(chk$reference$cluster), c("d1", "d2"))
 })
 
 test_that("planting into a text of your own keeps its paragraphs", {
