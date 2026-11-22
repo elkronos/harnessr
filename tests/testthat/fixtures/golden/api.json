@@ -452,6 +452,10 @@
       "formals": ["cal", "key"],
       "type": "function"
     },
+    "hr_chain": {
+      "formals": ["...", "name", "version = \"0.0.1\""],
+      "type": "function"
+    },
     "hr_check_module": {
       "formals": ["fn", "run", "rules = list()", "kind = \"module\"", "name = NA_character_"],
       "type": "function"
@@ -590,6 +594,10 @@
     },
     "hr_signals": {
       "formals": ["x", "name = NULL"],
+      "type": "function"
+    },
+    "hr_step": {
+      "formals": ["name", "fn = NULL", "params = list()", "schema = NULL", "input = NULL", "output = NULL", "version = \"0.0.1\"", "build = NULL", "skill = NULL"],
       "type": "function"
     },
     "hr_sweep": {
@@ -1023,6 +1031,11 @@
     },
     "print.hr_splits": {
       "class": "hr_splits",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_step": {
+      "class": "hr_step",
       "formals": ["x", "..."],
       "generic": "print"
     }

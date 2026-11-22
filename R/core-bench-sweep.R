@@ -328,13 +328,13 @@ arm_annotate <- function(arm, settings = NULL, config = NULL, rebuild = NULL, kn
 }
 
 #' The same arm under another name: built again by hr_arm(), so its hash is
-#' its own, with the attributes it carried.
+#' its own, with the attributes it carried, a chain's steps among them.
 #' @noRd
 arm_rename <- function(arm, name) {
   if (identical(arm$name, name)) return(arm)
   out <- hr_arm(name, arm$run, params = arm$params, derived_from = arm$derived_from,
                 version = arm$version)
-  for (a in c("hr_settings", "hr_config", "hr_rebuild", "hr_known")) {
+  for (a in c("hr_settings", "hr_config", "hr_rebuild", "hr_known", "hr_steps")) {
     attr(out, a) <- attr(arm, a, exact = TRUE)
   }
   out

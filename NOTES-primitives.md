@@ -34,6 +34,7 @@ removed or gains or loses its last caller.
 | `hr_schema()` | the read, segment and ingest schemas | test-core-schema.R, test-settings.R |
 | `hr_scorer()` | `gr_scorer_answer()` | test-core-bench.R |
 | `hr_signal()` | `read_ensemble()`, `read_iterative()`, `read_preview()` | test-core-signals.R |
+| `hr_step()` | `gr_step()`, `gr_step_retrieve()` | test-compose.R, test-reading-options.R |
 | `hr_truncate()` | `cut_piece()`, which the merge, `hierarchical` and `preview` packers call under a `context_policy` | test-context-policy.R |
 | `hr_validate()` | `gr_read_spec()`, `gr_segment_spec()`, `gr_ingest_spec()` | test-core-schema.R, test-adversarial.R |
 
@@ -55,6 +56,7 @@ they are core. Each has tests of its own.
 | `hr_benchmark()` | test-core-bench.R and the other test-core-bench files | Runs any arms against a reference set. |
 | `hr_calibrate_signal()` | test-core-signals.R, test-labels.R | Calibrates a self-signal against graded items, for any module. |
 | `hr_calibration_valid()` | test-core-signals.R | Says whether a calibration record is valid for a run. |
+| `hr_chain()` | test-compose.R | Runs any steps in order as one arm, and derives a chain by dropping or replacing a step. |
 | `hr_contrast()` | test-core-bench-ni.R, test-core-bench-sim.R | A non-inferiority contrast between arms, registered before scoring. |
 | `hr_drift_check()` | test-core-bench-drift.R | Checks an arm for drift against a frozen benchmark. |
 | `hr_effort_check()` | test-effort-escalate.R | Compares any effort policy with fixed efforts on a benchmark, with the non-inferiority test. |
