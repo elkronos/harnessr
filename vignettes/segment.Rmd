@@ -489,6 +489,56 @@ Under `"needle"`, whose chunks are at most 500 tokens, the two sent nearly the
 same prompt tokens here (676 and 675): the packer, not the boundaries, sets
 most of each chunk's size.
 
+### Tables: `table_packing` {#set-tables}
+
+**What it controls.** How `paragraph` packs the rows of a table. `"rows"`
+packs them as it packs any other blocks, so a long table is cut wherever the
+cap falls and only its first chunk carries the header row. `"grouped"` packs
+each table on its own and opens every chunk of it with the header row, then
+as many rows as fit. Either way, a document's blocks and the chunks of a
+document with a table say which table and which rows they hold (`table_id`
+and `table_rows`); that is provenance only and adds nothing to the text.
+
+**Signs it needs changing.** Answers that read a figure from the wrong column
+of a long table, or that cannot say what a row's numbers are, point to
+`"grouped"`, so every chunk of rows says what its columns are. Many small
+tables, each smaller than a chunk, gain nothing from it.
+
+**Where the default came from.** `"rows"` is how tables were packed before
+the setting existed; it has not been compared with `"grouped"` (`untested`).
+
+**How to test it.** The chunks show what it does, for nothing:
+
+```{r}
+tab <- tempfile(fileext = ".md")
+writeLines(c("# Sales by region", "",
+             "| region | units | revenue |", "|---|---|---|",
+             sprintf("| region %02d | %d | %d |", 1:30, 100 + 1:30, 1000 + 7 * 1:30)), tab)
+tab_doc <- gr_ingest(tab)
+by_packing <- lapply(c(rows = "rows", grouped = "grouped"), function(p) {
+  gr_segment(tab_doc, gr_segment_spec("paragraph", max_tokens = 150, table_packing = p))
+})
+lapply(by_packing, function(ch) ch$chunks[, c("chunk_id", "tokens", "table_id", "table_rows")])
+sapply(by_packing, function(ch) sum(startsWith(ch$chunks$text, "| region | units |")))
+```
+
+Under `"rows"` the table, which Markdown gives as one block, is packed after
+the heading and cut wherever the cap falls, so no chunk opens with the header
+row and each piece reports the rows of the whole block, `"1-31"`. Under
+`"grouped"` every chunk of rows opens with the header, and `table_rows` says
+which rows each holds. A table from Word or HTML comes one row per block, and
+then `"rows"` gives each chunk its own range too. What it
+does to answers is tested with arms on a reference whose documents have
+tables, with `my_tables` that reference and `my_client` your client:
+
+```{r eval = FALSE}
+arms <- hr_sweep(gr_arm("thorough", list(method = "paragraph")),
+                 list(table_packing = c("rows", "grouped")))
+bench <- hr_benchmark(arms, my_tables, runs = 5, client = my_client, split = "dev",
+                      scorer = gr_scorer_answer())
+hr_report(bench)
+```
+
 ### Context lines and propositions: `contextual` and `proposition` {#set-contextual}
 
 **What they control.** `contextual` starts each chunk with a line saying where

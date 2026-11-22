@@ -68,6 +68,15 @@
 #'   (largest less smallest). That second test is added here, not Hearst's,
 #'   so a text on one topic gets at most about one cut. `semantic_percentile`
 #'   is not used under `"texttiling"`. Untested.
+#' @param table_packing For `method = "paragraph"`: how the rows of a table
+#'   are packed. `"rows"` (the default) packs them as any other blocks, as
+#'   before. `"grouped"` packs each table on its own: its first row, taken
+#'   for the header, opens every chunk of the table, followed by as many rows
+#'   as fit under `max_tokens`, joined by line breaks and with no overlap, so
+#'   a 60-row table that needs three chunks gives three, each starting with
+#'   the header. A table that fits is one chunk. Under either, the chunks of
+#'   a document with a table carry `table_id` and `table_rows` (as `"2-21"`)
+#'   saying which table and rows they hold. Untested.
 #' @param ... Extra fields for custom segmenters.
 #' @return A list of class `gr_segment_spec`.
 #'
@@ -105,7 +114,8 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
                             proposition_batch_tokens = 900L, parallel = NULL,
                             context_reply_tokens = 90L, context_document_tokens = 1500L,
                             proposition_reply_tokens = 2000L,
-                            semantic_threshold = c("percentile", "texttiling"), ...) {
+                            semantic_threshold = c("percentile", "texttiling"),
+                            table_packing = c("rows", "grouped"), ...) {
   warn_near_miss(list(...), names(formals(gr_segment_spec)), "segment")
   # Out-of-range settings are clamped rather than accepted, but the clamp is
   # ANNOUNCED. Silently rewriting a user's parameter is how v1 ended up feeding
@@ -196,7 +206,11 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
            tier = "advanced",
            help = "For semantic: how the distances between windows are cut into boundaries.",
            evidence = ev_untested(paste0("\"percentile\" is the rule semantic was written with; ",
-                                         "not compared with \"texttiling\".")))
+                                         "not compared with \"texttiling\"."))),
+  hr_param("table_packing", "enum", choices = c("rows", "grouped"), tier = "advanced",
+           help = "For paragraph: how the rows of a table are packed into chunks.",
+           evidence = ev_untested(paste0("\"rows\" packs a table's rows as any other blocks, as ",
+                                         "before; not compared with \"grouped\".")))
 )
 
 #' The segment settings that were constants in the code until they were
@@ -204,7 +218,8 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
 #' its default.
 #' @noRd
 .gr_segment_late_params <- c("context_reply_tokens", "context_document_tokens",
-                             "proposition_reply_tokens", "semantic_threshold")
+                             "proposition_reply_tokens", "semantic_threshold",
+                             "table_packing")
 
 #' The settings of a segment spec that differ from its defaults, as
 #' read_settings() does for a read spec.
@@ -306,6 +321,9 @@ gr_segment <- function(doc, spec = NULL, client = NULL, trace = NULL) {
                        section = rep(src$section, rep_n),
                        block_id = rep(src$block_id, rep_n),
                        source_text = if (!is.null(src_text)) rep(src_text, rep_n))
+    for (col in intersect(c("table_id", "table_rows"), names(src))) {
+      out2$chunks[[col]] <- rep(src[[col]], rep_n)[seq_len(nrow(out2$chunks))]
+    }
     out2$extra <- c(out$extra, list(cap_enforced = length(over)))
     out <- out2
     # hard_split() measures every piece and goes down to single characters, so

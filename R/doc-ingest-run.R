@@ -266,7 +266,11 @@ check_layout_opts <- function(x, p, params) {
 #'   dropped, and read again when next asked for.
 #' @param trace Optional `gr_trace`.
 #' @return A `gr_document`: a list with `blocks` (data frame), `text`, `source`,
-#'   `spec` and `stats`.
+#'   `spec` and `stats`. Each block carries `table_id` and `table_rows`: for a
+#'   row of a table (a block of kind `"table"`; each unbroken run of them is
+#'   one table), the table's number in the document and the rows of it the
+#'   block holds, as `"3"` or, for a Markdown table read as one block,
+#'   `"1-12"`; `NA` for any other block.
 #' @export
 #' @seealso [gr_ingest_spec()] for the options, [gr_cleaners()] for the step
 #'   names, [gr_extractors()] for the formats, [gr_document] for what comes
@@ -458,6 +462,11 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
   }
 
   blocks$block_id <- seq_len(nrow(blocks))
+  # Which table each row of a table belongs to, and which row it is.
+  # Provenance only: no block's text changes.
+  tp <- table_provenance(blocks$kind, blocks$text)
+  blocks$table_id <- tp$table_id
+  blocks$table_rows <- tp$table_rows
   doc <- structure(list(
     blocks = blocks,
     text = mark_utf8(paste(blocks$text, collapse = "\n\n")),
@@ -585,4 +594,59 @@ ocr_threshold <- function(x, default = 40L) {
     return(default)
   }
   if (is.finite(n) && n <= .Machine$integer.max) as.integer(n) else n
+}
+
+#' Table provenance from the blocks' kinds.
+#'
+#' The extractors give a table as blocks of kind `"table"`: one block per row
+#' from Word and HTML, and one block holding every row of a pipe table from
+#' Markdown and text. Each unbroken run of table blocks is one table:
+#' `table_id` numbers the tables of the document in order, and `table_rows`
+#' gives the rows of its table a block holds, as "3" or "1-12", counting the
+#' table's first row as 1 and not counting a Markdown separator line
+#' (`|---|`). Both are `NA` for a block that is not part of a table. A table
+#' nested in a cell of another is read as rows after the row that holds it,
+#' so it counts as part of the table around it.
+#' @noRd
+table_provenance <- function(kind, text) {
+  is_tab <- !is.na(kind) & kind == "table"
+  n <- length(kind)
+  start <- is_tab & !c(FALSE, is_tab[-n])
+  id <- ifelse(is_tab, cumsum(start), NA_integer_)
+  rows <- rep(NA_character_, n)
+  for (t in unique(id[is_tab])) {
+    at <- which(id == t)
+    k <- vapply(text[at], function(x) length(table_lines(x)), integer(1), USE.NAMES = FALSE)
+    k <- pmax(k, 1L)
+    last <- cumsum(k); first <- last - k + 1L
+    rows[at] <- ifelse(first == last, as.character(first), paste0(first, "-", last))
+  }
+  list(table_id = as.integer(id), table_rows = rows)
+}
+
+#' The rows of a table block's text: its non-blank lines when every one of
+#' them has a cell divider ("|"), else the whole block as one row, with a Markdown
+#' separator line (`|---|:--:|`) joined to the row before it rather than
+#' counted as a row.
+#' @noRd
+table_lines <- function(x) {
+  l <- strsplit(as_chr1(x, ""), "\n", fixed = FALSE)[[1]]
+  l <- l[nzchar(trimws(l))]
+  # A row from Word or HTML whose cell held a line break is still one row:
+  # only a block whose every line has a cell divider is read as several.
+  if (length(l) < 2L || !all(grepl("|", l, fixed = TRUE))) {
+    return(if (length(l)) paste(l, collapse = "\n") else l)
+  }
+  sep <- grepl("^\\s*\\|?\\s*:?-{3,}:?\\s*(\\|\\s*:?-{3,}:?\\s*)*\\|?\\s*$", l, perl = TRUE)
+  sep[1] <- FALSE
+  grp <- cumsum(!sep)
+  vapply(split(l, grp), paste, character(1), collapse = "\n", USE.NAMES = FALSE)
+}
+
+#' A `table_rows` value as its first and last row.
+#' @noRd
+table_rows_range <- function(x) {
+  a <- suppressWarnings(as.integer(sub("-.*$", "", x)))
+  b <- suppressWarnings(as.integer(sub("^.*-", "", x)))
+  cbind(first = a, last = b)
 }

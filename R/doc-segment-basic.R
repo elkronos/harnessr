@@ -44,12 +44,123 @@ seg_fixed <- function(doc, spec, client, trace) {
 #' @noRd
 seg_paragraph <- function(doc, spec, client, trace) {
   b <- doc$blocks
+  if (identical(as_chr1(spec[["table_packing"]], "rows"), "grouped") && block_has_table(b)) {
+    return(seg_paragraph_grouped(doc, spec))
+  }
   packed <- pack_units(b$text, spec$max_tokens, spec$overlap_tokens, spec$min_tokens,
                        meta = b[, c("page", "section", "block_id")])
-  new_chunks(packed$text, "paragraph", spec,
-             page = packed$meta$page %||% NA_integer_,
-             section = packed$meta$section %||% NA_character_,
-             block_id = packed$meta$block_id %||% NA_integer_)
+  out <- new_chunks(packed$text, "paragraph", spec,
+                    page = packed$meta$page %||% NA_integer_,
+                    section = packed$meta$section %||% NA_character_,
+                    block_id = packed$meta$block_id %||% NA_integer_)
+  # A document with a table: each chunk says which table its rows come from
+  # and which rows, from the blocks it was packed from. Provenance only.
+  if (block_has_table(b) && nrow(out$chunks) == nrow(packed$span)) {
+    tp <- chunk_table_provenance(b, packed$span$first, packed$span$last)
+    out$chunks$table_id <- tp$table_id
+    out$chunks$table_rows <- tp$table_rows
+  }
+  out
+}
+
+#' Whether a document's blocks hold a table row with table provenance.
+#' @noRd
+block_has_table <- function(b) {
+  !is.null(b[["table_id"]]) && any(!is.na(b$table_id))
+}
+
+#' The table a chunk's rows come from, for chunks packed from blocks
+#' `first[i]:last[i]`: its `table_id` when every table block in the span is
+#' from one table, and `table_rows`, from the first of their rows to the
+#' last, as "3-20" (or "7" for one row). `NA` for a chunk with no table row,
+#' and for one whose rows come from two tables.
+#' @noRd
+chunk_table_provenance <- function(b, first, last) {
+  n <- length(first)
+  id <- rep(NA_integer_, n); rows <- rep(NA_character_, n)
+  rr <- table_rows_range(b$table_rows)
+  for (i in seq_len(n)) {
+    at <- seq.int(first[i], last[i])
+    at <- at[!is.na(b$table_id[at])]
+    t <- unique(b$table_id[at])
+    if (length(t) != 1L) next
+    id[i] <- t
+    rows[i] <- rows_label(min(rr[at, "first"]), max(rr[at, "last"]))
+  }
+  list(table_id = id, table_rows = rows)
+}
+
+#' "3-20", or "7" when the first row is the last.
+#' @noRd
+rows_label <- function(a, b) if (a == b) as.character(a) else paste0(a, "-", b)
+
+#' seg_paragraph() under table_packing = "grouped".
+#'
+#' The blocks outside tables are packed as `paragraph` packs them, run by run.
+#' Each table is packed on its own, row by row (a Markdown table's block is
+#' split into its rows, its separator line kept with the first): its first
+#' row, taken for its header, opens every chunk of it, followed by as many of
+#' the other rows as fit under the cap, joined by line breaks, with no
+#' overlap, since the header is the context a chunk of rows needs. A header
+#' that leaves fewer than 16 tokens for rows is not repeated: the rows are
+#' then packed in order on their own.
+#' @noRd
+seg_paragraph_grouped <- function(doc, spec) {
+  b <- doc$blocks
+  is_tab <- !is.na(b$table_id)
+  key <- ifelse(is_tab, paste0("t", b$table_id), "p")
+  run <- cumsum(c(TRUE, key[-1L] != key[-length(key)]))
+  txt <- character(0); pg <- integer(0); sc <- character(0); bid <- integer(0)
+  tid <- integer(0); trows <- character(0)
+  meta_cols <- c("page", "section", "block_id")
+  for (idx in split(seq_len(nrow(b)), run)) {
+    if (!is_tab[idx[1]]) {
+      packed <- pack_units(b$text[idx], spec$max_tokens, spec$overlap_tokens, spec$min_tokens,
+                           meta = b[idx, meta_cols, drop = FALSE])
+      k <- length(packed$text)
+      txt <- c(txt, packed$text)
+      pg <- c(pg, packed$meta$page %||% rep(NA_integer_, k))
+      sc <- c(sc, packed$meta$section %||% rep(NA_character_, k))
+      bid <- c(bid, packed$meta$block_id %||% rep(NA_integer_, k))
+      tid <- c(tid, rep(NA_integer_, k)); trows <- c(trows, rep(NA_character_, k))
+      next
+    }
+    # One row per unit, each with the block it came from.
+    lines <- lapply(idx, function(i) table_lines(b$text[i]))
+    rows <- unlist(lines, use.names = FALSE)
+    from <- rep(idx, vapply(lines, length, integer(1)))
+    if (!length(rows)) next
+    first_row <- table_rows_range(b$table_rows[idx[1]])[1, "first"]
+    if (is.na(first_row)) first_row <- 1L
+    num <- first_row + seq_along(rows) - 1L
+    rest <- seq_along(rows)[-1L]
+    room <- spec$max_tokens - gr_count_tokens(paste0(rows[1], "\n"))
+    with_header <- length(rest) > 0L && room >= 16L
+    spans <- function(units, cap) {
+      packed <- pack_units(rows[units], cap, 0L, 0L, joiner = "\n")
+      lapply(seq_len(nrow(packed$span)),
+             function(g) units[packed$span$first[g]:packed$span$last[g]])
+    }
+    groups <- if (!length(rest)) list(1L) else if (with_header) spans(rest, room)
+              else spans(seq_along(rows), spec$max_tokens)
+    for (g in groups) {
+      r <- if (with_header) c(1L, g) else g
+      txt <- c(txt, paste(rows[r], collapse = "\n"))
+      m <- meta_over(b[from[r], meta_cols, drop = FALSE], 1L, length(r))
+      pg <- c(pg, m$page); sc <- c(sc, m$section); bid <- c(bid, m$block_id)
+      tid <- c(tid, b$table_id[idx[1]])
+      # The rows the chunk holds of its own: the header it repeats counts
+      # only in the chunk that holds the rows right after it.
+      own <- if (with_header && min(g) > 2L) g else r
+      trows <- c(trows, rows_label(min(num[own]), max(num[own])))
+    }
+  }
+  keep <- has_content(txt)
+  out <- new_chunks(txt, "paragraph", spec, page = pg, section = sc, block_id = bid,
+                    extra = list(table_packing = "grouped"))
+  out$chunks$table_id <- tid[keep]
+  out$chunks$table_rows <- trows[keep]
+  out
 }
 
 #' @noRd

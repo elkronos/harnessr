@@ -206,3 +206,89 @@ test_that("semantic_threshold is swept as recipe arms", {
   expect_identical(vapply(arms, function(a) a$params$semantic_threshold, ""),
                    c("percentile", "texttiling"), ignore_attr = TRUE)
 })
+
+# ---------------------------------------------------------------------------
+# P1D-11: table provenance and table_packing = "grouped"
+# ---------------------------------------------------------------------------
+
+po_table_rows <- function(n = 60L) {
+  c("| id | name | value |", "|---|---|---|",
+    sprintf("| %02d | item%02d | %03d |", seq_len(n), seq_len(n), seq_len(n) * 7L))
+}
+po_table_doc <- function(n = 60L) {
+  f <- tempfile(fileext = ".md")
+  writeLines(c("# Data", "", "The table below lists every item.", "", po_table_rows(n), "",
+               "That was the table."), f)
+  po_quiet(gr_ingest(f))
+}
+
+test_that("each table block carries its table and rows; other blocks carry NA", {
+  d <- po_table_doc()
+  b <- d$blocks
+  expect_identical(b$table_id, c(NA, NA, 1L, NA))
+  expect_identical(b$table_rows, c(NA, NA, "1-61", NA))
+  # One block per row, as Word and HTML give them, and two tables.
+  tp <- harnessr:::table_provenance(c("table", "table", "body", "table", "table", "table"),
+                                    c("a | b", "1 | 2", "text", "c | d", "3 | 4", "5 | 6"))
+  expect_identical(tp$table_id, c(1L, 1L, NA, 2L, 2L, 2L))
+  expect_identical(tp$table_rows, c("1", "2", NA, "1", "2", "3"))
+  # A cell with a line break is still one row.
+  expect_identical(harnessr:::table_lines("a | b\ncontinued"), "a | b\ncontinued")
+})
+
+test_that("paragraph chunks of a table say which table and rows, and send the same text", {
+  d <- po_table_doc()
+  ch <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = 4000)))
+  expect_identical(ch$chunks$table_id, 1L)
+  expect_identical(ch$chunks$table_rows, "1-61")
+  expect_identical(ch$chunks$text, paste(d$blocks$text, collapse = "\n\n"))
+  # Rows as blocks: a chunk's range runs over the rows it was packed from.
+  rows <- data.frame(text = c("Intro.", "a | b", "1 | 2", "3 | 4", "Outro."),
+                     kind = c("body", "table", "table", "table", "body"))
+  doc <- po_quiet(gr_ingest(c("Intro.", "a | b", "1 | 2", "3 | 4", "Outro.")))
+  doc$blocks$kind <- rows$kind
+  tp <- harnessr:::table_provenance(doc$blocks$kind, doc$blocks$text)
+  doc$blocks$table_id <- tp$table_id; doc$blocks$table_rows <- tp$table_rows
+  got <- harnessr:::chunk_table_provenance(doc$blocks, c(1L, 3L, 5L), c(2L, 4L, 5L))
+  expect_identical(got$table_id, c(1L, 1L, NA))
+  expect_identical(got$table_rows, c("1", "2-3", NA))
+  # A document with no table gets no table columns.
+  plain <- po_quiet(gr_segment(gr_example(), gr_segment_spec("paragraph")))
+  expect_false("table_id" %in% names(plain$chunks))
+})
+
+test_that("table_packing is off by default and leaves the spec as it was", {
+  expect_null(gr_segment_spec()$table_packing)
+  expect_identical(gr_segment_spec(table_packing = "grouped")$table_packing, "grouped")
+  expect_error(gr_segment_spec(table_packing = "nope"))
+})
+
+test_that("grouped packing splits 60 rows in 3 chunks that each open with the header", {
+  rows <- po_table_rows(60L)
+  header <- paste(rows[1:2], collapse = "\n")
+  data_rows <- rows[-(1:2)]
+  # Room for 20 rows after the header, as the packer counts them.
+  cap <- gr_count_tokens(paste0(header, "\n")) + sum(gr_count_tokens(data_rows[1:20]))
+  d <- po_table_doc(60L)
+  ch <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = cap,
+                                               table_packing = "grouped")))
+  tab <- ch$chunks[!is.na(ch$chunks$table_id), ]
+  expect_identical(nrow(tab), 3L)
+  expect_true(all(startsWith(tab$text, paste0(header, "\n"))))
+  expect_identical(tab$table_rows, c("1-21", "22-41", "42-61"))
+  # Every row is in exactly one chunk.
+  got <- unlist(lapply(strsplit(tab$text, "\n"), function(l) l[-(1:2)]))
+  expect_identical(got, data_rows)
+  # The prose around the table is packed as before.
+  expect_identical(ch$chunks$text[is.na(ch$chunks$table_id)],
+                   c("# Data\n\nThe table below lists every item.", "That was the table."))
+  # Rows packed as blocks: no header repeated.
+  plain <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = cap)))
+  expect_lt(sum(startsWith(plain$chunks$text, header)), 2L)
+})
+
+test_that("table_packing is swept as recipe arms", {
+  arms <- hr_sweep(gr_arm("needle", list(method = "paragraph", max_tokens = 200)),
+                   list(table_packing = c("rows", "grouped")))
+  expect_length(arms, 2L)
+})

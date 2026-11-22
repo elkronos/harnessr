@@ -20,6 +20,7 @@ gr_segment_spec(
   context_document_tokens = 1500L,
   proposition_reply_tokens = 2000L,
   semantic_threshold = c("percentile", "texttiling"),
+  table_packing = c("rows", "grouped"),
   ...
 )
 }
@@ -104,6 +105,16 @@ standard deviation) and also exceeds the spread of the similarities
 so a text on one topic gets at most about one cut. \code{semantic_percentile}
 is not used under \code{"texttiling"}. Untested.}
 
+\item{table_packing}{For \code{method = "paragraph"}: how the rows of a table
+are packed. \code{"rows"} (the default) packs them as any other blocks, as
+before. \code{"grouped"} packs each table on its own: its first row, taken
+for the header, opens every chunk of the table, followed by as many rows
+as fit under \code{max_tokens}, joined by line breaks and with no overlap, so
+a 60-row table that needs three chunks gives three, each starting with
+the header. A table that fits is one chunk. Under either, the chunks of
+a document with a table carry \code{table_id} and \code{table_rows} (as \code{"2-21"})
+saying which table and rows they hold. Untested.}
+
 \item{...}{Extra fields for custom segmenters.}
 }
 \value{
@@ -144,6 +155,7 @@ store and cache keys it had before they existed.
 \item \code{context_document_tokens} (default \code{1500}, advanced): untested. The length the code had as a constant; not tuned.
 \item \code{proposition_reply_tokens} (default \code{2000}, advanced): untested. The cap the code had as a constant; not tuned.
 \item \code{semantic_threshold} (default \code{"percentile"}, advanced): untested. "percentile" is the rule semantic was written with; not compared with "texttiling".
+\item \code{table_packing} (default \code{"rows"}, advanced): untested. "rows" packs a table's rows as any other blocks, as before; not compared with "grouped".
 }
 }
 

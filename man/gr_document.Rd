@@ -10,9 +10,11 @@ Returned by \code{\link[=gr_ingest]{gr_ingest()}}.
 
 \describe{
 \item{\code{blocks}}{Data frame of cleaned text blocks with provenance:
-\code{text}, \code{page}, \code{section}, \code{kind}, \code{block_id}. \code{page} is set only by the
-PDF extractor; \code{kind} is one of \code{"body"}, \code{"heading"}, \code{"code"},
-\code{"table"}, \code{"footnote"}, \code{"ocr"}.}
+\code{text}, \code{page}, \code{section}, \code{kind}, \code{block_id}, \code{table_id},
+\code{table_rows}. \code{page} is set only by the PDF extractor; \code{kind} is one of
+\code{"body"}, \code{"heading"}, \code{"code"}, \code{"table"}, \code{"footnote"}, \code{"ocr"}.
+\code{table_id} and \code{table_rows} say which table a \code{"table"} block is a row
+of and which rows it holds (see \code{\link[=gr_ingest]{gr_ingest()}}).}
 \item{\code{text}}{All blocks joined with blank lines.}
 \item{\code{source}}{Absolute path, the web address a document was fetched
 from, or \code{"<inline text>"} when the input was a string of text.}

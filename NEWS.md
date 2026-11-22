@@ -100,6 +100,21 @@ says how to test it with `hr_sweep()`.
   cut instead of one gap in ten. The default, `"percentile"`, cuts as
   before.
 
+* Every block of a document says which table it is a row of, if any:
+  `gr_ingest()` adds `table_id` and `table_rows` to `$blocks` (each unbroken
+  run of `"table"` blocks is one table; `table_rows` is `"3"` for a row
+  from Word or HTML, `"1-12"` for a Markdown table read as one block), and
+  `paragraph` chunks of a document with a table carry `table_id` and
+  `table_rows` for the rows they hold. This is provenance only: no text and
+  no request changes, and a document with no table gets no new chunk
+  columns.
+
+* `gr_segment_spec()` gains `table_packing`. At `"grouped"`, `paragraph`
+  packs each table on its own and opens every chunk of it with the table's
+  header row, so a 60-row table cut into three chunks gives three chunks
+  that each start with the header. The default, `"rows"`, packs rows as
+  before.
+
 * `semantic` run on lexical vectors now reports its method as
   `"semantic->lexical"`, as it reports `"semantic->paragraph"` when it falls
   back. This is a label fix: the chunks and the requests are unchanged.
