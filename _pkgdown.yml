@@ -22,6 +22,7 @@ articles:
   - review
   - evaluate
   - compare
+  - compose
   - runs
   - settings
   - extending
@@ -204,11 +205,20 @@ reference:
   - hr_reference
   - hr_scorer
   - gr_arm
-  - gr_step
   - gr_qa_reference
   - gr_scorer_answer
   - gr_condensation_check
   - gr_reverse_text
+
+- title: Compose steps and chains
+  desc: >
+    Build a run from steps (ingest, segment, retrieve, read, or a function of
+    your own), run them in order as one arm, and derive a chain by dropping or
+    replacing a step. See `vignette("compose")`.
+  contents:
+  - hr_step
+  - hr_chain
+  - gr_step
 
 - title: Baselines
   desc: >
