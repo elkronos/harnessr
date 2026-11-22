@@ -1473,6 +1473,24 @@ bench <- hr_benchmark(arms, review_ref, runs = 5, client = my_client, scorer = m
 hr_report(bench)
 ```
 
+`revision_check` is swept the same way, one arm per check:
+
+```{r}
+check_arms <- hr_sweep(function(check) {
+  hr_arm(paste0("write-", check), function(item, ctx) {
+    gr_synthesise(item$table, item$protocol, client = ctx$client, coherence = "register",
+                  revision_check = check, trace = ctx$trace)$text
+  }, params = list(revision_check = check))
+}, list(check = c("lexicon", "judge")))
+length(check_arms)
+```
+
+```{r eval = FALSE}
+bench <- hr_benchmark(check_arms, review_ref, runs = 5, client = my_client,
+                      scorer = my_scorer)
+hr_report(bench)
+```
+
 ## Counting and reporting the run
 
 `gr_flow()` returns the numbers a flow diagram is made of, from what the run
