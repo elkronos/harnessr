@@ -45,6 +45,17 @@
 #'     failed, or the reply's result with the reason in `error` when the reply
 #'     does not meet the schema. An arm that returns that result is scored as
 #'     an error.}
+#'   \item{`judge`}{A judgement, `ctx$judge(candidates, ...)`, for
+#'     `hr_judge(candidates, ctx$client, ..., trace = ctx$trace)`. `...` takes
+#'     the other arguments of [hr_judge()] and must include `rubric`. The
+#'     judge's requests go out at the run's draw, are held to the run's
+#'     governor and are folded into `ctx$trace`, so their cost is in the
+#'     run's `usd` once. It returns the `hr_judge` result.}
+#'   \item{`note`}{A signal about this run, `ctx$note(name, value, refs =
+#'     NULL)`, for `hr_signal(name, value, trace = ctx$trace, item_id =
+#'     ctx$item_id, refs = refs)`. It sends no request. [hr_signals()] given
+#'     the benchmark reads the notes back, with the arm, run and item of
+#'     each.}
 #'   \item{`item_id`, `arm`, `run`, `params`}{The item's id, the arm's name,
 #'     the run number and the arm's `params`.}
 #' }
