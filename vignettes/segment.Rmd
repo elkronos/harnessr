@@ -263,7 +263,9 @@ Three segmenters spend something, and each takes a `client`:
 - `semantic` embeds the text a few sentences at a time (`semantic_window`,
   default 2) and cuts where two neighbouring windows differ most: at distances
   above the `semantic_percentile` (default 90; higher gives fewer, larger
-  chunks). The packer then holds the pieces to the cap and the minimum.
+  chunks), or, with `semantic_threshold = "texttiling"`, at the deep valleys
+  of the similarity between neighbouring windows (see below). The packer then
+  holds the pieces to the cap and the minimum.
 - `contextual` with `context_source = "llm"` makes one call per chunk, as above.
 - `proposition` sends the document in batches of about
   `proposition_batch_tokens` (default 900) and has the model rewrite each into
@@ -281,7 +283,9 @@ sem$extra$embedding_source
 ```
 
 `embedding_source` is `"lexical"` here, so the boundaries reflect shared words,
-not meaning. With a real embeddings endpoint it is `"api"`.
+not meaning, and `$method` says so: `"semantic->lexical"`. With a real
+embeddings endpoint it is `"api"`, and the method is `"semantic"`. The label
+is all that differs; the chunks and the requests are the same.
 
 These requests count against the run's limits, `gr_options(max_calls =,
 max_cost_usd =)`, like any other. Called without a `trace`, `gr_segment()`
@@ -438,6 +442,52 @@ aggregate(tokens_in ~ param.overlap_tokens, bench, mean)
 
 At 100-token chunks, 50 tokens of overlap sent 24% more prompt tokens than
 none (829 against 669).
+
+### Semantic boundaries: `semantic_threshold` {#set-semantic}
+
+**What it controls.** How `semantic` turns the distances between neighbouring
+windows into cuts. `"percentile"` cuts every gap whose distance reaches the
+`semantic_percentile` of them all, so about one gap in ten is cut whether the
+text changes topic or not. `"texttiling"` cuts by depth score, the rule of
+TextTiling (Hearst 1997): it compares the `semantic_window` sentences before
+each gap with those after it, finds the valleys of that similarity, and cuts
+a valley only when it is deep, both by Hearst's cutoff and by being deeper
+than the similarities spread. A text on one topic then gets at most about one
+cut, and a change of topic gets one. It uses the same embeddings, so it sends
+the same requests.
+
+**Signs it needs changing.** Under `semantic`, chunks that end in the middle
+of an argument on a page with no change of subject point to `"texttiling"`.
+A long document whose sections run together into a few large chunks under
+`"texttiling"` points back to `"percentile"`.
+
+**Where the default came from.** `"percentile"` is the rule `semantic` was
+written with; it has not been compared with `"texttiling"` (`untested`).
+
+**How to test it.** It sends the same embedding request either way, so the
+first test is free: count the cuts.
+
+```{r}
+by_rule <- sapply(c("percentile", "texttiling"), function(rule) {
+  gr_segment(doc, gr_segment_spec("semantic", max_tokens = 1200,
+                                  semantic_threshold = rule), client = cl)$extra$boundaries
+})
+by_rule
+```
+
+The example report has a few short sections, and `"texttiling"` cuts it
+twice where `"percentile"` cuts it three times. What the cuts do to answers is
+tested with arms:
+
+```{r}
+bench <- sweep(hr_sweep(gr_arm("needle"),
+                        list(semantic_threshold = c("percentile", "texttiling"))))
+aggregate(tokens_in ~ param.semantic_threshold, bench, mean)
+```
+
+Under `"needle"`, whose chunks are at most 500 tokens, the two sent nearly the
+same prompt tokens here (676 and 675): the packer, not the boundaries, sets
+most of each chunk's size.
 
 ### Context lines and propositions: `contextual` and `proposition` {#set-contextual}
 

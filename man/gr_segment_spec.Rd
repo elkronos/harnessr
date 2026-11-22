@@ -19,6 +19,7 @@ gr_segment_spec(
   context_reply_tokens = 90L,
   context_document_tokens = 1500L,
   proposition_reply_tokens = 2000L,
+  semantic_threshold = c("percentile", "texttiling"),
   ...
 )
 }
@@ -86,6 +87,23 @@ model can place the excerpt. [100, 1e6], default 1500. Untested.}
 \item{proposition_reply_tokens}{For \code{method = "proposition"}: the output cap
 of each batch's request. [100, 1e6], default 2000. Untested.}
 
+\item{semantic_threshold}{For \code{method = "semantic"}: how boundaries are
+chosen. \code{"percentile"} (the default) cuts wherever the distance between
+two consecutive windows reaches the \code{semantic_percentile} of all of them,
+so about one gap in ten is cut whatever the text is about.
+\code{"texttiling"} cuts by depth score, as TextTiling does (Hearst, M. A.
+1997, "TextTiling: segmenting text into multi-paragraph subtopic
+passages", Computational Linguistics 23(1), 33-64): each gap's
+similarity is the cosine between the \code{semantic_window} sentences before
+it and the \code{semantic_window} after it (the same windows, so no extra
+embedding request), its depth is how far that similarity sits below the
+nearest peak on each side, summed, and a gap is cut when it is a valley
+whose depth exceeds Hearst's cutoff (the mean depth less half its
+standard deviation) and also exceeds the spread of the similarities
+(largest less smallest). That second test is added here, not Hearst's,
+so a text on one topic gets at most about one cut. \code{semantic_percentile}
+is not used under \code{"texttiling"}. Untested.}
+
 \item{...}{Extra fields for custom segmenters.}
 }
 \value{
@@ -125,6 +143,7 @@ store and cache keys it had before they existed.
 \item \code{context_reply_tokens} (default \code{90}, advanced): untested. The cap the code had as a constant; not tuned.
 \item \code{context_document_tokens} (default \code{1500}, advanced): untested. The length the code had as a constant; not tuned.
 \item \code{proposition_reply_tokens} (default \code{2000}, advanced): untested. The cap the code had as a constant; not tuned.
+\item \code{semantic_threshold} (default \code{"percentile"}, advanced): untested. "percentile" is the rule semantic was written with; not compared with "texttiling".
 }
 }
 

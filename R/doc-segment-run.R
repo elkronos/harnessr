@@ -52,6 +52,22 @@
 #'   model can place the excerpt. \[100, 1e6\], default 1500. Untested.
 #' @param proposition_reply_tokens For `method = "proposition"`: the output cap
 #'   of each batch's request. \[100, 1e6\], default 2000. Untested.
+#' @param semantic_threshold For `method = "semantic"`: how boundaries are
+#'   chosen. `"percentile"` (the default) cuts wherever the distance between
+#'   two consecutive windows reaches the `semantic_percentile` of all of them,
+#'   so about one gap in ten is cut whatever the text is about.
+#'   `"texttiling"` cuts by depth score, as TextTiling does (Hearst, M. A.
+#'   1997, "TextTiling: segmenting text into multi-paragraph subtopic
+#'   passages", Computational Linguistics 23(1), 33-64): each gap's
+#'   similarity is the cosine between the `semantic_window` sentences before
+#'   it and the `semantic_window` after it (the same windows, so no extra
+#'   embedding request), its depth is how far that similarity sits below the
+#'   nearest peak on each side, summed, and a gap is cut when it is a valley
+#'   whose depth exceeds Hearst's cutoff (the mean depth less half its
+#'   standard deviation) and also exceeds the spread of the similarities
+#'   (largest less smallest). That second test is added here, not Hearst's,
+#'   so a text on one topic gets at most about one cut. `semantic_percentile`
+#'   is not used under `"texttiling"`. Untested.
 #' @param ... Extra fields for custom segmenters.
 #' @return A list of class `gr_segment_spec`.
 #'
@@ -88,7 +104,8 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
                             context_source = c("metadata", "llm"),
                             proposition_batch_tokens = 900L, parallel = NULL,
                             context_reply_tokens = 90L, context_document_tokens = 1500L,
-                            proposition_reply_tokens = 2000L, ...) {
+                            proposition_reply_tokens = 2000L,
+                            semantic_threshold = c("percentile", "texttiling"), ...) {
   warn_near_miss(list(...), names(formals(gr_segment_spec)), "segment")
   # Out-of-range settings are clamped rather than accepted, but the clamp is
   # ANNOUNCED. Silently rewriting a user's parameter is how v1 ended up feeding
@@ -173,7 +190,13 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
   hr_param("proposition_reply_tokens", "integer", default = 2000L, min = 100, max = 1e6,
            tier = "advanced", cost_class = "per_unit",
            help = "For proposition: the output cap of each batch's request.",
-           evidence = ev_untested("The cap the code had as a constant; not tuned."))
+           evidence = ev_untested("The cap the code had as a constant; not tuned.")),
+  # Added after the constants above; stored only when not the default.
+  hr_param("semantic_threshold", "enum", choices = c("percentile", "texttiling"),
+           tier = "advanced",
+           help = "For semantic: how the distances between windows are cut into boundaries.",
+           evidence = ev_untested(paste0("\"percentile\" is the rule semantic was written with; ",
+                                         "not compared with \"texttiling\".")))
 )
 
 #' The segment settings that were constants in the code until they were
@@ -181,7 +204,7 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
 #' its default.
 #' @noRd
 .gr_segment_late_params <- c("context_reply_tokens", "context_document_tokens",
-                             "proposition_reply_tokens")
+                             "proposition_reply_tokens", "semantic_threshold")
 
 #' The settings of a segment spec that differ from its defaults, as
 #' read_settings() does for a read spec.

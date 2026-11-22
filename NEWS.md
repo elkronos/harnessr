@@ -92,6 +92,18 @@ says how to test it with `hr_sweep()`.
   under `"first"`, 236 under `"vote"`, and `"2/3"` with a conflict under
   both. Each answer's `notes$agreement` holds the same counts.
 
+* `gr_segment_spec()` gains `semantic_threshold`. At `"texttiling"`, the
+  `semantic` segmenter cuts by TextTiling's depth score (Hearst 1997): the
+  similarity between the windows before and after each gap, read from the
+  same embeddings, cut at valleys deeper than Hearst's cutoff and than the
+  spread of the similarities, so a text on one topic gets at most about one
+  cut instead of one gap in ten. The default, `"percentile"`, cuts as
+  before.
+
+* `semantic` run on lexical vectors now reports its method as
+  `"semantic->lexical"`, as it reports `"semantic->paragraph"` when it falls
+  back. This is a label fix: the chunks and the requests are unchanged.
+
 ## Claims and the write-up: what each rests on
 
 * The claims and writing prompts now show each extracted value with its

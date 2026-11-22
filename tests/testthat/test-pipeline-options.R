@@ -136,3 +136,73 @@ test_that("resolve is swept as arms, one per value", {
   expect_identical(nrow(chk), 1L)
   expect_identical(chk$same_as, names(arms)[1])
 })
+
+# ---------------------------------------------------------------------------
+# P1D-09: semantic_threshold = "texttiling" and the semantic->lexical label
+# ---------------------------------------------------------------------------
+
+po_cat_sentences <- c(
+  "The cat sat on the warm mat by the door.", "A cat likes a warm mat in the sun.",
+  "Our cat sleeps on the mat most of the day.", "The mat is where the cat waits for food.",
+  "When the sun moves, the cat moves the mat too.", "The cat purrs on its favourite mat.",
+  "Visitors see the cat asleep on the mat.", "The cat guards the mat from the dog.",
+  "At night the cat leaves the mat for the bed.", "In the morning the cat returns to its mat.",
+  "The cat and the mat are old friends.", "Nobody else may sit on the mat of the cat.",
+  "The cat stretches on the mat after lunch.", "A warm mat keeps the old cat happy.",
+  "The cat washes its paws on the mat.", "Rain keeps the cat on its mat all day.",
+  "The cat naps on the mat while the house is quiet.", "Children stroke the cat on the mat.",
+  "The cat kneads the soft mat before it sleeps.", "Each evening the cat curls up on the mat.")
+po_rate_sentences <- c(
+  "Interest rates rose by half a point in March.", "Banks raised mortgage rates after the rise.",
+  "Higher rates slowed lending to small firms.", "The central bank expects rates to stay high.",
+  "Savers earned more interest on deposits.", "Analysts expect rates to fall next year.")
+
+po_semantic <- function(sentences, ...) {
+  local_registries()
+  gr_options(embedder = "lexical")
+  po_quiet(gr_segment(paste(sentences, collapse = " "),
+                      gr_segment_spec("semantic", max_tokens = 4000, ...),
+                      client = gr_mock_client()))
+}
+
+test_that("semantic_threshold is off by default and leaves the spec as it was", {
+  expect_null(gr_segment_spec("semantic")$semantic_threshold)
+  expect_identical(gr_segment_spec("semantic", semantic_threshold = "texttiling")$semantic_threshold,
+                   "texttiling")
+  expect_error(gr_segment_spec("semantic", semantic_threshold = "nope"))
+})
+
+test_that("texttiling cuts a single-topic text at most once, where the percentile cuts often", {
+  pct <- po_semantic(po_cat_sentences)
+  tt <- po_semantic(po_cat_sentences, semantic_threshold = "texttiling")
+  expect_gte(pct$extra$boundaries, 2L)
+  expect_lte(tt$extra$boundaries, 1L)
+})
+
+test_that("texttiling cuts where the topic changes", {
+  txt <- c(po_cat_sentences[1:6], po_rate_sentences)
+  tt <- po_semantic(txt, semantic_threshold = "texttiling")
+  expect_identical(tt$extra$boundaries, 1L)
+  emb <- harnessr:::lexical_embed(vapply(seq_along(txt), function(i)
+    paste(txt[max(1L, i - 1L):i], collapse = " "), character(1)))
+  expect_identical(harnessr:::texttiling_cuts(emb, 2L)$cut_after, 6L)
+  # Too few gaps with a block on each side: no cut.
+  expect_length(harnessr:::texttiling_cuts(emb[1:5, ], 2L)$cut_after, 0L)
+})
+
+test_that("semantic on lexical vectors is labelled semantic->lexical", {
+  expect_identical(po_semantic(po_cat_sentences)$method, "semantic->lexical")
+  # Vectors from an embeddings endpoint (here the mock's) keep "semantic".
+  ch <- po_quiet(gr_segment(paste(po_cat_sentences, collapse = " "),
+                            gr_segment_spec("semantic", max_tokens = 4000),
+                            client = gr_mock_client()))
+  expect_identical(ch$method, "semantic")
+})
+
+test_that("semantic_threshold is swept as recipe arms", {
+  arms <- hr_sweep(gr_arm("needle", list(method = "semantic", max_tokens = 200)),
+                   list(semantic_threshold = c("percentile", "texttiling")))
+  expect_length(arms, 2L)
+  expect_identical(vapply(arms, function(a) a$params$semantic_threshold, ""),
+                   c("percentile", "texttiling"), ignore_attr = TRUE)
+})
