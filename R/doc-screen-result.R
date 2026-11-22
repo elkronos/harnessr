@@ -41,7 +41,8 @@ print.gr_screening <- function(x, ...) {
 
 #' @noRd
 screening_table <- function(docs, answers, summary, include = character(0),
-                            exclude = character(0), criteria_status = FALSE) {
+                            exclude = character(0), criteria_status = FALSE,
+                            draws = FALSE) {
   note <- function(d, field, default) {
     a <- answers[[d]]
     if (is.null(a)) default else {
@@ -111,6 +112,18 @@ screening_table <- function(docs, answers, summary, include = character(0),
     st[unread] <- NA_character_
     at <- match("criterion_valid", names(tab))
     tab <- cbind(tab[, seq_len(at), drop = FALSE], criteria_status = st,
+                 tab[, -seq_len(at), drop = FALSE], stringsAsFactors = FALSE)
+  }
+  # samples above 1: what each draw decided, and the share that included.
+  if (isTRUE(draws)) {
+    sd <- vapply(docs, function(d) as_chr1(note(d, "sample_decisions", NA_character_),
+                                           NA_character_), character(1), USE.NAMES = FALSE)
+    sh <- vapply(docs, function(d) as_num1(note(d, "include_share", NA_real_), NA_real_),
+                 numeric(1), USE.NAMES = FALSE)
+    sd[unread] <- NA_character_; sh[unread] <- NA_real_
+    at <- match("criterion_valid", names(tab))
+    if ("criteria_status" %in% names(tab)) at <- at + 1L
+    tab <- cbind(tab[, seq_len(at), drop = FALSE], sample_decisions = sd, include_share = sh,
                  tab[, -seq_len(at), drop = FALSE], stringsAsFactors = FALSE)
   }
   rownames(tab) <- NULL

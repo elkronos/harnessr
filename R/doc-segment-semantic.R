@@ -67,7 +67,8 @@ seg_semantic <- function(doc, spec, client, trace) {
   # Respect the hard cap and the minimum: semantic boundaries decide *where*,
   # the packer decides *how much*.
   packed <- pack_units(pieces, spec$max_tokens, spec$overlap_tokens, spec$min_tokens,
-                       joiner = " ", meta = pmeta)
+                       joiner = " ", meta = pmeta,
+                       balanced = pack_balanced(spec), runt_forward = pack_runt_forward(spec))
   trace_note(trace, "segment.semantic",
              c(list(units = length(units), boundaries = length(cut_after),
                     threshold = round(thresh, 4), embedding_source = src),

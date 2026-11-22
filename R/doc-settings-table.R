@@ -71,6 +71,10 @@
   gr_screen.criteria_schema = ev_untested(paste0(
     "\"decision\" is the reply screening was written with; not compared with ",
     "\"per_criterion\".")),
+  gr_screen.samples = ev_untested("One request per document, as before; not compared."),
+  gr_screen.sample_rule = ev_untested(paste0(
+    "\"include_if_any\" so that no study one draw would keep is lost; not compared with ",
+    "\"majority\".")),
   gr_extract.agreement_columns = ev_untested(
     "Off, so the table keeps the columns it had; it changes no request."),
   gr_extract.require_quote = ev_untested(paste0(
@@ -149,6 +153,8 @@
   segment.table_packing = "segment#set-tables",
   segment.proposition_check = "segment#set-contextual",
   segment.proposition_context_tokens = "segment#set-contextual",
+  segment.packing = "segment#set-packing", segment.runt_merge = "segment#set-packing",
+  segment.min_tokens = "segment#set-packing",
   read.reader = "readers#set-reader", read.skim_model = "readers#set-reader",
   read.summary_model = "readers#set-reader",
   read.top_k = "readers#set-top-k", read.min_score = "readers#set-top-k",
@@ -169,6 +175,7 @@
   read.low_score = "readers#set-low-score", read.rerank_min_score = "readers#set-low-score",
   read.rerank_candidates = "readers#set-low-score",
   screen.criteria_schema = "review#set-screen-reply",
+  screen.samples = "review#set-screen-reply", screen.sample_rule = "review#set-screen-reply",
   screen.gr_calibrate.recall_target = "review#set-calibration",
   screen.gr_calibrate.conf = "review#set-calibration",
   screen.gr_calibrate.max_width = "review#set-calibration",

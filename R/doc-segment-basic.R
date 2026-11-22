@@ -48,7 +48,8 @@ seg_paragraph <- function(doc, spec, client, trace) {
     return(seg_paragraph_grouped(doc, spec))
   }
   packed <- pack_units(b$text, spec$max_tokens, spec$overlap_tokens, spec$min_tokens,
-                       meta = b[, c("page", "section", "block_id")])
+                       meta = b[, c("page", "section", "block_id")],
+                       balanced = pack_balanced(spec), runt_forward = pack_runt_forward(spec))
   out <- new_chunks(packed$text, "paragraph", spec,
                     page = packed$meta$page %||% NA_integer_,
                     section = packed$meta$section %||% NA_character_,
@@ -116,7 +117,9 @@ seg_paragraph_grouped <- function(doc, spec) {
   for (idx in split(seq_len(nrow(b)), run)) {
     if (!is_tab[idx[1]]) {
       packed <- pack_units(b$text[idx], spec$max_tokens, spec$overlap_tokens, spec$min_tokens,
-                           meta = b[idx, meta_cols, drop = FALSE])
+                           meta = b[idx, meta_cols, drop = FALSE],
+                           balanced = pack_balanced(spec),
+                           runt_forward = pack_runt_forward(spec))
       k <- length(packed$text)
       txt <- c(txt, packed$text)
       pg <- c(pg, packed$meta$page %||% rep(NA_integer_, k))
@@ -176,7 +179,8 @@ seg_sentence <- function(doc, spec, client, trace) {
   if (!length(sents)) return(new_chunks(character(0), "sentence", spec))
   packed <- pack_units(unlist(sents, use.names = FALSE), spec$max_tokens,
                        spec$overlap_tokens, spec$min_tokens, joiner = " ",
-                       meta = do.call(rbind, meta))
+                       meta = do.call(rbind, meta),
+                       balanced = pack_balanced(spec), runt_forward = pack_runt_forward(spec))
   new_chunks(packed$text, "sentence", spec,
              page = packed$meta$page %||% NA_integer_,
              section = packed$meta$section %||% NA_character_,
@@ -229,7 +233,8 @@ seg_recursive <- function(doc, spec, client, trace) {
   # "deltaalpha"), destroying both real words. Use a space when overlap is on.
   joiner <- if (spec$overlap_tokens > 0L) " " else ""
   packed <- pack_units(pieces, spec$max_tokens, spec$overlap_tokens, spec$min_tokens,
-                       joiner = joiner)
+                       joiner = joiner,
+                       balanced = pack_balanced(spec), runt_forward = pack_runt_forward(spec))
   new_chunks(packed$text, "recursive", spec)
 }
 
@@ -290,3 +295,11 @@ seg_page <- function(doc, spec, client, trace) {
   }
   new_chunks(out, "page", spec, page = pg, section = sc, block_id = bid)
 }
+
+#' Whether a segment spec asks for packing = "balanced".
+#' @noRd
+pack_balanced <- function(spec) identical(as_chr1(spec[["packing"]], "greedy"), "balanced")
+
+#' Whether a segment spec asks for runt_merge = "both".
+#' @noRd
+pack_runt_forward <- function(spec) identical(as_chr1(spec[["runt_merge"]], "backward"), "both")

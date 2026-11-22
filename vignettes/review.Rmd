@@ -1206,7 +1206,7 @@ The interval on the rate of eligible records among those 60 is wider than 10
 points and narrower than 20, so the sample is adequate under the wider bar
 only. A wider bar does not make the sample say more; it says less is enough.
 
-### Screening replies: `criteria_schema` {#set-screen-reply}
+### Screening replies: `criteria_schema`, `samples` and `sample_rule` {#set-screen-reply}
 
 **What it controls.** What each screening reply holds. `"decision"` asks for
 a decision, a reason, the deciding criterion and a quote. `"per_criterion"`
@@ -1215,16 +1215,27 @@ also asks, for every criterion of the protocol, whether the excerpt shows it
 `criteria_status` column, and holds an exclusion to them: a reply that
 excludes a document although no inclusion criterion is `"not_met"` and no
 exclusion criterion is `"met"` (for example, when the excerpt does not report
-a criterion) is recorded as `"unclear"`, for a person to decide.
+a criterion) is recorded as `"unclear"`, for a person to decide. `samples`
+sends each screening request that many times, as separate draws, and
+`sample_rule` combines them: `"include_if_any"` includes a document any draw
+included and excludes one only when every draw excluded it, so a study one
+draw would keep is not lost to the others; `"majority"` takes the decision
+most draws gave. The table then records each draw's decision
+(`sample_decisions`) and the share that included (`include_share`).
 
 **Signs it needs changing.** Exclusions whose reasons say the excerpt does
 not mention something ("the age of participants is not given") are
 exclusions for missing information, which is how screening loses studies;
 `"per_criterion"` sends those to a person. A review that reports, for each
-record, which criteria it met needs the column.
+record, which criteria it met needs the column. Decisions that change when
+the same record is screened again (compare two runs at a temperature above
+0) point to `samples` above 1, at that many times the screening requests.
 
-**Where the default came from.** `"decision"` is the reply screening was
-written with; it has not been compared with `"per_criterion"` (`untested`).
+**Where the defaults came from.** `"decision"` is the reply screening was
+written with; it has not been compared with `"per_criterion"`. `samples = 1`
+sends one request per document, as before, and `"include_if_any"` was chosen
+so that no study a draw would keep is lost; neither has been compared
+(`untested`).
 
 **How to test it.** It changes the request, a schema and one more
 instruction, so the first test is what it does to the same reply. This
@@ -1248,7 +1259,23 @@ per <- gr_screen(reports, protocol, client = strict_screener,
 per$table[, c("document", "decision", "criteria_status")]
 ```
 
-The southern report is held back as `"unclear"` instead of excluded. On your
+The southern report is held back as `"unclear"` instead of excluded. Three
+draws from a stand-in that includes the southern report once in three show
+`include_if_any`:
+
+```{r}
+draws <- gr_mock_client(function(messages, params) {
+  seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
+                collapse = " ")
+  keep <- !grepl("51.8", seen, fixed = TRUE) || identical(params$draw_index, 2L)
+  sprintf('{"decision":"%s","reason":"Draw %d.","criterion":"Reports a revenue figure","quote":null}',
+          if (keep) "include" else "exclude", params$draw_index)
+})
+sampled <- gr_screen(reports, protocol, client = draws, samples = 3)
+sampled$table[, c("document", "decision", "sample_decisions", "include_share")]
+```
+
+On your
 own records, compare the two with labels, one arm per value, as in "Knowing
 how good the screening is" above, with `labelled` an `hr_reference()` of a
 person's decisions:
@@ -1263,6 +1290,9 @@ arms <- hr_sweep(function(criteria_schema) {
 bench <- hr_benchmark(arms, labelled, runs = 5, client = my_client)
 hr_report(bench)
 ```
+
+`samples` is swept the same way, `list(samples = c(1, 3))`, at three times
+the screening requests for the second arm.
 
 ### Extraction: `resolve`, `agreement_columns` and `require_quote` {#set-extract}
 

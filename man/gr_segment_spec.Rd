@@ -23,6 +23,8 @@ gr_segment_spec(
   table_packing = c("rows", "grouped"),
   proposition_check = c("count", "drop"),
   proposition_context_tokens = 0L,
+  packing = c("greedy", "balanced"),
+  runt_merge = c("backward", "both"),
   ...
 )
 }
@@ -46,7 +48,8 @@ count the overlap it opens with, so one that carries a sentence from the
 page before reports \code{NA} rather than the page it goes on to.}
 
 \item{min_tokens}{A chunk smaller than this is merged \strong{backward} into the
-chunk before it. Ignored by \code{page} and \code{fixed}.}
+chunk before it (and, with \code{runt_merge = "both"}, a first chunk smaller
+than this forward into the one after it). Ignored by \code{page} and \code{fixed}.}
 
 \item{separators}{For \code{method = "recursive"}: the cascade, strongest first.
 Each piece keeps the separator it was cut at; past the last one, text is
@@ -141,6 +144,21 @@ is told not to decompose. Taken from the document, so the batches still
 run independently. [0, 2000], default 0, which sends each batch alone,
 as before. Untested.}
 
+\item{packing}{How \code{paragraph}, \code{sentence}, \code{recursive}, \code{structural} and
+\code{semantic} pack their units into chunks. \code{"greedy"} (the default) fills
+each chunk to \code{max_tokens} and leaves the remainder in the last, as
+before: 1,250 tokens under a 500 cap become 500, 500 and 250.
+\code{"balanced"} keeps the number of chunks greedy packing makes and evens
+their sizes, packing at the smallest cap that still needs no more
+chunks (about 420 each in that example); no unit is split for it.
+Untested.}
+
+\item{runt_merge}{Which way a chunk under \code{min_tokens} is merged.
+\code{"backward"} (the default) merges it into the chunk before, as before, so
+a runt that is the first chunk stays on its own. \code{"both"} also merges a
+first chunk under \code{min_tokens} forward into the second, when the two fit
+under \code{max_tokens}. Nothing is merged at \code{min_tokens = 0}. Untested.}
+
 \item{...}{Extra fields for custom segmenters.}
 }
 \value{
@@ -184,6 +202,8 @@ store and cache keys it had before they existed.
 \item \code{table_packing} (default \code{"rows"}, advanced): untested. "rows" packs a table's rows as any other blocks, as before; not compared with "grouped".
 \item \code{proposition_check} (default \code{"count"}, advanced): untested. "count" keeps every proposition, as before, and counts the unsupported; not compared with "drop".
 \item \code{proposition_context_tokens} (default \code{0}, advanced): untested. 0 sends each batch alone, as before; not tuned.
+\item \code{packing} (default \code{"greedy"}, advanced): untested. "greedy" fills each chunk to the cap, as before; not compared with "balanced".
+\item \code{runt_merge} (default \code{"backward"}, advanced): untested. "backward" merges into the chunk before, as before; not compared with "both".
 }
 }
 

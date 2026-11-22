@@ -18,7 +18,21 @@
 #'   count the overlap it opens with, so one that carries a sentence from the
 #'   page before reports `NA` rather than the page it goes on to.
 #' @param min_tokens A chunk smaller than this is merged **backward** into the
-#'   chunk before it. Ignored by `page` and `fixed`.
+#'   chunk before it (and, with `runt_merge = "both"`, a first chunk smaller
+#'   than this forward into the one after it). Ignored by `page` and `fixed`.
+#' @param packing How `paragraph`, `sentence`, `recursive`, `structural` and
+#'   `semantic` pack their units into chunks. `"greedy"` (the default) fills
+#'   each chunk to `max_tokens` and leaves the remainder in the last, as
+#'   before: 1,250 tokens under a 500 cap become 500, 500 and 250.
+#'   `"balanced"` keeps the number of chunks greedy packing makes and evens
+#'   their sizes, packing at the smallest cap that still needs no more
+#'   chunks (about 420 each in that example); no unit is split for it.
+#'   Untested.
+#' @param runt_merge Which way a chunk under `min_tokens` is merged.
+#'   `"backward"` (the default) merges it into the chunk before, as before, so
+#'   a runt that is the first chunk stays on its own. `"both"` also merges a
+#'   first chunk under `min_tokens` forward into the second, when the two fit
+#'   under `max_tokens`. Nothing is merged at `min_tokens = 0`. Untested.
 #' @param separators For `method = "recursive"`: the cascade, strongest first.
 #'   Each piece keeps the separator it was cut at; past the last one, text is
 #'   cut at sentence ends, then whitespace, then characters, the same way. With
@@ -139,7 +153,9 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
                             semantic_threshold = c("percentile", "texttiling"),
                             table_packing = c("rows", "grouped"),
                             proposition_check = c("count", "drop"),
-                            proposition_context_tokens = 0L, ...) {
+                            proposition_context_tokens = 0L,
+                            packing = c("greedy", "balanced"),
+                            runt_merge = c("backward", "both"), ...) {
   warn_near_miss(list(...), names(formals(gr_segment_spec)), "segment")
   # Out-of-range settings are clamped rather than accepted, but the clamp is
   # ANNOUNCED. Silently rewriting a user's parameter is how v1 ended up feeding
@@ -242,7 +258,15 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
   hr_param("proposition_context_tokens", "integer", default = 0L, min = 0, max = 2000,
            tier = "advanced", cost_class = "per_unit",
            help = "For proposition: tokens of the batch before that each batch's request carries.",
-           evidence = ev_untested("0 sends each batch alone, as before; not tuned."))
+           evidence = ev_untested("0 sends each batch alone, as before; not tuned.")),
+  hr_param("packing", "enum", choices = c("greedy", "balanced"), tier = "advanced",
+           help = "How units are packed into chunks under the cap.",
+           evidence = ev_untested(paste0("\"greedy\" fills each chunk to the cap, as before; not ",
+                                         "compared with \"balanced\"."))),
+  hr_param("runt_merge", "enum", choices = c("backward", "both"), tier = "advanced",
+           help = "Which way a chunk under min_tokens is merged.",
+           evidence = ev_untested(paste0("\"backward\" merges into the chunk before, as before; ",
+                                         "not compared with \"both\".")))
 )
 
 #' The segment settings that were constants in the code until they were
@@ -252,7 +276,7 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
 .gr_segment_late_params <- c("context_reply_tokens", "context_document_tokens",
                              "proposition_reply_tokens", "semantic_threshold",
                              "table_packing", "proposition_check",
-                             "proposition_context_tokens")
+                             "proposition_context_tokens", "packing", "runt_merge")
 
 #' The settings of a segment spec that differ from its defaults, as
 #' read_settings() does for a read spec.

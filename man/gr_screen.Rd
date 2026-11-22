@@ -21,6 +21,8 @@ gr_screen(
   recursive = FALSE,
   trace = NULL,
   criteria_schema = c("decision", "per_criterion"),
+  samples = 1L,
+  sample_rule = c("include_if_any", "majority"),
   ...
 )
 }
@@ -63,6 +65,22 @@ excludes with none of either, as when a criterion is not reported and
 none is not met, is recorded as \code{"unclear"}, for a person to decide,
 with a reason that says so. It changes the request (the schema and the
 criteria message). Untested.}
+
+\item{samples}{How many times each document's screening request is sent,
+from 1 to 20. At 1 (the default) it is sent once, as before. Above 1 it
+is sent that many times, each a separate draw (a cache keeps each), and
+the draws are combined by \code{sample_rule}; the table gains
+\code{sample_decisions} (each draw's decision, \code{"none"} for one not read) and
+\code{include_share} (the share of draws read that included). It multiplies
+the screening requests by \code{samples}. Untested.}
+
+\item{sample_rule}{How draws are combined when \code{samples} is above 1.
+\code{"include_if_any"} (the default) includes a document any draw included,
+excludes one only when every draw was read and excluded it, and sends
+the rest to a person as \code{"unclear"}, so a study one draw would keep is
+not lost to the others. \code{"majority"} takes the decision most draws gave,
+\code{"unclear"} on a tie. The reason, criterion and quote are the first draw's
+that gave the decision kept. Untested.}
 
 \item{...}{Recipe overrides, as in \code{\link[=gr_extract]{gr_extract()}}.}
 }

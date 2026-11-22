@@ -455,6 +455,50 @@ aggregate(tokens_in ~ param.overlap_tokens, bench, mean)
 At 100-token chunks, 50 tokens of overlap sent 24% more prompt tokens than
 none (829 against 669).
 
+### Packing: `packing`, `min_tokens` and `runt_merge` {#set-packing}
+
+**What they control.** How units (paragraphs, sentences, pieces) are packed
+into chunks under the cap. `packing = "greedy"` fills each chunk to
+`max_tokens` and leaves the remainder in the last chunk; `"balanced"` keeps
+the same number of chunks and evens their sizes. `min_tokens` merges a chunk
+smaller than it into the chunk before it; `runt_merge = "both"` also merges
+a first chunk smaller than it forward into the second, which the backward
+rule cannot reach, since nothing comes before it.
+
+**Signs they need changing.** A last chunk much smaller than the others, in
+a reader that weighs chunks alike (`retrieve` scoring, `map_reduce` notes),
+points to `"balanced"`. A document whose first chunk is only its title, sent
+as a request of its own, points to `min_tokens` with `runt_merge = "both"`.
+
+**Where the defaults came from.** `"greedy"`, `min_tokens = 0` and
+`"backward"` are how chunks were packed before these settings existed; none
+has been compared with the alternatives (`untested`).
+
+**How to test them.** The chunk sizes show what they do, for nothing:
+
+```{r}
+paras <- sprintf("Paragraph %02d reports the year's results in some detail, %s.", 1:25,
+                 "with a few more words to give it some length")
+long_doc <- gr_ingest(paste(c("Annual review", paras), collapse = "\n\n"))
+sizes <- function(...) gr_segment(long_doc, gr_segment_spec("paragraph", ...))$chunks$tokens
+sizes(max_tokens = 300)
+sizes(max_tokens = 300, packing = "balanced")
+```
+
+Greedy packing leaves 197 tokens in the last of three chunks; balanced packing
+makes three of 229, 252 and 225. What they do to answers is tested with arms:
+
+```{r}
+bench <- sweep(hr_sweep(gr_arm("needle", list(method = "paragraph", max_tokens = 150)),
+                        list(packing = c("greedy", "balanced"))))
+aggregate(tokens_in ~ param.packing, bench, mean)
+```
+
+The two sent different requests here, 901 prompt tokens for `"balanced"`
+against 876 for `"greedy"`, because `retrieve` picked chunks of different
+sizes; whether answers change is what a benchmark on your own reference
+measures.
+
 ### Semantic boundaries: `semantic_threshold` {#set-semantic}
 
 **What it controls.** How `semantic` turns the distances between neighbouring

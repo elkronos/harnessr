@@ -100,6 +100,22 @@ says how to test it with `hr_sweep()`.
   none not met is recorded as `"unclear"`, for a person. The default,
   `"decision"`, sends the request and schema it sent before.
 
+* `gr_screen()` gains `samples` and `sample_rule`. Above 1 sample, each
+  document's screening request is sent that many times as separate draws
+  (each with its own `draw_index`, so a cache keeps them apart), and
+  `"include_if_any"` includes a document any draw included, excludes one
+  only when every draw excluded it, and leaves the rest `"unclear"`;
+  `"majority"` takes the decision most draws gave. The table gains
+  `sample_decisions` and `include_share`. At the default, 1, one request
+  is sent as before.
+
+* `gr_segment_spec()` gains `packing` and `runt_merge`. `packing =
+  "balanced"` keeps the number of chunks greedy packing makes and evens
+  their sizes (`paragraph`, `sentence`, `recursive`, `structural`,
+  `semantic`). `runt_merge = "both"` merges a first chunk under
+  `min_tokens` forward into the second, which the backward merge could not
+  reach. The defaults, `"greedy"` and `"backward"`, pack as before.
+
 * `gr_segment_spec()` gains `semantic_threshold`. At `"texttiling"`, the
   `semantic` segmenter cuts by TextTiling's depth score (Hearst 1997): the
   similarity between the windows before and after each gap, read from the

@@ -589,3 +589,122 @@ test_that("context_source and the proposition settings are swept as recipe arms"
   expect_length(arms, 2L)
   expect_null(gr_segment_spec("proposition")$proposition_context_tokens)
 })
+
+# ---------------------------------------------------------------------------
+# P4-17: balanced packing, a forward merge for a leading runt, and screening
+# samples combined by include_if_any
+# ---------------------------------------------------------------------------
+
+po_paras <- function(n = 25L) {
+  sprintf(paste0("Paragraph %02d says something about the year and its results in some ",
+                 "detail, with more words to make it longer than before."), seq_len(n))
+}
+
+test_that("packing and runt_merge are off by default and leave the spec as it was", {
+  expect_null(gr_segment_spec()$packing)
+  expect_null(gr_segment_spec()$runt_merge)
+  expect_identical(gr_segment_spec(packing = "balanced")$packing, "balanced")
+  expect_identical(gr_segment_spec(runt_merge = "both")$runt_merge, "both")
+})
+
+test_that("balanced packing keeps the chunk count and evens the sizes, losing no text", {
+  d <- po_quiet(gr_ingest(paste(po_paras(), collapse = "\n\n")))
+  g <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = 300)))
+  b <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = 300,
+                                              packing = "balanced")))
+  expect_identical(nrow(b$chunks), nrow(g$chunks))
+  expect_lt(diff(range(b$chunks$tokens)), diff(range(g$chunks$tokens)))
+  expect_true(all(b$chunks$tokens <= 300))
+  expect_identical(paste(b$chunks$text, collapse = "\n\n"), paste(po_paras(), collapse = "\n\n"))
+  # With overlap, every chunk after the first opens with the end of the one before.
+  bo <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = 300, overlap_tokens = 20,
+                                               packing = "balanced")))
+  expect_identical(nrow(bo$chunks), nrow(g$chunks))
+  expect_true(all(bo$chunks$tokens <= 300))
+  # One chunk: nothing to balance.
+  one <- harnessr:::pack_units(c("a b c", "d e f"), 200, balanced = TRUE)
+  expect_identical(one$text, "a b c\n\nd e f")
+})
+
+test_that("runt_merge = 'both' merges a leading runt forward; 'backward' leaves it", {
+  body <- "Body"
+  while (gr_count_tokens(body) < 56L) body <- paste(body, "word")
+  d <- po_quiet(gr_ingest(paste(c("Short title.", body, "Another paragraph follows here."),
+                                collapse = "\n\n")))
+  back <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = 60, min_tokens = 20)))
+  both <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = 60, min_tokens = 20,
+                                                 runt_merge = "both")))
+  expect_identical(back$chunks$text[1], "Short title.")
+  expect_identical(nrow(both$chunks), nrow(back$chunks) - 1L)
+  expect_identical(both$chunks$text[1], paste("Short title.", body, sep = "\n\n"))
+  # Nothing is merged at min_tokens = 0.
+  none <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = 60,
+                                                 runt_merge = "both")))
+  expect_identical(none$chunks$text[1], "Short title.")
+})
+
+test_that("packing and runt_merge are swept as recipe arms", {
+  arms <- hr_sweep(gr_arm("needle", list(method = "paragraph", max_tokens = 120)),
+                   list(packing = c("greedy", "balanced")))
+  expect_length(arms, 2L)
+  arms <- hr_sweep(gr_arm("needle", list(method = "paragraph", min_tokens = 20)),
+                   list(runt_merge = c("backward", "both")))
+  expect_length(arms, 2L)
+})
+
+po_draw_screener <- function(decisions) {
+  gr_mock_client(function(messages, params) {
+    k <- max(1L, as.integer(params$draw_index %||% 0L))
+    d <- decisions[[k]]
+    sprintf('{"decision":"%s","reason":"Draw %d.","criterion":%s,"quote":null}', d, k,
+            if (d == "exclude") '"Animal study"' else "null")
+  })
+}
+
+test_that("samples is off by default and sends one request, as before", {
+  cl <- po_draw_screener(list("include"))
+  x <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                          exclude = po_exclude, client = cl))
+  expect_length(cl$calls(), 1L)
+  expect_null(cl$calls()[[1]]$params$draw_index)
+  expect_false(any(c("sample_decisions", "include_share") %in% names(x$table)))
+  expect_error(gr_screen(po_screen_file(), question = "q", include = "x", samples = 0),
+               class = "gr_bad_setting")
+})
+
+test_that("include_if_any keeps a document any draw included, and records the share", {
+  cl <- po_draw_screener(list("exclude", "include", "exclude"))
+  x <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                          exclude = po_exclude, client = cl, samples = 3))
+  expect_length(cl$calls(), 3L)
+  expect_identical(x$table$decision, "include")
+  expect_identical(x$table$sample_decisions, "exclude, include, exclude")
+  expect_equal(x$table$include_share, 1 / 3)
+  # Every draw excluding: an exclusion. A split with no include: unclear.
+  all_out <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?",
+                                include = po_include, exclude = po_exclude,
+                                client = po_draw_screener(list("exclude", "exclude")),
+                                samples = 2))
+  expect_identical(all_out$table$decision, "exclude")
+  split <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?",
+                              include = po_include, exclude = po_exclude,
+                              client = po_draw_screener(list("exclude", "unclear")),
+                              samples = 2))
+  expect_identical(split$table$decision, "unclear")
+  # majority: the decision most draws gave.
+  maj <- po_quiet(gr_screen(po_screen_file(), question = "Does it work?", include = po_include,
+                            exclude = po_exclude,
+                            client = po_draw_screener(list("exclude", "include", "exclude")),
+                            samples = 3, sample_rule = "majority"))
+  expect_identical(maj$table$decision, "exclude")
+})
+
+test_that("samples is swept as arms", {
+  arms <- hr_sweep(function(samples) {
+    hr_arm(paste0("screen-", samples), function(item, ctx) {
+      gr_screen(item, question = "Does it work?", include = po_include, exclude = po_exclude,
+                client = ctx$client, samples = samples, trace = ctx$trace)$table$decision
+    })
+  }, list(samples = c(1, 3)))
+  expect_length(arms, 2L)
+})
