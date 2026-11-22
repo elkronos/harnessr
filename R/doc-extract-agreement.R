@@ -23,6 +23,8 @@
 agreement_pair_columns <- function(nms) {
   stem <- sub("_agreement$", "", nms[endsWith(nms, "_agreement")])
   stem <- stem[stem %in% nms & paste0(stem, "_conflict") %in% nms]
+  # paste0() on no stems gives the bare suffixes, so return nothing then.
+  if (!length(stem)) return(character(0))
   c(paste0(stem, "_agreement"), paste0(stem, "_conflict"))
 }
 

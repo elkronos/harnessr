@@ -922,3 +922,11 @@ test_that("every setting of hr_error_correlation() is marked untested", {
   expect_setequal(st$name, c("strata", "n_strata", "n_check", "held_out", "seed"))
   expect_true(all(st$status == "untested"))
 })
+
+test_that("a table without agreement columns names no agreement pairs", {
+  expect_identical(harnessr:::agreement_pair_columns(c("document", "n", "design")),
+                   character(0))
+  expect_identical(harnessr:::agreement_pair_columns(character(0)), character(0))
+  expect_setequal(harnessr:::agreement_pair_columns(c("n", "n_agreement", "n_conflict")),
+                  c("n_agreement", "n_conflict"))
+})
