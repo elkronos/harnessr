@@ -91,6 +91,8 @@ test_that("every guide section the table points to exists", {
   # installed package built with its vignettes keeps them under doc/.
   dirs <- c(file.path("..", "..", "vignettes"), system.file("doc", package = "harnessr"))
   dirs <- dirs[nzchar(dirs) & dir.exists(dirs)]
+  # A check run without building the guides has neither folder.
+  if (!length(dirs)) skip("the guide sources are not available here")
   for (d in dirs[1]) {
     for (g in guides) {
       parts <- strsplit(g, "#", fixed = TRUE)[[1]]
