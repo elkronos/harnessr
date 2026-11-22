@@ -25,8 +25,9 @@ question.}
 answer not marked partial; \code{"partial"}, an answer marked partial;
 \code{"not_found"}, \code{NOT_IN_DOCUMENT} from a run that read what it meant
 to; \code{"refused"}, \code{NOT_IN_DOCUMENT} from a run a limit stopped; or
-\code{"failed"}, \code{NOT_IN_DOCUMENT} from a run whose requests failed (the
-notes give an \code{error}, or say every request failed). \code{\link[=is_not_found]{is_not_found()}}
+\code{"failed"}, \code{NOT_IN_DOCUMENT} from a run that got no reply to read
+(every model request it made failed, or the notes give an \code{error}),
+whichever reader made it. \code{\link[=is_not_found]{is_not_found()}}
 reads it when given the answer. Under \code{answer_format = "schema"} in
 \code{\link[=gr_read_spec]{gr_read_spec()}} the model reports the answered or not-found part in a
 schema field, and \code{notes$structured} keeps what it said.}

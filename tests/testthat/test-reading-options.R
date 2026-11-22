@@ -279,6 +279,33 @@ test_that("every answer from gr_read() carries an outcome", {
   expect_match(harnessr::as_json(a), "\"outcome\"")
 })
 
+test_that("a run whose every request failed is failed for every reader", {
+  ch <- ro_chunks(c("The trial enrolled 40 participants.",
+                    "None of the 40 participants dropped out before the end."))
+  for (rd in c("stuff", "retrieve", "map_reduce", "refine", "rerank", "skim", "hierarchical",
+               "iterative", "preview", "ensemble")) {
+    a <- quiet(gr_read(ch, "Did anyone drop out?", gr_mock_client(function(m, p) stop("down")),
+                       gr_read_spec(rd)))
+    expect_identical(a$outcome, "failed", info = rd)
+    expect_false(is_not_found(a), info = rd)
+  }
+  # Some reply came back and said not found: that is a not-found.
+  n <- 0L
+  cl <- gr_mock_client(function(m, p) {
+    n <<- n + 1L
+    if (n == 1L) stop("down")
+    "NOT_IN_DOCUMENT"
+  })
+  a <- quiet(gr_read(ch, "What was revenue?", cl, "map_reduce"))
+  expect_identical(a$outcome, "not_found")
+  # The steps decide only for a run with model requests, and embeddings
+  # requests are not counted.
+  st <- list(list(kind = "embedding", ok = FALSE, tokens = list()))
+  expect_false(harnessr:::every_request_failed(st))
+  expect_false(harnessr:::every_request_failed(list()))
+  expect_true(harnessr:::every_request_failed(c(st, list(list(ok = FALSE, tokens = list())))))
+})
+
 test_that("answer_format = 'parsed' is the default and sends no schema", {
   expect_null(gr_read_spec("stuff")$answer_format)
   expect_identical(gr_read_spec("stuff", answer_format = "schema")$answer_format, "schema")

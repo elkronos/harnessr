@@ -33,7 +33,8 @@ says what it trades off and how to test it with `hr_sweep()`.
 
 * Every answer from `gr_read()` carries `$outcome`: `"answered"`,
   `"partial"`, `"not_found"`, `"refused"` (a limit stopped the run) or
-  `"failed"` (its requests failed). `is_not_found()` given an answer reads
+  `"failed"` (every model request it made failed, or the reader reports an
+  error), for every reader. `is_not_found()` given an answer reads
   it, so a refused or failed run no longer counts as the document lacking
   the answer; given a string, or an answer without the field, it tests the
   sentinel as before. `as_json()` writes the field.

@@ -887,7 +887,8 @@ wrong, or compare the `partial` rate by hand.
 
 **What it controls.** Every answer carries `ans$outcome`: `"answered"`,
 `"partial"`, `"not_found"`, `"refused"` (a limit stopped the run) or
-`"failed"` (its requests failed), and `is_not_found(ans)` reads it.
+`"failed"` (every model request the run made failed, whichever reader made
+it), and `is_not_found(ans)` reads it.
 `answer_format` decides how the answering request reports the found or
 not-found part. `"parsed"` sends the free-text request and looks for
 `NOT_IN_DOCUMENT` in the reply. `"schema"` sends the request with a JSON

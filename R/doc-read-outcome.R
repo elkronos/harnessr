@@ -142,13 +142,19 @@ with_structure <- function(ans, res) {
   ans
 }
 
-#' The outcome of a read, from the answer a reader returned and the notes
-#' gr_read() added: `"refused"` when a limit stopped the run and nothing was
-#' found, `"failed"` when the reader reports an error or that every request
-#' failed and nothing was found, `"not_found"` for any other NOT_IN_DOCUMENT,
-#' `"partial"` for an answer marked partial, and `"answered"` otherwise.
+#' The outcome of a read, from the answer a reader returned, the notes
+#' gr_read() added and the steps the run recorded: `"refused"` when a limit
+#' stopped the run and nothing was found, `"failed"` when nothing was found and
+#' the reader reports an error, or every model request the run made failed,
+#' `"not_found"` for any other NOT_IN_DOCUMENT, `"partial"` for an answer
+#' marked partial, and `"answered"` otherwise.
+#'
+#' `steps` are the run's own trace steps. The readers word a run with no reply
+#' in their own ways, or not at all (refine, rerank, iterative and preview set
+#' no reason), so the record decides: a run that made model requests and got
+#' no reply from any of them had nothing to find the answer in.
 #' @noRd
-answer_outcome <- function(x) {
+answer_outcome <- function(x, steps = NULL) {
   notes <- as.list(x$notes %||% list())
   get <- function(k) notes[[k, exact = TRUE]]
   if (!is_not_found(as_chr1(x$answer, ""))) {
@@ -161,5 +167,16 @@ answer_outcome <- function(x) {
   # failed", "every request that was sent failed".
   reason <- as_chr1(get("reason"), "")
   if (is_nonblank(get("error")) || grepl("^every request", reason)) return("failed")
+  if (every_request_failed(steps)) return("failed")
   "not_found"
+}
+
+#' TRUE when `steps` hold at least one model request and none of them got a
+#' reply. Embeddings requests are left out: a failed one falls back to word
+#' overlap, and the run goes on.
+#' @noRd
+every_request_failed <- function(steps) {
+  req <- Filter(function(s) is.list(s) && !identical(s$kind, "local") &&
+                  !identical(s$kind, "embedding") && is.list(s$tokens), steps %||% list())
+  length(req) > 0L && !any(vapply(req, function(s) isTRUE(s$ok), logical(1)))
 }
