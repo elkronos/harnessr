@@ -80,12 +80,16 @@ answer_schema <- function(structure) {
 #' reader's own handling of the reply is unchanged. What the reply said is
 #' kept in `$structured`: `outcome`, `reply` (the answer field as the model
 #' wrote it), `premise_status`, `quote` and `quote_verified` (the quote found
-#' by span_match() in one of `sources`, the texts the request was shown). A
+#' by span_match() in one of `sources`, the texts the request was shown, and,
+#' when `document` is given, in one of those too). A reader whose request was
+#' shown passages or summaries a model wrote passes them as `sources` and the
+#' document's own text as `document`, so a quote counts only when the request
+#' saw it and the document says it. A
 #' reply that does not parse against the schema is read as free text, as the
 #' parsed path reads it, and `$structured$parsed` is FALSE.
 #' @noRd
 answer_request <- function(client, messages, spec, trace, label, max_output,
-                           model = spec$model, sources = character(0)) {
+                           model = spec$model, sources = character(0), document = NULL) {
   structure <- answer_structure(spec)
   if (is.null(structure)) {
     return(gr_call(client, messages, model = model, max_output = max_output,
@@ -109,10 +113,11 @@ answer_request <- function(client, messages, spec, trace, label, max_output,
     as_chr1(json_text(out$value, "premise_status"), NA_character_) else NA_character_
   quote <- if (isTRUE(structure$premise)) trimws(as_chr1(json_text(out$value, "quote"), ""))
            else ""
-  verified <- if (nzchar(quote)) {
-    any(vapply(as.character(sources), function(src) isTRUE(span_match(quote, src)$verified),
+  found_in <- function(texts) {
+    any(vapply(as.character(texts), function(src) isTRUE(span_match(quote, src)$verified),
                logical(1)))
-  } else FALSE
+  }
+  verified <- nzchar(quote) && found_in(sources) && (is.null(document) || found_in(document))
   text <- if (identical(status, "contradicted")) {
     paste0(.FALSE_PREMISE, ": ", if (has_visible(reply)) reply else "")
   } else if (identical(outcome, "not_found") || !has_visible(reply)) {

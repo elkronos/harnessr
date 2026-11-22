@@ -48,7 +48,9 @@ says what it trades off and how to test it with `hr_sweep()`.
 * `premise_verdict = "structured"`, with `premise = TRUE`, asks the
   answering requests for a `premise_status` field and the `quote` from the
   excerpts that contradicts the question, in a JSON schema, and checks the
-  quote with the span matcher `gr_verify_evidence()` uses. The answer gains
+  quote with the span matcher `gr_verify_evidence()` uses against what the
+  request was shown (and the document, where that was text a model wrote,
+  as in `skim` and `hierarchical`). The answer gains
   `$premise_verdict`. In `map_reduce`, a chunk's flag whose quote is absent
   or not found in the chunk is dropped (`notes$premise_dropped`), and a
   verified one goes to the merge and sets `notes$degradation` to

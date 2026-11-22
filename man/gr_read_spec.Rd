@@ -327,7 +327,10 @@ reply, as before. \code{"structured"} sends the answering requests that
 \code{premise_status} (\code{"holds"} or \code{"contradicted"}) and \code{quote}, the passage
 of the excerpts that states the contrary, word for word. The quote is
 checked with the matcher \code{\link[=gr_verify_evidence]{gr_verify_evidence()}} uses, against the
-excerpts the request was shown, and the answer gains \verb{$premise_verdict}
+excerpts the request was shown. Where those are passages or summaries a
+model wrote (\code{skim}, \code{hierarchical} and the skimmed sections of
+\code{preview}), the quote must also be found in the document. The answer
+gains \verb{$premise_verdict}
 (see \link{gr_answer}). In \code{map_reduce} a chunk's flag stands only when its
 quote is found in that chunk: a flag with no quote, or one not found, is
 dropped with the chunk's reply (\code{notes$premise_dropped}), and a verified

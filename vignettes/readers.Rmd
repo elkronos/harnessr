@@ -939,7 +939,9 @@ that assume something false"). `premise_verdict` decides how they say it.
 `"sentence"` is a `FALSE_PREMISE:` sentence in the reply. `"structured"`
 asks for a `premise_status` field and the `quote` from the excerpts that
 states the contrary, in a JSON schema, and checks the quote against the
-excerpts with the matcher `gr_verify_evidence()` uses; the answer gains
+excerpts that request was shown with the matcher `gr_verify_evidence()`
+uses (and against the document, where it was shown passages or summaries a
+model wrote); the answer gains
 `ans$premise_verdict`. In `map_reduce`, a chunk's verdict goes to the merge
 only when its quote is found in that chunk; the others are dropped and listed
 in `notes$premise_dropped`. The trade is a longer prompt and a schema the

@@ -478,6 +478,57 @@ test_that("a structured verdict carries its quote, checked against the excerpts"
   expect_true(is.na(a$premise_verdict$quote))
 })
 
+test_that("a verdict's quote is checked against what that request was shown", {
+  q <- "Why did revenue fall in 2023?"
+  spec <- gr_read_spec("preview", premise = TRUE, premise_verdict = "structured")
+  doc <- ro_preview_doc()
+  doc$chunks$text[1] <- "Revenue rose 12% in 2023, to 45.2 million dollars."
+  shown <- NA
+  verdict <- ro_verdict("contradicted", "Revenue rose 12% in 2023")
+  planner <- function(treatments) {
+    gr_mock_client(function(m, p) {
+      if (grepl("You plan how to read a document", m[[1]]$content, fixed = TRUE)) {
+        return(preview_plan_json(treatments))
+      }
+      if (identical(p$schema_name, "answer")) {
+        shown <<- grepl("Revenue rose 12%", m[[2]]$content, fixed = TRUE)
+      }
+      verdict(m, p)
+    })
+  }
+  # The plan skips section 1, so the answer request never saw the quote.
+  a <- quiet(gr_read(doc, q, planner(c("skip", "read", "read", "read")), spec))
+  expect_false(shown)
+  expect_identical(a$premise_verdict$premise_status, "contradicted")
+  expect_false(a$premise_verdict$quote_verified)
+  # Read in full, it did.
+  a <- quiet(gr_read(doc, q, planner(c("read", "read", "read", "read")), spec))
+  expect_true(shown)
+  expect_true(a$premise_verdict$quote_verified)
+  # Text a model wrote counts only where the document says it too.
+  ns <- asNamespace("harnessr")
+  cl <- gr_mock_client(ro_verdict("contradicted", "Revenue doubled in 2023"))
+  res <- ns$answer_request(cl, list(list(role = "user", content = "x")), spec, gr_trace(), "t", 50L,
+                           sources = "Summary: Revenue doubled in 2023.",
+                           document = doc$chunks$text)
+  expect_false(res$structured$quote_verified)
+  cl <- gr_mock_client(ro_verdict("contradicted", "Revenue rose 12% in 2023"))
+  res <- ns$answer_request(cl, list(list(role = "user", content = "x")), spec, gr_trace(), "t", 50L,
+                           sources = "Summary: Revenue rose 12% in 2023, it says.",
+                           document = doc$chunks$text)
+  expect_true(res$structured$quote_verified)
+  # skim and hierarchical: shown passages or summaries, and the document.
+  for (rd in c("skim", "hierarchical")) {
+    cl <- gr_mock_client(function(m, p) {
+      if (identical(p$schema_name, "answer")) return(verdict(m, p))
+      "Staff numbers grew to 310."
+    })
+    a <- quiet(gr_read(ro_premise_doc(), q, cl,
+                       gr_read_spec(rd, premise = TRUE, premise_verdict = "structured")))
+    expect_false(a$premise_verdict$quote_verified, info = rd)
+  }
+})
+
 test_that("map_reduce drops a premise flag whose quote is absent", {
   ch <- ro_premise_doc()
   q <- "Why did revenue fall in 2023?"

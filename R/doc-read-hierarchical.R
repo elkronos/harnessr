@@ -123,7 +123,9 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
                                          restate = restate_how(spec), premise = spec$premise,
                                          structure = answer_structure(spec)),
                  spec, trace, "hier.answer", spec$max_answer_tokens,
-                 sources = reader_source_text(d))
+                 # The request was shown summaries, not chunks: a quote counts
+                 # when it is in them and in the document.
+                 sources = body, document = reader_source_text(d))
   # A refused request adds no step, so this records nothing for it.
   trace_state(trace, from, "hier.answer", tokens_in = gr_count_tokens(body))
   if (usable_text(res) && reply_cut_off(res)) cut <- cut + 1L

@@ -380,7 +380,13 @@ read_preview <- function(chunks, question, client, spec, trace) {
                                           premise = spec$premise,
                                          structure = answer_structure(spec)),
                  spec, trace, "preview.answer", spec$max_answer_tokens,
-                 sources = reader_source_text(d))
+                 # What the request was shown: the rows read in full and the
+                 # passages the skims extracted, which must also be in the
+                 # document. Not every chunk: a section the plan skipped
+                 # reached no request.
+                 sources = c(reader_source_text(d[keep_rows, , drop = FALSE]),
+                             if (!is.null(ev_skim)) ev_skim$text),
+                 document = reader_source_text(d))
   if (usable_text(res2) && reply_cut_off(res2)) cut <- cut + 1L
 
   used <- unique(c(d$chunk_id[keep_rows], if (!is.null(ev_skim)) ev_skim$chunk_id))
@@ -441,7 +447,7 @@ preview_reread <- function(d, units, treat, question, client, spec, trace, bud) 
                                          premise = spec$premise,
                                          structure = answer_structure(spec)),
                  spec, trace, "preview.reread", spec$max_answer_tokens,
-                 sources = reader_source_text(d))
+                 sources = reader_source_text(d[keep, , drop = FALSE]))
   out <- premise_reply(if (usable_text(res)) res$text else .NOT_FOUND, spec$premise)
   found <- usable_text(res) && !is_not_found(out$text)
   note <- list(sections = sum(treat != "read"), chunks = length(keep),

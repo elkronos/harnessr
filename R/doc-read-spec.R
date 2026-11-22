@@ -425,7 +425,10 @@ gr_reader_signature <- function(reader) {
 #'   `premise_status` (`"holds"` or `"contradicted"`) and `quote`, the passage
 #'   of the excerpts that states the contrary, word for word. The quote is
 #'   checked with the matcher [gr_verify_evidence()] uses, against the
-#'   excerpts the request was shown, and the answer gains `$premise_verdict`
+#'   excerpts the request was shown. Where those are passages or summaries a
+#'   model wrote (`skim`, `hierarchical` and the skimmed sections of
+#'   `preview`), the quote must also be found in the document. The answer
+#'   gains `$premise_verdict`
 #'   (see [gr_answer]). In `map_reduce` a chunk's flag stands only when its
 #'   quote is found in that chunk: a flag with no quote, or one not found, is
 #'   dropped with the chunk's reply (`notes$premise_dropped`), and a verified

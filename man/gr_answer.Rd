@@ -37,7 +37,8 @@ answering request is structured: a list with \code{premise_status}
 (\code{"holds"} or \code{"contradicted"}), \code{quote} (the passage the model gave
 for a contradiction, or \code{NA}) and \code{quote_verified} (whether the quote
 was found in the excerpts sent, by the check \code{\link[=gr_verify_evidence]{gr_verify_evidence()}}
-uses, or \code{NA} without a quote).}
+uses, and, where those were passages or summaries a model wrote, in
+the document too; \code{NA} without a quote).}
 \item{\code{partial}}{Logical(1). \code{TRUE} when anything degraded: a call failed,
 chunks were dropped, a cap was hit, a strategy fell back, text was cut to
 fit, or pages of the document never became text (a scan read without
