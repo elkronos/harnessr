@@ -304,3 +304,20 @@ jobs:
             cat("Documented counts match the registries.\n")
           '
         shell: bash
+
+      # Runs last, after the suite, the README blocks and the guide knits. A
+      # test or a guide that writes into the package directory leaves files
+      # there that the next run, or the next commit, picks up. Results belong
+      # in tempdir() or a user directory. Files .gitignore names, such as the
+      # answer.html and audit.html the README writes, are not reported.
+      - name: Verify the runs left the package directory unchanged
+        run: |
+          changed=$(git status --porcelain --untracked-files=all)
+          if [ -n "$changed" ]; then
+            echo "The steps above created or changed files in the package directory:"
+            echo "$changed"
+            echo "Write results to tempdir() or a user directory instead."
+            exit 1
+          fi
+          echo "The package directory is unchanged."
+        shell: bash
