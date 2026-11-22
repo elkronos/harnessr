@@ -113,7 +113,7 @@
       "type": "function"
     },
     "gr_extract": {
-      "formals": ["sources", "fields", "goal = NULL", "recipe = \"research\"", "client = NULL", "store = NULL", "resolve = c(\"first\", \"model\")", "require_quote = FALSE", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = FALSE", "recursive = FALSE", "trace = NULL", "..."],
+      "formals": ["sources", "fields", "goal = NULL", "recipe = \"research\"", "client = NULL", "store = NULL", "resolve = c(\"first\", \"model\", \"vote\")", "require_quote = FALSE", "on_error = c(\"continue\", \"stop\")", "max_total_usd = NULL", "max_total_calls = NULL", "keep_answers = FALSE", "recursive = FALSE", "trace = NULL", "agreement_columns = FALSE", "..."],
       "type": "function"
     },
     "gr_extract_agreement": {

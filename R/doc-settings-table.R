@@ -66,7 +66,10 @@
   gr_screen_sample_size.conf = ev_untested(
     "The conventional 95% level; a choice, not a tuned value."),
   gr_extract.resolve = ev_untested(paste0(
-    "\"first\" costs nothing and records each disagreement; not compared with \"model\".")),
+    "\"first\" costs nothing and records each disagreement; not compared with \"model\" ",
+    "or \"vote\".")),
+  gr_extract.agreement_columns = ev_untested(
+    "Off, so the table keeps the columns it had; it changes no request."),
   gr_extract.require_quote = ev_untested(paste0(
     "Off, so no extracted value is thrown away unasked; n_unverified counts the same ",
     "values without dropping them.")),
@@ -163,6 +166,7 @@
   screen.gr_screen_sample_size.recall_target = "review#set-calibration",
   screen.gr_screen_sample_size.conf = "review#set-calibration",
   extract.resolve = "review#set-extract", extract.require_quote = "review#set-extract",
+  extract.agreement_columns = "review#set-extract",
   synthesise.coherence = "review#set-synthesis",
   synthesise.coherence_rounds = "review#set-synthesis",
   synthesise.figure_bands = "review#set-synthesis",

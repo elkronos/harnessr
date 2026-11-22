@@ -51,8 +51,11 @@
 #'   value is kept, as with `"first"`, and a warning (in the row's
 #'   `summary$warnings`) names the field. If it chooses none of the values,
 #'   the first value is kept but is not verified, so `n_unverified` counts it
-#'   and `require_quote` drops it. Two spellings of one string (case, quote
-#'   marks, a trailing full stop) are one value, not a disagreement.
+#'   and `require_quote` drops it. `"vote"` takes the value the most chunks
+#'   gave, for no extra call; a tie goes to the earliest of the tied values,
+#'   as `"first"` would choose, and the disagreement is still recorded. Two
+#'   spellings of one string (case, quote marks, a trailing full stop) are
+#'   one value, not a disagreement.
 #' @param require_quote Discard any value that is not verified: one with no
 #'   quote, a quote that is not verbatim in the chunk it cited, or a quote that
 #'   does not state the value (see "Verifying it" below). Off by default: an
@@ -62,6 +65,13 @@
 #' @param keep_answers Keep the underlying [gr_answer] objects in `$answers`.
 #'   They hold every chunk's source text, so for a large corpus this is what
 #'   runs you out of memory; the tables do not need them.
+#' @param agreement_columns Add two columns per field to `table`, after the
+#'   field columns: `<field>_agreement`, how many of the chunks that reported
+#'   the field give its most common value, of all that reported it (`"2/3"`),
+#'   and `<field>_conflict`, `TRUE` when they gave more than one value.
+#'   `FALSE` by default, which leaves the table as it was; it changes no
+#'   request. A field no chunk reported has agreement `NA` and conflict
+#'   `FALSE`. Untested.
 #' @param ... Recipe overrides, as in [gr_read_many()]. `max_tokens =` is the
 #'   one that matters here, because it decides how many chunks each document is
 #'   cut into and therefore how many calls it costs.
@@ -70,7 +80,10 @@
 #'   \describe{
 #'     \item{`table`}{One row per document: `document`, one column per field in
 #'       the schema and of that field's type, then `n_filled`, `n_unverified`,
-#'       `conflicts`, `status`, `duplicate_of`, `error`. `status` is the run
+#'       `conflicts`, `status`, `duplicate_of`, `error` (with
+#'       `agreement_columns = TRUE`, a `<field>_agreement` and a
+#'       `<field>_conflict` column for each field after the field columns).
+#'       `status` is the run
 #'       status from `summary`, except that a document some of whose extraction
 #'       requests failed is `"incomplete"` (or `"failed"` if all did), and one
 #'       whose extraction requests all succeeded is not `"failed"` for another
@@ -207,10 +220,11 @@
 #' x$table[, c("document", "design", "n", "n_unverified", "status")]
 #' x$evidence[, c("field", "quote", "verified")]
 gr_extract <- function(sources, fields, goal = NULL, recipe = "research",
-                       client = NULL, store = NULL, resolve = c("first", "model"),
+                       client = NULL, store = NULL, resolve = c("first", "model", "vote"),
                        require_quote = FALSE, on_error = c("continue", "stop"),
                        max_total_usd = NULL, max_total_calls = NULL,
-                       keep_answers = FALSE, recursive = FALSE, trace = NULL, ...) {
+                       keep_answers = FALSE, recursive = FALSE, trace = NULL,
+                       agreement_columns = FALSE, ...) {
   # A protocol is a schema plus the two things a schema cannot say: what the
   # reading is FOR, and how to read it. Unpacked here rather than made a separate
   # argument, because `gr_extract(papers, my_protocol)` reads the way people
@@ -233,6 +247,19 @@ gr_extract <- function(sources, fields, goal = NULL, recipe = "research",
              class = "gr_no_fields")
   }
   resolve <- match.arg(resolve)
+  if (!is.logical(agreement_columns) || length(agreement_columns) != 1L || is.na(agreement_columns)) {
+    gr_abort("`agreement_columns` must be TRUE or FALSE.", class = "gr_bad_setting")
+  }
+  if (isTRUE(agreement_columns)) {
+    clash <- intersect(names(fields), c(paste0(names(fields), "_agreement"),
+                                        paste0(names(fields), "_conflict")))
+    if (length(clash)) {
+      gr_abort(sprintf(paste0("With agreement_columns = TRUE the table adds <field>_agreement ",
+                              "and <field>_conflict columns, and field(s) %s would collide ",
+                              "with them. Rename the field(s)."),
+                       paste0("'", clash, "'", collapse = ", ")), class = "gr_bad_field")
+    }
+  }
   goal <- if (is.null(goal)) {
     paste0("Extract the fields below from this document, exactly as it reports them.")
   } else {
@@ -286,7 +313,8 @@ gr_extract <- function(sources, fields, goal = NULL, recipe = "research",
   names(answers) <- docs
 
   structure(list(
-    table    = attach_record_fields(extraction_table(docs, answers, fields, out$summary),
+    table    = attach_record_fields(extraction_table(docs, answers, fields, out$summary,
+                                                     agreement_columns = agreement_columns),
                                     bib_from, out$sources),
     evidence = extraction_evidence(docs, answers, out$summary$document_id),
     fields   = fields,
@@ -416,7 +444,7 @@ extraction_column <- function(field, values) {
 }
 
 #' @noRd
-extraction_table <- function(docs, answers, fields, summary) {
+extraction_table <- function(docs, answers, fields, summary, agreement_columns = FALSE) {
   if (is.null(summary$document_id)) summary$document_id <- NA_character_
   records <- lapply(docs, function(d) answer_record(answers[[d]], fields))
   tab <- data.frame(document = as.character(docs),
@@ -464,6 +492,7 @@ extraction_table <- function(docs, answers, fields, summary) {
     cf <- if (is.null(a)) NULL else a$notes$conflicts
     if (!length(cf)) NA_character_ else paste(names(cf), collapse = ", ")
   }, character(1), USE.NAMES = FALSE)
+  if (isTRUE(agreement_columns)) tab <- extraction_agreement_columns(tab, docs, answers, fields)
   status <- as.character(summary$status)
   error <- as.character(summary$error)
   # A request that failed is an excerpt nobody read, and a field it held comes
@@ -633,4 +662,29 @@ attach_record_fields <- function(tab, recs, sources) {
   add <- intersect(c("authors", "year", "title", "venue", "doi"), names(recs))
   for (nm in setdiff(add, names(tab))) tab[[nm]] <- recs[[nm]][hit]
   tab
+}
+
+#' The per-field agreement columns agreement_columns = TRUE adds, after the
+#' field columns: `<field>_agreement`, how many of the chunks that reported
+#' the field give its most common value ("2/3"), and `<field>_conflict`,
+#' whether they gave more than one value. A field no chunk reported has
+#' agreement NA and conflict FALSE; a document with no answer, or one read
+#' from a store written before agreement was recorded, has NA in both.
+#' @noRd
+extraction_agreement_columns <- function(tab, docs, answers, fields) {
+  at <- match(names(fields)[length(fields)], names(tab))
+  add <- list()
+  for (nm in names(fields)) {
+    add[[paste0(nm, "_agreement")]] <- vapply(docs, function(d) {
+      ag <- answers[[d]]$notes$agreement
+      if (is.null(answers[[d]]) || is.null(ag)) NA_character_ else as_chr1(ag[nm], NA_character_)
+    }, character(1), USE.NAMES = FALSE)
+    add[[paste0(nm, "_conflict")]] <- vapply(docs, function(d) {
+      a <- answers[[d]]
+      if (is.null(a) || is.null(a$notes$agreement)) return(NA)
+      nm %in% names(a$notes$conflicts)
+    }, logical(1), USE.NAMES = FALSE)
+  }
+  cbind(tab[, seq_len(at), drop = FALSE], as.data.frame(add, stringsAsFactors = FALSE),
+        tab[, -seq_len(at), drop = FALSE])
 }

@@ -11,7 +11,7 @@ gr_extract(
   recipe = "research",
   client = NULL,
   store = NULL,
-  resolve = c("first", "model"),
+  resolve = c("first", "model", "vote"),
   require_quote = FALSE,
   on_error = c("continue", "stop"),
   max_total_usd = NULL,
@@ -19,6 +19,7 @@ gr_extract(
   keep_answers = FALSE,
   recursive = FALSE,
   trace = NULL,
+  agreement_columns = FALSE,
   ...
 )
 }
@@ -54,8 +55,11 @@ fails, or a request limit is reached before it can be made, the first
 value is kept, as with \code{"first"}, and a warning (in the row's
 \code{summary$warnings}) names the field. If it chooses none of the values,
 the first value is kept but is not verified, so \code{n_unverified} counts it
-and \code{require_quote} drops it. Two spellings of one string (case, quote
-marks, a trailing full stop) are one value, not a disagreement.}
+and \code{require_quote} drops it. \code{"vote"} takes the value the most chunks
+gave, for no extra call; a tie goes to the earliest of the tied values,
+as \code{"first"} would choose, and the disagreement is still recorded. Two
+spellings of one string (case, quote marks, a trailing full stop) are
+one value, not a disagreement.}
 
 \item{require_quote}{Discard any value that is not verified: one with no
 quote, a quote that is not verbatim in the chunk it cited, or a quote that
@@ -70,6 +74,14 @@ Turn it on for a protocol that says no quote, no datum.}
 They hold every chunk's source text, so for a large corpus this is what
 runs you out of memory; the tables do not need them.}
 
+\item{agreement_columns}{Add two columns per field to \code{table}, after the
+field columns: \verb{<field>_agreement}, how many of the chunks that reported
+the field give its most common value, of all that reported it (\code{"2/3"}),
+and \verb{<field>_conflict}, \code{TRUE} when they gave more than one value.
+\code{FALSE} by default, which leaves the table as it was; it changes no
+request. A field no chunk reported has agreement \code{NA} and conflict
+\code{FALSE}. Untested.}
+
 \item{...}{Recipe overrides, as in \code{\link[=gr_read_many]{gr_read_many()}}. \verb{max_tokens =} is the
 one that matters here, because it decides how many chunks each document is
 cut into and therefore how many calls it costs.}
@@ -79,7 +91,10 @@ An object of class \code{gr_extraction}:
 \describe{
 \item{\code{table}}{One row per document: \code{document}, one column per field in
 the schema and of that field's type, then \code{n_filled}, \code{n_unverified},
-\code{conflicts}, \code{status}, \code{duplicate_of}, \code{error}. \code{status} is the run
+\code{conflicts}, \code{status}, \code{duplicate_of}, \code{error} (with
+\code{agreement_columns = TRUE}, a \verb{<field>_agreement} and a
+\verb{<field>_conflict} column for each field after the field columns).
+\code{status} is the run
 status from \code{summary}, except that a document some of whose extraction
 requests failed is \code{"incomplete"} (or \code{"failed"} if all did), and one
 whose extraction requests all succeeded is not \code{"failed"} for another

@@ -75,6 +75,23 @@ says what it trades off and how to test it with `hr_sweep()`.
   requests; they are composed by hand for now, and carry the attributes a
   later `hr_chain()` will read.
 
+## Pipeline options
+
+Each option below is off by default, so a default run sends the requests it
+sent before, keeps its store, cache and replay keys, and returns the tables
+it returned. Each is declared with its evidence (`untested` unless a source
+is named), is listed by `gr_settings_table()`, and has a walkthrough that
+says how to test it with `hr_sweep()`.
+
+* `gr_extract()` gains `resolve = "vote"`, which keeps the value most of a
+  document's chunks gave, for no extra request; a tie goes to the earliest
+  of the tied values, as `"first"` chooses. `agreement_columns = TRUE` adds
+  `<field>_agreement` (how many of the chunks that reported a field give its
+  most common value, as `"2/3"`) and `<field>_conflict` to the table. An
+  abstract that says 240 and two results paragraphs that say 236 give 240
+  under `"first"`, 236 under `"vote"`, and `"2/3"` with a conflict under
+  both. Each answer's `notes$agreement` holds the same counts.
+
 ## Claims and the write-up: what each rests on
 
 * The claims and writing prompts now show each extracted value with its

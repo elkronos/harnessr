@@ -106,7 +106,7 @@ test_that("every guide section the table points to exists", {
 
 test_that("the README's counts of settings match the table", {
   s <- gr_settings_table()
-  expect_identical(nrow(s), 203L)
+  expect_identical(nrow(s), 204L)
   # The README sits two levels up in the repository; an installed package
   # has none, and then the count above is what holds the figure.
   readme <- file.path("..", "..", "README.md")
