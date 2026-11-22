@@ -88,6 +88,14 @@
       "formals": ["source", "question", "recipes = c(\"fast\", \"needle\", \"thorough\")", "client = NULL", "allow_duplicates = FALSE", "on_error = c(\"continue\", \"stop\")", "correct = NULL", "..."],
       "type": "function"
     },
+    "gr_condensation_check": {
+      "formals": ["text = NULL", "n_facts = 6L", "n_lures = 2L", "correction = TRUE", "n_documents = 1L", "paragraphs = 12L", "orders = c(\"forward\", \"reversed\")", "seed = 1L", "split = \"test\""],
+      "type": "function"
+    },
+    "gr_condensation_summary": {
+      "formals": ["check", "bench"],
+      "type": "function"
+    },
     "gr_count_tokens": {
       "formals": ["text", "model = NULL"],
       "type": "function"
@@ -294,6 +302,10 @@
     },
     "gr_resolve": {
       "formals": ["screening", "document", "decision", "by", "reason = NA_character_", "at = Sys.time()"],
+      "type": "function"
+    },
+    "gr_reverse_text": {
+      "formals": ["text", "unit = c(\"paragraph\", \"sentence\")"],
       "type": "function"
     },
     "gr_scorer_answer": {
@@ -745,6 +757,11 @@
     },
     "print.gr_client": {
       "class": "gr_client",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.gr_condensation_check": {
+      "class": "gr_condensation_check",
       "formals": ["x", "..."],
       "generic": "print"
     },

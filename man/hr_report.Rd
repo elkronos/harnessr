@@ -401,7 +401,9 @@ arXiv:2406.12045.
 
 Other harness: 
 \code{\link{gr_arm}()},
+\code{\link{gr_condensation_check}()},
 \code{\link{gr_qa_reference}()},
+\code{\link{gr_reverse_text}()},
 \code{\link{gr_scorer_answer}()},
 \code{\link{hr_arm}()},
 \code{\link{hr_benchmark}()},

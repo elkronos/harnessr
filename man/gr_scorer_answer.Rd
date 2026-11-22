@@ -63,7 +63,9 @@ s$fn(item, "NOT_IN_DOCUMENT", "NOT_IN_DOCUMENT")$correct
 
 Other harness: 
 \code{\link{gr_arm}()},
+\code{\link{gr_condensation_check}()},
 \code{\link{gr_qa_reference}()},
+\code{\link{gr_reverse_text}()},
 \code{\link{hr_arm}()},
 \code{\link{hr_benchmark}()},
 \code{\link{hr_contrast}()},

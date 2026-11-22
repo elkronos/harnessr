@@ -39,6 +39,18 @@ and has a walkthrough that says how to test it with `hr_sweep()`.
   pass the model's effective window. No model's window is measured yet, so
   it uses 50,000 tokens and warns (`gr_window_unmeasured`).
 
+* `gr_condensation_check()` builds a benchmark of what a reader keeps as it
+  condenses a document: facts planted in a synthetic document or a text of
+  your own, lures (the same measure for a near-namesake, with another
+  value) and a fact stated wrongly early and corrected late, each document
+  given forwards and reversed by paragraph (`gr_reverse_text()`). It
+  returns an `hr_reference()` and a scorer that finds the values in the
+  answer with no model judge, for `hr_benchmark()` to run arms that differ
+  in `refine_state`, `context_policy` or the reader; and
+  `gr_condensation_summary()` gives each arm's fact recall, lure rate,
+  whether the correction won and recall of the facts read last. The live
+  comparison on real documents is not part of this release.
+
 * Left out: a look-up step for `hierarchical` (reading the chunks behind the
   summary an answer rests on) and showing `iterative` its earlier queries.
   Each changes the requests of a reader in a way that needs its own

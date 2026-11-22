@@ -203,6 +203,8 @@ reference:
   - gr_step
   - gr_qa_reference
   - gr_scorer_answer
+  - gr_condensation_check
+  - gr_reverse_text
 
 - title: Baselines
   desc: >

@@ -468,6 +468,56 @@ so phi there is undefined. The pooled phi then reads only the eight items of
 stratum "1", where each arm's errors fall on items of its own, and it comes
 out negative.
 
+### What a reader keeps: `gr_condensation_check()`
+
+A reader that carries a running draft through a document, as `refine` does,
+condenses as it goes, and can lose an early fact, take a value from a
+near-namesake, or keep a figure the document later corrected.
+`gr_condensation_check()` builds a benchmark that measures each of these
+without a model judge. It plants facts in a document (synthetic filler, or a
+text of your own), each with a question whose answer is the planted value;
+plants lures, the same measure for a near-namesake with another value; and
+states one fact wrongly near the start and corrects it near the end. Each
+document is given forwards and reversed by paragraph (`gr_reverse_text()`),
+so a fact the forward reader meets last, the reverse reader meets first.
+
+```{r}
+chk <- gr_condensation_check(n_facts = 4, n_lures = 1, paragraphs = 8)
+chk
+chk$items[chk$items$order == "forward", c("kind", "question", "answer", "lure", "superseded")]
+```
+
+The arms differ in how they carry the document. Here a stand-in model plays a
+reader whose draft takes the lure's value and keeps the superseded figure,
+while a ledger of findings does not; on a real model the same code measures
+what each actually does.
+
+```{r}
+facts <- chk$items
+condenser <- gr_mock_client(function(messages, params) {
+  text <- vapply(messages, function(m) m$content, "")
+  if (grepl("Reply with the edits", text[length(text)], fixed = TRUE)) return("ADD: noted.")
+  asks <- text[startsWith(text, "Question: ")]
+  row <- facts[facts$question == sub("^Question: ", "", asks[length(asks)]), ][1, ]
+  ledger <- any(grepl("<findings>", text, fixed = TRUE))
+  if (!ledger && row$kind == "lure") return(paste("It was", row$lure))
+  if (!ledger && row$kind == "correction") return(paste("It was", row$superseded))
+  paste("It was", row$answer)
+})
+arms <- hr_sweep(gr_arm("thorough", list(reader = "refine", method = "paragraph")),
+                 list(refine_state = c("draft", "ledger")))
+cb <- hr_benchmark(arms, chk$reference, runs = 5, client = condenser, scorer = chk$scorer)
+gr_condensation_summary(chk, cb)
+```
+
+`fact_recall` is the share of runs whose answer holds the planted value,
+`lure_rate` the share of runs on lure items whose answer holds the lure's,
+`correction_won` the share of runs on the corrected fact that give the new
+figure and not the old, and `late_recall` fact recall over the facts in the
+last third of the document as it was read. `hr_report()` reads the same
+benchmark with intervals, since the check's `reference` and `scorer` are
+ordinary ones.
+
 ## Planning the size, and non-inferiority
 
 Often the question is whether a cheaper arm is worse than the one in use by
