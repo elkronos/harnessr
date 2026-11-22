@@ -241,6 +241,27 @@ listed in `$refused`, so check those by hand. `tier =` gives the figure for
 each group of seeds as well, and `gr_audit_report(recall = known)` adds it to
 the report.
 
+### Is each file the paper its record names?
+
+A record matched to a file by first author and year can get another paper by
+the same author in the same year. When the documents come from a record set,
+`gr_read_many()`, `gr_screen()` and `gr_extract()` look for the record's DOI
+and title in the opening of each document's text, and say in an `identity`
+column whether they found either:
+
+```{r}
+said <- gr_mock_client(function(m, p) "A randomised trial.")
+read <- gr_read_many(recs, "What was the design?", "fast", client = said)
+read$summary[, c("document", "identity")]
+```
+
+`smith2019.txt` was matched to "Cognitive load and retention" by its name, but
+its text is about spacing and prints neither that title nor the DOI, so
+`identity` is `FALSE` and the run warns with class `gr_identity_mismatch`.
+Nothing is dropped and `gr_flow()` counts the same: the column, the
+`warnings` cell and the audit report say which files to check by hand. `NA`
+means there was nothing to check, such as a record with only a short title.
+
 ## The review: protocol, screen, extract, write
 
 The single-document pipeline (ingest, segment, read) answers a question. A

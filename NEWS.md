@@ -19,6 +19,15 @@
   search's recall against the seed set and the seeds it missed. Calls that
   pass arguments by position keep their meaning.
 
+* `gr_read_many()`, and so `gr_screen()` and `gr_extract()`, check that each
+  file is the paper its record names when the sources come from a
+  `gr_records()`: the first 6,000 characters of its text are searched for
+  the record's DOI and title. A last `identity` column of `$summary` holds
+  `TRUE`, `FALSE` or `NA` (nothing to check), and `FALSE` warns with class
+  `gr_identity_mismatch` and is added to `warnings`. Nothing is dropped and
+  `gr_flow()` is unchanged. `print()` counts the mismatches, and the audit
+  report lists them. A run without records has no new column.
+
 ## Comparing methods and settings
 
 * A new guide, `vignette("compare")`, works through five comparisons offline,

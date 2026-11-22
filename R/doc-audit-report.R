@@ -97,6 +97,11 @@
 #'   recall with its interval, and which seeds it missed. Last, so every
 #'   existing call keeps its meaning.
 #'
+#' @section Files and their records:
+#' When the screening, the extraction or a `gr_corpus` was read from a
+#' [gr_records()], a section says how many files name their record's title
+#' or DOI in their opening text and lists those that do not (the `identity`
+#' column of [gr_read_many()]).
 #'
 #' @section An answer:
 #' With `answer`, the report shows the answer or says that it was not found,
@@ -221,6 +226,7 @@ gr_audit_report <- function(path, screening = NULL, extraction = NULL,
     audit_answer(answer),
     audit_protocol(protocol, extraction, screening, synthesis),
     audit_flow(screening, extraction, records, claims %||% synthesis$claims),
+    audit_identity(screening, extraction, answer),
     audit_screening(screening),
     audit_calibration(calibration),
     audit_extraction(extraction),
@@ -496,6 +502,38 @@ audit_flow <- function(screening, extraction, records = NULL, claims = NULL) {
   c("<h2>What happened to every document</h2>",
     "<p class='sub'>Every source is accounted for at every stage it reached.</p>",
     html_table(fl, numeric_cols = "n"))
+}
+
+#' Whether each file is the paper its record names, from the `identity`
+#' column gr_read_many() adds when its sources carry a record set. One table
+#' per stage that has the column; nothing for a run without records, or one
+#' made before the check existed.
+#' @noRd
+audit_identity <- function(screening = NULL, extraction = NULL, answer = NULL) {
+  stages <- list(screening = screening$summary, extraction = extraction$summary,
+                 reading = if (inherits(answer, "gr_corpus")) answer$summary)
+  stages <- Filter(function(s) is.data.frame(s) && !is.null(s[["identity"]]), stages)
+  if (!length(stages)) return(NULL)
+  per <- lapply(names(stages), function(nm) {
+    s <- stages[[nm]]
+    id <- as.logical(s$identity)
+    wrong <- s[id %in% FALSE, intersect(c("document", "status"), names(s)), drop = FALSE]
+    c(sprintf(paste0("<p><b>%s:</b> %d of %d document(s) name their record's title or DOI in ",
+                     "their opening text, %s do not, %d could not be checked.</p>"),
+              esc(nm), sum(id %in% TRUE), length(id),
+              if (any(id %in% FALSE)) sprintf("<span class='flag'>%d</span>", sum(id %in% FALSE))
+              else "0",
+              sum(is.na(id))),
+      if (nrow(wrong)) html_table(wrong))
+  })
+  c("<h2>Is each file the paper its record names?</h2>",
+    paste0("<p class='sub'>The first 6,000 characters of each document's text are searched for ",
+           "its record's DOI and title. A document that has neither may be another paper ",
+           "matched to the record (by first author and year, say). It was read and kept, and the ",
+           "counts above include it; check it by hand. A document could not be checked when it ",
+           "had no text, was not read in this run, or its record has only a DOI the opening does ",
+           "not print or a title too short to tell papers apart.</p>"),
+    unlist(per, use.names = FALSE))
 }
 
 #' @noRd
@@ -1728,7 +1766,8 @@ audit_corpus <- function(x) {
   # is what says it is a copy either way.
   dup_of <- if (is.null(s$duplicate_of)) rep(NA_character_, nrow(s)) else as.character(s$duplicate_of)
   keep <- intersect(c("document", "status", if (any(!is.na(dup_of))) "duplicate_of", "answer",
-                      "partial", "reader", "calls", "cost_usd", "seconds", "error", "warnings"),
+                      "partial", "reader", "calls", "cost_usd", "seconds", "error", "warnings",
+                      "identity"),
                     names(s))
   tab <- s[, keep, drop = FALSE]
   if (!is.null(tab$answer)) {
@@ -1768,7 +1807,8 @@ audit_corpus <- function(x) {
             nrow(s)),
     html_table(tab, numeric_cols = intersect(c("calls", "cost_usd", "seconds"), names(tab)),
                flag = list(status = function(v) v %in% c("failed", "skipped"),
-                           partial = function(v) isTRUE_vec(v))),
+                           partial = function(v) isTRUE_vec(v),
+                           identity = function(v) v %in% FALSE)),
     # Said only when there were answers to keep: a run in which every document
     # failed has none either way, and each row says why.
     if (!length(answers) && any(s$status %in% c("ok", "restored", "duplicate")))

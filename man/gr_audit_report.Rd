@@ -110,6 +110,14 @@ do not exist are all counted near the top. An audit that showed only what
 worked would look like diligence and be the opposite.
 }
 
+\section{Files and their records}{
+
+When the screening, the extraction or a \code{gr_corpus} was read from a
+\code{\link[=gr_records]{gr_records()}}, a section says how many files name their record's title
+or DOI in their opening text and lists those that do not (the \code{identity}
+column of \code{\link[=gr_read_many]{gr_read_many()}}).
+}
+
 \section{An answer}{
 
 With \code{answer}, the report shows the answer or says that it was not found,

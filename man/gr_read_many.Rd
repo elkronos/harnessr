@@ -128,6 +128,21 @@ model said what the document states instead of the question's premise, or
 \code{NA} when it reported nothing contradicting it. Such a row's \code{answer} is that
 sentence and its \code{not_found} is \code{FALSE}.
 
+When the sources come from a \code{\link[=gr_records]{gr_records()}}, or a \code{\link[=gr_screen]{gr_screen()}} result
+that carries one, there is one more column, last: \code{identity}, whether the
+file is the paper its record names. The first 6,000 characters of the
+cleaned text are searched for the record's DOI and for its title, compared
+as deduplication compares titles (letters and digits only, case and
+accents folded). \code{TRUE} when either is there; \code{FALSE} when the record has
+a title of 12 or more letters or digits and neither is there, which warns
+with class \code{gr_identity_mismatch} and adds the warning to \code{warnings}; \code{NA}
+when there was nothing to check (no text, a row that was skipped or
+restored from a store written before the check, a record with only a DOI
+the opening does not print, or a short title). A record matched to its file
+by first author and year is the case this catches: another paper by the
+same author in the same year. Nothing is dropped and \code{\link[=gr_flow]{gr_flow()}} counts the
+same; the column says which documents to check by hand.
+
 \code{document} is a filename and \code{document_id} is the hash of the cleaned text
 (and of the pages that never became text, when there are any). Cite with the
 second: a filename changes when the file is renamed, collides between
