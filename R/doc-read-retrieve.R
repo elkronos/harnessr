@@ -43,12 +43,14 @@ retrieve_select <- function(d, question, client, spec, trace) {
   if (is.finite(min_score)) rel[rel < min_score] <- -Inf
   chunk_emb <- if (nrow(emb) >= 2L) emb[-1, , drop = FALSE] else NULL
   lambda <- as_num1(spec$mmr, 1)
-  keep <- mmr_select(rel, chunk_emb, k, lambda)
+  keep <- mmr_select(mmr_relevance(rel, spec, lambda), chunk_emb, k, lambda)
   # head(), not [1]: of no scores that is nothing rather than NA, and d[NA, ]
-  # is a row of NAs that fits any budget.
+  # is a row of NAs that fits any budget. Recorded, because a min_score that
+  # passed no chunk otherwise left the run looking like an ordinary top-1.
+  below <- !length(keep) && is.finite(min_score) && length(scores) > 0L
   if (!length(keep)) keep <- utils::head(order(scores, decreasing = TRUE), 1L)
   list(keep = keep, scores = scores, source = ranked$source, degraded = ranked$degraded,
-       k = k, mmr = lambda)
+       k = k, mmr = lambda, below_min_score = below)
 }
 
 #' @noRd
@@ -100,11 +102,15 @@ read_retrieve <- function(chunks, question, client, spec, trace) {
                                                    sub$section, scores[fit$idx],
                                                    kind = "verbatim"),
              partial = !res$ok || length(fit$dropped) > 0 || degraded_embed || cut > 0L,
-             notes = list(chunks = nrow(d), top_k = k, used = nrow(sub), truncated_calls = cut,
-                          embedding_source = src, embedding_fallback = degraded_embed,
-                          mmr = lambda,
-                          context_order = as_chr1(spec$context_order, "relevance"),
-                          error = res$error)), res)
+             notes = c(list(chunks = nrow(d), top_k = k, used = nrow(sub), truncated_calls = cut,
+                            embedding_source = src, embedding_fallback = degraded_embed,
+                            mmr = lambda,
+                            context_order = as_chr1(spec$context_order, "relevance"),
+                            error = res$error),
+                       # Only when min_score passed no chunk and the best one
+                       # was read anyway, so a default answer keeps the notes
+                       # it had.
+                       if (isTRUE(sel$below_min_score)) list(below_min_score = TRUE))), res)
 }
 
 #' The one ranking `retrieve` and `iterative` both use: embedding similarity
@@ -134,6 +140,23 @@ fuse_scores <- function(dense, texts, query, spec, lexical = FALSE) {
   if (!isTRUE(lexical)) return(dense)
   w <- as_num1(spec$lexical_blend, 0.5)
   w * dense + (1 - w) * scale01(bm25())
+}
+
+#' The relevance mmr_select() weighs against cosine similarity. Under
+#' `fusion = "rrf"` with `mmr < 1`, the fused scores, which lie between 0 and
+#' `2 / (rrf_k + 1)` (about 0.033 at k = 60), are rescaled to [0, 1] over the
+#' chunks still eligible, so relevance and redundancy are on one scale.
+#' Unscaled, the redundancy term outweighed relevance after the first pick,
+#' and `mmr = 0.7` chose off-topic chunks. The order is unchanged, so plain
+#' top-k (`mmr = 1`) picks the same chunks either way. At the default fusion
+#' the scores go through as they are, as they always have.
+#' @noRd
+mmr_relevance <- function(rel, spec, lambda = as_num1(spec$mmr, 1)) {
+  if (!identical(as_chr1(spec$fusion, "default"), "rrf") || !is.finite(lambda) ||
+      lambda >= 1) return(rel)
+  ok <- is.finite(rel)
+  if (any(ok)) rel[ok] <- scale01(rel[ok])
+  rel
 }
 
 #' Reciprocal rank fusion of several score vectors over the same items:

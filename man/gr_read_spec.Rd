@@ -73,7 +73,9 @@ automatically for any model whose registry entry has
 \item{min_score}{For \code{retrieve}: chunks scoring below this are dropped, but
 if that would leave nothing the single best chunk is used anyway. \code{-Inf}
 disables the filter. Not a cosine similarity when embeddings fall back to
-lexical vectors: the score is then a blend of cosine and BM25.}
+lexical vectors: the score is then a blend of cosine and BM25, and under
+\code{fusion = "rrf"} it is the fused score (see \code{fusion}). When no chunk
+passes, the answer's \code{notes$below_min_score} is \code{TRUE}.}
 
 \item{mmr}{Diversity of selection, for \code{retrieve} and \code{iterative}. \code{1} (the
 default) is plain top-k. Below 1, chunks are picked greedily by
@@ -290,7 +292,13 @@ alone, so on embeddings that are not lexical the two rank alike.
 Learning Methods"): each chunk scores the sum of \code{1 / (rrf_k + rank)}
 over the two rankings, whatever the embeddings, and both readers fuse
 alike. It costs no request. Under \code{"rrf"}, \code{min_score} applies to the
-fused score, which lies between 0 and \code{2 / (rrf_k + 1)}. Untested.}
+fused score, which lies between 0 and \code{2 / (rrf_k + 1)}, about 0.033 at
+the default \code{rrf_k}: a floor chosen for cosine, such as 0.1, passes no
+chunk, so \code{retrieve} reads its best chunk alone and sets
+\code{notes$below_min_score}. With \code{mmr} below 1, the fused scores are
+rescaled to [0, 1] over the chunks still eligible before they are
+weighed against similarity, which lies between 0 and 1; the order, and
+so the plain top-k pick, is unchanged. Untested.}
 
 \item{rrf_k}{Under \code{fusion = "rrf"}, the constant \code{k}. [1, 1e4], default
 60, the value Cormack, Clarke and Buettcher (2009) use (\code{cited}); not

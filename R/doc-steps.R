@@ -125,8 +125,9 @@ gr_step_retrieve <- function(top_k = 6L, ..., name = NULL) {
                                             embedding_source = sel$source,
                                             scores = round(kept$score, 4)))
     chunks$chunks <- kept
-    chunks$retrieved <- list(from = nrow(d), embedding_source = sel$source,
-                             embedding_fallback = sel$degraded)
+    chunks$retrieved <- c(list(from = nrow(d), embedding_source = sel$source,
+                               embedding_fallback = sel$degraded),
+                          if (isTRUE(sel$below_min_score)) list(below_min_score = TRUE))
     state$chunks <- chunks
     state
   }

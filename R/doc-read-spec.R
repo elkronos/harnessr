@@ -199,7 +199,9 @@ gr_reader_signature <- function(reader) {
 #' @param min_score For `retrieve`: chunks scoring below this are dropped, but
 #'   if that would leave nothing the single best chunk is used anyway. `-Inf`
 #'   disables the filter. Not a cosine similarity when embeddings fall back to
-#'   lexical vectors: the score is then a blend of cosine and BM25.
+#'   lexical vectors: the score is then a blend of cosine and BM25, and under
+#'   `fusion = "rrf"` it is the fused score (see `fusion`). When no chunk
+#'   passes, the answer's `notes$below_min_score` is `TRUE`.
 #' @param mmr Diversity of selection, for `retrieve` and `iterative`. `1` (the
 #'   default) is plain top-k. Below 1, chunks are picked greedily by
 #'   `mmr * relevance - (1 - mmr) * similarity to what is already picked`, so
@@ -391,7 +393,13 @@ gr_reader_signature <- function(reader) {
 #'   Learning Methods"): each chunk scores the sum of `1 / (rrf_k + rank)`
 #'   over the two rankings, whatever the embeddings, and both readers fuse
 #'   alike. It costs no request. Under `"rrf"`, `min_score` applies to the
-#'   fused score, which lies between 0 and `2 / (rrf_k + 1)`. Untested.
+#'   fused score, which lies between 0 and `2 / (rrf_k + 1)`, about 0.033 at
+#'   the default `rrf_k`: a floor chosen for cosine, such as 0.1, passes no
+#'   chunk, so `retrieve` reads its best chunk alone and sets
+#'   `notes$below_min_score`. With `mmr` below 1, the fused scores are
+#'   rescaled to \[0, 1\] over the chunks still eligible before they are
+#'   weighed against similarity, which lies between 0 and 1; the order, and
+#'   so the plain top-k pick, is unchanged. Untested.
 #' @param rrf_k Under `fusion = "rrf"`, the constant `k`. \[1, 1e4\], default
 #'   60, the value Cormack, Clarke and Buettcher (2009) use (`cited`); not
 #'   tuned here. A larger `k` flattens the difference between top ranks.

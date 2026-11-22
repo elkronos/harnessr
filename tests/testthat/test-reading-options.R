@@ -239,6 +239,53 @@ test_that("retrieve and iterative give the same order on the same inputs", {
   expect_length(ro_order("retrieve", list(fusion = "rrf"), "lexical"), 6L)
 })
 
+ro_mmr_client <- function() {
+  vec <- function(t) {
+    v <- if (grepl("evenue", t)) c(1, 0.3 * (nchar(t) %% 3), 0, 0, 0)
+         else c(0, 0, as.numeric(nchar(t) %% 3 == 0:2))
+    v / sqrt(sum(v^2))
+  }
+  gr_mock_client(function(m, p) "45 million", embed_handler = function(texts, params) {
+    t(vapply(texts, vec, numeric(5), USE.NAMES = FALSE))
+  })
+}
+
+test_that("rrf with mmr below 1 weighs relevance on the scale of similarity", {
+  # Three chunks on revenue with like embeddings, three off the topic.
+  ch <- ro_chunks(c("Revenue rose to 45 million in 2024.", "Revenue in 2024 was 45 million dollars.",
+                    "In 2024 revenue reached 45 million.", "Staff grew to 310.",
+                    "Currency risk is named.", "The auditors signed."))
+  used <- function(...) {
+    a <- quiet(gr_read(ch, "What was revenue in 2024?", ro_mmr_client(),
+                       gr_read_spec("retrieve", top_k = 3L, ...)))
+    sort(a$chunks_used)
+  }
+  expect_identical(used(mmr = 0.7), 1:3)
+  expect_identical(used(mmr = 0.7, fusion = "rrf"), 1:3)
+  expect_identical(used(mmr = 1, fusion = "rrf"), 1:3)
+  ns <- asNamespace("harnessr")
+  # Rescaled only under rrf with mmr below 1, and an ineligible chunk stays so.
+  rel <- c(0.03, 0.02, -Inf, 0.016)
+  expect_identical(ns$mmr_relevance(rel, list(mmr = 0.7)), rel)
+  expect_identical(ns$mmr_relevance(rel, list(fusion = "rrf", mmr = 1)), rel)
+  expect_equal(ns$mmr_relevance(rel, list(fusion = "rrf", mmr = 0.7)),
+               c(1, (0.02 - 0.016) / (0.03 - 0.016), -Inf, 0))
+})
+
+test_that("a min_score no chunk passes is recorded", {
+  ch <- ro_rank_doc()
+  cl <- gr_mock_client(function(m, p) "Revenue was 45 million.")
+  a <- quiet(gr_read(ch, "What was revenue?", cl, gr_read_spec("retrieve", top_k = 3L,
+                                                                fusion = "rrf", min_score = 0.1)))
+  expect_length(a$chunks_used, 1L)
+  expect_true(a$notes$below_min_score)
+  a <- quiet(gr_read(ch, "What was revenue?", cl, gr_read_spec("retrieve", top_k = 3L)))
+  expect_false("below_min_score" %in% names(a$notes))
+  a <- quiet(gr_read(ch, "What was revenue?", cl, gr_read_spec("retrieve", top_k = 3L,
+                                                                min_score = -1)))
+  expect_false("below_min_score" %in% names(a$notes))
+})
+
 # ---------------------------------------------------------------------------
 # P3-09 and DEC-05: the outcome, and answer_format
 # ---------------------------------------------------------------------------

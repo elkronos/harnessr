@@ -801,6 +801,10 @@ rank fusion (Cormack, Clarke and Buettcher 2009), which adds
 not scores, so one ranking's scale cannot swamp the other's, at the price of
 ignoring how far apart the scores are. Its constant `rrf_k = 60` is the
 paper's (`cited`); `fusion` itself is `untested`. Neither costs a request.
+A fused score lies between 0 and `2 / (rrf_k + 1)`, so a `min_score` set for
+cosine passes no chunk under `"rrf"`; `retrieve` then reads its best chunk
+alone and sets `notes$below_min_score`. Under `mmr` below 1, the fused scores
+are rescaled to 0 to 1 before they are weighed against similarity.
 
 ```{r}
 bench <- sweep(hr_sweep(needle, expand.grid(top_k = 2, fusion = c("default", "rrf"),

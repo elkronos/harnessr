@@ -129,7 +129,7 @@ read_iterative <- function(chunks, question, client, spec, trace) {
     # which is how a chunk already read stays out of this round without
     # renumbering everything around it.
     sc[seen] <- -Inf
-    take <- mmr_select(sc, if (nrow(rank_emb) == nrow(d)) rank_emb else NULL,
+    take <- mmr_select(mmr_relevance(sc, spec), if (nrow(rank_emb) == nrow(d)) rank_emb else NULL,
                        as.integer(clamp(spec$top_k, 1, nrow(d))), as_num1(spec$mmr, 1))
     # Retrieval has run out, but a refused step is still owed its refusal: the
     # round goes on with the chunks already gathered, so the model can quote
