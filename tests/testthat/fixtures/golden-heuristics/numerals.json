@@ -1,0 +1,377 @@
+[
+  {
+    "input": "1,234",
+    "language": ["en"],
+    "numbers": [1234, 1.234]
+  },
+  {
+    "input": "12,345,678 participants",
+    "language": ["en"],
+    "numbers": [12345678]
+  },
+  {
+    "input": "n = 1,120",
+    "language": ["en"],
+    "numbers": [1120, 1.12]
+  },
+  {
+    "input": "1 234 567",
+    "language": ["en"],
+    "numbers": [1, 234, 567, 1234, 1234567, 234567]
+  },
+  {
+    "input": "1 234 567",
+    "language": ["en"],
+    "numbers": [1, 234, 567, 1234, 1234567, 234567]
+  },
+  {
+    "input": "1 234",
+    "language": ["en"],
+    "numbers": [1, 234, 1234]
+  },
+  {
+    "input": "1.234.567",
+    "language": ["en"],
+    "numbers": [1.234, 0.567, 1234567]
+  },
+  {
+    "input": "1'234'567",
+    "language": ["en"],
+    "numbers": [1, 234, 567, 1234, 1234567, 234567]
+  },
+  {
+    "input": "1 234,5",
+    "language": ["en"],
+    "numbers": [1, 2345, 1234.5, 234.5]
+  },
+  {
+    "input": "3.14",
+    "language": ["en"],
+    "numbers": [3.14]
+  },
+  {
+    "input": "0.5",
+    "language": ["en"],
+    "numbers": [0.5]
+  },
+  {
+    "input": ".75 of the sample",
+    "language": ["en"],
+    "numbers": [0.75]
+  },
+  {
+    "input": "45,2",
+    "language": ["en"],
+    "numbers": [452, 45.2]
+  },
+  {
+    "input": "2·5",
+    "language": ["en"],
+    "numbers": [2.5]
+  },
+  {
+    "input": "12.50",
+    "language": ["en"],
+    "numbers": [12.5]
+  },
+  {
+    "input": "20-30",
+    "language": ["en"],
+    "numbers": [20, 30]
+  },
+  {
+    "input": "20–30",
+    "language": ["en"],
+    "numbers": [20, 30]
+  },
+  {
+    "input": "1.5–2.0",
+    "language": ["en"],
+    "numbers": [1.5, 2]
+  },
+  {
+    "input": "from 5 to 10",
+    "language": ["en"],
+    "numbers": [5, 10]
+  },
+  {
+    "input": "between 18 and 65 years",
+    "language": ["en"],
+    "numbers": [18, 65]
+  },
+  {
+    "input": "ages 18–65",
+    "language": ["en"],
+    "numbers": [18, 65]
+  },
+  {
+    "input": "-5",
+    "language": ["en"],
+    "numbers": [5]
+  },
+  {
+    "input": "−5.3",
+    "language": ["en"],
+    "numbers": [5.3]
+  },
+  {
+    "input": "a change of -12%",
+    "language": ["en"],
+    "numbers": [12, 0.12]
+  },
+  {
+    "input": "fell to −40 degrees",
+    "language": ["en"],
+    "numbers": [40]
+  },
+  {
+    "input": "+3.5",
+    "language": ["en"],
+    "numbers": [3.5]
+  },
+  {
+    "input": "54%",
+    "language": ["en"],
+    "numbers": [54, 0.54]
+  },
+  {
+    "input": "54 per cent",
+    "language": ["en"],
+    "numbers": [54, 0.54]
+  },
+  {
+    "input": "fifty-four percent",
+    "language": ["en"],
+    "numbers": [54, 0.54]
+  },
+  {
+    "input": "12.5 %",
+    "language": ["en"],
+    "numbers": [12.5, 0.125]
+  },
+  {
+    "input": "0.5 percentage points",
+    "language": ["en"],
+    "numbers": [0.5]
+  },
+  {
+    "input": "$1.2 million",
+    "language": ["en"],
+    "numbers": [1.2, 1200000]
+  },
+  {
+    "input": "$3bn",
+    "language": ["en"],
+    "numbers": [3, 3000000000]
+  },
+  {
+    "input": "$1.2 bn",
+    "language": ["en"],
+    "numbers": [1.2, 1200000000]
+  },
+  {
+    "input": "US$ 2.5bn",
+    "language": ["en"],
+    "numbers": [2.5, 2500000000]
+  },
+  {
+    "input": "£1,250",
+    "language": ["en"],
+    "numbers": [1250, 1.25]
+  },
+  {
+    "input": "€45,2 Mio.",
+    "language": ["en"],
+    "numbers": [452, 45.2, 45200000]
+  },
+  {
+    "input": "¥3万",
+    "language": ["en"],
+    "numbers": [3, 30000]
+  },
+  {
+    "input": "1,2 millions d'euros",
+    "language": ["en"],
+    "numbers": [12, 1.2, 1200000]
+  },
+  {
+    "input": "1,2 Millionen Euro",
+    "language": ["en"],
+    "numbers": [12, 1.2, 1200000]
+  },
+  {
+    "input": "1,2 millones de dólares",
+    "language": ["es"],
+    "numbers": [12, 1.2, 1200000]
+  },
+  {
+    "input": "three million dollars",
+    "language": ["en"],
+    "numbers": [3000000]
+  },
+  {
+    "input": "2.4k",
+    "language": ["en"],
+    "numbers": [2.4, 2400]
+  },
+  {
+    "input": "twenty-one",
+    "language": ["en"],
+    "numbers": [21]
+  },
+  {
+    "input": "one hundred and five",
+    "language": ["en"],
+    "numbers": [105]
+  },
+  {
+    "input": "two and a half",
+    "language": ["en"],
+    "numbers": [2, 2.5, 0.5]
+  },
+  {
+    "input": "a quarter",
+    "language": ["en"],
+    "numbers": [0.25]
+  },
+  {
+    "input": "two thirds",
+    "language": ["en"],
+    "numbers": [2, 0.666666666666667, 0.67, 0.667]
+  },
+  {
+    "input": "one in five",
+    "language": ["en"],
+    "numbers": [1, 5, 0.2]
+  },
+  {
+    "input": "1 in 5",
+    "language": ["en"],
+    "numbers": [1, 5, 0.2]
+  },
+  {
+    "input": "½",
+    "language": ["en"],
+    "numbers": [0.5]
+  },
+  {
+    "input": "¾ of patients",
+    "language": ["en"],
+    "numbers": [0.75]
+  },
+  {
+    "input": "a dozen",
+    "language": ["en"],
+    "numbers": [12]
+  },
+  {
+    "input": "nineteen ninety-nine",
+    "language": ["en"],
+    "numbers": [19, 99]
+  },
+  {
+    "input": "3.2 x 10^-5",
+    "language": ["en"],
+    "numbers": [3.2, 10, 5, 3.2e-05, 1e-05]
+  },
+  {
+    "input": "3.2 × 10⁻⁵",
+    "language": ["en"],
+    "numbers": [3.2, 10, 5, 3.2e-05, 1e-05]
+  },
+  {
+    "input": "3.2 x 10-5",
+    "language": ["en"],
+    "numbers": [3.2, 10, 5, 3.2e-05]
+  },
+  {
+    "input": "2.1·10⁻³",
+    "language": ["en"],
+    "numbers": [2.1, 0.1, 3, 10, 0.0021, 0.001]
+  },
+  {
+    "input": "p < 0.001",
+    "language": ["en"],
+    "numbers": [0.001]
+  },
+  {
+    "input": "1e-3",
+    "language": ["en"],
+    "numbers": [0.001]
+  },
+  {
+    "input": "El ingreso fue de veintidós millones de euros en el año",
+    "language": ["es"],
+    "numbers": [22000000]
+  },
+  {
+    "input": "Les ventes ont atteint quatre-vingt-dix pour cent du total",
+    "language": ["fr"],
+    "numbers": [90, 0.9]
+  },
+  {
+    "input": "Der Umsatz stieg um dreiundzwanzig Prozent im Jahr",
+    "language": ["de"],
+    "numbers": [23, 0.23]
+  },
+  {
+    "input": "Il fatturato è stato di milleduecento euro nel periodo",
+    "language": ["it"],
+    "numbers": [1200]
+  },
+  {
+    "input": "A receita foi de cento e vinte milhões de reais no ano",
+    "language": ["pt"],
+    "numbers": [120000000]
+  },
+  {
+    "input": "De omzet steeg tot tweeduizend euro in het jaar",
+    "language": ["nl"],
+    "numbers": [2000]
+  },
+  {
+    "input": "٤٥",
+    "language": ["en"],
+    "numbers": [45]
+  },
+  {
+    "input": "४२",
+    "language": ["en"],
+    "numbers": [42]
+  },
+  {
+    "input": "三千五百",
+    "language": ["en"],
+    "numbers": [3500]
+  },
+  {
+    "input": "１２３",
+    "language": ["en"],
+    "numbers": [123]
+  },
+  {
+    "input": "phase III",
+    "language": ["en"],
+    "numbers": [3]
+  },
+  {
+    "input": "COVID-19",
+    "language": ["en"],
+    "numbers": [19]
+  },
+  {
+    "input": "Table 2",
+    "language": ["en"],
+    "numbers": [2]
+  },
+  {
+    "input": "no numbers here",
+    "language": ["en"],
+    "numbers": []
+  },
+  {
+    "input": "",
+    "language": ["en"],
+    "numbers": []
+  }
+]

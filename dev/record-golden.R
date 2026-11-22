@@ -7,7 +7,11 @@
 # It loads the package from this source tree (with pkgload, when installed;
 # otherwise the installed harnessr, which must then be reinstalled from this
 # tree first), runs every golden run defined in tests/testthat/helper-golden.R
-# and rewrites tests/testthat/fixtures/golden/ from scratch.
+# and rewrites tests/testthat/fixtures/golden/ from scratch. It then records
+# the heuristic records (the numeral parser and the PDF layout pass) in
+# tests/testthat/fixtures/golden-heuristics/. Without pdftools the PDF read
+# record cannot be computed, so its fixture is left as it is and a note says
+# so.
 #
 # Only rerun this when a change in behaviour is intended. The fixtures are the
 # record of what the package did before the change; rewriting them is how the
@@ -45,3 +49,17 @@ cat(sprintf("%d golden runs, %d model calls; API snapshot of %d exports and %d S
             length(runs), sum(n_calls), length(records$api$exports),
             length(records$api$s3methods)))
 cat(sprintf("%d files, %.1f KB, in %s\n", length(files), size / 1024, dir))
+
+heur <- golden_heuristics(".")
+hdir <- golden_heuristics_dir(".")
+hfiles <- golden_heuristics_write(heur, hdir)
+cat(sprintf("Heuristic records: %d numeral strings, %d fixture PDFs laid out%s.\n",
+            length(heur$numerals), length(heur$`pdf-layout`),
+            if (is.null(heur$`pdf-read`)) "" else sprintf(", %d read", length(heur$`pdf-read`))))
+if (is.null(heur$`pdf-read`)) {
+  cat("pdftools is not installed: pdf-read.json was left as it was.\n")
+} else if (!all(vapply(heur$`pdf-read`, function(r) r$pages_as_built, logical(1)))) {
+  cat("Note: this pdftools reads some fixture pages differently from the one that built",
+      "them (pages_as_built is FALSE in pdf-read.json).\n")
+}
+cat(sprintf("%d files, %.1f KB, in %s\n", length(hfiles), sum(file.size(hfiles)) / 1024, hdir))
