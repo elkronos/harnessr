@@ -778,8 +778,8 @@ settings do nothing for `retrieve`, and `hr_sweep_check()` shows it.
 
 **Where the defaults came from.** Robertson and Zaragoza (2009) give
 `bm25_b = 0.75` as the usual value and `bm25_k1` between 1.2 and 2.0; 1.5 lies
-inside that range (`cited`). Neither was tuned here. `lexical_blend = 0.5`, an even blend, was set when the offline
-path was written (`untested`).
+inside that range (`cited`). Neither was tuned here. `lexical_blend = 0.5`,
+an even blend, was set when the offline path was written (`untested`).
 
 **How to test them.**
 

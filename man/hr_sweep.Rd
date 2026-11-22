@@ -53,9 +53,12 @@ the same configuration when everything but their names is the same,
 including the values their code reads and the values read by any helper
 function it calls by name: a function that ignores one of its arguments
 builds the same arm for every value of it. A value held in an
-environment, rather than read by name, is not compared, so two such arms
-can look like one configuration here and still send different requests;
-\code{\link[=hr_sweep_check]{hr_sweep_check()}} compares what was sent.
+environment rather than read by name is not compared, and neither is a
+helper reached through a list or another object (\code{h$ask()}), whose code is
+compared but not the values it reads. Two such arms can look like one
+configuration here and still send different requests, and a sweep would
+keep only one of them: call such helpers by name, or check with
+\code{\link[=hr_sweep_check]{hr_sweep_check()}}, which compares what was sent.
 
 Sweeping one setting at a time on the dev split, then comparing the arm
 chosen with the default on test, is the order \code{vignette("compare")}

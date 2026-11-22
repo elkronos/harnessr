@@ -472,10 +472,11 @@ letters in OCR text (a quotation that fails verification against a page that
 plainly says it) point to a higher `ocr_dpi` or the right `ocr_lang`.
 
 **Where the defaults came from.** `ocr_dpi = 300` follows Tesseract's
-documentation on improving output quality (`cited`). `ocr = "auto"`,
-`ocr_min_chars = 40` were set when OCR was added, and `ocr_lang = "eng"` is
-English because the package's own examples are in English. All three are
-`untested`.
+documentation on improving output quality (`cited`). `ocr = "auto"` runs OCR
+only where a page has no text layer, and no other choice has been compared.
+`ocr_min_chars = 40` was set when OCR was added and has not been tuned, and
+`ocr_lang = "eng"` is English because the package's own examples are in
+English. All three are `untested`.
 
 **How to test it.** OCR needs a scanned file and the tesseract and magick
 packages, so this runs on your own documents, with a reference built from them
