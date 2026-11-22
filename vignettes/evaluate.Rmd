@@ -451,10 +451,21 @@ ec$check
 
 Every pair is positively correlated, and every pair that is wrong together
 gives the same wrong answer, "no": the three items every arm gets wrong carry
-most of it. With difficulty strata (`n_strata = 3`, the default) those items
-fall into a stratum of their own, where neither arm is ever right, so phi
-there is undefined and the pooled phi reads only what the arms' own errors
-share.
+most of it. With difficulty strata (`n_strata = 3`, the default) the items are
+cut by the share of runs that got them wrong:
+
+```{r}
+ec3 <- hr_error_correlation(eb)
+table(ec3$strata)
+ec3$phi[, c("arm_a", "arm_b", "stratum", "items", "both_wrong", "phi")]
+```
+
+Tied shares leave two strata, not three. Stratum "3" holds q01 to q03 and
+q12, which every-4 and every-6 get wrong as well. In it, one arm of each pair
+is wrong on all four items (every-5 is right on q12, but its partner is not),
+so phi there is undefined. The pooled phi then reads only the eight items of
+stratum "1", where each arm's errors fall on items of its own, and it comes
+out negative.
 
 ## Planning the size, and non-inferiority
 
