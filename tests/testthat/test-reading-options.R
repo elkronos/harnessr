@@ -621,14 +621,17 @@ test_that("gr_methods_text() does not count a cached request's tokens as sent", 
   t2 <- gr_methods_text(x2)
   expect_false(grepl("They sent", t2, fixed = TRUE))
   expect_false(grepl("sent to the provider", t2, fixed = TRUE))
-  expect_match(t2, "All [0-9]+ answered from a cache or a recording sent nothing")
+  expect_match(t2, "It needed [0-9]+ model answer\\(s\\), from [^;]+; all of them came from a cache")
+  expect_match(t2, "The answers from a cache or a recording sent nothing.", fixed = TRUE)
+  expect_false(grepl("It made", t2, fixed = TRUE))
   # Some sent, some from the cache.
   x3 <- quiet(gr_read(ch, "What was revenue in 2024?", cl, gr_read_spec("map_reduce")))
   tr <- gr_trace()
   tr$steps <- c(harnessr:::answer_trace(x2)$steps, harnessr:::answer_trace(x1)$steps)
   t3 <- gr_methods_text(tr)
   expect_match(t3, "The [0-9]+ sent to the provider carried [0-9,]+ prompt token\\(s\\)")
-  expect_match(t3, "The [0-9]+ answered from a cache or a recording sent nothing")
+  expect_match(t3, "; [0-9]+ of them came from a cache or a recording")
+  expect_match(t3, "The answers from a cache or a recording sent nothing.", fixed = TRUE)
 })
 
 test_that("gr_methods_text() describes a benchmark's design and requests", {

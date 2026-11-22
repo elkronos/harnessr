@@ -132,6 +132,14 @@ methods_requests <- function(trace) {
   if (any(!emb)) {
     out <- c(out, sprintf("It made %d model request(s), which asked for %s.", sum(!emb),
                           named(model[!emb])))
+    held_n <- sum(!emb & cached)
+    if (held_n > 0) {
+      out[length(out)] <- sprintf(paste0("It needed %d model answer(s), from %s; %s came from a ",
+                                         "cache or a recording, not from the provider."),
+                                  sum(!emb), named(model[!emb]),
+                                  if (held_n == sum(!emb)) "all of them" else
+                                    sprintf("%d of them", held_n))
+    }
     sv <- served[!emb]
     out <- c(out, if (all(is.na(sv))) {
       "The provider did not report which model answered them."
@@ -152,19 +160,18 @@ methods_requests <- function(trace) {
                                      "and received %s reply token(s)."),
                               sum(live), tokens(live)[1], tokens(live)[2]))
       }
-      out <- c(out, sprintf(paste0("%s %d answered from a cache or a recording sent nothing; ",
-                                   "their record holds %s prompt token(s) and %s reply ",
-                                   "token(s) from the requests that first made them."),
-                            if (any(live)) "The" else "All", sum(held),
+      out <- c(out, sprintf(paste0("The answers from a cache or a recording sent nothing. ",
+                                   "Their record holds %s prompt token(s) and %s reply ",
+                                   "token(s) from the run that first made those requests."),
                             tokens(held)[1], tokens(held)[2]))
     }
   }
   if (any(emb)) {
     out <- c(out, sprintf("It made %d embeddings request(s), to %s.", sum(emb), named(model[emb])))
   }
-  if (any(cached)) {
-    out <- c(out, sprintf("%d of the %d request(s) were answered from a cache or a recording.",
-                          sum(cached), length(req)))
+  if (any(emb & cached)) {
+    out <- c(out, sprintf("%d of the %d embeddings request(s) were answered from a cache.",
+                          sum(emb & cached), sum(emb)))
   }
   c(out, methods_prompts(req[!emb]))
 }
