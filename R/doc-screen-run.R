@@ -101,6 +101,15 @@ read_screen <- function(chunks, question, client, spec, trace) {
   # own draw_index, so a cache keeps them apart). At one sample the request
   # is the one screening always sent.
   n_samples <- max(1L, as_int1(spec[["samples"]], 1L))
+  # An index given to a call overrides the one hr_benchmark() puts on each
+  # run's trace, so draws 1 to n alone sent every run of a benchmark the same
+  # requests: a cache answered run 2 with run 1's replies. Run r sends draws
+  # (r - 1) * n + 1 to r * n; outside a benchmark (no index), 1 to n.
+  run <- if (inherits(trace, "gr_trace")) {
+    as_int1(get0("draw_index", envir = trace, inherits = FALSE), 0L)
+  } else 0L
+  if (is.na(run) || run < 1L) run <- 0L
+  first_draw <- if (run > 0L) (run - 1L) * n_samples else 0L
   ask <- function(k) gr_call_json(client, messages, schema = schema, schema_name = "screening",
                                   model = spec$model, max_output = spec$max_answer_tokens,
                                   temperature = spec$temperature, trace = trace,
@@ -155,7 +164,7 @@ read_screen <- function(chunks, question, client, spec, trace) {
          quote = quote, status = status)
   }
   j <- if (n_samples == 1L) judge(ask(0L)) else
-    combine_draws(lapply(seq_len(n_samples), function(k) judge(ask(k))),
+    combine_draws(lapply(first_draw + seq_len(n_samples), function(k) judge(ask(k))),
                   as_chr1(spec[["sample_rule"]], "include_if_any"))
   capped <- j$capped; failed <- j$failed; decision <- j$decision; reason <- j$reason
   error <- j$error; quote <- j$quote; status <- j$status
@@ -279,7 +288,9 @@ combine_draws <- function(js, rule = "include_if_any") {
 #'   the draws are combined by `sample_rule`; the table gains
 #'   `sample_decisions` (each draw's decision, `"none"` for one not read) and
 #'   `include_share` (the share of draws read that included). It multiplies
-#'   the screening requests by `samples`. Untested.
+#'   the screening requests by `samples`. In run r of [hr_benchmark()] the
+#'   draws are numbered (r - 1) * samples + 1 to r * samples, so each run
+#'   sends its own draws. Untested.
 #' @param sample_rule How draws are combined when `samples` is above 1.
 #'   `"include_if_any"` (the default) includes a document any draw included,
 #'   excludes one only when every draw was read and excluded it, and sends

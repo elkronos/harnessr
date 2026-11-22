@@ -72,7 +72,9 @@ is sent that many times, each a separate draw (a cache keeps each), and
 the draws are combined by \code{sample_rule}; the table gains
 \code{sample_decisions} (each draw's decision, \code{"none"} for one not read) and
 \code{include_share} (the share of draws read that included). It multiplies
-the screening requests by \code{samples}. Untested.}
+the screening requests by \code{samples}. In run r of \code{\link[=hr_benchmark]{hr_benchmark()}} the
+draws are numbered (r - 1) * samples + 1 to r * samples, so each run
+sends its own draws. Untested.}
 
 \item{sample_rule}{How draws are combined when \code{samples} is above 1.
 \code{"include_if_any"} (the default) includes a document any draw included,

@@ -761,6 +761,38 @@ test_that("samples is swept as arms", {
   expect_length(arms, 2L)
 })
 
+test_that("each benchmark run sends its own screening draws, so a cache keeps runs apart", {
+  f <- po_screen_file()
+  ref <- hr_reference(f, labels = "include", cluster = "d", split = "test")
+  sent <- integer(0)
+  base <- gr_mock_client(function(messages, params) {
+    sent <<- c(sent, as.integer(params$draw_index %||% 0L))
+    '{"decision":"include","reason":"r","criterion":null,"quote":null}'
+  })
+  arm <- function(s) {
+    hr_arm(paste0("screen-", s), function(item, ctx) {
+      gr_screen(item, question = "Does it work?", include = po_include, exclude = po_exclude,
+                client = ctx$client, samples = s, trace = ctx$trace)$table$decision
+    })
+  }
+  po_quiet(hr_benchmark(list(arm(1)), ref, runs = 2, client = base))
+  expect_identical(sent, 1:2)
+  sent <- integer(0)
+  po_quiet(hr_benchmark(list(arm(2)), ref, runs = 2, client = base))
+  expect_identical(sent, 1:4)
+  # Under a cache, the second run is not answered from the first run's entries.
+  sent <- integer(0)
+  cached <- gr_cache_client(base, gr_cache(tempfile("po-cache")))
+  b <- po_quiet(hr_benchmark(list(arm(2)), ref, runs = 2, client = cached))
+  expect_identical(nrow(b), 2L)
+  expect_identical(sent, 1:4)
+  # Outside a benchmark, draws 1 to n, as before.
+  cl <- po_draw_screener(list("include", "include"))
+  po_quiet(gr_screen(f, question = "Does it work?", include = po_include, exclude = po_exclude,
+                     client = cl, samples = 2))
+  expect_identical(vapply(cl$calls(), function(x) as.integer(x$params$draw_index), 1L), 1:2)
+})
+
 # ---------------------------------------------------------------------------
 # P2D-08: error-correlation metrics on benchmark output
 # ---------------------------------------------------------------------------
