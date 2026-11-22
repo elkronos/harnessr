@@ -81,7 +81,7 @@ Each option below is off by default, so a default run sends the requests it
 sent before, keeps its store, cache and replay keys, and returns the tables
 it returned. Each is declared with its evidence (`untested` unless a source
 is named), is listed by `gr_settings_table()`, and has a walkthrough that
-says how to test it with `hr_sweep()`.
+says how to test it with `hr_sweep()`. The settings come to 219 in all.
 
 * `gr_extract()` gains `resolve = "vote"`, which keeps the value most of a
   document's chunks gave, for no extra request; a tie goes to the earliest
@@ -179,6 +179,15 @@ says how to test it with `hr_sweep()`.
 * `semantic` run on lexical vectors now reports its method as
   `"semantic->lexical"`, as it reports `"semantic->paragraph"` when it falls
   back. This is a label fix: the chunks and the requests are unchanged.
+
+* New `hr_error_correlation()` says how far a benchmark's arms fail on the
+  same items: the phi coefficient between each pair's errors within strata
+  of item difficulty (or strata you give), pooled over the strata; the
+  share of items both got wrong where they gave the same wrong answer (Kim
+  et al. 2025); and a sample of items every arm got wrong, for a person to
+  check. It reads the benchmark's rows and sends nothing. Yen's Q3 from a
+  one-parameter mixed model is not computed, since it would need lme4,
+  which harnessr does not depend on.
 
 ## Claims and the write-up: what each rests on
 

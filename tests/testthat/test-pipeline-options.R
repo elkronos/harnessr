@@ -708,3 +708,74 @@ test_that("samples is swept as arms", {
   }, list(samples = c(1, 3)))
   expect_length(arms, 2L)
 })
+
+# ---------------------------------------------------------------------------
+# P2D-08: error-correlation metrics on benchmark output
+# ---------------------------------------------------------------------------
+
+po_blind_bench <- function(everies = c(4, 5, 6), runs = 5) {
+  truth <- hr_reference(sprintf("q%02d", 1:12), labels = rep("yes", 12),
+                        cluster = sprintf("c%02d", 1:12), split = "test")
+  blind <- function(every) {
+    hr_arm(paste0("every-", every), function(item, ctx) {
+      n <- as.integer(sub("q", "", item))
+      if (n <= 3) return("no")
+      if (n %% every == 0) return(paste("wrong", every))
+      "yes"
+    }, params = list(every = every))
+  }
+  po_quiet(hr_benchmark(hr_sweep(blind, list(every = everies)), truth, runs = runs,
+                        client = NULL))
+}
+
+test_that("phi, the same-wrong rate and the hand-check sample are what the runs say", {
+  eb <- po_blind_bench()
+  ec <- hr_error_correlation(eb, n_strata = 1)
+  expect_s3_class(ec, "hr_error_correlation")
+  # hr_sweep() names each arm by its setting.
+  arm <- function(k) unique(eb$arm)[startsWith(unique(eb$arm), paste0("every-", k))]
+  p <- ec$pairs[ec$pairs$arm_a == arm(4) & ec$pairs$arm_b == arm(6), ]
+  # every-4 is wrong on 1-4, 8, 12; every-6 on 1-3, 6, 12.
+  x <- (1:12) %in% c(1:4, 8, 12); y <- (1:12) %in% c(1:3, 6, 12)
+  expect_equal(p$phi_pooled, stats::cor(x, y))
+  expect_identical(p$both_wrong, 4L)
+  # Both say "no" on 1-3; on 12 they give different wrong answers.
+  expect_identical(p$same_wrong, 3L)
+  expect_equal(p$same_wrong_rate, 3 / 4)
+  expect_identical(ec$all_wrong, 3L)
+  expect_setequal(ec$check$item, c("q01", "q02", "q03"))
+  expect_true(all(ec$check[[arm(5)]] == "no"))
+  expect_match(ec$q3, "lme4", fixed = TRUE)
+  # The sample is drawn under its own seed and leaves the caller's alone.
+  set.seed(9); before <- runif(1); set.seed(9)
+  small <- hr_error_correlation(eb, n_strata = 1, n_check = 2, seed = 3)
+  expect_identical(runif(1), before)
+  expect_identical(nrow(small$check), 2L)
+  expect_identical(hr_error_correlation(eb, n_strata = 1, n_check = 2, seed = 3)$check,
+                   small$check)
+})
+
+test_that("difficulty strata separate a shared blind spot from the arms' own errors", {
+  eb <- po_blind_bench()
+  ec <- hr_error_correlation(eb)
+  # The three items every arm gets wrong sit in the hardest stratum, where
+  # phi is undefined.
+  hard <- names(ec$strata)[ec$strata == ec$strata[["q01"]]]
+  expect_true(all(c("q01", "q02", "q03") %in% hard))
+  expect_true(all(is.na(ec$phi$phi[ec$phi$stratum == ec$strata[["q01"]]])))
+  # Given strata are used as given.
+  st <- stats::setNames(rep(c("a", "b"), each = 6), sprintf("q%02d", 1:12))
+  ec2 <- hr_error_correlation(eb, strata = st)
+  expect_setequal(unique(ec2$phi$stratum), c("a", "b"))
+  expect_output(print(ec), "hr_error_correlation")
+})
+
+test_that("hr_error_correlation() checks its inputs", {
+  eb <- po_blind_bench()
+  expect_error(hr_error_correlation(data.frame()), class = "gr_bad_setting")
+  expect_error(hr_error_correlation(eb, n_strata = 0), class = "gr_bad_setting")
+  expect_error(hr_error_correlation(eb, n_check = -1), class = "gr_bad_setting")
+  expect_error(hr_error_correlation(eb, strata = c(a = "x")), class = "gr_bad_setting")
+  one <- po_blind_bench(everies = 4)
+  expect_error(hr_error_correlation(one), class = "gr_bad_setting")
+})

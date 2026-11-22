@@ -191,7 +191,7 @@ with intervals that treat the questions about one document as a cluster. See
 Every setting has a default, and five guides end with walkthroughs of the
 important ones: what each trades off, the signs in your results that point to
 changing it, where its default came from and how to test a change with
-`hr_sweep()`. The [settings reference](https://elkronos.github.io/harnessr/articles/settings.html) lists all 214 with
+`hr_sweep()`. The [settings reference](https://elkronos.github.io/harnessr/articles/settings.html) lists all 219 with
 their defaults, and `gr_settings_table()` returns them in R.
 
 | stage | settings | most used | walkthroughs |
@@ -202,7 +202,7 @@ their defaults, and `gr_settings_table()` returns them in R.
 | screen | 33 | `screen_tokens`, `recall_target`, `conf` | [calibration](https://elkronos.github.io/harnessr/articles/review.html#set-calibration) |
 | extract | 10 | `resolve`, `require_quote` | [extraction](https://elkronos.github.io/harnessr/articles/review.html#set-extract) |
 | synthesise | 28 | `coherence`, `cite_style` | [synthesis](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) |
-| evaluate | 22 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html) |
+| evaluate | 27 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html) |
 | options | 34 | `model`, `max_cost_usd`, `max_calls` | [limits](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) |
 
 ## What an answer gives back

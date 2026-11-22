@@ -456,6 +456,10 @@
       "formals": ["frozen", "arm", "runs = 5", "alpha = 0.05", "alert = NULL", "client", "reference", "scorer = hr_scorer_exact()", "governor = NULL", "B = 2000", "seed = NULL"],
       "type": "function"
     },
+    "hr_error_correlation": {
+      "formals": ["bench", "strata = NULL", "n_strata = 3L", "n_check = 10L", "held_out = TRUE", "seed = 1L"],
+      "type": "function"
+    },
     "hr_gate_threshold": {
       "formals": ["cal", "action", "risk = c(\"error_among_accepted\", \"miss_rate\")", "alpha", "delta = 0.05", "grid = NULL"],
       "type": "function"
@@ -895,6 +899,11 @@
     "print.hr_drift_check": {
       "class": "hr_drift_check",
       "formals": ["x", "digits = 3", "..."],
+      "generic": "print"
+    },
+    "print.hr_error_correlation": {
+      "class": "hr_error_correlation",
+      "formals": ["x", "..."],
       "generic": "print"
     },
     "print.hr_governor": {

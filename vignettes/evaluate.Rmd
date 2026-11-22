@@ -409,6 +409,53 @@ is in the returned list (`rpt$accuracy`, `rpt$contrasts`, `rpt$pass_k`,
 `rpt$cost`, `rpt$frontier`, `rpt$failures`, `rpt$variance`, `rpt$notes`), and
 `as_json()` writes it out.
 
+### Errors the arms share {#set-errcorr}
+
+**What it controls.** `hr_error_correlation()` says how far the arms' errors
+go together: the phi coefficient between each pair's errors within strata of
+item difficulty (`n_strata`, or your own `strata`), the share of items both
+got wrong where they gave the same wrong answer, and a sample of `n_check`
+items every arm got wrong, for a person to read. Two arms with good
+accuracy that fail on the same items gain little from being combined, or from
+checking each other. It reads the benchmark's rows (with `held_out = TRUE`,
+only those that count as evidence) and sends nothing. Yen's Q3, the residual
+correlation of an item response model, is not computed: it needs a mixed-model
+package harnessr does not depend on.
+
+**Signs it needs reading.** A plan to vote across arms, to use one arm to
+check another, or to call two arms' agreement a sign of being right; or a
+benchmark where most errors fall on a few items.
+
+**Where the defaults came from.** Three difficulty strata, a sample of ten and
+reading only held-out rows were set when the metric was added and have not
+been compared (`untested`).
+
+**How to test it.** Here three arms share a blind spot on the first three
+items and each also fails items of its own, built with `hr_sweep()`:
+
+```{r}
+truth <- hr_reference(sprintf("q%02d", 1:12), labels = rep("yes", 12),
+                      cluster = sprintf("c%02d", 1:12), split = "test")
+blind <- function(every) {
+  hr_arm(paste0("every-", every), function(item, ctx) {
+    n <- as.integer(sub("q", "", item))
+    if (n <= 3 || n %% every == 0) "no" else "yes"
+  }, params = list(every = every))
+}
+eb <- hr_benchmark(hr_sweep(blind, list(every = c(4, 5, 6))), truth, runs = 5,
+                   client = NULL)
+ec <- hr_error_correlation(eb, n_strata = 1)
+ec$pairs[, c("arm_a", "arm_b", "phi_pooled", "both_wrong", "same_wrong_rate")]
+ec$check
+```
+
+Every pair is positively correlated, and every pair that is wrong together
+gives the same wrong answer, "no": the three items every arm gets wrong carry
+most of it. With difficulty strata (`n_strata = 3`, the default) those items
+fall into a stratum of their own, where neither arm is ever right, so phi
+there is undefined and the pooled phi reads only what the arms' own errors
+share.
+
 ## Planning the size, and non-inferiority
 
 Often the question is whether a cheaper arm is worse than the one in use by

@@ -30,7 +30,8 @@
   hr_report = list(stage = "evaluate", inputs = c("bench", "registration")),
   hr_judge = list(stage = "evaluate", inputs = c("candidates", "client", "reference", "rubric",
                                                  "schema", "trace")),
-  gr_compare = list(stage = "evaluate", inputs = c("source", "question", "client", "correct"))
+  gr_compare = list(stage = "evaluate", inputs = c("source", "question", "client", "correct")),
+  hr_error_correlation = list(stage = "evaluate", inputs = "bench")
 )
 
 #' The arguments of those functions most runs set, as "function.argument".
@@ -75,6 +76,13 @@
   gr_screen.sample_rule = ev_untested(paste0(
     "\"include_if_any\" so that no study one draw would keep is lost; not compared with ",
     "\"majority\".")),
+  hr_error_correlation.n_strata = ev_untested(paste0(
+    "Three strata of difficulty, set when the metric was added; not compared.")),
+  hr_error_correlation.n_check = ev_untested(paste0(
+    "Ten items, a sample one person can read in a sitting; a choice, not a tuned value.")),
+  hr_error_correlation.held_out = ev_untested(paste0(
+    "Only the rows that count as evidence, as hr_report() reads them; a rule, not a tuned ",
+    "value.")),
   gr_extract.agreement_columns = ev_untested(
     "Off, so the table keeps the columns it had; it changes no request."),
   gr_extract.require_quote = ev_untested(paste0(
@@ -189,6 +197,11 @@
   synthesise.prominence = "review#set-synthesis",
   synthesise.unverified = "review#set-synthesis",
   evaluate.governor = "runs#set-governor",
+  evaluate.hr_error_correlation.strata = "evaluate#set-errcorr",
+  evaluate.hr_error_correlation.n_strata = "evaluate#set-errcorr",
+  evaluate.hr_error_correlation.n_check = "evaluate#set-errcorr",
+  evaluate.hr_error_correlation.held_out = "evaluate#set-errcorr",
+  evaluate.hr_error_correlation.seed = "evaluate#set-errcorr",
   options.max_cost_usd = "runs#set-limits", options.max_calls = "runs#set-limits",
   options.max_tokens_total = "runs#set-limits", options.max_output_tokens = "runs#set-limits",
   options.allowed_models = "runs#set-limits", options.allow_unpriced = "runs#set-limits")
@@ -218,8 +231,8 @@
 #'     the functions of each stage ([gr_screen()], [gr_reference()],
 #'     [gr_calibrate()], [gr_screen_sample_size()] and [gr_stop_test()];
 #'     [gr_extract()]; [gr_claims()], [gr_outline()], [gr_gaps()] and
-#'     [gr_synthesise()]; [hr_benchmark()], [hr_report()], [hr_judge()] and
-#'     [gr_compare()]), leaving out the inputs a call works on (the
+#'     [gr_synthesise()]; [hr_benchmark()], [hr_report()], [hr_judge()],
+#'     [gr_compare()] and [hr_error_correlation()]), leaving out the inputs a call works on (the
 #'     documents, the client, the trace). Defaults are the functions' own,
 #'     and descriptions the first sentence of each argument's help.}
 #'   \item{`options`}{Every [gr_options()] option, with its default, the

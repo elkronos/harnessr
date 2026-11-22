@@ -43,8 +43,8 @@ arguments of \code{\link[=gr_read_many]{gr_read_many()}}.}
 the functions of each stage (\code{\link[=gr_screen]{gr_screen()}}, \code{\link[=gr_reference]{gr_reference()}},
 \code{\link[=gr_calibrate]{gr_calibrate()}}, \code{\link[=gr_screen_sample_size]{gr_screen_sample_size()}} and \code{\link[=gr_stop_test]{gr_stop_test()}};
 \code{\link[=gr_extract]{gr_extract()}}; \code{\link[=gr_claims]{gr_claims()}}, \code{\link[=gr_outline]{gr_outline()}}, \code{\link[=gr_gaps]{gr_gaps()}} and
-\code{\link[=gr_synthesise]{gr_synthesise()}}; \code{\link[=hr_benchmark]{hr_benchmark()}}, \code{\link[=hr_report]{hr_report()}}, \code{\link[=hr_judge]{hr_judge()}} and
-\code{\link[=gr_compare]{gr_compare()}}), leaving out the inputs a call works on (the
+\code{\link[=gr_synthesise]{gr_synthesise()}}; \code{\link[=hr_benchmark]{hr_benchmark()}}, \code{\link[=hr_report]{hr_report()}}, \code{\link[=hr_judge]{hr_judge()}},
+\code{\link[=gr_compare]{gr_compare()}} and \code{\link[=hr_error_correlation]{hr_error_correlation()}}), leaving out the inputs a call works on (the
 documents, the client, the trace). Defaults are the functions' own,
 and descriptions the first sentence of each argument's help.}
 \item{\code{options}}{Every \code{\link[=gr_options]{gr_options()}} option, with its default, the
