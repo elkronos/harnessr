@@ -66,6 +66,16 @@
 #' ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150))
 #' ans <- gr_read(ch, "What was revenue?", cl, "iterative")
 #' hr_signals(ans)
+#'
+#' # An arm in a benchmark records signals with ctx$note(), and hr_signals()
+#' # reads them back with the arm, run and item of each.
+#' ref <- hr_reference(list(q1 = "France"), "Paris", "a", split = "test")
+#' arm <- hr_arm("noted", function(item, ctx) {
+#'   ctx$note("demo.sure", ctx$run > 2)
+#'   "Paris"
+#' })
+#' bench <- hr_benchmark(arm, ref, runs = 5)
+#' hr_signals(bench)[, c("arm", "run", "item", "signal", "value")]
 hr_signal <- function(name, value, trace = NULL, item_id = NA_character_, refs = NULL) {
   if (!is.character(name) || length(name) != 1L || !is_nonblank(name)) {
     gr_abort("`name` must be one non-blank string.", class = "gr_bad_setting")
@@ -129,8 +139,8 @@ signal_trace <- function(x) {
 
 #' @rdname hr_signal
 #' @param x For `hr_signals()`: a `gr_trace`, an object holding one in
-#'   `$trace` (an answer, a stage result), or a list of these, such as the
-#'   answers of several runs.
+#'   `$trace` (an answer, a stage result), a list of these, such as the
+#'   answers of several runs, or an `hr_bench` from [hr_benchmark()].
 #' @return `hr_signals()` returns a data frame with one row per recorded value:
 #'   `run_id`, `step`, `source` and `recipe` (the document and recipe the step
 #'   was stamped with, or `NA`), `signal`, `type`, `item_id`, `index` (the
@@ -140,8 +150,18 @@ signal_trace <- function(x) {
 #'   `NA`). A trace reached more than once in `x` (the same trace object,
 #'   as the answers of one comparison share it) lists each step once; two
 #'   separate traces are both read, even with the same `run_id`.
+#'
+#'   Given an `hr_bench`, it reads the trace of each run (`attr(x,
+#'   "traces")`) and adds `arm`, `run` and `item` after `run_id`, which is
+#'   the run's `ledger_id`. `item` is the benchmark's item, and `item_id`
+#'   stays what the signal recorded: the item for a note made with
+#'   `ctx$note()`, `NA` for one a reader recorded without an item. The
+#'   benchmark's own trace holds the same steps folded in and is not read, so
+#'   each signal is listed once. A benchmark subset to some rows lists the
+#'   signals of those runs.
 #' @export
 hr_signals <- function(x, name = NULL) {
+  if (inherits(x, "hr_bench")) return(bench_signals(x, name))
   traces <- signal_traces(x)
   rows <- list()
   seen <- list()
@@ -158,6 +178,40 @@ hr_signals <- function(x, name = NULL) {
   }
   out <- if (length(rows)) do.call(rbind, rows) else signal_rows(NULL, character(0))
   if (!is.null(name)) out <- out[out$signal %in% name, , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+#' The signals of a benchmark's runs, each row joined to the arm, run and
+#' item of the run whose trace recorded it. Only the runs' own traces,
+#' attr(x, "traces"), are read: the benchmark's trace, attr(x, "trace"), holds
+#' the same steps folded in, and reading it too would list every signal twice.
+#' @noRd
+bench_signals <- function(x, name = NULL) {
+  traces <- attr(x, "traces", exact = TRUE)
+  if (!is.list(traces) || !all(c("arm", "item", "run", "ledger_id") %in% names(x))) {
+    gr_abort("`x` has lost the columns or traces hr_signals() reads from a benchmark.",
+             class = "gr_bad_trace")
+  }
+  df <- as.data.frame(x)
+  rows <- lapply(seq_len(nrow(df)), function(i) {
+    tr <- traces[[as.character(df$ledger_id[[i]])]]
+    if (!inherits(tr, "gr_trace")) return(NULL)
+    out <- hr_signals(tr, name)
+    if (!nrow(out)) return(NULL)
+    cbind(out[, "run_id", drop = FALSE],
+          data.frame(arm = as.character(df$arm[[i]]), run = as.integer(df$run[[i]]),
+                     item = as.character(df$item[[i]]), stringsAsFactors = FALSE),
+          out[, setdiff(names(out), "run_id"), drop = FALSE])
+  })
+  rows <- Filter(Negate(is.null), rows)
+  out <- if (length(rows)) do.call(rbind, rows) else {
+    empty <- signal_rows(NULL, character(0))
+    cbind(empty[, "run_id", drop = FALSE],
+          data.frame(arm = character(0), run = integer(0), item = character(0),
+                     stringsAsFactors = FALSE),
+          empty[, setdiff(names(empty), "run_id"), drop = FALSE])
+  }
   rownames(out) <- NULL
   out
 }

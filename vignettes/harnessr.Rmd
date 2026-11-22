@@ -450,6 +450,8 @@ gr_options(old)
   and how to choose.
 - `vignette("review")`: many documents and literature reviews, from a search
   export to a written review.
+- `vignette("compose")`: building a run of your own from steps, and comparing
+  it with the recipes.
 - `vignette("runs")`: cost, limits, the trace, caching and replaying a run.
 - `vignette("extending")`: adding your own extractors, cleaners, segmenters,
   readers and embedders.

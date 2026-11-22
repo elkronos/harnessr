@@ -73,6 +73,15 @@ succeeded and the reply meets the schema. Otherwise it returns a failed
 failed, or the reply's result with the reason in \code{error} when the reply
 does not meet the schema. An arm that returns that result is scored as
 an error.}
+\item{\code{judge}}{A judgement, \code{ctx$judge(candidates, ...)}, for
+\code{hr_judge(candidates, ctx$client, ..., trace = ctx$trace)}. \code{...} takes
+the other arguments of \code{\link[=hr_judge]{hr_judge()}} and must include \code{rubric}. The
+judge's requests go out at the run's draw, are held to the run's
+governor and are folded into \code{ctx$trace}, so their cost is in the
+run's \code{usd} once. It returns the \code{hr_judge} result.}
+\item{\code{note}}{A signal about this run, \code{ctx$note(name, value, refs = NULL)}, for \code{hr_signal(name, value, trace = ctx$trace, item_id = ctx$item_id, refs = refs)}. It sends no request. \code{\link[=hr_signals]{hr_signals()}} given
+the benchmark reads the notes back, with the arm, run and item of
+each.}
 \item{\code{item_id}, \code{arm}, \code{run}, \code{params}}{The item's id, the arm's name,
 the run number and the arm's \code{params}.}
 }
@@ -93,6 +102,7 @@ Other harness:
 \code{\link{gr_reverse_text}()},
 \code{\link{gr_scorer_answer}()},
 \code{\link{hr_benchmark}()},
+\code{\link{hr_chain}()},
 \code{\link{hr_contrast}()},
 \code{\link{hr_drift_check}()},
 \code{\link{hr_effort_check}()},
@@ -103,6 +113,7 @@ Other harness:
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},
 \code{\link{hr_scorer}()},
+\code{\link{hr_step}()},
 \code{\link{hr_sweep}()},
 \code{\link{hr_sweep_check}()}
 }

@@ -9,10 +9,7 @@
 #
 # There were no tests for `parallel = TRUE` in the suite at all. These are them.
 
-skip_if_no_future <- function() {
-  skip_if_not_installed("future")
-  skip_if_not_installed("future.apply")
-}
+# skip_if_no_future() is in helper-parallel.R.
 
 para_doc <- function(n = 6) {
   f <- tempfile(fileext = ".txt")
@@ -184,4 +181,197 @@ test_that("the document layer hands its module registries to workers", {
   expect_true(all(c("extractors", "cleaners", "segmenters", "readers", "embedders",
                     "protocols") %in% names(layers$doc$values)))
   expect_true(is.function(layers$doc$restore))
+})
+
+# ---------------------------------------------------------------------------
+# The parallel matrix: every reader, and the ways a run can be set up, give
+# the same record sequentially and across two workers.
+# ---------------------------------------------------------------------------
+#
+# The tests above check counts on two recipes. These compare everything a run
+# records, for every registered reader: each step of the trace with its clock
+# fields taken out, the trace's totals, and the answer. The only difference
+# allowed is the `parallel` setting the segment and preflight steps record,
+# which says how the run was asked to go.
+#
+# The mock is golden_reply() from helper-golden.R: a reply chosen from the
+# request alone, JSON where the reader asks for JSON and text otherwise, so a
+# worker answers as the parent would.
+
+par_matrix_doc <- function() {
+  f <- tempfile(fileext = ".txt")
+  writeLines(paste(sprintf("Paragraph %d. Revenue in region %d was %d million dollars this year. %s",
+                           1:8, 1:8, 40 + 1:8,
+                           strrep("Filler sentence about operations. ", 40)),
+                   collapse = "\n\n"), f)
+  f
+}
+
+# Readers that make their requests one after another by design, so a run of
+# theirs never goes to the workers: refine and iterative carry each answer
+# into the next request, and the others make one request.
+par_matrix_sequential <- c("iterative", "refine", "retrieve", "screen", "stuff")
+
+par_matrix_spec <- function(reader) {
+  p <- golden_protocol()
+  switch(reader,
+         extract = gr_read_spec(reader, fields = p$fields),
+         screen = gr_read_spec(reader, include = p$include),
+         ensemble = gr_read_spec(reader, members = c("retrieve", "map_reduce", "refine")),
+         gr_read_spec(reader))
+}
+
+par_matrix_recipe <- function(reader, segment = list(method = "paragraph", max_tokens = 150)) {
+  gr_recipe(paste0("par-", reader), segment = segment, read = par_matrix_spec(reader))
+}
+
+# One run, with the messages it printed. `client` and `trace` are functions,
+# so each run gets its own.
+par_matrix_run <- function(par, recipe, client = function() gr_mock_client(golden_reply),
+                           trace = function() NULL, file = par_matrix_doc()) {
+  # The document cache keys on the ingest spec, which records `parallel`, so
+  # a run is not served a document the run before it ingested.
+  harnessr:::gr_flush_caches()
+  msgs <- character(0)
+  tr <- trace()
+  ans <- withCallingHandlers(
+    suppressWarnings(answer_document(file, golden_protocol()$question, recipe,
+                                     client = client(), parallel = par, trace = tr)),
+    message = function(m) {
+      msgs <<- c(msgs, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    })
+  list(answer = ans, trace = ans$trace, messages = msgs)
+}
+
+# A step as the comparison sees it: no clock fields, and no `parallel` in the
+# settings the segment and preflight steps record.
+par_matrix_step <- function(st) {
+  st <- st[setdiff(names(st), c("at", "started_utc", "ended_utc", "seconds"))]
+  if (as_chr1_p(st$label) %in% c("segment", "preflight") && is.list(st$detail) &&
+      is.list(st$detail$settings)) {
+    set <- st$detail$settings
+    set <- set[setdiff(names(set), "parallel")]
+    st$detail$settings <- if (length(set)) set else list()
+  }
+  st
+}
+
+par_matrix_totals <- c("calls", "cached", "tokens_in", "tokens_out", "spent_usd", "refusals",
+                       "errors", "budget_stop")
+
+par_matrix_expect_same <- function(seq, par, info) {
+  expect_identical(lapply(par$trace$steps, par_matrix_step),
+                   lapply(seq$trace$steps, par_matrix_step), info = info)
+  for (k in par_matrix_totals) {
+    expect_identical(par$trace[[k]], seq$trace[[k]], info = paste(info, k))
+  }
+  expect_identical(par$answer$answer, seq$answer$answer, info = info)
+}
+
+par_matrix_compare <- function(recipe, info, workers = TRUE, file = par_matrix_doc(), ...) {
+  seq <- par_matrix_run(FALSE, recipe, file = file, ...)
+  par <- par_matrix_run(TRUE, recipe, file = file, ...)
+  par_matrix_expect_same(seq, par, info)
+  if (workers) {
+    expect_true(any(grepl("across 2 workers", par$messages, fixed = TRUE)), info = info)
+  }
+  expect_false(any(grepl("across 2 workers", seq$messages, fixed = TRUE)), info = info)
+  invisible(list(seq = seq, par = par))
+}
+
+local_par_matrix <- function(env = parent.frame()) {
+  local_registries(env)
+  # Two workers, a call cap far above what a run needs so the preflight
+  # passes on both paths, and the messages that say the run went parallel.
+  gr_options(workers = 2, max_calls = 500, verbose = TRUE)
+}
+
+test_that("every reader records the same run sequentially and across two workers", {
+  skip_if_no_future()
+  local_par_matrix()
+  f <- par_matrix_doc()
+  for (reader in gr_readers()$name) {
+    par_matrix_compare(par_matrix_recipe(reader), info = reader,
+                       workers = !reader %in% par_matrix_sequential, file = f)
+  }
+})
+
+test_that("a parallel run through a response cache records what a sequential one does", {
+  skip_if_no_future()
+  local_par_matrix()
+  # A fresh cache for each run, so neither is served by the other.
+  par_matrix_compare(par_matrix_recipe("map_reduce"), info = "cache", client = function() {
+    gr_cache_client(gr_mock_client(golden_reply), gr_cache(tempfile("par-cache")))
+  })
+})
+
+test_that("a parallel replay records what a sequential replay does", {
+  skip_if_no_future()
+  local_par_matrix()
+  f <- par_matrix_doc()
+  rec <- par_matrix_recipe("map_reduce")
+  recorded <- par_matrix_run(FALSE, rec, file = f)
+  # A replay hands out its recording in order, so a batch it serves runs in
+  # this process, one item at a time, and says so.
+  out <- par_matrix_compare(rec, info = "replay", file = f, workers = FALSE,
+                            client = function() gr_replay_client(recorded$trace))
+  expect_true(any(grepl("one at a time: a replay", out$par$messages, fixed = TRUE)))
+  expect_identical(out$par$answer$answer, recorded$answer$answer)
+})
+
+test_that("a parallel run under a parent trace keeps its draw index and scope", {
+  skip_if_no_future()
+  local_par_matrix()
+  out <- par_matrix_compare(par_matrix_recipe("skim"), info = "parent trace", trace = function() {
+    tr <- gr_trace()
+    tr$draw_index <- 3L
+    tr$draw_scope <- "armA"
+    tr
+  })
+  req <- Filter(function(s) !identical(s$kind, "local"), out$par$trace$steps)
+  expect_gt(length(req), 1L)
+  expect_true(all(vapply(req, function(s) identical(as.integer(s$params$draw_index), 3L),
+                         logical(1))))
+  expect_true(all(vapply(req, function(s) identical(s$draw_scope, "armA"), logical(1))))
+})
+
+test_that("a parallel run under a raised effort records what a sequential one does", {
+  skip_if_no_future()
+  local_par_matrix()
+  par_matrix_compare(par_matrix_recipe("map_reduce"), info = "effort raised",
+                     trace = function() gr_trace(meta = list(effort_raised = "high")))
+})
+
+test_that("a model segmenter records the same run sequentially and across two workers", {
+  skip_if_no_future()
+  local_par_matrix()
+  seg <- list(method = "contextual", context_source = "llm", max_tokens = 150)
+  out <- par_matrix_compare(par_matrix_recipe("map_reduce", segment = seg),
+                            info = "model segmenter")
+  labels <- vapply(out$par$trace$steps, function(s) as_chr1_p(s$label), character(1))
+  expect_gt(sum(labels == "segment.context"), 1L)
+})
+
+test_that("a user reader and tokenizer record the same run sequentially and across two workers", {
+  skip_if_no_future()
+  local_par_matrix()
+  old_tok <- gr_tokenizer()
+  on.exit(gr_set_tokenizer(old_tok), add = TRUE)
+  gr_set_tokenizer("par_words", function(x) lengths(strsplit(trimws(x), "\\s+")))
+  gr_register_reader("par_first", signature = "one|1|none", cost_calls = "1",
+                     calls = "par_first.answer",
+                     cost = function(input_stats, params) hr_cost(calls = 1),
+                     fn = function(chunks, question, client, spec, trace) {
+                       d <- chunks$chunks
+                       res <- gr_call(client, list(list(
+                         role = "user", content = paste0(d$text[1], "\n\nQuestion: ", question))),
+                         trace = trace, label = "par_first.answer")
+                       new_answer(res$text, "par_first", question, d$chunk_id[1], trace)
+                     })
+  seg <- list(method = "contextual", context_source = "llm", max_tokens = 150)
+  rec <- gr_recipe("par-user", segment = seg, read = gr_read_spec("par_first"))
+  out <- par_matrix_compare(rec, info = "user reader and tokenizer")
+  labels <- vapply(out$par$trace$steps, function(s) as_chr1_p(s$label), character(1))
+  expect_true("par_first.answer" %in% labels)
 })

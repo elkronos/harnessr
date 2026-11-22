@@ -68,6 +68,7 @@ Other harness:
 \code{\link{gr_reverse_text}()},
 \code{\link{hr_arm}()},
 \code{\link{hr_benchmark}()},
+\code{\link{hr_chain}()},
 \code{\link{hr_contrast}()},
 \code{\link{hr_drift_check}()},
 \code{\link{hr_effort_check}()},
@@ -78,6 +79,7 @@ Other harness:
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},
 \code{\link{hr_scorer}()},
+\code{\link{hr_step}()},
 \code{\link{hr_sweep}()},
 \code{\link{hr_sweep_check}()}
 }

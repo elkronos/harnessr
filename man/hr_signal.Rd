@@ -28,8 +28,8 @@ of \code{value}. \code{NA} when the caller has no item id.}
 number), each element either one value or one per element of \code{value}.}
 
 \item{x}{For \code{hr_signals()}: a \code{gr_trace}, an object holding one in
-\verb{$trace} (an answer, a stage result), or a list of these, such as the
-answers of several runs.}
+\verb{$trace} (an answer, a stage result), a list of these, such as the
+answers of several runs, or an \code{hr_bench} from \code{\link[=hr_benchmark]{hr_benchmark()}}.}
 }
 \value{
 \code{hr_signal()} returns an \code{hr_signal} invisibly: a list with \code{name},
@@ -45,6 +45,14 @@ text) and \code{refs} (the references for that value as a JSON object, or
 \code{NA}). A trace reached more than once in \code{x} (the same trace object,
 as the answers of one comparison share it) lists each step once; two
 separate traces are both read, even with the same \code{run_id}.
+
+Given an \code{hr_bench}, it reads the trace of each run (\code{attr(x, "traces")}) and adds \code{arm}, \code{run} and \code{item} after \code{run_id}, which is
+the run's \code{ledger_id}. \code{item} is the benchmark's item, and \code{item_id}
+stays what the signal recorded: the item for a note made with
+\code{ctx$note()}, \code{NA} for one a reader recorded without an item. The
+benchmark's own trace holds the same steps folded in and is not read, so
+each signal is listed once. A benchmark subset to some rows lists the
+signals of those runs.
 }
 \description{
 \code{hr_signal()} writes a value the package produced about its own work into
@@ -87,6 +95,16 @@ cl <- gr_mock_client(function(m, p) {
 ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150))
 ans <- gr_read(ch, "What was revenue?", cl, "iterative")
 hr_signals(ans)
+
+# An arm in a benchmark records signals with ctx$note(), and hr_signals()
+# reads them back with the arm, run and item of each.
+ref <- hr_reference(list(q1 = "France"), "Paris", "a", split = "test")
+arm <- hr_arm("noted", function(item, ctx) {
+  ctx$note("demo.sure", ctx$run > 2)
+  "Paris"
+})
+bench <- hr_benchmark(arm, ref, runs = 5)
+hr_signals(bench)[, c("arm", "run", "item", "signal", "value")]
 }
 \seealso{
 \code{\link[=hr_calibrate_signal]{hr_calibrate_signal()}}, \code{\link[=hr_signal_policy]{hr_signal_policy()}}

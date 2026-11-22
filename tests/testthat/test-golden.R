@@ -6,7 +6,9 @@
 # fixed offline mock, and compared with fixtures/golden/: every request it
 # sends (a hash of messages, model, parameters and schema, plus a readable
 # summary), the response-cache key the package computes for each, and the
-# trace with times, run ids and paths taken out. api.json holds every export's
+# trace with times, run ids and paths taken out. Two records, compose-steps
+# and compose-bench, run steps and a recipe arm through hr_benchmark() and keep
+# the requests only. api.json holds every export's
 # arguments and defaults, and the exported S3 methods. Any difference fails,
 # and the message names the fields that changed.
 #

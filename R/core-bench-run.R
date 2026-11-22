@@ -410,9 +410,9 @@ warn_budget_stops <- function(rows, stop_limit, governor, from_options) {
 #' @noRd
 bench_governor <- function(parent) fork_governor(parent)
 
-#' The context an arm run is given. Built in its own function, so the `call`
-#' and `call_json` shortcuts keep this run's trace and draw however long the
-#' arm holds them.
+#' The context an arm run is given. Built in its own function, so the `call`,
+#' `call_json`, `judge` and `note` shortcuts keep this run's trace and draw
+#' however long the arm holds them.
 #'
 #' The run's trace carries the run's draw index (hr_benchmark() has already
 #' set the arm's name as its draw scope), so a stage or a judge the arm calls
@@ -429,6 +429,17 @@ bench_ctx <- function(client, trace, run, item_id, arm) {
        },
        call_json = function(messages, schema, ...) {
          bench_call_json(client, messages, schema, ..., trace = trace, draw_index = run)
+       },
+       # hr_judge() given the run's trace is a step of the run: its requests go
+       # out at the run's draw, count against the run's governor and are
+       # folded into the run's trace, so they are in the run's usd once.
+       judge = function(candidates, ...) {
+         hr_judge(candidates, client, ..., trace = trace)
+       },
+       # A signal on the run's trace, about this item, which hr_signals()
+       # reads back from the benchmark with the arm, run and item joined.
+       note = function(name, value, refs = NULL) {
+         hr_signal(name, value, trace = trace, item_id = item_id, refs = refs)
        })
 }
 

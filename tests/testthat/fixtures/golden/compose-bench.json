@@ -1,0 +1,40 @@
+{
+  "calls": [
+    {
+      "cache_key": "c79a49488fc55c89691e3a254dde15324657bb4b49d477a39cb30cc4043d7dc9",
+      "chars": [302, 2080, 35],
+      "label": "retrieve.answer",
+      "messages": "dd0360d6e8997255",
+      "model": "mock-model",
+      "params": {
+        "draw_index": 1,
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 676,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "1872de052510b411",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    },
+    {
+      "cache_key": "acd4cf71302d0cc893e887bf158a558af3a07a78a96856cdd385ad74f209598b",
+      "chars": [302, 2080, 35],
+      "label": "retrieve.answer",
+      "messages": "dd0360d6e8997255",
+      "model": "mock-model",
+      "params": {
+        "draw_index": 2,
+        "max_output": 1500,
+        "model": "mock-model",
+        "prompt_tokens": 676,
+        "schema_name": "result",
+        "temperature": null
+      },
+      "request": "ca6ad65f2f4da1e4",
+      "roles": ["system", "user", "user"],
+      "schema": null
+    }
+  ]
+}
