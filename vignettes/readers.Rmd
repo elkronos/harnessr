@@ -812,10 +812,11 @@ bench <- sweep(hr_sweep(needle, expand.grid(top_k = 2, fusion = c("default", "rr
 hr_sweep_check(bench)
 ```
 
-On this report `"rrf"` picked the same two chunks as the blend, and `rrf_k`
-does nothing under `"default"`, so `hr_sweep_check()` lists both as sending
-the same requests. Where they do differ, compare `correct` by `param.fusion`
-on a reference.
+On this report `"rrf"` with `rrf_k = 60` picked the same two chunks as the
+blend, and `rrf_k` does nothing under `"default"`, so `hr_sweep_check()` lists
+both as sending the same requests. `"rrf"` with `rrf_k = 5` is not listed: it
+sent different requests. Where arms differ, compare `correct` by
+`param.fusion` and `param.rrf_k` on a reference.
 
 ### Placement: `context_order` and `restate` {#set-context-order}
 
