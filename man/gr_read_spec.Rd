@@ -38,6 +38,8 @@ gr_read_spec(
   bm25_k1 = 1.5,
   bm25_b = 0.75,
   lexical_blend = 0.5,
+  unskip_k = 0L,
+  reread_on = c("never", "not_found"),
   ...
 )
 }
@@ -244,6 +246,25 @@ weight of the cosine score, with \code{1 - lexical_blend} on the BM25 score.
 [0, 1], default 0.5, an even blend chosen when the offline path was
 written. Untested.}
 
+\item{unskip_k}{For \code{preview}: how many of the sections that match the
+question's words best (BM25 over each section's text) are read in full
+even when the plan skips them. A section that shares no word with the
+question is never unskipped. [0, 100], default 0, which follows the
+plan as before. With \code{unskip_k = 1}, a plan that skips the only section
+holding the question's words is overridden. Whatever its value, each
+section the plan skipped is logged in the trace as a \code{preview.skip} step
+with its score and whether it was unskipped, and \code{notes$unskipped} lists
+the sections it overrode. Untested.}
+
+\item{reread_on}{For \code{preview}: \code{"never"} (the default) or \code{"not_found"}.
+Under \code{"not_found"}, an answer request that came back \code{NOT_IN_DOCUMENT}
+is followed by one more (\code{preview.reread}) over the sections the plan
+did not have read in full (skipped, skimmed, or demoted for lack of
+room), fitted whole to one request in document order. The re-read's
+answer replaces the not-found when it finds one; \code{notes$reread} and a
+\code{preview.reread} trace step say what was sent and whether it found an
+answer. It costs at most one request. Untested.}
+
 \item{...}{Extra fields for custom readers.}
 }
 \value{
@@ -322,9 +343,9 @@ Each setting's default, its tier (\code{basic} for the few most users change,
 means no measurement backs the value; \code{cited} names the published source it
 comes from. The settings added as declared parameters
 (\code{accept_near_verbatim}, \code{max_merge_levels}, \code{restate_tokens}, \code{bm25_k1},
-\code{bm25_b}, \code{lexical_blend}) are stored in the spec only when they are not
-their default, so a default spec keeps the store and cache keys it had
-before they existed.
+\code{bm25_b}, \code{lexical_blend}, and the reading options added after them) are
+stored in the spec only when they are not their default, so a default spec
+keeps the store and cache keys it had before they existed.
 \itemize{
 \item \code{on_overflow} (default \code{"warn"}, advanced): untested. Chosen so that a document too long for one request still gets an answer that says what was cut.
 \item \code{context_order} (default \code{"relevance"}, advanced): untested. The order the readers used before the setting existed; the alternatives were added to be compared, and no comparison is recorded.
@@ -359,6 +380,8 @@ before they existed.
 \item \code{bm25_k1} (default \code{1.5}, advanced): cited. Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give k1 between 1.2 and 2.0 as usual; not tuned here.
 \item \code{bm25_b} (default \code{0.75}, advanced): cited. Robertson and Zaragoza (2009), "The Probabilistic Relevance Framework: BM25 and Beyond", give b = 0.75 as usual; not tuned here.
 \item \code{lexical_blend} (default \code{0.5}, advanced): untested. An even blend, set when the offline path was written.
+\item \code{unskip_k} (default \code{0}, advanced): untested. Off (0), so the plan is followed as it was before the setting existed. Not measured.
+\item \code{reread_on} (default \code{"never"}, advanced): untested. "never", so a run makes the requests it made before the setting existed. Not measured.
 }
 }
 

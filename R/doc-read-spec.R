@@ -355,6 +355,23 @@ gr_reader_signature <- function(reader) {
 #'   weight of the cosine score, with `1 - lexical_blend` on the BM25 score.
 #'   \[0, 1\], default 0.5, an even blend chosen when the offline path was
 #'   written. Untested.
+#' @param unskip_k For `preview`: how many of the sections that match the
+#'   question's words best (BM25 over each section's text) are read in full
+#'   even when the plan skips them. A section that shares no word with the
+#'   question is never unskipped. \[0, 100\], default 0, which follows the
+#'   plan as before. With `unskip_k = 1`, a plan that skips the only section
+#'   holding the question's words is overridden. Whatever its value, each
+#'   section the plan skipped is logged in the trace as a `preview.skip` step
+#'   with its score and whether it was unskipped, and `notes$unskipped` lists
+#'   the sections it overrode. Untested.
+#' @param reread_on For `preview`: `"never"` (the default) or `"not_found"`.
+#'   Under `"not_found"`, an answer request that came back `NOT_IN_DOCUMENT`
+#'   is followed by one more (`preview.reread`) over the sections the plan
+#'   did not have read in full (skipped, skimmed, or demoted for lack of
+#'   room), fitted whole to one request in document order. The re-read's
+#'   answer replaces the not-found when it finds one; `notes$reread` and a
+#'   `preview.reread` trace step say what was sent and whether it found an
+#'   answer. It costs at most one request. Untested.
 #' @param ... Extra fields for custom readers.
 #' @return A list of class `gr_read_spec`.
 #'
@@ -421,9 +438,9 @@ gr_reader_signature <- function(reader) {
 #' means no measurement backs the value; `cited` names the published source it
 #' comes from. The settings added as declared parameters
 #' (`accept_near_verbatim`, `max_merge_levels`, `restate_tokens`, `bm25_k1`,
-#' `bm25_b`, `lexical_blend`) are stored in the spec only when they are not
-#' their default, so a default spec keeps the store and cache keys it had
-#' before they existed.
+#' `bm25_b`, `lexical_blend`, and the reading options added after them) are
+#' stored in the spec only when they are not their default, so a default spec
+#' keeps the store and cache keys it had before they existed.
 #'
 #' `r schema_sources_md(.gr_read_schema)`
 #'
@@ -528,7 +545,8 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
                          on_overflow = c("warn", "error"), effort = NULL, premise = FALSE,
                          verify = FALSE, accept_near_verbatim = FALSE, max_merge_levels = 6L,
                          restate_tokens = 1200L, bm25_k1 = 1.5, bm25_b = 0.75,
-                         lexical_blend = 0.5, ...) {
+                         lexical_blend = 0.5, unskip_k = 0L,
+                         reread_on = c("never", "not_found"), ...) {
   warn_near_miss(list(...), names(formals(gr_read_spec)), "read")
   # Every argument but `...` is checked and resolved by the schema
   # (.gr_read_schema): ranges clamped with a warning, a missing number taken
@@ -756,14 +774,25 @@ as_read_spec <- function(spec) {
                                       "as usual; not tuned here."))),
   hr_param("lexical_blend", "number", default = 0.5, min = 0, max = 1, tier = "advanced",
            help = "For retrieve on lexical embeddings: the weight of cosine against BM25.",
-           evidence = ev_untested("An even blend, set when the offline path was written."))
+           evidence = ev_untested("An even blend, set when the offline path was written.")),
+  hr_param("unskip_k", "integer", default = 0L, min = 0, max = 100, tier = "advanced",
+           help = paste0("For preview: the sections that best match the question's words, ",
+                         "read even when the plan skips them."),
+           evidence = ev_untested(paste0("Off (0), so the plan is followed as it was before ",
+                                         "the setting existed. Not measured."))),
+  hr_param("reread_on", "enum", choices = c("never", "not_found"), tier = "advanced",
+           cost_class = "per_call_constant",
+           help = paste0("For preview: under \"not_found\", an answer that found nothing reads ",
+                         "the sections not read in full in one more request."),
+           evidence = ev_untested(paste0("\"never\", so a run makes the requests it made ",
+                                         "before the setting existed. Not measured.")))
 )
 
 #' The read settings that were constants in the code until they were declared
 #' in the schema. gr_read_spec() stores each only when it is not its default.
 #' @noRd
 .gr_read_late_params <- c("accept_near_verbatim", "max_merge_levels", "restate_tokens",
-                          "bm25_k1", "bm25_b", "lexical_blend")
+                          "bm25_k1", "bm25_b", "lexical_blend", "unskip_k", "reread_on")
 
 #' The settings among `names` whose resolved value is not the schema's default,
 #' as a list to add to a spec. A spec is hashed whole into the corpus store and
@@ -775,7 +804,9 @@ nondefault_params <- function(p, schema, names) {
   out <- list()
   for (nm in names) {
     v <- p[[nm]]
-    d <- schema[[nm]]$default
+    # An enum's default is its first choice, as hr_validate() resolves it.
+    d <- if (identical(schema[[nm]]$type, "enum")) schema[[nm]]$choices[1]
+         else schema[[nm]]$default
     if (is.null(v) || isTRUE(all.equal(v, d, check.attributes = FALSE))) next
     out[[nm]] <- v
   }

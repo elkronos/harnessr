@@ -151,6 +151,7 @@
   read.effort = "readers#set-effort",
   read.max_merge_levels = "readers#set-merge-levels", read.fan_in = "readers#set-merge-levels",
   read.max_levels = "readers#set-merge-levels",
+  read.unskip_k = "readers#set-preview", read.reread_on = "readers#set-preview",
   screen.gr_calibrate.recall_target = "review#set-calibration",
   screen.gr_calibrate.conf = "review#set-calibration",
   screen.gr_calibrate.max_width = "review#set-calibration",

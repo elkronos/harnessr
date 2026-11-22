@@ -1,5 +1,21 @@
 # harnessr 0.6.0.9000
 
+## Reading options
+
+Each option below is off by default, so a default spec sends the requests it
+sent before and keeps its store, cache and replay keys. Each is declared with
+its evidence (`untested` unless a source is named), is listed by
+`gr_settings_table()`, and has a walkthrough in `vignette("readers")` that
+says what it trades off and how to test it with `hr_sweep()`.
+
+* `preview` logs each section its plan skips as a `preview.skip` step in the
+  trace, with the section's BM25 score against the question. Two settings
+  guard against a plan that skips the answer: `unskip_k` reads the `k`
+  sections that match the question's words best even when the plan skips
+  them (`notes$unskipped`), and `reread_on = "not_found"` follows a
+  `NOT_IN_DOCUMENT` answer with one request (`preview.reread`) over the
+  sections not read in full (`notes$reread`).
+
 ## Claims and the write-up: what each rests on
 
 * The claims and writing prompts now show each extracted value with its

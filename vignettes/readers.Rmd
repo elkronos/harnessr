@@ -922,6 +922,55 @@ hr_sweep_check(bench)
 Eight findings merge in one level, so a cap of 1 sent the same requests as 6
 on this report. Test the cap on your longest documents, where it can bind.
 
+### Preview safeguards: `unskip_k` and `reread_on` {#set-preview}
+
+**What they control.** `preview` follows a plan its first request makes, and
+a section the plan skips is never read. `unskip_k` reads the `k` sections
+that match the question's words best (BM25 over each section's text) even
+when the plan skips them, so a plan cannot drop the one section that holds
+the question's words; it costs no request, but the answer prompt grows by the
+sections it adds. `reread_on = "not_found"` follows an answer of
+`NOT_IN_DOCUMENT` with one more request over the sections not read in full,
+so it trades at most one request for a second look. Every skip is in the
+trace as a `preview.skip` step with its score, whatever the settings.
+
+**Signs they need changing.** `NOT_IN_DOCUMENT` from `preview` for a fact
+you can find, where `ans$notes$plan` shows its section skipped, or a
+`preview.skip` step in the trace with a high score, points to `unskip_k = 1`.
+Not-found answers on questions you know the document answers point to
+`reread_on = "not_found"`.
+
+**Where the defaults came from.** Both are off (`unskip_k = 0`,
+`reread_on = "never"`), so `preview` makes the requests it made before they
+existed (`untested`).
+
+**How to test them.** Here the plan skips the summary, which holds the
+revenue figure:
+
+```{r}
+skips_summary <- function(messages, params) {
+  if (identical(params$schema_name, "reading_plan")) {
+    return(paste0('{"sections": [{"id": 1, "treatment": "read", "reason": "Title."}, ',
+                  '{"id": 2, "treatment": "skip", "reason": "A summary repeats."}]}'))
+  }
+  stand_in(messages, params)
+}
+looks <- gr_arm("thorough", list(method = "structural", max_tokens = 120,
+                                 overlap_tokens = 0, reader = "preview"))
+bench <- hr_benchmark(hr_sweep(looks, expand.grid(unskip_k = c(0, 1),
+                                                  reread_on = c("never", "not_found"))),
+                      qa, runs = 5, client = gr_mock_client(skips_summary), split = "dev",
+                      scorer = gr_scorer_answer())
+aggregate(tokens_in ~ param.unskip_k + param.reread_on, bench, mean)
+hr_sweep_check(bench)
+```
+
+`unskip_k = 1` put the summary back into the answer prompt, 106 prompt
+tokens more. `reread_on` sent nothing more here, because the stand-in model
+never answers `NOT_IN_DOCUMENT`, and `hr_sweep_check()` lists those arms as
+sending the same requests as the arms without it. Test it on questions your
+reader misses.
+
 ```{r include = FALSE}
 gr_options(old)
 ```

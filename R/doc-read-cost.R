@@ -128,6 +128,9 @@ cost_screen <- function(stats, params) {
 cost_preview <- function(stats, params) {
   # A plan, the sections it picks and an answer. Which sections are picked is
   # not known before the plan, so every chunk is counted.
+  # reread_on = "not_found" can send one more answer request.
+  reread <- identical(as_chr1(params$reread_on, "never"), "not_found")
+  if (reread) return(hr_cost(calls = stats$n_chunks, calls_max = stats$n_chunks + 1L))
   hr_cost(calls = stats$n_chunks)
 }
 
