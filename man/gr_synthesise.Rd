@@ -65,7 +65,8 @@ name in the table, and near-misses (Smith for Smyth, 2019 for 2018) are
 both the errors that matter and the ones fuzzy matching forgives. A
 rendered citation is therefore a fact about the extraction rather than
 something the model asserted. \verb{$sections$text_marked} and \verb{$text_marked}
-keep the marker form so the check can be re-run on the published prose.}
+keep the marker form so the check can be re-run on the published prose:
+\code{\link[=gr_recheck]{gr_recheck()}} runs it, and renders the citations again, on an edited copy.}
 
 \item{bib}{Which columns carry bibliographic identity, as a named list of
 \code{citation}, \code{authors}, \code{year}, \code{title}, \code{venue}, \code{doi}. Omitted, the
@@ -195,16 +196,20 @@ this changes what \verb{$figures} reports, never a request.}
 
 \item{prominence}{How much of the writing prompt's sentence budget the
 claims of a section get, by rank: \code{c(top = , middle = )}, the shares of a
-section's claims (ranked by how many studies, and how much weight, stand
-behind them) asked for "two or three sentences" and "one or two
+section's claims (ranked by the sign test of their direction tally, lowest
+p first, with a claim more of whose studies contradict it than support it
+last, then by the weight of the studies behind them; see
+\code{\link[=gr_claims]{gr_claims()}}, "Direction of effect") asked for "two or three sentences"
+and "one or two
 sentences"; the rest get "one sentence", and a section of three claims
 or fewer gives each "two or three". Default \code{c(top = 1/3, middle = 1/3)},
 thirds, set when claims were added and untested. Each share is in
 [0, 1] and the two add up to at most 1. At least one claim is always
 in the top tier. Used only with \code{claims}.}
 
-\item{study_weights}{How much each study counts when claims are ranked
-(and so which tier each claim gets, see \code{prominence}): \code{NULL} (the
+\item{study_weights}{How much each study counts when claims are ranked,
+among claims whose sign tests tie (and so which tier each claim gets, see
+\code{prominence}): \code{NULL} (the
 default) for the package's weight, \code{0.5 + 0.5 * size + 0.5 * filled},
 where \code{size} is \code{log1p(n)} over its largest value (the mean of the known
 ones when \code{n} is missing) and \code{filled} the share of a row's filled cells
@@ -276,8 +281,43 @@ against the rows it cites: \code{stage} (\code{"draft"} for the sections as
 written, \code{"final"} for the revised text when a kept revision pass
 changed it), \code{section} (the heading it stands under), \code{sentence}, \code{number}
 (as written), \code{studies} (the studies the sentence cites, comma-joined,
-or NA), \code{backed}, and \code{basis}, what it was found in (NA when it was
-not). See "Figures" below.}
+or NA), \code{backed}, \code{basis}, what it was found in (NA when it was
+not), \code{field}, the extracted field it reports, as \code{"n (study 2)"},
+when a row's own value of that field is the figure, \code{pool}, how many
+distinct values the rows it was checked against hold, and \code{chance},
+the chance of a match among that many by coincidence. See "Figures"
+below.}
+\item{\code{sentences}}{Every sentence of the text as published, linked to
+the records it rests on: \code{section}, \code{sentence}, \code{studies} (the
+studies it cites, comma-joined, or NA), \code{verified} (those of them
+that are verified records: studies with at least one value whose
+quote verified), \code{linked} (\code{TRUE} when it cites at least one verified
+record; \code{NA} when the table cannot say) and \code{flag}: \code{"cites no study"}, \code{"cites no verified record"}, or NA. A flag marks nothing
+partial; it says where to look. With a bare table, a study is a
+verified record when \code{n_filled} is above \code{n_unverified}.}
+\item{\code{uncited}}{The studies the text as published cites nowhere,
+from the final cited set (the one the reference list follows):
+\code{study}, \code{document}, \code{document_id} and \code{shown}, whether any section's
+prompt held the study. A study shown and left uncited is one the
+writer passed over; one not shown was never in front of it. A count,
+not a quota: nothing asks that every study be cited.}
+\item{\code{contradictions}}{With \code{claims}, sentences that state a claim
+and cite a study on its contradicting side with no hedge ("may",
+"suggest") and no word of contrast ("however", "mixed"): \code{section},
+\code{sentence}, \code{claim_id}, \code{study}. A sentence states a claim when it
+stands in a section the claim was given (any claim, under a heading
+the write-up did not have), points in the claim's
+direction in one of its clauses and shares at least two content words with it. Found by
+counting words, with no model; a flag says where to look, and marks
+nothing partial.}
+\item{\code{section_studies}}{The studies each section was shown:
+\code{section}, \code{study}. \code{\link[=gr_recheck]{gr_recheck()}} reads it.}
+\item{\code{closing},\code{style},\code{figure_bands},\code{bib_columns}}{The closing
+section, the \code{style} and \code{figure_bands} given, and the bibliographic
+columns the run used, which \code{\link[=gr_recheck]{gr_recheck()}} reads.}
+\item{\code{values}}{Each extracted value of the studies with its check and
+quote, as \verb{$values} of \code{\link[=gr_claims]{gr_claims()}}. The writing prompts show each
+value with these, the unverified ones marked as such.}
 \item{\code{studies}}{The rows that were written from, with the \code{study} number
 each was cited by.}
 \item{\code{claims}}{The \code{\link[=gr_claims]{gr_claims()}} result written from, or \code{NULL}. When
@@ -336,10 +376,31 @@ every number in every sentence is looked for in what the writer was shown
 for that sentence: the rows it cites, as the writing prompt showed them; the
 question, the section's heading and brief, \code{style}, and the gaps a closing
 section was given; and with \code{claims}, the claims given to the section that
-rest on a cited study. A sentence that cites nothing is checked against
-every row its section was shown. This runs on the draft, and again on the
-revised text when a kept revision pass changed it; it sends nothing, so it
-is always on, and it changes no request.
+rest on a cited study. This runs on the draft, and again on the revised text
+when a kept revision pass changed it; it sends nothing, so it is always on,
+and it changes no request.
+
+Each figure found in a row is linked to the field it reports where it can:
+\code{field} names the field, and the study, whose own value is the figure. Each
+figure also carries \code{pool}, how many distinct values the rows it was
+checked against hold, and \code{chance}, the chance that one of them matches it
+by coincidence: \code{1 - (1 - m / N)^pool}, with \code{N} the count of numbers with
+as many significant digits as the figure (90 for "63") and \code{m} the forms
+it is compared in (2 for "63\%"). That takes the values to be spread
+evenly, so it is a yardstick, not a measured probability. A sentence that
+cites nothing is checked against every row its section was shown, where
+matches by chance are common, so a figure found there counts only when
+its \code{chance} is below 0.05 or the sentence names, for that figure, the
+field it matched ("n = 236" for a field \code{n} of 236; a one-letter field
+just before the figure, a longer name in the same clause, so "(n = 410),
+57 dropped out" names \code{n} for 410 and not for 57). An uncited "63\%" among 40 numbers,
+with a chance of about 0.59, is unbacked; and a figure qualified by
+"about" or "more than" counts as near a row's value only in a sentence
+that cites the row.
+
+The check is diagnostic only. \code{backed} marks no section partial, stops
+nothing, and is not a measure of accuracy: no benchmark has validated it
+against a person checking the figures.
 
 A figure counts as found in any form a faithful copy may give it: \code{.61} for
 0.61, \code{45.20} for 45.2, \code{1204} for 1,204, \verb{12 450} for 12,450 (grouped by
@@ -403,5 +464,6 @@ s$sections[, c("section", "n_cited", "n_unknown", "n_unbacked")]
 s$figures[, c("number", "studies", "backed", "basis")]
 }
 \seealso{
-\code{\link[=gr_extract]{gr_extract()}}, \code{\link[=gr_protocol]{gr_protocol()}}, \code{\link[=gr_screen]{gr_screen()}}
+\code{\link[=gr_extract]{gr_extract()}}, \code{\link[=gr_protocol]{gr_protocol()}}, \code{\link[=gr_screen]{gr_screen()}}, \code{\link[=gr_recheck]{gr_recheck()}} to
+check and render an edited \code{text_marked} again
 }

@@ -2,14 +2,24 @@
 
 #' Order claims by how much of the section they have earned.
 #'
-#' Breadth first -- a claim resting on nine studies says more about a literature
-#' than one resting on one -- then the weight of the studies behind it. Contested
-#' claims count their contradicting studies too: a disagreement across six
-#' studies is more of the story than an agreement across two.
+#' By certainty first: the exact sign test of the claim's direction tally, its
+#' supporting studies out of all the studies it names (sign_test()), lowest p
+#' first. A count of votes, `n_support + n_contradict`, ranked a disagreement
+#' across six studies above an agreement across five, and put a 3-to-3 split
+#' first among claims; a direction tally says how far the studies agree, and
+#' the sign test says how unlikely that agreement is by chance (Campbell et al.
+#' 2020; Boon and Thomson 2021). The test is two-sided, so it reads a tally
+#' against the claim as certain as one for it: 1 supporting and 8
+#' contradicting (p = 0.039) ranked above 5 of 5 (p = 0.0625). A claim more of
+#' whose studies contradict it than support it (claim_against()) therefore
+#' ranks after every other, and among those the least contradicted first.
+#' Ties, which are common with few studies, are broken by the weight of the
+#' studies behind the claim, then by claim number.
 #' @noRd
 claim_order <- function(claims, support, weights) {
   if (!nrow(claims)) return(integer(0))
-  breadth <- claims$n_support + claims$n_contradict
+  certainty <- sign_test(claims$n_support, claims$n_support + claims$n_contradict)
+  against <- claim_against(claims$n_support, claims$n_contradict)
   # A study with no weight is UNKNOWN, not weightless: it takes the mean of the
   # weights that ARE known across the table -- or 1, the middle of
   # study_weight()'s 0.5-1.5 scale, if none is. Imputing per claim instead gave a
@@ -27,7 +37,37 @@ claim_order <- function(claims, support, weights) {
     w[is.na(w)] <- neutral
     sum(w)
   }, numeric(1))
-  order(-breadth, -mass, claims$claim_id)
+  order(against, ifelse(against, -certainty, certainty), -mass, claims$claim_id)
+}
+
+#' Whether more of a claim's studies contradict it than support it: such a
+#' claim ranks after every other (claim_order()). FALSE where a count is NA.
+#' @noRd
+claim_against <- function(n_support, n_contradict) {
+  out <- as.integer(n_contradict) > as.integer(n_support)
+  out[is.na(out)] <- FALSE
+  out
+}
+
+#' The exact two-sided sign test of `k` studies in a claim's direction out
+#' of `n`: the binomial probability, with p = 0.5, of a split at least as
+#' uneven as `k` to `n - k`. 5 of 5 is 0.0625. NA where `n` is 0. Vectorised.
+#' @noRd
+sign_test <- function(k, n) {
+  k <- as.integer(k); n <- as.integer(n)
+  vapply(seq_along(k), function(i) {
+    if (is.na(n[i]) || is.na(k[i]) || n[i] < 1L) return(NA_real_)
+    min(1, 2 * stats::pbinom(min(k[i], n[i] - k[i]), n[i], 0.5))
+  }, numeric(1))
+}
+
+#' The smallest p a sign test of `n` studies can give: every study in one
+#' direction. Above 0.05 for 5 or fewer, so no tally that small can reach
+#' p < 0.05, however it falls.
+#' @noRd
+sign_test_min <- function(n) {
+  n <- as.integer(n)
+  ifelse(is.na(n) | n < 1L, NA_real_, pmin(1, 2 * 0.5^n))
 }
 
 # --- internals -------------------------------------------------------------
@@ -421,6 +461,8 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
                      stringsAsFactors = FALSE),
     # Which markers in THIS section must stay markers when the prose is rendered.
     unsupplied = leave,
+    # The studies this section was shown, for `$uncited` and gr_recheck().
+    shown = as.integer(shown),
     citations = if (!length(known)) NULL else
       data.frame(section = heading, study = known,
                  # A table with no `document` column is one gr_synthesise()
@@ -490,6 +532,8 @@ render_claims <- function(cw, support, weights, collapse = TRUE, prominence = NU
     tier[seq_len(n_top)] <- "two or three sentences"
     if (n_mid > 0L) tier[n_top + seq_len(n_mid)] <- "one or two sentences"
   }
+  # `%||%` for claims drawn before moderators were tested.
+  status <- cw$moderator_status %||% rep(NA_character_, n)
   ids <- function(id, role) {
     v <- sort(support$study[support$claim_id == id & support$role == role])
     if (!length(v)) return(NULL)
@@ -501,7 +545,9 @@ render_claims <- function(cw, support, weights, collapse = TRUE, prominence = NU
             cw$claim[i],
             sprintf("supported by: %s", ids(id, "supports")),
             if (cw$n_contradict[i]) sprintf("contradicted by: %s", ids(id, "contradicts")),
-            if (!is.na(cw$moderator[i])) sprintf("distinguished by: %s", cw$moderator[i]),
+            if (!is.na(cw$moderator[i]))
+              sprintf("distinguished by: %s%s", cw$moderator[i],
+                      if (identical(status[i], "exploratory")) " (exploratory)" else ""),
             if (cw$n_contradict[i] && is.na(cw$moderator[i]))
               "the disagreement is not explained by anything in the table",
             if (!is.na(cw$scope[i])) sprintf("scope: %s", cw$scope[i])),

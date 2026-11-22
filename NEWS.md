@@ -1,5 +1,131 @@
 # harnessr 0.6.0.9000
 
+## Claims and the write-up: what each rests on
+
+* The claims and writing prompts now show each extracted value with its
+  check and its quote, as `n: 120 (verified quote: "We enrolled 120
+  people.")`, when they are given a `gr_extract()` result. This changes what
+  is sent at the default settings: every claims and section request made
+  from an extraction carries the quotes, so its cache and replay keys change
+  and earlier cached replies for these requests are not reused. A bare table
+  carries no quotes and is sent as before.
+
+* `gr_claims()` gains `unverified`, last. At its default, `"exclude"`, a
+  value whose quote did not verify, or that came with no quote, is left out
+  of the claims prompt, so no claim rests on it, and a study with no value
+  left is not sent. `"include"` shows them, marked unverified with the quote
+  that was given. The result gains `$values`, every value with its status
+  (`"verified"`, `"unverified"` or `"not reported"`) and quote, and
+  `$unverified`, the unverified values listed apart; `print()` counts them.
+  The default is untested.
+
+* `gr_synthesise()` shows the unverified values to the writer, marked, and
+  gains `$values` and `$sentences`: every sentence of the text as published,
+  linked to the studies it cites that are verified records (with at least
+  one value whose quote verified), or flagged as citing no study or no
+  verified record. `print()` counts the flagged sentences, and the audit
+  report lists them and the values the claims prompt left out. Nothing is
+  marked partial for a flag.
+
+* Claims are ranked by the certainty of their direction tally, not by how
+  many studies vote. Each claim in `gr_claims()$claims` gains `sign_p`, the
+  exact two-sided sign test of `n_support` of `n_support + n_contradict`
+  studies, and `low_power`, `TRUE` for a tally of 5 studies or fewer, where
+  no split can reach p < 0.05. Sections rank their claims by `sign_p`, lowest
+  first, then by study weight, so a 5-of-5 claim now ranks above a contested
+  3-to-3 one. A claim that more of its studies contradict than support ranks
+  after every other, the least contradicted first: `sign_p` is two-sided, and
+  alone it ranked 1 supporting and 8 contradicting (p = 0.039) above 5 of 5. `print()` gives each claim's tally and p (5 of 5 prints
+  p = 0.0625) and warns of low power, citing Campbell et al. 2020 (SWiM) and
+  Boon and Thomson 2021; the audit report adds `sign_p`. This changes what is
+  sent at the default settings for a section given claims in a different
+  order: the claims block lists them, and assigns their sentence budgets, by
+  the new rank.
+
+* `gr_claims()` gains `moderators`, last: the columns you expected, before
+  reading, to explain a disagreement. Each moderator a claim names is now
+  tested, in `$moderators`: `declared` (named in `moderators`) or
+  `exploratory` (not declared, or one study against one), Fisher's exact
+  `fisher_p` of the split, `min_p`, the smallest p a split with those numbers
+  of studies can give, and `holm_p`, Holm's adjustment over the declared
+  moderators. `$claims` gains `moderator_status`. `print()` and the audit
+  report give the tests and list the ICEMAN items (Schandelmaier et al.
+  2020) to assess each moderator against; harnessr scores none of them. The
+  writing prompt marks an exploratory moderator, `distinguished by: design
+  (exploratory)`, which changes what is sent at the default settings for a
+  section whose claims name a moderator, since with no `moderators` declared
+  every moderator is exploratory.
+
+* Claims reconciled across batches are no longer merged when they differ in
+  direction, between findings, or in the population they name (adults,
+  children, adolescents, infants, older people, women, men, students, from
+  the claim and its scope), whatever the reconcile reply grouped; such a
+  group is split, with a `gr_claims_kept_apart` warning and a `note` on each
+  part. Direction is read from words on three axes: a null finding ("has no
+  effect", "did not improve", "ineffective", "unchanged") against an effect,
+  a benefit against a harm ("benefits", "harms"), and a rise against a fall
+  ("raises", "reduces"). "Improves depressive symptoms" and "reduces
+  depressive symptoms" stay together, and so "improves Y" and "reduces Y"
+  are not told apart; a population outside the list is not recognised. A
+  merged claim takes the wording of the member most studies support, then
+  the one fewest contradict, then the first in a fixed order, instead of the
+  longest, so the claims no longer depend on the order of the table. This
+  changes what is sent at the default settings when claims come from more
+  than one batch and the reconcile reply merges or groups them: the merged
+  claim's wording, and the number of claims where a group is split, feed the
+  `gr_outline()` and `gr_synthesise()` prompts, so those requests, and their
+  cache and replay keys, differ from before. A new test shuffles a 24-study
+  table five times and requires at least 90% of claims to keep the same
+  studies, direction and population.
+  Two tests that expected a merge of opposite claims now expect them kept
+  apart.
+
+* The figures check of `gr_synthesise()` links each figure found in a row to
+  the field it reports, in a new `field` column of `$figures` (`"n (study
+  2)"`), and gives `pool`, how many distinct values the rows it was checked
+  against hold, and `chance`, the chance of a match among them by
+  coincidence, from the digits the figure was written with. A sentence that
+  cites nothing is still checked against every row its section was shown,
+  but a figure found there now counts only when its `chance` is below 0.05 or
+  the sentence names the field it matched for that figure (a one-letter
+  field just before it, a longer name in the same clause): an uncited "63%"
+  among 40 numbers is unbacked, "n = 236" matching a field `n` of 236 is
+  backed, and in "(n = 410), 57 dropped out" the 57 is not backed by `n`. A
+  qualified figure ("about 50") counts as near a row's value only in a
+  sentence that cites the row. The check stays diagnostic only: it marks
+  nothing partial and sends nothing. The audit report adds `pool` and
+  `chance` to its unbacked figures.
+
+* `gr_synthesise()` gains `$uncited`, the studies the text as published
+  cites nowhere, from the final cited set the reference list follows, with
+  `shown`, whether any section's prompt held the study. `print()` gives one
+  line and the audit report a table. It is a count, not a quota: nothing asks
+  that every study be cited. The result also keeps `$section_studies` (the
+  studies each section was shown), `$closing`, `$style`, `$figure_bands` and
+  `$bib_columns`.
+
+* New `gr_recheck(synthesis, text_marked)` checks and renders an edited
+  write-up again. Edit `$text_marked`, the marker form, and pass it back: a
+  marker naming a row that does not exist, or a study the section under
+  whose heading it stands was not shown, is left as a marker, counted in
+  `$recheck` and warned about (`gr_recheck_citations`); the citations and
+  reference list are rendered from the edit; and `$figures` (stage
+  `"edited"`), `$sentences`, `$uncited` and `$contradictions` are worked out
+  again, the figures with the `style` and `figure_bands` the write-up was
+  made with. A study one heading cites without being shown it keeps its
+  reference when another heading cites it honestly. On a synthesis saved
+  before `$section_studies` was kept, `shown` in `$uncited` is `NA`.
+  Nothing is sent.
+
+* `gr_synthesise()` gains `$contradictions`: with `claims`, sentences that
+  state a claim and cite a study on its contradicting side with no hedge
+  ("may", "suggest") and no word of contrast ("however", "mixed"). A
+  sentence states a claim when it stands in a section the claim was given,
+  points in the claim's direction in one of its clauses (so "improved mood,
+  with no adverse events" still states that mood improved) and shares at
+  least two content words with it. It is found by counting words, with no model; `print()` counts
+  them and the audit report lists them. Nothing is marked partial.
+
 ## Checking the search, the files and the screening
 
 * New `gr_search_recall(records, known, tier, held_out)` measures a search

@@ -506,7 +506,67 @@ figure_pieces <- function(text) {
 figure_empty_table <- function() {
   data.frame(stage = character(0), section = character(0), sentence = character(0),
              number = character(0), studies = character(0), backed = logical(0),
-             basis = character(0), stringsAsFactors = FALSE)
+             basis = character(0), field = character(0), pool = integer(0),
+             chance = numeric(0), stringsAsFactors = FALSE)
+}
+
+#' The chance that a figure matches one of `pool` values by coincidence:
+#' `1 - (1 - m / N)^pool`, where `N` is how many numbers have as many
+#' digits as the figure was written with, from its first non-zero digit (90
+#' for "63", 900 for "236" and for "300") and `m` how many forms it is compared in (2 for "63%", as 63 and
+#' 0.63). It takes the pool's values to be spread evenly over those numbers,
+#' which real tables are not, so it is a yardstick, not a probability anyone
+#' measured. NA for a figure with no digit.
+#' @noRd
+figure_chance <- function(value, forms, pool) {
+  v <- gsub("[^0-9.]", "", as.character(value))
+  # Every digit from the first non-zero one: "300" is taken as written, three
+  # digits, since a table's 300 is as often exact as rounded.
+  sig <- nchar(sub("^0+", "", gsub(".", "", v, fixed = TRUE)))
+  out <- 1 - (1 - pmin(1, forms / (9 * 10^(pmax(sig, 1L) - 1L))))^pool
+  out[!nzchar(v)] <- NA_real_
+  out
+}
+
+#' Whether a sentence names a field for a figure: "n = 236" or "n: 236" for
+#' a one-letter field, else every word of the field's name of three letters or
+#' more ("sample_size" in "the sample size was 236"). With `written`, the
+#' figure as the sentence writes it, the name must belong to that figure: a
+#' short field written just before it ("n = 410" names 410, not the 57 later
+#' in the sentence), a longer one in the same clause (the text between the
+#' commas, semicolons or brackets around it). Without, anywhere in the
+#' sentence.
+#' @noRd
+figure_field_named <- function(sentence, field, written = NULL) {
+  low <- lower_text(gsub("\u00a0", " ", sentence, fixed = TRUE))
+  words <- strsplit(lower_text(gsub("[_.]+", " ", field)), "[[:space:]]+")[[1]]
+  words <- words[nzchar(words)]
+  if (!length(words)) return(FALSE)
+  short <- length(words) == 1L && nchar(words) <= 2L
+  if (!short) words <- words[nchar(words) >= 3L]
+  if (!length(words)) return(FALSE)
+  has_words <- function(x) {
+    all(vapply(words, function(w) grepl(paste0("\\b", w), x, perl = TRUE), logical(1)))
+  }
+  if (is.null(written)) {
+    if (short) return(grepl(sprintf("\\b%s[[:space:]]*[=:]", words), low, perl = TRUE))
+    return(has_words(low))
+  }
+  fig <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", lower_text(gsub("\u00a0", " ", written,
+                                                                     fixed = TRUE)))
+  if (short) {
+    return(grepl(sprintf("\\b%s[[:space:]]*[=:][[:space:]]*%s(?![0-9])", words, fig), low,
+                 perl = TRUE))
+  }
+  at <- gregexpr(sprintf("(?<![0-9.])%s(?![0-9])", fig), low, perl = TRUE)[[1]]
+  if (at[1] < 0L) return(FALSE)
+  # A comma inside a number ("1,200") does not end a clause.
+  cuts <- c(0L, gregexpr("[;()]|,(?![0-9])", low, perl = TRUE)[[1]], nchar(low) + 1L)
+  cuts <- sort(unique(cuts[cuts >= 0L]))
+  any(vapply(as.integer(at), function(pos) {
+    from <- max(cuts[cuts < pos]); to <- min(cuts[cuts > pos])
+    has_words(substr(low, from + 1L, to - 1L))
+  }, logical(1)))
 }
 
 #' Check every figure in a write-up against what its sentence was written from.
@@ -570,6 +630,22 @@ synth_figures <- function(sections, final, used, rendered, question, claims = NU
     vapply(seq_len(nrow(used)), function(i) one(used[[fl]][i]), numeric(1))
   }, numeric(nrow(used))), nrow = nrow(used), ncol = length(fields))
   cell <- function(fl, i) as_chr1(used[[fl]][i], "")
+  # Each cell's figures, read once, for linking a figure to the field it
+  # reports.
+  cells_seen <- new.env(parent = emptyenv())
+  cell_vals <- function(fl, i) {
+    key <- paste(fl, i, sep = "\r")
+    if (is.null(cells_seen[[key]])) assign(key, figure_values(cell(fl, i), word), envir = cells_seen)
+    cells_seen[[key]]
+  }
+  # The fields of `rows` whose own value is the figure, as "field (study N)".
+  field_of <- function(tg, rows) {
+    hits <- character(0)
+    for (i in rows) for (fl in fields) {
+      if (figure_hit(tg, cell_vals(fl, i))) hits <- c(hits, sprintf("%s (study %s)", fl, ids[i]))
+    }
+    hits
+  }
   # Each field as a value rows may share, for a count of studies the rows
   # give: "10 were randomised trials" over ten rows whose design says so. The
   # number of studies alone left "10 of the 12" unbacked in any review of ten
@@ -668,10 +744,33 @@ synth_figures <- function(sections, final, used, rendered, question, claims = NU
                                     length(ids), tally)))
     ops <- as.numeric(figure_find(joined, word, strict = FALSE)$value)
     tgs <- figure_targets(f)
+    n_pool <- length(unique(pool$raw))
+    chance <- figure_chance(f$value, lengths(lapply(tgs, `[[`, "t")), n_pool)
+    field <- rep(NA_character_, length(tgs))
     basis <- vapply(seq_along(tgs), function(k) {
       tg <- tgs[[k]]
       plain <- !f$pct[k] && !f$scale[k] && !f$digits[k]
-      if (figure_hit(tg, pool)) return(if (length(cited)) "cited row" else "rows shown")
+      if (figure_hit(tg, pool)) {
+        hit <- field_of(tg, rows)
+        if (length(cited)) {
+          if (length(hit)) field[k] <<- paste(hit, collapse = "; ")
+          return("cited row")
+        }
+        # A sentence citing nothing is checked against every row its section
+        # was shown, where a figure turns up by chance: "63%" matches one of
+        # 40 numbers more often than not. It counts only when that chance is
+        # small, or when the sentence names the field the figure matched
+        # ("n = 236" and a field `n` of 236).
+        # Named for this figure, not anywhere in the sentence: "In the largest
+        # trial (n = 410), 57 dropped out" names n for 410, not for 57.
+        named <- hit[vapply(sub(" \\(study [^)]*\\)$", "", hit), figure_field_named,
+                            logical(1), sentence = joined, written = f$written[k])]
+        if (length(named) || isTRUE(chance[k] < 0.05)) {
+          field[k] <<- if (length(named)) paste(named, collapse = "; ")
+                       else if (length(hit)) paste(hit, collapse = "; ") else NA_character_
+          return("rows shown")
+        }
+      }
       if (figure_hit(tg, sums)) return("total of the cited rows")
       if (figure_hit(tg, cpool)) return("claim")
       if (figure_hit(tg, cx$fixed)) return("question or brief")
@@ -687,14 +786,17 @@ synth_figures <- function(sections, final, used, rendered, question, claims = NU
         d <- unlist(lapply(rows, row_diffs), use.names = FALSE)
         if (figure_hit(own, d)) return("difference of two cited figures")
       }
-      near <- c(unlist(pool, use.names = FALSE), sums, unlist(cpool, use.names = FALSE),
-                unlist(cx$fixed, use.names = FALSE))
+      # Near a row's value only for a sentence that cites the row: near any of
+      # every row shown is a match by chance.
+      near <- c(if (length(cited)) unlist(pool, use.names = FALSE), sums,
+                unlist(cpool, use.names = FALSE), unlist(cx$fixed, use.names = FALSE))
       if (figure_near(tg, near, f$qualifier[k], bands)) return("approximate")
       NA_character_
     }, character(1))
     data.frame(sentence = rep(trimws(sentence), length(basis)), number = f$written,
                studies = if (length(cited)) paste(sort(cited), collapse = ", ") else NA_character_,
-               backed = !is.na(basis), basis = basis, stringsAsFactors = FALSE)
+               backed = !is.na(basis), basis = basis, field = field,
+               pool = rep(n_pool, length(basis)), chance = chance, stringsAsFactors = FALSE)
   }
   run <- function(text, cx, stage, section) {
     sents <- measured_sentences(text, word)

@@ -69,7 +69,7 @@
       "type": "function"
     },
     "gr_claims": {
-      "formals": ["extraction", "question = NULL", "protocol = NULL", "client = NULL", "model = NULL", "temperature = NULL", "max_claim_tokens = 1600L", "include_unclear = FALSE", "trace = NULL", "bib = NULL", "effort = NULL"],
+      "formals": ["extraction", "question = NULL", "protocol = NULL", "client = NULL", "model = NULL", "temperature = NULL", "max_claim_tokens = 1600L", "include_unclear = FALSE", "trace = NULL", "bib = NULL", "effort = NULL", "unverified = c(\"exclude\", \"include\")", "moderators = NULL"],
       "type": "function"
     },
     "gr_clean": {
@@ -230,6 +230,10 @@
     },
     "gr_readers": {
       "formals": [],
+      "type": "function"
+    },
+    "gr_recheck": {
+      "formals": ["synthesis", "text_marked = synthesis$text_marked"],
       "type": "function"
     },
     "gr_recipe": {

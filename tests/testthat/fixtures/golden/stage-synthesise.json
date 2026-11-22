@@ -1,19 +1,19 @@
 {
   "calls": [
     {
-      "cache_key": "c39a87a7ba3c9b28154c3ea76665ff224b45d7bf77afd73b2b66ef6b432b98c1",
-      "chars": [815, 230, 75],
+      "cache_key": "a6bf9ed3ef97f43bfa580be72c570e8d93c7045d1b07c0a777f6dc83a5862f66",
+      "chars": [815, 230, 271],
       "label": "synthesise.section",
-      "messages": "f4fd440f10890f8f",
+      "messages": "e29a63d86dac079d",
       "model": "mock-model",
       "params": {
         "max_output": 1200,
         "model": "mock-model",
-        "prompt_tokens": 303,
+        "prompt_tokens": 355,
         "schema_name": "result",
         "temperature": null
       },
-      "request": "39664133f6f6cab9",
+      "request": "eb492a0c7e65d2cf",
       "roles": ["system", "user", "user"],
       "schema": null
     }
@@ -82,7 +82,7 @@
         "params": {
           "max_output": 1200,
           "model": "mock-model",
-          "prompt_tokens": 303,
+          "prompt_tokens": 355,
           "schema_name": "result",
           "temperature": null
         },
@@ -97,14 +97,14 @@
           "schema_name": null,
           "temperature": null
         },
-        "prompt": "f4fd440f10890f8f",
-        "replay_key": "205204080bdd144bf36227d00e9dae1619b7ddbbaca5236b0212207d392272ed",
+        "prompt": "e29a63d86dac079d",
+        "replay_key": "346eb9f96ff4cb12f926242b3af2cfbf0c8c1346397a917338decb1b29dfb142",
         "response": "df22233877e91797",
         "response_id": null,
         "served_model": null,
         "step": 1,
         "tokens": {
-          "input": 303,
+          "input": 355,
           "output": 18,
           "provenance": "estimated"
         }
@@ -130,7 +130,7 @@
       "errors": 0,
       "steps": 2,
       "tokens_cached_in": 0,
-      "tokens_in": 303,
+      "tokens_in": 355,
       "tokens_out": 18,
       "tokens_reasoning": 0,
       "usage_estimated": 1

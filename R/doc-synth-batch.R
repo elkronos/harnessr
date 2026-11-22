@@ -60,7 +60,8 @@
 #'   both the errors that matter and the ones fuzzy matching forgives. A
 #'   rendered citation is therefore a fact about the extraction rather than
 #'   something the model asserted. `$sections$text_marked` and `$text_marked`
-#'   keep the marker form so the check can be re-run on the published prose.
+#'   keep the marker form so the check can be re-run on the published prose:
+#'   [gr_recheck()] runs it, and renders the citations again, on an edited copy.
 #' @param bib Which columns carry bibliographic identity, as a named list of
 #'   `citation`, `authors`, `year`, `title`, `venue`, `doi`. Omitted, the
 #'   conventional names are looked for, which is why
@@ -171,15 +172,19 @@
 #'   this changes what `$figures` reports, never a request.
 #' @param prominence How much of the writing prompt's sentence budget the
 #'   claims of a section get, by rank: `c(top = , middle = )`, the shares of a
-#'   section's claims (ranked by how many studies, and how much weight, stand
-#'   behind them) asked for "two or three sentences" and "one or two
+#'   section's claims (ranked by the sign test of their direction tally, lowest
+#'   p first, with a claim more of whose studies contradict it than support it
+#'   last, then by the weight of the studies behind them; see
+#'   [gr_claims()], "Direction of effect") asked for "two or three sentences"
+#'   and "one or two
 #'   sentences"; the rest get "one sentence", and a section of three claims
 #'   or fewer gives each "two or three". Default `c(top = 1/3, middle = 1/3)`,
 #'   thirds, set when claims were added and untested. Each share is in
 #'   \[0, 1\] and the two add up to at most 1. At least one claim is always
 #'   in the top tier. Used only with `claims`.
-#' @param study_weights How much each study counts when claims are ranked
-#'   (and so which tier each claim gets, see `prominence`): `NULL` (the
+#' @param study_weights How much each study counts when claims are ranked,
+#'   among claims whose sign tests tie (and so which tier each claim gets, see
+#'   `prominence`): `NULL` (the
 #'   default) for the package's weight, `0.5 + 0.5 * size + 0.5 * filled`,
 #'   where `size` is `log1p(n)` over its largest value (the mean of the known
 #'   ones when `n` is missing) and `filled` the share of a row's filled cells
@@ -259,8 +264,44 @@
 #'       written, `"final"` for the revised text when a kept revision pass
 #'       changed it), `section` (the heading it stands under), `sentence`, `number`
 #'       (as written), `studies` (the studies the sentence cites, comma-joined,
-#'       or NA), `backed`, and `basis`, what it was found in (NA when it was
-#'       not). See "Figures" below.}
+#'       or NA), `backed`, `basis`, what it was found in (NA when it was
+#'       not), `field`, the extracted field it reports, as `"n (study 2)"`,
+#'       when a row's own value of that field is the figure, `pool`, how many
+#'       distinct values the rows it was checked against hold, and `chance`,
+#'       the chance of a match among that many by coincidence. See "Figures"
+#'       below.}
+#'     \item{`sentences`}{Every sentence of the text as published, linked to
+#'       the records it rests on: `section`, `sentence`, `studies` (the
+#'       studies it cites, comma-joined, or NA), `verified` (those of them
+#'       that are verified records: studies with at least one value whose
+#'       quote verified), `linked` (`TRUE` when it cites at least one verified
+#'       record; `NA` when the table cannot say) and `flag`: `"cites no
+#'       study"`, `"cites no verified record"`, or NA. A flag marks nothing
+#'       partial; it says where to look. With a bare table, a study is a
+#'       verified record when `n_filled` is above `n_unverified`.}
+#'     \item{`uncited`}{The studies the text as published cites nowhere,
+#'       from the final cited set (the one the reference list follows):
+#'       `study`, `document`, `document_id` and `shown`, whether any section's
+#'       prompt held the study. A study shown and left uncited is one the
+#'       writer passed over; one not shown was never in front of it. A count,
+#'       not a quota: nothing asks that every study be cited.}
+#'     \item{`contradictions`}{With `claims`, sentences that state a claim
+#'       and cite a study on its contradicting side with no hedge ("may",
+#'       "suggest") and no word of contrast ("however", "mixed"): `section`,
+#'       `sentence`, `claim_id`, `study`. A sentence states a claim when it
+#'       stands in a section the claim was given (any claim, under a heading
+#'       the write-up did not have), points in the claim's
+#'       direction in one of its clauses and shares at least two content words with it. Found by
+#'       counting words, with no model; a flag says where to look, and marks
+#'       nothing partial.}
+#'     \item{`section_studies`}{The studies each section was shown:
+#'       `section`, `study`. [gr_recheck()] reads it.}
+#'     \item{`closing`,`style`,`figure_bands`,`bib_columns`}{The closing
+#'       section, the `style` and `figure_bands` given, and the bibliographic
+#'       columns the run used, which [gr_recheck()] reads.}
+#'     \item{`values`}{Each extracted value of the studies with its check and
+#'       quote, as `$values` of [gr_claims()]. The writing prompts show each
+#'       value with these, the unverified ones marked as such.}
 #'     \item{`studies`}{The rows that were written from, with the `study` number
 #'       each was cited by.}
 #'     \item{`claims`}{The [gr_claims()] result written from, or `NULL`. When
@@ -309,10 +350,31 @@
 #' for that sentence: the rows it cites, as the writing prompt showed them; the
 #' question, the section's heading and brief, `style`, and the gaps a closing
 #' section was given; and with `claims`, the claims given to the section that
-#' rest on a cited study. A sentence that cites nothing is checked against
-#' every row its section was shown. This runs on the draft, and again on the
-#' revised text when a kept revision pass changed it; it sends nothing, so it
-#' is always on, and it changes no request.
+#' rest on a cited study. This runs on the draft, and again on the revised text
+#' when a kept revision pass changed it; it sends nothing, so it is always on,
+#' and it changes no request.
+#'
+#' Each figure found in a row is linked to the field it reports where it can:
+#' `field` names the field, and the study, whose own value is the figure. Each
+#' figure also carries `pool`, how many distinct values the rows it was
+#' checked against hold, and `chance`, the chance that one of them matches it
+#' by coincidence: `1 - (1 - m / N)^pool`, with `N` the count of numbers with
+#' as many significant digits as the figure (90 for "63") and `m` the forms
+#' it is compared in (2 for "63%"). That takes the values to be spread
+#' evenly, so it is a yardstick, not a measured probability. A sentence that
+#' cites nothing is checked against every row its section was shown, where
+#' matches by chance are common, so a figure found there counts only when
+#' its `chance` is below 0.05 or the sentence names, for that figure, the
+#' field it matched ("n = 236" for a field `n` of 236; a one-letter field
+#' just before the figure, a longer name in the same clause, so "(n = 410),
+#' 57 dropped out" names `n` for 410 and not for 57). An uncited "63%" among 40 numbers,
+#' with a chance of about 0.59, is unbacked; and a figure qualified by
+#' "about" or "more than" counts as near a row's value only in a sentence
+#' that cites the row.
+#'
+#' The check is diagnostic only. `backed` marks no section partial, stops
+#' nothing, and is not a measure of accuracy: no benchmark has validated it
+#' against a person checking the figures.
 #'
 #' A figure counts as found in any form a faithful copy may give it: `.61` for
 #' 0.61, `45.20` for 45.2, `1204` for 1,204, `12 450` for 12,450 (grouped by
@@ -351,7 +413,8 @@
 #' is not marked partial, because `partial` is about whether its citations
 #' can be trusted, and those are checked apart.
 #'
-#' @seealso [gr_extract()], [gr_protocol()], [gr_screen()]
+#' @seealso [gr_extract()], [gr_protocol()], [gr_screen()], [gr_recheck()] to
+#'   check and render an edited `text_marked` again
 #' @export
 #' @examples
 #' fields <- gr_fields(design = "The study design",
@@ -580,7 +643,13 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   #
   # If a bibliographic value is also a FINDING -- publication year as
   # chronology, say -- extract it a second time under a name of its own.
-  rendered <- render_studies(used, hide = unlist(bib_columns(used, bib), use.names = FALSE))
+  hide_cols <- unlist(bib_columns(used, bib), use.names = FALSE)
+  # Each extracted value with its check and quote, the unverified ones marked
+  # as such: the writer is told which values the documents were found to
+  # state. gr_claims() leaves the unverified ones out; a section may still
+  # need to say what a study reported, so here they are shown, marked.
+  values <- value_status(extraction, used, study_fields(used, hide = hide_cols))
+  rendered <- render_studies(used, hide = hide_cols, values = values)
   # gr_gaps() returns a table; a section wants lines. Accepting both means the
   # caller never has to know which. Lines of text are one block: as several
   # strings they were not "nonblank" and reached no section.
@@ -742,6 +811,20 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   # is a fault the check reported, not a citation to follow up.
   cited <- setdiff(cited_ids(final_marked, "study"), left)
   refs <- if (isTRUE(references)) reference_list(used, keys, cited, cols, resolved) else NULL
+  # Every sentence of the text as published, linked to a verified record it
+  # cites, or flagged. It sends nothing.
+  sentences <- sentence_links(final_marked, used, study_verified(used, values))
+  # The studies the published text cites nowhere, from the final cited set,
+  # and whether any section was shown each. A count, not a quota.
+  section_studies <- section_studies_table(rows)
+  uncited <- synth_uncited(used, cited, section_studies)
+  # Sentences that state a claim and cite a study contradicting it, unhedged.
+  contradictions <- contradiction_flags(final_marked, claims,
+                                        if (is.null(claims)) NULL else
+                                          data.frame(section = as.character(assign_map$section),
+                                                     claim_id = as.integer(assign_map$claim_id),
+                                                     stringsAsFactors = FALSE),
+                                        sections = sections$section)
 
   out <- structure(list(
     text = append_references(published, refs),
@@ -751,6 +834,11 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
     references = refs,
     citations = citations %||% synth_empty_citations(),
     figures = figs$table,
+    sentences = sentences,
+    values = values,
+    uncited = uncited,
+    contradictions = contradictions,
+    section_studies = section_studies,
     studies = used,
     skipped = sum(!keep),
     question = question,
@@ -763,6 +851,10 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
       data.frame(section = as.character(assign_map$section),
                  claim_id = as.integer(assign_map$claim_id), stringsAsFactors = FALSE),
     gaps = gaps,
+    closing = closing,
+    style = style,
+    figure_bands = figure_bands,
+    bib_columns = cols,
     cite_style = resolved,
     coherence = revised$report,
     unrendered = if (identical(resolved, "marker")) integer(0) else unrendered,
@@ -850,6 +942,30 @@ print.gr_synthesis <- function(x, ...) {
                          "$figures). No section is partial for it: that is about citations\n"),
                   bad, if (final) "revised text" else "text"))
     }
+  }
+  # `[[` exact for a synthesis made before the field existed.
+  sl <- x[["sentences", exact = TRUE]]
+  if (is.data.frame(sl) && nrow(sl)) {
+    none <- sum(sl$flag %in% "cites no study")
+    unver <- sum(sl$flag %in% "cites no verified record")
+    if (none || unver) {
+      cat(sprintf(paste0("  %d of %d sentence(s) not linked to a verified record: %d cite%s no ",
+                         "study, %d cite%s only studies with no verified value; see $sentences\n"),
+                  none + unver, nrow(sl), none, if (none == 1L) "s" else "",
+                  unver, if (unver == 1L) "s" else ""))
+    }
+  }
+  # `[[` exact for a synthesis made before the fields existed.
+  un <- x[["uncited", exact = TRUE]]
+  if (is.data.frame(un) && nrow(un)) {
+    cat(sprintf(paste0("  %d of %d studies cited nowhere in the text, %d of them shown to a ",
+                       "section; see $uncited (a count, not a quota)\n"),
+                nrow(un), nrow(x$studies), sum(un$shown)))
+  }
+  cf <- x[["contradictions", exact = TRUE]]
+  if (is.data.frame(cf) && nrow(cf)) {
+    cat(sprintf(paste0("  %d sentence(s) cite a study that contradicts the claim they state, with ",
+                       "no hedge; see $contradictions\n"), length(unique(cf$sentence))))
   }
   unr <- x$unrendered %||% integer(0)
   if (length(unr)) {

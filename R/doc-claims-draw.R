@@ -112,8 +112,24 @@
 #' What the reconcile pass cannot check is MEANING. A merged claim keeps one
 #' member's wording and the union of every member's studies, so if the model
 #' groups two claims that say different things, the studies behind one are
-#' listed as supporting the other's wording. Such a merge is not detectable by
-#' counting; the merged claim's `note` names every other wording it absorbed so
+#' listed as supporting the other's wording. Two such errors are refused by
+#' reading words: findings that point different ways, and claims naming
+#' different populations (adults, children, adolescents, infants, older
+#' people, women, men, students), read from the claim and its scope, are kept
+#' apart whatever the reply grouped, with a warning (`gr_claims_kept_apart`)
+#' and a `note`. A finding is read on three axes: whether it states no effect
+#' ("has no effect on Y", "did not improve Y", "ineffective"), whether it
+#' names a benefit or a harm ("improves", "harms"), and whether it names a
+#' rise or a fall ("raises", "reduces"). Two findings are kept apart when one
+#' states no effect and the other one, or when both speak to the same axis
+#' and differ. "Improves depressive symptoms" and "reduces depressive
+#' symptoms" stay together, since a fall can be a benefit; for the same
+#' reason "improves Y" and "reduces Y" are not told apart. The words are
+#' English and the lists short, and a population outside the list is not
+#' recognised, so a merge they do not catch is still possible. The merged claim takes the wording of the member most
+#' studies support, then the one fewest contradict, then the first in a
+#' fixed order, not the longest, so the result does not depend on
+#' the order of the table. Its `note` names every other wording it absorbed so
 #' that it can be seen, and a group mixing claims of different `kind` is warned
 #' about.
 #'
@@ -121,6 +137,60 @@
 #' reply names every study it uses: with the default `max_claim_tokens` a batch
 #' holds about 30 studies. A batch whose reply is cut off, or whose call fails,
 #' is reported with the number of studies it held rather than passed over.
+#'
+#' @section Direction of effect:
+#' A claim's tally is a direction-of-effect count: how many of the studies it
+#' names point its way. Each claim carries the exact sign test of that count,
+#' the binomial probability of a split at least as uneven if each study were
+#' as likely to point either way (`sign_p`, two-sided), and claims are
+#' ranked by it, lowest p first, wherever they are ranked (`print()`, and
+#' the sentence budget [gr_synthesise()] gives each claim). A two-sided test
+#' is as small for a tally against the claim as for one in its favour (1 of
+#' 9 gives 0.039, below 5 of 5 at 0.0625), so a claim that more of its
+#' studies contradict than support ranks after every other claim, the least
+#' contradicted of those first. The number of studies voting was the rank
+#' before, which put a contested 3-to-3 claim above an agreed 5-of-5 one.
+#' A sign test is weak: with 5 studies or fewer no split, however even or
+#' uneven, can reach p < 0.05, and `print()` warns of low power. Read such a
+#' tally as a count of directions, not as evidence of an effect or of none.
+#' This follows SWiM's guidance on vote counting by direction of effect
+#' (Campbell et al. 2020, BMJ 368:l6890) and Boon and Thomson (2021,
+#' Research Synthesis Methods 12:29-33) on direction tallies and their sign
+#' test.
+#'
+#' @section Moderators:
+#' A moderator is kept only when it separates a claim's supporting studies
+#' from its contradicting ones (see "What makes a claim checkable"). Kept, it
+#' is tested. `fisher_p` is Fisher's exact test, two-sided, of the 2 x 2
+#' table of side (supports, contradicts) against which side's values a study
+#' has; `min_p` is the smallest p a table with those margins can give. Since a
+#' kept moderator splits the studies perfectly, the two are equal: the test
+#' says how much a split that clean can show with that few studies. One study
+#' on each side gives p = 1, which is why a 1-vs-1 split is always
+#' "exploratory": it is a coincidence as often as an explanation. For the
+#' moderators named in `moderators`, `holm_p` adjusts `fisher_p` for their
+#' number by Holm's method; an exploratory moderator has none, since the
+#' number of columns the model looked through is not known. The writing
+#' prompt marks an exploratory moderator as such.
+#'
+#' These are between-study comparisons of direction, not tests of an
+#' interaction on effect sizes. Assess each moderator you rely on against the
+#' ICEMAN items for effect modification (Schandelmaier et al. 2020, CMAJ
+#' 192:E901-E906); harnessr scores none of them, and lists them, with what it
+#' reports on each, in the audit report:
+#' \itemize{
+#'   \item Is the effect modification based on comparison within studies
+#'     rather than between them? (Here it is between studies.)
+#'   \item Was the moderator specified before the analysis? (`declared`.)
+#'   \item Was the direction of the effect modification hypothesised in
+#'     advance, and correctly?
+#'   \item Does a test for interaction suggest that chance is an unlikely
+#'     explanation? (`fisher_p` tests directions only.)
+#'   \item Was only a small number of moderators tested, or was the number
+#'     allowed for? (`holm_p`, over the declared ones.)
+#'   \item For a continuous moderator, were arbitrary cut points avoided?
+#'   \item Is the effect modification consistent across related outcomes?
+#' }
 #'
 #' @param extraction A [gr_extract()] result, or a data frame shaped like its
 #'   `$table`.
@@ -152,10 +222,33 @@
 #'   judgement, the stage most worth a higher effort. The reasoning counts
 #'   against the same reply limit, so a high effort can leave a batch's reply
 #'   cut off, which is reported as such (`gr_claims_truncated`).
+#' @param unverified What the claims prompt does with an extracted value whose
+#'   quote did not verify, or that came with no quote (see [gr_extract()],
+#'   "Verifying it"). `"exclude"` (the default) leaves it out of the prompt, so
+#'   no claim rests on it, and lists it in `$unverified`; `"include"` shows it,
+#'   marked unverified with the quote that was given. Either way each value
+#'   shown carries its check and its quote. Only a [gr_extract()] result
+#'   carries the quotes: a bare table's values are shown as they are, with no
+#'   check, and nothing is left out. The default is untested: it follows the
+#'   rule that a claim should rest on what the documents were found to say,
+#'   and no benchmark has compared the two.
+#' @param moderators The columns you expected, before reading, to explain a
+#'   disagreement between studies: a character vector of column names, or
+#'   `NULL` (the default) for none. A claim's moderator is "declared" when it
+#'   is one of these, and is then tested with the others for multiplicity
+#'   (Holm). Any other moderator the model names is "exploratory", and so is
+#'   any split of one study against one. See "Moderators" below. Naming a
+#'   column changes nothing that is sent.
 #' @return An object of class `gr_claims`:
 #'   \describe{
 #'     \item{`claims`}{One row per claim: `claim_id`, `claim`, `kind`,
-#'       `moderator`, `scope`, `n_support`, `n_contradict`, `note`.}
+#'       `moderator`, `moderator_status` (`"declared"`, `"exploratory"` or
+#'       NA), `scope`, `n_support`, `n_contradict`, `sign_p`, `low_power`,
+#'       `note`. `sign_p` is the exact two-sided sign test of the
+#'       claim's direction tally, `n_support` of `n_support + n_contradict`
+#'       studies: 5 of 5 gives 0.0625. `low_power` is `TRUE` when the tally is
+#'       5 studies or fewer, so that no split of it can reach p < 0.05. See
+#'       "Direction of effect" below.}
 #'     \item{`support`}{Long: `claim_id`, `study`, `role` (`"supports"` or
 #'       `"contradicts"`). Join it to `$studies` to reach documents and quotes.}
 #'     \item{`studies`}{The rows the claims were drawn from, numbered.}
@@ -167,6 +260,20 @@
 #'     \item{`unmerged`}{`TRUE` when claims from several batches could not be
 #'       reconciled, so one finding may appear as more than one claim.}
 #'     \item{`hidden`}{The columns withheld from the model as bibliographic.}
+#'     \item{`values`}{Each extracted value of the studies, one row per study
+#'       and field: `study`, `document`, `field`, `value`, `status`
+#'       (`"verified"`, `"unverified"` or `"not reported"`) and `quote` (the
+#'       verified quote, else the closest one given, else `NA`). Empty for a
+#'       bare table, which carries no quotes.}
+#'     \item{`moderators`}{One row per claim that names a moderator:
+#'       `claim_id`, `moderator`, `declared`, `exploratory`, `n_support` and
+#'       `n_contradict` (the studies on each side that report it),
+#'       `fisher_p`, `min_p` and `holm_p`. See "Moderators" below.}
+#'     \item{`declared`}{The `moderators` named in advance that the model
+#'       was shown.}
+#'     \item{`unverified`}{The unverified values, listed apart: `study`,
+#'       `document`, `field`, `value`, `quote` and `shown`, whether the
+#'       prompt showed them (`unverified = "include"`).}
 #'   }
 #' @seealso [gr_outline()] to derive sections from these claims,
 #'   [gr_synthesise()] to write from them, [gr_gaps()] for what they do not
@@ -189,7 +296,13 @@
 #' cm$support
 gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NULL,
                       model = NULL, temperature = NULL, max_claim_tokens = 1600L,
-                      include_unclear = FALSE, trace = NULL, bib = NULL, effort = NULL) {
+                      include_unclear = FALSE, trace = NULL, bib = NULL, effort = NULL,
+                      unverified = c("exclude", "include"), moderators = NULL) {
+  unverified <- match.arg(unverified)
+  if (!is.null(moderators) && (!is.character(moderators) || anyNA(moderators))) {
+    gr_abort("`moderators` must be NULL or a character vector of column names.",
+             class = "gr_bad_setting")
+  }
   tab <- if (inherits(extraction, "gr_extraction")) extraction$table else extraction
   if (!is.data.frame(tab) || !nrow(tab)) {
     gr_abort("`extraction` must be a gr_extraction, or a data frame shaped like its $table.",
@@ -252,7 +365,28 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   # a moderator, and gr_synthesise(bib =) then pasted both into a prompt whose
   # studies block had withheld that column.
   hidden <- unlist(bib_columns(used, bib), use.names = FALSE)
-  rendered <- render_studies(used, hide = hidden)
+  # Each value with its check and quote, and the unverified ones left out
+  # unless asked for: a claim about the literature should rest on what the
+  # documents were found to say. `shown` is the table as the model saw it, and
+  # what a moderator is checked against.
+  values <- value_status(extraction, used, study_fields(used, hide = hidden))
+  withheld <- withheld_values(values, identical(unverified, "exclude"))
+  shown <- blank_withheld(used, withheld)
+  rendered <- render_studies(used, hide = hidden, values = values, withhold = withheld)
+  # A moderator declared in advance must be a column the model is shown; one
+  # that is not could never be named, and would read as tested and absent.
+  declared <- unique(as.character(moderators))
+  stray <- setdiff(declared, study_fields(used, hide = hidden))
+  if (length(stray)) {
+    gr_warn(sprintf(paste0("`moderators` names %s, which %s not a column the claims model is ",
+                           "shown, so no claim can name %s; %s ignored."),
+                    paste0("'", stray, "'", collapse = ", "),
+                    if (length(stray) == 1L) "is" else "are",
+                    if (length(stray) == 1L) "it" else "them",
+                    if (length(stray) == 1L) "it is" else "they are"),
+            class = "gr_moderator_unknown")
+    declared <- setdiff(declared, stray)
+  }
   # "never": claims_batch() sends the question once.
   overhead <- prompt_overhead(question, .gr_prompts$claims_system, "never")
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
@@ -262,8 +396,17 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   # input window alone, a 128k model put 300 studies in one call with a
   # 1600-token reply; the JSON was cut off, did not parse, and every study in
   # the batch contributed nothing.
-  groups <- synth_batches(rendered, bud$input, max_n = claims_per_batch(bud$output))
-  index <- attr(groups, "index")
+  # A study every one of whose values was left out shows the model a number
+  # and nothing else, and a claim could cite it for anything. It is not sent;
+  # a claim naming it is then dropped as naming a study its batch was not shown.
+  sendable <- which(grepl("\n[^\n]", rendered))
+  if (length(sendable) < nrow(used)) {
+    gr_msg(sprintf(paste0("%d study/studies not shown to the claims model: every value of each ",
+                          "was unverified and left out (see `$unverified`)."),
+                   nrow(used) - length(sendable)))
+  }
+  groups <- synth_batches(rendered[sendable], bud$input, max_n = claims_per_batch(bud$output))
+  index <- lapply(attr(groups, "index"), function(ix) sendable[ix])
 
   raw <- list()
   not_sent <- 0L
@@ -310,14 +453,18 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   got <- do.call(rbind, raw[!vapply(raw, is.null, logical(1))])
   if (is.null(got) || !nrow(got)) {
     gr_warn(paste0("No claims came back. ",
-                   if (not_sent == length(groups)) sprintf("No batch was sent: the run had reached its %s. ",
+                   if (!length(groups)) paste0(
+                     "No study was sent: every value was unverified and left out of the ",
+                     "prompt; `unverified = \"include\"` shows them, marked. ")
+                   else if (not_sent == length(groups)) sprintf("No batch was sent: the run had reached its %s. ",
                                                            cap_name(trace))
                    else if (length(lost)) paste0(lost_msg, " ")
                    else "The model returned none. ",
                    "There is nothing for gr_outline() or gr_synthesise(claims = ) to work from."),
             class = "gr_no_claims")
     return(new_claims(empty_claim_rows(), used, question, empty_dropped(), trace, lost_studies,
-                      hidden = hidden))
+                      hidden = hidden, values = values, unverified = unverified,
+                      declared = declared))
   }
   if (length(lost)) {
     gr_warn(lost_msg, class = if (length(cut_off)) c("gr_claims_truncated", "gr_claims_batch_failed")
@@ -330,13 +477,14 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   # accepted, and carry an explanation drawn from a column render_studies()
   # withheld precisely so it could not be used. An invented explanation for a
   # real disagreement is the most convincing error this layer can make.
-  checked <- claims_verify(got, used, cols = study_fields(used, hide = hidden))
+  checked <- claims_verify(got, shown, cols = study_fields(used, hide = hidden))
   if (!nrow(checked$claims)) {
     gr_warn(paste0("Every claim was dropped in verification; see `$dropped`. The usual cause is ",
                    "a model citing study numbers that are not in the table."),
             class = "gr_no_claims")
     return(new_claims(empty_claim_rows(), used, question, checked$dropped, trace, lost_studies,
-                      hidden = hidden))
+                      hidden = hidden, values = values, unverified = unverified,
+                      declared = declared))
   }
   # Claims can repeat only across batches that returned some.
   final <- if (sum(vapply(raw, function(r) NROW(r) > 0L, logical(1))) > 1L) {
@@ -345,9 +493,14 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   # A merge changes which studies sit on each side of a claim, so a moderator
   # that told a member's two sides apart may not tell the merged claim's apart.
   # Checked again on what is actually returned.
-  again <- claims_moderators(final, used)
+  again <- claims_moderators(final, shown)
+  # Each moderator kept, tested: declared in advance or exploratory, with the
+  # Fisher p of its split and the smallest p its margins allow.
+  tests <- moderator_tests(again$claims, shown, declared)
+  again$claims$moderator_status <- moderator_status(again$claims, tests)
   new_claims(again$claims, used, question, rbind(checked$dropped, again$dropped), trace,
-             lost_studies, hidden = hidden, unmerged = isTRUE(attr(final, "unmerged")))
+             lost_studies, hidden = hidden, unmerged = isTRUE(attr(final, "unmerged")),
+             values = values, unverified = unverified, declared = declared, moderators = tests)
 }
 
 #' What a claims reply costs, for sizing batches by it.
@@ -610,6 +763,32 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
     gr_msg(sprintf("%d claim(s) were not placed by the reconcile pass and kept their own group.",
                    length(missed)))
   }
+  # Claims that differ in direction or in population are different claims,
+  # whatever the reply grouped: "improves Y in adults" and "does not improve Y"
+  # or "improves Y in children" cannot share one wording. Enforced here, by
+  # counting words, since the prompt saying so did not stop a merge.
+  apart <- list()
+  parts <- lapply(clean, function(v) {
+    sp <- claim_split_group(claims, v)
+    if (length(sp) > 1L) apart[[length(apart) + 1L]] <<- sp
+    sp
+  })
+  clean <- unlist(parts, recursive = FALSE)
+  kept_apart <- rep(NA_character_, n)
+  for (sp in apart) {
+    for (k in seq_along(sp)) {
+      others <- unlist(sp[-k], use.names = FALSE)
+      kept_apart[sp[[k]]] <- sprintf("kept apart from %s: differs in direction or population",
+                                     paste(sprintf("'%s'", claims$claim[others]), collapse = "; "))
+    }
+  }
+  if (length(apart)) {
+    gr_warn(sprintf(paste0("The reconcile pass grouped claims that differ in direction or in ",
+                           "population; %d group(s) were split so that each says one thing. ",
+                           "Their `note` names the claims they were kept apart from."),
+                    length(apart)),
+            class = "gr_claims_kept_apart")
+  }
   # A finding, a method and a gap cannot "say the same thing"; a group mixing
   # them is the model grouping by topic, and the merged claim keeps one kind.
   mixed <- vapply(clean, function(v) length(unique(claims$kind[v])) > 1L, logical(1))
@@ -619,24 +798,27 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
                            "`note` names the wordings merged in."), sum(mixed)),
             class = "gr_claims_merged")
   }
+  norm <- function(s) lower_text(gsub("[[:space:]]+", " ", trimws(s)))
   merged <- lapply(clean, function(v) {
-    first <- claims[v[1], , drop = FALSE]
-    # The longest text, because a claim stated over more studies is usually
-    # stated more fully, and the support is the union either way.
-    keep <- which.max(nchar(claims$claim[v]))
-    first$claim <- claims$claim[v][keep]
+    # The wording of the member most studies support, not the longest: a
+    # longer sentence is not a better-supported one, and the longest wording
+    # depended on which batch a study fell in. Ties go to fewer contradicting
+    # studies, then to the wording first in a fixed order, so the choice does
+    # not depend on the order of the table or of the batches.
+    keep <- wording_pick(claims, v)
+    first <- claims[v[keep], , drop = FALSE]
     # Every other wording, so a merge can be read back. Without it one claim
     # absorbing an opposite one ("did not improve symptoms" taking in "improved
     # symptoms") left the first claim's studies supporting the second's words,
     # with nothing anywhere to show that a merge had happened.
-    norm <- function(s) lower_text(gsub("[[:space:]]+", " ", trimws(s)))
-    others <- unique(claims$claim[v][-keep])
+    others <- sort(unique(claims$claim[v][-keep]), method = "radix")
     others <- others[norm(others) != norm(first$claim)]
     absorbed <- if (length(others)) sprintf("merged with: %s", paste(sprintf(
       "'%s'", others), collapse = "; ")) else NULL
-    mods <- stats::na.omit(claims$moderator[v])
-    first$moderator <- if (length(mods)) mods[1] else NA_character_
-    sc <- stats::na.omit(claims$scope[v])
+    mods <- sort(unique(stats::na.omit(claims$moderator[v])), method = "radix")
+    first$moderator <- if (!is.na(claims$moderator[v[keep]])) claims$moderator[v[keep]] else
+      if (length(mods)) mods[1] else NA_character_
+    sc <- sort(unique(stats::na.omit(claims$scope[v])), method = "radix")
     first$scope <- if (length(sc)) sc[which.max(nchar(sc))] else NA_character_
     sup <- sort(unique(unlist(claims$.support[v], use.names = FALSE)))
     con <- sort(unique(unlist(claims$.contradict[v], use.names = FALSE)))
@@ -648,7 +830,7 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
     # has to be told, because this is exactly the kind of loss the claims layer
     # exists to make visible.
     flipped <- intersect(con, sup)
-    nts <- c(stats::na.omit(claims$note[v]), absorbed)
+    nts <- c(stats::na.omit(claims$note[v]), absorbed, stats::na.omit(kept_apart[v]))
     if (length(flipped)) {
       nts <- c(nts, sprintf(paste0("study %s contradicted a claim merged into this one; ",
                                    "kept as supporting"), paste(flipped, collapse = ", ")))
@@ -659,6 +841,166 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
     first
   })
   reindex_claims(do.call(rbind, merged))
+}
+
+#' Which member of a merge group gives the merged claim its wording: the one
+#' with the most supporting studies, then the fewest contradicting, then the
+#' first in a fixed order of the wordings. A position in `v`.
+#' @noRd
+wording_pick <- function(claims, v) {
+  sup <- lengths(claims$.support[v])
+  con <- lengths(claims$.contradict[v])
+  key <- lower_text(gsub("[[:space:]]+", " ", trimws(claims$claim[v])))
+  order(-sup, con, key, method = "radix")[1]
+}
+
+#' Words that say how a claim's effect points, in four lists and a rule for
+#' a null finding.
+#'
+#' A claim is read on three axes, each from its own words, because the words
+#' alone cannot say whether a decrease is good: "improves depressive
+#' symptoms" and "reduces depressive symptoms" agree, and "improves" and
+#' "reduces" cannot be put on one line. `null`: it states no effect ("no
+#' effect", "did not improve", "ineffective", "unchanged"). `valence`: benefit
+#' (1, "improves", "benefits") or harm (-1, "harms", "worsens", "impairs").
+#' `change`: up (1, "raises", "increases", "higher") or down (-1, "reduces",
+#' "lowers", "fewer"). A word of either side cancels one of the other, so a
+#' text with as many of each is unknown on that axis (NA).
+#'
+#' A negation makes a null finding only when an effect word follows it
+#' within two words ("did not significantly improve"), and "no" only before
+#' a word for an effect ("no effect", "no significant difference"), so "with
+#' no adverse events" or "no side effects" is not a null finding.
+#' @noRd
+.gr_claim_negation <- paste0("(?:\\bnot\\b(?!\\s+only\\b)|\\bnever\\b|n't\\b|\\bfail(?:s|ed|ing)? to\\b|",
+                             "\\bneither\\b|\\bnor\\b)")
+.gr_claim_effect_verb <- paste0("(?:improv|benefit|help|reduc|decreas|lower|increas|rais|affect|",
+                                "alter|chang|differ|work|enhanc|harm|wors|impair|boost|predict|",
+                                "associat|relat|link|influenc|impact|effective|significant|",
+                                "protect|declin|diminish|elevat|prevent|shorten|lengthen)")
+.gr_claim_null <- c(
+  paste0(.gr_claim_negation, "(?:\\s+[\\w-]+){0,2}?\\s+", .gr_claim_effect_verb),
+  paste0("\\bno\\s+(?:(?:statistically\\s+)?(?:significant|clear|measurable|meaningful|",
+         "detectable|reliable|overall|net|consistent|real|discernible|appreciable)\\s+)?",
+         "(?:effects?|differences?|changes?|benefits?|improvements?|associations?|impacts?|",
+         "relationships?|reductions?|increases?|gains?|advantages?|influence|evidence)\\b"),
+  paste0("\\b(?:ineffective|unchanged|unaffected|unrelated|null|non-?significant|",
+         "insignificant|no better|no worse)\\b"))
+.gr_claim_benefit <- paste0("\\b(?:improv\\w*|benefit\\w*|better|enhanc\\w*|help(?:s|ed|ful)?|",
+                            "effective(?:ly|ness)?|protect\\w*|beneficial)\\b")
+.gr_claim_harm <- paste0("\\b(?:harm\\w*|wors\\w*|impair\\w*|detriment\\w*|damag\\w*|adversely|",
+                         "deteriorat\\w*)\\b")
+.gr_claim_up <- paste0("\\b(?:increas\\w*|rais(?:e|es|ed|ing)|rises?|risen|rising|rose|higher|",
+                       "boost\\w*|elevat\\w*|grow(?:s|n|ing)?|grew|greater|longer|larger)\\b")
+.gr_claim_down <- paste0("\\b(?:decreas\\w*|reduc\\w*|lower(?:s|ed|ing)?|less|fewer|declin\\w*|",
+                         "diminish\\w*|drop(?:s|ped|ping)?|fell|falling|shorter|smaller)\\b")
+
+#' How a claim's text points, read from its words (see `.gr_claim_null`): a
+#' data frame of `null` (logical), `valence` and `change` (1, -1 or NA), one
+#' row per text.
+#' @noRd
+claim_polarity <- function(text) {
+  low <- lower_text(as.character(text))
+  low[is.na(low)] <- ""
+  count <- function(re) vapply(gregexpr(re, low, perl = TRUE),
+                               function(m) sum(m > 0L), integer(1))
+  null <- Reduce(`|`, lapply(.gr_claim_null, function(re) grepl(re, low, perl = TRUE)))
+  axis <- function(up, down) {
+    d <- sign(count(up) - count(down))
+    out <- as.integer(d)
+    out[d == 0] <- NA_integer_
+    out
+  }
+  data.frame(null = null, valence = axis(.gr_claim_benefit, .gr_claim_harm),
+             change = axis(.gr_claim_up, .gr_claim_down), stringsAsFactors = FALSE)
+}
+
+#' Whether two readings of claim_polarity() can be one claim: not when one
+#' states no effect and the other an effect, nor when both name a benefit or
+#' a harm and differ, nor when both name a rise or a fall and differ. An axis
+#' one of them does not speak to agrees with anything. `a` and `b` are
+#' one-row data frames.
+#' @noRd
+polarity_agree <- function(a, b) {
+  if (!identical(a$null, b$null)) return(FALSE)
+  if (isTRUE(a$null)) return(TRUE)
+  differ <- function(x, y) !is.na(x) && !is.na(y) && x != y
+  !differ(a$valence, b$valence) && !differ(a$change, b$change)
+}
+
+#' Whether a reading of claim_polarity() says anything about direction.
+#' @noRd
+polarity_known <- function(p) isTRUE(p$null) || !is.na(p$valence) || !is.na(p$change)
+
+#' The direction a claim's text points, as one number: 0 for a null finding,
+#' else its valence (1 benefit, -1 harm), else its change (1 up, -1 down),
+#' else NA. A label, for reading and for tests: two claims are compared by
+#' polarity_agree(), since "improves symptoms" (1) and "reduces symptoms"
+#' (-1) agree.
+#' @noRd
+claim_direction <- function(text) {
+  p <- claim_polarity(text)
+  out <- ifelse(p$null, 0L, ifelse(!is.na(p$valence), p$valence, p$change))
+  as.integer(out)
+}
+
+#' Populations a claim may be about, each with the stems that name it.
+#' @noRd
+.gr_claim_populations <- list(
+  children = paste0("\\b(?:school|pre-?school|grand)?(?:child|children|kids?)\\b|",
+                    "\\b(?:paediatric|pediatric|pupils?)\\b"),
+  adolescents = "\\b(?:adolescen\\w*|teen\\w*|youth)\\b",
+  infants = "\\b(?:infants?|newborns?|neonat\\w*|toddlers?|babies|baby)\\b",
+  older = "\\b(?:older|elderly|aged \\d+|geriatric)\\b",
+  adults = "\\badults?\\b",
+  women = "\\b(?:women|woman|female|females|(?:school)?girls?|mothers?|pregnan\\w*)\\b",
+  men = "\\b(?:men|man|male|males|(?:school)?boys?|fathers?)\\b",
+  students = "\\b(?:students?|undergraduates?)\\b")
+
+#' The populations a claim's text and scope name, as the names of
+#' `.gr_claim_populations`, sorted. "older adults" is "older" and "adults".
+#' @noRd
+claim_population <- function(text) {
+  low <- lower_text(as.character(text))
+  lapply(low, function(x) {
+    if (is.na(x)) return(character(0))
+    names(.gr_claim_populations)[vapply(.gr_claim_populations, grepl, logical(1), x = x,
+                                        perl = TRUE)]
+  })
+}
+
+#' A reconcile group split so that no two members of a part differ in
+#' direction (between two findings) or in population (both naming one, and
+#' not the same). Members are placed in a fixed order of their wording, each
+#' into the first part it agrees with, so the split does not depend on the
+#' order of the table. Returns a list of the parts, as row numbers.
+#' @noRd
+claim_split_group <- function(claims, v) {
+  if (length(v) < 2L) return(list(v))
+  v <- v[order(lower_text(gsub("[[:space:]]+", " ", trimws(claims$claim[v]))),
+               lengths(claims$.support[v]), method = "radix")]
+  pol <- claim_polarity(claims$claim[v])
+  pop <- claim_population(paste(claims$claim[v], ifelse(is.na(claims$scope[v]), "",
+                                                        claims$scope[v])))
+  finding <- claims$kind[v] == "finding"
+  agree <- function(i, j) {
+    if (finding[i] && finding[j] && !polarity_agree(pol[i, ], pol[j, ])) return(FALSE)
+    if (length(pop[[i]]) && length(pop[[j]]) && !identical(pop[[i]], pop[[j]])) return(FALSE)
+    TRUE
+  }
+  parts <- list()
+  for (i in seq_along(v)) {
+    placed <- FALSE
+    for (k in seq_along(parts)) {
+      if (all(vapply(parts[[k]], agree, logical(1), j = i))) {
+        parts[[k]] <- c(parts[[k]], i)
+        placed <- TRUE
+        break
+      }
+    }
+    if (!placed) parts[[length(parts) + 1L]] <- i
+  }
+  lapply(parts, function(p) v[p])
 }
 
 #' @noRd

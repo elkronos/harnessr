@@ -171,3 +171,94 @@ empty_dropped <- function() {
   data.frame(claim = character(0), reason = character(0), detail = character(0),
              stringsAsFactors = FALSE)
 }
+
+#' The items of ICEMAN, the Instrument to assess the Credibility of Effect
+#' Modification ANalyses (Schandelmaier et al. 2020, CMAJ 192:E901-E906), that
+#' apply to a moderator found across studies, paraphrased. harnessr lists them
+#' for the user to assess; it scores none of them. What it reports bears on
+#' two: whether the moderator was declared in advance, and the Fisher test,
+#' which is a between-study comparison of directions, not a test for
+#' interaction on the effect sizes.
+#' @noRd
+.gr_iceman_items <- data.frame(
+  item = c("comparison", "a priori", "direction", "chance", "number tested",
+           "cut points", "consistency"),
+  question = c(
+    "Is the effect modification based on comparison within studies rather than between them?",
+    "Was the moderator specified before the analysis, not suggested by the data?",
+    "Was the direction of the effect modification correctly hypothesised in advance?",
+    "Does a test for interaction suggest that chance is an unlikely explanation?",
+    "Was only a small number of moderators tested, or was the number allowed for?",
+    "For a continuous moderator, were arbitrary cut points avoided?",
+    "Is the effect modification consistent across related outcomes and studies?"),
+  harnessr = c(
+    "Between studies only: each study is one row of the table.",
+    "`declared` says whether it was named in `moderators`.",
+    "Not recorded: a declared moderator carries no direction.",
+    "`fisher_p` tests directions, not an interaction on effect sizes; `min_p` is the best the split allows.",
+    "`holm_p` adjusts over the declared moderators only.",
+    "A numeric moderator is split at whatever threshold separates the two sides.",
+    "Not assessed."),
+  stringsAsFactors = FALSE)
+
+#' The moderator of each claim that names one, tested.
+#'
+#' A moderator the claims check kept separates the claim's supporting studies
+#' from its contradicting ones (moderator_split()), so the 2 x 2 table of side
+#' against which side's values a study has is as uneven as its margins allow.
+#' `fisher_p` is Fisher's exact test of that table, two-sided; `min_p` the
+#' smallest p any table with those margins can give, which is what a perfect
+#' split shows and why a 1-vs-1 split (p = 1) can show nothing. `declared` is
+#' whether the user named the column in advance (`moderators`); `holm_p` is
+#' Holm's adjustment over the declared moderators, NA for the rest.
+#' `exploratory` is TRUE for a moderator not declared, and for any 1-vs-1
+#' split. `claims` are rows with `.support` and `.contradict`; `used` the
+#' table as the model was shown it.
+#' @noRd
+moderator_tests <- function(claims, used, declared = character(0)) {
+  out <- data.frame(claim_id = integer(0), moderator = character(0), declared = logical(0),
+                    exploratory = logical(0), n_support = integer(0), n_contradict = integer(0),
+                    fisher_p = numeric(0), min_p = numeric(0), holm_p = numeric(0),
+                    stringsAsFactors = FALSE)
+  at <- which(!is.na(claims$moderator))
+  if (!length(at)) return(out)
+  rows <- lapply(at, function(i) {
+    m <- claims$moderator[i]
+    vals <- moderator_values(used, m)
+    has <- function(ids) {
+      if (is.null(vals)) return(0L)
+      sum(!is.na(vals[match(ids, used$study)]))
+    }
+    a <- has(claims$.support[[i]]); b <- has(claims$.contradict[[i]])
+    p <- if (a > 0L && b > 0L) fisher_split(a, b) else NA_real_
+    data.frame(claim_id = as.integer(claims$claim_id[i] %||% i), moderator = m,
+               declared = m %in% declared,
+               exploratory = !(m %in% declared) || (a == 1L && b == 1L),
+               n_support = a, n_contradict = b, fisher_p = p, min_p = p,
+               holm_p = NA_real_, stringsAsFactors = FALSE)
+  })
+  out <- do.call(rbind, rows)
+  d <- which(out$declared & !is.na(out$fisher_p))
+  if (length(d)) out$holm_p[d] <- stats::p.adjust(out$fisher_p[d], method = "holm")
+  rownames(out) <- NULL
+  out
+}
+
+#' Fisher's exact test, two-sided, of `a` supporting and `b` contradicting
+#' studies split perfectly by a moderator: the table that is as uneven as
+#' its margins allow, so its p is also the smallest those margins can give.
+#' @noRd
+fisher_split <- function(a, b) {
+  stats::fisher.test(matrix(c(a, 0L, 0L, b), nrow = 2L))$p.value
+}
+
+#' Each claim's moderator as declared, exploratory or none, from
+#' moderator_tests().
+#' @noRd
+moderator_status <- function(claims, tests) {
+  st <- rep(NA_character_, nrow(claims))
+  if (!nrow(tests)) return(st)
+  i <- match(tests$claim_id, claims$claim_id %||% seq_len(nrow(claims)))
+  st[i] <- ifelse(tests$exploratory, "exploratory", "declared")
+  st
+}

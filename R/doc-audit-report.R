@@ -747,8 +747,11 @@ audit_claims <- function(synthesis, claims = NULL) {
   # a line saying the assignment was not recorded.
   sec <- synthesis[["claim_sections", exact = TRUE]] %||% attr(synthesis$outline, "claims")
   sec_ok <- is.data.frame(sec) && all(c("section", "claim_id") %in% names(sec))
-  tab <- cm$claims[, c("claim_id", "claim", "kind", "moderator", "scope",
-                       "n_support", "n_contradict"), drop = FALSE]
+  tab <- cm$claims[, intersect(c("claim_id", "claim", "kind", "moderator", "scope",
+                                 "n_support", "n_contradict", "sign_p"), names(cm$claims)),
+                   drop = FALSE]
+  if (!is.null(tab$sign_p)) tab$sign_p <- format_sign_p(tab$sign_p)
+  low <- cm$claims$low_power %||% logical(0)
   if (sec_ok) tab$section <- as.character(sec$section)[match(tab$claim_id, sec$claim_id)]
   sup <- cm$support
   docs <- cm$studies$document[match(sup$study, cm$studies$study)]
@@ -767,6 +770,12 @@ audit_claims <- function(synthesis, claims = NULL) {
             if (open) sprintf("<span class='flag'>%d of those with nothing in the table to explain the disagreement</span>", open)
             else "<span class='ok'>each with a distinguishing field named</span>",
             lone),
+    if (any(isTRUE_vec(low)))
+      sprintf(paste0("<p class='sub'>sign_p is the exact sign test of each claim's direction ",
+                     "tally. %d claim(s) rest on 5 studies or fewer, where no tally can reach ",
+                     "p &lt; 0.05: read those as counts of directions, not as evidence of an ",
+                     "effect (Campbell et al. 2020; Boon and Thomson 2021).</p>"),
+              sum(isTRUE_vec(low))),
     lost_note,
     unmerged_note,
     if (!is.null(synthesis) && !sec_ok)
@@ -779,6 +788,8 @@ audit_claims <- function(synthesis, claims = NULL) {
     "<h3>Every claim, study by study</h3>",
     html_table(detail, numeric_cols = c("claim_id", "study"),
                flag = list(role = function(v) v == "contradicts")),
+    audit_moderators(cm),
+    audit_unverified(cm),
     if (nrow(cm$dropped))
       c("<h3>Removed or cleared in verification</h3>",
         sprintf(paste0("<p class='sub'>A claims table that looks thin has to be tellable from a ",
@@ -787,6 +798,106 @@ audit_claims <- function(synthesis, claims = NULL) {
                        "the others took a study number or a moderator off a claim that was ",
                        "kept.</p>")),
         html_table(cm$dropped)))
+}
+
+#' The moderators the claims name, tested (moderator_tests()), and the ICEMAN
+#' items a person should assess them against. NULL when no claim names one,
+#' or for a claims table made before the test.
+#' @noRd
+audit_moderators <- function(cm) {
+  mt <- cm$moderators %||% NULL
+  if (!NROW(mt)) return(NULL)
+  show <- mt
+  for (col in c("fisher_p", "min_p", "holm_p")) show[[col]] <- format_sign_p(show[[col]])
+  c("<h3>Moderators</h3>",
+    sprintf(paste0("<p class='sub'>%d claim(s) name a field that separates the supporting from ",
+                   "the contradicting studies; %d of those fields were declared in advance. ",
+                   "fisher_p is Fisher's exact test of the split, two-sided, and min_p the ",
+                   "smallest p a split with those numbers of studies can give; holm_p adjusts ",
+                   "the declared ones for their number. A moderator not declared, or splitting ",
+                   "one study from one, is exploratory. These compare directions between ",
+                   "studies; they are not tests of an interaction on effect sizes.</p>"),
+            nrow(mt), sum(isTRUE_vec(mt$declared))),
+    html_table(show, numeric_cols = c("claim_id", "n_support", "n_contradict"),
+               flag = list(exploratory = function(v) v %in% c("TRUE", TRUE))),
+    paste0("<p class='sub'>Assess each moderator you rely on against these ICEMAN items ",
+           "(Schandelmaier et al. 2020). harnessr scores none of them; the last column says ",
+           "what it reports that bears on each.</p>"),
+    html_table(.gr_iceman_items))
+}
+
+#' The extracted values whose quotes did not verify, as the claims stage
+#' listed them: left out of its prompt, or shown marked. `%||%` for a claims
+#' table made before the field existed.
+#' @noRd
+audit_unverified <- function(cm) {
+  un <- cm$unverified %||% NULL
+  if (!NROW(un)) return(NULL)
+  c("<h3>Values whose quotes did not verify</h3>",
+    sprintf(paste0("<p class='sub'>%d extracted value(s) came with no quote, or a quote that ",
+                   "does not state them in the document. %s</p>"),
+            nrow(un),
+            if (all(isTRUE_vec(un$shown)))
+              "They were shown to the claims model, each marked unverified."
+            else "They were left out of the claims prompt, so no claim rests on them."),
+    html_table(un[, intersect(c("study", "document", "field", "value", "quote", "shown"),
+                              names(un)), drop = FALSE],
+               numeric_cols = "study"))
+}
+
+#' The sentences of the published text that cite no verified record, from
+#' `$sentences` (sentence_links()). NULL for a synthesis made before it.
+#' @noRd
+audit_sentences <- function(synthesis) {
+  sl <- synthesis[["sentences", exact = TRUE]]
+  if (!is.data.frame(sl) || !nrow(sl)) return(NULL)
+  bad <- sl[!is.na(sl$flag), , drop = FALSE]
+  c("<h3>Sentences and the records they rest on</h3>",
+    sprintf(paste0("<p class='sub'>Each sentence of the text as published was linked to the ",
+                   "studies it cites that are verified records: studies with at least one value ",
+                   "whose quote verified. %d of %d sentence(s) are linked.%s</p>"),
+            sum(isTRUE_vec(sl$linked)), nrow(sl),
+            if (anyNA(sl$linked)) " For the rest, the table could not say which records are verified."
+            else ""),
+    if (nrow(bad))
+      c(sprintf(paste0("<p class='flag'>%d sentence(s) cite no study, or only studies with no ",
+                       "verified value. Nothing is marked partial for this; read them before ",
+                       "relying on them.</p>"), nrow(bad)),
+        html_table(bad[, c("section", "sentence", "studies", "flag"), drop = FALSE])))
+}
+
+#' The studies the published text cites nowhere (`$uncited`), and whether
+#' each was shown to a section. A count, not a quota. NULL for a synthesis
+#' made before the field.
+#' @noRd
+audit_uncited <- function(synthesis) {
+  un <- synthesis[["uncited", exact = TRUE]]
+  if (!is.data.frame(un)) return(NULL)
+  n <- nrow(synthesis$studies)
+  if (!nrow(un)) {
+    return(c("<h3>Studies the text does not cite</h3>",
+             sprintf("<p class='ok'>The text cites every one of the %d studies.</p>", n)))
+  }
+  c("<h3>Studies the text does not cite</h3>",
+    sprintf(paste0("<p class='sub'>%d of the %d studies are cited nowhere in the text as ",
+                   "published; %d of them were shown to a section. This is a count, not a ",
+                   "quota: a review need not cite every study, but one it was shown and passed ",
+                   "over is worth a look.</p>"), nrow(un), n, sum(isTRUE_vec(un$shown))),
+    html_table(un[, intersect(c("study", "document", "shown"), names(un)), drop = FALSE],
+               numeric_cols = "study"))
+}
+
+#' Sentences that cite a study contradicting the claim they state, without a
+#' hedge (`$contradictions`). NULL when there are none.
+#' @noRd
+audit_contradictions <- function(synthesis) {
+  cf <- synthesis[["contradictions", exact = TRUE]]
+  if (!is.data.frame(cf) || !nrow(cf)) return(NULL)
+  c("<h3>Citations of a contradicting study, unhedged</h3>",
+    sprintf(paste0("<p class='flag'>%d sentence(s) state a claim and cite a study that ",
+                   "contradicts it, with no hedge and no word of contrast. Found by counting ",
+                   "words, with no model: read each one.</p>"), length(unique(cf$sentence))),
+    html_table(cf, numeric_cols = c("claim_id", "study")))
 }
 
 #' What was written, and what each part of it rests on.
@@ -930,6 +1041,9 @@ audit_synthesis <- function(synthesis) {
                                       "reason"), names(rep_df)), drop = FALSE],
                  numeric_cols = c("words_before", "words_after"))),
     audit_figures(synthesis, revised),
+    audit_sentences(synthesis),
+    audit_contradictions(synthesis),
+    audit_uncited(synthesis),
     if (isTRUE(synthesis$skipped > 0L))
       sprintf(paste0("<p class='sub'>%d row(s) were left out of the write-up: a duplicate, a ",
                      "document that could not be read in full, or one with nothing ",
@@ -996,19 +1110,36 @@ audit_figures <- function(synthesis, revised = FALSE) {
   c("<h3>Figures checked against the rows</h3>",
     sprintf(paste0("<p class='sub'>Every number in a sentence of the %s was looked for in the ",
                    "rows that sentence cites, as the writer was shown them (a sentence citing ",
-                   "nothing: every row its section was shown), and in the question, the ",
-                   "section's brief and, with claims, the claims behind those rows. %d figure(s) ",
-                   "were checked. Found means copied, not right: a figure the row carries can ",
-                   "still be the wrong one for the sentence.</p>"),
-            if (stage == "final") "published text" else "text", nrow(pub)),
+                   "nothing: every row its section was shown, where a figure counts only if its ",
+                   "chance of matching by coincidence is below 0.05 or the sentence names the ",
+                   "field it matched), and in the question, the section's brief and, with ",
+                   "claims, the claims behind those rows. %d figure(s) were checked%s. Found ",
+                   "means copied, not right: a figure the row carries can still be the wrong ",
+                   "one for the sentence. The check is diagnostic only: it marks nothing ",
+                   "partial.</p>"),
+            if (stage == "final") "published text" else "text", nrow(pub),
+            if (!is.null(pub$field) && any(!is.na(pub$field)))
+              sprintf(", %d of them linked to the field they report", sum(!is.na(pub$field)))
+            else ""),
     if (!is.null(found)) html_table(found, numeric_cols = "figures"),
     if (nrow(bad)) c(
       paste0("<p class='flag'>These figures are in nothing the sentence was written from. ",
              "Each is arithmetic the sentence does not show, or the writer's invention. The ",
              "sections are not marked partial for them: that is about citations.</p>"),
-      html_table(bad[, intersect(c("stage", "section", "number", "studies", "sentence"),
-                                 names(bad)), drop = FALSE]))
+      html_table(figure_rows_shown(bad[, intersect(c("stage", "section", "number", "studies",
+                                                     "pool", "chance", "sentence"),
+                                                   names(bad)), drop = FALSE]),
+                 numeric_cols = "pool"))
     else if (nrow(fig)) "<p class='ok'>Every figure was found in what its sentence was written from.</p>")
+}
+
+#' A figures table with `chance` as text, to two significant digits.
+#' @noRd
+figure_rows_shown <- function(x) {
+  if (!is.null(x$chance)) {
+    x$chance <- ifelse(is.na(x$chance), NA_character_, formatC(signif(x$chance, 2), format = "g"))
+  }
+  x
 }
 
 #' @noRd
