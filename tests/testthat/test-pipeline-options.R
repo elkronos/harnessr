@@ -375,17 +375,38 @@ test_that("OCR-ed PDF blocks are kind 'ocr' with a confidence; headings keep the
   expect_identical(out$kind, c("heading", "ocr", "body"))
   expect_identical(harnessr:::tag_ocr_blocks(b, c(FALSE, FALSE)), b)
   res <- po_quiet(harnessr:::ocr_pdf_pages(
-    "scan.pdf", pages = c("", "Typed."), needs = c(TRUE, FALSE), opts = list(parallel = FALSE),
+    "scan.pdf", pages = c("", "Typed."), needs = c(TRUE, FALSE),
+    opts = list(parallel = FALSE, ocr_confidence = TRUE),
     engine = function(lang) "engine", read_page = function(path, i, dpi) i,
     ocr = function(img, eng) "Scanned text.", confidence = function(img, eng) 87.5))
   expect_identical(res$confidence, c(87.5, NA))
   # A confidence pass that fails leaves NA, and the text stands.
   res <- po_quiet(harnessr:::ocr_pdf_pages(
-    "scan.pdf", pages = "", needs = TRUE, opts = list(parallel = FALSE),
+    "scan.pdf", pages = "", needs = TRUE, opts = list(parallel = FALSE, ocr_confidence = TRUE),
     engine = function(lang) "engine", read_page = function(path, i, dpi) i,
     ocr = function(img, eng) "Scanned text.", confidence = function(img, eng) stop("no")))
   expect_identical(res$pages, "Scanned text.")
   expect_identical(res$confidence, NA_real_)
+})
+
+test_that("ocr_confidence is off by default: no second Tesseract pass and no column", {
+  expect_null(gr_ingest_spec()$ocr_confidence)
+  expect_true(gr_ingest_spec(ocr_confidence = TRUE)$ocr_confidence)
+  passes <- 0L
+  res <- po_quiet(harnessr:::ocr_pdf_pages(
+    "scan.pdf", pages = c("", "Typed."), needs = c(TRUE, FALSE), opts = list(parallel = FALSE),
+    engine = function(lang) "engine", read_page = function(path, i, dpi) i,
+    ocr = function(img, eng) "Scanned text.",
+    confidence = function(img, eng) { passes <<- passes + 1L; 87.5 }))
+  expect_identical(passes, 0L)
+  expect_null(res$confidence)
+  expect_identical(res$pages, c("Scanned text.", "Typed."))
+  expect_identical(res$ocr_done, c(TRUE, FALSE))
+})
+
+test_that("ocr_confidence is swept as recipe arms", {
+  arms <- hr_sweep(gr_arm("scanned"), list(ocr_confidence = c(FALSE, TRUE)))
+  expect_length(arms, 2L)
 })
 
 test_that("a real OCR pass tags a PDF's pages and records tesseract's confidence", {
@@ -393,7 +414,10 @@ test_that("a real OCR pass tags a PDF's pages and records tesseract's confidence
   skip_if_not_installed("magick")
   skip_if_not_installed("pdftools")
   f <- test_path("fixtures", "pdf", "single-column.pdf")
-  d <- po_quiet(gr_ingest(f, gr_ingest_spec(ocr = "always"), cache = FALSE))
+  plain <- po_quiet(gr_ingest(f, gr_ingest_spec(ocr = "always"), cache = FALSE))
+  expect_false("ocr_confidence" %in% names(plain$blocks))
+  d <- po_quiet(gr_ingest(f, gr_ingest_spec(ocr = "always", ocr_confidence = TRUE),
+                          cache = FALSE))
   ocr <- d$blocks[d$blocks$kind == "ocr", , drop = FALSE]
   expect_gt(nrow(ocr), 0L)
   expect_true(all(ocr$ocr_confidence >= 0 & ocr$ocr_confidence <= 100, na.rm = TRUE))

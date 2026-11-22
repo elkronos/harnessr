@@ -722,8 +722,11 @@ extract_pdf <- function(path, opts) {
   }
   out <- tag_ocr_blocks(as_blocks(out %||% data.frame(text = character(0))), ocr_done)
   # Tesseract's confidence for each page OCR read, NA for the others, for
-  # gr_ingest() to put on the page's "ocr" blocks.
-  if (any(ocr_done)) attr(out, "gr_ocr_confidence") <- confidence
+  # gr_ingest() to put on the page's "ocr" blocks. Only under
+  # ocr_confidence = TRUE, which runs the second pass that measures it.
+  if (any(ocr_done) && isTRUE(opts[["ocr_confidence", exact = TRUE]])) {
+    attr(out, "gr_ocr_confidence") <- confidence
+  }
   attr(out, "gr_unread_pages") <- unread
   # How many pages the file has, for a page count that does not stop at the
   # last page any block came from.
@@ -784,7 +787,9 @@ tag_ocr_blocks <- function(blocks, ocr_done) {
 #'
 #' `confidence` is tesseract's mean word confidence (0 to 100) for each page
 #' OCR read, from a second pass over the same image with ocr_data(); `NA` for
-#' a page not read, or when that pass fails.
+#' a page not read, or when that pass fails. The pass runs only under
+#' `opts$ocr_confidence = TRUE` (gr_ingest_spec(ocr_confidence = TRUE)): it
+#' roughly doubles the time OCR takes, and is `NULL` otherwise.
 #' @noRd
 ocr_pdf_pages <- function(path, pages, needs, opts,
                           engine = function(lang) tesseract::tesseract(lang),
@@ -797,6 +802,7 @@ ocr_pdf_pages <- function(path, pages, needs, opts,
                             mean(tesseract::ocr_data(img, engine = eng)$confidence)
                           }) {
   force(engine); force(read_page); force(ocr); force(confidence)
+  want_conf <- isTRUE(opts[["ocr_confidence", exact = TRUE]])
   lang <- as_chr1(opts$ocr_lang %||% "eng")
   dpi <- as.numeric(opts$ocr_dpi %||% 300)
   eng <- engine(lang)
@@ -810,7 +816,8 @@ ocr_pdf_pages <- function(path, pages, needs, opts,
       }
       img <- read_page(path, i, dpi)
       text <- as_chr1(ocr(img, eng))
-      conf <- tryCatch(as_num1(confidence(img, eng), NA_real_), error = function(e) NA_real_)
+      conf <- if (!want_conf) NA_real_ else
+        tryCatch(as_num1(confidence(img, eng), NA_real_), error = function(e) NA_real_)
       list(text = text, failed = FALSE, confidence = conf)
     }, error = function(e) {
       gr_warn(sprintf("OCR failed on page %d: %s", i, conditionMessage(e)),
@@ -826,7 +833,8 @@ ocr_pdf_pages <- function(path, pages, needs, opts,
   conf[idx] <- vapply(res, function(r) as_num1(r$confidence, NA_real_), numeric(1))
   conf[!ocr_done] <- NA_real_
   list(pages = pages, ocr_done = ocr_done,
-       unread = idx[failed & !nzchar(trimws(pages[idx]))], confidence = conf)
+       unread = idx[failed & !nzchar(trimws(pages[idx]))],
+       confidence = if (want_conf) conf)
 }
 
 #' @noRd

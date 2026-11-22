@@ -38,6 +38,11 @@
 #'   taken out (with `layout_opts`), so a scanned page whose text layer holds
 #'   only a 60-character fax header or Bates stamp repeated on every page is
 #'   OCR-ed. Untested.
+#' @param ocr_confidence `TRUE` gives each block of a PDF page that OCR read
+#'   an `ocr_confidence` column: Tesseract's mean word confidence for the
+#'   page, from 0 to 100, from a second Tesseract pass over the page. `FALSE`
+#'   (the default) skips that pass, so OCR takes the time it did before, and
+#'   the blocks have no such column. Untested.
 #' @param min_chars Refuse the document if less than this much text survives.
 #' @param extractor Force a specific extractor name instead of dispatching on
 #'   the file extension.
@@ -107,7 +112,8 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
                            min_chars = 20L, extractor = NULL, parallel = NULL,
                            cleaner_opts = list(), layout = c("auto", "raw"),
                            layout_opts = list(),
-                           ocr_trigger = c("raw_text", "after_running_lines")) {
+                           ocr_trigger = c("raw_text", "after_running_lines"),
+                           ocr_confidence = FALSE) {
   p <- hr_validate(.gr_ingest_schema, mget(names(.gr_ingest_schema), environment()))
   spec <- structure(list(clean = p$clean, ocr = p$ocr, ocr_lang = p$ocr_lang,
                          ocr_dpi = p$ocr_dpi, ocr_min_chars = p$ocr_min_chars,
@@ -120,6 +126,7 @@ gr_ingest_spec <- function(clean = "standard", ocr = c("auto", "always", "never"
   if (length(p$layout_opts)) spec$layout_opts <- p$layout_opts
   # Only when set, for the same reason.
   if (!identical(p$ocr_trigger, "raw_text")) spec$ocr_trigger <- p$ocr_trigger
+  if (isTRUE(p$ocr_confidence)) spec$ocr_confidence <- TRUE
   spec
 }
 
@@ -235,7 +242,12 @@ check_layout_opts <- function(x, p, params) {
            tier = "advanced", depends_on = "ocr = \"auto\"",
            help = "Which text of a PDF page ocr_min_chars is counted on under ocr = 'auto'.",
            evidence = ev_untested(paste0("\"raw_text\" counts the whole text layer, as before; ",
-                                         "not compared with \"after_running_lines\".")))
+                                         "not compared with \"after_running_lines\"."))),
+  hr_param("ocr_confidence", "boolean", default = FALSE, tier = "advanced",
+           depends_on = "ocr = \"auto\" or \"always\"",
+           help = "Record Tesseract's confidence on a PDF page's OCR blocks (a second pass).",
+           evidence = ev_untested(paste0("FALSE: OCR runs one Tesseract pass per page, as ",
+                                         "before. Not compared with TRUE.")))
 )
 
 #' Ingest a document into cleaned, provenance-bearing text blocks

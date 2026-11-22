@@ -148,12 +148,16 @@ says how to test it with `hr_sweep()`. The settings come to 219 in all.
 
 * The blocks of a PDF page OCR read now have `kind = "ocr"` (headings keep
   `"heading"`), as the blocks OCR reads from a Word file's images and from
-  image files always had, and carry `ocr_confidence`, Tesseract's mean word
-  confidence for the page. This changes the blocks of a document at the
+  image files always had. This changes the blocks of a document at the
   default settings when tesseract and magick are installed and a page is
   OCR-ed: it is a fix, since the blocks did not say their text came from
-  OCR, and no text and no request changes. The confidence costs a second
-  Tesseract pass over each OCR-ed page. Without tesseract nothing changes.
+  OCR, and no text and no request changes. Without tesseract nothing
+  changes.
+
+* `gr_ingest_spec()` gains `ocr_confidence`. At `TRUE`, the blocks of a PDF
+  page OCR read carry `ocr_confidence`, Tesseract's mean word confidence for
+  the page, from a second Tesseract pass over each OCR-ed page. The default,
+  `FALSE`, runs one pass, as before, and adds no column.
 
 * An embedded image in a Word file whose OCR fails now raises a
   `gr_ocr_failed` warning naming the image, as a PDF page does; before, its
