@@ -148,9 +148,11 @@ as before. Untested.}
 \code{semantic} pack their units into chunks. \code{"greedy"} (the default) fills
 each chunk to \code{max_tokens} and leaves the remainder in the last, as
 before: 1,250 tokens under a 500 cap become 500, 500 and 250.
-\code{"balanced"} keeps the number of chunks greedy packing makes and evens
-their sizes, packing at the smallest cap that still needs no more
-chunks (about 420 each in that example); no unit is split for it.
+\code{"balanced"} keeps the number of chunks greedy packing makes, k, and
+evens their sizes: it cuts the units at the unit boundaries nearest to
+each k-th of the total tokens (about 420 each in that example). No unit
+is split for it: when a unit is longer than \code{max_tokens}, or a run
+between two cuts does not fit under it, the greedy chunks are kept.
 Untested.}
 
 \item{runt_merge}{Which way a chunk under \code{min_tokens} is merged.

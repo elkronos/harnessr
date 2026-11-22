@@ -16,7 +16,8 @@ gr_ingest_spec(
   cleaner_opts = list(),
   layout = c("auto", "raw"),
   layout_opts = list(),
-  ocr_trigger = c("raw_text", "after_running_lines")
+  ocr_trigger = c("raw_text", "after_running_lines"),
+  ocr_confidence = FALSE
 )
 }
 \arguments{
@@ -119,6 +120,7 @@ Each setting's default, its tier and the evidence behind the value, as in
 \item \code{cleaner_opts} (default \code{list()}, advanced): untested. Empty: each cleaner uses its own defaults, listed under \code{cleaner_opts}.
 \item \code{layout_opts} (default \code{list()}, advanced): untested. Empty: the pass uses the values it was written with, listed under \code{layout_opts}; none was tuned.
 \item \code{ocr_trigger} (default \code{"raw_text"}, advanced): untested. "raw_text" counts the whole text layer, as before; not compared with "after_running_lines".
+\item \code{ocr_confidence} (default \code{FALSE}, advanced): untested. FALSE: OCR runs one Tesseract pass per page, as before. Not compared with TRUE.
 }
 }
 
