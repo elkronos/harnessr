@@ -139,16 +139,22 @@ seg_paragraph_grouped <- function(doc, spec) {
     rest <- seq_along(rows)[-1L]
     room <- spec$max_tokens - gr_count_tokens(paste0(rows[1], "\n"))
     with_header <- length(rest) > 0L && room >= 16L
+    # Each group keeps the text pack_units() gave it. A row longer than the
+    # cap is split into pieces whose spans all point at that one row, so
+    # pasting the group's rows again repeated the whole row in every piece.
     spans <- function(units, cap) {
       packed <- pack_units(rows[units], cap, 0L, 0L, joiner = "\n")
       lapply(seq_len(nrow(packed$span)),
-             function(g) units[packed$span$first[g]:packed$span$last[g]])
+             function(g) list(units = units[packed$span$first[g]:packed$span$last[g]],
+                              text = packed$text[g]))
     }
-    groups <- if (!length(rest)) list(1L) else if (with_header) spans(rest, room)
+    groups <- if (!length(rest)) list(list(units = 1L, text = rows[1L]))
+              else if (with_header) spans(rest, room)
               else spans(seq_along(rows), spec$max_tokens)
-    for (g in groups) {
+    for (gp in groups) {
+      g <- gp$units
       r <- if (with_header) c(1L, g) else g
-      txt <- c(txt, paste(rows[r], collapse = "\n"))
+      txt <- c(txt, if (with_header) paste(rows[1L], gp$text, sep = "\n") else gp$text)
       m <- meta_over(b[from[r], meta_cols, drop = FALSE], 1L, length(r))
       pg <- c(pg, m$page); sc <- c(sc, m$section); bid <- c(bid, m$block_id)
       tid <- c(tid, b$table_id[idx[1]])

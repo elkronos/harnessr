@@ -287,6 +287,49 @@ test_that("grouped packing splits 60 rows in 3 chunks that each open with the he
   expect_lt(sum(startsWith(plain$chunks$text, header)), 2L)
 })
 
+test_that("grouped packing keeps a row or header longer than the cap once", {
+  long <- paste(rep("word", 300), collapse = " ")
+  count_word <- function(ch) {
+    sum(lengths(regmatches(ch$chunks$text, gregexpr("\\bword\\b", ch$chunks$text))))
+  }
+  as_rows <- function(texts, kinds) {
+    d <- po_quiet(gr_ingest(texts))
+    d$blocks$kind <- kinds
+    tp <- harnessr:::table_provenance(d$blocks$kind, d$blocks$text)
+    d$blocks$table_id <- tp$table_id; d$blocks$table_rows <- tp$table_rows
+    d
+  }
+  # A row longer than the room left after the header.
+  d <- as_rows(c("Intro text here.", "Name | Value", "a | 1", paste("b |", long), "c | 3",
+                 "Outro text."), c("body", "table", "table", "table", "table", "body"))
+  for (tp in c("rows", "grouped")) {
+    ch <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = 100,
+                                                 table_packing = tp)))
+    expect_identical(count_word(ch), 300L, label = tp)
+  }
+  ch <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = 100,
+                                               table_packing = "grouped")))
+  tab <- ch$chunks$text[!is.na(ch$chunks$table_id)]
+  expect_true(all(startsWith(tab, "Name | Value\n")))
+  expect_identical(sum(grepl("a | 1", tab, fixed = TRUE)), 1L)
+  expect_identical(sum(grepl("c | 3", tab, fixed = TRUE)), 1L)
+  # A one-column table whose first row is the long cell.
+  d2 <- as_rows(c("Intro.", long, "short row", "Outro."), c("body", "table", "table", "body"))
+  ch2 <- po_quiet(gr_segment(d2, gr_segment_spec("paragraph", max_tokens = 100,
+                                                 table_packing = "grouped")))
+  expect_identical(count_word(ch2), 300L)
+  # A Markdown header longer than the cap is sent once.
+  hdr <- paste0("| ", paste(sprintf("column%03d", 1:60), collapse = " | "), " |")
+  f <- tempfile(fileext = ".md")
+  writeLines(c("Intro.", "", hdr, paste0("|", paste(rep("---", 60), collapse = "|"), "|"),
+               sprintf("| %d | x |", 1:5), "", "Outro."), f)
+  ch3 <- po_quiet(gr_segment(po_quiet(gr_ingest(f)),
+                             gr_segment_spec("paragraph", max_tokens = 100,
+                                             table_packing = "grouped")))
+  expect_identical(sum(lengths(regmatches(ch3$chunks$text,
+                                          gregexpr("column001 ", ch3$chunks$text)))), 1L)
+})
+
 test_that("table_packing is swept as recipe arms", {
   arms <- hr_sweep(gr_arm("needle", list(method = "paragraph", max_tokens = 200)),
                    list(table_packing = c("rows", "grouped")))
