@@ -584,6 +584,14 @@
       "formals": ["judge_config", "validation", "client", "governor = NULL", "draw_index = 0L", "judge_model = judge_config$model"],
       "type": "function"
     },
+    "hr_set": {
+      "formals": ["x", "..."],
+      "type": "function"
+    },
+    "hr_settings": {
+      "formals": ["x"],
+      "type": "function"
+    },
     "hr_signal": {
       "formals": ["name", "value", "trace = NULL", "item_id = NA_character_", "refs = NULL"],
       "type": "function"
