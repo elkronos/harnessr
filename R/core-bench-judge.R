@@ -419,7 +419,8 @@ judge_run <- function(cfg, candidates, reference, client, jt, draw_index = 0L) {
   structure(list(
     value = if (outcome == "answered") verdicts$value[[1L]] else NA_character_,
     outcome = outcome, mode = cfg$mode, verdicts = verdicts,
-    degradation = if (outcome == "unresolved") "judge_inconsistent" else NA_character_,
+    degradation = if (outcome == "unresolved") .hr_degradation_codes[["judge_inconsistent"]]
+                  else NA_character_,
     swap_checked = cfg$orders >= 2L, judge_cost = cost, model = cfg$model,
     candidates = cand$ids, config_hash = cfg$hash, trace = jt), class = "hr_judgement")
 }
