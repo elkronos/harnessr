@@ -89,6 +89,7 @@ Other harness:
 \code{\link{hr_scorer}()},
 \code{\link{hr_settings}()},
 \code{\link{hr_step}()},
+\code{\link{hr_step_command}()},
 \code{\link{hr_sweep}()},
 \code{\link{hr_sweep_check}()}
 }

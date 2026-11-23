@@ -46,7 +46,9 @@ document at the default ingest settings, and a warning there would fire
 on almost every chain. Add an ingest step first to choose those
 settings. After a step that returns \code{"answer"}, only steps that take
 \code{"answer"} or \code{"state"}, or declare nothing, may follow; any other is an
-error of class \code{hr_bad_chain}.
+error of class \code{hr_bad_chain}. A held command step (see
+\code{\link[=hr_step_command]{hr_step_command()}}) must come last, or be followed only by other held
+steps; any other step after it is an error of class \code{hr_held_not_last}.
 
 The arm records each step's settings as given, as \code{"step.setting"}, in
 \code{params} and as the settings \code{\link[=hr_benchmark]{hr_benchmark()}} turns into \verb{param.*}
@@ -104,6 +106,7 @@ Other harness:
 \code{\link{hr_set}()},
 \code{\link{hr_settings}()},
 \code{\link{hr_step}()},
+\code{\link{hr_step_command}()},
 \code{\link{hr_sweep}()},
 \code{\link{hr_sweep_check}()}
 }

@@ -192,7 +192,9 @@ print.hr_step <- function(x, ...) {
 #' on almost every chain. Add an ingest step first to choose those
 #' settings. After a step that returns `"answer"`, only steps that take
 #' `"answer"` or `"state"`, or declare nothing, may follow; any other is an
-#' error of class `hr_bad_chain`.
+#' error of class `hr_bad_chain`. A held command step (see
+#' [hr_step_command()]) must come last, or be followed only by other held
+#' steps; any other step after it is an error of class `hr_held_not_last`.
 #'
 #' The arm records each step's settings as given, as `"step.setting"`, in
 #' `params` and as the settings [hr_benchmark()] turns into `param.*`
@@ -293,6 +295,7 @@ hr_chain <- function(..., name, version = "0.0.1") {
     gr_abort(sprintf("%s has no steps.", what), class = "hr_bad_chain")
   }
   chain_check_order(steps, what)
+  chain_check_held(steps, what)
   nms <- names(steps)
   chain_fp <- hr_hash(list(
     steps = lapply(nms, function(n) {
@@ -622,6 +625,23 @@ chain_check_name <- function(nm, what) {
   if (nm %in% c("name", "version")) {
     gr_abort(sprintf("%s: '%s' is an argument of hr_chain() and cannot name a step.", what, nm),
              class = "hr_bad_chain")
+  }
+  invisible(NULL)
+}
+
+#' Check that no step comes after a held step (see hr_step_command()) unless
+#' it is held too: a held result must not reach a later step.
+#' @noRd
+chain_check_held <- function(steps, what) {
+  held <- vapply(steps, step_held, logical(1))
+  if (!any(held)) return(invisible(NULL))
+  first <- which(held)[1]
+  late <- names(steps)[seq_along(steps) > first & !held]
+  if (length(late)) {
+    gr_abort(sprintf(paste0("%s: step '%s' comes after the held step '%s'. A held step keeps ",
+                            "its result from the steps after it, so it must come last; only ",
+                            "other held steps may follow it."), what, late[1],
+                     names(steps)[first]), class = c("hr_held_not_last", "hr_bad_chain"))
   }
   invisible(NULL)
 }
