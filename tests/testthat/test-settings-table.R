@@ -106,7 +106,7 @@ test_that("every guide section the table points to exists", {
 
 test_that("the README's counts of settings match the table", {
   s <- gr_settings_table()
-  expect_identical(nrow(s), 224L)
+  expect_identical(nrow(s), 227L)
   # The README sits two levels up in the repository; an installed package
   # has none, and then the count above is what holds the figure.
   readme <- file.path("..", "..", "README.md")
@@ -118,4 +118,20 @@ test_that("the README's counts of settings match the table", {
       expect_true(any(startsWith(text, sprintf("| %s | %d |", st, n[[st]]))), info = st)
     }
   }
+})
+
+test_that("the settings table agrees with the command step's schema", {
+  sc <- ns$.hr_command_schema
+  for (k in names(sc)) {
+    ev <- ns$.gr_stage_evidence[[paste0("hr_step_command.", k)]]
+    expect_identical(ev, sc[[k]]$evidence, info = k)
+  }
+  t <- gr_settings_table("evaluate")
+  rows <- t[t$where == "hr_step_command()", ]
+  expect_identical(rows$name, names(sc))
+  d <- as.data.frame(sc)
+  expect_identical(rows$default, d$default)
+  expect_identical(rows$tier, d$tier)
+  expect_identical(rows$status, d$status)
+  expect_identical(rows$source, d$source)
 })
