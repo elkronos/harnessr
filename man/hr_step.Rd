@@ -89,7 +89,7 @@ attr(shout, "resolved")
 shout("hello", list(step_params = attr(shout, "resolved")))
 }
 \seealso{
-\code{\link[=hr_chain]{hr_chain()}}, \code{\link[=gr_step]{gr_step()}}, \code{\link[=hr_arm]{hr_arm()}}
+\code{\link[=hr_chain]{hr_chain()}}, \code{\link[=gr_step]{gr_step()}}, \code{\link[=hr_arm]{hr_arm()}}, \code{\link[=hr_set]{hr_set()}}
 
 Other harness: 
 \code{\link{gr_arm}()},
@@ -110,6 +110,8 @@ Other harness:
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},
 \code{\link{hr_scorer}()},
+\code{\link{hr_set}()},
+\code{\link{hr_settings}()},
 \code{\link{hr_sweep}()},
 \code{\link{hr_sweep_check}()}
 }

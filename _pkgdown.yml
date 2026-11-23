@@ -213,11 +213,14 @@ reference:
 - title: Compose steps and chains
   desc: >
     Build a run from steps (ingest, segment, retrieve, read, or a function of
-    your own), run them in order as one arm, and derive a chain by dropping or
-    replacing a step. See `vignette("compose")`.
+    your own), run them in order as one arm, derive a chain by dropping or
+    replacing a step, and list, change and sweep its settings by path. See
+    `vignette("compose")`.
   contents:
   - hr_step
   - hr_chain
+  - hr_settings
+  - hr_set
   - gr_step
 
 - title: Baselines

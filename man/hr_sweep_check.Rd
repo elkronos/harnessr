@@ -68,6 +68,8 @@ Other harness:
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},
 \code{\link{hr_scorer}()},
+\code{\link{hr_set}()},
+\code{\link{hr_settings}()},
 \code{\link{hr_step}()},
 \code{\link{hr_sweep}()}
 }

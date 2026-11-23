@@ -8,7 +8,7 @@ hr_sweep(base, grid, name = NULL)
 }
 \arguments{
 \item{base}{A function of the grid's columns that returns an
-\code{\link[=hr_arm]{hr_arm()}}, or an arm made by \code{\link[=gr_arm]{gr_arm()}}.}
+\code{\link[=hr_arm]{hr_arm()}}, an arm made by \code{\link[=gr_arm]{gr_arm()}}, or a chain made by \code{\link[=hr_chain]{hr_chain()}}.}
 
 \item{grid}{A data frame with one row per arm and one column per setting,
 or a named list of values, which is crossed with \code{\link[=expand.grid]{expand.grid()}}. A
@@ -40,12 +40,15 @@ settings of the same name, and the arm is built again with
 \code{\link[=gr_arm]{gr_arm()}}. A column may be any setting \code{\link[=answer_document]{answer_document()}} takes as
 an override (see \code{\link[=gr_settings_table]{gr_settings_table()}}), or \code{recipe}. A name that is
 none of these is an error that lists the names that are.}
+\item{A chain made by \code{\link[=hr_chain]{hr_chain()}}}{Each column is a setting's path,
+\code{"step.setting"}, as \code{\link[=hr_settings]{hr_settings()}} lists them, and the chain is
+built again with the row's values by \code{\link[=hr_set]{hr_set()}}:
+\code{hr_sweep(chain, data.frame(retrieve.top_k = c(2, 8)))}. A path that
+is not a setting of a step's schema is an error that lists the paths
+that are.}
 }
 An arm made by \code{\link[=hr_arm]{hr_arm()}} alone records no settings, so it cannot be
-swept by name; give a function that builds it instead. The same holds for
-a chain from \code{\link[=hr_chain]{hr_chain()}} for now: it records its settings, but
-\code{hr_sweep()} cannot yet build it again from a row, so give a function
-that builds the chain.
+swept by name; give a function that builds it instead.
 
 Rows that build the same configuration are collapsed: the first is kept
 and the others are dropped with a message of class \code{hr_sweep_collapsed}
@@ -90,8 +93,8 @@ aggregate(correct ~ param.top_k + param.max_tokens, bench, mean)
 gr_options(old)
 }
 \seealso{
-\code{\link[=hr_benchmark]{hr_benchmark()}}, \code{\link[=hr_sweep_check]{hr_sweep_check()}}, \code{\link[=gr_arm]{gr_arm()}},
-\code{\link[=gr_settings_table]{gr_settings_table()}}, \code{vignette("compare")}
+\code{\link[=hr_benchmark]{hr_benchmark()}}, \code{\link[=hr_sweep_check]{hr_sweep_check()}}, \code{\link[=gr_arm]{gr_arm()}}, \code{\link[=hr_chain]{hr_chain()}},
+\code{\link[=hr_set]{hr_set()}}, \code{\link[=gr_settings_table]{gr_settings_table()}}, \code{vignette("compare")}
 
 Other harness: 
 \code{\link{gr_arm}()},
@@ -112,6 +115,8 @@ Other harness:
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},
 \code{\link{hr_scorer}()},
+\code{\link{hr_set}()},
+\code{\link{hr_settings}()},
 \code{\link{hr_step}()},
 \code{\link{hr_sweep_check}()}
 }

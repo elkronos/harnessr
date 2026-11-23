@@ -77,6 +77,8 @@ they are core. Each has tests of its own.
 | `hr_report()` | test-core-bench-report.R and the other test-core-bench files | Reports a benchmark with intervals. |
 | `hr_scorer_exact()` | test-core-bench.R, test-core-judge.R | A scoring rule for exact matches, for any outputs. |
 | `hr_scorer_judge()` | test-core-judge.R | Scores benchmark runs with a validated judge. |
+| `hr_set()` | test-compose.R, test-sweep.R | Builds a step or a chain again with some settings changed by "step.setting" path, for any steps with schemas. |
+| `hr_settings()` | test-compose.R | Lists every setting of a step or a chain by path, with its value, default, range and evidence. |
 | `hr_signal_policy()` | test-core-signals.R | What a signal may do, and what happens when it may not. |
 | `hr_signals()` | test-core-signals.R | The self-signals a run recorded. |
 | `hr_sweep()` | test-sweep.R | Builds one arm per row of a grid of settings, for any module with a schema. |

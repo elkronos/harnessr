@@ -53,7 +53,10 @@ The arm records each step's settings as given, as \code{"step.setting"}, in
 columns. Its configuration, which \code{\link[=hr_sweep]{hr_sweep()}} and \code{\link[=hr_benchmark]{hr_benchmark()}}
 compare, is a hash of the steps' names, versions, code, the values that
 code reads and the resolved settings, so a setting given at its default
-gives the same configuration as the setting left out.
+gives the same configuration as the setting left out. \code{\link[=hr_settings]{hr_settings()}}
+lists every setting of the chain by path, \code{\link[=hr_set]{hr_set()}} changes some of
+them, and \code{\link[=hr_sweep]{hr_sweep()}} sweeps them by path, as
+\code{hr_sweep(chain, data.frame(retrieve.top_k = c(2, 8)))}.
 }
 \examples{
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
@@ -77,7 +80,8 @@ table(bench$arm, bench$correct)
 gr_options(old)
 }
 \seealso{
-\code{\link[=hr_step]{hr_step()}}, \code{\link[=gr_step]{gr_step()}}, \code{\link[=hr_benchmark]{hr_benchmark()}}, \code{vignette("compose")}
+\code{\link[=hr_step]{hr_step()}}, \code{\link[=gr_step]{gr_step()}}, \code{\link[=hr_settings]{hr_settings()}}, \code{\link[=hr_set]{hr_set()}}, \code{\link[=hr_benchmark]{hr_benchmark()}},
+\code{vignette("compose")}
 
 Other harness: 
 \code{\link{gr_arm}()},
@@ -97,6 +101,8 @@ Other harness:
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},
 \code{\link{hr_scorer}()},
+\code{\link{hr_set}()},
+\code{\link{hr_settings}()},
 \code{\link{hr_step}()},
 \code{\link{hr_sweep}()},
 \code{\link{hr_sweep_check}()}

@@ -431,3 +431,226 @@ test_that("a chain and the chain without its judge benchmark under a cache", {
   expect_identical(unique(s$arm), "checked")
   expect_identical(nrow(s), 4L)
 })
+
+# ---------------------------------------------------------------------------
+# hr_settings() and hr_set()
+# ---------------------------------------------------------------------------
+
+compose_chain <- function(top_k = 4, ...) {
+  st <- compose_steps(top_k)
+  hr_chain(segment = st$segment, retrieve = st$retrieve, read = st$read, ..., name = "c")
+}
+
+test_that("hr_settings() lists each step's settings with their resolved values", {
+  ch <- compose_chain()
+  s <- hr_settings(ch)
+  expect_identical(names(s), c("step", "param", "value", "set", "default", "range", "type",
+                               "tier", "status", "source"))
+  expect_identical(unique(s$step), c("segment", "retrieve", "read"))
+  expect_identical(s$param[s$step == "retrieve"], names(.gr_retrieve_step_schema))
+  expect_identical(s$param[s$step == "read"], names(.gr_read_schema))
+  top <- s[s$step == "retrieve" & s$param == "top_k", ]
+  expect_identical(top$value, "4")
+  expect_true(top$set)
+  expect_identical(top$default, "6")
+  expect_identical(top$range, "[1, 10000]")
+  expect_identical(top$type, "integer")
+  expect_identical(top$status, "untested")
+  # Only the settings given are marked as set.
+  expect_identical(paste(s$step[s$set], s$param[s$set], sep = "."),
+                   c("retrieve.top_k", "read.reader"))
+  mx <- s[s$step == "segment" & s$param == "max_tokens", ]
+  expect_identical(mx$value, mx$default)
+  expect_false(mx$set)
+  # A single step lists its own settings under its name.
+  one <- hr_settings(gr_step_retrieve(top_k = 2))
+  expect_identical(unique(one$step), "retrieve")
+  expect_identical(one$value[one$param == "top_k"], "2")
+  sh <- hr_settings(compose_shout(params = list(marks = 3L)))
+  expect_identical(sh[, c("step", "param", "value", "set")],
+                   data.frame(step = "shout", param = "marks", value = "3", set = TRUE,
+                              stringsAsFactors = FALSE))
+  # A step with no schema has no settings to list.
+  none <- hr_settings(hr_chain(s = hr_step("s", function(input, ctx) input), name = "n"))
+  expect_identical(nrow(none), 0L)
+  expect_identical(names(none), names(s))
+})
+
+test_that("hr_settings() and hr_set() refuse an arm that is not a chain", {
+  for (f in list(hr_settings, function(x) hr_set(x, top_k = 2))) {
+    err <- tryCatch(f(gr_arm("needle")), error = identity)
+    expect_s3_class(err, "hr_bad_arm")
+    expect_match(conditionMessage(err), "gr_settings_table()", fixed = TRUE)
+    expect_error(f(hr_arm("plain", function(item, ctx) "x")), class = "hr_bad_arm")
+    expect_error(f(list()), class = "hr_bad_arm")
+    expect_error(f(function(input, ctx) input), class = "hr_bad_arm")
+  }
+})
+
+test_that("hr_set() changes settings by path and rebuilds the chain", {
+  ch <- compose_chain()
+  w <- hr_set(ch, retrieve.top_k = 8, segment.max_tokens = 300)
+  expect_s3_class(w, "hr_arm")
+  expect_identical(w$name, "c")
+  expect_identical(w$version, ch$version)
+  expect_identical(names(attr(w, "hr_steps")), c("segment", "retrieve", "read"))
+  expect_identical(w$params, list(segment.max_tokens = 300, retrieve.top_k = 8,
+                                  read.reader = "stuff"))
+  expect_identical(attr(w, "hr_settings"), w$params)
+  expect_identical(attr(attr(w, "hr_steps")$retrieve, "resolved")$top_k, 8L)
+  expect_identical(attr(attr(w, "hr_steps")$retrieve, "spec")$top_k, 8L)
+  # The same as building the chain with those settings.
+  direct <- hr_chain(segment = gr_step("segment", max_tokens = 300),
+                     retrieve = gr_step_retrieve(top_k = 8),
+                     read = gr_step("read", reader = "stuff"), name = "c")
+  expect_identical(attr(w, "hr_config"), attr(direct, "hr_config"))
+  expect_identical(w$hash, direct$hash)
+  expect_false(identical(attr(w, "hr_config"), attr(ch, "hr_config")))
+  # The chain it came from is unchanged.
+  expect_identical(ch$params, list(retrieve.top_k = 4, read.reader = "stuff"))
+  # No settings: the chain as it is.
+  expect_identical(hr_set(ch), ch)
+  # A single step takes bare names.
+  r <- hr_set(gr_step_retrieve(top_k = 4), top_k = 2, mmr = 0.5)
+  expect_identical(attr(r, "params"), list(top_k = 2, mmr = 0.5))
+  expect_identical(attr(r, "resolved")$top_k, 2L)
+})
+
+test_that("hr_set() refuses a path that is not a setting of a step's schema", {
+  ch <- compose_chain()
+  cls <- c("hr_unknown_setting", "hr_unknown_param", "gr_bad_setting")
+  for (bad in list(list(retrieve.max_answer_tokens = 100), list(judge.x = 1),
+                   list(top_k = 2), list(retrieve.topk = 2))) {
+    err <- tryCatch(do.call(hr_set, c(list(ch), bad)), error = identity)
+    for (k in cls) expect_s3_class(err, k)
+  }
+  err <- tryCatch(hr_set(ch, retrieve.topk = 2), error = identity)
+  expect_match(conditionMessage(err), "retrieve.top_k", fixed = TRUE)
+  expect_no_match(conditionMessage(err), "read.reader", fixed = TRUE)
+  err <- tryCatch(hr_set(ch, judge.x = 2), error = identity)
+  expect_match(conditionMessage(err), "'segment', 'retrieve', 'read'", fixed = TRUE)
+  # A setting kept as a fixed extra is refused, and the message says why.
+  fixed <- hr_chain(segment = gr_step("segment"),
+                    retrieve = gr_step_retrieve(max_answer_tokens = 100), name = "f")
+  err <- tryCatch(hr_set(fixed, retrieve.max_answer_tokens = 50), error = identity)
+  expect_s3_class(err, "hr_unknown_setting")
+  expect_match(conditionMessage(err), "fixed when the step was built", fixed = TRUE)
+  # A step with no schema has no settings to change.
+  plain <- hr_step("s", function(input, ctx) input)
+  expect_error(hr_set(plain, k = 1), class = "hr_unknown_setting")
+  # Names are required, once each.
+  expect_error(hr_set(ch, 8), class = "gr_bad_setting")
+  expect_error(hr_set(ch, retrieve.top_k = 2, retrieve.top_k = 3), class = "gr_bad_setting")
+  # A bad value is handled as when the step is built.
+  expect_error(hr_set(ch, read.reader = "no_such_reader"), class = "gr_unknown_method")
+  expect_warning(many <- hr_set(ch, retrieve.top_k = "many"), class = "gr_bad_setting")
+  expect_identical(attr(attr(many, "hr_steps")$retrieve, "resolved")$top_k, 6L)
+})
+
+test_that("a setting set to its default gives the configuration of leaving it out", {
+  ch <- compose_chain()
+  six <- hr_set(ch, retrieve.top_k = 6)
+  plain <- hr_chain(ch, retrieve = gr_step_retrieve(), name = "c")
+  expect_identical(attr(six, "hr_config"), attr(plain, "hr_config"))
+  expect_identical(arm_config(six), arm_config(plain))
+  # The settings as given still differ.
+  expect_identical(six$params$retrieve.top_k, 6)
+  expect_null(plain$params$retrieve.top_k)
+})
+
+test_that("hr_set() clamps an out-of-range number with a warning", {
+  ch <- compose_chain()
+  expect_warning(big <- hr_set(ch, retrieve.top_k = 1e9), class = "hr_param_clamped")
+  expect_identical(attr(attr(big, "hr_steps")$retrieve, "resolved")$top_k, 10000L)
+  expect_warning(s <- hr_set(compose_shout(), marks = 9L), class = "gr_clamped")
+  expect_identical(attr(s, "resolved")$marks, 5L)
+})
+
+test_that("a step keeps its class and declarations after hr_set()", {
+  g <- hr_set(gr_step("read", reader = "stuff"), max_answer_tokens = 200)
+  expect_identical(class(g), c("gr_step", "hr_step", "function"))
+  expect_identical(attr(g, "kind"), "read")
+  expect_identical(attr(g, "spec")$max_answer_tokens, 200L)
+  expect_identical(attr(g, "input"), "chunks")
+  expect_identical(attr(g, "output"), "answer")
+  expect_identical(attr(g, "version"), attr(gr_step("read"), "version"))
+  ch <- hr_set(compose_chain(), read.max_answer_tokens = 200)
+  expect_identical(class(attr(ch, "hr_steps")$read), c("gr_step", "hr_step", "function"))
+  # A step given `fn` is built again with the same function.
+  s <- compose_shout(params = list(marks = 1L), version = "0.0.3", input = "state")
+  s3 <- hr_set(s, marks = 3L)
+  expect_identical(class(s3), class(s))
+  expect_identical(attr(s3, "version"), "0.0.3")
+  expect_identical(attr(s3, "input"), "state")
+  expect_identical(s3("hi", list(step_params = attr(s3, "resolved"))), "HI!!!")
+  expect_identical(attr(s3, "fingerprint"),
+                   attr(compose_shout(params = list(marks = 3L), version = "0.0.3",
+                                      input = "state"), "fingerprint"))
+})
+
+test_that("hr_set() keeps a renamed or derived chain's name and does not warn again", {
+  gap <- quiet(hr_chain(read = gr_step("read", reader = "stuff"), name = "gap"))
+  expect_no_warning(g2 <- hr_set(gap, read.max_answer_tokens = 200))
+  expect_identical(g2$name, "gap")
+  v <- hr_chain(compose_chain(), name = "v", version = "1.2.0")
+  expect_identical(hr_set(v, retrieve.top_k = 2)$version, "1.2.0")
+})
+
+test_that("a chain set by hr_set() sends the recorded requests", {
+  run <- function() golden_request_run(function(cl) {
+    ch <- hr_chain(segment = gr_step("segment"), retrieve = gr_step_retrieve(top_k = 2),
+                   read = gr_step("read", reader = "stuff"), name = "composed")
+    hr_benchmark(hr_set(ch, retrieve.top_k = 4), golden_compose_reference(), runs = 1,
+                 client = cl, scorer = gr_scorer_answer())
+  })
+  path <- file.path(golden_dir(), "compose-steps.json")
+  d <- golden_diff(golden_read(path), golden_roundtrip(run()), path = "compose-steps")
+  expect(length(d) == 0L, paste(c("compose-steps after hr_set() changed:",
+                                  utils::head(d, 10)), collapse = "\n"))
+})
+
+test_that("hr_sweep() sweeps a chain by path", {
+  ch <- compose_chain()
+  arms <- hr_sweep(ch, data.frame(retrieve.top_k = c(2, 8)))
+  expect_identical(names(arms), c("c:retrieve.top_k=2", "c:retrieve.top_k=8"))
+  expect_identical(arms[[2]]$params$retrieve.top_k, 8)
+  expect_identical(attr(arms[[1]], "hr_settings")$retrieve.top_k, 2)
+  for (a in arms) expect_identical(names(attr(a, "hr_steps")), c("segment", "retrieve", "read"))
+  b <- quiet(hr_benchmark(arms, compose_reference(), runs = 1, client = compose_client(),
+                          scorer = gr_scorer_answer()))
+  expect_true("param.retrieve.top_k" %in% names(b))
+  expect_identical(sort(unique(b$param.retrieve.top_k)), c(2, 8))
+  expect_identical(b$param.read.reader, rep("stuff", nrow(b)))
+  # A row that repeats another, or sets the chain's own value, is collapsed.
+  expect_message(two <- hr_sweep(ch, data.frame(retrieve.top_k = c(4, 2, 2))),
+                 class = "hr_sweep_collapsed")
+  expect_length(two, 2L)
+  # A path that is not a setting is refused before anything is built.
+  err <- tryCatch(hr_sweep(ch, list(retrieve.topk = 1:2)), error = identity)
+  expect_s3_class(err, "hr_unknown_setting")
+  expect_match(conditionMessage(err), "retrieve.top_k", fixed = TRUE)
+  # A swept chain derives like any chain.
+  nojudge <- hr_chain(hr_sweep(hr_chain(ch, judge = compose_judge(), name = "j"),
+                               list(retrieve.top_k = 8))[[1]], judge = NULL, name = "nj")
+  expect_identical(names(attr(nojudge, "hr_steps")), c("segment", "retrieve", "read"))
+  expect_identical(nojudge$params$retrieve.top_k, 8)
+  # Swept again, a swept chain is built from its own settings.
+  again <- hr_sweep(arms[[2]], list(read.max_answer_tokens = 200))[[1]]
+  expect_identical(again$params$retrieve.top_k, 8)
+  expect_identical(again$params$read.max_answer_tokens, 200)
+})
+
+test_that("hr_sweep_check() finds a chain setting that changed nothing sent", {
+  st <- compose_steps()
+  # `stuff` sends every chunk, so the read step's top_k changes nothing.
+  ch <- hr_chain(segment = st$segment, read = st$read, name = "s")
+  arms <- hr_sweep(ch, list(read.top_k = c(2, 8)))
+  expect_length(arms, 2L)
+  b <- quiet(hr_benchmark(arms, compose_reference(), runs = 1, client = compose_client(),
+                          scorer = gr_scorer_answer()))
+  chk <- hr_sweep_check(b)
+  expect_identical(nrow(chk), 1L)
+  expect_identical(chk$arm, "s:read.top_k=8")
+  expect_identical(chk$same_as, "s:read.top_k=2")
+  expect_identical(chk$settings, "read.top_k: 2 vs 8")
+})
