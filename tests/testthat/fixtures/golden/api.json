@@ -584,6 +584,14 @@
       "formals": ["judge_config", "validation", "client", "governor = NULL", "draw_index = 0L", "judge_model = judge_config$model"],
       "type": "function"
     },
+    "hr_set": {
+      "formals": ["x", "..."],
+      "type": "function"
+    },
+    "hr_settings": {
+      "formals": ["x"],
+      "type": "function"
+    },
     "hr_signal": {
       "formals": ["name", "value", "trace = NULL", "item_id = NA_character_", "refs = NULL"],
       "type": "function"
@@ -596,8 +604,16 @@
       "formals": ["x", "name = NULL"],
       "type": "function"
     },
+    "hr_skill": {
+      "formals": ["path"],
+      "type": "function"
+    },
     "hr_step": {
       "formals": ["name", "fn = NULL", "params = list()", "schema = NULL", "input = NULL", "output = NULL", "version = \"0.0.1\"", "build = NULL", "skill = NULL"],
+      "type": "function"
+    },
+    "hr_step_command": {
+      "formals": ["name", "argv", "parse = c(\"exit\", \"testthat\")", "timeout = 60", "held = FALSE", "wd = NULL"],
       "type": "function"
     },
     "hr_sweep": {
@@ -1026,6 +1042,11 @@
     },
     "print.hr_signal_policy": {
       "class": "hr_signal_policy",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_skill": {
+      "class": "hr_skill",
       "formals": ["x", "..."],
       "generic": "print"
     },

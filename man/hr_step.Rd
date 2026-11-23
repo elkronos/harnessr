@@ -37,15 +37,20 @@ behaviour changes.}
 \item{build}{A function of the settings that returns the step's function,
 or \code{NULL} when \code{fn} is given.}
 
-\item{skill}{Reserved for a later release; must be \code{NULL}.}
+\item{skill}{A skill from \code{\link[=hr_skill]{hr_skill()}}, or \code{NULL}. Inside \code{\link[=hr_chain]{hr_chain()}},
+the step's \code{ctx$call()} and \code{ctx$call_json()} send the skill's
+instructions and references as a system message before the step's own
+messages, and \code{ctx$skill} holds the skill. The skill's hash is kept as
+the fixed setting \code{skill} and is part of the fingerprint, and the
+skill's version, when it has one, is the step's version.}
 }
 \value{
 A function of \verb{(input, ctx)} with class \code{hr_step} and the
 attributes \code{name}, \code{params} (as given), \code{resolved} (the settings the
 schema resolved, or \code{params} without a schema), \code{extras} (settings the
 schema does not name), \code{schema}, \code{input}, \code{output}, \code{version}, \code{build}
-and \code{fingerprint}, a hash of the step's code, the values it reads, its
-settings and its version.
+\code{skill} and \code{fingerprint}, a hash of the step's code, the values it
+reads, its settings and its version.
 }
 \description{
 A step does one part of a run: it takes what the step before it returned
@@ -89,7 +94,7 @@ attr(shout, "resolved")
 shout("hello", list(step_params = attr(shout, "resolved")))
 }
 \seealso{
-\code{\link[=hr_chain]{hr_chain()}}, \code{\link[=gr_step]{gr_step()}}, \code{\link[=hr_arm]{hr_arm()}}
+\code{\link[=hr_chain]{hr_chain()}}, \code{\link[=gr_step]{gr_step()}}, \code{\link[=hr_arm]{hr_arm()}}, \code{\link[=hr_set]{hr_set()}}
 
 Other harness: 
 \code{\link{gr_arm}()},
@@ -110,6 +115,10 @@ Other harness:
 \code{\link{hr_reference}()},
 \code{\link{hr_report}()},
 \code{\link{hr_scorer}()},
+\code{\link{hr_set}()},
+\code{\link{hr_settings}()},
+\code{\link{hr_skill}()},
+\code{\link{hr_step_command}()},
 \code{\link{hr_sweep}()},
 \code{\link{hr_sweep_check}()}
 }

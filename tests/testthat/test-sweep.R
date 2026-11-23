@@ -64,11 +64,12 @@ test_that("hr_sweep() names the known settings when a column is not one", {
   # An arm from hr_arm() alone records no settings to override.
   plain <- hr_arm("plain", function(item, ctx) "x")
   expect_error(hr_sweep(plain, list(top_k = 2)), class = "hr_bad_arm")
-  # A chain records its settings, but hr_sweep() takes a function that builds it.
+  # A chain is swept by path; a step with no schema has no settings to sweep.
   ch <- hr_chain(s = hr_step("s", function(input, ctx) input), name = "c")
   err <- tryCatch(hr_sweep(ch, list(s.k = 1:2)), error = identity)
   expect_s3_class(err, "hr_bad_arm")
-  expect_match(conditionMessage(err), "is a chain from hr_chain()", fixed = TRUE)
+  expect_s3_class(err, "hr_unknown_setting")
+  expect_match(conditionMessage(err), "'s.k' is not a setting of arm 'c'", fixed = TRUE)
   swept <- hr_sweep(function(k) hr_chain(s = hr_step("s", function(input, ctx) input),
                                          name = "c", version = as.character(k)),
                     list(k = 1:2))

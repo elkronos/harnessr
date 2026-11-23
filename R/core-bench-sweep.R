@@ -7,8 +7,9 @@
 # `hr_config`, a hash of what the arm will do whatever it is called, which two
 # arms share only when they run the same configuration; and `hr_rebuild` with
 # `hr_known`, a function that builds the arm again with some settings changed
-# and the names it accepts. gr_arm() sets all four; an arm made by hr_arm()
-# alone has none, and its configuration is its fields other than its name.
+# and the names it accepts. gr_arm() and hr_chain() set all four; an arm made
+# by hr_arm() alone has none, and its configuration is its fields other than
+# its name.
 
 #' Build one arm per row of a grid of settings
 #'
@@ -27,12 +28,15 @@
 #'     [gr_arm()]. A column may be any setting [answer_document()] takes as
 #'     an override (see [gr_settings_table()]), or `recipe`. A name that is
 #'     none of these is an error that lists the names that are.}
+#'   \item{A chain made by [hr_chain()]}{Each column is a setting's path,
+#'     `"step.setting"`, as [hr_settings()] lists them, and the chain is
+#'     built again with the row's values by [hr_set()]:
+#'     `hr_sweep(chain, data.frame(retrieve.top_k = c(2, 8)))`. A path that
+#'     is not a setting of a step's schema is an error that lists the paths
+#'     that are.}
 #' }
 #' An arm made by [hr_arm()] alone records no settings, so it cannot be
-#' swept by name; give a function that builds it instead. The same holds for
-#' a chain from [hr_chain()] for now: it records its settings, but
-#' `hr_sweep()` cannot yet build it again from a row, so give a function
-#' that builds the chain.
+#' swept by name; give a function that builds it instead.
 #'
 #' Rows that build the same configuration are collapsed: the first is kept
 #' and the others are dropped with a message of class `hr_sweep_collapsed`
@@ -56,7 +60,7 @@
 #' that was sent.
 #'
 #' @param base A function of the grid's columns that returns an
-#'   [hr_arm()], or an arm made by [gr_arm()].
+#'   [hr_arm()], an arm made by [gr_arm()], or a chain made by [hr_chain()].
 #' @param grid A data frame with one row per arm and one column per setting,
 #'   or a named list of values, which is crossed with [expand.grid()]. A
 #'   setting whose values are not single values (an `effort` map, a vector
@@ -66,8 +70,8 @@
 #'   place of the base arm's name; or one string per row.
 #' @return A list of [hr_arm()] objects named by arm, one per distinct row,
 #'   each with its row's settings recorded.
-#' @seealso [hr_benchmark()], [hr_sweep_check()], [gr_arm()],
-#'   [gr_settings_table()], `vignette("compare")`
+#' @seealso [hr_benchmark()], [hr_sweep_check()], [gr_arm()], [hr_chain()],
+#'   [hr_set()], [gr_settings_table()], `vignette("compare")`
 #' @family harness
 #' @export
 #' @examples
@@ -101,17 +105,11 @@ hr_sweep <- function(base, grid, name = NULL) {
   if (inherits(base, "hr_arm")) {
     rebuild <- attr(base, "hr_rebuild", exact = TRUE)
     known <- attr(base, "hr_known", exact = TRUE)
-    if (!is.function(rebuild) && !is.null(attr(base, "hr_steps", exact = TRUE))) {
-      gr_abort(sprintf(paste0(
-        "Arm '%s' is a chain from hr_chain(), which hr_sweep() cannot rebuild from a ",
-        "grid yet. Give hr_sweep() a function of the grid's columns that builds the ",
-        "chain instead, such as function(k) hr_chain(..., name = \"c\")."),
-        base$name), class = "hr_bad_arm")
-    }
     if (!is.function(rebuild)) {
       gr_abort(sprintf(paste0(
-        "Arm '%s' records no settings to override: it was not built by gr_arm(). Give ",
-        "hr_sweep() a function of the grid's columns that builds the arm instead."),
+        "Arm '%s' records no settings to override: it was not built by gr_arm() or ",
+        "hr_chain(). Give hr_sweep() a function of the grid's columns that builds the ",
+        "arm instead."),
         base$name), class = "hr_bad_arm")
     }
     sweep_check_names(names(grid), known, sprintf("arm '%s'", base$name))

@@ -31,7 +31,8 @@
   hr_judge = list(stage = "evaluate", inputs = c("candidates", "client", "reference", "rubric",
                                                  "schema", "trace")),
   gr_compare = list(stage = "evaluate", inputs = c("source", "question", "client", "correct")),
-  hr_error_correlation = list(stage = "evaluate", inputs = "bench")
+  hr_error_correlation = list(stage = "evaluate", inputs = "bench"),
+  hr_step_command = list(stage = "evaluate", inputs = c("name", "argv", "wd"))
 )
 
 #' The arguments of those functions most runs set, as "function.argument".
@@ -50,7 +51,7 @@
   "hr_benchmark.runs", "hr_benchmark.scorer", "hr_benchmark.governor",
   "hr_report.conf", "hr_report.method",
   "hr_judge.mode", "hr_judge.model", "hr_judge.orders",
-  "gr_compare.recipes")
+  "gr_compare.recipes", "hr_step_command.parse")
 
 #' Where the defaults of the stage arguments the walkthroughs cover come
 #' from, as "function.argument". The others declare none.
@@ -104,7 +105,15 @@
     "against people's labels and not compared.")),
   gr_claims.unverified = ev_untested(paste0(
     "\"exclude\", so a claim rests on what the documents were found to say; not compared ",
-    "with \"include\"."))
+    "with \"include\".")),
+  hr_step_command.parse = ev_untested(paste0(
+    "\"exit\" reads what every program reports; a choice, not a tuned value.")),
+  hr_step_command.timeout = ev_untested(paste0(
+    "A minute, enough for a small test file; set when the step was written, ",
+    "not tuned.")),
+  hr_step_command.held = ev_untested(paste0(
+    "Off, so the result is visible to the steps after it; a choice for the ",
+    "chain, not a tuned value."))
 )
 
 #' The entries of an ingest spec's `cleaner_opts` the built-in cleaners
@@ -212,6 +221,9 @@
   evaluate.hr_error_correlation.n_check = "evaluate#set-errcorr",
   evaluate.hr_error_correlation.held_out = "evaluate#set-errcorr",
   evaluate.hr_error_correlation.seed = "evaluate#set-errcorr",
+  evaluate.hr_step_command.timeout = "evaluate#set-command-timeout",
+  evaluate.hr_step_command.parse = "evaluate#set-command-parse",
+  evaluate.hr_step_command.held = "evaluate#set-command-held",
   options.max_cost_usd = "runs#set-limits", options.max_calls = "runs#set-limits",
   options.max_tokens_total = "runs#set-limits", options.max_output_tokens = "runs#set-limits",
   options.allowed_models = "runs#set-limits", options.allow_unpriced = "runs#set-limits")
@@ -242,7 +254,8 @@
 #'     [gr_calibrate()], [gr_screen_sample_size()] and [gr_stop_test()];
 #'     [gr_extract()]; [gr_claims()], [gr_outline()], [gr_gaps()] and
 #'     [gr_synthesise()]; [hr_benchmark()], [hr_report()], [hr_judge()],
-#'     [gr_compare()] and [hr_error_correlation()]), leaving out the inputs a call works on (the
+#'     [gr_compare()], [hr_error_correlation()] and [hr_step_command()]),
+#'     leaving out the inputs a call works on (the
 #'     documents, the client, the trace). Defaults are the functions' own,
 #'     and descriptions the first sentence of each argument's help.}
 #'   \item{`options`}{Every [gr_options()] option, with its default, the

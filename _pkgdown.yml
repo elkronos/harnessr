@@ -213,11 +213,17 @@ reference:
 - title: Compose steps and chains
   desc: >
     Build a run from steps (ingest, segment, retrieve, read, or a function of
-    your own), run them in order as one arm, and derive a chain by dropping or
-    replacing a step. See `vignette("compose")`.
+    your own), run them in order as one arm, derive a chain by dropping or
+    replacing a step, list, change and sweep its settings by path, give a
+    step a skill, and check a step's output by running a program. See
+    `vignette("compose")` and `vignette("evaluate")`.
   contents:
   - hr_step
   - hr_chain
+  - hr_settings
+  - hr_set
+  - hr_step_command
+  - hr_skill
   - gr_step
 
 - title: Baselines

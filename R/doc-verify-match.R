@@ -23,8 +23,7 @@
 #' source with nothing to compare. `entailed`, `not_entailed` and
 #' `contradicted` belong to a support check this matcher does not make.
 #' @noRd
-.gr_quote_statuses <- c("verbatim", "near_verbatim", "entailed", "not_entailed",
-                        "contradicted", "unverified", "not_checked")
+.gr_quote_statuses <- .hr_verify_statuses
 
 #' Compatibility characters folded before matching, from and to.
 #'

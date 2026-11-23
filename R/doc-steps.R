@@ -52,6 +52,10 @@
 #' retrieve takes and returns chunks, and read takes chunks and returns the
 #' answer.
 #'
+#' These steps take no skill ([hr_skill()]): their requests are built by the
+#' stage, not sent through `ctx$call()`, so a skill would not reach them.
+#' Passing `skill` is an error of class `hr_bad_skill`.
+#'
 #' @param kind `"ingest"`, `"segment"` or `"read"`.
 #' @param ... Settings for the stage's spec constructor: [gr_ingest_spec()]
 #'   for `"ingest"`, [gr_segment_spec()] for `"segment"`, [gr_read_spec()]
@@ -82,6 +86,7 @@
 #' steps[[2]]
 gr_step <- function(kind = c("ingest", "segment", "read"), ..., name = NULL) {
   kind <- match.arg(kind)
+  step_refuse_skill(names(list(...)), "gr_step()")
   ctor <- switch(kind, ingest = gr_ingest_spec, segment = gr_segment_spec, read = gr_read_spec)
   schema <- switch(kind, ingest = .gr_ingest_schema, segment = .gr_segment_schema,
                    read = .gr_read_schema)
@@ -123,6 +128,7 @@ gr_step <- function(kind = c("ingest", "segment", "read"), ..., name = NULL) {
 #' @rdname gr_step
 #' @export
 gr_step_retrieve <- function(top_k = 6L, ..., name = NULL) {
+  step_refuse_skill(names(list(...)), "gr_step_retrieve()")
   given <- c(if (!missing(top_k)) list(top_k = top_k), list(...))
   params <- step_args(gr_read_spec, c(list(reader = "retrieve"), given))
   params$reader <- NULL
@@ -174,6 +180,20 @@ print.gr_step <- function(x, ...) {
   intersect(names(.gr_read_schema),
             c("top_k", "min_score", "mmr", "fusion", "rrf_k", "lexical_blend",
               "bm25_k1", "bm25_b"))]))
+
+#' A built-in step takes no skill: its requests are built by the stage it
+#' runs, not sent through ctx$call(), so a skill would never reach them.
+#' @noRd
+step_refuse_skill <- function(given, fun) {
+  if ("skill" %in% given) {
+    gr_abort(sprintf(paste0("%s does not take a skill: its requests are built by the stage it ",
+                            "runs, so the skill would not reach them. Give a skill to a step of ",
+                            "your own, built with hr_step(), that sends its requests through ",
+                            "ctx$call()."), fun),
+             class = c("hr_bad_skill", "gr_bad_setting"))
+  }
+  invisible(NULL)
+}
 
 #' The arguments given to a step, named as a call to its spec constructor
 #' would match them, so a setting given by position or by a partial name
