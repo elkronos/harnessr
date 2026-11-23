@@ -23,7 +23,7 @@ table(settings$stage, settings$tier)[unique(settings$stage), ]
 #>   screen           22    11
 #>   extract           7     3
 #>   synthesise       24     5
-#>   evaluate         18     9
+#>   evaluate         20    10
 #>   options          29     5
 ```
 
@@ -362,6 +362,9 @@ cover them.
 | [`n_check`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `10` | advanced | untested | How many items every arm got wrong to sample for a hand check: a whole number, 0 or more, default 10. |
 | [`held_out`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `TRUE` | advanced | untested | TRUE (the default) reads only the rows that count as evidence (reportable, so not the dev split); FALSE reads every row. |
 | [`seed`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `1` | advanced | untested | The seed of the private random stream the sample is drawn with; the caller’s random state is left as it was. |
+| [`parse`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-parse) | [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md) | `exit` | basic | untested | How the result is read: “exit” or “testthat”. |
+| [`timeout`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-timeout) | [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md) | `60` | advanced | untested | Seconds the program may run before it is stopped, from 1 to 86400. |
+| [`held`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-held) | [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md) | `FALSE` | advanced | untested | Whether the result is kept from the steps after this one and left for the scorer. |
 
 ## Options
 

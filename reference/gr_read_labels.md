@@ -127,7 +127,7 @@ qa <- data.frame(document = c("a.pdf", "a.pdf", "b.pdf"),
                               "When did the trial start?"))
 path <- file.path(tempdir(), "qa-read.csv")
 gr_label_sheet("qa", qa, path = path)
-#> Wrote 3 item(s) to '/tmp/RtmpXMtAXn/qa-read.csv', with instructions in '/tmp/RtmpXMtAXn/qa-read_instructions.txt'. Read the filled sheet back with gr_read_labels().
+#> Wrote 3 item(s) to '/tmp/RtmphmwV15/qa-read.csv', with instructions in '/tmp/RtmphmwV15/qa-read_instructions.txt'. Read the filled sheet back with gr_read_labels().
 
 # A person fills it in; here the filling is simulated.
 sheet <- read.csv(path, fileEncoding = "UTF-8-BOM")

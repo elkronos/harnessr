@@ -357,14 +357,25 @@ and
 ## Compose steps and chains
 
 Build a run from steps (ingest, segment, retrieve, read, or a function
-of your own), run them in order as one arm, and derive a chain by
-dropping or replacing a step. See
-[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md).
+of your own), run them in order as one arm, derive a chain by dropping
+or replacing a step, list, change and sweep its settings by path, give a
+step a skill, and check a step’s output by running a program. See
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
+and
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
 
 - [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md)
   : A step of a run, with the settings it was built with
 - [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
   : Run steps in order as one arm
+- [`hr_settings()`](https://elkronos.github.io/harnessr/reference/hr_settings.md)
+  : List the settings of a step or a chain
+- [`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md)
+  : Change some settings of a step or a chain
+- [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md)
+  : A step that runs a program
+- [`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md)
+  : Read a skill folder
 - [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
   [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
   : Built-in steps for composing a run

@@ -121,7 +121,12 @@ or <code>NULL</code> when <code>fn</code> is given.</p></dd>
 
 
 <dt id="arg-skill">skill<a class="anchor" aria-label="anchor" href="#arg-skill"></a></dt>
-<dd><p>Reserved for a later release; must be <code>NULL</code>.</p></dd>
+<dd><p>A skill from <code><a href="hr_skill.html">hr_skill()</a></code>, or <code>NULL</code>. Inside <code><a href="hr_chain.html">hr_chain()</a></code>,
+the step's <code>ctx$call()</code> and <code>ctx$call_json()</code> send the skill's
+instructions and references as a system message before the step's own
+messages, and <code>ctx$skill</code> holds the skill. The skill's hash is kept as
+the fixed setting <code>skill</code> and is part of the fingerprint, and the
+skill's version, when it has one, is the step's version.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -130,8 +135,8 @@ or <code>NULL</code> when <code>fn</code> is given.</p></dd>
 attributes <code>name</code>, <code>params</code> (as given), <code>resolved</code> (the settings the
 schema resolved, or <code>params</code> without a schema), <code>extras</code> (settings the
 schema does not name), <code>schema</code>, <code>input</code>, <code>output</code>, <code>version</code>, <code>build</code>
-and <code>fingerprint</code>, a hash of the step's code, the values it reads, its
-settings and its version.</p>
+<code>skill</code> and <code>fingerprint</code>, a hash of the step's code, the values it
+reads, its settings and its version.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -162,7 +167,7 @@ or text), <code>"doc"</code> (an ingested document), <code>"chunks"</code>, <cod
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="hr_chain.html">hr_chain()</a></code>, <code><a href="gr_step.html">gr_step()</a></code>, <code><a href="hr_arm.html">hr_arm()</a></code></p>
+    <div class="dont-index"><p><code><a href="hr_chain.html">hr_chain()</a></code>, <code><a href="gr_step.html">gr_step()</a></code>, <code><a href="hr_arm.html">hr_arm()</a></code>, <code><a href="hr_set.html">hr_set()</a></code></p>
 <p>Other harness:
 <code><a href="gr_arm.html">gr_arm()</a></code>,
 <code><a href="gr_condensation_check.html">gr_condensation_check()</a></code>,
@@ -182,6 +187,10 @@ or text), <code>"doc"</code> (an ingested document), <code>"chunks"</code>, <cod
 <code><a href="hr_reference.html">hr_reference()</a></code>,
 <code><a href="hr_report.html">hr_report()</a></code>,
 <code><a href="hr_scorer.html">hr_scorer()</a></code>,
+<code><a href="hr_set.html">hr_set()</a></code>,
+<code><a href="hr_settings.html">hr_settings()</a></code>,
+<code><a href="hr_skill.html">hr_skill()</a></code>,
+<code><a href="hr_step_command.html">hr_step_command()</a></code>,
 <code><a href="hr_sweep.html">hr_sweep()</a></code>,
 <code><a href="hr_sweep_check.html">hr_sweep_check()</a></code></p></div>
     </div>

@@ -67,15 +67,23 @@ hr_step(
 
 - skill:
 
-  Reserved for a later release; must be `NULL`.
+  A skill from
+  [`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md),
+  or `NULL`. Inside
+  [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md),
+  the step's `ctx$call()` and `ctx$call_json()` send the skill's
+  instructions and references as a system message before the step's own
+  messages, and `ctx$skill` holds the skill. The skill's hash is kept as
+  the fixed setting `skill` and is part of the fingerprint, and the
+  skill's version, when it has one, is the step's version.
 
 ## Value
 
 A function of `(input, ctx)` with class `hr_step` and the attributes
 `name`, `params` (as given), `resolved` (the settings the schema
 resolved, or `params` without a schema), `extras` (settings the schema
-does not name), `schema`, `input`, `output`, `version`, `build` and
-`fingerprint`, a hash of the step's code, the values it reads, its
+does not name), `schema`, `input`, `output`, `version`, `build` `skill`
+and `fingerprint`, a hash of the step's code, the values it reads, its
 settings and its version.
 
 ## Details
@@ -119,7 +127,8 @@ can check the order of its steps: `"document"` (a file, URL or text),
 
 [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md),
 [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md),
-[`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)
+[`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md),
+[`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md)
 
 Other harness:
 [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md),
@@ -140,6 +149,10 @@ Other harness:
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md),
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
 [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md),
+[`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md),
+[`hr_settings()`](https://elkronos.github.io/harnessr/reference/hr_settings.md),
+[`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md),
+[`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md),
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 

@@ -71,9 +71,10 @@ setting, so it says what the installed code does:
   [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
   [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
   [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md),
-  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+  [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
+  [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md)
   and
-  [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md)),
+  [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md)),
   leaving out the inputs a call works on (the documents, the client, the
   trace). Defaults are the functions' own, and descriptions the first
   sentence of each argument's help.
@@ -103,7 +104,7 @@ s <- gr_settings_table()
 table(s$stage)
 #> 
 #>   evaluate    extract     ingest    options       read     screen    segment 
-#>         27         10         21         34         50         33         20 
+#>         30         10         21         34         50         33         20 
 #> synthesise 
 #>         29 
 s[s$tier == "basic", c("stage", "name", "default")]
@@ -150,11 +151,12 @@ s[s$tier == "basic", c("stage", "name", "default")]
 #> 179   evaluate          model                            NULL
 #> 180   evaluate         orders                               2
 #> 183   evaluate        recipes c("fast", "needle", "thorough")
-#> 191    options        verbose                            TRUE
-#> 193    options          model                   gpt-5.6-terra
-#> 206    options      cache_dir                            NULL
-#> 210    options   max_cost_usd                               5
-#> 211    options      max_calls                             400
+#> 191   evaluate          parse                            exit
+#> 194    options        verbose                            TRUE
+#> 196    options          model                   gpt-5.6-terra
+#> 209    options      cache_dir                            NULL
+#> 213    options   max_cost_usd                               5
+#> 214    options      max_calls                             400
 gr_settings_table("synthesise")[, c("name", "default", "status")]
 #>                  name                                   default   status
 #> 1               model                                      NULL     <NA>

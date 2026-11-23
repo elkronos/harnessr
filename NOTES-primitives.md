@@ -79,8 +79,12 @@ documents, which is why they are core. Each has tests of its own.
 | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | test-core-bench-report.R and the other test-core-bench files | Reports a benchmark with intervals. |
 | [`hr_scorer_exact()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md) | test-core-bench.R, test-core-judge.R | A scoring rule for exact matches, for any outputs. |
 | [`hr_scorer_judge()`](https://elkronos.github.io/harnessr/reference/hr_scorer_judge.md) | test-core-judge.R | Scores benchmark runs with a validated judge. |
+| [`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md) | test-compose.R, test-sweep.R | Builds a step or a chain again with some settings changed by “step.setting” path, for any steps with schemas. |
+| [`hr_settings()`](https://elkronos.github.io/harnessr/reference/hr_settings.md) | test-compose.R | Lists every setting of a step or a chain by path, with its value, default, range and evidence. |
+| [`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md) | test-skill.R | Reads a skill folder a person chose, for a step of any chain; nothing in it knows about documents. |
 | [`hr_signal_policy()`](https://elkronos.github.io/harnessr/reference/hr_signal_policy.md) | test-core-signals.R | What a signal may do, and what happens when it may not. |
 | [`hr_signals()`](https://elkronos.github.io/harnessr/reference/hr_signal.md) | test-core-signals.R | The self-signals a run recorded. |
+| [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md) | test-command.R, test-settings-table.R | A chain step that runs a program the user names and reads its result, for any chain. |
 | [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md) | test-sweep.R | Builds one arm per row of a grid of settings, for any module with a schema. |
 | [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md) | test-sweep.R | Finds the settings of a sweep that changed nothing that was sent. |
 | [`hr_tfidf()`](https://elkronos.github.io/harnessr/reference/hr_tfidf.md) | test-core-baseline.R | Tf-idf features from any texts, behind the baselines. |

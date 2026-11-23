@@ -75,7 +75,7 @@ summarised with <code><a href="https://rdrr.io/r/stats/aggregate.html" class="ex
 
 <dl><dt id="arg-base">base<a class="anchor" aria-label="anchor" href="#arg-base"></a></dt>
 <dd><p>A function of the grid's columns that returns an
-<code><a href="hr_arm.html">hr_arm()</a></code>, or an arm made by <code><a href="gr_arm.html">gr_arm()</a></code>.</p></dd>
+<code><a href="hr_arm.html">hr_arm()</a></code>, an arm made by <code><a href="gr_arm.html">gr_arm()</a></code>, or a chain made by <code><a href="hr_chain.html">hr_chain()</a></code>.</p></dd>
 
 
 <dt id="arg-grid">grid<a class="anchor" aria-label="anchor" href="#arg-grid"></a></dt>
@@ -110,12 +110,17 @@ settings of the same name, and the arm is built again with
 an override (see <code><a href="gr_settings_table.html">gr_settings_table()</a></code>), or <code>recipe</code>. A name that is
 none of these is an error that lists the names that are.</p></dd>
 
+<dt>A chain made by <code><a href="hr_chain.html">hr_chain()</a></code></dt>
+<dd><p>Each column is a setting's path,
+<code>"step.setting"</code>, as <code><a href="hr_settings.html">hr_settings()</a></code> lists them, and the chain is
+built again with the row's values by <code><a href="hr_set.html">hr_set()</a></code>:
+<code>hr_sweep(chain, data.frame(retrieve.top_k = c(2, 8)))</code>. A path that
+is not a setting of a step's schema is an error that lists the paths
+that are.</p></dd>
+
 
 </dl><p>An arm made by <code><a href="hr_arm.html">hr_arm()</a></code> alone records no settings, so it cannot be
-swept by name; give a function that builds it instead. The same holds for
-a chain from <code><a href="hr_chain.html">hr_chain()</a></code> for now: it records its settings, but
-<code>hr_sweep()</code> cannot yet build it again from a row, so give a function
-that builds the chain.</p>
+swept by name; give a function that builds it instead.</p>
 <p>Rows that build the same configuration are collapsed: the first is kept
 and the others are dropped with a message of class <code>hr_sweep_collapsed</code>
 naming them. Two arms from <code><a href="gr_arm.html">gr_arm()</a></code> have the same configuration when
@@ -138,8 +143,8 @@ that was sent.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="hr_benchmark.html">hr_benchmark()</a></code>, <code><a href="hr_sweep_check.html">hr_sweep_check()</a></code>, <code><a href="gr_arm.html">gr_arm()</a></code>,
-<code><a href="gr_settings_table.html">gr_settings_table()</a></code>, <code><a href="../articles/compare.html">vignette("compare")</a></code></p>
+    <div class="dont-index"><p><code><a href="hr_benchmark.html">hr_benchmark()</a></code>, <code><a href="hr_sweep_check.html">hr_sweep_check()</a></code>, <code><a href="gr_arm.html">gr_arm()</a></code>, <code><a href="hr_chain.html">hr_chain()</a></code>,
+<code><a href="hr_set.html">hr_set()</a></code>, <code><a href="gr_settings_table.html">gr_settings_table()</a></code>, <code><a href="../articles/compare.html">vignette("compare")</a></code></p>
 <p>Other harness:
 <code><a href="gr_arm.html">gr_arm()</a></code>,
 <code><a href="gr_condensation_check.html">gr_condensation_check()</a></code>,
@@ -159,7 +164,11 @@ that was sent.</p>
 <code><a href="hr_reference.html">hr_reference()</a></code>,
 <code><a href="hr_report.html">hr_report()</a></code>,
 <code><a href="hr_scorer.html">hr_scorer()</a></code>,
+<code><a href="hr_set.html">hr_set()</a></code>,
+<code><a href="hr_settings.html">hr_settings()</a></code>,
+<code><a href="hr_skill.html">hr_skill()</a></code>,
 <code><a href="hr_step.html">hr_step()</a></code>,
+<code><a href="hr_step_command.html">hr_step_command()</a></code>,
 <code><a href="hr_sweep_check.html">hr_sweep_check()</a></code></p></div>
     </div>
 

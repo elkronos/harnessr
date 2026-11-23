@@ -151,7 +151,11 @@ Other harness:
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md),
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
 [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md),
+[`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md),
+[`hr_settings()`](https://elkronos.github.io/harnessr/reference/hr_settings.md),
+[`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md),
 [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md),
+[`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md),
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 

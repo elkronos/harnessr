@@ -233,14 +233,14 @@ the questions about one document as a cluster. See
 
 ## What you can change
 
-Every setting has a default, and five guides end with walkthroughs of
-the important ones: what each trades off, the signs in your results that
+Every setting has a default, and six guides end with walkthroughs of the
+important ones: what each trades off, the signs in your results that
 point to changing it, where its default came from and how to test a
 change with
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md).
 The [settings
 reference](https://elkronos.github.io/harnessr/articles/settings.html)
-lists all 224 with their defaults, and
+lists all 227 with their defaults, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
 returns them in R.
 
@@ -252,7 +252,7 @@ returns them in R.
 | screen | 33 | `screen_tokens`, `recall_target`, `conf` | [calibration](https://elkronos.github.io/harnessr/articles/review.html#set-calibration) |
 | extract | 10 | `resolve`, `require_quote` | [extraction](https://elkronos.github.io/harnessr/articles/review.html#set-extract) |
 | synthesise | 29 | `coherence`, `cite_style` | [synthesis](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) |
-| evaluate | 27 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html) |
+| evaluate | 30 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html), [command checks](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-timeout) |
 | options | 34 | `model`, `max_cost_usd`, `max_calls` | [limits](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) |
 
 ## What an answer gives back

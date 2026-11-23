@@ -21,8 +21,10 @@ hr_sweep(base, grid, name = NULL)
 
   A function of the grid's columns that returns an
   [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md),
-  or an arm made by
-  [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md).
+  an arm made by
+  [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md),
+  or a chain made by
+  [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md).
 
 - grid:
 
@@ -70,13 +72,21 @@ recorded.
   or `recipe`. A name that is none of these is an error that lists the
   names that are.
 
+- A chain made by
+  [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md):
+
+  Each column is a setting's path, `"step.setting"`, as
+  [`hr_settings()`](https://elkronos.github.io/harnessr/reference/hr_settings.md)
+  lists them, and the chain is built again with the row's values by
+  [`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md):
+  `hr_sweep(chain, data.frame(retrieve.top_k = c(2, 8)))`. A path that
+  is not a setting of a step's schema is an error that lists the paths
+  that are.
+
 An arm made by
 [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)
 alone records no settings, so it cannot be swept by name; give a
-function that builds it instead. The same holds for a chain from
-[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
-for now: it records its settings, but `hr_sweep()` cannot yet build it
-again from a row, so give a function that builds the chain.
+function that builds it instead.
 
 Rows that build the same configuration are collapsed: the first is kept
 and the others are dropped with a message of class `hr_sweep_collapsed`
@@ -109,6 +119,8 @@ then says which settings changed nothing that was sent.
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md),
 [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md),
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md),
+[`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md),
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md),
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
 
@@ -131,7 +143,11 @@ Other harness:
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md),
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
 [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md),
+[`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md),
+[`hr_settings()`](https://elkronos.github.io/harnessr/reference/hr_settings.md),
+[`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md),
 [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md),
+[`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md),
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 
 ## Examples

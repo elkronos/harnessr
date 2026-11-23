@@ -159,9 +159,13 @@
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_schema.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_scorer.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_scorer_judge.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_set.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_settings.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_signal.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_signal_policy.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_skill.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_step.html</loc></url>
+<url><loc>https://elkronos.github.io/harnessr/reference/hr_step_command.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_sweep.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_sweep_check.html</loc></url>
 <url><loc>https://elkronos.github.io/harnessr/reference/hr_tfidf.html</loc></url>

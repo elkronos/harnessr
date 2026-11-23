@@ -109,7 +109,8 @@ the functions of each stage (<code><a href="gr_screen.html">gr_screen()</a></cod
 <code><a href="gr_calibrate.html">gr_calibrate()</a></code>, <code><a href="gr_screen_sample_size.html">gr_screen_sample_size()</a></code> and <code><a href="gr_stop_test.html">gr_stop_test()</a></code>;
 <code><a href="gr_extract.html">gr_extract()</a></code>; <code><a href="gr_claims.html">gr_claims()</a></code>, <code><a href="gr_outline.html">gr_outline()</a></code>, <code><a href="gr_gaps.html">gr_gaps()</a></code> and
 <code><a href="gr_synthesise.html">gr_synthesise()</a></code>; <code><a href="hr_benchmark.html">hr_benchmark()</a></code>, <code><a href="hr_report.html">hr_report()</a></code>, <code><a href="hr_judge.html">hr_judge()</a></code>,
-<code><a href="gr_compare.html">gr_compare()</a></code> and <code><a href="hr_error_correlation.html">hr_error_correlation()</a></code>), leaving out the inputs a call works on (the
+<code><a href="gr_compare.html">gr_compare()</a></code>, <code><a href="hr_error_correlation.html">hr_error_correlation()</a></code> and <code><a href="hr_step_command.html">hr_step_command()</a></code>),
+leaving out the inputs a call works on (the
 documents, the client, the trace). Defaults are the functions' own,
 and descriptions the first sentence of each argument's help.</p></dd>
 
@@ -134,7 +135,7 @@ setting, <code><a href="../articles/settings.html">vignette("settings")</a></cod
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">stage</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   evaluate    extract     ingest    options       read     screen    segment </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         27         10         21         34         50         33         20 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         30         10         21         34         50         33         20 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> synthesise </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         29 </span>
 <span class="r-in"><span><span class="va">s</span><span class="op">[</span><span class="va">s</span><span class="op">$</span><span class="va">tier</span> <span class="op">==</span> <span class="st">"basic"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stage"</span>, <span class="st">"name"</span>, <span class="st">"default"</span><span class="op">)</span><span class="op">]</span></span></span>
@@ -181,11 +182,12 @@ setting, <code><a href="../articles/settings.html">vignette("settings")</a></cod
 <span class="r-out co"><span class="r-pr">#&gt;</span> 179   evaluate          model                            NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 180   evaluate         orders                               2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 183   evaluate        recipes c("fast", "needle", "thorough")</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 191    options        verbose                            TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 193    options          model                   gpt-5.6-terra</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 206    options      cache_dir                            NULL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 210    options   max_cost_usd                               5</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 211    options      max_calls                             400</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 191   evaluate          parse                            exit</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 194    options        verbose                            TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 196    options          model                   gpt-5.6-terra</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 209    options      cache_dir                            NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 213    options   max_cost_usd                               5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 214    options      max_calls                             400</span>
 <span class="r-in"><span><span class="fu">gr_settings_table</span><span class="op">(</span><span class="st">"synthesise"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"default"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                  name                                   default   status</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1               model                                      NULL     &lt;NA&gt;</span>

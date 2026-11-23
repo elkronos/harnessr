@@ -96,6 +96,12 @@ checks: ingest takes a document and returns a doc, segment takes a doc
 and returns chunks, retrieve takes and returns chunks, and read takes
 chunks and returns the answer.
 
+These steps take no skill
+([`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md)):
+their requests are built by the stage, not sent through `ctx$call()`, so
+a skill would not reach them. Passing `skill` is an error of class
+`hr_bad_skill`.
+
 ## See also
 
 [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md),

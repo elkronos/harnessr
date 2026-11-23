@@ -233,14 +233,14 @@ the questions about one document as a cluster. See
 
 ## What you can change
 
-Every setting has a default, and five guides end with walkthroughs of
-the important ones: what each trades off, the signs in your results that
+Every setting has a default, and six guides end with walkthroughs of the
+important ones: what each trades off, the signs in your results that
 point to changing it, where its default came from and how to test a
 change with
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md).
 The [settings
 reference](https://elkronos.github.io/harnessr/articles/settings.html)
-lists all 224 with their defaults, and
+lists all 227 with their defaults, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
 returns them in R.
 
@@ -252,7 +252,7 @@ returns them in R.
 | screen | 33 | `screen_tokens`, `recall_target`, `conf` | [calibration](https://elkronos.github.io/harnessr/articles/review.html#set-calibration) |
 | extract | 10 | `resolve`, `require_quote` | [extraction](https://elkronos.github.io/harnessr/articles/review.html#set-extract) |
 | synthesise | 29 | `coherence`, `cite_style` | [synthesis](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) |
-| evaluate | 27 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html) |
+| evaluate | 30 | `runs`, `governor`, `scorer` | [governor](https://elkronos.github.io/harnessr/articles/runs.html#set-governor), [comparing](https://elkronos.github.io/harnessr/articles/compare.html), [command checks](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-timeout) |
 | options | 34 | `model`, `max_cost_usd`, `max_calls` | [limits](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) |
 
 ## What an answer gives back
@@ -823,14 +823,25 @@ and
 ## Compose steps and chains
 
 Build a run from steps (ingest, segment, retrieve, read, or a function
-of your own), run them in order as one arm, and derive a chain by
-dropping or replacing a step. See
-[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md).
+of your own), run them in order as one arm, derive a chain by dropping
+or replacing a step, list, change and sweep its settings by path, give a
+step a skill, and check a step’s output by running a program. See
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
+and
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
 
 - [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md)
   : A step of a run, with the settings it was built with
 - [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
   : Run steps in order as one arm
+- [`hr_settings()`](https://elkronos.github.io/harnessr/reference/hr_settings.md)
+  : List the settings of a step or a chain
+- [`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md)
+  : Change some settings of a step or a chain
+- [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md)
+  : A step that runs a program
+- [`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md)
+  : Read a skill folder
 - [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
   [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
   : Built-in steps for composing a run

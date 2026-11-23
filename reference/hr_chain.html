@@ -116,17 +116,23 @@ document at the default ingest settings, and a warning there would fire
 on almost every chain. Add an ingest step first to choose those
 settings. After a step that returns <code>"answer"</code>, only steps that take
 <code>"answer"</code> or <code>"state"</code>, or declare nothing, may follow; any other is an
-error of class <code>hr_bad_chain</code>.</p>
+error of class <code>hr_bad_chain</code>. A held command step (see
+<code><a href="hr_step_command.html">hr_step_command()</a></code>) must come last, or be followed only by other held
+steps; any other step after it is an error of class <code>hr_held_not_last</code>.</p>
 <p>The arm records each step's settings as given, as <code>"step.setting"</code>, in
 <code>params</code> and as the settings <code><a href="hr_benchmark.html">hr_benchmark()</a></code> turns into <code>param.*</code>
 columns. Its configuration, which <code><a href="hr_sweep.html">hr_sweep()</a></code> and <code><a href="hr_benchmark.html">hr_benchmark()</a></code>
 compare, is a hash of the steps' names, versions, code, the values that
 code reads and the resolved settings, so a setting given at its default
-gives the same configuration as the setting left out.</p>
+gives the same configuration as the setting left out. <code><a href="hr_settings.html">hr_settings()</a></code>
+lists every setting of the chain by path, <code><a href="hr_set.html">hr_set()</a></code> changes some of
+them, and <code><a href="hr_sweep.html">hr_sweep()</a></code> sweeps them by path, as
+<code>hr_sweep(chain, data.frame(retrieve.top_k = c(2, 8)))</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="hr_step.html">hr_step()</a></code>, <code><a href="gr_step.html">gr_step()</a></code>, <code><a href="hr_benchmark.html">hr_benchmark()</a></code>, <code><a href="../articles/compose.html">vignette("compose")</a></code></p>
+    <div class="dont-index"><p><code><a href="hr_step.html">hr_step()</a></code>, <code><a href="gr_step.html">gr_step()</a></code>, <code><a href="hr_settings.html">hr_settings()</a></code>, <code><a href="hr_set.html">hr_set()</a></code>, <code><a href="hr_benchmark.html">hr_benchmark()</a></code>,
+<code><a href="../articles/compose.html">vignette("compose")</a></code></p>
 <p>Other harness:
 <code><a href="gr_arm.html">gr_arm()</a></code>,
 <code><a href="gr_condensation_check.html">gr_condensation_check()</a></code>,
@@ -145,7 +151,11 @@ gives the same configuration as the setting left out.</p>
 <code><a href="hr_reference.html">hr_reference()</a></code>,
 <code><a href="hr_report.html">hr_report()</a></code>,
 <code><a href="hr_scorer.html">hr_scorer()</a></code>,
+<code><a href="hr_set.html">hr_set()</a></code>,
+<code><a href="hr_settings.html">hr_settings()</a></code>,
+<code><a href="hr_skill.html">hr_skill()</a></code>,
 <code><a href="hr_step.html">hr_step()</a></code>,
+<code><a href="hr_step_command.html">hr_step_command()</a></code>,
 <code><a href="hr_sweep.html">hr_sweep()</a></code>,
 <code><a href="hr_sweep_check.html">hr_sweep_check()</a></code></p></div>
     </div>

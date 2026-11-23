@@ -98,7 +98,7 @@ default came from and how to test a change.</p>
 <span><span class="co">#&gt;   screen           22    11</span></span>
 <span><span class="co">#&gt;   extract           7     3</span></span>
 <span><span class="co">#&gt;   synthesise       24     5</span></span>
-<span><span class="co">#&gt;   evaluate         18     9</span></span>
+<span><span class="co">#&gt;   evaluate         20    10</span></span>
 <span><span class="co">#&gt;   options          29     5</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="reading-the-tables">Reading the tables<a class="anchor" aria-label="anchor" href="#reading-the-tables"></a>
@@ -2004,6 +2004,32 @@ evidence (reportable, so not the dev split); FALSE reads every row.</td>
 <td align="left">untested</td>
 <td align="left">The seed of the private random stream the sample is
 drawn with; the caller’s random state is left as it was.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="evaluate.html#set-command-parse"><code>parse</code></a></td>
+<td align="left"><code><a href="../reference/hr_step_command.html">hr_step_command()</a></code></td>
+<td align="left"><code>exit</code></td>
+<td align="left">basic</td>
+<td align="left">untested</td>
+<td align="left">How the result is read: “exit” or “testthat”.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="evaluate.html#set-command-timeout"><code>timeout</code></a></td>
+<td align="left"><code><a href="../reference/hr_step_command.html">hr_step_command()</a></code></td>
+<td align="left"><code>60</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Seconds the program may run before it is stopped, from
+1 to 86400.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="evaluate.html#set-command-held"><code>held</code></a></td>
+<td align="left"><code><a href="../reference/hr_step_command.html">hr_step_command()</a></code></td>
+<td align="left"><code>FALSE</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Whether the result is kept from the steps after this
+one and left for the scorer.</td>
 </tr>
 </tbody>
 </table>

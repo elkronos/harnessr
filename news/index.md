@@ -836,11 +836,11 @@ shows the new functions at work.
   [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md),
   which
   [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
-  takes as it takes any arm.
+  takes as it takes any arm, and
   [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
-  takes a function that builds the chain, such as
-  `function(k) hr_chain(...)`; given a chain itself, it stops with an
-  error that says so. Inside a chain each step gets `ctx$step` and
+  sweeps by path (see
+  [`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md)
+  below). Inside a chain each step gets `ctx$step` and
   `ctx$step_params`, and `ctx$params` is the arm’s.
   `hr_chain(old, judge = NULL, name = "nojudge")` derives a chain
   without one step; `x = step` replaces a step and a new name adds one.
@@ -851,12 +851,118 @@ shows the new functions at work.
   answer is an error (`hr_bad_chain`). A step that takes a document no
   earlier step returns does not warn, since most chains start at the
   segment step, which ingests at the default settings.
+- `hr_settings(x)` lists every setting of a step or a chain: one row per
+  setting of each step’s schema, with the step, the setting, its
+  resolved value, whether it was given, and the schema’s default, range,
+  type, tier and evidence. A chain’s settings are named by path,
+  `"step.setting"`. An arm from
+  [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
+  or
+  [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md)
+  is an error (`hr_bad_arm`) that points to
+  [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md).
+- `hr_set(x, ...)` builds a step or a chain again with some settings
+  changed: `hr_set(chain, retrieve.top_k = 8)`, or
+  `hr_set(step, top_k = 8)` for a single step. A path that is not a
+  setting of a step’s schema, including a fixed extra setting, is an
+  error (`hr_unknown_setting`). The values are checked as when the step
+  was built, so an out-of-range number is clamped with a warning, each
+  changed step keeps its class, and the chain’s configuration is that of
+  the new settings: a setting set to its default gives the configuration
+  of leaving it out.
+  [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
+  uses it to sweep a chain by path, as in
+  `hr_sweep(chain, data.frame(retrieve.top_k = c(2, 8)))`, which gives
+  `param.retrieve.top_k` columns in the benchmark.
 - [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
   and
   [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
   now return `hr_step` objects (class
   `c("gr_step", "hr_step", "function")`) checked against the ingest,
   segment or read schema, with their input and output declared.
+
+### Command steps
+
+[`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md)
+is opt-in: no command runs unless you build a step with one, so every
+default run sends the requests it sent before, with the same cache keys.
+Its three settings are declared with their evidence (`untested`), are
+listed by
+[`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
+under the evaluate stage (227 settings in all), and have walkthroughs in
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
+that test each with
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md).
+
+- `hr_step_command(name, argv, parse, timeout, held, wd)` builds a chain
+  step that runs a program you name, through
+  [`system2()`](https://rdrr.io/r/base/system2.html), and reads its
+  result as `"passed"`, `"failed"`, `"error"` or `"timeout"`. Each
+  element of `argv` is one argument, quoted for the shell and never
+  split; there is no default command, and `argv` is never taken from a
+  model’s reply. `argv` may be a function of `(input, ctx)`, for a
+  command that names a file an earlier step wrote. `OPENAI_API_KEY` is
+  unset for the call and put back after it; the rest of the environment
+  is inherited. `parse = "testthat"` reads the last testthat summary
+  line, and gives `"error"` when there is none. A program stopped at
+  `timeout` seconds carries the degradation `"command_timeout"`. The run
+  is noted in the trace as `"step.command"`, with hashes of the command
+  and the output, never the output.
+- With `held = FALSE` the step adds its result to its input as `$check`.
+  With `held = TRUE` it passes its input on, records the signal
+  `"command.<step>"` and attaches the result as
+  `attr(output, "hr_held")`, for a scorer.
+  [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+  refuses a step that is not held after one that is, with class
+  `hr_held_not_last`.
+- [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)
+  reads its `"judge_inconsistent"` degradation from the same list of
+  codes as the command step. Nothing it returns changes.
+
+### Skills
+
+Skills are opt-in: a step has one only when you give it
+[`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md),
+so every default run sends the requests it sent before, with the same
+cache keys. A skill adds no setting to
+[`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md):
+its limits are fixed, and whether a skill helps is tested by comparing a
+chain with and without it, as the “Skills” section of
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
+does with
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
+[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
+and an
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
+over a function.
+
+- `hr_skill(path)` reads a skill folder you choose: `SKILL.md`, whose
+  header (`name`, `description`, `version`, between two `---` lines) is
+  read without a YAML parser, and whose body is the instructions; text
+  files under `references/`; and scripts under `scripts/`, which are
+  listed and never run. A nested or multi-line header value, a missing
+  name or closing line, a nul byte, a file linked from outside the
+  folder, more than 50 files in either subfolder or more than 200,000
+  bytes in all is an error of class `hr_bad_skill`; an unknown header
+  key warns (`hr_skill_unknown_key`). Its `hash` covers the header, the
+  instructions, the references and every byte of the scripts. The
+  package never looks for skills and never lets a model choose one, and
+  a skill’s text goes into the prompt as it is, so it can carry prompt
+  injection.
+- `hr_step(skill = )` now takes a skill. Inside
+  [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+  the step’s `ctx$call()` and `ctx$call_json()` send the instructions
+  and references as a system message before the step’s messages, and
+  `ctx$skill` holds the skill. The hash is a fixed setting of the step
+  and part of its fingerprint, so a chain with a skill has its own
+  configuration and records the setting `"<step>.skill"` (a
+  `param.<step>.skill` column in a benchmark). The skill’s version, when
+  it has one, is the step’s version.
+  [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  and
+  [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md)
+  refuse a skill with class `hr_bad_skill`, since their requests are not
+  sent through `ctx$call()`.
 
 ### Fixed
 

@@ -138,6 +138,9 @@ what it takes and returns, which <code><a href="hr_chain.html">hr_chain()</a></c
 document and returns a doc, segment takes a doc and returns chunks,
 retrieve takes and returns chunks, and read takes chunks and returns the
 answer.</p>
+<p>These steps take no skill (<code><a href="hr_skill.html">hr_skill()</a></code>): their requests are built by the
+stage, not sent through <code>ctx$call()</code>, so a skill would not reach them.
+Passing <code>skill</code> is an error of class <code>hr_bad_skill</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

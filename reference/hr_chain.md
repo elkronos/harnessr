@@ -62,7 +62,10 @@ document at the default ingest settings, and a warning there would fire
 on almost every chain. Add an ingest step first to choose those
 settings. After a step that returns `"answer"`, only steps that take
 `"answer"` or `"state"`, or declare nothing, may follow; any other is an
-error of class `hr_bad_chain`.
+error of class `hr_bad_chain`. A held command step (see
+[`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md))
+must come last, or be followed only by other held steps; any other step
+after it is an error of class `hr_held_not_last`.
 
 The arm records each step's settings as given, as `"step.setting"`, in
 `params` and as the settings
@@ -74,11 +77,20 @@ and
 compare, is a hash of the steps' names, versions, code, the values that
 code reads and the resolved settings, so a setting given at its default
 gives the same configuration as the setting left out.
+[`hr_settings()`](https://elkronos.github.io/harnessr/reference/hr_settings.md)
+lists every setting of the chain by path,
+[`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md)
+changes some of them, and
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
+sweeps them by path, as
+`hr_sweep(chain, data.frame(retrieve.top_k = c(2, 8)))`.
 
 ## See also
 
 [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md),
 [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md),
+[`hr_settings()`](https://elkronos.github.io/harnessr/reference/hr_settings.md),
+[`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md),
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
 [`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
 
@@ -100,7 +112,11 @@ Other harness:
 [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md),
 [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
 [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md),
+[`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md),
+[`hr_settings()`](https://elkronos.github.io/harnessr/reference/hr_settings.md),
+[`hr_skill()`](https://elkronos.github.io/harnessr/reference/hr_skill.md),
 [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md),
+[`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md),
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md),
 [`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
 
