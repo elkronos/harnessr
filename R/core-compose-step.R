@@ -57,13 +57,18 @@
 #'   behaviour changes.
 #' @param build A function of the settings that returns the step's function,
 #'   or `NULL` when `fn` is given.
-#' @param skill Reserved for a later release; must be `NULL`.
+#' @param skill A skill from [hr_skill()], or `NULL`. Inside [hr_chain()],
+#'   the step's `ctx$call()` and `ctx$call_json()` send the skill's
+#'   instructions and references as a system message before the step's own
+#'   messages, and `ctx$skill` holds the skill. The skill's hash is kept as
+#'   the fixed setting `skill` and is part of the fingerprint, and the
+#'   skill's version, when it has one, is the step's version.
 #' @return A function of `(input, ctx)` with class `hr_step` and the
 #'   attributes `name`, `params` (as given), `resolved` (the settings the
 #'   schema resolved, or `params` without a schema), `extras` (settings the
 #'   schema does not name), `schema`, `input`, `output`, `version`, `build`
-#'   and `fingerprint`, a hash of the step's code, the values it reads, its
-#'   settings and its version.
+#'   `skill` and `fingerprint`, a hash of the step's code, the values it
+#'   reads, its settings and its version.
 #' @seealso [hr_chain()], [gr_step()], [hr_arm()], [hr_set()]
 #' @family harness
 #' @export
@@ -81,8 +86,11 @@ hr_step <- function(name, fn = NULL, params = list(), schema = NULL, input = NUL
   }
   what <- sprintf("Step '%s'", name)
   if (!is.null(skill)) {
-    gr_abort(sprintf("%s: `skill` is not used yet; leave it NULL.", what),
-             class = c("hr_bad_step", "gr_bad_setting"))
+    if (!inherits(skill, "hr_skill")) {
+      gr_abort(sprintf("%s: `skill` must come from hr_skill(), or be NULL.", what),
+               class = c("hr_bad_skill", "hr_bad_step", "gr_bad_setting"))
+    }
+    if (is_bench_string(skill$version)) version <- skill$version
   }
   if (is.null(fn) == is.null(build)) {
     gr_abort(sprintf("%s needs exactly one of `fn` and `build`.", what),
@@ -130,6 +138,9 @@ hr_step <- function(name, fn = NULL, params = list(), schema = NULL, input = NUL
   if (!length(resolved)) resolved <- list()
   if (!length(extras)) extras <- list()
   if (!is.null(build)) fn <- build(c(resolved, extras))
+  # After `build`, which has no use for it: the step reaches the skill
+  # through ctx$skill.
+  if (!is.null(skill)) extras[["skill"]] <- skill$hash
   if (!is.function(fn)) {
     gr_abort(sprintf("%s: %s a function of (input, ctx).", what,
                      if (is.null(build)) "`fn` must be" else "`build` must return"),
@@ -145,7 +156,7 @@ hr_step <- function(name, fn = NULL, params = list(), schema = NULL, input = NUL
   cls <- unique(c(setdiff(oldClass(fn), c("hr_step", "function")), "hr_step", "function"))
   structure(fn, class = cls, name = name, params = params, resolved = resolved,
             extras = extras, schema = schema, input = input, output = output,
-            version = version, build = build, fingerprint = fp)
+            version = version, build = build, skill = skill, fingerprint = fp)
 }
 
 #' @export
@@ -159,6 +170,8 @@ print.hr_step <- function(x, ...) {
                                    vapply(p, format_setting_value, character(1))),
                            collapse = ", "), "\n")
   }
+  sk <- attr(x, "skill", exact = TRUE)
+  if (!is.null(sk)) cat(sprintf("  skill: %s (%s)\n", sk$name, substr(sk$hash, 1L, 12L)))
   invisible(x)
 }
 
@@ -310,12 +323,14 @@ hr_chain <- function(..., name, version = "0.0.1") {
   for (n in nms) {
     p <- attr(steps[[n]], "params", exact = TRUE)
     for (k in names(p)) flat[paste0(n, ".", k)] <- list(p[[k]])
+    sk <- attr(steps[[n]], "skill", exact = TRUE)
+    if (!is.null(sk)) flat[[paste0(n, ".skill")]] <- skill_label(sk)
   }
   known <- unlist(lapply(nms, function(n) {
     sc <- attr(steps[[n]], "schema", exact = TRUE)
     if (inherits(sc, "hr_schema")) paste0(n, ".", names(sc)) else character(0)
   }), use.names = FALSE)
-  run <- chain_run(chain_fp, lapply(steps, step_bare), nms,
+  run <- chain_run(chain_fp, lapply(steps, step_runner), nms,
                    lapply(steps, function(s) attr(s, "resolved", exact = TRUE)))
   arm <- hr_arm(name, run, params = flat, version = version)
   arm <- arm_annotate(arm, settings = flat, config = chain_fp,
@@ -563,7 +578,8 @@ step_rebuild <- function(s, params) {
                  schema = attr(s, "schema", exact = TRUE),
                  input = attr(s, "input", exact = TRUE),
                  output = attr(s, "output", exact = TRUE),
-                 version = attr(s, "version", exact = TRUE), build = build)
+                 version = attr(s, "version", exact = TRUE), build = build,
+                 skill = attr(s, "skill", exact = TRUE))
   class(out) <- class(s)
   out
 }
@@ -591,6 +607,23 @@ chain_run <- function(chain_fp, fns, snames, sparams) {
     x
   }
 }
+
+#' The function a chain calls for a step: the step without its attributes,
+#' and for a step with a skill, a function that first gives it a context
+#' whose `call` and `call_json` send the skill (skill_ctx()). The skill's hash
+#' reaches the chain's configuration through the step's fingerprint.
+#' @noRd
+step_runner <- function(s) {
+  fn <- step_bare(s)
+  skill <- attr(s, "skill", exact = TRUE)
+  if (is.null(skill)) return(fn)
+  function(input, ctx) fn(input, skill_ctx(if (is.list(ctx)) ctx else list(), skill))
+}
+
+#' How a chain records a step's skill among its settings: the skill's name
+#' and the start of its hash.
+#' @noRd
+skill_label <- function(skill) paste0(skill$name, "@", substr(skill$hash, 1L, 12L))
 
 #' A step's function without its attributes, so its code is hashed and
 #' called without the settings and schema it carries.

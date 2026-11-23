@@ -63,6 +63,10 @@ what it takes and returns, which \code{\link[=hr_chain]{hr_chain()}} checks: ing
 document and returns a doc, segment takes a doc and returns chunks,
 retrieve takes and returns chunks, and read takes chunks and returns the
 answer.
+
+These steps take no skill (\code{\link[=hr_skill]{hr_skill()}}): their requests are built by the
+stage, not sent through \code{ctx$call()}, so a skill would not reach them.
+Passing \code{skill} is an error of class \code{hr_bad_skill}.
 }
 \examples{
 cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
