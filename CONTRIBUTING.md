@@ -78,6 +78,8 @@ asked to live in a separate package instead.
 - No domain types in the core: documents, chunks and pages belong to the
   document layer.
 - No sandboxing, file editing, patch application, git or process isolation.
+  A user-written command step is allowed; the package never chooses,
+  generates or isolates commands.
 - No multi-agent orchestration or debate, and no model choosing its own
   tools or skills. A person composes the steps.
 - No general workflow engine: stages run as a chain of hand-offs.

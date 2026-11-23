@@ -696,6 +696,35 @@ sends the requests it sent before, with the same cache keys.
   `c("gr_step", "hr_step", "function")`) checked against the ingest, segment
   or read schema, with their input and output declared.
 
+## Command steps
+
+`hr_step_command()` is opt-in: no command runs unless you build a step with
+one, so every default run sends the requests it sent before, with the same
+cache keys. Its three settings are declared with their evidence
+(`untested`), are listed by `gr_settings_table()` under the evaluate stage
+(227 settings in all), and have walkthroughs in `vignette("evaluate")` that
+test each with `hr_sweep()`.
+
+* `hr_step_command(name, argv, parse, timeout, held, wd)` builds a chain step
+  that runs a program you name, through `system2()`, and reads its result as
+  `"passed"`, `"failed"`, `"error"` or `"timeout"`. Each element of `argv` is
+  one argument, quoted for the shell and never split; there is no default
+  command, and `argv` is never taken from a model's reply. `argv` may be a
+  function of `(input, ctx)`, for a command that names a file an earlier step
+  wrote. `OPENAI_API_KEY` is unset for the call and put back after it; the
+  rest of the environment is inherited. `parse = "testthat"` reads the last
+  testthat summary line, and gives `"error"` when there is none. A program
+  stopped at `timeout` seconds carries the degradation `"command_timeout"`.
+  The run is noted in the trace as `"step.command"`, with hashes of the
+  command and the output, never the output.
+* With `held = FALSE` the step adds its result to its input as `$check`.
+  With `held = TRUE` it passes its input on, records the signal
+  `"command.<step>"` and attaches the result as `attr(output, "hr_held")`,
+  for a scorer. `hr_chain()` refuses a step that is not held after one that
+  is, with class `hr_held_not_last`.
+* `hr_judge()` reads its `"judge_inconsistent"` degradation from the same
+  list of codes as the command step. Nothing it returns changes.
+
 ## Fixed
 
 * The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
