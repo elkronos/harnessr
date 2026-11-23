@@ -27,7 +27,6 @@ test_that("helper-loop.R uses only exported names from the package", {
 })
 
 test_that("one run of the loop passes hr_check_module() with the loop's rules", {
-  skip_on_cran()
   work <- tempfile("hr-loop-")
   dir.create(work)
   on.exit(unlink(work, recursive = TRUE), add = TRUE)
@@ -46,7 +45,6 @@ test_that("one run of the loop passes hr_check_module() with the loop's rules", 
 })
 
 test_that("the loop runs as a benchmark arm, one ledger per draw, and the passing attempt scores 1", {
-  skip_on_cran()
   work <- tempfile("hr-loop-")
   dir.create(work)
   on.exit(unlink(work, recursive = TRUE), add = TRUE)
@@ -111,7 +109,6 @@ test_that("the loop runs as a benchmark arm, one ledger per draw, and the passin
 })
 
 test_that("a task whose tests run past the time limit gives command_timeout", {
-  skip_on_cran()
   work <- tempfile("hr-loop-")
   dir.create(work)
   on.exit(unlink(work, recursive = TRUE), add = TRUE)
