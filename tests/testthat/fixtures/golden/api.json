@@ -608,6 +608,10 @@
       "formals": ["name", "fn = NULL", "params = list()", "schema = NULL", "input = NULL", "output = NULL", "version = \"0.0.1\"", "build = NULL", "skill = NULL"],
       "type": "function"
     },
+    "hr_step_command": {
+      "formals": ["name", "argv", "parse = c(\"exit\", \"testthat\")", "timeout = 60", "held = FALSE", "wd = NULL"],
+      "type": "function"
+    },
     "hr_sweep": {
       "formals": ["base", "grid", "name = NULL"],
       "type": "function"
