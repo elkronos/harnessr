@@ -604,6 +604,10 @@
       "formals": ["x", "name = NULL"],
       "type": "function"
     },
+    "hr_skill": {
+      "formals": ["path"],
+      "type": "function"
+    },
     "hr_step": {
       "formals": ["name", "fn = NULL", "params = list()", "schema = NULL", "input = NULL", "output = NULL", "version = \"0.0.1\"", "build = NULL", "skill = NULL"],
       "type": "function"
@@ -1038,6 +1042,11 @@
     },
     "print.hr_signal_policy": {
       "class": "hr_signal_policy",
+      "formals": ["x", "..."],
+      "generic": "print"
+    },
+    "print.hr_skill": {
+      "class": "hr_skill",
       "formals": ["x", "..."],
       "generic": "print"
     },
