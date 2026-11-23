@@ -247,3 +247,42 @@ test_that("no command run reaches a golden fixture", {
     expect_false(grepl("hr-cmd-", text, fixed = TRUE), info = f)
   }
 })
+
+test_that("a program named relative to wd is found and run there", {
+  skip_on_os("windows")
+  wd <- tempfile("hr-command-rel-")
+  dir.create(wd)
+  on.exit(unlink(wd, recursive = TRUE), add = TRUE)
+  writeLines(c("#!/bin/sh", "echo RAN"), file.path(wd, "run.sh"))
+  Sys.chmod(file.path(wd, "run.sh"), "755")
+  here <- getwd()
+  r <- hr_step_command("check", "./run.sh", wd = wd)(list(), list())$check
+  expect_identical(r$status, "passed")
+  expect_match(r$stdout, "RAN", fixed = TRUE)
+  expect_identical(getwd(), here)
+  # A program missing from wd is still reported as not found.
+  gone <- hr_step_command("check", "./nope.sh", wd = wd)(list(), list())$check
+  expect_identical(gone$status, "error")
+  expect_match(gone$stderr, "was not found", fixed = TRUE)
+  expect_identical(getwd(), here)
+})
+
+test_that("an explicit parse is recorded as the value the step uses", {
+  rs <- command_rscript()
+  full <- hr_step_command("check", rs, parse = c("exit", "testthat"))
+  expect_identical(attr(full, "params")$parse, "exit")
+  expect_identical(attr(full, "resolved")$parse, "exit")
+  part <- hr_step_command("check", rs, parse = "test")
+  expect_identical(attr(part, "params")$parse, "testthat")
+  expect_identical(attr(hr_chain(check = full, name = "a"), "hr_config"),
+                   attr(hr_chain(check = hr_step_command("check", rs, parse = "exit"),
+                                 name = "a"), "hr_config"))
+  expect_error(hr_step_command("check", rs, parse = "junit"), class = "gr_bad_setting")
+})
+
+test_that("a testthat count beyond integer range gives status 'error', not an error", {
+  line <- "[ FAIL 99999999999 | WARN 0 | SKIP 0 | PASS 3 ]"
+  r <- expect_no_warning(command_r(sprintf("cat('%s')", line),
+                                   parse = "testthat")(list(), list())$check)
+  expect_identical(r$status, "error")
+})

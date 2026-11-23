@@ -53,8 +53,10 @@
 #' Nothing isolates the program: it can read and write what you can. The
 #' child process inherits the session's environment variables, except
 #' `OPENAI_API_KEY`, which is unset for the call and put back after it; R
-#' options never reach it. On Windows a program stopped at its time limit
-#' may leave processes it started running.
+#' options never reach it. A program stopped at its time limit is ended,
+#' but processes it started in the background (or that ignore the signal)
+#' can keep running, on any platform; on Windows, any process it started
+#' can.
 #'
 #' The result is read by `parse`:
 #' \describe{
@@ -149,7 +151,10 @@ hr_step_command <- function(name, argv, parse = c("exit", "testthat"), timeout =
              class = c("hr_bad_step", "gr_bad_setting"))
   }
   params <- list()
-  if (!missing(parse)) params$parse <- parse
+  # The value the step uses is recorded, so `parse = c("exit", "testthat")`
+  # is "exit" and "test" is "testthat"; a value that matches no choice is
+  # left for the schema to refuse.
+  if (!missing(parse)) params$parse <- tryCatch(match.arg(parse), error = function(e) parse)
   if (!missing(timeout)) params$timeout <- timeout
   if (!missing(held)) params$held <- held
   build <- command_build(name, argv, wd)
@@ -237,13 +242,15 @@ command_exec <- function(name, argv, parse, timeout, wd) {
   if (!is.null(wd) && !dir.exists(wd)) {
     return(result("error", NA_integer_, stderr = sprintf("The folder '%s' does not exist.", wd)))
   }
-  if (!nzchar(Sys.which(argv[[1]]))) {
-    return(result("error", NA_integer_,
-                  stderr = sprintf("The program '%s' was not found.", argv[[1]])))
-  }
+  # The folder is set first, so a program named by a path relative to `wd`
+  # (as "./run.sh") is looked up there.
   if (!is.null(wd)) {
     old <- setwd(wd)
     on.exit(setwd(old), add = TRUE)
+  }
+  if (!nzchar(Sys.which(argv[[1]]))) {
+    return(result("error", NA_integer_,
+                  stderr = sprintf("The program '%s' was not found.", argv[[1]])))
   }
   saved <- Sys.getenv(.hr_command_hidden_env, unset = NA, names = TRUE)
   saved <- saved[!is.na(saved)]
@@ -271,7 +278,7 @@ command_exec <- function(name, argv, parse, timeout, wd) {
   if (is.na(exit)) return(result("error", exit, stdout, stderr))
   if (identical(parse, "testthat")) {
     counts <- command_testthat_counts(stdout)
-    status <- if (is.null(counts)) "error"
+    status <- if (is.null(counts) || anyNA(unlist(counts))) "error"
               else if (counts[["fail"]] > 0L) "failed"
               else if (exit == 0L) "passed" else "error"
     return(result(status, exit, stdout, stderr, counts = counts))
@@ -304,8 +311,10 @@ command_testthat_counts <- function(text) {
   pat <- "\\[ FAIL ([0-9]+) \\| WARN ([0-9]+) \\| SKIP ([0-9]+) \\| PASS ([0-9]+) \\]"
   hits <- regmatches(text, gregexpr(pat, text))[[1]]
   if (!length(hits)) return(NULL)
-  n <- as.integer(regmatches(hits[length(hits)],
-                             gregexpr("[0-9]+", hits[length(hits)]))[[1]])
+  # A count too large for an integer becomes NA, which the caller reads as
+  # "error"; text a program prints never makes the step fail with an error.
+  n <- suppressWarnings(as.integer(regmatches(hits[length(hits)],
+                                              gregexpr("[0-9]+", hits[length(hits)]))[[1]]))
   list(fail = n[1], warn = n[2], skip = n[3], pass = n[4])
 }
 

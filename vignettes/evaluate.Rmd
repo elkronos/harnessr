@@ -750,8 +750,9 @@ one from `output$check`, so it scores a chain either way.
 **What it controls.** `timeout` is the number of seconds the program may run
 before it is stopped. A program stopped there has the status `"timeout"` and
 the degradation `"command_timeout"`, and counts as neither passed nor failed.
-On Windows a program stopped at its limit may leave processes it started
-running.
+The program is ended there, but processes it started in the background (or
+that ignore the signal) can keep running, on any platform; on Windows, any
+process it started can.
 
 **Signs it needs changing.** Runs whose status is `"timeout"` on items that
 pass when run by hand (the limit is too short for the machine), or a

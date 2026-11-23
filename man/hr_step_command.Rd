@@ -57,8 +57,10 @@ never taken from a model's reply or a skill's text: write \code{argv} yourself.
 Nothing isolates the program: it can read and write what you can. The
 child process inherits the session's environment variables, except
 \code{OPENAI_API_KEY}, which is unset for the call and put back after it; R
-options never reach it. On Windows a program stopped at its time limit
-may leave processes it started running.
+options never reach it. A program stopped at its time limit is ended,
+but processes it started in the background (or that ignore the signal)
+can keep running, on any platform; on Windows, any process it started
+can.
 
 The result is read by \code{parse}:
 \describe{
