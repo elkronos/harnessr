@@ -38,7 +38,8 @@ since the header is read without a YAML parser. Everything after the
 closing \verb{---} is the instructions.}
 \item{\verb{references/}}{Optional text files, added after the
 instructions. A file with a nul byte, or that is not UTF-8 text, is an
-error.}
+error. Line endings are read as \code{"\\n"}, so a CRLF copy gives the same
+text and hash.}
 \item{\verb{scripts/}}{Optional. The scripts are listed by path and never
 run. To run one, wrap it yourself in a command step, as in
 \code{hr_step_command("lint", c(rscript, s$scripts[["check.R"]]))}.}
@@ -46,7 +47,9 @@ run. To run one, wrap it yourself in a command step, as in
 
 The folder is read only where you point: the package never looks for
 skills, and a model never chooses one. A file that is a link to
-somewhere outside the folder is an error, and so is a folder with more
+somewhere outside the folder is an error, and so are a broken link, a
+\verb{references/} or \verb{scripts/} folder that is a link to somewhere outside,
+a link to a folder under either of them, and a folder with more
 than 50 reference files, more than 50 scripts, or more than 200,000
 bytes in all. These limits are fixed. All errors have class
 \code{hr_bad_skill}.

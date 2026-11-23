@@ -44,7 +44,8 @@
 #'     closing `---` is the instructions.}
 #'   \item{`references/`}{Optional text files, added after the
 #'     instructions. A file with a nul byte, or that is not UTF-8 text, is an
-#'     error.}
+#'     error. Line endings are read as `"\n"`, so a CRLF copy gives the same
+#'     text and hash.}
 #'   \item{`scripts/`}{Optional. The scripts are listed by path and never
 #'     run. To run one, wrap it yourself in a command step, as in
 #'     `hr_step_command("lint", c(rscript, s$scripts[["check.R"]]))`.}
@@ -52,7 +53,9 @@
 #'
 #' The folder is read only where you point: the package never looks for
 #' skills, and a model never chooses one. A file that is a link to
-#' somewhere outside the folder is an error, and so is a folder with more
+#' somewhere outside the folder is an error, and so are a broken link, a
+#' `references/` or `scripts/` folder that is a link to somewhere outside,
+#' a link to a folder under either of them, and a folder with more
 #' than 50 reference files, more than 50 scripts, or more than 200,000
 #' bytes in all. These limits are fixed. All errors have class
 #' `hr_bad_skill`.
@@ -127,14 +130,20 @@ hr_skill <- function(path) {
     }
     readBin(f, "raw", n)
   }
-  if (!file.exists(file.path(root, "SKILL.md"))) {
+  if (!utils::file_test("-f", file.path(root, "SKILL.md"))) {
+    if (dir.exists(file.path(root, "SKILL.md"))) {
+      gr_abort(sprintf("%s: SKILL.md is a folder; it must be a file.", what),
+               class = "hr_bad_skill")
+    }
     gr_abort(sprintf("%s has no SKILL.md.", what), class = "hr_bad_skill")
   }
   text <- skill_text(read_file("SKILL.md"), "SKILL.md", what)
   parsed <- skill_parse(text, what)
   refs <- skill_files(root, "references", what)
+  # Line endings are made "\n", as in SKILL.md, so a checkout with CRLF
+  # endings gives the same text and the same hash. Scripts keep their bytes.
   references <- vapply(refs, function(rel) {
-    skill_text(read_file(rel), rel, what)
+    gsub("\r\n", "\n", skill_text(read_file(rel), rel, what), fixed = TRUE)
   }, character(1))
   names(references) <- sub("^references/", "", refs)
   scr <- skill_files(root, "scripts", what)
@@ -171,7 +180,11 @@ print.hr_skill <- function(x, ...) {
 #' to somewhere outside the folder (through a link).
 #' @noRd
 skill_inside <- function(root, rel, what) {
-  f <- normalizePath(file.path(root, rel), winslash = "/", mustWork = TRUE)
+  f <- tryCatch(normalizePath(file.path(root, rel), winslash = "/", mustWork = TRUE),
+                error = function(e) {
+                  gr_abort(sprintf("%s: '%s' is a broken or looping link.", what, rel),
+                           class = "hr_bad_skill")
+                })
   if (!startsWith(f, paste0(root, "/"))) {
     gr_abort(sprintf("%s: '%s' is a link to a file outside the skill folder.", what, rel),
              class = "hr_bad_skill")
@@ -180,17 +193,49 @@ skill_inside <- function(root, rel, what) {
 }
 
 #' The files under one subfolder of a skill, as paths relative to the
-#' folder, in a fixed order. Hidden files are left out.
+#' folder, in a fixed order. Hidden files are left out. The subfolder must
+#' resolve inside the skill folder, and a link to a folder under it is
+#' refused, so the walk never leaves the skill folder and cannot loop. The
+#' walk stops once it has found more files than are read.
 #' @noRd
 skill_files <- function(root, sub, what) {
   dir <- file.path(root, sub)
   if (!dir.exists(dir)) return(character(0))
-  rel <- list.files(dir, recursive = TRUE)
-  rel <- sort(rel, method = "radix")
-  if (length(rel) > .hr_skill_max_files) {
-    gr_abort(sprintf("%s has %d files in %s/; at most %d are read.", what, length(rel), sub,
-                     .hr_skill_max_files), class = "hr_bad_skill")
+  real <- tryCatch(normalizePath(dir, winslash = "/", mustWork = TRUE),
+                   error = function(e) "")
+  if (!startsWith(real, paste0(root, "/"))) {
+    gr_abort(sprintf("%s: '%s/' is a link to a folder outside the skill folder.", what, sub),
+             class = "hr_bad_skill")
   }
+  rel <- character(0)
+  todo <- ""
+  while (length(todo)) {
+    at <- todo[[1]]
+    todo <- todo[-1]
+    here <- if (nzchar(at)) file.path(dir, at) else dir
+    entries <- list.files(here, no.. = TRUE)
+    for (e in entries) {
+      r <- if (nzchar(at)) paste0(at, "/", e) else e
+      full <- file.path(dir, r)
+      if (dir.exists(full)) {
+        if (nzchar(Sys.readlink(full))) {
+          gr_abort(sprintf(paste0("%s: '%s/%s' is a link to a folder; links to folders ",
+                                  "are not followed."), what, sub, r),
+                   class = "hr_bad_skill")
+        }
+        todo <- c(todo, r)
+      } else {
+        rel <- c(rel, r)
+        if (length(rel) > .hr_skill_max_files) {
+          gr_abort(sprintf("%s has at least %d files in %s/; at most %d are read.", what,
+                           length(rel), sub, .hr_skill_max_files), class = "hr_bad_skill")
+        }
+      }
+    }
+  }
+  # Names from the file system are marked UTF-8, so the radix sort accepts
+  # non-ASCII names and the order is the same in every locale.
+  rel <- sort(enc2utf8(rel), method = "radix")
   if (length(rel)) paste0(sub, "/", rel) else character(0)
 }
 

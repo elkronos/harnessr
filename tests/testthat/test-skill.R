@@ -296,3 +296,65 @@ test_that("a skill's scripts are listed and never run", {
   expect_identical(run(list(), list())$check$status, "passed")
   expect_true(file.exists(sentinel))
 })
+
+test_that("a SKILL.md that is a folder is refused with hr_bad_skill", {
+  d <- tempfile("hr-skill-")
+  dir.create(file.path(d, "SKILL.md"), recursive = TRUE)
+  on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  expect_error(expect_no_warning(hr_skill(d)), "SKILL.md is a folder", class = "hr_bad_skill")
+})
+
+test_that("non-ASCII file names in references/ and scripts/ are read", {
+  dir <- skill_dir(refs = list(a.md = "plain"))
+  on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+  writeLines("accent", file.path(dir, "references", enc2native("ré.md")))
+  dir.create(file.path(dir, "scripts"))
+  writeLines("1", file.path(dir, "scripts", enc2native("é.R")))
+  s <- hr_skill(dir)
+  expect_identical(names(s$references), c("a.md", "ré.md"))
+  expect_identical(names(s$scripts), "é.R")
+})
+
+test_that("CRLF line endings in a reference give the same text and hash as LF", {
+  lf <- skill_dir(refs = list(a.md = "unused"))
+  crlf <- skill_dir(refs = list(a.md = "unused"))
+  on.exit(unlink(c(lf, crlf), recursive = TRUE), add = TRUE)
+  writeBin(charToRaw("ref line\ntwo\n"), file.path(lf, "references", "a.md"))
+  writeBin(charToRaw("ref line\r\ntwo\r\n"), file.path(crlf, "references", "a.md"))
+  a <- hr_skill(lf)
+  b <- hr_skill(crlf)
+  expect_identical(unname(b$references), "ref line\ntwo\n")
+  expect_identical(a$hash, b$hash)
+})
+
+test_that("linked subfolders, link loops and broken links are refused with hr_bad_skill", {
+  skip_on_os("windows")
+  # A references/ folder that links outside is refused before it is walked.
+  big <- tempfile("hr-skill-outside-")
+  dir.create(big)
+  on.exit(unlink(big, recursive = TRUE), add = TRUE)
+  for (i in 1:60) writeLines("x", file.path(big, sprintf("f%02d.md", i)))
+  away <- skill_dir()
+  on.exit(unlink(away, recursive = TRUE), add = TRUE)
+  expect_true(file.symlink(big, file.path(away, "references")))
+  expect_error(hr_skill(away), "'references/' is a link to a folder outside",
+               class = "hr_bad_skill")
+  # A link to a folder under references/ is never followed, so a loop is refused.
+  loop <- skill_dir(refs = list(a.md = "fine"))
+  on.exit(unlink(loop, recursive = TRUE), add = TRUE)
+  expect_true(file.symlink(file.path(loop, "references"),
+                           file.path(loop, "references", "loop")))
+  expect_error(hr_skill(loop), "is a link to a folder", class = "hr_bad_skill")
+  # A broken link, in references/ or scripts/.
+  broken <- skill_dir(refs = list(a.md = "fine"), scripts = list(ok.R = "1"))
+  on.exit(unlink(broken, recursive = TRUE), add = TRUE)
+  expect_true(file.symlink(file.path(tempdir(), "hr-no-such-file"),
+                           file.path(broken, "references", "z.md")))
+  expect_error(hr_skill(broken), "'references/z.md' is a broken or looping link",
+               class = "hr_bad_skill")
+  unlink(file.path(broken, "references", "z.md"))
+  expect_true(file.symlink(file.path(tempdir(), "hr-no-such-file"),
+                           file.path(broken, "scripts", "z.R")))
+  expect_error(hr_skill(broken), "'scripts/z.R' is a broken or looping link",
+               class = "hr_bad_skill")
+})
