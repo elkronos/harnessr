@@ -1,0 +1,5 @@
+task,prompt
+clamp,"Write clamp(x, lo, hi), which returns x moved into the range from lo to hi."
+count_vowels,"Write count_vowels(s), which counts the vowels a, e, i, o and u in one lower-case string."
+last_n,"Write last_n(x, n), which returns the last n elements of x."
+slow_sum,"Write slow_sum(x), which returns the sum of x."
