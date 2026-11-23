@@ -79,6 +79,7 @@ they are core. Each has tests of its own.
 | `hr_scorer_judge()` | test-core-judge.R | Scores benchmark runs with a validated judge. |
 | `hr_set()` | test-compose.R, test-sweep.R | Builds a step or a chain again with some settings changed by "step.setting" path, for any steps with schemas. |
 | `hr_settings()` | test-compose.R | Lists every setting of a step or a chain by path, with its value, default, range and evidence. |
+| `hr_skill()` | test-skill.R | Reads a skill folder a person chose, for a step of any chain; nothing in it knows about documents. |
 | `hr_signal_policy()` | test-core-signals.R | What a signal may do, and what happens when it may not. |
 | `hr_signals()` | test-core-signals.R | The self-signals a run recorded. |
 | `hr_step_command()` | test-command.R, test-settings-table.R | A chain step that runs a program the user names and reads its result, for any chain. |

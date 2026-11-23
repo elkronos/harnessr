@@ -725,6 +725,37 @@ test each with `hr_sweep()`.
 * `hr_judge()` reads its `"judge_inconsistent"` degradation from the same
   list of codes as the command step. Nothing it returns changes.
 
+## Skills
+
+Skills are opt-in: a step has one only when you give it `hr_skill()`, so
+every default run sends the requests it sent before, with the same cache
+keys. A skill adds no setting to `gr_settings_table()`: its limits are fixed,
+and whether a skill helps is tested by comparing a chain with and without
+it, as the "Skills" section of `vignette("compose")` does with
+`hr_benchmark()`, `hr_report()` and an `hr_sweep()` over a function.
+
+* `hr_skill(path)` reads a skill folder you choose: `SKILL.md`, whose header
+  (`name`, `description`, `version`, between two `---` lines) is read
+  without a YAML parser, and whose body is the instructions; text files
+  under `references/`; and scripts under `scripts/`, which are listed and
+  never run. A nested or multi-line header value, a missing name or closing
+  line, a nul byte, a file linked from outside the folder, more than 50
+  files in either subfolder or more than 200,000 bytes in all is an error
+  of class `hr_bad_skill`; an unknown header key warns
+  (`hr_skill_unknown_key`). Its `hash` covers the header, the
+  instructions, the references and every byte of the scripts. The package
+  never looks for skills and never lets a model choose one, and a skill's
+  text goes into the prompt as it is, so it can carry prompt injection.
+* `hr_step(skill = )` now takes a skill. Inside `hr_chain()` the step's
+  `ctx$call()` and `ctx$call_json()` send the instructions and references as
+  a system message before the step's messages, and `ctx$skill` holds the
+  skill. The hash is a fixed setting of the step and part of its
+  fingerprint, so a chain with a skill has its own configuration and
+  records the setting `"<step>.skill"` (a `param.<step>.skill` column in a
+  benchmark). The skill's version, when it has one, is the step's version.
+  `gr_step()` and `gr_step_retrieve()` refuse a skill with class
+  `hr_bad_skill`, since their requests are not sent through `ctx$call()`.
+
 ## Fixed
 
 * The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
