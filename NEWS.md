@@ -664,10 +664,8 @@ sends the requests it sent before, with the same cache keys.
   function is built from the settings when the step is, so a bad setting
   fails there. `input` and `output` declare what the step takes and returns.
 * `hr_chain(..., name)` runs steps in order as one `hr_arm()`, which
-  `hr_benchmark()` takes as it takes any arm. `hr_sweep()` takes a function
-  that builds the chain, such as `function(k) hr_chain(...)`; given a chain
-  itself, it stops with an error that says so. Inside a
-  chain each step gets `ctx$step` and `ctx$step_params`, and `ctx$params` is
+  `hr_benchmark()` takes as it takes any arm, and `hr_sweep()` sweeps by
+  path (see `hr_set()` below). Inside a chain each step gets `ctx$step` and `ctx$step_params`, and `ctx$params` is
   the arm's. `hr_chain(old, judge = NULL, name = "nojudge")` derives a chain
   without one step; `x = step` replaces a step and a new name adds one. The
   arm records each step's settings as `"step.setting"`, and its
@@ -677,6 +675,23 @@ sends the requests it sent before, with the same cache keys.
   (`hr_bad_chain`). A step that takes a document no earlier step returns
   does not warn, since most chains start at the segment step, which
   ingests at the default settings.
+* `hr_settings(x)` lists every setting of a step or a chain: one row per
+  setting of each step's schema, with the step, the setting, its resolved
+  value, whether it was given, and the schema's default, range, type, tier
+  and evidence. A chain's settings are named by path, `"step.setting"`. An
+  arm from `gr_arm()` or `hr_arm()` is an error (`hr_bad_arm`) that points to
+  `gr_settings_table()`.
+* `hr_set(x, ...)` builds a step or a chain again with some settings
+  changed: `hr_set(chain, retrieve.top_k = 8)`, or `hr_set(step, top_k = 8)`
+  for a single step. A path that is not a setting of a step's schema,
+  including a fixed extra setting, is an error (`hr_unknown_setting`). The
+  values are checked as when the step was built, so an out-of-range number
+  is clamped with a warning, each changed step keeps its class, and the
+  chain's configuration is that of the new settings: a setting set to its
+  default gives the configuration of leaving it out. `hr_sweep()` uses it to
+  sweep a chain by path, as in
+  `hr_sweep(chain, data.frame(retrieve.top_k = c(2, 8)))`, which gives
+  `param.retrieve.top_k` columns in the benchmark.
 * `gr_step()` and `gr_step_retrieve()` now return `hr_step` objects (class
   `c("gr_step", "hr_step", "function")`) checked against the ingest, segment
   or read schema, with their input and output declared.
