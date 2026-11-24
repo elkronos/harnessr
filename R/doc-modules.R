@@ -27,17 +27,57 @@ gr_state$doc_cache      <- new.env(parent = emptyenv())
 .gr_module_slots <- c("extractors", "cleaners", "segmenters", "readers", "embedders",
                       "protocols")
 
-#' Tell the core what the document layer brings: its five kinds of module, and
-#' how a parallel worker gets this layer's registries. Run by .onLoad() before
-#' the built-in modules are registered.
+#' Tell the core what the document layer brings: its five kinds of module,
+#' how hr_register() and hr_modules() reach each kind's registry, and how a
+#' parallel worker gets this layer's registries. Run by .onLoad() before the
+#' built-in modules are registered.
+#'
+#' Each `set` goes through the kind's own gr_register_*() function, so
+#' hr_register() runs the same checks and a cleaner or extractor gets its
+#' registration stamp from the same place.
 #' @noRd
 register_doc_layer <- function() {
-  hr_register_kind("extractor", registry = "extractors")
-  hr_register_kind("cleaner", registry = "cleaners")
-  hr_register_kind("segmenter", registry = "segmenters")
-  hr_register_kind("reader", registry = "readers")
-  hr_register_kind("embedder", registry = "embedders")
+  hr_register_kind("extractor", registry = "extractors",
+                   get = function() gr_state$extractors,
+                   set = function(name, fn, ..., description = "", calls = NULL) {
+                     no_calls("extractor", calls)
+                     gr_register_extractor(name = name, fn = fn, ..., description = description)
+                   })
+  hr_register_kind("cleaner", registry = "cleaners",
+                   get = function() gr_state$cleaners,
+                   set = function(name, fn, ..., description = "", calls = NULL) {
+                     no_calls("cleaner", calls)
+                     gr_register_cleaner(name = name, fn = fn, ..., description = description)
+                   })
+  hr_register_kind("segmenter", registry = "segmenters",
+                   get = function() gr_state$segmenters,
+                   set = function(name, fn, ..., description = "", calls = NULL) {
+                     gr_register_segmenter(name = name, fn = fn, ..., description = description,
+                                           calls = calls)
+                   })
+  hr_register_kind("reader", registry = "readers",
+                   get = function() gr_state$readers,
+                   set = function(name, fn, ..., description = "", calls = NULL) {
+                     gr_register_reader(name = name, fn = fn, ..., description = description,
+                                        calls = calls)
+                   })
+  hr_register_kind("embedder", registry = "embedders",
+                   get = function() gr_state$embedders,
+                   set = function(name, fn, ..., description = "", calls = NULL) {
+                     no_calls("embedder", calls)
+                     gr_register_embedder(name = name, fn = fn, ..., description = description)
+                   })
   hr_register_worker_state("doc", doc_worker_snapshot, doc_worker_restore)
+  invisible(NULL)
+}
+
+#' Refuse `calls` for a kind whose modules make no calls a trace labels.
+#' @noRd
+no_calls <- function(kind, calls) {
+  if (!is.null(calls)) {
+    gr_abort(sprintf("A %s declares no call stems; leave `calls` NULL.", kind),
+             class = "gr_bad_setting")
+  }
   invisible(NULL)
 }
 
