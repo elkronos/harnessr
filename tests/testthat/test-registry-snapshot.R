@@ -34,12 +34,15 @@ for (f in listings_functions) {
     test_that(sprintf("%s() keeps its columns, types, row order and row names", f), {
       was <- listings_was()$listing[[f]]
       now <- listings_now()$listing[[f]]
-      lead <- seq_along(was$names)
-      expect_identical(now$class, was$class)
       # Contract 0.2 appends `version` and `contract`, last; the leading
-      # columns are the recorded ones.
-      expect_identical(now$names, c(was$names, "version", "contract"))
-      expect_identical(now$types[lead], was$types)
+      # columns are the recorded ones. The recording may predate contract 0.2
+      # or include the two columns, so they are set aside on both sides.
+      added <- c("version", "contract")
+      kept <- which(!was$names %in% added)
+      lead <- seq_along(kept)
+      expect_identical(now$class, was$class)
+      expect_identical(now$names, c(was$names[kept], added))
+      expect_identical(now$types[lead], was$types[kept])
       expect_identical(unname(now$types[-lead]), c("character", "character"))
       expect_identical(now$rownames, was$rownames)
       expect_identical(now$data[, was$names[was$names %in% names(now$data)], drop = FALSE],
