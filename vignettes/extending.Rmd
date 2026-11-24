@@ -391,6 +391,13 @@ The listings such as `gr_readers()` keep their own columns, and a module you
 register with `hr_register()` appears in them as one registered with the
 kind's own function does.
 
+A segmenter that calls a model can also take `effort_label` through
+`hr_register()`: a function of the segment spec that returns the label its
+requests carry, or `""` when the spec sends none. A run's `effort` map then
+reaches your segmenter as the effort for that label alone, as it reaches the
+built-in `contextual` and `proposition` segmenters. Without `effort_label`,
+your segmenter gets the whole map and picks its own labels from it.
+
 ## Parameter schemas
 
 Each spec constructor states its parameters once, as a schema: type, default,

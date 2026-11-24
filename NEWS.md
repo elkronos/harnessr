@@ -783,6 +783,15 @@ hr_register()" section of `vignette("extending")` shows both functions.
   `kind`, `name`, `description` and `calls`, a list column of the call
   stems each module declares. With `kind`, it adds that kind's own columns,
   such as a reader's `signature` or an extractor's `extensions`.
+* `hr_register("segmenter", ...)` also takes `effort_label`, a function of
+  the segment spec that returns the label the segmenter's requests carry.
+  The built-in segmenters register this way, so a run's `effort` map
+  reaches each one as the effort for its own label, as before. A function
+  you register under a built-in's name with `gr_register_segmenter()` still
+  gets the whole map.
+* The document layer and the core now read every module registry through
+  the kind's accessor, and `gr_embed()` looks embedders up the same way.
+  The core no longer calls any document layer function.
 
 ## Fixed
 

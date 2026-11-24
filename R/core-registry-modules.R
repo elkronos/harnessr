@@ -45,7 +45,11 @@ kind_access <- function(kind, need = c("get", "set")) {
 #'   with (see the kind's own registration function).
 #' @param ... The other arguments of the kind's own registration function,
 #'   by name, such as `signature` for a reader or `extensions` for an
-#'   extractor.
+#'   extractor. A segmenter also takes `effort_label`, a function of the
+#'   segment spec that returns the trace label its model requests carry, or
+#'   `""` when it sends none. A run's `effort` setting then reaches the
+#'   segmenter as the effort for that label alone. Without it, the segmenter
+#'   gets the run's whole effort map.
 #' @param description One-line description, shown by the kind's listing and
 #'   by [hr_modules()].
 #' @param calls The stems of the trace labels the module's model calls

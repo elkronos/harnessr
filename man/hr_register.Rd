@@ -18,7 +18,11 @@ with (see the kind's own registration function).}
 
 \item{...}{The other arguments of the kind's own registration function,
 by name, such as \code{signature} for a reader or \code{extensions} for an
-extractor.}
+extractor. A segmenter also takes \code{effort_label}, a function of the
+segment spec that returns the trace label its model requests carry, or
+\code{""} when it sends none. A run's \code{effort} setting then reaches the
+segmenter as the effort for that label alone. Without it, the segmenter
+gets the run's whole effort map.}
 
 \item{description}{One-line description, shown by the kind's listing and
 by \code{\link[=hr_modules]{hr_modules()}}.}
