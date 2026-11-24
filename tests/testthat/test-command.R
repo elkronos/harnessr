@@ -83,6 +83,27 @@ test_that("parse = 'testthat' reads the summary line, never the exit code alone"
   expect_identical(command_r("cat('no summary')")(list(), list())$check$status, "passed")
 })
 
+test_that("parse = 'testthat' needs a reporter that prints the summary line, not stop_on_failure", {
+  fail <- command_testfile("test_that('x', expect_equal(1, 2))")
+  on.exit(unlink(fail), add = TRUE)
+  run <- function(stop, reporter) {
+    argv <- c(command_rscript(), "-e", sprintf(
+      "testthat::test_file('%s', stop_on_failure = %s, reporter = '%s')",
+      gsub("\\\\", "/", fail), stop, reporter))
+    hr_step_command("check", argv, parse = "testthat")(list(), list())$check
+  }
+  # Without stop_on_failure the run exits with 0, and is still "failed".
+  r <- run("FALSE", "progress")
+  expect_identical(r$status, "failed")
+  expect_identical(r$exit, 0L)
+  # stop_on_failure = TRUE only makes the exit code agree.
+  r <- run("TRUE", "progress")
+  expect_identical(r$status, "failed")
+  expect_false(identical(r$exit, 0L))
+  # The summary reporter prints no summary line, so the run is an error.
+  expect_identical(run("TRUE", "summary")$status, "error")
+})
+
 test_that("the API key is unset for the command and put back after it", {
   old <- Sys.getenv("OPENAI_API_KEY", unset = NA)
   on.exit(if (is.na(old)) Sys.unsetenv("OPENAI_API_KEY") else Sys.setenv(OPENAI_API_KEY = old),

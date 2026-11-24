@@ -72,7 +72,10 @@ line the program printed: \code{"failed"} when \code{FAIL} is above 0,
 line, or a summary of no failures and a non-zero exit, the status is
 \code{"error"}. The exit code alone is not read, since
 \code{\link[testthat:test_file]{testthat::test_file()}} exits with 0 when a test fails unless it is
-given \code{stop_on_failure = TRUE}, so run it that way.}
+given \code{stop_on_failure = TRUE}. Use a reporter that prints the
+summary line, such as the default, \code{"progress"} or \code{"check"}: under
+\code{"summary"} no such line is printed and the status is \code{"error"}.
+\code{stop_on_failure = TRUE} makes the exit code agree with the result.}
 }
 A program stopped at \code{timeout} seconds is \code{"timeout"}, with the
 degradation \code{"command_timeout"}, and a program that cannot be found is

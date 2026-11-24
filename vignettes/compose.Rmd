@@ -394,8 +394,13 @@ hr_signals(cb, "command.held")[1:2, c("arm", "run", "value")]
 unlink(work, recursive = TRUE)
 ```
 
-For a testthat file, give the check `parse = "testthat"` and run the file
-with `stop_on_failure = TRUE`, so a failed test is read as one.
+For a testthat file, give the check `parse = "testthat"`. It reads the last
+`[ FAIL n | WARN n | SKIP n | PASS n ]` line the run printed, and a run with
+a failed test is `"failed"` whatever its exit code. Run the file with a
+reporter that prints that line, such as the default, `"progress"` or
+`"check"`: a run that prints no such line, as under `"summary"`, is read as
+`"error"`. Giving `testthat::test_file()` `stop_on_failure = TRUE` as well
+makes the exit code agree with the result.
 
 A stand-in model's handler must be stateless: its reply should depend only
 on the messages and settings it is given, as `coder`'s does. A handler that
