@@ -77,6 +77,33 @@
 </tr></tbody></table><p><code>Rscript dev/ci/pr-checks.R &lt;mode&gt; origin/main HEAD</code> runs a pull request check locally; the modes are <code>tests</code>, <code>deps</code>, <code>lint</code>, <code>namespace</code> and <code>commits</code>.</p>
 </div>
 <div class="section level3">
+<h3 id="checks-on-github">Checks on GitHub<a class="anchor" aria-label="anchor" href="#checks-on-github"></a></h3>
+<p>A pull request runs these workflows:</p>
+<table class="table"><colgroup><col width="33%"><col width="33%"><col width="33%"></colgroup><thead><tr><th>Workflow</th>
+<th>Check names</th>
+<th>What it runs</th>
+</tr></thead><tbody><tr><td><code>R-CMD-check.yaml</code></td>
+<td>
+<code>macos-latest (R release)</code>, <code>ubuntu-latest (R release)</code>, <code>ubuntu-latest (R oldrel-1)</code>
+</td>
+<td>
+<code>R CMD check</code> with hard dependencies; a warning fails it</td>
+</tr><tr><td><code>tests.yaml</code></td>
+<td><code>tests</code></td>
+<td>the suite with <code>future</code>, <code>future.apply</code>, <code>ellmer</code> and <code>xml2</code> installed, from the source tree, then the README and guide checks described above</td>
+</tr><tr><td><code>pr-checks.yaml</code></td>
+<td><code>pull request checks</code></td>
+<td>the <code>tests</code>, <code>deps</code>, <code>namespace</code> and <code>commits</code> modes, one step each; every step runs even when an earlier one fails, and the step name says which check failed</td>
+</tr><tr><td><code>pr-lint.yaml</code></td>
+<td><code>lint changed R files</code></td>
+<td>the <code>lint</code> mode</td>
+</tr><tr><td><code>pkgdown.yaml</code></td>
+<td><code>pkgdown</code></td>
+<td>builds the site without publishing it, only when the pull request changes a file the site is built from (the list is in the workflow)</td>
+</tr></tbody></table><p>Adding or removing a label reruns <code>pr-checks.yaml</code>, so a label added after review turns its check green without a new push. Lint reads no label, so a label change does not rerun it; a push or a reopen does. A new push to a pull request cancels the older runs of the same workflow. On <code>main</code>, each merge gets its own run of <code>R-CMD-check.yaml</code> and <code>tests.yaml</code>, and <code>pkgdown.yaml</code> builds and publishes the site from the newest push to <code>main</code>.</p>
+<p><code>pr-checks.yaml</code> used to run five checks: <code>no weakened tests</code>, <code>no unreviewed dependencies</code>, <code>lint changed R files</code>, <code>no unreviewed export removals</code> and <code>no attribution in commit messages</code>. Four of them are now steps of <code>pull request checks</code>, and <code>lint changed R files</code> comes from <code>pr-lint.yaml</code>. A branch rule or ruleset that requires the old names needs updating. Do not require <code>pkgdown</code>: a pull request that changes none of its files never starts it, and a required check that never starts stays pending.</p>
+</div>
+<div class="section level3">
 <h3 id="what-must-stay-true">What must stay true<a class="anchor" aria-label="anchor" href="#what-must-stay-true"></a></h3>
 <ul><li>
 <strong>Requests and cache keys do not move at the defaults.</strong> With every setting at its default, the package sends byte for byte the requests it sent before your change and computes the same cache and replay keys, so a cache someone has built and a recording they made keep working. A new setting is left out of a spec while it is at its default for this reason. The golden records check it.</li>

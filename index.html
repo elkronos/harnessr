@@ -388,12 +388,15 @@
 </tr>
 <tr>
 <td><code>pkgdown.yaml</code></td>
-<td>builds the website on pull requests and on pushes to the main branch, and publishes it except from a pull request</td>
+<td>builds the website on pushes to the main branch and publishes it; on a pull request that changes the site’s sources, builds it without publishing</td>
 </tr>
 <tr>
 <td><code>pr-checks.yaml</code></td>
-<td>fails a pull request that drops an <code>expect_*()</code> call, adds a <code>skip()</code> or adds a row to a list that may only shrink without the label <code>tests-reviewed</code>, adds a dependency without the label <code>deps-reviewed</code> (an added package must be on CRAN either way), or removes an export without the label <code>exports-reviewed</code>; fails any commit message with a <code>Co-Authored-By</code> trailer, a chat or session link or a “Generated with” line; and lints the changed files under <code>R/</code>
-</td>
+<td>fails a pull request that drops an <code>expect_*()</code> call, adds a <code>skip()</code> or adds a row to a list that may only shrink without the label <code>tests-reviewed</code>, adds a dependency without the label <code>deps-reviewed</code> (an added package must be on CRAN either way), or removes an export without the label <code>exports-reviewed</code>; fails any commit message with a <code>Co-Authored-By</code> trailer, a chat or session link or a “Generated with” line. One job, one step per check, rerun when a label changes</td>
+</tr>
+<tr>
+<td><code>pr-lint.yaml</code></td>
+<td>lints the changed files under <code>R/</code> on each push to a pull request</td>
 </tr>
 <tr>
 <td><code>ellmer-devel.yaml</code></td>
