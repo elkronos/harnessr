@@ -43,6 +43,7 @@
 ".hr_judge_prompts","core","value"
 ".hr_keep_rules","core","value"
 ".hr_locked_refs","core","value"
+".hr_signal_contract","core","value"
 ".hr_skill_keys","core","value"
 ".hr_skill_max_bytes","core","value"
 ".hr_skill_max_files","core","value"

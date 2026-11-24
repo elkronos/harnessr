@@ -22,7 +22,7 @@ prompt hash, effort, module and contract version it was measured on.
 \code{hr_calibration_valid()} is \code{FALSE} when any of them differs from \code{key}, or
 is missing from it, and the fields that differ are in the \code{"differs"}
 attribute. A \code{key} without \code{contract_version} is checked against the
-running package's contract version, so a record made under another
+signal contract version, \code{"0.1"}, so a record made under another
 contract version is void.
 }
 \examples{

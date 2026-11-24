@@ -12,6 +12,13 @@
 .hr_calibration_key_fields <- c("served_model", "version", "task", "format", "prompt_hash",
                                 "effort", "module", "contract_version")
 
+#' The contract version a calibration key records in `contract_version`
+#' when the key leaves it out. Frozen at "0.1", apart from the module
+#' contract (hr_contract_version()), so a record saved before the module
+#' contract moved to 0.2 stays valid and its key stays byte-identical.
+#' @noRd
+.hr_signal_contract <- "0.1"
+
 #' The default number of errors a graded set needs before its record can
 #' gate; hr_calibrate_signal()'s `min_errors`.
 #' @noRd
@@ -138,7 +145,8 @@
 #'   `prompt_hash` (of the prompt or template), `effort`, `module` (the reader
 #'   or stage) and `contract_version`. Each is one string; `NA` is allowed
 #'   except for `served_model`. A missing `contract_version` is filled with
-#'   the running package's contract version.
+#'   the signal contract version, `"0.1"`. That version stays at 0.1 when
+#'   the module contract moves, so a record you saved earlier stays valid.
 #' @param method `"platt"`, `"isotonic"` or `"none"`.
 #' @param bins Number of equal-mass bins for the ECE and the decomposition,
 #'   held between 5 and 10.
@@ -371,7 +379,7 @@ calibration_key <- function(key, fill = TRUE) {
                      paste(.hr_calibration_key_fields, collapse = ", ")), class = "gr_bad_setting")
   }
   if (fill && is.null(key[["contract_version", exact = TRUE]])) {
-    key$contract_version <- hr_contract_version()
+    key$contract_version <- .hr_signal_contract
   }
   missing_f <- setdiff(.hr_calibration_key_fields, names(key))
   if (length(missing_f)) {
@@ -655,7 +663,7 @@ signal_boot <- function(cal, nb, B) {
 #' `hr_calibration_valid()` is `FALSE` when any of them differs from `key`, or
 #' is missing from it, and the fields that differ are in the `"differs"`
 #' attribute. A `key` without `contract_version` is checked against the
-#' running package's contract version, so a record made under another
+#' signal contract version, `"0.1"`, so a record made under another
 #' contract version is void.
 #'
 #' @param cal An `hr_calibration` from [hr_calibrate_signal()].
@@ -678,7 +686,7 @@ hr_calibration_valid <- function(cal, key) {
     gr_abort("`cal` must come from hr_calibrate_signal().", class = "gr_bad_setting")
   }
   if (!is.list(key)) gr_abort("`key` must be a named list.", class = "gr_bad_setting")
-  if (is.null(key[["contract_version", exact = TRUE]])) key$contract_version <- hr_contract_version()
+  if (is.null(key[["contract_version", exact = TRUE]])) key$contract_version <- .hr_signal_contract
   differs <- .hr_calibration_key_fields[!vapply(.hr_calibration_key_fields, function(f) {
     v <- key[[f]]
     is.atomic(v) && length(v) == 1L && identical(as.character(v), cal$key[[f]])

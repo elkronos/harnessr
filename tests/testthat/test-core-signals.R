@@ -246,7 +246,7 @@ test_that("isotonic needs 1000 items and the graded set needs unanswerable items
   expect_true(all(is.finite(cal$metrics$lower[cal$metrics$metric == "brier"])))
   js <- jsonlite::fromJSON(as_json(cal))
   expect_equal(js$signal, "demo")
-  expect_equal(js$key$contract_version, harnessr:::hr_contract_version())
+  expect_equal(js$key$contract_version, harnessr:::.hr_signal_contract)
 })
 
 test_that("isotonic regression fits a non-decreasing map at 1000 items or more", {
