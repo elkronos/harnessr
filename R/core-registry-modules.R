@@ -110,7 +110,8 @@ hr_register <- function(kind, name, fn, ..., description = "", calls = NULL, ver
 #' call stems it declares, its version and the contract it was registered
 #' under. Ask for one kind to add the columns only that kind has, such
 #' as a reader's `signature` or an extractor's `extensions`. The kind's own
-#' listing, such as [gr_readers()], keeps its own shape and is unchanged.
+#' listing, such as [gr_readers()], keeps its columns and adds `version` and
+#' `contract` as its last two.
 #'
 #' @param kind `NULL` (the default) for every kind, or one kind, such as
 #'   `"reader"`. A kind the package does not know is an error of class

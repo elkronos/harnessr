@@ -553,7 +553,9 @@ res$rule[!is.na(res$ok) & !res$ok]
 To check a module against a provider that misbehaves, give the check a mock
 client with a `mode`. `"bad_json"` sends JSON cut off part way, `"refuse"`
 sends empty replies, `"at_cap"` marks every reply as cut off at the output cap,
-and a vector of HTTP status codes fails calls in that order. The `longest`
+and a vector of HTTP status codes gives call `i` the `i`-th status, so
+`c(429, 500, 200)` fails the first two calls and answers every one after. The
+`longest`
 reader still finishes, and stays within its cost, when every request is
 rate limited:
 

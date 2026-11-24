@@ -19,12 +19,12 @@ reports about it. Its version is what `hr_contract_version()` returns
    `protocol`. The core then registers its own kind, `step`, whose
    registry it keeps itself. Models are not a kind: the model registry
    stays outside the module registry.
-2. **The entry fields.** Every registry entry has `version` and
-   `contract`. `hr_register()` keeps the version you give (for a step, the
-   step's own version when you give none) and the contract version the
-   package implements. An entry registered through a kind's own function,
-   such as `gr_register_reader()`, has `NA` in both; its conformance check
-   stays advisory. Each listing (`gr_readers()`, `gr_segmenters()`,
+2. **The entry fields.** An entry registered with `hr_register()` has
+   `version` and `contract`: the version you give (for a step, the step's
+   own version when you give none) and the contract version the package
+   implements. An entry registered through a kind's own function, such as
+   `gr_register_reader()`, has neither, and every listing shows `NA` for
+   it; its conformance check stays advisory. Each listing (`gr_readers()`, `gr_segmenters()`,
    `gr_cleaners()`, `gr_extractors()`, `gr_embedders()`, `gr_protocols()`
    and `hr_modules()`) shows them as its last two columns, `version` then
    `contract`, and keeps its other columns, their types, their order and

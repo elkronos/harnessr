@@ -29,7 +29,8 @@ segmenter, reader, embedder, protocol and step, with its description, the
 call stems it declares, its version and the contract it was registered
 under. Ask for one kind to add the columns only that kind has, such
 as a reader's \code{signature} or an extractor's \code{extensions}. The kind's own
-listing, such as \code{\link[=gr_readers]{gr_readers()}}, keeps its own shape and is unchanged.
+listing, such as \code{\link[=gr_readers]{gr_readers()}}, keeps its columns and adds \code{version} and
+\code{contract} as its last two.
 }
 \examples{
 m <- hr_modules()

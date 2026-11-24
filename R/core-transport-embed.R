@@ -44,7 +44,8 @@
 #' @param fallback What to do when the embedding request fails. **Defaults to
 #'   `"lexical"`**: hashed bag-of-words vectors that measure word overlap, not
 #'   meaning, so `semantic` segmentation and `retrieve` ranking become markedly
-#'   less accurate. The substitution warns and is recorded, but the run
+#'   less accurate. The fallback runs the embedder registered as `"lexical"`;
+#'   if you replaced it and your function fails, the built-in one runs. The substitution warns and is recorded, but the run
 #'   continues. Use `"error"` to fail fast, or `"none"` to get an empty matrix.
 #'   An embedder fails when it raises, or returns the wrong number of rows,
 #'   vectors with no dimensions, or missing or non-finite values. The built-in

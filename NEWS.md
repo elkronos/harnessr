@@ -768,15 +768,18 @@ it, as the "Skills" section of `vignette("compose")` does with
 
 Nothing here changes a default or adds a setting: each `gr_register_*()`
 function keeps its arguments and checks, each `gr_*()` listing keeps its
-columns, and the built-in cleaners and extractors keep their registration
-stamps, so ingest cache keys do not change. The "Registering any kind with
+existing columns (contract 0.2 appends `version` and `contract`; see "Module
+contract 0.2" below), and the built-in cleaners and extractors keep their
+registration stamps, so ingest cache keys do not change. The "Registering any kind with
 hr_register()" section of `vignette("extending")` shows both functions.
 
-* `hr_register(kind, name, fn, ..., description, calls)` registers a module
-  of any kind through that kind's own function, so it runs the same checks:
-  `hr_register("reader", ...)` refuses what `gr_register_reader()` refuses.
-  The kinds are `"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"` and
-  `"embedder"`; any other is an error of class `hr_unknown_kind`, and
+* `hr_register(kind, name, fn, ..., description = "", calls = NULL,
+  version = NULL)` registers a module of any kind through that kind's own
+  function, so it runs the same checks: `hr_register("reader", ...)`
+  refuses what `gr_register_reader()` refuses. The kinds are
+  `"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"`, `"embedder"`,
+  `"protocol"` and `"step"` (see "Module contract 0.2" for the last two);
+  any other is an error of class `hr_unknown_kind`, and
   `calls` for a kind that declares no calls is an error of class
   `gr_bad_setting`.
 * `hr_modules(kind = NULL)` lists the modules of every kind in one table:
@@ -789,9 +792,16 @@ hr_register()" section of `vignette("extending")` shows both functions.
   reaches each one as the effort for its own label, as before. A function
   you register under a built-in's name with `gr_register_segmenter()` still
   gets the whole map.
-* The document layer and the core now read every module registry through
-  the kind's accessor, and `gr_embed()` looks embedders up the same way.
-  The core no longer calls any document layer function.
+* Reads that look up a module by name, such as running a reader, choosing
+  a segmenter's effort or picking an embedder, go through the kind's
+  accessor, and `gr_embed()` looks embedders up the same way. The listings
+  and the worker snapshot still read the document layer's slots. The core
+  calls no document layer function.
+* When an embeddings request fails, `gr_embed()` falls back on the embedder
+  registered as `"lexical"`, so if you replace `"lexical"` with
+  `gr_register_embedder()` your function also serves as the fallback. If
+  your function fails there, `gr_embed()` warns with its error and uses the
+  built-in hashed lexical vectors.
 
 ## Conformance for every kind, and mock failure modes
 
@@ -804,12 +814,16 @@ shows a mode in use.
   provider can: `"bad_json"` sends a JSON object cut off part way,
   `"refuse"` sends an empty reply that `gr_call()` reports as failed,
   `"at_cap"` marks the handler's reply as cut off at the output cap and
-  bills the cap, and a vector of HTTP status codes such as
-  `c(429, 500, 200)` gives call `i` the `i`-th status. Embeddings are left
+  bills the cap (a failed result from the handler comes back as it is),
+  and a vector of HTTP status codes such as `c(429, 500, 200)` gives call
+  `i` the `i`-th status, marked retryable for the statuses the HTTP
+  transport retries. Embeddings are left
   as they are. Pass such a client to `gr_check_reader()` or
   `gr_check_segmenter()` to check a module against replies that fail.
-* The package's tests now check every registered module of every kind that
-  `hr_modules()` lists, and every protocol, against rules for its kind.
+* The package's tests now check every registered module that
+  `hr_modules()` lists, and every protocol, against the rules for its kind.
+  An extractor is checked where its packages are installed and the tests
+  have a sample file in its format.
   Extractors are checked for blocks with text and typed columns, cleaners
   for one string per block, some text left and the same result twice,
   embedders for finite unit-length rows under their own name, and
@@ -822,7 +836,8 @@ shows a mode in use.
 
 Nothing here changes a default or adds a setting, and no request or cache
 key changes. The new columns come last in each listing, so code that picks
-columns by name or by position reads what it read before. CONTRACT.md lists
+a column by name, or by its position counted from the first column, reads
+what it read before. CONTRACT.md lists
 every field that changed.
 
 * The module contract moves to 0.2. A conformance report's `contract`
@@ -833,10 +848,14 @@ every field that changed.
   step from `hr_step()`, or builds one from a function of `(input, ctx)`
   and the arguments you pass. The package registers no step at load.
   `hr_modules()` lists both kinds.
-* `hr_register()` gains `version`, and every registry entry has `version`
-  and `contract` fields. A module you register with `hr_register()` records
-  the version you give and contract 0.2; one you register with a
-  `gr_register_*()` function records `NA` in both.
+* `hr_register()` gains `version`. A module you register with
+  `hr_register()` records the version you give and contract 0.2 in its
+  entry. An entry registered with a `gr_register_*()` function has neither
+  field, and each listing shows `NA` for it.
+* `hr_register("step", ...)` refuses call stems that are blank or contain
+  whitespace, with class `gr_bad_setting`, and keeps each stem once, as the
+  reader and segmenter kinds do. Parallel workers receive the steps you
+  registered, so `hr_modules("step")` on a worker lists them.
 * `gr_readers()`, `gr_segmenters()`, `gr_cleaners()`, `gr_extractors()`,
   `gr_embedders()`, `gr_protocols()` and `hr_modules()` end with the
   columns `version` and `contract`. The built-in segmenters register
