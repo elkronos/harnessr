@@ -175,6 +175,17 @@ test_that("workers see modules registered in the parent session", {
   expect_true(all(unlist(seen)))
 })
 
+test_that("workers see steps registered in the parent session", {
+  skip_if_no_future()
+  local_registries()
+  hr_register("step", "shout", fn = function(input, ctx) toupper(input))
+  expect_true("steps" %in% names(harnessr:::worker_state()$core))
+  seen <- harnessr:::gr_lapply(1:2, function(i, trace) {
+    "shout" %in% harnessr::hr_modules("step")$name
+  }, parallel = TRUE, workers = 2)
+  expect_true(all(unlist(seen)))
+})
+
 test_that("the document layer hands its module registries to workers", {
   layers <- harnessr:::worker_state()$layers
   expect_true("doc" %in% names(layers))
