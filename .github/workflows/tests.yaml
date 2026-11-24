@@ -1,8 +1,16 @@
 name: tests
 
-# A fast signal on every push: install, run the suite, and assert the three
-# claims the package makes about itself. Runs in well under a minute, so it
-# fails before the full R-CMD-check matrix finishes.
+# The suite and the checks R CMD check does not make. R-CMD-check.yaml
+# installs hard dependencies only, so there the future, future.apply, ellmer
+# and xml2 tests skip, and so do the tests that read files from the source
+# tree. This job installs those packages and runs the suite from the source
+# tree. It then runs every README code block and compares its documented
+# output, knits every guide with no key and checks the output for signs of a
+# failed call, checks the counts the README states against the registries,
+# and fails if any step left a file in the package directory.
+#
+# It takes about as long as one R-CMD-check job: a median of 13.2 minutes
+# over 8 runs in November 2026, mostly the suite and the guide knits.
 
 on:
   push:
@@ -52,6 +60,9 @@ jobs:
           # always skipped, on the one transport that has never been exercised
           # against a real provider -- and a token-accounting bug was sitting in
           # it. A test nothing runs is not coverage.
+          #
+          # xml2 reads Word and HTML files. Without it the reader tests for
+          # those formats skip on every job.
           dependencies: '"hard"'
           extra-packages: |
             any::testthat
@@ -60,6 +71,7 @@ jobs:
             any::future
             any::future.apply
             any::ellmer
+            any::xml2
 
       - name: Install package
         run: R CMD INSTALL . --no-byte-compile

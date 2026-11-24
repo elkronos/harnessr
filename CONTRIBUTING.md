@@ -44,7 +44,7 @@ A pull request runs these workflows:
 | Workflow | Check names | What it runs |
 |---|---|---|
 | `R-CMD-check.yaml` | `macos-latest (R release)`, `ubuntu-latest (R release)`, `ubuntu-latest (R oldrel-1)` | `R CMD check` with hard dependencies; a warning fails it |
-| `tests.yaml` | `tests` | the suite with `future`, `future.apply` and `ellmer` installed, from the source tree, then the README and guide checks described above |
+| `tests.yaml` | `tests` | the suite with `future`, `future.apply`, `ellmer` and `xml2` installed, from the source tree, then the README and guide checks described above |
 | `pr-checks.yaml` | `pull request checks` | the `tests`, `deps`, `namespace` and `commits` modes, one step each; every step runs even when an earlier one fails, and the step name says which check failed |
 | `pr-lint.yaml` | `lint changed R files` | the `lint` mode |
 | `pkgdown.yaml` | `pkgdown` | builds the site without publishing it, only when the pull request changes a file the site is built from (the list is in the workflow) |
