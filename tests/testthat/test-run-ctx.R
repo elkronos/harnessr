@@ -105,22 +105,22 @@ test_that("a mock batch never sets the key, and the worker's value is what it wa
 
 test_that("a worker's key does not outlive its item", {
   skip_if_no_future()
-  skip_if_not_installed("parallelly")
   withr::local_envvar(OPENAI_API_KEY = NA)
-  # One worker that stays up between futures, so what an item left behind in
-  # its environment can be read by the next future.
-  cl <- parallelly::makeClusterPSOCK(1L, autoStop = TRUE)
-  on.exit(parallel::stopCluster(cl), add = TRUE)
   old_plan <- future::plan()
   on.exit(future::plan(old_plan), add = TRUE)
-  future::plan(future::cluster, workers = cl)
+  future::plan(future::multisession, workers = 2)
   wrapped <- harnessr:::worker_item(function(item, trace) {
     Sys.getenv("OPENAI_API_KEY", unset = "<unset>")
   }, harnessr:::new_hr_ctx(key = fake_key), NULL)
-  during <- future::value(future::future(wrapped(1)$value, packages = "harnessr"))
-  after <- future::value(future::future(Sys.getenv("OPENAI_API_KEY", unset = "<unset>")))
-  expect_identical(during, fake_key)
-  expect_identical(after, "<unset>")
+  # The item and then a read of the environment, both in one worker process.
+  got <- future::value(future::future({
+    during <- wrapped(1)$value
+    list(during = during, after = Sys.getenv("OPENAI_API_KEY", unset = "<unset>"),
+         pid = Sys.getpid())
+  }, packages = "harnessr"))
+  expect_false(identical(got$pid, Sys.getpid()))
+  expect_identical(got$during, fake_key)
+  expect_identical(got$after, "<unset>")
 })
 
 test_that("a backend handler that reads the environment gets the key in parallel", {
