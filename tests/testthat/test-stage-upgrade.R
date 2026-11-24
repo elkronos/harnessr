@@ -92,11 +92,32 @@ test_that("the claims readers give the same output for an older claims table", {
                         client = gr_mock_client(golden_reply)))
   }
   expect_identical(syn(old)$text, syn(cm)$text)
+  # gr_synthesise() keeps the claims table it read, filled.
+  expect_identical(syn(old)$claims, gr_upgrade_stage(old))
   common <- list(screening = upgrade_fixture("screening"),
                  extraction = upgrade_fixture("extraction"),
                  synthesis = upgrade_fixture("synthesis"), protocol = golden_protocol())
   expect_identical(do.call(report_lines, c(common, list(claims = old))),
                    do.call(report_lines, c(common, list(claims = cm))))
+})
+
+test_that("gr_gaps() under a narrower `bib` keeps an older table's hidden columns", {
+  # With the default `bib` the conventional columns come back anyway, so only
+  # a `bib` that withholds less shows whether `hidden` was filled.
+  tab <- data.frame(document = paste0(letters[1:4], ".pdf"), status = "ok",
+                    duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,
+                    conflicts = NA_character_, design = c("cohort", "cohort", "rct", "rct"),
+                    authors = "Smith, J.; Okafor, A.", stringsAsFactors = FALSE)
+  cl <- gr_mock_client(function(messages, params) paste0(
+    '{"claims":[{"claim":"One cohort found it.","kind":"finding","supported_by":[1],',
+    '"contradicted_by":[],"moderator":null,"scope":"one study"}]}'))
+  cm <- quiet(gr_claims(tab, question = "Q?", client = cl))
+  expect_true("authors" %in% cm$hidden)
+  old <- strip(cm, c("lost", "unmerged", "hidden"))
+  up <- gr_upgrade_stage(old)
+  expect_true("authors" %in% up$hidden)
+  expect_identical(gr_gaps(old, bib = c(authors = NA)), gr_gaps(cm, bib = c(authors = NA)))
+  expect_false("authors" %in% gr_gaps(old, bib = c(authors = NA))$dimension)
 })
 
 test_that("a claims table that lost studies still says so after the upgrade", {
@@ -116,6 +137,10 @@ test_that("the synthesis readers give the same output for an older synthesis", {
   expect_identical(up$unrendered, integer(0))
   expect_identical(up$cite_style, "marker")
   expect_identical(up$sections$lost_batches, integer(nrow(up$sections)))
+  expect_identical(up$claims$lost, integer(0))
+  expect_false(up$claims$unmerged)
+  expect_false(is.null(up$bib_columns))
+  expect_identical(up$bib_columns, bib_columns(up$studies))
   out <- capture.output(res <- print(old))
   expect_identical(res, old)
   expect_identical(out, capture.output(print(syn)))
@@ -126,6 +151,11 @@ test_that("the synthesis readers give the same output for an older synthesis", {
   fields <- c("text", "text_marked", "references", "figures", "uncited", "contradictions",
               "recheck", "sentences")
   expect_identical(quiet(gr_recheck(old))[fields], quiet(gr_recheck(syn))[fields])
+  re <- quiet(gr_recheck(old))
+  # gr_recheck() returns the filled object, nested claims table included.
+  expect_identical(re$claims$lost, integer(0))
+  expect_false(re$claims$unmerged)
+  expect_false(is.null(re$bib_columns))
 })
 
 test_that("an older calibration's report keeps the count sentence", {
