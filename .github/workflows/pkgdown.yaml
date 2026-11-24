@@ -20,10 +20,13 @@ permissions: read-all
 jobs:
   pkgdown:
     runs-on: ubuntu-latest
-    # One publishing run at a time; pull requests do not publish, so they do
-    # not need to wait for each other.
+    # A slow package mirror once held a successful build for 64 minutes.
+    timeout-minutes: 75
+    # One publishing run at a time, never cancelled. A pull request does not
+    # publish: a new push to it cancels its older build.
     concurrency:
-      group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
+      group: pkgdown-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'true' }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       OPENAI_API_KEY: ''

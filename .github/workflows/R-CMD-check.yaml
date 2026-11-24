@@ -10,14 +10,19 @@ on:
 permissions:
   contents: read
 
+# One group per pull request and one per commit otherwise. A new push to a
+# pull request cancels its older run; a push to main never cancels the run
+# of an earlier merge, so every commit on main gets a result.
 concurrency:
-  group: check-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.os }} (R ${{ matrix.config.r }})
+    # The longest successful job seen took 44 minutes, most of it in setup.
+    timeout-minutes: 60
 
     strategy:
       fail-fast: false
