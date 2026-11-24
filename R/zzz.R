@@ -23,6 +23,7 @@
   register_builtin_segmenters()
   register_builtin_readers()
   register_builtin_embedders()
+  hr_state$embed_fallback <- registry_get("embedder", "lexical")$fn
   register_builtin_protocols()
   invisible(NULL)
 }

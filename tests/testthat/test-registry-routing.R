@@ -1,7 +1,7 @@
 # test-registry-routing.R: the document layer and the core read the module
 # registries through each kind's accessor, the built-in segmenters carry their
-# effort label on their registry entries, and the core no longer crosses into
-# the document layer at all.
+# effort label on their registry entries, and the core makes no call into the
+# document layer.
 
 # Put a document layer registry back as it was when the test ends.
 keep_slot <- function(slot, env = parent.frame()) {
@@ -126,4 +126,27 @@ test_that("gr_embed() falls back on the registered lexical embedder", {
                        deterministic = TRUE)
   out <- suppressWarnings(gr_embed(gr_mock_client(), texts, embedder = broken))
   expect_identical(ncol(out), 3L)
+})
+
+test_that("a registered lexical embedder that fails falls back on the built-in one", {
+  local_registries()
+  keep_slot("embedders")
+  broken <- function(texts, params) stop("down")
+  texts <- c("cats sleep", "dogs bark")
+  hr_register("embedder", "lexical", fn = function(texts, params) stop("lexical down"))
+  warned <- character(0)
+  out <- withCallingHandlers(
+    gr_embed(gr_mock_client(), texts, embedder = broken),
+    warning = function(w) {
+      warned <<- c(warned, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+  expect_true(any(grepl("lexical down", warned, fixed = TRUE)))
+  expect_identical(attr(out, "embedding_source"), "lexical")
+  expect_true(isTRUE(attr(out, "embedding_fallback")))
+  expect_equal(as.vector(out), as.vector(harnessr:::lexical_embed(texts)))
+  # With fallback = "error" the request's failure is the error, as before.
+  expect_error(suppressWarnings(gr_embed(gr_mock_client(), texts, embedder = broken,
+                                         fallback = "error")),
+               class = "gr_embed_error")
 })

@@ -111,12 +111,21 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
     # because the real embedder failed is a degradation, and the readers OR that
     # into `partial` -- which the documentation tells people to check first.
     # The registered "lexical" embedder, read through the embedder kind's
-    # accessor.
+    # accessor. If you replaced it and your function fails, the built-in one
+    # that .onLoad() kept in hr_state$embed_fallback embeds the texts, with a
+    # warning that names your function's error.
     lexical <- registry_get("embedder", "lexical")
-    out <- finish_embedding(lexical$fn(texts, list(client = client, model = model,
-                                                   batch_size = batch_size, cache = cache,
-                                                   trace = trace, embedder = "lexical")),
-                            "lexical", trace, length(texts))
+    params <- list(client = client, model = model, batch_size = batch_size, cache = cache,
+                   trace = trace, embedder = "lexical")
+    vectors <- tryCatch(lexical$fn(texts, params), error = function(e) {
+      builtin <- hr_state$embed_fallback
+      if (!is.function(builtin) || identical(builtin, lexical$fn)) stop(e)
+      gr_warn(sprintf(paste0("The embedder registered as \"lexical\" failed (%s). ",
+                             "Using the built-in hashed lexical vectors."),
+                      conditionMessage(e)), class = class)
+      builtin(texts, params)
+    })
+    out <- finish_embedding(vectors, "lexical", trace, length(texts))
     attr(out, "embedding_fallback") <- TRUE
     out
   }
@@ -207,7 +216,8 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
 #' set could beat the handler `gr_mock_client()` makes whether or not you asked
 #' for one. `gr_options(gr_options())`, which restores a saved option list as
 #' the test helpers and `on.exit()` handlers do, sets every option, so that
-#' check could not tell the two apart. The value carries the meaning instead.
+#' check could not tell the two apart. The function reads the option's value:
+#' `NULL` means the client's embedder.
 #'
 #' Lookups by name go through the embedder kind's accessor (registry_get()
 #' with no state), so the core reads no registry of the document layer.
@@ -231,7 +241,7 @@ pick_embedder <- function(client, embedder = NULL) {
                 fn = function(texts, params) {
                   # A client's embed function is a request like any other, so
                   # it answers to the run's limits and goes in the ledger. It
-                  # used to be called with no check at all, so `max_calls = 0`
+                  # used to be called unchecked, so `max_calls = 0`
                   # and `allowed_models` did not stop it. A mock makes no
                   # requests and is left out.
                   mock <- inherits(client, "gr_mock_client")

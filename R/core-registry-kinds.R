@@ -37,6 +37,10 @@ hr_state$kind_access    <- list()
 # (see register_core_kinds()).
 hr_state$steps          <- list()
 
+# The built-in "lexical" embedder's function, kept by .onLoad(). gr_embed()
+# runs it when the embedder registered as "lexical" fails on the fallback path.
+hr_state$embed_fallback <- NULL
+
 # Functions that say what a parallel worker needs from a layer above the core
 # (see hr_register_worker_state()).
 hr_state$worker_providers <- list()
