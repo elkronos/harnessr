@@ -7,6 +7,7 @@
 # shows the core composes work of any kind. The chain is in helper-loop.R.
 
 test_that("helper-loop.R uses only exported names from the package", {
+  skip_if_not_installed("codetools")
   env <- new.env(parent = globalenv())
   sys.source(testthat::test_path("helper-loop.R"), envir = env)
   fns <- Filter(function(nm) is.function(env[[nm]]), ls(env))
