@@ -526,6 +526,17 @@ res <- gr_check_reader("loose")
 res$rule[!is.na(res$ok) & !res$ok]
 ```
 
+To check a module against a provider that misbehaves, give the check a mock
+client with a `mode`. `"bad_json"` sends JSON cut off part way, `"refuse"`
+sends empty replies, `"at_cap"` marks every reply as cut off at the output cap,
+and a vector of HTTP status codes fails calls in that order. The `longest`
+reader still finishes, and stays within its cost, when every request is
+rate limited:
+
+```{r}
+gr_check_reader("longest", client = gr_mock_client(mode = 429))
+```
+
 `hr_check_module()` is the core helper both checks use, and it works for a
 module of any kind. Give it the module's function, a closure of no arguments
 that runs the module once, and a named list of rules, each a function of the

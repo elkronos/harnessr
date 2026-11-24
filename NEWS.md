@@ -793,6 +793,31 @@ hr_register()" section of `vignette("extending")` shows both functions.
   the kind's accessor, and `gr_embed()` looks embedders up the same way.
   The core no longer calls any document layer function.
 
+## Conformance for every kind, and mock failure modes
+
+Nothing here changes a default or adds a setting. `gr_mock_client()` without
+`mode` keeps the fields and replies it had, and no request or cache key
+changes. "Checking a module against the contract" in `vignette("extending")`
+shows a mode in use.
+
+* `gr_mock_client()` gains `mode`, which breaks each chat reply the way a
+  provider can: `"bad_json"` sends a JSON object cut off part way,
+  `"refuse"` sends an empty reply that `gr_call()` reports as failed,
+  `"at_cap"` marks the handler's reply as cut off at the output cap and
+  bills the cap, and a vector of HTTP status codes such as
+  `c(429, 500, 200)` gives call `i` the `i`-th status. Embeddings are left
+  as they are. Pass such a client to `gr_check_reader()` or
+  `gr_check_segmenter()` to check a module against replies that fail.
+* The package's tests now check every registered module of every kind that
+  `hr_modules()` lists, and every protocol, against rules for its kind.
+  Extractors are checked for blocks with text and typed columns, cleaners
+  for one string per block, some text left and the same result twice,
+  embedders for finite unit-length rows under their own name, and
+  protocols for a question, criteria, an outline and a save and read that
+  gives the same protocol back. Every built-in reader and segmenter passes
+  its rules under each mock mode, and every reader keeps to a call cap of
+  0, 1 and 3. These checks are internal.
+
 ## Fixed
 
 * The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
