@@ -173,7 +173,7 @@ as_recipe <- function(x, fallback_name = NULL) {
       # Recipes win, and that is a trap when a reader shares the name: asking
       # for "survey" would silently hand back whatever reader the RECIPE named.
       # Say so rather than resolving one of two meanings in silence.
-      if (x %in% names(gr_state$readers)) {
+      if (x %in% names(registry_get("reader"))) {
         gr_warn(sprintf(paste0("'%s' is both a recipe and a reader. Using the recipe, whose ",
                                "reader is '%s'. Pass gr_read_spec('%s') or ",
                                "read = list(reader = '%s') for the reader itself."),
@@ -183,10 +183,10 @@ as_recipe <- function(x, fallback_name = NULL) {
       return(gr_recipes(x))
     }
     # A bare reader name is also accepted, paired with the default segmenter.
-    if (x %in% names(gr_state$readers)) return(gr_recipe(x, read = x))
+    if (x %in% names(registry_get("reader"))) return(gr_recipe(x, read = x))
     gr_abort(sprintf("'%s' is neither a recipe (%s) nor a reader (%s).",
                      x, paste(known, collapse = ", "),
-                     paste(sort(names(gr_state$readers)), collapse = ", ")))
+                     paste(sort(names(registry_get("reader"))), collapse = ", ")))
   }
   if (is.list(x)) {
     if (any(c("ingest", "segment", "read") %in% names(x))) {

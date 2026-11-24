@@ -346,6 +346,82 @@ cmp <- gr_compare(gr_example(), "What was revenue?",
 cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "calls")]
 ```
 
+## Registering any kind with hr_register()
+
+`hr_register()` registers a module of any kind through one function. Name the
+kind first; the other arguments are those of that kind's own function, so
+`hr_register("reader", ...)` takes what `gr_register_reader()` takes and runs
+the same checks. This reader answers from the shortest chunk:
+
+```{r}
+shortest <- function(chunks, question, client, spec, trace) {
+  d <- chunks$chunks
+  i <- which.min(d$tokens)
+  res <- gr_call(client, list(
+    list(role = "user", content = paste0(d$text[i], "\n\nQuestion: ", question))),
+    model = spec$model, effort = spec$effort, trace = trace,
+    label = "shortest.answer")
+  new_answer(res$text, "shortest", question, d$chunk_id[i], trace)
+}
+hr_register("reader", "shortest", signature = "one|1|none", cost_calls = "1",
+  description = "answer from the shortest chunk only", calls = "shortest.answer",
+  fn = shortest)
+```
+
+The kinds are `"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"`,
+`"embedder"`, `"protocol"` and `"step"`. Any other kind is an error of class
+`hr_unknown_kind`, and a module the kind's own function would refuse is
+refused here too:
+
+```{r}
+tryCatch(hr_register("reader", "auto", fn = identity, signature = "one|1|none"),
+         gr_reserved_name = function(e) conditionMessage(e))
+```
+
+`hr_modules()` lists the modules of every kind in one table, with the call
+stems each declares as a list column. Give it a kind to add that kind's own
+columns:
+
+```{r}
+m <- hr_modules()
+table(m$kind)
+r <- hr_modules("reader")
+r[r$name %in% c("longest", "shortest"), c("name", "signature", "calls")]
+```
+
+The listings such as `gr_readers()` keep their own columns, and a module you
+register with `hr_register()` appears in them as one registered with the
+kind's own function does. Each listing ends with two more columns: `version`,
+the version you gave `hr_register()`, and `contract`, the module contract it
+was registered under. A module registered with a `gr_register_*()` function
+has `NA` in both. Pass `version` when you register, and the listings show which
+version of your module is in place:
+
+```{r}
+hr_register("reader", "shortest", signature = "one|1|none", cost_calls = "1",
+  description = "answer from the shortest chunk only", calls = "shortest.answer",
+  version = "1.1.0", fn = shortest)
+r <- gr_readers()
+r[r$name %in% c("longest", "shortest"), c("name", "version", "contract")]
+```
+
+A step from `hr_step()` registers the same way, under the kind `"step"`. Its
+version is the step's own unless you give another:
+
+```{r}
+hr_register("step", "shout", fn = hr_step("shout", function(input, ctx) toupper(input),
+                                          input = "answer", output = "state",
+                                          version = "0.2.0"))
+hr_modules("step")[, c("name", "input", "output", "version", "contract")]
+```
+
+A segmenter that calls a model can also take `effort_label` through
+`hr_register()`: a function of the segment spec that returns the label its
+requests carry, or `""` when the spec sends none. A run's `effort` map then
+reaches your segmenter as the effort for that label alone, as it reaches the
+built-in `contextual` and `proposition` segmenters. Without `effort_label`,
+your segmenter gets the whole map and picks its own labels from it.
+
 ## Parameter schemas
 
 Each spec constructor states its parameters once, as a schema: type, default,
@@ -472,6 +548,19 @@ Both checks return an `hr_conformance` data frame with `rule`, `ok` and
 ```{r}
 res <- gr_check_reader("loose")
 res$rule[!is.na(res$ok) & !res$ok]
+```
+
+To check a module against a provider that misbehaves, give the check a mock
+client with a `mode`. `"bad_json"` sends JSON cut off part way, `"refuse"`
+sends empty replies, `"at_cap"` marks every reply as cut off at the output cap,
+and a vector of HTTP status codes gives call `i` the `i`-th status, so
+`c(429, 500, 200)` fails the first two calls and answers every one after. The
+`longest`
+reader still finishes, and stays within its cost, when every request is
+rate limited:
+
+```{r}
+gr_check_reader("longest", client = gr_mock_client(mode = 429))
 ```
 
 `hr_check_module()` is the core helper both checks use, and it works for a

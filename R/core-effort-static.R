@@ -222,6 +222,11 @@ effort_body <- function(body, effort, api) {
 #' document once each: every context call paid for twice, at the same effort
 #' or at none, and a semantic cut embedded twice. A segmenter of the user's
 #' keeps the whole map, since the labels its calls carry are its own.
+#'
+#' The label comes from the `effort_label` function a built-in segmenter is
+#' registered with, read through the segmenter kind's accessor. A segmenter
+#' registered without one, including another function under a built-in's
+#' name, has no label (NA).
 #' @noRd
 segment_effort <- function(segment, read) {
   effort <- read[["effort", exact = TRUE]]
@@ -229,7 +234,8 @@ segment_effort <- function(segment, read) {
   # effort: segmenting comes before the read's first stage boundary.
   if (inherits(effort, "hr_effort_escalate")) effort <- effort$base
   if (is.null(effort) || is.null(segment)) return(segment)
-  label <- segment_effort_label(segment)
+  label_of <- registry_get("segmenter")[[as_chr1(segment$method, "")]]$effort_label
+  label <- if (is.function(label_of)) as_chr1(label_of(segment), NA_character_) else NA_character_
   if (!is.na(label)) {
     effort <- if (nzchar(label)) effort_for(effort, label)
     if (is.null(effort)) return(segment)

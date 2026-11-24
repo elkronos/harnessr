@@ -173,7 +173,7 @@
       "type": "function"
     },
     "gr_mock_client": {
-      "formals": ["handler = NULL", "embed_handler = NULL"],
+      "formals": ["handler = NULL", "embed_handler = NULL", "mode = NULL"],
       "type": "function"
     },
     "gr_model_info": {
@@ -536,6 +536,10 @@
       "formals": ["n_items", "n_clusters = NULL", "m = NULL", "icc = NULL", "p_disc = NULL", "cv = 0", "power = 0.8", "alpha = 0.025", "n_contrasts = 1", "holm = TRUE"],
       "type": "function"
     },
+    "hr_modules": {
+      "formals": ["kind = NULL"],
+      "type": "function"
+    },
     "hr_n_needed": {
       "formals": ["delta", "m = NULL", "icc = NULL", "p_disc = NULL", "cv = 0", "power = 0.8", "alpha = 0.025", "n_contrasts = 1", "holm = TRUE", "true_diff = 0"],
       "type": "function"
@@ -558,6 +562,10 @@
     },
     "hr_reference_add": {
       "formals": ["reference", "items", "labels", "cluster", "split = c(\"dev\", \"exploratory\", \"calibration\", \"test\", \"final\")", "inclusion_prob = 1", "strata = NULL", "coders = NULL"],
+      "type": "function"
+    },
+    "hr_register": {
+      "formals": ["kind", "name", "fn", "...", "description = \"\"", "calls = NULL", "version = NULL"],
       "type": "function"
     },
     "hr_register_contrasts": {

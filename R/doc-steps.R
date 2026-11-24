@@ -96,7 +96,7 @@ gr_step <- function(kind = c("ingest", "segment", "read"), ..., name = NULL) {
     # when it runs; a step looks it up now, so a typo fails where the step is
     # built.
     if (identical(kind, "segment")) {
-      registry_get("segmenters", spec$method, "segmenters", state = gr_state)
+      registry_get("segmenter", spec$method)
     }
     fn <- switch(kind,
       ingest = function(input, ctx = NULL) {

@@ -19,8 +19,6 @@
 "cost_sum"
 "embed_api"
 "embed_cache_key"
-"embed_governor_check"
-"embed_record"
 "fingerprint_value"
 "fmt_usd"
 "fork_governor"

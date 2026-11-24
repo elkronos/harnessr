@@ -20,6 +20,12 @@ test_that("CONTRACT.md names the version hr_contract_version() returns", {
   expect_true(any(grepl(sprintf("^### %s ", harnessr:::hr_contract_version()), txt)))
 })
 
+test_that("CONTRACT.md names the signal contract version calibrations keep", {
+  txt <- paste(root_file("CONTRACT.md"), collapse = "\n")
+  expect_match(txt, sprintf("at \\*\\*%s\\*\\*", harnessr:::.hr_signal_contract))
+  expect_match(txt, ".hr_signal_contract", fixed = TRUE)
+})
+
 test_that("NOTES-primitives.md lists every exported hr_ function, and only those", {
   txt <- root_file("NOTES-primitives.md")
   rows <- grep("^\\| `hr_[A-Za-z0-9_.]+\\(\\)` \\|", txt, value = TRUE)

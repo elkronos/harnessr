@@ -46,7 +46,7 @@ gr_read <- function(chunks, question, client, spec = NULL, trace = NULL) {
   settings <- read_settings(spec)
   spec <- resolve_read_model(spec, client)
   trace <- trace %||% gr_trace(meta = list(reader = spec$reader))
-  rd <- registry_get("readers", spec$reader, "readers", state = gr_state)
+  rd <- registry_get("reader", spec$reader)
 
   gr_msg(sprintf("Reading with '%s' (%s) over %d chunk(s).",
                  spec$reader, rd$signature, nrow(chunks$chunks)))
@@ -437,7 +437,7 @@ read_input_stats <- function(chunks, spec, client, question) {
 #' what is wrong with it once it runs.
 #' @noRd
 reader_cost <- function(r, stats, spec) {
-  rd <- gr_state$readers[[as_chr1(r, "")]]
+  rd <- registry_get("reader")[[as_chr1(r, "")]]
   fn <- rd$cost %||% default_reader_cost(rd$signature %||% "")
   out <- fn(stats, spec)
   if (!inherits(out, "hr_cost")) {

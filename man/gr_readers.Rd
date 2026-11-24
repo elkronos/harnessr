@@ -11,7 +11,9 @@ A data frame with one row per registered reader: \code{name}, \code{signature}
 (see \code{\link[=gr_reader_signature]{gr_reader_signature()}}), \code{cost_calls} (a formula in N, the number
 of chunks, not a number), \code{description}, and \code{calls}, the stems of the
 labels its calls carry, joined by commas: the names an \code{effort} map can
-use.
+use. The last two columns are \code{version} and \code{contract}, \code{NA} for a
+reader registered with \code{\link[=gr_register_reader]{gr_register_reader()}} and filled for one
+registered with \code{\link[=hr_register]{hr_register()}}.
 }
 \description{
 The catalogue for axis 3, and the cheapest way to choose one: the \code{signature}

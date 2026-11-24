@@ -4,7 +4,7 @@
 \alias{gr_mock_client}
 \title{A deterministic offline client for tests, demos and dry runs}
 \usage{
-gr_mock_client(handler = NULL, embed_handler = NULL)
+gr_mock_client(handler = NULL, embed_handler = NULL, mode = NULL)
 }
 \arguments{
 \item{handler}{Function of \verb{(messages, params)} returning a string or a
@@ -12,6 +12,10 @@ gr_mock_client(handler = NULL, embed_handler = NULL)
 
 \item{embed_handler}{Function of \verb{(texts, params)} returning a numeric matrix
 with one row per input.}
+
+\item{mode}{\code{NULL} (the default) for replies as the handler gives them, or
+one of \code{"bad_json"}, \code{"refuse"} and \code{"at_cap"}, or a vector of HTTP
+status codes such as \code{c(429, 500, 200)}. See Details.}
 }
 \value{
 An object of class \code{gr_client}, with \verb{$calls()}, \verb{$embeds()} and
@@ -35,6 +39,27 @@ handler returns valid JSON for those prompts. And \code{\link[=gr_embed]{gr_embe
 \code{embedding_source = "api"}, so an offline run gets semantic-shaped vectors
 rather than the lexical fallback. A mock embed handler that fails or returns
 the wrong number of rows is still caught and still degrades, like any other.
+
+\code{mode} makes the mock misbehave the way a provider can, so you can test how
+your code copes offline. It changes chat replies only; embeddings are left
+as they are.
+\describe{
+\item{\code{"bad_json"}}{Every reply is a JSON object cut off part way, so a
+request with a JSON schema gets a reply that does not parse.}
+\item{\code{"refuse"}}{Every reply is empty, which \code{\link[=gr_call]{gr_call()}} reports as a
+failed result with \code{finish_reason = "empty"}, as it does a refusal from
+a provider.}
+\item{\code{"at_cap"}}{Every reply is the handler's, marked as cut off at the
+output cap (\code{finish_reason = "length"}) and billed at the full cap. A
+failed \link{gr_result} from the handler comes back as it is.}
+\item{A vector of HTTP status codes}{Call \code{i} gets the \code{i}-th status, and
+every call after the last gets the last one. A status from 200 to 299
+gives the handler's reply; any other gives a failed result with that
+status, marked retryable for the statuses the HTTP transport retries
+(408, 409, 425, 429, 500, 502, 503 and 504). The mock does
+not retry, so each status is one call. \verb{$reset()} starts the sequence
+again.}
+}
 }
 \examples{
 cl <- gr_mock_client(function(messages, params) "mock answer")
@@ -46,6 +71,10 @@ cl$reset()
 ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150))
 invisible(gr_read(ch, "What was revenue?", cl, "skim"))
 table(vapply(cl$calls(), function(x) x$label, character(1)))
+
+# A provider that is rate limited, then fails, then answers.
+flaky <- gr_mock_client(mode = c(429, 500, 200))
+vapply(1:3, function(i) gr_call(flaky, "hi")$ok, logical(1))
 }
 \seealso{
 \code{\link[=gr_client]{gr_client()}}, \code{\link[=gr_call]{gr_call()}}, \link{gr_result}, \code{\link[=gr_example]{gr_example()}} for a

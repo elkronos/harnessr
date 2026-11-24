@@ -96,6 +96,9 @@ gr_register_cleaner <- function(name, fn, stage = c("early", "late"), descriptio
 #'
 #' @return A data frame with `name`, `stage`, `scope`, `default_on` and
 #'   `description`.
+#'   The last two columns are `version` and `contract`, `NA` for a cleaner
+#'   registered with [gr_register_cleaner()] and filled for one registered with
+#'   [hr_register()].
 #' @seealso [gr_clean()], [gr_register_cleaner()], [gr_ingest_spec()]
 #' @family ingest functions
 #' @export
@@ -104,14 +107,14 @@ gr_register_cleaner <- function(name, fn, stage = c("early", "late"), descriptio
 #' # The steps the "standard" preset runs:
 #' subset(gr_cleaners(), default_on)$name
 gr_cleaners <- function() {
-  reg <- gr_state$cleaners
+  reg <- registry_get("cleaner")
   if (!length(reg)) return(data.frame())
   df <- do.call(rbind, lapply(reg, function(e) data.frame(
     name = e$name, stage = e$stage, scope = e$scope %||% "block", default_on = e$default_on,
     description = e$description, stringsAsFactors = FALSE)))
   df <- df[order(df$stage != "early", df$name), , drop = FALSE]
   rownames(df) <- NULL
-  df
+  with_contract(df, reg)
 }
 
 #' Run the cleaning pipeline over a character vector
@@ -165,7 +168,7 @@ gr_clean <- function(text, steps = NULL, opts = list()) {
   # because of the locale R started in. Label once, here, so every step below
   # sees the same text everywhere.
   text <- mark_utf8(text)
-  reg <- gr_state$cleaners
+  reg <- registry_get("cleaner")
   if (is.null(steps)) {
     steps <- names(reg)[vapply(reg, function(e) isTRUE(e$default_on), logical(1))]
   }

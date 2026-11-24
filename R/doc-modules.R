@@ -27,17 +27,116 @@ gr_state$doc_cache      <- new.env(parent = emptyenv())
 .gr_module_slots <- c("extractors", "cleaners", "segmenters", "readers", "embedders",
                       "protocols")
 
-#' Tell the core what the document layer brings: its five kinds of module, and
-#' how a parallel worker gets this layer's registries. Run by .onLoad() before
-#' the built-in modules are registered.
+#' Tell the core what the document layer brings: its six kinds of module,
+#' how hr_register(), hr_modules() and check_kind() reach each kind's
+#' registry and conformance check, and how a parallel worker gets this
+#' layer's registries. Run by .onLoad() before the built-in modules are
+#' registered.
+#'
+#' Each `set` goes through the kind's own gr_register_*() function, so
+#' hr_register() runs the same checks and a cleaner or extractor gets its
+#' registration stamp from the same place. It then keeps `version` and
+#' `contract` on the entry (stamp_contract()). A segmenter's `set` also takes
+#' `effort_label`, a function of the segment spec that returns the label the
+#' segmenter's requests carry ("" for none); segment_effort() reads it.
 #' @noRd
 register_doc_layer <- function() {
-  hr_register_kind("extractor", registry = "extractors")
-  hr_register_kind("cleaner", registry = "cleaners")
-  hr_register_kind("segmenter", registry = "segmenters")
-  hr_register_kind("reader", registry = "readers")
-  hr_register_kind("embedder", registry = "embedders")
+  hr_register_kind("extractor", registry = "extractors",
+                   get = function() gr_state$extractors,
+                   set = function(name, fn, ..., description = "", calls = NULL,
+                                  version = NULL, contract = NA_character_) {
+                     no_calls("extractor", calls)
+                     gr_register_extractor(name = name, fn = fn, ..., description = description)
+                     stamp_contract("extractors", name, version, contract)
+                   },
+                   check = function(name, path = NULL, ...) check_extractor(name, path))
+  hr_register_kind("cleaner", registry = "cleaners",
+                   get = function() gr_state$cleaners,
+                   set = function(name, fn, ..., description = "", calls = NULL,
+                                  version = NULL, contract = NA_character_) {
+                     no_calls("cleaner", calls)
+                     gr_register_cleaner(name = name, fn = fn, ..., description = description)
+                     stamp_contract("cleaners", name, version, contract)
+                   },
+                   check = function(name, ...) check_cleaner(name))
+  hr_register_kind("segmenter", registry = "segmenters",
+                   get = function() gr_state$segmenters,
+                   set = function(name, fn, ..., description = "", calls = NULL,
+                                  effort_label = NULL, version = NULL,
+                                  contract = NA_character_) {
+                     if (!is.null(effort_label) && !is.function(effort_label)) {
+                       gr_abort("`effort_label` must be a function of the segment spec, or NULL.",
+                                class = "gr_bad_setting")
+                     }
+                     gr_register_segmenter(name = name, fn = fn, ..., description = description,
+                                           calls = calls)
+                     if (!is.null(effort_label)) {
+                       entry <- gr_state$segmenters[[name]]
+                       entry$effort_label <- effort_label
+                       registry_set("segmenters", name, entry, state = gr_state)
+                     }
+                     stamp_contract("segmenters", name, version, contract)
+                   },
+                   check = function(name, client = NULL, ...) gr_check_segmenter(name, client))
+  hr_register_kind("reader", registry = "readers",
+                   get = function() gr_state$readers,
+                   set = function(name, fn, ..., description = "", calls = NULL,
+                                  version = NULL, contract = NA_character_) {
+                     gr_register_reader(name = name, fn = fn, ..., description = description,
+                                        calls = calls)
+                     stamp_contract("readers", name, version, contract)
+                   },
+                   check = function(name, client = NULL, ...) gr_check_reader(name, client))
+  hr_register_kind("embedder", registry = "embedders",
+                   get = function() gr_state$embedders,
+                   set = function(name, fn, ..., description = "", calls = NULL,
+                                  version = NULL, contract = NA_character_) {
+                     no_calls("embedder", calls)
+                     gr_register_embedder(name = name, fn = fn, ..., description = description)
+                     stamp_contract("embedders", name, version, contract)
+                   },
+                   check = function(name, client = NULL, ...) check_embedder(name, client))
+  hr_register_kind("protocol", registry = "protocols",
+                   get = function() gr_state$protocols,
+                   set = function(name, fn, ..., description = "", calls = NULL,
+                                  version = NULL, contract = NA_character_) {
+                     no_calls("protocol", calls)
+                     if (...length()) {
+                       gr_abort("A protocol takes no settings here; build it with gr_protocol().",
+                                class = "gr_bad_setting")
+                     }
+                     if (!inherits(fn, "gr_protocol")) {
+                       gr_abort("`fn` must be a protocol from gr_protocol().",
+                                class = "gr_bad_protocol")
+                     }
+                     if (is_nonblank(description)) fn$description <- description
+                     gr_register_protocol(name = name, protocol = fn)
+                     stamp_contract("protocols", name, version, contract)
+                   },
+                   check = function(name, ...) check_protocol(name))
   hr_register_worker_state("doc", doc_worker_snapshot, doc_worker_restore)
+  invisible(NULL)
+}
+
+#' Keep a module's `version` and `contract` on its registry entry, after its
+#' kind's own registration function has filed it. A NULL `version` is kept as
+#' NA.
+#' @noRd
+stamp_contract <- function(slot, name, version, contract) {
+  entry <- gr_state[[slot]][[name]]
+  entry$version <- as_chr1(version, NA_character_)
+  entry$contract <- as_chr1(contract, NA_character_)
+  registry_set(slot, name, entry, state = gr_state)
+  invisible(name)
+}
+
+#' Refuse `calls` for a kind whose modules make no calls a trace labels.
+#' @noRd
+no_calls <- function(kind, calls) {
+  if (!is.null(calls)) {
+    gr_abort(sprintf("A %s declares no call stems; leave `calls` NULL.", kind),
+             class = "gr_bad_setting")
+  }
   invisible(NULL)
 }
 
@@ -171,30 +270,45 @@ register_builtin_readers <- function() {
 
 #' @noRd
 register_builtin_segmenters <- function() {
-  gr_register_segmenter("fixed", seg_fixed, calls = character(0), cost = "free",
+  # effort_label gives the label a segmenter's requests carry for a spec: ""
+  # for none. segment_effort() hands the segmenter only the effort that label
+  # resolves to. gr_register_segmenter() sets no label, so another function
+  # registered under one of these names gets the whole effort map.
+  silent <- function(spec) ""
+  hr_register("segmenter", "fixed", seg_fixed, calls = character(0), cost = "free",
+    effort_label = silent,
     description = "Uniform token windows, ignoring structure. The control condition.")
-  gr_register_segmenter("paragraph", seg_paragraph, calls = character(0), cost = "free",
+  hr_register("segmenter", "paragraph", seg_paragraph, calls = character(0), cost = "free",
+    effort_label = silent,
     description = "Greedy packing of the author's paragraphs up to the cap.")
-  gr_register_segmenter("sentence", seg_sentence, calls = character(0), cost = "free",
+  hr_register("segmenter", "sentence", seg_sentence, calls = character(0), cost = "free",
+    effort_label = silent,
     description = "Sentence-boundary packing; tighter, more chunks, cleaner edges.")
-  gr_register_segmenter("recursive", seg_recursive, calls = character(0), cost = "free",
+  hr_register("segmenter", "recursive", seg_recursive, calls = character(0), cost = "free",
+    effort_label = silent,
     description = "Cascade through separators, using the strongest one that fits.")
-  gr_register_segmenter("structural", seg_structural, calls = character(0), cost = "free",
+  hr_register("segmenter", "structural", seg_structural, calls = character(0), cost = "free",
+    effort_label = silent,
     description = "Never merge across headings; each chunk keeps its section title.")
-  gr_register_segmenter("page", seg_page, calls = character(0), cost = "free",
+  hr_register("segmenter", "page", seg_page, calls = character(0), cost = "free",
+    effort_label = silent,
     description = "One chunk per page. For forms, invoices and scanned records.")
   # needs_client = TRUE because seg_semantic falls back to `paragraph` without
   # one. Declaring FALSE made `gr_segmenters()` disagree with the behaviour, so
   # the one column a UI would check before offering the strategy was wrong.
-  gr_register_segmenter("semantic", seg_semantic, calls = character(0), cost = "embedding",
-    needs_client = TRUE,
+  hr_register("segmenter", "semantic", seg_semantic, calls = character(0), cost = "embedding",
+    needs_client = TRUE, effort_label = silent,
     description = "Cut where consecutive embeddings diverge most. One embedding pass.")
-  gr_register_segmenter("contextual", seg_contextual, calls = "segment.context", cost = "free",
-    needs_client = FALSE,
+  # The context blurb is a request only when context_source = "llm".
+  hr_register("segmenter", "contextual", seg_contextual, calls = "segment.context",
+    cost = "free", needs_client = FALSE,
+    effort_label = function(spec) {
+      if (identical(as_chr1(spec$context_source, ""), "llm")) "segment.context" else ""
+    },
     description = paste0("Paragraph chunks prefixed with where they sit; context_source='llm' ",
                          "writes it per chunk, one request each (calls_max = chunks)."))
-  gr_register_segmenter("proposition", seg_proposition, calls = "segment.proposition",
-    cost = "llm", needs_client = TRUE,
+  hr_register("segmenter", "proposition", seg_proposition, calls = "segment.proposition",
+    cost = "llm", needs_client = TRUE, effort_label = function(spec) "segment.proposition",
     description = "Rewrite into standalone factual statements. Expensive; best for dense factual recall.")
   invisible(NULL)
 }
@@ -217,7 +331,7 @@ register_builtin_segmenters <- function() {
 #' @noRd
 declared_call_stems <- function() {
   of <- function(reg) unlist(lapply(reg, function(e) e$calls), use.names = FALSE)
-  unique(c(of(gr_state$readers), of(gr_state$segmenters),
+  unique(c(of(registry_get("reader")), of(registry_get("segmenter")),
            unlist(.gr_stage_calls, use.names = FALSE)))
 }
 

@@ -44,7 +44,8 @@
 #' @param fallback What to do when the embedding request fails. **Defaults to
 #'   `"lexical"`**: hashed bag-of-words vectors that measure word overlap, not
 #'   meaning, so `semantic` segmentation and `retrieve` ranking become markedly
-#'   less accurate. The substitution warns and is recorded, but the run
+#'   less accurate. The fallback runs the embedder registered as `"lexical"`;
+#'   if you replaced it and your function fails, the built-in one runs. The substitution warns and is recorded, but the run
 #'   continues. Use `"error"` to fail fast, or `"none"` to get an empty matrix.
 #'   An embedder fails when it raises, or returns the wrong number of rows,
 #'   vectors with no dimensions, or missing or non-finite values. The built-in
@@ -91,7 +92,7 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
   if (!length(texts)) return(matrix(numeric(0), nrow = 0, ncol = 0))
   cache <- isTRUE(cache %||% gr_options("cache_embeddings"))
   model <- as_chr1(model %||% client$embedding_model)
-  emb <- resolve_embedder(client, embedder)
+  emb <- pick_embedder(client, embedder)
   # Where this call's failed requests start in the trace, so the ones the
   # lexical fallback recovers from can be marked as such.
   first_error <- if (inherits(trace, "gr_trace")) length(trace$errors) + 1L else 1L
@@ -110,7 +111,22 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
     # gr_options(embedder = "lexical") is a decision; being dropped onto it
     # because the real embedder failed is a degradation, and the readers OR that
     # into `partial` -- which the documentation tells people to check first.
-    out <- finish_embedding(lexical_embed(texts), "lexical", trace, length(texts))
+    # The registered "lexical" embedder, read through the embedder kind's
+    # accessor. If you replaced it and your function fails, the built-in one
+    # that .onLoad() kept in hr_state$embed_fallback embeds the texts, with a
+    # warning that names your function's error.
+    lexical <- registry_get("embedder", "lexical")
+    params <- list(client = client, model = model, batch_size = batch_size, cache = cache,
+                   trace = trace, embedder = "lexical")
+    vectors <- tryCatch(lexical$fn(texts, params), error = function(e) {
+      builtin <- hr_state$embed_fallback
+      if (!is.function(builtin) || identical(builtin, lexical$fn)) stop(e)
+      gr_warn(sprintf(paste0("The embedder registered as \"lexical\" failed (%s). ",
+                             "Using the built-in hashed lexical vectors."),
+                      conditionMessage(e)), class = class)
+      builtin(texts, params)
+    })
+    out <- finish_embedding(vectors, "lexical", trace, length(texts))
     attr(out, "embedding_fallback") <- TRUE
     out
   }
@@ -189,6 +205,68 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
                          "segmentation and top-k retrieval will be markedly less accurate."),
                   emb$name, bad),
           "gr_embed_fallback")
+}
+
+#' Which embedder a call should use.
+#'
+#' Order: an explicit argument, then the `embedder` option, then an embed
+#' function carried by the client, then `"api"`.
+#'
+#' The option's default is `NULL`, meaning "whatever the client brought". An
+#' earlier version asked whether the option had been set, so that a value you
+#' set could beat the handler `gr_mock_client()` makes whether or not you asked
+#' for one. `gr_options(gr_options())`, which restores a saved option list as
+#' the test helpers and `on.exit()` handlers do, sets every option, so that
+#' check could not tell the two apart. The function reads the option's value:
+#' `NULL` means the client's embedder.
+#'
+#' Lookups by name go through the embedder kind's accessor (registry_get()
+#' with no state), so the core reads no registry of the document layer.
+#' @noRd
+pick_embedder <- function(client, embedder = NULL) {
+  if (!is.null(embedder)) {
+    if (is.function(embedder)) {
+      return(list(name = "custom", fn = embedder, deterministic = FALSE))
+    }
+    return(registry_get("embedder", as_chr1(embedder)))
+  }
+  opt <- gr_options("embedder")
+  if (!is.null(opt) && is_nonblank(as_chr1(opt))) {
+    return(registry_get("embedder", as_chr1(opt)))
+  }
+  if (is.function(client$embed_handler)) {
+    # Reported as "api" whatever supplied it: the distinction that matters
+    # downstream is semantic vectors versus the lexical fallback, and a
+    # client-supplied embedder is on the semantic side of it.
+    return(list(name = "api", deterministic = FALSE,
+                fn = function(texts, params) {
+                  # A client's embed function is a request like any other, so
+                  # it answers to the run's limits and goes in the ledger. It
+                  # used to be called unchecked, so `max_calls = 0`
+                  # and `allowed_models` did not stop it. A mock makes no
+                  # requests and is left out.
+                  mock <- inherits(client, "gr_mock_client")
+                  if (!mock) embed_governor_check(params$trace, params$model, texts)
+                  started <- Sys.time()
+                  m <- tryCatch(client$embed_handler(texts, list(model = params$model)),
+                                error = function(e) e)
+                  if (!mock) {
+                    failed <- inherits(m, "condition")
+                    embed_record(params$trace, params$model, texts, NULL,
+                                 if (!failed) list(data = list()),
+                                 problem = if (failed) conditionMessage(m),
+                                 seconds = as.numeric(difftime(Sys.time(), started,
+                                                               units = "secs")))
+                  }
+                  if (inherits(m, "condition")) stop(m)
+                  if (!is.null(client$.log)) {
+                    client$.log$embeds <- c(client$.log$embeds,
+                                            list(list(texts = texts, model = params$model)))
+                  }
+                  m
+                }))
+  }
+  registry_get("embedder", "api")
 }
 
 #' The built-in embeddings-endpoint backend.

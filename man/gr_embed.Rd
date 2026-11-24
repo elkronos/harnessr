@@ -38,7 +38,8 @@ embedded, on word overlap, so nothing was left unread.}
 \item{fallback}{What to do when the embedding request fails. \strong{Defaults to
 \code{"lexical"}}: hashed bag-of-words vectors that measure word overlap, not
 meaning, so \code{semantic} segmentation and \code{retrieve} ranking become markedly
-less accurate. The substitution warns and is recorded, but the run
+less accurate. The fallback runs the embedder registered as \code{"lexical"};
+if you replaced it and your function fails, the built-in one runs. The substitution warns and is recorded, but the run
 continues. Use \code{"error"} to fail fast, or \code{"none"} to get an empty matrix.
 An embedder fails when it raises, or returns the wrong number of rows,
 vectors with no dimensions, or missing or non-finite values. The built-in

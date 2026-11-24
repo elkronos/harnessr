@@ -29,7 +29,8 @@ for), \code{version} (the model version or snapshot), \code{task}, \code{format}
 \code{prompt_hash} (of the prompt or template), \code{effort}, \code{module} (the reader
 or stage) and \code{contract_version}. Each is one string; \code{NA} is allowed
 except for \code{served_model}. A missing \code{contract_version} is filled with
-the running package's contract version.}
+the signal contract version, \code{"0.1"}. That version stays at 0.1 when
+the module contract moves, so a record you saved earlier stays valid.}
 
 \item{method}{\code{"platt"}, \code{"isotonic"} or \code{"none"}.}
 

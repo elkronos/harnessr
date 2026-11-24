@@ -9,6 +9,9 @@ gr_cleaners()
 \value{
 A data frame with \code{name}, \code{stage}, \code{scope}, \code{default_on} and
 \code{description}.
+The last two columns are \code{version} and \code{contract}, \code{NA} for a cleaner
+registered with \code{\link[=gr_register_cleaner]{gr_register_cleaner()}} and filled for one registered with
+\code{\link[=hr_register]{hr_register()}}.
 }
 \description{
 \code{default_on} marks the steps the \code{"standard"} preset runs. Steps are always

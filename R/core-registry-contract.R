@@ -9,10 +9,11 @@
 
 #' The version of the module contract this core implements.
 #'
-#' Frozen while the contract is being written: a module checked against it
-#' later can say which version it was written for.
+#' 0.2 adds the "protocol" and "step" kinds and the `version` and `contract`
+#' fields of a registry entry (CONTRACT.md). Signal calibrations record their
+#' own contract version, .hr_signal_contract, which stays at "0.1".
 #' @noRd
-hr_contract_version <- function() "0.1"
+hr_contract_version <- function() "0.2"
 
 #' Check a module against a set of rules
 #'

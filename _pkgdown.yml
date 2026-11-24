@@ -277,13 +277,16 @@ reference:
 - title: Extending harnessr
   desc: >
     Every axis is a registry, and an addition is used exactly like a
-    built-in. See `vignette("extending")`.
+    built-in. `hr_register()` and `hr_modules()` register and list modules
+    of any kind. See `vignette("extending")`.
   contents:
   - gr_register_extractor
   - gr_register_cleaner
   - gr_register_segmenter
   - gr_register_reader
   - gr_register_embedder
+  - hr_register
+  - hr_modules
   - new_chunks
   - new_answer
   - hr_cost

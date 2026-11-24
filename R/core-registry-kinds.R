@@ -28,6 +28,19 @@ hr_state$options        <- list()
 # The kinds of module a layer above the core has said it registers, by name.
 hr_state$kinds          <- list()
 
+# How to read, write and check each kind's registry, by kind: list(get, set,
+# check). Kept apart from `kinds` because registry_table() turns every column
+# into character, and a function column would break it.
+hr_state$kind_access    <- list()
+
+# The registered steps, by name: the registry of the core's own kind "step"
+# (see register_core_kinds()).
+hr_state$steps          <- list()
+
+# The built-in "lexical" embedder's function, kept by .onLoad(). gr_embed()
+# runs it when the embedder registered as "lexical" fails on the fallback path.
+hr_state$embed_fallback <- NULL
+
 # Functions that say what a parallel worker needs from a layer above the core
 # (see hr_register_worker_state()).
 hr_state$worker_providers <- list()
@@ -38,12 +51,28 @@ hr_state$worker_providers <- list()
 #' given. The modules themselves stay in the registries of the layer that
 #' registers the kind; the core keeps only the list of kinds. Registering a
 #' kind again replaces what was kept for it.
+#'
+#' `get` and `set` are how hr_modules() and hr_register() reach the kind's
+#' registry: `get()` returns its entries as a named list, and `set(name, fn,
+#' ..., description, calls, version, contract)` registers one module with the
+#' layer's own checks and keeps `version` and `contract` on its entry.
+#' `check(name, client, path, input)` runs the kind's conformance check on
+#' one module and returns an hr_conformance report; check_kind() calls it.
+#' Any of the three may be NULL. They are kept in `hr_state$kind_access`, not
+#' with the kind's other fields.
 #' @noRd
-hr_register_kind <- function(name, ...) {
+hr_register_kind <- function(name, ..., get = NULL, set = NULL, check = NULL) {
   if (!is_nonblank(name)) gr_abort("A kind's name must be a non-empty string.")
+  if ((!is.null(get) && !is.function(get)) || (!is.null(set) && !is.function(set)) ||
+      (!is.null(check) && !is.function(check))) {
+    gr_abort("`get`, `set` and `check` must each be a function or NULL.")
+  }
   kinds <- hr_state$kinds
   kinds[[name]] <- c(list(name = name), list(...))
   hr_state$kinds <- kinds
+  access <- hr_state$kind_access
+  access[[name]] <- list(get = get, set = set, check = check)
+  hr_state$kind_access <- access
   invisible(name)
 }
 
@@ -87,9 +116,19 @@ registry_set <- function(slot, name, entry, state) {
   invisible(name)
 }
 
+#' One entry of a registry, or an error of class `gr_unknown_method` naming
+#' the registered ones.
+#'
+#' With `state`, `slot` is the registry's slot in that environment. With
+#' `state` left NULL, `slot` is a kind of module, such as "reader", and the
+#' registry is read through the `get` its layer gave hr_register_kind(); a
+#' kind no layer registered is an error of class `hr_unknown_kind`. With
+#' `name` left out, the whole registry comes back, in the order its entries
+#' were registered.
 #' @noRd
-registry_get <- function(slot, name, what = slot, state) {
-  reg <- state[[slot]]
+registry_get <- function(slot, name, what = slot, state = NULL) {
+  reg <- if (is.null(state)) kind_access(slot, "get")() else state[[slot]]
+  if (missing(name)) return(reg)
   if (!is_nonblank(name) || is.null(reg[[name]])) {
     gr_abort(sprintf("Unknown %s '%s'. Registered: %s.",
                      sub("s$", "", what), as_chr1(name, "<missing>"),

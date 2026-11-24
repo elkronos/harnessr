@@ -3,7 +3,8 @@
 #
 # A change to how modules are registered or listed must keep each gr_*()
 # listing's columns, column types, row order and row names (the extractor
-# listing is named by extractor), the `registered` stamps of the built-in
+# listing is named by extractor), with only the contract 0.2 columns
+# `version` and `contract` appended after them, the `registered` stamps of the built-in
 # cleaners and extractors, and the code an ingestion would run, whose hash is
 # part of the ingest cache key. The machinery is in helper-listings.R. When a
 # change is intended, rerun `Rscript dev/record-listings.R` from the repository
@@ -33,11 +34,19 @@ for (f in listings_functions) {
     test_that(sprintf("%s() keeps its columns, types, row order and row names", f), {
       was <- listings_was()$listing[[f]]
       now <- listings_now()$listing[[f]]
+      # Contract 0.2 appends `version` and `contract`, last; the leading
+      # columns are the recorded ones. The recording may predate contract 0.2
+      # or include the two columns, so they are set aside on both sides.
+      added <- c("version", "contract")
+      kept <- which(!was$names %in% added)
+      lead <- seq_along(kept)
       expect_identical(now$class, was$class)
-      expect_identical(now$names, was$names)
-      expect_identical(now$types, was$types)
+      expect_identical(now$names, c(was$names[kept], added))
+      expect_identical(now$types[lead], was$types[kept])
+      expect_identical(unname(now$types[-lead]), c("character", "character"))
       expect_identical(now$rownames, was$rownames)
-      expect_identical(now$data, was$data)
+      expect_identical(now$data[, was$names[was$names %in% names(now$data)], drop = FALSE],
+                       was$data)
     })
   })
 }

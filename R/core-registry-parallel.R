@@ -23,7 +23,7 @@
 #' worker would cost more than the work. A layer above the core keeps its own
 #' caches out of what it hands over for the same reason.
 #' @noRd
-.hr_worker_state <- c("models", "model_patterns", "tokenizers")
+.hr_worker_state <- c("models", "model_patterns", "tokenizers", "steps")
 
 #' Everything a worker is handed so its registries match this process's: the
 #' core's own registries, and for each provider registered with

@@ -173,15 +173,24 @@ gr_register_protocol <- function(name, protocol) {
 #'
 #' @param name A protocol name, or omit to list them all.
 #' @return With `name`, a [gr_protocol()]. Without, a data frame of `name`,
-#'   `question` and `description`.
+#'   `question`, `description`, `version` and `contract`; the last two are
+#'   `NA` for a protocol registered with [gr_register_protocol()] and filled
+#'   for one registered with [hr_register()].
 #' @seealso [gr_protocol()], [gr_register_protocol()], [gr_extract()]
 #' @export
 #' @examples
 #' gr_protocols()
 #' gr_protocols("bibliography")$fields
 gr_protocols <- function(name = NULL) {
-  if (is.null(name)) return(registry_table("protocols", c("question", "description"), state = gr_state))
-  registry_get("protocols", name, "protocols", state = gr_state)
+  if (is.null(name)) {
+    return(with_contract(registry_table("protocols", c("question", "description"),
+                                        state = gr_state), registry_get("protocol")))
+  }
+  p <- registry_get("protocol", name, "protocols")
+  # The protocol itself, without what hr_register() kept with it.
+  p$version <- NULL
+  p$contract <- NULL
+  p
 }
 
 #' Save a protocol to a file, and read one back

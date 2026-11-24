@@ -11,7 +11,9 @@ gr_protocols(name = NULL)
 }
 \value{
 With \code{name}, a \code{\link[=gr_protocol]{gr_protocol()}}. Without, a data frame of \code{name},
-\code{question} and \code{description}.
+\code{question}, \code{description}, \code{version} and \code{contract}; the last two are
+\code{NA} for a protocol registered with \code{\link[=gr_register_protocol]{gr_register_protocol()}} and filled
+for one registered with \code{\link[=hr_register]{hr_register()}}.
 }
 \description{
 Four starting points. They are \strong{templates, not standards}: the package

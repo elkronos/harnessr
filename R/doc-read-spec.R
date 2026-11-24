@@ -119,7 +119,9 @@ gr_register_reader <- function(name, fn, signature, description = "", cost_calls
 #'   (see [gr_reader_signature()]), `cost_calls` (a formula in N, the number
 #'   of chunks, not a number), `description`, and `calls`, the stems of the
 #'   labels its calls carry, joined by commas: the names an `effort` map can
-#'   use.
+#'   use. The last two columns are `version` and `contract`, `NA` for a
+#'   reader registered with [gr_register_reader()] and filled for one
+#'   registered with [hr_register()].
 #' @seealso [gr_read()], [gr_reader_signature()], [gr_register_reader()],
 #'   [gr_read_spec()], [gr_compare()] to run several and compare
 #' @family reading functions
@@ -130,8 +132,21 @@ gr_register_reader <- function(name, fn, signature, description = "", cost_calls
 #' r <- gr_readers()
 #' r[order(r$signature), c("name", "signature", "cost_calls")]
 gr_readers <- function() {
-  with_calls(registry_table("readers", c("signature", "cost_calls", "description"),
-                            state = gr_state), gr_state$readers)
+  reg <- registry_get("reader")
+  with_contract(with_calls(registry_table("readers", c("signature", "cost_calls", "description"),
+                                          state = gr_state), reg), reg)
+}
+
+#' A listing with each module's `version` and `contract` added as its last
+#' two columns, `NA` for a module registered without them.
+#' @noRd
+with_contract <- function(df, reg) {
+  if (!ncol(df)) return(df)
+  field <- function(f) vapply(df$name, function(nm) as_chr1(reg[[nm]][[f]], NA_character_),
+                              character(1), USE.NAMES = FALSE)
+  df$version <- field("version")
+  df$contract <- field("contract")
+  df
 }
 
 #' A registry table with each module's declared call stems added, joined by
@@ -171,13 +186,13 @@ with_calls <- function(df, reg) {
 #' gr_reader_signature(gr_read_spec("ensemble", members = c("retrieve", "refine")))
 gr_reader_signature <- function(reader) {
   if (inherits(reader, "gr_read_spec")) {
-    base <- registry_get("readers", reader$reader, "readers", state = gr_state)$signature
+    base <- registry_get("reader", reader$reader)$signature
     if (identical(reader$reader, "ensemble")) {
       base <- paste0(base, "{", paste(sort(reader$members %||% character(0)), collapse = "+"), "}")
     }
     return(base)
   }
-  registry_get("readers", as_chr1(reader), "readers", state = gr_state)$signature
+  registry_get("reader", as_chr1(reader))$signature
 }
 
 #' Describe a reading configuration
@@ -738,7 +753,7 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
   # Only when not the default, for the same reason.
   nondefault_params(p, .gr_read_schema, .gr_read_late_params),
   list(...)), class = "gr_read_spec")
-  registry_get("readers", spec$reader, "readers", state = gr_state)   # fail fast on a typo
+  registry_get("reader", spec$reader)   # fail fast on a typo
   # Asked of a reader that answers no question, the check would silently do
   # nothing; say so once, where the spec is made.
   if (isTRUE(p$premise) && as_chr1(p$reader, "") %in% c("screen", "extract")) {

@@ -52,6 +52,9 @@ gr_register_extractor <- function(name, extensions, fn, description = "") {
 #'   packages the extractor cannot run without, comma-separated, `""` for none)
 #'   and `available` (whether they are all installed now). OCR packages are not
 #'   in `needs`: a PDF with a text layer reads without them.
+#'   The last two columns are `version` and `contract`, `NA` for an extractor
+#'   registered with [gr_register_extractor()] and filled for one registered with
+#'   [hr_register()].
 #' @seealso [gr_register_extractor()], [gr_ingest()]
 #' @family ingest functions
 #' @export
@@ -61,7 +64,7 @@ gr_register_extractor <- function(name, extensions, fn, description = "") {
 #' # What this installation can read right now.
 #' gr_extractors()[, c("name", "needs", "available")]
 gr_extractors <- function() {
-  reg <- gr_state$extractors
+  reg <- registry_get("extractor")
   if (!length(reg)) return(data.frame())
   do.call(rbind, lapply(reg, function(e) {
     need <- .gr_extractor_deps[[as_chr1(e$name)]] %||% character(0)
@@ -70,6 +73,8 @@ gr_extractors <- function() {
       description = e$description,
       needs = paste(need, collapse = ", "),
       available = !length(missing_extractor_deps(e$name)),
+      version = as_chr1(e$version, NA_character_),
+      contract = as_chr1(e$contract, NA_character_),
       stringsAsFactors = FALSE)
   }))
 }
@@ -84,7 +89,7 @@ gr_extractors <- function() {
 #' nothing is worse than one that is refused.
 #' @noRd
 extractor_for <- function(ext) {
-  reg <- gr_state$extractors
+  reg <- registry_get("extractor")
   for (e in rev(reg)) if (tolower(ext) %in% e$extensions) return(e)
   NULL
 }

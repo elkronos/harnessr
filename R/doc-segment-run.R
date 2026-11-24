@@ -329,7 +329,7 @@ gr_segment <- function(doc, spec = NULL, client = NULL, trace = NULL) {
   trace <- trace %||% gr_trace(meta = list(stage = "segment"))
   if (!inherits(doc, "gr_document")) doc <- gr_ingest(doc, trace = trace)
   spec <- as_segment_spec(spec)
-  seg <- registry_get("segmenters", spec$method, "segmenters", state = gr_state)
+  seg <- registry_get("segmenter", spec$method)
   rec <- warning_recorder()
 
   gr_msg(sprintf("Segmenting with '%s' (cap %d tokens, overlap %d).",
@@ -427,23 +427,6 @@ as_segment_spec <- function(spec) {
   gr_abort("`segment` must be a gr_segment_spec, a segmenter name, or a named list.")
 }
 
-#' The label a built-in segmenter's requests carry: "" for one that sends
-#' none, and NA for any other segmenter, including another function registered
-#' under a built-in's name. By function, not by name, for that reason.
-#' @noRd
-segment_effort_label <- function(segment) {
-  fn <- gr_state$segmenters[[as_chr1(segment$method, "")]]$fn
-  if (is.null(fn)) return(NA_character_)
-  is_fn <- function(f) identical(fn, f)
-  if (is_fn(seg_proposition)) return("segment.proposition")
-  if (is_fn(seg_contextual)) {
-    return(if (identical(as_chr1(segment$context_source, ""), "llm")) "segment.context" else "")
-  }
-  silent <- list(seg_fixed, seg_paragraph, seg_sentence, seg_recursive, seg_structural, seg_page,
-                 seg_semantic)
-  if (any(vapply(silent, is_fn, logical(1)))) "" else NA_character_
-}
-
 #' Register a segmentation strategy
 #'
 #' Axis 2 is a registry, so "where does meaning break in this document?" is a
@@ -513,6 +496,9 @@ gr_register_segmenter <- function(name, fn, description = "",
 #'   segmenter falls back), `description`, and `calls`, the stems of the
 #'   labels its model calls carry, joined by commas (empty for one that makes
 #'   none).
+#'   The last two columns are `version` and `contract`, `NA` for a segmenter
+#'   registered with [gr_register_segmenter()] and filled for one registered with
+#'   [hr_register()].
 #' @seealso [gr_segment()], [gr_segment_spec()], [gr_register_segmenter()],
 #'   [gr_chunk_stats()] to compare what they produce
 #' @family segmentation functions
@@ -523,6 +509,7 @@ gr_register_segmenter <- function(name, fn, description = "",
 #' # The ones that cost money, and the ones that need a client to work at all.
 #' subset(gr_segmenters(), cost != "free" | needs_client == "TRUE")[, 1:3]
 gr_segmenters <- function() {
-  with_calls(registry_table("segmenters", c("cost", "needs_client", "description"),
-                            state = gr_state), gr_state$segmenters)
+  reg <- registry_get("segmenter")
+  with_contract(with_calls(registry_table("segmenters", c("cost", "needs_client", "description"),
+                                          state = gr_state), reg), reg)
 }
