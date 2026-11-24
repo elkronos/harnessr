@@ -20,10 +20,9 @@ swap_get <- function(kind, get, env = parent.frame()) {
   withr::defer(assign("kind_access", old, envir = hs), envir = env)
 }
 
-test_that("the core crosses into the document layer nowhere", {
+# test-boundary.R checks that the core makes no crossing outside this list.
+test_that("the core may cross into the document layer nowhere", {
   expect_identical(nrow(boundary_allowed()), 0L)
-  skip_if_not_installed("codetools")
-  expect_identical(nrow(boundary_crossings(boundary_layers())), 0L)
 })
 
 test_that("registry_get() without a state reads a kind through its accessor", {
