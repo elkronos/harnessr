@@ -29,11 +29,13 @@
 #'     failed result with `finish_reason = "empty"`, as it does a refusal from
 #'     a provider.}
 #'   \item{`"at_cap"`}{Every reply is the handler's, marked as cut off at the
-#'     output cap (`finish_reason = "length"`) and billed at the full cap.}
+#'     output cap (`finish_reason = "length"`) and billed at the full cap. A
+#'     failed [gr_result] from the handler comes back as it is.}
 #'   \item{A vector of HTTP status codes}{Call `i` gets the `i`-th status, and
 #'     every call after the last gets the last one. A status from 200 to 299
 #'     gives the handler's reply; any other gives a failed result with that
-#'     status, marked retryable for 429 and for 500 and above. The mock does
+#'     status, marked retryable for the statuses the HTTP transport retries
+#'     (408, 409, 425, 429, 500, 502, 503 and 504). The mock does
 #'     not retry, so each status is one call. `$reset()` starts the sequence
 #'     again.}
 #' }
@@ -144,7 +146,7 @@ mock_mode_handler <- function(handler, mode, log) {
       status <- mode[min(log$mode_calls, length(mode))]
       if (status < 200L || status > 299L) {
         return(gr_result(FALSE, error = sprintf("HTTP %d from the mock client", status),
-                         status = status, retryable = status == 429L || status >= 500L))
+                         status = status, retryable = status %in% .retryable_status))
       }
       return(handler(messages, params))
     }
@@ -153,6 +155,8 @@ mock_mode_handler <- function(handler, mode, log) {
       refuse = "",
       at_cap = {
         out <- handler(messages, params)
+        # A failed reply stays failed: only a reply can be cut off at the cap.
+        if (inherits(out, "gr_result") && !isTRUE(out$ok)) return(out)
         text <- if (inherits(out, "gr_result")) out$text else as_chr1(out, "")
         cap <- as_int1(params$max_output, NA_integer_)
         output <- if (is.na(cap)) sum(gr_count_tokens(text)) else cap

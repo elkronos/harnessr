@@ -50,11 +50,13 @@ request with a JSON schema gets a reply that does not parse.}
 failed result with \code{finish_reason = "empty"}, as it does a refusal from
 a provider.}
 \item{\code{"at_cap"}}{Every reply is the handler's, marked as cut off at the
-output cap (\code{finish_reason = "length"}) and billed at the full cap.}
+output cap (\code{finish_reason = "length"}) and billed at the full cap. A
+failed \link{gr_result} from the handler comes back as it is.}
 \item{A vector of HTTP status codes}{Call \code{i} gets the \code{i}-th status, and
 every call after the last gets the last one. A status from 200 to 299
 gives the handler's reply; any other gives a failed result with that
-status, marked retryable for 429 and for 500 and above. The mock does
+status, marked retryable for the statuses the HTTP transport retries
+(408, 409, 425, 429, 500, 502, 503 and 504). The mock does
 not retry, so each status is one call. \verb{$reset()} starts the sequence
 again.}
 }

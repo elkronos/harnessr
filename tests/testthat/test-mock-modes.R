@@ -55,11 +55,31 @@ test_that("a status sequence fails each call with its status, then repeats the l
   expect_identical(got[[2]]$status, 500L)
   expect_match(got[[2]]$error, "HTTP 500", fixed = TRUE)
   expect_identical(got[[3]]$text, "ok then")
-  # A 4xx other than 429 is not worth retrying.
+  # A 4xx other than 429 is not marked retryable.
   expect_false(gr_call(gr_mock_client(mode = 404), "hi")$retryable)
   # $reset() starts the sequence again.
   cl$reset()
   expect_identical(gr_call(cl, "hi")$status, 429L)
+})
+
+test_that("a status is marked retryable as the HTTP transport marks it", {
+  statuses <- c(400L, 404L, 408L, 409L, 425L, 429L, 500L, 501L, 502L, 503L, 504L, 505L, 599L)
+  got <- vapply(statuses, function(s) gr_call(gr_mock_client(mode = s), "hi")$retryable,
+                logical(1))
+  expect_identical(got, statuses %in% harnessr:::.retryable_status)
+  expect_true(gr_call(gr_mock_client(mode = 408), "hi")$retryable)
+  expect_false(gr_call(gr_mock_client(mode = 501), "hi")$retryable)
+})
+
+test_that("at_cap returns a failed handler result as it is", {
+  fail <- function(m, p) harnessr:::gr_result(FALSE, error = "boom", status = 500L)
+  plain <- gr_call(gr_mock_client(fail), "hi")
+  capped <- gr_call(gr_mock_client(fail, mode = "at_cap"), "hi")
+  expect_false(capped$ok)
+  expect_identical(capped$status, 500L)
+  expect_identical(capped$error, "boom")
+  expect_identical(capped$finish_reason, plain$finish_reason)
+  expect_identical(capped$usage$output, plain$usage$output)
 })
 
 test_that("a mode leaves embeddings alone", {
