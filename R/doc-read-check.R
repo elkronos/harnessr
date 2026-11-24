@@ -592,19 +592,3 @@ check_reader_governor <- function(reader, max_calls, client = NULL) {
   hr_check_module(rd$fn, run, rules = gr_rules_governor(trace, max_calls),
                   kind = "reader", name = reader)
 }
-
-#' Check one registered module of any kind: the reader and segmenter checks,
-#' or one of the checks above. `client` reaches the checks that call a model
-#' or embed; `path` reaches the extractor check.
-#' @noRd
-check_kind <- function(kind, name, client = NULL, path = NULL) {
-  switch(as_chr1(kind, ""),
-    reader = gr_check_reader(name, client),
-    segmenter = gr_check_segmenter(name, client),
-    extractor = check_extractor(name, path),
-    cleaner = check_cleaner(name),
-    embedder = check_embedder(name, client),
-    protocol = check_protocol(name),
-    gr_abort(sprintf("There is no check for kind '%s'.", as_chr1(kind, "")),
-             class = "hr_unknown_kind"))
-}

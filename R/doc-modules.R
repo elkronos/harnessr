@@ -27,34 +27,43 @@ gr_state$doc_cache      <- new.env(parent = emptyenv())
 .gr_module_slots <- c("extractors", "cleaners", "segmenters", "readers", "embedders",
                       "protocols")
 
-#' Tell the core what the document layer brings: its five kinds of module,
-#' how hr_register() and hr_modules() reach each kind's registry, and how a
-#' parallel worker gets this layer's registries. Run by .onLoad() before the
-#' built-in modules are registered.
+#' Tell the core what the document layer brings: its six kinds of module,
+#' how hr_register(), hr_modules() and check_kind() reach each kind's
+#' registry and conformance check, and how a parallel worker gets this
+#' layer's registries. Run by .onLoad() before the built-in modules are
+#' registered.
 #'
 #' Each `set` goes through the kind's own gr_register_*() function, so
 #' hr_register() runs the same checks and a cleaner or extractor gets its
-#' registration stamp from the same place. A segmenter's `set` also takes
+#' registration stamp from the same place. It then keeps `version` and
+#' `contract` on the entry (stamp_contract()). A segmenter's `set` also takes
 #' `effort_label`, a function of the segment spec that returns the label the
 #' segmenter's requests carry ("" for none); segment_effort() reads it.
 #' @noRd
 register_doc_layer <- function() {
   hr_register_kind("extractor", registry = "extractors",
                    get = function() gr_state$extractors,
-                   set = function(name, fn, ..., description = "", calls = NULL) {
+                   set = function(name, fn, ..., description = "", calls = NULL,
+                                  version = NULL, contract = NA_character_) {
                      no_calls("extractor", calls)
                      gr_register_extractor(name = name, fn = fn, ..., description = description)
-                   })
+                     stamp_contract("extractors", name, version, contract)
+                   },
+                   check = function(name, path = NULL, ...) check_extractor(name, path))
   hr_register_kind("cleaner", registry = "cleaners",
                    get = function() gr_state$cleaners,
-                   set = function(name, fn, ..., description = "", calls = NULL) {
+                   set = function(name, fn, ..., description = "", calls = NULL,
+                                  version = NULL, contract = NA_character_) {
                      no_calls("cleaner", calls)
                      gr_register_cleaner(name = name, fn = fn, ..., description = description)
-                   })
+                     stamp_contract("cleaners", name, version, contract)
+                   },
+                   check = function(name, ...) check_cleaner(name))
   hr_register_kind("segmenter", registry = "segmenters",
                    get = function() gr_state$segmenters,
                    set = function(name, fn, ..., description = "", calls = NULL,
-                                  effort_label = NULL) {
+                                  effort_label = NULL, version = NULL,
+                                  contract = NA_character_) {
                      if (!is.null(effort_label) && !is.function(effort_label)) {
                        gr_abort("`effort_label` must be a function of the segment spec, or NULL.",
                                 class = "gr_bad_setting")
@@ -66,22 +75,59 @@ register_doc_layer <- function() {
                        entry$effort_label <- effort_label
                        registry_set("segmenters", name, entry, state = gr_state)
                      }
-                     invisible(name)
-                   })
+                     stamp_contract("segmenters", name, version, contract)
+                   },
+                   check = function(name, client = NULL, ...) gr_check_segmenter(name, client))
   hr_register_kind("reader", registry = "readers",
                    get = function() gr_state$readers,
-                   set = function(name, fn, ..., description = "", calls = NULL) {
+                   set = function(name, fn, ..., description = "", calls = NULL,
+                                  version = NULL, contract = NA_character_) {
                      gr_register_reader(name = name, fn = fn, ..., description = description,
                                         calls = calls)
-                   })
+                     stamp_contract("readers", name, version, contract)
+                   },
+                   check = function(name, client = NULL, ...) gr_check_reader(name, client))
   hr_register_kind("embedder", registry = "embedders",
                    get = function() gr_state$embedders,
-                   set = function(name, fn, ..., description = "", calls = NULL) {
+                   set = function(name, fn, ..., description = "", calls = NULL,
+                                  version = NULL, contract = NA_character_) {
                      no_calls("embedder", calls)
                      gr_register_embedder(name = name, fn = fn, ..., description = description)
-                   })
+                     stamp_contract("embedders", name, version, contract)
+                   },
+                   check = function(name, client = NULL, ...) check_embedder(name, client))
+  hr_register_kind("protocol", registry = "protocols",
+                   get = function() gr_state$protocols,
+                   set = function(name, fn, ..., description = "", calls = NULL,
+                                  version = NULL, contract = NA_character_) {
+                     no_calls("protocol", calls)
+                     if (...length()) {
+                       gr_abort("A protocol takes no settings here; build it with gr_protocol().",
+                                class = "gr_bad_setting")
+                     }
+                     if (!inherits(fn, "gr_protocol")) {
+                       gr_abort("`fn` must be a protocol from gr_protocol().",
+                                class = "gr_bad_protocol")
+                     }
+                     if (is_nonblank(description)) fn$description <- description
+                     gr_register_protocol(name = name, protocol = fn)
+                     stamp_contract("protocols", name, version, contract)
+                   },
+                   check = function(name, ...) check_protocol(name))
   hr_register_worker_state("doc", doc_worker_snapshot, doc_worker_restore)
   invisible(NULL)
+}
+
+#' Keep a module's `version` and `contract` on its registry entry, after its
+#' kind's own registration function has filed it. A NULL `version` is kept as
+#' NA.
+#' @noRd
+stamp_contract <- function(slot, name, version, contract) {
+  entry <- gr_state[[slot]][[name]]
+  entry$version <- as_chr1(version, NA_character_)
+  entry$contract <- as_chr1(contract, NA_character_)
+  registry_set(slot, name, entry, state = gr_state)
+  invisible(name)
 }
 
 #' Refuse `calls` for a kind whose modules make no calls a trace labels.

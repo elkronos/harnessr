@@ -27,9 +27,13 @@ conformance_paths <- function(env = parent.frame()) {
 test_that("every registered module of every kind passes its kind's rules", {
   local_registries()
   local_clean_cache()
+  # No step is registered at load; register one so the step kind is checked.
+  hr_register("step", "keep", fn = function(input, ctx) list(seen = input),
+              input = "state", output = "state")
   mods <- hr_modules()
   expect_setequal(unique(mods$kind),
-                  c("extractor", "cleaner", "segmenter", "reader", "embedder"))
+                  c("extractor", "cleaner", "segmenter", "reader", "embedder", "protocol",
+                    "step"))
   paths <- conformance_paths()
   # An extractor runs only where its packages are installed, and only on a
   # file of its format.
@@ -66,7 +70,8 @@ test_that("every registered module of every kind passes its kind's rules", {
     checked <- c(checked, paste(kind, name))
   }
   expect_true(all(c("extractor txt", "extractor md", "cleaner references", "embedder api",
-                    "embedder lexical", "segmenter paragraph", "reader stuff") %in% checked))
+                    "embedder lexical", "segmenter paragraph", "reader stuff",
+                    "protocol claims", "step keep") %in% checked))
 })
 
 test_that("every registered protocol passes the protocol rules", {

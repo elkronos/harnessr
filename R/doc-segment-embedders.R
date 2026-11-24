@@ -74,11 +74,17 @@ gr_register_embedder <- function(name, fn, description = "", deterministic = FAL
 #'   (`"TRUE"`/`"FALSE"`) and `description`. `deterministic` is the column that
 #'   matters for reproducibility: only a deterministic embedder lets a
 #'   [gr_replay_client()] reproduce a run's chunk ranking.
+#'   The last two columns are `version` and `contract`, `NA` for an embedder
+#'   registered with [gr_register_embedder()] and filled for one registered with
+#'   [hr_register()].
 #' @seealso [gr_register_embedder()], [gr_embed()], [gr_replay_client()]
 #' @export
 #' @examples
 #' gr_embedders()
-gr_embedders <- function() registry_table("embedders", c("deterministic", "description"), state = gr_state)
+gr_embedders <- function() {
+  with_contract(registry_table("embedders", c("deterministic", "description"), state = gr_state),
+                registry_get("embedder"))
+}
 
 #' The registered embedder gr_embed() would use when called without one, for
 #' the corpus store's key and the embeddings-request count. Same order as

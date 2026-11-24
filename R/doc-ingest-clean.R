@@ -96,6 +96,9 @@ gr_register_cleaner <- function(name, fn, stage = c("early", "late"), descriptio
 #'
 #' @return A data frame with `name`, `stage`, `scope`, `default_on` and
 #'   `description`.
+#'   The last two columns are `version` and `contract`, `NA` for a cleaner
+#'   registered with [gr_register_cleaner()] and filled for one registered with
+#'   [hr_register()].
 #' @seealso [gr_clean()], [gr_register_cleaner()], [gr_ingest_spec()]
 #' @family ingest functions
 #' @export
@@ -111,7 +114,7 @@ gr_cleaners <- function() {
     description = e$description, stringsAsFactors = FALSE)))
   df <- df[order(df$stage != "early", df$name), , drop = FALSE]
   rownames(df) <- NULL
-  df
+  with_contract(df, reg)
 }
 
 #' Run the cleaning pipeline over a character vector

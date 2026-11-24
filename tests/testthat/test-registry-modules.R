@@ -20,7 +20,13 @@ test_that("a module registered by kind is the one the kind's own function regist
                      cost_calls = "1", description = "a probe", calls = "probe_a.answer")
   reg <- harnessr:::gr_state$readers
   a <- reg$probe_a; b <- reg$probe_b
-  a$name <- b$name <- NULL
+  # hr_register() also keeps the module's version and the contract it was
+  # registered under; the kind's own function keeps neither.
+  expect_identical(a[c("version", "contract")],
+                   list(version = NA_character_, contract = harnessr:::hr_contract_version()))
+  expect_null(b$version)
+  expect_null(b$contract)
+  a$name <- b$name <- a$version <- a$contract <- NULL
   expect_identical(a, b)
   expect_identical(hr_register("reader", "probe_a", fn = probe_reader, signature = "one|1|none"),
                    "probe_a")
@@ -66,7 +72,7 @@ test_that("an unknown kind is refused", {
   expect_error(hr_register("ranker", "x", fn = identity), class = "hr_unknown_kind")
   expect_error(hr_register(NA_character_, "x", fn = identity), class = "hr_unknown_kind")
   expect_error(hr_modules("ranker"), class = "hr_unknown_kind")
-  expect_error(hr_modules("protocol"), "Kinds you can list: extractor")
+  expect_error(hr_modules("model"), "Kinds you can list: extractor")
 })
 
 test_that("hr_register() runs the checks of the kind's own function", {
@@ -90,21 +96,28 @@ test_that("hr_register() runs the checks of the kind's own function", {
 })
 
 test_that("hr_modules() has one row per module and a list column of calls", {
+  # No step is registered at load; register one so every kind has a row.
+  local_registries()
+  hr_register("step", "probe_step", fn = function(input, ctx) input)
   m <- hr_modules()
   expect_s3_class(m, "data.frame")
-  expect_identical(names(m), c("kind", "name", "description", "calls"))
+  expect_identical(names(m), c("kind", "name", "description", "calls", "version", "contract"))
   expect_identical(vapply(m, typeof, ""), c(kind = "character", name = "character",
-                                            description = "character", calls = "list"))
+                                            description = "character", calls = "list",
+                                            version = "character", contract = "character"))
   expect_identical(attr(m, "row.names"), seq_len(nrow(m)))
   expect_identical(unique(m$kind), names(harnessr:::hr_kinds()))
   st <- harnessr:::gr_state
   expect_identical(nrow(m), sum(lengths(mget(c("extractors", "cleaners", "segmenters",
-                                                "readers", "embedders"), envir = st))))
+                                                "readers", "embedders", "protocols"),
+                                              envir = st))) +
+                     length(harnessr:::hr_state$steps))
   r <- m[m$kind == "reader", ]
   rownames(r) <- NULL
   expect_identical(r$name, sort(names(st$readers), method = "radix"))
   expect_identical(r$calls, unname(lapply(st$readers[r$name], `[[`, "calls")))
-  expect_true(all(lengths(m$calls[m$kind %in% c("cleaner", "extractor", "embedder")]) == 0L))
+  expect_true(all(lengths(m$calls[m$kind %in% c("cleaner", "extractor", "embedder",
+                                                 "protocol")]) == 0L))
   r1 <- hr_modules("reader")
   expect_identical(r1[, names(m)], r)
   expect_true(all(c("signature", "cost_calls") %in% names(r1)))
@@ -146,4 +159,9 @@ test_that("the shiny app's registry reads still work after hr_register()", {
   expect_identical(as.character(d$cost[d$name %in% "probe_sg"]), "free")
   d <- gr_readers()
   expect_length(sprintf("%s [%s]: %s", d$name, d$cost_calls, d$description), nrow(d))
+})
+
+test_that("an unknown kind has no conformance check", {
+  expect_error(harnessr:::check_kind("model", "mock-model"), class = "hr_unknown_kind")
+  expect_error(harnessr:::check_kind("model", "mock-model"), "Kinds you can check: extractor")
 })

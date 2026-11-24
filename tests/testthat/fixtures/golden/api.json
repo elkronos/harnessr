@@ -565,7 +565,7 @@
       "type": "function"
     },
     "hr_register": {
-      "formals": ["kind", "name", "fn", "...", "description = \"\"", "calls = NULL"],
+      "formals": ["kind", "name", "fn", "...", "description = \"\"", "calls = NULL", "version = NULL"],
       "type": "function"
     },
     "hr_register_contrasts": {

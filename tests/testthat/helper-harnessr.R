@@ -102,7 +102,7 @@ quiet <- function(expr) suppressWarnings(suppressMessages(force(expr)))
 # ---------------------------------------------------------------------------
 .gr_registry_slots <- c("extractors", "cleaners", "segmenters", "readers",
                         "embedders", "protocols")
-.hr_registry_slots <- c("models", "model_patterns")
+.hr_registry_slots <- c("models", "model_patterns", "steps")
 
 # Every registry slot with the environment it lives in.
 registry_snapshot <- function() {

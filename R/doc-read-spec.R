@@ -119,7 +119,9 @@ gr_register_reader <- function(name, fn, signature, description = "", cost_calls
 #'   (see [gr_reader_signature()]), `cost_calls` (a formula in N, the number
 #'   of chunks, not a number), `description`, and `calls`, the stems of the
 #'   labels its calls carry, joined by commas: the names an `effort` map can
-#'   use.
+#'   use. The last two columns are `version` and `contract`, `NA` for a
+#'   reader registered with [gr_register_reader()] and filled for one
+#'   registered with [hr_register()].
 #' @seealso [gr_read()], [gr_reader_signature()], [gr_register_reader()],
 #'   [gr_read_spec()], [gr_compare()] to run several and compare
 #' @family reading functions
@@ -130,8 +132,21 @@ gr_register_reader <- function(name, fn, signature, description = "", cost_calls
 #' r <- gr_readers()
 #' r[order(r$signature), c("name", "signature", "cost_calls")]
 gr_readers <- function() {
-  with_calls(registry_table("readers", c("signature", "cost_calls", "description"),
-                            state = gr_state), registry_get("reader"))
+  reg <- registry_get("reader")
+  with_contract(with_calls(registry_table("readers", c("signature", "cost_calls", "description"),
+                                          state = gr_state), reg), reg)
+}
+
+#' A listing with each module's `version` and `contract` added as its last
+#' two columns, `NA` for a module registered without them.
+#' @noRd
+with_contract <- function(df, reg) {
+  if (!ncol(df)) return(df)
+  field <- function(f) vapply(df$name, function(nm) as_chr1(reg[[nm]][[f]], NA_character_),
+                              character(1), USE.NAMES = FALSE)
+  df$version <- field("version")
+  df$contract <- field("contract")
+  df
 }
 
 #' A registry table with each module's declared call stems added, joined by

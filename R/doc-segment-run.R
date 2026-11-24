@@ -496,6 +496,9 @@ gr_register_segmenter <- function(name, fn, description = "",
 #'   segmenter falls back), `description`, and `calls`, the stems of the
 #'   labels its model calls carry, joined by commas (empty for one that makes
 #'   none).
+#'   The last two columns are `version` and `contract`, `NA` for a segmenter
+#'   registered with [gr_register_segmenter()] and filled for one registered with
+#'   [hr_register()].
 #' @seealso [gr_segment()], [gr_segment_spec()], [gr_register_segmenter()],
 #'   [gr_chunk_stats()] to compare what they produce
 #' @family segmentation functions
@@ -506,6 +509,7 @@ gr_register_segmenter <- function(name, fn, description = "",
 #' # The ones that cost money, and the ones that need a client to work at all.
 #' subset(gr_segmenters(), cost != "free" | needs_client == "TRUE")[, 1:3]
 gr_segmenters <- function() {
-  with_calls(registry_table("segmenters", c("cost", "needs_client", "description"),
-                            state = gr_state), registry_get("segmenter"))
+  reg <- registry_get("segmenter")
+  with_contract(with_calls(registry_table("segmenters", c("cost", "needs_client", "description"),
+                                          state = gr_state), reg), reg)
 }

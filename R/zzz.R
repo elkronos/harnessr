@@ -17,6 +17,7 @@
                                           vapply(.gr_seed_models(), `[[`, character(1), "id"))
   hr_state$model_patterns <- .gr_seed_patterns()
   register_doc_layer()
+  register_core_kinds()
   register_builtin_extractors()
   register_builtin_cleaners()
   register_builtin_segmenters()

@@ -5,17 +5,17 @@
 # registered the kind, so this file reads and writes them only through the
 # `get` and `set` functions that layer gave hr_register_kind().
 
-#' The `get` and `set` functions of a kind, or an error of class
+#' The `get`, `set` or `check` function of a kind, or an error of class
 #' `hr_unknown_kind` naming the kinds that have the one asked for.
 #' @noRd
-kind_access <- function(kind, need = c("get", "set")) {
+kind_access <- function(kind, need = c("get", "set", "check")) {
   need <- match.arg(need)
   access <- hr_state$kind_access
   usable <- names(access)[vapply(access, function(a) is.function(a[[need]]), logical(1))]
   if (!is_nonblank(kind) || !(kind %in% usable)) {
     gr_abort(sprintf("Unknown kind of module '%s'. Kinds you can %s: %s.",
                      as_chr1(kind, "<missing>"),
-                     if (need == "set") "register" else "list",
+                     switch(need, set = "register", get = "list", check = "check"),
                      paste(usable, collapse = ", ")),
              class = "hr_unknown_kind")
   }
@@ -33,29 +33,45 @@ kind_access <- function(kind, need = c("get", "set")) {
 #' The kinds the package brings, and the function each one goes through:
 #' `"extractor"` ([gr_register_extractor()]), `"cleaner"`
 #' ([gr_register_cleaner()]), `"segmenter"` ([gr_register_segmenter()]),
-#' `"reader"` ([gr_register_reader()]) and `"embedder"`
-#' ([gr_register_embedder()]). Protocols are not a kind of module; register
-#' one with [gr_register_protocol()].
+#' `"reader"` ([gr_register_reader()]), `"embedder"`
+#' ([gr_register_embedder()]), `"protocol"` ([gr_register_protocol()]) and
+#' `"step"`. For a protocol, `fn` is the protocol object from
+#' [gr_protocol()]. For a step, `fn` is a step from [hr_step()], or a
+#' function of `(input, ctx)` that `hr_register()` passes to [hr_step()]
+#' with the name and the arguments in `...`.
+#'
+#' A module registered here records two more fields: `version`, the version
+#' you give, and `contract`, the version of the module contract the package
+#' implements, 0.2 in this release. Every listing shows them as its last two
+#' columns. A module registered through a kind's own function has `NA` in
+#' both, and its conformance check stays advisory.
 #'
 #' @param kind The kind of module, one string. A kind the package does not
 #'   know is an error of class `hr_unknown_kind`.
 #' @param name The module's name, one string. Registering a name again
 #'   replaces the module.
 #' @param fn The module's function, with the arguments its kind calls it
-#'   with (see the kind's own registration function).
+#'   with (see the kind's own registration function). For a protocol, the
+#'   protocol object; for a step, a step or a function of `(input, ctx)`.
 #' @param ... The other arguments of the kind's own registration function,
 #'   by name, such as `signature` for a reader or `extensions` for an
 #'   extractor. A segmenter also takes `effort_label`, a function of the
 #'   segment spec that returns the trace label its model requests carry, or
 #'   `""` when it sends none. A run's `effort` setting then reaches the
 #'   segmenter as the effort for that label alone. Without it, the segmenter
-#'   gets the run's whole effort map.
+#'   gets the run's whole effort map. A step takes the arguments of
+#'   [hr_step()], such as `params`, `input` and `output`.
 #' @param description One-line description, shown by the kind's listing and
-#'   by [hr_modules()].
+#'   by [hr_modules()]. For a protocol, a non-empty description replaces the
+#'   protocol's own.
 #' @param calls The stems of the trace labels the module's model calls
-#'   carry, for the kinds that declare them (readers and segmenters). `NULL`
-#'   (the default) declares the module's name. Any other value for a kind
-#'   that does not declare calls is an error of class `gr_bad_setting`.
+#'   carry, for the kinds that declare them (readers, segmenters and steps).
+#'   `NULL` (the default) declares the module's name for a reader or a
+#'   segmenter and no stems for a step. Any other value for a kind that does
+#'   not declare calls is an error of class `gr_bad_setting`.
+#' @param version The module's own version, one string, kept in the
+#'   `version` field. `NULL` (the default) records `NA`, or, for a step, the
+#'   step's own version.
 #' @return Invisibly, `name`.
 #' @seealso [hr_modules()], `vignette("extending")`
 #' @family harness
@@ -63,25 +79,36 @@ kind_access <- function(kind, need = c("get", "set")) {
 #' @examples
 #' # A segmenter that makes one chunk per line, registered by kind.
 #' hr_register("segmenter", "by_line", description = "one chunk per line",
+#'   version = "1.0.0",
 #'   fn = function(doc, spec, client, trace) {
 #'     new_chunks(strsplit(doc$text, "\n+")[[1]], "by_line", spec)
 #'   })
-#' subset(hr_modules("segmenter"), name == "by_line")[, c("kind", "name", "cost")]
+#' subset(hr_modules("segmenter"), name == "by_line")[, c("kind", "name", "cost", "contract")]
 #' nrow(gr_segment(gr_example(), list(method = "by_line"))$chunks)
+#'
+#' # A step, registered by kind and listed with its input and output.
+#' hr_register("step", "shout", fn = function(input, ctx) toupper(input),
+#'   input = "answer", output = "state")
+#' hr_modules("step")[, c("name", "input", "output", "version", "contract")]
 #'
 #' # A kind the package does not know is refused.
 #' try(hr_register("ranker", "mine", fn = identity))
-hr_register <- function(kind, name, fn, ..., description = "", calls = NULL) {
+hr_register <- function(kind, name, fn, ..., description = "", calls = NULL, version = NULL) {
   set <- kind_access(kind, "set")
-  set(name = name, fn = fn, ..., description = description, calls = calls)
+  if (!is.null(version) && !is_nonblank(version)) {
+    gr_abort("`version` must be one non-empty string, or NULL.", class = "gr_bad_setting")
+  }
+  set(name = name, fn = fn, ..., description = description, calls = calls,
+      version = version, contract = hr_contract_version())
   invisible(name)
 }
 
 #' List the registered modules of every kind
 #'
 #' One table across the kinds of module: each registered extractor, cleaner,
-#' segmenter, reader and embedder, with its description and the call stems
-#' it declares. Ask for one kind to add the columns only that kind has, such
+#' segmenter, reader, embedder, protocol and step, with its description, the
+#' call stems it declares, its version and the contract it was registered
+#' under. Ask for one kind to add the columns only that kind has, such
 #' as a reader's `signature` or an extractor's `extensions`. The kind's own
 #' listing, such as [gr_readers()], keeps its own shape and is unchanged.
 #'
@@ -94,7 +121,10 @@ hr_register <- function(kind, name, fn, ..., description = "", calls = NULL) {
 #'   declares (`character(0)` for none). With `kind`, it also has a column
 #'   for each other setting the kind's modules were registered with, except
 #'   functions; a setting with more than one value per module, such as an
-#'   extractor's `extensions`, is a list column.
+#'   extractor's `extensions`, is a list column. The last two columns are
+#'   always `version` and `contract` (character): the module's version and
+#'   the module contract it was registered under with [hr_register()], `NA`
+#'   for a module registered through its kind's own function.
 #' @seealso [hr_register()], `vignette("extending")`
 #' @family harness
 #' @export
@@ -120,8 +150,7 @@ hr_modules <- function(kind = NULL) {
 }
 
 #' The rows of hr_modules() for one kind's registry entries. With `own`, a
-#' column is added for each field the entries carry beyond the shared ones,
-#' leaving out functions and the registration stamp.
+#' column is added for each field the entries carry beyond the shared ones.
 #' @noRd
 modules_frame <- function(kind, entries, own) {
   nms <- names(entries) %||% character(0)
@@ -134,8 +163,20 @@ modules_frame <- function(kind, entries, own) {
   out$calls <- lapply(unname(entries), function(e) {
     if (is.character(e$calls)) e$calls else character(0)
   })
-  if (!own) return(out)
-  shared <- c("name", "description", "calls", "fn", "registered")
+  if (own) out <- modules_own_columns(out, entries)
+  out$version <- vapply(entries, function(e) as_chr1(e$version, NA_character_),
+                        character(1), USE.NAMES = FALSE)
+  out$contract <- vapply(entries, function(e) as_chr1(e$contract, NA_character_),
+                         character(1), USE.NAMES = FALSE)
+  rownames(out) <- NULL
+  out
+}
+
+#' The columns hr_modules(kind) adds for the fields a kind's entries carry
+#' beyond the shared ones, leaving out functions and the registration stamp.
+#' @noRd
+modules_own_columns <- function(out, entries) {
+  shared <- c("name", "description", "calls", "fn", "registered", "version", "contract")
   fields <- setdiff(unique(unlist(lapply(entries, names), use.names = FALSE)), shared)
   for (f in fields) {
     vals <- lapply(unname(entries), `[[`, f)
@@ -150,4 +191,70 @@ modules_frame <- function(kind, entries, own) {
   }
   rownames(out) <- NULL
   out
+}
+
+#' Run the conformance check of one registered module of any kind, through
+#' the `check` its layer gave hr_register_kind(). `client` reaches the checks
+#' that call a model or embed, `path` the extractor check, and `input` the
+#' step check (the value the step runs on). A kind with no check is an error
+#' of class `hr_unknown_kind`.
+#' @noRd
+check_kind <- function(kind, name, client = NULL, path = NULL, input = NULL) {
+  kind_access(kind, "check")(name, client = client, path = path, input = input)
+}
+
+#' Tell the core about its own kind of module, "step", run by .onLoad() after
+#' the document layer has registered its kinds. Steps are kept in
+#' `hr_state$steps`. The model registry stays outside the module registry.
+#' @noRd
+register_core_kinds <- function() {
+  hr_register_kind("step", registry = "steps",
+                   get = function() hr_state$steps,
+                   set = register_step,
+                   check = check_step)
+  invisible(NULL)
+}
+
+#' The `set` of the step kind: file a step under `name`. `fn` is a step from
+#' hr_step(), or a function of (input, ctx) passed to hr_step() with `...`.
+#' The entry keeps the step as `fn`, its input and output, and its version
+#' unless `version` gives another.
+#' @noRd
+register_step <- function(name, fn, ..., description = "", calls = NULL, version = NULL,
+                          contract = NA_character_) {
+  if (!is_nonblank(name)) gr_abort("A step's name must be a non-empty string.",
+                                   class = "gr_bad_setting")
+  if (!is.character(description) || length(description) != 1L || is.na(description)) {
+    gr_abort("`description` must be one string.", class = "gr_bad_setting")
+  }
+  if (!is.null(calls) && (!is.character(calls) || anyNA(calls) || !all(has_visible(calls)))) {
+    gr_abort("`calls` must be a character vector of non-empty stems, or NULL.",
+             class = "gr_bad_setting")
+  }
+  step <- if (inherits(fn, "hr_step")) {
+    if (...length()) {
+      gr_abort("Give the settings of a step built with hr_step() to hr_step(), not here.",
+               class = "gr_bad_setting")
+    }
+    fn
+  } else {
+    hr_step(name, fn, ...)
+  }
+  entry <- list(name = name, fn = step, description = description,
+                calls = calls %||% character(0),
+                input = attr(step, "input", exact = TRUE) %||% NA_character_,
+                output = attr(step, "output", exact = TRUE) %||% NA_character_,
+                version = version %||% attr(step, "version", exact = TRUE),
+                contract = as_chr1(contract, NA_character_))
+  registry_set("steps", name, entry, state = hr_state)
+}
+
+#' The `check` of the step kind: run a registered step once on `input`, with
+#' `client` in its ctx, against the step rules (hr_rules_step()).
+#' @noRd
+check_step <- function(name, client = NULL, input = NULL, ...) {
+  step <- registry_get("step", name)$fn
+  ctx <- list(client = client, step_params = attr(step, "resolved", exact = TRUE))
+  hr_check_module(step, function() step(input, ctx), rules = hr_rules_step(step),
+                  kind = "step", name = name)
 }
