@@ -19,13 +19,20 @@ loop_path <- function(path) gsub("\\\\", "/", path)
 
 # The tasks, as a reference whose items say what to write, where the tests
 # are and the folder drafts are written to. Every label is "passed": the
-# held check should pass.
+# held check should pass. Each task's test file is copied into its own
+# folder under `work`, because testthat writes testthat-problems.rds next
+# to a test file that fails, and that file must land in the temporary
+# folder, never in the package's fixtures.
 loop_reference <- function(tasks, work) {
   all <- utils::read.csv(file.path(loop_dir(), "tasks.csv"), stringsAsFactors = FALSE)
   all <- all[match(tasks, all$task), ]
   items <- lapply(seq_len(nrow(all)), function(i) {
-    list(task = all$task[[i]], prompt = all$prompt[[i]],
-         test = file.path(loop_dir(), all$task[[i]], "test.R"), work = work)
+    task <- all$task[[i]]
+    dir <- file.path(work, task)
+    dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+    test <- file.path(dir, "test.R")
+    stopifnot(file.copy(file.path(loop_dir(), task, "test.R"), test, overwrite = TRUE))
+    list(task = task, prompt = all$prompt[[i]], test = test, work = work)
   })
   names(items) <- all$task
   hr_reference(items, labels = rep("passed", nrow(all)), cluster = all$task, split = "test")

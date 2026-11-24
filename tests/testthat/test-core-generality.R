@@ -93,6 +93,14 @@ test_that("the loop runs as a benchmark arm, one ledger per draw, and the passin
   expect_identical(nrow(sig), nrow(bench))
   expect_true(all(sig$value[sig$arm == "loop"] == "passed"))
 
+  # The test files ran from copies in the work folder, so testthat wrote
+  # its problems files there and nothing into the package's fixtures.
+  for (item in ref$items) {
+    expect_identical(normalizePath(dirname(dirname(item$test))), normalizePath(work))
+  }
+  expect_true(any(file.exists(file.path(work, tasks, "testthat-problems.rds"))))
+  expect_length(list.files(loop_dir(), pattern = "^testthat-problems", recursive = TRUE), 0L)
+
   # Neither the held command nor what it printed reached any prompt.
   prompts <- loop_prompts(cl)
   expect_true(length(prompts) > 0L)
