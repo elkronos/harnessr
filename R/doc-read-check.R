@@ -300,3 +300,311 @@ check_labels <- function(trace, stems) {
                                          else "(none)")
                 else sprintf("%d call(s), all under declared stems", length(labels)))
 }
+
+# ---------------------------------------------------------------------------
+# Rules for the other kinds: extractors, cleaners, embedders and protocols.
+# Each gr_rules_*() returns the named list of rules hr_check_module() asks,
+# and each check_*() runs one registered module once and asks them. Like the
+# reader and segmenter checks, they report and refuse nothing.
+# ---------------------------------------------------------------------------
+
+#' The rules for what an extractor returns: a character vector or a data
+#' frame with a `text` column, at least one block with text, `page`, `section`
+#' and `kind` of the right type where given, and unread pages given as page
+#' numbers.
+#' @noRd
+gr_rules_extractor <- function() {
+  list(
+    blocks_shape = function(x) {
+      ok <- is.character(x) || (is.data.frame(x) && "text" %in% names(x))
+      list(ok = ok, detail = if (ok) "" else
+        sprintf("returned class %s, not text or a data frame with a `text` column",
+                paste(class(x), collapse = "/")))
+    },
+    block_text = function(x) {
+      text <- if (is.data.frame(x)) x$text else x
+      n <- sum(has_visible(vapply(text, as_chr1, character(1), USE.NAMES = FALSE)))
+      list(ok = n > 0L, detail = sprintf("%d block(s) with text", n))
+    },
+    block_columns = function(x) {
+      if (!is.data.frame(x)) return(list(ok = TRUE, detail = "text only: no page, section or kind"))
+      untyped <- function(v, test) !is.null(v) && !all(is.na(v)) && !test(v)
+      bad <- c(page = untyped(x[["page"]], is.numeric),
+               section = untyped(x[["section"]], is.character),
+               kind = untyped(x[["kind"]], is.character))
+      list(ok = !any(bad), detail = if (any(bad))
+        sprintf("wrong type: %s", paste(names(bad)[bad], collapse = ", ")) else "")
+    },
+    unread_pages = function(x) {
+      u <- attr(x, "gr_unread_pages", exact = TRUE)
+      ok <- is.null(u) || (is.numeric(u) && !anyNA(u) && all(u >= 1 & u == round(u)))
+      list(ok = ok, detail = if (ok) "" else "`gr_unread_pages` is not a set of page numbers")
+    })
+}
+
+#' The rules for a cleaner, run by gr_clean() on `text`: one string per input
+#' block and none NA, some text left, a line in the clean log, and the same
+#' result from a second run (`again()`).
+#' @noRd
+gr_rules_cleaner <- function(text, cleaner, again) {
+  list(
+    text_class = function(x) {
+      ok <- is.character(x) && length(x) == length(text) && !anyNA(x)
+      list(ok = ok, detail = if (ok) "" else
+        sprintf("returned %s of length %d for %d block(s)", class(x)[1], length(x),
+                length(text)))
+    },
+    keeps_text = function(x) {
+      ok <- any(has_visible(as.character(x)))
+      list(ok = ok, detail = if (ok) "" else "no text was left")
+    },
+    logged = function(x) {
+      ok <- cleaner %in% names(attr(x, "gr_clean_log", exact = TRUE))
+      list(ok = ok, detail = if (ok) "" else "the step is not in the clean log")
+    },
+    deterministic = function(x) {
+      ok <- identical(as.character(again()), as.character(x))
+      list(ok = ok, detail = if (ok) "" else "a second run cleaned the text differently")
+    })
+}
+
+#' The rules for an embedder's vectors for `texts`: a numeric matrix with one
+#' row per text, finite values, rows of length 1 (or 0), reported under the
+#' embedder's own name with no fallback, and for an embedder registered as
+#' deterministic, the same vectors from a second run (`again()`).
+#' @noRd
+gr_rules_embedder <- function(texts, embedder, deterministic, again) {
+  list(
+    matrix_shape = function(m) {
+      ok <- is.matrix(m) && is.numeric(m) && nrow(m) == length(texts) && ncol(m) > 0L
+      list(ok = ok, detail = if (ok) sprintf("%d x %d", nrow(m), ncol(m)) else
+        sprintf("returned %s, not a numeric matrix with %d row(s)", class(m)[1], length(texts)))
+    },
+    finite = function(m) {
+      ok <- is.numeric(m) && length(m) > 0L && all(is.finite(m))
+      list(ok = ok, detail = if (ok) "" else "missing or non-finite values")
+    },
+    unit_rows = function(m) {
+      norms <- sqrt(rowSums(m^2))
+      ok <- all(abs(norms - 1) < 1e-6 | norms == 0)
+      list(ok = ok, detail = if (ok) "" else
+        sprintf("row lengths from %.3g to %.3g, not 1", min(norms), max(norms)))
+    },
+    source = function(m) {
+      src <- as_chr1(attr(m, "embedding_source", exact = TRUE), "")
+      ok <- identical(src, embedder) && !isTRUE(attr(m, "embedding_fallback", exact = TRUE))
+      list(ok = ok, detail = if (ok) "" else sprintf("vectors came from '%s'", src))
+    },
+    deterministic = function(m) {
+      if (!isTRUE(deterministic)) {
+        return(list(ok = NA, detail = "not checked: not registered as deterministic"))
+      }
+      ok <- identical(unclass(again())[, ], unclass(m)[, ])
+      list(ok = ok, detail = if (ok) "" else "a second run gave different vectors")
+    })
+}
+
+#' The rules for a registered protocol: a gr_protocol under its own name,
+#' with a question, criteria with no blank entries, a gr_fields schema or
+#' none, an outline with headings, and a save and read that gives the same
+#' protocol back.
+#' @noRd
+gr_rules_protocol <- function(name) {
+  criteria_ok <- function(v) is.null(v) || (is.character(v) && all(has_visible(v)))
+  list(
+    protocol_class = function(p) list(ok = inherits(p, "gr_protocol"),
+                                      detail = if (inherits(p, "gr_protocol")) "" else
+                                        sprintf("returned class %s",
+                                                paste(class(p), collapse = "/"))),
+    name_matches = function(p) {
+      ok <- identical(as_chr1(p$name, ""), name)
+      list(ok = ok, detail = if (ok) "" else sprintf("named '%s'", as_chr1(p$name, "")))
+    },
+    question = function(p) {
+      ok <- is.character(p$question) && length(p$question) == 1L && has_visible(p$question)
+      list(ok = ok, detail = if (ok) "" else "no question")
+    },
+    criteria = function(p) {
+      ok <- criteria_ok(p$include) && criteria_ok(p$exclude)
+      list(ok = ok, detail = if (ok) "" else "a criterion is blank or not text")
+    },
+    fields = function(p) {
+      ok <- is.null(p$fields) || inherits(p$fields, "gr_fields")
+      list(ok = ok, detail = if (ok) "" else "`fields` does not come from gr_fields()")
+    },
+    outline = function(p) {
+      o <- p$outline
+      ok <- !length(o) || (is.character(o) && !is.null(names(o)) && all(has_visible(names(o))))
+      list(ok = ok, detail = if (ok) "" else "the outline is not text under headings")
+    },
+    round_trip = function(p) {
+      f <- tempfile(fileext = ".json")
+      on.exit(unlink(f), add = TRUE)
+      back <- suppressWarnings({
+        gr_protocol_save(p, f)
+        gr_protocol_read(f)
+      })
+      same <- vapply(c("question", "include", "exclude", "outline"), function(k) {
+        identical(unname(as.character(back[[k]])), unname(as.character(p[[k]])))
+      }, logical(1))
+      same["fields"] <- identical(names(back$fields), names(p$fields))
+      list(ok = all(same), detail = if (all(same)) "" else
+        sprintf("changed on a save and read: %s", paste(names(same)[!same], collapse = ", ")))
+    })
+}
+
+#' Run one registered extractor on `path` and check what it returns. Without
+#' a path, the example document ([gr_example()]) is written in a format the
+#' extractor claims: text, Markdown or HTML. For any other format, pass a
+#' file.
+#' @noRd
+check_extractor <- function(extractor, path = NULL) {
+  extractor <- as_chr1(extractor, "")
+  ex <- registry_get("extractor", extractor)
+  path <- if (is.null(path)) extractor_sample(ex) else normalizePath(as_chr1(path),
+                                                                     mustWork = TRUE)
+  spec <- gr_ingest_spec()
+  hr_check_module(ex$fn, function() ex$fn(path, spec), rules = gr_rules_extractor(),
+                  kind = "extractor", name = extractor)
+}
+
+#' A file of the example document in a format `ex` claims, written under
+#' tempdir(). The example is Markdown, so a text extractor reads it as it is
+#' and an HTML one is given its paragraphs as `<p>` elements.
+#' @noRd
+extractor_sample <- function(ex) {
+  lines <- readLines(gr_example(), encoding = "UTF-8", warn = FALSE)
+  exts <- ex$extensions
+  html <- intersect(exts, c("html", "htm", "xhtml"))
+  plain <- intersect(exts, c("md", "markdown", "txt", "text"))
+  if (length(plain)) {
+    f <- tempfile("hr-check-", fileext = paste0(".", plain[1]))
+    writeLines(lines, f, useBytes = TRUE)
+    return(f)
+  }
+  if (length(html)) {
+    paras <- lines[has_visible(lines)]
+    esc <- function(s) gsub(">", "&gt;", gsub("<", "&lt;", gsub("&", "&amp;", s, fixed = TRUE),
+                                              fixed = TRUE), fixed = TRUE)
+    f <- tempfile("hr-check-", fileext = paste0(".", html[1]))
+    writeLines(c("<html><body>", paste0("<p>", esc(sub("^#+\\s*", "", paras)), "</p>"),
+                 "</body></html>"), f, useBytes = TRUE)
+    return(f)
+  }
+  gr_abort(sprintf(paste0("The check cannot write a sample file for extractor '%s' (%s). ",
+                          "Give `path`, a file of that format."),
+                   ex$name, paste(exts, collapse = ", ")), class = "gr_bad_setting")
+}
+
+#' Run one registered cleaner over the example document's blocks with
+#' gr_clean() and check the result.
+#' @noRd
+check_cleaner <- function(cleaner) {
+  cleaner <- as_chr1(cleaner, "")
+  cl <- registry_get("cleaner", cleaner)
+  text <- suppressWarnings(gr_ingest(gr_example(), gr_ingest_spec(clean = "none"),
+                                     cache = FALSE))$blocks$text
+  again <- function() gr_clean(text, steps = cleaner)
+  hr_check_module(cl$fn, again, rules = gr_rules_cleaner(text, cleaner, again),
+                  kind = "cleaner", name = cleaner)
+}
+
+#' Embed three short texts with one registered embedder through gr_embed()
+#' and check the vectors. `client` is the offline one unless given. For
+#' "api", a client with an embed function (the offline one has one) stands
+#' in for the endpoint, as gr_embed() uses it for such a client.
+#' @noRd
+check_embedder <- function(embedder, client = NULL) {
+  embedder <- as_chr1(embedder, "")
+  emb <- registry_get("embedder", embedder)
+  client <- check_client(client)
+  texts <- c("Revenue was 45.2 million dollars.", "Costs rose in the north.",
+             "Revenue was 45.2 million dollars.")
+  via_client <- identical(embedder, "api") && is.function(client$embed_handler)
+  again <- function() {
+    if (!via_client) {
+      return(gr_embed(client, texts, cache = FALSE, fallback = "error", embedder = embedder))
+    }
+    old <- gr_options(embedder = NULL)
+    on.exit(gr_options(old), add = TRUE)
+    gr_embed(client, texts, cache = FALSE, fallback = "error")
+  }
+  hr_check_module(emb$fn, again,
+                  rules = gr_rules_embedder(texts, embedder, emb$deterministic, again),
+                  kind = "embedder", name = embedder)
+}
+
+#' Check a registered protocol against the protocol rules.
+#' @noRd
+check_protocol <- function(protocol) {
+  protocol <- as_chr1(protocol, "")
+  p <- gr_protocols(protocol)
+  hr_check_module(function() p, function() gr_protocols(protocol),
+                  rules = gr_rules_protocol(protocol), kind = "protocol", name = protocol)
+}
+
+#' The rules for a read under a call cap of `max_calls`, on `trace`: no more
+#' requests than the cap; an answer, or the refusal of class `gr_call_cap`
+#' that a read raises before it starts when it would need more; and an answer
+#' cut short by a refused request is marked partial.
+#' @noRd
+gr_rules_governor <- function(trace, max_calls) {
+  list(
+    within_max_calls = function(v) {
+      made <- as.integer(trace$calls)
+      list(ok = made <= max_calls, detail = sprintf("%d request(s) made under a cap of %d",
+                                                    made, as.integer(max_calls)))
+    },
+    stops_cleanly = function(v) {
+      ok <- inherits(v, "gr_answer") || inherits(v, "gr_call_cap")
+      list(ok = ok, detail = if (inherits(v, "gr_call_cap")) "refused before the first request"
+                             else if (ok) "answered" else
+                               sprintf("returned class %s", paste(class(v), collapse = "/")))
+    },
+    partial_when_capped = function(v) {
+      if (!isTRUE(trace$budget_stop) || !inherits(v, "gr_answer")) {
+        return(list(ok = NA, detail = "not checked: no request was refused"))
+      }
+      list(ok = isTRUE(v$partial), detail = if (isTRUE(v$partial)) "" else
+        "a request was refused and the answer is not marked partial")
+    })
+}
+
+#' Read the example document with one registered reader under
+#' `hr_governor(max_calls = max_calls)` and check that it keeps to the cap.
+#' The inputs are those gr_check_reader() reads with.
+#' @noRd
+check_reader_governor <- function(reader, max_calls, client = NULL) {
+  reader <- as_chr1(reader, "")
+  rd <- registry_get("reader", reader)
+  client <- check_client(client)
+  chunks <- suppressWarnings(gr_segment(gr_example(),
+                                        list(method = "paragraph", max_tokens = 150L)))
+  spec <- c(list(reader = reader), check_read_inputs(reader))
+  trace <- gr_trace(governor = hr_governor(max_calls = max_calls),
+                    meta = list(check = reader))
+  # Only the refusal is kept: a warning of the same class, which a read
+  # gives when a batch will not fit, must not end the read.
+  run <- function() {
+    tryCatch(gr_read(chunks, "What was revenue?", client, spec, trace = trace),
+             error = function(e) if (inherits(e, "gr_call_cap")) e else stop(e))
+  }
+  hr_check_module(rd$fn, run, rules = gr_rules_governor(trace, max_calls),
+                  kind = "reader", name = reader)
+}
+
+#' Check one registered module of any kind: the reader and segmenter checks,
+#' or one of the checks above. `client` reaches the checks that call a model
+#' or embed; `path` reaches the extractor check.
+#' @noRd
+check_kind <- function(kind, name, client = NULL, path = NULL) {
+  switch(as_chr1(kind, ""),
+    reader = gr_check_reader(name, client),
+    segmenter = gr_check_segmenter(name, client),
+    extractor = check_extractor(name, path),
+    cleaner = check_cleaner(name),
+    embedder = check_embedder(name, client),
+    protocol = check_protocol(name),
+    gr_abort(sprintf("There is no check for kind '%s'.", as_chr1(kind, "")),
+             class = "hr_unknown_kind"))
+}
