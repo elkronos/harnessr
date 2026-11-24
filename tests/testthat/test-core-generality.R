@@ -43,6 +43,19 @@ test_that("one run of the loop passes hr_check_module() with the loop's rules", 
   # The draft failed its visible check, so the model was asked to fix it.
   expect_length(cl$calls(), 2L)
   expect_match(cl$calls()[[2]]$messages[[1]]$content, "failed its tests", fixed = TRUE)
+
+  # $check holds the visible result and the held one stays in the attribute:
+  # their commands use different reporters, so a held result copied into
+  # $check would show here.
+  out <- chain$run(item, loop_ctx(loop_client()))
+  expect_match(out$check$argv[[3]], "reporter = 'progress'", fixed = TRUE)
+  expect_match(loop_held(out)$argv[[3]], "reporter = 'check'", fixed = TRUE)
+  # A step after the held check could read its result, so hr_chain() refuses it.
+  expect_error(hr_chain(draft = loop_draft(),
+                        held = hr_step_command("held", loop_argv("check"),
+                                               parse = "testthat", held = TRUE),
+                        revise = loop_revise(), name = "held-early"),
+               class = "hr_held_not_last")
 })
 
 test_that("the loop runs as a benchmark arm, one ledger per draw, and the passing attempt scores 1", {
@@ -83,6 +96,13 @@ test_that("the loop runs as a benchmark arm, one ledger per draw, and the passin
   }
   expect_identical(vapply(traces, function(tr) as.integer(tr$draw_index), integer(1)),
                    setNames(bench$draw_index, bench$ledger_id))
+  # Every model request of a run went out at that run's draw.
+  for (i in seq_along(traces)) {
+    calls <- Filter(function(s) identical(s$label, "call"), traces[[i]]$steps)
+    expect_true(length(calls) > 0L)
+    sent <- vapply(calls, function(s) as.integer(s$params$draw_index), integer(1))
+    expect_identical(unique(sent), bench$draw_index[[i]], info = bench$ledger_id[[i]])
+  }
   # Each run of the loop noted both checks in its own trace; a first-draft
   # run noted only the held one.
   n_cmd <- vapply(traces, function(tr) {
@@ -107,6 +127,18 @@ test_that("the loop runs as a benchmark arm, one ledger per draw, and the passin
   expect_true(length(prompts) > 0L)
   expect_true(any(grepl("failed its tests", prompts, fixed = TRUE)))
   expect_length(keep$held, nrow(bench))
+  # The held status comes from testthat's summary line: a passing run reports
+  # both tests passed and none failed, a failing one reports failures.
+  for (held in keep$held) {
+    expect_identical(names(held$counts), c("fail", "warn", "skip", "pass"))
+    if (identical(held$status, "passed")) {
+      expect_identical(held$counts[c("fail", "pass")], list(fail = 0L, pass = 2L))
+    } else {
+      expect_gt(held$counts$fail, 0L)
+    }
+  }
+  expect_identical(sum(vapply(keep$held, function(h) identical(h$status, "passed"), logical(1))),
+                   sum(bench$arm == "loop"))
   for (held in keep$held) {
     expect_s3_class(held, "hr_command_result")
     pieces <- c(paste(held$argv, collapse = " "), held$argv[[3]], trimws(held$stdout))
