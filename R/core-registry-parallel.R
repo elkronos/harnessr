@@ -119,7 +119,8 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
     gr_msg(sprintf("Running %d %s(s) one at a time: a replay hands out its recording in order.",
                    length(x), label))
     parent_meta <- if (inherits(trace, "gr_trace")) trace$meta else list()
-    wrapped <- worker_item(fn, "", list(), list(), parent_meta, NULL, share, trace_draw(trace))
+    ctx <- new_hr_ctx(parent_meta = parent_meta, governor = share, draw = trace_draw(trace))
+    wrapped <- worker_item(fn, ctx, NULL)
     return(batch_collect(lapply(x, wrapped), trace, NULL, rerun))
   }
 
@@ -141,8 +142,11 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   # every call twice. One worker gains nothing, so the batch runs here.
   if (workers <= 1L) return(sequential())
   # Workers are separate processes: the API key lives in this process's
-  # environment and must be carried across explicitly.
-  key <- as_chr1(key %||% tryCatch(gr_api_key(), error = function(e) ""))
+  # environment and must be carried across explicitly. A worker sets it for
+  # each item, because a backend handler or gr_ellmer_client() reads it from
+  # the environment itself. A mock client never sends it, so it gets none.
+  key <- if (inherits(client, "gr_mock_client")) "" else
+    as_chr1(key %||% tryCatch(gr_api_key(), error = function(e) ""), "")
   opts <- gr_options()
   # The registries travel too. `future.packages` names this package, so the
   # worker loads it and re-runs .onLoad(), which registers the BUILT-INS and
@@ -207,7 +211,10 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
          stats = if (inherits(cache, "gr_cache") && is.environment(cache$.stats)) cache$.stats)
   }
   state <- client_state(client)
-  wrapped <- worker_item(fn, key, opts, regs, parent_meta, state, share, trace_draw(trace))
+  ctx <- new_hr_ctx(key = key, opts = opts, regs = regs, parent_meta = parent_meta,
+                    governor = share, draw = trace_draw(trace), globals = user$globals,
+                    packages = unique(c(utils::packageName(), user$packages)))
+  wrapped <- worker_item(fn, ctx, state)
   # A limit on what a future may carry (future.globals.maxSize) is checked as
   # each future is made and launched: a FutureError from the plan, or a plain
   # error from measuring the globals, as future versions differ. Every future
@@ -225,8 +232,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   # drew random numbers after a read drew different ones with parallel = TRUE.
   out <- keep_caller_rng(tryCatch(withCallingHandlers(
     future.apply::future_lapply(x, wrapped, future.seed = TRUE,
-                                future.globals = user$globals,
-                                future.packages = unique(c(utils::packageName(), user$packages))),
+                                future.globals = ctx$globals, future.packages = ctx$packages),
     warning = function(w) {
       if (grepl("Canceling all iterations", conditionMessage(w), fixed = TRUE)) {
         cancelled <<- w
@@ -362,29 +368,39 @@ trace_draw <- function(trace) {
 #' goes to a worker with every variable of the frame it was made in. Made
 #' there, it carried the whole input list and the workspace globals gathered
 #' for the batch, which future_lapply() sends as globals as well, so each of
-#' them reached every worker twice. This frame holds only what an item needs.
+#' them reached every worker twice. This frame holds only what an item needs:
+#' the run snapshot from new_hr_ctx() without its globals, and `state`, the
+#' client's log and cache counters (or NULL).
+#'
+#' The API key in the snapshot is set for each item and put back as it was
+#' when the item ends, so it does not stay in the worker's environment after
+#' the batch. A snapshot with no key leaves the environment alone.
 #' @noRd
-worker_item <- function(fn, key, opts, regs, parent_meta, state, governor = NULL,
-                        draw = NULL) {
-  force(fn); force(key); force(opts); force(regs); force(parent_meta); force(state)
-  force(governor); force(draw)
+worker_item <- function(fn, ctx, state) {
+  force(fn); force(state)
+  ctx <- hr_ctx_for_worker(ctx)
   # Set once an item fails. A worker runs its share of the batch in order, in
   # its own copy of this frame, and the items after a failure are not run, as
   # a sequential run would not run them.
   failed <- FALSE
   function(item) {
-    if (nzchar(key)) Sys.setenv(OPENAI_API_KEY = key)
-    # Empty for a batch run in this process, whose options are already these.
-    if (length(opts)) hr_state$options <- opts
-    for (nm in names(regs$core)) {
-      if (!is.null(regs$core[[nm]])) assign(nm, regs$core[[nm]], envir = hr_state)
+    if (nzchar(ctx$key)) {
+      prior <- Sys.getenv("OPENAI_API_KEY", unset = NA)
+      on.exit(if (is.na(prior)) Sys.unsetenv("OPENAI_API_KEY") else
+        Sys.setenv(OPENAI_API_KEY = prior), add = TRUE)
+      Sys.setenv(OPENAI_API_KEY = ctx$key)
     }
-    for (layer in regs$layers) layer$restore(layer$values)
+    # Empty for a batch run in this process, whose options are already these.
+    if (length(ctx$opts)) hr_state$options <- ctx$opts
+    for (nm in names(ctx$regs$core)) {
+      if (!is.null(ctx$regs$core[[nm]])) assign(nm, ctx$regs$core[[nm]], envir = hr_state)
+    }
+    for (layer in ctx$regs$layers) layer$restore(layer$values)
     # Held to the item's share of the run's limits (batch_share()).
-    sub <- gr_trace(meta = parent_meta, governor = governor)
+    sub <- gr_trace(meta = ctx$parent_meta, governor = ctx$governor)
     # The run's draw, so each item's request is the draw the run's would be.
-    if (!is.null(draw$index)) sub$draw_index <- draw$index
-    if (!is.null(draw$scope)) sub$draw_scope <- draw$scope
+    if (!is.null(ctx$draw$index)) sub$draw_index <- ctx$draw$index
+    if (!is.null(ctx$draw$scope)) sub$draw_scope <- ctx$draw$scope
     n_calls <- length(state$log$calls)
     n_embeds <- length(state$log$embeds)
     counts <- function() c(state$stats$hits %||% 0L, state$stats$misses %||% 0L,
