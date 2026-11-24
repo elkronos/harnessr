@@ -724,6 +724,14 @@ test each with `hr_sweep()`.
   is, with class `hr_held_not_last`.
 * `hr_judge()` reads its `"judge_inconsistent"` degradation from the same
   list of codes as the command step. Nothing it returns changes.
+* `vignette("compose")` builds a coding sub-agent: a draft step, a visible
+  check, a revise step that reads it, and a held check last that only the
+  scorer sees, compared with the first draft alone. It also runs the two
+  goals the steps were written for, a recipe swept over a grid next to an
+  arm of your own and a chain with a judge step derived and swept, and says
+  why a stand-in model's handler must be stateless. A test builds the same
+  loop from exported names only, on four small tasks, and checks it with
+  `hr_check_module()`.
 
 ## Skills
 
