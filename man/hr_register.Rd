@@ -4,7 +4,15 @@
 \alias{hr_register}
 \title{Register a module of any kind}
 \usage{
-hr_register(kind, name, fn, ..., description = "", calls = NULL)
+hr_register(
+  kind,
+  name,
+  fn,
+  ...,
+  description = "",
+  calls = NULL,
+  version = NULL
+)
 }
 \arguments{
 \item{kind}{The kind of module, one string. A kind the package does not
@@ -14,7 +22,8 @@ know is an error of class \code{hr_unknown_kind}.}
 replaces the module.}
 
 \item{fn}{The module's function, with the arguments its kind calls it
-with (see the kind's own registration function).}
+with (see the kind's own registration function). For a protocol, the
+protocol object; for a step, a step or a function of \verb{(input, ctx)}.}
 
 \item{...}{The other arguments of the kind's own registration function,
 by name, such as \code{signature} for a reader or \code{extensions} for an
@@ -22,15 +31,22 @@ extractor. A segmenter also takes \code{effort_label}, a function of the
 segment spec that returns the trace label its model requests carry, or
 \code{""} when it sends none. A run's \code{effort} setting then reaches the
 segmenter as the effort for that label alone. Without it, the segmenter
-gets the run's whole effort map.}
+gets the run's whole effort map. A step takes the arguments of
+\code{\link[=hr_step]{hr_step()}}, such as \code{params}, \code{input} and \code{output}.}
 
 \item{description}{One-line description, shown by the kind's listing and
-by \code{\link[=hr_modules]{hr_modules()}}.}
+by \code{\link[=hr_modules]{hr_modules()}}. For a protocol, a non-empty description replaces the
+protocol's own.}
 
 \item{calls}{The stems of the trace labels the module's model calls
-carry, for the kinds that declare them (readers and segmenters). \code{NULL}
-(the default) declares the module's name. Any other value for a kind
-that does not declare calls is an error of class \code{gr_bad_setting}.}
+carry, for the kinds that declare them (readers, segmenters and steps).
+\code{NULL} (the default) declares the module's name for a reader or a
+segmenter and no stems for a step. Any other value for a kind that does
+not declare calls is an error of class \code{gr_bad_setting}.}
+
+\item{version}{The module's own version, one string, kept in the
+\code{version} field. \code{NULL} (the default) records \code{NA}, or, for a step, the
+step's own version.}
 }
 \value{
 Invisibly, \code{name}.
@@ -46,18 +62,33 @@ here as it is there. \code{\link[=hr_modules]{hr_modules()}} lists the kinds and
 The kinds the package brings, and the function each one goes through:
 \code{"extractor"} (\code{\link[=gr_register_extractor]{gr_register_extractor()}}), \code{"cleaner"}
 (\code{\link[=gr_register_cleaner]{gr_register_cleaner()}}), \code{"segmenter"} (\code{\link[=gr_register_segmenter]{gr_register_segmenter()}}),
-\code{"reader"} (\code{\link[=gr_register_reader]{gr_register_reader()}}) and \code{"embedder"}
-(\code{\link[=gr_register_embedder]{gr_register_embedder()}}). Protocols are not a kind of module; register
-one with \code{\link[=gr_register_protocol]{gr_register_protocol()}}.
+\code{"reader"} (\code{\link[=gr_register_reader]{gr_register_reader()}}), \code{"embedder"}
+(\code{\link[=gr_register_embedder]{gr_register_embedder()}}), \code{"protocol"} (\code{\link[=gr_register_protocol]{gr_register_protocol()}}) and
+\code{"step"}. For a protocol, \code{fn} is the protocol object from
+\code{\link[=gr_protocol]{gr_protocol()}}. For a step, \code{fn} is a step from \code{\link[=hr_step]{hr_step()}}, or a
+function of \verb{(input, ctx)} that \code{hr_register()} passes to \code{\link[=hr_step]{hr_step()}}
+with the name and the arguments in \code{...}.
+
+A module registered here records two more fields: \code{version}, the version
+you give, and \code{contract}, the version of the module contract the package
+implements, 0.2 in this release. Every listing shows them as its last two
+columns. A module registered through a kind's own function has \code{NA} in
+both, and its conformance check stays advisory.
 }
 \examples{
 # A segmenter that makes one chunk per line, registered by kind.
 hr_register("segmenter", "by_line", description = "one chunk per line",
+  version = "1.0.0",
   fn = function(doc, spec, client, trace) {
     new_chunks(strsplit(doc$text, "\n+")[[1]], "by_line", spec)
   })
-subset(hr_modules("segmenter"), name == "by_line")[, c("kind", "name", "cost")]
+subset(hr_modules("segmenter"), name == "by_line")[, c("kind", "name", "cost", "contract")]
 nrow(gr_segment(gr_example(), list(method = "by_line"))$chunks)
+
+# A step, registered by kind and listed with its input and output.
+hr_register("step", "shout", fn = function(input, ctx) toupper(input),
+  input = "answer", output = "state")
+hr_modules("step")[, c("name", "input", "output", "version", "contract")]
 
 # A kind the package does not know is refused.
 try(hr_register("ranker", "mine", fn = identity))

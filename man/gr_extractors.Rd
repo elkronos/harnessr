@@ -11,6 +11,9 @@ A data frame with \code{name}, \code{extensions}, \code{description}, \code{need
 packages the extractor cannot run without, comma-separated, \code{""} for none)
 and \code{available} (whether they are all installed now). OCR packages are not
 in \code{needs}: a PDF with a text layer reads without them.
+The last two columns are \code{version} and \code{contract}, \code{NA} for an extractor
+registered with \code{\link[=gr_register_extractor]{gr_register_extractor()}} and filled for one registered with
+\code{\link[=hr_register]{hr_register()}}.
 }
 \description{
 List registered extractors

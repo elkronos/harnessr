@@ -13,6 +13,9 @@ when \code{TRUE} and no client is supplied, \code{\link[=gr_segment]{gr_segment(
 segmenter falls back), \code{description}, and \code{calls}, the stems of the
 labels its model calls carry, joined by commas (empty for one that makes
 none).
+The last two columns are \code{version} and \code{contract}, \code{NA} for a segmenter
+registered with \code{\link[=gr_register_segmenter]{gr_register_segmenter()}} and filled for one registered with
+\code{\link[=hr_register]{hr_register()}}.
 }
 \description{
 The catalogue for axis 2. Use it to see which strategies are free, which

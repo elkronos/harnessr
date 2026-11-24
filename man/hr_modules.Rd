@@ -18,12 +18,16 @@ the kinds were registered and by name within a kind: \code{kind}, \code{name},
 declares (\code{character(0)} for none). With \code{kind}, it also has a column
 for each other setting the kind's modules were registered with, except
 functions; a setting with more than one value per module, such as an
-extractor's \code{extensions}, is a list column.
+extractor's \code{extensions}, is a list column. The last two columns are
+always \code{version} and \code{contract} (character): the module's version and
+the module contract it was registered under with \code{\link[=hr_register]{hr_register()}}, \code{NA}
+for a module registered through its kind's own function.
 }
 \description{
 One table across the kinds of module: each registered extractor, cleaner,
-segmenter, reader and embedder, with its description and the call stems
-it declares. Ask for one kind to add the columns only that kind has, such
+segmenter, reader, embedder, protocol and step, with its description, the
+call stems it declares, its version and the contract it was registered
+under. Ask for one kind to add the columns only that kind has, such
 as a reader's \code{signature} or an extractor's \code{extensions}. The kind's own
 listing, such as \code{\link[=gr_readers]{gr_readers()}}, keeps its own shape and is unchanged.
 }

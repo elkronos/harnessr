@@ -354,22 +354,24 @@ kind first; the other arguments are those of that kind's own function, so
 the same checks. This reader answers from the shortest chunk:
 
 ```{r}
+shortest <- function(chunks, question, client, spec, trace) {
+  d <- chunks$chunks
+  i <- which.min(d$tokens)
+  res <- gr_call(client, list(
+    list(role = "user", content = paste0(d$text[i], "\n\nQuestion: ", question))),
+    model = spec$model, effort = spec$effort, trace = trace,
+    label = "shortest.answer")
+  new_answer(res$text, "shortest", question, d$chunk_id[i], trace)
+}
 hr_register("reader", "shortest", signature = "one|1|none", cost_calls = "1",
   description = "answer from the shortest chunk only", calls = "shortest.answer",
-  fn = function(chunks, question, client, spec, trace) {
-    d <- chunks$chunks
-    i <- which.min(d$tokens)
-    res <- gr_call(client, list(
-      list(role = "user", content = paste0(d$text[i], "\n\nQuestion: ", question))),
-      model = spec$model, effort = spec$effort, trace = trace,
-      label = "shortest.answer")
-    new_answer(res$text, "shortest", question, d$chunk_id[i], trace)
-  })
+  fn = shortest)
 ```
 
-The kinds are `"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"` and
-`"embedder"`. Any other kind is an error of class `hr_unknown_kind`, and a
-module the kind's own function would refuse is refused here too:
+The kinds are `"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"`,
+`"embedder"`, `"protocol"` and `"step"`. Any other kind is an error of class
+`hr_unknown_kind`, and a module the kind's own function would refuse is
+refused here too:
 
 ```{r}
 tryCatch(hr_register("reader", "auto", fn = identity, signature = "one|1|none"),
@@ -389,7 +391,29 @@ r[r$name %in% c("longest", "shortest"), c("name", "signature", "calls")]
 
 The listings such as `gr_readers()` keep their own columns, and a module you
 register with `hr_register()` appears in them as one registered with the
-kind's own function does.
+kind's own function does. Each listing ends with two more columns: `version`,
+the version you gave `hr_register()`, and `contract`, the module contract it
+was registered under. A module registered with a `gr_register_*()` function
+has `NA` in both. Pass `version` when you register, and the listings show which
+version of your module is in place:
+
+```{r}
+hr_register("reader", "shortest", signature = "one|1|none", cost_calls = "1",
+  description = "answer from the shortest chunk only", calls = "shortest.answer",
+  version = "1.1.0", fn = shortest)
+r <- gr_readers()
+r[r$name %in% c("longest", "shortest"), c("name", "version", "contract")]
+```
+
+A step from `hr_step()` registers the same way, under the kind `"step"`. Its
+version is the step's own unless you give another:
+
+```{r}
+hr_register("step", "shout", fn = hr_step("shout", function(input, ctx) toupper(input),
+                                          input = "answer", output = "state",
+                                          version = "0.2.0"))
+hr_modules("step")[, c("name", "input", "output", "version", "contract")]
+```
 
 A segmenter that calls a model can also take `effort_label` through
 `hr_register()`: a function of the segment spec that returns the label its

@@ -11,6 +11,9 @@ A data frame with one row per embedder: \code{name}, \code{deterministic}
 (\code{"TRUE"}/\code{"FALSE"}) and \code{description}. \code{deterministic} is the column that
 matters for reproducibility: only a deterministic embedder lets a
 \code{\link[=gr_replay_client]{gr_replay_client()}} reproduce a run's chunk ranking.
+The last two columns are \code{version} and \code{contract}, \code{NA} for an embedder
+registered with \code{\link[=gr_register_embedder]{gr_register_embedder()}} and filled for one registered with
+\code{\link[=hr_register]{hr_register()}}.
 }
 \description{
 List registered embedding backends

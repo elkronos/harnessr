@@ -818,6 +818,33 @@ shows a mode in use.
   its rules under each mock mode, and every reader keeps to a call cap of
   0, 1 and 3. These checks are internal.
 
+## Module contract 0.2
+
+Nothing here changes a default or adds a setting, and no request or cache
+key changes. The new columns come last in each listing, so code that picks
+columns by name or by position reads what it read before. CONTRACT.md lists
+every field that changed.
+
+* The module contract moves to 0.2. A conformance report's `contract`
+  attribute now says 0.2.
+* `"protocol"` and `"step"` are kinds. `hr_register("protocol", name, fn =
+  protocol)` registers a protocol from `gr_protocol()` through
+  `gr_register_protocol()`. `hr_register("step", name, fn)` registers a
+  step from `hr_step()`, or builds one from a function of `(input, ctx)`
+  and the arguments you pass. The package registers no step at load.
+  `hr_modules()` lists both kinds.
+* `hr_register()` gains `version`, and every registry entry has `version`
+  and `contract` fields. A module you register with `hr_register()` records
+  the version you give and contract 0.2; one you register with a
+  `gr_register_*()` function records `NA` in both.
+* `gr_readers()`, `gr_segmenters()`, `gr_cleaners()`, `gr_extractors()`,
+  `gr_embedders()`, `gr_protocols()` and `hr_modules()` end with the
+  columns `version` and `contract`. The built-in segmenters register
+  through `hr_register()`, so they show contract 0.2.
+* Signal calibrations keep their own contract version at 0.1. A key
+  without `contract_version` is still filled with "0.1", so a calibration
+  record you saved stays valid under `hr_calibration_valid()`.
+
 ## Fixed
 
 * The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
