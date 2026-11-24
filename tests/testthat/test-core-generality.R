@@ -40,6 +40,14 @@ test_that("one run of the loop passes hr_check_module() with the loop's rules", 
   expect_s3_class(report, "hr_conformance")
   expect_identical(report$rule, c("is_function", "runs", names(loop_rules())))
   expect_true(all(report$ok), info = paste(report$rule, report$detail, collapse = "; "))
+  # The core's step rules hold for the loop too: its held check is last and
+  # attaches its result.
+  ctx_steps <- loop_ctx(loop_client())
+  steps <- hr_check_module(chain$run, run = function() chain$run(item, ctx_steps),
+                           rules = harnessr:::hr_rules_step(chain), kind = "chain",
+                           name = chain$name)
+  expect_true(steps$ok[steps$rule == "held_attached"])
+  expect_identical(steps$rule[!is.na(steps$ok) & !steps$ok], character(0))
   # The draft failed its visible check, so the model was asked to fix it.
   expect_length(cl$calls(), 2L)
   expect_match(cl$calls()[[2]]$messages[[1]]$content, "failed its tests", fixed = TRUE)

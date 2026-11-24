@@ -704,3 +704,55 @@ chain_check_order <- function(steps, what) {
   }
   invisible(NULL)
 }
+
+#' The rules a step or a chain must meet, for hr_check_module(): it returns
+#' something, it returns what it declares (for a chain, what its last step
+#' that declares an output returns), and every held step at its end attaches
+#' its result in attr(output, "hr_held"). A rule that has nothing to check
+#' says NA. `x` is an hr_step or an arm built by hr_chain().
+#' @noRd
+hr_rules_step <- function(x) {
+  steps <- if (inherits(x, "hr_step")) list(x) else attr(x, "hr_steps", exact = TRUE)
+  if (!is.list(steps) || !length(steps)) {
+    gr_abort("`x` must be a step from hr_step() or a chain from hr_chain().",
+             class = "gr_bad_setting")
+  }
+  names(steps) <- vapply(seq_along(steps), function(i) {
+    nm <- names(steps)[i]
+    if (is.null(nm) || !nzchar(nm)) attr(steps[[i]], "name", exact = TRUE) else nm
+  }, character(1))
+  outputs <- Filter(Negate(is.null), lapply(steps, attr, which = "output", exact = TRUE))
+  declared <- if (length(outputs)) outputs[[length(outputs)]] else NULL
+  held <- names(steps)[vapply(steps, step_held, logical(1))]
+  list(
+    returns_value = function(v) list(ok = !is.null(v),
+                                     detail = if (is.null(v)) "returned NULL" else ""),
+    declared_output = function(v) {
+      if (is.null(declared)) return(list(ok = NA, detail = "not checked: no output declared"))
+      ok <- step_output_is(v, declared)
+      list(ok = ok, detail = if (ok) "" else
+        sprintf("declared \"%s\" but returned class %s", declared,
+                paste(class(v), collapse = "/")))
+    },
+    held_attached = function(v) {
+      if (!length(held)) return(list(ok = NA, detail = "not checked: no held step"))
+      got <- attr(v, "hr_held", exact = TRUE)
+      bad <- held[!vapply(held, function(h) {
+        is.list(got) && inherits(got[[h]], "hr_command_result")
+      }, logical(1))]
+      list(ok = !length(bad), detail = if (length(bad))
+        sprintf("no held result for %s", paste0("'", bad, "'", collapse = ", ")) else "")
+    })
+}
+
+#' Whether a value is of the kind a step declares it returns. The classes are
+#' those the document layer gives its objects; "state" is anything.
+#' @noRd
+step_output_is <- function(v, kind) {
+  switch(kind,
+    document = is.character(v) && length(v) >= 1L,
+    doc = inherits(v, "gr_document"),
+    chunks = inherits(v, "gr_chunks"),
+    answer = inherits(v, "gr_answer"),
+    TRUE)
+}
