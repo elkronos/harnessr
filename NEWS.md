@@ -873,6 +873,15 @@ every field that changed.
   it. A batch through `gr_mock_client()` sets no key. Requests and cache keys
   do not change.
 
+* A `gr_claims`, `gr_synthesis` or `gr_calibration` you saved with an earlier
+  version gets the fields added since filled with their defaults when
+  `gr_gaps()`, `gr_outline()`, `gr_synthesise()`, `gr_recheck()`,
+  `gr_audit_report()` or `print()` reads it. Each one gives the output it gave
+  for that object before, and `gr_recheck()` returns the filled object. A
+  hand-built object such as `structure(list(table = tab), class =
+  "gr_screening")` passes through unchanged. Requests and cache keys do not
+  change.
+
 * The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
   cuts at a Markdown heading such as `## References` or `### 7. References`,
   with or without closing `#` marks, and not at a line inside a fenced code
