@@ -1571,7 +1571,6 @@
 "seg_structural","doc","function"
 "seg_trace_mark","doc","function"
 "seg_window_error","doc","function"
-"segment_effort_label","doc","function"
 "segment_settings","doc","function"
 "segmenter_cost","doc","function"
 "sentence_clauses","doc","function"

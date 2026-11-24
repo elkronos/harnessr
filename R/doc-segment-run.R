@@ -427,23 +427,6 @@ as_segment_spec <- function(spec) {
   gr_abort("`segment` must be a gr_segment_spec, a segmenter name, or a named list.")
 }
 
-#' The label a built-in segmenter's requests carry: "" for one that sends
-#' none, and NA for any other segmenter, including another function registered
-#' under a built-in's name. By function, not by name, for that reason.
-#' @noRd
-segment_effort_label <- function(segment) {
-  fn <- gr_state$segmenters[[as_chr1(segment$method, "")]]$fn
-  if (is.null(fn)) return(NA_character_)
-  is_fn <- function(f) identical(fn, f)
-  if (is_fn(seg_proposition)) return("segment.proposition")
-  if (is_fn(seg_contextual)) {
-    return(if (identical(as_chr1(segment$context_source, ""), "llm")) "segment.context" else "")
-  }
-  silent <- list(seg_fixed, seg_paragraph, seg_sentence, seg_recursive, seg_structural, seg_page,
-                 seg_semantic)
-  if (any(vapply(silent, is_fn, logical(1)))) "" else NA_character_
-}
-
 #' Register a segmentation strategy
 #'
 #' Axis 2 is a registry, so "where does meaning break in this document?" is a
