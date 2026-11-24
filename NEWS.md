@@ -866,6 +866,13 @@ every field that changed.
 
 ## Fixed
 
+* A worker in a parallel batch sets `OPENAI_API_KEY` for each item and
+  puts back the value it had when the item ends, so the key no longer stays
+  in the worker process after its item. A backend handler or
+  `gr_ellmer_client()` that reads the key from the environment still gets
+  it. A batch through `gr_mock_client()` sets no key. Requests and cache keys
+  do not change.
+
 * The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
   cuts at a Markdown heading such as `## References` or `### 7. References`,
   with or without closing `#` marks, and not at a line inside a fenced code
