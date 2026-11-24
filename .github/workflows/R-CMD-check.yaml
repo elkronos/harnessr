@@ -10,14 +10,19 @@ on:
 permissions:
   contents: read
 
+# One group per pull request and one per commit otherwise. A new push to a
+# pull request cancels its older run; a push to main never cancels the run
+# of an earlier merge, so every push to main gets its own result.
 concurrency:
-  group: check-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.os }} (R ${{ matrix.config.r }})
+    # The longest successful job seen took 44 minutes, most of it in setup.
+    timeout-minutes: 60
 
     strategy:
       fail-fast: false
@@ -30,9 +35,9 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-      # Optional packages (pdftools, tesseract, magick, xml2, ...) gate features
-      # the test suite does not exercise. Requiring them would mean installing
-      # poppler, leptonica and ImageMagick on every runner for no coverage gain.
+      # Optional packages (pdftools, tesseract, magick, xml2, ...) are not
+      # installed here, so their tests skip. tests.yaml installs xml2; the rest
+      # need poppler, leptonica or ImageMagick on every runner.
       _R_CHECK_FORCE_SUGGESTS_: false
       # No key on CI: every test uses the offline mock client, so a leaked or
       # missing key must never change the outcome.

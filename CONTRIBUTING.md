@@ -37,6 +37,34 @@ the repository root, and only when you mean to change what they record:
 check locally; the modes are `tests`, `deps`, `lint`, `namespace` and
 `commits`.
 
+### Checks on GitHub
+
+A pull request runs these workflows:
+
+| Workflow | Check names | What it runs |
+|---|---|---|
+| `R-CMD-check.yaml` | `macos-latest (R release)`, `ubuntu-latest (R release)`, `ubuntu-latest (R oldrel-1)` | `R CMD check` with hard dependencies; a warning fails it |
+| `tests.yaml` | `tests` | the suite with `future`, `future.apply`, `ellmer` and `xml2` installed, from the source tree, then the README and guide checks described above |
+| `pr-checks.yaml` | `pull request checks` | the `tests`, `deps`, `namespace` and `commits` modes, one step each; every step runs even when an earlier one fails, and the step name says which check failed |
+| `pr-lint.yaml` | `lint changed R files` | the `lint` mode |
+| `pkgdown.yaml` | `pkgdown` | builds the site without publishing it, only when the pull request changes a file the site is built from (the list is in the workflow) |
+
+Adding or removing a label reruns `pr-checks.yaml`, so a label added after
+review turns its check green without a new push. Lint reads no label, so a
+label change does not rerun it; a push or a reopen does. A new push to a pull request cancels the older runs
+of the same workflow. On `main`, each merge gets its own run of
+`R-CMD-check.yaml` and `tests.yaml`, and `pkgdown.yaml` builds and publishes
+the site from the newest push to `main`.
+
+`pr-checks.yaml` used to run five checks: `no weakened tests`,
+`no unreviewed dependencies`, `lint changed R files`,
+`no unreviewed export removals` and `no attribution in commit messages`.
+Four of them are now steps of `pull request checks`, and
+`lint changed R files` comes from `pr-lint.yaml`. A branch rule or ruleset
+that requires the old names needs updating. Do not require `pkgdown`: a
+pull request that changes none of its files never starts it, and a required
+check that never starts stays pending.
+
 ### What must stay true
 
 - **Requests and cache keys do not move at the defaults.** With every

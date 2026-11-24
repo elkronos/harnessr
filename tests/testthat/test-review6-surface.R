@@ -439,3 +439,37 @@ test_that("run-tests.sh needs every package harnessr imports, and knitr for --ch
   expect_false("knitr" %in% got)
   expect_true(all(c("knitr", "rmarkdown") %in% needs("--check", "--deps")))
 })
+
+# ---------------------------------------------------------------------------
+# A pull request that changes a Markdown page the site renders builds the site.
+# ---------------------------------------------------------------------------
+
+test_that("the pkgdown pull request filter covers every Markdown page the site renders", {
+  skip_on_cran()
+  wf <- source_file(".github", "workflows", "pkgdown.yaml")
+  skip_if(is.null(wf), "the workflow is not available")
+  root <- dirname(dirname(dirname(wf)))
+  y <- readLines(wf, warn = FALSE)
+  at <- grep("^\\s+paths:\\s*$", y)
+  expect_length(at, 1L)
+  rest <- y[seq.int(at + 1L, length(y))]
+  items <- rest[seq_len(match(FALSE, grepl("^\\s+- ", rest)) - 1L)]
+  globs <- gsub("^\\s+- '?|'?\\s*$", "", items)
+  # GitHub path globs: "**" crosses folders, "*" stays inside one.
+  rx <- paste0("^", gsub("\\.", "\\\\.", globs), "$")
+  rx <- gsub("**", "\001", rx, fixed = TRUE)
+  rx <- gsub("*", "[^/]*", rx, fixed = TRUE)
+  rx <- gsub("\001", ".*", rx, fixed = TRUE)
+  covered <- function(f) any(vapply(rx, grepl, logical(1), x = f))
+
+  # pkgdown's build_home_md() renders every top-level and .github Markdown
+  # file apart from these, and README.md and NEWS.md become index and news.
+  skipped <- c("LICENSE.md", "LICENCE.md", "cran-comments.md", "404.md")
+  pages <- c(list.files(root, pattern = "\\.md$"),
+             file.path(".github", list.files(file.path(root, ".github"), pattern = "\\.md$")))
+  pages <- setdiff(pages, skipped)
+  expect_true(all(c("CONTRACT.md", "NOTES-primitives.md", "README.md") %in% pages))
+  for (p in pages) expect_true(covered(p), info = p)
+  expect_true(covered("R/core-request.R"))
+  expect_false(covered("tests/testthat/test-boundary.R"))
+})

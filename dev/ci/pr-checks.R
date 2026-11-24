@@ -1,5 +1,6 @@
-# Pull request hygiene checks, run by .github/workflows/pr-checks.yaml and
-# runnable by hand against any two git refs:
+# Pull request hygiene checks, run by .github/workflows/pr-checks.yaml (lint
+# by .github/workflows/pr-lint.yaml) and runnable by hand against any two git
+# refs:
 #
 #   Rscript dev/ci/pr-checks.R tests     <base> <head>
 #   Rscript dev/ci/pr-checks.R deps      <base> <head>

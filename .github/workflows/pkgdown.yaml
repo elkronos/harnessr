@@ -4,11 +4,29 @@
 # Pull requests build the site without publishing it, so a guide that fails to
 # knit shows up before it is merged. The guides run offline with a stand-in
 # model, so no API key is needed; OPENAI_API_KEY is set empty to make sure of it.
+#
+# A pull request builds the site only when it changes a file the site is made
+# from: the code and its help pages, the guides, the installed files they
+# read, LICENSE, and every top-level Markdown page pkgdown renders (README,
+# NEWS, CONTRIBUTING, CONTRACT, NOTES-primitives). A push to main builds and
+# publishes, unless a newer push to main replaces it while it waits.
 on:
   push:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+    paths:
+      - 'R/**'
+      - 'man/**'
+      - 'vignettes/**'
+      - 'inst/**'
+      - '*.md'
+      - '.github/*.md'
+      - 'LICENSE'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '_pkgdown.yml'
+      - '.github/workflows/pkgdown.yaml'
   release:
     types: [published]
   workflow_dispatch:
@@ -20,10 +38,15 @@ permissions: read-all
 jobs:
   pkgdown:
     runs-on: ubuntu-latest
-    # One publishing run at a time; pull requests do not publish, so they do
-    # not need to wait for each other.
+    # A slow package mirror once held a successful build for 64 minutes.
+    timeout-minutes: 75
+    # One publishing run at a time. A running publish is never cancelled; if
+    # several pushes arrive while it runs, only the newest waits and
+    # publishes. A pull request does not publish: a new push to it cancels its
+    # older build.
     concurrency:
-      group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
+      group: pkgdown-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'true' }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       OPENAI_API_KEY: ''

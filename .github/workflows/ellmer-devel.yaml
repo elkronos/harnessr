@@ -9,6 +9,7 @@ name: ellmer-devel
 
 on:
   schedule:
+    # Scheduled runs start hours after the cron time (validation: 7.2 to 10.6 h, Nov 2026).
     - cron: '41 5 * * 1'
   workflow_dispatch:
 
@@ -22,6 +23,7 @@ concurrency:
 jobs:
   ellmer-devel:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       OPENAI_API_KEY: ''
