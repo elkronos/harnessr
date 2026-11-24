@@ -4,11 +4,29 @@
 # Pull requests build the site without publishing it, so a guide that fails to
 # knit shows up before it is merged. The guides run offline with a stand-in
 # model, so no API key is needed; OPENAI_API_KEY is set empty to make sure of it.
+#
+# A pull request builds the site only when it changes a file the site is made
+# from: the code and its help pages, the guides, the installed files they
+# read, and the pages pkgdown copies (README, NEWS, CONTRIBUTING, LICENSE).
+# A push to main always builds and publishes.
 on:
   push:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+    paths:
+      - 'R/**'
+      - 'man/**'
+      - 'vignettes/**'
+      - 'inst/**'
+      - 'README.md'
+      - 'NEWS.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '_pkgdown.yml'
+      - '.github/workflows/pkgdown.yaml'
   release:
     types: [published]
   workflow_dispatch:

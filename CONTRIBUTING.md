@@ -47,7 +47,7 @@ A pull request runs these workflows:
 | `tests.yaml` | `tests` | the suite with `future`, `future.apply` and `ellmer` installed, from the source tree, then the README and guide checks described above |
 | `pr-checks.yaml` | `pull request checks` | the `tests`, `deps`, `namespace` and `commits` modes, one step each; every step runs even when an earlier one fails, and the step name says which check failed |
 | `pr-lint.yaml` | `lint changed R files` | the `lint` mode |
-| `pkgdown.yaml` | `pkgdown` | builds the site without publishing it |
+| `pkgdown.yaml` | `pkgdown` | builds the site without publishing it, only when the pull request changes a file the site is built from (the list is in the workflow) |
 
 Adding or removing a label reruns `pr-checks.yaml`, so a label added after
 review turns its check green without a new push. Lint reads no label and
@@ -61,7 +61,9 @@ the site on every push.
 `no unreviewed export removals` and `no attribution in commit messages`.
 Four of them are now steps of `pull request checks`, and
 `lint changed R files` comes from `pr-lint.yaml`. A branch rule or ruleset
-that requires the old names needs updating.
+that requires the old names needs updating. Do not require `pkgdown`: a
+pull request that changes none of its files never starts it, and a required
+check that never starts stays pending.
 
 ### What must stay true
 
