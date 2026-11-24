@@ -106,6 +106,12 @@ test_that("a step can be registered by kind, listed and checked", {
                class = "gr_bad_setting")
   expect_error(hr_register("step", "odd", fn = function(input, ctx) 1, calls = NA_character_),
                class = "gr_bad_setting")
+  expect_error(hr_register("step", "odd", fn = function(input, ctx) 1, calls = ""),
+               class = "gr_bad_setting")
+  expect_error(hr_register("step", "odd", fn = function(input, ctx) 1, calls = "a b"),
+               class = "gr_bad_setting")
+  hr_register("step", "twice", fn = function(input, ctx) input, calls = c("x", "x"))
+  expect_identical(subset(hr_modules(), kind == "step" & name == "twice")$calls, list("x"))
   expect_error(hr_register("step", "odd", fn = "not a function"), class = "hr_bad_step")
   expect_error(harnessr:::registry_get("step", "odd"), "Unknown step 'odd'")
 })

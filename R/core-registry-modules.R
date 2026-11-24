@@ -227,10 +227,15 @@ register_step <- function(name, fn, ..., description = "", calls = NULL, version
   if (!is.character(description) || length(description) != 1L || is.na(description)) {
     gr_abort("`description` must be one string.", class = "gr_bad_setting")
   }
-  if (!is.null(calls) && (!is.character(calls) || anyNA(calls) || !all(has_visible(calls)))) {
-    gr_abort("`calls` must be a character vector of non-empty stems, or NULL.",
+  # The rule the document layer's kinds apply to their call stems: no blanks,
+  # no whitespace, each stem once.
+  if (!is.null(calls) && (!is.character(calls) || anyNA(calls) || !all(has_visible(calls)) ||
+                          any(grepl("\\s", calls)))) {
+    gr_abort(paste0("`calls` must be a character vector of call label stems, such as ",
+                    "c(\"mine.score\", \"mine.answer\"), with no blanks or spaces."),
              class = "gr_bad_setting")
   }
+  if (!is.null(calls)) calls <- unique(calls)
   step <- if (inherits(fn, "hr_step")) {
     if (...length()) {
       gr_abort("Give the settings of a step built with hr_step() to hr_step(), not here.",
