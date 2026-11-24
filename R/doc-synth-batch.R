@@ -608,9 +608,10 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
     # under a `bib` that withheld less were drawn by a model shown those
     # columns, so a claim, or the moderator it names, can carry one into every
     # section that argues it -- a first author in the claim text, in front of
-    # a writer this run is keeping from naming one. gr_upgrade_stage() gives a
-    # claims table made before it recorded what it withheld the conventional
-    # names, which is what it withheld.
+    # a writer this run is keeping from naming one. For a claims table made
+    # before it recorded what it withheld, gr_upgrade_stage() fills `hidden`
+    # with the conventional bibliographic names, which are what such a table
+    # withheld.
     had <- claims$hidden
     shown <- setdiff(unlist(bib_columns(used, bib), use.names = FALSE), had)
     if (length(shown)) {

@@ -30,10 +30,10 @@
 #' holds it, and print() works it out from the counts. The readers keep their
 #' checks for those.
 #'
-#' It is lenient. It never aborts, adds no class, and leaves alone an object it
-#' cannot read, such as `structure(list(table = tab), class = "gr_screening")`:
-#' a gr_screening or gr_extraction has no fields to fill. An object made by
-#' this version comes back unchanged.
+#' It never aborts and adds no class. A gr_screening or gr_extraction has no
+#' fields to fill, so it comes back as it is, hand-built ones such as
+#' `structure(list(table = tab), class = "gr_screening")` included. An object
+#' made by this version comes back unchanged.
 #' @param x Any object; stage objects are upgraded, anything else is returned
 #'   as it is.
 #' @return `x`, with the missing fields filled.
