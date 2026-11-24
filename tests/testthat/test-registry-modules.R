@@ -90,6 +90,12 @@ test_that("hr_register() runs the checks of the kind's own function", {
                class = "gr_bad_setting")
   expect_error(hr_register("cleaner", "probe_cl", fn = function(x, o) x, colour = "red"),
                "unused argument")
+  expect_error(hr_register("embedder", "probe_em", fn = function(texts, params) 1,
+                           calls = "x"), class = "gr_bad_setting")
+  expect_error(hr_register("extractor", "probe_ex", fn = function(path, ...) NULL,
+                           calls = "x"), class = "gr_bad_setting")
+  expect_false("probe_em" %in% names(harnessr:::gr_state$embedders))
+  expect_false("probe_ex" %in% names(harnessr:::gr_state$extractors))
   expect_false(any(c("auto", "probe_a") %in% names(harnessr:::gr_state$readers)))
   expect_false("probe_sg" %in% names(harnessr:::gr_state$segmenters))
   expect_false("probe_cl" %in% names(harnessr:::gr_state$cleaners))
@@ -141,6 +147,13 @@ test_that("get and set are kept apart from the kinds table", {
   expect_identical(m$name, "one")
   expect_identical(m$calls, list("one.call"))
   expect_identical(tail(hr_modules()$kind, 1), "probe")
+  # A kind without the accessor asked for is an unknown kind for that use.
+  expect_error(harnessr:::check_kind("probe", "one"), class = "hr_unknown_kind")
+  expect_error(harnessr:::check_kind("probe", "one"), "Kinds you can check: [^.]*step\\.$")
+  harnessr:::hr_register_kind("noget", registry = "nogets", get = NULL, set = NULL)
+  expect_error(hr_modules("noget"), class = "hr_unknown_kind")
+  expect_error(hr_register("noget", "x", fn = identity), class = "hr_unknown_kind")
+  expect_false("noget" %in% hr_modules()$kind)
   expect_error(harnessr:::hr_register_kind("bad", get = 1), "function or NULL")
 })
 
