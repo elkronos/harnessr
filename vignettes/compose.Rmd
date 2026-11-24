@@ -323,13 +323,13 @@ program you name and reads its result as `"passed"` or `"failed"`.
 The loop has two checks. A visible check runs after the draft, and the
 revise step reads its result in `input$check`. A held check runs last, and
 only the scorer sees it, in `attr(output, "hr_held")`. A revise step that saw
-the check that scores it would be fixing the score, not the code, so a held
-step must come last: `hr_chain()` refuses a step that is not held after one
+the scoring check could fit the code to that check, so a held step must
+come last: `hr_chain()` refuses a step that is not held after one
 that is (`hr_held_not_last`). Here the visible and the held check run the
-same tests; a held check can just as well run tests the loop never sees.
+same tests; a held check can also run tests the loop never sees.
 
 The tests and the drafts go in a temporary folder. The stand-in model drafts
-a `clamp()` with a bug, and writes it correctly when told the draft failed:
+a `clamp()` with a bug, and sends the fixed version when told the draft failed:
 
 ```{r}
 rscript <- file.path(R.home("bin"), "Rscript")
@@ -413,8 +413,8 @@ same benchmark would score differently from one run to the next.
 
 ### Run your own tests on the recipes
 
-A recipe swept over a grid of its settings, next to an arm of your own, on
-the same questions and under one spending limit. `hr_sweep()` given a
+This goal sweeps a recipe over a grid of its settings and runs your own arm
+beside it, on the same questions and under one spending limit. `hr_sweep()` given a
 function builds one arm per row of the grid, and each arm records its
 settings as `param.*` columns:
 
@@ -437,14 +437,15 @@ settings, so `aggregate()` leaves its rows out. The second has one row per
 arm, yours included, so it compares the grid with your arm.
 
 The example document is short. Cut into chunks of 200 tokens, a `top_k` of 4
-already keeps every chunk, and cut into chunks of 500 tokens, a `top_k` of 2
+keeps every chunk, and cut into chunks of 500 tokens, a `top_k` of 2
 does. `hr_sweep_check()` finds the arms that sent the same requests as
-another: those rows compare a configuration with itself, not two settings.
+another. Those rows compare a configuration with itself.
 
 ### Chain steps into a sub-agent of your own
 
-A chain with a judge step, the same chain without it, and the chain swept
-over `top_k`, run through a cache. The judge step grades the answer against
+This goal compares a chain that has a judge step with the same chain
+without it, and sweeps the chain over `top_k`. A cache answers any request
+sent twice. The judge step grades the answer against
 a rubric with `ctx$judge()` and records the verdict with `ctx$note()`:
 
 ```{r}
