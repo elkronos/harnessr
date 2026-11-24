@@ -104,7 +104,7 @@ gr_register_cleaner <- function(name, fn, stage = c("early", "late"), descriptio
 #' # The steps the "standard" preset runs:
 #' subset(gr_cleaners(), default_on)$name
 gr_cleaners <- function() {
-  reg <- gr_state$cleaners
+  reg <- registry_get("cleaner")
   if (!length(reg)) return(data.frame())
   df <- do.call(rbind, lapply(reg, function(e) data.frame(
     name = e$name, stage = e$stage, scope = e$scope %||% "block", default_on = e$default_on,
@@ -165,7 +165,7 @@ gr_clean <- function(text, steps = NULL, opts = list()) {
   # because of the locale R started in. Label once, here, so every step below
   # sees the same text everywhere.
   text <- mark_utf8(text)
-  reg <- gr_state$cleaners
+  reg <- registry_get("cleaner")
   if (is.null(steps)) {
     steps <- names(reg)[vapply(reg, function(e) isTRUE(e$default_on), logical(1))]
   }

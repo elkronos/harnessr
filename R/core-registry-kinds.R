@@ -104,9 +104,19 @@ registry_set <- function(slot, name, entry, state) {
   invisible(name)
 }
 
+#' One entry of a registry, or an error of class `gr_unknown_method` naming
+#' the registered ones.
+#'
+#' With `state`, `slot` is the registry's slot in that environment. With
+#' `state` left NULL, `slot` is a kind of module, such as "reader", and the
+#' registry is read through the `get` its layer gave hr_register_kind(); a
+#' kind no layer registered is an error of class `hr_unknown_kind`. With
+#' `name` left out, the whole registry comes back, in the order its entries
+#' were registered.
 #' @noRd
-registry_get <- function(slot, name, what = slot, state) {
-  reg <- state[[slot]]
+registry_get <- function(slot, name, what = slot, state = NULL) {
+  reg <- if (is.null(state)) kind_access(slot, "get")() else state[[slot]]
+  if (missing(name)) return(reg)
   if (!is_nonblank(name) || is.null(reg[[name]])) {
     gr_abort(sprintf("Unknown %s '%s'. Registered: %s.",
                      sub("s$", "", what), as_chr1(name, "<missing>"),

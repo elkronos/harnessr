@@ -131,7 +131,7 @@ gr_register_reader <- function(name, fn, signature, description = "", cost_calls
 #' r[order(r$signature), c("name", "signature", "cost_calls")]
 gr_readers <- function() {
   with_calls(registry_table("readers", c("signature", "cost_calls", "description"),
-                            state = gr_state), gr_state$readers)
+                            state = gr_state), registry_get("reader"))
 }
 
 #' A registry table with each module's declared call stems added, joined by
@@ -171,13 +171,13 @@ with_calls <- function(df, reg) {
 #' gr_reader_signature(gr_read_spec("ensemble", members = c("retrieve", "refine")))
 gr_reader_signature <- function(reader) {
   if (inherits(reader, "gr_read_spec")) {
-    base <- registry_get("readers", reader$reader, "readers", state = gr_state)$signature
+    base <- registry_get("reader", reader$reader)$signature
     if (identical(reader$reader, "ensemble")) {
       base <- paste0(base, "{", paste(sort(reader$members %||% character(0)), collapse = "+"), "}")
     }
     return(base)
   }
-  registry_get("readers", as_chr1(reader), "readers", state = gr_state)$signature
+  registry_get("reader", as_chr1(reader))$signature
 }
 
 #' Describe a reading configuration
@@ -738,7 +738,7 @@ gr_read_spec <- function(reader = "map_reduce", model = NULL, temperature = NULL
   # Only when not the default, for the same reason.
   nondefault_params(p, .gr_read_schema, .gr_read_late_params),
   list(...)), class = "gr_read_spec")
-  registry_get("readers", spec$reader, "readers", state = gr_state)   # fail fast on a typo
+  registry_get("reader", spec$reader)   # fail fast on a typo
   # Asked of a reader that answers no question, the check would silently do
   # nothing; say so once, where the spec is made.
   if (isTRUE(p$premise) && as_chr1(p$reader, "") %in% c("screen", "extract")) {

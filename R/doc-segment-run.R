@@ -329,7 +329,7 @@ gr_segment <- function(doc, spec = NULL, client = NULL, trace = NULL) {
   trace <- trace %||% gr_trace(meta = list(stage = "segment"))
   if (!inherits(doc, "gr_document")) doc <- gr_ingest(doc, trace = trace)
   spec <- as_segment_spec(spec)
-  seg <- registry_get("segmenters", spec$method, "segmenters", state = gr_state)
+  seg <- registry_get("segmenter", spec$method)
   rec <- warning_recorder()
 
   gr_msg(sprintf("Segmenting with '%s' (cap %d tokens, overlap %d).",
@@ -524,5 +524,5 @@ gr_register_segmenter <- function(name, fn, description = "",
 #' subset(gr_segmenters(), cost != "free" | needs_client == "TRUE")[, 1:3]
 gr_segmenters <- function() {
   with_calls(registry_table("segmenters", c("cost", "needs_client", "description"),
-                            state = gr_state), gr_state$segmenters)
+                            state = gr_state), registry_get("segmenter"))
 }

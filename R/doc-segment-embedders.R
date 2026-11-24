@@ -99,11 +99,11 @@ resolve_embedder <- function(client, embedder = NULL) {
     if (is.function(embedder)) {
       return(list(name = "custom", fn = embedder, deterministic = FALSE))
     }
-    return(registry_get("embedders", as_chr1(embedder), "embedder", state = gr_state))
+    return(registry_get("embedder", as_chr1(embedder)))
   }
   opt <- gr_options("embedder")
   if (!is.null(opt) && is_nonblank(as_chr1(opt))) {
-    return(registry_get("embedders", as_chr1(opt), "embedder", state = gr_state))
+    return(registry_get("embedder", as_chr1(opt)))
   }
   if (is.function(client$embed_handler)) {
     # Reported as "api" whatever supplied it: the distinction that matters
@@ -137,7 +137,7 @@ resolve_embedder <- function(client, embedder = NULL) {
                   m
                 }))
   }
-  registry_get("embedders", "api", "embedder", state = gr_state)
+  registry_get("embedder", "api")
 }
 
 #' @noRd

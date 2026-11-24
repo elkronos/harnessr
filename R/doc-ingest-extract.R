@@ -61,7 +61,7 @@ gr_register_extractor <- function(name, extensions, fn, description = "") {
 #' # What this installation can read right now.
 #' gr_extractors()[, c("name", "needs", "available")]
 gr_extractors <- function() {
-  reg <- gr_state$extractors
+  reg <- registry_get("extractor")
   if (!length(reg)) return(data.frame())
   do.call(rbind, lapply(reg, function(e) {
     need <- .gr_extractor_deps[[as_chr1(e$name)]] %||% character(0)
@@ -84,7 +84,7 @@ gr_extractors <- function() {
 #' nothing is worse than one that is refused.
 #' @noRd
 extractor_for <- function(ext) {
-  reg <- gr_state$extractors
+  reg <- registry_get("extractor")
   for (e in rev(reg)) if (tolower(ext) %in% e$extensions) return(e)
   NULL
 }

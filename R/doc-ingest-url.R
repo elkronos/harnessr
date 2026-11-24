@@ -84,7 +84,7 @@ url_shown_text <- function(x) {
 #' claims is passed over at each step.
 #' @noRd
 url_extension <- function(type, url, path) {
-  known <- unique(tolower(unlist(lapply(gr_state$extractors, `[[`, "extensions"))))
+  known <- unique(tolower(unlist(lapply(registry_get("extractor"), `[[`, "extensions"))))
   type_full <- as_chr1(type, "")
   type <- tolower(trimws(sub(";.*$", "", type_full)))
   if (!type %in% .gr_url_vague_types) {
@@ -439,7 +439,7 @@ fetch_url <- function(url) {
                             "extensions: %s. Add one with gr_register_extractor()."),
                      shown, if (nzchar(trimws(as_chr1(got$type, "")))) sprintf("a file of type '%s'",
                        trimws(as_chr1(got$type, ""))) else "a file of unknown type",
-                     paste(sort(unique(unlist(lapply(gr_state$extractors, `[[`, "extensions")))),
+                     paste(sort(unique(unlist(lapply(registry_get("extractor"), `[[`, "extensions")))),
                            collapse = ", ")),
              class = "gr_unsupported_format")
   }

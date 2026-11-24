@@ -64,7 +64,7 @@
 #' gr_check_reader("loose")
 gr_check_reader <- function(reader, client = NULL) {
   reader <- as_chr1(reader, "")
-  rd <- registry_get("readers", reader, "readers", state = gr_state)
+  rd <- registry_get("reader", reader)
   client <- check_client(client)
   question <- "What was revenue?"
   chunks <- suppressWarnings(gr_segment(gr_example(),
@@ -74,7 +74,7 @@ gr_check_reader <- function(reader, client = NULL) {
   trace <- gr_trace(meta = list(check = reader))
   stems <- rd$calls
   if (identical(reader, "ensemble")) {
-    for (m in spec$members) stems <- c(stems, gr_state$readers[[m]]$calls)
+    for (m in spec$members) stems <- c(stems, registry_get("reader")[[m]]$calls)
   }
   answer_fields <- c("answer", "reader", "question", "chunks_used", "partial", "notes",
                      "trace", "warnings", "signature")
@@ -178,7 +178,7 @@ gr_check_reader <- function(reader, client = NULL) {
 #' gr_check_segmenter("paragraph")
 gr_check_segmenter <- function(segmenter, client = NULL) {
   segmenter <- as_chr1(segmenter, "")
-  sg <- registry_get("segmenters", segmenter, "segmenters", state = gr_state)
+  sg <- registry_get("segmenter", segmenter)
   uses_client <- isTRUE(sg$needs_client) || length(sg$calls) > 0L
   client <- if (!is.null(client) || uses_client) check_client(client)
   spec <- gr_segment_spec(method = segmenter, max_tokens = 150L, context_source = "llm")

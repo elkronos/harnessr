@@ -257,7 +257,7 @@ register_builtin_segmenters <- function() {
 #' @noRd
 declared_call_stems <- function() {
   of <- function(reg) unlist(lapply(reg, function(e) e$calls), use.names = FALSE)
-  unique(c(of(gr_state$readers), of(gr_state$segmenters),
+  unique(c(of(registry_get("reader")), of(registry_get("segmenter")),
            unlist(.gr_stage_calls, use.names = FALSE)))
 }
 

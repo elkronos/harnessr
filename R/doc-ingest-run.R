@@ -341,7 +341,7 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
   # actually claims. Matching any 1-6 character suffix rejected ordinary prose
   # ending in a decimal ("...revenue of 45.2") while still swallowing missing
   # paths whose extension was absent or longer, which then became the document.
-  known_ext <- unique(tolower(unlist(lapply(gr_state$extractors, `[[`, "extensions"))))
+  known_ext <- unique(tolower(unlist(lapply(registry_get("extractor"), `[[`, "extensions"))))
   ext_of <- function(s) tolower(sub(".*\\.([A-Za-z0-9]+)$", "\\1", s))
   looks_like_path <- one_line && !url && grepl("\\.[A-Za-z0-9]+$", source) &&
     ext_of(source) %in% known_ext &&
@@ -419,11 +419,11 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
       on.exit(unlink(path), add = TRUE)
     }
     ext <- tolower(tools::file_ext(path))
-    ex <- if (!is.null(spec$extractor)) registry_get("extractors", spec$extractor, state = gr_state)
+    ex <- if (!is.null(spec$extractor)) registry_get("extractor", spec$extractor)
           else extractor_for(ext)
     if (is.null(ex)) {
       gr_abort(sprintf("No extractor for '.%s'. Registered extensions: %s. Add one with gr_register_extractor().",
-                       ext, paste(sort(unique(unlist(lapply(gr_state$extractors, `[[`, "extensions")))),
+                       ext, paste(sort(unique(unlist(lapply(registry_get("extractor"), `[[`, "extensions")))),
                                   collapse = ", ")),
                class = "gr_unsupported_format")
     }
@@ -560,15 +560,15 @@ as_ingest_spec <- function(spec) {
 ingest_code <- function(spec, is_path, url, source) {
   steps <- tryCatch(resolve_clean_steps(spec$clean), error = function(e) character(0))
   cleaners <- lapply(steps, function(s) {
-    e <- gr_state$cleaners[[s]]
+    e <- registry_get("cleaner")[[s]]
     if (is.null(e)) NULL else list(e$fn, e$stage, e$scope %||% "block", e$registered)
   })
   forced <- spec$extractor
   code_of <- function(e) if (is.null(e)) NULL else list(e$fn, e$registered)
   ex <- if (!is.null(forced)) {
-    tryCatch(code_of(gr_state$extractors[[as_chr1(forced)]]), error = function(e) NULL)
+    tryCatch(code_of(registry_get("extractor")[[as_chr1(forced)]]), error = function(e) NULL)
   } else if (url) {
-    lapply(gr_state$extractors, function(e) list(e$fn, e$extensions, e$registered))
+    lapply(registry_get("extractor"), function(e) list(e$fn, e$extensions, e$registered))
   } else if (is_path) {
     code_of(extractor_for(tolower(tools::file_ext(source))))
   }
