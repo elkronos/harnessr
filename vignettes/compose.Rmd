@@ -428,8 +428,13 @@ bench <- hr_benchmark(c(arms, list(my_arm)), ref, runs = 5, client = cl,
                       scorer = gr_scorer_answer(),
                       governor = hr_governor(max_cost_usd = 5))
 aggregate(correct ~ param.top_k + param.max_tokens, bench, mean)
+aggregate(correct ~ arm, bench, mean)
 hr_sweep_check(bench)
 ```
+
+The first table covers only the swept arms: your arm has no `param.*`
+settings, so `aggregate()` leaves its rows out. The second has one row per
+arm, yours included, so it compares the grid with your arm.
 
 The example document is short. Cut into chunks of 200 tokens, a `top_k` of 4
 already keeps every chunk, and cut into chunks of 500 tokens, a `top_k` of 2
