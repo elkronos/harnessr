@@ -17,7 +17,11 @@ A data frame with one row per registered reader: `name`, `signature`
 [`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md)),
 `cost_calls` (a formula in N, the number of chunks, not a number),
 `description`, and `calls`, the stems of the labels its calls carry,
-joined by commas: the names an `effort` map can use.
+joined by commas: the names an `effort` map can use. The last two
+columns are `version` and `contract`, `NA` for a reader registered with
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md)
+and filled for one registered with
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md).
 
 ## See also
 

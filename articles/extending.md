@@ -108,8 +108,8 @@ gr_register_segmenter("by_bullet", description = "one chunk per bullet",
   })
 
 subset(gr_segmenters(), name == "by_bullet")
-#>        name cost needs_client          description     calls
-#> 1 by_bullet free        FALSE one chunk per bullet by_bullet
+#>        name cost needs_client          description     calls version contract
+#> 1 by_bullet free        FALSE one chunk per bullet by_bullet    <NA>     <NA>
 ```
 
 [`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
@@ -327,9 +327,9 @@ gr_embedders()
 #>      name deterministic
 #> 1     api         FALSE
 #> 2 lexical          TRUE
-#>                                                    description
-#> 1                 Embeddings endpoint on the client's base URL
-#> 2 Hashed bag-of-words; free, offline, word overlap not meaning
+#>                                                    description version contract
+#> 1                 Embeddings endpoint on the client's base URL    <NA>     <NA>
+#> 2 Hashed bag-of-words; free, offline, word overlap not meaning    <NA>     <NA>
 ```
 
 `gr_options(embedder = "lexical")` switches every part of the package
@@ -439,6 +439,111 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "calls")]
 #> 2            fast paragraph      1   stuff     1
 ```
 
+## Registering any kind with hr_register()
+
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
+registers a module of any kind through one function. Name the kind
+first; the other arguments are those of that kind’s own function, so
+`hr_register("reader", ...)` takes what
+[`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md)
+takes and runs the same checks. This reader answers from the shortest
+chunk:
+
+``` r
+
+shortest <- function(chunks, question, client, spec, trace) {
+  d <- chunks$chunks
+  i <- which.min(d$tokens)
+  res <- gr_call(client, list(
+    list(role = "user", content = paste0(d$text[i], "\n\nQuestion: ", question))),
+    model = spec$model, effort = spec$effort, trace = trace,
+    label = "shortest.answer")
+  new_answer(res$text, "shortest", question, d$chunk_id[i], trace)
+}
+hr_register("reader", "shortest", signature = "one|1|none", cost_calls = "1",
+  description = "answer from the shortest chunk only", calls = "shortest.answer",
+  fn = shortest)
+```
+
+The kinds are `"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"`,
+`"embedder"`, `"protocol"` and `"step"`. Any other kind is an error of
+class `hr_unknown_kind`, and a module the kind’s own function would
+refuse is refused here too:
+
+``` r
+
+tryCatch(hr_register("reader", "auto", fn = identity, signature = "one|1|none"),
+         gr_reserved_name = function(e) conditionMessage(e))
+#> [1] "'auto' is reserved: answer_document() uses it to choose a recipe. Register the reader under another name."
+```
+
+[`hr_modules()`](https://elkronos.github.io/harnessr/reference/hr_modules.md)
+lists the modules of every kind in one table, with the call stems each
+declares as a list column. Give it a kind to add that kind’s own
+columns:
+
+``` r
+
+m <- hr_modules()
+table(m$kind)
+#> 
+#>   cleaner  embedder extractor  protocol    reader segmenter 
+#>        15         3         7         4        15        10
+r <- hr_modules("reader")
+r[r$name %in% c("longest", "shortest"), c("name", "signature", "calls")]
+#>        name  signature           calls
+#> 6   longest one|1|none  longest.answer
+#> 13 shortest one|1|none shortest.answer
+```
+
+The listings such as
+[`gr_readers()`](https://elkronos.github.io/harnessr/reference/gr_readers.md)
+keep their own columns, and a module you register with
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
+appears in them as one registered with the kind’s own function does.
+Each listing ends with two more columns: `version`, the version you gave
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md),
+and `contract`, the module contract it was registered under. A module
+registered with a `gr_register_*()` function has `NA` in both. Pass
+`version` when you register, and the listings show which version of your
+module is in place:
+
+``` r
+
+hr_register("reader", "shortest", signature = "one|1|none", cost_calls = "1",
+  description = "answer from the shortest chunk only", calls = "shortest.answer",
+  version = "1.1.0", fn = shortest)
+r <- gr_readers()
+r[r$name %in% c("longest", "shortest"), c("name", "version", "contract")]
+#>        name version contract
+#> 6   longest    <NA>     <NA>
+#> 13 shortest   1.1.0      0.2
+```
+
+A step from
+[`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md)
+registers the same way, under the kind `"step"`. Its version is the
+step’s own unless you give another:
+
+``` r
+
+hr_register("step", "shout", fn = hr_step("shout", function(input, ctx) toupper(input),
+                                          input = "answer", output = "state",
+                                          version = "0.2.0"))
+hr_modules("step")[, c("name", "input", "output", "version", "contract")]
+#>    name  input output version contract
+#> 1 shout answer  state   0.2.0      0.2
+```
+
+A segmenter that calls a model can also take `effort_label` through
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md):
+a function of the segment spec that returns the label its requests
+carry, or `""` when the spec sends none. A run’s `effort` map then
+reaches your segmenter as the effort for that label alone, as it reaches
+the built-in `contextual` and `proposition` segmenters. Without
+`effort_label`, your segmenter gets the whole map and picks its own
+labels from it.
+
 ## Parameter schemas
 
 Each spec constructor states its parameters once, as a schema: type,
@@ -534,7 +639,7 @@ The `longest` reader above passes all nine reader rules:
 ``` r
 
 gr_check_reader("longest")
-#> <hr_conformance> reader 'longest', contract 0.1
+#> <hr_conformance> reader 'longest', contract 0.2
 #>   passes all 9 rules
 #>   ok    is_function
 #>   ok    runs
@@ -564,7 +669,7 @@ gr_register_reader("loose", signature = "one|2|none", calls = "loose.answer",
   })
 
 gr_check_reader("loose")
-#> <hr_conformance> reader 'loose', contract 0.1
+#> <hr_conformance> reader 'loose', contract 0.2
 #>   fails 3 of 9 rules
 #>   FAIL  chunks_used: chunk id(s) 99 are not in the chunks
 #>   FAIL  calls_declared: label(s) 'other.answer' not under the declared stems loose.answer
@@ -595,7 +700,7 @@ had to split it:
 ``` r
 
 gr_check_segmenter("by_bullet")
-#> <hr_conformance> segmenter 'by_bullet', contract 0.1
+#> <hr_conformance> segmenter 'by_bullet', contract 0.2
 #>   fails 1 of 8 rules
 #>   FAIL  within_cap: 1 chunk(s) over the 150-token cap
 #>   ok    is_function
@@ -619,7 +724,7 @@ gr_register_segmenter("by_bullet", description = "one chunk per bullet or paragr
   })
 
 gr_check_segmenter("by_bullet")
-#> <hr_conformance> segmenter 'by_bullet', contract 0.1
+#> <hr_conformance> segmenter 'by_bullet', contract 0.2
 #>   passes all 8 rules
 #>   ok    is_function
 #>   ok    runs
@@ -648,6 +753,30 @@ res$rule[!is.na(res$ok) & !res$ok]
 #> [1] "chunks_used"       "calls_declared"    "calls_within_cost"
 ```
 
+To check a module against a provider that misbehaves, give the check a
+mock client with a `mode`. `"bad_json"` sends JSON cut off part way,
+`"refuse"` sends empty replies, `"at_cap"` marks every reply as cut off
+at the output cap, and a vector of HTTP status codes gives call `i` the
+`i`-th status, so `c(429, 500, 200)` fails the first two calls and
+answers every one after. The `longest` reader still finishes, and stays
+within its cost, when every request is rate limited:
+
+``` r
+
+gr_check_reader("longest", client = gr_mock_client(mode = 429))
+#> <hr_conformance> reader 'longest', contract 0.2
+#>   passes all 9 rules
+#>   ok    is_function
+#>   ok    runs
+#>   ok    answer_class
+#>   ok    answer_fields
+#>   ok    answer_text
+#>   ok    evidence: no evidence
+#>   ok    chunks_used
+#>   ok    calls_declared: 1 call(s), all under declared stems
+#>   ok    calls_within_cost: 1 request(s) made, at most 1 expected
+```
+
 [`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md)
 is the core helper both checks use, and it works for a module of any
 kind. Give it the module’s function, a closure of no arguments that runs
@@ -664,7 +793,7 @@ hr_check_module(double_it, function() double_it(2),
   rules = list(numeric = function(v) is.numeric(v),
                above_three = function(v) list(ok = v > 3, detail = sprintf("got %s", v))),
   kind = "function", name = "double_it")
-#> <hr_conformance> function 'double_it', contract 0.1
+#> <hr_conformance> function 'double_it', contract 0.2
 #>   passes all 4 rules
 #>   ok    is_function
 #>   ok    runs

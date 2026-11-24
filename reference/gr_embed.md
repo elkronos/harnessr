@@ -57,17 +57,18 @@ gr_embed(
   What to do when the embedding request fails. **Defaults to
   `"lexical"`**: hashed bag-of-words vectors that measure word overlap,
   not meaning, so `semantic` segmentation and `retrieve` ranking become
-  markedly less accurate. The substitution warns and is recorded, but
-  the run continues. Use `"error"` to fail fast, or `"none"` to get an
-  empty matrix. An embedder fails when it raises, or returns the wrong
-  number of rows, vectors with no dimensions, or missing or non-finite
-  values. The built-in `"api"` embedder also fails on a reply that
-  leaves a text without a usable vector (missing, empty or all zeros),
-  gives vectors of different lengths, or labels them with `index` fields
-  that are not one for each text sent (vectors are matched to texts by
-  `index` when the reply gives it). It retries a rate limit (HTTP 429),
-  a server error or a dropped connection up to the client's
-  `max_retries`, as
+  markedly less accurate. The fallback runs the embedder registered as
+  `"lexical"`; if you replaced it and your function fails, the built-in
+  one runs. The substitution warns and is recorded, but the run
+  continues. Use `"error"` to fail fast, or `"none"` to get an empty
+  matrix. An embedder fails when it raises, or returns the wrong number
+  of rows, vectors with no dimensions, or missing or non-finite values.
+  The built-in `"api"` embedder also fails on a reply that leaves a text
+  without a usable vector (missing, empty or all zeros), gives vectors
+  of different lengths, or labels them with `index` fields that are not
+  one for each text sent (vectors are matched to texts by `index` when
+  the reply gives it). It retries a rate limit (HTTP 429), a server
+  error or a dropped connection up to the client's `max_retries`, as
   [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
   does, and the warning names the HTTP status and the provider's
   message. A refused key (HTTP 401 or 403) is a failure like the others

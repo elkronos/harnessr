@@ -108,7 +108,7 @@ Other segmentation functions:
 gr_check_segmenter("paragraph")
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 150 tokens, overlap 0).
-#> <hr_conformance> segmenter 'paragraph', contract 0.1
+#> <hr_conformance> segmenter 'paragraph', contract 0.2
 #>   passes all 8 rules
 #>   ok    is_function
 #>   ok    runs

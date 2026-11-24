@@ -791,10 +791,10 @@ plan <- hr_reference(ids, labels = rep("yes", n), cluster = docs, split = "test"
 design <- hr_mdd(n, n_clusters = 50, icc = 0.1, p_disc = 0.15)
 reg <- hr_register_contrasts(plan, hr_contrast("small", "large", margin = 0.10), design)
 reg
-#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-24T02:39:09.864Z
+#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-24T15:21:48.486Z
 #>  contrast       label        margin mdd cost_test
 #>  small vs large confirmatory 10.0   7.8 yes      
-#>   Margins and MDD in points; reference d453122a93af; hash a7d25ab59440
+#>   Margins and MDD in points; reference d453122a93af; hash 6ed481179ed2
 ```
 
 Here the stand-in model finds each item easier or harder by document and

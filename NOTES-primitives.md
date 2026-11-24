@@ -72,9 +72,11 @@ documents, which is why they are core. Each has tests of its own.
 | [`hr_judge_valid()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md) | test-core-judge.R | Says whether a validation record still holds for a judge configuration. |
 | [`hr_judge_validate()`](https://elkronos.github.io/harnessr/reference/hr_judge_validate.md) | test-core-judge.R, test-labels.R | Validates a judge against blind human labels. |
 | [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md) | test-core-bench-ni.R | The minimum detectable difference of a paired, clustered design. |
+| [`hr_modules()`](https://elkronos.github.io/harnessr/reference/hr_modules.md) | test-registry-modules.R | Lists the registered modules of every kind in one table, through each kind’s `get` function; nothing in it names a kind. |
 | [`hr_n_needed()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md) | test-core-bench-ni.R | The number of items needed to detect a given difference. |
 | [`hr_ppi()`](https://elkronos.github.io/harnessr/reference/hr_ppi.md) | test-core-stats.R, test-core-judge.R | Prediction-powered inference on any scores. |
 | [`hr_reference_add()`](https://elkronos.github.io/harnessr/reference/hr_reference.md) | test-core-bench.R | Adds items to a reference set. |
+| [`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md) | test-registry-modules.R | Registers a module of any kind through the `set` function the kind’s layer gave; the document layer’s kinds run their gr_register\_\*() checks. |
 | [`hr_register_contrasts()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md) | test-core-bench-ni.R, test-core-bench-sim.R | Registers contrasts with a reference before scoring. |
 | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | test-core-bench-report.R and the other test-core-bench files | Reports a benchmark with intervals. |
 | [`hr_scorer_exact()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md) | test-core-bench.R, test-core-judge.R | A scoring rule for exact matches, for any outputs. |

@@ -66,7 +66,7 @@ strategies are actually different.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">gr_mock_client</span><span class="op">(</span>handler <span class="op">=</span> <span class="cn">NULL</span>, embed_handler <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">gr_mock_client</span><span class="op">(</span>handler <span class="op">=</span> <span class="cn">NULL</span>, embed_handler <span class="op">=</span> <span class="cn">NULL</span>, mode <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -81,6 +81,12 @@ strategies are actually different.</p>
 <dt id="arg-embed-handler">embed_handler<a class="anchor" aria-label="anchor" href="#arg-embed-handler"></a></dt>
 <dd><p>Function of <code>(texts, params)</code> returning a numeric matrix
 with one row per input.</p></dd>
+
+
+<dt id="arg-mode">mode<a class="anchor" aria-label="anchor" href="#arg-mode"></a></dt>
+<dd><p><code>NULL</code> (the default) for replies as the handler gives them, or
+one of <code>"bad_json"</code>, <code>"refuse"</code> and <code>"at_cap"</code>, or a vector of HTTP
+status codes such as <code>c(429, 500, 200)</code>. See Details.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -101,7 +107,33 @@ handler returns valid JSON for those prompts. And <code><a href="gr_embed.html">
 <code>embedding_source = "api"</code>, so an offline run gets semantic-shaped vectors
 rather than the lexical fallback. A mock embed handler that fails or returns
 the wrong number of rows is still caught and still degrades, like any other.</p>
-    </div>
+<p><code>mode</code> makes the mock misbehave the way a provider can, so you can test how
+your code copes offline. It changes chat replies only; embeddings are left
+as they are.</p><dl><dt><code>"bad_json"</code></dt>
+<dd><p>Every reply is a JSON object cut off part way, so a
+request with a JSON schema gets a reply that does not parse.</p></dd>
+
+<dt><code>"refuse"</code></dt>
+<dd><p>Every reply is empty, which <code><a href="gr_call.html">gr_call()</a></code> reports as a
+failed result with <code>finish_reason = "empty"</code>, as it does a refusal from
+a provider.</p></dd>
+
+<dt><code>"at_cap"</code></dt>
+<dd><p>Every reply is the handler's, marked as cut off at the
+output cap (<code>finish_reason = "length"</code>) and billed at the full cap. A
+failed <a href="gr_result.html">gr_result</a> from the handler comes back as it is.</p></dd>
+
+<dt>A vector of HTTP status codes</dt>
+<dd><p>Call <code>i</code> gets the <code>i</code>-th status, and
+every call after the last gets the last one. A status from 200 to 299
+gives the handler's reply; any other gives a failed result with that
+status, marked retryable for the statuses the HTTP transport retries
+(408, 409, 425, 429, 500, 502, 503 and 504). The mock does
+not retry, so each status is one call. <code>$reset()</code> starts the sequence
+again.</p></dd>
+
+
+</dl></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="gr_client.html">gr_client()</a></code>, <code><a href="gr_call.html">gr_call()</a></code>, <a href="gr_result.html">gr_result</a>, <code><a href="gr_example.html">gr_example()</a></code> for a
@@ -126,6 +158,11 @@ document to run against</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  skim.answer skim.extract </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>            1            5 </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A provider that is rate limited, then fails, then answers.</span></span></span>
+<span class="r-in"><span><span class="va">flaky</span> <span class="op">&lt;-</span> <span class="fu">gr_mock_client</span><span class="op">(</span>mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">429</span>, <span class="fl">500</span>, <span class="fl">200</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="fu"><a href="gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">flaky</span>, <span class="st">"hi"</span><span class="op">)</span><span class="op">$</span><span class="va">ok</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE FALSE  TRUE</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

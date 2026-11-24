@@ -8,7 +8,7 @@ reading strategies are actually different.
 ## Usage
 
 ``` r
-gr_mock_client(handler = NULL, embed_handler = NULL)
+gr_mock_client(handler = NULL, embed_handler = NULL, mode = NULL)
 ```
 
 ## Arguments
@@ -22,6 +22,12 @@ gr_mock_client(handler = NULL, embed_handler = NULL)
 
   Function of `(texts, params)` returning a numeric matrix with one row
   per input.
+
+- mode:
+
+  `NULL` (the default) for replies as the handler gives them, or one of
+  `"bad_json"`, `"refuse"` and `"at_cap"`, or a vector of HTTP status
+  codes such as `c(429, 500, 200)`. See Details.
 
 ## Value
 
@@ -46,6 +52,38 @@ reporting `embedding_source = "api"`, so an offline run gets
 semantic-shaped vectors rather than the lexical fallback. A mock embed
 handler that fails or returns the wrong number of rows is still caught
 and still degrades, like any other.
+
+`mode` makes the mock misbehave the way a provider can, so you can test
+how your code copes offline. It changes chat replies only; embeddings
+are left as they are.
+
+- `"bad_json"`:
+
+  Every reply is a JSON object cut off part way, so a request with a
+  JSON schema gets a reply that does not parse.
+
+- `"refuse"`:
+
+  Every reply is empty, which
+  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
+  reports as a failed result with `finish_reason = "empty"`, as it does
+  a refusal from a provider.
+
+- `"at_cap"`:
+
+  Every reply is the handler's, marked as cut off at the output cap
+  (`finish_reason = "length"`) and billed at the full cap. A failed
+  [gr_result](https://elkronos.github.io/harnessr/reference/gr_result.md)
+  from the handler comes back as it is.
+
+- A vector of HTTP status codes:
+
+  Call `i` gets the `i`-th status, and every call after the last gets
+  the last one. A status from 200 to 299 gives the handler's reply; any
+  other gives a failed result with that status, marked retryable for the
+  statuses the HTTP transport retries (408, 409, 425, 429, 500, 502, 503
+  and 504). The mock does not retry, so each status is one call.
+  `$reset()` starts the sequence again.
 
 ## See also
 
@@ -74,4 +112,9 @@ table(vapply(cl$calls(), function(x) x$label, character(1)))
 #> 
 #>  skim.answer skim.extract 
 #>            1            5 
+
+# A provider that is rate limited, then fails, then answers.
+flaky <- gr_mock_client(mode = c(429, 500, 200))
+vapply(1:3, function(i) gr_call(flaky, "hi")$ok, logical(1))
+#> [1] FALSE FALSE  TRUE
 ```

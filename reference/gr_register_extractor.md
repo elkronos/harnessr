@@ -60,6 +60,6 @@ gr_register_extractor("tsv", "tsv", description = "TSV, one block per row",
     data.frame(text = apply(d, 1, paste, collapse = " | "), kind = "table")
   })
 subset(gr_extractors(), name == "tsv")
-#>     name extensions            description needs available
-#> tsv  tsv        tsv TSV, one block per row            TRUE
+#>     name extensions            description needs available version contract
+#> tsv  tsv        tsv TSV, one block per row            TRUE    <NA>     <NA>
 ```

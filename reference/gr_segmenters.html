@@ -76,7 +76,10 @@ that needs a client and does not get one falls back to a different strategy.</p>
 when <code>TRUE</code> and no client is supplied, <code><a href="gr_segment.html">gr_segment()</a></code> warns and the
 segmenter falls back), <code>description</code>, and <code>calls</code>, the stems of the
 labels its model calls carry, joined by commas (empty for one that makes
-none).</p>
+none).
+The last two columns are <code>version</code> and <code>contract</code>, <code>NA</code> for a segmenter
+registered with <code><a href="gr_register_segmenter.html">gr_register_segmenter()</a></code> and filled for one registered with
+<code><a href="hr_register.html">hr_register()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -120,17 +123,17 @@ none).</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8                                                               Cut where consecutive embeddings diverge most. One embedding pass.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9                                                                  Sentence-boundary packing; tighter, more chunks, cleaner edges.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10                                                                Never merge across headings; each chunk keeps its section title.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  calls</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1            by_bullet</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      segment.context</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6  segment.proposition</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  calls version contract</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1            by_bullet    &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      segment.context    &lt;NA&gt;      0.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3                         &lt;NA&gt;      0.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4                         &lt;NA&gt;      0.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5                         &lt;NA&gt;      0.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  segment.proposition    &lt;NA&gt;      0.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7                         &lt;NA&gt;      0.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8                         &lt;NA&gt;      0.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9                         &lt;NA&gt;      0.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10                        &lt;NA&gt;      0.2</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The ones that cost money, and the ones that need a client to work at all.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu">gr_segmenters</span><span class="op">(</span><span class="op">)</span>, <span class="va">cost</span> <span class="op">!=</span> <span class="st">"free"</span> <span class="op">|</span> <span class="va">needs_client</span> <span class="op">==</span> <span class="st">"TRUE"</span><span class="op">)</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></span>

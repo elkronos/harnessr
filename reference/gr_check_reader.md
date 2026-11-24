@@ -117,7 +117,7 @@ gr_check_reader("stuff")
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 150 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 5 chunk(s).
-#> <hr_conformance> reader 'stuff', contract 0.1
+#> <hr_conformance> reader 'stuff', contract 0.2
 #>   passes all 9 rules
 #>   ok    is_function
 #>   ok    runs
@@ -140,7 +140,7 @@ gr_check_reader("loose")
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 150 tokens, overlap 0).
 #> Reading with 'loose' (one|1|none) over 5 chunk(s).
-#> <hr_conformance> reader 'loose', contract 0.1
+#> <hr_conformance> reader 'loose', contract 0.2
 #>   fails 1 of 9 rules
 #>   FAIL  calls_declared: label(s) 'other.answer' not under the declared stems loose.answer
 #>   skip  calls_within_cost: not checked: no cost function declared

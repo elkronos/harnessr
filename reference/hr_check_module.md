@@ -77,7 +77,7 @@ hr_check_module(double_it, function() double_it(2),
   rules = list(numeric = function(v) is.numeric(v),
                above_three = function(v) list(ok = v > 3, detail = sprintf("got %s", v))),
   kind = "function", name = "double_it")
-#> <hr_conformance> function 'double_it', contract 0.1
+#> <hr_conformance> function 'double_it', contract 0.2
 #>   passes all 4 rules
 #>   ok    is_function
 #>   ok    runs

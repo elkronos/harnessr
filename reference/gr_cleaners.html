@@ -66,7 +66,10 @@ applied <code>"early"</code> stage first, whatever order you list them in.</p>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data frame with <code>name</code>, <code>stage</code>, <code>scope</code>, <code>default_on</code> and
-<code>description</code>.</p>
+<code>description</code>.
+The last two columns are <code>version</code> and <code>contract</code>, <code>NA</code> for a cleaner
+registered with <code><a href="gr_register_cleaner.html">gr_register_cleaner()</a></code> and filled for one registered with
+<code><a href="hr_register.html">hr_register()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -132,6 +135,21 @@ PDF and plain text are.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 12                                                                                                                                                                                                     Lowercase everything (loses proper-noun and acronym signal)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 13                                                                                                                                                        Replace every digit with a space. OFF by default: this makes figures, dates and percentages unanswerable</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 14                                                                                                                                                                                   Replace punctuation with spaces. OFF by default: destroys sentence boundaries</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    version contract</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1     &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2     &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3     &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4     &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5     &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6     &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7     &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8     &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9     &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10    &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11    &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12    &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13    &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14    &lt;NA&gt;     &lt;NA&gt;</span>
 <span class="r-in"><span><span class="co"># The steps the "standard" preset runs:</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu">gr_cleaners</span><span class="op">(</span><span class="op">)</span>, <span class="va">default_on</span><span class="op">)</span><span class="op">$</span><span class="va">name</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "hyphenation"         "page_numbers"        "collapse_whitespace"</span>

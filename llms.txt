@@ -927,7 +927,11 @@ document, and the sheets people fill in to label them. See
 ## Extending harnessr
 
 Every axis is a registry, and an addition is used exactly like a
-built-in. See
+built-in.
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
+and
+[`hr_modules()`](https://elkronos.github.io/harnessr/reference/hr_modules.md)
+register and list modules of any kind. See
 [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md).
 
 - [`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
@@ -944,6 +948,12 @@ built-in. See
 
 - [`gr_register_embedder()`](https://elkronos.github.io/harnessr/reference/gr_register_embedder.md)
   : Register an embedding backend
+
+- [`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
+  : Register a module of any kind
+
+- [`hr_modules()`](https://elkronos.github.io/harnessr/reference/hr_modules.md)
+  : List the registered modules of every kind
 
 - [`new_chunks()`](https://elkronos.github.io/harnessr/reference/new_chunks.md)
   :

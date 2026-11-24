@@ -45,7 +45,7 @@ they are checked when the step is built:
 gr_step_retrieve(top_k = 4)
 #> <gr_step> retrieve (retrieve): top_k=4
 try(gr_step("read", reader = "no_such_reader"))
-#> Error in registry_get("readers", spec$reader, "readers", state = gr_state) : 
+#> Error in registry_get("reader", spec$reader) : 
 #>   Unknown reader 'no_such_reader'. Registered: ensemble, extract, hierarchical, iterative, map_reduce, preview, refine, rerank, retrieve, screen, skim, stuff.
 ```
 

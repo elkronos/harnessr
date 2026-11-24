@@ -65,7 +65,10 @@
     <p>A data frame with <code>name</code>, <code>extensions</code>, <code>description</code>, <code>needs</code> (the
 packages the extractor cannot run without, comma-separated, <code>""</code> for none)
 and <code>available</code> (whether they are all installed now). OCR packages are not
-in <code>needs</code>: a PDF with a text layer reads without them.</p>
+in <code>needs</code>: a PDF with a text layer reads without them.
+The last two columns are <code>version</code> and <code>contract</code>, <code>NA</code> for an extractor
+registered with <code><a href="gr_register_extractor.html">gr_register_extractor()</a></code> and filled for one registered with
+<code><a href="hr_register.html">hr_register()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -97,13 +100,13 @@ in <code>needs</code>: a PDF with a text layer reads without them.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> pdf                            PDF with per-page OCR fallback and page provenance</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> docx  Word: headings, tables by row, footnotes and endnotes; OCRs embedded images</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> image                                                                   Image OCR</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           needs available</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> txt                  TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> md                   TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> html       xml2      TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> pdf    pdftools      TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> docx       xml2      TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> image tesseract      TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           needs available version contract</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> txt                  TRUE    &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> md                   TRUE    &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> html       xml2      TRUE    &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> pdf    pdftools      TRUE    &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> docx       xml2      TRUE    &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> image tesseract      TRUE    &lt;NA&gt;     &lt;NA&gt;</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># What this installation can read right now.</span></span></span>
 <span class="r-in"><span><span class="fu">gr_extractors</span><span class="op">(</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"needs"</span>, <span class="st">"available"</span><span class="op">)</span><span class="op">]</span></span></span>

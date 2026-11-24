@@ -75,10 +75,10 @@ gr_embedders()
 #> 1           api         FALSE
 #> 2 first-letters          TRUE
 #> 3       lexical          TRUE
-#>                                                    description
-#> 1                 Embeddings endpoint on the client's base URL
-#> 2                                           Toy: letter counts
-#> 3 Hashed bag-of-words; free, offline, word overlap not meaning
+#>                                                    description version contract
+#> 1                 Embeddings endpoint on the client's base URL    <NA>     <NA>
+#> 2                                           Toy: letter counts    <NA>     <NA>
+#> 3 Hashed bag-of-words; free, offline, word overlap not meaning    <NA>     <NA>
 
 old <- gr_options(embedder = "first-letters")
 attr(gr_embed(gr_client(), c("alpha", "beta")), "embedding_source")

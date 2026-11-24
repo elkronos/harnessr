@@ -171,8 +171,8 @@ to match).</p>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_segmenters.html">gr_segmenters</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">name</span> <span class="op">==</span> <span class="st">"by_bullet"</span><span class="op">)</span></span>
-<span><span class="co">#&gt;        name cost needs_client          description     calls</span></span>
-<span><span class="co">#&gt; 1 by_bullet free        FALSE one chunk per bullet by_bullet</span></span></code></pre></div>
+<span><span class="co">#&gt;        name cost needs_client          description     calls version contract</span></span>
+<span><span class="co">#&gt; 1 by_bullet free        FALSE one chunk per bullet by_bullet    &lt;NA&gt;     &lt;NA&gt;</span></span></code></pre></div>
 <p><code><a href="../reference/new_chunks.html">new_chunks()</a></code> does not enforce the token cap.
 <code><a href="../reference/gr_segment.html">gr_segment()</a></code> checks it after your function returns and
 splits anything oversized, so a segmenter that ignores
@@ -360,9 +360,9 @@ reproducibly:</p>
 <span><span class="co">#&gt;      name deterministic</span></span>
 <span><span class="co">#&gt; 1     api         FALSE</span></span>
 <span><span class="co">#&gt; 2 lexical          TRUE</span></span>
-<span><span class="co">#&gt;                                                    description</span></span>
-<span><span class="co">#&gt; 1                 Embeddings endpoint on the client's base URL</span></span>
-<span><span class="co">#&gt; 2 Hashed bag-of-words; free, offline, word overlap not meaning</span></span></code></pre></div>
+<span><span class="co">#&gt;                                                    description version contract</span></span>
+<span><span class="co">#&gt; 1                 Embeddings endpoint on the client's base URL    &lt;NA&gt;     &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 2 Hashed bag-of-words; free, offline, word overlap not meaning    &lt;NA&gt;     &lt;NA&gt;</span></span></code></pre></div>
 <p><code>gr_options(embedder = "lexical")</code> switches every part of
 the package that embeds. An embedder is a function of
 <code>(texts, params)</code> that returns a numeric matrix with one row
@@ -454,6 +454,88 @@ built-in on calls, tokens and cost:</p>
 <span><span class="co">#&gt; 2            fast paragraph      1   stuff     1</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="registering-any-kind-with-hr_register">Registering any kind with hr_register()<a class="anchor" aria-label="anchor" href="#registering-any-kind-with-hr_register"></a>
+</h2>
+<p><code><a href="../reference/hr_register.html">hr_register()</a></code> registers a module of any kind through one
+function. Name the kind first; the other arguments are those of that
+kind’s own function, so <code>hr_register("reader", ...)</code> takes
+what <code><a href="../reference/gr_register_reader.html">gr_register_reader()</a></code> takes and runs the same checks.
+This reader answers from the shortest chunk:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">shortest</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">chunks</span>, <span class="va">question</span>, <span class="va">client</span>, <span class="va">spec</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">chunks</span><span class="op">$</span><span class="va">chunks</span></span>
+<span>  <span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">tokens</span><span class="op">)</span></span>
+<span>  <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>, content <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">text</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="st">"\n\nQuestion: "</span>, <span class="va">question</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    model <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">model</span>, effort <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">effort</span>, trace <span class="op">=</span> <span class="va">trace</span>,</span>
+<span>    label <span class="op">=</span> <span class="st">"shortest.answer"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/new_answer.html">new_answer</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">text</span>, <span class="st">"shortest"</span>, <span class="va">question</span>, <span class="va">d</span><span class="op">$</span><span class="va">chunk_id</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="va">trace</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="../reference/hr_register.html">hr_register</a></span><span class="op">(</span><span class="st">"reader"</span>, <span class="st">"shortest"</span>, signature <span class="op">=</span> <span class="st">"one|1|none"</span>, cost_calls <span class="op">=</span> <span class="st">"1"</span>,</span>
+<span>  description <span class="op">=</span> <span class="st">"answer from the shortest chunk only"</span>, calls <span class="op">=</span> <span class="st">"shortest.answer"</span>,</span>
+<span>  fn <span class="op">=</span> <span class="va">shortest</span><span class="op">)</span></span></code></pre></div>
+<p>The kinds are <code>"extractor"</code>, <code>"cleaner"</code>,
+<code>"segmenter"</code>, <code>"reader"</code>,
+<code>"embedder"</code>, <code>"protocol"</code> and
+<code>"step"</code>. Any other kind is an error of class
+<code>hr_unknown_kind</code>, and a module the kind’s own function would
+refuse is refused here too:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_register.html">hr_register</a></span><span class="op">(</span><span class="st">"reader"</span>, <span class="st">"auto"</span>, fn <span class="op">=</span> <span class="va">identity</span>, signature <span class="op">=</span> <span class="st">"one|1|none"</span><span class="op">)</span>,</span>
+<span>         gr_reserved_name <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "'auto' is reserved: answer_document() uses it to choose a recipe. Register the reader under another name."</span></span></code></pre></div>
+<p><code><a href="../reference/hr_modules.html">hr_modules()</a></code> lists the modules of every kind in one
+table, with the call stems each declares as a list column. Give it a
+kind to add that kind’s own columns:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_modules.html">hr_modules</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">kind</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   cleaner  embedder extractor  protocol    reader segmenter </span></span>
+<span><span class="co">#&gt;        15         3         7         4        15        10</span></span>
+<span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_modules.html">hr_modules</a></span><span class="op">(</span><span class="st">"reader"</span><span class="op">)</span></span>
+<span><span class="va">r</span><span class="op">[</span><span class="va">r</span><span class="op">$</span><span class="va">name</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"longest"</span>, <span class="st">"shortest"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"signature"</span>, <span class="st">"calls"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;        name  signature           calls</span></span>
+<span><span class="co">#&gt; 6   longest one|1|none  longest.answer</span></span>
+<span><span class="co">#&gt; 13 shortest one|1|none shortest.answer</span></span></code></pre></div>
+<p>The listings such as <code><a href="../reference/gr_readers.html">gr_readers()</a></code> keep their own
+columns, and a module you register with <code><a href="../reference/hr_register.html">hr_register()</a></code>
+appears in them as one registered with the kind’s own function does.
+Each listing ends with two more columns: <code>version</code>, the
+version you gave <code><a href="../reference/hr_register.html">hr_register()</a></code>, and <code>contract</code>,
+the module contract it was registered under. A module registered with a
+<code>gr_register_*()</code> function has <code>NA</code> in both. Pass
+<code>version</code> when you register, and the listings show which
+version of your module is in place:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register.html">hr_register</a></span><span class="op">(</span><span class="st">"reader"</span>, <span class="st">"shortest"</span>, signature <span class="op">=</span> <span class="st">"one|1|none"</span>, cost_calls <span class="op">=</span> <span class="st">"1"</span>,</span>
+<span>  description <span class="op">=</span> <span class="st">"answer from the shortest chunk only"</span>, calls <span class="op">=</span> <span class="st">"shortest.answer"</span>,</span>
+<span>  version <span class="op">=</span> <span class="st">"1.1.0"</span>, fn <span class="op">=</span> <span class="va">shortest</span><span class="op">)</span></span>
+<span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_readers.html">gr_readers</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">r</span><span class="op">[</span><span class="va">r</span><span class="op">$</span><span class="va">name</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"longest"</span>, <span class="st">"shortest"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"version"</span>, <span class="st">"contract"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;        name version contract</span></span>
+<span><span class="co">#&gt; 6   longest    &lt;NA&gt;     &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 13 shortest   1.1.0      0.2</span></span></code></pre></div>
+<p>A step from <code><a href="../reference/hr_step.html">hr_step()</a></code> registers the same way, under the
+kind <code>"step"</code>. Its version is the step’s own unless you give
+another:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register.html">hr_register</a></span><span class="op">(</span><span class="st">"step"</span>, <span class="st">"shout"</span>, fn <span class="op">=</span> <span class="fu"><a href="../reference/hr_step.html">hr_step</a></span><span class="op">(</span><span class="st">"shout"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">ctx</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/chartr.html" class="external-link">toupper</a></span><span class="op">(</span><span class="va">input</span><span class="op">)</span>,</span>
+<span>                                          input <span class="op">=</span> <span class="st">"answer"</span>, output <span class="op">=</span> <span class="st">"state"</span>,</span>
+<span>                                          version <span class="op">=</span> <span class="st">"0.2.0"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hr_modules.html">hr_modules</a></span><span class="op">(</span><span class="st">"step"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"input"</span>, <span class="st">"output"</span>, <span class="st">"version"</span>, <span class="st">"contract"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;    name  input output version contract</span></span>
+<span><span class="co">#&gt; 1 shout answer  state   0.2.0      0.2</span></span></code></pre></div>
+<p>A segmenter that calls a model can also take
+<code>effort_label</code> through <code><a href="../reference/hr_register.html">hr_register()</a></code>: a function
+of the segment spec that returns the label its requests carry, or
+<code>""</code> when the spec sends none. A run’s <code>effort</code>
+map then reaches your segmenter as the effort for that label alone, as
+it reaches the built-in <code>contextual</code> and
+<code>proposition</code> segmenters. Without <code>effort_label</code>,
+your segmenter gets the whole map and picks its own labels from it.</p>
+</div>
+<div class="section level2">
 <h2 id="parameter-schemas">Parameter schemas<a class="anchor" aria-label="anchor" href="#parameter-schemas"></a>
 </h2>
 <p>Each spec constructor states its parameters once, as a schema: type,
@@ -463,7 +545,7 @@ their arguments this way, and the same three functions are there for a
 module of your own. <code><a href="../reference/hr_param.html">hr_param()</a></code> declares one parameter,
 <code><a href="../reference/hr_schema.html">hr_schema()</a></code> collects them, and <code><a href="../reference/hr_validate.html">hr_validate()</a></code>
 applies the rules.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_schema.html">hr_schema</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/hr_param.html">hr_param</a></span><span class="op">(</span><span class="st">"max_tokens"</span>, <span class="st">"integer"</span>, default <span class="op">=</span> <span class="fl">1200L</span>, min <span class="op">=</span> <span class="fl">32</span>, max <span class="op">=</span> <span class="fl">1e6</span>,</span>
 <span>           help <span class="op">=</span> <span class="st">"Largest chunk, in tokens."</span><span class="op">)</span>,</span>
@@ -484,7 +566,7 @@ about with class <code>gr_clamped</code> (and
 <code>hr_param_clamped</code>). An <code>enum</code> is matched as
 <code><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg()</a></code> matches, so an unambiguous abbreviation is
 accepted:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_validate.html">hr_validate</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>max_tokens <span class="op">=</span> <span class="fl">100</span>, overlap_tokens <span class="op">=</span> <span class="fl">500</span>, order <span class="op">=</span> <span class="st">"doc"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  gr_clamped <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="op">{</span></span>
@@ -499,7 +581,7 @@ accepted:</p>
 <p>A name the schema does not have is an error of class
 <code>hr_unknown_param</code>, and a value outside an
 <code>enum</code>’s choices is an error naming them:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_validate.html">hr_validate</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>         hr_unknown_param <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "'top_k' not a parameter of this schema. Parameters: max_tokens, overlap_tokens, order."</span></span></code></pre></div>
@@ -532,9 +614,9 @@ them, and a module that breaks a rule stays registered and runs as
 before. Every built-in reader and segmenter passes.</p>
 <p>The <code>longest</code> reader above passes all nine reader
 rules:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_check_reader.html">gr_check_reader</a></span><span class="op">(</span><span class="st">"longest"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; &lt;hr_conformance&gt; reader 'longest', contract 0.1</span></span>
+<span><span class="co">#&gt; &lt;hr_conformance&gt; reader 'longest', contract 0.2</span></span>
 <span><span class="co">#&gt;   passes all 9 rules</span></span>
 <span><span class="co">#&gt;   ok    is_function</span></span>
 <span><span class="co">#&gt;   ok    runs</span></span>
@@ -548,7 +630,7 @@ rules:</p>
 <p>This one does not. It sends a call under a label it did not declare,
 makes two requests where its cost function promised one, and names a
 chunk that does not exist:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_reader.html">gr_register_reader</a></span><span class="op">(</span><span class="st">"loose"</span>, signature <span class="op">=</span> <span class="st">"one|2|none"</span>, calls <span class="op">=</span> <span class="st">"loose.answer"</span>,</span>
 <span>  cost <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">input_stats</span>, <span class="va">params</span><span class="op">)</span> <span class="fu"><a href="../reference/hr_cost.html">hr_cost</a></span><span class="op">(</span>calls <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">chunks</span>, <span class="va">question</span>, <span class="va">client</span>, <span class="va">spec</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
@@ -560,7 +642,7 @@ chunk that does not exist:</p>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/gr_check_reader.html">gr_check_reader</a></span><span class="op">(</span><span class="st">"loose"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; &lt;hr_conformance&gt; reader 'loose', contract 0.1</span></span>
+<span><span class="co">#&gt; &lt;hr_conformance&gt; reader 'loose', contract 0.2</span></span>
 <span><span class="co">#&gt;   fails 3 of 9 rules</span></span>
 <span><span class="co">#&gt;   FAIL  chunks_used: chunk id(s) 99 are not in the chunks</span></span>
 <span><span class="co">#&gt;   FAIL  calls_declared: label(s) 'other.answer' not under the declared stems loose.answer</span></span>
@@ -585,9 +667,9 @@ registered without <code>cost</code>).</p>
 example document has no bullets, so it comes back as a single chunk over
 the 150-token cap the check cuts with, and <code><a href="../reference/gr_segment.html">gr_segment()</a></code> had
 to split it:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_check_segmenter.html">gr_check_segmenter</a></span><span class="op">(</span><span class="st">"by_bullet"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; &lt;hr_conformance&gt; segmenter 'by_bullet', contract 0.1</span></span>
+<span><span class="co">#&gt; &lt;hr_conformance&gt; segmenter 'by_bullet', contract 0.2</span></span>
 <span><span class="co">#&gt;   fails 1 of 8 rules</span></span>
 <span><span class="co">#&gt;   FAIL  within_cap: 1 chunk(s) over the 150-token cap</span></span>
 <span><span class="co">#&gt;   ok    is_function</span></span>
@@ -599,7 +681,7 @@ to split it:</p>
 <span><span class="co">#&gt;   ok    calls_declared: no model calls</span></span></code></pre></div>
 <p>Splitting on blank lines as well as bullets keeps every chunk under
 the cap:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_segmenter.html">gr_register_segmenter</a></span><span class="op">(</span><span class="st">"by_bullet"</span>, description <span class="op">=</span> <span class="st">"one chunk per bullet or paragraph"</span>,</span>
 <span>  fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">doc</span>, <span class="va">spec</span>, <span class="va">client</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">units</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/strsplit.html" class="external-link">strsplit</a></span><span class="op">(</span><span class="va">doc</span><span class="op">$</span><span class="va">text</span>, <span class="st">"\n(?=[-*])|\n\\s*\n"</span>, perl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
@@ -607,7 +689,7 @@ the cap:</p>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/gr_check_segmenter.html">gr_check_segmenter</a></span><span class="op">(</span><span class="st">"by_bullet"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; &lt;hr_conformance&gt; segmenter 'by_bullet', contract 0.1</span></span>
+<span><span class="co">#&gt; &lt;hr_conformance&gt; segmenter 'by_bullet', contract 0.2</span></span>
 <span><span class="co">#&gt;   passes all 8 rules</span></span>
 <span><span class="co">#&gt;   ok    is_function</span></span>
 <span><span class="co">#&gt;   ok    runs</span></span>
@@ -627,10 +709,32 @@ that needs a client, or declares calls, is given the offline one; pass
 <p>Both checks return an <code>hr_conformance</code> data frame with
 <code>rule</code>, <code>ok</code> and <code>detail</code> columns, so a
 package of modules can assert on it in its own tests:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_check_reader.html">gr_check_reader</a></span><span class="op">(</span><span class="st">"loose"</span><span class="op">)</span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">rule</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">ok</span><span class="op">)</span> <span class="op">&amp;</span> <span class="op">!</span><span class="va">res</span><span class="op">$</span><span class="va">ok</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "chunks_used"       "calls_declared"    "calls_within_cost"</span></span></code></pre></div>
+<p>To check a module against a provider that misbehaves, give the check
+a mock client with a <code>mode</code>. <code>"bad_json"</code> sends
+JSON cut off part way, <code>"refuse"</code> sends empty replies,
+<code>"at_cap"</code> marks every reply as cut off at the output cap,
+and a vector of HTTP status codes gives call <code>i</code> the
+<code>i</code>-th status, so <code>c(429, 500, 200)</code> fails the
+first two calls and answers every one after. The <code>longest</code>
+reader still finishes, and stays within its cost, when every request is
+rate limited:</p>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_check_reader.html">gr_check_reader</a></span><span class="op">(</span><span class="st">"longest"</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="fl">429</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;hr_conformance&gt; reader 'longest', contract 0.2</span></span>
+<span><span class="co">#&gt;   passes all 9 rules</span></span>
+<span><span class="co">#&gt;   ok    is_function</span></span>
+<span><span class="co">#&gt;   ok    runs</span></span>
+<span><span class="co">#&gt;   ok    answer_class</span></span>
+<span><span class="co">#&gt;   ok    answer_fields</span></span>
+<span><span class="co">#&gt;   ok    answer_text</span></span>
+<span><span class="co">#&gt;   ok    evidence: no evidence</span></span>
+<span><span class="co">#&gt;   ok    chunks_used</span></span>
+<span><span class="co">#&gt;   ok    calls_declared: 1 call(s), all under declared stems</span></span>
+<span><span class="co">#&gt;   ok    calls_within_cost: 1 request(s) made, at most 1 expected</span></span></code></pre></div>
 <p><code><a href="../reference/hr_check_module.html">hr_check_module()</a></code> is the core helper both checks use,
 and it works for a module of any kind. Give it the module’s function, a
 closure of no arguments that runs the module once, and a named list of
@@ -640,13 +744,13 @@ checked), or a list with <code>ok</code> and a <code>detail</code>
 string. The closure runs in a temporary working directory that is
 removed afterwards, and an error it raises is reported by the
 <code>runs</code> rule.</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">double_it</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span> <span class="op">*</span> <span class="fl">2</span></span>
 <span><span class="fu"><a href="../reference/hr_check_module.html">hr_check_module</a></span><span class="op">(</span><span class="va">double_it</span>, <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu">double_it</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>,</span>
 <span>  rules <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>numeric <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">is.numeric</a></span><span class="op">(</span><span class="va">v</span><span class="op">)</span>,</span>
 <span>               above_three <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>ok <span class="op">=</span> <span class="va">v</span> <span class="op">&gt;</span> <span class="fl">3</span>, detail <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"got %s"</span>, <span class="va">v</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  kind <span class="op">=</span> <span class="st">"function"</span>, name <span class="op">=</span> <span class="st">"double_it"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; &lt;hr_conformance&gt; function 'double_it', contract 0.1</span></span>
+<span><span class="co">#&gt; &lt;hr_conformance&gt; function 'double_it', contract 0.2</span></span>
 <span><span class="co">#&gt;   passes all 4 rules</span></span>
 <span><span class="co">#&gt;   ok    is_function</span></span>
 <span><span class="co">#&gt;   ok    runs</span></span>

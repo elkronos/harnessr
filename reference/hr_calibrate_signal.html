@@ -103,7 +103,8 @@ for), <code>version</code> (the model version or snapshot), <code>task</code>, <
 <code>prompt_hash</code> (of the prompt or template), <code>effort</code>, <code>module</code> (the reader
 or stage) and <code>contract_version</code>. Each is one string; <code>NA</code> is allowed
 except for <code>served_model</code>. A missing <code>contract_version</code> is filled with
-the running package's contract version.</p></dd>
+the signal contract version, <code>"0.1"</code>. That version stays at 0.1 when
+the module contract moves, so a record you saved earlier stays valid.</p></dd>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>

@@ -112,6 +112,6 @@ gr_register_segmenter("by_bullet", description = "one chunk per bullet",
     new_chunks(units, "by_bullet", spec)
   })
 subset(gr_segmenters(), name == "by_bullet")
-#>        name cost needs_client          description     calls
-#> 1 by_bullet free        FALSE one chunk per bullet by_bullet
+#>        name cost needs_client          description     calls version contract
+#> 1 by_bullet free        FALSE one chunk per bullet by_bullet    <NA>     <NA>
 ```

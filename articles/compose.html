@@ -113,7 +113,7 @@ built:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;gr_step&gt; retrieve (retrieve): top_k=4</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"read"</span>, reader <span class="op">=</span> <span class="st">"no_such_reader"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Error in registry_get("readers", spec$reader, "readers", state = gr_state) : </span></span>
+<span><span class="co">#&gt; Error in registry_get("reader", spec$reader) : </span></span>
 <span><span class="co">#&gt;   Unknown reader 'no_such_reader'. Registered: ensemble, extract, hierarchical, iterative, map_reduce, preview, refine, rerank, retrieve, screen, skim, stuff.</span></span></code></pre></div>
 <p><code><a href="../reference/hr_step.html">hr_step()</a></code> builds a step of your own. Inside a chain,
 <code>ctx</code> is the context <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> gives an arm

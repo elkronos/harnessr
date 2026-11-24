@@ -13,7 +13,12 @@ gr_extractors()
 A data frame with `name`, `extensions`, `description`, `needs` (the
 packages the extractor cannot run without, comma-separated, `""` for
 none) and `available` (whether they are all installed now). OCR packages
-are not in `needs`: a PDF with a text layer reads without them.
+are not in `needs`: a PDF with a text layer reads without them. The last
+two columns are `version` and `contract`, `NA` for an extractor
+registered with
+[`gr_register_extractor()`](https://elkronos.github.io/harnessr/reference/gr_register_extractor.md)
+and filled for one registered with
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md).
 
 ## See also
 
@@ -47,13 +52,13 @@ gr_extractors()
 #> pdf                            PDF with per-page OCR fallback and page provenance
 #> docx  Word: headings, tables by row, footnotes and endnotes; OCRs embedded images
 #> image                                                                   Image OCR
-#>           needs available
-#> txt                  TRUE
-#> md                   TRUE
-#> html       xml2      TRUE
-#> pdf    pdftools      TRUE
-#> docx       xml2      TRUE
-#> image tesseract      TRUE
+#>           needs available version contract
+#> txt                  TRUE    <NA>     <NA>
+#> md                   TRUE    <NA>     <NA>
+#> html       xml2      TRUE    <NA>     <NA>
+#> pdf    pdftools      TRUE    <NA>     <NA>
+#> docx       xml2      TRUE    <NA>     <NA>
+#> image tesseract      TRUE    <NA>     <NA>
 
 # What this installation can read right now.
 gr_extractors()[, c("name", "needs", "available")]

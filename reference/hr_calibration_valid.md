@@ -5,7 +5,7 @@ prompt hash, effort, module and contract version it was measured on.
 `hr_calibration_valid()` is `FALSE` when any of them differs from `key`,
 or is missing from it, and the fields that differ are in the `"differs"`
 attribute. A `key` without `contract_version` is checked against the
-running package's contract version, so a record made under another
+signal contract version, `"0.1"`, so a record made under another
 contract version is void.
 
 ## Usage

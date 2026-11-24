@@ -12,7 +12,11 @@ gr_cleaners()
 ## Value
 
 A data frame with `name`, `stage`, `scope`, `default_on` and
-`description`.
+`description`. The last two columns are `version` and `contract`, `NA`
+for a cleaner registered with
+[`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md)
+and filled for one registered with
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md).
 
 ## Details
 
@@ -86,6 +90,21 @@ gr_cleaners()
 #> 12                                                                                                                                                                                                     Lowercase everything (loses proper-noun and acronym signal)
 #> 13                                                                                                                                                        Replace every digit with a space. OFF by default: this makes figures, dates and percentages unanswerable
 #> 14                                                                                                                                                                                   Replace punctuation with spaces. OFF by default: destroys sentence boundaries
+#>    version contract
+#> 1     <NA>     <NA>
+#> 2     <NA>     <NA>
+#> 3     <NA>     <NA>
+#> 4     <NA>     <NA>
+#> 5     <NA>     <NA>
+#> 6     <NA>     <NA>
+#> 7     <NA>     <NA>
+#> 8     <NA>     <NA>
+#> 9     <NA>     <NA>
+#> 10    <NA>     <NA>
+#> 11    <NA>     <NA>
+#> 12    <NA>     <NA>
+#> 13    <NA>     <NA>
+#> 14    <NA>     <NA>
 # The steps the "standard" preset runs:
 subset(gr_cleaners(), default_on)$name
 #> [1] "hyphenation"         "page_numbers"        "collapse_whitespace"

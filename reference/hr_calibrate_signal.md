@@ -47,7 +47,9 @@ hr_calibrate_signal(
   `prompt_hash` (of the prompt or template), `effort`, `module` (the
   reader or stage) and `contract_version`. Each is one string; `NA` is
   allowed except for `served_model`. A missing `contract_version` is
-  filled with the running package's contract version.
+  filled with the signal contract version, `"0.1"`. That version stays
+  at 0.1 when the module contract moves, so a record you saved earlier
+  stays valid.
 
 - method:
 

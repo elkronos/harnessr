@@ -65,7 +65,10 @@
     <p>A data frame with one row per embedder: <code>name</code>, <code>deterministic</code>
 (<code>"TRUE"</code>/<code>"FALSE"</code>) and <code>description</code>. <code>deterministic</code> is the column that
 matters for reproducibility: only a deterministic embedder lets a
-<code><a href="gr_replay_client.html">gr_replay_client()</a></code> reproduce a run's chunk ranking.</p>
+<code><a href="gr_replay_client.html">gr_replay_client()</a></code> reproduce a run's chunk ranking.
+The last two columns are <code>version</code> and <code>contract</code>, <code>NA</code> for an embedder
+registered with <code><a href="gr_register_embedder.html">gr_register_embedder()</a></code> and filled for one registered with
+<code><a href="hr_register.html">hr_register()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -78,9 +81,9 @@ matters for reproducibility: only a deterministic embedder lets a
 <span class="r-out co"><span class="r-pr">#&gt;</span>      name deterministic</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1     api         FALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2 lexical          TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                    description</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1                 Embeddings endpoint on the client's base URL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 Hashed bag-of-words; free, offline, word overlap not meaning</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                    description version contract</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                 Embeddings endpoint on the client's base URL    &lt;NA&gt;     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 Hashed bag-of-words; free, offline, word overlap not meaning    &lt;NA&gt;     &lt;NA&gt;</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
