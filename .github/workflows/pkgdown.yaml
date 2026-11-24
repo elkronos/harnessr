@@ -7,8 +7,9 @@
 #
 # A pull request builds the site only when it changes a file the site is made
 # from: the code and its help pages, the guides, the installed files they
-# read, and the pages pkgdown copies (README, NEWS, CONTRIBUTING, LICENSE).
-# A push to main always builds and publishes.
+# read, LICENSE, and every top-level Markdown page pkgdown renders (README,
+# NEWS, CONTRIBUTING, CONTRACT, NOTES-primitives). A push to main builds and
+# publishes, unless a newer push to main replaces it while it waits.
 on:
   push:
     branches: [main, master]
@@ -19,9 +20,8 @@ on:
       - 'man/**'
       - 'vignettes/**'
       - 'inst/**'
-      - 'README.md'
-      - 'NEWS.md'
-      - 'CONTRIBUTING.md'
+      - '*.md'
+      - '.github/*.md'
       - 'LICENSE'
       - 'DESCRIPTION'
       - 'NAMESPACE'
@@ -40,8 +40,10 @@ jobs:
     runs-on: ubuntu-latest
     # A slow package mirror once held a successful build for 64 minutes.
     timeout-minutes: 75
-    # One publishing run at a time, never cancelled. A pull request does not
-    # publish: a new push to it cancels its older build.
+    # One publishing run at a time. A running publish is never cancelled; if
+    # several pushes arrive while it runs, only the newest waits and
+    # publishes. A pull request does not publish: a new push to it cancels its
+    # older build.
     concurrency:
       group: pkgdown-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'true' }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
