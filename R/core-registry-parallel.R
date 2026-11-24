@@ -374,7 +374,9 @@ trace_draw <- function(trace) {
 #'
 #' The API key in the snapshot is set for each item and put back as it was
 #' when the item ends, so it does not stay in the worker's environment after
-#' the batch. A snapshot with no key leaves the environment alone.
+#' the item. A worker started from a session with OPENAI_API_KEY set has that
+#' key from the start, and the restore puts it back. A snapshot with no key
+#' leaves the environment alone.
 #' @noRd
 worker_item <- function(fn, ctx, state) {
   force(fn); force(state)

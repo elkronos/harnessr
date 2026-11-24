@@ -867,17 +867,21 @@ every field that changed.
 ## Fixed
 
 * A worker in a parallel batch sets `OPENAI_API_KEY` for each item and
-  puts back the value it had when the item ends, so the key no longer stays
-  in the worker process after its item. A backend handler or
+  puts back the value it had when the item ends. A key passed as `key` or
+  through the `harnessr.api_key` option no longer stays in the worker process
+  after its item. A worker started from a session with `OPENAI_API_KEY` set
+  has that key from the start and keeps it. A backend handler or
   `gr_ellmer_client()` that reads the key from the environment still gets
   it. A batch through `gr_mock_client()` sets no key. Requests and cache keys
   do not change.
 
 * A `gr_claims`, `gr_synthesis` or `gr_calibration` you saved with an earlier
   version gets the fields added since filled with their defaults when
-  `gr_gaps()`, `gr_outline()`, `gr_synthesise()`, `gr_recheck()`,
-  `gr_audit_report()` or `print()` reads it. Each one gives the output it gave
-  for that object before, and `gr_recheck()` returns the filled object. A
+  `gr_gaps()`, `gr_outline()`, `gr_synthesise()`, `gr_recheck()` or
+  `gr_audit_report()` reads it, or `print()` reads a `gr_claims` or
+  `gr_synthesis`. Each one gives the output it gave for that object before.
+  `gr_recheck()` returns the filled object, and `gr_synthesise()` stores the
+  filled claims table in `$claims`. A
   hand-built object such as `structure(list(table = tab), class =
   "gr_screening")` passes through unchanged. Requests and cache keys do not
   change.

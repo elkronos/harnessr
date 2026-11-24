@@ -3,8 +3,9 @@
 # A worker is a fresh R process. It needs the caller's options, registries,
 # trace meta, its share of the run's limits, the run's draw, the API key, and
 # the user's own globals with the packages they come from. gr_lapply() used to
-# pass these to worker_item() as seven loose arguments; new_hr_ctx() puts them
-# in one classed list, checked once where it is built.
+# pass six of these to worker_item() as loose arguments and the globals and
+# packages to future_lapply(); new_hr_ctx() puts all of them in one classed
+# list, checked once where it is built.
 #
 # The snapshot is internal. format_hr_ctx() shows it as text without the key,
 # and there is no print method, so the package's exported surface (api.json)
@@ -13,8 +14,9 @@
 #' Build the run snapshot for a batch's workers.
 #'
 #' @param key The API key a worker sets for each item, or "" for none. A mock
-#'   client gets "" (see gr_lapply()). It lives only here: never in a hash, a
-#'   trace, the ledger or format_hr_ctx().
+#'   client gets "" (see gr_lapply()). The snapshot holds it and worker_item()
+#'   sets it in the environment for each item. It is never in a hash, a trace,
+#'   the ledger or the output of format_hr_ctx().
 #' @param opts The options a worker applies, or an empty list to leave them.
 #' @param regs What worker_state() returned, or an empty list.
 #' @param parent_meta The run trace's meta, copied onto each item's trace.
