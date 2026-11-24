@@ -418,6 +418,220 @@ names(arms)
 #> [1] "answer:use_skill=FALSE" "answer:use_skill=TRUE"
 ```
 
+## A coding sub-agent
+
+Steps need not read documents. A coding sub-agent drafts code with a
+model, runs the tests on the draft, and asks the model to fix a draft
+that failed.
+[`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md)
+(see
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md))
+runs the tests: it runs one program you name and reads its result as
+`"passed"` or `"failed"`.
+
+The loop has two checks. A visible check runs after the draft, and the
+revise step reads its result in `input$check`. A held check runs last,
+and only the scorer sees it, in `attr(output, "hr_held")`. A revise step
+that saw the scoring check could fit the code to that check, so a held
+step must come last:
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+refuses a step that is not held after one that is (`hr_held_not_last`).
+Here the visible and the held check run the same tests; a held check can
+also run tests the loop never sees.
+
+The tests and the drafts go in a temporary folder. The stand-in model
+drafts a `clamp()` with a bug, and sends the fixed version when told the
+draft failed:
+
+``` r
+
+rscript <- file.path(R.home("bin"), "Rscript")
+work <- file.path(tempdir(), "coding-loop")
+dir.create(work, showWarnings = FALSE)
+tests <- file.path(work, "test-clamp.R")
+writeLines(c("stopifnot(clamp(5, 0, 3) == 3)", "stopifnot(clamp(2, 0, 3) == 2)"), tests)
+coder <- gr_mock_client(function(messages, params) {
+  text <- messages[[length(messages)]]$content
+  if (grepl("failed its tests", text, fixed = TRUE)) {
+    "clamp <- function(x, lo, hi) max(lo, min(x, hi))"
+  } else {
+    "clamp <- function(x, lo, hi) max(lo, max(x, hi))"
+  }
+})
+```
+
+The draft step writes the reply to a file, the command runs the tests on
+that file, and the revise step sends the code and what the tests
+printed:
+
+``` r
+
+draft <- hr_step("draft", function(item, ctx) {
+  code <- tempfile("clamp-", tmpdir = work, fileext = ".R")
+  writeLines(ctx$call(item$task)$text, code)
+  list(code = code)
+})
+run_tests <- function(input, ctx) {
+  c(rscript, "-e", sprintf("source('%s'); source('%s')",
+                           gsub("\\\\", "/", input$code), gsub("\\\\", "/", tests)))
+}
+revise <- hr_step("revise", function(input, ctx) {
+  if (identical(input$check$status, "passed")) return(input)
+  fixed <- ctx$call(paste0("This code failed its tests:\n",
+                           paste(readLines(input$code), collapse = "\n"),
+                           "\nWhat the tests printed:\n", input$check$stderr))$text
+  writeLines(fixed, input$code)
+  input
+})
+coding <- hr_chain(draft = draft,
+                   check = hr_step_command("check", run_tests),
+                   revise = revise,
+                   held = hr_step_command("held", run_tests, held = TRUE),
+                   name = "coding")
+```
+
+The scorer reads the held check. Compared with the same chain without
+the visible check and the revise step, which scores the first draft, the
+loop passes on every run:
+
+``` r
+
+first <- hr_chain(coding, check = NULL, revise = NULL, name = "first-draft")
+held_passes <- hr_scorer(function(item, output, label) {
+  s <- attr(output, "hr_held")$held$status
+  list(correct = identical(s, label), outcome = s, failure_kind = NA)
+}, name = "held_passes")
+tasks <- hr_reference(list(clamp = list(task = "Write clamp(x, lo, hi) in R.")),
+                      labels = "passed", cluster = "clamp", split = "test")
+cb <- hr_benchmark(list(coding, first), tasks, runs = 5, client = coder,
+                   scorer = held_passes)
+table(cb$arm, cb$outcome)
+#>              
+#>               failed passed
+#>   coding           0      5
+#>   first-draft      5      0
+hr_signals(cb, "command.held")[1:2, c("arm", "run", "value")]
+#>      arm run  value
+#> 1 coding   1 passed
+#> 2 coding   2 passed
+unlink(work, recursive = TRUE)
+```
+
+For a testthat file, give the check `parse = "testthat"`. It reads the
+last `[ FAIL n | WARN n | SKIP n | PASS n ]` line the run printed, and a
+run with a failed test is `"failed"` whatever its exit code. Run the
+file with a reporter that prints that line, such as the default,
+`"progress"` or `"check"`: a run that prints no such line, as under
+`"summary"`, is read as `"error"`. Giving
+[`testthat::test_file()`](https://testthat.r-lib.org/reference/test_file.html)
+`stop_on_failure = TRUE` as well makes the exit code agree with the
+result.
+
+A stand-in model’s handler must be stateless: its reply should depend
+only on the messages and settings it is given, as `coder`’s does. A
+handler that counts its calls, or remembers the last request, answers by
+the order the requests come in. That order changes when runs go to
+parallel workers, when a cache or a recording answers some of them, and
+when arms are added, so the same benchmark would score differently from
+one run to the next.
+
+## Two goals, start to finish
+
+### Run your own tests on the recipes
+
+This goal sweeps a recipe over a grid of its settings and runs your own
+arm beside it, on the same questions and under one spending limit.
+[`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
+given a function builds one arm per row of the grid, and each arm
+records its settings as `param.*` columns:
+
+``` r
+
+my_arm <- hr_chain(segment = gr_step("segment"), retrieve = gr_step_retrieve(top_k = 4),
+                   read = gr_step("read", reader = "stuff"), name = "mine")
+arms <- hr_sweep(function(top_k, max_tokens) {
+  gr_arm("needle", list(top_k = top_k, max_tokens = max_tokens))
+}, expand.grid(top_k = c(2, 4, 8), max_tokens = c(200, 500)))
+bench <- hr_benchmark(c(arms, list(my_arm)), ref, runs = 5, client = cl,
+                      scorer = gr_scorer_answer(),
+                      governor = hr_governor(max_cost_usd = 5))
+aggregate(correct ~ param.top_k + param.max_tokens, bench, mean)
+#>   param.top_k param.max_tokens correct
+#> 1           2              200       1
+#> 2           4              200       1
+#> 3           8              200       1
+#> 4           2              500       1
+#> 5           4              500       1
+#> 6           8              500       1
+aggregate(correct ~ arm, bench, mean)
+#>                             arm correct
+#> 1                          mine       1
+#> 2 needle:top_k=2,max_tokens=200       1
+#> 3 needle:top_k=2,max_tokens=500       1
+#> 4 needle:top_k=4,max_tokens=200       1
+#> 5 needle:top_k=4,max_tokens=500       1
+#> 6 needle:top_k=8,max_tokens=200       1
+#> 7 needle:top_k=8,max_tokens=500       1
+hr_sweep_check(bench)
+#>                             arm                       same_as runs requests
+#> 1 needle:top_k=8,max_tokens=200 needle:top_k=4,max_tokens=200    5        5
+#> 2 needle:top_k=4,max_tokens=500 needle:top_k=2,max_tokens=500    5        5
+#> 3 needle:top_k=8,max_tokens=500 needle:top_k=2,max_tokens=500    5        5
+#>        settings
+#> 1 top_k: 4 vs 8
+#> 2 top_k: 2 vs 4
+#> 3 top_k: 2 vs 8
+```
+
+The first table covers only the swept arms: your arm has no `param.*`
+settings, so [`aggregate()`](https://rdrr.io/r/stats/aggregate.html)
+leaves its rows out. The second has one row per arm, yours included, so
+it compares the grid with your arm.
+
+The example document is short. Cut into chunks of 200 tokens, a `top_k`
+of 4 keeps every chunk, and cut into chunks of 500 tokens, a `top_k` of
+2 does.
+[`hr_sweep_check()`](https://elkronos.github.io/harnessr/reference/hr_sweep_check.md)
+finds the arms that sent the same requests as another. Those rows
+compare a configuration with itself.
+
+### Chain steps into a sub-agent of your own
+
+This goal compares a chain that has a judge step with the same chain
+without it, and sweeps the chain over `top_k`. A cache answers any
+request sent twice. The judge step grades the answer against a rubric
+with `ctx$judge()` and records the verdict with `ctx$note()`:
+
+``` r
+
+checked <- hr_chain(segment = gr_step("segment"), retrieve = gr_step_retrieve(top_k = 4),
+                    read = gr_step("read", reader = "stuff"),
+                    judge = hr_step("judge", function(a, ctx) {
+                      j <- ctx$judge(a$answer, mode = "grade", reference = "45.2 million",
+                                     rubric = "Does it give the figure?", orders = 1)
+                      ctx$note("ok", j$verdicts$verdict[1])
+                      a
+                    }),
+                    name = "checked")
+bench <- hr_benchmark(c(list(checked, hr_chain(checked, judge = NULL, name = "nojudge")),
+                        hr_sweep(checked, data.frame(retrieve.top_k = c(2, 8)))),
+                      ref, runs = 5, client = gr_cache_client(cl, gr_cache(tempfile())),
+                      scorer = gr_scorer_answer())
+aggregate(correct ~ arm, bench, mean)
+#>                        arm correct
+#> 1                  checked       1
+#> 2 checked:retrieve.top_k=2       1
+#> 3 checked:retrieve.top_k=8       1
+#> 4                  nojudge       1
+table(hr_signals(bench, "ok")$arm)
+#> 
+#>                  checked checked:retrieve.top_k=2 checked:retrieve.top_k=8 
+#>                        5                        5                        5
+```
+
+A coding sub-agent is built the same way, as in the section above: a
+draft step, a visible check, a revise step, and the held check last.
+
 ## Next
 
 - [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md):
@@ -435,3 +649,6 @@ names(arms)
   listing and changing a chain’s settings by path.
 - [`?hr_skill`](https://elkronos.github.io/harnessr/reference/hr_skill.md):
   what a skill folder holds and what is refused.
+- [`?hr_step_command`](https://elkronos.github.io/harnessr/reference/hr_step_command.md):
+  how a command step runs a program and reads its result, and what a
+  held step does.

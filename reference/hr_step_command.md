@@ -94,7 +94,10 @@ The result is read by `parse`:
   alone is not read, since
   [`testthat::test_file()`](https://testthat.r-lib.org/reference/test_file.html)
   exits with 0 when a test fails unless it is given
-  `stop_on_failure = TRUE`, so run it that way.
+  `stop_on_failure = TRUE`. Use a reporter that prints the summary line,
+  such as the default, `"progress"` or `"check"`: under `"summary"` no
+  such line is printed and the status is `"error"`.
+  `stop_on_failure = TRUE` makes the exit code agree with the result.
 
 A program stopped at `timeout` seconds is `"timeout"`, with the
 degradation `"command_timeout"`, and a program that cannot be found is

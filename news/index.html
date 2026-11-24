@@ -195,6 +195,8 @@
 <li>With <code>held = FALSE</code> the step adds its result to its input as <code>$check</code>. With <code>held = TRUE</code> it passes its input on, records the signal <code>"command.&lt;step&gt;"</code> and attaches the result as <code>attr(output, "hr_held")</code>, for a scorer. <code><a href="../reference/hr_chain.html">hr_chain()</a></code> refuses a step that is not held after one that is, with class <code>hr_held_not_last</code>.</li>
 <li>
 <code><a href="../reference/hr_judge.html">hr_judge()</a></code> reads its <code>"judge_inconsistent"</code> degradation from the same list of codes as the command step. Nothing it returns changes.</li>
+<li>
+<code><a href="../articles/compose.html">vignette("compose")</a></code> builds a coding sub-agent: a draft step, a visible check, a revise step that reads it, and a held check last that only the scorer sees, compared with the first draft alone. It also runs the two goals the steps were written for, a recipe swept over a grid next to an arm of your own and a chain with a judge step derived and swept, and says why a stand-in model’s handler must be stateless. A test builds the same loop from exported names only, on four small tasks, and checks it with <code><a href="../reference/hr_check_module.html">hr_check_module()</a></code>.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="skills-0-6-0-9000">Skills<a class="anchor" aria-label="anchor" href="#skills-0-6-0-9000"></a></h3>

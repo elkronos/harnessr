@@ -420,6 +420,200 @@ function that builds the chain from a grid column instead:</p>
 <span><span class="co">#&gt; [1] "answer:use_skill=FALSE" "answer:use_skill=TRUE"</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="a-coding-sub-agent">A coding sub-agent<a class="anchor" aria-label="anchor" href="#a-coding-sub-agent"></a>
+</h2>
+<p>Steps need not read documents. A coding sub-agent drafts code with a
+model, runs the tests on the draft, and asks the model to fix a draft
+that failed. <code><a href="../reference/hr_step_command.html">hr_step_command()</a></code> (see
+<code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>) runs the tests: it runs one program
+you name and reads its result as <code>"passed"</code> or
+<code>"failed"</code>.</p>
+<p>The loop has two checks. A visible check runs after the draft, and
+the revise step reads its result in <code>input$check</code>. A held
+check runs last, and only the scorer sees it, in
+<code>attr(output, "hr_held")</code>. A revise step that saw the scoring
+check could fit the code to that check, so a held step must come last:
+<code><a href="../reference/hr_chain.html">hr_chain()</a></code> refuses a step that is not held after one that
+is (<code>hr_held_not_last</code>). Here the visible and the held check
+run the same tests; a held check can also run tests the loop never
+sees.</p>
+<p>The tests and the drafts go in a temporary folder. The stand-in model
+drafts a <code>clamp()</code> with a bug, and sends the fixed version
+when told the draft failed:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rscript</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Rhome.html" class="external-link">R.home</a></span><span class="op">(</span><span class="st">"bin"</span><span class="op">)</span>, <span class="st">"Rscript"</span><span class="op">)</span></span>
+<span><span class="va">work</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"coding-loop"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">work</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">tests</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">work</span>, <span class="st">"test-clamp.R"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"stopifnot(clamp(5, 0, 3) == 3)"</span>, <span class="st">"stopifnot(clamp(2, 0, 3) == 2)"</span><span class="op">)</span>, <span class="va">tests</span><span class="op">)</span></span>
+<span><span class="va">coder</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">text</span> <span class="op">&lt;-</span> <span class="va">messages</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">messages</span><span class="op">)</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"failed its tests"</span>, <span class="va">text</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="st">"clamp &lt;- function(x, lo, hi) max(lo, min(x, hi))"</span></span>
+<span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>    <span class="st">"clamp &lt;- function(x, lo, hi) max(lo, max(x, hi))"</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<p>The draft step writes the reply to a file, the command runs the tests
+on that file, and the revise step sends the code and what the tests
+printed:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">draft</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_step.html">hr_step</a></span><span class="op">(</span><span class="st">"draft"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">code</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"clamp-"</span>, tmpdir <span class="op">=</span> <span class="va">work</span>, fileext <span class="op">=</span> <span class="st">".R"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="va">ctx</span><span class="op">$</span><span class="fu">call</span><span class="op">(</span><span class="va">item</span><span class="op">$</span><span class="va">task</span><span class="op">)</span><span class="op">$</span><span class="va">text</span>, <span class="va">code</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>code <span class="op">=</span> <span class="va">code</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">run_tests</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">rscript</span>, <span class="st">"-e"</span>, <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"source('%s'); source('%s')"</span>,</span>
+<span>                           <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"\\\\"</span>, <span class="st">"/"</span>, <span class="va">input</span><span class="op">$</span><span class="va">code</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"\\\\"</span>, <span class="st">"/"</span>, <span class="va">tests</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">revise</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_step.html">hr_step</a></span><span class="op">(</span><span class="st">"revise"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">check</span><span class="op">$</span><span class="va">status</span>, <span class="st">"passed"</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="va">input</span><span class="op">)</span></span>
+<span>  <span class="va">fixed</span> <span class="op">&lt;-</span> <span class="va">ctx</span><span class="op">$</span><span class="fu">call</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"This code failed its tests:\n"</span>,</span>
+<span>                           <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">code</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span>,</span>
+<span>                           <span class="st">"\nWhat the tests printed:\n"</span>, <span class="va">input</span><span class="op">$</span><span class="va">check</span><span class="op">$</span><span class="va">stderr</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">text</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="va">fixed</span>, <span class="va">input</span><span class="op">$</span><span class="va">code</span><span class="op">)</span></span>
+<span>  <span class="va">input</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">coding</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>draft <span class="op">=</span> <span class="va">draft</span>,</span>
+<span>                   check <span class="op">=</span> <span class="fu"><a href="../reference/hr_step_command.html">hr_step_command</a></span><span class="op">(</span><span class="st">"check"</span>, <span class="va">run_tests</span><span class="op">)</span>,</span>
+<span>                   revise <span class="op">=</span> <span class="va">revise</span>,</span>
+<span>                   held <span class="op">=</span> <span class="fu"><a href="../reference/hr_step_command.html">hr_step_command</a></span><span class="op">(</span><span class="st">"held"</span>, <span class="va">run_tests</span>, held <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>                   name <span class="op">=</span> <span class="st">"coding"</span><span class="op">)</span></span></code></pre></div>
+<p>The scorer reads the held check. Compared with the same chain without
+the visible check and the revise step, which scores the first draft, the
+loop passes on every run:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">first</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span><span class="va">coding</span>, check <span class="op">=</span> <span class="cn">NULL</span>, revise <span class="op">=</span> <span class="cn">NULL</span>, name <span class="op">=</span> <span class="st">"first-draft"</span><span class="op">)</span></span>
+<span><span class="va">held_passes</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_scorer.html">hr_scorer</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">output</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">output</span>, <span class="st">"hr_held"</span><span class="op">)</span><span class="op">$</span><span class="va">held</span><span class="op">$</span><span class="va">status</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>correct <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">s</span>, <span class="va">label</span><span class="op">)</span>, outcome <span class="op">=</span> <span class="va">s</span>, failure_kind <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span>
+<span><span class="op">}</span>, name <span class="op">=</span> <span class="st">"held_passes"</span><span class="op">)</span></span>
+<span><span class="va">tasks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_reference.html">hr_reference</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>clamp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>task <span class="op">=</span> <span class="st">"Write clamp(x, lo, hi) in R."</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                      labels <span class="op">=</span> <span class="st">"passed"</span>, cluster <span class="op">=</span> <span class="st">"clamp"</span>, split <span class="op">=</span> <span class="st">"test"</span><span class="op">)</span></span>
+<span><span class="va">cb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">coding</span>, <span class="va">first</span><span class="op">)</span>, <span class="va">tasks</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">coder</span>,</span>
+<span>                   scorer <span class="op">=</span> <span class="va">held_passes</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">cb</span><span class="op">$</span><span class="va">arm</span>, <span class="va">cb</span><span class="op">$</span><span class="va">outcome</span><span class="op">)</span></span>
+<span><span class="co">#&gt;              </span></span>
+<span><span class="co">#&gt;               failed passed</span></span>
+<span><span class="co">#&gt;   coding           0      5</span></span>
+<span><span class="co">#&gt;   first-draft      5      0</span></span>
+<span><span class="fu"><a href="../reference/hr_signal.html">hr_signals</a></span><span class="op">(</span><span class="va">cb</span>, <span class="st">"command.held"</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"arm"</span>, <span class="st">"run"</span>, <span class="st">"value"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;      arm run  value</span></span>
+<span><span class="co">#&gt; 1 coding   1 passed</span></span>
+<span><span class="co">#&gt; 2 coding   2 passed</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">work</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>For a testthat file, give the check <code>parse = "testthat"</code>.
+It reads the last <code>[ FAIL n | WARN n | SKIP n | PASS n ]</code>
+line the run printed, and a run with a failed test is
+<code>"failed"</code> whatever its exit code. Run the file with a
+reporter that prints that line, such as the default,
+<code>"progress"</code> or <code>"check"</code>: a run that prints no
+such line, as under <code>"summary"</code>, is read as
+<code>"error"</code>. Giving <code><a href="https://testthat.r-lib.org/reference/test_file.html" class="external-link">testthat::test_file()</a></code>
+<code>stop_on_failure = TRUE</code> as well makes the exit code agree
+with the result.</p>
+<p>A stand-in model’s handler must be stateless: its reply should depend
+only on the messages and settings it is given, as <code>coder</code>’s
+does. A handler that counts its calls, or remembers the last request,
+answers by the order the requests come in. That order changes when runs
+go to parallel workers, when a cache or a recording answers some of
+them, and when arms are added, so the same benchmark would score
+differently from one run to the next.</p>
+</div>
+<div class="section level2">
+<h2 id="two-goals-start-to-finish">Two goals, start to finish<a class="anchor" aria-label="anchor" href="#two-goals-start-to-finish"></a>
+</h2>
+<div class="section level3">
+<h3 id="run-your-own-tests-on-the-recipes">Run your own tests on the recipes<a class="anchor" aria-label="anchor" href="#run-your-own-tests-on-the-recipes"></a>
+</h3>
+<p>This goal sweeps a recipe over a grid of its settings and runs your
+own arm beside it, on the same questions and under one spending limit.
+<code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> given a function builds one arm per row of the
+grid, and each arm records its settings as <code>param.*</code>
+columns:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">my_arm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>segment <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"segment"</span><span class="op">)</span>, retrieve <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>                   read <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"read"</span>, reader <span class="op">=</span> <span class="st">"stuff"</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"mine"</span><span class="op">)</span></span>
+<span><span class="va">arms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">top_k</span>, <span class="va">max_tokens</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"needle"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="va">top_k</span>, max_tokens <span class="op">=</span> <span class="va">max_tokens</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">4</span>, <span class="fl">8</span><span class="op">)</span>, max_tokens <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">200</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">arms</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">my_arm</span><span class="op">)</span><span class="op">)</span>, <span class="va">ref</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">cl</span>,</span>
+<span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>                      governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_cost_usd <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">correct</span> <span class="op">~</span> <span class="va">param.top_k</span> <span class="op">+</span> <span class="va">param.max_tokens</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   param.top_k param.max_tokens correct</span></span>
+<span><span class="co">#&gt; 1           2              200       1</span></span>
+<span><span class="co">#&gt; 2           4              200       1</span></span>
+<span><span class="co">#&gt; 3           8              200       1</span></span>
+<span><span class="co">#&gt; 4           2              500       1</span></span>
+<span><span class="co">#&gt; 5           4              500       1</span></span>
+<span><span class="co">#&gt; 6           8              500       1</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">correct</span> <span class="op">~</span> <span class="va">arm</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                             arm correct</span></span>
+<span><span class="co">#&gt; 1                          mine       1</span></span>
+<span><span class="co">#&gt; 2 needle:top_k=2,max_tokens=200       1</span></span>
+<span><span class="co">#&gt; 3 needle:top_k=2,max_tokens=500       1</span></span>
+<span><span class="co">#&gt; 4 needle:top_k=4,max_tokens=200       1</span></span>
+<span><span class="co">#&gt; 5 needle:top_k=4,max_tokens=500       1</span></span>
+<span><span class="co">#&gt; 6 needle:top_k=8,max_tokens=200       1</span></span>
+<span><span class="co">#&gt; 7 needle:top_k=8,max_tokens=500       1</span></span>
+<span><span class="fu"><a href="../reference/hr_sweep_check.html">hr_sweep_check</a></span><span class="op">(</span><span class="va">bench</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                             arm                       same_as runs requests</span></span>
+<span><span class="co">#&gt; 1 needle:top_k=8,max_tokens=200 needle:top_k=4,max_tokens=200    5        5</span></span>
+<span><span class="co">#&gt; 2 needle:top_k=4,max_tokens=500 needle:top_k=2,max_tokens=500    5        5</span></span>
+<span><span class="co">#&gt; 3 needle:top_k=8,max_tokens=500 needle:top_k=2,max_tokens=500    5        5</span></span>
+<span><span class="co">#&gt;        settings</span></span>
+<span><span class="co">#&gt; 1 top_k: 4 vs 8</span></span>
+<span><span class="co">#&gt; 2 top_k: 2 vs 4</span></span>
+<span><span class="co">#&gt; 3 top_k: 2 vs 8</span></span></code></pre></div>
+<p>The first table covers only the swept arms: your arm has no
+<code>param.*</code> settings, so <code><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate()</a></code> leaves its
+rows out. The second has one row per arm, yours included, so it compares
+the grid with your arm.</p>
+<p>The example document is short. Cut into chunks of 200 tokens, a
+<code>top_k</code> of 4 keeps every chunk, and cut into chunks of 500
+tokens, a <code>top_k</code> of 2 does. <code><a href="../reference/hr_sweep_check.html">hr_sweep_check()</a></code>
+finds the arms that sent the same requests as another. Those rows
+compare a configuration with itself.</p>
+</div>
+<div class="section level3">
+<h3 id="chain-steps-into-a-sub-agent-of-your-own">Chain steps into a sub-agent of your own<a class="anchor" aria-label="anchor" href="#chain-steps-into-a-sub-agent-of-your-own"></a>
+</h3>
+<p>This goal compares a chain that has a judge step with the same chain
+without it, and sweeps the chain over <code>top_k</code>. A cache
+answers any request sent twice. The judge step grades the answer against
+a rubric with <code>ctx$judge()</code> and records the verdict with
+<code>ctx$note()</code>:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span>segment <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"segment"</span><span class="op">)</span>, retrieve <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step_retrieve</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>                    read <span class="op">=</span> <span class="fu"><a href="../reference/gr_step.html">gr_step</a></span><span class="op">(</span><span class="st">"read"</span>, reader <span class="op">=</span> <span class="st">"stuff"</span><span class="op">)</span>,</span>
+<span>                    judge <span class="op">=</span> <span class="fu"><a href="../reference/hr_step.html">hr_step</a></span><span class="op">(</span><span class="st">"judge"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">a</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>                      <span class="va">j</span> <span class="op">&lt;-</span> <span class="va">ctx</span><span class="op">$</span><span class="fu">judge</span><span class="op">(</span><span class="va">a</span><span class="op">$</span><span class="va">answer</span>, mode <span class="op">=</span> <span class="st">"grade"</span>, reference <span class="op">=</span> <span class="st">"45.2 million"</span>,</span>
+<span>                                     rubric <span class="op">=</span> <span class="st">"Does it give the figure?"</span>, orders <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span>                      <span class="va">ctx</span><span class="op">$</span><span class="fu">note</span><span class="op">(</span><span class="st">"ok"</span>, <span class="va">j</span><span class="op">$</span><span class="va">verdicts</span><span class="op">$</span><span class="va">verdict</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span>                      <span class="va">a</span></span>
+<span>                    <span class="op">}</span><span class="op">)</span>,</span>
+<span>                    name <span class="op">=</span> <span class="st">"checked"</span><span class="op">)</span></span>
+<span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">checked</span>, <span class="fu"><a href="../reference/hr_chain.html">hr_chain</a></span><span class="op">(</span><span class="va">checked</span>, judge <span class="op">=</span> <span class="cn">NULL</span>, name <span class="op">=</span> <span class="st">"nojudge"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                        <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">checked</span>, <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>retrieve.top_k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">8</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                      <span class="va">ref</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/gr_cache_client.html">gr_cache_client</a></span><span class="op">(</span><span class="va">cl</span>, <span class="fu"><a href="../reference/gr_cache.html">gr_cache</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">correct</span> <span class="op">~</span> <span class="va">arm</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                        arm correct</span></span>
+<span><span class="co">#&gt; 1                  checked       1</span></span>
+<span><span class="co">#&gt; 2 checked:retrieve.top_k=2       1</span></span>
+<span><span class="co">#&gt; 3 checked:retrieve.top_k=8       1</span></span>
+<span><span class="co">#&gt; 4                  nojudge       1</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_signal.html">hr_signals</a></span><span class="op">(</span><span class="va">bench</span>, <span class="st">"ok"</span><span class="op">)</span><span class="op">$</span><span class="va">arm</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;                  checked checked:retrieve.top_k=2 checked:retrieve.top_k=8 </span></span>
+<span><span class="co">#&gt;                        5                        5                        5</span></span></code></pre></div>
+<p>A coding sub-agent is built the same way, as in the section above: a
+draft step, a visible check, a revise step, and the held check last.</p>
+</div>
+</div>
+<div class="section level2">
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>
 </h2>
 <ul>
@@ -438,6 +632,9 @@ changing a chain’s settings by path.</li>
 <li>
 <code><a href="../reference/hr_skill.html">?hr_skill</a></code>: what a skill folder holds and what is
 refused.</li>
+<li>
+<code><a href="../reference/hr_step_command.html">?hr_step_command</a></code>: how a command step runs a program and
+reads its result, and what a held step does.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

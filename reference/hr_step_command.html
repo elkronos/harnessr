@@ -146,7 +146,10 @@ line the program printed: <code>"failed"</code> when <code>FAIL</code> is above 
 line, or a summary of no failures and a non-zero exit, the status is
 <code>"error"</code>. The exit code alone is not read, since
 <code><a href="https://testthat.r-lib.org/reference/test_file.html" class="external-link">testthat::test_file()</a></code> exits with 0 when a test fails unless it is
-given <code>stop_on_failure = TRUE</code>, so run it that way.</p></dd>
+given <code>stop_on_failure = TRUE</code>. Use a reporter that prints the
+summary line, such as the default, <code>"progress"</code> or <code>"check"</code>: under
+<code>"summary"</code> no such line is printed and the status is <code>"error"</code>.
+<code>stop_on_failure = TRUE</code> makes the exit code agree with the result.</p></dd>
 
 
 </dl><p>A program stopped at <code>timeout</code> seconds is <code>"timeout"</code>, with the
