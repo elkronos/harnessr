@@ -8,6 +8,7 @@ name: validation
 
 on:
   schedule:
+    # Scheduled runs start hours after the cron time (validation: 7.2 to 10.6 h, Nov 2026).
     - cron: '23 4 * * *'
   workflow_dispatch:
     inputs:
