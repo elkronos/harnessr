@@ -1222,6 +1222,7 @@
 "gr_step_retrieve","doc","function"
 "gr_stop_test","doc","function"
 "gr_synthesise","doc","function"
+"gr_upgrade_stage","doc","function"
 "gr_verify_evidence","doc","function"
 "guard_reads","doc","function"
 "han_numbers","doc","function"
