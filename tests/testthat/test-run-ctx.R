@@ -150,4 +150,17 @@ test_that("a backend handler that reads the environment gets the key in parallel
   expect_false(grepl(fake_key, as_json(tr), fixed = TRUE))
   expect_gt(length(list.files(cache_dir, recursive = TRUE)), 0L)
   expect_false(dir_has_fake_key(cache_dir))
+
+  # A key mixed into a cache key is hashed, so the scan above cannot see it.
+  # The same prompts run here with no key must give the same cache entries.
+  withr::local_options(harnessr.api_key = NULL)
+  keyless_dir <- withr::local_tempdir("ctx-cache-keyless")
+  cl2 <- gr_cache_client(gr_backend_client(function(messages, params) "no key",
+                                           model = "gpt-4o", id = "ctx-backend"),
+                         gr_cache(keyless_dir))
+  harnessr:::gr_lapply(1:4, function(i, trace) {
+    gr_call(cl2, sprintf("item %d", i), trace = trace)$text
+  }, parallel = FALSE, trace = gr_trace(), client = cl2)
+  entries <- function(dir) sort(basename(list.files(dir, recursive = TRUE)))
+  expect_identical(entries(cache_dir), entries(keyless_dir))
 })
