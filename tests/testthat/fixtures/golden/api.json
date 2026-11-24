@@ -173,7 +173,7 @@
       "type": "function"
     },
     "gr_mock_client": {
-      "formals": ["handler = NULL", "embed_handler = NULL"],
+      "formals": ["handler = NULL", "embed_handler = NULL", "mode = NULL"],
       "type": "function"
     },
     "gr_model_info": {
