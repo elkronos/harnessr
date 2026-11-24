@@ -231,6 +231,12 @@ gr_audit_report <- function(path, screening = NULL, extraction = NULL,
                     "happened."),
              class = "gr_bad_audit_input")
   }
+  # Objects saved by an earlier version get the fields added since.
+  screening <- gr_upgrade_stage(screening)
+  extraction <- gr_upgrade_stage(extraction)
+  synthesis <- gr_upgrade_stage(synthesis)
+  claims <- gr_upgrade_stage(claims)
+  calibration <- gr_upgrade_stage(calibration)
 
   question <- as_chr1(protocol$question %||% synthesis$question %||% report_question(answer) %||%
                         screening$summary$document[0] %||% "", "")
@@ -734,7 +740,7 @@ cited_verbatim <- function(ev) {
 audit_claims <- function(synthesis, claims = NULL) {
   cm <- claims %||% synthesis$claims
   if (!inherits(cm, "gr_claims")) return(NULL)
-  lost <- cm$lost %||% integer(0)
+  lost <- cm$lost
   # The studies whose claims batch came back with nothing, counted against the
   # corpus: "over 90 studies" of a table drawn from 30 of them flattered the run.
   lost_note <- if (length(lost)) sprintf(paste0(
@@ -745,7 +751,6 @@ audit_claims <- function(synthesis, claims = NULL) {
     paste(c(utils::head(lost, 20L), if (length(lost) > 20L) "..."), collapse = ", "))
   # Claims drawn in several batches and never reconciled: the table read as
   # one list of distinct findings, and the counts below as counts of them.
-  # isTRUE() for a claims table saved before the field existed.
   unmerged_note <- if (isTRUE(cm$unmerged)) paste0(
     "<p class='flag'>The claims from different batches of studies were not reconciled: the ",
     "reconcile pass could not run, so one finding may appear below as more than one claim, ",
@@ -948,15 +953,14 @@ audit_synthesis <- function(synthesis) {
       # A real row the section was never shown: the model cannot have read it
       # there, so the citation is as unsupported as one to no row at all. The
       # section is already partial for it; without this the report said nothing.
-      # `is.null()` for a synthesis saved before the column existed.
-      if (isTRUE(col("n_unsupplied", i) > 0L))
+      if (isTRUE(s$n_unsupplied[i] > 0L))
         sprintf("<p class='flag'>%d citation(s) point at a study this section was not given.</p>",
                 s$n_unsupplied[i]),
       # A bracket the citation check could not read names studies nobody checked.
-      if (isTRUE(col("n_unparsed", i) > 0L))
+      if (isTRUE(s$n_unparsed[i] > 0L))
         sprintf(paste0("<p class='flag'>%d citation(s) could not be read, so the studies they ",
                        "name were not checked.</p>"), s$n_unparsed[i]),
-      if (isTRUE(col("n_truncated", i) > 0L))
+      if (isTRUE(s$n_truncated[i] > 0L))
         sprintf(paste0("<p class='flag'>%d response(s) for this section were cut off at the ",
                        "output cap, so the section may be incomplete.</p>"), s$n_truncated[i]),
       # An empty section is partial too, and "cites nothing" did not say why.
@@ -966,12 +970,11 @@ audit_synthesis <- function(synthesis) {
       if (isTRUE(col("claims_missed", i) > 0L))
         sprintf(paste0("<p class='flag'>%d of the %d claim(s) this section was given were not ",
                        "written up.</p>"), s$claims_missed[i], s$n_claims[i]),
-      # The batch counts, when the synthesis recorded them. `col()` for one
-      # saved before they were kept.
-      if (isTRUE(col("lost_batches", i) > 0L))
+      # The batch counts; 0 for a synthesis saved before they were kept.
+      if (isTRUE(s$lost_batches[i] > 0L))
         sprintf(paste0("<p class='flag'>%d batch(es) of studies failed, so the studies in them ",
                        "are not in this section.</p>"), as.integer(s$lost_batches[i])),
-      if (isTRUE(col("capped_batches", i) > 0L))
+      if (isTRUE(s$capped_batches[i] > 0L))
         sprintf(paste0("<p class='flag'>%d batch(es) of studies were not sent: the run reached ",
                        "its call or cost ceiling, so the studies in them are not in this ",
                        "section.</p>"), as.integer(s$capped_batches[i])),
@@ -989,7 +992,7 @@ audit_synthesis <- function(synthesis) {
     }
     # Apart from `fl`: a figure no row states does not make a section partial,
     # and in `fl` it would have stood in for the reason a partial section has.
-    unbacked <- if (isTRUE(col("n_unbacked", i) > 0L))
+    unbacked <- if (isTRUE(s$n_unbacked[i] > 0L))
       sprintf(paste0("<p class='flag'>%d figure(s) in this section are not in the rows their ",
                      "sentence cites; they are listed under \"Figures checked against the ",
                      "rows\".</p>"), as.integer(s$n_unbacked[i]))
@@ -1004,11 +1007,10 @@ audit_synthesis <- function(synthesis) {
         html_table(ci[, intersect(c("study", "document"), names(ci)), drop = FALSE],
                    numeric_cols = "study"))
   }
-  lost <- synthesis$claims$lost %||% integer(0)
+  lost <- synthesis$claims$lost
   # Honest citations the revision left as markers; see gr_synthesise(). print()
   # and the gr_synth_unrendered warning say so, and the report did not.
-  # `%||%` for a synthesis made before the field existed.
-  unrendered <- synthesis$unrendered %||% integer(0)
+  unrendered <- synthesis$unrendered
   drafts <- unlist(lapply(seq_len(nrow(s)), per), use.names = FALSE)
   # The sections below are one of several groupings gr_outline() proposed, and
   # which one is a choice the reader should be able to see was made. `[[`
@@ -1350,20 +1352,11 @@ audit_calibration <- function(calibration) {
   # The calibration's own sentence for why the sample fell short. Adequacy is
   # judged per frame: a sample of one stratum by its interval, not by how many
   # eligible records it holds, and one short on that was reported as "Only 0
-  # eligible record(s) ... below the 10", a bar it was never held to. The
-  # count sentence is kept for a calibration saved before the note existed.
-  note <- if (is.list(calibration$adequacy)) calibration$adequacy[["note", exact = TRUE]]
+  # eligible record(s) ... below the 10", a bar it was never held to.
+  # gr_upgrade_stage() gives a calibration saved before the note existed the
+  # count sentence as its note.
   warn <- if (!isTRUE(calibration$adequate)) {
-    if (is.character(note) && length(note) == 1L && !is.na(note)) {
-      sprintf("<p class='flag'>%s</p>", esc(note))
-    } else {
-      sprintf(paste0("<p class='flag'>Only %d eligible record(s) in the sample, below the %s this ",
-                     "calibration asks for. The intervals are too wide to conclude much.</p>"),
-              # %s and format(), not %d: min_positives is a double now, and may be
-              # Inf -- "never adequate" -- which %d refuses outright, taking the
-              # report with it.
-              calibration$n_positives, format(calibration$min_positives))
-    }
+    sprintf("<p class='flag'>%s</p>", esc(calibration$adequacy$note))
   }
   # Kappa beside PABAK and AC1, never alone: at screening prevalence it moves
   # with the marginals, and printed on its own it read as the verdict. A

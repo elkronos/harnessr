@@ -49,6 +49,7 @@ gr_gaps <- function(claims, extraction = NULL, max_cells = 40L, min_reported = 0
   if (!inherits(claims, "gr_claims")) {
     gr_abort("`claims` must come from gr_claims().", class = "gr_bad_claims")
   }
+  claims <- gr_upgrade_stage(claims)
   st <- claims$studies
   cw <- claims$claims
   fields <- if (inherits(extraction, "gr_extraction")) extraction$fields else
@@ -56,10 +57,8 @@ gr_gaps <- function(claims, extraction = NULL, max_cells = 40L, min_reported = 0
   # The fields the claims model was shown, by the rule render_studies() uses.
   # Every column but the reserved ones made authors, year and venue dimensions,
   # and "no variation (authors): ... all say 'Smith, J.; Okafor, A.'" went to
-  # the closing section as a gap the writer was told to state. `%||%` for a
-  # claims table saved before it recorded what it withheld.
-  hidden <- union(claims$hidden %||% unlist(bib_columns(st), use.names = FALSE),
-                  unlist(bib_columns(st, bib), use.names = FALSE))
+  # the closing section as a gap the writer was told to state.
+  hidden <- union(claims$hidden, unlist(bib_columns(st, bib), use.names = FALSE))
   cols <- setdiff(study_fields(st, hide = hidden), .gr_reserved_fields)
   out <- list()
   add <- function(kind, dimension, detail, n) {

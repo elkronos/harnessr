@@ -143,6 +143,7 @@ gr_outline <- function(claims, question = NULL, client = NULL, model = NULL,
   if (!inherits(claims, "gr_claims")) {
     gr_abort("`claims` must come from gr_claims().", class = "gr_bad_claims")
   }
+  claims <- gr_upgrade_stage(claims)
   if (!nrow(claims$claims)) {
     gr_abort("That gr_claims has no claims, so there is no structure to derive from it.",
              class = "gr_no_claims")

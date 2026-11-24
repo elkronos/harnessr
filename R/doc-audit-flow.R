@@ -127,13 +127,11 @@ gr_flow <- function(screening = NULL, extraction = NULL, records = NULL, claims 
     cw <- claims$claims
     # Studies whose claims batch came back with nothing. Without this row a
     # claims table missing most of the corpus read as complete here, although
-    # gr_claims() had warned and recorded them. `%||%` for a claims table saved
-    # before the field existed.
-    add("studies lost to a claims batch", length(claims$lost %||% integer(0)),
+    # gr_claims() had warned and recorded them.
+    add("studies lost to a claims batch", length(claims$lost),
         "their claims batch was cut off at the reply limit, failed or not sent; see $lost")
     # 1 when the claims of several batches were never reconciled into one
     # list, so the counts below may count one finding more than once.
-    # isTRUE() for a claims table saved before the field existed.
     add("claims not reconciled across batches", as.integer(isTRUE(claims$unmerged)),
         "the reconcile pass could not run; one finding may appear as more than one claim")
     add("claims drawn", nrow(cw), "statements about the literature, each attached to studies")

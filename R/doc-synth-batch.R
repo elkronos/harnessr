@@ -531,6 +531,7 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
     if (!inherits(claims, "gr_claims")) {
       gr_abort("`claims` must come from gr_claims().", class = "gr_bad_claims")
     }
+    claims <- gr_upgrade_stage(claims)
     # THE guard for this whole layer. A claim number and a `[study N]` marker are
     # the same identifier, and they agree only because both sides derive it from
     # synth_studies() over the same table. Hand gr_claims() one extraction and
@@ -593,7 +594,7 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
     # is long gone by the time the review is written, and every section is
     # complete against claims that are not. Said again here, and by print()
     # and the audit report, because the review covers only the rest.
-    lost <- claims$lost %||% integer(0)
+    lost <- claims$lost
     if (length(lost)) {
       gr_warn(sprintf(paste0("These claims were drawn with %d of %d studies contributing nothing: ",
                              "their batch was cut off, failed or was not sent (see `claims$lost`). ",
@@ -607,10 +608,10 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
     # under a `bib` that withheld less were drawn by a model shown those
     # columns, so a claim, or the moderator it names, can carry one into every
     # section that argues it -- a first author in the claim text, in front of
-    # a writer this run is keeping from naming one. `%||%` for a claims table
-    # made before it recorded what it withheld: it withheld the conventional
-    # names.
-    had <- claims$hidden %||% unlist(bib_columns(claims$studies), use.names = FALSE)
+    # a writer this run is keeping from naming one. gr_upgrade_stage() gives a
+    # claims table made before it recorded what it withheld the conventional
+    # names, which is what it withheld.
+    had <- claims$hidden
     shown <- setdiff(unlist(bib_columns(used, bib), use.names = FALSE), had)
     if (length(shown)) {
       gr_warn(sprintf(paste0("These claims were drawn with %s shown to the model, which this ",
@@ -907,17 +908,18 @@ resolve_cite_style <- function(want, keys, cols) {
 
 #' @export
 print.gr_synthesis <- function(x, ...) {
+  saved <- x
+  x <- gr_upgrade_stage(x)
   s <- x$sections
   cat(sprintf("<gr_synthesis> %d section(s) from %d stud%s\n", nrow(s), nrow(x$studies),
               if (nrow(x$studies) == 1L) "y" else "ies"))
   if (x$skipped) {
     cat(sprintf("  %d row(s) left out: failed or read in part, duplicate, or nothing extracted\n", x$skipped))
   }
-  # `%||%` for a synthesis saved before the column existed.
-  unsup <- s$n_unsupplied %||% integer(nrow(s))
-  unparsed <- s$n_unparsed %||% integer(nrow(s))
-  cut <- s$n_truncated %||% integer(nrow(s))
-  unbacked <- s$n_unbacked %||% integer(nrow(s))
+  unsup <- s$n_unsupplied
+  unparsed <- s$n_unparsed
+  cut <- s$n_truncated
+  unbacked <- s$n_unbacked
   for (i in seq_len(nrow(s))) {
     flags <- c(if (s$n_unknown[i]) sprintf("%d TO A ROW THAT DOES NOT EXIST", s$n_unknown[i]),
                if (unsup[i]) sprintf("%d TO A STUDY IT WAS NOT GIVEN", unsup[i]),
@@ -990,7 +992,7 @@ print.gr_synthesis <- function(x, ...) {
     cat(sprintf(paste0("  %d sentence(s) cite a study that contradicts the claim they state, with ",
                        "no hedge; see $contradictions\n"), length(unique(cf$sentence))))
   }
-  unr <- x$unrendered %||% integer(0)
+  unr <- x$unrendered
   if (length(unr)) {
     cat(sprintf(paste0("  study %s: cited honestly, but left as a marker in the revised text where ",
                        "the revision made that citation impossible to tell from the one the check ",
@@ -1007,7 +1009,7 @@ print.gr_synthesis <- function(x, ...) {
                           100 * as.numeric(alt$distance[1]))
                 else ""))
   }
-  lost <- x$claims$lost %||% integer(0)
+  lost <- x$claims$lost
   if (length(lost)) {
     cat(sprintf(paste0("  PARTIAL: written from claims that %d of %d studies contributed nothing to, ",
                        "their batch cut off, failed or not sent; see $claims$lost\n"),
@@ -1021,7 +1023,7 @@ print.gr_synthesis <- function(x, ...) {
               if (!nrow(cost)) "no cost recorded"
               else if (is.na(total)) "cost unknown (unpriced model)"
               else sprintf("$%.4f", total)))
-  invisible(x)
+  invisible(saved)
 }
 
 #' An outline with its headings and briefs labelled UTF-8, and the headings
