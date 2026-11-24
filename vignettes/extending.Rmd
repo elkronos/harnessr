@@ -346,6 +346,51 @@ cmp <- gr_compare(gr_example(), "What was revenue?",
 cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "calls")]
 ```
 
+## Registering any kind with hr_register()
+
+`hr_register()` registers a module of any kind through one function. Name the
+kind first; the other arguments are those of that kind's own function, so
+`hr_register("reader", ...)` takes what `gr_register_reader()` takes and runs
+the same checks. This reader answers from the shortest chunk:
+
+```{r}
+hr_register("reader", "shortest", signature = "one|1|none", cost_calls = "1",
+  description = "answer from the shortest chunk only", calls = "shortest.answer",
+  fn = function(chunks, question, client, spec, trace) {
+    d <- chunks$chunks
+    i <- which.min(d$tokens)
+    res <- gr_call(client, list(
+      list(role = "user", content = paste0(d$text[i], "\n\nQuestion: ", question))),
+      model = spec$model, effort = spec$effort, trace = trace,
+      label = "shortest.answer")
+    new_answer(res$text, "shortest", question, d$chunk_id[i], trace)
+  })
+```
+
+The kinds are `"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"` and
+`"embedder"`. Any other kind is an error of class `hr_unknown_kind`, and a
+module the kind's own function would refuse is refused here too:
+
+```{r}
+tryCatch(hr_register("reader", "auto", fn = identity, signature = "one|1|none"),
+         gr_reserved_name = function(e) conditionMessage(e))
+```
+
+`hr_modules()` lists the modules of every kind in one table, with the call
+stems each declares as a list column. Give it a kind to add that kind's own
+columns:
+
+```{r}
+m <- hr_modules()
+table(m$kind)
+r <- hr_modules("reader")
+r[r$name %in% c("longest", "shortest"), c("name", "signature", "calls")]
+```
+
+The listings such as `gr_readers()` keep their own columns, and a module you
+register with `hr_register()` appears in them as one registered with the
+kind's own function does.
+
 ## Parameter schemas
 
 Each spec constructor states its parameters once, as a schema: type, default,

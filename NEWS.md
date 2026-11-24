@@ -764,6 +764,26 @@ it, as the "Skills" section of `vignette("compose")` does with
   `gr_step()` and `gr_step_retrieve()` refuse a skill with class
   `hr_bad_skill`, since their requests are not sent through `ctx$call()`.
 
+## Registering modules
+
+Nothing here changes a default or adds a setting: each `gr_register_*()`
+function keeps its arguments and checks, each `gr_*()` listing keeps its
+columns, and the built-in cleaners and extractors keep their registration
+stamps, so ingest cache keys do not change. The "Registering any kind with
+hr_register()" section of `vignette("extending")` shows both functions.
+
+* `hr_register(kind, name, fn, ..., description, calls)` registers a module
+  of any kind through that kind's own function, so it runs the same checks:
+  `hr_register("reader", ...)` refuses what `gr_register_reader()` refuses.
+  The kinds are `"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"` and
+  `"embedder"`; any other is an error of class `hr_unknown_kind`, and
+  `calls` for a kind that declares no calls is an error of class
+  `gr_bad_setting`.
+* `hr_modules(kind = NULL)` lists the modules of every kind in one table:
+  `kind`, `name`, `description` and `calls`, a list column of the call
+  stems each module declares. With `kind`, it adds that kind's own columns,
+  such as a reader's `signature` or an extractor's `extensions`.
+
 ## Fixed
 
 * The `references` cleaner, in the `"academic"` and `"legacy"` presets, now
