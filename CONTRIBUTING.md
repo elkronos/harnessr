@@ -50,11 +50,11 @@ A pull request runs these workflows:
 | `pkgdown.yaml` | `pkgdown` | builds the site without publishing it, only when the pull request changes a file the site is built from (the list is in the workflow) |
 
 Adding or removing a label reruns `pr-checks.yaml`, so a label added after
-review turns its check green without a new push. Lint reads no label and
-reruns only on a push. A new push to a pull request cancels the older runs
+review turns its check green without a new push. Lint reads no label, so a
+label change does not rerun it; a push or a reopen does. A new push to a pull request cancels the older runs
 of the same workflow. On `main`, each merge gets its own run of
 `R-CMD-check.yaml` and `tests.yaml`, and `pkgdown.yaml` builds and publishes
-the site on every push.
+the site from the newest push to `main`.
 
 `pr-checks.yaml` used to run five checks: `no weakened tests`,
 `no unreviewed dependencies`, `lint changed R files`,

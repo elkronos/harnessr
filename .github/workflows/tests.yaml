@@ -4,7 +4,8 @@ name: tests
 # installs hard dependencies only, so there the future, future.apply, ellmer
 # and xml2 tests skip, and so do the tests that read files from the source
 # tree. This job installs those packages and runs the suite from the source
-# tree. It then runs every README code block and compares its documented
+# tree. It then runs the README's code blocks, except those that need a PDF,
+# a live model or ellmer, and compares their documented output with real
 # output, knits every guide with no key and checks the output for signs of a
 # failed call, checks the counts the README states against the registries,
 # and fails if any step left a file in the package directory.
@@ -23,7 +24,7 @@ permissions:
 
 # One group per pull request and one per commit otherwise. A new push to a
 # pull request cancels its older run; a push to main never cancels the run
-# of an earlier merge, so every commit on main gets a result.
+# of an earlier merge, so every push to main gets its own result.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
