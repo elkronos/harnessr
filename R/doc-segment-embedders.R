@@ -80,62 +80,19 @@ gr_register_embedder <- function(name, fn, description = "", deterministic = FAL
 #' gr_embedders()
 gr_embedders <- function() registry_table("embedders", c("deterministic", "description"), state = gr_state)
 
-#' Which embedder a call should use.
-#'
-#' Order: an explicit argument, then the `embedder` option, then an embed
-#' function carried by the client, then `"api"`.
-#'
-#' The option's default is `NULL`, meaning "whatever the client brought", and
-#' that is deliberate. An earlier version instead asked whether the option had
-#' been *set*, so that a user-set value could beat a handler `gr_mock_client()`
-#' manufactures whether or not you asked for one. That distinction cannot
-#' survive `gr_options(gr_options())` -- restoring a saved option list, which is
-#' exactly what the test helpers and `on.exit()` handlers do -- because the
-#' restore sets every option explicitly. The meaning has to live in the value,
-#' not in whether someone assigned it.
+#' The registered embedder gr_embed() would use when called without one, for
+#' the corpus store's key and the embeddings-request count. Same order as
+#' gr_embed(): the `embedder` option, then an embed function carried by the
+#' client (reported as "api", with no `fn`), then `"api"`.
+#' test-registry-routing.R checks that the two agree.
 #' @noRd
-resolve_embedder <- function(client, embedder = NULL) {
-  if (!is.null(embedder)) {
-    if (is.function(embedder)) {
-      return(list(name = "custom", fn = embedder, deterministic = FALSE))
-    }
-    return(registry_get("embedder", as_chr1(embedder)))
-  }
+resolve_embedder <- function(client) {
   opt <- gr_options("embedder")
   if (!is.null(opt) && is_nonblank(as_chr1(opt))) {
     return(registry_get("embedder", as_chr1(opt)))
   }
   if (is.function(client$embed_handler)) {
-    # Reported as "api" whatever supplied it: the distinction that matters
-    # downstream is semantic vectors versus the lexical fallback, and a
-    # client-supplied embedder is on the semantic side of it.
-    return(list(name = "api", deterministic = FALSE,
-                fn = function(texts, params) {
-                  # A client's embed function is a request like any other, so
-                  # it answers to the run's limits and goes in the ledger. It
-                  # used to be called with no check at all, so `max_calls = 0`
-                  # and `allowed_models` did not stop it. A mock makes no
-                  # requests and is left out.
-                  mock <- inherits(client, "gr_mock_client")
-                  if (!mock) embed_governor_check(params$trace, params$model, texts)
-                  started <- Sys.time()
-                  m <- tryCatch(client$embed_handler(texts, list(model = params$model)),
-                                error = function(e) e)
-                  if (!mock) {
-                    failed <- inherits(m, "condition")
-                    embed_record(params$trace, params$model, texts, NULL,
-                                 if (!failed) list(data = list()),
-                                 problem = if (failed) conditionMessage(m),
-                                 seconds = as.numeric(difftime(Sys.time(), started,
-                                                               units = "secs")))
-                  }
-                  if (inherits(m, "condition")) stop(m)
-                  if (!is.null(client$.log)) {
-                    client$.log$embeds <- c(client$.log$embeds,
-                                            list(list(texts = texts, model = params$model)))
-                  }
-                  m
-                }))
+    return(list(name = "api", deterministic = FALSE, fn = NULL))
   }
   registry_get("embedder", "api")
 }

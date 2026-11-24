@@ -423,6 +423,7 @@
 "pava","core","function"
 "per_line_max","core","function"
 "phi_coef","core","function"
+"pick_embedder","core","function"
 "policy_keep","core","function"
 "post_hoc_registration","core","function"
 "preflight_limit","core","function"
