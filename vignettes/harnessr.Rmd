@@ -139,7 +139,7 @@ cannot:
 hr_api_key()
 ```
 
-There are three places to give the key. An argument to `hr_client()` wins over
+You can give the key in three places. An argument to `hr_client()` wins over
 the `harnessr.api_key` option, which wins over `OPENAI_API_KEY`:
 
 ```{r eval = FALSE}
@@ -153,10 +153,11 @@ If your project is a git repository, list `.Renviron` and `.Rprofile` in its
 
 If the key is missing, `answer_document()`, `gr_read_many()` and `gr_compare()`
 stop before they read your document, with a `gr_auth_error` that gives the same
-explanation. So a missing key does not first cost an OCR pass over a long scan.
+explanation. A missing key therefore does not cost you an OCR pass over a long
+scan first.
 
-Behind a company gateway, `hr_client(headers = )` sends the headers it wants,
-such as Azure's `api-key`:
+Behind a company gateway, pass the headers the gateway wants, such as Azure's
+`api-key`, to `hr_client(headers = )`:
 
 ```{r eval = FALSE}
 cl <- hr_client(
@@ -176,9 +177,9 @@ the transport to the [ellmer](https://ellmer.tidyverse.org/) package, which
 covers about twenty providers, local models through Ollama among them.
 
 The spending limit is on by default, and it can hold only for a model with a
-registered price. So register the model the ellmer object was built with, at
-your provider's current prices in US dollars per million tokens. A local model
-has no price to register, so let it run unpriced:
+registered price. Register the model you built the ellmer object with, at your
+provider's current prices in US dollars per million tokens. A local model has no
+price to register, so let it run unpriced:
 
 ```{r eval = FALSE}
 library(ellmer)
@@ -197,16 +198,17 @@ request with an `hr_unpriced_model` error. `vignette("runs")` covers unpriced
 models and what changes through ellmer (temperature and embeddings).
 
 Anything else, such as a model behind a queue, goes through
-`hr_backend_client()`. It makes any function of `messages` and `params` that
-returns a string the transport. Limits, the trace, caching and replay work the
-same way on every client. Register the model's real context window with
-`hr_register_model()`, since it sizes your chunks.
+`hr_backend_client()`. Give it any function of `messages` and `params` that
+returns a string, and that function becomes the transport. Limits, the trace,
+caching and replay work the same way on every client. Register the model's real
+context window with `hr_register_model()`, because harnessr sizes each prompt
+from it.
 
 ## Practising without a key
 
-For learning, a real model is unnecessary. `hr_mock_client()` builds a stand-in
-that replies with whatever an R function returns, and it can be used anywhere a
-real model can. This one always gives the same answer, which is enough to see
+You do not need a real model to learn. `hr_mock_client()` builds a stand-in
+that replies with whatever an R function returns, and you can use it anywhere a
+real model goes. This one always gives the same answer, which is enough to see
 how everything else works:
 
 ```{r}
@@ -217,7 +219,7 @@ old <- hr_options(verbose = FALSE)
 `verbose = FALSE` stops harnessr printing a line for each stage; leave it on in
 your own work while you are learning. In an interactive session it also keeps a
 line up to date with how far a long read has got and what it has spent.
-`hr_options()` returns the settings it replaced, so they can be restored later
+`hr_options()` returns the settings it replaced, so you can restore them later
 with `hr_options(old)`.
 
 ## Your first question
