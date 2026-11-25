@@ -445,10 +445,10 @@ would then score differently from one run to the next.
 
 ### Run your own tests on the recipes
 
-This goal sweeps a recipe over a grid of its settings and runs your own arm
-beside it, on the same questions and under one spending limit. `hr_sweep()` given a
-function builds one arm per row of the grid, and each arm records its
-settings as `param.*` columns:
+Here you sweep a recipe over a grid of its settings and run your own arm
+beside it, on the same questions and under one spending limit. Given a
+function, `hr_sweep()` builds one arm per row of the grid, and each arm records
+its settings as `param.*` columns:
 
 ```{r}
 my_arm <- hr_chain(segment = gr_step("segment"), retrieve = gr_step_retrieve(top_k = 4),
@@ -464,21 +464,21 @@ aggregate(correct ~ arm, bench, mean)
 hr_sweep_check(bench)
 ```
 
-The first table covers only the swept arms: your arm has no `param.*`
-settings, so `aggregate()` leaves its rows out. The second has one row per
-arm, yours included, so it compares the grid with your arm.
+The first table covers only the swept arms. Your arm has no `param.*`
+settings, so `aggregate()` leaves its rows out. The second table has one row
+per arm, yours included, so it compares the grid with your arm.
 
-The example document is short. Cut into chunks of 200 tokens, a `top_k` of 4
-keeps every chunk, and cut into chunks of 500 tokens, a `top_k` of 2
-does. `hr_sweep_check()` finds the arms that sent the same requests as
-another. Those rows compare a configuration with itself.
+The example document is short. In chunks of 200 tokens, a `top_k` of 4 keeps
+every chunk; in chunks of 500 tokens, a `top_k` of 2 does. `hr_sweep_check()`
+finds the arms that sent the same requests as another arm, and those rows
+compare a configuration with itself.
 
 ### Chain steps into a sub-agent of your own
 
-This goal compares a chain that has a judge step with the same chain
-without it, and sweeps the chain over `top_k`. A cache answers any request
-sent twice. The judge step grades the answer against
-a rubric with `ctx$judge()` and records the verdict with `ctx$note()`:
+Here you compare a chain that has a judge step with the same chain without
+it, and sweep the chain over `top_k`. A cache answers any request sent twice.
+The judge step grades the answer against a rubric with `ctx$judge()` and
+records the verdict with `ctx$note()`:
 
 ```{r}
 checked <- hr_chain(segment = gr_step("segment"), retrieve = gr_step_retrieve(top_k = 4),
@@ -498,7 +498,7 @@ aggregate(correct ~ arm, bench, mean)
 table(hr_signals(bench, "ok")$arm)
 ```
 
-A coding sub-agent is built the same way, as in the section above: a draft
+You build a coding sub-agent the same way, as in the section above: a draft
 step, a visible check, a revise step, and the held check last.
 
 ```{r include = FALSE}
