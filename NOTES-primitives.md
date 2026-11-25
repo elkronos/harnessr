@@ -7,7 +7,8 @@ moved into a `doc-` file. This file lists each exported `hr_` function with
 its callers, and says why the ones the document layer does not call stay in
 the core.
 
-The list was made from the installed namespace on 2026-11-22: document layer
+The list was made from the installed namespace on 2026-11-22, and the core
+functions renamed from gr_ to hr_ were added on 2026-11-25: document layer
 callers with the boundary test's parsing (`tests/testthat/helper-boundary.R`,
 functions only, plus the schemas `R/doc-*.R` builds at load), and test
 callers by searching `tests/testthat/test-*.R`. A test in
@@ -21,13 +22,22 @@ removed or gains or loses its last caller.
 |---|---|---|
 | `hr_agreement()` | `agreement_part()`, `reviewer_summary()` | test-core-stats.R, test-screen-reviewers.R |
 | `hr_arm()` | `gr_arm()` | test-core-bench.R, test-core-bench-report.R |
+| `hr_budget()` | `cost_stuff()`, `gr_claims()`, `gr_synthesise()` and 14 more | test-adversarial.R, test-claims.R and 8 more |
+| `hr_call()` | `answer_request()`, `ledger_answer()`, `read_ensemble()` and 8 more | test-adversarial.R, test-backend.R and 39 more |
 | `hr_check_module()` | `gr_check_reader()`, `gr_check_segmenter()` | test-core-contract.R |
+| `hr_client()` | `answer_document()`, `doc_arm_run()`, `gr_claims()` and 4 more | test-adversarial.R, test-cache-replay.R and 26 more |
 | `hr_context_fit()` | `read_refine()`, under a read's `context_policy` | test-context-policy.R |
 | `hr_context_policy()` | `check_context_policy()`, which resolves a read's `context_policy` | test-context-policy.R |
 | `hr_cost()` | the reader cost functions: `cost_extract()`, `cost_map_reduce()` and the rest | test-conformance.R, test-core-schema.R |
+| `hr_count_tokens()` | `answer_document()`, `call_failure()`, `cap_gap_lines()` and 36 more | test-adversarial.R, test-claims.R and 20 more |
 | `hr_effort_escalate()` | `read_escalation()`, under a read's `effort_mode = "escalate"` | test-effort-escalate.R |
 | `hr_effort_event()` | `read_ensemble()`, `read_iterative()` and `read_screen()`, which report triggers | test-effort-escalate.R |
+| `hr_embed()` | `check_embedder()`, `read_iterative()`, `rerank_prefilter()` and 2 more | test-backend.R, test-cache-replay.R and 14 more |
+| `hr_estimate_cost()` | `batch_item_usd()`, `extract_item_usd()`, `gr_inventory()` and 3 more | test-compare-cost.R, test-core-ledger-records.R and 13 more |
 | `hr_ht_estimate()` | `screening_recall()` | test-core-stats.R |
+| `hr_mock_client()` | `check_client()` | test-adversarial.R, test-audit-header.R and 110 more |
+| `hr_model_info()` | `batch_item_usd()`, `call_failure()`, `extract_item_usd()` and 5 more | test-cache-replay.R, test-context.R and 8 more |
+| `hr_options()` | `check_embedder()`, `corpus_key()`, `embed_counter()` and 14 more | test-adversarial.R, test-backend.R and 65 more |
 | `hr_param()` | the read, segment and ingest schemas (`.gr_read_schema` and the others) | test-core-schema.R, test-settings.R |
 | `hr_prop_ci()` | `reviewer_summary()`, `screening_recall()` | test-core-stats.R |
 | `hr_reference()` | `gr_qa_reference()` | test-core-bench.R, test-core-bench-report.R |
@@ -35,8 +45,36 @@ removed or gains or loses its last caller.
 | `hr_scorer()` | `gr_scorer_answer()` | test-core-bench.R |
 | `hr_signal()` | `read_ensemble()`, `read_iterative()`, `read_preview()` | test-core-signals.R |
 | `hr_step()` | `gr_step()`, `gr_step_retrieve()` | test-compose.R, test-reading-options.R |
+| `hr_tokenizer()` | `gr_segment()` | test-core.R, test-parallel.R and 1 more |
+| `hr_trace()` | `answer_document()`, `check_reader_governor()`, `claims_cost_stage()` and 10 more | test-adversarial.R, test-backend.R and 66 more |
+| `hr_trace_cost()` | `audit_cost()`, `corpus_cost()`, `gr_compare()` and 4 more | test-bench-ctx.R, test-compare-cost.R and 19 more |
+| `hr_trace_summary()` | `corpus_row()`, `gr_read_many()` and `print.gr_answer()` | test-backend.R, test-cache-replay.R and 8 more |
 | `hr_truncate()` | `cut_piece()`, which the merge, `hierarchical` and `preview` packers call under a `context_policy` | test-context-policy.R |
+| `hr_truncate_tokens()` | `cap_gap_lines()`, `screen_opening()` and `seg_contextual()` | test-context-policy.R, test-core.R and 5 more |
 | `hr_validate()` | `gr_read_spec()`, `gr_segment_spec()`, `gr_ingest_spec()` | test-core-schema.R, test-adversarial.R |
+
+## Entry points the document layer is handed
+
+A person builds a run with these: a client, its cache or replay, the model
+registry and the tokenizer. The document layer receives the client and
+the trace they make and does not call these itself. Nothing in them knows
+about documents, which is why they are core.
+
+| Function | Tests | Why it is core |
+|---|---|---|
+| `hr_api_key()` | test-headers.R and test-review6-client.R | Reads the API key a client sends, for any provider. |
+| `hr_backend_client()` | test-backend.R, test-cache-replay.R and 19 more | Wraps any R function as a client. |
+| `hr_cache()` | test-adversarial.R, test-backend.R and 34 more | An on-disk response cache for any client. |
+| `hr_cache_clear()` | test-cache-replay.R, test-compat-legacy-keys.R and 2 more | Empties a response cache. |
+| `hr_cache_client()` | test-adversarial.R, test-backend.R and 34 more | Attaches a response cache to any client. |
+| `hr_cache_stats()` | test-cache-replay.R, test-compat-legacy-keys.R and 5 more | Counts the entries, hits and misses of a response cache. |
+| `hr_ellmer_client()` | test-backend.R, test-effort.R and 7 more | Wraps an ellmer chat as a client. |
+| `hr_model_limits()` | test-core-names.R | The context window and output cap of any registered model. |
+| `hr_models()` | test-hardening.R | Lists the model registry. |
+| `hr_register_model()` | test-adversarial.R, test-backend.R and 51 more | Adds or corrects a model in the registry the budgets and costs read. |
+| `hr_replay_client()` | test-adversarial.R, test-backend.R and 22 more | A client that answers from a saved trace, for any run. |
+| `hr_set_tokenizer()` | test-adversarial.R, test-core.R and 5 more | Chooses the tokenizer every token count uses. |
+| `hr_trace_save()` | test-cache-replay.R, test-core-bench.R and 15 more | Writes any trace to a file that hr_replay_client() reads. |
 
 ## Called by the tests only
 
@@ -98,7 +136,7 @@ test.
 
 - `tests/testthat/fixtures/boundary/allowed.csv` lists three calls from the
   core into the document layer, each with the change that removes it:
-  - The embedding request path, `gr_embed()`, calls `resolve_embedder()` and
+  - The embedding request path, `hr_embed()`, calls `resolve_embedder()` and
     `lexical_embed()`. These go when embedders become a registered module
     kind and the core looks them up in the registry.
   - `segment_effort()` (`R/core-effort-static.R`) hands a segmenter the
@@ -111,5 +149,5 @@ test.
   The list may only shrink.
 - The refactor plan also named an effective-window probe. No function in
   `R/` probes a model's context window: the core reads it from the model
-  table (`gr_model_info()`, filled by `gr_register_model()`), so there is
+  table (`hr_model_info()`, filled by `hr_register_model()`), so there is
   nothing to review.
