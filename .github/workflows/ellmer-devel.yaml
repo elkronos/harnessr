@@ -1,6 +1,6 @@
 name: ellmer-devel
 
-# The ellmer adapter (gr_ellmer_client()) reads parts of ellmer's API that
+# The ellmer adapter (hr_ellmer_client()) reads parts of ellmer's API that
 # still change between releases. Once a week, and by hand, this installs
 # ellmer from its GitHub repository and runs every test file that exercises
 # the adapter, so a change upstream shows here before it reaches a release.
@@ -53,7 +53,7 @@ jobs:
         run: |
           Rscript -e '
             suppressPackageStartupMessages({library(harnessr); library(testthat)})
-            gr_options(verbose = FALSE)
+            hr_options(verbose = FALSE)
             if (!requireNamespace("ellmer", quietly = TRUE)) {
               cat("ellmer is missing: the workflow should have installed it.\n")
               quit(status = 1)
