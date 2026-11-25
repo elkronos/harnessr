@@ -2,9 +2,9 @@
 #
 # The namespace, commits and dashes modes each decide from plain inputs (two
 # NAMESPACE texts and the labels; a set of commit messages; the text of a
-# diff and an allowlist), so those functions are tested here directly. dev/ is not part of the built package,
-# so these tests run from the source tree (run-tests.sh, the tests workflow)
-# and skip under R CMD check.
+# diff and an allowlist), so those functions are tested here directly. dev/
+# is not part of the built package, so these tests run from the source tree
+# (run-tests.sh, the tests workflow) and skip under R CMD check.
 
 pr_checks <- function() {
   path <- test_path("..", "..", "dev", "ci", "pr-checks.R")
@@ -21,7 +21,8 @@ test_that("sourcing pr-checks.R defines its functions and runs nothing", {
   pc <- pr_checks()
   for (f in c("namespace_exports", "namespace_verdict", "commit_problems",
               "commits_verdict", "shrink_only_added", "added_lines",
-              "dash_covered", "dashes_verdict")) {
+              "dash_covered", "dashes_verdict", "diff_path",
+              "dash_diff_args")) {
     expect_true(is.function(pc[[f]]), info = f)
   }
   expect_false(exists("check", envir = pc, inherits = FALSE))
@@ -145,6 +146,58 @@ test_that("added lines are read with their file and line number", {
   expect_identical(a$line, c(10L, 11L, 3L, 21L, 22L))
   expect_identical(a$text, c("x <- 1", "y <- 2", "new", "p", "q"))
   expect_identical(nrow(pc$added_lines(character(0))), 0L)
+})
+
+test_that("an added line starting with '++ ' stays in its hunk", {
+  pc <- pr_checks()
+  d <- c(fake_diff("R/a.R", c("x <- 1", "++ hi", "# a -- b"), "x <- 0"),
+         fake_diff("R/b.R", "y <- 1"))
+  a <- pc$added_lines(d)
+  expect_identical(a$file, c("R/a.R", "R/a.R", "R/a.R", "R/b.R"))
+  expect_identical(a$line, c(10L, 11L, 12L, 10L))
+  expect_identical(a$text, c("x <- 1", "++ hi", "# a -- b", "y <- 1"))
+  v <- pc$dashes_verdict(a)
+  expect_identical(v$status, 1L)
+  expect_true(any(grepl("R/a.R:12: a spaced double hyphen", v$out, fixed = TRUE)))
+  # A removed line "-- x" next to an added "++ y" is read the same way.
+  a <- pc$added_lines(fake_diff("R/a.R", c("++ y", "# c -- d"), "-- x"))
+  expect_identical(a$text, c("++ y", "# c -- d"))
+})
+
+test_that("quoted and tab-ended file names in the diff header are read", {
+  pc <- pr_checks()
+  cafe <- c("diff --git \"a/R/caf\\303\\251.R\" \"b/R/caf\\303\\251.R\"",
+            "new file mode 100644", "--- /dev/null",
+            "+++ \"b/R/caf\\303\\251.R\"", "@@ -0,0 +1 @@", "+# a -- b")
+  a <- pc$added_lines(cafe)
+  expect_identical(a$file, "R/café.R")
+  expect_identical(pc$dashes_verdict(a)$status, 1L)
+  notes <- c("diff --git a/my notes.md b/my notes.md", "new file mode 100644",
+             "--- /dev/null", "+++ b/my notes.md\t", "@@ -0,0 +1 @@", "+x -- y")
+  a <- pc$added_lines(notes)
+  expect_identical(a$file, "my notes.md")
+  v <- pc$dashes_verdict(a)
+  expect_identical(v$status, 1L)
+  expect_true(any(grepl("my notes.md:1: ", v$out, fixed = TRUE)))
+  expect_identical(pc$diff_path("+++ \"b/R/a\\\"b\\\\c.R\""), "R/a\"b\\c.R")
+  expect_identical(pc$diff_path("+++ /dev/null"), NA_character_)
+})
+
+test_that("the dashes diff turns renames and path quoting off", {
+  pc <- pr_checks()
+  args <- pc$dash_diff_args("main", "HEAD")
+  expect_true("--no-renames" %in% args)
+  expect_false(any(grepl("^--find-renames|^-M", args)))
+  expect_identical(args[1:2], c("-c", "core.quotePath=false"))
+  expect_identical(args[[length(args)]], "main...HEAD")
+  # Without renames, a file moved from tests/ into R/ is a new file, so each
+  # of its lines counts as added.
+  moved <- c("diff --git a/R/x.R b/R/x.R", "new file mode 100644",
+             "--- /dev/null", "+++ b/R/x.R", "@@ -0,0 +1,2 @@",
+             "+# a -- b", paste0("+# c ", em, " d"))
+  v <- pc$dashes_verdict(pc$added_lines(moved))
+  expect_identical(v$status, 1L)
+  expect_true(any(grepl("R/x.R:2: an em dash", v$out, fixed = TRUE)))
 })
 
 test_that("Rscript -e blocks in the workflows hold no single quote", {

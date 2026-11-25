@@ -61,12 +61,15 @@
 #            an en dash (U+2013) or a double hyphen with a space on each side.
 #            It reads R/, man/, vignettes/, inst/ (but not inst/extdata/),
 #            dev/, .github/, the top-level Markdown files, DESCRIPTION and
-#            _pkgdown.yml; tests/ may hold dashes as inputs. A line listed in
+#            _pkgdown.yml; tests/ may hold dashes as inputs. A file moved from
+#            tests/ or inst/extdata/ into a read path counts in full, since
+#            the diff is taken without rename detection. A line listed in
 #            tests/testthat/fixtures/boundary/dash-allowed.csv may keep its
-#            double hyphen: those are prompt texts, where a change would move
-#            request bytes and cache keys. That list may only shrink, so a
-#            row added to it needs the label tests-reviewed. Removed lines
-#            never count.
+#            double hyphen. The list holds prompt text sent to a model, where
+#            a change would move request bytes and cache keys, and the name
+#            of the dashes step in pr-checks.yaml, which quotes the mark it
+#            checks for. That list may only shrink, so a row added to it
+#            needs the label tests-reviewed. Removed lines never count.
 #
 # Sourced rather than run (source("dev/ci/pr-checks.R")), the file only
 # defines its functions, so the tests in tests/testthat/test-pr-checks.R can
@@ -411,8 +414,10 @@ dash_marks <- c("an em dash" = intToUtf8(0x2014L),
                 "a spaced double hyphen" = paste0(" ", strrep("-", 2L), " "))
 
 # Lines that may keep a spaced double hyphen: prompt text sent to a model,
-# where a change would move request bytes and cache keys. One exact line text
-# per row, whitespace aside. Rows may only be removed (see shrink_only).
+# where a change would move request bytes and cache keys, and the name of the
+# dashes step in .github/workflows/pr-checks.yaml, which quotes the mark. One
+# exact line text per row, whitespace aside. Rows may only be removed (see
+# shrink_only).
 dash_allowlist <- "tests/testthat/fixtures/boundary/dash-allowed.csv"
 
 # Whether the check reads a file: R/, man/, vignettes/, inst/ (but not the
@@ -427,29 +432,89 @@ dash_covered <- function(path) {
               path %in% c("DESCRIPTION", "_pkgdown.yml")))
 }
 
+# The path a "+++ " file header names, or NA for /dev/null. Git ends the
+# header with a tab when the name holds a space, and writes a name with a
+# quote, a backslash or a control character as a C string ("b/a\"b.R"),
+# with each such byte as an escape. check_dashes() turns core.quotePath off,
+# so a non-ASCII name arrives as plain UTF-8, but the C form is read either
+# way.
+diff_path <- function(header) {
+  p <- sub("\t$", "", substring(header, 5L))
+  if (p == "/dev/null") return(NA_character_)
+  if (startsWith(p, "\"") && endsWith(p, "\"") && nchar(p) >= 2L) {
+    p <- unquote_c(substr(p, 2L, nchar(p) - 1L))
+  }
+  sub("^b/", "", p)
+}
+
+# A C-quoted git path body, unescaped: \ooo octal bytes, \t, \n, \", \\.
+unquote_c <- function(x) {
+  b <- charToRaw(x)
+  out <- raw(0)
+  i <- 1L
+  simple <- c("a" = 7L, "b" = 8L, "t" = 9L, "n" = 10L, "v" = 11L, "f" = 12L,
+              "r" = 13L, "\"" = 34L, "\\" = 92L)
+  while (i <= length(b)) {
+    if (b[i] != as.raw(92L) || i == length(b)) {
+      out <- c(out, b[i])
+      i <- i + 1L
+      next
+    }
+    nxt <- rawToChar(b[i + 1L])
+    if (grepl("^[0-7]$", nxt) && i + 3L <= length(b)) {
+      out <- c(out, as.raw(strtoi(rawToChar(b[(i + 1L):(i + 3L)]), 8L)))
+      i <- i + 4L
+    } else if (nxt %in% names(simple)) {
+      out <- c(out, as.raw(simple[[nxt]]))
+      i <- i + 2L
+    } else {
+      out <- c(out, b[i + 1L])
+      i <- i + 2L
+    }
+  }
+  r <- rawToChar(out)
+  Encoding(r) <- "UTF-8"
+  r
+}
+
 # The lines a unified diff adds, with the file and the line number each has
-# at <head>. A deleted file (+++ /dev/null) adds nothing.
+# at <head>. A deleted file (+++ /dev/null) adds nothing. Each "@@" line
+# gives how many old and new lines its hunk holds, and a line inside a hunk
+# is never read as a header, so an added line whose text starts with "++ "
+# (shown as "+++ ...") stays an added line.
 added_lines <- function(diff) {
   file <- NA_character_
   at <- 0L
+  old_left <- 0L
+  new_left <- 0L
   out <- list(file = character(0), line = integer(0), text = character(0))
   for (d in diff) {
-    if (startsWith(d, "+++ ")) {
-      file <- if (startsWith(d, "+++ /dev/null")) NA_character_ else sub("^[+]{3} b/", "", d)
-    } else if (startsWith(d, "--- ") || startsWith(d, "diff ") ||
-               startsWith(d, "\\")) {
-      next
-    } else if (startsWith(d, "@@ ")) {
-      at <- as.integer(sub("^@@ -[0-9,]+ [+]([0-9]+).*$", "\\1", d))
-    } else if (startsWith(d, "+")) {
-      if (!is.na(file)) {
-        out$file <- c(out$file, file)
-        out$line <- c(out$line, at)
-        out$text <- c(out$text, substring(d, 2L))
+    if (old_left > 0L || new_left > 0L) {
+      if (startsWith(d, "+")) {
+        if (!is.na(file)) {
+          out$file <- c(out$file, file)
+          out$line <- c(out$line, at)
+          out$text <- c(out$text, substring(d, 2L))
+        }
+        at <- at + 1L
+        new_left <- new_left - 1L
+      } else if (startsWith(d, "-")) {
+        old_left <- old_left - 1L
+      } else if (startsWith(d, " ")) {
+        at <- at + 1L
+        old_left <- old_left - 1L
+        new_left <- new_left - 1L
       }
-      at <- at + 1L
-    } else if (startsWith(d, " ")) {
-      at <- at + 1L
+      next
+    }
+    if (startsWith(d, "+++ ")) {
+      file <- diff_path(d)
+    } else if (startsWith(d, "@@ ")) {
+      m <- regmatches(d, regexec("^@@ -[0-9]+(,([0-9]+))? [+]([0-9]+)(,([0-9]+))? @@", d))[[1]]
+      if (!length(m)) next
+      at <- as.integer(m[[4]])
+      old_left <- if (nzchar(m[[3]])) as.integer(m[[3]]) else 1L
+      new_left <- if (nzchar(m[[6]])) as.integer(m[[6]]) else 1L
     }
   }
   data.frame(out, stringsAsFactors = FALSE)
@@ -499,8 +564,17 @@ dash_allowed_at <- function(ref) {
   utils::read.csv(text = txt, stringsAsFactors = FALSE, encoding = "UTF-8")$line
 }
 
+# The git arguments for the diff the dashes check reads. Renames are off, so
+# a file moved from tests/ or inst/extdata/ into a covered path shows every
+# line as added. core.quotePath is off, so a non-ASCII file name is not
+# quoted in the header.
+dash_diff_args <- function(base, head) {
+  c("-c", "core.quotePath=false", "diff", "--no-color", "--no-renames", "-U0",
+    paste0(base, "...", head))
+}
+
 check_dashes <- function() {
-  d <- git("diff", "--no-color", "--find-renames", "-U0", paste0(base, "...", head))
+  d <- do.call(git, as.list(dash_diff_args(base, head)))
   v <- dashes_verdict(added_lines(d), dash_allowed_at(head))
   cat(v$out, sep = "\n")
   v$status
