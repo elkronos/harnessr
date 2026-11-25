@@ -19,8 +19,8 @@ share, and how to compare chunkings before you pay for any reading.
 
 Six of the nine segmenters make no model calls. A seventh makes none by
 default. At their defaults, you can try all seven for nothing.
-`vignette("harnessr")` introduces the package and its ideas, and
-`vignette("ingest")` covers the step before this one.
+`vignette("harnessr")` introduces the package and the ideas this guide uses,
+and `vignette("ingest")` covers the step before this one.
 
 ```{r message = FALSE}
 library(harnessr)
@@ -84,62 +84,67 @@ Each segmenter is a different hypothesis about where meaning breaks:
 | `contextual` | chunks prefixed with where they sit | free, or 1 call/chunk | only for `context_source = "llm"` | page, section, block |
 | `proposition` | rewrite into standalone factual statements | 1 call per ~900-token batch | yes | none |
 
-The cost and client columns come from the registry, so you can check them
-rather than trust them:
+The cost and client columns are read from the registry, so you can check them
+yourself:
 
 ```{r}
 gr_segmenters()[, c("name", "cost", "needs_client", "calls")]
 ```
 
 `paragraph` is the default. It packs the author's paragraphs, in order, into
-chunks up to the cap. `sentence` packs sentences instead, which gives more,
-smaller chunks with cleaner edges. `structural` never lets a chunk cross a
-heading, and by default (`prefix_section = TRUE`) starts every chunk with its
-section's heading, so the fourth chunk of a long "Methods" section still says it
-is about methods. When the extractor found no sections, `structural` finds
-headings itself: a Markdown `#` line, or a short line that is numbered or
-written in capitals. `page` makes one chunk per page, splitting only a page too
-long for the cap, and says so when it does.
+chunks up to the cap. `sentence` packs sentences instead, for more, smaller
+chunks with cleaner edges.
 
-`fixed` cuts the text into windows of equal size and ignores its structure,
-which makes it the baseline to measure the others against. `recursive` splits on
-the strongest separator that still gives pieces under the cap: by default blank
-lines, then line breaks, then sentence ends, semicolons, commas and spaces. Set
-your own cascade, strongest first, with `separators`.
+`structural` never lets a chunk cross a heading. By default
+(`prefix_section = TRUE`) it also starts every chunk with its section's
+heading, so the fourth chunk of a long "Methods" section still names its
+subject. If the extractor found no sections, `structural` finds headings
+itself: a Markdown `#` line, or a short line that is numbered or written in
+capitals.
 
-`fixed` and `recursive` work on the whole document joined into one string, by
-design, so their chunks carry no page or section. That is the cost of ignoring
-structure, and it is reported as `NA` rather than guessed at:
+`page` makes one chunk per page. It splits only a page too long for the cap,
+and prints a message when it does.
+
+`fixed` cuts the text into windows of equal size and ignores its structure, so
+it serves as the baseline for the others. `recursive` splits on the strongest
+separator that still gives pieces under the cap. By default the cascade runs
+from blank lines to line breaks, then sentence ends, semicolons, commas and
+spaces. Set your own cascade, strongest first, with `separators`.
+
+By design, `fixed` and `recursive` work on the whole document joined into one
+string, so their chunks carry no page or section. That is the cost of ignoring
+structure. harnessr reports it as `NA` instead of guessing:
 
 ```{r}
 fx <- gr_segment(doc, list(method = "fixed", max_tokens = 120))
 fx$chunks[1:3, c("chunk_id", "page", "section", "block_id")]
 ```
 
-The last three segmenters, `semantic`, `contextual` and `proposition`, are
-covered below, under the settings and model calls they add.
+The sections below cover the last three segmenters, `semantic`, `contextual`
+and `proposition`, with the settings and model calls they add.
 
 ## When a segmenter cannot run as asked
 
-A segmenter that cannot do what was asked falls back to one that can, warns,
-and records the change. `page` on a source with no page numbers falls back to
-`paragraph`:
+If a segmenter cannot do what you asked, harnessr falls back to one that can,
+warns, and records the change. `page` on a source with no page numbers falls
+back to `paragraph`:
 
 ```{r warning = FALSE}
 pg <- gr_segment(doc, "page")
 pg$method
 ```
 
-`semantic` without a client falls back to `paragraph`, and `proposition`
-without one falls back to `sentence`. The fallback shows in `$method`
-(`"semantic->paragraph"`, `"proposition->sentence"`) and in the `method` column
-of `gr_chunk_stats()`, so a comparison never reports a chunking that did not
-run. `contextual` keeps its name when `context_source = "llm"` has no client,
-because only the source of its context lines changed; `$extra$context_source`
-records `"metadata"`, the one that ran.
+Without a client, `semantic` falls back to `paragraph` and `proposition` to
+`sentence`. The fallback shows in `$method` (`"semantic->paragraph"`,
+`"proposition->sentence"`) and in the `method` column of `gr_chunk_stats()`,
+so a comparison never reports a chunking that did not run.
 
-Every one of these warnings has the class `gr_segment_fallback`, and it is
-carried onto the answer of any read that uses the chunks.
+`contextual` keeps its name when `context_source = "llm"` has no client,
+because only the source of its context lines changed. `$extra$context_source`
+records the source that ran, `"metadata"`.
+
+Each of these warnings has the class `gr_segment_fallback`. harnessr carries
+the warning onto the answer of any read that uses the chunks.
 
 ## Chunk size
 
