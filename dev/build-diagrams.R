@@ -724,7 +724,8 @@ key_fields <- ns$.hr_calibration_key_fields
 draw_registry <- function() {
   cv <- canvas("registry", 750)
   heading(cv, "The registry and modules",
-          "Every kind of module is registered, stored and looked up the same way.")
+          sprintf("%s() stores a module of any kind, and %s() finds it by kind and name.",
+                  fn("hr_register", "core"), fn("registry_get", "core", internal = TRUE)))
   txt(cv, 24, 96, "Registering", 16, bold = TRUE)
   reg <- list(
     list(ln(sprintf("%s(kind, name, fn,", fn("hr_register", "core")), 14, bold = TRUE,
