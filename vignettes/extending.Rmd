@@ -543,9 +543,9 @@ These fields let a later UI or command line be built from the same list.
 
 `gr_check_reader()` and `gr_check_segmenter()` run one registered module on the
 bundled example document, through an offline client, and report which rules of
-its contract it breaks. In this release they are reports only:
-registering a module does not run them, and a module that breaks a rule stays
-registered and runs as before. Every built-in reader and segmenter passes.
+its contract it breaks. In this release the checks only report. Registering
+a module does not run them, and a module that breaks a rule stays registered
+and runs as before. Every built-in reader and segmenter passes.
 
 The `longest` reader above passes all nine reader rules:
 
@@ -571,17 +571,22 @@ gr_register_reader("loose", signature = "one|2|none", calls = "loose.answer",
 gr_check_reader("loose")
 ```
 
-The broken rules print first, each with what was found. The reader rules are
-`is_function` and `runs` (it finishes without an error), `answer_class` and
-`answer_fields` (a `gr_answer` with every documented field), `answer_text` (a
-single string), `evidence` and `chunks_used` (they name only chunks of the
-input), `calls_declared` (every label is under a declared stem) and
-`calls_within_cost` (no more requests than the cost function's worst case;
-`NA` for a reader registered without `cost`).
+The broken rules print first, each with what the check found. The nine reader
+rules are:
+
+- `is_function`;
+- `runs`: it finishes without an error;
+- `answer_class` and `answer_fields`: a `gr_answer` with every documented
+  field;
+- `answer_text`: a single string;
+- `evidence` and `chunks_used`: they name only chunks of the input;
+- `calls_declared`: every label is under a declared stem;
+- `calls_within_cost`: no more requests than the cost function's worst case,
+  or `NA` for a reader registered without `cost`.
 
 The `by_bullet` segmenter from earlier fails one rule. The example document has
-no bullets, so it comes back as a single chunk over the 150-token cap the check
-cuts with, and `gr_segment()` had to split it:
+no bullets, so `by_bullet` returns it as a single chunk over the 150-token cap
+the check cuts with, and `gr_segment()` has to split it:
 
 ```{r}
 gr_check_segmenter("by_bullet")
@@ -601,12 +606,13 @@ gr_check_segmenter("by_bullet")
 
 The segmenter rules are `is_function`, `runs`, `chunks_class`,
 `chunk_columns` (the documented columns), `chunk_text` (no blank chunk),
-`chunk_ids` (unique, not `NA`), `within_cap` and `calls_declared`. A
-segmenter that needs a client, or declares calls, is given the offline one; pass
-`client =` to check it against another.
+`chunk_ids` (unique, not `NA`), `within_cap` and `calls_declared`. The check
+gives the offline client to a segmenter that needs a client or declares calls.
+Pass `client =` to check it against another client.
 
 Both checks return an `hr_conformance` data frame with `rule`, `ok` and
-`detail` columns, so a package of modules can assert on it in its own tests:
+`detail` columns. If you maintain a package of modules, its tests can assert on
+that data frame:
 
 ```{r}
 res <- gr_check_reader("loose")
@@ -614,25 +620,32 @@ res$rule[!is.na(res$ok) & !res$ok]
 ```
 
 To check a module against a provider that misbehaves, give the check a mock
-client with a `mode`. `"bad_json"` sends JSON cut off part way, `"refuse"`
-sends empty replies, `"at_cap"` marks every reply as cut off at the output cap,
-and a vector of HTTP status codes gives call `i` the `i`-th status, so
-`c(429, 500, 200)` fails the first two calls and answers every one after. The
-`longest`
-reader still finishes, and stays within its cost, when every request is
-rate limited:
+client with a `mode`:
+
+- `"bad_json"` sends JSON cut off part way.
+- `"refuse"` sends empty replies.
+- `"at_cap"` marks every reply as cut off at the output cap.
+- A vector of HTTP status codes gives call `i` the `i`-th status, so
+  `c(429, 500, 200)` fails the first two calls and answers every one after.
+
+The `longest` reader still finishes, and stays within its cost, when every
+request is rate limited:
 
 ```{r}
 gr_check_reader("longest", client = hr_mock_client(mode = 429))
 ```
 
 `hr_check_module()` is the core helper both checks use, and it works for a
-module of any kind. Give it the module's function, a closure of no arguments
-that runs the module once, and a named list of rules, each a function of the
-value the closure returned. A rule returns `TRUE`, `FALSE`, `NA` (could not be
-checked), or a list with `ok` and a `detail` string. The closure runs in a
-temporary working directory that is removed afterwards, and an error it raises
-is reported by the `runs` rule.
+module of any kind. Give it three things:
+
+- the module's function;
+- a closure of no arguments that runs the module once;
+- a named list of rules, each a function of the value the closure returned.
+
+A rule returns `TRUE`, `FALSE`, `NA` (could not be checked), or a list with
+`ok` and a `detail` string. The closure runs in a temporary working directory
+that `hr_check_module()` removes afterwards, and the `runs` rule reports any
+error the closure raises.
 
 ```{r}
 double_it <- function(x) x * 2
