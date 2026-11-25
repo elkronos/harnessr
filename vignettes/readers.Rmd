@@ -82,7 +82,7 @@ gr_readers()[, c("name", "signature", "cost_calls")]
 ```
 
 `cost_calls` gives the number of requests a reader makes as a formula in
-**N**, the number of chunks. When the count grows with N, a document a hundred
+**N**, the number of chunks. If the count grows with N, a document a hundred
 times longer takes a hundred times as many requests.
 
 You pay for tokens, though, and a reader that looks at every chunk sends every
@@ -844,7 +844,7 @@ hr_sweep_check(bench)
 On this report `"rrf"` with `rrf_k = 60` picked the same two chunks as the
 blend, and `rrf_k` does nothing under `"default"`, so `hr_sweep_check()` lists
 both as sending the same requests. `"rrf"` with `rrf_k = 5` is not listed: it
-sent different requests. Where arms differ, compare `correct` by
+sent different requests. If arms differ, compare `correct` by
 `param.fusion` and `param.rrf_k` on a reference.
 
 ### Placement: `context_order` and `restate` {#set-context-order}
@@ -1052,7 +1052,7 @@ requests differ.
 
 ### Merges: `max_merge_levels` {#set-merge-levels}
 
-**What it controls.** When the findings of `map_reduce`, `skim` and the other
+**What it controls.** If the findings of `map_reduce`, `skim` and the other
 merging readers do not fit one merge request, the reader merges them in levels.
 `max_merge_levels` caps the levels. Past the cap, the reader returns its
 findings unmerged and cut, and marks the answer partial. `fan_in` and
@@ -1078,7 +1078,7 @@ on this report. Test the cap on your longest documents, where it can bind.
 
 ### What a request keeps: `context_policy` and `refine_state` {#set-context-policy}
 
-**What they control.** When the text a request carries does not fit, a reader
+**What they control.** If the text a request carries does not fit, a reader
 cuts it, and every reader keeps the start of what it cuts. `context_policy`, an
 `hr_context_policy()`, states once what to do instead:
 
@@ -1104,11 +1104,11 @@ no edit names, word for word, and costs one more request.
 
 **Signs they need changing.** `"truncate"` steps in the trace (`where`,
 `tokens_dropped`) on the requests whose answers are wrong show that a cut lost
-what was needed, and `dropped_part` names the part that went. A fact stated early in a long
-document and missing from `refine`'s answer, or a figure that a later
-correction should have replaced, points to `refine_state = "ledger"`.
-`gr_condensation_check()` (see `vignette("evaluate")`) builds a test of
-exactly that.
+what was needed, and `dropped_part` names the part that went. A fact stated
+early in a long document and missing from `refine`'s answer, or a figure that a
+later correction should have replaced, points to `refine_state = "ledger"`.
+`gr_condensation_check()` (see `vignette("evaluate")`) builds a test of exactly
+that.
 
 **Where the defaults came from.** `context_policy = NULL` keeps the cuts every
 reader made before the setting existed, and `refine_state = "draft"` keeps the
@@ -1210,7 +1210,7 @@ reader misses.
 ### Low rerank scores: `low_score` {#set-low-score}
 
 **What it controls.** `rerank` drops every candidate the model scores below
-`rerank_min_score` (4 of 10). When that drops all of them, the default
+`rerank_min_score` (4 of 10). If that drops all of them, the default
 (`low_score = "not_found"`) makes no answer request and returns
 `NOT_IN_DOCUMENT` with `notes$retrieval_low_score = TRUE`. `"read_top_k"`
 sends the 5 best-scored candidates to the answer request anyway: one request
