@@ -6,7 +6,24 @@
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 1 note
+
+* checking installed package size ... NOTE
+
+  ```
+  installed size is  6.3Mb
+  sub-directories of 1Mb or more:
+    doc    1.8Mb
+    help   1.1Mb
+    R      3.0Mb
+  ```
+
+  The R code and the guides in `doc` make up most of it.
+
+The check in the development container also gives a second NOTE, "Packages
+suggested but not available for checking: 'ellmer', 'readtext',
+'tesseract'", because those packages are not installed there. CRAN has all
+three, so its check will not show that NOTE.
 
 ## Notes for the reviewer
 
