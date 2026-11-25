@@ -5,7 +5,7 @@
 #' Four routes, in order of how much they prove: the path the export itself
 #' recorded, a filename containing the DOI's suffix, a filename whose letters
 #' match the title's, and a filename naming the first author and the year.
-#' Nothing fuzzier -- a wrong match attributes one paper's findings to another,
+#' Nothing fuzzier: a wrong match attributes one paper's findings to another,
 #' which is worse than reporting the report as not retrieved.
 #' @noRd
 match_files <- function(recs, files) {
@@ -40,13 +40,13 @@ match_files <- function(recs, files) {
   # Route 4 below matches on first-author surname plus year, which is ambiguous
   # the moment two records share both. Checking only that ONE FILE matched the
   # record let the first of two Smith-2019 papers claim smith2019.pdf and the
-  # second find nothing -- a coin flip presented as a match, and the way one
+  # second find nothing: a coin flip presented as a match, and the way one
   # paper's findings end up attributed to another. Ambiguity is a property of
   # the record set, so it is settled here, before anything claims anything.
   #
   # Every route needs that settlement. A key that two works share identifies
   # neither of them, and without this the FIRST record listed took the file
-  # while the second went unretrieved -- a coin flip decided by export order.
+  # while the second went unretrieved, a coin flip decided by export order.
   # Two folders each holding a `report.txt`, which is what a `year/report.pdf`
   # archive looks like, put the 2019 file on the 2020 record and the 2020 file
   # on the 2019 record, both marked retrieved. That is one paper's findings
@@ -154,7 +154,7 @@ match_files <- function(recs, files) {
       if (!length(j) && !is.na(base_key[i])) j <- which(!taken & base == base_key[i])
       j
     },
-    # 2. The DOI suffix appears in the filename -- how most managers name files.
+    # 2. The DOI suffix appears in the filename, as most managers name files.
     function(i) {
       if (is.na(doi_key[i])) return(NULL)
       which(!taken & grepl(doi_key[i], stem, fixed = TRUE))
@@ -167,8 +167,8 @@ match_files <- function(recs, files) {
               (startsWith(stem, ttl_key[i]) | (stem_ok & startsWith(tk_all[i], stem_24))))
     },
     # 4. First author's surname and the year both appear in the filename. This
-    # is how people actually name downloaded PDFs -- "smith2019.pdf",
-    # "Smith 2019 - Cognitive Load.pdf" -- and without it the routes above match
+    # is how people actually name downloaded PDFs ("smith2019.pdf",
+    # "Smith 2019 - Cognitive Load.pdf"), and without it the routes above match
     # almost nothing in a real folder. Both parts are required and the match
     # must be unique, so two Smith papers from 2019 match neither rather than
     # attributing one paper's findings to the other. `pos` and `len` are where
@@ -217,7 +217,7 @@ match_files <- function(recs, files) {
   # Which of the works that want one file at route 4 are in the running for
   # it. One whose title's opening words are in the filename as well is the
   # one. Otherwise a filename names its first author first, so a work named
-  # earlier in it rules out one named later -- but only when that is what the
+  # earlier in it rules out one named later, but only when that is what the
   # name shows: the later surname is among the earlier work's authors ("Kim and
   # Lee 2020" is Kim's paper, not Lee's), or lies inside the earlier match. A
   # surname that merely comes first proves nothing: "Early Intervention in
@@ -250,8 +250,8 @@ match_files <- function(recs, files) {
     front
   }
 
-  # One route at a time across ALL records, strongest first -- not every route
-  # for one record before the next record is looked at. Record by record, a
+  # One route at a time across ALL records, strongest first, rather than every
+  # route for one record before the next record is looked at. Record by record, a
   # weak surname match for an early record took a file that was an exact title
   # match for a later one, and which paper got the file depended on export
   # order. A claim needs the file to be the work's only candidate at that route
@@ -259,7 +259,7 @@ match_files <- function(recs, files) {
   # claiming one file, seen from the other end) and the work to be the file's
   # only claimant. A file two works both want goes to neither; it stays on the
   # table, as a key two works share does, for a later route that only one work
-  # passes -- or for nobody, and then unmatched_files says so.
+  # passes, or for nobody, and then unmatched_files says so.
   #
   # A route is run again while it still settles something: once a work has
   # claimed its file, a work that wanted that file and one other now wants only
@@ -290,8 +290,8 @@ match_files <- function(recs, files) {
         out[g] <- paths[f]
         taken[f] <- TRUE
         if (route == 1L) {
-          # The other rows' own recorded files are that work's other copies --
-          # one library holding the item twice, each with its PDF attached --
+          # The other rows' own recorded files are that work's other copies
+          # (one library holding the item twice, each with its PDF attached),
           # and each is reported on the row that recorded it, as it was before
           # duplicates were pooled. Only a file no other work points to.
           for (nm in names(offers[[w]]$by_row)) {

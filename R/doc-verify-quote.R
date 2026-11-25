@@ -1,8 +1,8 @@
-# doc-verify-quote.R -- did the model quote the document, or invent the quote?
+# doc-verify-quote.R: did the model quote the document, or invent the quote?
 #
 # WHY THIS FILE EXISTS
 # `ans$evidence` is what an answer rests on, and for most readers it is verbatim
-# chunk text -- true by construction, because the package put it there. For the
+# chunk text, true by construction, because the package put it there. For the
 # `skim` reader it is not: `skim` asks the model to extract the passages that
 # bear on the question, and what comes back is whatever the model chose to
 # write. It is *presented* as a quotation and nothing checked that it was one.
@@ -13,7 +13,7 @@
 # Checking costs nothing. The chunk is right there, the span is right there, and
 # whether one contains the other is a string operation. So it happens on every
 # run, is recorded on the answer, and an unverifiable span makes the answer
-# `partial` -- the same signal every other kind of degradation raises.
+# `partial`: the same signal every other kind of degradation raises.
 #
 # The comparison is deliberately forgiving about typography and unforgiving
 # about content. Models normalise whitespace, straighten quotes and turn en
@@ -25,7 +25,7 @@
 #' Folds away exactly the differences a model introduces when it quotes
 #' faithfully: whitespace, curly quotes, dashes, and case, and how a letter is
 #' encoded (compose_marks(), and the full-width forms fold_width() turns into
-#' ASCII). Nothing else -- in particular no stemming and no punctuation
+#' ASCII). Nothing else: in particular no stemming and no punctuation
 #' stripping, because "revenue fell" and "revenue fell 12%" must not compare
 #' equal.
 #' @noRd
@@ -324,7 +324,7 @@ strip_bold <- function(x, edges = FALSE) {
 #' stops, dashes and space, and the ideographic full stop and comma and the
 #' full-width colon and semicolon Chinese and Japanese write them with (their
 #' quote marks, the corner brackets, and guillemets are quote marks by now:
-#' fold_for_match()). Not `%`, not `)`, not any digit -- those carry
+#' fold_for_match()). Not `%`, not `)`, not any digit. Those carry
 #' content, and a quotation that changed one is exactly what this is for. Nor
 #' a lone full stop before a digit: ".45" and ".001" are how APA style writes a
 #' correlation and a p value, and trimmed to "45" and "001" they were numbers
@@ -342,7 +342,7 @@ trim_quote_edges <- function(x) {
     s
   }
   x <- strip(x)
-  # Dashes are the awkward case. A trailing one is always typographic -- an em
+  # Dashes are the awkward case. A trailing one is always typographic: an em
   # dash the model appended, normalised to a hyphen. A LEADING one may be a
   # minus sign, and a minus sign is content: "-5%" and "5%" are opposite claims,
   # and folding them together let a sign-flipped quotation verify as exact. So a
@@ -361,7 +361,7 @@ trim_quote_edges <- function(x) {
 .gr_unspaced <- "\\p{Han}\\p{Hiragana}\\p{Katakana}\\p{Thai}\\p{Lao}\\p{Khmer}\\p{Myanmar}"
 
 #' What each code point is to the boundary test: 2 a digit, 1 a letter or mark
-#' of a script that puts spaces between words, and 0 anything else --
+#' of a script that puts spaces between words, and 0 anything else:
 #' punctuation, a space, a letter of an unspaced script (.gr_unspaced), a
 #' circled or bracketed number (a list mark, never part of a number: a quote
 #' of the item after "<circled 1>" starts at its first digit), or no character
@@ -1433,7 +1433,7 @@ passage_score <- function(pieces, src) {
 #'
 #' @return `list(verified, match)`. `match` is 1 for an exact quotation and
 #'   otherwise, for the weakest passage, the fraction of its words carried by
-#'   its longest consecutive run in the source -- so 0.9 is a quotation with a
+#'   its longest consecutive run in the source, so 0.9 is a quotation with a
 #'   word changed, and 0.1 is a sentence that shares some vocabulary and
 #'   nothing else.
 #' @noRd
@@ -1538,7 +1538,7 @@ verify_spans <- function(spans, sources, whole = FALSE) {
 #'
 #' ONE definition, used by the checker and by the renderer. They had two, and
 #' they disagreed: the checker matched only `[study 3]` while the renderer also
-#' understood `[studies 1 and 2]` -- the combined form the synthesis prompt
+#' understood `[studies 1 and 2]`, the combined form the synthesis prompt
 #' explicitly asks for. So a section citing three studies that way rendered as
 #' "(Garcia, 2022; Lee & Petrov, 2021; Smith & Okafor, 2019)" while the check
 #' reported it cited nothing: no reference list for the studies it named, and,
@@ -1552,8 +1552,8 @@ verify_spans <- function(spans, sources, whole = FALSE) {
 #' ("[study 1; study 7]"), any kind of space. Each of those used to match
 #' nothing, so a fabricated id written that way was never looked at. This is
 #' the listed form, which render_citations() turns into references by reading
-#' every number in it as an id -- right for every list it accepts. The check
-#' reads two forms more; see cite_grammar().
+#' every number in it as an id, which is right for every list it accepts. The
+#' check reads two forms more; see cite_grammar().
 #' @noRd
 cite_pattern <- function(word) {
   cite_grammar(word)$listed
@@ -1610,7 +1610,7 @@ cite_marker_ids <- function(marker, word) {
 #' Numbered ids a piece of generated text claims to cite.
 #'
 #' One grammar, two callers: `[chunk 3]` in a cited answer and `[study 7]` in a
-#' synthesised section. They are the same check for the same reason -- a citation
+#' synthesised section. They are the same check for the same reason: a citation
 #' pointing at something that was never supplied is a fabrication, and the most
 #' convincing kind, because it looks like the thing that would let you check.
 #' Read with the full grammar, ranges and locators included.
@@ -1834,8 +1834,8 @@ gr_verify_evidence <- function(answer, chunks = NULL) {
   if (is.null(ev) || !nrow(ev)) return(empty)
 
   # Per row, falling back to the reader only for an answer built before evidence
-  # tables carried a kind. An `ensemble` has no single kind -- its members
-  # contribute verbatim spans and per-chunk answers to one table -- and treating
+  # tables carried a kind. An `ensemble` has no single kind (its members
+  # contribute verbatim spans and per-chunk answers to one table), and treating
   # the whole table as one kind is what made a correct map_reduce member report
   # its answers as fabricated quotations.
   kind <- if (!is.null(ev$kind)) as.character(ev$kind) else {
@@ -1904,9 +1904,10 @@ gr_verify_evidence <- function(answer, chunks = NULL) {
 #' Give each quoted span the page it is actually on.
 #'
 #' A chunk's page is the page of the text it was packed from, and when it was
-#' packed from more than one page there is no single right answer -- `meta_over()`
-#' reports `NA` there rather than naming one of them. But an evidence row is not
-#' a chunk: it is a specific sentence, and a specific sentence *is* on one page.
+#' packed from more than one page there is no single right answer.
+#' `meta_over()` reports `NA` there rather than naming one of them. But an
+#' evidence row is not a chunk: it is a specific sentence, and a specific
+#' sentence *is* on one page.
 #'
 #' So where the span can be found in the document's blocks, the page comes from
 #' the block that contains it, not from the chunk that happened to carry it. That
@@ -1920,7 +1921,7 @@ gr_verify_evidence <- function(answer, chunks = NULL) {
 #' looked for as span_match() finds it (hyphens_rejoined()): with the hyphens
 #' between letters taken out of it and of the blocks.
 #'
-#' A span found on several pages -- a repeated heading, a running footer -- is
+#' A span found on several pages (a repeated heading, a running footer) is
 #' left alone: the first hit would be a guess dressed as a fact. So is a span
 #' that cannot be found at all, which is exactly the unverified case, where the
 #' chunk-level fallback is already as much as is known.

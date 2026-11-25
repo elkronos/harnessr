@@ -44,7 +44,7 @@ gr_budget <- function(model = NULL, reserve_output = NULL, overhead = 0,
   info <- gr_model_info(model)
   ctx <- info$context_window
   # na_default(), not bare clamp(): clamp() maps NA to `lo`, and `lo` here is
-  # ZERO margin -- no headroom at all, which is the exact condition the margin
+  # ZERO margin. That leaves no headroom at all, the exact condition the margin
   # exists to prevent. Same defect the `mmr` setting was fixed for, in the one
   # place where it decides whether a prompt fits.
   # The fallback is the SESSION's margin, not a hard-coded 0.10: with
@@ -64,7 +64,7 @@ gr_budget <- function(model = NULL, reserve_output = NULL, overhead = 0,
   one_num <- function(x) if (length(x) == 1L && (is.numeric(x) || is.character(x)))
     suppressWarnings(as.numeric(x)) else NA_real_
   # A reserve that cannot be read takes the default reserve, as NULL does.
-  # clamp() mapped NA to its floor -- ONE token -- leaving the answer no room.
+  # clamp() mapped NA to its floor (ONE token), leaving the answer no room.
   if (!is.null(reserve_output) && is.na(one_num(reserve_output))) {
     gr_warn("`reserve_output` must be a single number of tokens; using the default reserve.",
             class = "gr_bad_setting")
@@ -78,7 +78,7 @@ gr_budget <- function(model = NULL, reserve_output = NULL, overhead = 0,
   }
   # `overhead` is the caller's count of the prompt around the excerpts. NULL is
   # none, and a number written as text is that number. A value that cannot be
-  # counted -- NA, "abc", a vector -- is refused: budgeting it as zero is the
+  # counted (NA, "abc", a vector) is refused: budgeting it as zero is the
   # one direction that overruns the window. as_int1() below rather than
   # as.integer(), which turns 3e9 into NA.
   oh <- if (is.null(overhead)) 0 else one_num(overhead)

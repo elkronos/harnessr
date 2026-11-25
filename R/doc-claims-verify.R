@@ -5,7 +5,7 @@
 #' Four rules, each dropping or clearing rather than repairing:
 #'
 #'   * A study number that is not in the table is removed. This is the same check
-#'     `cited_ids()` makes on finished prose, one link earlier -- and it is the
+#'     `cited_ids()` makes on finished prose, one link earlier, and it is the
 #'     one that matters most, because everything downstream trusts these numbers.
 #'     So is one that IS in the table but was not in the batch the claim came
 #'     from (`.shown`, when the rows carry it): the model never saw that study,
@@ -74,7 +74,7 @@ claims_verify <- function(got, used, cols = study_fields(used)) {
   got[[".shown"]] <- NULL
   # Existing is not explaining. A moderator naming `design` when every study is
   # an RCT was kept, printed to the writer as "distinguished by: design", and
-  # took the claim out of gr_gaps()' unexplained disagreements -- while the same
+  # took the claim out of gr_gaps()' unexplained disagreements. The same
   # gr_gaps() reported that design never varies.
   split <- claims_moderators(got[keep, , drop = FALSE], used)
   list(claims = split$claims,
@@ -90,8 +90,8 @@ claims_verify <- function(got, used, cols = study_fields(used)) {
 #'
 #' The schema asks for "the field that distinguishes the supporting studies from
 #' the contradicting ones", and that is a count: the values on one side must not
-#' turn up on the other. Numbers must be separable by a threshold -- every
-#' supporting value above every contradicting one, or below -- because two sets
+#' turn up on the other. Numbers must be separable by a threshold (every
+#' supporting value above every contradicting one, or below), because two sets
 #' of sample sizes are always different sets and that explains nothing. Checked
 #' only on a contested claim; with nothing on the other side there is nothing
 #' to separate, and nothing to count.

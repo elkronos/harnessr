@@ -1,4 +1,4 @@
-# doc-audit-report.R -- the run, written out so somebody else can check it.
+# doc-audit-report.R: the run, written out so somebody else can check it.
 #
 # WHY THIS FILE EXISTS
 # Everything needed to audit a review is already recorded: the criteria that were
@@ -8,8 +8,8 @@
 # four objects and half a dozen data frames, which means that in practice nobody
 # looks at it.
 #
-# This assembles it into one file. Not for the person who ran it -- they can
-# index into `$evidence` -- but for the reviewer, co-author or regulator who did
+# This assembles it into one file. The person who ran it can index into
+# `$evidence`. The file is for the reviewer, co-author or regulator who did
 # not, and whose question is "how do you know?"
 #
 # THE REPORT MUST NOT FLATTER THE RUN. An audit that shows only the rows that
@@ -204,7 +204,7 @@ gr_audit_report <- function(path, screening = NULL, extraction = NULL,
                             answer = NULL, open = interactive(), recall = NULL) {
   # `claims` and `records` are APPENDED, not slotted in where they belong
   # thematically. Inserting `claims` fourth silently rebound the fourth
-  # positional argument of every existing call -- gr_audit_report(p, s, x, syn)
+  # positional argument of every existing call: gr_audit_report(p, s, x, syn)
   # wrote a report with the synthesis filed as claims and no synthesis section
   # in it, and nothing said so. A new argument goes at the end.
   if (!is_nonblank(path)) gr_abort("`path` must be a file path.")
@@ -280,8 +280,8 @@ gr_audit_report <- function(path, screening = NULL, extraction = NULL,
 #' Two traps, both hit while writing this. `file(path, encoding = "UTF-8")` does
 #' not mean "write UTF-8"; it means "re-encode from the native encoding on the
 #' way out", so handing it strings that are ALREADY UTF-8 makes R convert them
-#' through a C locale that cannot represent them -- "invalid char string in
-#' output conversion", and the em dash silently lost. A binary connection plus
+#' through a C locale that cannot represent them. The result is "invalid char
+#' string in output conversion", and the em dash silently lost. A binary connection plus
 #' `useBytes = TRUE` writes the bytes that are there.
 #'
 #' And a connection passed inline to `writeLines()` is never closed, so the last
@@ -297,7 +297,7 @@ write_utf8_lines <- function(lines, path) {
 
 #' Escape text for HTML.
 #'
-#' Everything in this report is text somebody else wrote -- a document, or a
+#' Everything in this report is text somebody else wrote: a document, or a
 #' model's reply to one. Interpolating that into HTML unescaped breaks the page
 #' on the first angle bracket in a chemical formula, and turns a report meant to
 #' be *shared* into a way of running whatever the document happened to contain.
@@ -412,8 +412,8 @@ audit_stage_runs <- function(stages, version) {
 #' A protocol is a plain list anyone can edit after the run, and the report is
 #' handed whichever one the caller has now. Rendered under "fixed before any
 #' document was read" without a look at the stages, criteria added after seeing
-#' the results were presented as the ones the decisions were made against --
-#' the drift the protocol exists to rule out. The screening records its
+#' the results were presented as the ones the decisions were made against.
+#' That is the drift the protocol exists to rule out. The screening records its
 #' question and criteria, the extraction its schema and the write-up its
 #' question and outline, so each is compared, and a difference is said first.
 #' @noRd
@@ -734,7 +734,7 @@ cited_verbatim <- function(ev) {
 #' This is the link that makes the layer defensible rather than merely present.
 #' Without it a reader can walk a sentence back to a study and a study back to a
 #' quote, but not the claim the sentence is making back to the studies that were
-#' supposed to support it -- which is the step where a synthesis is either right
+#' supposed to support it. That is the step where a synthesis is either right
 #' or invented.
 #' @noRd
 audit_claims <- function(synthesis, claims = NULL) {
@@ -1274,7 +1274,7 @@ audit_caveats <- function(screening = TRUE, answer = FALSE, quotes = TRUE, value
         "copied, not that it is the right figure for the sentence or that the row is right.</li>"),
       "</ul>"),
     # What resolve_evidence_pages() does: it leaves the chunk's page on a span
-    # it cannot place on one page. Said as it is -- "left without one" was
+    # it cannot place on one page. Said as it is: "left without one" was
     # printed above a fabricated quote listed with page 1.
     "<p><strong>A page number is where the sentence is, not where the reasoning is.</strong>",
     "A span found on one page of the document is given that page. One found on several pages,",
@@ -1333,8 +1333,8 @@ html_table <- function(df, numeric_cols = character(0), flag = list()) {
 #' How good the screening is, when somebody measured it.
 #'
 #' gr_calibrate() computed sensitivity, specificity and kappa and there was
-#' nowhere to put them: the number a reviewer actually asks about -- how many
-#' eligible studies the screener threw away -- had to be copied into a methods
+#' nowhere to put them. The number a reviewer actually asks about (how many
+#' eligible studies the screener threw away) had to be copied into a methods
 #' section by hand, which is the one place it cannot be checked against the run.
 #' @noRd
 audit_calibration <- function(calibration) {
@@ -1457,7 +1457,7 @@ audit_calibration_recall <- function(calibration) {
 #' PRISMA items 6 and 7, and item 7 asks for the full strategy for at least one
 #' database *so that it could be repeated*. Printing it beside the results is
 #' the difference between a report a reader can check and one they must take on
-#' trust -- and when it is absent, saying so is more useful than leaving the
+#' trust. When it is absent, saying so is more useful than leaving the
 #' section out, because a missing search is a defect in the review rather than
 #' in the report.
 #' @noRd
@@ -1559,7 +1559,7 @@ audit_answer <- function(x) {
 report_doc_name <- function(src) {
   src <- as_chr1(src, NA_character_)
   if (is.na(src) || identical(src, "<inline text>")) return(src)
-  # A web address in full, since its host and path are what name it -- but not
+  # A web address in full, since its host and path are what name it, but not
   # its credentials; see report_url().
   if (is_url(src)) return(report_url(src))
   basename(src)

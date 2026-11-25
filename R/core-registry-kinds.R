@@ -155,7 +155,7 @@ registry_table <- function(slot, cols, state) {
   df <- do.call(rbind, lapply(rows, as.data.frame, stringsAsFactors = FALSE))
   df <- df[order(df$name), , drop = FALSE]
   # Drop row names. rbind() over one-row frames keeps the registry key as a row
-  # name, so every printed table showed the name twice -- once as a row label and
+  # name, so every printed table showed the name twice: once as a row label and
   # again in the `name` column.
   rownames(df) <- NULL
   df

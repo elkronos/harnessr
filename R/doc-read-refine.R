@@ -17,8 +17,8 @@ read_refine <- function(chunks, question, client, spec, trace) {
   dropped <- 0L
   # The draft grows with every revision, so unlike the other readers this one
   # can outgrow the context window mid-run. Budget for it explicitly.
-  # Two different system prompts go out of this reader -- answer_messages() for
-  # the first chunk, refine_system for every revision after it -- so budget
+  # Two different system prompts go out of this reader (answer_messages() for
+  # the first chunk, refine_system for every revision after it), so budget
   # against the longer of the two rather than whichever is named here.
   # Both with the premise rule when the spec checks it, since both carry it.
   refine_system <- refine_system_prompt(spec$premise)

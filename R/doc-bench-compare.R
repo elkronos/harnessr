@@ -142,8 +142,8 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
   # means identical work. This is precisely the Chunked/Semantic collapse.
   # Hash the WHOLE read spec, not a hand-picked subset. The subset omitted
   # rerank_candidates, min_score, temperature, max_levels, on_overflow,
-  # skim_model and the token caps -- all of which change which chunks reach the
-  # model or how it answers -- so genuinely different recipes were silently
+  # skim_model and the token caps. All of them change which chunks reach the
+  # model or how it answers, so genuinely different recipes were silently
   # collapsed into one and never run.
   keys <- vapply(recs, function(r) paste0(
     gr_hash(unclass(r$segment)), "|",
@@ -224,7 +224,7 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
       sub$spent_before <- sum(gr_trace_cost(trace)$usd) - seed
       # Key on the document's actual TEXT, not its character count. Counting
       # characters meant any length-preserving cleaner produced a cache hit on
-      # different text, and one recipe was handed another recipe's chunks --
+      # different text, and one recipe was handed another recipe's chunks:
       # order-dependent, silent, and wrong.
       # And on what the document could not give: chunks carry the unread pages
       # and the warnings of the ingestion that produced them, so two ingestions
@@ -314,7 +314,7 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
     data.frame(recipe = nm, segmenter = as_chr1(seg$method, NA_character_),
                chunks = as.integer(seg$n %||% NA), reader = a$reader,
                signature = as_chr1(a$signature, NA_character_),
-               # Recipes differing only in a setting -- top_k, mmr, max_tokens --
+               # Recipes differing only in a setting (top_k, mmr, max_tokens)
                # were indistinguishable here. Name what was changed.
                settings = if (is.null(r)) NA_character_ else
                  format_settings(c(read_settings(r$read), segment_settings(r$segment),

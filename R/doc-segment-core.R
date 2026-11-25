@@ -1,4 +1,4 @@
-# doc-segment-core.R -- AXIS 2 machinery: the chunk object and shared packing
+# doc-segment-core.R: AXIS 2 machinery. The chunk object and shared packing
 # logic.
 #
 # WHY THIS FILE EXISTS
@@ -8,8 +8,9 @@
 #
 #   * `chunk_text_semantic()` did `for (i in 2:length(paragraphs))`. With one
 #     paragraph that is `c(2, 1)`, so `paragraphs[2]` is NA and the function died
-#     with "missing value where TRUE/FALSE needed" -- on the DEFAULT code path,
-#     because `answer_question()`'s default mode vector includes "Semantic".
+#     with "missing value where TRUE/FALSE needed". That was the DEFAULT
+#     code path, because `answer_question()`'s default mode vector includes
+#     "Semantic".
 #   * `chunk_text_semantic()` never enforced its own token limit: an oversized
 #     paragraph was emitted whole, 50x over the cap.
 #   * `chunk_text_naive()` returned `NULL` (not `character(0)`) when nothing
@@ -19,14 +20,14 @@
 #     code path reached them.
 #   * All three divided by a caller-supplied limit with no guard: a zero limit
 #     produced `ceiling(n/0) = Inf` and a negative limit produced negative group
-#     indices, which `split()` orders ascending -- feeding the document to the
+#     indices, which `split()` orders ascending. The document then reached the
 #     model BACKWARDS in blocks.
 #   * None supported overlap, none carried provenance, none reported anything.
 #
 # Everything here funnels through `new_chunks()`, which enforces the shape
 # invariants once: non-empty, ordered, provenance-carrying and reportable. The
 # TOKEN CAP is enforced separately, by `gr_segment()`, after the segmenter
-# returns -- so a registered segmenter that ignores the cap is corrected rather
+# returns, so a registered segmenter that ignores the cap is corrected rather
 # than trusted.
 
 #' Build a `gr_chunks`, the object every segmenter must return
@@ -216,7 +217,7 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
         # Trim the carried-over tail so tail + the incoming unit still fits.
         # Without this the chunk could reach 2 * max_tokens - 1, and the
         # cap-enforcement pass in gr_segment() would then re-cut it on token
-        # boundaries -- shredding the very overlap this is here to create.
+        # boundaries and shred the very overlap this is here to create.
         # Measured joined to the unit, for the same reason as above.
         joined <- paste(buf_prev, collapse = joiner)
         want <- min(overlap_tokens, max(max_tokens - tks, 0L))
@@ -248,19 +249,19 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
       tks <- gr_count_tokens(out[[j]])
       # Measure the JOINED text, not the sum of the two counts. Every estimate
       # carries a fixed per-call allowance, so adding two counts double-counts
-      # it and reported a merge as over-cap when the merged text fit -- runts
+      # it and reported a merge as over-cap when the merged text fit. Runts
       # that could have been absorbed became their own billed API call.
       # Only the runt's OWN text joins its host: it opens with an overlap tail
       # copied from the end of the host, and merging that too put the same
-      # sentences twice in a row inside one chunk -- counted twice by any
-      # reader that tallies or lists what it finds.
+      # sentences twice in a row inside one chunk, and any reader that tallies
+      # or lists what it finds counted them twice.
       cand <- if (length(merged)) paste(merged[[length(merged)]], own[[j]], sep = joiner) else ""
       if (length(merged) && tks < min_tokens && gr_count_tokens(cand) <= max_tokens) {
         merged[[length(merged)]] <- cand
         mown[[length(merged)]] <- paste(mown[[length(merged)]], own[[j]], sep = joiner)
         # The absorbed runt's provenance has to be folded in too. Keeping only
         # the host chunk's meta made the merged chunk claim a page it now only
-        # partly comes from -- the same lie, arrived at from the other side.
+        # partly comes from: the same lie, arrived at from the other side.
         mmeta[[length(merged)]] <- combine_meta(mmeta[[length(merged)]],
                                                 if (j <= length(out_meta)) out_meta[[j]] else NA)
         mspan[[length(merged)]] <- c(mspan[[length(merged)]][1], out_span[[j]][2])
@@ -368,12 +369,12 @@ pack_units_balanced <- function(units, max_tokens, overlap_tokens, min_tokens, j
 #'
 #' A chunk that packs three paragraphs from two pages used to report the FIRST
 #' one's page, which is right for the opening sentence and wrong for everything
-#' after it -- and wrong in the most expensive way, because a citation that names
-#' a specific page is checked by turning to that page. Where the units agree the
-#' value stands; where they do not, the honest answer is that this chunk is not
-#' from one page, and `NA` says so.
+#' after it. It is wrong in the most expensive way, because a citation that
+#' names a specific page is checked by turning to that page. Where the units
+#' agree the value stands; where they do not, the honest answer is that this
+#' chunk is not from one page, and `NA` says so.
 #'
-#' The precise answer -- which page a particular QUOTE is on -- needs the quote,
+#' The precise answer, which page a particular QUOTE is on, needs the quote,
 #' and is resolved later by `resolve_evidence_pages()`. This is the fallback for
 #' everything that has no quote to work from.
 #' @noRd
@@ -472,10 +473,10 @@ hard_split <- function(text, max_tokens) {
 #' some point and fails after it (a longer run of text counts more tokens).
 #'
 #' Doubles `k` until `ok` fails, then bisects, so it costs O(log k) calls
-#' rather than the k of growing a run one unit at a time -- which, re-counting
-#' the whole run at each step, was quadratic. The answer always passed `ok()`
-#' itself, so a tokenizer that is not quite monotone can cost length, never
-#' the cap. 0 when `ok(1)` fails.
+#' rather than the k of growing a run one unit at a time. That approach
+#' re-counted the whole run at each step, so it was quadratic. The answer
+#' always passed `ok()` itself, so a tokenizer that is not quite monotone can
+#' cost length, never the cap. 0 when `ok(1)` fails.
 #' @noRd
 longest_fit <- function(n, ok) {
   n <- as.integer(n)
@@ -494,7 +495,7 @@ longest_fit <- function(n, ok) {
 #'
 #' Unlike the fixed-stride slicing it replaces, this measures each group as
 #' joined, so a group can never exceed `max_tokens` however the units
-#' tokenize. A single unit that still does not fit is emitted alone -- at
+#' tokenize. A single unit that still does not fit is emitted alone. At
 #' character granularity that means one character, which always fits. Each
 #' group is found by longest_fit(), not by re-measuring after every unit, so a
 #' blob split into characters costs O(n log n), not O(n^2).
@@ -564,7 +565,7 @@ print.gr_chunks <- function(x, ...) {
     # even-length vector, so it returns a DOUBLE, and sprintf("%d", 27.5) is an
     # error rather than a coercion. gr_segment() auto-prints at top level, so
     # the canonical interactive call failed on any document whose two middle
-    # chunks had token counts of different parity -- about one in four.
+    # chunks had token counts of different parity, about one in four.
     cat(sprintf("  tokens: min %d / median %s / mean %.0f / max %d / total %d\n",
                 min(d$tokens), format(stats::median(d$tokens)), mean(d$tokens),
                 max(d$tokens), sum(d$tokens)))

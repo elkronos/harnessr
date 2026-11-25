@@ -27,8 +27,8 @@
 #' @param min_reported A field missing for more than this fraction of studies is
 #'   reported as not reported.
 #' @param bib Which columns carry bibliographic identity, as in [gr_claims()]
-#'   and [gr_synthesise()]. They are not dimensions of the evidence -- "every
-#'   study reports 'Lancet'" is not a gap in a literature -- and a gap line goes
+#'   and [gr_synthesise()]. They are not dimensions of the evidence ("every
+#'   study reports 'Lancet'" is not a gap in a literature), and a gap line goes
 #'   to the writing model, which is never told who wrote a study. The columns
 #'   `claims` withheld are left out whatever this says; `bib` adds to them.
 #' @return A data frame of class `gr_gaps`: `kind`, `dimension`, `detail`, `n`.
@@ -71,7 +71,7 @@ gr_gaps <- function(claims, extraction = NULL, max_cells = 40L, min_reported = 0
   # unlabelled bytes, and a value the model returned is labelled, so an
   # accented category never matched itself: it was reported as declared and
   # unstudied, and every combination with it as unstudied, in a table where a
-  # study reports it -- gaps the closing section is told to state.
+  # study reports it. The closing section is told to state those gaps.
   txt <- function(v) trimws(mark_utf8(as.character(v)))
   vals <- function(col) {
     v <- txt(st[[col]])
@@ -100,7 +100,7 @@ gr_gaps <- function(claims, extraction = NULL, max_cells = 40L, min_reported = 0
     #    and cannot bound a claim's scope either.
     if (length(v) > 1L && length(unique(v)) == 1L) {
       # "every study reports 'cohort'" was printed when 2 of 10 studies reported
-      # it and the other 8 left the cell empty -- `v` drops the missing ones, so
+      # it and the other 8 left the cell empty. `v` drops the missing ones, so
       # the sentence described the reporters as the whole table. A gap report
       # that overstates what the literature says is worse than none.
       add("no variation", nm,
@@ -171,7 +171,7 @@ gr_gaps <- function(claims, extraction = NULL, max_cells = 40L, min_reported = 0
 }
 
 # `[` on a classed data frame keeps the class and loses every other attribute, so
-# `g[, c("kind", "dimension")]` was still dispatched to print.gr_gaps() -- which
+# `g[, c("kind", "dimension")]` was still dispatched to print.gr_gaps(), which
 # then reported "NA study/studies" and "no schema given" about a perfectly good
 # object, because the attributes carrying both had been dropped by the subset.
 # Selecting columns from a table should give a table.
@@ -207,8 +207,8 @@ render_gaps <- function(gaps) {
   if (!is.data.frame(gaps) || !nrow(gaps)) return(NULL)
   # Labelled column by column before they are joined. A gap line quotes the
   # table ("every study reports ...") or a claim, and one of those can be
-  # labelled UTF-8 while the other is not -- a table read in under a C locale
-  # -- and paste() then escaped the unlabelled lines to "<c3><a9>".
+  # labelled UTF-8 while the other is not (a table read in under a C locale),
+  # and paste() then escaped the unlabelled lines to "<c3><a9>".
   txt <- function(v) mark_utf8(as.character(v))
   paste(sprintf("- %s (%s): %s", txt(gaps$kind), txt(gaps$dimension), txt(gaps$detail)),
         collapse = "\n")

@@ -1,4 +1,4 @@
-# core-transport-replay.R -- re-run a recorded run without an API key.
+# core-transport-replay.R: re-run a recorded run without an API key.
 #
 # WHY THIS FILE EXISTS
 # `gr_trace` already records every prompt, every response and every token count
@@ -8,8 +8,8 @@
 # description of a run rather than the run itself.
 #
 # A trace is a complete transcript of the only non-deterministic part of the
-# pipeline. Everything else -- extraction, cleaning, segmentation, ranking,
-# merging, budgeting -- is a pure function of its input. So a trace plus the
+# pipeline. Everything else (extraction, cleaning, segmentation, ranking,
+# merging, budgeting) is a pure function of its input. So a trace plus the
 # source document is enough to reproduce a run exactly, with no key and no
 # spend, provided the model calls are answered from the transcript instead of
 # the network. That is all this file does.
@@ -268,7 +268,7 @@ gr_replay_client <- function(source, strict = TRUE, on_exhausted = c("error", "f
     .alt_models = defaults$alts,
     # Derived from the recording, not from this object: two replays of the same
     # trace are the same thing and should share a store, while replays of
-    # DIFFERENT recordings must not -- without this a corpus store served one
+    # DIFFERENT recordings must not. Without this a corpus store served one
     # recording's answers while replaying another, which is exactly the failure
     # the client identity was introduced to prevent.
     .client_id = paste0("replay-", gr_hash(lapply(steps, function(s)
@@ -428,7 +428,7 @@ replay_steps <- function(source) {
       # TRUE) rejects a revision that stopped for "length". Dropping it here
       # made every replayed call look like a clean stop, so the replay kept a
       # truncated revision the live run had thrown away, published a different
-      # document, and reported 0 misses -- certifying itself as an exact
+      # document, and reported 0 misses. It certified itself as an exact
       # reproduction of a run it had not reproduced.
       finish_reason = as_chr1(st$finish_reason, NA_character_),
       label = as_chr1(st$label, "call"),
@@ -573,7 +573,7 @@ replay_most_frequent <- function(models) {
 #' Which embedder produced the vectors in the recorded run, if any.
 #'
 #' The transcript holds each embeddings request but not the vectors it
-#' returned -- but `gr_embed()` writes a local note saying which embedder it
+#' returned. `gr_embed()` does write a local note saying which embedder it
 #' used, and that is enough. A replay can reproduce a run's ranking only when
 #' it uses the SAME embedder and that embedder is deterministic. Without this the check was
 #' "is the current embedder deterministic", which is not the same question: a

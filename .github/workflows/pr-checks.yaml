@@ -8,9 +8,9 @@ name: pr-checks
 #
 # tests  A pull request may not drop an expect_*() call from tests/, add a
 #        skip(), skip_if*() or skip_on_*() call, or add a row to a list that
-#        may only shrink (fixtures/boundary/allowed.csv and
-#        doc-uses-internal.csv) without the label tests-reviewed. An expect_
-#        line that is edited counts as removed.
+#        may only shrink (fixtures/boundary/allowed.csv,
+#        doc-uses-internal.csv and dash-allowed.csv) without the label
+#        tests-reviewed. An expect_ line that is edited counts as removed.
 # deps   A pull request may not add a package to Depends, Imports, LinkingTo
 #        or Suggests without the label deps-reviewed, and every package it
 #        adds must be on CRAN.
@@ -21,8 +21,15 @@ name: pr-checks
 #        No commit message in the pull request may carry a Co-Authored-By
 #        trailer, a chat or session link, or a "Generated with" line. No label
 #        allows it; reword the commit. Only commit messages are read.
+# dashes A pull request may not add a line with an em dash, an en dash or a
+#        double hyphen between spaces under R/, man/, vignettes/, inst/ (not
+#        inst/extdata/), dev/ or .github/, or in the top-level Markdown files,
+#        DESCRIPTION or _pkgdown.yml. tests/ is not read. A line listed in
+#        fixtures/boundary/dash-allowed.csv may keep its double hyphen. The
+#        list holds prompt text sent to a model and the name of the dashes
+#        step below; it may only shrink, as above.
 #
-# The four checks need base R only, so they share one job and one R setup.
+# The five checks need base R only, so they share one job and one R setup.
 # Each is its own step and runs even when an earlier one failed, so a red
 # job shows every failing check; the step name says which. Lint needs lintr
 # and reads no label, so it runs in pr-lint.yaml.
@@ -82,4 +89,9 @@ jobs:
       - name: "commits: no attribution in commit messages"
         if: ${{ !cancelled() }}
         run: Rscript dev/ci/pr-checks.R commits "$BASE_SHA" "$HEAD_SHA"
+        shell: bash
+
+      - name: "dashes: no em dashes, en dashes or ' -- '"
+        if: ${{ !cancelled() }}
+        run: Rscript dev/ci/pr-checks.R dashes "$BASE_SHA" "$HEAD_SHA"
         shell: bash

@@ -80,8 +80,8 @@ seg_contextual <- function(doc, spec, client, trace) {
   frame <- function(h, body) ifelse(nzchar(h), paste0("[", h, "]\n\n", body), body)
   # Room for the header is held back from the body BEFORE packing. Packed to
   # the full cap and then prefixed, a chunk near the cap went over it, and
-  # gr_segment() cut it in two: the second piece had no header -- the
-  # out-of-context excerpt this segmenter exists to prevent -- and every
+  # gr_segment() cut it in two. The second piece had no header, which is the
+  # out-of-context excerpt this segmenter exists to prevent, and every
   # "Part i of n" counted n before the cut. At least half the cap stays text.
   pack <- function(reserve) {
     sp <- spec
@@ -97,8 +97,8 @@ seg_contextual <- function(doc, spec, client, trace) {
       paste(bits, collapse = " | ")
     }, character(1))
   }
-  # Whatever still does not fit -- a header longer than half the cap, a reply
-  # counted as longer than it was asked to be -- is shortened, never the body:
+  # Whatever still does not fit (a header longer than half the cap, a reply
+  # counted as longer than it was asked to be) is shortened, never the body:
   # the body is the document, the header only points into it.
   fit_headers <- function(h, body) {
     for (k in which(nzchar(h) & gr_count_tokens(frame(h, body)) > cap)) {
@@ -223,8 +223,8 @@ seg_contextual <- function(doc, spec, client, trace) {
 #' array of objects to a data frame, which `as.character()` deparses, putting
 #' the literal text `c("A.", "B.")` into the document. [text_leaves()] reads
 #' each shape in the order it was written. An object is read through its text
-#' key when it has one -- `{"statement": ..., "confidence": "high"}` is one
-#' proposition, not two -- and through every string when it has none, so a
+#' key when it has one (`{"statement": ..., "confidence": "high"}` is one
+#' proposition, not two), and through every string when it has none, so a
 #' proposition under a key nobody anticipated is kept. A number beside the text
 #' is a label, not a proposition.
 #' @noRd
@@ -252,8 +252,8 @@ seg_proposition <- function(doc, spec, client, trace) {
                  required = list("propositions"),
                  properties = list(propositions = list(
                    type = "array", items = list(type = "string"))))
-  # A batch that cannot be decomposed -- the call failed, the run hit its
-  # ceiling, or the reply held nothing usable -- is KEPT AS WRITTEN rather than
+  # A batch that cannot be decomposed (the call failed, the run hit its
+  # ceiling, or the reply held nothing usable) is KEPT AS WRITTEN rather than
   # dropped. It used to return character(0), so one bad batch in ten silently
   # removed a tenth of the document from everything downstream; only a run in
   # which EVERY batch failed noticed, by falling back to sentences. A segmenter

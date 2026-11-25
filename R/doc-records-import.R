@@ -1,4 +1,4 @@
-# doc-records-import.R -- the search, as the reference manager exported it.
+# doc-records-import.R: the search, as the reference manager exported it.
 #
 # WHY THIS FILE EXISTS
 # Everything else in this package starts from a folder of documents, which is
@@ -12,7 +12,7 @@
 # A reference-manager export says all of it, and is the file every researcher
 # already has. Reading it also fixes something subtler. `gr_synthesise()` cites
 # by author and year, and until now those came from asking a model to read a
-# title page -- so the one part of a citation that must be exactly right was the
+# title page, so the one part of a citation that must be exactly right was the
 # part with the loosest guarantee. From an export they are data. The model is
 # never shown them and never asserts them; they are joined on afterwards.
 #
@@ -20,8 +20,8 @@
 # Both are good and both are heavier than this needs to be. RIS is one tag per
 # line and BibTeX is braces; the parsing is not the hard part. The hard part is
 # the dialect drift between what Scopus, Web of Science, PubMed, Scholar and
-# EndNote each call the same field, and a dependency does not remove that -- it
-# just moves it somewhere this package cannot see. Everything here is base R.
+# EndNote each call the same field, and a dependency does not remove that. It
+# moves it somewhere this package cannot see. Everything here is base R.
 
 #' RIS tags, mapped to the fields this package uses.
 #'
@@ -262,18 +262,18 @@ records_from_medline <- function(lines, source_file) {
 }
 
 #' `@string`, `@preamble` and `@comment` are not records. They match the same
-#' `@word{` opener, and each one became a row with all seventeen fields NA --
+#' `@word{` opener, and each one became a row with all seventeen fields NA,
 #' which dedupe_records() cannot collapse, because an NA key matches nothing,
 #' and nothing else filters. JabRef, Mendeley and publisher exports all emit
-#' them, so "records identified" -- the first number of a PRISMA flow diagram --
+#' them, so "records identified" (the first number of a PRISMA flow diagram)
 #' came out too high by however many the file happened to carry.
 #' @noRd
 .gr_bib_skip <- c("string", "preamble", "comment")
 
 #' Split a BibTeX file into entries.
 #'
-#' Brace-counting rather than a regex: a title containing braces -- which is how
-#' BibTeX protects capitalisation, so `{DNA}` is common -- breaks any regex that
+#' Brace-counting rather than a regex: a title containing braces (BibTeX's way
+#' to protect capitalisation, so `{DNA}` is common) breaks any regex that
 #' assumes the first `}` ends the field.
 #'
 #' In bytes, not characters. Once one letter anywhere in the file is not ASCII
@@ -309,8 +309,8 @@ bib_entries <- function(txt) {
     j <- if (is.null(v)) 0L else findInterval(o, v) + 1L
     close <- if (j >= 1L && j <= length(v)) brace[v[j]] else NA_integer_
     if (is.na(close)) {
-      # Silently dropping it removed a study from the review -- from the counts,
-      # from screening and from the flow diagram -- with nothing to notice.
+      # Silently dropping it removed a study from the review (from the counts,
+      # from screening and from the flow diagram) with nothing to notice.
       gr_warn(sprintf(paste0("A BibTeX @%s entry beginning on line %d has no closing ",
                              "brace and was skipped; check the file for an unbalanced '{'."),
                       types[idx], findInterval(starts[idx], lines_at) + 1L),
@@ -329,7 +329,7 @@ bib_entries <- function(txt) {
 #' replaced allowed one level of braces inside a value, and real exports nest
 #' deeper: `M{\"{u}}ller` (how Web of Science and BibDesk write an umlaut) and
 #' `{{DNA}}` are two. The value then fell back to "up to the first comma", the
-#' rest of it was rescanned for fields, and the last one seen won -- so an
+#' rest of it was rescanned for fields, and the last one seen won. So an
 #' author list lost everyone after the first accented name, a title stopped at
 #' its comma, and "year = 1999" in an abstract replaced the real year.
 #'
@@ -577,7 +577,7 @@ records_from_bib <- function(txt, source_file) {
       v <- trimws(fields[[nm]])
       if (!identical(nm, "author")) return(clean(v, nm))
       # BibTeX joins authors with " and "; RIS gives one per line. Normalise to
-      # the RIS shape so downstream sees one convention -- split while the
+      # the RIS shape so downstream sees one convention. Split while the
       # braces that hold one name together are still there.
       a <- vapply(bib_split_names(v), clean, character(1), nm = nm, USE.NAMES = FALSE)
       paste(a[!is.na(a) & nzchar(a)], collapse = "; ")
@@ -792,7 +792,7 @@ export_paths <- function(exports) {
 
 #' Read one export, choosing the parser by content rather than by extension.
 #'
-#' Exporters are careless with extensions -- Web of Science writes RIS into a
+#' Exporters are careless with extensions: Web of Science writes RIS into a
 #' `.txt`, and a `.txt` from Scholar is BibTeX. Looking at the first line is
 #' more reliable than trusting the name.
 #'

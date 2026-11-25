@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------
 # ensemble: ensemble | sum+1 | none
 # Runs several DIFFERENT readers and adjudicates. Distinct only if its members
-# are distinct -- which is enforced, because the old "MultiPass" was just
+# are distinct. That is enforced, because the old "MultiPass" was just
 # Retrieval + Chunked re-run verbatim and merged.
 # ---------------------------------------------------------------------------
 #' @noRd
@@ -127,7 +127,7 @@ read_ensemble <- function(chunks, question, client, spec, trace) {
   ev <- rbind_evidence(lapply(results[usable], function(r) r$evidence))
 
   # Observed, not assumed, distinctness. Two members that read the same chunks
-  # and returned the same text did not corroborate each other -- they were the
+  # and returned the same text did not corroborate each other. They were the
   # same run twice. Record which, so `gr_compare()` and the report can say so.
   ans <- vapply(results[usable], function(r) trimws(as_chr1(r$answer)), character(1))
   seen <- vapply(results[usable], function(r) paste(sort(unique(r$chunks_used)), collapse = ","),

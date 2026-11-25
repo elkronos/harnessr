@@ -2,8 +2,8 @@
 
 #' Truncate text to at most `n` tokens
 #'
-#' The result is the start of `text` as written -- line breaks, indentation and
-#' paragraph breaks kept -- followed by `marker`. The cut falls at the end of a
+#' The result is the start of `text` as written (line breaks, indentation and
+#' paragraph breaks kept), followed by `marker`. The cut falls at the end of a
 #' word where the text has whitespace. When the next unit is too long to be a
 #' word (a CJK run, base64, a data URI, minified JSON, a long URL: anything that
 #' alone would cost more than 16 tokens) the cut goes inside it at a character,
@@ -41,7 +41,7 @@ gr_truncate_tokens <- function(text, n, marker = " ...[truncated]") {
   if (!validUTF8(text)) text <- to_utf8(text)
 
   # Drop the marker when it would eat the whole budget. The old code always
-  # subtracted its cost, so every n <= 10 returned "" -- total content loss.
+  # subtracted its cost, so every n <= 10 returned "": total content loss.
   mk <- if (gr_count_tokens(marker) < n / 2) marker else ""
   budget <- max(n - gr_count_tokens(mk), 1L)
   fits <- function(k) gr_count_tokens(substr(text, 1L, k)) <= budget

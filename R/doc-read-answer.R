@@ -1,4 +1,4 @@
-# doc-read-answer.R -- AXIS 3 machinery: the answer object, prompt building,
+# doc-read-answer.R: AXIS 3 machinery. The answer object, prompt building,
 # evidence.
 #
 # WHY THIS FILE EXISTS
@@ -6,25 +6,25 @@
 # through `main.R`:
 #
 #   * "Chunked" and "Semantic" called `gpt_read_chunked(chunks, question,
-#     use_parallel = use_parallel, ...)` -- the same function with the same
+#     use_parallel = use_parallel, ...)`: the same function with the same
 #     arguments on the same already-sorted `chunks` object. Running both issued
 #     14 API calls where 7 would do, and `identical(res$Chunked, res$Semantic)`
 #     was TRUE.
 #   * "MultiPass" re-executed Retrieval and Chunked verbatim, so selecting
 #     Retrieval + Chunked + MultiPass ran each of them twice.
 #   * "Hierarchical" was map-then-single-reduce, i.e. `map_reduce` with a
-#     summarise prompt instead of an answer prompt -- one level, never
+#     summarise prompt instead of an answer prompt. It ran one level, never
 #     recursive, and it blew the context window the moment N x 512 summary
 #     tokens exceeded the model's limit.
 #   * `chunk_method` was decided once for the whole run, so ticking "Semantic"
-#     silently changed the chunking -- and therefore the answer -- of every
+#     silently changed the chunking, and therefore the answer, of every
 #     other mode in the same run.
 #
 # Distinctness is now a property the package can *check*. Every reader declares
 # a `signature`: the shape of its traversal (how chunks are selected, how many
 # calls it makes, whether state flows forward). `gr_compare()` refuses to bill
 # you twice for two recipes that resolve to the same ingestion, the same
-# segmentation AND the same read spec -- the signature alone is not the test,
+# segmentation AND the same read spec. The signature alone is not the test,
 # because two recipes can share a signature and still differ in `top_k`,
 # `min_score` or a token cap, all of which change what the model sees.
 
@@ -87,8 +87,8 @@ new_answer <- function(text, reader, question, chunks_used, trace, evidence = NU
   # Compared against what was SENT, not against `chunks_used`. For the per-chunk
   # readers `chunks_used` is only the chunks that CONTRIBUTED, so a model that
   # faithfully cited a chunk which had answered "not in this excerpt" was
-  # reported as having fabricated the citation -- a false positive in a
-  # hallucination check, which is the one place a false positive is least
+  # reported as having fabricated the citation. That is a false positive in a
+  # hallucination check, the one place a false positive is least
   # affordable.
   cited <- cited_chunks(text)
   unknown <- setdiff(cited, as.integer(chunks_sent %||% chunks_used))
@@ -638,8 +638,8 @@ trace_state <- function(trace, from, label, tokens_in = NULL, tokens_out = NULL)
 #' `ensemble` combines its members' evidence, and members are different readers.
 #' Only readers whose evidence is model-written carry the verification columns,
 #' so a plain `rbind()` of a `skim` table and a `map_reduce` table fails on
-#' "numbers of columns of arguments do not match" -- which is what happened the
-#' moment verification was added, and what the v1 shim tests caught. Union the
+#' "numbers of columns of arguments do not match". That happened the
+#' moment verification was added, and the v1 shim tests caught it. Union the
 #' columns and fill what is absent, so a reader may add a column without
 #' breaking every reader it can be ensembled with.
 #' @noRd
@@ -677,7 +677,7 @@ evidence_table <- function(chunk_ids, texts, pages = NA_integer_, sections = NA_
                    # PER ROW, not per answer. `ensemble` combines evidence from
                    # several readers, so one kind for the whole table said
                    # "mixed" and then string-matched a map_reduce ANSWER against
-                   # its chunk -- reporting a correct run as fabricated evidence.
+                   # its chunk, reporting a correct run as fabricated evidence.
                    kind = kind,
                    stringsAsFactors = FALSE)
   # Only readers whose evidence is MODEL-WRITTEN carry their sources. For the

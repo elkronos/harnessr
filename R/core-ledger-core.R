@@ -1,11 +1,11 @@
-# core-ledger-core.R -- one run, one trace.
+# core-ledger-core.R: one run, one trace.
 #
 # WHY THIS FILE EXISTS
 # The Shiny app called `answer_question()` twice per submission: once for the
 # answer, once with `return_json = TRUE` for the "chain of thought" tab. That
 # doubled every user's API bill, and at any temperature above 0 the displayed
-# reasoning was not the reasoning behind the displayed answer -- two independent
-# generations shown as if one explained the other.
+# reasoning was not the reasoning behind the displayed answer. The tab showed
+# two independent generations as if one explained the other.
 #
 # Tracing is now a side-channel on a single run. `answer_document()` always
 # produces both the answer and its trace; `return_json` merely chooses which to
@@ -389,9 +389,9 @@ trace_record <- function(trace, label, messages, result, params = list(), second
     # jsonlite escapes bytes it cannot interpret in the CURRENT LOCALE: an
     # unmarked string holding UTF-8 bytes came out of `as_json()` as the literal
     # text "caf<c3><a9>" on any machine whose locale is not UTF-8. The bytes
-    # were always right; nothing had told R what they were. Labelling them here
-    # -- converting nothing -- is what makes a saved trace portable, and is what
-    # a replay from a file depends on.
+    # were always right; nothing had told R what they were. Labelling them here,
+    # without converting anything, is what makes a saved trace portable, and is
+    # what a replay from a file depends on.
     prompt = lapply(messages, function(m) list(role = m$role,
                                                content = mark_utf8(as_chr1(m$content)))),
     response = mark_utf8(as_chr1(result$text)),
@@ -410,7 +410,7 @@ trace_record <- function(trace, label, messages, result, params = list(), second
     # Recorded because a replay has to be able to reach the same decisions the
     # live run reached, and this is one a caller acts on:
     # gr_synthesise(coherence = TRUE) discards a revision whose finish_reason is
-    # "length" -- a review with its ending cut off. Unrecorded, the replay saw
+    # "length": a review with its ending cut off. Unrecorded, the replay saw
     # NA, kept the truncated revision, published a different document, and
     # reported 0 misses: it certified itself as an exact reproduction of a run
     # it had not reproduced.
@@ -617,8 +617,8 @@ trace_stamp <- function(trace, from, source = NULL, recipe = NULL) {
 #'
 #' `trace` does two jobs at once: it is the ledger of what a run did, and it is
 #' the counter the governor measures `max_calls` against. Those want
-#' opposite things when several stages of one review share it -- the ledger
-#' should accumulate, the counter must not, or screening's calls are charged
+#' opposite things when several stages of one review share it. The ledger
+#' should accumulate; the counter must not, or screening's calls are charged
 #' against the write-up's per-stage ceiling and every section comes back blank.
 #'
 #' So a `trace` argument on a STAGE means "the parent to fold this stage's

@@ -1,4 +1,4 @@
-# core-util-misc.R -- tiny helpers shared across the package.
+# core-util-misc.R: tiny helpers shared across the package.
 #
 # Design rule for this file: nothing here may make a network call, mutate global
 # state outside `hr_state`, or return NULL where a caller is going to index into
@@ -125,7 +125,7 @@ isTRUE_vec <- function(x) !is.na(x) & as.logical(x)
 #' Warn when a `...` name looks like a misspelt formal.
 #'
 #' `gr_read_spec()` and `gr_segment_spec()` keep a `...` because a custom reader
-#' or segmenter needs somewhere to put its own settings -- `fields`, `include`,
+#' or segmenter needs somewhere to put its own settings: `fields`, `include`,
 #' `screen_tokens` and the rest all arrive that way. The cost is that a TYPO
 #' lands there too: `gr_read_spec("retrieve", topk = 8)` is accepted in full,
 #' stores a `topk` nobody reads, and leaves `top_k` at its default of 6. The run
@@ -203,7 +203,7 @@ clamp <- function(x, lo = -Inf, hi = Inf) {
   # force() FIRST, outside suppressWarnings. `x` arrives as a promise, and
   # forcing it inside suppressWarnings() swallows every warning raised while
   # EVALUATING the argument, not merely the coercion warning this is meant to
-  # quiet -- so `clamp_warn(na_default(mmr, 1, "mmr"), 0, 1, "mmr")` silently
+  # quiet. So `clamp_warn(na_default(mmr, 1, "mmr"), 0, 1, "mmr")` silently
   # ate na_default()'s "using the default" warning, and any other
   # clamp(f(...)) would have eaten f()'s warnings too. Same shape as
   # `expect_warning(suppressWarnings(...))` never firing: the inner handler is
@@ -211,7 +211,7 @@ clamp <- function(x, lo = -Inf, hi = Inf) {
   force(x)
   x <- suppressWarnings(as.numeric(x))
   # `||` short-circuits on a scalar, so a length-2 x reached `is.na(x)` and R
-  # >= 4.3 stopped with "'length = 2' in coercion to 'logical(1)'" -- a message
+  # >= 4.3 stopped with "'length = 2' in coercion to 'logical(1)'": a message
   # naming neither the setting nor the function, from inside gr_budget(), for
   # every read in the session. A setting that is not one number is a setting to
   # fix, so say so.
@@ -280,7 +280,7 @@ gr_msg <- function(...) {
 #' Label bytes that ARE valid UTF-8 as UTF-8, without converting anything.
 #'
 #' `enc2utf8()` is a no-op on an unlabelled string in a non-UTF-8 locale, and
-#' `validUTF8()` then trusts the absent label -- the same trap that made
+#' `validUTF8()` then trusts the absent label. That is the same trap that made
 #' `to_utf8()`'s transcoding path dead code. Anything that decodes code points
 #' (`utf8ToInt`, a `(*UCP)` regex) needs the label to be right, or it silently
 #' falls back to counting bytes and gives a different answer on a different
@@ -307,7 +307,7 @@ to_utf8 <- function(x) {
 
   # LABEL FIRST. `enc2utf8()` treats an UNMARKED string as *native*, so in a
   # non-UTF-8 locale it re-encodes bytes that were already perfectly valid
-  # UTF-8 -- corrupting them, and leaving the result neither valid UTF-8 nor
+  # UTF-8, corrupting them and leaving the result neither valid UTF-8 nor
   # labelled. Everything downstream then diverged by locale: the ligature and
   # smart-quote cleaners stopped matching, `utf8ToInt()` fell back to counting
   # bytes, and the SAME document produced a different token count, different
@@ -352,8 +352,8 @@ to_utf8 <- function(x) {
 
 #' Normalise CRLF and lone CR to LF.
 #'
-#' Every structural regex in this package -- paragraph splitting, heading
-#' detection, page-number and running-head removal -- is anchored on `\n`. A file
+#' Every structural regex in this package (paragraph splitting, heading
+#' detection, page-number and running-head removal) is anchored on `\n`. A file
 #' saved on Windows arrives as `\r\n`, so `\n[ \t]*\n` never matched and the
 #' whole document became a single block: one chunk, one enormous prompt, and
 #' every structure-aware segmenter silently degraded to `stuff`.
@@ -361,7 +361,7 @@ to_utf8 <- function(x) {
 normalise_newlines <- function(x) {
   if (!length(x)) return(x)
   # useBytes: CR and LF are ASCII, so this substitution is byte-safe, and it is
-  # reached from paths that have not been transcoded yet -- a regex engine given
+  # reached from paths that have not been transcoded yet. A regex engine given
   # not-yet-valid UTF-8 aborts the whole ingest with "input string 1 is invalid
   # UTF-8". Bail out early when there is nothing to do, which is the common case.
   if (!any(grepl("\r", x, fixed = TRUE, useBytes = TRUE))) return(x)

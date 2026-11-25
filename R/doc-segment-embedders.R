@@ -1,11 +1,11 @@
-# doc-segment-embedders.R -- the sixth registry.
+# doc-segment-embedders.R: the sixth registry.
 #
 # WHY THIS FILE EXISTS
 # Extractors, cleaners, segmenters, readers and models are all registries: named
 # entries you can list, inspect and add to without editing the package.
 # Embedding was the one axis that was not. `gr_embed()` had a chain of
-# `inherits()` branches -- mock here, replay there, backend somewhere else, HTTP
-# at the end -- which meant adding a local model was a change to this package
+# `inherits()` branches: mock here, replay there, backend somewhere else, HTTP
+# at the end. Adding a local model therefore meant a change to this package
 # rather than a call in your own script, and there was no way to ask what was
 # available.
 #
@@ -13,7 +13,7 @@
 # DETERMINISTIC. That single flag is what closes the replay gap. A trace records
 # model calls, not embedding vectors, so replaying a run that embedded through
 # an API cannot reproduce its ranking. Replaying a run that embedded with a
-# deterministic embedder reproduces it exactly -- the vectors are a pure
+# deterministic embedder reproduces it exactly, because the vectors are a pure
 # function of the text, so they can simply be computed again. Before this, every
 # replay of a `retrieve` run warned and degraded, including the ones that did
 # not need to.

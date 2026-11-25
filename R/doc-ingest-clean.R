@@ -1,4 +1,4 @@
-# doc-ingest-clean.R -- AXIS 1b: an ordered, inspectable cleaning pipeline.
+# doc-ingest-clean.R: AXIS 1b, an ordered, inspectable cleaning pipeline.
 #
 # WHY THIS FILE EXISTS
 # Cleaning in the old code was four hard-coded lines in `parse_text()` plus a
@@ -22,7 +22,7 @@
 #      `grepl()` guard was anchored, "See References section for details about
 #      method X." lost the rest of that sentence instead.
 #   4. REGEX ENGINE. `gsub("[^[:alnum:]\\s]", "", x)` without `perl = TRUE` uses
-#      TRE, where `\s` inside a bracket expression is not a shorthand -- it is
+#      TRE, where `\s` inside a bracket expression is not a shorthand. It is
 #      the two literal characters `\` and `s`. So the pattern stripped spaces
 #      too, and `www\.[^\s]+` stopped matching at the first letter "s":
 #      "www.nasa.gov" became the fragment "sa.gov".
@@ -160,7 +160,7 @@ gr_cleaners <- function() {
 gr_clean <- function(text, steps = NULL, opts = list()) {
   text <- vapply(text %||% character(0), as_chr1, character(1), USE.NAMES = FALSE)
   if (!length(text)) return(text)
-  # Several cleaners match UTF-8 literals -- the ligatures, the smart quotes, the
+  # Several cleaners match UTF-8 literals: the ligatures, the smart quotes, the
   # en/em dashes in `page_numbers`, the zero-width characters in `control_chars`.
   # A pattern marked UTF-8 does not match unmarked bytes in a non-UTF-8 locale,
   # so those steps silently did nothing on some machines: the SAME document came
@@ -179,7 +179,7 @@ gr_clean <- function(text, steps = NULL, opts = list()) {
                      paste(unknown, collapse = ", "), paste(sort(names(reg)), collapse = ", ")))
   }
   # Enforce stage order: structure-aware steps before destructive ones. This is
-  # the fix for the digits-before-page-numbers bug -- the user cannot reorder
+  # the fix for the digits-before-page-numbers bug: the user cannot reorder
   # these into a broken sequence even by asking for it.
   stages <- vapply(steps, function(s) reg[[s]]$stage, character(1), USE.NAMES = FALSE)
   steps <- steps[order(stages != "early", seq_along(steps))]
@@ -608,8 +608,8 @@ references_after <- function(o) {
 #' Every short line repeated three times anywhere used to go, which took the
 #' repeated values of a table ("12", "Yes", "NR") with it and left the values
 #' that were not repeated beside the wrong labels. A running head is known by
-#' where it stands, so the lines are put back on their pages -- from `.pages`
-#' (the blocks' pages, which gr_ingest() gives) or form feeds -- and the PDF
+#' where it stands, so the lines are put back on their pages, from `.pages`
+#' (the blocks' pages, which gr_ingest() gives) or form feeds. Then the PDF
 #' reader's own test, drop_running_lines(), picks the lines repeated at the
 #' top or bottom of many pages. Where no pages are known, a line is taken only
 #' when it has a letter in it and stands at the edge of its block (its first

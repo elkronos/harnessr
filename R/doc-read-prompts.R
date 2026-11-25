@@ -134,7 +134,7 @@
 #'
 #' A number, and an arbitrary one: what it should be is a question about a
 #' particular corpus and a particular model, which is why `restate` is a read
-#' setting -- gr_compare() can take two recipes differing only in it and measure
+#' setting: gr_compare() can take two recipes differing only in it and measure
 #' the difference, rather than the package asserting one. The default of the
 #' read spec's `restate_tokens`, which sets it per run.
 #' @noRd

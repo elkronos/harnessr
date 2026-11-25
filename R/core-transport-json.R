@@ -181,8 +181,8 @@ json_in_enum <- function(x, enum) {
 #' broken one: `extract` asks each chunk what it can fill and an excerpt that
 #' can fill nothing is a finding. Without it the empty object was routed to the
 #' failure path, so a document that simply did not discuss the schema came back
-#' with every chunk counted as a failed call and the answer marked partial --
-#' reporting "we could not read this" for "it does not say".
+#' with every chunk counted as a failed call and the answer marked partial. It
+#' reported "we could not read this" for "it does not say".
 #'
 #' But it let through every other shape as well. A reply that wrapped its
 #' fields (`{"extraction": {...}}`), renamed them, or was an array filled

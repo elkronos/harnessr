@@ -581,7 +581,7 @@ numeral_language <- function(words, one, hundred, scale, alone, join, strong, we
   scale <- pairs(scale)
   all <- unique(c(names(words), sp(one), sp(hundred), names(scale), sp(join)))
   # Longest first, so a split tries "dieci" before "die" and "cento" before
-  # "cent" -- and, failing, the shorter.
+  # "cent", and, failing, the shorter.
   morphemes <- all[order(-nchar(all), all)]
   alt <- paste(morphemes, collapse = "|")
   list(words = words, one = sp(one), hundred = sp(hundred), scale = scale, alone = sp(alone),
@@ -879,14 +879,14 @@ value_among <- function(x, got) {
 #' * It must sit on word boundaries in the chunk. "120 participants" occurs
 #'   inside "1120 participants", and "2" inside almost anything. The boundary
 #'   test is span_match()'s own (found_at()), run on the chunk as written: a
-#'   separate one here rejected what span_match() rightly accepts -- a sentence
-#'   stopping before a superscript reference PDF text keeps inline
-#'   ("mortality12"), a clause of Thai or Khmer -- and require_quote deleted
+#'   separate one here rejected what span_match() rightly accepts (a sentence
+#'   stopping before a superscript reference that PDF text keeps inline, as in
+#'   "mortality12", or a clause of Thai or Khmer), and require_quote deleted
 #'   those values although their quotes verified.
 #' * For an integer or a number, the value must be one of the numbers the span
 #'   states, in whatever form it states them (quote_numbers()). A real
 #'   sentence paired with an invented number was the worst case
-#'   numeric_token() describes -- a figure certified that the paper never gives.
+#'   numeric_token() describes: a figure certified that the paper never gives.
 #'   The one exception is a quotation in a script whose number words nothing
 #'   here reads, that states no number that can be read (see
 #'   pieces_back_value()); ?gr_extract says so.
@@ -918,7 +918,7 @@ quote_backs_value <- function(value, quote, source, field) {
   if (!length(q$raw) || !nzchar(src$text)) return(FALSE)
   # Bold is emphasis, in the quotation or the source: try the quotation as
   # written and, failing that, with bold taken out of both sides, as
-  # span_match() does -- never out of one side only.
+  # span_match() does. Never out of one side only.
   if (pieces_back_value(value, q$raw, src, field)) return(TRUE)
   if (is.null(q$plain) && !grepl("**", txt, fixed = TRUE)) return(FALSE)
   pieces_back_value(value, q$plain %||% q$raw, match_source(strip_bold(txt)), field)

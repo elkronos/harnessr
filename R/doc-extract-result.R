@@ -1,4 +1,4 @@
-# doc-extract-result.R -- a schema, a folder, and one table out.
+# doc-extract-result.R: a schema, a folder, and one table out.
 #
 # WHY THIS FILE EXISTS
 # `gr_read_many()` answers one question of many documents and gives you a column
@@ -8,7 +8,7 @@
 #
 # `gr_extract()` is the same loop with a schema in the middle: one row per
 # document, one column per field, typed. It deliberately owns almost no
-# machinery of its own -- error isolation, the resumable store, per-document
+# machinery of its own: error isolation, the resumable store, per-document
 # budgets, the corpus cost ceiling and the trace all come from `gr_read_many()`,
 # because a second copy of that loop would drift from the first and the drift
 # would only show up four hours into someone's run.
@@ -294,8 +294,8 @@ gr_extract <- function(sources, fields, goal = NULL, recipe = "research",
   # produce a table with empty rows for everything it had already done.
   # A gr_screening carries the record set it was run over, so extracting from one
   # joins the bibliographic fields the export supplied exactly as extracting from
-  # the record set directly does. Without this, routing through screening -- the
-  # normal thing to do -- silently lost the authors and years.
+  # the record set directly does. Without this, routing through screening (the
+  # normal thing to do) silently lost the authors and years.
   bib_src <- if (inherits(sources, "gr_records")) sources else
     if (inherits(sources, "gr_screening")) sources$records else NULL
   bib_from <- if (inherits(bib_src, "gr_records")) {
@@ -397,7 +397,7 @@ print.gr_extraction <- function(x, ...) {
 #'
 #' `notes$record` is the live path. The JSON in `$answer` is the fallback, for an
 #' answer restored from a `store` written by a build whose notes were shaped
-#' differently -- a store outlives the session that wrote it, and a resumed run
+#' differently. A store outlives the session that wrote it, and a resumed run
 #' that silently produced empty rows would be worse than one that failed.
 #' Everything is put back through `coerce_field()` either way, so both paths
 #' produce the same types.
@@ -407,8 +407,8 @@ answer_record <- function(answer, fields) {
   raw <- answer$notes$record
   if (!is.list(raw)) {
     # parse_json(), never fromJSON(): given a short string that is not JSON,
-    # fromJSON() treats it as a location -- it downloads an http(s) address and
-    # opens an existing file path -- and returns whatever is there as if it were
+    # fromJSON() treats it as a location (it downloads an http(s) address and
+    # opens an existing file path) and returns whatever is there as if it were
     # this answer. The text here came back from a store and, at its origin,
     # from a model; it is only ever parsed.
     raw <- tryCatch(jsonlite::parse_json(as_chr1(answer$answer, ""), simplifyVector = TRUE),
@@ -454,7 +454,7 @@ extraction_table <- function(docs, answers, fields, summary, agreement_columns =
     tab[[nm]] <- extraction_column(fields[[nm]], lapply(records, function(r) r[[nm]]))
   }
   # By name, never by position. `answer_record()` guarantees one entry per field,
-  # so the positional form would give the same answer today -- which is exactly
+  # so the positional form would give the same answer today. That is exactly
   # why this is written the safe way rather than the clever one: the day that
   # invariant slips, a length-1 logical index recycles against a length-2 name
   # vector and the WRONG fields are reported as filled, with no error anywhere.
@@ -462,14 +462,14 @@ extraction_table <- function(docs, answers, fields, summary, agreement_columns =
                                                 function(nm) !is.null(r[[nm]]),
                                                 logical(1))]
   tab$n_filled <- vapply(records, function(r) length(filled_in(r)), integer(1))
-  # Values in this row that nothing in the document verifiably supports -- or,
+  # Values in this row that nothing in the document verifiably supports, or,
   # under `require_quote = TRUE`, values that were discarded for that reason.
   # Same number either way; the policy decides what happened to them.
   #
   # Recomputed from the record and the evidence rather than read out of `notes`,
   # for the same reason answer_record() re-coerces: a `store` outlives the build
   # that wrote it, and a count taken from a note that a restored answer happens
-  # not to carry would silently read zero -- "every value is supported" is the
+  # not to carry would silently read zero. "Every value is supported" is the
   # one wrong answer this column must never give by default.
   tab$n_unverified <- vapply(seq_along(docs), function(i) {
     a <- answers[[docs[[i]]]]
@@ -548,9 +548,9 @@ extraction_table <- function(docs, answers, fields, summary, agreement_columns =
     status[aux] <- "ok"
   }
   # A document that was never read has no record, so its n_filled of zero would
-  # read as "reports none of these fields" -- exactly the confusion the status
+  # read as "reports none of these fields", exactly the confusion the status
   # column exists to prevent. Make it NA and let the status say why.
-  # A duplicate WAS read -- once, as another row. Its values are the first
+  # A duplicate WAS read, once, as another row. Its values are the first
   # copy's values, so treating it as unread would blank a row that is fully
   # known and mark it as a job to redo.
   unread <- !status %in% c("ok", "restored", "duplicate", "incomplete")
@@ -626,8 +626,8 @@ extraction_evidence <- function(docs, answers, ids = NULL) {
                section  = as.character(ev$section),
                quote    = as.character(ev$text),
                # `source_text` is deliberately not carried: it is the full chunk,
-               # once per cell, and the question it answers -- does this quote
-               # really appear there -- is already answered by `verified`.
+               # once per cell, and the question it answers (does this quote
+               # really appear there?) is already answered by `verified`.
                verified = if (is.null(ev$verified)) NA else as.logical(ev$verified),
                match    = if (is.null(ev$match)) NA_real_ else as.numeric(ev$match),
                stringsAsFactors = FALSE)
@@ -645,7 +645,7 @@ extraction_evidence <- function(docs, answers, ids = NULL) {
 #' Who wrote a paper, when, and where it appeared are facts the search export
 #' already states. Asking a model to read them off a title page instead makes
 #' the one part of a citation that must be exactly right rest on the loosest
-#' guarantee in the pipeline -- and a misread author is invisible, because the
+#' guarantee in the pipeline, and a misread author is invisible, because the
 #' review still looks like a review.
 #'
 #' Joined on the file path, which is what `gr_records()` matched and what

@@ -1,7 +1,7 @@
 # doc-claims-result.R: the claims object and how it prints.
 
-#' `lost` is the study numbers whose batch contributed nothing -- cut off at
-#' the reply limit, failed, or not sent -- and `partial` says whether there
+#' `lost` is the study numbers whose batch contributed nothing (cut off at
+#' the reply limit, failed, or not sent), and `partial` says whether there
 #' are any. `hidden` is the columns withheld from the model as bibliographic,
 #' which gr_gaps() withholds too; `unmerged` says the reconcile pass could not
 #' run over claims that needed it.

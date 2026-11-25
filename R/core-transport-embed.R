@@ -1,4 +1,4 @@
-# core-transport-embed.R -- real embeddings.
+# core-transport-embed.R: real embeddings.
 #
 # WHY THIS FILE EXISTS
 # The old `compute_embedding()` was:
@@ -9,7 +9,7 @@
 # only*, so "The mitochondrion is the powerhouse of the cell." and "Quarterly
 # revenue fell by twelve percent in Q3!!" (both 48 characters) had cosine
 # similarity exactly 1.0. `sort_chunks_by_semantic()` therefore ranked chunks by
-# how close their character count was to the question's -- a 21-character run of
+# how close their character count was to the question's: a 21-character run of
 # "aaaa..." outranked the paragraph that actually answered the question. Second,
 # because "Semantic" mode fed those chunks straight into the same chunked reader
 # as "Chunked" mode, the mode had no distinct behaviour at all. Third,
@@ -110,7 +110,7 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
     # Marked as a FALLBACK, not merely as lexical. Choosing
     # gr_options(embedder = "lexical") is a decision; being dropped onto it
     # because the real embedder failed is a degradation, and the readers OR that
-    # into `partial` -- which the documentation tells people to check first.
+    # into `partial`, which the documentation tells people to check first.
     # The registered "lexical" embedder, read through the embedder kind's
     # accessor. If you replaced it and your function fails, the built-in one
     # that .onLoad() kept in hr_state$embed_fallback embeds the texts, with a
@@ -133,8 +133,8 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
 
   # A trace records each embeddings request, but not the vectors it returned.
   # So a replay can only reproduce a run's ranking if the embedder is a pure
-  # function of the text -- in which case the vectors are simply computed again
-  # and the replay is exact. Anything else has to degrade, and say so.
+  # function of the text. If it is, the vectors are computed again and the
+  # replay is exact. Anything else has to degrade, and say so.
   if (inherits(client, "gr_replay_client")) {
     recorded <- as_chr1(client$embed_source, NA_character_)
     # Two conditions, not one. The embedder must be deterministic AND it must be
@@ -550,9 +550,9 @@ embed_cache_key <- function(embedder, model, text, endpoint = "") {
   # The endpoint, because `embedder` is the literal "api" for every
   # URL-addressed client: two clients with different `base_url` and the same
   # model id shared one entry, and the second one's vectors were the first
-  # one's. That is the failure the embedder name was added to prevent -- "two
-  # different vector spaces silently mixed in one matrix" -- reintroduced one
-  # field over, where a cosine similarity is meaningless and looks fine.
+  # one's. The embedder name was added to prevent that failure ("two different
+  # vector spaces silently mixed in one matrix"). The model id reintroduced it
+  # one field over, where a cosine similarity is meaningless and looks fine.
   gr_hash(list("readgpt-embed-v2", as_chr1(embedder, "?"), as_chr1(model, "?"),
                as_chr1(endpoint, ""), key_text(as_chr1(text))))
 }

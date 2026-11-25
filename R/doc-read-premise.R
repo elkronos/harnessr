@@ -1,4 +1,4 @@
-# doc-read-premise.R -- the third outcome: a question the document contradicts.
+# doc-read-premise.R: the third outcome, a question the document contradicts.
 #
 # WHY THIS FILE EXISTS
 # The question-answering readers had two exits: an answer, or exactly

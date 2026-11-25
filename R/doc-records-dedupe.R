@@ -7,8 +7,8 @@
 #' Cyrillic and CJK titles came out as their digits and Latin fragments, so
 #' "PPAR-alpha" and "PPAR-gamma" (the Greek letters, not the words) were one
 #' title, and two different Chinese titles about type 2 diabetes were both "2".
-#' What it keeps also depends on the platform's iconv and the locale -- glibc
-#' in the C locale writes "?" for an e-acute -- so a table is the only way two
+#' What it keeps also depends on the platform's iconv and the locale (glibc
+#' in the C locale writes "?" for an e-acute), so a table is the only way two
 #' machines agree on which records are one work.
 #' @noRd
 .gr_latin_fold <- local({
@@ -137,7 +137,7 @@
 #' Fold Latin diacritics to plain letters, leaving every other letter alone.
 #'
 #' Case is kept (route 4 of match_files() needs it). Combining marks are
-#' dropped, so a decomposed "e" + U+0301 -- how macOS spells a filename --
+#' dropped, so a decomposed "e" + U+0301 (how macOS spells a filename)
 #' folds the same way as the precomposed U+00E9.
 #' @noRd
 fold_latin <- function(x) {
@@ -158,7 +158,7 @@ fold_latin <- function(x) {
 #' A title reduced to what two exports of one paper have in common.
 #'
 #' Case, punctuation, accents and the trailing full stop all differ between
-#' databases for the same article. What survives is the letters and digits --
+#' databases for the same article. What survives is the letters and digits,
 #' all of them, in any script: a letter with no ASCII spelling is still part of
 #' the title, and deleting it made different studies one key.
 #' @noRd
@@ -196,7 +196,7 @@ title_key <- function(x) {
 #' an organisation.
 #'
 #' Only the first author, read on its own. Reading the whole list and giving up
-#' when any entry was doubtful -- which is right for a rendered citation --
+#' when any entry was doubtful (right for a rendered citation)
 #' lost the first author whenever a later one was a group ("Horby P; Lim WS;
 #' RECOVERY Collaborative Group") or an acronym, and with it the author check
 #' on duplicates and the author-year route to a file.
@@ -298,7 +298,7 @@ record_first_author <- function(authors) {
 #' A name reduced to the ways two exports can spell it.
 #'
 #' The folded key, and a looser one that also reads "ue" as "u", "oe" as "o",
-#' "ae" as "a" and "aa" as "a" -- the German and Scandinavian transliterations,
+#' "ae" as "a" and "aa" as "a": the German and Scandinavian transliterations,
 #' so "M\u00fcller", "Mueller" and "Muller" are one name, and "S\u00f8rensen" and
 #' "Soerensen".
 #' @noRd
@@ -338,8 +338,8 @@ record_venue_words <- function(v) {
 #' `loose` is the test for records that have no authors to compare: one name
 #' contained in the other, as before, or one an abbreviation of the other. The
 #' strict test, for a merge the title key alone never made (see
-#' dedupe_records()), drops containment -- "BMJ" is in "BMJ Open", and "Sleep"
-#' in "Sleep Medicine", and neither is the same journal -- and keeps the same
+#' dedupe_records()), drops containment. "BMJ" is in "BMJ Open", and "Sleep"
+#' in "Sleep Medicine", and neither is the same journal. It keeps the same
 #' spelling, a word-for-word abbreviation ("J Educ Psychol" of "Journal of
 #' Educational Psychology"), or an acronym ("BMJ", "JAMA").
 #'
@@ -407,7 +407,7 @@ dedupe_records <- function(recs, how) {
   key <- rep(NA_character_, n)
   if (by_title) {
     # A title key is built for EVERY row, DOI or not. Blanking it on rows with a
-    # DOI -- meant to keep two different DOIs apart -- also meant a DOI-less
+    # DOI (meant to keep two different DOIs apart) also meant a DOI-less
     # record (Scholar, a conference index, grey literature) could never match
     # the same paper exported from Scopus with its DOI, which is the commonest
     # duplicate there is. What keeps two DOIs apart is the check below.
@@ -417,7 +417,7 @@ dedupe_records <- function(recs, how) {
     tk[!is.na(tk) & nchar(tk) < 12L] <- NA_character_
     key <- ifelse(is.na(tk) | is.na(recs$year), NA_character_, paste0(tk, "|", recs$year))
     # A title and year that rows with two different DOIs share is two papers
-    # with one title -- which happens, and merging them would lose a study. A
+    # with one title. That happens, and merging them would lose a study. A
     # DOI-less row with that title could be either, so it is merged with
     # neither rather than with whichever came first. Two DOI-less rows of it
     # can still be one another's copy, as they always could: blanking the key
@@ -432,8 +432,8 @@ dedupe_records <- function(recs, how) {
     }
     # A title and year is not enough on its own either: two letters titled
     # "Response to the commentary on ..." in one year are not one letter. The
-    # first author's surname has to agree as a whole name -- "Smith, J." and
-    # "Smith JA" are one person, "Li" and "Lin" are not -- or, when a record has
+    # first author's surname has to agree as a whole name ("Smith, J." and
+    # "Smith JA" are one person, "Li" and "Lin" are not) or, when a record has
     # no authors, the venue.
     fa <- record_first_author(recs$authors)
     forms <- record_name_forms(fa$surname)
@@ -569,10 +569,10 @@ dedupe_records <- function(recs, how) {
 #' least in it: "scholar.bib" sorts before "scopus.ris", and Scholar gives no
 #' DOI. Its duplicate had the DOI and the journal, the file was found through
 #' that DOI, and then the extraction table and every citation built from it
-#' said DOI NA and venue NA -- the document identified by a DOI the record set
-#' then denied it had. Only empty fields are filled, in record order; where the
-#' search came from (database, accession, source file) and the file path stay
-#' each row's own.
+#' said DOI NA and venue NA. The document was identified by a DOI the record
+#' set then denied it had. Only empty fields are filled, in record order;
+#' where the search came from (database, accession, source file) and the file
+#' path stay each row's own.
 #' @noRd
 merge_duplicate_fields <- function(recs) {
   dup <- recs$duplicate_of

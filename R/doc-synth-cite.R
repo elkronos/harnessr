@@ -1,11 +1,11 @@
-# doc-synth-cite.R -- turning study numbers into citations, and a reference
+# doc-synth-cite.R: turning study numbers into citations, and a reference
 # list.
 #
 # WHY THE MODEL IS NOT ASKED TO WRITE "Smith and Okafor (2019)"
 # Because then nothing could check it. `[study 3]` is checkable exactly: parse
 # the markers, compare against the rows that exist, and a citation to a row that
 # was never supplied is caught every time. An author-year string is not
-# checkable that way -- to verify "Smith and Okafor (2019)" you would have to
+# checkable that way. To verify "Smith and Okafor (2019)" you would have to
 # match a name the model wrote against a name extracted from a document, and
 # near-misses (Smith vs Smyth, 2019 vs 2018) are exactly the errors that matter
 # and exactly the ones fuzzy matching forgives.
@@ -20,17 +20,17 @@
 # "Smith, J., Okafor, A." and "John Smith and Aisha Okafor" and "Smith J,
 # Okafor A" all name the same two people, and any rule that handles all three
 # will mangle a fourth. The reliable way to get a citation key is to ask for one
-# during extraction -- a `citation` field whose description says what shape it
-# should take -- and that is the first thing looked for. Parsing is what happens
+# during extraction (a `citation` field whose description says what shape it
+# should take), and that is the first thing looked for. Parsing is what happens
 # when nobody asked, and when it cannot be done confidently the run falls back
 # to markers rather than printing a name that might be wrong.
 
 #' The conventional names for the bibliographic roles, in preference order.
 #'
 #' Only names that mean nothing else. `date`, `published`, `publication`,
-#' `source` and `url` were here too, and each is as often a finding -- when the
+#' `source` and `url` were here too, and each is as often a finding (when the
 #' data were collected, publication status, the registry or survey the data came
-#' from, a trial registration -- as a field of a reference. Taken for one, the
+#' from, a trial registration) as a field of a reference. Taken for one, the
 #' column was withheld from every writing and claims prompt and printed as a
 #' reference list: "1. (2010-2014). national cancer registry." Such a column
 #' is used for a reference only when `bib` names it.
@@ -48,7 +48,7 @@
 #'
 #' `bib` names them outright. Otherwise the conventional names are looked for,
 #' which is what makes `gr_protocols("bibliography")` work without configuration.
-#' Nothing is guessed from content -- a column called `n` holding "2019" is not
+#' Nothing is guessed from content: a column called `n` holding "2019" is not
 #' a year. A role `bib` gives as `NA` or `""` has no column, so a column with
 #' its conventional name is left as a finding (`bib = list(venue = NA)`).
 #' @noRd
@@ -160,8 +160,8 @@ bib_surnames_read <- function(s, byline = FALSE, solo = character(0)) {
   if (!grepl("\\p{L}", s, perl = TRUE)) return(character(0))
   # One organisation is one author, and the "and" in "Centers for Disease
   # Control and Prevention" is not a separator. Mixed into a list of people it
-  # cannot be told apart from them, so that is left unread -- except as the
-  # last author after two or more people ("Smith, J., Okafor, A., Lee, K., &
+  # cannot be told apart from them, so that is left unread. The exception is
+  # the last author after two or more people ("Smith, J., Okafor, A., Lee, K., &
   # the ABC Study Group"), where the key needs only the first surname and
   # "et al.", whatever the group is called.
   last <- "^(.*)(?:;|,?[[:space:]]*(?:&|\\band\\b)|,)[[:space:]]*([^,;&]+)$"
@@ -231,8 +231,8 @@ bib_surnames_read <- function(s, byline = FALSE, solo = character(0)) {
                (n > length(chunks) && any(!grepl("[[:space:]]", toks) & !toks %in% solo))) {
       # Initials that do not pair with a surname mean the separators and the
       # authors disagree. Bare single words between commas are either surnames
-      # or surname-and-given-name pairs, and nothing here says which -- in a
-      # byline too, unless the word had a degree of its own.
+      # or surname-and-given-name pairs, and nothing here says which. That
+      # holds in a byline too, unless the word had a degree of its own.
       NA_character_
     } else {
       vapply(toks, bib_one_name, character(1), USE.NAMES = FALSE)
@@ -241,7 +241,7 @@ bib_surnames_read <- function(s, byline = FALSE, solo = character(0)) {
   if (!length(sur) || anyNA(sur)) return(NULL)
   sur <- trimws(sur)
   # A surname that is itself initials, or still carries one, was read from the
-  # wrong end of a name -- the "JA" of "Smith JA", the "Lee K" of a list split
+  # wrong end of a name: the "JA" of "Smith JA", the "Lee K" of a list split
   # in the wrong places. One with no letter in it is what a stripped degree
   # left behind, "()" from "Smith, John (PhD)".
   if (any(vapply(sur, function(w) bib_is_initials(w) || bib_has_initial(w) ||
@@ -335,8 +335,8 @@ bib_acronyms <- function(s) {
 #' `anchor` holds the ones nothing else could be: a lowercase letter in the
 #' middle, or more capitals than a list of initials has. One of them anywhere
 #' says the field is a byline, with every name written given names first.
-#' `initials` holds the ones that are also plausible initials -- "Smith MD" is
-#' Vancouver for M. D. Smith -- and they are removed only from a field an anchor
+#' `initials` holds the ones that are also plausible initials ("Smith MD" is
+#' Vancouver for M. D. Smith), and they are removed only from a field an anchor
 #' has already shown to be a byline. Matched with or without their full stops
 #' ("Ph.D."), and case-sensitively, so the surname "Ma" is not the degree "MA".
 #' `surnames` are the initials-like degrees that are also surnames often
@@ -414,7 +414,7 @@ bib_has_initial <- function(x) {
   any(vapply(strsplit(trimws(x), "[[:space:]]+")[[1]], bib_is_initials, logical(1)))
 }
 
-#' Given names in "Surname, Given" -- initials, or one capitalised name that
+#' Given names in "Surname, Given": initials, or one capitalised name that
 #' may be followed by initials ("John", "John A.", "Mary-Kate").
 #' @noRd
 bib_is_given <- function(x) {
@@ -455,8 +455,8 @@ bib_one_name <- function(e) {
 #' The citation key for one row.
 #'
 #' Two forms, because English prose uses two. A trailing citation is
-#' parenthetical -- "(Smith & Okafor, 2019)" -- and one that is the subject of
-#' the sentence is narrative -- "Smith and Okafor (2019)". The model writes
+#' parenthetical, "(Smith & Okafor, 2019)", and one that is the subject of
+#' the sentence is narrative, "Smith and Okafor (2019)". The model writes
 #' trailing markers, so parenthetical is what gets rendered; narrative is here
 #' because a caller assembling prose by hand needs it and getting it wrong is
 #' the most visible way to look like a machine wrote the review.
@@ -503,12 +503,12 @@ bib_keys <- function(used, cols, form = "parenthetical") {
       i <- which(keys == k)
       # Lettered in title order, as the convention has it, and row order only
       # between equal titles. By row alone, the letter a paper got followed
-      # whatever order its table's rows arrived in -- which was the locale's
-      # collation of the file names -- so "2019a" named a different paper on
+      # whatever order its table's rows arrived in (the locale's collation of
+      # the file names), so "2019a" named a different paper on
       # another machine.
       if (!is.null(cols$title)) i <- i[bib_order(as.character(used[[cols$title]][i]))]
-      # One key at a time: `sub()` is not vectorised over `replacement` -- it
-      # takes the first and warns -- so the obvious one-liner gave every
+      # One key at a time: `sub()` is not vectorised over `replacement` (it
+      # takes the first and warns), so the obvious one-liner gave every
       # duplicate the suffix "a" and left them identical, which is the fault
       # the suffix exists to fix. A letter that would give a key another row
       # already has is skipped: "2019", "2019" and "2019a" were lettered 2019a,
@@ -526,7 +526,7 @@ bib_keys <- function(used, cols, form = "parenthetical") {
   }
   # Never two rows under one key. render_citations() collapses a run of
   # markers to its distinct keys, so two studies sharing one were printed as a
-  # single citation -- a claim resting on two studies read as resting on one,
+  # single citation: a claim resting on two studies read as resting on one,
   # beside two reference entries nobody could tell apart. Markers, if it comes
   # to that, rather than that.
   if (anyDuplicated(keys)) return(NULL)
@@ -568,7 +568,7 @@ bib_key_letter <- function(key, year) {
 #' Replace `[study N]` with the rendered citation.
 #'
 #' Runs AFTER the citation check, so a marker pointing at a row that does not
-#' exist has already been reported and is left as it is -- rendering it would
+#' exist has already been reported and is left as it is. Rendering it would
 #' hide the fault this pipeline exists to surface. `leave` names rows that do
 #' exist but that the check reported all the same (a study the section was not
 #' given), and their markers are left for the same reason.
@@ -585,9 +585,10 @@ render_citations <- function(text, used, keys, style, leave = integer(0)) {
   one <- paste0(cite_grammar("study")$ids, "\\]")
   # Runs of ADJACENT markers collapse into one citation. A model asked for three
   # supporting studies writes "[study 1] [study 2] [study 3]", and rendering each
-  # separately gives "(Garcia, 2022) (Lee & Petrov, 2021) (Smith & Okafor, 2019)"
-  # -- which no journal would print and which reads as three separate assertions
-  # rather than one claim resting on three studies.
+  # separately gives
+  # "(Garcia, 2022) (Lee & Petrov, 2021) (Smith & Okafor, 2019)". No journal
+  # would print that, and it reads as three separate assertions rather than
+  # one claim resting on three studies.
   run <- sprintf("%s(?:[[:space:],;]*%s)*", one, one)
   m <- gregexpr(run, text, perl = TRUE, ignore.case = TRUE)
   toks <- regmatches(text, m)[[1]]
@@ -628,26 +629,26 @@ reference_list <- function(used, keys, cited, cols, style) {
   }
   # The a/b letter bib_keys() assigned. `keys` was in this signature and unused,
   # so the prose said "(Smith & Okafor, 2019a)" and "(Smith & Okafor, 2019b)"
-  # against two identical reference entries -- neither citation resolvable,
+  # against two identical reference entries, neither citation resolvable,
   # which is the one thing a reference list has to do.
   has_key <- function(i) !is.null(keys) && i <= length(keys) && !is.na(keys[i])
   letter <- function(i) if (has_key(i)) bib_key_letter(keys[i], fld(i, "year")) else ""
   # Under author-year the prose cites a row by its key, so the entry has to be
   # findable by it. A key taken from a `citation` field is not what the other
-  # fields print -- with no authors or year it was a list of file names, the
-  # 2019a and 2019b nowhere in it -- so such an entry leads with the key itself.
+  # fields print. With no authors or year it was a list of file names, the
+  # 2019a and 2019b nowhere in it, so such an entry leads with the key itself.
   # bib_key() takes the citation first whenever it has one, by the same test.
   by_citation <- function(i) {
     identical(style, "author-year") && has_key(i) && nzchar(fld(i, "citation"))
   }
   entries <- vapply(hit, function(i) {
     # Each part is trimmed of its own trailing punctuation before the parts are
-    # joined with ". ". Without it an authors field ending in an initial --
-    # "Garcia, R." -- came out as "Garcia, R.. (2022)".
+    # joined with ". ". Without it an authors field ending in an initial
+    # ("Garcia, R.") came out as "Garcia, R.. (2022)".
     tidy <- function(x) sub("[[:space:].,;]+$", "", x)
     # "Smith, J.; Okafor, A." is how records.R normalises an author list
     # internally, because RIS gives one author per tag. A reference list is not
-    # the place for that convention -- it is an artifact of the parser, and
+    # the place for that convention: it is an artifact of the parser, and
     # printing it makes the output look machine-made.
     authors <- gsub(";[[:space:]]*", ", ", tidy(fld(i, "authors")))
     lead <- if (by_citation(i)) tidy(keys[i]) else ""
@@ -744,8 +745,9 @@ reference_list <- function(used, keys, cited, cols, style) {
 #'
 #' The same on every machine. order(tolower()) and sort() collate by the
 #' session's locale, so one table printed its references in one order under
-#' en_US and another under C -- where an accented name went to one end of the
-#' list and "de la Cruz" came after "Zhou" -- and its in-text citations too.
+#' en_US and another under C, and its in-text citations too. Under C an
+#' accented name went to one end of the list and "de la Cruz" came after
+#' "Zhou".
 #'
 #' The choice made here: an accented letter files with its base letter
 #' (Ozturk with an umlaut under O, Lukasz with a stroke under L), case is
@@ -777,7 +779,7 @@ bib_order <- function(x) {
   order(bib_sort_key(x), to_utf8(x), method = "radix")
 }
 
-#' a, b, ... z, aa, ab -- so a twenty-seventh same-year study still gets a label.
+#' a, b, ... z, aa, ab, so a twenty-seventh same-year study still gets a label.
 #' @noRd
 .gr_bib_suffix <- function(j) {
   out <- ""

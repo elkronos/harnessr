@@ -93,7 +93,7 @@ lower_long <- function(s) {
 })
 
 #' Split text into paragraphs on blank lines. Always returns a character vector
-#' (possibly length 0) -- never NULL.
+#' (possibly length 0), never NULL.
 #'
 #' A line of no-break or ideographic spaces is a blank line too: HTML and Word
 #' exports separate paragraphs with one, and Chinese and Japanese text with a

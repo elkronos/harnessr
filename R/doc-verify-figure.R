@@ -1,4 +1,4 @@
-# doc-verify-figure.R -- the figures a written review states, looked for in
+# doc-verify-figure.R: the figures a written review states, looked for in
 # the rows each sentence cites.
 #
 # WHY THIS FILE EXISTS
@@ -13,9 +13,9 @@
 #
 # A figure is the one part of a claim that can be checked without reading it:
 # either the cited row has the number or it does not. So every figure in every
-# sentence is looked for in what the writer was shown for that sentence -- the
+# sentence is looked for in what the writer was shown for that sentence: the
 # rows it cites as render_studies() showed them, the question, the section's
-# brief, and with claims the claims resting on those rows -- and one found
+# brief, and with claims the claims resting on those rows. A figure found
 # nowhere is reported. It checks transcription, not truth: a figure the row
 # carries can still be the wrong figure for the sentence, and the row can be
 # wrong. What it rules out is the figure that came from nowhere.
@@ -848,8 +848,8 @@ synth_figures <- function(sections, final, used, rendered, question, claims = NU
 #' Refuse a revision that wrote a figure its draft did not have.
 #'
 #' The passes may reorder, cut and polish; none may add, so a figure in the
-#' revision that the draft gives in no form -- as written, grouped or not,
-#' scaled, as a proportion, or in words -- did not come from the draft. Not
+#' revision that the draft gives in no form (as written, grouped or not,
+#' scaled, as a proportion, or in words) did not come from the draft. Not
 #' rounded: "0.61" for the draft's "0.613" is a changed figure, however small
 #' the change, and the draft is what the rows were checked against. Read as
 #' figure_find() reads a sentence, so a count under ten, an interval's level and

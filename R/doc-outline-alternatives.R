@@ -1,4 +1,4 @@
-# doc-outline-alternatives.R -- more than one way to organise the same claims.
+# doc-outline-alternatives.R: more than one way to organise the same claims.
 #
 # WHY THIS FILE EXISTS
 # gr_outline() turns a review's structure from the author's hypothesis into a
@@ -7,7 +7,7 @@
 # proposal gives the author nothing to weigh it against. Asking again does not
 # help by itself. The default model is a reasoning model that takes no
 # temperature, and the response cache keys on the prompt, so the same request
-# sent twice comes back as one cached sample -- the second "alternative" is the
+# sent twice comes back as one cached sample. The second "alternative" is the
 # first, byte for byte.
 #
 # So each further outline is its own request, shown the groupings proposed
@@ -23,7 +23,7 @@
 # then byte for byte the one `alternatives = 1` sends, so the first outline is
 # the same object and the same cached reply whatever `alternatives` says, and a
 # recorded run still replays. One reply holding k groupings would need k times
-# the reply limit under one cap -- with the reasoning allowance on top -- and a
+# the reply limit under one cap (with the reasoning allowance on top), and a
 # reply cut off there loses every grouping, the first included, where a
 # separate request cut off loses only itself. And each request is shown the
 # groupings it must differ from as they were verified, not as a model wrote
@@ -57,8 +57,8 @@
 
 #' The earlier proposals, as the lines `.gr_outline_alt_prompt` shows them.
 #'
-#' The closing section is left out. Its heading is not the model's -- R adds it
-#' after the reply -- and shown among the model's sections it invites the next
+#' The closing section is left out. Its heading is not the model's: R adds it
+#' after the reply. Shown among the model's sections, it invites the next
 #' proposal to copy it, which finish_outline() would merge with the real one
 #' under a message about duplicate headings.
 #' @noRd
@@ -118,9 +118,9 @@ outline_distance <- function(a, b) {
 #' Whether any of a reply's sections will still hold a claim once
 #' finish_outline() has verified them.
 #'
-#' A reply whose sections all lose their claims to verification -- numbers
+#' A reply whose sections all lose their claims to verification (numbers
 #' that name no claim, or only gap claims, which go to the closing section
-#' whatever the reply said -- verifies to one section holding every claim: the
+#' whatever the reply said) verifies to one section holding every claim: the
 #' closing one, or with no closing section, the "Findings" section
 #' finish_outline() puts in so the claims are not lost. That is the fallback
 #' for having no outline, not a proposal. Asked of the reply rather than of
@@ -212,8 +212,8 @@ outline_alternatives <- function(first, k, reply, msgs, cw, closing, max_section
     # to differ from: the stand-in for a reply that did not come back, or what
     # one whose sections kept no claim verifies to. Shown as "Proposal 1:"
     # with no sections under it, the next request was asked to differ from
-    # nothing. And what most often stops the first -- the cap, or a reply
-    # limit the claims overrun -- would stop a longer request just the same.
+    # nothing. And what most often stops the first (the cap, or a reply
+    # limit the claims overrun) would stop a longer request just the same.
     skip(2L, if (governor_exhausted(trace)) capped() else if (is.null(reply))
       "not requested, as the first outline did not come back and there was nothing to differ from"
       else paste0("not requested, as none of the first outline's sections held a claim once ",

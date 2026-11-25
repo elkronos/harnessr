@@ -1,4 +1,4 @@
-# core-effort-static.R -- how long a reasoning model thinks, stage by stage.
+# core-effort-static.R: how long a reasoning model thinks, stage by stage.
 #
 # WHY THIS FILE EXISTS
 # The default models are reasoning models, and nothing in a read, a corpus run

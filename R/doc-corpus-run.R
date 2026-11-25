@@ -1,10 +1,10 @@
-# doc-corpus-run.R -- one question, many documents.
+# doc-corpus-run.R: one question, many documents.
 #
 # WHY THIS FILE EXISTS
 # `answer_document()` reads one document and `gr_compare()` runs several recipes
 # over one document. Neither is the shape of the work people actually have,
-# which is a folder of two hundred PDFs and one question -- or ten questions,
-# asked one at a time.
+# which is a folder of two hundred PDFs and one question (or ten questions,
+# asked one at a time).
 #
 # Writing that loop yourself is easy and wrong in four specific ways, all of
 # which only show up an hour in:
@@ -12,7 +12,7 @@
 #   1. One unreadable file kills the run. `lapply()` propagates the error and
 #      the previous hundred and ninety-nine answers go with it.
 #   2. There is no way to resume. Restarting re-reads everything, and with a
-#      response cache that is cheap but not free -- it still re-extracts,
+#      response cache that is cheap but not free: it still re-extracts,
 #      re-cleans and re-chunks every document.
 #   3. Budgets do not compose. `max_calls` is per run, so a naive loop either
 #      shares one budget (and the first long document starves the rest) or has
@@ -383,15 +383,15 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
   # columns it had.
   check_identity <- inherits(from_records, "gr_records")
 
-  # A given trace is the PARENT, and this run still gets its own -- the same
-  # arrangement this function already uses for each document below. Running
+  # A given trace is the PARENT, and this run still gets its own. This function
+  # already uses the same arrangement for each document below. Running
   # directly on a shared trace would charge the previous stage's calls against
   # this one's per-document `max_calls`, and would leave every stage's `$trace`
   # reporting the whole review's cost instead of its own.
   parent <- as_parent_trace(trace)
   max_total_calls <- as_call_ceiling(max_total_calls)
   # Same treatment: gated on is.finite() at the point of use, this failed open
-  # for NA and for a value read from a config file as text -- and once the notice
+  # for NA and for a value read from a config file as text. Once the notice
   # below was gated on it as well, a silently unenforced ceiling also silenced
   # the line that would have said the run was uncapped.
   max_total_usd <- as_usd_ceiling(max_total_usd)
@@ -402,13 +402,13 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
                     governor = fork_governor(parent))
   # Each request is the draw of the run the parent is (trace_inherit_draw()).
   trace_inherit_draw(trace, parent)
-  # on.exit, not a line at the end: a run that aborts part-way -- a cost cap, an
-  # unreadable file under on_error = "stop" -- has still spent whatever it spent,
+  # on.exit, not a line at the end: a run that aborts part-way (a cost cap, an
+  # unreadable file under on_error = "stop") has still spent whatever it spent,
   # and a parent that loses it reports a review as cheaper than it was.
   if (!is.null(parent)) on.exit(trace_absorb(parent, trace), add = TRUE)
   # What the per-document ceiling does NOT bound, said once, before the money is
-  # spent. `max_calls` is per document by design -- one enormous document must
-  # not starve the rest -- but that makes the run's own exposure the product of
+  # spent. `max_calls` is per document by design, so that one enormous document
+  # cannot starve the rest. That makes the run's own exposure the product of
   # the two, and nothing said so. Only when NEITHER run-level ceiling is set: a
   # caller who set one has already thought about this.
   if (is.null(max_total_calls) && is.null(max_total_usd) && length(sources) > 1L) {
@@ -486,12 +486,12 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       restored$row <- restored_identity(restored$row, restored$identity_of, src_record,
                                         check_identity, lab)
       # A restored document is never ingested, so its text is not available to
-      # hash here. The hash travels in the store entry instead -- otherwise a
+      # hash here. The hash travels in the store entry instead. Otherwise a
       # resumed run would restore the first copy and then pay to read the second,
       # reporting the pair as two independent documents. Entries written before
       # this existed carry no hash and simply do not seed the set.
       # First occurrence wins, and a row that is itself a duplicate never
-      # becomes the anchor -- otherwise a third copy would be reported as a
+      # becomes the anchor. Otherwise a third copy would be reported as a
       # duplicate of a duplicate and the chain would have to be followed to find
       # the document actually read.
       #
@@ -516,8 +516,9 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
 
     # Checked BEFORE the document, not after it: a call ceiling that is only
     # noticed once the calls are made is not a ceiling. (The cost one below can
-    # only be checked afterwards -- what a document costs is not knowable until
-    # it has been read -- which is why they are enforced in different places.)
+    # only be checked afterwards, since what a document costs is not knowable
+    # until it has been read. That is why they are enforced in different
+    # places.)
     if (!stopped && !is.null(max_total_calls) && trace$calls >= max_total_calls) {
       stopped <- TRUE
       # Named as requests, with the two kinds apart: the ceiling counts
@@ -625,7 +626,7 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     },
     # `finally`, not a line after this call: on_error = "stop" and an
     # authentication error rethrow, and the calls this document had already
-    # made -- paid for -- were then missing from the run's trace, and from the
+    # made, and paid for, were then missing from the run's trace, and from the
     # parent the on.exit above folds it into.
     finally = trace_absorb(trace, sub)), gr_warning = doc_rec$record)
 
@@ -688,7 +689,7 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       if (keep_answers) answers[[lab]] <- out
     } else if (!is.null(why <- failed_note(out, sub))) {
       # The same treatment, for the same reason. A request that failed is a
-      # property of the moment -- an outage, a rate limit, a key since fixed --
+      # property of the moment (an outage, a rate limit, a key since fixed),
       # and this answer is what was left without it: NOT_IN_DOCUMENT, an
       # "unclear" nobody decided, a record with empty fields. Reported as "ok"
       # and saved, it came back "restored" on every later run with no call
@@ -769,9 +770,9 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
   })
   structure(list(summary = do.call(rbind, rows), answers = answers,
                  # The sources as they were actually read, aligned row for row
-                 # with `summary`. `summary$document` is a LABEL -- a basename,
+                 # with `summary`. `summary$document` is a LABEL (a basename,
                  # made unique with a suffix when two folders hold the same
-                 # filename -- so there is no way back from it to the file. Any
+                 # filename), so there is no way back from it to the file. Any
                  # caller that wants to feed a subset of a corpus into the next
                  # stage needs the paths, not the labels.
                  sources = simplify_sources(sources),
@@ -833,7 +834,7 @@ print.gr_corpus <- function(x, ...) {
 #' which file.
 #'
 #' The length guard is not decoration. `basename()` is bounded by PATH_MAX, and
-#' raw document text passed as a source is a single long string -- handing that
+#' raw document text passed as a source is a single long string. Handing that
 #' to `basename()` warns about an expanded path of 1200 characters, which is how
 #' this was found in the first place.
 #' @noRd
@@ -852,7 +853,7 @@ corpus_label <- function(source, inline = "<inline text>", root = NULL) {
   if (file.exists(source)) {
     # Keep the folder a file came from. `basename()` turned 2019/report.txt and
     # 2020/report.txt into one name, and make.unique() then separated them as
-    # "report.txt" and "report.txt#1" -- discarding the meaningful half and
+    # "report.txt" and "report.txt#1", discarding the meaningful half and
     # replacing it with an index that depends on sort order. A reviewer who
     # filed by year had that year thrown away and could not tell the rows apart.
     if (!is.null(root) && nzchar(root)) {
@@ -910,7 +911,7 @@ as_ceiling <- function(x, arg, whole = FALSE) {
   # Inf is a legitimate way to say "no ceiling", and saying it that way should
   # not cost the notice that the run is uncapped.
   if (!is.finite(x)) return(NULL)
-  # A DOUBLE, floored -- not as.integer(). as.integer(1e10) is NA with a warning,
+  # A DOUBLE, floored, not as.integer(). as.integer(1e10) is NA with a warning,
   # and the loop guard then compared against NA, so `if` threw a bare
   # simpleError: the exact failure this function exists to prevent, reintroduced
   # by the coercion meant to fix it. Whole, so the message and the comparison
@@ -1012,8 +1013,8 @@ corpus_sources <- function(sources, recursive = FALSE, quiet = FALSE) {
   # Without this, one corpus behaved two ways: gr_read_many(dir) skipped the
   # files no extractor claims and said so, while gr_read_many(list.files(dir))
   # handed each of them to an extractor and recorded a failed row. The second
-  # form is what every pipeline uses -- gr_extract(screened$included) is a
-  # character vector -- so the stage that reads the most documents was the one
+  # form is what every pipeline uses (gr_extract(screened$included) is a
+  # character vector), so the stage that reads the most documents was the one
   # getting the worse behaviour.
   if (is.character(sources) && length(sources) && !anyNA(sources) &&
       all(nzchar(sources)) && all(file.exists(sources)) && !any(dir.exists(sources))) {
@@ -1033,7 +1034,7 @@ corpus_sources <- function(sources, recursive = FALSE, quiet = FALSE) {
     out <- sources[keep]
     attr(out, "skipped") <- skipped
     # gr_screen() puts the record set on `included`, so the search survives the
-    # hand-off to gr_extract() -- which takes a character vector, not the
+    # hand-off to gr_extract(). That function takes a character vector, not the
     # gr_records, and so could never have carried it otherwise.
     rs <- attr(sources, "record_set")
     if (inherits(rs, "gr_records")) attr(out, "record_set") <- rs
@@ -1057,8 +1058,8 @@ corpus_row <- function(document, status, answer = NULL, trace = NULL, error = NA
     # appends "#1", which depends on the order you passed the sources in), and
     # it says nothing about a document passed as text. This is the hash of the
     # cleaned text, so it is the same string for the same document in every run,
-    # on every machine, under any name -- and identical for two copies of it,
-    # which is what makes duplicate detection and this column the same fact.
+    # on every machine, under any name. It is also identical for two copies of
+    # it, which is what makes duplicate detection and this column the same fact.
     document_id = as_chr1(document_id, NA_character_),
     answer      = if (is.null(answer)) NA_character_ else as_chr1(answer$answer),
     not_found   = if (is.null(answer)) NA else is_not_found(answer$answer),
@@ -1141,15 +1142,15 @@ corpus_warnings <- function(w) {
 
 #' Give the sources back in the shape they arrived in.
 #'
-#' `corpus_sources()` works in a list so that a mixed set -- paths and raw text
-#' together -- survives. Handing that back to a caller who passed a plain
+#' `corpus_sources()` works in a list so that a mixed set (paths and raw text
+#' together) survives. Handing that back to a caller who passed a plain
 #' character vector is a small surprise with a long tail: `basename(x$sources)`
 #' and `file.exists(x$sources)` both do the wrong thing on a list of strings.
 #' @noRd
 simplify_sources <- function(x) {
   # Attributes stripped: `$sources` is a list of paths a user prints and
   # subsets, and carrying `record_set` on it made print() dump the whole record
-  # set underneath -- the objection that moved the record set off `$included` in
+  # set underneath. That objection moved the record set off `$included` in
   # the first place.
   if (!is.list(x)) return(`attributes<-`(x, NULL))
   if (all(vapply(x, function(e) is.character(e) && length(e) == 1L, logical(1)))) {

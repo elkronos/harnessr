@@ -21,7 +21,7 @@ claim_order <- function(claims, support, weights) {
   certainty <- sign_test(claims$n_support, claims$n_support + claims$n_contradict)
   against <- claim_against(claims$n_support, claims$n_contradict)
   # A study with no weight is UNKNOWN, not weightless: it takes the mean of the
-  # weights that ARE known across the table -- or 1, the middle of
+  # weights that ARE known across the table, or 1, the middle of
   # study_weight()'s 0.5-1.5 scale, if none is. Imputing per claim instead gave a
   # claim whose every weight was missing the mean of nothing, NaN, which
   # sum(na.rm = TRUE) then made 0: the unknown-becomes-zero pattern this file
@@ -90,7 +90,7 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
                           weights = NULL, gaps = NULL, capped = NULL, gaps_cut = FALSE,
                           prominence = NULL) {
   # With claims, the section argues a list of claims and sees only the studies
-  # those claims rest on. Without, it sees every study and writes from rows --
+  # those claims rest on. Without, it sees every study and writes from rows,
   # which is what produces "Smith (2019) found X. Garcia (2022) found Y."
   by_claims <- !is.null(claims) && length(claim_ids)
   # The closing section of a write-up from claims, holding no claim, states the
@@ -150,14 +150,14 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
   body <- paste(rendered, collapse = "\n\n")
   lost_batches <- 0L
   # A latch of this function's own, not `trace$budget_stop`. A refused merge
-  # request in tree_merge() sets budget_stop while still returning usable text
-  # -- so a run whose merge tripped the ceiling suppressed the warning for every
+  # request in tree_merge() sets budget_stop while still returning usable text,
+  # so a run whose merge tripped the ceiling suppressed the warning for every
   # section after it, and those sections came back empty in silence.
   capped <- capped %||% new.env(parent = emptyenv())
   first_stop <- !isTRUE(capped$warned)
   capped_batches <- 0L
-  # Replies that stopped at the reply limit. gr_call() keeps them ok = TRUE --
-  # the text is what the model wrote -- so usable_text() accepts them, and a
+  # Replies that stopped at the reply limit. gr_call() keeps them ok = TRUE
+  # (the text is what the model wrote), so usable_text() accepts them, and a
   # section ending "However, the trial" came back complete.
   cut_off <- 0L
   merge_failed <- FALSE
@@ -211,8 +211,8 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
     }
   } else {
     # Too many studies for one prompt: draft the section from batches and merge.
-    # Cheaper alternatives -- take the first N rows, or summarise the table first
-    # -- both drop studies without saying which, which is the one thing a review
+    # Cheaper alternatives (take the first N rows, or summarise the table first)
+    # both drop studies without saying which, which is the one thing a review
     # may not do.
     #
     # With claims, a batch is some of the section's claims and the studies
@@ -257,7 +257,7 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
       if (usable_text(res)) res$text else ""
     }, character(1), USE.NAMES = FALSE)
     # tree_merge() strips empty pieces, so a merge over the survivors reads
-    # exactly like a merge over everything -- and with one survivor it returns
+    # exactly like a merge over everything, and with one survivor it returns
     # that piece unchanged, ok = TRUE, without making a call. The studies in the
     # failed batch were then simply absent from the write-up, with nothing on
     # the section, on `partial` or in print() to say so.
@@ -266,8 +266,8 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
     lost_batches <- sum(!nzchar(parts)) - capped_batches
     batch_rows <- lapply(jobs, function(j) used$study[j$rows])
     batch_read <- nzchar(parts)
-    # Each batch draft checked against what IT was given -- its rows, and any
-    # study its prompt names (the brief, the gaps, its claims' own block) --
+    # Each batch draft is checked against what IT was given (its rows, and any
+    # study its prompt names in the brief, the gaps or its claims' own block)
     # before the merge makes one text of them. Checked against the whole
     # section, a draft citing a study it never saw passed as known, was
     # rendered and went into the reference list.
@@ -291,8 +291,8 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
                                                   ok = FALSE, error = conditionMessage(e)))
     # tree_merge() accepts a merge reply cut off at the limit as it accepts any
     # other, and returns only the text, so the steps it recorded are the one
-    # place that says whether a merge -- the last one, or one at a level below
-    # it that the last one merged from -- stopped short.
+    # place that says whether a merge (the last one, or one at a level below
+    # it that the last one merged from) stopped short.
     cut_off <- cut_off + trace_cut_off(trace, from, "synthesise.merge")
     # A merge that failed hands back the batch drafts joined and capped. The
     # section is not the merged draft it stands in for, whether or not every
@@ -320,8 +320,8 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
   }
 
   cited <- cited_ids(text, "study")
-  # A bracket that opens like a citation and does not parse as one --
-  # "[studies 1 to 7]", "[study one]" -- names ids nothing here can check.
+  # A bracket that opens like a citation and does not parse as one, such as
+  # "[studies 1 to 7]" or "[study one]", names ids nothing here can check.
   # Counting it as citing nothing is how a fabricated study passed as clean.
   unparsed <- unparsed_citations(text, "study")
   # Checked against what this section was SHOWN. With claims it sees only the
@@ -358,7 +358,7 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
   # And for a section drafted in batches without claims: a batch whose draft
   # came back and not one of whose studies the section cites. The merge folds
   # several drafts into one reply of the same length, and a merge that
-  # finished normally but kept only the first draft's studies -- 69 of 1000 --
+  # finished normally but kept only the first draft's studies (69 of 1000)
   # read as a complete section. Not with claims, where a claim is what must be
   # covered, and `missed` checks that.
   dropped <- if (by_claims || !length(batch_rows)) 0L else
@@ -472,7 +472,7 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
                    as.character(used$document[hits]),
                  # NOT as_chr1(): it collapses a vector to ONE string with
                  # newlines between the elements, so every citation row got the
-                 # same value -- all the ids, glued together. It is for scalars.
+                 # same value: all the ids, glued together. It is for scalars.
                  document_id = if (is.null(used$document_id)) NA_character_ else
                    as.character(used$document_id[hits]),
                  stringsAsFactors = FALSE))
@@ -561,8 +561,8 @@ render_claims <- function(cw, support, weights, collapse = TRUE, prominence = NU
 #'
 #' `max_n` caps the studies per batch, for a caller whose REPLY grows with the
 #' batch (gr_claims()). `attr(, "index")` gives each batch's positions in
-#' `rendered`, so a caller can say which studies a batch held -- which is what a
-#' claim drawn from it may cite.
+#' `rendered`, so a caller can say which studies a batch held. Those are the
+#' studies a claim drawn from it may cite.
 #' @noRd
 synth_batches <- function(rendered, budget, max_n = Inf) {
   groups <- list(); index <- list(); buf <- character(0); at <- integer(0); tks <- 0L

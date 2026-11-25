@@ -209,8 +209,8 @@ gr_client <- function(model = NULL, api = NULL, api_key = NULL, base_url = NULL,
   ), class = "gr_client")
 }
 
-# Without a method, a client printed at the console as a plain list -- which
-# meant `cl` echoed `api_key` in full, and would now echo every header value
+# Without a method, a client printed at the console as a plain list, so
+# `cl` echoed `api_key` in full, and would now echo every header value
 # too. Both are credentials. Names are shown because they are what you need to
 # see to debug a gateway; values never are.
 #' @export

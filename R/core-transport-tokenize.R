@@ -1,19 +1,19 @@
-# core-transport-tokenize.R -- pluggable token counting.
+# core-transport-tokenize.R: pluggable token counting.
 #
 # WHY THIS FILE EXISTS
 # The old `estimate_token_count()` counted whitespace-separated words. For
 # English that undercounts real BPE tokens by roughly 1.3x, and far more for
 # code, URLs, numbers, and non-Latin scripts. Every context-budget calculation
 # in the package was built on top of it, so requests that the code believed fit
-# comfortably were rejected by the API with HTTP 400 -- after the retries had
+# comfortably were rejected by the API with HTTP 400, after the retries had
 # been paid for.
 #
 # Token counting is now:
-#   * pluggable       -- swap in a real BPE tokenizer when one is available;
-#   * conservative    -- the default heuristic is deliberately biased to
-#                        OVERCOUNT, because overcounting wastes a little context
-#                        while undercounting produces a hard API failure;
-#   * script-aware    -- CJK and other dense scripts are counted per-character.
+#   * pluggable: swap in a real BPE tokenizer when one is available;
+#   * conservative: the default heuristic is biased to OVERCOUNT,
+#     because overcounting wastes a little context while undercounting
+#     produces a hard API failure;
+#   * script-aware: CJK and other dense scripts are counted per-character.
 
 #' Register or inspect the active tokenizer
 #'
@@ -171,9 +171,9 @@ tok_heuristic <- function(text) {
   # Label valid UTF-8 as UTF-8 BEFORE decoding. `enc2utf8()` on an unlabelled
   # string is a no-op in a non-UTF-8 locale, so `utf8ToInt()` failed and the
   # byte fallback below charged a 1-codepoint em dash as 3 characters. The same
-  # document then produced different token counts on different machines -- and
+  # document then produced different token counts on different machines, and
   # therefore different budgets, different chunk boundaries and different cost
-  # estimates -- purely from the locale R happened to start in. Measured: 16
+  # estimates, purely from the locale R happened to start in. Measured: 16
   # tokens labelled versus 24 unlabelled, for identical bytes.
   text <- mark_utf8(text)
   vapply(text, function(x) {
@@ -335,7 +335,7 @@ tok_tiktoken <- function(text, model = NULL) {
 #' The encodings a tiktoken count is taken in.
 #'
 #' Every call site in the package counts without a model, so this always used
-#' gpt-4o's o200k_base -- wrong for the cl100k models still in the registry
+#' gpt-4o's o200k_base. That is wrong for the cl100k models still in the registry
 #' (gpt-4, gpt-4-turbo, gpt-3.5), which need more tokens for the same
 #' non-English text, and with none of the heuristic's padding to absorb it.
 #' Without a model, or for one tiktoken does not know, both encodings current

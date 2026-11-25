@@ -78,8 +78,8 @@ read_rerank <- function(chunks, question, client, spec, trace) {
   worst <- batch_item_usd(client, score_model, max_tokens_of(d$tokens[cand]) +
                             prompt_overhead(question, score_system, "never"), 200L)
   # `status` records what happened to each candidate. It is kept apart from
-  # `reason`, which is the model's own words and can say anything -- including
-  # "unscorable" -- so counting outcomes by matching it counted a judged chunk
+  # `reason`, which is the model's own words and can say anything, including
+  # "unscorable". So counting outcomes by matching it counted a judged chunk
   # as an unjudged one.
   scored <- gr_lapply(cand, function(i, trace) {
     out <- gr_call_json(client, list(
@@ -93,13 +93,13 @@ read_rerank <- function(chunks, question, client, spec, trace) {
     if (is_refused(out$result)) return(list(i = i, score = NA_real_, status = "capped"))
     # NA, not 0. A failed call judged nothing, and scoring it 0 put it through
     # the threshold at rerank_min_score = 0 as a model-judged score for a chunk
-    # no model had read -- and kept it out of the "was anything judged?" test
+    # no model had read, and kept it out of the "was anything judged?" test
     # below, so a run of failed calls mixed with unusable replies neither
     # degraded nor warned.
     if (!out$ok) return(list(i = i, score = NA_real_, status = "failed"))
     # A score that is not a number is not a score. as.numeric("high") is NA, and
-    # NA then went through `keep_sc >= thresh` as an NA LOGICAL -- which selects
-    # rather than drops -- so `[chunk NA]` reached the prompt and the model
+    # NA then went through `keep_sc >= thresh` as an NA LOGICAL, which selects
+    # rather than drops. So `[chunk NA]` reached the prompt and the model
     # answered the question with no document in front of it, partial = FALSE.
     sc <- json_num(out$value, "score", NA_real_)
     list(i = i, score = sc, status = if (is.na(sc)) "unscorable" else "scored")
@@ -114,7 +114,7 @@ read_rerank <- function(chunks, question, client, spec, trace) {
   n_capped <- sum(status == "capped")
   degraded <- FALSE
   # ONE test: was anything judged at all? Testing "every call failed" and
-  # "every score was unusable" separately left the mixed case -- some of each --
+  # "every score was unusable" separately left the mixed case (some of each)
   # falling through both, so the run returned NOT_IN_DOCUMENT with no warning
   # for a document no model had scored.
   if (all(is.na(sc))) {
@@ -140,14 +140,14 @@ read_rerank <- function(chunks, question, client, spec, trace) {
     degraded <- TRUE
   }
   # Some candidates were never judged: the ranking is incomplete, and whatever
-  # it concludes -- including "nothing relevant" -- rests on part of the list.
+  # it concludes, "nothing relevant" included, rests on part of the list.
   unjudged <- !degraded && (n_failed + n_unscorable + n_capped) > 0L
   ord <- order(sc, decreasing = TRUE)
   keep_ord <- ii[ord]
   keep_sc <- sc[ord]
   thresh <- if (degraded) -Inf else clamp(spec$rerank_min_score, 0, 10)
   # !is.na() FIRST. `NA >= thresh` is NA, and an NA logical subscript SELECTS an
-  # NA element rather than dropping it -- so the vector kept its length, the
+  # NA element rather than dropping it. So the vector kept its length, the
   # "nothing scored high enough" guard below did not fire, and d[NA, ] put
   # `[chunk NA]` in the prompt. The model then answered from the question alone
   # and the answer came back partial = FALSE.
@@ -172,8 +172,8 @@ read_rerank <- function(chunks, question, client, spec, trace) {
   if (!length(keep_ord)) {
     # Partial only when something was not judged. Every candidate scored and
     # every score low is a CORRECT negative, and marking it partial put a right
-    # answer and a broken one in the same bucket -- the distinction the screen
-    # reader draws for "unclear", and the one `partial` exists to make.
+    # answer and a broken one in the same bucket. That is the distinction the
+    # screen reader draws for "unclear", and the one `partial` exists to make.
     # Nor is a negative from a sample: the chunks that were not in it were
     # never looked at.
     return(new_answer(.NOT_FOUND, "rerank", question, integer(0), trace,

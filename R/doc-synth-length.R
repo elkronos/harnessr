@@ -1,4 +1,4 @@
-# doc-synth-length.R -- whether a `cut` pass cut anything.
+# doc-synth-length.R: whether a `cut` pass cut anything.
 #
 # WHY THIS FILE EXISTS
 # Every check revise_once() makes on a revision asks whether it is SAFE: the
@@ -19,8 +19,8 @@
 # written sentence by sentence, keeping every sentence, claim, hedge and
 # citation marker, came back at 118 words, 49% removed: "due to the fact that"
 # becomes "because", and that is the `register` pass doing its job. The same
-# draft with its closing section dropped -- a pass that returned only part of
-# the review -- came back at 162 words, 30% removed. A bound loose enough never
+# draft with its closing section dropped (a pass that returned only part of
+# the review) came back at 162 words, 30% removed. A bound loose enough never
 # to refuse the first cannot catch the second: words cannot tell cutting
 # wordiness from cutting content. The counts are reported instead, kept passes
 # included, so a `register` pass that halved the review can be seen.
@@ -28,7 +28,7 @@
 #' Words of prose in a review, the unit the length check counts in.
 #'
 #' Words, not tokens. gr_count_tokens() answers in whichever tokenizer the
-#' session has set -- the heuristic, tiktoken, "words", a custom one -- so the
+#' session has set (the heuristic, tiktoken, "words", a custom one), so the
 #' same revision could be shorter under one setting and not under another. A
 #' token count also moves when nothing a reader reads does: "[study 1] [study
 #' 2] [study 3]" written as "[studies 1-3]" is fewer tokens and the same

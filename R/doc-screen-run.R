@@ -1,4 +1,4 @@
-# doc-screen-run.R -- decide which documents count, one call each, before
+# doc-screen-run.R: decide which documents count, one call each, before
 # reading any of them properly.
 #
 # WHY THIS FILE EXISTS
@@ -12,8 +12,8 @@
 #   * EVERY DOCUMENT GETS A DECISION. There is no retrieval step, no relevance
 #     prefilter, nothing that can quietly drop a source before a decision is
 #     recorded. A document that could not be read is `status = "failed"` with no
-#     decision -- a job for a person, not a silent omission. A review whose
-#     denominator is unknown is not a review.
+#     decision. That is a job for a person, not a silent omission. A review
+#     whose denominator is unknown is not a review.
 #
 #   * "UNCLEAR" IS AN ANSWER. Forcing a binary decision out of an excerpt that
 #     does not settle the question is how automated screening loses studies. The
@@ -51,12 +51,12 @@ read_screen <- function(chunks, question, client, spec, trace) {
   cap <- min(bud$input, as_int1(spec[["screen_tokens"]], bud$input))
 
   # A CONTIGUOUS opening, not the chunks that happen to fit. What a screener
-  # reads is the front of the paper -- title, abstract, opening -- and a decision
+  # reads is the front of the paper (title, abstract, opening), and a decision
   # made from paragraphs 1, 2 and 47 is not that, however well it fits.
   fit <- fit_chunks(d, cap, prefix = TRUE)
   sub <- d[fit$idx, , drop = FALSE]
   if (!length(fit$idx)) {
-    # The first chunk alone is over the cap -- a structural chunk of title,
+    # The first chunk alone is over the cap: a structural chunk of title,
     # abstract and introduction runs to 900 tokens, and screen_tokens of "a few
     # hundred" is what the docs suggest. What was asked for is the opening, so
     # the first chunk is cut down to the cap and that is screened. Returning
@@ -81,7 +81,7 @@ read_screen <- function(chunks, question, client, spec, trace) {
   truncated <- nrow(sub) < nrow(d) || !identical(sub$text[1], d$text[1])
   # The chunks' own token counts, not `fit$tokens`. That one measures the
   # RENDERED prompt, which carries a "[chunk N]" header per chunk, so a document
-  # that was read whole reported seeing more tokens than it contains -- a table
+  # that was read whole reported seeing more tokens than it contains. A table
   # saying 26 of 19 is worse than one saying nothing.
   seen_tokens <- as.integer(sum(sub$tokens))
 
@@ -130,8 +130,8 @@ read_screen <- function(chunks, question, client, spec, trace) {
     # never defined.
     decision <- if (isTRUE(out$ok)) screen_decision(json_field(v, "decision")) else NA_character_
     # Held to the protocol. The criterion used to be recorded as whatever the
-    # model wrote, so an adult trial excluded as "Conducted outside Europe" --
-    # a criterion no protocol listed -- left the review with nothing to say it
+    # model wrote, so an adult trial excluded as "Conducted outside Europe"
+    # (a criterion no protocol listed) left the review with nothing to say it
     # happened, and the flow diagram gained a category nobody fixed in advance.
     # An exclusion has to name one of the protocol's criteria; one that names
     # another, or none, goes to a person as "unclear".
@@ -628,8 +628,8 @@ screen_opening <- function(row, cap) {
 #' Verified against the whole excerpt, since that is what the model read, but
 #' placed in the chunk that holds it. Pinned to the first chunk sent instead,
 #' a deciding sentence on page 3 was reported on page 1, verified, and a person
-#' checking it looked in the wrong place. A quote found in no single chunk --
-#' one spanning two, or one that did not verify -- has no chunk, page or
+#' checking it looked in the wrong place. A quote found in no single chunk
+#' (one spanning two, or one that did not verify) has no chunk, page or
 #' section rather than the first chunk's.
 #' @noRd
 screen_evidence <- function(quote, sub, said) {
@@ -659,7 +659,7 @@ screen_evidence <- function(quote, sub, said) {
 #' and closing punctuation are set aside is recorded in the protocol's own
 #' words, so the per-criterion count groups as the protocol does; `valid` says
 #' whether it matched (NA when none was named). An "exclude" whose criterion is
-#' not the protocol's -- or that names none -- becomes "unclear", which is
+#' not the protocol's, or that names none, becomes "unclear", which is
 #' what sends a document to a person, and `downgraded` marks it.
 #' @noRd
 screen_criterion <- function(decision, criterion, include, exclude) {
@@ -699,8 +699,8 @@ downgrade_reason <- function(criterion, reason) {
 
 #' Read a decision back, defaulting to the one that is never wrong.
 #'
-#' For a reply that was read: anything unrecognised in it -- a missing field, a
-#' new label -- becomes "unclear", which routes the document to a person. The
+#' For a reply that was read: anything unrecognised in it (a missing field, a
+#' new label) becomes "unclear", which routes the document to a person. The
 #' two alternatives are both worse: defaulting to "exclude" loses studies
 #' silently, and defaulting to "include" quietly buys a full extraction for
 #' every document the screener could not read. A call that failed, or a reply

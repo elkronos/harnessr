@@ -1,4 +1,4 @@
-# doc-synth-batch.R -- the write-up, one section at a time, from the table.
+# doc-synth-batch.R: the write-up, one section at a time, from the table.
 #
 # WHY THIS FILE EXISTS
 # An extraction table is the finding; a review is the account of it. Asking a
@@ -9,14 +9,14 @@
 # So the unit is the SECTION, and it comes from the protocol's outline rather
 # than from the model's sense of how a review is structured. Each section is one
 # call, over the table, against a brief the author wrote in advance. That makes
-# the write-up reproducible section by section, revisable a section at a time,
-# and -- because the outline is fixed before the reading -- not shaped by what
-# happened to be found.
+# the write-up reproducible section by section and revisable a section at a
+# time. The outline is fixed before the reading, so the write-up is not shaped
+# by what happened to be found.
 #
-# EVERY CLAIM CITES A ROW. Sections are written with `[study 3]` markers, the
-# markers are parsed back out, and any pointing at a row that does not exist --
+# EVERY CLAIM CITES A ROW. Sections are written with `[study 3]` markers, and
+# the markers are parsed back out. A marker pointing at a row that does not exist,
 # or at a row the call that wrote it was not shown (with claims, or a section
-# drafted in batches) -- is reported and marks the section partial. This is the
+# drafted in batches), is reported and marks the section partial. This is the
 # same check `new_answer()`
 # runs on `[chunk 3]`, for the same reason: a citation to something that was
 # never supplied is a fabrication, and the most convincing kind there is.
@@ -68,7 +68,7 @@
 #'   `gr_protocols("bibliography")` works without configuration: `citation`
 #'   (or `cite`, `citation_key`, `cite_key`), `authors` (or `author`), `year`,
 #'   `title`, `venue` (or `journal`) and `doi`, in any case. Names that are as
-#'   often findings -- `date`, `source`, `url`, `published`, `publication` --
+#'   often findings (`date`, `source`, `url`, `published`, `publication`)
 #'   are not taken for bibliographic ones unless named here. A column found
 #'   this way is withheld from the writing prompts and used for the citations
 #'   and references; give a role as `NA` to keep a column of that name as a
@@ -127,12 +127,12 @@
 #'   an outline derived from these same claims: the run stops
 #'   (`gr_claims_mismatch`) when the outline says it came from other claims,
 #'   and (`gr_claims_unplaced`) when the assignment places a claim in a heading
-#'   the outline does not have -- a heading renamed after [gr_outline()], say;
-#'   rename it in `attr(outline, "claims")$section` too. A section given no
+#'   the outline does not have, such as a heading renamed after [gr_outline()].
+#'   Rename it in `attr(outline, "claims")$section` too. A section given no
 #'   claims is written from the rows, as without `claims`, except the closing
-#'   section, which is written from `gaps` alone and is left out when there
-#'   are none. A section too large for one prompt is written a few claims at a
-#'   time, each batch sent only its claims' studies, and merged.
+#'   section, which is written from `gaps` alone and is left out when there are
+#'   none. A section too large for one prompt is written a few claims at a time,
+#'   each batch sent only its claims' studies, and merged.
 #' @param gaps A [gr_gaps()] result, or lines of text. Given to the closing
 #'   section [gr_outline()] named, `attr(outline, "closing")`, with an
 #'   instruction to state those gaps and no others. When the outline has no
@@ -355,7 +355,7 @@
 #' The merge folds every batch draft into one reply of at most
 #' `max_section_tokens`, the same limit each draft had, so a section drafted
 #' from a very large table covers only what that one reply can hold. Nothing
-#' checks that it cites every study -- a section need not -- but without
+#' checks that it cites every study (a section need not), but without
 #' `claims` a batch none of whose studies the merged section cites is
 #' reported (`gr_synth_batch_dropped`) and marks it partial. Raise
 #' `max_section_tokens`, or divide the table between narrower sections.
@@ -490,16 +490,17 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   }
   # Labelled UTF-8 before anything is pasted to them. Under a non-UTF-8 locale
   # a question, heading or register typed in a script is UTF-8 bytes marked
-  # "unknown", and paste() joining it to labelled text -- the claims, or a
-  # heading gr_outline() read from the model -- escaped it to "<c3><a9>"
+  # "unknown", and paste() joining it to labelled text (the claims, or a
+  # heading gr_outline() read from the model) escaped it to "<c3><a9>"
   # before the request was built; trimws() over headings of both kinds
   # stopped the run.
   if (is.character(question)) question <- mark_utf8(question)
   if (is.character(style)) style <- mark_utf8(style)
   outline <- mark_outline(outline)
   # Read BEFORE outline_vector(), which rebuilds the vector with setNames() and
-  # drops every attribute -- including the claim assignment gr_outline() put
-  # there. Losing it silently would take every section back to writing from rows.
+  # drops every attribute, the claim assignment gr_outline() put there
+  # included. Losing it silently would take every section back to writing
+  # from rows.
   assign_map <- attr(outline, "claims")
   closing <- as_chr1(attr(outline, "closing"), NA_character_)
   fingerprint <- attr(outline, "claims_fingerprint")
@@ -535,8 +536,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
     # THE guard for this whole layer. A claim number and a `[study N]` marker are
     # the same identifier, and they agree only because both sides derive it from
     # synth_studies() over the same table. Hand gr_claims() one extraction and
-    # gr_synthesise() another -- or the same one with a different
-    # `include_unclear` -- and every claim silently points at a different row.
+    # gr_synthesise() another (or the same one with a different
+    # `include_unclear`), and every claim silently points at a different row.
     # Nothing downstream could detect it: the numbers are all valid, they just
     # mean other studies, and the review attributes findings to papers that do
     # not contain them.
@@ -562,8 +563,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
                class = "gr_no_claim_assignment")
     }
     # Claim numbers are positions in ONE gr_claims() result. An outline made
-    # from another run -- a re-run, or a reconcile that ordered the claims
-    # differently -- names the same numbers for different claims, and each
+    # from another run (a re-run, or a reconcile that ordered the claims
+    # differently) names the same numbers for different claims, and each
     # section argued someone else's. gr_outline() stamps the claims it was
     # given; nothing to compare against is an outline made some other way.
     if (!is.null(fingerprint) &&
@@ -574,10 +575,10 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
                class = "gr_claims_mismatch")
     }
     # Every claim the assignment places has to land in a section that is
-    # written. A claim assigned to a heading the outline no longer has -- one
-    # renamed after gr_outline(), which `names<-` allows and keeps the
-    # assignment through -- was never argued, the renamed section fell back to
-    # writing from rows, and nothing said so.
+    # written. `names<-` can rename a heading after gr_outline() and keeps the
+    # assignment through the rename. A claim assigned to a heading the outline
+    # no longer has was never argued, the renamed section fell back to writing
+    # from rows, and nothing said so.
     orphan <- !as.character(assign_map$section) %in% names(outline)
     if (any(orphan)) {
       gr_abort(sprintf(paste0("The outline assigns claim(s) %s to section(s) %s, which it does not ",
@@ -607,7 +608,7 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
     # below), but the claims reach them as gr_claims() drew them. Claims drawn
     # under a `bib` that withheld less were drawn by a model shown those
     # columns, so a claim, or the moderator it names, can carry one into every
-    # section that argues it -- a first author in the claim text, in front of
+    # section that argues it: a first author in the claim text, in front of
     # a writer this run is keeping from naming one. For a claims table made
     # before it recorded what it withheld, gr_upgrade_stage() fills `hidden`
     # with the conventional bibliographic names, which are what such a table
@@ -641,7 +642,7 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   spec <- resolve_read_model(spec, client)
   # Only when asked, so a default write-up's spec is the one it always was.
   if (identical(revision_check, "judge")) spec$revision_check <- "judge"
-  # The parent, not the counter -- see as_parent_trace(). Running the write-up on
+  # The parent, not the counter (see as_parent_trace()). Running the write-up on
   # a trace that screening had already spent meant the call cap refused
   # every section and the review came back as a list of empty headings.
   parent <- as_parent_trace(trace)
@@ -664,8 +665,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   # prevent. Identity is applied afterwards, from the table. A model cannot
   # misattribute a study whose authors it was never told.
   #
-  # If a bibliographic value is also a FINDING -- publication year as
-  # chronology, say -- extract it a second time under a name of its own.
+  # If a bibliographic value is also a FINDING, such as publication year as
+  # chronology, extract it a second time under a name of its own.
   hide_cols <- unlist(bib_columns(used, bib), use.names = FALSE)
   # Each extracted value with its check and quote, the unverified ones marked
   # as such: the writer is told which values the documents were found to
@@ -683,8 +684,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   if (!is_nonblank(gaps)) gaps <- NULL
   # Gaps reach exactly one section, the closing one gr_outline() marked: handing
   # them to every section makes every section recite them. An outline with no
-  # such heading -- written by hand, from a protocol, or with the closing
-  # heading renamed -- sent them nowhere while `$gaps` reported them.
+  # such heading (written by hand, from a protocol, or with the closing
+  # heading renamed) sent them nowhere while `$gaps` reported them.
   if (!is.null(gaps) && (is.na(closing) || !closing %in% names(outline))) {
     gr_warn(sprintf(paste0("`gaps` were given, but the outline has no closing section to state them ",
                            "(%s), so no section does. Name the heading that should with ",
@@ -751,8 +752,8 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   citations <- rbind_evidence(lapply(rows, `[[`, "citations"))
 
   # ORDER MATTERS, and getting it wrong is silent. Everything downstream works
-  # on the MARKER form -- the notation the model actually wrote and the citation
-  # check actually ran on -- and rendering to "(Smith & Okafor, 2019)" happens
+  # on the MARKER form: the notation the model actually wrote and the citation
+  # check actually ran on. Rendering to "(Smith & Okafor, 2019)" happens
   # once, at the very end. Rendering first made the coherence pass compare a
   # rendered draft against a marked revision, so every citation in the revision
   # looked newly added and every honest revision was thrown away.
@@ -1126,8 +1127,9 @@ synth_unwritten <- function(heading, brief, claim_ids, why) {
 #' identifier: a claim saying it rests on study 3 and a section citing
 #' `[study 3]` have to mean the same row. Two copies of this filter would drift
 #' the moment one of them learned about a new status value, and the symptom
-#' would be a claims table that silently points at the wrong studies -- not an
-#' error, just a review attributing findings to papers that do not contain them.
+#' would be a claims table that silently points at the wrong studies. No error
+#' would show, only a review attributing findings to papers that do not contain
+#' them.
 #' @noRd
 synth_studies <- function(tab, include_unclear = FALSE) {
   keep <- synth_usable(tab, include_unclear)
@@ -1169,8 +1171,8 @@ synth_document <- function(sections) {
 #' it was never given ran on the sections. Leaving only the studies that NO
 #' section was given, as this once did, rendered the fabricated citation as an
 #' author-year fact wherever another section had cited the same study honestly
-#' -- which, with claims, is nearly every study -- while print() said the
-#' marker had been left.
+#' (with claims, nearly every study), while print() said the marker had been
+#' left.
 #'
 #' So every sentence citing a reported study is followed from the draft
 #' through each kept pass in turn. In the draft it is honest if its section was
@@ -1184,7 +1186,7 @@ synth_document <- function(sections) {
 #'     under no heading of the draft (a preamble, a renamed section);
 #'   * under the heading of a section given the study: honest or reported as
 #'     the sentence it repeats word for word, and a reworded or new sentence is
-#'     honest only if nothing says a reported marker could be in it -- the
+#'     honest only if nothing says a reported marker could be in it: the
 #'     pass kept every reported marker where it can be seen (none deleted, none
 #'     reworded away, no honest sentence taken into a reporting section), the
 #'     section has no more such sentences than it lost honest ones, and the
@@ -1328,7 +1330,7 @@ render_revised <- function(texts, headings, marked, unsupplied, render) {
         if (is.na(i)) return(if (key %in% sus) as_before(key) else "unsure")
         if (j %in% own[[i]]) {
           if (key %in% sus) return(as_before(key))
-          # Reworded under a reporting heading is the reported sentence --
+          # Reworded under a reporting heading is the reported sentence,
           # unless an honest one had been standing there to be reworded.
           return(if (any(prev$sec[pu][pst == "honest"] %in% i)) "unsure" else "reported")
         }
@@ -1406,10 +1408,10 @@ synth_empty_citations <- function() {
 #'
 #' NOT a quality score, and deliberately NOT a design hierarchy. Ranking designs
 #' would mean asserting that a cohort study beats a qualitative one, which is a
-#' methodological claim this package has no standing to make on its own -- and
-#' adding up per-item scores to get a total is the thing Cochrane says plainly is
-#' discouraged. Design earns its place as a GROUPING variable instead: it is what
-#' distinguishes the studies on each side of a disagreement, and what
+#' methodological claim this package has no standing to make on its own.
+#' Adding up per-item scores to get a total is the thing Cochrane says plainly
+#' is discouraged. Design earns its place as a GROUPING variable instead: it is
+#' what distinguishes the studies on each side of a disagreement, and what
 #' [gr_gaps()] crosstabs.
 #'
 #' What is left is what the table can honestly support: how many units were
@@ -1418,8 +1420,8 @@ synth_empty_citations <- function() {
 #' @noRd
 study_weight <- function(used) {
   # numeric_token(), not as.numeric(): an `n` column reading "900 participants"
-  # is not missing data, and as.numeric() made it NA. NA then scored 0 -- the
-  # bottom of the scale -- so a 900-participant study weighed LESS than one with
+  # is not missing data, and as.numeric() made it NA. NA then scored 0, the
+  # bottom of the scale, so a 900-participant study weighed LESS than one with
   # 25, and claim_order() put the small study's claim first.
   n <- n_column(used$n %||% rep(NA, nrow(used)))
   # log1p, because the difference between 20 and 200 participants matters far
@@ -1427,7 +1429,7 @@ study_weight <- function(used) {
   size <- log1p(ifelse(is.na(n) | n < 0, NA_real_, n))
   mx <- suppressWarnings(max(size, na.rm = TRUE))
   size <- if (is.finite(mx) && mx > 0) size / mx else rep(NA_real_, length(size))
-  # An `n` nobody reported is UNKNOWN, not zero -- the same distinction the
+  # An `n` nobody reported is UNKNOWN, not zero: the same distinction the
   # `filled` term below already makes by scoring NA at 0.5 rather than 0. Zero
   # punished a study for a cell the extraction could not fill.
   mid <- if (any(!is.na(size))) mean(size, na.rm = TRUE) else 0

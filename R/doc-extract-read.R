@@ -1,4 +1,4 @@
-# doc-extract-read.R -- the `extract` reader: fill a schema from a document.
+# doc-extract-read.R: the `extract` reader, which fills a schema from a document.
 #
 # Traversal `all|N+conflicts|none`. Every chunk is asked to fill whatever fields
 # it can and to leave the rest null; the per-field answers are then reconciled.
@@ -10,8 +10,8 @@
 # values is the interesting case, and that is where the extra call goes.
 #
 # Nothing here invents a value. A field no chunk reported comes back NA with the
-# status "not reported", which is a FINDING -- the same distinction
-# `is_not_found()` draws for answers. A review that cannot tell "the paper does
+# status "not reported", which is a FINDING. `is_not_found()` draws the same
+# distinction for answers. A review that cannot tell "the paper does
 # not say" from "we failed to look" is not a review.
 
 #' @noRd
@@ -95,8 +95,8 @@ read_extract <- function(chunks, question, client, spec, trace) {
       quote_backs_value(rec$record[[nm]], ev$text[i], ev$source_text[i], fields[[nm]])
     }, logical(1))
     ev$verified <- ev$verified & backs
-    # A value the adjudicating call judged unsupported -- it chose none of the
-    # values the document gave -- is kept, as the first value, and is not
+    # A value the adjudicating call judged unsupported (it chose none of the
+    # values the document gave) is kept, as the first value, and is not
     # verified, whatever its quote says. Left verified, the cell read as
     # settled and fully supported although the one judgement asked of it said
     # the opposite, and the call it cost bought nothing.
@@ -118,7 +118,7 @@ read_extract <- function(chunks, question, client, spec, trace) {
   # A value is SUPPORTED when a span was quoted for it, that span really occurs
   # in the chunk it was attributed to, and it carries the value. Two distinct
   # ways to fail: no quote at all, and a quote that is a paraphrase or does not
-  # say this. The second is loud already -- `verified = FALSE` sits in the
+  # say this. The second is loud already: `verified = FALSE` sits in the
   # evidence table and new_answer() marks the answer partial. The first was
   # silent, because a field with no quote produced no evidence row at all, so a
   # value nothing supports looked exactly like a value everything supported.
@@ -134,7 +134,7 @@ read_extract <- function(chunks, question, client, spec, trace) {
   # destructive and the caller should choose it, and because the count below
   # makes the same problem visible without discarding anything.
   if (isTRUE(spec[["require_quote"]]) && length(unsupported)) {
-    # `record[[nm]] <- NULL` DELETES the key -- the same trap as modifyList().
+    # `record[[nm]] <- NULL` DELETES the key, the same trap as modifyList().
     # The record has to stay one entry per field, or the JSON stops saying that
     # the field was looked for, and anything downstream that lines the record up
     # against the schema silently shifts.
@@ -146,13 +146,13 @@ read_extract <- function(chunks, question, client, spec, trace) {
   }
 
   # digits = NA: jsonlite rounds to four decimal places by default, and this
-  # text is the answer -- summary$answer, the audit report, as_json() and the
+  # text is the answer: summary$answer, the audit report, as_json() and the
   # store fallback in answer_record() all read it. p = 0.00003 came out as 0.
   new_answer(as.character(as_json(record, pretty = FALSE, digits = NA)), "extract", question,
              unique(if (is.null(ev)) integer(0) else ev$chunk_id), trace,
              chunks_sent = d$chunk_id, evidence = ev,
              # An extraction that filled NOTHING is not a partial answer, it is a
-             # complete negative one -- the document was read and does not report
+             # complete negative one: the document was read and does not report
              # these fields. Marking it partial would contradict the distinction
              # this reader exists to preserve, and would flag every off-topic
              # paper in a screening run as a broken read. An UNSUPPORTED value is
@@ -238,7 +238,7 @@ reconcile_fields <- function(got, fields, d, client, spec, trace) {
       # every passage is in the chunk, so span_match() takes its fast path.
       backs <- quote_backs_value(v, q, src[g$chunk], fields[[nm]]) && verbatim(q, g$chunk)
       # "None" or "N/A" in a string field is usually the model saying it found
-      # nothing -- often Python's None, spelled out -- and it often fills the
+      # nothing (often Python's None, spelled out), and it often fills the
       # quote the same way. It is the answer only when the document itself
       # says it ("Conflicts of interest: None."): kept with a sentence that
       # verifies and spells it, and dropped otherwise, as it always was. Kept
@@ -263,14 +263,14 @@ reconcile_fields <- function(got, fields, d, client, spec, trace) {
     }
 
     # value_key(), not format(). format() keeps seven significant digits, so
-    # 0.123456789 and 0.123456781 -- or two counts above 2^31 -- were the same
+    # 0.123456789 and 0.123456781 (or two counts above 2^31) were the same
     # value and a real conflict between two parts of one paper was not reported.
     # By type, so two spellings of one string ("Randomised controlled trial",
     # "randomised controlled trial.") are one value, not a conflict that
     # resolve = "model" pays to adjudicate.
     keys <- vapply(hits, function(h) value_key(h$value, fields[[nm]]$type), character(1))
-    # One hit per distinct value, in order of first appearance -- so "first"
-    # still means the earliest chunk's VALUE -- but carrying the best quote any
+    # One hit per distinct value, in order of first appearance, so "first"
+    # still means the earliest chunk's VALUE. Each carries the best quote any
     # chunk gave for it. Taking the first hit's quote made the abstract's
     # unquoted n = 120 hide the methods section's verbatim sentence for the same
     # 120: the value counted as unsupported, and require_quote deleted a datum
@@ -412,8 +412,8 @@ pieces_back_value <- function(value, passages, src, field) {
 #' rose 30%."). That is span_match()'s own test (found_in_order(), which
 #' reads each gap with elision_gap_ok()).
 #'
-#' Separate passages -- lines, bullets, paragraphs, each in its own quote
-#' marks -- are separate quotations, and each may start anywhere in a
+#' Separate passages (lines, bullets, paragraphs, each in its own quote
+#' marks) are separate quotations, and each may start anywhere in a
 #' sentence: "- The trial enrolled adults.\n- 240 patients were randomised."
 #' quotes "... adults. In total, 240 patients were randomised." faithfully.
 #' But two that follow each other within one sentence of the document are an
@@ -554,8 +554,8 @@ resolve_conflict <- function(nm, field, hits, client, spec, trace) {
     return("failed")
   }
   # json_field(): `$` let a reply keyed `choices` answer a read of `choice`.
-  # A reply that names no option is no verdict; 0 is one -- that none of the
-  # values is supportable -- and the caller marks the value it keeps
+  # A reply that names no option is no verdict. 0 is one (that none of the
+  # values is supportable), and the caller marks the value it keeps
   # unverified rather than presenting it as settled.
   i <- as_int1(json_field(out$value, "choice"), NA_integer_)
   if (is.na(i) || i < 0L || i > length(hits)) return("failed")
