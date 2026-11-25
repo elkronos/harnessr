@@ -372,8 +372,8 @@ rpt <- hr_report(bench, B = 200)
 rpt
 ```
 
-The size of the benchmark decides the interval, and the second line of the
-print names it and says why. With at least 300 items and at least 30 clusters,
+With `method = "auto"`, `hr_report()` picks the interval from the size of the
+benchmark, and the second line of the print names it and says why. With at least 300 items and at least 30 clusters,
 `method = "auto"` uses a studentised cluster bootstrap: each resample draws
 whole clusters with all their items, runs and arms. Below either threshold, as
 here, it uses a cluster-robust t interval on the logit scale, with t quantiles
@@ -551,9 +551,9 @@ the same benchmark with intervals.
 ## Planning the size, and non-inferiority
 
 Often you want to know whether a cheaper arm is worse than the one in use by
-more than a margin you can live with. That is a non-inferiority test. The size
-of a benchmark decides whether it can answer that, so check the size before
-anyone labels 500 questions.
+more than a margin you can live with. That is a non-inferiority test. Whether a
+benchmark can answer that depends on its size, so check the size before anyone
+labels 500 questions.
 
 `hr_mdd()` gives the smallest paired difference a clustered design can detect.
 It needs the number of items and clusters, the intra-cluster correlation of the
