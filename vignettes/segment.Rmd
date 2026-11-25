@@ -284,27 +284,32 @@ unlist(ctx_llm$extra$cost)
 Three segmenters spend something, and each takes a `client`:
 
 - `semantic` embeds the text a few sentences at a time (`semantic_window`,
-  default 2) and cuts where two neighbouring windows differ most: at distances
-  above the `semantic_percentile` (default 90; higher gives fewer, larger
-  chunks), or, with `semantic_threshold = "texttiling"`, at the deep valleys
-  of the similarity between neighbouring windows (see below). The packer then
-  holds the pieces to the cap and the minimum.
-- `contextual` with `context_source = "llm"` makes one call per chunk, as above.
+  default 2) and cuts where two neighbouring windows differ most. By default
+  it cuts at distances above the `semantic_percentile` (default 90; higher
+  gives fewer, larger chunks). With `semantic_threshold = "texttiling"` it
+  cuts at the deep valleys of the similarity between neighbouring windows
+  (see below). The packer then holds the pieces to the cap and the minimum.
+- `contextual` with `context_source = "llm"` makes one call per chunk, as
+  above.
 - `proposition` sends the document in batches of about
-  `proposition_batch_tokens` (default 900) and has the model rewrite each into
+  `proposition_batch_tokens` (default 900). The model rewrites each batch into
   standalone factual statements, with pronouns resolved and numbers kept as
-  written. With `proposition_context_tokens` above 0, each batch's request
-  also carries that many tokens from the end of the batch before it, so what
-  it refers back to can be resolved. Its chunks are the model's words,
-  so `source_text` holds the passage each was written from, and quotes are
-  checked against that; each chunk keeps the page and section of its passage.
-  A proposition with no support in its passage (a number the passage does not
-  give, or most of its words absent) is counted in
-  `$extra$propositions_unsupported`; with `proposition_check = "drop"` it is
-  also dropped as invented, counted in `$extra$propositions_dropped`, with a
-  `gr_proposition_dropped` warning. A
-  batch that cannot be rewritten is kept as written rather than dropped, with
-  a warning, and counted in `$extra$batches_kept_as_written`.
+  written.
+
+With `proposition_context_tokens` above 0, each `proposition` request also
+carries that many tokens from the end of the batch before it, so the model can
+resolve what the batch refers back to. The chunks are the model's words, so
+`source_text` holds the passage each was written from, and harnessr checks
+quotes against that passage. Each chunk keeps the page and section of its
+passage. Three counts in `$extra` track what the check and the model did:
+
+- `propositions_unsupported` counts propositions with no support in their
+  passage: a number the passage does not give, or most of the words absent.
+  With `proposition_check = "drop"`, harnessr also drops each one as invented,
+  counts it in `propositions_dropped`, and warns with class
+  `gr_proposition_dropped`.
+- `batches_kept_as_written` counts batches the model could not rewrite.
+  harnessr keeps such a batch as written instead of dropping it, and warns.
 
 ```{r}
 cl <- hr_mock_client(function(messages, params) "unused")
@@ -313,10 +318,11 @@ gr_chunk_stats(sem)
 sem$extra$embedding_source
 ```
 
-`embedding_source` is `"lexical"` here, so the boundaries reflect shared words,
-not meaning, and `$method` says so: `"semantic->lexical"`. With a real
-embeddings endpoint it is `"api"`, and the method is `"semantic"`. The label
-is all that differs; the chunks and the requests are the same.
+`embedding_source` is `"lexical"` here, so the boundaries follow shared words
+instead of meaning, and `$method` says so: `"semantic->lexical"`. With a real
+embeddings endpoint, `embedding_source` is `"api"` and the method is
+`"semantic"`. The `->lexical` suffix is a label only: it changes neither the
+chunks nor the requests.
 
 These requests count against the run's limits, `hr_options(max_calls =,
 max_cost_usd =)`, like any other. Called without a `trace`, `gr_segment()`
@@ -330,24 +336,28 @@ hr_trace_summary(ctx_llm$trace)[, c("calls", "tokens_in", "tokens_out")]
 
 ## Comparing segmentations
 
-`gr_chunk_stats()` sums a chunk set up in one row, so comparing chunkings is an
-`rbind()`:
+`gr_chunk_stats()` sums up a chunk set in one row, so you compare chunkings
+with `rbind()`:
 
 ```{r}
 do.call(rbind, lapply(c("fixed", "paragraph", "sentence", "structural"),
   function(m) gr_chunk_stats(gr_segment(doc, list(method = m, max_tokens = 120)))))
 ```
 
-`n` is the number of chunks, which is the number of requests for a reader that
-sends every chunk. `total_tokens` grows with overlap and with text a segmenter
-adds, such as the headings `structural` puts at the top of its chunks.
-`over_cap` is 0 for anything `gr_segment()` returns, since the cap is enforced;
-it is there for chunk sets built some other way. `method` names any fallback.
+The columns:
 
-To compare what different chunkings do to an answer, give `gr_compare()`
-recipes that differ only in their `segment`. It extracts the document once and
-reuses a segmentation across recipes whose segment settings match, so only the
-reading is paid for more than once:
+- `n` is the number of chunks, and so the number of requests for a reader that
+  sends every chunk.
+- `total_tokens` grows with overlap and with text a segmenter adds, such as the
+  headings `structural` puts at the top of its chunks.
+- `over_cap` is 0 for anything `gr_segment()` returns, since `gr_segment()`
+  enforces the cap. The column is there for chunk sets built some other way.
+- `method` names any fallback.
+
+To see what different chunkings do to an answer, give `gr_compare()` recipes
+that differ only in their `segment`. `gr_compare()` extracts the document once
+and reuses a segmentation across recipes whose segment settings match, so you
+pay more than once only for the reading:
 
 ```{r}
 cmp <- gr_compare(gr_example(), "What was revenue?", list(
@@ -360,19 +370,26 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "chunks_used")]
 
 ## Choosing the settings
 
-Each walkthrough below takes one segmentation setting or group: what it
-controls and what it trades off, the signs in your results that point to
-changing it, where its default came from, and how to test a change.
+Each walkthrough below takes one segmentation setting or group of settings
+and covers four things:
+
+- what it controls and what it trades off;
+- the signs in your results that point to changing it;
+- where its default came from;
+- how to test a change.
+
 `vignette("settings")` lists every segmentation setting with its default.
 
-The free statistics above (`gr_chunk_stats()`, and `gr_seg_recall()` and
-`gr_seg_pk()` in `vignette("compare")`) are the first test of a chunking, since
-they cost nothing. What a chunking does to answers is tested with arms:
-`hr_sweep()` builds one arm per value and `hr_benchmark()` runs them on a
-reference. Here the arms run on one question and a stand-in model that always
-answers correctly, so the examples show how a sweep is built and read, not
-which value is better. `vignette("compare")` runs a grid of segmenters and
-chunk sizes on dev, then compares one choice on test with intervals.
+Test a chunking first with the free statistics: `gr_chunk_stats()` above, and
+`gr_seg_recall()` and `gr_seg_pk()` in `vignette("compare")`. To test what a
+chunking does to answers, use arms: `hr_sweep()` builds one arm per value and
+`hr_benchmark()` runs them on a reference.
+
+Here the arms run on one question and a stand-in model that always answers
+correctly. The examples therefore show how to build and read a sweep; they do
+not show which value is better. `vignette("compare")` runs a grid of
+segmenters and chunk sizes on dev, then compares one choice on test with
+intervals.
 
 ```{r}
 qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
