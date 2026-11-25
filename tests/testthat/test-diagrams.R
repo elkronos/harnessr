@@ -154,3 +154,30 @@ test_that("rerunning dev/build-diagrams.R gives byte-identical files", {
                      unname(tools::md5sum(diagram_path(f))), info = f)
   }
 })
+
+# README.md uses the path from the repository root, which GitHub and pkgdown
+# both resolve. The guides use "../man/figures/". That path renders under
+# R CMD build, which embeds the image in the built HTML, so the installed
+# vignette shows it too, and pkgdown rewrites it to "../reference/figures/",
+# where it copies man/figures.
+test_that("README and the guides show the diagrams, each with alt text", {
+  root <- diagram_root()
+  readme <- paste(readLines(file.path(root, "README.md"), warn = FALSE), collapse = "\n")
+  expect_match(readme, "![Two stacked layers", fixed = TRUE)
+  expect_match(readme, "](man/figures/layers.svg)", fixed = TRUE)
+
+  shown <- c(harnessr = "document-run.svg", compose = "composition.svg",
+             extending = "registry.svg")
+  for (v in names(shown)) {
+    lines <- readLines(file.path(root, "vignettes", paste0(v, ".Rmd")), warn = FALSE)
+    call <- sprintf('knitr::include_graphics("../man/figures/%s")', shown[[v]])
+    at <- which(lines == call)
+    expect_length(at, 1)
+    if (length(at) != 1) next
+    header <- lines[at - 1]
+    expect_match(header, "echo = FALSE", fixed = TRUE, info = v)
+    alt <- regmatches(header, regexpr('fig.alt = "[^"]+"', header))
+    expect_length(alt, 1)
+    expect_gt(nchar(alt), 100)
+  }
+})
