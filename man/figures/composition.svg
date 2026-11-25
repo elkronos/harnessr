@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="742" viewBox="0 0 900 742" role="img" aria-labelledby="composition-title composition-desc">
+<title id="composition-title">Composing steps</title>
+<desc id="composition-desc">A document chain built with hr_chain() from ingest (document in, doc out), segment (doc in, chunks out), retrieve (chunks in, chunks out), read (chunks in, answer out). Settings flow from hr_param() and hr_schema() through hr_step() and hr_validate() to ctx$step_params; hr_settings() lists them by path, hr_set() changes them and hr_sweep() makes one arm per row. A coding loop runs draft, visible check, revise and held check, and a held command step must come last.</desc>
+<defs>
+<marker id="composition-arrow-neutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#8c959f"/></marker>
+<marker id="composition-arrow-core" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#0969da"/></marker>
+<marker id="composition-arrow-doc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#1a7f37"/></marker>
+<marker id="composition-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#bc4c00"/></marker>
+</defs>
+<rect width="900" height="742" rx="14" fill="#ffffff"/>
+<g font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif" font-size="14" fill="#1f2328">
+<text x="24" y="36" font-size="20" font-weight="bold">Composing steps</text>
+<text x="24" y="60" fill="#57606a">hr_chain() runs steps in order as one arm; each step takes what the one before returned.</text>
+<text x="24" y="96" font-size="16" font-weight="bold">A document chain</text>
+<rect x="24" y="108" width="184" height="70" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="116" y="131" font-size="15" text-anchor="middle" font-weight="bold" fill="#116329">ingest</text>
+<text x="116" y="148.6" font-size="13" text-anchor="middle" class="fn">gr_step(&quot;ingest&quot;)</text>
+<text x="116" y="165.5" font-size="13" text-anchor="middle" fill="#57606a">document in, doc out</text>
+<path d="M208 143 L246.7 143" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#composition-arrow-neutral)"/>
+<rect x="246.7" y="108" width="184" height="70" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="338.7" y="131" font-size="15" text-anchor="middle" font-weight="bold" fill="#116329">segment</text>
+<text x="338.7" y="148.6" font-size="13" text-anchor="middle" class="fn">gr_step(&quot;segment&quot;)</text>
+<text x="338.7" y="165.5" font-size="13" text-anchor="middle" fill="#57606a">doc in, chunks out</text>
+<path d="M430.7 143 L469.3 143" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#composition-arrow-neutral)"/>
+<rect x="469.3" y="108" width="184" height="70" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="561.3" y="131" font-size="15" text-anchor="middle" font-weight="bold" fill="#116329">retrieve</text>
+<text x="561.3" y="148.6" font-size="13" text-anchor="middle" class="fn">gr_step_retrieve()</text>
+<text x="561.3" y="165.5" font-size="13" text-anchor="middle" fill="#57606a">chunks in, chunks out</text>
+<path d="M653.3 143 L692 143" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#composition-arrow-neutral)"/>
+<rect x="692" y="108" width="184" height="70" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="784" y="131" font-size="15" text-anchor="middle" font-weight="bold" fill="#116329">read</text>
+<text x="784" y="148.6" font-size="13" text-anchor="middle" class="fn">gr_step(&quot;read&quot;)</text>
+<text x="784" y="165.5" font-size="13" text-anchor="middle" fill="#57606a">chunks in, answer out</text>
+<text x="24" y="204" font-size="13" fill="#57606a">hr_chain(..., name = &quot;checked&quot;) returns one hr_arm(); hr_benchmark() runs it like any arm.</text>
+<text x="24" y="244" font-size="16" font-weight="bold">Settings</text>
+<rect x="24" y="256" width="272" height="62" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="160" y="283.2" text-anchor="middle" font-weight="bold" class="fn">hr_param() in an hr_schema()</text>
+<text x="160" y="300.4" font-size="13" text-anchor="middle">a type, a default and a range</text>
+<path d="M296 287 L314 287" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#composition-arrow-neutral)"/>
+<rect x="314" y="256" width="272" height="62" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="450" y="283.2" text-anchor="middle" font-weight="bold" class="fn">hr_step(params, schema)</text>
+<text x="450" y="300.4" font-size="13" text-anchor="middle" class="fn">hr_validate() resolves them</text>
+<path d="M586 287 L604 287" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#composition-arrow-neutral)"/>
+<rect x="604" y="256" width="272" height="62" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="740" y="283.2" text-anchor="middle" font-weight="bold">ctx$step_params</text>
+<text x="740" y="300.4" font-size="13" text-anchor="middle">what the step reads when it runs</text>
+<rect x="24" y="346" width="272" height="62" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="160" y="373.2" text-anchor="middle" font-weight="bold" class="fn">hr_settings(chain)</text>
+<text x="160" y="390.4" font-size="13" text-anchor="middle">by path: retrieve.top_k = 6</text>
+<path d="M296 377 L314 377" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#composition-arrow-neutral)"/>
+<rect x="314" y="346" width="272" height="62" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="450" y="372.8" font-size="13" text-anchor="middle" font-weight="bold" class="fn">hr_set(x, retrieve.top_k = 8)</text>
+<text x="450" y="389.7" font-size="13" text-anchor="middle">builds the chain again</text>
+<path d="M586 377 L604 377" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#composition-arrow-neutral)"/>
+<rect x="604" y="346" width="272" height="62" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="740" y="364.7" text-anchor="middle" font-weight="bold" class="fn">hr_sweep(chain, grid)</text>
+<text x="740" y="381.9" font-size="13" text-anchor="middle">one arm per row, named as</text>
+<text x="740" y="398.8" font-size="13" text-anchor="middle">checked:retrieve.top_k=2</text>
+<path d="M160 318 L160 346" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#composition-arrow-neutral)"/>
+<text x="168" y="337" font-size="13" fill="#57606a">a chain lists them</text>
+<text x="24" y="432" font-size="13" fill="#57606a">hr_benchmark() records each swept setting as a param.* column.</text>
+<text x="24" y="450" font-size="13" fill="#57606a">hr_sweep_check() finds arms that sent the same requests.</text>
+<text x="24" y="478" font-size="16" font-weight="bold">A coding loop: held command steps come last</text>
+<rect x="24" y="492" width="192" height="96" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="120" y="528.1" font-size="15" text-anchor="middle" font-weight="bold">draft</text>
+<text x="120" y="545.6" font-size="13" text-anchor="middle" class="fn">hr_step()</text>
+<text x="120" y="562.5" font-size="13" text-anchor="middle" fill="#57606a">writes a draft</text>
+<path d="M216 540 L244 540" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#composition-arrow-neutral)"/>
+<rect x="244" y="492" width="192" height="96" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="340" y="519.6" font-size="15" text-anchor="middle" font-weight="bold">visible check</text>
+<text x="340" y="537.1" font-size="13" text-anchor="middle" class="fn">hr_step_command()</text>
+<text x="340" y="554" font-size="13" text-anchor="middle">held = FALSE</text>
+<text x="340" y="570.9" font-size="13" text-anchor="middle" fill="#57606a">result in $check</text>
+<path d="M436 540 L464 540" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#composition-arrow-neutral)"/>
+<rect x="464" y="492" width="192" height="96" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="560" y="528.1" font-size="15" text-anchor="middle" font-weight="bold">revise</text>
+<text x="560" y="545.6" font-size="13" text-anchor="middle" class="fn">hr_step()</text>
+<text x="560" y="562.5" font-size="13" text-anchor="middle" fill="#57606a">reads $check, rewrites</text>
+<path d="M656 540 L684 540" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#composition-arrow-neutral)"/>
+<rect x="684" y="492" width="192" height="96" rx="8" fill="#fff1e5" stroke="#bc4c00" stroke-width="1.5"/>
+<text x="780" y="519.6" font-size="15" text-anchor="middle" font-weight="bold" fill="#953800">held check</text>
+<text x="780" y="537.1" font-size="13" text-anchor="middle" class="fn">hr_step_command()</text>
+<text x="780" y="554" font-size="13" text-anchor="middle">held = TRUE</text>
+<text x="780" y="570.9" font-size="13" text-anchor="middle" fill="#57606a">kept from later steps</text>
+<rect x="24" y="612" width="852" height="70" rx="8" fill="#fff1e5" stroke="#bc4c00" stroke-width="1.5"/>
+<text x="34" y="634.4" font-size="13">A held step returns its input unchanged and attaches its result as attr(output, &quot;hr_held&quot;),</text>
+<text x="34" y="651.3" font-size="13" class="fn">which a scorer from hr_scorer() reads. hr_chain() refuses any other step after a held one,</text>
+<text x="34" y="668.2" font-size="13">with class hr_held_not_last: draft, visible check, revise, held check is the order.</text>
+<text x="24" y="708" font-size="13" fill="#57606a" class="fn">The composition verbs: gr_step(), gr_step_retrieve(), hr_chain(), hr_set(), hr_settings(), hr_step(),</text>
+<text x="24" y="726" font-size="13" fill="#57606a" class="fn">hr_step_command(), hr_sweep(), hr_sweep_check().</text>
+</g>
+</svg>

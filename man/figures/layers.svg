@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="676" viewBox="0 0 900 676" role="img" aria-labelledby="layers-title layers-desc">
+<title id="layers-title">harnessr in two layers</title>
+<desc id="layers-desc">Two stacked layers. Your R code calls the document layer (gr_ functions: ingest, segment, read, screen, extract, claims, synthesis, review) or the core directly (hr_ functions: client, calls, cache, trace and ledger, budget and governor, registry and modules, composition). The document layer calls the core, and the core sends requests to a model provider or a stand-in. The core never calls the document layer; tests/testthat/test-boundary.R checks that.</desc>
+<defs>
+<marker id="layers-arrow-neutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#8c959f"/></marker>
+<marker id="layers-arrow-core" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#0969da"/></marker>
+<marker id="layers-arrow-doc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#1a7f37"/></marker>
+<marker id="layers-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#bc4c00"/></marker>
+</defs>
+<rect width="900" height="676" rx="14" fill="#ffffff"/>
+<g font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif" font-size="14" fill="#1f2328">
+<text x="24" y="36" font-size="20" font-weight="bold">harnessr in two layers</text>
+<text x="24" y="60" fill="#57606a">Calls go down. The core never calls the document layer.</text>
+<rect x="24" y="76" width="852" height="40" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+<text x="450" y="101" font-size="15" text-anchor="middle" font-weight="bold">Your R code</text>
+<path d="M380 116 L380 154" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#layers-arrow-neutral)"/>
+<text x="388" y="140" font-size="13" fill="#57606a">calls gr_ functions</text>
+<rect x="24" y="154" width="720" height="166" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="40" y="178" font-size="15" font-weight="bold" fill="#116329">Document layer: gr_ functions in R/doc-*.R</text>
+<rect x="40" y="190" width="163" height="52" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="121.5" y="212.2" text-anchor="middle" font-weight="bold" fill="#116329">ingest</text>
+<text x="121.5" y="229.4" font-size="13" text-anchor="middle" class="fn">gr_ingest()</text>
+<rect x="215" y="190" width="163" height="52" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="296.5" y="212.2" text-anchor="middle" font-weight="bold" fill="#116329">segment</text>
+<text x="296.5" y="229.4" font-size="13" text-anchor="middle" class="fn">gr_segment()</text>
+<rect x="390" y="190" width="163" height="52" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="471.5" y="212.2" text-anchor="middle" font-weight="bold" fill="#116329">read</text>
+<text x="471.5" y="229.4" font-size="13" text-anchor="middle" class="fn">gr_read()</text>
+<rect x="565" y="190" width="163" height="52" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="646.5" y="212.2" text-anchor="middle" font-weight="bold" fill="#116329">screen</text>
+<text x="646.5" y="229.4" font-size="13" text-anchor="middle" class="fn">gr_screen()</text>
+<rect x="40" y="252" width="163" height="52" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="121.5" y="274.2" text-anchor="middle" font-weight="bold" fill="#116329">extract</text>
+<text x="121.5" y="291.4" font-size="13" text-anchor="middle" class="fn">gr_extract()</text>
+<rect x="215" y="252" width="163" height="52" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="296.5" y="274.2" text-anchor="middle" font-weight="bold" fill="#116329">claims</text>
+<text x="296.5" y="291.4" font-size="13" text-anchor="middle" class="fn">gr_claims()</text>
+<rect x="390" y="252" width="163" height="52" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="471.5" y="274.2" text-anchor="middle" font-weight="bold" fill="#116329">synthesis</text>
+<text x="471.5" y="291.4" font-size="13" text-anchor="middle" class="fn">gr_synthesise()</text>
+<rect x="565" y="252" width="163" height="52" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="646.5" y="274.2" text-anchor="middle" font-weight="bold" fill="#116329">review</text>
+<text x="646.5" y="291.4" font-size="13" text-anchor="middle" class="fn">gr_audit_report()</text>
+<path d="M810 116 L810 378" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#layers-arrow-neutral)"/>
+<text x="818" y="140" font-size="13" fill="#57606a">calls hr_</text>
+<path d="M380 320 L380 378" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#layers-arrow-neutral)"/>
+<text x="388" y="354" font-size="13" fill="#57606a">calls hr_ functions</text>
+<path d="M520 378 L520 320" fill="none" stroke="#bc4c00" stroke-width="1.75" stroke-dasharray="6 4" marker-end="url(#layers-arrow-accent)"/>
+<path d="M512 341 L528 357 M528 341 L512 357" stroke="#bc4c00" stroke-width="2.5"/>
+<text x="540" y="344" font-size="13" font-weight="bold" fill="#953800">never: core to document layer</text>
+<text x="540" y="362" font-size="13" fill="#57606a">test-boundary.R checks it</text>
+<rect x="24" y="378" width="852" height="194" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="40" y="402" font-size="15" font-weight="bold" fill="#0550ae">Core: hr_ functions in R/core-*.R</text>
+<rect x="40" y="414" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="138" y="443.2" text-anchor="middle" font-weight="bold" fill="#0550ae">client</text>
+<text x="138" y="460.4" font-size="13" text-anchor="middle" class="fn">hr_client()</text>
+<rect x="248" y="414" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="346" y="443.2" text-anchor="middle" font-weight="bold" fill="#0550ae">calls</text>
+<text x="346" y="460.4" font-size="13" text-anchor="middle" class="fn">hr_call()</text>
+<rect x="456" y="414" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="554" y="443.2" text-anchor="middle" font-weight="bold" fill="#0550ae">cache</text>
+<text x="554" y="460.4" font-size="13" text-anchor="middle" class="fn">hr_cache()</text>
+<rect x="664" y="414" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="762" y="443.2" text-anchor="middle" font-weight="bold" fill="#0550ae">trace and ledger</text>
+<text x="762" y="460.4" font-size="13" text-anchor="middle" class="fn">hr_trace()</text>
+<rect x="40" y="490" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="138" y="510.7" text-anchor="middle" font-weight="bold" fill="#0550ae">budget and governor</text>
+<text x="138" y="527.9" font-size="13" text-anchor="middle" class="fn">hr_budget()</text>
+<text x="138" y="544.8" font-size="13" text-anchor="middle" class="fn">hr_governor()</text>
+<rect x="248" y="490" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="346" y="519.2" text-anchor="middle" font-weight="bold" fill="#0550ae">registry and modules</text>
+<text x="346" y="536.4" font-size="13" text-anchor="middle" class="fn">hr_register()</text>
+<rect x="456" y="490" width="196" height="66" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="554" y="519.2" text-anchor="middle" font-weight="bold" fill="#0550ae">composition</text>
+<text x="554" y="536.4" font-size="13" text-anchor="middle" class="fn">hr_chain()</text>
+<path d="M450 572 L450 610" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#layers-arrow-neutral)"/>
+<text x="458" y="596" font-size="13" fill="#57606a">sends requests</text>
+<rect x="24" y="610" width="852" height="44" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+<text x="450" y="636.3" font-size="13" text-anchor="middle" class="fn">A model provider, or a stand-in: hr_client(), hr_ellmer_client(), hr_mock_client(), hr_replay_client()</text>
+</g>
+</svg>

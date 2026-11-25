@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="750" viewBox="0 0 900 750" role="img" aria-labelledby="registry-title registry-desc">
+<title id="registry-title">The registry and modules</title>
+<desc id="registry-desc">hr_register(kind, name, fn, ..., version) finds the kind's own function through kind_access(kind, &quot;set&quot;) and the entry keeps its version and contract 0.2. The registry has 7 kinds: extractor (gr_state$extractors), cleaner (gr_state$cleaners), segmenter (gr_state$segmenters), reader (gr_state$readers), embedder (gr_state$embedders), protocol (gr_state$protocols), step (hr_state$steps). A lookup such as gr_read() calls registry_get(&quot;reader&quot;, name), which reads through kind_access(kind, &quot;get&quot;), and calls the entry's fn; an unknown name raises gr_unknown_method and an unknown kind hr_unknown_kind. Modules follow contract 0.2; signal calibrations keep contract 0.1 (.hr_signal_contract).</desc>
+<defs>
+<marker id="registry-arrow-neutral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#8c959f"/></marker>
+<marker id="registry-arrow-core" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#0969da"/></marker>
+<marker id="registry-arrow-doc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#1a7f37"/></marker>
+<marker id="registry-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#bc4c00"/></marker>
+</defs>
+<rect width="900" height="750" rx="14" fill="#ffffff"/>
+<g font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif" font-size="14" fill="#1f2328">
+<text x="24" y="36" font-size="20" font-weight="bold">The registry and modules</text>
+<text x="24" y="60" fill="#57606a">Every kind of module is registered, stored and looked up the same way.</text>
+<text x="24" y="96" font-size="16" font-weight="bold">Registering</text>
+<rect x="24" y="108" width="272" height="64" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+<text x="160" y="135.5" text-anchor="middle" font-weight="bold" class="fn">hr_register(kind, name, fn,</text>
+<text x="160" y="153.7" text-anchor="middle" font-weight="bold">..., version)</text>
+<path d="M296 140 L314 140" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#registry-arrow-neutral)"/>
+<rect x="314" y="108" width="272" height="64" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+<text x="450" y="127.7" text-anchor="middle" font-weight="bold" class="fn">kind_access(kind, &quot;set&quot;)</text>
+<text x="450" y="144.9" font-size="13" text-anchor="middle">goes to the kind's own function,</text>
+<text x="450" y="161.8" font-size="13" text-anchor="middle" class="fn">such as gr_register_reader()</text>
+<path d="M586 140 L604 140" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#registry-arrow-neutral)"/>
+<rect x="604" y="108" width="272" height="64" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+<text x="740" y="136.2" text-anchor="middle" font-weight="bold">the entry keeps</text>
+<text x="740" y="153.4" font-size="13" text-anchor="middle">version, and contract = &quot;0.2&quot;</text>
+<path d="M740 172 L740 196" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#registry-arrow-neutral)"/>
+<rect x="24" y="196" width="852" height="180" rx="8" fill="#ffffff" stroke="#8c959f" stroke-width="1.5"/>
+<text x="40" y="220" font-size="15" font-weight="bold">The registry: 7 kinds, listed by hr_modules()</text>
+<rect x="40" y="234" width="196" height="58" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="138" y="259.5" font-size="15" text-anchor="middle" font-weight="bold" fill="#116329" class="kind">extractor</text>
+<text x="138" y="277" font-size="13" text-anchor="middle">gr_state$extractors</text>
+<rect x="248" y="234" width="196" height="58" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="346" y="259.5" font-size="15" text-anchor="middle" font-weight="bold" fill="#116329" class="kind">cleaner</text>
+<text x="346" y="277" font-size="13" text-anchor="middle">gr_state$cleaners</text>
+<rect x="456" y="234" width="196" height="58" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="554" y="259.5" font-size="15" text-anchor="middle" font-weight="bold" fill="#116329" class="kind">segmenter</text>
+<text x="554" y="277" font-size="13" text-anchor="middle">gr_state$segmenters</text>
+<rect x="664" y="234" width="196" height="58" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="762" y="259.5" font-size="15" text-anchor="middle" font-weight="bold" fill="#116329" class="kind">reader</text>
+<text x="762" y="277" font-size="13" text-anchor="middle">gr_state$readers</text>
+<rect x="40" y="304" width="196" height="58" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="138" y="329.5" font-size="15" text-anchor="middle" font-weight="bold" fill="#116329" class="kind">embedder</text>
+<text x="138" y="347" font-size="13" text-anchor="middle">gr_state$embedders</text>
+<rect x="248" y="304" width="196" height="58" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="346" y="329.5" font-size="15" text-anchor="middle" font-weight="bold" fill="#116329" class="kind">protocol</text>
+<text x="346" y="347" font-size="13" text-anchor="middle">gr_state$protocols</text>
+<rect x="456" y="304" width="196" height="58" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="554" y="329.5" font-size="15" text-anchor="middle" font-weight="bold" fill="#0550ae" class="kind">step</text>
+<text x="554" y="347" font-size="13" text-anchor="middle">hr_state$steps</text>
+<rect x="664" y="312" width="18" height="14" rx="3" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/>
+<text x="690" y="324" font-size="13">document layer kind</text>
+<rect x="664" y="338" width="18" height="14" rx="3" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="690" y="350" font-size="13">core kind</text>
+<text x="24" y="430" font-size="16" font-weight="bold">Looking up</text>
+<path d="M450 376 L450 442" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#registry-arrow-neutral)"/>
+<rect x="24" y="442" width="272" height="64" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+<text x="160" y="470.2" text-anchor="middle" font-weight="bold">a spec names a module</text>
+<text x="160" y="487.4" font-size="13" text-anchor="middle">spec$reader = &quot;stuff&quot;</text>
+<path d="M296 474 L314 474" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#registry-arrow-neutral)"/>
+<rect x="314" y="442" width="272" height="64" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+<text x="450" y="470.2" text-anchor="middle" font-weight="bold" class="fn">registry_get(&quot;reader&quot;, name)</text>
+<text x="450" y="487.4" font-size="13" text-anchor="middle" class="fn">via kind_access(kind, &quot;get&quot;)</text>
+<path d="M586 474 L604 474" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#registry-arrow-neutral)"/>
+<rect x="604" y="442" width="272" height="64" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
+<text x="740" y="461.4" font-size="13" text-anchor="middle" font-weight="bold" class="fn">gr_read() calls the entry's fn</text>
+<text x="740" y="478.3" font-size="13" text-anchor="middle">rd$fn(chunks, question,</text>
+<text x="740" y="495.2" font-size="13" text-anchor="middle">client, spec, trace)</text>
+<text x="24" y="524" font-size="13" fill="#953800">An unknown name is an error of class gr_unknown_method, which lists the registered names;</text>
+<text x="24" y="542" font-size="13" fill="#953800">an unknown kind is an error of class hr_unknown_kind.</text>
+<text x="24" y="582" font-size="16" font-weight="bold">Two contracts</text>
+<rect x="24" y="594" width="418" height="132" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="233" y="631.2" font-size="15" text-anchor="middle" font-weight="bold" fill="#0550ae">Modules: contract 0.2</text>
+<text x="233" y="648.7" font-size="13" text-anchor="middle" class="fn">hr_contract_version() returns &quot;0.2&quot;</text>
+<text x="233" y="665.6" font-size="13" text-anchor="middle" class="fn">hr_register() records it on each entry</text>
+<text x="233" y="682.5" font-size="13" text-anchor="middle" class="fn">hr_check_module() reports which rules a</text>
+<text x="233" y="699.4" font-size="13" text-anchor="middle">module breaks, and does not refuse it</text>
+<rect x="458" y="594" width="418" height="132" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+<text x="667" y="622.7" font-size="15" text-anchor="middle" font-weight="bold" fill="#0550ae">Signal calibrations: contract 0.1</text>
+<text x="667" y="640.2" font-size="13" text-anchor="middle">.hr_signal_contract stays &quot;0.1&quot;, apart from</text>
+<text x="667" y="657.1" font-size="13" text-anchor="middle" class="fn">modules, for hr_calibrate_signal()</text>
+<text x="667" y="674" font-size="13" text-anchor="middle">A record is keyed by served_model, version, task,</text>
+<text x="667" y="690.9" font-size="13" text-anchor="middle">format, prompt_hash, effort, module,</text>
+<text x="667" y="707.8" font-size="13" text-anchor="middle">contract_version.</text>
+</g>
+</svg>
