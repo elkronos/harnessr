@@ -1,4 +1,4 @@
-# test-guide-groups.R: the site's Guides menu and the README's Guides section
+# test-guide-groups.R: the site's Articles menu and the README's Guides section
 # list the same groups, and every vignette appears once.
 #
 # _pkgdown.yml and README.md are left out of the built package, so these tests
@@ -56,7 +56,7 @@ test_that("the articles groups list every vignette once, each with a description
   for (g in groups) expect_true(nzchar(g$desc), info = g$title)
 
   # The get started guide has its own navbar link; every other group is a
-  # heading in the Guides menu, named as on the articles index.
+  # heading in the Articles menu, named as on the articles index.
   expect_identical(groups[[1]]$contents, "harnessr")
   for (g in groups[-1]) expect_identical(g$navbar, g$title, info = g$title)
 })
