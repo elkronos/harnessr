@@ -1,4 +1,4 @@
-# doc-ingest-run.R -- AXIS 1: the public ingestion entry point.
+# doc-ingest-run.R: AXIS 1, the public ingestion entry point.
 #
 # WHY THIS FILE EXISTS
 # `parse_text()` cached its result under `normalizePath(file_path)` and nothing
@@ -7,12 +7,12 @@
 #
 #     a <- parse_text(f, chunk_method = "naive",    chunk_token_limit = 3000)
 #     b <- parse_text(f, chunk_method = "semantic", chunk_token_limit = 5)
-#     identical(a, b)   # TRUE -- every argument of `b` was silently discarded
+#     identical(a, b)   # TRUE: every argument of `b` was silently discarded
 #
 # and editing the file on disk did not invalidate anything. In a Shiny process
 # the cache lived in `.GlobalEnv`, shared across every user session, with no way
-# to clear it. That single defect made the repository's stated goal -- fine
-# control over how information is broken up -- unreachable: whichever settings
+# to clear it. That single defect made the repository's stated goal (fine
+# control over how information is broken up) unreachable: whichever settings
 # ran first won for the rest of the session.
 #
 # The cache key here covers the file identity (path + size + mtime) AND every
@@ -327,7 +327,7 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
   # `scalar` and `one_line` are different questions, and conflating them meant a
   # file whose NAME contains a newline was never looked for: file.exists() was
   # never consulted, the guard below could not fire either, and the path string
-  # itself became the document text -- status "ok", partial FALSE, the model
+  # itself became the document text: status "ok", partial FALSE, the model
   # answering about a filename. nchar(type = "bytes") because a string holding
   # invalid UTF-8 makes the default nchar() raise.
   scalar <- is.character(source) && length(source) == 1L && !is.na(source) &&

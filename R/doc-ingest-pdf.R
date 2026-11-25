@@ -1,4 +1,4 @@
-# doc-ingest-pdf.R -- the text of PDF pages, put back in reading order.
+# doc-ingest-pdf.R: the text of PDF pages, put back in reading order.
 #
 # pdftools::pdf_text() returns each page as the page LOOKS: lines of text, with
 # spaces standing in for position. That is faithful, and for anything but a

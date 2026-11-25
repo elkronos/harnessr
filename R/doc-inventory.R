@@ -1,4 +1,4 @@
-# doc-inventory.R -- what is in this folder, before anything is read.
+# doc-inventory.R: what is in this folder, before anything is read.
 #
 # Every other pre-run check in this package is per document and happens once the
 # run is already going: `preflight()` estimates a document's calls and cost at
@@ -12,8 +12,8 @@
 # NOT an LLM step. Whether a PDF page carries a text layer is a character count.
 # Whether a file has an extractor is a lookup. How big it is is `file.size()`.
 # Asking a model any of that would be slower, cost money, and be less accurate
-# than the exact answer sitting on disk. What a model would be needed for --
-# what a document is ABOUT -- is not what stops a corpus run.
+# than the exact answer sitting on disk. What a model would be needed for
+# (what a document is ABOUT) is not what stops a corpus run.
 #
 # The output is one row per file INCLUDING the files that will not be read,
 # because "we skipped 180 of your files" is the finding, and a table listing
@@ -124,7 +124,7 @@ gr_inventory <- function(sources, recursive = TRUE, model = NULL,
                          ocr_min_chars = 40L, max_pdf_pages = 3L) {
   # Both checked once, up front, rather than per file: NA or a non-number falls
   # back to the default with one warning, and Inf keeps its documented meaning.
-  # A number written as text is read as a number -- compared as text, an
+  # A number written as text is read as a number. Compared as text, an
   # `ocr_min_chars` of "40" made a page of 120 characters look like a scan.
   mpp <- suppressWarnings(as.numeric(max_pdf_pages))
   if (length(mpp) != 1L || is.na(mpp) || mpp < 1) {
@@ -164,8 +164,8 @@ gr_inventory <- function(sources, recursive = TRUE, model = NULL,
   # mark_utf8(), not enc2utf8(), which in a C locale turns the unlabelled
   # UTF-8 bytes of a name into "<c3><89>" text and sorts it first.
   paths <- paths[order(mark_utf8(paths), method = "radix")]
-  # A symlinked directory -- a `latest -> v3` beside the versions it points at,
-  # or an outright loop -- makes `list.files(recursive = TRUE)` return the same
+  # A symlinked directory (a `latest -> v3` beside the versions it points at,
+  # or an outright loop) makes `list.files(recursive = TRUE)` return the same
   # file many times over. One real file became 42 rows. Deduplicate on the
   # RESOLVED path: two entries that resolve to one file are one file, however
   # many ways there are to walk to it.
@@ -197,7 +197,7 @@ gr_inventory <- function(sources, recursive = TRUE, model = NULL,
   # unreadable document does not cost a `gr_read_many()` run: a folder is
   # surveyed precisely because nobody knows yet what is in it, so the one thing
   # this must not do is fall over on the first surprise. The probes below guard
-  # what is foreseeable -- a corrupt PDF, a file that cannot be read as text --
+  # what is foreseeable (a corrupt PDF, a file that cannot be read as text),
   # and this guards what is not.
   rows <- lapply(seq_along(paths), function(i) {
     tryCatch(inventory_row(paths[i], ext[i], claims[i], base, ocr_min_chars, max_pdf_pages),
@@ -229,7 +229,7 @@ gr_inventory <- function(sources, recursive = TRUE, model = NULL,
   # that is common enough that collapsing the whole total to NA would throw away
   # the useful answer. So: sum what is known, COUNT what is not, and let both
   # travel together. What must not happen is an unknown file counting as zero
-  # and the total being reported as if it were complete -- every figure below
+  # and the total being reported as if it were complete. Every figure below
   # is a floor, and `tokens_unknown` is what says so.
   tok <- sum(files$tokens[readable], na.rm = TRUE)
   unknown <- sum(readable & is.na(files$tokens))
@@ -290,7 +290,7 @@ inventory_status_frame <- function() {
 
 #' Packages a built-in extractor needs before it can read anything at all.
 #'
-#' Only the hard requirements -- the ones whose absence makes the extractor
+#' Only the hard requirements: the ones whose absence makes the extractor
 #' abort. OCR packages are not here: a PDF with a text layer reads perfectly
 #' without them, and `probe_pdf()` reports separately on the ones that need OCR.
 #' A third-party extractor is not listed and is assumed to be able to run, which
@@ -373,7 +373,7 @@ inventory_row <- function(path, ext, extractor, root, ocr_min_chars, max_pdf_pag
 #' Through read_text_lines(), as the text and markdown extractors read, which
 #' makes the lines UTF-8. readLines() alone left a Windows-1252 file's bytes as
 #' they were, the token counter refused them, and the file was reported
-#' "unreadable" -- and dropped from the cost floor -- when ingestion reads it
+#' "unreadable" (and dropped from the cost floor) when ingestion reads it
 #' without complaint (the HTML extractor decodes a page itself, and gr_ingest()
 #' makes every block UTF-8). An HTML page is counted with its markup, which
 #' is cheap and over-counts; running the extractor over every page would be
@@ -399,7 +399,7 @@ probe_text <- function(path) {
 #' The sample is spread across the document, not taken from its front. The
 #' first pages are the least typical: a born-digital report behind a picture
 #' cover and two blank pages was a "scan" that "will read as empty", and a
-#' scanned article behind a text cover sheet -- how database downloads come --
+#' scanned article behind a text cover sheet (how database downloads come)
 #' was "ready", with its tokens extrapolated from the cover. `ocr_pages` is an
 #' estimate from the sample, and `note` says so.
 #' @noRd
@@ -419,7 +419,7 @@ probe_pdf <- function(path, ocr_min_chars, max_pdf_pages) {
   # as_int1() turns both Inf and 1e10 into its default, while as.integer(1e10)
   # is NA and seq_len(NA) throws. gr_inventory() has already replaced NA and
   # non-numbers with the default of 3, so a missing value never arrives here to
-  # be read as "no cap" -- which would read every page of every PDF, the
+  # be read as "no cap". That would read every page of every PDF, the
   # opposite of what the setting is for.
   cap <- as.numeric(max_pdf_pages)
   k <- if (!is.finite(cap) || cap >= n) n else max(1, floor(cap))

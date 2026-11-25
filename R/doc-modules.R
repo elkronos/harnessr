@@ -160,15 +160,15 @@ doc_worker_restore <- function(values) {
 # registration. The signature is `select|calls|state`; the values in use are
 # exactly those in `gr_readers()$signature`, and nothing else is accepted:
 #
-#   select : all | topk | ensemble          -- which chunks reach the model
+#   select : all | topk | ensemble          (which chunks reach the model)
 #   calls  : 1 | N | N+1 | N+logN | m+1 | N+tree+1 | rounds*2 | sum+1
-#   state  : none | forward | tree          -- how information flows between calls
+#   state  : none | forward | tree          (how information flows between calls)
 #
 # Run `gr_readers()` for the authoritative table; the enumeration above is a
 # summary of it and the registry is what is checked.
 #
 # Two readers that would resolve to the same signature on the same inputs are
-# the same methodology wearing two names -- exactly the "Chunked" vs "Semantic"
+# the same methodology wearing two names, exactly the "Chunked" vs "Semantic"
 # situation in the previous release. `gr_compare()` checks this and refuses to
 # bill you twice for it.
 
@@ -185,20 +185,20 @@ doc_worker_restore <- function(values) {
 # That is the cost of ignoring (or rewriting) structure, and it is reported as
 # NA rather than guessed at. What `proposition` and `contextual` do keep is the
 # document text behind each chunk, in `source_text`, because their chunk text
-# holds words that are not the document's -- a model's rewrite, a context line
-# -- and a quote has to be checked against the document.
+# holds words that are not the document's (a model's rewrite, a context line),
+# and a quote has to be checked against the document.
 #
-#   fixed       -- meaning is uniform; cut on a ruler. The control condition.
-#   paragraph   -- the author's paragraph breaks are the real boundaries.
-#   sentence    -- sentences are atomic; pack them tightly.
-#   recursive   -- respect the strongest separator that still fits (the
+#   fixed:         meaning is uniform; cut on a ruler. The control condition.
+#   paragraph:     the author's paragraph breaks are the real boundaries.
+#   sentence:      sentences are atomic; pack them tightly.
+#   recursive:     respect the strongest separator that still fits (the
 #                  LangChain-style cascade).
-#   structural  -- headings are the boundaries; never merge across sections.
-#   page        -- the page is the unit (forms, invoices, scanned records).
-#   semantic    -- boundaries are where the embedding of the text *shifts*.
-#   contextual  -- like paragraph, but each chunk is prefixed with where it sits,
+#   structural:    headings are the boundaries; never merge across sections.
+#   page:          the page is the unit (forms, invoices, scanned records).
+#   semantic:      boundaries are where the embedding of the text *shifts*.
+#   contextual:    like paragraph, but each chunk is prefixed with where it sits,
 #                  so a chunk read in isolation still knows what it is about.
-#   proposition -- an LLM rewrites the text into standalone factual statements.
+#   proposition:   an LLM rewrites the text into standalone factual statements.
 #                  Because the text is rewritten, these chunks carry no
 #                  provenance back to a source block.
 #

@@ -1,4 +1,4 @@
-# doc-ingest-extract.R -- AXIS 1a: bytes -> structured blocks.
+# doc-ingest-extract.R: AXIS 1a, bytes -> structured blocks.
 #
 # WHY THIS FILE EXISTS
 # `parse_text()` was one 70-line function that extracted, cleaned, chunked and
@@ -6,7 +6,7 @@
 #
 #   * OCR triggered only when EVERY page was empty (`all(nchar(...) == 0)`), so
 #     a scanned PDF with one born-digital cover page silently lost every
-#     scanned page -- and the 20-character sanity check passed, so no warning.
+#     scanned page. The 20-character sanity check passed, so no warning.
 #   * Page text was joined with a literal "--- Page Break ---" marker, which
 #     then survived cleaning and chunking and was sent to the model as document
 #     content.
@@ -14,8 +14,8 @@
 #   * Page and section provenance was destroyed at extraction time, so a citation
 #     could never point back to a page.
 #
-# Extraction now returns *blocks* -- text plus provenance (page, section, kind)
-# -- and is a registry, so adding a format is a `gr_register_extractor()` call
+# Extraction now returns *blocks*, text plus provenance (page, section, kind),
+# and is a registry, so adding a format is a `gr_register_extractor()` call
 # rather than a new branch in someone else's if/else ladder.
 
 #' Register a document extractor
@@ -123,7 +123,7 @@ as_blocks <- function(x) {
 #'
 #' `readLines(encoding = "UTF-8")` LABELS the bytes as UTF-8; it does not
 #' convert them. A latin1 or CP1252 file therefore arrived mislabelled, and the
-#' first regex to touch it -- `trimws()` inside `paragraphs_of()` -- aborted the
+#' first regex to touch it (`trimws()` inside `paragraphs_of()`) aborted the
 #' whole ingest with "input string 1 is invalid UTF-8". Transcoding happened
 #' later in `gr_ingest()`, which was already too late.
 #'
@@ -358,8 +358,8 @@ extract_html <- function(path, opts) {
   as_blocks(html_blocks(doc))
 }
 
-#' Elements a browser starts on a line of their own. Text anywhere else -- in a
-#' span, a link, or straight inside a div -- runs on with the text around it.
+#' Elements a browser starts on a line of their own. Text anywhere else (in a
+#' span, a link, or straight inside a div) runs on with the text around it.
 #' @noRd
 .gr_html_block_tags <- c(
   "address", "article", "aside", "blockquote", "body", "caption", "center", "dd", "details",
@@ -370,8 +370,8 @@ extract_html <- function(path, opts) {
 #' The blocks of a parsed HTML page, in reading order.
 #'
 #' Reading a fixed list of tags (h1-h4, p, li, pre, td, blockquote) and the
-#' whole text of each lost text that sat straight in a div, span or section --
-#' how most pages are built -- and every th and h5/h6; read a p inside an li,
+#' whole text of each lost text that sat straight in a div, span or section
+#' (how most pages are built) and every th and h5/h6; read a p inside an li,
 #' blockquote or td twice, once through its parent; ran words either side of a
 #' <br> together; and made each table cell a block of its own, a value apart
 #' from its label.
@@ -452,7 +452,7 @@ html_blocks <- function(doc) {
   }
 
   # A table that lays out a page rather than holding data. Pages built on a
-  # layout table -- older sites, HTML e-mail, generated reports -- put the
+  # layout table (older sites, HTML e-mail, generated reports) put the
   # whole article in one cell, and reading that row by row made it one "table"
   # block with no headings, no sections and no paragraph breaks. A data
   # table's cells hold values, and keep the row format even when a value is
@@ -461,16 +461,16 @@ html_blocks <- function(doc) {
   # What a cell holds is counted in paragraphs: the innermost block elements
   # in it, with a list or a table inside it counted as one. A cell of two or
   # more holds page content. A layout is then:
-  #   * a table of one cell holding anything -- but not a lone heading when
+  #   * a table of one cell holding anything, but not a lone heading when
   #     the table sits in a cell of a data table, where it is a value too;
-  #   * a stack of rows -- at most one of them split into several cells, and
-  #     no header cells -- with a cell of page content, or with a layout table
+  #   * a stack of rows (at most one of them split into several cells, and
+  #     no header cells) with a cell of page content, or with a layout table
   #     (a heading beside other content in one cell) inside one of its cells:
   #     a banner row, a navigation and content row, and a footer row;
   #   * a grid (any other table) only when one cell holds a heading beside
   #     other content and at least half of the table's text: the article.
-  # A heading on its own in a cell -- a header row styled as headings, the
-  # label of a group of rows -- is a value. Taking any heading for a layout
+  # A heading on its own in a cell (a header row styled as headings, the
+  # label of a group of rows) is a value. Taking any heading for a layout
   # split such data tables into one block per cell, a value apart from its
   # label, and made the last header cell the section of the page after the
   # table; a single row whose cells each held one <p> was split the same way.
@@ -552,8 +552,8 @@ html_blocks <- function(doc) {
       if (all(tolower(xml2::xml_name(kids)) %in% c("td", "th"))) kids else find(row, cell_xpath)
     })
     if (is_layout(tbl, cells, level, in_data)) return(walk(tbl))
-    # Markup that is in the table but in none of its rows or cells -- a <p>
-    # before the first row, a div after the last -- is not dropped: a browser
+    # Markup that is in the table but in none of its rows or cells (a <p>
+    # before the first row, a div after the last) is not dropped: a browser
     # shows it before the table, and so it is read there. (A table in a row
     # outside its cells is read after the row, with the ones inside them.)
     stray <- find(tbl, sprintf(stray_xpath, level, level))
@@ -651,7 +651,7 @@ extract_pdf <- function(path, opts) {
   # PER-PAGE OCR decision. The old code demanded that *every* page be empty
   # before OCRing anything, so mixed scanned/digital PDFs silently lost content.
   ocr_mode <- as_chr1(opts$ocr %||% "auto")
-  # as.numeric(), not as.integer(): Inf -- OCR every page -- is a threshold, and
+  # as.numeric(), not as.integer(): Inf (OCR every page) is a threshold, and
   # as.integer(Inf) is NA.
   min_chars <- as.numeric(opts$ocr_min_chars %||% 40L)
   needs <- ocr_needs(pages, ocr_mode, min_chars,
