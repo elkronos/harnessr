@@ -389,16 +389,20 @@ unlist(inv$totals[c("readable", "tokens", "cost_floor_usd")])
 
 ## Choosing the settings
 
-Two groups of ingest settings change what the model is given: cleaning and OCR.
-Each walkthrough below says what the setting controls and what it trades off,
-the signs in your results that point to changing it, where its default came
-from, and how to test a change. `vignette("settings")` lists every ingest
-setting with its default.
+Two groups of ingest settings change what the model gets: cleaning and OCR.
+Each walkthrough below covers:
+
+- what the setting controls and what it trades off;
+- the signs in your results that point to changing it;
+- where its default came from;
+- how to test a change.
+
+`vignette("settings")` lists every ingest setting with its default.
 
 The tests use `hr_sweep()`, which builds one arm per value of a setting, and
 `hr_benchmark()`, which runs every arm on a reference of questions. Here they
-run on one question and a stand-in model that always gives the right answer,
-so they show how a sweep is built and read, not which value is better.
+run on one question and a stand-in model that always gives the right answer.
+That shows how to build and read a sweep, but cannot show which value is better.
 `vignette("compare")` runs sweeps on a reference with dev and test splits and
 reads them with intervals.
 
@@ -414,24 +418,25 @@ says <- hr_mock_client(function(messages, params) "Revenue was 45.2 million doll
 **What it controls.** `clean` chooses the cleaners that run on the extracted
 text, by preset or by name (see "Presets" above), and
 `cleaner_opts = list(references_after = )` sets where the `references`
-cleaner may cut. Cleaning trades noise against loss: page numbers, running
-heads and captions cost tokens and can mislead retrieval, but a cleaner that
-removes too much removes it for good, and no later setting can bring it back.
+cleaner may cut. Cleaning trades noise against loss. Page numbers, running
+heads and captions cost tokens and can mislead retrieval, but text an
+overeager cleaner removes is gone for good, and no later setting brings it back.
 
 **Signs it needs changing.** An answer of `NOT_IN_DOCUMENT` for a fact you can
 see in the file, or a quotation that fails verification, can mean a cleaner
-removed the text; look in `doc$stats$clean_log` for a cleaner that removed far
-more than the others. Answers that quote page headers or figure captions as if
-they were findings point the other way, to `"academic"` or `"scan"`. Under
-`"academic"`, an answer about a paper's sources that says they are not in the
-document means the reference list was cut. A document whose table of contents
-has a "References" line after the first 40% of its text is cut there; raise
+removed the text. Look in `doc$stats$clean_log` for a cleaner that removed far
+more than the others. If answers quote page headers or figure captions as if
+they were findings, move the other way, to `"academic"` or `"scan"`. Under
+`"academic"`, if an answer about a paper's sources says they are not in the
+document, the reference list was cut. A document whose table of contents has a
+"References" line after the first 40% of its text is cut at that line; raise
 `references_after` for such documents.
 
-**Where the defaults came from.** `"standard"` was chosen as the preset for
-born-digital text and has not been compared with the others. `references_after`
-is 0.4, set when the cleaner was written. Both are `untested` in
-`gr_settings_table("ingest")`.
+**Where the defaults came from.** `"standard"` is the preset meant for
+born-digital text and has not been compared with the others.
+`references_after` is 0.4, the value set when the cleaner was written. Both are
+`untested` in `gr_settings_table("ingest")`.
+
 
 **How to test it.** Sweep the presets and look at what was sent:
 
@@ -445,11 +450,12 @@ hr_sweep_check(bench)
 
 On the example report, `"academic"` sends 62 fewer prompt tokens than
 `"standard"`, because it drops the caption lines and the reference list after
-the `## References` heading, and `"none"` sends 8 more.
+the `## References` heading. `"none"` sends 8 more.
 `hr_sweep_check()` finds that `"scan"` sent exactly the requests `"standard"`
-sent: the example has no running heads, so on it that comparison would measure
-nothing but run-to-run spread. The same check tells you whether a
-`references_after` sweep reaches your documents at all:
+sent. The example has no running heads, so on it that comparison would measure
+only run-to-run spread. The same check tells you whether a `references_after`
+sweep reaches your documents at all:
+
 
 ```{r}
 arms <- hr_sweep(gr_arm("fast", list(clean = "academic")),
