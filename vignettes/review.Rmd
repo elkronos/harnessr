@@ -270,13 +270,13 @@ how it was made. Four functions cover that, each feeding the next:
 
 ### One trace for the whole review
 
-Passing the same `trace =` to `gr_screen()`, `gr_extract()`, `gr_claims()`,
-`gr_outline()` and `gr_synthesise()` accumulates the whole review in one place.
-It is a parent: each stage still records on a trace of its own, which is what
-its `$trace` returns and what `hr_options(max_calls =)` is measured against, and
-adds its calls to the shared one when it finishes. So the screening cannot spend
-the write-up's ceiling, the shared trace's totals are the sum of the stages',
-and each request is counted once.
+Pass the same `trace =` to `gr_screen()`, `gr_extract()`, `gr_claims()`,
+`gr_outline()` and `gr_synthesise()` to collect the whole review in one place.
+The shared trace is a parent. Each stage still records on a trace of its own,
+which its `$trace` returns and which `hr_options(max_calls =)` is measured
+against, and adds its calls to the parent when it finishes. The screening
+therefore cannot spend the write-up's ceiling, the parent's totals are the sum
+of the stages', and each request is counted once.
 
 `gr_outline()` records its calls on `attr(outline, "trace")`, which
 `gr_outline_pick()` keeps and `gr_synthesise()` keeps as `$outline_trace`; it
@@ -285,10 +285,9 @@ every stage, or add `attr(outline, "trace")` to the claims' own.
 
 ### The protocol
 
-A protocol is what you fix before reading anything: which documents count, what
-to collect from the ones that do, and what the write-up has to cover. Fixing it
-first matters because a criterion invented while reading is a criterion fitted
-to what was found.
+A protocol fixes, before you read anything, which documents count, what to
+collect from them, and what the write-up must cover. Fix it first: a criterion
+invented while reading is fitted to what you found.
 
 ```{r}
 protocol <- gr_protocol(
@@ -308,18 +307,17 @@ protocol
 
 `gr_protocols()` lists four templates to start from: `bibliography`, `claims`,
 `evidence_table` and `systematic_review`. `gr_protocol_save()` and
-`gr_protocol_read()` round-trip a protocol through a JSON file, so it can be
-shared, diffed and cited alongside the results.
+`gr_protocol_read()` round-trip a protocol through a JSON file, so you can
+share it, diff it and cite it beside the results.
 
 ### Screening
 
-Screening is one call per document, and nothing is dropped. Every document gets
-a decision and a reason. There is no retrieval step that could quietly remove a
-source before one is recorded. A file that could not be read gets
-`status = "failed"` and no decision rather than a silent exclusion, and
-`"unclear"` is an answer rather than a forced guess, because forcing a binary
-call on an excerpt that does not settle it is how automated screening loses
-studies.
+`gr_screen()` makes one call per document and drops nothing. Every document
+gets a decision and a reason, and no retrieval step runs first that could
+remove a source before its decision is recorded. A file that could not be read
+gets `status = "failed"` and no decision, so it is not counted as excluded. The
+screener may answer `"unclear"`: forcing include or exclude on an excerpt that
+does not settle it is how automated screening loses studies.
 
 This stand-in screener includes the northern report and cannot decide about the
 southern one:
@@ -342,8 +340,9 @@ screened$table[, c("document", "decision", "criterion", "verified")]
 ```
 
 The reply must fit the schema the request sent. A decision outside `include`,
-`exclude` and `unclear` is a failed call, not a guess at what the model meant,
-and it is not cached, so running again asks again.
+`exclude` and `unclear` counts as a failed call, and `gr_screen()` does not
+guess what the model meant. A failed reply is not cached, so a second run asks
+again.
 
 `screened$forward` holds the included and unclear records, the set to read at
 full text, and `screened$deferred` holds the unclear ones, for a person to
@@ -354,10 +353,11 @@ basename(screened$forward)
 basename(screened$deferred)
 ```
 
-`gr_resolve()` records that person's decision. It needs to know who decided, and
-it records when (in UTC) and, optionally, why, in the table and as a
-`"screen.resolve"` step in the trace. `forward`, `deferred` and `included` are
-rebuilt, and the screener's own decision is kept in `screener_decision`:
+`gr_resolve()` records that person's decision. You must say who decided
+(`by =`). It records when (in UTC) and, if you give a reason, why, both in the
+table and as a `"screen.resolve"` step in the trace. It rebuilds `forward`,
+`deferred` and `included`, and keeps the screener's own decision in
+`screener_decision`:
 
 ```{r}
 screened <- gr_resolve(screened, "south.txt", "include", by = "A. Reviewer",
@@ -369,25 +369,24 @@ screened$table[, c("document", "decision", "screener_decision", "resolved_by")]
 is not credited to the screener. Duplicates of a resolved record take the same
 decision.
 
-Hand `screened` itself to `gr_extract()`. In this release that reads the
-included records only, and warns (class `gr_unclear_dropped`) when it leaves
-unclear ones out; from the next release it reads `$forward`. Pass
-`screened$forward` to read the unclear records now. `screened$included` works
-too, but a character vector of paths cannot carry the search forward, so the
-audit's search section and the bibliographic columns are lost with it.
-`table(screened$table$criterion)` is the breakdown a flow diagram asks for.
+Pass `screened` itself to `gr_extract()`. In this release `gr_extract()` then
+reads the included records only, and warns (class `gr_unclear_dropped`) when it
+leaves unclear ones out; from the next release it reads `$forward`. To read the
+unclear records now, pass `screened$forward`. `screened$included` works too,
+but a character vector of paths cannot carry the search, so you lose the
+audit's search section and the bibliographic columns.
+`table(screened$table$criterion)` gives the breakdown a flow diagram asks for.
 
 ### Knowing how good the screening is
 
-`gr_screen()` gives every document a decision. Nothing in the run says whether
-those decisions were any good, and a screener that discards a fifth of the
-eligible studies produces a carefully audited review of the wrong corpus.
+`gr_screen()` gives every document a decision, but nothing in the run shows
+whether the decisions were right. A screener that discards a fifth of the
+eligible studies yields a carefully audited review of the wrong corpus.
 
-The tempting substitute is running the model twice and reporting the agreement.
-It measures the wrong thing: two passes share weights, priors and blind spots,
-so they agree most confidently where they are both wrong. Only a reference
-standard settles it. `gr_reference()` draws a sample for a person to screen by
-hand, and `gr_calibrate()` compares the two.
+Running the model twice and reporting the agreement does not answer that. Two
+passes share weights, priors and blind spots, so they agree most confidently
+where both are wrong. You need a reference standard: `gr_reference()` draws a
+sample for a person to screen by hand, and `gr_calibrate()` compares the two.
 
 ```{r}
 # A screening run: 340 discarded, 72 kept.
@@ -405,15 +404,17 @@ check$human_decision <- c(rep("exclude", 57), rep("include", 3))
 gr_calibrate(big, check)
 ```
 
-Which rows you sample changes which questions the sample can answer. A sample
-of exclusions contains no kept records, so sensitivity would compute to 0% and
-specificity to 100%. Both are artifacts of the frame, alarming or flattering,
-and neither is a fact about the screener, so `gr_calibrate()` reports what the
-frame supports and refuses the rest. The frame travels as a column in the CSV,
-because that file gets emailed, opened in Excel and read back a fortnight later,
-and an attribute survives none of that. In a blind sheet the column is an opaque
-key, so the person filling it in cannot tell from it what the model decided, and
-the CSV is UTF-8 with a byte-order mark so Excel opens accented names intact.
+The rows you sample decide the questions the sample can answer. A sample of
+exclusions contains no kept records, so sensitivity would compute to 0% and
+specificity to 100%. Both figures come from the frame and say nothing about the
+screener, so `gr_calibrate()` reports what the frame supports and refuses the
+rest.
+
+The frame travels as a column in the CSV, because the file gets emailed, opened
+in Excel and read back a fortnight later, and an attribute survives none of
+that. In a blind sheet the column is an opaque key, so the person filling it in
+cannot tell from it what the model decided. The CSV is UTF-8 with a byte-order
+mark, so Excel opens accented names intact.
 
 A sample drawn from everything screened (`of = "all"`) supports the rest. This
 one is the eight-record example from `?gr_calibrate`:
@@ -432,33 +433,36 @@ cal <- gr_calibrate(structure(list(table = tab), class = "gr_screening"), ref,
 cal
 ```
 
-`"unclear"` counts as a deferral to a person, not as a miss, because a record
-the screener could not settle goes to a person, and counting it as a failure
-would punish the one behaviour that makes it safe. Two sensitivities are
-reported. Sensitivity as deployed is the share of eligible studies that were
-kept, by `"include"` or by `"unclear"`, and is the one where a shortfall is
-permanent. Strict sensitivity is the share actively included. The gap between
-them is the reading you still have to do. The rate of `"unclear"` decisions is
-the "deferred to a person" line, with its interval, and `cal$decisions` holds
-the 3x2 counts behind it all.
+`gr_calibrate()` counts `"unclear"` as a deferral to a person, not as a miss. A
+record the screener could not settle goes to a person, and counting it as a
+failure would punish the behaviour that keeps screening safe. It reports two
+sensitivities:
 
-Accuracy is not reported, and kappa is not reported alone. At a realistic
-inclusion rate a screener that excluded everything scores about 95% accurate
-and finds nothing. Agreement is taken on the same decision sensitivity uses,
-kept (include or unclear) against excluded, in `cal$agreement$kept`, with strict
-include against the rest beside it in `cal$agreement$strict`. Each table gives
+- Sensitivity as deployed is the share of eligible studies kept, by
+  `"include"` or by `"unclear"`. A shortfall here is permanent.
+- Strict sensitivity is the share actively included.
+
+The gap between them is the reading you still have to do. The "deferred to a
+person" line is the rate of `"unclear"` decisions, with its interval, and
+`cal$decisions` holds the 3x2 counts behind all of it.
+
+`gr_calibrate()` reports no accuracy, and kappa only beside other statistics.
+At a realistic inclusion rate, a screener that excluded everything scores about
+95% accurate and finds nothing. `cal$agreement$kept` measures agreement on the
+decision sensitivity uses, kept (include or unclear) against excluded, and
+`cal$agreement$strict` gives strict include against the rest. Each table gives
 Cohen's kappa next to PABAK and Gwet's AC1, with intervals, the prevalence and
-bias indices, and the class-wise sensitivity, specificity, PPV and NPV, because
-at a few eligible records in a hundred kappa moves with prevalence as much as
-with agreement:
+bias indices, and the class-wise sensitivity, specificity, PPV and NPV. With a
+few eligible records in a hundred, kappa moves with prevalence as much as with
+agreement:
 
 ```{r}
 cal$agreement$kept$stats
 ```
 
 `cal$agreement$kept$paradox` is `TRUE` when the prevalence index is above 0.8 in
-absolute value, where kappa says more about prevalence than about agreement. The
-kappa interval is a percentile bootstrap over documents, B = 2000, under a fixed
+absolute value. There, kappa reflects prevalence more than agreement. The kappa
+interval is a percentile bootstrap over documents, B = 2000, under a fixed
 seed, so the same sample gives the same interval and the session's random stream
 is untouched; `cal$agreement$kept$bootstrap` holds B and the seed. AC1 uses
 Gwet's (2008) variance. Where the screener and the person agree on every record,
@@ -466,25 +470,28 @@ disagree on every record, or the sample holds fewer than 10 records, as here,
 the kappa and AC1 intervals are left empty with a `note` saying why, instead of
 a zero-width interval such as [1.00, 1.00].
 
-Before this release kappa was taken over the screener's three labels against
-the person's two, so every `"unclear"` counted as a disagreement. On this
-example that gave 0.33 where the kept-against-excluded figure is 0.50. The old
-figure is no longer reported.
+Before this release, kappa compared the screener's three labels with the
+person's two, so every `"unclear"` counted as a disagreement. On this example
+that gave 0.33, where the kept-against-excluded figure is 0.50. The old figure
+is no longer reported.
 
-A rate from three observations is not a finding. The intervals on the rates are
-Wilson score intervals, which stay sensible at zero and one where the textbook
-interval collapses to a point, and `$adequate` says when the sample cannot
-support a claim. What is enough depends on the frame: enough eligible studies
-for sensitivity in a sample of everything screened (`min_positives`, 10 by
-default), and for a sample of one stratum (exclusions, or kept records) an
-interval no wider than 10 points, or the whole stratum judged. `$missed` is the
-list of studies the screener discarded and a person did not, which is usually
-more use than any rate.
+The intervals on the rates are Wilson score intervals, which stay sensible at
+zero and one, where the textbook interval collapses to a point. `$adequate`
+says when the sample is too small to support a claim. The bar depends on the
+frame:
 
-Pass the result to `gr_audit_report(calibration = )` and it becomes a section of
-the report, with the 3x2 counts and every statistic above, so the figure a
-reviewer asks for sits next to the run it describes instead of being copied
-into a methods section by hand.
+- In a sample of everything screened, sensitivity needs enough eligible
+  studies (`min_positives`, 10 by default).
+- In a sample of one stratum (exclusions, or kept records), the interval must
+  be no wider than 10 points, or the whole stratum judged.
+
+`$missed` lists the studies the screener discarded and a person did not. It is
+often more use than any rate.
+
+Pass the result to `gr_audit_report(calibration = )` to add it to the report as
+a section, with the 3x2 counts and every statistic above. The figure a reviewer
+asks for then sits next to the run it describes, and nobody has to copy it into
+a methods section by hand.
 
 ### Recall against a target
 
