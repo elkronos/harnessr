@@ -12,11 +12,11 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 has_pdftools <- requireNamespace("pdftools", quietly = TRUE)
 ```
 
-Before a model can read a document, the text has to come out of the file. That
-step, *ingestion*, is easy to overlook and hard to undo. Text lost here, or
-damaged by too much clean-up, is text no model will see, however good the rest
-of the pipeline is. This guide covers what harnessr can read, what it keeps, what
-it removes, and how to check a folder before spending anything on it.
+Before a model can read a document, harnessr has to get the text out of the
+file. That step, *ingestion*, is easy to overlook and hard to undo. Text lost
+here, or damaged by too much clean-up, never reaches the model. This guide
+covers what harnessr can read, what it keeps and removes, and how to check a
+folder before you spend anything on it.
 
 `vignette("harnessr")` introduces the package and the ideas used here.
 
@@ -43,7 +43,7 @@ and the section heading it sits under:
 doc$blocks[1:6, c("block_id", "page", "section", "kind")]
 ```
 
-This *provenance* is what lets an answer point back to where it came from:
+This record, the *provenance*, lets an answer point back to its source:
 `ans$evidence` reports the page and section of every chunk an answer rests on.
 `page` is `NA` here because Markdown has no pages; a PDF fills it in.
 
@@ -53,13 +53,13 @@ This *provenance* is what lets an answer point back to where it came from:
 unlist(doc$stats[c("blocks", "chars", "tokens", "chars_removed")])
 ```
 
-You rarely need to call `gr_ingest()` yourself, since `answer_document()` does it
-for you. Calling it directly shows you what the model will get.
+`answer_document()` calls `gr_ingest()` for you, so you rarely need it yourself.
+Call it directly to see what the model will get.
 
 ## What harnessr can read
 
-Each file type is handled by an *extractor*, chosen by the file's extension.
-`available` says whether the packages it needs are installed:
+harnessr reads each file type with an *extractor*, chosen by the file's
+extension. `available` says whether the packages it needs are installed:
 
 ```{r}
 gr_extractors()[, c("name", "extensions", "available")]
@@ -74,29 +74,30 @@ gr_extractors()[, c("name", "extensions", "available")]
 | `pdf` | the text of each page in reading order, with its page number and headings as sections; pages with no text are read by OCR | `pdftools` (and `tesseract` and `magick` for OCR) |
 | `image` | the text in a picture, by OCR | `tesseract` |
 
-A file whose extension no extractor claims, such as an old `.doc` or a
-spreadsheet, is not read. `gr_inventory()`, below, finds those before a run
-rather than during one.
+harnessr does not read a file whose extension no extractor claims, such as an
+old `.doc` or a spreadsheet. `gr_inventory()`, below, finds those files before a
+run, not during one.
 
-You can also pass text directly. A string that is not the path of an existing
-file is read as the document itself:
+You can also pass text directly. `gr_ingest()` reads a string that is not the
+path of an existing file as the document itself:
 
 ```{r}
 memo <- gr_ingest("Revenue rose to 45.2 million dollars.\n\nHeadcount grew to 1,204.")
 memo$blocks[, c("block_id", "text")]
 ```
 
-The exception is a string that ends in an extension some extractor claims but
-names no file. That is an error:
+A string that ends in an extension some extractor claims, but names no file, is
+an error:
+
 
 ```{r error = TRUE}
 gr_ingest("anual-report.pdf")
 ```
 
-Any other string is read as text, including a path whose extension is mistyped
-or is one no extractor claims. A string that looks like a path (it has a `/` and
-an extension) also raises a warning, since the answer that follows would be
-about a file name:
+`gr_ingest()` reads any other string as text, including a path whose extension
+is mistyped or is one no extractor claims. If the string looks like a path (it
+has a `/` and an extension), you also get a warning, because the answer that
+follows would be about a file name:
 
 ```{r}
 typo <- gr_ingest("reports/2024/annual-report.pfd")
@@ -104,14 +105,19 @@ typo$text
 typo$source
 ```
 
-`source` is how to tell the two apart: it holds the path when a file was read,
-and `<inline text>` when the string itself was.
+`source` tells the two apart. It holds the path when `gr_ingest()` read a file,
+and `<inline text>` when it read the string itself.
 
-A web address is downloaded and read with the extractor for what the server
-sent back: a specific type it declares, else the extension in the address, else
-the first bytes of the file, which settle a PDF, a Word file or an HTML page
-however they were labelled. A download no extractor reads is refused rather
-than read as text. `source` holds the address, and a download that fails is an
+`gr_ingest()` downloads a web address and reads it with the extractor for what
+the server sent back. It looks, in order, at:
+
+1. a specific type the server declares;
+2. the extension in the address;
+3. the first bytes of the file, which identify a PDF, a Word file or an HTML
+   page however they were labelled.
+
+`gr_ingest()` refuses a download no extractor reads; it does not fall back to
+reading it as text. `source` holds the address, and a failed download is an
 error that says why:
 
 ```{r eval = FALSE}
@@ -120,8 +126,9 @@ doc$source
 #> [1] "https://example.org/reports/annual-report-2024.pdf"
 ```
 
-Within a session an address is downloaded once; the next read of it comes from
-the cache, as a file does.
+Within a session, harnessr downloads an address once and serves later reads of
+it from the cache, as it does for a file.
+
 
 ## Sections and headings
 
