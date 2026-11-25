@@ -151,12 +151,16 @@ identical(attr(a, "hr_config"), attr(b, "hr_config"))
 
 ## Settings and sweeps
 
-Every step built with a schema has settings: `gr_step()`'s are the ones the
-stage's spec takes, `gr_step_retrieve()`'s are the ranking settings, and a
-step of your own has the ones its `schema` declares. In a chain each setting
-is named by its path, `"step.setting"`. `hr_settings()` lists them all, with
-the value each step resolved, whether it was given, and the default, range
-and evidence the schema declares:
+Every step built with a schema has settings:
+
+- a `gr_step()` step has the settings the stage's spec takes;
+- a `gr_step_retrieve()` step has the ranking settings;
+- a step of your own has the settings its `schema` declares.
+
+In a chain, each setting is named by its path, `"step.setting"`.
+`hr_settings()` lists them all. For each one it gives the value the step
+resolved, whether you gave it, and the default, range and evidence the schema
+declares:
 
 ```{r}
 s <- hr_settings(checked)
@@ -166,9 +170,9 @@ s[s$step == "retrieve", c("param", "value", "range", "status")]
 ```
 
 `hr_set()` builds the chain again with some settings changed and the rest as
-they were. Each changed step is built again from its settings, so they are
-checked as when the step was first built, and the chain's configuration is
-that of the new settings:
+they were. It builds each changed step again from its settings, so the new
+values go through the same checks as when the step was first built. The new
+chain has the configuration of its new settings:
 
 ```{r}
 wide <- hr_set(checked, retrieve.top_k = 8, read.max_answer_tokens = 400)
@@ -176,12 +180,15 @@ wide$params
 identical(attr(wide, "hr_config"), attr(checked, "hr_config"))
 ```
 
-A number outside its range is moved to the nearest bound with a warning
-(`hr_param_clamped`), and a path that is not a setting of a step's schema is
-an error (`hr_unknown_setting`) that lists the step's settings. A setting a
-step keeps fixed, such as `max_answer_tokens` given to `gr_step_retrieve()`,
-which passes it to the read spec without ranking by it, cannot be set here
-either; build the step again and replace it with `hr_chain()`.
+A number outside its range moves to the nearest bound with a warning of class
+`hr_param_clamped`. A path that is not a setting of a step's schema is an
+error of class `hr_unknown_setting`, and its message lists the step's
+settings.
+
+`hr_set()` cannot change a setting that a step keeps fixed either.
+`gr_step_retrieve()`, for example, keeps a `max_answer_tokens` you give it
+fixed: it passes the value to the read spec and does not rank by it. To change
+a fixed setting, build the step again and replace it with `hr_chain()`.
 
 ```{r}
 tryCatch(hr_set(checked, retrieve.top_k = 50000),
@@ -189,14 +196,14 @@ tryCatch(hr_set(checked, retrieve.top_k = 50000),
 try(hr_set(checked, retrieve.topk = 8))
 ```
 
-For a single step the setting's own name is enough, as in
+For a single step, the setting's own name is enough:
 `hr_set(gr_step_retrieve(), top_k = 2)`.
 
 `hr_sweep()` takes a chain and a grid whose columns are paths, and builds one
-chain per row with `hr_set()`. Each arm records its settings, so the
-benchmark has a `param.retrieve.top_k` column to group by. A row that builds
-the configuration of an earlier row is dropped with a message
-(`hr_sweep_collapsed`).
+chain per row with `hr_set()`. Each arm records its settings, so you can group
+the benchmark by its `param.retrieve.top_k` column. When a row builds the
+configuration of an earlier row, `hr_sweep()` drops it with a message of class
+`hr_sweep_collapsed`.
 
 ```{r}
 arms <- hr_sweep(nojudge, data.frame(retrieve.top_k = c(2, 4, 8)))
@@ -205,10 +212,10 @@ bench <- hr_benchmark(arms, ref, runs = 5, client = cl, scorer = gr_scorer_answe
 aggregate(correct ~ param.retrieve.top_k, bench, mean)
 ```
 
-A setting the chain's steps never use changes nothing that is sent, and a
-sweep over it compares the chain with itself. `hr_sweep_check()` finds such
-settings from the requests each arm sent. Here the read step sends every chunk
-it is given, so its own `top_k` does nothing:
+Changing a setting the chain's steps never use changes nothing that is sent,
+so a sweep over it compares the chain with itself. `hr_sweep_check()` finds
+such settings from the requests each arm sent. Here the read step sends every
+chunk it gets, so its own `top_k` does nothing:
 
 ```{r}
 stuffed <- hr_chain(segment = gr_step("segment"), read = gr_step("read", reader = "stuff"),
@@ -218,10 +225,12 @@ bench <- hr_benchmark(hr_sweep(stuffed, list(read.top_k = c(2, 8))), ref, runs =
 hr_sweep_check(bench)
 ```
 
-A swept chain is a chain like any other: `hr_chain()` derives a chain from
-it and `hr_set()` changes it further. A replay of a recorded benchmark matches each run's sampled requests by the
-arm's name, so a renamed or swept chain does not replay a recording made
-under another name: record the benchmark again under the new names.
+A swept chain is a chain like any other: you can derive a chain from it with
+`hr_chain()` and change it further with `hr_set()`.
+
+A replay of a recorded benchmark matches each run's sampled requests by the
+arm's name. A renamed or swept chain therefore does not replay a recording
+made under another name; record the benchmark again under the new names.
 
 ## Skills
 
