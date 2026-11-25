@@ -1264,8 +1264,9 @@ aggregate(cbind(tokens_in, correct) ~ arm, bench, mean)
 
 The hand-built arm ranks with `retrieve`'s ranking and then reads the two
 chunks it kept with `stuff`, so it sent 267 prompt tokens to the `"needle"`
-recipe's 797. `?gr_step` says what passes between the steps; `hr_chain()`,
-which will take the same steps, is not in this release.
+recipe's 797. `?gr_step` says what passes between the steps. `hr_chain()` runs
+steps like these in order as one arm and checks their order, and
+`vignette("compose")` covers it.
 
 ```{r include = FALSE}
 hr_options(old)
