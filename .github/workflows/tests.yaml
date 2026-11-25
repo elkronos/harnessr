@@ -315,7 +315,7 @@ jobs:
               bad <- c(bad, sprintf("README should say %d segmenters", claims$segmenters))
             if (!grepl(sprintf("%d strategies", claims$readers), readme, fixed = TRUE))
               bad <- c(bad, sprintf("README should say %d strategies", claims$readers))
-            # Every reader signature must still be unique: the package's core claim.
+            # Every reader signature must still be unique: the core claim of the package.
             sigs <- gr_readers()$signature
             if (anyDuplicated(sigs))
               bad <- c(bad, paste("duplicate reader signatures:",

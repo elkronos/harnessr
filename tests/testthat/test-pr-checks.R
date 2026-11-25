@@ -147,6 +147,31 @@ test_that("added lines are read with their file and line number", {
   expect_identical(nrow(pc$added_lines(character(0))), 0L)
 })
 
+test_that("Rscript -e blocks in the workflows hold no single quote", {
+  # The R code sits inside bash single quotes, so an apostrophe in a comment
+  # ends the string and the step fails with a bash syntax error.
+  pc <- pr_checks()
+  root <- test_path("..", "..")
+  files <- list.files(file.path(root, ".github", "workflows"), "[.]ya?ml$",
+                      full.names = TRUE)
+  expect_true(length(files) > 0L)
+  blocks <- 0L
+  for (f in files) {
+    x <- readLines(f, warn = FALSE, encoding = "UTF-8")
+    open <- grep("Rscript -e '[[:space:]]*$", x)
+    for (o in open) {
+      close <- which(seq_along(x) > o & grepl("^[[:space:]]*'[[:space:]]*$", x))
+      expect_true(length(close) > 0L, label = sprintf("%s:%d", basename(f), o))
+      body <- x[(o + 1L):(close[[1]] - 1L)]
+      bad <- which(grepl("'", body, fixed = TRUE))
+      expect_identical(bad, integer(0),
+                       label = sprintf("%s:%s", basename(f), paste(o + bad, collapse = ",")))
+      blocks <- blocks + 1L
+    }
+  }
+  expect_true(blocks > 0L)
+})
+
 test_that("the dashes check covers docs and code but not tests or fixture data", {
   pc <- pr_checks()
   yes <- c("R/core-call.R", "man/hr_call.Rd", "vignettes/compose.Rmd",
