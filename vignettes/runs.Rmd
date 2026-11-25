@@ -413,9 +413,9 @@ though, so do not pass its totals to `hr_estimate_cost()` and call the result a
 bill.
 
 The key covers everything that can change the reply: the messages, the model,
-the resolved output cap, the temperature, the JSON schema, the API shape and the
-base URL. It leaves out the
-API key, the headers, the timeout and the retry policy, since the model sees
+the resolved output cap, the temperature, the reasoning effort, the JSON
+schema, any extra body fields, the API shape and the base URL. It leaves out
+the API key, the headers, the timeout and the retry policy, since the model sees
 none of them. If a header changes which model answers, give that client its own
 `base_url` or `model` so the cache can tell the two apart.
 
