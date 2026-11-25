@@ -363,28 +363,30 @@ answer:
 hr_estimate_cost(hr_options("model"), input_tokens = 120000, output_tokens = 4000)
 ```
 
-Two safety limits are on from the start: $5 and 400 requests per document. Each
-request is checked before it is sent, against what the run has spent plus the
-most that request could cost, and one that could pass a limit is not sent. A run
-stopped that way is marked partial, and printing it says which limit stopped it.
-A run that could not finish inside the limits is refused before the first
-request: one that would need more than 400 requests, or one whose chunks would
-cost more than $5 to send once:
+Two safety limits are on from the start: $5 and 400 requests per document.
+harnessr checks each request before sending it, against what the run has spent
+plus the most that request could cost, and does not send one that could pass a
+limit. A run stopped that way is marked partial, and printing it names the limit
+that stopped it.
+
+harnessr also refuses, before the first request, a run that could not finish
+inside the limits: one that would need more than 400 requests, or one whose
+chunks would cost more than $5 to send once:
 
 ```{r}
 unlist(hr_options()[c("max_cost_usd", "max_calls")])
 ```
 
 Change them with `hr_options()`, for example `hr_options(max_cost_usd = 20)`.
-`vignette("runs")` covers the other limits, and how to cache a run so it is paid
-for once.
+`vignette("runs")` covers the other limits, and how to cache a run so you pay
+for it once.
 
 The default models also *reason* before they answer: they work through the
 question in text you never see, and it is charged as text the model writes back.
 `effort` sets how much, for example `"low"` or `"high"`. Unless you set it,
-nothing is sent and the provider's default applies. harnessr sends it only to a
-model it knows reasons. The mock is not one, so here it is given the default
-model's name to stand in for it:
+harnessr sends no effort and the provider's default applies. harnessr sends it
+only to a model it knows reasons. The mock is not one, so the example below gives
+it the default model's name to stand in for that model:
 
 ```{r}
 low <- answer_document(gr_example(), "What was revenue in 2024?",
@@ -394,9 +396,11 @@ as.data.frame(low$trace)[, c("stage", "model", "effort")]
 
 With a real client on the default model, `effort = "low"` alone is enough. The
 trace records the effort each request carried; the `effort` column appears only
-when a request carried one. Less reasoning costs less. `effort` can also
-differ by stage, low for the many routine requests and high for the few that
-judge; `?gr_read_spec` lists the stages and suggests a starting point.
+when a request carried one. Less reasoning costs less.
+
+You can also set `effort` by stage: low for the many routine requests, high for
+the few that judge. `?gr_read_spec` lists the stages and suggests a starting
+point.
 
 ## Choosing a recipe
 
