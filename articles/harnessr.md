@@ -189,6 +189,27 @@ ans$answer
 #> [1] "Revenue was 45.2 million dollars."
 ```
 
+That call ran three stages in order.
+[`gr_ingest()`](https://elkronos.github.io/harnessr/reference/gr_ingest.md)
+handed a `gr_document` to
+[`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
+which handed a `gr_chunks` to
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md).
+Each request to the model goes through
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md),
+where the governor checks the limits and, for a client wrapped in
+[`hr_cache_client()`](https://elkronos.github.io/harnessr/reference/hr_cache_client.md),
+the cache answers a repeat. One trace records every step:
+
+![answer_document() runs three stages in order: ingest with gr_ingest()
+hands a gr_document to segment with gr_segment(), which hands a
+gr_chunks to read with gr_read(), which returns a gr_answer. Each model
+request goes through hr_call(), where the governor checks the limits,
+the cache of a client wrapped in hr_cache_client() answers a repeat and
+the client answers a miss. One trace from hr_trace() goes to every
+stage, and readers size prompts with
+hr_budget().](../reference/figures/document-run.svg)
+
 With a real model you would leave out `client =` and point it at your
 own file:
 

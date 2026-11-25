@@ -74,7 +74,8 @@
 </tr><tr><td><code>Rscript dev/record-doc-internal.R</code></td>
 <td>
 <code>fixtures/boundary/doc-uses-internal.csv</code>, the core internals the document layer uses</td>
-</tr></tbody></table><p><code>Rscript dev/ci/pr-checks.R &lt;mode&gt; origin/main HEAD</code> runs a pull request check locally; the modes are <code>tests</code>, <code>deps</code>, <code>lint</code>, <code>namespace</code> and <code>commits</code>.</p>
+</tr></tbody></table><p><code>Rscript dev/build-diagrams.R</code> rewrites the four diagrams in <code>man/figures/</code> from the code: the layers, a document run, composition, and the registry. Rerun it after changing a stage, a kind of module, a composition verb or a contract version, and commit the new SVGs. <code>tests/testthat/test-diagrams.R</code> fails until you do.</p>
+<p><code>Rscript dev/ci/pr-checks.R &lt;mode&gt; origin/main HEAD</code> runs a pull request check locally; the modes are <code>tests</code>, <code>deps</code>, <code>lint</code>, <code>namespace</code> and <code>commits</code>.</p>
 </div>
 <div class="section level3">
 <h3 id="checks-on-github">Checks on GitHub<a class="anchor" aria-label="anchor" href="#checks-on-github"></a></h3>

@@ -86,6 +86,11 @@ order as one arm. The arm is an ordinary <code><a href="../reference/hr_arm.html
 <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> compares it with recipes and with other
 chains on the same labelled questions, as
 <code><a href="../articles/compare.html">vignette("compare")</a></code> does for recipes.</p>
+<p><code><a href="../reference/hr_chain.html">hr_chain()</a></code> passes each step’s output to the next step, a
+step’s settings come from its schema and reach it as
+<code>ctx$step_params</code>, and no step that is not held may follow a
+held command step:</p>
+<p><img src="../reference/figures/composition.svg" class="r-plt" alt="hr_chain() runs ingest (document in, doc out), segment (doc in, chunks out), retrieve (chunks in, chunks out) and read (chunks in, answer out), each step handing its output to the next. Settings declared with hr_param() and hr_schema() pass through hr_step() and hr_validate() to ctx$step_params; hr_settings() lists them by path, hr_set() changes them and hr_sweep() makes one arm per row. A coding loop runs draft, visible check, revise and held check, and the held command step comes last." width="100%"></p>
 <p>Everything here runs offline on a stand-in model.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>

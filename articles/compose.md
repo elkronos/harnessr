@@ -13,6 +13,20 @@ questions, as
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
 does for recipes.
 
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+passes each step’s output to the next step, a step’s settings come from
+its schema and reach it as `ctx$step_params`, and no step that is not
+held may follow a held command step:
+
+![hr_chain() runs ingest (document in, doc out), segment (doc in, chunks
+out), retrieve (chunks in, chunks out) and read (chunks in, answer out),
+each step handing its output to the next. Settings declared with
+hr_param() and hr_schema() pass through hr_step() and hr_validate() to
+ctx\$step_params; hr_settings() lists them by path, hr_set() changes
+them and hr_sweep() makes one arm per row. A coding loop runs draft,
+visible check, revise and held check, and the held command step comes
+last.](../reference/figures/composition.svg)
+
 Everything here runs offline on a stand-in model.
 
 ``` r

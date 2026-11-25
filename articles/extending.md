@@ -477,6 +477,21 @@ tryCatch(hr_register("reader", "auto", fn = identity, signature = "one|1|none"),
 #> [1] "'auto' is reserved: answer_document() uses it to choose a recipe. Register the reader under another name."
 ```
 
+Every kind keeps its modules in the registry.
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
+stores an entry with its version and contract, and a lookup such as
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
+finds the entry by name and calls its function:
+
+![hr_register(kind, name, fn, ..., version) stores an entry in the
+registry under one of seven kinds: extractor, cleaner, segmenter,
+reader, embedder, protocol and step. hr_register() stamps each entry it
+stores with its version and module contract 0.2. A lookup such as
+gr_read() calls registry_get() with the kind and name and calls the
+entry's fn; an unknown name raises gr_unknown_method and an unknown kind
+hr_unknown_kind. Signal calibrations keep their own contract,
+0.1.](../reference/figures/registry.svg)
+
 [`hr_modules()`](https://elkronos.github.io/harnessr/reference/hr_modules.md)
 lists the modules of every kind in one table, with the call stems each
 declares as a list column. Give it a kind to add that kind’s own

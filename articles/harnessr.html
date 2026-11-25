@@ -268,6 +268,13 @@ harnessr includes a short example document, an annual report:</p>
 <code class="sourceCode R"><span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue in 2024?"</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span>
 <span><span class="va">ans</span><span class="op">$</span><span class="va">answer</span></span>
 <span><span class="co">#&gt; [1] "Revenue was 45.2 million dollars."</span></span></code></pre></div>
+<p>That call ran three stages in order. <code><a href="../reference/gr_ingest.html">gr_ingest()</a></code> handed
+a <code>gr_document</code> to <code><a href="../reference/gr_segment.html">gr_segment()</a></code>, which handed a
+<code>gr_chunks</code> to <code><a href="../reference/gr_read.html">gr_read()</a></code>. Each request to the
+model goes through <code><a href="../reference/hr_call.html">hr_call()</a></code>, where the governor checks the
+limits and, for a client wrapped in <code><a href="../reference/hr_cache_client.html">hr_cache_client()</a></code>, the
+cache answers a repeat. One trace records every step:</p>
+<p><img src="../reference/figures/document-run.svg" class="r-plt" alt="answer_document() runs three stages in order: ingest with gr_ingest() hands a gr_document to segment with gr_segment(), which hands a gr_chunks to read with gr_read(), which returns a gr_answer. Each model request goes through hr_call(), where the governor checks the limits, the cache of a client wrapped in hr_cache_client() answers a repeat and the client answers a miss. One trace from hr_trace() goes to every stage, and readers size prompts with hr_budget()." width="100%"></p>
 <p>With a real model you would leave out <code>client =</code> and point
 it at your own file:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">

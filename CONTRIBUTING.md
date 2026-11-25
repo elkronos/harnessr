@@ -40,6 +40,12 @@ record:
 | `Rscript dev/record-layers.R` | `fixtures/boundary/layers.csv`, the layer of every object in `R/` |
 | `Rscript dev/record-doc-internal.R` | `fixtures/boundary/doc-uses-internal.csv`, the core internals the document layer uses |
 
+`Rscript dev/build-diagrams.R` rewrites the four diagrams in
+`man/figures/` from the code: the layers, a document run, composition,
+and the registry. Rerun it after changing a stage, a kind of module, a
+composition verb or a contract version, and commit the new SVGs.
+`tests/testthat/test-diagrams.R` fails until you do.
+
 `Rscript dev/ci/pr-checks.R <mode> origin/main HEAD` runs a pull request
 check locally; the modes are `tests`, `deps`, `lint`, `namespace` and
 `commits`.
