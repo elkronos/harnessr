@@ -188,10 +188,10 @@ retrieved is a finding about the review. A folder leaves no trace of them.
 
 **Duplicates are matched by DOI instead of by text.** The same paper from three
 databases is one record, and `duplicate_of` names the row each one repeats.
-Where a DOI is missing (preprints, conference papers), normalised title and year
-are the fallback. Two records that both have DOIs and differ are never merged:
-similar titles happen, and merging two studies is the error this path exists to
-avoid.
+For a record with no DOI (preprints, conference papers), normalised title and
+year are the fallback. Two records that both have DOIs and differ are never
+merged: similar titles happen, and merging two studies is the error this path
+exists to avoid.
 
 **Authors and years come from data.** `gr_synthesise()` cites by name. Without
 an export, those names come from a model reading a title page, the loosest
@@ -241,7 +241,7 @@ DOIs, counts as missed and is listed in `$refused`; check those by hand.
 ### Is each file the paper its record names?
 
 A match by first author and year can pair a record with another paper by the
-same author from the same year. When the documents come from a record set,
+same author from the same year. For documents that come from a record set,
 `gr_read_many()`, `gr_screen()` and `gr_extract()` look for the record's DOI
 and title in the opening of each document's text, and an `identity` column
 records whether they found either:
@@ -465,7 +465,7 @@ absolute value. There, kappa reflects prevalence more than agreement. The kappa
 interval is a percentile bootstrap over documents, B = 2000, under a fixed
 seed, so the same sample gives the same interval and the session's random stream
 is untouched; `cal$agreement$kept$bootstrap` holds B and the seed. AC1 uses
-Gwet's (2008) variance. Where the screener and the person agree on every record,
+Gwet's (2008) variance. If the screener and the person agree on every record,
 disagree on every record, or the sample holds fewer than 10 records, as here,
 the kappa and AC1 intervals are left empty with a `note` saying why, instead of
 a zero-width interval such as [1.00, 1.00].
@@ -602,7 +602,7 @@ gr_stop_test(seen)
 ```
 
 The test treats the last records screened as a random draw from those left,
-and a ranking is not one. When the ranker works, the test is cautious; when the
+and a ranking is not one. If the ranker works, the test is cautious; if the
 ranker does worse than chance, you cannot trust the test. It is also not
 corrected for checking after every record. Report the rule and its settings
 with the result.
@@ -611,8 +611,8 @@ and `gr_stop_test()` accepts its result; `vignette("evaluate")` shows it.
 
 ### Several reviewers
 
-One person's decisions make an imperfect reference. How far two people agree
-is the yardstick for how far a screener agrees with either.
+One person's decisions make an imperfect reference. Agreement between two people
+is the yardstick for a screener's agreement with either.
 `gr_reference(reviewers = k)` writes one decision column per reviewer and a
 `consensus` column for an adjudicator:
 
@@ -711,7 +711,7 @@ table <- gr_extract(screened, protocol, client = extractor, recipe = "fast")
 table$table[, c("document", "region", "revenue", "year", "n_unverified")]
 ```
 
-Reconciling the chunks costs nothing by default. Where the document contradicts
+Reconciling the chunks costs nothing by default. If the document contradicts
 itself, `conflicts` names the field and the earliest chunk's value is kept;
 `resolve = "model"` spends one call per disagreeing field to have the model
 choose instead.
@@ -1136,7 +1136,7 @@ contradicting it. The sentence cites it as the comparison, which is sound. The
 check cannot tell that from citing it as agreement, so it flags the sentence
 for a person to read and marks nothing partial.
 
-When claims come from several batches, the reconcile pass keeps two findings
+If claims come from several batches, the reconcile pass keeps two findings
 apart when their words point different ways (an effect against none, a benefit
 against a harm, a rise against a fall) or when they name different populations
 from a short list. A merged claim takes the wording most studies support, so
@@ -1164,7 +1164,7 @@ The claims layer does not rank study designs when deciding emphasis: that would
 assert a cohort study beats a qualitative one, and the Cochrane Handbook
 discourages totalling per-item scores into one number. Design is a grouping
 variable that describes what distinguishes the sides of a disagreement. No
-model is asked to judge which of its own inputs are stale or wrong either. When
+model is asked to judge which of its own inputs are stale or wrong either. If
 two studies conflict, both are reported and the conflict is named, because
 nobody can check "the model decided this one was wrong".
 
@@ -1179,7 +1179,7 @@ Test a review setting the way you test a reading setting: as arms of a
 benchmark, one per value, on a reference a person labelled. `hr_sweep()` builds
 the arms from a function of the setting, and "Screening settings" in
 `vignette("compare")` compares two values of `screen_tokens` that way on 16
-records, with intervals. Where a setting changes no request, the walkthrough
+records, with intervals. If a setting changes no request, the walkthrough
 shows its effect on the objects above instead.
 
 ### Screening calibration: `recall_target`, `conf` and `max_width` {#set-calibration}
