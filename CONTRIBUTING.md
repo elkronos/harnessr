@@ -49,9 +49,21 @@ A pull request runs these workflows:
 |---|---|---|
 | `R-CMD-check.yaml` | `macos-latest (R release)`, `ubuntu-latest (R release)`, `ubuntu-latest (R oldrel-1)` | `R CMD check` with hard dependencies; a warning fails it |
 | `tests.yaml` | `tests` | the suite with `future`, `future.apply`, `ellmer` and `xml2` installed, from the source tree, then the README and guide checks described above |
-| `pr-checks.yaml` | `pull request checks` | the `tests`, `deps`, `namespace` and `commits` modes, one step each; every step runs even when an earlier one fails, and the step name says which check failed |
+| `pr-checks.yaml` | `pull request checks` | the `tests`, `deps`, `namespace`, `commits` and `dashes` modes, one step each; every step runs even when an earlier one fails, and the step name says which check failed |
 | `pr-lint.yaml` | `lint changed R files` | the `lint` mode |
 | `pkgdown.yaml` | `pkgdown` | builds the site without publishing it, only when the pull request changes a file the site is built from (the list is in the workflow) |
+
+The `dashes` step fails when a pull request adds a line with an em dash, an
+en dash or a double hyphen between spaces. It reads `R/`, `man/`,
+`vignettes/`, `inst/` (not `inst/extdata/`), `dev/`, `.github/`, the
+top-level Markdown files, `DESCRIPTION` and `_pkgdown.yml`, and leaves
+`tests/` alone. It prints each line with its file and line number. Rewrite
+the sentence: split it, use a colon before an explanation or a list, or put
+a short aside in commas or parentheses. Prompt text sent to a model keeps
+its double hyphens, since changing it would change requests and cache keys;
+those lines are listed in `tests/testthat/fixtures/boundary/dash-allowed.csv`.
+That list may only shrink, so a row added to it fails the `tests` step until
+the pull request carries the label `tests-reviewed`.
 
 Adding or removing a label reruns `pr-checks.yaml`, so a label added after
 review turns its check green without a new push. Lint reads no label, so a
@@ -135,7 +147,7 @@ reviewed them and added a label:
 
 | Label | What it allows |
 |---|---|
-| `tests-reviewed` | removing an `expect_*()` call, adding a `skip()`, or adding a row to `allowed.csv` or `doc-uses-internal.csv` |
+| `tests-reviewed` | removing an `expect_*()` call, adding a `skip()`, or adding a row to `allowed.csv`, `doc-uses-internal.csv` or `dash-allowed.csv` |
 | `deps-reviewed` | adding a package to `DESCRIPTION` (it must be on CRAN either way) |
 | `exports-reviewed` | removing an export from `NAMESPACE`; list it under "## Removed" in `NEWS.md` with what to use instead |
 
