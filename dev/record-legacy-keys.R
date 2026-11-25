@@ -14,6 +14,10 @@
 # output directory. It stops unless the harnessr it loads still writes
 # readgpt-cache-v2 keys. Rerunning it with a later build would record new keys
 # and make the test check nothing.
+#
+# This file and its helper call the core functions by their hr_ names. The
+# build at c91b04b exports them as gr_, so a rerun needs the copies of both
+# files from before the hr_ rename.
 
 if (!file.exists("DESCRIPTION") || !dir.exists(file.path("tests", "testthat"))) {
   stop("Run this from the repository root: Rscript dev/record-legacy-keys.R", call. = FALSE)
@@ -33,19 +37,19 @@ out <- legacy_keys_dir(".")
 unlink(file.path(out, c("cache", "recording.json")), recursive = TRUE)
 dir.create(out, recursive = TRUE, showWarnings = FALSE)
 
-gr_options(harnessr:::gr_defaults)
-gr_options(verbose = FALSE)
+hr_options(harnessr:::gr_defaults)
+hr_options(verbose = FALSE)
 
 # The cache: every call written under its old key. The repeated prompt is a
 # hit, so six calls leave five entries.
-cl <- gr_cache_client(legacy_keys_client(), gr_cache(file.path(out, "cache")))
+cl <- hr_cache_client(legacy_keys_client(), hr_cache(file.path(out, "cache")))
 invisible(legacy_keys_calls(cl))
 
 # The recording: the same calls, uncached, so the repeated prompt is recorded
-# twice. Saved as gr_trace_save() writes it.
-tr <- gr_trace(run_id = "legacy-keys-fixture")
+# twice. Saved as hr_trace_save() writes it.
+tr <- hr_trace(run_id = "legacy-keys-fixture")
 invisible(legacy_keys_calls(legacy_keys_client(), tr))
-gr_trace_save(tr, file.path(out, "recording.json"))
+hr_trace_save(tr, file.path(out, "recording.json"))
 
 cat(sprintf("Recorded with harnessr %s: %d cache entries, %d recorded calls, in %s\n",
             utils::packageVersion("harnessr"),
