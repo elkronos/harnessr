@@ -89,7 +89,6 @@ memo$blocks[, c("block_id", "text")]
 A string that ends in an extension some extractor claims, but names no file, is
 an error:
 
-
 ```{r error = TRUE}
 gr_ingest("anual-report.pdf")
 ```
@@ -128,7 +127,6 @@ doc$source
 
 Within a session, harnessr downloads an address once and serves later reads of
 it from the cache, as it does for a file.
-
 
 ## Sections and headings
 
@@ -289,7 +287,6 @@ your own lines first. Cleaners always run in two stages, `early` before `late`,
 whatever order you list them in. Without the stages, number removal could strip
 the "1" from "Page 1" before the page-number cleaner recognised the line:
 
-
 ```{r}
 cleaned <- gr_clean(c("Page 1", "Revenue rose to 45.2 million in 2024."),
                     steps = c("remove_numbers", "page_numbers"))
@@ -382,7 +379,6 @@ several requests per document cost more, and short answers cost less. The total
 leaves out files whose size is unknown until OCR reads them; `tokens_unknown`
 counts those.
 
-
 ```{r}
 unlist(inv$totals[c("readable", "tokens", "cost_floor_usd")])
 ```
@@ -437,7 +433,6 @@ born-digital text and has not been compared with the others.
 `references_after` is 0.4, the value set when the cleaner was written. Both are
 `untested` in `gr_settings_table("ingest")`.
 
-
 **How to test it.** Sweep the presets and look at what was sent:
 
 ```{r}
@@ -455,7 +450,6 @@ the `## References` heading. `"none"` sends 8 more.
 sent. The example has no running heads, so on it that comparison would measure
 only run-to-run spread. The same check tells you whether a `references_after`
 sweep reaches your documents at all:
-
 
 ```{r}
 arms <- hr_sweep(gr_arm("fast", list(clean = "academic")),
@@ -576,4 +570,3 @@ With the text out, you next decide how to cut it into chunks
 (`vignette("segment")`) and how the model should read them
 (`vignette("readers")`). To read a whole folder once `gr_inventory()` has
 checked it, see `vignette("review")`.
-
