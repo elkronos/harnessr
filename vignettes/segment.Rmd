@@ -148,16 +148,17 @@ the warning onto the answer of any read that uses the chunks.
 
 ## Chunk size
 
-`max_tokens` is the cap on a chunk's size, and every segmenter is held to it,
+`max_tokens` caps a chunk's size. `gr_segment()` holds every segmenter to it,
 including one you register yourself. After a segmenter returns, `gr_segment()`
 splits any chunk over the cap (at sentences, then words, then characters) and
-counts how many it had to split in `$extra$cap_enforced`. The pieces keep the
-page, section and block of the chunk they came from. If the active tokenizer
-counts a single character as more than the cap, `gr_segment()` stops with an
-error of class `gr_cap_unenforceable` rather than send a chunk the model will
-reject.
+counts the chunks it split in `$extra$cap_enforced`. Each piece keeps the page,
+section and block of its original chunk.
 
-A setting out of range is corrected and the correction is announced:
+If the active tokenizer counts a single character as more than the cap,
+`gr_segment()` stops with an error of class `gr_cap_unenforceable` instead of
+sending a chunk the model will reject.
+
+harnessr corrects a setting out of range and warns about the correction:
 
 ```{r}
 tryCatch(gr_segment_spec("paragraph", max_tokens = 100, overlap_tokens = 500),
@@ -167,16 +168,16 @@ tryCatch(gr_segment_spec("paragraph", max_tokens = 100, overlap_tokens = 500),
 `max_tokens` is held to between 32 and 1,000,000, `overlap_tokens` to less than
 `max_tokens`, and `min_tokens` to no more than `max_tokens`.
 
-What the right size is depends on the reader. A reader that sends every chunk
-pays for each request, so small chunks multiply the bill; one that picks the
-best few chunks needs chunks small enough that the best few hold the answer and
-little else. `vignette("readers")` compares them.
+The right size depends on the reader. A reader that sends every chunk pays for
+each request, so small chunks multiply the bill. A reader that picks the best
+few chunks needs chunks small enough that those few hold the answer and little
+else. `vignette("readers")` compares the readers.
 
 ## Overlap
 
-Without overlap, an answer that straddles a boundary is split between two
-chunks and may be lost by both. `overlap_tokens` copies the end of each chunk
-into the start of the next. It costs duplicated tokens, which
+Without overlap, a boundary can split an answer between two chunks, and
+neither chunk may hold enough of it. `overlap_tokens` copies the end of each
+chunk into the start of the next. You pay for the duplicated tokens, which
 `gr_chunk_stats()` shows as a larger `total_tokens`:
 
 ```{r}
@@ -185,26 +186,32 @@ do.call(rbind, lapply(c(0, 30, 60), function(ov)
                                       overlap_tokens = ov)))))
 ```
 
-The document is the same 534 tokens each time: at 60 tokens of overlap the
-model would be sent 863, about 60% more. The carried text is cut at a sentence
-boundary when one is close, otherwise at a word; text written without spaces
-(Chinese, Japanese, Thai) is cut by characters. The overlap is trimmed so that
-the chunk it opens still fits the cap.
+The document is the same 534 tokens each time. At 60 tokens of overlap the
+model would be sent 863, about 60% more.
 
-Provenance counts the overlap. A chunk that opens with a sentence carried from
-page 3 and goes on to page 4 reports page `NA`, since it is not wholly from
+harnessr cuts the carried text at a sentence boundary when one is close, and
+otherwise at a word. Text written without spaces (Chinese, Japanese, Thai) is
+cut by characters. The overlap is trimmed so that the chunk it opens still fits
+the cap.
+
+Provenance counts the overlap. Say a chunk opens with a sentence carried from
+page 3 and goes on to page 4. It reports page `NA`, since it is not wholly from
 either.
 
-Overlap applies to every segmenter except `page`, where the page is the unit,
-and `proposition`, whose statements are written to stand alone, so its overlap
-is always 0. `structural` applies it within a section, never across a heading.
+Overlap applies to every segmenter with two exceptions:
+
+- `page`, where the page is the unit;
+- `proposition`, whose statements are written to stand alone, so its overlap
+  is always 0.
+
+`structural` applies overlap within a section, never across a heading.
 
 ## Minimum size
 
 `min_tokens` merges a chunk smaller than this into the chunk before it, so a
 one-line paragraph between two headings does not become a request of its own.
 The merge happens only when the result still fits the cap. With a cap of 60
-tokens the example's paragraphs give fourteen chunks, the smallest of 8 tokens;
+tokens the example's paragraphs give fourteen chunks, the smallest of 8 tokens.
 `min_tokens = 30` folds one of them away:
 
 ```{r}
@@ -213,9 +220,9 @@ do.call(rbind, lapply(c(0, 30), function(m)
                                       min_tokens = m)))))
 ```
 
-`fixed` and `page` ignore `min_tokens`. `structural` applies it within a
-section only, because it never merges across headings: its 16-token first
-chunk, the report's title, stays as it is whatever you set.
+`fixed` and `page` ignore `min_tokens`. `structural` never merges across
+headings, so it applies `min_tokens` within a section only. Its 16-token first
+chunk, the report's title, stays as it is whatever you set:
 
 ```{r}
 gr_chunk_stats(gr_segment(doc, list(method = "structural", max_tokens = 120,
@@ -224,23 +231,23 @@ gr_chunk_stats(gr_segment(doc, list(method = "structural", max_tokens = 120,
 
 ## Context lines
 
-A chunk retrieved on its own can be hard to place: "it rose 17 percent" means
+A chunk retrieved on its own can be hard to place. "It rose 17 percent" means
 little without the section it came from. `contextual` packs paragraphs as
 `paragraph` does, then starts each chunk with a bracketed line saying where it
-sits. By default (`context_source = "metadata"`) the line is built from the
-file name, section, page and position, for nothing:
+sits. By default (`context_source = "metadata"`) harnessr builds the line from
+the file name, section, page and position, at no cost:
 
 ```{r}
 ctx <- gr_segment(doc, list(method = "contextual", max_tokens = 120))
 cat(ctx$chunks$text[2])
 ```
 
-With `context_source = "llm"` a model writes the line instead, one call per
-chunk, from the chunk, the document's first 1,500 tokens and the chunk's
-section path from the document's headings (`"Report > Results"`), so a chunk
-from deep in a long document can be placed. It makes one request per chunk and
-never more: `$extra$cost` declares `calls` and `calls_max` as the number of
-chunks. The mock client below stands in for that model:
+With `context_source = "llm"` a model writes the line instead. Each call
+sends the chunk, the document's first 1,500 tokens and the chunk's section
+path from the document's headings (`"Report > Results"`), so the model can
+place a chunk from deep in a long document. `contextual` makes one request per
+chunk and never more: `$extra$cost` declares `calls` and `calls_max` as the
+number of chunks. The mock client below stands in for that model:
 
 ```{r}
 writer <- hr_mock_client(function(messages, params) "This excerpt reports the 2024 results.")
@@ -249,19 +256,23 @@ ctx_llm <- gr_segment(doc, list(method = "contextual", max_tokens = 120,
 cat(ctx_llm$chunks$text[2])
 ```
 
-Room for the line is held back from each chunk before packing (90 tokens for
-`"llm"`, the longest header the document could need for `"metadata"`, never
-more than half of `max_tokens`), so adding the line never pushes a chunk over
-the cap. A line that still does not fit is shortened; the document text is
-not.
+Before packing, `contextual` holds back room for the line from each chunk, so
+adding the line never pushes a chunk over the cap. The room is:
 
-When a context call fails or is skipped at the run's limits, the chunk keeps
-its text without a line. `$extra$blurbs_missing` counts those chunks, and a
-`gr_segment_fallback` warning says so.
+- for `"llm"`, `context_reply_tokens` (90 by default);
+- for `"metadata"`, the longest header the document could need;
+- in both cases, never more than half of `max_tokens`.
+
+A line that still does not fit is shortened. The document text is not.
+
+If a context call fails or is skipped at the run's limits, the chunk keeps its
+text without a line. `$extra$blurbs_missing` counts those chunks, and a
+`gr_segment_fallback` warning reports them.
 
 The context line is not the document's text, and a model may have written it.
-So the chunk also keeps its body alone in a `source_text` column, and a
-quotation from the chunk is checked against that, never against the line:
+The chunk therefore keeps its body alone in a `source_text` column. harnessr
+checks a quotation from the chunk against that column, never against the
+line:
 
 ```{r}
 ctx_llm$chunks$source_text[2]
