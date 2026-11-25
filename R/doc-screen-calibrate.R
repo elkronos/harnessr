@@ -1,4 +1,4 @@
-# doc-screen-calibrate.R -- how often the screener is wrong, measured rather
+# doc-screen-calibrate.R: how often the screener is wrong, measured rather
 # than assumed.
 #
 # WHY THIS FILE EXISTS
@@ -13,7 +13,7 @@
 # their errors are correlated: they agree most confidently exactly where they are
 # both wrong, and a high figure would read as reliability while meaning
 # self-consistency. Repeated sampling does help with careless reasoning, and it
-# does nothing for a systematic misreading -- and which of those you have is not
+# does nothing for a systematic misreading. Which of those you have is not
 # knowable from the passes themselves.
 #
 # Only a reference standard settles it. Screen a sample by hand, compare, and
@@ -164,8 +164,8 @@ gr_reference <- function(screening, n = 50, of = c("excluded", "kept", "all", "s
     if (is.infinite(size) || size >= length(idx)) return(idx)
     # with_private_rng(), not withr::with_seed(): withr is only suggested, so a
     # default install stopped here with "there is no package called 'withr'".
-    # It is the same draw -- set.seed() under the session's RNG kind, the
-    # caller's stream restored afterwards -- so a seed keeps its sample.
+    # It is the same draw (set.seed() under the session's RNG kind, the
+    # caller's stream restored afterwards), so a seed keeps its sample.
     # idx[sample.int()] rather than sample(idx): sample() of one number draws
     # from 1:idx instead.
     pick <- function() idx[sample.int(length(idx), size)]
@@ -198,7 +198,7 @@ gr_reference <- function(screening, n = 50, of = c("excluded", "kept", "all", "s
   # emailed, opened in Excel and read back a fortnight later, and an attribute
   # does not survive any of that. Without it a sample of exclusions comes back
   # looking like a sample of everything, and gr_calibrate() would then report a
-  # sensitivity of 0% and a specificity of 100% -- both artifacts of the frame.
+  # sensitivity of 0% and a specificity of 100%, both artifacts of the frame.
   # screened_n as a column for the same reason, which it was missing: without
   # it gr_calibrate() fell back to nrow(tab), which counts rows the screener
   # never decided, and the printed denominator quietly changed meaning between
@@ -206,8 +206,8 @@ gr_reference <- function(screening, n = 50, of = c("excluded", "kept", "all", "s
   #
   # In a blind sheet the three travel as one opaque key. Written out plainly,
   # sampled_from = "excluded" on every row told the person filling it in that
-  # the model had rejected each record -- the answer `blind` exists to keep from
-  # them -- and frame_n against screened_n said the same by its ratio.
+  # the model had rejected each record, the answer `blind` exists to keep from
+  # them. frame_n against screened_n said the same by its ratio.
   if (of == "stacked") {
     # Each row says which stratum it came from and with what probability, the
     # design weights gr_calibrate() estimates recall with. A blind sheet keeps
@@ -277,7 +277,7 @@ as_screening_table <- function(screening) {
     gr_abort("`screening` needs `document` and `decision` columns.", class = "gr_bad_screening")
   }
   # Read back the way the human decisions are. A table saved with
-  # write.csv(na = "") -- the convention gr_reference() uses -- comes back with
+  # write.csv(na = ""), the convention gr_reference() uses, comes back with
   # "" where a document was never read, and a spreadsheet capitalises; kept
   # as they were, every value other than "include" and "unclear" counted as an
   # exclusion, so unread documents a person judged eligible were listed in
@@ -672,8 +672,8 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
                      paste(sprintf("'%s'", unique(human[bad])), collapse = ", ")),
              class = "gr_bad_reference")
   }
-  # One judgement per document. Two reviewers' sheets stacked with rbind() --
-  # dual screening is standard practice -- doubled n, counted a disagreement
+  # One judgement per document. Dual screening is standard practice, and two
+  # reviewers' sheets stacked with rbind() doubled n, counted a disagreement
   # once each way, and narrowed every interval as if the sample were twice the
   # size. Copies that agree say nothing more and are counted once; copies that
   # disagree are a conflict for the reviewers to settle, not for a rate to
@@ -712,11 +712,11 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
   # WHICH STATISTICS THE SAMPLE CAN SUPPORT depends entirely on where it was
   # drawn from, and computing all of them regardless is worse than computing
   # none. A sample of exclusions contains no kept records by construction, so
-  # sensitivity comes out 0%, specificity 100% and "reading avoided" 100% -- all
-  # three artifacts of the frame, all three alarming or flattering, and none of
-  # them a fact about the screener. What that frame DOES estimate is the false
-  # omission rate, which is the most useful number here anyway: of everything
-  # thrown away, how much should not have been.
+  # sensitivity comes out 0%, specificity 100% and "reading avoided" 100%. All
+  # three are artifacts of the frame, all three alarming or flattering, and
+  # none of them a fact about the screener. What that frame DOES estimate is
+  # the false omission rate, which is the most useful number here anyway: of
+  # everything thrown away, how much should not have been.
   #
   # So `of` is checked, not taken as given. Any value but the two strata fell
   # through to the corpus-wide branch: of = "exclude" (the decision's label)
@@ -748,8 +748,8 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
   of <- as_chr1(of %||% recorded %||% "unknown", "unknown")
   if (identical(of, "mixed")) {
     # Two strata stacked into one file. This is not a corner case: it is what
-    # following this package's own advice produces -- judge everything kept AND
-    # a sample of what was discarded -- and gr_calibrate() takes one reference,
+    # following this package's own advice produces (judge everything kept AND
+    # a sample of what was discarded), and gr_calibrate() takes one reference,
     # so people rbind() them. The kept stratum is then sampled at 100% and the
     # excluded stratum at a few percent, and the unweighted figures are not
     # merely imprecise, they are wrong in a flattering direction: on a screener
@@ -777,10 +777,10 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
   # The per-frame rates count every row as belonging to the frame: "eligible
   # among the excluded" is eligible rows over ALL rows, and the projection
   # multiplies that by the number of exclusions. A kept row in an exclusions
-  # sample -- stacked frames with `of =` given, or a reference drawn from an
-  # earlier run whose decisions have since changed -- was therefore scored as a
-  # study thrown away, and "projected lost" reported studies the screener kept
-  # while `missed` listed none of them.
+  # sample was therefore scored as a study thrown away. Stacked frames with
+  # `of =` given produce one, and so does a reference drawn from an earlier run
+  # whose decisions have since changed. "Projected lost" then reported studies
+  # the screener kept while `missed` listed none of them.
   fits <- switch(of, excluded = model == "exclude",
                  kept = model %in% c("include", "unclear"), rep(TRUE, length(model)))
   if (identical(of, "stacked")) {
@@ -872,8 +872,8 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
                                      levels = c("eligible", "not eligible")))
   # A number, compared as a number. `4 >= "10"` is TRUE because R compares as
   # STRINGS, and as_int1() then turned Inf and anything above 2^31 into the
-  # default of 10 -- so asking for more eligible studies than the sample could
-  # have declared the calibration adequate. A bar that cannot be read falls
+  # default of 10. Asking for more eligible studies than the sample could have
+  # therefore declared the calibration adequate. A bar that cannot be read falls
   # back to the default, and says so.
   min_pos <- suppressWarnings(as.numeric(min_positives))
   if (length(min_pos) != 1L || is.na(min_pos)) {
@@ -885,7 +885,7 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
   # "all" sample sensitivity rests on the eligible studies alone, so it needs
   # min_positives of them. In a one-stratum sample the rate is taken over every
   # row sampled: judged by the eligible count instead, a clean sample of 500
-  # exclusions -- 0.0% [0.0%, 0.8%] -- was "inadequate", said to rest on "those
+  # exclusions, 0.0% [0.0%, 0.8%], was "inadequate", said to rest on "those
   # 0 observations", and the better the screener the surer that verdict. There
   # the question is whether the interval is narrow enough to say something, or
   # whether the whole frame was judged, when nothing is left to sample and the
@@ -929,7 +929,7 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
     disagreements = rows[(eligible & !kept) | (!eligible & strict), , drop = FALSE],
     n = length(model),
     n_positives = n_pos,
-    # as_int1() first. `4 >= "10"` is TRUE -- R compares as STRINGS -- so a
+    # as_int1() first. `4 >= "10"` is TRUE (R compares as STRINGS), so a
     # character min_positives declared an inadequate calibration adequate, and
     # the "too few eligible studies to quote a figure" warning vanished from
     # print() while the object still displayed 10.
@@ -1051,8 +1051,8 @@ read_reference <- function(reference) {
   }
   # A blind sheet's frame is an opaque key (see frame_key()); read it back as
   # the frame's name and sizes, which is what everything below works with.
-  # Names in plain words -- a sheet written with blind = FALSE, or before the
-  # key -- are read as they always were.
+  # Names in plain words, from a sheet written with blind = FALSE or before the
+  # key, are read as they always were.
   keys <- list()
   if (!is.null(ref$sampled_from)) {
     raw <- as.character(ref$sampled_from)
@@ -1078,8 +1078,8 @@ read_reference <- function(reference) {
   }
   # The COLUMNS say where each row came from; the attributes only say where the
   # first row did. rbind() keeps its first argument's attributes, so a sample
-  # of the kept records stacked under a sample of the exclusions -- the design
-  # gr_reference() recommends, combined the obvious way -- still claimed to be
+  # of the kept records stacked under a sample of the exclusions (the design
+  # gr_reference() recommends, combined the obvious way) still claimed to be
   # one sample of exclusions, and was scored as one: every kept eligible study
   # counted as an eligible study thrown away, projected across the whole
   # discarded pile. The same rows read back from a CSV were refused. So the
@@ -1205,11 +1205,11 @@ frame_pad <- function(nonce, n) {
 #' Write a reference sheet as UTF-8 with a byte-order mark, in any locale.
 #'
 #' write.csv() translates to the session's encoding before it writes, so in a C
-#' locale an accented name went out as "<U+00C9>vora.txt" -- irreversibly, and
-#' gr_calibrate() then refused its own file -- and with fileEncoding = "UTF-8"
-#' it went out as nothing at all. So the cells are quoted here, as write.csv()
-#' quotes them, and written as bytes. The mark is what makes Excel read the
-#' file as UTF-8 rather than as its own code page.
+#' locale an accented name went out as "<U+00C9>vora.txt". That loss is
+#' irreversible, and gr_calibrate() then refused its own file. With
+#' fileEncoding = "UTF-8" it went out as nothing at all. So the cells are
+#' quoted here, as write.csv() quotes them, and written as bytes. The mark is
+#' what makes Excel read the file as UTF-8 rather than as its own code page.
 #' @noRd
 write_reference_csv <- function(df, path) {
   cell <- function(v) {
