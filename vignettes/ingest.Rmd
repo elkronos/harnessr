@@ -221,8 +221,8 @@ on or off:
 gr_cleaners()[, c("name", "stage", "default_on")]
 ```
 
-The five marked `default_on` run unless you turn them off. Some of the others
-are off by default for these reasons:
+The five marked `default_on` run unless you turn them off. The others are off
+by default. The ones below are off for these reasons:
 
 - `remove_numbers` replaces every digit with a space, which makes any question
   about a figure, date or percentage unanswerable.
