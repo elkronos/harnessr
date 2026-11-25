@@ -12,31 +12,33 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 Every choice in a pipeline (the recipe, the model, the prompt, the reasoning
-effort) changes the answers, and one run on one document cannot say by how
-much. A model asked the same question five times can answer it five ways, and
-ten questions about one report share that report's quirks, so they are closer
-to one observation than to ten. `gr_compare()` shows what each recipe does to
-one document and is descriptive only. The functions in this guide answer the
-question that follows it: on a labelled set of questions, is configuration A
-more accurate than B, by how much, at what cost, and how sure can you be?
+effort) changes the answers, and one run on one document cannot tell you by
+how much. A model asked the same question five times can answer it five ways.
+Ten questions about one report share that report's quirks, so they are closer
+to one observation than to ten.
 
-The guide follows the order of the work: a reference set and its splits, the
+`gr_compare()` shows what each recipe does to one document, and its output is
+descriptive only. With the functions in this guide you answer the next
+question: on a labelled set of questions, is configuration A more accurate than
+B, by how much, at what cost, and how sure can you be?
+
+The sections follow the order of the work: a reference set and its splits, the
 arms to compare and the rule that scores them, a benchmark held to one spending
 limit, the report and how to read it, planning the size of a comparison before
-running it, judges, baselines that use no model, drift, and the signals the
+you run it, judges, baselines that use no model, drift, and the signals the
 package records about its own work. The statistics functions underneath come
 last. Measuring a screener against people, several reviewers and agreement
-between extraction tables are part of a review and are in `vignette("review")`.
-`vignette("compare")` puts these functions to work on worked comparisons of
-readers, segmenters, settings, screening and judges.
+between extraction tables belong to a review, so `vignette("review")` covers
+them. `vignette("compare")` puts these functions to work on worked comparisons
+of readers, segmenters, settings, screening and judges.
 
 ## Setting up
 
-Everything below runs offline. `hr_mock_client()` stands in for the model, and
-`embedder = "lexical"` keeps retrieval free and deterministic. Two mock model
-ids get prices, so the benchmarks below have a cost to compare: `mock-small` at
-$0.20 and $0.80 per million input and output tokens, and `mock-large` at ten
-times that.
+Every example runs offline. `hr_mock_client()` stands in for the model, and
+`embedder = "lexical"` keeps retrieval free and deterministic. The setup gives
+two mock model ids prices, so the benchmarks below have a cost to compare:
+`mock-small` at $0.20 and $0.80 per million input and output tokens, and
+`mock-large` at ten times that.
 
 ```{r message = FALSE}
 library(harnessr)
@@ -50,14 +52,13 @@ hr_register_model("mock-large", context_window = 128000, max_output = 4096,
 
 ## References and splits
 
-A reference is the labelled set every configuration is scored on. Each item has
-a payload (what the configuration is given), a label (what counts as right),
-a cluster and a split. The cluster is the unit whose items share errors,
-usually the document: eight questions about one report are not eight
-independent observations, and every interval in this guide is computed with
-that in mind. `hr_reference()` builds one from any items; `gr_qa_reference()`
-builds one of questions about documents, with each question's acceptable
-answers:
+A reference is the labelled set you score every configuration on. Each item has
+a payload (what the configuration is given), a label (what counts as right), a
+cluster and a split. The cluster is the unit whose items share errors, usually
+the document. Eight questions about one report are not eight independent
+observations, and every interval in this guide is computed with that in mind.
+`hr_reference()` builds a reference from any items. `gr_qa_reference()` builds
+one from questions about documents, with each question's acceptable answers:
 
 ```{r}
 reports <- c(
@@ -81,26 +82,32 @@ qa
 ```
 
 The eastern report names a chair and no chief executive, so `e_ceo` is marked
-unanswerable: its label is the not-found answer, and a reader is right on it
-only when it says the document does not hold the answer. The flag goes into
-the label alone; the payload a configuration is given holds the question and
-the document, so it cannot tell which questions have no answer. A reference
-without such items never tests whether a reader can tell that an answer is
-missing. An item with neither an answer nor the unanswerable flag has no label,
-and every run on it is scored `NA`, so it never counts for or against an arm.
+unanswerable. Its label is the not-found answer, and a reader is right on it
+only when it says the document does not hold the answer. The flag goes into the
+label alone. The payload holds the question and the document, so a
+configuration cannot tell which questions have no answer. Without such items, a
+reference never tests whether a reader can tell that an answer is missing.
 
-Once a benchmark starts scoring a reference, the reference is locked:
-`hr_reference_add()` then refuses to add items to it, or to any copy of it,
-with an error of class `hr_reference_locked`, so no item can be added after
-the results are seen. The reference also carries a SHA-256 hash of
-its content, which the benchmark checks.
+An item with neither an answer nor the unanswerable flag has no label. Every
+run on it is scored `NA`, so it never counts for or against an arm.
 
-Splits keep tuning apart from evidence. `dev` is for tuning prompts, settings
-and margins, and its scores are never reported. `exploratory` holds early
-experiments, `calibration` is for fitting signal thresholds (below), `test` is
-what reported comparisons are scored on, and `final`, if used, is held back and
-run once per release. `hr_assign_splits()` assigns whole clusters, so no
-document has questions on both sides of a tuning and a scoring split:
+A benchmark locks a reference once it starts scoring it. From then on
+`hr_reference_add()` refuses to add items to the reference, or to any copy of
+it, with an error of class `hr_reference_locked`, so no one can add an item
+after seeing the results. The reference also carries a SHA-256 hash of its
+content, and the benchmark checks that hash.
+
+Splits keep tuning apart from evidence:
+
+- `dev` is for tuning prompts, settings and margins, and its scores are never
+  reported.
+- `exploratory` holds early experiments.
+- `calibration` is for fitting signal thresholds (below).
+- `test` holds the items reported comparisons are scored on.
+- `final`, if used, is held back and run once per release.
+
+`hr_assign_splits()` assigns whole clusters, so no document has questions on
+both sides of a tuning and a scoring split:
 
 ```{r}
 questions <- data.frame(
@@ -113,30 +120,32 @@ sp
 ```
 
 The default shares are 10% dev, 10% exploratory, 30% calibration and 50% test.
-Each cluster's place comes from the SHA-256 digest of the seed and its id, so
-row order and the session's random state do not change it, and with the
-default `method = "stable"` adding or dropping a document never moves another.
-The price is that the shares are met only on average: 13 of these 30 documents
-went to test, not 15. `method = "balanced"` gives each split its share of
-whole clusters, at the cost that a document added later can shift others
-across a boundary, so draw it once and store it:
+The SHA-256 digest of the seed and a cluster's id sets that cluster's split, so
+row order and the session's random state do not change it. With the default
+`method = "stable"`, adding or dropping a document never moves another. In
+exchange, the shares hold only on average: 13 of these 30 documents went to
+test, not 15.
+
+`method = "balanced"` gives each split its share of whole clusters. A document
+added later can then shift others across a boundary, so draw the splits once
+and store them:
 
 ```{r}
 hr_assign_splits(questions, seed = 2026, method = "balanced")$counts[, c("split", "clusters", "items")]
 ```
 
-A split given a share that receives no cluster warns with class
-`hr_empty_split`, which happens with very few documents.
+With very few documents, a split given a share can receive no cluster, and
+`hr_assign_splits()` then warns with class `hr_empty_split`.
 
 ### Label sheets
 
 Labels come from people. `gr_label_sheet()` writes a CSV with one row per item,
 the columns a person needs to judge it and empty columns for their decisions,
-with an instructions file beside it. It writes six kinds: `"qa"`,
+plus an instructions file beside it. It writes six kinds: `"qa"`,
 `"screening"`, `"extraction"`, `"calibration"`, `"judge"` and `"pairwise"`
 (two texts in a blinded order, for a pairwise judge; `vignette("compare")`
-has one). A blind sheet, the default, copies only those columns, so a model's
-answer in `items` stays out of it:
+has one). Sheets are blind by default: a blind sheet copies only those
+columns, so a model's answer in `items` stays out of it:
 
 ```{r message = FALSE}
 to_label <- head(sp$items, 3)
@@ -149,8 +158,8 @@ names(sheet)
 
 The person fills `answerable`, `answer` and `quote`. `gr_read_labels()` reads
 the sheet back, checks every value and id, and joins the items' other columns
-back by `item_id`, renaming one that clashes with a decision column (the
-model's `answer` here would come back as `model_answer`):
+by `item_id`. It renames a column that clashes with a decision column, so a
+model's `answer` here would come back as `model_answer`:
 
 ```{r}
 filled <- read.csv(path, fileEncoding = "UTF-8-BOM")
@@ -162,9 +171,9 @@ gr_read_labels(path, "qa", items = to_label)[, c("item_id", "answerable", "answe
                                                   "split", "model_answer")]
 ```
 
-A value it cannot read stops it with an error of class `gr_bad_labels` that
-names the sheet, the row as a spreadsheet counts it and the item, for every bad
-value at once:
+A value it cannot read stops it with an error of class `gr_bad_labels`. The
+error lists every bad value at once, each with the sheet, the row number as a
+spreadsheet counts it, and the item:
 
 ```{r}
 filled$answer[2] <- "Smith & Co"
@@ -173,10 +182,10 @@ tryCatch(gr_read_labels(path, "qa", items = to_label),
          gr_bad_labels = function(e) cat(conditionMessage(e)))
 ```
 
-With `reviewers = k` each person gets a sheet of their own, so no one sees
-another's decisions. `?gr_label_sheet` gives the number of items each kind of
-set needs for the package's own evaluation: for question answering, about 480
-questions over 88 documents.
+With `reviewers = k`, each person gets a sheet of their own and sees no one
+else's decisions. `?gr_label_sheet` gives the number of items each kind of set
+needs for the package's own evaluation: about 480 questions over 88 documents
+for question answering.
 
 ## Arms and scorers
 
