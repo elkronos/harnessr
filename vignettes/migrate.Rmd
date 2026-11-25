@@ -17,8 +17,8 @@ the name that replaced it and what to change in your code. None of the old
 names has an alias: calling an old function stops with "could not find
 function". `NEWS.md` lists every change release by release.
 
-Files you saved with an older version still load. "What still loads", at the
-end of this page, lists them.
+The files listed under "What still loads", at the end of this page, still
+load. A response cache written by readgpt 0.5.1 or earlier is not read.
 
 ## From readgpt 0.6.0: core functions now start with hr_
 
@@ -95,7 +95,9 @@ hr_options(old)
 ## From readgpt 0.6.0: the package, options and other removed names
 
 harnessr was called readgpt up to version 0.6.0, and so was its GitHub
-repository. The rename leaves requests, cache keys and recordings unchanged.
+repository. The rename itself changes no request or key. This release does
+move the response cache to the key `harnessr-cache-v3` and replay to
+`harnessr-replay-v2`; "What still loads" says how old entries are found.
 
 | Old | New | What to change |
 |---|---|---|
@@ -158,13 +160,18 @@ against the current code.
 
 ## What still loads
 
-The renames did not change the files the package writes. Each item below
-names the test in `tests/testthat/` that loads such a file.
+harnessr writes new cache entries under the key `harnessr-cache-v3` and
+records replay steps under `harnessr-replay-v2`. When a call finds nothing
+under the new key, harnessr looks it up under the old one, and a reply found
+that way raises an `hr_legacy_key` warning. Each item below names the test in
+`tests/testthat/` that loads such a file.
 
-- **Response caches.** A cache written by readgpt 0.6.0 or earlier answers
-  every call it holds through the old key, and nothing is sent. A reply found
-  that way raises an `hr_legacy_key` warning, once per cache in a session. A
-  call with a draw index does not read the old keys. Tests: "an old cache
+- **Response caches.** A cache written by readgpt 0.6.0, or by an earlier
+  build of harnessr, answers every call it holds through the old key
+  `readgpt-cache-v2`, and nothing is sent. The warning comes once per cache
+  in a session. A call with a draw index does not read the old keys. readgpt
+  0.5.1 and earlier wrote the key `readgpt-cache-v1`, which harnessr does not
+  read, so the calls in such a cache are sent again. Tests: "an old cache
   answers every call through the old key, each hit warning" and "an old cache
   is not read for a draw", in `test-compat-legacy-keys.R`.
 - **readgpt's cache directory.** When your cache directory is
@@ -189,5 +196,6 @@ names the test in `tests/testthat/` that loads such a file.
   `test-corpus.R`, and "a store entry written by 0.5.0 is read again once, then
   restored", in `test-review3-corpus.R`.
 - **Class names.** Objects keep their `gr_` classes, so an object saved before
-  the rename still dispatches. Test: "the renamed constructors still make gr_
-  classes", in `test-core-names.R`.
+  the rename still dispatches. Tests: "the renamed constructors still make gr_
+  classes" and "a gr_result saved before the rename prints with its method",
+  in `test-core-names.R`.
