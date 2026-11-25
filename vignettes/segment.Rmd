@@ -704,8 +704,8 @@ bench <- hr_benchmark(arms, my_reference, runs = 5, client = my_client, split = 
 aggregate(cbind(correct, usd) ~ param.method + param.context_source, bench, mean)
 ```
 
-`proposition_check = "drop"` changes which propositions are kept and no
-request. Before you sweep it, `$extra$propositions_unsupported` on one
+`proposition_check = "drop"` sends the same requests and changes only which
+propositions are kept. Before you sweep it, `$extra$propositions_unsupported` on one
 segmentation shows what it would drop.
 
 The recipe stores `context_source` even under a segmenter that ignores it. In
