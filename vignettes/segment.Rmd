@@ -11,25 +11,25 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-A model reads a long document in pieces, called *chunks*, and chunking decides
-what it can see together. A figure in one chunk and the sentence that explains
-it in the next may never be read side by side. This guide covers the nine ways
-harnessr cuts a document, the settings every one of them shares, and how to
-compare chunkings before you pay for any reading.
+A model reads a long document in pieces, called *chunks*, and the chunking
+decides what it sees together. Put a figure in one chunk and the sentence that
+explains it in the next, and the model may never read them side by side. This
+guide covers the nine ways harnessr cuts a document, the settings all nine
+share, and how to compare chunkings before you pay for any reading.
 
-Six of the nine segmenters make no model calls, and a seventh makes none by
-default, so you can try them for nothing. `vignette("harnessr")` introduces the
-package and the ideas used here, and `vignette("ingest")` covers the step before
-this one.
+Six of the nine segmenters make no model calls. A seventh makes none by
+default. At their defaults, you can try all seven for nothing.
+`vignette("harnessr")` introduces the package and its ideas, and
+`vignette("ingest")` covers the step before this one.
 
 ```{r message = FALSE}
 library(harnessr)
 old <- hr_options(verbose = FALSE, embedder = "lexical")
 ```
 
-`embedder = "lexical"` makes the one segmenter that embeds text, `semantic`, use
-hashed bag-of-words vectors rather than an embeddings endpoint, so this guide
-runs offline and gives the same chunks every time.
+Only one segmenter embeds text: `semantic`. With `embedder = "lexical"` it
+uses hashed bag-of-words vectors instead of an embeddings endpoint, so this
+guide runs offline and gives the same chunks every time.
 
 ## What segmentation produces
 
@@ -49,21 +49,24 @@ The segmentation can be a segmenter's name, a named list as above, or a
 ch$chunks[, c("chunk_id", "tokens", "page", "section", "block_id")]
 ```
 
-`page` is `NA` here because the example is Markdown, which has no pages; a PDF
-fills it in. `block_id` is `NA` on a chunk built from several blocks, and so is
-`page` on a chunk that runs from one page onto the next. A chunk that is not
-from one place says so rather than naming the first place it touches. This
-provenance is what `ans$evidence` reports for every chunk an answer rests on.
+`page` is `NA` here because the example is Markdown, which has no pages. A
+PDF fills it in. Two other cases also give `NA`:
 
-You rarely call `gr_segment()` yourself. `answer_document()` does it, using the
+- `block_id` on a chunk built from several blocks;
+- `page` on a chunk that runs from one page onto the next.
+
+A chunk that spans places gets `NA` instead of the first place it touches.
+`ans$evidence` reports this provenance for every chunk an answer rests on.
+
+You rarely call `gr_segment()` yourself. `answer_document()` calls it with the
 `segment` part of a recipe:
 
 ```{r}
 gr_recipe("survey")$segment[c("method", "max_tokens", "overlap_tokens")]
 ```
 
-To change it, build a recipe of your own with
-`gr_recipe(segment = list(...))`; `vignette("readers")` covers recipes.
+To change it, build your own recipe with `gr_recipe(segment = list(...))`.
+`vignette("readers")` covers recipes.
 
 ## The nine segmenters
 
