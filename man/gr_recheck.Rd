@@ -45,7 +45,10 @@ sentences are linked to verified records again; and \verb{$uncited} and
 \verb{$contradictions} are worked out again. The sections, their counts and
 \verb{$draft} are left as written: they describe the draft, not the edit.
 For a synthesis saved before \verb{$section_studies} was kept, \code{shown} in
-\verb{$uncited} is \code{NA}, since what each section was shown is not known.
+\verb{$uncited} is \code{NA}, since what each section was shown is not known. A
+synthesis saved by an earlier version comes back with the fields added
+since filled with their defaults: no studies lost or left unrendered, and
+the citation style and bibliographic columns it was written with.
 }
 \examples{
 tab <- data.frame(document = c("a.pdf", "b.pdf"), status = "ok",

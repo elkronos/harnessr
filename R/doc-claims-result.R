@@ -84,6 +84,8 @@ claim_support_table <- function(claims) {
 
 #' @export
 print.gr_claims <- function(x, ...) {
+  saved <- x
+  x <- gr_upgrade_stage(x)
   cat(sprintf("<gr_claims> %d claim(s) over %d study/studies\n",
               nrow(x$claims), nrow(x$studies)))
   if (nrow(x$claims)) {
@@ -97,7 +99,9 @@ print.gr_claims <- function(x, ...) {
     if (single) cat(sprintf("  %d resting on a single study\n", single))
     # Ranked by certainty, as a section ranks them (claim_order()), with a
     # claim more of whose studies contradict it than support it last; a claims
-    # table saved before the tally existed is ranked from its counts.
+    # table saved before the tally existed is ranked from its counts, and
+    # gr_upgrade_stage() leaves the column out so the audit report shows the
+    # table as it was saved.
     cw <- x$claims
     p <- cw$sign_p %||% sign_test(cw$n_support, cw$n_support + cw$n_contradict)
     low <- sign_test_min(cw$n_support + cw$n_contradict) > 0.05
@@ -110,7 +114,7 @@ print.gr_claims <- function(x, ...) {
                   format_sign_p(p[i]), if (isTRUE(low[i])) " (low power)" else ""))
     }
     if (nrow(cw) > 5L) cat(sprintf("  ... and %d more\n", nrow(cw) - 5L))
-    mt <- x$moderators %||% NULL
+    mt <- x$moderators
     if (NROW(mt)) {
       cat(sprintf("  %d moderator(s) named, %d declared in advance; see $moderators\n",
                   nrow(mt), sum(mt$declared)))
@@ -135,15 +139,13 @@ print.gr_claims <- function(x, ...) {
   if (nrow(x$dropped)) {
     cat(sprintf("  %d dropped in verification; see $dropped\n", nrow(x$dropped)))
   }
-  # `%||%` for a claims table saved before the field existed.
-  un <- x$unverified %||% NULL
+  un <- x$unverified
   if (NROW(un)) {
     cat(sprintf(paste0("  %d unverified value(s) %s; see $unverified\n"), nrow(un),
                 if (all(un$shown)) "shown to the model, marked unverified"
                 else "left out of the claims prompt"))
   }
-  # `%||%` for a claims table saved before the field existed.
-  if (length(x$lost %||% integer(0))) {
+  if (length(x$lost)) {
     cat(sprintf(paste0("  PARTIAL: %d of %d studies contributed nothing, their batch cut off, ",
                        "failed or not sent; see $lost\n"),
                 length(x$lost), nrow(x$studies)))
@@ -152,5 +154,5 @@ print.gr_claims <- function(x, ...) {
     cat("  UNMERGED: claims from different batches were not reconciled, so one finding may\n")
     cat("  appear as more than one claim\n")
   }
-  invisible(x)
+  invisible(saved)
 }

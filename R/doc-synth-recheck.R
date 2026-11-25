@@ -171,7 +171,10 @@ clause_points <- function(clauses, claim) {
 #' `$contradictions` are worked out again. The sections, their counts and
 #' `$draft` are left as written: they describe the draft, not the edit.
 #' For a synthesis saved before `$section_studies` was kept, `shown` in
-#' `$uncited` is `NA`, since what each section was shown is not known.
+#' `$uncited` is `NA`, since what each section was shown is not known. A
+#' synthesis saved by an earlier version comes back with the fields added
+#' since filled with their defaults: no studies lost or left unrendered, and
+#' the citation style and bibliographic columns it was written with.
 #'
 #' @param synthesis A [gr_synthesise()] result.
 #' @param text_marked The edited write-up, in the marker form of
@@ -205,12 +208,12 @@ gr_recheck <- function(synthesis, text_marked = synthesis$text_marked) {
              class = "gr_bad_synthesis")
   }
   text_marked <- mark_utf8(text_marked)
-  x <- synthesis
+  x <- gr_upgrade_stage(synthesis)
   used <- x$studies
   word <- "study"
-  cols <- x$bib_columns %||% bib_columns(used)
+  cols <- x$bib_columns
   keys <- bib_keys(used, cols)
-  style <- x$cite_style %||% "marker"
+  style <- x$cite_style
   sec_st <- x$section_studies
   shown_all <- if (is.data.frame(sec_st)) unique(sec_st$study) else used$study
 

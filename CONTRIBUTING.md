@@ -17,12 +17,16 @@ bash run-tests.sh --check    # a full R CMD check instead
 ```
 
 Every test uses an offline mock client, so no key is needed and no request
-leaves your machine. The tests workflow on GitHub runs the same suite, then
-runs every R block of the README, knits every guide with no key and no
-network, and fails if any of that left a new or changed file in the
-repository that `git status` reports. Files `.gitignore` names are not
-reported, so output that matches one of its patterns (`docs/`, `*.Rout`,
-`readgpt_history_*.json`, `sim-results/`) passes that check unseen.
+leaves your machine. The parallel tests start worker processes, and each
+worker loads the installed harnessr, not your source tree. `run-tests.sh`
+installs the package first; when you run a test file yourself, reinstall
+with `R CMD INSTALL .` before it, or the workers run the old code. The tests
+workflow on GitHub runs the same suite, then runs every R block of the
+README, knits every guide with no key and no network, and fails if any of
+that left a new or changed file in the repository that `git status`
+reports. Files `.gitignore` names are not reported, so output that matches
+one of its patterns (`docs/`, `*.Rout`, `readgpt_history_*.json`,
+`sim-results/`) passes that check unseen.
 
 Three scripts rewrite the fixtures the tests compare against. Run them from
 the repository root, and only when you mean to change what they record:
