@@ -210,7 +210,7 @@ and 0.847 for `stuff`. The intervals below do not show that it is more
 accurate than either.
 
 `contrasts` gives each pair its own 95% interval. For `stuff` against
-`map_reduce` that interval, -0.114 to -0.005, just excludes 0. But three pairs
+`map_reduce` that interval, -0.114 to -0.005, narrowly excludes 0. But three pairs
 were compared, and with three intervals at 95% each, the chance that at least
 one excludes 0 by luck is higher than 5%.
 
@@ -317,7 +317,7 @@ b_seg_dev
 ```
 
 The print shows accuracy only in the dev column, and `hr_report()` would
-refuse these rows. On dev, `paragraph_40` scores highest at 0.725, just above
+refuse these rows. On dev, `paragraph_40` scores highest at 0.725, narrowly above
 `sentence_40` at 0.713. The two arms whose recall at 1 was 0.50 score lowest
 (0.475 and 0.500). The best of six close dev scores is partly luck, so you
 confirm it on test. There it faces the paragraph segmenter at 80 tokens, the
