@@ -43,7 +43,6 @@ pkgdown_article_groups <- function(path) {
 }
 
 test_that("the articles groups list every vignette once, each with a description", {
-  skip_on_cran()
   yml <- guide_source("_pkgdown.yml")
   vig <- guide_source("vignettes")
   skip_if(is.null(yml) || is.null(vig), "the package source tree is not available")
@@ -63,7 +62,6 @@ test_that("the articles groups list every vignette once, each with a description
 })
 
 test_that("the README lists the guides under the site's groups, in the same order", {
-  skip_on_cran()
   yml <- guide_source("_pkgdown.yml")
   readme <- guide_source("README.md")
   skip_if(is.null(yml) || is.null(readme), "the package source tree is not available")
