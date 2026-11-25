@@ -11,10 +11,10 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-You may want to know whether to read a corpus with `retrieve` or
-`map_reduce`, whether smaller chunks help, whether `top_k = 1` is enough, or
-whether the screener needs to see more of each record. Each question compares
-configurations, and you answer each one the same way. Build one arm per
+Several choices come down to a comparison between configurations: `retrieve`
+against `map_reduce` for a corpus, smaller chunks against larger, `top_k = 1`
+against more, and how much of each record the screener sees. You settle each
+one the same way. Build one arm per
 configuration, run all the arms on the same labelled questions several times,
 and read the report with its intervals.
 
