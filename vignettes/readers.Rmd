@@ -658,18 +658,18 @@ paying by accident.
 
 ## Choosing the settings
 
-Each walkthrough below takes one reading setting or group: what it controls
-and what it trades off, the signs in your results that point to changing it,
-where its default came from, and how to test a change. `vignette("settings")`
-lists every reading setting with its default, and `gr_settings("read")` gives
-each one's evidence.
+Each walkthrough below covers one reading setting or group in four parts: what
+it controls and trades off, the signs in your results that point to changing
+it, where its default came from, and how to test a change.
+`vignette("settings")` lists every reading setting with its default, and
+`gr_settings("read")` gives each one's evidence.
 
 The tests use `hr_sweep()`, which builds one arm per value of a setting, and
 `hr_benchmark()`, which runs the arms on a reference. Here they run on one
-question about the example report and the stand-in model above, so they show
-what each value sends and what `hr_sweep_check()` reports, not which value
-answers better. `vignette("compare")` sweeps `top_k` on a reference of 32
-questions with dev and test splits and reads the result with intervals.
+question about the example report, with the stand-in model above. They show
+what each value sends and what `hr_sweep_check()` reports, and they cannot show
+which value answers better. `vignette("compare")` sweeps `top_k` on a reference
+of 32 questions with dev and test splits and reads the result with intervals.
 
 ```{r}
 qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
@@ -689,15 +689,17 @@ calls <- function(bench) {
 ### Which reader {#set-reader}
 
 **What it controls.** The reader decides how the chunks reach the model (see
-"The readers" above). The main trade is between readers that send every chunk
-(`map_reduce`, `refine`, `hierarchical`, `skim`), whose cost grows with the
-document and which cannot miss a chunk, and readers that pick a few
-(`retrieve`, `rerank`, `iterative`), whose cost does not grow with the
-document and which answer only from what they picked. Among the first group,
-`map_reduce` reads each chunk alone, `refine` carries a draft through the
-document in order, `hierarchical` answers from summaries, and `skim` answers
-from passages it quotes, which `verify` can check. `skim_model` and
-`summary_model` put the per-chunk work of `skim` and `hierarchical` on a
+"The readers" above). The main trade is between two groups:
+
+- Readers that send every chunk (`map_reduce`, `refine`, `hierarchical`,
+  `skim`). Their cost grows with the document, and they cannot miss a chunk.
+- Readers that pick a few (`retrieve`, `rerank`, `iterative`). Their cost does
+  not grow with the document, and they answer only from what they picked.
+
+Within the first group, `map_reduce` reads each chunk alone, `refine` carries a
+draft through the document in order, `hierarchical` answers from summaries, and
+`skim` answers from passages it quotes, which `verify` can check. `skim_model`
+and `summary_model` put the per-chunk work of `skim` and `hierarchical` on a
 cheaper model.
 
 **Signs it needs changing.** `NOT_IN_DOCUMENT` from `retrieve` for a fact you
@@ -707,10 +709,10 @@ with every page added, for one-fact questions, points the other way. An answer
 that misses how an argument develops points to `refine`; one that needs
 exact wording to `skim`.
 
-**Where the default came from.** `gr_read_spec()` defaults to `map_reduce`,
-chosen because it reads the whole document at any length; no comparison of
-readers is recorded (`untested`). `answer_document()` chooses `"fast"` or
-`"thorough"` by length (`auto_max_tokens` in `hr_options()`).
+**Where the default came from.** `gr_read_spec()` defaults to `map_reduce`
+because it reads the whole document at any length. No comparison of readers is
+recorded (`untested`). `answer_document()` chooses `"fast"` or `"thorough"` by
+length (`auto_max_tokens` in `hr_options()`).
 
 **How to test it.** Sweep the reader on one segmentation:
 
@@ -723,8 +725,8 @@ bench$calls <- calls(bench)
 aggregate(cbind(calls, tokens_in) ~ param.reader, bench, mean)
 ```
 
-On eight chunks the four readers that send every chunk make 8 or 9 requests
-and send 1273 to 1839 prompt tokens; `retrieve` makes one request of 584.
+On eight chunks, the four readers that send every chunk make 8 or 9 requests
+and send 1273 to 1839 prompt tokens, while `retrieve` makes one request of 584.
 `refine` sends the most because every request carries the draft so far.
 
 ### How many chunks: `top_k` and `min_score` {#set-top-k}
@@ -741,8 +743,8 @@ chunks next to the one with the answer points to a larger `top_k`, and so does
 built from several unrelated chunks, or a cost per question far above what
 one fact needs, points to a smaller one.
 
-**Where the default came from.** 6, a common starting value for retrieval,
-not tuned here (`untested`). `"needle"` uses 8.
+**Where the default came from.** The default of 6 is a common starting value
+for retrieval, not tuned here (`untested`). `"needle"` uses 8.
 
 **How to test it.**
 
@@ -756,23 +758,23 @@ The prompt grows from 289 tokens at `top_k = 2` to 909 at 12. In
 `vignette("compare")` a `top_k` sweep on a different arm, the `"fast"` recipe
 with the `retrieve` reader and 40-token sentence chunks, found `top_k = 2` more
 accurate than 4 on 32 test questions, with an interval from 1.8 to 12.0
-points, and cheaper. That result is for its arm and its stand-in model; yours
-is found the same way.
+points, and cheaper. That result holds for its arm and its stand-in model; find
+yours the same way.
 
 ### Diversity: `mmr` {#set-mmr}
 
 **What it controls.** Below 1, `mmr` trades relevance for diversity when
 `retrieve` and `iterative` pick chunks, so near-duplicates do not fill every
-place (see "Choosing and placing chunks" above). It costs nothing.
+place (see "Choosing and placing chunks" above). It costs no request.
 
 **Signs it needs changing.** `ans$evidence` holding several chunks that say
 the same thing, from a document that repeats itself (an abstract, a summary,
 a conclusion), points to `mmr` below 1. Answers that miss the best chunk after
 lowering it point back up.
 
-**Where the default came from.** 1, plain top-k, the selection used before
-the setting existed (`untested`). 0.7 is a common starting point for a
-balance.
+**Where the default came from.** The default of 1 is plain top-k, the
+selection used before the setting existed (`untested`). 0.7 is a common
+starting point for a balance.
 
 **How to test it.**
 
@@ -782,9 +784,9 @@ hr_sweep_check(bench)
 ```
 
 At 0.7 the three chunks picked were the ones plain top-k picked, so the
-requests were the same; only 0.3 changed them on this report. A sweep of
-`mmr` is worth running only on documents that repeat themselves, and
-`hr_sweep_check()` says when it reached none.
+requests were the same; only 0.3 changed them on this report. Sweep `mmr` only
+on documents that repeat themselves, and let `hr_sweep_check()` tell you which
+values sent the same requests.
 
 ### Word matching: `lexical_blend`, `bm25_k1`, `bm25_b` and `fusion` {#set-lexical}
 
@@ -817,17 +819,21 @@ Each value of `lexical_blend` picked different chunks here, while `bm25_b` at
 0.3 picked the same three as at 0.75.
 
 `fusion` decides how the two rankings are combined, for `retrieve` and
-`iterative` alike. `"default"` is the blend above, which `retrieve` applies
-only on lexical embeddings and `iterative` never did; `"rrf"` is reciprocal
-rank fusion (Cormack, Clarke and Buettcher 2009), which adds
-`1 / (rrf_k + rank)` from each ranking, with any embeddings. It uses ranks,
-not scores, so one ranking's scale cannot swamp the other's, at the price of
-ignoring how far apart the scores are. Its constant `rrf_k = 60` is the
-paper's (`cited`); `fusion` itself is `untested`. Neither costs a request.
-A fused score lies between 0 and `2 / (rrf_k + 1)`, so a `min_score` set for
-cosine passes no chunk under `"rrf"`; `retrieve` then reads its best chunk
-alone and sets `notes$below_min_score`. Under `mmr` below 1, the fused scores
-are rescaled to 0 to 1 before they are weighed against similarity.
+`iterative` alike:
+
+- `"default"` is the blend above, which `retrieve` applies only on lexical
+  embeddings and `iterative` never did.
+- `"rrf"` is reciprocal rank fusion (Cormack, Clarke and Buettcher 2009), which
+  adds `1 / (rrf_k + rank)` from each ranking, with any embeddings. It works on
+  ranks, so one ranking's scale cannot swamp the other's, at the price of
+  ignoring how far apart the scores are.
+
+The constant `rrf_k = 60` is the paper's (`cited`); `fusion` itself is
+`untested`. Neither costs a request. A fused score lies between 0 and
+`2 / (rrf_k + 1)`, so a `min_score` set for cosine passes no chunk under
+`"rrf"`; `retrieve` then reads its best chunk alone and sets
+`notes$below_min_score`. Under `mmr` below 1, harnessr rescales the fused
+scores to 0 to 1 before weighing them against similarity.
 
 ```{r}
 bench <- sweep(hr_sweep(needle, expand.grid(top_k = 2, fusion = c("default", "rrf"),
@@ -847,7 +853,7 @@ sent different requests. Where arms differ, compare `correct` by
 relevance, in document order, or with the best at the two ends of the prompt
 (`"edges"`). `restate` repeats the question before the excerpts; under
 `"auto"` that happens when they are longer than `restate_tokens` (1200). Both
-change only where text sits, not which text is sent, and `restate` adds the
+move text around and leave the choice of text alone, and `restate` adds the
 question's length to each request.
 
 **Signs they need changing.** Right answers from short prompts and misses from
@@ -856,10 +862,10 @@ long ones, with the answer's chunk sent each time, point to placement:
 from each other point to `"document"`.
 
 **Where the defaults came from.** `"relevance"` is the order the readers used
-before the setting existed; the alternatives were added to be compared, and no
+before the setting existed. The alternatives were added to be compared, and no
 comparison is recorded. `restate = "auto"` was added so a comparison could
-measure it, and nothing has. `restate_tokens = 1200` is an arbitrary number,
-kept from when it was a constant. Both are `untested`.
+measure it, and none has. `restate_tokens = 1200` is an arbitrary number, kept
+from when it was a constant. Both are `untested`.
 
 **How to test them.**
 
