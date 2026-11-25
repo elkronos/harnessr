@@ -95,10 +95,14 @@ and cleaners.
 ## Cutting text up: segmenters
 
 A segmenter is a function of `(doc, spec, client, trace)` that returns a
-`gr_chunks`. Build that object with `new_chunks()`: `gr_segment()` rejects
-anything else, and the constructor is what gives your segmenter the same
-invariants as the built-ins (blank units dropped, `chunk_id` assigned in order,
-tokens and characters measured, provenance recycled to match).
+`gr_chunks`. Build that object with `new_chunks()`, because `gr_segment()`
+rejects anything else. The constructor gives your segmenter the same
+invariants as the built-ins:
+
+- it drops blank units;
+- it assigns `chunk_id` in order;
+- it measures tokens and characters;
+- it recycles provenance to match.
 
 ```{r}
 gr_register_segmenter("by_bullet", description = "one chunk per bullet",
@@ -110,19 +114,25 @@ gr_register_segmenter("by_bullet", description = "one chunk per bullet",
 subset(gr_segmenters(), name == "by_bullet")
 ```
 
-`new_chunks()` does not enforce the token cap. `gr_segment()` checks it after
-your function returns and splits anything oversized, so a segmenter that
-ignores `spec$max_tokens` still produces chunks that fit. The conformance check
-below reports each chunk it had to split.
+`new_chunks()` does not enforce the token cap. `gr_segment()` checks the cap
+after your function returns and splits anything oversized, so the chunks fit
+even when your segmenter ignores `spec$max_tokens`. The conformance check later
+in this guide reports each chunk that `gr_segment()` had to split.
 
-Three arguments describe what the segmenter spends. `cost` is `"free"`,
-`"embedding"` or `"llm"`, so a UI can warn before anything is spent.
-`needs_client = TRUE` says it cannot work without a client; without one,
-`gr_segment()` warns with class `gr_segment_fallback`, and the segmenter should
-record what it fell back to in its `method` (`"mine->paragraph"`) so the
-downgrade shows in `gr_chunk_stats()`. `calls` declares the labels of its model
-calls, as the next sections describe for readers; `character(0)` says it makes
-none. `vignette("segment")` covers the built-in segmenters.
+Three arguments of `gr_register_segmenter()` describe what the segmenter
+spends:
+
+- `cost` is `"free"`, `"embedding"` or `"llm"`, so a UI can warn before
+  anything is spent.
+- `needs_client = TRUE` marks a segmenter that cannot work without a client.
+  When there is no client, `gr_segment()` warns with class
+  `gr_segment_fallback`. Your segmenter should then record what it fell back
+  to in its `method` (`"mine->paragraph"`), so the downgrade shows in
+  `gr_chunk_stats()`.
+- `calls` declares the labels of its model calls, as the next sections
+  describe for readers. `character(0)` declares that it makes none.
+
+`vignette("segment")` covers the built-in segmenters.
 
 ## Reading: readers
 
@@ -151,40 +161,47 @@ gr_read(ch, "What was revenue?", cl, "longest")$answer
 ```
 
 Inside the function, `chunks$chunks` is the data frame of chunks (`chunk_id`,
-`text`, `tokens`, `chars`, `page`, `section`, `block_id`). Send every request
-through `hr_call()` with the client you were given, never one you construct,
-and pass it the `trace`: that is what counts, prices and limits your calls. A
-request that would pass `max_calls` or `max_cost_usd` is not sent and comes
-back with `refused = TRUE`, so stop or degrade when one does. Honour at least
-`spec$model`, `spec$max_answer_tokens`, `spec$temperature` and `spec$effort`,
-and budget the prompt with `hr_budget()` rather than assuming the document
-fits.
+`text`, `tokens`, `chars`, `page`, `section`, `block_id`). When you write the
+function:
 
-The `signature`, `"select|calls|state"`, says how the reader traverses the
-chunks. Two readers with the same signature are the same method under two
-names: `gr_compare()` uses it to decide whether two recipes are the same
-experiment, and `ensemble` refuses members that share one. A `select` of
-`"all"` says the reader sends every chunk, so a run whose chunks alone would
-cost more than `max_cost_usd` is refused before its first request.
-`gr_reader_signature()` reports a reader's signature, so two readers claiming to
-differ can be checked rather than believed. `cost_calls` is a description for
-people, shown by `gr_readers()`; the pre-flight check never reads it.
+- Send every request through `hr_call()` with the client you were given,
+  never one you construct, and pass it the `trace`. Through the trace,
+  `hr_call()` counts, prices and limits your calls.
+- Expect refusals. harnessr does not send a request that would pass
+  `max_calls` or `max_cost_usd`, and `hr_call()` returns it with
+  `refused = TRUE`. Stop or degrade when that happens.
+- Honour at least `spec$model`, `spec$max_answer_tokens`, `spec$temperature`
+  and `spec$effort`.
+- Budget the prompt with `hr_budget()` instead of assuming the document fits.
+
+The `signature`, `"select|calls|state"`, describes how the reader traverses
+the chunks. Two readers with the same signature are the same method under two
+names. `gr_compare()` uses the signature to decide whether two recipes are the
+same experiment, and `ensemble` refuses members that share one.
+
+A `select` of `"all"` declares that the reader sends every chunk. harnessr then
+refuses a run whose chunks alone would cost more than `max_cost_usd` before its
+first request. `gr_reader_signature()` reports a reader's signature, so you can
+check whether two readers that claim to differ do differ. `cost_calls` is a
+description for people, shown by `gr_readers()`; the pre-flight check never
+reads it.
 
 The name `"auto"` is reserved, because `answer_document()` uses it to choose a
 recipe. `vignette("readers")` covers the built-in readers.
 
 ## Declaring calls
 
-Every `hr_call()` carries a `label`, and the label is the `stage` column of the
-trace. A module declares the stems of its labels in `calls`. A label is covered
-by a stem it equals, or one it starts with followed by a dot. Leave `calls` out
-and the module declares its own name, which covers labels such as
+Every `hr_call()` carries a `label`, and the trace records it in its `stage`
+column. A module declares the stems of its labels in `calls`. A stem covers a
+label that equals it or that starts with it followed by a dot. If you leave
+`calls` out, the module declares its own name, which covers labels such as
 `"longest.answer"` for a reader called `"longest"`.
 
-The declaration is what an `effort` map is checked against. Each name in
-`gr_read_spec(effort =)` must be a declared stem, a part of one up to a dot, or
-a label under one. Anything else is an error of class `hr_unknown_effort_key`
-that lists the stems, rather than a setting that silently reaches no request:
+`gr_read_spec()` checks an `effort` map against these declarations. Each name
+in `gr_read_spec(effort =)` must be a declared stem, a part of one up to a dot,
+or a label under one. Any other name raises an error of class
+`hr_unknown_effort_key` that lists the stems. Without the check, that setting
+would silently reach no request:
 
 ```{r}
 spec <- gr_read_spec("longest", effort = c(longest = "low"))
@@ -194,10 +211,10 @@ tryCatch(gr_read_spec("longest", effort = c(longst = "low")),
          hr_unknown_effort_key = function(e) "refused: no call is labelled 'longst'")
 ```
 
-An effort map that names the calls of your own module needs the module
-registered first, with its labels in `calls`. `gr_readers()` and
-`gr_segmenters()` list every module's stems in their `calls` column.
-`vignette("runs")` says what effort does and which models it is sent to.
+To name the calls of your own module in an effort map, register the module
+first, with its labels in `calls`. The `calls` column of `gr_readers()` and
+`gr_segmenters()` lists every module's stems. `vignette("runs")` explains what
+effort does and which models it is sent to.
 
 ## Declaring cost
 
