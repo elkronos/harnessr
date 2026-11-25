@@ -57,24 +57,24 @@ and the cost, not how much of the document is read.
 
 The room is measured for the model that answers: the one passed as \code{model}
 in \code{...}, or else the client's. A model whose limits harnessr has to guess
-(see \code{\link[=gr_model_info]{gr_model_info()}}) always gets \code{"thorough"}; register its real limits
-with \code{\link[=gr_register_model]{gr_register_model()}}.
+(see \code{\link[=hr_model_info]{hr_model_info()}}) always gets \code{"thorough"}; register its real limits
+with \code{\link[=hr_register_model]{hr_register_model()}}.
 
 The answer's \code{recipe} names the recipe used, \code{notes$auto_recipe} records that
 \code{"auto"} chose it, and the trace has an \code{auto_recipe} step with the token
-count and the limit the choice was made on. A \code{\link[=gr_replay_client]{gr_replay_client()}} repeats
+count and the limit the choice was made on. An \code{\link[=hr_replay_client]{hr_replay_client()}} repeats
 the recorded choice rather than making it again. Overrides in \code{...} apply to
 whichever recipe is chosen. \code{\link[=gr_read_many]{gr_read_many()}}, \code{\link[=gr_compare]{gr_compare()}} and the review
 functions need one fixed recipe and refuse \code{"auto"}.
 }
 
 \examples{
-cl <- gr_mock_client(function(m, p) "The answer is 42.")
+cl <- hr_mock_client(function(m, p) "The answer is 42.")
 txt <- "Chapter one.\n\nThe answer to the great question is 42, as recorded."
 answer_document(txt, "What is the answer?", "fast", client = cl, return = "text")
 }
 \seealso{
 \code{\link[=gr_recipes]{gr_recipes()}} for the built-in pipelines, \code{\link[=gr_compare]{gr_compare()}} to run
-several, \link{gr_answer} for the returned object, \code{\link[=gr_options]{gr_options()}} for the cost
+several, \link{gr_answer} for the returned object, \code{\link[=hr_options]{hr_options()}} for the cost
 and call caps
 }

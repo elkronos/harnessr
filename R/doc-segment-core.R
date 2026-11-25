@@ -85,7 +85,7 @@ new_chunks <- function(text, method, spec, page = NA_integer_, section = NA_char
   df <- data.frame(
     chunk_id = seq_len(n),
     text = text,
-    tokens = if (n) gr_count_tokens(text) else integer(0),
+    tokens = if (n) hr_count_tokens(text) else integer(0),
     chars = if (n) nchar(text) else integer(0),
     page = rep_to(page),
     section = rep_to(section),
@@ -136,7 +136,7 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
   # segmenter, where a chunk boundary is semantically meaningful) keeps the unit
   # whole but reports the overflow instead of silently emitting it.
   exploded <- list(); emeta <- list(); eorigin <- integer(0)
-  utk <- gr_count_tokens(units)
+  utk <- hr_count_tokens(units)
   for (i in seq_along(units)) {
     tks <- utk[i]
     if (tks <= max_tokens || !can_split) {
@@ -155,7 +155,7 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
   units <- unlist(exploded, use.names = FALSE)
   origin <- eorigin
   meta <- if (is.null(meta)) NULL else do.call(rbind, emeta)
-  utk <- gr_count_tokens(units)
+  utk <- hr_count_tokens(units)
 
   out <- character(0); own <- character(0); out_meta <- list(); out_span <- list()
   buf <- character(0); buf_tokens <- 0L; buf_start <- 1L
@@ -203,7 +203,7 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
       # trailing units until it fits. For the default tokenizer this never
       # fires, and it costs one count per chunk.
       while (length(buf) > carried + 1L &&
-             gr_count_tokens(paste(buf, collapse = joiner)) > max_tokens) {
+             hr_count_tokens(paste(buf, collapse = joiner)) > max_tokens) {
         buf <- buf[-length(buf)]; from <- from[-length(from)]
         i <- i - 1L; done <- FALSE
       }
@@ -223,14 +223,14 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
         want <- min(overlap_tokens, max(max_tokens - tks, 0L))
         tail_txt <- if (want > 0L) tail_by_tokens(joined, want) else ""
         while (nzchar(tail_txt)) {
-          excess <- gr_count_tokens(paste(tail_txt, units[i], sep = joiner)) - max_tokens
+          excess <- hr_count_tokens(paste(tail_txt, units[i], sep = joiner)) - max_tokens
           if (excess <= 0L) break
           want <- want - excess
           tail_txt <- if (want > 0L) tail_by_tokens(joined, want) else ""
         }
         if (nzchar(tail_txt)) {
           buf <- tail_txt; from <- tail_from(buf_prev, from_prev, tail_txt); carried <- TRUE
-          buf_tokens <- gr_count_tokens(tail_txt)
+          buf_tokens <- hr_count_tokens(tail_txt)
         }
       }
       buf_start <- i
@@ -246,7 +246,7 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
   if (min_tokens > 0L && length(out) > 1L) {
     merged <- character(0); mmeta <- list(); mspan <- list(); mown <- character(0)
     for (j in seq_along(out)) {
-      tks <- gr_count_tokens(out[[j]])
+      tks <- hr_count_tokens(out[[j]])
       # Measure the JOINED text, not the sum of the two counts. Every estimate
       # carries a fixed per-call allowance, so adding two counts double-counts
       # it and reported a merge as over-cap when the merged text fit. Runts
@@ -256,7 +256,7 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
       # sentences twice in a row inside one chunk, and any reader that tallies
       # or lists what it finds counted them twice.
       cand <- if (length(merged)) paste(merged[[length(merged)]], own[[j]], sep = joiner) else ""
-      if (length(merged) && tks < min_tokens && gr_count_tokens(cand) <= max_tokens) {
+      if (length(merged) && tks < min_tokens && hr_count_tokens(cand) <= max_tokens) {
         merged[[length(merged)]] <- cand
         mown[[length(merged)]] <- paste(mown[[length(merged)]], own[[j]], sep = joiner)
         # The absorbed runt's provenance has to be folded in too. Keeping only
@@ -277,9 +277,9 @@ pack_units <- function(units, max_tokens, overlap_tokens = 0L, min_tokens = 0L,
     # second, when the two fit the cap. Only the second's own text follows
     # it: the overlap the second opens with is the runt's own end.
     if (isTRUE(runt_forward) && length(merged) > 1L &&
-        gr_count_tokens(merged[[1]]) < min_tokens) {
+        hr_count_tokens(merged[[1]]) < min_tokens) {
       cand <- paste(merged[[1]], mown[[2]], sep = joiner)
-      if (gr_count_tokens(cand) <= max_tokens) {
+      if (hr_count_tokens(cand) <= max_tokens) {
         merged[[2]] <- cand
         mmeta[[2]] <- combine_meta(mmeta[[1]], mmeta[[2]])
         mspan[[2]] <- c(mspan[[1]][1], mspan[[2]][2])
@@ -323,7 +323,7 @@ pack_units_balanced <- function(units, max_tokens, overlap_tokens, min_tokens, j
   origin <- which(keep)
   u <- u[keep]
   m <- if (is.null(meta)) NULL else meta[keep, , drop = FALSE]
-  utk <- gr_count_tokens(u)
+  utk <- hr_count_tokens(u)
   if (any(utk > max_tokens) || length(u) < k) return(base)
   cum <- cumsum(utk)
   # The unit each of the first k - 1 chunks ends at: the boundary nearest to
@@ -340,16 +340,16 @@ pack_units_balanced <- function(units, max_tokens, overlap_tokens, min_tokens, j
   starts <- c(1L, utils::head(ends, -1L) + 1L)
   own <- vapply(seq_len(k), function(g) paste(u[starts[g]:ends[g]], collapse = joiner),
                 character(1))
-  if (any(gr_count_tokens(own) > max_tokens)) return(base)
+  if (any(hr_count_tokens(own) > max_tokens)) return(base)
   text <- own
   from <- starts
   overlap_tokens <- as.integer(clamp(overlap_tokens, 0, max_tokens - 1L))
   if (overlap_tokens > 0L) {
     for (g in seq_len(k)[-1L]) {
-      want <- min(overlap_tokens, max(max_tokens - gr_count_tokens(own[g]), 0L))
+      want <- min(overlap_tokens, max(max_tokens - hr_count_tokens(own[g]), 0L))
       tail_txt <- if (want > 0L) tail_by_tokens(own[g - 1L], want) else ""
       while (nzchar(tail_txt) &&
-             gr_count_tokens(paste(tail_txt, own[g], sep = joiner)) > max_tokens) {
+             hr_count_tokens(paste(tail_txt, own[g], sep = joiner)) > max_tokens) {
         want <- want - 1L
         tail_txt <- if (want > 0L) tail_by_tokens(own[g - 1L], want) else ""
       }
@@ -418,7 +418,7 @@ combine_meta <- function(a, b) {
 hard_split <- function(text, max_tokens) {
   text <- as_chr1(text)
   max_tokens <- as.integer(clamp(max_tokens, 16, Inf))
-  if (gr_count_tokens(text) <= max_tokens) return(text)
+  if (hr_count_tokens(text) <= max_tokens) return(text)
 
   # A unit still too large on its own. Word granularity first; if the unit has
   # no usable whitespace (base64, a data URI, a long URL, a CJK run, a
@@ -430,13 +430,13 @@ hard_split <- function(text, max_tokens) {
     w <- words_of(u)
     if (length(w) <= 1L) return(split_by_budget(strsplit(u, "", fixed = TRUE)[[1]], "", max_tokens))
     pieces <- split_by_budget(w, " ", max_tokens)
-    big <- gr_count_tokens(pieces) > max_tokens
+    big <- hr_count_tokens(pieces) > max_tokens
     if (!any(big)) return(pieces)
     unlist(lapply(seq_along(pieces), function(k) if (big[k]) split_one(pieces[k]) else pieces[k]),
            use.names = FALSE)
   }
   emit <- function(units, joiner) {
-    ut <- gr_count_tokens(units)
+    ut <- hr_count_tokens(units)
     out <- list(); buf <- integer(0); tks <- 0L
     joined <- function(ix) paste(units[ix], collapse = joiner)
     # Emit the buffer, or when it measures over the cap joined, the longest
@@ -444,9 +444,9 @@ hard_split <- function(text, max_tokens) {
     # so a tokenizer that counts joiners costs a unit per piece, not a runt.
     close_some <- function() {
       piece <- joined(buf)
-      n <- if (gr_count_tokens(piece) <= max_tokens) length(buf) else
+      n <- if (hr_count_tokens(piece) <= max_tokens) length(buf) else
         max(longest_fit(length(buf), function(m)
-          gr_count_tokens(joined(buf[seq_len(m)])) <= max_tokens), 1L)
+          hr_count_tokens(joined(buf[seq_len(m)])) <= max_tokens), 1L)
       out[[length(out) + 1L]] <<- if (n == length(buf)) piece else joined(buf[seq_len(n)])
       buf <<- buf[-seq_len(n)]; tks <<- sum(ut[buf])
       invisible(NULL)
@@ -506,7 +506,7 @@ split_by_budget <- function(units, joiner, max_tokens) {
   out <- list(); pos <- 1L; n <- length(units)
   while (pos <= n) {
     k <- longest_fit(n - pos + 1L, function(m)
-      gr_count_tokens(paste(units[pos:(pos + m - 1L)], collapse = joiner)) <= max_tokens)
+      hr_count_tokens(paste(units[pos:(pos + m - 1L)], collapse = joiner)) <= max_tokens)
     k <- max(k, 1L)
     out[[length(out) + 1L]] <- paste(units[pos:(pos + k - 1L)], collapse = joiner)
     pos <- pos + k
@@ -524,7 +524,7 @@ split_by_budget <- function(units, joiner, max_tokens) {
 #' is close by (so overlap does not begin mid-sentence).
 #'
 #' Text written without spaces (Chinese, Japanese, Thai) is cut inside its last
-#' "word" when not even that fits, as gr_truncate_tokens() does. The word-level
+#' "word" when not even that fits, as hr_truncate_tokens() does. The word-level
 #' search found no word that fitted and returned "", so overlap silently did
 #' nothing for those scripts. Latin text keeps whole words: a word longer than
 #' the whole overlap is carried as nothing rather than as a fragment.
@@ -533,26 +533,26 @@ tail_by_tokens <- function(text, n) {
   text <- as_chr1(text)
   n <- as.integer(clamp(n, 0, Inf))
   if (n <= 0L || !nzchar(text)) return("")
-  if (gr_count_tokens(text) <= n) return(text)
+  if (hr_count_tokens(text) <= n) return(text)
   s <- sentences_of(text)
   if (length(s) > 1L) {
     acc <- character(0)
     for (k in rev(seq_along(s))) {
       cand <- c(s[k], acc)
-      if (gr_count_tokens(paste(cand, collapse = " ")) > n) break
+      if (hr_count_tokens(paste(cand, collapse = " ")) > n) break
       acc <- cand
     }
     if (length(acc)) return(paste(acc, collapse = " "))
   }
   w <- words_of(text)
   lo <- longest_fit(length(w), function(m)
-    gr_count_tokens(paste(utils::tail(w, m), collapse = " ")) <= n)
+    hr_count_tokens(paste(utils::tail(w, m), collapse = " ")) <= n)
   if (lo > 0L) return(paste(utils::tail(w, lo), collapse = " "))
   last <- mark_utf8(w[length(w)])
   if (length(w) > 1L && !grepl(.gr_unspaced_script, last, perl = TRUE)) return("")
   ch <- strsplit(last, "", fixed = TRUE)[[1]]
   k <- longest_fit(length(ch), function(m)
-    gr_count_tokens(paste(utils::tail(ch, m), collapse = "")) <= n)
+    hr_count_tokens(paste(utils::tail(ch, m), collapse = "")) <= n)
   if (k == 0L) "" else paste(utils::tail(ch, k), collapse = "")
 }
 

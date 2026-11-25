@@ -24,34 +24,34 @@
 #' first request. A client that sends its credential in `headers`, a mock, a
 #' backend or replay client, and a client with a response cache attached are not
 #' affected.
-#' @seealso [gr_client()]
+#' @seealso [hr_client()]
 #' @export
 #' @examples
 #' # Resolution order: explicit argument, then the option, then the env var.
 #' previous <- Sys.getenv("OPENAI_API_KEY", unset = NA)
 #' Sys.setenv(OPENAI_API_KEY = "sk-example")
-#' gr_api_key()
-#' gr_api_key("sk-explicit-wins")
+#' hr_api_key()
+#' hr_api_key("sk-explicit-wins")
 #'
 #' # With no key set it says so. A run stops the same way, before its first
 #' # request; see the section above.
 #' Sys.unsetenv("OPENAI_API_KEY")
-#' tryCatch(gr_api_key(), gr_auth_error = function(e) conditionMessage(e))
+#' tryCatch(hr_api_key(), gr_auth_error = function(e) conditionMessage(e))
 #'
 #' # Restore. Sys.setenv(x = NA) would leave the variable set to "NA", not unset.
 #' if (!is.na(previous)) Sys.setenv(OPENAI_API_KEY = previous)
-gr_api_key <- function(key = NULL) {
+hr_api_key <- function(key = NULL) {
   k <- api_key_value(key)
   if (!nzchar(k)) {
     gr_abort(paste0("No API key. Set OPENAI_API_KEY, or options(harnessr.api_key = '...'), ",
-                    "or pass `api_key` to gr_client()."), class = "gr_auth_error")
+                    "or pass `api_key` to hr_client()."), class = "gr_auth_error")
   }
   k
 }
 
-#' The key gr_api_key() resolves, or "" when there is none.
+#' The key hr_api_key() resolves, or "" when there is none.
 #'
-#' Separate from gr_api_key() so request_headers() can tell "no key" (fine when
+#' Separate from hr_api_key() so request_headers() can tell "no key" (fine when
 #' the client sends its own headers) from "a key that cannot be sent", which is
 #' raised from here and must reach the caller. It used to be pasted into the
 #' Authorization header unchecked, although normalise_headers() refuses a
@@ -70,7 +70,7 @@ api_key_value <- function(key = NULL) {
     gr_abort(paste0("The API key contains a control character. A line break inside a key is ",
                     "usually a stray line ending from the file or environment variable it was ",
                     "read from; check OPENAI_API_KEY, options(harnessr.api_key =) and the ",
-                    "`api_key` passed to gr_client()."),
+                    "`api_key` passed to hr_client()."),
              class = c("gr_bad_key", "gr_auth_error"))
   }
   k
@@ -88,8 +88,8 @@ no_credentials_error <- function() {
     "No API key found, so no request can be sent. harnessr reads the key from the ",
     "OPENAI_API_KEY environment variable: add the line OPENAI_API_KEY=<your key> to your ",
     ".Renviron file (file.edit(\"~/.Renviron\") opens it), restart R, and check with ",
-    "gr_api_key(). To practise without a key, pass `client = gr_mock_client(...)`. A ",
-    "gateway that authenticates another way needs `headers` in gr_client()."),
+    "hr_api_key(). To practise without a key, pass `client = hr_mock_client(...)`. A ",
+    "gateway that authenticates another way needs `headers` in hr_client()."),
     class = "gr_auth_error")
 }
 
@@ -148,54 +148,54 @@ stop_if_no_credentials <- function(client) {
 #' scheme needs no `OPENAI_API_KEY` set at all:
 #'
 #' ```r
-#' gr_client(
+#' hr_client(
 #'   base_url = "https://gateway.example.com/openai/v1", api = "chat",
 #'   headers  = c("api-key" = Sys.getenv("GATEWAY_KEY"), Authorization = NA))
 #' ```
 #'
 #' Headers are credentials and routing metadata, not part of what answers, so
-#' they are excluded from the [gr_cache()] key for the same reason `api_key` is.
+#' they are excluded from the [hr_cache()] key for the same reason `api_key` is.
 #' A rotating bearer or a per-request correlation id would otherwise make
 #' every cache lookup miss. If a header changes *which* model answers, give that
 #' client its own `base_url` or `model` so the cache can tell them apart.
 #' @return An object of class `gr_client`: a list of the settings above.
 #'   Constructing one makes no request and does not require a key; the key is
-#'   resolved at call time by [gr_api_key()].
-#' @seealso [gr_call()] to use it, [gr_mock_client()] to work offline,
-#'   [gr_cache_client()] to make repeat calls free, [gr_replay_client()] to
-#'   re-run a recorded run, [gr_api_key()] for key resolution, [gr_options()]
+#'   resolved at call time by [hr_api_key()].
+#' @seealso [hr_call()] to use it, [hr_mock_client()] to work offline,
+#'   [hr_cache_client()] to make repeat calls free, [hr_replay_client()] to
+#'   re-run a recorded run, [hr_api_key()] for key resolution, [hr_options()]
 #'   for the defaults, [gr_result] for what a call returns
 #' @export
 #' @examples
 #' # A client is a value, not a global. Two of them, two keys, one R process.
 #' # That is what makes a Shiny app serving two users safe.
-#' a <- gr_client(model = "gpt-4o",  api_key = "sk-user-a")
-#' b <- gr_client(model = "gpt-4.1", api_key = "sk-user-b", timeout = 30)
+#' a <- hr_client(model = "gpt-4o",  api_key = "sk-user-a")
+#' b <- hr_client(model = "gpt-4.1", api_key = "sk-user-b", timeout = 30)
 #' vapply(list(a = a, b = b), function(cl) cl$model, character(1))
 #'
 #' # What that model can actually take.
-#' unlist(gr_model_info(a$model)[c("context_window", "max_output")])
+#' unlist(hr_model_info(a$model)[c("context_window", "max_output")])
 #'
 #' # No key needed to develop against the pipeline.
-#' gr_call(gr_mock_client(function(m, p) "hi there"), "hello")$text
+#' hr_call(hr_mock_client(function(m, p) "hi there"), "hello")$text
 #'
 #' \dontrun{
-#' cl <- gr_client(model = "gpt-5.6-terra")
-#' gr_call(cl, list(list(role = "user", content = "Say hi.")), max_output = 20)
+#' cl <- hr_client(model = "gpt-5.6-terra")
+#' hr_call(cl, list(list(role = "user", content = "Say hi.")), max_output = 20)
 #' }
-gr_client <- function(model = NULL, api = NULL, api_key = NULL, base_url = NULL,
+hr_client <- function(model = NULL, api = NULL, api_key = NULL, base_url = NULL,
                       embedding_model = NULL, max_retries = NULL,
                       retry_pause_base = NULL, timeout = NULL, extra_body = list(),
                       headers = NULL) {
   structure(list(
-    model            = as_chr1(model %||% gr_options("model")),
-    api              = match.arg(as_chr1(api %||% gr_options("api")), c("responses", "chat")),
+    model            = as_chr1(model %||% hr_options("model")),
+    api              = match.arg(as_chr1(api %||% hr_options("api")), c("responses", "chat")),
     api_key          = api_key,          # may be NULL -> resolved at call time
-    base_url         = sub("/+$", "", as_chr1(base_url %||% gr_options("api_base"))),
-    embedding_model  = as_chr1(embedding_model %||% gr_options("embedding_model")),
-    max_retries      = as.integer(clamp(max_retries %||% gr_options("max_retries"), 0, 10)),
-    retry_pause_base = clamp(retry_pause_base %||% gr_options("retry_pause_base"), 0, 60),
-    timeout          = clamp(timeout %||% gr_options("request_timeout"), 1, 3600),
+    base_url         = sub("/+$", "", as_chr1(base_url %||% hr_options("api_base"))),
+    embedding_model  = as_chr1(embedding_model %||% hr_options("embedding_model")),
+    max_retries      = as.integer(clamp(max_retries %||% hr_options("max_retries"), 0, 10)),
+    retry_pause_base = clamp(retry_pause_base %||% hr_options("retry_pause_base"), 0, 60),
+    timeout          = clamp(timeout %||% hr_options("request_timeout"), 1, 3600),
     extra_body       = extra_body,
     # Normalised here rather than at call time so a malformed header set is a
     # construction error, next to the typo, instead of a transport error four
@@ -204,7 +204,7 @@ gr_client <- function(model = NULL, api = NULL, api_key = NULL, base_url = NULL,
       # Named for what the user would have to edit: a malformed set inherited
       # from the option is not a problem with the `headers` argument, and being
       # told it is sends them to the wrong line.
-      normalise_headers(gr_options("api_headers"), arg = "api_headers option")
+      normalise_headers(hr_options("api_headers"), arg = "api_headers option")
     } else normalise_headers(headers)
   ), class = "gr_client")
 }
@@ -217,7 +217,7 @@ gr_client <- function(model = NULL, api = NULL, api_key = NULL, base_url = NULL,
 print.gr_client <- function(x, ...) {
   cat(sprintf("<gr_client> model=%s api=%s base_url=%s\n",
               as_chr1(x$model, "?"), as_chr1(x$api, "?"), as_chr1(x$base_url, "?")))
-  key <- tryCatch(gr_api_key(x$api_key), gr_bad_key = function(e) NA,
+  key <- tryCatch(hr_api_key(x$api_key), gr_bad_key = function(e) NA,
                   error = function(e) NULL)
   hdr <- normalise_headers(x$headers)
   cat(sprintf("  auth: %s%s\n",

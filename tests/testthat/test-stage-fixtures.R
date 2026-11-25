@@ -10,7 +10,7 @@
 
 stage_fixture <- function(name) readRDS(test_path("fixtures", "stages", paste0(name, ".rds")))
 
-stage_client <- function() gr_mock_client(golden_reply)
+stage_client <- function() hr_mock_client(golden_reply)
 
 test_that("every saved stage object reads back with its class", {
   expect_s3_class(stage_fixture("screening"), "gr_screening")

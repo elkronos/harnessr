@@ -62,17 +62,17 @@ p
 \code{\link[=hr_context_fit]{hr_context_fit()}}, \code{\link[=hr_truncate]{hr_truncate()}}, \code{\link[=gr_read_spec]{gr_read_spec()}}
 
 Other cost and token functions: 
-\code{\link{gr_budget}()},
-\code{\link{gr_count_tokens}()},
-\code{\link{gr_estimate_cost}()},
-\code{\link{gr_model_info}()},
-\code{\link{gr_model_limits}()},
-\code{\link{gr_models}()},
-\code{\link{gr_register_model}()},
-\code{\link{gr_set_tokenizer}()},
-\code{\link{gr_tokenizer}()},
-\code{\link{gr_truncate_tokens}()},
+\code{\link{hr_budget}()},
 \code{\link{hr_context_fit}()},
-\code{\link{hr_truncate}()}
+\code{\link{hr_count_tokens}()},
+\code{\link{hr_estimate_cost}()},
+\code{\link{hr_model_info}()},
+\code{\link{hr_model_limits}()},
+\code{\link{hr_models}()},
+\code{\link{hr_register_model}()},
+\code{\link{hr_set_tokenizer}()},
+\code{\link{hr_tokenizer}()},
+\code{\link{hr_truncate}()},
+\code{\link{hr_truncate_tokens}()}
 }
 \concept{cost and token functions}

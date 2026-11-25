@@ -3,17 +3,29 @@
 # The fixture is a response cache and a recording made before the cache key
 # moved to harnessr-cache-v3 (sha256) and the replay key to harnessr-replay-v2.
 # test-compat-legacy-keys.R checks that the current code still answers every call in
-# it through the old keys. So it has to be written by the old code, once:
+# it through the old keys. So it has to be written by the old code, once.
+#
+# This file and tests/testthat/helper-legacy-keys.R call the core functions by
+# their hr_ names. The build at c91b04b exports them as gr_, and neither file
+# exists at c91b04b. A rerun therefore uses the copies of both files from the
+# parent of the commit that renamed the core functions. Find that commit with
+# git log -S, so the steps still work after a rebase. From the root of the
+# current tree, which supplies the output directory:
 #
 #   mkdir -p /tmp/harnessr-c91b04b /tmp/lib-c91b04b
 #   git archive c91b04b | tar -x -C /tmp/harnessr-c91b04b
 #   R CMD INSTALL -l /tmp/lib-c91b04b /tmp/harnessr-c91b04b
+#   rename=$(git log -1 --format=%H -S'harnessr::gr_backend_client(' \
+#     tests/testthat/helper-legacy-keys.R)
+#   git show "$rename^:dev/record-legacy-keys.R" > dev/record-legacy-keys.R
+#   git show "$rename^:tests/testthat/helper-legacy-keys.R" \
+#     > tests/testthat/helper-legacy-keys.R
 #   R_LIBS=/tmp/lib-c91b04b:$R_LIBS Rscript dev/record-legacy-keys.R
+#   git restore dev/record-legacy-keys.R tests/testthat/helper-legacy-keys.R
 #
-# run from the root of the current tree, which supplies the helper and the
-# output directory. It stops unless the harnessr it loads still writes
-# readgpt-cache-v2 keys. Rerunning it with a later build would record new keys
-# and make the test check nothing.
+# The script stops unless the harnessr it loads still writes readgpt-cache-v2
+# keys. Rerunning it with a later build would record new keys and make the
+# test check nothing.
 
 if (!file.exists("DESCRIPTION") || !dir.exists(file.path("tests", "testthat"))) {
   stop("Run this from the repository root: Rscript dev/record-legacy-keys.R", call. = FALSE)
@@ -33,19 +45,19 @@ out <- legacy_keys_dir(".")
 unlink(file.path(out, c("cache", "recording.json")), recursive = TRUE)
 dir.create(out, recursive = TRUE, showWarnings = FALSE)
 
-gr_options(harnessr:::gr_defaults)
-gr_options(verbose = FALSE)
+hr_options(harnessr:::gr_defaults)
+hr_options(verbose = FALSE)
 
 # The cache: every call written under its old key. The repeated prompt is a
 # hit, so six calls leave five entries.
-cl <- gr_cache_client(legacy_keys_client(), gr_cache(file.path(out, "cache")))
+cl <- hr_cache_client(legacy_keys_client(), hr_cache(file.path(out, "cache")))
 invisible(legacy_keys_calls(cl))
 
 # The recording: the same calls, uncached, so the repeated prompt is recorded
-# twice. Saved as gr_trace_save() writes it.
-tr <- gr_trace(run_id = "legacy-keys-fixture")
+# twice. Saved as hr_trace_save() writes it.
+tr <- hr_trace(run_id = "legacy-keys-fixture")
 invisible(legacy_keys_calls(legacy_keys_client(), tr))
-gr_trace_save(tr, file.path(out, "recording.json"))
+hr_trace_save(tr, file.path(out, "recording.json"))
 
 cat(sprintf("Recorded with harnessr %s: %d cache entries, %d recorded calls, in %s\n",
             utils::packageVersion("harnessr"),

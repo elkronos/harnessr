@@ -8,7 +8,7 @@ gr_methods_text(x)
 }
 \arguments{
 \item{x}{A \link{gr_answer} (its own run's steps; see \link{gr_answer}), a
-\link{gr_trace}, or a benchmark from \code{\link[=hr_benchmark]{hr_benchmark()}}.}
+\code{gr_trace} (see \code{\link[=hr_trace]{hr_trace()}}), or a benchmark from \code{\link[=hr_benchmark]{hr_benchmark()}}.}
 }
 \value{
 A character string, one paragraph, of class \code{gr_methods_text};
@@ -38,12 +38,12 @@ trace.
 }
 \examples{
 ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150))
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ans <- gr_read(ch, "What was revenue?", cl, gr_read_spec("retrieve", top_k = 3))
 gr_methods_text(ans)
 }
 \seealso{
-\code{\link[=as_json]{as_json()}} and \code{\link[=gr_trace_save]{gr_trace_save()}} for the full record,
+\code{\link[=as_json]{as_json()}} and \code{\link[=hr_trace_save]{hr_trace_save()}} for the full record,
 \code{\link[=gr_audit_report]{gr_audit_report()}} for a readable account of one answer
 
 Other reading functions: 

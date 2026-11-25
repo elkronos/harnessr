@@ -71,22 +71,22 @@ Your function receives:
 \item{\code{chunks}}{A \link{gr_chunks}. \code{chunks$chunks} is the data frame:
 \code{chunk_id}, \code{text}, \code{tokens}, \code{chars}, \code{page}, \code{section}, \code{block_id}.}
 \item{\code{question}}{The question, already validated as non-blank.}
-\item{\code{client}}{Pass it to \code{\link[=gr_call]{gr_call()}}; never construct your own.}
+\item{\code{client}}{Pass it to \code{\link[=hr_call]{hr_call()}}; never construct your own.}
 \item{\code{spec}}{A \code{\link[=gr_read_spec]{gr_read_spec()}}. Honour at least \code{model},
 \code{max_answer_tokens}, \code{temperature} and \code{effort}. \code{\link[=gr_read]{gr_read()}} has already
 filled \code{model} from the client when the spec named none. Pass
-\code{effort = spec$effort} to every \code{\link[=gr_call]{gr_call()}}, which resolves a setting
+\code{effort = spec$effort} to every \code{\link[=hr_call]{hr_call()}}, which resolves a setting
 by stage against the call's \code{label}, so give each call a label of its
 own and declare its stem in \code{calls}; a call without a label is sent no
 effort.}
-\item{\code{trace}}{Pass it to every \code{\link[=gr_call]{gr_call()}} so your calls are counted,
+\item{\code{trace}}{Pass it to every \code{\link[=hr_call]{hr_call()}} so your calls are counted,
 priced and held to the run's limits: a request that would pass
 \code{max_calls} or \code{max_cost_usd} is not sent, and comes back with
 \code{refused = TRUE} (see \code{\link[=hr_governor]{hr_governor()}}). Stop or degrade when one does.
 A reader that still checks \code{harnessr:::trace_can_call(trace)} first, as
 earlier versions advised, keeps working.}
 }
-Return \code{\link[=new_answer]{new_answer()}}. Budget your prompt with \code{\link[=gr_budget]{gr_budget()}} rather than
+Return \code{\link[=new_answer]{new_answer()}}. Budget your prompt with \code{\link[=hr_budget]{hr_budget()}} rather than
 assuming the document fits.
 }
 
@@ -98,7 +98,7 @@ gr_register_reader("longest", signature = "one|1|none", cost_calls = "1",
   fn = function(chunks, question, client, spec, trace) {
     d <- chunks$chunks
     i <- which.max(d$tokens)
-    res <- gr_call(client, list(
+    res <- hr_call(client, list(
       list(role = "user", content = paste0(d$text[i], "\n\nQuestion: ", question))),
       model = spec$model, effort = spec$effort, trace = trace,
       label = "longest.answer")
@@ -106,12 +106,12 @@ gr_register_reader("longest", signature = "one|1|none", cost_calls = "1",
   })
 
 ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
-gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million"),
+gr_read(ch, "What was revenue?", hr_mock_client(function(m, p) "45.2 million"),
         "longest")$answer
 }
 \seealso{
 \code{\link[=new_answer]{new_answer()}} to build the return value, \code{\link[=gr_readers]{gr_readers()}},
-\code{\link[=gr_reader_signature]{gr_reader_signature()}}, \code{\link[=gr_read]{gr_read()}}, \link{gr_answer}, \code{\link[=gr_budget]{gr_budget()}}
+\code{\link[=gr_reader_signature]{gr_reader_signature()}}, \code{\link[=gr_read]{gr_read()}}, \link{gr_answer}, \code{\link[=hr_budget]{hr_budget()}}
 
 Other reading functions: 
 \code{\link{gr_answer}},

@@ -139,7 +139,7 @@ normalise_messages <- function(messages) {
 #' @noRd
 build_request_body <- function(client, messages, model, max_output, temperature,
                                schema, schema_name, info, extra, effort = NULL) {
-  temperature <- temperature %||% gr_options("temperature")
+  temperature <- temperature %||% hr_options("temperature")
   # Reasoning models reject `temperature`; sending it is a hard 400.
   if (isTRUE(info$reasoning) || !isTRUE(info$supports_temperature)) temperature <- NULL
 
@@ -203,7 +203,7 @@ http_call <- function(client, url, body) {
   # many there were.
   # A failed request left with gr_result()'s default usage read nothing from
   # the provider, so its zero is decided here and is "counted", not
-  # "reported". Usage marked unknown (NA) is left for gr_call() to settle.
+  # "reported". Usage marked unknown (NA) is left for hr_call() to settle.
   done <- function(r) {
     r$attempts <- attempt
     u <- r$usage
@@ -235,9 +235,9 @@ http_call <- function(client, url, body) {
     status <- httr::status_code(resp)
     if (status >= 200 && status < 300) {
       # A 200 is a request that was sent and billed, so it is traced whatever
-      # its body turns out to hold. An error here used to leave gr_call()
+      # its body turns out to hold. An error here used to leave hr_call()
       # before trace_record(), and in a parallel map took the document with it.
-      # Usage unknown, not zero, so gr_call() settles it against the prompt.
+      # Usage unknown, not zero, so hr_call() settles it against the prompt.
       return(done(tryCatch(parse_response(resp, client$api), error = function(e) {
         gr_result(FALSE, status = status,
                   usage = list(input = NA_integer_, output = NA_integer_),
@@ -333,7 +333,7 @@ parse_response <- function(resp, api) {
   # that omits `usage` (several OpenAI-compatible local servers do, and so
   # does a gateway that strips it) had every call recorded as 0 tokens in and
   # 0 out: a real call costed at nothing. That is the fault `ellmer_usage()` and
-  # `gr_estimate_cost()` were fixed for, still alive on the path every HTTP user
+  # `hr_estimate_cost()` were fixed for, still alive on the path every HTTP user
   # takes. The caller settles NA against a local count; see settle_usage().
   int1 <- function(v) {
     v <- suppressWarnings(as.integer(v)[1])

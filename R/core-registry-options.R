@@ -28,7 +28,7 @@ gr_defaults <- list(
   min_output_tokens   = 256L,
   cache_documents     = TRUE,
   cache_embeddings    = TRUE,
-  # Where gr_cache() keeps model responses. NULL means a directory under
+  # Where hr_cache() keeps model responses. NULL means a directory under
   # tempdir(), resolved at call time. A package must not write to a user's
   # filesystem unasked, and a literal tempdir() here would be frozen at install
   # time rather than evaluated per session.
@@ -56,7 +56,7 @@ gr_defaults <- list(
   allow_unpriced      = FALSE,
   unknown_model_action = "warn",       # "warn" | "error"
   # Who runs are for and who runs them, recorded on every trace (see
-  # gr_trace()). Empty: every field NA unless gr_trace() is given it.
+  # hr_trace()). Empty: every field NA unless hr_trace() is given it.
   actor               = list(),
   # Settings that were constants in the code until they were options. Each
   # keeps the constant's value; see .gr_late_options.
@@ -85,7 +85,7 @@ gr_defaults <- list(
 nondefault_options <- function(names = .gr_late_options) {
   out <- list()
   for (nm in names) {
-    v <- gr_options(nm)
+    v <- hr_options(nm)
     if (!isTRUE(all.equal(v, gr_defaults[[nm]], check.attributes = FALSE))) out[[nm]] <- v
   }
   out
@@ -99,7 +99,7 @@ nondefault_options <- function(names = .gr_late_options) {
 #' $710 spent against a $5 ceiling, no warning. The old call-cap check did the same
 #' for `max_calls`, and disagreed with `preflight()`, which parsed a character
 #' cap and enforced it: one option, two answers. `as.integer(min_output_tokens)`
-#' turned 1e10 into NA and `gr_budget()` then raised a bare simpleError.
+#' turned 1e10 into NA and `hr_budget()` then raised a bare simpleError.
 #'
 #' Two kinds, treated differently on purpose. A CEILING (`max_cost_usd`,
 #' `max_calls`) is refused when it cannot be compared: falling back to anything
@@ -107,17 +107,17 @@ nondefault_options <- function(names = .gr_late_options) {
 #' meant "no limit". NULL and Inf are the two explicit ways to say "no limit".
 #' A TUNING knob keeps its current value, with a warning, when the new one
 #' cannot be read, and is clamped into range, as `gr_read_spec()` and
-#' `gr_segment_spec()` clamp theirs. `gr_options(workers =
+#' `gr_segment_spec()` clamp theirs. `hr_options(workers =
 #' parallel::detectCores())` is a normal thing to write, and detectCores() can
 #' return NA.
 #' @noRd
 .gr_option_rules <- list(
   # The ranges are the ones the code that reads each option clamps to:
-  # gr_client() for the three request settings, gr_lapply() for `workers`. So
+  # hr_client() for the three request settings, gr_lapply() for `workers`. So
   # a value accepted here is the value used, and a warning's "using N" is true.
   # Each tuning rule says where its default comes from (`evidence`, as an
   # hr_param() does); see the "Where the defaults come from" section of
-  # gr_options().
+  # hr_options().
   safety_margin     = list(kind = "tune", lo = 0, hi = 0.5,  whole = FALSE,
                            evidence = list(status = "untested",
                                            source = "Set to absorb local token-count error.")),
@@ -188,14 +188,14 @@ check_option <- function(name, value) {
   if (identical(name, "allowed_models")) {
     if (is.null(value)) return(NULL)
     if (!is.character(value) || !length(value) || anyNA(value) || any(!nzchar(value))) {
-      gr_abort(paste0("gr_options(allowed_models = ) must be a character vector of model ids, ",
+      gr_abort(paste0("hr_options(allowed_models = ) must be a character vector of model ids, ",
                       "or NULL for any model."), class = "gr_bad_option")
     }
     return(unique(unname(value)))
   }
   if (identical(name, "allow_unpriced")) {
     if (!is.logical(value) || length(value) != 1L || is.na(value)) {
-      gr_abort("gr_options(allow_unpriced = ) must be TRUE or FALSE.", class = "gr_bad_option")
+      gr_abort("hr_options(allow_unpriced = ) must be TRUE or FALSE.", class = "gr_bad_option")
     }
     return(value)
   }
@@ -209,16 +209,16 @@ check_option <- function(name, value) {
   if (identical(rule$kind, "ceiling")) {
     if (is.null(value)) return(NULL)
     if (!usable) {
-      gr_abort(sprintf(paste0("gr_options(%s = ) must be a single number or NULL, not %s. A limit ",
+      gr_abort(sprintf(paste0("hr_options(%s = ) must be a single number or NULL, not %s. A limit ",
                               "that cannot be compared is not a limit, so this is refused here ",
                               "rather than ignored later."), name, what(value)),
                class = "gr_bad_option")
     }
     if (value < rule$lo) {
       gr_abort(if (rule$lo == 0) {
-        sprintf("gr_options(%s = ) cannot be negative; got %s.", name, format(value))
+        sprintf("hr_options(%s = ) cannot be negative; got %s.", name, format(value))
       } else {
-        sprintf("gr_options(%s = ) must be at least %s; got %s.", name, format(rule$lo),
+        sprintf("hr_options(%s = ) must be at least %s; got %s.", name, format(rule$lo),
                 format(value))
       }, class = "gr_bad_option")
     }
@@ -228,7 +228,7 @@ check_option <- function(name, value) {
   }
 
   # A tuning knob. A number written as text is still a number, as it is for the
-  # same settings passed to gr_budget() or a spec constructor.
+  # same settings passed to hr_budget() or a spec constructor.
   if (is.null(value) && isTRUE(rule$null_ok)) return(NULL)
   if (!usable && is.character(value) && length(value) == 1L) {
     parsed <- suppressWarnings(as.numeric(value))
@@ -238,8 +238,8 @@ check_option <- function(name, value) {
     # Keep the CURRENT value, not the package default: with safety_margin set
     # to 0.3, a stray NA dropping it to the default 0.1 is the "a missing value
     # pushes the input budget up" defect, moved into the setter.
-    cur <- gr_options(name)
-    gr_warn(sprintf("gr_options(%s = ) cannot be %s; keeping the current value (%s).",
+    cur <- hr_options(name)
+    gr_warn(sprintf("hr_options(%s = ) cannot be %s; keeping the current value (%s).",
                     name, what(value), if (is.null(cur)) "NULL" else format(cur)),
             class = "gr_bad_option")
     return(cur)
@@ -249,7 +249,7 @@ check_option <- function(name, value) {
   # FALSE, so every integer setting (`workers = 4L`) was reported as out
   # of range.
   if (out != value) {
-    gr_warn(sprintf("gr_options(%s = %s) is outside [%s, %s]; using %s.", name, format(value),
+    gr_warn(sprintf("hr_options(%s = %s) is outside [%s, %s]; using %s.", name, format(value),
                     format(rule$lo), format(rule$hi), format(out)),
             class = "gr_bad_option")
   }
@@ -258,7 +258,7 @@ check_option <- function(name, value) {
 
 #' Get or set package options
 #'
-#' `gr_options()` with no arguments returns the full option list. Called with
+#' `hr_options()` with no arguments returns the full option list. Called with
 #' a single string it returns that option. Called with `name = value` pairs it
 #' sets them and invisibly returns the previous values, so it composes with
 #' `on.exit()`.
@@ -267,7 +267,7 @@ check_option <- function(name, value) {
 #' option mid-session affects subsequent runs.
 #'
 #' @param ... Nothing, a single option name, `name = value` pairs, or a named
-#'   list (the form `gr_options()` itself returns, so a saved value can be
+#'   list (the form `hr_options()` itself returns, so a saved value can be
 #'   restored directly).
 #' @return The option list, a single option value, or (when setting) the old
 #'   values invisibly.
@@ -282,13 +282,13 @@ check_option <- function(name, value) {
 #'   \item{`embedding_model` ("text-embedding-3-small")}{Default embedding model.}
 #'   \item{`tokenizer` ("heuristic")}{Token counter: `"heuristic"` (conservative,
 #'     no dependencies), `"words"`, `"chars"`, `"tiktoken"` (needs reticulate),
-#'     or a name registered via [gr_set_tokenizer()].}
+#'     or a name registered via [hr_set_tokenizer()].}
 #'   \item{`api` ("responses")}{`"responses"` or `"chat"` request shape.}
 #'   \item{`api_base` ("https://api.openai.com/v1")}{API root; point this at a
 #'     proxy or a compatible endpoint.}
 #'   \item{`api_headers` (none)}{Named character vector of extra HTTP headers
 #'     sent with every request, for gateways that do not authenticate with a
-#'     bearer token. Inherited by every [gr_client()] that does not name its
+#'     bearer token. Inherited by every [hr_client()] that does not name its
 #'     own; see that function's `headers` argument for the rules.}
 #'   \item{`temperature` (NULL)}{Default sampling temperature. `NULL` omits the
 #'     field. Dropped automatically for models that reject it. Untested:
@@ -304,7 +304,7 @@ check_option <- function(name, value) {
 #'     absorb tokenizer error. Not a spending cap (see `max_cost_usd`).
 #'     Untested: set to absorb the error of counting tokens locally, and not
 #'     measured against it.}
-#'   \item{`min_output_tokens` (256)}{Floor on the completion room [gr_budget()]
+#'   \item{`min_output_tokens` (256)}{Floor on the completion room [hr_budget()]
 #'     reserves *when `reserve_output` is not given explicitly*. An explicit
 #'     `reserve_output` is honoured down to 1. Untested: set as a floor for a
 #'     short reply.}
@@ -314,9 +314,9 @@ check_option <- function(name, value) {
 #'   \item{`embedder` (NULL)}{Which registered embedder to use. `NULL` means the
 #'     one the client carries, if any, and otherwise `"api"`. Naming one here
 #'     overrides both. See [gr_embedders()]; recording a run with a
-#'     *deterministic* embedder is what lets a [gr_replay_client()] reproduce its
+#'     *deterministic* embedder is what lets an [hr_replay_client()] reproduce its
 #'     chunk ranking.}
-#'   \item{`cache_dir` (NULL)}{Directory [gr_cache()] stores model responses in.
+#'   \item{`cache_dir` (NULL)}{Directory [hr_cache()] stores model responses in.
 #'     `NULL` means a per-session directory under `tempdir()`, which costs
 #'     nothing and disappears with the session. Set it to a real path, such as
 #'     `tools::R_user_dir("harnessr", "cache")`, to keep responses across
@@ -337,7 +337,7 @@ check_option <- function(name, value) {
 #'     that sends batches is also refused before it starts when its worst case,
 #'     every reply at its token cap and the price of the dearest model it uses,
 #'     would pass the limit, and each worker is held to its share of what is
-#'     left. A chat model with no registered price (see [gr_models()]) is
+#'     left. A chat model with no registered price (see [hr_models()]) is
 #'     refused under a limit unless `allow_unpriced` is `TRUE`. Under a limit of 0 a
 #'     model registered at no cost runs and one with a price is refused. `NULL`
 #'     removes the limit.}
@@ -345,7 +345,7 @@ check_option <- function(name, value) {
 #'     every request. A request to an embeddings endpoint (the built-in `"api"`
 #'     embedder) counts as one, and is checked and priced against
 #'     `max_cost_usd` the same way; an embedding served from the session cache
-#'     is free. A request a [gr_cache()] answers counts. `NULL` removes the
+#'     is free. A request an [hr_cache()] answers counts. `NULL` removes the
 #'     cap.}
 #'   \item{`max_tokens_total` (NULL)}{Most tokens one run may use: the
 #'     prompt and reply tokens of every call, cache hits included, and the
@@ -355,7 +355,7 @@ check_option <- function(name, value) {
 #'     `allow_unpriced = TRUE`. `NULL` for no limit.}
 #'   \item{`max_output_tokens` (NULL)}{The largest output cap one request may
 #'     be sent with. A request with a larger cap (for a reasoning model, the
-#'     raised cap [gr_call()] sends) is refused rather than cut down. `NULL`
+#'     raised cap [hr_call()] sends) is refused rather than cut down. `NULL`
 #'     for no ceiling.}
 #'   \item{`allowed_models` (NULL)}{Character vector of the model ids a run
 #'     may call, chat and embedding models alike. A request to any other is
@@ -367,9 +367,9 @@ check_option <- function(name, value) {
 #'   \item{`unknown_model_action` ("warn")}{`"warn"` or `"error"` when a model id
 #'     is not in the registry.}
 #'   \item{`actor` (none)}{A named list (or character vector) of the actor
-#'     fields every [gr_trace()] records: `system`, `owner`, `run_by`,
+#'     fields every [hr_trace()] records: `system`, `owner`, `run_by`,
 #'     `purpose` and `approved_by`, each one string. A field named here is
-#'     recorded on each new trace unless [gr_trace()] is given its own; one
+#'     recorded on each new trace unless [hr_trace()] is given its own; one
 #'     named nowhere is `NA`. Other names are refused with an error of class
 #'     `gr_bad_option`.}
 #'   \item{`auto_max_tokens` (50000)}{The largest document, in tokens, that
@@ -379,7 +379,7 @@ check_option <- function(name, value) {
 #'     window, and nothing has measured where the two recipes' answers
 #'     diverge.}
 #'   \item{`auto_room_share` (0.5)}{The second condition of that choice: the
-#'     document must fill at most this share of the input room [gr_budget()]
+#'     document must fill at most this share of the input room [hr_budget()]
 #'     leaves on every model of the run. Untested: the other half was left
 #'     for the error of counting tokens locally.}
 #'   \item{`reasoning_floor` (2048)}{The smallest output cap a request to a
@@ -392,7 +392,7 @@ check_option <- function(name, value) {
 #'     default joins the response-cache key and the store key of
 #'     [gr_read_many()].}
 #'   \item{`output_reserve_share` (0.25)}{The share of the usable window
-#'     [gr_budget()] reserves for the reply when no `reserve_output` is given,
+#'     [hr_budget()] reserves for the reply when no `reserve_output` is given,
 #'     between `min_output_tokens` and the model's output limit. It sets the
 #'     input room, so how much of a document fits one request. Untested.}
 #'   \item{`near_verbatim_sim` (0.90), `near_verbatim_sim_short` (0.95),
@@ -442,14 +442,14 @@ check_option <- function(name, value) {
 #' same warning. Whole-number settings are rounded down. `temperature` also
 #' takes `NULL`, its default.
 #'
-#' @seealso [gr_register_model()] to correct a model's limits,
-#'   [gr_set_tokenizer()], [gr_budget()], [gr_cache()]
+#' @seealso [hr_register_model()] to correct a model's limits,
+#'   [hr_set_tokenizer()], [hr_budget()], [hr_cache()]
 #' @export
 #' @examples
-#' old <- gr_options(verbose = FALSE)
-#' gr_options("verbose")
-#' gr_options(old)
-gr_options <- function(...) {
+#' old <- hr_options(verbose = FALSE)
+#' hr_options("verbose")
+#' hr_options(old)
+hr_options <- function(...) {
   args <- list(...)
   merged <- function() {
     out <- gr_defaults
@@ -458,7 +458,7 @@ gr_options <- function(...) {
     out
   }
   if (length(args) == 0L) return(merged())
-  # Unnamed only: `gr_options(actor = list(owner = "x"))` sets one option
+  # Unnamed only: `hr_options(actor = list(owner = "x"))` sets one option
   # whose value is a list, and is not a list of options to restore.
   if (length(args) == 1L && is.null(names(args)) && is.list(args[[1]]) &&
       !is.null(names(args[[1]]))) {
@@ -473,7 +473,7 @@ gr_options <- function(...) {
     return(cur[[nm]])
   }
   if (is.null(names(args)) || any(!nzchar(names(args)))) {
-    gr_abort("gr_options() setters must be named, e.g. gr_options(model = 'gpt-5.6-terra').")
+    gr_abort("hr_options() setters must be named, e.g. hr_options(model = 'gpt-5.6-terra').")
   }
   unknown <- setdiff(names(args), names(gr_defaults))
   if (length(unknown)) {
@@ -486,12 +486,12 @@ gr_options <- function(...) {
   # Restoring a saved list stores NULL for `temperature`, `max_cost_usd`,
   # `cache_dir` or `embedder` when they were unset. Once an option had been
   # *stored* as NULL, the returned "old" value came back with the name NA and
-  # the next gr_options(old) failed with "Unknown option(s): NA". That is the
+  # the next hr_options(old) failed with "Unknown option(s): NA". That is the
   # documented on.exit() pattern breaking on the second use, and it is the same
   # NULL trap the setter below was already fixed for.
   old <- merged()[names(args)]
   # modifyList() DELETES a key whose value is NULL, which silently reverted the
-  # option to its default. So `gr_options(max_cost_usd = NULL)`, documented as
+  # option to its default. So `hr_options(max_cost_usd = NULL)`, documented as
   # disabling the cost cap, quietly restored the $5 cap instead. Assign directly
   # so NULL is stored as a value.
   for (nm in names(args)) cur[nm] <- list(args[[nm]])

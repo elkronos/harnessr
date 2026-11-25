@@ -4,7 +4,7 @@
 \alias{gr_result}
 \title{The result of one model call}
 \description{
-Returned by \code{\link[=gr_call]{gr_call()}}. Designed so a caller can never be handed \code{NULL} or
+Returned by \code{\link[=hr_call]{hr_call()}}. Designed so a caller can never be handed \code{NULL} or
 \code{character(0)} where a string is expected.
 }
 \section{Fields}{
@@ -31,11 +31,11 @@ error.
 }
 
 \examples{
-res <- gr_call(gr_mock_client(function(m, p) "hello"), "hi")
+res <- hr_call(hr_mock_client(function(m, p) "hello"), "hi")
 c(ok = res$ok, text = res$text)
 }
 \seealso{
-\code{\link[=gr_call]{gr_call()}} which returns one, \code{\link[=gr_client]{gr_client()}}, \code{\link[=gr_mock_client]{gr_mock_client()}}
+\code{\link[=hr_call]{hr_call()}} which returns one, \code{\link[=hr_client]{hr_client()}}, \code{\link[=hr_mock_client]{hr_mock_client()}}
 
-\code{\link[=gr_call]{gr_call()}}, \code{\link[=gr_client]{gr_client()}}, \code{\link[=gr_mock_client]{gr_mock_client()}}
+\code{\link[=hr_call]{hr_call()}}, \code{\link[=hr_client]{hr_client()}}, \code{\link[=hr_mock_client]{hr_mock_client()}}
 }

@@ -75,8 +75,8 @@ mmr_select <- function(rel, emb, k, lambda = 1) {
   bad_row <- !is.finite(rowSums(emb))
   if (any(bad_row)) emb[bad_row, ] <- 0
   # Normalised here, not assumed. The API and lexical embedders return unit
-  # rows, but an embed function passed to gr_backend_client() or
-  # gr_ellmer_client() is used as it comes, and many local models return
+  # rows, but an embed function passed to hr_backend_client() or
+  # hr_ellmer_client() is used as it comes, and many local models return
   # vectors of norm 20 or 30. Redundancy was then a raw dot product in the
   # hundreds against a relevance of at most 1, and `mmr < 1` picked whatever
   # was least like the first choice in magnitude: an irrelevant chunk. A zero

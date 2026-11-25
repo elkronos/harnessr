@@ -31,7 +31,7 @@ r5s_claim <- function(text, ids) {
 # receives into the text it returns.
 r5s_client <- function(write, second = 3L, revise = identity) {
   heads <- names(write)
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     last <- messages[[length(messages)]]$content
     all_txt <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
@@ -223,7 +223,7 @@ test_that("a citation the batch merge adds that no draft made is reported and le
   # and the section read n_unsupplied 0, partial FALSE, with "(Author07, 2007)"
   # in the text and Author07 in the reference list.
   local_registries()
-  gr_register_model("r5s-small", context_window = 3000, max_output = 400,
+  hr_register_model("r5s-small", context_window = 3000, max_output = 400,
                     input_usd = 0, output_usd = 0)
   n <- 40L
   tab <- data.frame(document = sprintf("d%02d.pdf", 1:n), document_id = sprintf("h%02d", 1:n),
@@ -233,7 +233,7 @@ test_that("a citation the batch merge adds that no draft made is reported and le
                     finding = paste(rep("The intervention reduced the outcome modestly in adults.",
                                         9), collapse = " "),
                     stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     txt <- paste(vapply(m, `[[`, "", "content"), collapse = " ")
     if (grepl("<draft", txt, fixed = TRUE)) {
       drafts <- trimws(regmatches(txt, gregexpr("Draft[^<]*", txt))[[1]])
@@ -279,7 +279,7 @@ test_that("an author list cut off with an ellipsis, or a misspelt et al., is cit
   tab <- data.frame(document = c("a.pdf", "b.pdf"), status = "ok", duplicate_of = NA_character_,
                     n_filled = 2L, authors = c("Smith J, Okafor A, ...", "Garcia R, Lee K"),
                     year = c(2020L, 2021L), design = "RCT", stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(messages, params) "Finding 1 [study 1]. Finding 2 [study 2].")
+  cl <- hr_mock_client(function(messages, params) "Finding 1 [study 1]. Finding 2 [study 2].")
   s <- quiet(gr_synthesise(tab, outline = c(Findings = "what"), question = "Q?", client = cl))
   expect_match(s$text, "Finding 1 (Smith et al., 2020). Finding 2 (Garcia & Lee, 2021).",
                fixed = TRUE)
@@ -333,7 +333,7 @@ test_that("a surname-first name with a degree falls back to markers, not two aut
                     n_filled = 2L, authors = c("Smith, John, PhD", "Garcia, R."),
                     year = c(2019L, 2021L), design = c("RCT", "cohort"),
                     stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(messages, params) "A trial [study 1] and a cohort [study 2] agreed.")
+  cl <- hr_mock_client(function(messages, params) "A trial [study 1] and a cohort [study 2] agreed.")
   s <- quiet(gr_synthesise(tab, outline = c(Findings = "what"), question = "Q?", client = cl))
   expect_identical(s$cite_style, "marker")
   expect_match(s$text, "A trial [study 1] and a cohort [study 2] agreed.", fixed = TRUE)
@@ -388,7 +388,7 @@ test_that("joint organisation authors by acronym are cited by name", {
                     authors = c("Smith, J. and Okafor, A.", "UNICEF and WHO",
                                 "FAO, IFAD, UNICEF, WFP and WHO"),
                     year = c(2019L, 2020L, 2021L), design = "report", stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(messages, params) "S1 [study 1], S2 [study 2], S3 [study 3].")
+  cl <- hr_mock_client(function(messages, params) "S1 [study 1], S2 [study 2], S3 [study 3].")
   s <- quiet(gr_synthesise(tab, outline = c(Findings = "what"), question = "Q?", client = cl))
   expect_match(s$text, "S1 (Smith & Okafor, 2019), S2 (UNICEF & WHO, 2020), S3 (FAO et al., 2021).",
                fixed = TRUE)

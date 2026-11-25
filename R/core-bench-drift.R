@@ -122,7 +122,7 @@
 #' @param reference The [hr_reference()] the frozen benchmark scored.
 #' @param scorer The scorer the frozen benchmark used; checked by name.
 #' @param governor An [hr_governor()] the live rerun is held to, or `NULL`
-#'   to take the limits from [gr_options()].
+#'   to take the limits from [hr_options()].
 #' @param B The number of cluster resamples, at least 100.
 #' @param seed The seed of the live runs' private random stream and of the
 #'   resamples. `NULL` takes the frozen benchmark's seed plus 1, so an arm
@@ -187,7 +187,7 @@
 #' capitals <- c(France = "Paris", Peru = "Lima", Chad = "N'Djamena", Fiji = "Suva",
 #'               Chile = "Santiago", Laos = "Vientiane")
 #' answer <- function(capitals) {
-#'   gr_mock_client(function(messages, params) {
+#'   hr_mock_client(function(messages, params) {
 #'     capitals[[sub("Capital of ", "", messages[[1]]$content)]]
 #'   })
 #' }

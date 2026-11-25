@@ -10,7 +10,7 @@
 
 # A trace holding the given error entries, as trace_record() leaves them.
 trace_with_errors <- function(...) {
-  tr <- gr_trace()
+  tr <- hr_trace()
   tr$errors <- list(...)
   tr
 }
@@ -37,7 +37,7 @@ test_that("failed_note() leaves out trace errors marked recovered", {
 
 # An embedder that fails the way the built-in "api" one does on an endpoint
 # with no embeddings: the failed request is in the trace, marked recovered as
-# the shared contract says (gr_embed() then falls back to lexical vectors).
+# the shared contract says (hr_embed() then falls back to lexical vectors).
 register_404_embedder <- function(recovered = TRUE) {
   gr_register_embedder("gone-404", function(texts, params) {
     tr <- params$trace
@@ -50,7 +50,7 @@ register_404_embedder <- function(recovered = TRUE) {
     }
     stop("the request to 'bad-embed' did not return embeddings")
   })
-  gr_options(embedder = "gone-404")
+  hr_options(embedder = "gone-404")
 }
 
 test_that("an embeddings failure the reader recovered from leaves the document ok and stored", {
@@ -95,7 +95,7 @@ test_that("a chat request that failed still fails the document when embeddings r
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("The cohort comprised 482 participants recruited across nine clinical sites.", f)
   st <- withr::local_tempdir()
-  cl <- gr_mock_client(function(m, p) gr_result(FALSE, error = "HTTP 503: service unavailable"))
+  cl <- hr_mock_client(function(m, p) gr_result(FALSE, error = "HTTP 503: service unavailable"))
   out <- quiet(gr_read_many(f, "How many participants?", "needle", client = cl, store = st))
   expect_identical(out$summary$status, "failed")
   expect_match(out$summary$error, "HTTP 503", fixed = TRUE)
@@ -116,7 +116,7 @@ test_that("an incomplete extraction keeps its document_id in the table, evidence
                    collapse = "\n\n"), f)
   fields <- gr_fields(design = "The study design",
                       n = gr_field("Number of participants", type = "integer"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("enrolled", messages[[length(messages)]]$content, fixed = TRUE)) {
       stop("HTTP 429 rate limited")
     }
@@ -150,8 +150,8 @@ test_that("a screening call that failed keeps the document_id", {
   local_clean_cache()
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("We ran a randomised controlled trial of adults with asthma, enrolling 120.", f)
-  down <- gr_mock_client(function(m, p) stop("HTTP 503 unavailable"))
-  up <- gr_mock_client(function(m, p) {
+  down <- hr_mock_client(function(m, p) stop("HTTP 503 unavailable"))
+  up <- hr_mock_client(function(m, p) {
     '{"decision":"include","reason":"An RCT.","criterion":null,"quote":null}'
   })
   s <- quiet(gr_screen(f, question = "Does it work?", include = "Randomised trials", client = down))
@@ -169,13 +169,13 @@ test_that("a document a limit stopped keeps its document_id, and a copy of it is
     fn = function(chunks, question, client, spec, trace) {
       n <- 0L
       while (harnessr:::trace_can_call(trace) && n < 50L) {
-        gr_call(client, list(list(role = "user", content = "more")), model = spec$model,
+        hr_call(client, list(list(role = "user", content = "more")), model = spec$model,
                 trace = trace, label = "greedy")
         n <- n + 1L
       }
       new_answer("done", "greedy3", question, chunks$chunks$chunk_id, trace)
     })
-  gr_options(max_calls = 3)
+  hr_options(max_calls = 3)
   txt <- "Revenue was 45.2 million dollars in the year under review."
   a <- withr::local_tempfile(fileext = ".txt"); writeLines(txt, a)
   b <- withr::local_tempfile(fileext = ".txt"); writeLines(txt, b)
@@ -242,7 +242,7 @@ register_recording_embedder <- function(model) {
                            params = list(model = model, texts = length(texts)))
     harnessr:::lexical_embed(texts)
   })
-  gr_options(embedder = "recorded")
+  hr_options(embedder = "recorded")
 }
 
 corpus_cost_docs <- function(env = parent.frame()) {
@@ -257,13 +257,13 @@ corpus_cost_docs <- function(env = parent.frame()) {
 test_that("an unpriced embedding model leaves max_total_usd enforced on the priced spend", {
   local_registries()
   local_clean_cache()
-  gr_options(max_cost_usd = NULL)
-  gr_register_model("priced-chat", context_window = 100000L, max_output = 4096L,
+  hr_options(max_cost_usd = NULL)
+  hr_register_model("priced-chat", context_window = 100000L, max_output = 4096L,
                     input_usd = 1000, output_usd = 1000)
-  gr_register_model("unpriced-embed", context_window = 8191L, max_output = 0L,
+  hr_register_model("unpriced-embed", context_window = 8191L, max_output = 0L,
                     kind = "embedding")
   register_recording_embedder("unpriced-embed")
-  cl <- gr_backend_client(function(m, p) "Revenue was 41 million.", model = "priced-chat")
+  cl <- hr_backend_client(function(m, p) "Revenue was 41 million.", model = "priced-chat")
   docs <- corpus_cost_docs()
 
   seen <- list()
@@ -281,11 +281,11 @@ test_that("an unpriced embedding model leaves max_total_usd enforced on the pric
   expect_length(floor_w, 1L)
   msg <- conditionMessage(floor_w[[1]])
   expect_match(msg, "'unpriced-embed'", fixed = TRUE)
-  expect_match(msg, "gr_register_model('unpriced-embed'", fixed = TRUE)
+  expect_match(msg, "hr_register_model('unpriced-embed'", fixed = TRUE)
   expect_identical(out$summary$status, c("ok", "skipped", "skipped", "skipped"))
   # The row's cost is still unknown, not the priced part passed off as the whole.
   expect_true(is.na(out$summary$cost_usd[1]))
-  cost <- gr_trace_cost(out$trace)
+  cost <- hr_trace_cost(out$trace)
   expect_true(is.na(cost$usd[cost$model == "unpriced-embed"]))
   expect_gt(cost$usd[cost$model == "priced-chat"], 0)
 })
@@ -293,10 +293,10 @@ test_that("an unpriced embedding model leaves max_total_usd enforced on the pric
 test_that("an unpriced chat model still makes max_total_usd unenforceable, and says which", {
   local_registries()
   local_clean_cache()
-  gr_options(max_cost_usd = NULL)
-  gr_register_model("unpriced-chat", context_window = 100000L, max_output = 4096L)
+  hr_options(max_cost_usd = NULL)
+  hr_register_model("unpriced-chat", context_window = 100000L, max_output = 4096L)
   register_recording_embedder("text-embedding-3-small")
-  cl <- gr_backend_client(function(m, p) "Revenue was 41 million.", model = "unpriced-chat")
+  cl <- hr_backend_client(function(m, p) "Revenue was 41 million.", model = "unpriced-chat")
   docs <- corpus_cost_docs()
   seen <- list()
   out <- withCallingHandlers(
@@ -317,11 +317,11 @@ test_that("an unpriced chat model still makes max_total_usd unenforceable, and s
 
 test_that("corpus_cost() splits unpriced embedding models from the rest", {
   local_registries()
-  gr_register_model("priced-chat", context_window = 100000L, max_output = 4096L,
+  hr_register_model("priced-chat", context_window = 100000L, max_output = 4096L,
                     input_usd = 1000, output_usd = 1000)
-  gr_register_model("unpriced-embed", context_window = 8191L, max_output = 0L,
+  hr_register_model("unpriced-embed", context_window = 8191L, max_output = 0L,
                     kind = "embedding")
-  tr <- gr_trace()
+  tr <- hr_trace()
   rec <- function(label, model, input, output = 0L) {
     harnessr:::trace_record(tr, label, list(),
                            gr_result(TRUE, model = model, usage = list(input = input,
@@ -332,7 +332,7 @@ test_that("corpus_cost() splits unpriced embedding models from the rest", {
   rec("embed.request", "unpriced-embed", 50L)
   cc <- corpus_cost(tr)
   expect_true(is.na(cc$usd))
-  expect_equal(cc$priced, gr_estimate_cost("priced-chat", 1000L, 100L))
+  expect_equal(cc$priced, hr_estimate_cost("priced-chat", 1000L, 100L))
   expect_identical(cc$unpriced_embed, "unpriced-embed")
   expect_identical(cc$unpriced, character(0))
   # The same model used for a chat request is not an embedding-only one.
@@ -350,13 +350,13 @@ test_that("a store entry written by 0.5.0 is read again once, then restored", {
   local_registries()
   local_clean_cache()
   # The backend's model has no price, so the run has to allow that.
-  gr_options(allow_unpriced = TRUE)
+  hr_options(allow_unpriced = TRUE)
   dir <- withr::local_tempdir()
   doc <- file.path(dir, "a.txt")
   writeLines("Revenue was 45.2 million dollars.", doc)
   st <- file.path(dir, "store"); dir.create(st)
   calls <- 0L
-  cl <- gr_backend_client(function(m, p) { calls <<- calls + 1L; "Revenue was 45.2 million." },
+  cl <- hr_backend_client(function(m, p) { calls <<- calls + 1L; "Revenue was 45.2 million." },
                           id = "review3-compat")
   rec <- as_recipe("fast")
   # The key exactly as 0.5.0 built it: "readgpt-corpus-v2", without extra_body
@@ -365,7 +365,7 @@ test_that("a store entry written by 0.5.0 is read again once, then restored", {
   v2 <- gr_hash(list("readgpt-corpus-v2",
                      list("file", normalizePath(doc, winslash = "/", mustWork = FALSE),
                           info$size, format(info$mtime)),
-                     key_text("Q?"), as_chr1(gr_options("tokenizer"), "?"),
+                     key_text("Q?"), as_chr1(hr_options("tokenizer"), "?"),
                      unclass(rec$ingest), unclass(rec$segment), unclass(rec$read),
                      as_chr1(cl$model, "?"), as_chr1(cl$api, "?"), as_chr1(cl$base_url, "?"),
                      as_chr1(cl$.client_id, "<url-addressed>")))

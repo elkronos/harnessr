@@ -13,7 +13,7 @@
 # Deterministic client that echoes which prompt it saw, so tests can assert on
 # the exact call pattern a strategy produced.
 mock_echo <- function(answer = "MOCK ANSWER") {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("Rate how useful", sys, fixed = TRUE)) {
       return('{"score": 8, "reason": "relevant"}')
@@ -40,13 +40,13 @@ mock_echo <- function(answer = "MOCK ANSWER") {
 
 # Client that fails every call, for exercising error paths.
 mock_dead <- function(msg = "simulated transport failure") {
-  gr_mock_client(function(messages, params) stop(msg))
+  hr_mock_client(function(messages, params) stop(msg))
 }
 
 # Client that returns an empty completion -- the `content: null` case that made
 # v1 crash with "missing value where TRUE/FALSE needed".
 mock_empty <- function() {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     gr_result_for_test(ok = FALSE, text = "", error = "no content")
   })
 }
@@ -124,10 +124,10 @@ registry_restore <- function(snap) {
 
 local_registries <- function(env = parent.frame()) {
   snap <- registry_snapshot()
-  opts <- gr_options()
+  opts <- hr_options()
   withr::defer({
     registry_restore(snap)
-    gr_options(opts)
+    hr_options(opts)
   }, envir = env)
   invisible(snap)
 }
@@ -165,7 +165,7 @@ unmarked <- function(x) {
 # Passing `refuse` >= max_rounds exits on rounds instead.
 mock_iterative_loop <- function(refuse = 3L, answer = "FROM GATHERED") {
   round <- 0L
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     if (grepl("reading iteratively", messages[[1]]$content, fixed = TRUE)) {
       round <<- round + 1L
       nq <- sprintf("missing detail %d", min(round, refuse))
@@ -182,7 +182,7 @@ mock_iterative_loop <- function(refuse = 3L, answer = "FROM GATHERED") {
 mock_bulky <- function(sentences = 12L) {
   body <- paste(rep("Summary sentence about the cohort and the primary endpoint.", sentences),
                 collapse = " ")
-  gr_mock_client(function(messages, params) body)
+  hr_mock_client(function(messages, params) body)
 }
 
 
@@ -197,7 +197,7 @@ preview_plan_json <- function(treatments) {
 }
 
 mock_planner <- function(treatments, answer = "PLANNED ANSWER") {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("You plan how to read a document", sys, fixed = TRUE)) {
       return(preview_plan_json(treatments))
@@ -211,7 +211,7 @@ mock_planner <- function(treatments, answer = "PLANNED ANSWER") {
 
 # A planner whose reply is not a usable plan, for the degraded path.
 mock_planner_broken <- function() {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     if (grepl("You plan how to read a document", messages[[1]]$content, fixed = TRUE)) {
       return("I would read the whole thing, personally.")
     }

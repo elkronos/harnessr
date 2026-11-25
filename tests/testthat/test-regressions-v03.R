@@ -49,27 +49,27 @@ test_that("an unusable embedding row is neutralised, not dropped from the answer
 test_that("two closure-backed clients do not share cache entries", {
   # Every mock and backend client is api="mock"/"backend", the same base_url and
   # the same default model, so a key built from those three could not tell them
-  # apart -- and gr_cache() twice gives the same default directory. Two clients
+  # apart, and hr_cache() twice gives the same default directory. Two clients
   # with genuinely different handlers silently traded answers.
   local_registries()
   dir <- withr::local_tempdir()
-  one <- gr_cache_client(gr_mock_client(function(m, p) "ANSWER ONE"), gr_cache(dir))
-  two <- gr_cache_client(gr_mock_client(function(m, p) "ANSWER TWO"), gr_cache(dir))
-  expect_identical(gr_call(one, "same question")$text, "ANSWER ONE")
-  expect_identical(gr_call(two, "same question")$text, "ANSWER TWO")
+  one <- hr_cache_client(hr_mock_client(function(m, p) "ANSWER ONE"), hr_cache(dir))
+  two <- hr_cache_client(hr_mock_client(function(m, p) "ANSWER TWO"), hr_cache(dir))
+  expect_identical(hr_call(one, "same question")$text, "ANSWER ONE")
+  expect_identical(hr_call(two, "same question")$text, "ANSWER TWO")
   expect_length(two$calls(), 1L)         # the second handler really ran
 
-  b1 <- gr_cache_client(gr_backend_client(function(m, p) "BACKEND ONE", model = "mock-model"),
-                        gr_cache(dir))
-  b2 <- gr_cache_client(gr_backend_client(function(m, p) "BACKEND TWO", model = "mock-model"),
-                        gr_cache(dir))
-  expect_identical(gr_call(b1, "q")$text, "BACKEND ONE")
-  expect_identical(gr_call(b2, "q")$text, "BACKEND TWO")
+  b1 <- hr_cache_client(hr_backend_client(function(m, p) "BACKEND ONE", model = "mock-model"),
+                        hr_cache(dir))
+  b2 <- hr_cache_client(hr_backend_client(function(m, p) "BACKEND TWO", model = "mock-model"),
+                        hr_cache(dir))
+  expect_identical(hr_call(b1, "q")$text, "BACKEND ONE")
+  expect_identical(hr_call(b2, "q")$text, "BACKEND TWO")
 
   # And the fix must not have cost the feature: one client still hits its cache.
-  same <- gr_cache_client(gr_mock_client(function(m, p) "X"), gr_cache(dir))
-  invisible(gr_call(same, "repeated"))
-  expect_true(gr_call(same, "repeated")$cached)
+  same <- hr_cache_client(hr_mock_client(function(m, p) "X"), hr_cache(dir))
+  invisible(hr_call(same, "repeated"))
+  expect_true(hr_call(same, "repeated")$cached)
 })
 
 test_that("a corpus store does not restore one client's answers for another", {
@@ -79,15 +79,15 @@ test_that("a corpus store does not restore one client's answers for another", {
   writeLines("Revenue was 45.2 million dollars.", f)
 
   a <- quiet(gr_read_many(f, "Q?", "fast", store = store,
-                          client = gr_mock_client(function(m, p) "FIRST CLIENT")))
+                          client = hr_mock_client(function(m, p) "FIRST CLIENT")))
   b <- quiet(gr_read_many(f, "Q?", "fast", store = store,
-                          client = gr_mock_client(function(m, p) "SECOND CLIENT")))
+                          client = hr_mock_client(function(m, p) "SECOND CLIENT")))
   expect_identical(a$summary$answer, "FIRST CLIENT")
   expect_identical(b$summary$answer, "SECOND CLIENT")
   expect_identical(b$summary$status, "ok")
 
   # The same client still restores, which is the whole point of the store.
-  cl <- gr_mock_client(function(m, p) "STABLE CLIENT")
+  cl <- hr_mock_client(function(m, p) "STABLE CLIENT")
   quiet(gr_read_many(f, "Q?", "fast", client = cl, store = store))
   again <- quiet(gr_read_many(f, "Q?", "fast", client = cl, store = store))
   expect_identical(again$summary$status, "restored")
@@ -99,25 +99,25 @@ test_that("a client with no cache attached does not partial-match its own id", {
   # attached -- returned that id string for any client without one. The same
   # trap that made `parsed$output` return `output_text` in the previous release.
   local_registries()
-  for (cl in list(gr_mock_client(), gr_backend_client(function(m, p) "x"), gr_client())) {
+  for (cl in list(hr_mock_client(), hr_backend_client(function(m, p) "x"), hr_client())) {
     expect_null(cl$.cache)
   }
-  attached <- gr_cache_client(gr_mock_client(), gr_cache(withr::local_tempdir()))
+  attached <- hr_cache_client(hr_mock_client(), hr_cache(withr::local_tempdir()))
   expect_s3_class(attached$.cache, "gr_cache")
-  expect_null(gr_cache_client(attached, NULL)$.cache)
+  expect_null(hr_cache_client(attached, NULL)$.cache)
 })
 
 test_that("a cost nobody can compute is not reported as zero", {
-  # gr_trace_cost() returns NA for an unpriced model precisely so a total cannot
+  # hr_trace_cost() returns NA for an unpriced model precisely so a total cannot
   # quietly omit it. gr_read_many() then summed with na.rm = TRUE, turning "we
   # do not know" into "$0.0000" -- which also made max_total_usd unenforceable
   # while the run reported itself free.
   local_registries()
   # The per-run cap warns separately about the same unpriced model; this test is
   # about the CORPUS ceiling, so take that one out of the picture.
-  gr_options(max_cost_usd = NULL)
-  gr_register_model("unpriced", context_window = 100000L, max_output = 4096L)
-  cl <- gr_backend_client(function(m, p) "an answer", model = "unpriced")
+  hr_options(max_cost_usd = NULL)
+  hr_register_model("unpriced", context_window = 100000L, max_output = 4096L)
+  cl <- hr_backend_client(function(m, p) "an answer", model = "unpriced")
   # Distinct content per file. Three copies of one sentence are one document as
   # far as gr_read_many() is concerned -- it reads the first and marks the rest
   # duplicates -- and this test needs three documents to spend three times.
@@ -135,9 +135,9 @@ test_that("a cost nobody can compute is not reported as zero", {
   expect_true(any(grepl("cost unknown", capture.output(print(out)))))
 
   # With a price, the ceiling works exactly as before.
-  gr_register_model("priced", context_window = 100000L, max_output = 4096L,
+  hr_register_model("priced", context_window = 100000L, max_output = 4096L,
                     input_usd = 1000, output_usd = 1000)
-  cl2 <- gr_backend_client(function(m, p) "an answer", model = "priced")
+  cl2 <- hr_backend_client(function(m, p) "an answer", model = "priced")
   expect_warning(
     capped <- suppressMessages(gr_read_many(files, "Q?", "fast", client = cl2,
                                             model = "priced", max_total_usd = 1e-6)),
@@ -151,7 +151,7 @@ test_that("an ensemble verifies each evidence row by its own kind", {
   # "mixed" -- so per-chunk answers contributed by a map_reduce member were
   # string-matched against their chunks and reported as fabricated quotations.
   local_registries()
-  gr_options(embedder = "lexical")
+  hr_options(embedder = "lexical")
   doc <- gr_ingest(paste(c("Revenue rose to 45.2 million dollars in fiscal 2024.",
                            "Headcount grew to 1,204 employees worldwide.",
                            "Operating margin fell 5 percent year over year."), collapse = "\n\n"))
@@ -274,45 +274,45 @@ test_that("a stable client id makes a cache and a store reusable across sessions
   # cache and the resumable store the documentation promises. A caller who knows
   # their handler is stable must be able to say so.
   local_registries()
-  gr_register_model("mock-model", context_window = 128000L, max_output = 4096L,
+  hr_register_model("mock-model", context_window = 128000L, max_output = 4096L,
                     input_usd = 0, output_usd = 0)
   dir <- withr::local_tempdir()
   h <- function(m, p) "Revenue was 45.2 million dollars."
 
-  anon1 <- gr_cache_client(gr_backend_client(h, model = "mock-model"), gr_cache(dir))
-  anon2 <- gr_cache_client(gr_backend_client(h, model = "mock-model"), gr_cache(dir))
-  invisible(gr_call(anon1, "q"))
-  expect_false(gr_call(anon2, "q")$cached)          # safe default: no sharing
+  anon1 <- hr_cache_client(hr_backend_client(h, model = "mock-model"), hr_cache(dir))
+  anon2 <- hr_cache_client(hr_backend_client(h, model = "mock-model"), hr_cache(dir))
+  invisible(hr_call(anon1, "q"))
+  expect_false(hr_call(anon2, "q")$cached)          # safe default: no sharing
 
-  named1 <- gr_cache_client(gr_backend_client(h, model = "mock-model", id = "my-provider"),
-                            gr_cache(dir))
-  named2 <- gr_cache_client(gr_backend_client(h, model = "mock-model", id = "my-provider"),
-                            gr_cache(dir))
-  invisible(gr_call(named1, "q2"))
-  expect_true(gr_call(named2, "q2")$cached)         # opted in: reuse works
-  expect_false(gr_call(
-    gr_cache_client(gr_backend_client(h, model = "mock-model", id = "other"), gr_cache(dir)),
+  named1 <- hr_cache_client(hr_backend_client(h, model = "mock-model", id = "my-provider"),
+                            hr_cache(dir))
+  named2 <- hr_cache_client(hr_backend_client(h, model = "mock-model", id = "my-provider"),
+                            hr_cache(dir))
+  invisible(hr_call(named1, "q2"))
+  expect_true(hr_call(named2, "q2")$cached)         # opted in: reuse works
+  expect_false(hr_call(
+    hr_cache_client(hr_backend_client(h, model = "mock-model", id = "other"), hr_cache(dir)),
     "q2")$cached)                                   # a different id is a different client
 })
 
 test_that("a replay client is identified by its recording, not by its object", {
-  # gr_replay_client() was left out of the identity fix entirely, so a corpus
+  # hr_replay_client() was left out of the identity fix entirely, so a corpus
   # store served one recording's answers while replaying a different one --
   # exactly the failure the identity was introduced to prevent.
   local_registries()
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("Revenue was 45.2 million dollars.", f)
-  runA <- quiet(gr_read_many(f, "Q?", "fast", client = gr_mock_client(function(m, p) "ANSWER-A")))
-  runB <- quiet(gr_read_many(f, "Q?", "fast", client = gr_mock_client(function(m, p) "ANSWER-B")))
+  runA <- quiet(gr_read_many(f, "Q?", "fast", client = hr_mock_client(function(m, p) "ANSWER-A")))
+  runB <- quiet(gr_read_many(f, "Q?", "fast", client = hr_mock_client(function(m, p) "ANSWER-B")))
 
   store <- withr::local_tempdir()
-  quiet(gr_read_many(f, "Q?", "fast", client = gr_replay_client(runA$trace), store = store))
-  b <- quiet(gr_read_many(f, "Q?", "fast", client = gr_replay_client(runB$trace), store = store))
+  quiet(gr_read_many(f, "Q?", "fast", client = hr_replay_client(runA$trace), store = store))
+  b <- quiet(gr_read_many(f, "Q?", "fast", client = hr_replay_client(runB$trace), store = store))
   expect_identical(b$summary$answer, "ANSWER-B")
   expect_identical(b$summary$status, "ok")
 
   # Two replays of the SAME recording are the same thing, and do share.
-  again <- quiet(gr_read_many(f, "Q?", "fast", client = gr_replay_client(runA$trace),
+  again <- quiet(gr_read_many(f, "Q?", "fast", client = hr_replay_client(runA$trace),
                               store = store))
   expect_identical(again$summary$status, "restored")
 })
@@ -338,7 +338,7 @@ test_that("a citation of a chunk that was sent but did not contribute is not a f
   expect_identical(nrow(ch$chunks), 3L)
 
   n <- 0L
-  faithful <- gr_mock_client(function(m, p) {
+  faithful <- hr_mock_client(function(m, p) {
     n <<- n + 1L
     if (n <= nrow(ch$chunks)) (if (n == 2L) "NOT_IN_DOCUMENT" else "a finding")
     else "Merged, citing [chunk 2]."
@@ -349,7 +349,7 @@ test_that("a citation of a chunk that was sent but did not contribute is not a f
   expect_false(a$partial)
 
   n <- 0L
-  inventing <- gr_mock_client(function(m, p) {
+  inventing <- hr_mock_client(function(m, p) {
     n <<- n + 1L
     if (n <= nrow(ch$chunks)) "a finding" else "Merged, citing [chunk 99]."
   })
@@ -369,16 +369,16 @@ test_that("an embedding that fell back sets partial; one that was chosen does no
                collapse = "\n\n")
   ch <- gr_segment(gr_ingest(doc), list(method = "paragraph", max_tokens = 40))
 
-  gr_register_model("mock-model", context_window = 128000L, max_output = 4096L,
+  hr_register_model("mock-model", context_window = 128000L, max_output = 4096L,
                     input_usd = 0, output_usd = 0)
-  no_embedder <- gr_backend_client(function(m, p) "Revenue was 45.2 million.",
+  no_embedder <- hr_backend_client(function(m, p) "Revenue was 45.2 million.",
                                    model = "mock-model")
   fell <- suppressWarnings(quiet(gr_read(ch, "What was revenue?", no_embedder,
                                          gr_read_spec("retrieve", top_k = 2))))
   expect_true(fell$notes$embedding_fallback)
   expect_true(fell$partial)
 
-  gr_options(embedder = "lexical")
+  hr_options(embedder = "lexical")
   chose <- quiet(gr_read(ch, "What was revenue?", mock_echo("Revenue was 45.2 million."),
                          gr_read_spec("retrieve", top_k = 2)))
   expect_identical(chose$notes$embedding_source, "lexical")
@@ -401,7 +401,7 @@ test_that("an ensemble's verbatim rows verify when the chunks are supplied", {
   # in the source_text column made every non-skim row unverifiable even with
   # `chunks` in hand.
   local_registries()
-  gr_options(embedder = "lexical")
+  hr_options(embedder = "lexical")
   doc <- paste(c("Revenue rose to 45.2 million dollars in fiscal 2024.",
                  "Headcount grew to 1,204 employees worldwide this year.",
                  "Operating margin fell 5 percent year over year overall."), collapse = "\n\n")

@@ -3,7 +3,7 @@
 # WHY THIS FILE EXISTS
 # Extractors, cleaners, segmenters, readers and models are all registries: named
 # entries you can list, inspect and add to without editing the package.
-# Embedding was the one axis that was not. `gr_embed()` had a chain of
+# Embedding was the one axis that was not. `hr_embed()` had a chain of
 # `inherits()` branches: mock here, replay there, backend somewhere else, HTTP
 # at the end. Adding a local model therefore meant a change to this package
 # rather than a call in your own script, and there was no way to ask what was
@@ -25,7 +25,7 @@
 #' embeds (the `semantic` segmenter, the `retrieve` and `iterative` readers)
 #' uses it, with no change to any of them.
 #'
-#' @param name Short id, used as the value of `gr_options(embedder =)` and as
+#' @param name Short id, used as the value of `hr_options(embedder =)` and as
 #'   the `"embedding_source"` recorded on the result.
 #' @param fn Function of `(texts, params)` returning a numeric matrix with one
 #'   row per input. `params` carries `client`, `model`, `batch_size`, `cache`
@@ -35,12 +35,12 @@
 #' @param description One line, shown by [gr_embedders()].
 #' @param deterministic `TRUE` if the same text always gives the same vector in
 #'   any session on any machine. **Say so only if it is true.** It is what lets a
-#'   [gr_replay_client()] reproduce a run's chunk ranking instead of degrading to
+#'   [hr_replay_client()] reproduce a run's chunk ranking instead of degrading to
 #'   lexical vectors, and claiming it wrongly turns a replay from a recording
 #'   into a plausible-looking fiction.
 #' @return The name, invisibly.
-#' @seealso [gr_embedders()], [gr_embed()], [gr_options()] for `embedder`,
-#'   [gr_backend_client()] to supply an embedder alongside a transport
+#' @seealso [gr_embedders()], [hr_embed()], [hr_options()] for `embedder`,
+#'   [hr_backend_client()] to supply an embedder alongside a transport
 #' @export
 #' @examples
 #' # A local model, a company service, anything: it is a function of texts.
@@ -58,9 +58,9 @@
 #'
 #' gr_embedders()
 #'
-#' old <- gr_options(embedder = "first-letters")
-#' attr(gr_embed(gr_client(), c("alpha", "beta")), "embedding_source")
-#' gr_options(old)
+#' old <- hr_options(embedder = "first-letters")
+#' attr(hr_embed(hr_client(), c("alpha", "beta")), "embedding_source")
+#' hr_options(old)
 gr_register_embedder <- function(name, fn, description = "", deterministic = FALSE) {
   if (!is.function(fn)) gr_abort("`fn` must be a function of (texts, params).")
   registry_set("embedders", name, list(name = name, fn = fn,
@@ -73,11 +73,11 @@ gr_register_embedder <- function(name, fn, description = "", deterministic = FAL
 #' @return A data frame with one row per embedder: `name`, `deterministic`
 #'   (`"TRUE"`/`"FALSE"`) and `description`. `deterministic` is the column that
 #'   matters for reproducibility: only a deterministic embedder lets a
-#'   [gr_replay_client()] reproduce a run's chunk ranking.
+#'   [hr_replay_client()] reproduce a run's chunk ranking.
 #'   The last two columns are `version` and `contract`, `NA` for an embedder
 #'   registered with [gr_register_embedder()] and filled for one registered with
 #'   [hr_register()].
-#' @seealso [gr_register_embedder()], [gr_embed()], [gr_replay_client()]
+#' @seealso [gr_register_embedder()], [hr_embed()], [hr_replay_client()]
 #' @export
 #' @examples
 #' gr_embedders()
@@ -86,14 +86,14 @@ gr_embedders <- function() {
                 registry_get("embedder"))
 }
 
-#' The registered embedder gr_embed() would use when called without one, for
+#' The registered embedder hr_embed() would use when called without one, for
 #' the corpus store's key and the embeddings-request count. Same order as
-#' gr_embed(): the `embedder` option, then an embed function carried by the
+#' hr_embed(): the `embedder` option, then an embed function carried by the
 #' client (reported as "api", with no `fn`), then `"api"`.
 #' test-registry-routing.R checks that the two agree.
 #' @noRd
 resolve_embedder <- function(client) {
-  opt <- gr_options("embedder")
+  opt <- hr_options("embedder")
   if (!is.null(opt) && is_nonblank(as_chr1(opt))) {
     return(registry_get("embedder", as_chr1(opt)))
   }

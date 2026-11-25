@@ -269,9 +269,9 @@ match_passage <- function(qn, sn, scp = utf8ToInt(sn), max_cells = 5e7) {
 #' `verbatim` needs no edit at all. A quotation under five words (a number, a
 #' name) is close to too many things to be judged by distance, so it is
 #' verbatim or unverified. Otherwise `near_verbatim` needs a similarity of
-#' `gr_options("near_verbatim_sim")` (0.90) for
-#' `gr_options("near_verbatim_short_chars")` (40) characters or more and
-#' `gr_options("near_verbatim_sim_short")` (0.95) below that, with every
+#' `hr_options("near_verbatim_sim")` (0.90) for
+#' `hr_options("near_verbatim_short_chars")` (40) characters or more and
+#' `hr_options("near_verbatim_sim_short")` (0.95) below that, with every
 #' number, unit and negation identical. The defaults are provisional, from
 #' practitioner sources, until they are tuned on a local OCR sample.
 #' @noRd
@@ -279,9 +279,9 @@ passage_status <- function(r, qn, qtok) {
   if (!isTRUE(r$critical_ok)) return("unverified")
   if (identical(r$n_edits, 0L)) return("verbatim")
   if (length(qtok) < 5L) return("unverified")
-  short <- nchar(qn) < as_num1(gr_options("near_verbatim_short_chars"), 40)
-  floor <- if (short) as_num1(gr_options("near_verbatim_sim_short"), 0.95)
-           else as_num1(gr_options("near_verbatim_sim"), 0.90)
+  short <- nchar(qn) < as_num1(hr_options("near_verbatim_short_chars"), 40)
+  floor <- if (short) as_num1(hr_options("near_verbatim_sim_short"), 0.95)
+           else as_num1(hr_options("near_verbatim_sim"), 0.90)
   if (r$sim >= floor) "near_verbatim" else "unverified"
 }
 

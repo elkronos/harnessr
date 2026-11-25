@@ -12,7 +12,7 @@
 # ---------------------------------------------------------------------------
 
 r7_reasoner <- function(id = "r7-reasoner", context_window = 400000L, max_output = 128000L) {
-  gr_register_model(id, context_window = context_window, max_output = max_output,
+  hr_register_model(id, context_window = context_window, max_output = max_output,
                     input_usd = 1, output_usd = 10, reasoning = TRUE,
                     supports_temperature = FALSE)
   id
@@ -20,49 +20,49 @@ r7_reasoner <- function(id = "r7-reasoner", context_window = 400000L, max_output
 
 test_that("a segmenter's request to a reasoning model is priced at the cap it is sent", {
   local_registries()
-  cl <- gr_mock_client(function(m, p) "x")
+  cl <- hr_mock_client(function(m, p) "x")
   cl$model <- r7_reasoner()
   expect_equal(harnessr:::seg_call_usd(cl, 1000, 90L),
-               gr_estimate_cost("r7-reasoner", 1000, 2048))
+               hr_estimate_cost("r7-reasoner", 1000, 2048))
   expect_equal(harnessr:::seg_call_usd(cl, 1000, 2000L),
-               gr_estimate_cost("r7-reasoner", 1000, 2048))
+               hr_estimate_cost("r7-reasoner", 1000, 2048))
   # A cap at or above the floor is sent, and priced, as it is.
   expect_equal(harnessr:::seg_call_usd(cl, 1000, 3000L),
-               gr_estimate_cost("r7-reasoner", 1000, 3000))
+               hr_estimate_cost("r7-reasoner", 1000, 3000))
   # Within what the context window leaves after the prompt.
   cl$model <- r7_reasoner("r7-tight", context_window = 1500L, max_output = 1000L)
   expect_equal(harnessr:::seg_call_usd(cl, 1000, 90L),
-               gr_estimate_cost("r7-tight", 1000, 1500 - 1000 - 32))
+               hr_estimate_cost("r7-tight", 1000, 1500 - 1000 - 32))
   # A model that does not reason is priced at the cap it was asked for.
-  gr_register_model("r7-plain", context_window = 128000L, max_output = 16384L,
+  hr_register_model("r7-plain", context_window = 128000L, max_output = 16384L,
                     input_usd = 1, output_usd = 10)
   cl$model <- "r7-plain"
-  expect_equal(harnessr:::seg_call_usd(cl, 1000, 90L), gr_estimate_cost("r7-plain", 1000, 90))
+  expect_equal(harnessr:::seg_call_usd(cl, 1000, 90L), hr_estimate_cost("r7-plain", 1000, 90))
 })
 
 test_that("an extraction request to a reasoning model is priced at the cap it is sent", {
   local_registries()
-  cl <- gr_mock_client(function(m, p) "x")
+  cl <- hr_mock_client(function(m, p) "x")
   r7_reasoner()
   expect_equal(harnessr:::extract_item_usd(cl, "r7-reasoner", 1000, 100L),
-               gr_estimate_cost("r7-reasoner", 1000, 2048))
+               hr_estimate_cost("r7-reasoner", 1000, 2048))
   # Never above the model's own ceiling.
   r7_reasoner("r7-short", max_output = 500L)
   expect_equal(harnessr:::extract_item_usd(cl, "r7-short", 1000, 100L),
-               gr_estimate_cost("r7-short", 1000, 500))
+               hr_estimate_cost("r7-short", 1000, 500))
   # An ellmer chat bills as its own model, and is priced as that model reasons.
   ellmer_like <- structure(list(model = "r7-reasoner"),
                            class = c("gr_ellmer_client", "gr_backend_client", "gr_client"))
-  gr_register_model("r7-plain", context_window = 128000L, max_output = 16384L,
+  hr_register_model("r7-plain", context_window = 128000L, max_output = 16384L,
                     input_usd = 1, output_usd = 10)
   expect_equal(harnessr:::extract_item_usd(ellmer_like, "r7-plain", 1000, 100L),
-               gr_estimate_cost("r7-reasoner", 1000, 2048))
+               hr_estimate_cost("r7-reasoner", 1000, 2048))
 })
 
 test_that("contextual segmentation on a reasoning model holds its batch to the cap it sends", {
   local_registries()
   local_clean_cache()
-  cl <- gr_mock_client(function(m, p) "Where this excerpt sits.")
+  cl <- hr_mock_client(function(m, p) "Where this excerpt sits.")
   cl$model <- r7_reasoner()
   seen <- list()
   real <- harnessr:::gr_lapply
@@ -76,7 +76,7 @@ test_that("contextual segmentation on a reasoning model holds its batch to the c
                    client = cl))
   expect_length(seen, 1L)
   # Was the price of 90 output tokens and the prompt: about $0.001 here.
-  expect_gte(seen[[1]], gr_estimate_cost("r7-reasoner", 0, 2048))
+  expect_gte(seen[[1]], hr_estimate_cost("r7-reasoner", 0, 2048))
 })
 
 # ---------------------------------------------------------------------------
@@ -92,11 +92,11 @@ test_that("a saved trace keeps an unlabelled question intact under a C locale", 
   f <- withr::local_tempfile(fileext = ".json")
   withr::with_locale(c(LC_CTYPE = "C"), {
     skip_if(isTRUE(l10n_info()[["UTF-8"]]), "could not switch to a non-UTF-8 locale")
-    tr <- gr_trace(meta = list(question = q, recipes = q))
+    tr <- hr_trace(meta = list(question = q, recipes = q))
     # Filled after the trace was made, as callers do.
     tr$meta$source <- q
     harnessr:::trace_note(tr, "segment.local", list(section = q))
-    gr_trace_save(tr, f)
+    hr_trace_save(tr, f)
     txt <- as.character(as_json(tr, pretty = FALSE))
   })
   b <- readBin(f, "raw", file.size(f))
@@ -162,7 +162,7 @@ test_that("an enum value typed under a C locale matches the reply that gives it"
 r7_screen_c <- function(protocol = FALSE) {
   crit <- "Adultes \u00e2g\u00e9s de plus de 65 ans"
   q <- unmarked("Le traitement r\u00e9duit-il les chutes ?")
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     paste0('{"decision":"exclude","reason":"Des enfants.","criterion":"', crit, '","quote":null}')
   })
   f <- tempfile(fileext = ".txt")
@@ -231,13 +231,13 @@ r7_schema <- list(type = "object", properties = list(a = list(type = "string")),
 test_that("an ellmer structured reply that cannot be read is charged what ellmer recorded", {
   r7_skip_without_ellmer_05()
   local_registries()
-  gr_register_model("claude-test", context_window = 200000L, max_output = 64000L,
+  hr_register_model("claude-test", context_window = 200000L, max_output = 64000L,
                     input_usd = 3, output_usd = 15)
   httr2::local_mocked_responses(function(req) {
     r7_anthropic('[{"type":"text","text":"I would rather not answer in JSON."}]')
   })
-  cl <- gr_ellmer_client(ellmer::chat_anthropic(model = "claude-test", credentials = function() "k"))
-  tr <- gr_trace()
+  cl <- hr_ellmer_client(ellmer::chat_anthropic(model = "claude-test", credentials = function() "k"))
+  tr <- hr_trace()
   res <- quiet(harnessr:::gr_call_json(cl, "Question?", schema = r7_schema, trace = tr))
   expect_false(res$ok)
   step <- tr$steps[[1]]
@@ -246,18 +246,18 @@ test_that("an ellmer structured reply that cannot be read is charged what ellmer
   # Was input = the local count of "Question?" and output = 0.
   expect_identical(as.integer(step$tokens$input), 1000L)
   expect_identical(as.integer(step$tokens$output), 250L)
-  expect_equal(tr$spent_usd, gr_estimate_cost("claude-test", 1000, 250))
+  expect_equal(tr$spent_usd, hr_estimate_cost("claude-test", 1000, 250))
   expect_length(tr$errors, 1L)
 })
 
 test_that("an ellmer request that failed before any reply is still charged its prompt", {
   r7_skip_without_ellmer_05()
   local_registries()
-  gr_register_model("claude-test", context_window = 200000L, max_output = 64000L,
+  hr_register_model("claude-test", context_window = 200000L, max_output = 64000L,
                     input_usd = 3, output_usd = 15)
   httr2::local_mocked_responses(function(req) r7_anthropic(NULL, status = 400L))
-  cl <- gr_ellmer_client(ellmer::chat_anthropic(model = "claude-test", credentials = function() "k"))
-  tr <- gr_trace()
+  cl <- hr_ellmer_client(ellmer::chat_anthropic(model = "claude-test", credentials = function() "k"))
+  tr <- hr_trace()
   res <- quiet(harnessr:::gr_call_json(cl, "Question?", schema = r7_schema, trace = tr))
   expect_false(res$ok)
   step <- tr$steps[[1]]

@@ -13,7 +13,7 @@ synth_fields <- function() {
 
 # A client that extracts on one prompt shape and writes on the other.
 synth_client <- function(section_text = "A trial [study 1] and a cohort [study 2].") {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     seen <- paste(vapply(messages, function(m) paste(as.character(m$content), collapse = ""),
                          character(1)), collapse = "\n")
     if (grepl("<studies>", seen, fixed = TRUE)) {
@@ -185,7 +185,7 @@ test_that("a table too large for one prompt is written in batches, not truncated
   # Taking the first N rows, or summarising the table first, both drop studies
   # without saying which -- the one thing a review may not do.
   local_registries()
-  gr_register_model("tiny-ctx", context_window = 900L, max_output = 200L,
+  hr_register_model("tiny-ctx", context_window = 900L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
   tab <- data.frame(
     document = sprintf("paper%02d.txt", 1:12),
@@ -198,7 +198,7 @@ test_that("a table too large for one prompt is written in batches, not truncated
     stringsAsFactors = FALSE)
 
   seen_ids <- new.env(parent = emptyenv()); seen_ids$v <- integer(0)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     txt <- paste(vapply(messages, function(m) paste(as.character(m$content), collapse = ""),
                         character(1)), collapse = "\n")
     ids <- harnessr:::cited_ids(txt, "study")
@@ -278,7 +278,7 @@ bib_outline <- c("Included studies" = "how many", "Findings" = "what they found"
 mock_writer <- function(revision = NULL,
                         sec = c("Included studies" = "Three studies [study 1] [study 2] [study 3].",
                                 "Findings" = "Effects varied [study 1] and [study 3].")) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     # All three revision prompts, not just the first: matching only "one argument"
     # left `cut` and `register` falling through to the catch-all, so the test

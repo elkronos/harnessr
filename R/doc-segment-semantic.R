@@ -27,7 +27,7 @@ seg_semantic <- function(doc, spec, client, trace) {
   ctx <- vapply(seq_along(units), function(i) {
     paste(units[max(1L, i - win + 1L):i], collapse = " ")
   }, character(1))
-  emb <- gr_embed(client, ctx, trace = trace)
+  emb <- hr_embed(client, ctx, trace = trace)
   src <- attr(emb, "embedding_source") %||% "api"
   if (identical(src, "lexical")) {
     gr_msg("Semantic segmentation is running on lexical fallback vectors, so boundaries reflect word overlap, not meaning.")

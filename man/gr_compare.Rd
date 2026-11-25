@@ -62,7 +62,7 @@ requests the recipe made, its segmentation's included, and the tokens
 of those that were billed: a request answered from a cache or a
 recording is counted in \code{calls} and costs nothing.}
 \item{\code{usd}}{What those requests cost, at the prices registered with
-\code{\link[=gr_register_model]{gr_register_model()}}. \code{NA} when a model the recipe used has no
+\code{\link[=hr_register_model]{hr_register_model()}}. \code{NA} when a model the recipe used has no
 registered price.}
 \item{\code{usd_estimated}}{The share of \code{usd} spent on requests whose token
 counts were estimated locally because the provider reported none, from
@@ -92,11 +92,11 @@ shared reader signature alone is not enough: two \code{retrieve} recipes with
 different \code{top_k} share a signature and are genuinely different runs.
 
 Each row of \code{summary} says what its recipe cost, priced from the requests
-on the trace by the model each one used (see \code{\link[=gr_trace_cost]{gr_trace_cost()}}). A recipe is
+on the trace by the model each one used (see \code{\link[=hr_trace_cost]{hr_trace_cost()}}). A recipe is
 charged what it would cost run alone: a segmentation it shares with an
 earlier recipe is charged to both, as \code{max_calls} counts it for both, so
 \code{sum(summary$usd)} can be more than the comparison spent, which is
-\code{sum(gr_trace_cost(trace)$usd)}. Give \code{correct} and each row also says
+\code{sum(hr_trace_cost(trace)$usd)}. Give \code{correct} and each row also says
 whether the answer was right and what a right answer cost.
 
 The comparison is descriptive: one run of each recipe on one question,
@@ -107,7 +107,7 @@ with repeated runs: build the arms with \code{\link[=gr_arms]{gr_arms()}} and th
 intervals from \code{\link[=hr_report]{hr_report()}}.
 
 A comparison is one run for the spending and token limits: \code{max_cost_usd}
-and \code{max_tokens_total} in \code{\link[=gr_options]{gr_options()}} are checked against what every
+and \code{max_tokens_total} in \code{\link[=hr_options]{hr_options()}} are checked against what every
 recipe and every segmentation has spent and used so far, so a recipe that
 reaches either limit stops \code{partial} and the ones after it are refused and
 recorded as failed. \code{max_calls} is counted for
@@ -116,7 +116,7 @@ does not depend on its position in the list. A segmentation that a limit
 cut short is not shared with a later recipe.
 }
 \examples{
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 
 # Three pipelines over one document. Extraction is shared, so this costs one
 # extraction, not three; only the segmentation and the reader vary.
@@ -125,11 +125,11 @@ cmp <- gr_compare(gr_example(), "What was revenue?",
 cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "chunks_used")]
 
 # One trace covers all three, so this is the cost of the whole comparison.
-gr_trace_summary(cmp$trace)
+hr_trace_summary(cmp$trace)
 
 # What each recipe cost, and what a right answer cost. The mock is free, so
 # register a price for it under another name to see the columns filled.
-gr_register_model("priced-mock", context_window = 128000, max_output = 4096,
+hr_register_model("priced-mock", context_window = 128000, max_output = 4096,
                   input_usd = 2, output_usd = 8)
 cmp <- gr_compare(gr_example(), "What was revenue?", c("fast", "precise"),
                   client = cl, model = "priced-mock", correct = "45.2 million")

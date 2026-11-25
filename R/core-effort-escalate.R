@@ -24,7 +24,7 @@
 
 #' Reasoning effort that is raised for the next stage when a trigger fires
 #'
-#' A policy for a call's `effort` ([gr_call()]) or a read's `effort_mode`
+#' A policy for a call's `effort` ([hr_call()]) or a read's `effort_mode`
 #' ([gr_read_spec()]). Every stage starts at `base` (one level, or a map named
 #' by call stem, resolved as a static effort is). When a trigger in `on`
 #' fired during a stage, the next stage is sent at `to`. The stage after a
@@ -75,16 +75,16 @@
 #' pol
 #'
 #' # A first stage that found nothing raises the second.
-#' cl <- gr_mock_client(function(m, p) {
+#' cl <- hr_mock_client(function(m, p) {
 #'   if (identical(p$effort, "low") && grepl("first", m[[1]]$content)) {
 #'     return("NOT_IN_DOCUMENT")
 #'   }
 #'   paste("done at", p$effort)
 #' })
-#' tr <- gr_trace()
-#' gr_call(cl, "first step", model = "gpt-5.6-luna", trace = tr, label = "plan.draft",
+#' tr <- hr_trace()
+#' hr_call(cl, "first step", model = "gpt-5.6-luna", trace = tr, label = "plan.draft",
 #'         effort = pol)$text
-#' gr_call(cl, "second step", model = "gpt-5.6-luna", trace = tr, label = "plan.final",
+#' hr_call(cl, "second step", model = "gpt-5.6-luna", trace = tr, label = "plan.final",
 #'         effort = pol)$text
 #' hr_effort_log(tr)
 hr_effort_escalate <- function(base = "low", to = "high", on = .hr_escalate_triggers,
@@ -286,7 +286,7 @@ effort_boundary <- function(st, policy, stage, trace) {
 #' @family harness
 #' @export
 #' @examples
-#' tr <- gr_trace()
+#' tr <- hr_trace()
 #' hr_effort_event(tr, "disagreement")   # no policy has run: nothing recorded
 hr_effort_event <- function(trace, event, ...) {
   if (!is.character(event) || length(event) != 1L || is.na(event) || !nzchar(event)) {
@@ -315,7 +315,7 @@ hr_effort_event <- function(trace, event, ...) {
 #' @family harness
 #' @export
 #' @examples
-#' hr_effort_log(gr_trace())
+#' hr_effort_log(hr_trace())
 hr_effort_log <- function(trace) {
   empty <- data.frame(after = character(0), stage = character(0), triggers = character(0),
                       to = character(0), calls = integer(0), resolved = logical(0),

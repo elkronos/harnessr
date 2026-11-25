@@ -122,7 +122,7 @@ verify_doc <- function() {
 
 # A client whose extraction step can be told what to "quote".
 extracting <- function(extract) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) return(extract)
     "Revenue was 45.2 million dollars."
   })
@@ -197,13 +197,13 @@ test_that("a citation to a chunk that was never sent is caught", {
   local_registries()
   ch <- gr_segment(gr_ingest(verify_doc()), list(method = "paragraph", max_tokens = 40))
 
-  liar <- gr_mock_client(function(m, p)
+  liar <- hr_mock_client(function(m, p)
     "Revenue was 45.2 million [chunk 1], and costs fell [chunk 99].")
   bad <- quiet(gr_read(ch, "What was revenue?", liar, list(reader = "stuff", cite = TRUE)))
   expect_identical(bad$notes$cited_unknown, 99L)
   expect_true(bad$partial)
 
-  honest <- gr_mock_client(function(m, p) "Revenue was 45.2 million [chunk 1].")
+  honest <- hr_mock_client(function(m, p) "Revenue was 45.2 million [chunk 1].")
   ok <- quiet(gr_read(ch, "What was revenue?", honest, list(reader = "stuff", cite = TRUE)))
   expect_null(ok$notes$cited_unknown)
   expect_false(ok$partial)
@@ -225,7 +225,7 @@ test_that("gr_verify_evidence validates and handles nothing to verify", {
   # An answer with no evidence at all -- `refine` and `hierarchical` produce
   # these, and so does any reader that found nothing.
   none <- new_answer("nothing found", "refine", "What was revenue?", integer(0),
-                     gr_trace(), evidence = NULL)
+                     hr_trace(), evidence = NULL)
   v <- gr_verify_evidence(none)
   expect_s3_class(v, "data.frame")
   expect_identical(nrow(v), 0L)
@@ -288,7 +288,7 @@ test_that("a quoted span is given the page it is on, not the page of its chunk",
   # that actually contains the sentence reports it -- leaving exactly one
   # evidence row to check.
   sentence <- "Page two says the trial enrolled 1,204 participants overall."
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     seen <- paste(vapply(messages, function(m) paste(as.character(m$content), collapse = ""),
                          character(1)), collapse = "\n")
     if (grepl("<excerpt>", seen, fixed = TRUE) && !grepl("1,204", seen, fixed = TRUE)) {

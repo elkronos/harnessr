@@ -215,7 +215,7 @@ url_download <- function(url, dest, max_bytes = .gr_max_download_bytes,
                     if (written > max_bytes) too_big()
                     writeBin(x, out)
                   }),
-                  httr::timeout(as_num1(gr_options("request_timeout"), 120)),
+                  httr::timeout(as_num1(hr_options("request_timeout"), 120)),
                   httr::user_agent(agent),
                   do.call(httr::config, cfg)),
         warning = function(w) {

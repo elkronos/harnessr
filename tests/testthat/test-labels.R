@@ -213,8 +213,8 @@ test_that("a judge sheet reads pass and fail and counts them", {
   sheet <- gr_label_sheet("judge", items)
   expect_true(all(is.na(sheet$verdict)))
   sheet$verdict <- c("Pass", "fail", "")
-  old <- gr_options(verbose = TRUE)
-  on.exit(gr_options(old), add = TRUE)
+  old <- hr_options(verbose = TRUE)
+  on.exit(hr_options(old), add = TRUE)
   expect_message(lab <- gr_read_labels(sheet, "judge"), "1 pass, 1 fail.*at least 50")
   expect_identical(lab$verdict, c("pass", "fail", NA))
   # With the items, the judge's own verdicts come back beside the person's.

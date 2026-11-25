@@ -103,7 +103,7 @@ redundant_doc <- function() {
 
 local_lexical <- function(env = parent.frame()) {
   local_registries(env)
-  gr_options(embedder = "lexical")   # deterministic, so these assertions are stable
+  hr_options(embedder = "lexical")   # deterministic, so these assertions are stable
 }
 
 test_that("the defaults are exactly the previous behaviour", {
@@ -203,7 +203,7 @@ test_that("rerank arranges its prompt too", {
   # mock that gave every chunk the same score.
   local_lexical()
   ch <- gr_segment(gr_ingest(redundant_doc()), list(method = "paragraph", max_tokens = 40))
-  scoring <- gr_mock_client(function(messages, params) {
+  scoring <- hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (!grepl("Rate how useful", sys, fixed = TRUE)) return("an answer")
     excerpt <- messages[[length(messages)]]$content
@@ -268,11 +268,11 @@ test_that("both settings survive a recipe and a comparison", {
 # A bug the new NULL-valued option surfaced
 # ---------------------------------------------------------------------------
 
-test_that("gr_options() survives repeated set-and-restore of a NULL-valued option", {
-  # gr_options() documents that it "composes with on.exit()". It did not, for any
+test_that("hr_options() survives repeated set-and-restore of a NULL-valued option", {
+  # hr_options() documents that it "composes with on.exit()". It did not, for any
   # option whose stored value was NULL. The returned "old" value was built with
   # modifyList(), which DELETES a key whose value is NULL, so after one restore
-  # the name came back as NA and the NEXT gr_options(old) failed with
+  # the name came back as NA and the NEXT hr_options(old) failed with
   # "Unknown option(s): NA" -- the second use of the documented pattern, in a
   # function that had already been fixed once for exactly this NULL trap.
   local_registries()
@@ -281,19 +281,19 @@ test_that("gr_options() survives repeated set-and-restore of a NULL-valued optio
   fill <- list(embedder = "lexical", temperature = 0.5, max_cost_usd = 1,
                cache_dir = "x")
   for (opt in c("embedder", "temperature", "max_cost_usd", "cache_dir")) {
-    before <- gr_options(opt)
+    before <- hr_options(opt)
     for (i in 1:3) {
-      old <- do.call(gr_options, stats::setNames(list(fill[[opt]]), opt))
+      old <- do.call(hr_options, stats::setNames(list(fill[[opt]]), opt))
       expect_identical(names(old), opt)
-      expect_no_error(gr_options(old))
+      expect_no_error(hr_options(old))
     }
-    expect_identical(gr_options(opt), before)   # and it really is back
+    expect_identical(hr_options(opt), before)   # and it really is back
   }
 })
 
-test_that("gr_options() returns the value it replaced, NULL included", {
+test_that("hr_options() returns the value it replaced, NULL included", {
   local_registries()
-  expect_null(gr_options(embedder = "lexical")$embedder)
-  expect_identical(gr_options(embedder = "api")$embedder, "lexical")
-  expect_identical(gr_options("embedder"), "api")
+  expect_null(hr_options(embedder = "lexical")$embedder)
+  expect_identical(hr_options(embedder = "api")$embedder, "lexical")
+  expect_identical(hr_options("embedder"), "api")
 })

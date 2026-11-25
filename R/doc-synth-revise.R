@@ -581,30 +581,30 @@ revise_once <- function(drafted, question, client, spec, trace, style, pass) {
   # whole-draft rewrite by a section's allowance asked a model revising 4800
   # tokens for 300, and the citation check then blamed the model for the
   # truncation that budgeting caused.
-  need <- as.integer(ceiling(gr_count_tokens(drafted) * 1.15) + 64L)
-  info <- gr_model_info(spec$model)
+  need <- as.integer(ceiling(hr_count_tokens(drafted) * 1.15) + 64L)
+  info <- hr_model_info(spec$model)
   room <- as.integer(info$max_output)
   if (need > room) {
     gr_warn(sprintf(paste0("The draft is about %d tokens and '%s' can emit at most %d, so the ",
                            "'%s' pass was skipped rather than returning a review cut off ",
                            "part-way."),
-                    gr_count_tokens(drafted), spec$model, room, pass),
+                    hr_count_tokens(drafted), spec$model, room, pass),
             class = "gr_coherence_skipped")
     return(list(ran = FALSE, kept = FALSE, reason = "draft exceeds the output limit"))
   }
-  bud <- gr_budget(spec$model, reserve_output = need, overhead = overhead)
-  # `bud$output < need` as well as the input test. gr_budget() shrinks the output
+  bud <- hr_budget(spec$model, reserve_output = need, overhead = overhead)
+  # `bud$output < need` as well as the input test. hr_budget() shrinks the output
   # reserve to the floor rather than failing when the window is tight, and a
   # smaller reserve makes bud$input LARGER, so a draft with no room for its own
   # rewrite passed this check, and the call then went out with max_output = need
   # anyway. Bigger drafts were being sent where smaller ones were skipped.
-  if (bud$output < need || gr_count_tokens(drafted) > bud$input) {
+  if (bud$output < need || hr_count_tokens(drafted) > bud$input) {
     gr_warn(sprintf(paste0("The draft does not fit one prompt alongside room to rewrite it, so ",
                            "the '%s' pass was skipped."), pass),
             class = "gr_coherence_skipped")
     return(list(ran = FALSE, kept = FALSE, reason = "draft exceeds the context window"))
   }
-  res <- gr_call(client, list(
+  res <- hr_call(client, list(
     list(role = "system", content = sys),
     list(role = "user", content = paste0("Review question: ", question)),
     list(role = "user", content = paste0("<draft>\n", drafted, "\n</draft>"))

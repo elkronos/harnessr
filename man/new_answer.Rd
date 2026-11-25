@@ -68,7 +68,7 @@ built-ins do, so \code{\link[=gr_compare]{gr_compare()}} can put it in the same 
 }
 \examples{
 # The minimum a custom reader has to return.
-tr <- gr_trace()
+tr <- hr_trace()
 a <- new_answer("Revenue was 45.2 million.", "my_reader", "What was revenue?",
                 chunks_used = 1L, trace = tr, notes = list(strategy = "first chunk"))
 a$partial

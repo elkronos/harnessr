@@ -7,7 +7,7 @@ sm <- function(span, src) harnessr:::span_match(span, src)
 verified <- function(span, src) isTRUE(sm(span, src)$verified)
 
 skim_client <- function(quote, answer = "The answer.") {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) return(quote)
     answer
   })
@@ -59,7 +59,7 @@ test_that("a Chinese skim quotation is not partial and an extracted value is kep
                     "\u6765\u81ea\u4e5d\u4e2a\u4e34\u5e8a\u4e2d\u5fc3\u3002",
                     "\u968f\u8bbf\u65f6\u95f4\u4e3a\u4e24\u5e74\u3002"), doc, useBytes = TRUE)
   f <- gr_fields(n = gr_field("Number of participants", type = "integer"), design = "Study design")
-  cl <- gr_mock_client(function(m, p) paste0(
+  cl <- hr_mock_client(function(m, p) paste0(
     '{"n":120,"design":"\u968f\u673a\u5bf9\u7167\u8bd5\u9a8c",',
     '"n__quote":"', zh_quote, '",',
     '"design__quote":"\u672c\u7814\u7a76\u4e3a\u968f\u673a\u5bf9\u7167\u8bd5\u9a8c"}'))
@@ -234,7 +234,7 @@ test_that("a decimal with no leading zero and a hyphenated negation are caught",
 
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("Of these, .5 thousand patients were randomised in the first year.", f)
-  cl <- gr_mock_client(function(m, p) '{"n":5,"n__quote":"5 thousand patients were randomised"}')
+  cl <- hr_mock_client(function(m, p) '{"n":5,"n__quote":"5 thousand patients were randomised"}')
   x <- quiet(gr_extract(f, gr_fields(n = gr_field("Number randomised", type = "integer")),
                         client = cl, recipe = "thorough", require_quote = TRUE))
   expect_true(is.na(x$table$n[1]))
@@ -299,7 +299,7 @@ test_that("a short word inside many longer ones is checked without rescanning th
 
 test_that("the pre-flight record names the model a read asked for", {
   ch <- quiet(gr_segment(sample_doc(2, 2), list(method = "paragraph", max_tokens = 150)))
-  tr <- gr_trace()
+  tr <- hr_trace()
   a <- quiet(gr_read(ch, "Q?", mock_echo(), list(reader = "skim", skim_model = "gpt-4o-mini"),
                      trace = tr))
   pf <- Filter(function(s) identical(s$label, "preflight"), tr$steps)[[1]]$detail

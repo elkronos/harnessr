@@ -17,7 +17,7 @@ r6_file <- function(x, env = parent.frame()) {
 
 r6_screen_client <- function(json) {
   force(json)
-  gr_mock_client(function(messages, params) json)
+  hr_mock_client(function(messages, params) json)
 }
 
 # ---------------------------------------------------------------------------
@@ -327,7 +327,7 @@ test_that("a first chunk over screen_tokens is cut to the cap and screened", {
   # The prompt carried only the opening.
   sent <- paste(vapply(cl$calls()[[1]]$messages, function(m) as.character(m$content), ""),
                 collapse = "\n")
-  expect_lt(gr_count_tokens(sent), 300L + 400L)
+  expect_lt(hr_count_tokens(sent), 300L + 400L)
 })
 
 test_that("a cap too small to show any of the document fails the document, naming it", {
@@ -511,7 +511,7 @@ test_that("the screening quote is attributed to the chunk it is in", {
 # ---------------------------------------------------------------------------
 
 test_that("the screening print counts model calls and embeddings requests apart", {
-  tr <- gr_trace()
+  tr <- hr_trace()
   ok <- gr_result(TRUE, text = "x", usage = list(input = 5L, output = 1L), model = "gpt-4o")
   harnessr:::trace_record(tr, "screen.decide", list(), ok)
   for (i in 1:3) {

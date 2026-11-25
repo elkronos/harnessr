@@ -57,7 +57,7 @@ edge is in no chunk, and the question counts as a miss at every \code{k}; the
 with no label are left out.
 
 The ranking is cosine similarity on the embeddings \code{client} gives (see
-\code{\link[=gr_embed]{gr_embed()}}), blended with BM25 by \code{lexical_blend} when the embeddings
+\code{\link[=hr_embed]{hr_embed()}}), blended with BM25 by \code{lexical_blend} when the embeddings
 are lexical, as in \code{\link[=gr_read]{gr_read()}}. \code{read} takes those \code{\link[=gr_read_spec]{gr_read_spec()}}
 settings (\code{lexical_blend}, \code{bm25_k1}, \code{bm25_b}). The \code{mmr} and
 \code{min_score} settings of the reader are not applied: this is the ranking
@@ -68,7 +68,7 @@ chunking, so they are not independent, and no interval is given; compare
 segmenters on the same questions, and on a split you did not tune on.
 }
 \examples{
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 doc <- paste("Revenue was 45.2 million dollars in fiscal 2024.",
              "The plant in Leeds made 12,400 units.",
              "Staff numbered 310 at year end.", sep = "\n\n")
@@ -77,7 +77,7 @@ ref <- gr_qa_reference(c(rev = "What was revenue?", units = "How many units?"),
                        split = "test")
 gr_seg_recall(ref, list(sentence = list(method = "sentence", max_tokens = 40),
                         fixed = list(method = "fixed", max_tokens = 32)), k = 1:2)
-gr_options(old)
+hr_options(old)
 }
 \seealso{
 \code{\link[=gr_seg_pk]{gr_seg_pk()}}, \code{\link[=gr_chunk_stats]{gr_chunk_stats()}}, \code{\link[=hr_benchmark]{hr_benchmark()}}

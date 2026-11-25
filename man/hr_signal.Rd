@@ -83,13 +83,13 @@ members: \code{"model"} when the adjudication request answered,
 }
 }
 \examples{
-tr <- gr_trace()
+tr <- hr_trace()
 hr_signal("demo.confident", TRUE, tr, item_id = "q1")
 hr_signal("demo.confident", c(0.9, 0.2), tr, item_id = c("q2", "q3"))
 hr_signals(tr)
 
 # The readers record their own signals.
-cl <- gr_mock_client(function(m, p) {
+cl <- hr_mock_client(function(m, p) {
   '{"can_answer": true, "answer": "45.2 million dollars", "next_query": ""}'
 })
 ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150))

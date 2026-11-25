@@ -22,7 +22,7 @@ r3_extract <- function(text, value, type = "integer", quote = text) {
   fl <- gr_fields(x = gr_field("The value", type = type))
   js <- as.character(jsonlite::toJSON(list(x = value, x__quote = quote),
                                       auto_unbox = TRUE, digits = NA))
-  cl <- gr_mock_client(function(messages, params) js)
+  cl <- hr_mock_client(function(messages, params) js)
   list(lax = quiet(gr_extract(f, fl, client = cl, recipe = "fast")),
        strict = quiet(gr_extract(f, fl, client = cl, recipe = "fast", require_quote = TRUE)))
 }
@@ -123,7 +123,7 @@ test_that("a quotation of several passages carries its value into gr_extract()",
     "In total, 240 patients ... randomised to two arms."
   )
   for (q in quotes) {
-    cl <- gr_mock_client(function(messages, params)
+    cl <- hr_mock_client(function(messages, params)
       as.character(jsonlite::toJSON(list(n = 240, n__quote = q), auto_unbox = TRUE)))
     x <- quiet(gr_extract(a, f, client = cl, recipe = "thorough", require_quote = TRUE,
                           keep_answers = TRUE))
@@ -161,7 +161,7 @@ test_that("a placeholder string is a value only when the document says it", {
   a <- r3_file(r3_say("Abstract: this study examined an exercise program for adults with back pain."),
                paste(r3_say("Setting: recruitment ran across several clinics in the region for a year."),
                      "The trial ran in Kenya and enrolled 120 adults."))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     ex <- messages[[length(messages)]]$content
     if (grepl("Kenya", ex, fixed = TRUE)) {
       return(paste0('{"country":"Kenya","country__quote":"The trial ran in Kenya and enrolled ',
@@ -182,7 +182,7 @@ test_that("a placeholder string is a value only when the document says it", {
   # A document that reports nothing still reports nothing.
   f2 <- gr_fields(funding = "Funding source", coi = "Declared conflicts of interest")
   b <- r3_file("We describe the history of a local library and its reading rooms in detail.")
-  cl2 <- gr_mock_client(function(messages, params)
+  cl2 <- hr_mock_client(function(messages, params)
     '{"funding":"N/A","funding__quote":"N/A","coi":"None","coi__quote":"None"}')
   y <- quiet(gr_extract(b, f2, client = cl2))
   expect_true(is.na(y$table$funding))
@@ -196,7 +196,7 @@ test_that("a placeholder string is a value only when the document says it", {
   # saying it; one that does say it is.
   c3 <- r3_file("The authors declare no competing interests. Conflicts of interest: None.")
   run <- function(q) {
-    cl3 <- gr_mock_client(function(messages, params)
+    cl3 <- hr_mock_client(function(messages, params)
       as.character(jsonlite::toJSON(list(funding = NA, funding__quote = NA, coi = "None",
                                          coi__quote = q), auto_unbox = TRUE, na = "null")))
     quiet(gr_extract(c3, f2, client = cl3))$table$coi
@@ -214,7 +214,7 @@ test_that("a failed adjudication leaves a fully read document ok", {
              file.path(d, "a.txt"))
   f <- gr_fields(design = "The study design",
                  n = gr_field("Number of participants", type = "integer"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("Two or more parts of one document", messages[[1]]$content, fixed = TRUE)) {
       stop("HTTP 503 service unavailable")
     }
@@ -253,7 +253,7 @@ test_that("a failed request outside extraction does not blank a read document", 
              file.path(d, "a.txt"))
   f <- gr_fields(n = gr_field("Number of participants", type = "integer"))
   k <- 0L
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("You situate an excerpt", messages[[1]]$content, fixed = TRUE)) {
       k <<- k + 1L
       if (k == 2L) stop("HTTP 503 service unavailable")
@@ -282,7 +282,7 @@ test_that("a failed request outside extraction does not blank a read document", 
 test_that("extraction_table() names an auxiliary failure only when it did not recover", {
   f <- gr_fields(n = gr_field("n", type = "integer"))
   mk <- function(recovered) {
-    tr <- gr_trace()
+    tr <- hr_trace()
     tr$errors <- list(list(step = 1L, label = "extract.resolve", error = "HTTP 503",
                            recovered = recovered))
     structure(list(answer = '{"n":120}', trace = tr,
@@ -305,7 +305,7 @@ test_that("extraction_table() names an auxiliary failure only when it did not re
 test_that("print() does not call a verbatim quote that fails the value check 'no verbatim span'", {
   a <- r3_file("Twenty-four patients were enrolled at two sites. The trial ran for a year.")
   fl <- gr_fields(n = gr_field("Sample size", type = "integer"))
-  cl <- gr_mock_client(function(messages, params)
+  cl <- hr_mock_client(function(messages, params)
     '{"n":5000,"n__quote":"Twenty-four patients were enrolled at two sites."}')
   x <- quiet(gr_extract(a, fl, client = cl))
   expect_false(x$evidence$verified)

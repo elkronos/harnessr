@@ -180,7 +180,7 @@ effort_to_send <- function(effort, label, info) {
 #' "high"))` sets a default for everything it sends, and the setting for a
 #' stage is the more specific of the two, so it wins for the calls it covers;
 #' the rest of that `reasoning` object (a `summary` setting, say) is kept. A
-#' field written by hand into one gr_call() is more specific still.
+#' field written by hand into one hr_call() is more specific still.
 #'
 #' On Chat Completions the field is `reasoning_effort`, but a client for a
 #' gateway that reads the Responses shape there too can carry a `reasoning`

@@ -1,6 +1,6 @@
 # test-backend.R -- the transport seam, and the ellmer adapter built on it.
 #
-# The point of gr_backend_client() is that a stranger's function can be the
+# The point of hr_backend_client() is that a stranger's function can be the
 # transport and nothing downstream notices. So the tests that matter are not
 # "does the handler get called" -- they are: does everything the package builds
 # on top of a call still hold when the call came from somewhere else? Budgeting,
@@ -14,7 +14,7 @@
 # appear mean something.
 local_backend_model <- function(id = "bk", env = parent.frame()) {
   local_registries(env)
-  gr_register_model(id, context_window = 100000L, max_output = 4096L,
+  hr_register_model(id, context_window = 100000L, max_output = 4096L,
                     input_usd = 1, output_usd = 2)
   id
 }
@@ -22,9 +22,9 @@ local_backend_model <- function(id = "bk", env = parent.frame()) {
 test_that("a handler receives the request and its resolved parameters", {
   local_backend_model()
   seen <- NULL
-  cl <- gr_backend_client(function(messages, params) { seen <<- list(messages, params); "ok" },
+  cl <- hr_backend_client(function(messages, params) { seen <<- list(messages, params); "ok" },
                           model = "bk")
-  invisible(gr_call(cl, list(list(role = "system", content = "be terse"),
+  invisible(hr_call(cl, list(list(role = "system", content = "be terse"),
                              list(role = "user", content = "the question")),
                     max_output = 128L, temperature = 0.4))
 
@@ -41,38 +41,38 @@ test_that("a handler receives the request and its resolved parameters", {
 
 test_that("a backend handler is held to the same gr_result invariants as everything else", {
   local_backend_model()
-  mk <- function(f) gr_backend_client(f, model = "bk")
+  mk <- function(f) hr_backend_client(f, model = "bk")
 
   # A raiser is data, not an exception: one bad chunk must not abort a run.
-  bad <- gr_call(mk(function(m, p) stop("provider exploded")), "q")
+  bad <- hr_call(mk(function(m, p) stop("provider exploded")), "q")
   expect_false(bad$ok)
   expect_identical(bad$text, "")
   expect_match(bad$error, "provider exploded")
 
   # An empty completion is a failure, so "" is never spliced downstream as
   # evidence -- the same rule the real client and the mock follow.
-  expect_false(gr_call(mk(function(m, p) ""), "q")$ok)
-  expect_false(gr_call(mk(function(m, p) "   "), "q")$ok)
+  expect_false(hr_call(mk(function(m, p) ""), "q")$ok)
+  expect_false(hr_call(mk(function(m, p) "   "), "q")$ok)
 
   # A handler returning a malformed gr_result is re-normalised, not trusted.
-  loose <- gr_call(mk(function(m, p) harnessr:::gr_result(TRUE, text = "fine")), "q")
+  loose <- hr_call(mk(function(m, p) harnessr:::gr_result(TRUE, text = "fine")), "q")
   expect_true(loose$ok)
   expect_identical(loose$text, "fine")
   expect_length(loose$text, 1L)
 
   # Text is always character(1), whatever the handler returned.
-  expect_length(gr_call(mk(function(m, p) c("two", "strings")), "q")$text, 1L)
+  expect_length(hr_call(mk(function(m, p) c("two", "strings")), "q")$text, 1L)
 })
 
 test_that("everything built on top of a call still works when the call is a backend", {
   local_backend_model()
-  cl <- gr_backend_client(function(m, p) "Revenue was 45.2 million dollars.", model = "bk")
+  cl <- hr_backend_client(function(m, p) "Revenue was 45.2 million dollars.", model = "bk")
 
   ans <- quiet(answer_document(gr_example(), "What was revenue?", "thorough", client = cl))
   expect_false(ans$partial)
   expect_match(ans$answer, "45.2")
 
-  s <- gr_trace_summary(ans$trace)
+  s <- hr_trace_summary(ans$trace)
   expect_gt(s$calls, 0L)
   expect_gt(s$tokens_in, 0L)                    # budgeting saw real numbers
   expect_identical(s$cached, 0L)
@@ -82,44 +82,44 @@ test_that("everything built on top of a call still works when the call is a back
 test_that("a backend composes with the cache and with replay", {
   local_backend_model()
   n <- 0L
-  cache <- gr_cache(withr::local_tempdir())
-  cl <- gr_cache_client(gr_backend_client(function(m, p) { n <<- n + 1L; "42" },
+  cache <- hr_cache(withr::local_tempdir())
+  cl <- hr_cache_client(hr_backend_client(function(m, p) { n <<- n + 1L; "42" },
                                           model = "bk"), cache)
-  expect_false(gr_call(cl, "q")$cached)
-  expect_true(gr_call(cl, "q")$cached)
+  expect_false(hr_call(cl, "q")$cached)
+  expect_true(hr_call(cl, "q")$cached)
   expect_identical(n, 1L)
 
-  tr <- gr_trace()
-  invisible(gr_call(gr_backend_client(function(m, p) "recorded", model = "bk"),
+  tr <- hr_trace()
+  invisible(hr_call(hr_backend_client(function(m, p) "recorded", model = "bk"),
                     "q2", trace = tr))
-  expect_identical(gr_call(gr_replay_client(tr), "q2")$text, "recorded")
+  expect_identical(hr_call(hr_replay_client(tr), "q2")$text, "recorded")
 })
 
 test_that("the cost and call rails apply to a backend as they do to anything else", {
   local_backend_model()
   n <- 0L
-  cl <- gr_backend_client(function(m, p) { n <<- n + 1L; "x" }, model = "bk")
+  cl <- hr_backend_client(function(m, p) { n <<- n + 1L; "x" }, model = "bk")
   ch <- gr_segment(gr_ingest(sample_doc(4, 4)), list(method = "paragraph", max_tokens = 120))
   expect_gt(nrow(ch$chunks), 3L)
 
   # The call cap is a PRE-FLIGHT refusal, not a mid-run degradation: the run is
   # refused before any money is spent, and the error names the option to change.
-  gr_options(max_calls = 2L)
+  hr_options(max_calls = 2L)
   expect_error(quiet(gr_read(ch, "Q?", cl, "map_reduce")), class = "gr_call_cap")
   expect_identical(n, 0L)
 
   # And the cost rail, which needs the registered per-token prices above.
-  gr_options(max_calls = 400L, max_cost_usd = 1e-9)
+  hr_options(max_calls = 400L, max_cost_usd = 1e-9)
   expect_error(quiet(gr_read(ch, "Q?", cl, "map_reduce")), class = "gr_cost_cap")
   expect_identical(n, 0L)
 })
 
-test_that("gr_backend_client validates what it is given", {
+test_that("hr_backend_client validates what it is given", {
   local_registries()
-  expect_error(gr_backend_client("not a function"), "must be a function")
-  expect_error(gr_backend_client(function(m, p) "x", embed = "not a function"),
+  expect_error(hr_backend_client("not a function"), "must be a function")
+  expect_error(hr_backend_client(function(m, p) "x", embed = "not a function"),
                "must be a function")
-  cl <- gr_backend_client(function(m, p) "x")
+  cl <- hr_backend_client(function(m, p) "x")
   expect_s3_class(cl, "gr_client")
   expect_output(print(cl), "gr_backend_client")
 })
@@ -131,19 +131,19 @@ test_that("gr_backend_client validates what it is given", {
 
 test_that("a backend without an embedder degrades loudly, not silently", {
   local_registries()
-  cl <- gr_backend_client(function(m, p) "x")
-  expect_warning(e <- gr_embed(cl, c("alpha", "beta")), class = "gr_backend_no_embeddings")
+  cl <- hr_backend_client(function(m, p) "x")
+  expect_warning(e <- hr_embed(cl, c("alpha", "beta")), class = "gr_backend_no_embeddings")
   expect_identical(nrow(e), 2L)
   expect_identical(attr(e, "embedding_source"), "lexical")
-  expect_error(gr_embed(cl, "alpha", fallback = "error"), class = "gr_embed_error")
+  expect_error(hr_embed(cl, "alpha", fallback = "error"), class = "gr_embed_error")
 })
 
 test_that("a supplied embedder is used, and recorded", {
   local_registries()
-  cl <- gr_backend_client(function(m, p) "x",
+  cl <- hr_backend_client(function(m, p) "x",
                           embed = function(texts, params)
                             matrix(seq_len(length(texts) * 4L), nrow = length(texts)))
-  e <- gr_embed(cl, c("alpha", "beta", "gamma"))
+  e <- hr_embed(cl, c("alpha", "beta", "gamma"))
   expect_identical(nrow(e), 3L)
   expect_identical(attr(e, "embedding_source"), "api")
   expect_length(cl$embeds(), 1L)
@@ -153,16 +153,16 @@ test_that("an embedder returning the wrong shape is caught before it corrupts ra
   # One row per text, or the ranking silently associates each chunk with another
   # chunk's vector and the answer looks perfectly fine.
   local_registries()
-  wrong <- gr_backend_client(function(m, p) "x",
+  wrong <- hr_backend_client(function(m, p) "x",
                              embed = function(texts, params) matrix(1, nrow = 99L, ncol = 4L))
-  expect_warning(e <- gr_embed(wrong, c("a", "b")), class = "gr_embed_fallback")
+  expect_warning(e <- hr_embed(wrong, c("a", "b")), class = "gr_embed_fallback")
   expect_identical(nrow(e), 2L)
   expect_identical(attr(e, "embedding_source"), "lexical")
 
-  raiser <- gr_backend_client(function(m, p) "x",
+  raiser <- hr_backend_client(function(m, p) "x",
                               embed = function(texts, params) stop("embedding service down"))
-  expect_warning(gr_embed(raiser, c("a", "b")), class = "gr_embed_fallback")
-  expect_error(gr_embed(raiser, "a", fallback = "error"), class = "gr_embed_error")
+  expect_warning(hr_embed(raiser, c("a", "b")), class = "gr_embed_fallback")
+  expect_error(hr_embed(raiser, "a", fallback = "error"), class = "gr_embed_error")
 })
 
 # ---------------------------------------------------------------------------
@@ -227,15 +227,15 @@ test_that("token usage is read from ellmer when it can be, and counted locally w
   expect_gt(broken$output, 0L)
 })
 
-test_that("gr_ellmer_client reports a missing ellmer clearly", {
+test_that("hr_ellmer_client reports a missing ellmer clearly", {
   skip_if(requireNamespace("ellmer", quietly = TRUE),
           "ellmer is installed; this asserts the message when it is not")
-  expect_error(gr_ellmer_client(list()), class = "gr_missing_dep")
+  expect_error(hr_ellmer_client(list()), class = "gr_missing_dep")
 })
 
-test_that("gr_ellmer_client rejects something that is not a chat", {
+test_that("hr_ellmer_client rejects something that is not a chat", {
   skip_if_not_installed("ellmer")
-  expect_error(gr_ellmer_client(list(a = 1)), class = "gr_bad_backend")
+  expect_error(hr_ellmer_client(list(a = 1)), class = "gr_bad_backend")
 })
 
 test_that("the methods the adapter requires are the ones ellmer really has", {
@@ -264,12 +264,12 @@ test_that("the methods the adapter requires are the ones ellmer really has", {
   expect_silent(harnessr:::check_chat_methods(chat))
 })
 
-test_that("gr_ellmer_client drives a chat and never mutates the caller's", {
+test_that("hr_ellmer_client drives a chat and never mutates the caller's", {
   skip_if_not_installed("ellmer")
   local_registries()
   # The stub answers to a model name nothing has registered, which is a real
   # warning about a real thing and just noise here.
-  gr_register_model("stub-model", context_window = 128000L, max_output = 4096L,
+  hr_register_model("stub-model", context_window = 128000L, max_output = 4096L,
                     input_usd = 0, output_usd = 0)
   # A stub standing in for an ellmer Chat. Written as a FACTORY, so clone()
   # returns a genuinely independent object whose methods close over the new one.
@@ -317,10 +317,10 @@ test_that("gr_ellmer_client drives a chat and never mutates the caller's", {
   expect_identical(stub$turns, list("PRE-EXISTING"))   # the clone really isolates
   expect_identical(probe$turns, list("CLONE-ONLY"))
 
-  cl <- gr_ellmer_client(stub)
+  cl <- hr_ellmer_client(stub)
   # The stub has no way to take a per-call output cap, and the adapter says so.
   expect_warning(
-    res <- gr_call(cl, list(list(role = "system", content = "be terse"),
+    res <- hr_call(cl, list(list(role = "system", content = "be terse"),
                             list(role = "user", content = "q"))),
     class = "gr_ellmer_max_output")
   expect_true(res$ok)

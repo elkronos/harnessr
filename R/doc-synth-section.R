@@ -138,13 +138,13 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
   again <- paste0("write the '", heading, "' section, which must cover: ", brief)
   overhead <- prompt_overhead(ask, system_prompt, "never") +
     if (identical(as_chr1(spec$restate, "auto"), "never")) 0L else
-      gr_count_tokens(paste0("\n\nAgain, the question: ", again))
+      hr_count_tokens(paste0("\n\nAgain, the question: ", again))
   # No room for the section's own text is this section's problem, not the
-  # run's. gr_budget() raised and nothing caught it, so a claims block larger
+  # run's. hr_budget() raised and nothing caught it, so a claims block larger
   # than the window aborted the write-up with every section before it already
   # written, and paid for, thrown away. NULL here is a section that cannot be
   # sent whole; with claims it is written a few claims at a time instead.
-  bud <- tryCatch(gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead),
+  bud <- tryCatch(hr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead),
                   gr_budget_error = function(e) NULL)
 
   body <- paste(rendered, collapse = "\n\n")
@@ -156,7 +156,7 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
   capped <- capped %||% new.env(parent = emptyenv())
   first_stop <- !isTRUE(capped$warned)
   capped_batches <- 0L
-  # Replies that stopped at the reply limit. gr_call() keeps them ok = TRUE
+  # Replies that stopped at the reply limit. hr_call() keeps them ok = TRUE
   # (the text is what the model wrote), so usable_text() accepts them, and a
   # section ending "However, the trial" came back complete.
   cut_off <- 0L
@@ -190,7 +190,7 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
     }
     ""
   }
-  text <- if (!is.null(bud) && gr_count_tokens(body) <= bud$input) {
+  text <- if (!is.null(bud) && hr_count_tokens(body) <= bud$input) {
     msgs <- list(
       list(role = "system", content = system_prompt),
       list(role = "user", content = ask))
@@ -202,7 +202,7 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
       msgs[[3L]] <- list(role = "user", content = paste0("<studies>\n", body, "\n</studies>",
                                                          restate_tail(body, again, restate_how(spec))))
     }
-    res <- gr_call(client, msgs, model = spec$model, max_output = spec$max_answer_tokens,
+    res <- hr_call(client, msgs, model = spec$model, max_output = spec$max_answer_tokens,
                    temperature = spec$temperature, trace = trace, label = "synthesise.section",
                    effort = spec$effort)
     if (is_refused(res)) not_written() else {
@@ -221,7 +221,7 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
     # studies that each resent every claim, and past the window the section
     # could not be written at all.
     jobs <- if (by_claims) {
-      room <- tryCatch(gr_budget(spec$model, reserve_output = spec$max_answer_tokens,
+      room <- tryCatch(hr_budget(spec$model, reserve_output = spec$max_answer_tokens,
                                  overhead = prompt_overhead(with_claims(""), system_prompt,
                                                             "never"))$input,
                        gr_budget_error = function(e) NULL)
@@ -242,7 +242,7 @@ synth_section <- function(heading, brief, question, rendered, used, client, spec
       # but "2 batches of studies failed" points at the model or the network,
       # and the cause here is the ceiling the caller set. `<<-` is right in this
       # nested function: it targets synth_section()'s frame, not the global one.
-      res <- gr_call(client, list(
+      res <- hr_call(client, list(
         list(role = "system", content = system_prompt),
         list(role = "user", content = j$ask),
         list(role = "user", content = paste0("<studies>\n", paste(all_rows[j$rows], collapse = "\n\n"),
@@ -568,7 +568,7 @@ synth_batches <- function(rendered, budget, max_n = Inf) {
   groups <- list(); index <- list(); buf <- character(0); at <- integer(0); tks <- 0L
   for (i in seq_along(rendered)) {
     p <- rendered[[i]]
-    pt <- gr_count_tokens(p)
+    pt <- hr_count_tokens(p)
     if (length(buf) && (tks + pt > budget || length(buf) >= max_n)) {
       groups[[length(groups) + 1L]] <- buf; index[[length(index) + 1L]] <- at
       buf <- character(0); at <- integer(0); tks <- 0L
@@ -597,8 +597,8 @@ synth_batches <- function(rendered, budget, max_n = Inf) {
 claim_batches <- function(blocks, support, rendered, budget) {
   ids <- attr(blocks, "claim_id")
   # The blank line between blocks, and between rows.
-  tb <- gr_count_tokens(blocks) + 2L
-  tr <- gr_count_tokens(rendered) + 2L
+  tb <- hr_count_tokens(blocks) + 2L
+  tr <- hr_count_tokens(rendered) + 2L
   behind <- lapply(ids, function(id) sort(unique(support$study[support$claim_id == id])))
   out <- list()
   unwritable <- integer(0)

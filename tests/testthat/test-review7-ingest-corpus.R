@@ -23,7 +23,7 @@ test_that("an unlabelled UTF-8 question survives a corpus run under a C locale",
   withr::defer(suppressWarnings(Sys.setlocale("LC_CTYPE", old)))
   ok <- suppressWarnings(Sys.setlocale("LC_CTYPE", "C"))
   skip_if(!nzchar(ok), "cannot switch to the C locale here")
-  out <- quiet(gr_read_many(f, q, "fast", client = gr_mock_client(function(m, p) "Trois euros.")))
+  out <- quiet(gr_read_many(f, q, "fast", client = hr_mock_client(function(m, p) "Trois euros.")))
   expect_identical(out$summary$status, "ok")
   bytes <- charToRaw(enc2utf8("caf\u00e9"))
   has_cafe <- function(s) grepl(rawToChar(bytes), s, fixed = TRUE, useBytes = TRUE)
@@ -57,10 +57,10 @@ r7_cost_docs <- function(n = 3L, env = parent.frame()) {
 test_that("a corpus the cost ceiling stopped says so, and replays to the same stop", {
   local_registries()
   local_clean_cache()
-  gr_options(max_cost_usd = NULL)
-  gr_register_model("r7-priced", context_window = 100000L, max_output = 4096L,
+  hr_options(max_cost_usd = NULL)
+  hr_register_model("r7-priced", context_window = 100000L, max_output = 4096L,
                     input_usd = 1000, output_usd = 1000)
-  cl <- gr_backend_client(function(m, p) "Revenue was 41 million.", model = "r7-priced",
+  cl <- hr_backend_client(function(m, p) "Revenue was 41 million.", model = "r7-priced",
                           id = "r7-priced-backend")
   docs <- r7_cost_docs()
   out <- quiet(gr_read_many(docs, "What was revenue?", "fast", client = cl,
@@ -70,11 +70,11 @@ test_that("a corpus the cost ceiling stopped says so, and replays to the same st
   expect_identical(out$trace$stop_reason, "cost")
 
   f <- withr::local_tempfile(fileext = ".json")
-  gr_trace_save(out$trace, f)
+  hr_trace_save(out$trace, f)
   seen <- list()
   again <- withCallingHandlers(
     suppressMessages(gr_read_many(docs, "What was revenue?", "fast",
-                                  client = gr_replay_client(f), max_total_usd = 1e-6)),
+                                  client = hr_replay_client(f), max_total_usd = 1e-6)),
     warning = function(w) {
       seen[[length(seen) + 1L]] <<- w
       invokeRestart("muffleWarning")
@@ -85,7 +85,7 @@ test_that("a corpus the cost ceiling stopped says so, and replays to the same st
   expect_false("gr_document_failed" %in% classes)
   expect_true("gr_corpus_cost_cap" %in% classes)
   # Nothing was paid for in the replay, and the run does not say it was.
-  expect_identical(sum(gr_trace_cost(again$trace)$usd), 0)
+  expect_identical(sum(hr_trace_cost(again$trace)$usd), 0)
   cap <- conditionMessage(seen[[which(classes == "gr_corpus_cost_cap")]])
   expect_match(cap, "recorded", fixed = TRUE)
 })
@@ -93,10 +93,10 @@ test_that("a corpus the cost ceiling stopped says so, and replays to the same st
 test_that("a corpus that ends at the ceiling, or never reaches it, is not marked stopped", {
   local_registries()
   local_clean_cache()
-  gr_options(max_cost_usd = NULL)
-  gr_register_model("r7-priced", context_window = 100000L, max_output = 4096L,
+  hr_options(max_cost_usd = NULL)
+  hr_register_model("r7-priced", context_window = 100000L, max_output = 4096L,
                     input_usd = 1000, output_usd = 1000)
-  cl <- gr_backend_client(function(m, p) "Revenue was 41 million.", model = "r7-priced",
+  cl <- hr_backend_client(function(m, p) "Revenue was 41 million.", model = "r7-priced",
                           id = "r7-priced-backend-2")
   one <- r7_cost_docs(1L)
   out <- quiet(gr_read_many(one, "What was revenue?", "fast", client = cl, max_total_usd = 1e-6))
@@ -227,11 +227,11 @@ test_that("a document fetched from a presigned address does not keep its secrets
   local_clean_cache()
   asked <- r7_serve()
   u <- r7_secret_url()
-  tr <- gr_trace()
+  tr <- hr_trace()
   # The progress lines are what this checks, whatever the suite was run with.
-  old_verbose <- gr_options("verbose")
-  gr_options(verbose = TRUE)
-  withr::defer(gr_options(verbose = old_verbose))
+  old_verbose <- hr_options("verbose")
+  hr_options(verbose = TRUE)
+  withr::defer(hr_options(verbose = old_verbose))
   msgs <- character(0)
   doc <- withCallingHandlers(suppressWarnings(gr_ingest(u, trace = tr)),
                              message = function(m) {
@@ -256,7 +256,7 @@ test_that("a document fetched from a presigned address does not keep its secrets
   expect_false(identical(other$source, doc$source))
   # An answer drawn from it, and the audit report's name for it, show no more.
   a <- quiet(answer_document(u, "What was revenue?", "fast",
-                             client = gr_mock_client(function(m, p) "45.2 million.")))
+                             client = hr_mock_client(function(m, p) "45.2 million.")))
   expect_false(r7_leaks(a$document$source))
   expect_identical(harnessr:::report_doc_name(a$document$source), a$document$source)
 })
@@ -276,7 +276,7 @@ test_that("a long presigned address is read without a path-length warning", {
   local_clean_cache()
   r7_serve()
   u <- sprintf("https://bucket.example.org/p.txt?X-Amz-Signature=%s", strrep("A", 1500))
-  expect_no_warning(doc <- suppressMessages(gr_ingest(u, trace = gr_trace(), cache = FALSE)))
+  expect_no_warning(doc <- suppressMessages(gr_ingest(u, trace = hr_trace(), cache = FALSE)))
   expect_false(grepl("AAAAAAAA", doc$source, fixed = TRUE))
 })
 
@@ -361,7 +361,7 @@ test_that("a corpus of presigned addresses keeps their secrets out of its labels
   urls <- c(r7_secret_url("p.txt", "SECRETSIGAAA"), r7_secret_url("p.txt", "SECRETSIGBBB"),
             r7_secret_url("denied.txt"))
   st <- withr::local_tempdir()
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million.")
   co <- quiet(gr_read_many(urls, "What was revenue?", "fast", store = st, client = cl))
   expect_false(any(r7_leaks(co$summary$document)))
   expect_false(any(r7_leaks(names(co$answers))))

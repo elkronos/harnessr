@@ -84,7 +84,7 @@ test_that("arms that differ in refine settings run on the check, and the summary
   # A stand-in that answers the lure question with the lure's value under the
   # draft and with the fact under the ledger, and the correction question
   # with the superseded value under the draft.
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     last <- m[[length(m)]]$content
     if (grepl("Reply with the edits", last, fixed = TRUE)) return("ADD: noted.")
     all <- paste(vapply(m, function(x) x$content, ""), collapse = "\n")

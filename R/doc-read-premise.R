@@ -17,7 +17,7 @@
 # state instead. That sentence becomes `$answer` and `$premise`; the answer is
 # not a not-found. The instruction is part of each system prompt at the place
 # it is built, so it is in the string the budget is computed from, never added
-# inside gr_call().
+# inside hr_call().
 #
 # Off by default, because it changes what is sent: a cache, a recorded replay
 # and a corpus store all key on the requests and the spec, and a run without it

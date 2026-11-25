@@ -24,23 +24,23 @@ no spend. `vignette("harnessr")` introduces the package and its ideas.
 
 ## Setting up
 
-The examples run offline. `gr_mock_client()` plays the part of the model, and
+The examples run offline. `hr_mock_client()` plays the part of the model, and
 `embedder = "lexical"` gives free, deterministic word-overlap vectors in place of
 an embeddings endpoint.
 
 A mock costs nothing, which would leave every limit below with nothing to count.
-So the examples give it a price: `gr_register_model()` registers a model id at
+So the examples give it a price: `hr_register_model()` registers a model id at
 $2 per million input tokens and $8 per million output tokens, and each run names
 that model, so every request is priced at those rates.
 
 ```{r message = FALSE}
 library(harnessr)
 
-gr_register_model("priced-mock", context_window = 128000, max_output = 4096,
+hr_register_model("priced-mock", context_window = 128000, max_output = 4096,
                   input_usd = 2, output_usd = 8)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 
-cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
 ```
 
 ## What a run records
@@ -59,18 +59,18 @@ what: `dropped_chunks`, `failed_calls`, `unread_pages`, `call_cap_reached`,
 `cost_cap_reached` and so on. `ans$warnings` holds every warning raised while the
 document was read.
 
-The trace holds every request the run made. `gr_trace_summary()` gives the
-totals, `gr_trace_cost()` the bill by model, and `as.data.frame()` one row per
+The trace holds every request the run made. `hr_trace_summary()` gives the
+totals, `hr_trace_cost()` the bill by model, and `as.data.frame()` one row per
 request with its stage, tokens, cost, time, prompt and reply:
 
 ```{r}
-gr_trace_summary(ans$trace)[, c("calls", "cached", "tokens_in", "tokens_out", "errors")]
-gr_trace_cost(ans$trace)[, c("model", "calls", "paid_calls", "usd")]
+hr_trace_summary(ans$trace)[, c("calls", "cached", "tokens_in", "tokens_out", "errors")]
+hr_trace_cost(ans$trace)[, c("model", "calls", "paid_calls", "usd")]
 as.data.frame(ans$trace)[, c("step", "stage", "tokens_in", "tokens_out", "usd")]
 ```
 
 The token totals are the size of the prompts and replies, which is the shape of
-a run, not its bill. `gr_trace_cost()` counts only the calls that were issued: a
+a run, not its bill. `hr_trace_cost()` counts only the calls that were issued: a
 call answered from a cache or a recording spent nothing, however long its
 prompt. A model with no registered price contributes `NA`, never 0, so a total
 cannot quietly leave one out.
@@ -78,7 +78,7 @@ cannot quietly leave one out.
 You can also ask what a run would cost before you make it:
 
 ```{r}
-gr_estimate_cost("priced-mock", input_tokens = 120000, output_tokens = 4000)
+hr_estimate_cost("priced-mock", input_tokens = 120000, output_tokens = 4000)
 ```
 
 ### What each request records
@@ -109,7 +109,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 str(step$params_sent)
 ```
 
-A mock reports no usage, so its counts are estimated. `gr_trace_summary()`
+A mock reports no usage, so its counts are estimated. `hr_trace_summary()`
 gives the share of requests whose counts were estimated as `usage_estimated`,
 and `print()` on a trace says so when it is above zero.
 
@@ -129,12 +129,12 @@ made (`detail$where`), the token limit, and the tokens before, kept and dropped.
 Here a model with a 1,000-token window makes `refine` cut its growing draft:
 
 ```{r}
-gr_register_model("small-window", context_window = 1000, max_output = 500,
+hr_register_model("small-window", context_window = 1000, max_output = 500,
                   input_usd = 2, output_usd = 8)
 long_draft <- paste(rep("Revenue was 45.2 million dollars, and the draft says so.", 30),
                     collapse = " ")
 cut <- answer_document(gr_example(), "What was revenue?", "fast",
-                       client = gr_mock_client(function(messages, params) long_draft),
+                       client = hr_mock_client(function(messages, params) long_draft),
                        reader = "refine", model = "small-window",
                        max_tokens = 120, max_answer_tokens = 200)
 cuts <- Filter(function(s) identical(s$label, "truncate"), cut$trace$steps)
@@ -148,21 +148,21 @@ merge, `<label>.giveup` for the capped findings a failed merge returns,
 `segment.contextual.header`, `segment.contextual.document`, `screen.opening`,
 `synthesise.gaps` and `embed.input`.
 
-A trace also records who the run is for and what it ran under. `gr_trace()`
+A trace also records who the run is for and what it ran under. `hr_trace()`
 takes `system`, `owner`, `run_by`, `purpose` and `approved_by`, and
-`gr_options(actor = list(...))` sets them for every trace; a field named nowhere
+`hr_options(actor = list(...))` sets them for every trace; a field named nowhere
 is `NA`. `trace$config` is a snapshot of the options in force when the trace was
 made, with the R version. The values of `api_headers` are left out, since they
 can hold credentials.
 
 ```{r}
-tr <- gr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
+tr <- hr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
 names(tr$config)
 ```
 
 `as_json(ans)` writes the answer with every prompt and response from the same
-run, and `gr_trace_save()` writes the trace alone, which is what a replay reads.
+run, and `hr_trace_save()` writes the trace alone, which is what a replay reads.
 
 ### Errors and warnings by class
 
@@ -192,7 +192,7 @@ so far before each document.
 Two limits are on by default: a run may spend $5 and make 400 calls.
 
 ```{r}
-unlist(gr_options()[c("max_cost_usd", "max_calls")])
+unlist(hr_options()[c("max_cost_usd", "max_calls")])
 ```
 
 They are checked twice. Before the first request, a run is refused with a
@@ -207,7 +207,7 @@ spec <- gr_read_spec(reader = "map_reduce", model = "priced-mock")
 
 tryCatch(
   gr_read(chunks, "What was revenue?", cl, spec,
-          trace = gr_trace(governor = hr_governor(max_calls = 3))),
+          trace = hr_trace(governor = hr_governor(max_calls = 3))),
   gr_call_cap = function(e) conditionMessage(e))
 ```
 
@@ -226,7 +226,7 @@ does not. Its reply cap is 1500 tokens, which at $8 per million could cost more
 than the run has left, so the answer comes back partial:
 
 ```{r}
-tr <- gr_trace(governor = hr_governor(max_cost_usd = 0.01))
+tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.01))
 capped <- gr_read(chunks, "What was revenue?", cl, spec, trace = tr)
 capped$partial
 data.frame(calls = tr$calls, spent_usd = tr$spent_usd, stop_reason = tr$stop_reason)
@@ -240,7 +240,7 @@ while it still has headroom a smaller cap would have used. With the merge's repl
 held to 500 tokens, the same run fits:
 
 ```{r}
-tr <- gr_trace(governor = hr_governor(max_cost_usd = 0.01))
+tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.01))
 fits <- gr_read(chunks, "What was revenue?", cl,
                 gr_read_spec(reader = "map_reduce", model = "priced-mock",
                              max_answer_tokens = 500),
@@ -250,7 +250,7 @@ data.frame(calls = tr$calls, spent_usd = tr$spent_usd)
 ```
 
 A refused request is not a call. It adds nothing to the trace's calls, steps or
-spend. `gr_call()` returns it as a failed result with `refused = TRUE` and an
+spend. `hr_call()` returns it as a failed result with `refused = TRUE` and an
 error naming the limit, after signalling a condition of class
 `hr_budget_refused`, which you can catch to stop instead. The trace lists it in
 `refusals`, sets `budget_stop` and names the limit in `stop_reason`: `"calls"`,
@@ -261,12 +261,12 @@ failed.
 The check sits on the call path itself, so it covers every request: readers,
 judges, the ensemble's adjudication, conflict resolution in `gr_extract()`,
 context and proposition segmentation, claims, outlines, screening, synthesis,
-embeddings, and any request a custom reader or a script makes with `gr_call()`.
+embeddings, and any request a custom reader or a script makes with `hr_call()`.
 
 ### A governor for one run
 
-`hr_governor()` holds a run's limits. Attach one with `gr_trace(governor = )`;
-a trace without one reads the limits from `gr_options()` each time it checks.
+`hr_governor()` holds a run's limits. Attach one with `hr_trace(governor = )`;
+a trace without one reads the limits from `hr_options()` each time it checks.
 It has six:
 
 | limit | what it holds | default |
@@ -278,21 +278,21 @@ It has six:
 | `allowed_models` | the model ids the run may call, text and embedding models alike | any |
 | `allow_unpriced` | whether a model with no registered price may be called under a spending limit | `FALSE` |
 
-Each is also an option of the same name, so `gr_options(max_tokens_total = 50000)`
+Each is also an option of the same name, so `hr_options(max_tokens_total = 50000)`
 sets it for every run, and each trace's config snapshot lists them all. `NULL`
 or `Inf` removes a limit. A limit that cannot be compared is refused when you
 set it:
 
 ```{r}
-tryCatch(gr_options(max_cost_usd = NA), error = function(e) conditionMessage(e))
+tryCatch(hr_options(max_cost_usd = NA), error = function(e) conditionMessage(e))
 ```
 
 A request to a model the run may not call is refused the same way as one over
 budget:
 
 ```{r}
-tr <- gr_trace(governor = hr_governor(allowed_models = "gpt-4o"))
-res <- gr_call(cl, "What was revenue?", model = "priced-mock", trace = tr)
+tr <- hr_trace(governor = hr_governor(allowed_models = "gpt-4o"))
+res <- hr_call(cl, "What was revenue?", model = "priced-mock", trace = tr)
 data.frame(refused = res$refused, stop_reason = tr$stop_reason)
 ```
 
@@ -307,26 +307,26 @@ holds the whole comparison to `max_cost_usd` and `max_tokens_total`.
 A language model with no registered price adds nothing to the spend, so a
 spending limit could never stop it. While `max_cost_usd` is set, a request to one is
 refused with a condition of class `hr_unpriced_model`, and `gr_read()` stops
-before its first request. `gr_backend_client()` wraps an R function as a paying
+before its first request. `hr_backend_client()` wraps an R function as a paying
 client, so it shows the refusal offline:
 
 ```{r}
-gr_register_model("unpriced-model", context_window = 128000, max_output = 4096)
-backend <- gr_backend_client(function(messages, params) "Revenue was 45.2 million dollars.")
+hr_register_model("unpriced-model", context_window = 128000, max_output = 4096)
+backend <- hr_backend_client(function(messages, params) "Revenue was 45.2 million dollars.")
 
-res <- gr_call(backend, "What was revenue?", model = "unpriced-model")
+res <- hr_call(backend, "What was revenue?", model = "unpriced-model")
 res$refused
 res$error
 ```
 
-Register the model's prices with `gr_register_model()`, or set
-`gr_options(allow_unpriced = TRUE)`. Then its requests are sent, still count
+Register the model's prices with `hr_register_model()`, or set
+`hr_options(allow_unpriced = TRUE)`. Then its requests are sent, still count
 against `max_calls` and `max_tokens_total`, and are priced `NA` in the trace.
-`max_tokens_total` is the limit that still bounds such a run. `gr_mock_client()`
+`max_tokens_total` is the limit that still bounds such a run. `hr_mock_client()`
 and replays are never refused for this, and neither are embedding models with no
 price.
 
-A `gr_ellmer_client()` is priced as the model its ellmer object was built with,
+An `hr_ellmer_client()` is priced as the model its ellmer object was built with,
 whatever a recipe names, so one built on a model with no registered price is
 refused too. Register that model at your provider's current prices, or let a
 local model run unpriced; the README's "Connecting a model" section shows both.
@@ -362,26 +362,26 @@ for the many per-chunk calls, high for the few that judge.
 
 ## Paying once
 
-`gr_cache()` stores each successful response, keyed on the exact request. A
+`hr_cache()` stores each successful response, keyed on the exact request. A
 repeat is free and identical:
 
 ```{r}
-cache  <- gr_cache(file.path(tempdir(), "harnessr-runs-cache"))
-cached <- gr_cache_client(cl, cache)
+cache  <- hr_cache(file.path(tempdir(), "harnessr-runs-cache"))
+cached <- hr_cache_client(cl, cache)
 
 first  <- answer_document(gr_example(), "What was revenue?", "thorough",
                           client = cached, model = "priced-mock")
 second <- answer_document(gr_example(), "What was revenue?", "thorough",
                           client = cached, model = "priced-mock")
 
-gr_trace_summary(second$trace)[, c("calls", "cached", "tokens_in")]
-gr_trace_cost(second$trace)[, c("calls", "paid_calls", "usd")]
+hr_trace_summary(second$trace)[, c("calls", "cached", "tokens_in")]
+hr_trace_cost(second$trace)[, c("calls", "paid_calls", "usd")]
 ```
 
 `cached` counts the calls answered from the cache rather than the network, so
 `calls - cached` is what the run paid for. The token counts stay, since that is
 how big the prompts were, but a run with `cached == calls` cost nothing, so do
-not hand its totals to `gr_estimate_cost()` and call the result a bill.
+not hand its totals to `hr_estimate_cost()` and call the result a bill.
 
 The key covers everything that can change the reply: the messages, the model,
 the resolved output cap, the temperature, the JSON schema, the API shape and the
@@ -399,11 +399,11 @@ becomes resumable. Restart after a crash and every completed call is already
 paid for:
 
 ```{r eval = FALSE}
-gr_options(cache_dir = tools::R_user_dir("harnessr", "cache"))
+hr_options(cache_dir = tools::R_user_dir("harnessr", "cache"))
 ```
 
-`gr_cache_stats()` reports entries, bytes, hits, misses and writes, and
-`gr_cache_clear()` empties a cache. Set `write = FALSE` to run against a frozen
+`hr_cache_stats()` reports entries, bytes, hits, misses and writes, and
+`hr_cache_clear()` empties a cache. Set `write = FALSE` to run against a frozen
 cache, or `read = FALSE` to refresh entries already stored.
 
 ### Repeated draws
@@ -417,11 +417,11 @@ replies back in the same order:
 
 ```{r}
 n <- 0
-sampler <- gr_mock_client(function(messages, params) { n <<- n + 1; paste("draw", n) })
-sampler <- gr_cache_client(sampler, gr_cache(file.path(tempdir(), "harnessr-runs-draws")))
+sampler <- hr_mock_client(function(messages, params) { n <<- n + 1; paste("draw", n) })
+sampler <- hr_cache_client(sampler, hr_cache(file.path(tempdir(), "harnessr-runs-draws")))
 
-vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")
-vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")
+vapply(1:3, function(k) hr_call(sampler, "Pick one.", draw_index = k)$text, "")
+vapply(1:3, function(k) hr_call(sampler, "Pick one.", draw_index = k)$text, "")
 ```
 
 The second line is answered from the cache. A call with the default
@@ -434,8 +434,8 @@ Entries are keyed by a SHA-256 hash under `harnessr-cache-v3`. Entries written
 under the old key (`readgpt-cache-v2`, by readgpt 0.6.0 and earlier builds of
 harnessr) are still read for calls with no draw index. The first reply found
 that way in a session warns once, with class `hr_legacy_key`, and
-`gr_cache_stats()` counts them as `legacy_hits`. Old entries are never
-rewritten, and `gr_cache_clear()` removes both. With
+`hr_cache_stats()` counts them as `legacy_hits`. Old entries are never
+rewritten, and `hr_cache_clear()` removes both. With
 `tools::R_user_dir("harnessr", "cache")` set, entries readgpt kept in
 `tools::R_user_dir("readgpt", "cache")` are read too, after it.
 
@@ -447,10 +447,10 @@ the source document reproduces a run exactly, with no key and no spend:
 
 ```{r}
 f <- file.path(tempdir(), "run.json")
-gr_trace_save(first$trace, f)
+hr_trace_save(first$trace, f)
 
 replayed <- answer_document(gr_example(), "What was revenue?", "thorough",
-                            client = gr_replay_client(f), model = "priced-mock")
+                            client = hr_replay_client(f), model = "priced-mock")
 identical(replayed$answer, first$answer)
 ```
 
@@ -473,18 +473,18 @@ A replay that asks for more replies than were recorded is an error too, of class
 for that draw:
 
 ```{r}
-tr <- gr_trace()
+tr <- hr_trace()
 n <- 0
-sampler <- gr_mock_client(function(messages, params) { n <<- n + 1; paste("draw", n) })
-invisible(lapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k, trace = tr)))
+sampler <- hr_mock_client(function(messages, params) { n <<- n + 1; paste("draw", n) })
+invisible(lapply(1:3, function(k) hr_call(sampler, "Pick one.", draw_index = k, trace = tr)))
 
-rp <- gr_replay_client(tr)
-vapply(1:3, function(k) gr_call(rp, "Pick one.", draw_index = k)$text, "")
-tryCatch(gr_call(rp, "Pick one.", draw_index = 4),
+rp <- hr_replay_client(tr)
+vapply(1:3, function(k) hr_call(rp, "Pick one.", draw_index = k)$text, "")
+tryCatch(hr_call(rp, "Pick one.", draw_index = 4),
          hr_replay_exhausted = function(e) conditionMessage(e))
 ```
 
-`gr_replay_client(on_exhausted = "flag")` repeats the last recorded reply
+`hr_replay_client(on_exhausted = "flag")` repeats the last recorded reply
 instead, which is what every replay did before, and counts each repeat in
 `$stats()$repeats`. A step recorded before `replay_key` existed is looked up by
 the old key, `readgpt-replay-v1` (messages, model and effort only), with one
@@ -504,14 +504,14 @@ readers, the `semantic` segmenter) usually sends prompts the recording does not
 hold. A strict replay then stops with `gr_replay_miss`, whose message names this
 cause.
 
-Record a run you intend to publish with `gr_options(embedder = "lexical")`, as
+Record a run you intend to publish with `hr_options(embedder = "lexical")`, as
 this guide does, or with your own embedder registered as `deterministic = TRUE`:
 
 ```{r}
 run <- answer_document(gr_example(), "What was revenue?", "needle",
                        client = cl, model = "priced-mock")
 again <- answer_document(gr_example(), "What was revenue?", "needle",
-                         client = gr_replay_client(run$trace), model = "priced-mock")
+                         client = hr_replay_client(run$trace), model = "priced-mock")
 identical(again$chunks_used, run$chunks_used)
 ```
 
@@ -551,36 +551,36 @@ cmp$summary[, c("recipe", "reader", "calls", "usd", "usd_estimated",
 something, and `NA` when correctness is not known. A recipe a limit stopped
 before it found anything is `NA`, not wrong. A recipe is charged for a
 segmentation it shares with an earlier recipe, as it would be run alone, so the
-column can add up to more than `gr_trace_cost(cmp$trace)`.
+column can add up to more than `hr_trace_cost(cmp$trace)`.
 
 ## Models, prices and token counts
 
-`gr_models()` lists the context windows and prices harnessr knows, and
-`gr_model_limits()` and `gr_model_info()` look one model up. Check them before
+`hr_models()` lists the context windows and prices harnessr knows, and
+`hr_model_limits()` and `hr_model_info()` look one model up. Check them before
 a long run: an unregistered model falls back to a conservative 128k window with
 no price, so its cost shows as `NA` rather than a wrong figure.
-`gr_register_model()` fixes that in one line, and its `cached_input_usd` prices
+`hr_register_model()` fixes that in one line, and its `cached_input_usd` prices
 input the provider served from its prompt cache at its own rate. A model with no
 cached rate prices cached input as other input.
 
 ```{r}
-gr_register_model("priced-reasoner", context_window = 128000, max_output = 16000,
+hr_register_model("priced-reasoner", context_window = 128000, max_output = 16000,
                   input_usd = 2, output_usd = 8, reasoning = TRUE)
-gr_models()[gr_models()$id %in% c("priced-mock", "priced-reasoner"),
+hr_models()[hr_models()$id %in% c("priced-mock", "priced-reasoner"),
             c("id", "context_window", "reasoning", "input_usd_per_1m", "output_usd_per_1m")]
 ```
 
-`gr_tokenizer()` says which counter is in use. The default, `"heuristic"`, needs
-nothing installed. `gr_set_tokenizer("tiktoken")` switches to OpenAI's own
+`hr_tokenizer()` says which counter is in use. The default, `"heuristic"`, needs
+nothing installed. `hr_set_tokenizer("tiktoken")` switches to OpenAI's own
 tokenizer where the reticulate package and Python's `tiktoken` are installed: it
 counts in a model's encoding when one is given and otherwise, as the package's
 budgets do, in the larger of `cl100k_base` and `o200k_base`. For a model that
 is not OpenAI's it is an estimate. Without those packages it stops rather than
 falling back, because a silent fallback would change every budget calculation.
 
-`gr_budget()` does the context arithmetic for every request. It cannot return a
+`hr_budget()` does the context arithmetic for every request. It cannot return a
 non-positive input budget; it raises an error that says what to change instead.
-`?gr_options` documents every setting.
+`?hr_options` documents every setting.
 
 ## Choosing the settings
 
@@ -604,7 +604,7 @@ what it costs.
 `cost_cap_reached` or `call_cap_reached` in its notes, a trace whose
 `stop_reason` is set, or an error of class `gr_call_cap` or `gr_cost_cap`
 before the first request means a limit stopped the run. Raise it only after
-checking that the run should cost that much: `gr_estimate_cost()` and
+checking that the run should cost that much: `hr_estimate_cost()` and
 `gr_chunk_stats()` say so before anything is sent. A run that spends far less
 than its limit, every time, can have the limit lowered to catch the run that
 does not. A refusal with `stop_reason = "output"` means a request's output cap
@@ -658,7 +658,7 @@ stopped more than early ones is the sign of a governor too small for the whole
 benchmark rather than an arm that costs too much.
 
 **Where the default came from.** `governor = NULL` takes the limits from
-`gr_options()` when the benchmark starts, and those are set for one read (400
+`hr_options()` when the benchmark starts, and those are set for one read (400
 calls), while a benchmark of two arms on 300 items for 5 runs needs several
 thousand. Size it for the benchmark: arms x items x runs x requests per run.
 
@@ -705,9 +705,9 @@ model that, at low effort, finds nothing in the first chunk, where `refine`
 drafts its answer:
 
 ```{r}
-gr_register_model("priced-reasoner", context_window = 128000, max_output = 8192,
+hr_register_model("priced-reasoner", context_window = 128000, max_output = 8192,
                   input_usd = 1, output_usd = 4, reasoning = TRUE)
-thinks <- gr_mock_client(function(messages, params) {
+thinks <- hr_mock_client(function(messages, params) {
   if (identical(params$effort, "low") &&
       startsWith(messages[[2]]$content, "<excerpts>")) {
     return("NOT_IN_DOCUMENT")
@@ -752,7 +752,7 @@ Register the margin with `hr_register_contrasts()` before the benchmark runs
 and pass it as `registration`; without one, the result is marked post hoc.
 
 ```{r include = FALSE}
-gr_options(old)
+hr_options(old)
 ```
 
 ## Next
@@ -762,4 +762,4 @@ gr_options(old)
   literature review.
 - `vignette("extending")`: declaring a reader's calls and its `cost` function,
   so the check before the first request counts it correctly.
-- `?hr_governor`, `?gr_cache` and `?gr_replay_client`: the full rules.
+- `?hr_governor`, `?hr_cache` and `?hr_replay_client`: the full rules.

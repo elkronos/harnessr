@@ -11,11 +11,11 @@ harnessr has two layers.
 \details{
 The general core sends model calls and keeps them under control: clients
 for an API, a local backend or \href{https://ellmer.tidyverse.org}{ellmer} (see
-\code{\link[=gr_client]{gr_client()}}, \code{\link[=gr_backend_client]{gr_backend_client()}}, \code{\link[=gr_ellmer_client]{gr_ellmer_client()}}, and
-\code{\link[=gr_mock_client]{gr_mock_client()}} for offline work), spending and call limits checked
-before each request (\code{\link[=gr_options]{gr_options()}}), a response cache (\code{\link[=gr_cache]{gr_cache()}}),
-recordings that replay offline (\code{\link[=gr_replay_client]{gr_replay_client()}}), and a trace of every
-call (\code{\link[=gr_trace]{gr_trace()}}).
+\code{\link[=hr_client]{hr_client()}}, \code{\link[=hr_backend_client]{hr_backend_client()}}, \code{\link[=hr_ellmer_client]{hr_ellmer_client()}}, and
+\code{\link[=hr_mock_client]{hr_mock_client()}} for offline work), spending and call limits checked
+before each request (\code{\link[=hr_options]{hr_options()}}), a response cache (\code{\link[=hr_cache]{hr_cache()}}),
+recordings that replay offline (\code{\link[=hr_replay_client]{hr_replay_client()}}), and a trace of every
+call (\code{\link[=hr_trace]{hr_trace()}}).
 
 The document layer, built on that core, controls how a model reads a
 document. The three decisions that drive answer quality are pulled apart
@@ -48,7 +48,7 @@ several over one document and reports how they differ.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{Sys.setenv(OPENAI_API_KEY = "sk-...")
 
-# No key yet? Everything below works offline against gr_mock_client() and the
+# No key yet? Everything below works offline against hr_mock_client() and the
 # bundled document at gr_example().
 
 # One question, one pipeline.
@@ -88,14 +88,14 @@ See \code{\link[=gr_recipes]{gr_recipes()}} for what each one actually configure
 
 \section{Cost control}{
 
-Two limits are on by default, both \code{\link[=gr_options]{gr_options()}}: \code{max_cost_usd} (5) and
+Two limits are on by default, both \code{\link[=hr_options]{hr_options()}}: \code{max_cost_usd} (5) and
 \code{max_calls} (400). Before the first request, a run is refused with a classed
 error naming the option to change when it would need more calls than
 \code{max_calls}, or when its reader sends every chunk and sending them would cost
 more than \code{max_cost_usd}. Both are checked again before every request, so a
 run that reaches either one stops and returns a \code{partial} answer rather than
 continuing to spend. A parallel read that sends batches, which cannot be
-stopped part way, is held to its worst case instead; see \code{\link[=gr_options]{gr_options()}}.
+stopped part way, is held to its worst case instead; see \code{\link[=hr_options]{hr_options()}}.
 
 Preview segmentation for free before committing to a reader:
 
@@ -124,11 +124,11 @@ recipe.
 
 Each axis is a registry, so additions behave exactly like built-ins:
 \code{\link[=gr_register_extractor]{gr_register_extractor()}}, \code{\link[=gr_register_cleaner]{gr_register_cleaner()}},
-\code{\link[=gr_register_segmenter]{gr_register_segmenter()}}, \code{\link[=gr_register_reader]{gr_register_reader()}}, \code{\link[=gr_register_model]{gr_register_model()}}.
+\code{\link[=gr_register_segmenter]{gr_register_segmenter()}}, \code{\link[=gr_register_reader]{gr_register_reader()}}, \code{\link[=hr_register_model]{hr_register_model()}}.
 }
 
 \seealso{
-\code{\link[=answer_document]{answer_document()}}, \code{\link[=gr_compare]{gr_compare()}}, \code{\link[=gr_recipes]{gr_recipes()}}, \code{\link[=gr_options]{gr_options()}}
+\code{\link[=answer_document]{answer_document()}}, \code{\link[=gr_compare]{gr_compare()}}, \code{\link[=gr_recipes]{gr_recipes()}}, \code{\link[=hr_options]{hr_options()}}
 }
 \author{
 \strong{Maintainer}: Justin Chase \email{jchase.msu@gmail.com} [copyright holder]

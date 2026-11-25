@@ -39,7 +39,7 @@
 #'                   duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,
 #'                   conflicts = NA_character_, design = c("cohort", "cohort"),
 #'                   stringsAsFactors = FALSE)
-#' cl <- gr_mock_client(function(messages, params) paste0(
+#' cl <- hr_mock_client(function(messages, params) paste0(
 #'   '{"claims":[{"claim":"One cohort found it.","kind":"finding","supported_by":[1],',
 #'   '"contradicted_by":[],"moderator":null,"scope":"one study"}]}'))
 #' cm <- gr_claims(tab, question = "Does it work?", client = cl)

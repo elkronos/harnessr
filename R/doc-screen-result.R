@@ -27,7 +27,7 @@ print.gr_screening <- function(x, ...) {
   if (trunc) {
     cat(sprintf("  %d decided on the opening of the document, not all of it\n", trunc))
   }
-  cost <- gr_trace_cost(x$trace)
+  cost <- hr_trace_cost(x$trace)
   total <- if (nrow(cost)) sum(cost$usd) else 0
   # format_call_counts(), not trace$calls: `calls` counts embeddings requests
   # too, so a run with 2 model calls and 4 embeddings requests printed "6 model

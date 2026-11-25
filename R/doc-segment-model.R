@@ -11,14 +11,14 @@ seg_call_usd <- function(client, input_tokens, max_output) {
   # The segmenter's own call warns about an unknown model; once is enough.
   quiet <- function(expr) tryCatch(suppressWarnings(expr, classes = "gr_unknown_model"),
                                    error = function(e) NULL)
-  info <- quiet(gr_model_info(model))
+  info <- quiet(hr_model_info(model))
   if (is.null(info)) return(NA_real_)
   # Priced at the cap the request is sent with: a reasoning model is sent
   # room to reason above a short cap (reasoning_output_cap()), and is billed
   # for what it spends there.
   out <- reasoning_output_cap(min(as_num1(max_output, 0), as_num1(info$max_output, Inf)),
                               info, input_tokens)
-  as_num1(quiet(gr_estimate_cost(model, input_tokens, out)), NA_real_)
+  as_num1(quiet(hr_estimate_cost(model, input_tokens, out)), NA_real_)
 }
 
 #' Where a trace stands before a segmenter's batch of requests, for
@@ -101,17 +101,17 @@ seg_contextual <- function(doc, spec, client, trace) {
   # counted as longer than it was asked to be) is shortened, never the body:
   # the body is the document, the header only points into it.
   fit_headers <- function(h, body) {
-    for (k in which(nzchar(h) & gr_count_tokens(frame(h, body)) > cap)) {
+    for (k in which(nzchar(h) & hr_count_tokens(frame(h, body)) > cap)) {
       was <- h[k]
       repeat {
-        excess <- gr_count_tokens(frame(h[k], body[k])) - cap
+        excess <- hr_count_tokens(frame(h[k], body[k])) - cap
         if (excess <= 0L || !nzchar(h[k])) break
-        h[k] <- trimws(gr_truncate_tokens(h[k], gr_count_tokens(h[k]) - excess, marker = ""))
+        h[k] <- trimws(hr_truncate_tokens(h[k], hr_count_tokens(h[k]) - excess, marker = ""))
       }
       # One record per header, for the whole of what it lost. The limit is the
       # room the header was cut to, not the cap on header and body together.
       trace_truncation(trace, "segment.contextual.header", was, h[k],
-                       limit = as.integer(gr_count_tokens(h[k])), chunk = k)
+                       limit = as.integer(hr_count_tokens(h[k])), chunk = k)
     }
     h
   }
@@ -132,7 +132,7 @@ seg_contextual <- function(doc, spec, client, trace) {
               if (is.finite(top_page)) sprintf("Page: %d", as.integer(top_page)),
               sprintf("Part %d of %d", n_hi, n_hi)), collapse = " | ")
     }, character(1), USE.NAMES = FALSE)
-    max(gr_count_tokens(frame(worst, "x"))) - gr_count_tokens("x")
+    max(hr_count_tokens(frame(worst, "x"))) - hr_count_tokens("x")
   }
   d <- pack(reserve)
   if (!nrow(d)) return(new_chunks(character(0), "contextual", spec))
@@ -153,7 +153,7 @@ seg_contextual <- function(doc, spec, client, trace) {
       "\n</excerpt>\n\nIn one sentence, say what this excerpt is about and where it fits in the document.")
     # The longest excerpt with its reply at the cap: what gr_lapply() holds a
     # parallel batch to, since the workers cannot see what the run spends.
-    worst <- seg_call_usd(client, sum(gr_count_tokens(c(sys_prompt,
+    worst <- seg_call_usd(client, sum(hr_count_tokens(c(sys_prompt,
                                                         ask("", paths[which.max(nchar(paths))])))) +
                             max(d$tokens), reply_cap)
     # The declared cost: one request per chunk, never more.
@@ -161,7 +161,7 @@ seg_contextual <- function(doc, spec, client, trace) {
     trace_note(trace, "segment.cost", c(list(method = "contextual"), extra$cost))
     mark <- seg_trace_mark(trace)
     res <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
-      r <- gr_call(client, list(
+      r <- hr_call(client, list(
         list(role = "system", content = sys_prompt),
         list(role = "user", content = ask(d$text[i], paths[i]))
       ), max_output = reply_cap, trace = trace, label = "segment.context",
@@ -285,8 +285,8 @@ seg_proposition <- function(doc, spec, client, trace) {
   drop_invented <- identical(as_chr1(spec[["proposition_check"]], "count"), "drop")
   # The largest batch with its reply at the cap: what gr_lapply() holds a
   # parallel batch to, since the workers cannot see what the run spends.
-  worst <- seg_call_usd(client, gr_count_tokens(sys_prompt) +
-                          max(c(0L, gr_count_tokens(vapply(seq_along(batches$text), ask, "")))),
+  worst <- seg_call_usd(client, hr_count_tokens(sys_prompt) +
+                          max(c(0L, hr_count_tokens(vapply(seq_along(batches$text), ask, "")))),
                         prop_cap)
   mark <- seg_trace_mark(trace)
   res <- gr_lapply(seq_along(batches$text), function(i, trace) {

@@ -33,7 +33,7 @@ r6_vectors <- function(texts) {
 }
 
 r6_client <- function(max_retries = 0L) {
-  gr_client(api_key = "sk-test", base_url = "https://r6.invalid/v1", api = "chat",
+  hr_client(api_key = "sk-test", base_url = "https://r6.invalid/v1", api = "chat",
             model = "gpt-4o", embedding_model = "text-embedding-3-small",
             max_retries = max_retries, retry_pause_base = 0)
 }
@@ -58,21 +58,21 @@ skip_if_no_future6 <- function() {
 # ---------------------------------------------------------------------------
 
 test_that("a step folded in twice keeps its recipe", {
-  cl <- gr_mock_client(function(m, p) "fine")
-  doc <- gr_trace(meta = list(recipe = "thorough", source = "c.txt"))
-  gr_call(cl, "q", trace = doc)
-  stage <- gr_trace(meta = list(stage = "synthesise"))
+  cl <- hr_mock_client(function(m, p) "fine")
+  doc <- hr_trace(meta = list(recipe = "thorough", source = "c.txt"))
+  hr_call(cl, "q", trace = doc)
+  stage <- hr_trace(meta = list(stage = "synthesise"))
   harnessr:::trace_absorb(stage, doc)
-  top <- gr_trace()
+  top <- hr_trace()
   harnessr:::trace_absorb(top, stage)
   df <- as.data.frame(top)
   expect_identical(df$recipe, "thorough")
   expect_identical(df$document, "c.txt")
 
   # A child that names a recipe still labels a step that has none.
-  bare <- gr_trace()
-  gr_call(cl, "q2", trace = bare)
-  named <- gr_trace(meta = list(recipe = "fast"))
+  bare <- hr_trace()
+  hr_call(cl, "q2", trace = bare)
+  named <- hr_trace(meta = list(recipe = "fast"))
   harnessr:::trace_absorb(named, bare)
   expect_identical(as.data.frame(named)$recipe, "fast")
 })
@@ -87,17 +87,17 @@ test_that("a step folded in twice keeps its recipe", {
 
 r6_costcap_run <- function(env = parent.frame()) {
   local_registries(env)
-  gr_register_model("r6-priced", context_window = 128000L, max_output = 4000L,
+  hr_register_model("r6-priced", context_window = 128000L, max_output = 4000L,
                     input_usd = 0.01, output_usd = 200)
   long <- paste(rep("Revenue rose in this section according to the excerpt.", 30),
                 collapse = " ")
-  cl <- gr_mock_client(function(m, p) long)
+  cl <- hr_mock_client(function(m, p) long)
   doc <- paste(sprintf("Section %d. Revenue in region %d rose by %d percent.", 1:60, 1:60, 1:60),
                collapse = "\n\n")
   ch <- quiet(gr_segment(doc, list(method = "paragraph", max_tokens = 60)))
   spec <- gr_read_spec("map_reduce", model = "r6-priced")
-  gr_options(max_cost_usd = 0.5)
-  tr <- gr_trace()
+  hr_options(max_cost_usd = 0.5)
+  tr <- hr_trace()
   live <- quiet(gr_read(ch, "What rose?", cl, spec, trace = tr))
   list(ch = ch, spec = spec, tr = tr, live = live, client = cl)
 }
@@ -106,7 +106,7 @@ test_that("a saved trace says a limit cut the run short", {
   run <- r6_costcap_run()
   expect_true(run$tr$budget_stop)
   f <- withr::local_tempfile(fileext = ".json")
-  gr_trace_save(run$tr, f)
+  hr_trace_save(run$tr, f)
   j <- jsonlite::fromJSON(f, simplifyVector = FALSE)
   expect_true(j$budget_stop)
   expect_identical(j$stop_reason, "cost")
@@ -119,10 +119,10 @@ test_that("a replay stops where the spending limit stopped the recorded run", {
   n_live <- run$tr$calls
   expect_lt(n_live, nrow(run$ch$chunks))
   f <- withr::local_tempfile(fileext = ".json")
-  gr_trace_save(run$tr, f)
+  hr_trace_save(run$tr, f)
 
-  rp <- gr_replay_client(f)
-  tr <- gr_trace()
+  rp <- hr_replay_client(f)
+  tr <- hr_trace()
   again <- quiet(gr_read(run$ch, "What rose?", rp, run$spec, trace = tr))
   expect_identical(again$answer, run$live$answer)
   expect_true(again$partial)
@@ -138,9 +138,9 @@ test_that("a replay stops where the spending limit stopped the recorded run", {
 test_that("a replay under a higher limit is told the recording was cut short", {
   run <- r6_costcap_run()
   f <- withr::local_tempfile(fileext = ".json")
-  gr_trace_save(run$tr, f)
-  gr_options(max_cost_usd = Inf)
-  err <- tryCatch(quiet(gr_read(run$ch, "What rose?", gr_replay_client(f), run$spec)),
+  hr_trace_save(run$tr, f)
+  hr_options(max_cost_usd = Inf)
+  err <- tryCatch(quiet(gr_read(run$ch, "What rose?", hr_replay_client(f), run$spec)),
                   gr_replay_miss = function(e) e)
   expect_s3_class(err, "gr_replay_miss")
   expect_match(conditionMessage(err), "cut short by its spending limit", fixed = TRUE)
@@ -149,16 +149,16 @@ test_that("a replay under a higher limit is told the recording was cut short", {
 
 test_that("a run the spending limit never stopped replays under any limit", {
   run <- r6_costcap_run()
-  gr_options(max_cost_usd = Inf)
-  tr <- gr_trace()
+  hr_options(max_cost_usd = Inf)
+  tr <- hr_trace()
   full <- quiet(gr_read(run$ch, "What rose?", run$client, run$spec, trace = tr))
   expect_false(tr$budget_stop)
   expect_gt(tr$spent_usd, 0.5)
   # Replayed where the default limit, or any lower one, is in force: nothing
   # is spent, so nothing stops it.
-  gr_options(max_cost_usd = 0.1)
-  rp <- gr_replay_client(tr)
-  rtr <- gr_trace()
+  hr_options(max_cost_usd = 0.1)
+  rp <- hr_replay_client(tr)
+  rtr <- hr_trace()
   again <- quiet(gr_read(run$ch, "What rose?", rp, run$spec, trace = rtr))
   expect_identical(again$answer, full$answer)
   expect_false(again$partial)
@@ -169,21 +169,21 @@ test_that("a run the spending limit never stopped replays under any limit", {
 
 test_that("a replayed batch makes every call the recorded batch made", {
   local_registries()
-  gr_register_model("r6-batch", context_window = 8000L, max_output = 1000L,
+  hr_register_model("r6-batch", context_window = 8000L, max_output = 1000L,
                     input_usd = 0, output_usd = 1e5)
-  client <- gr_mock_client(function(m, p) "two words")
+  client <- hr_mock_client(function(m, p) "two words")
   # Each reply is counted at 6 tokens, $0.60, which is also its cap, so a
   # limit of $1 has room for one call and not two.
   fn <- function(i, trace) {
-    res <- gr_call(client, sprintf("item %d", i), model = "r6-batch", max_output = 6L,
+    res <- hr_call(client, sprintf("item %d", i), model = "r6-batch", max_output = 6L,
                    trace = trace)
     if (isTRUE(res$refused)) NA_character_ else res$text
   }
   # A batch used to go out whole and pass the limit, and its replay had to
   # make every call it made. Now the batch stops where the limit does, and
   # the replay makes the same calls and stops at the same one.
-  gr_options(max_cost_usd = 1)
-  rec <- gr_trace()
+  hr_options(max_cost_usd = 1)
+  rec <- hr_trace()
   live <- quiet(harnessr:::gr_lapply(1:4, fn, parallel = TRUE, workers = 2, trace = rec,
                                      item_usd = 0.01))
   expect_lte(rec$spent_usd, 1)
@@ -193,8 +193,8 @@ test_that("a replayed batch makes every call the recorded batch made", {
   expect_gt(made, 0L)
   expect_lt(made, 4L)
 
-  client <- gr_replay_client(rec)
-  tr <- gr_trace()
+  client <- hr_replay_client(rec)
+  tr <- hr_trace()
   got <- quiet(harnessr:::gr_lapply(1:4, fn, parallel = TRUE, workers = 2, trace = tr,
                                    item_usd = 0.01))
   expect_identical(got, live)
@@ -208,7 +208,7 @@ test_that("a recording whose steps do not carry their cost still replays to the 
   run <- r6_costcap_run()
   obj <- harnessr:::trace_as_list(run$tr)
   obj$steps <- lapply(obj$steps, function(st) { st$budget_usd <- NULL; st })
-  rp <- gr_replay_client(obj)
+  rp <- hr_replay_client(obj)
   again <- quiet(gr_read(run$ch, "What rose?", rp, run$spec))
   expect_identical(again$answer, run$live$answer)
   expect_identical(rp$stats()$misses, 0L)
@@ -216,7 +216,7 @@ test_that("a recording whose steps do not carry their cost still replays to the 
 
 test_that("a cache hit counts nothing against the limit, a replayed call its cost", {
   local_registries()
-  tr <- gr_trace()
+  tr <- hr_trace()
   harnessr:::trace_record(tr, "hit", list(list(role = "user", content = "q")),
                          harnessr:::gr_result(TRUE, "a", model = "gpt-4o", cached = TRUE,
                                    usage = list(input = 1000L, output = 10L)))
@@ -228,16 +228,16 @@ test_that("a cache hit counts nothing against the limit, a replayed call its cos
   expect_identical(tr$spent_usd, 0)
   expect_identical(tr$replayed_usd, 0.25)
   expect_identical(tr$steps[[2]]$budget_usd, 0.25)
-  gr_options(max_cost_usd = 0.25)
+  hr_options(max_cost_usd = 0.25)
   expect_false(harnessr:::trace_can_call(tr))
   expect_identical(tr$stop_reason, "cost")
 })
 
 test_that("what a request counts is saved exactly in 15 digits, so a trace is written once", {
   local_registries()
-  gr_register_model("r6-odd", context_window = 8000L, max_output = 1000L,
+  hr_register_model("r6-odd", context_window = 8000L, max_output = 1000L,
                     input_usd = 2.5, output_usd = 10)
-  tr <- gr_trace()
+  tr <- hr_trace()
   for (i in 1:40) {
     harnessr:::trace_record(tr, "call", list(list(role = "user", content = "q")),
                            harnessr:::gr_result(TRUE, "a", model = "r6-odd",
@@ -257,9 +257,9 @@ test_that("what a request counts is saved exactly in 15 digits, so a trace is wr
 test_that("a miss caused by embeddings a replay cannot reproduce says so", {
   local_registries()
   local_clean_cache()
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   live <- quiet(answer_document(r6_doc(), "What was revenue?", "needle", client = cl))
-  rp <- gr_replay_client(live$trace)
+  rp <- hr_replay_client(live$trace)
   msgs <- character(0)
   err <- withCallingHandlers(
     tryCatch(answer_document(r6_doc(), "What was revenue?", "needle", client = rp),
@@ -295,14 +295,14 @@ test_that("the replay help no longer promises answers it cannot reproduce", {
 test_that("an embeddings request is retried after a 429, as a model call is", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   seen <- r6_embed_endpoint(function(n, texts) {
     if (n == 1L) list(status = 429L, out = list(error = list(message = "slow down")))
     else list(status = 200L, out = list(data = r6_vectors(texts),
                                         usage = list(prompt_tokens = 6L)))
   })
-  tr <- gr_trace()
-  e <- quiet(gr_embed(r6_client(max_retries = 2L), c("a b", "c d"), trace = tr))
+  tr <- hr_trace()
+  e <- quiet(hr_embed(r6_client(max_retries = 2L), c("a b", "c d"), trace = tr))
   expect_identical(attr(e, "embedding_source"), "api")
   expect_null(attr(e, "embedding_fallback"))
   expect_identical(seen$n, 2L)
@@ -314,12 +314,12 @@ test_that("an embeddings request is retried after a 429, as a model call is", {
 test_that("a failed embeddings request says what the server said", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   seen <- r6_embed_endpoint(function(n, texts) {
     list(status = 401L, out = list(error = list(message = "Incorrect API key provided")))
   })
-  tr <- gr_trace()
-  expect_warning(e <- gr_embed(r6_client(max_retries = 3L), c("a b", "c d"), trace = tr),
+  tr <- hr_trace()
+  expect_warning(e <- hr_embed(r6_client(max_retries = 3L), c("a b", "c d"), trace = tr),
                  "HTTP 401: Incorrect API key provided", class = "gr_embed_fallback")
   # Not a transient failure, so not retried.
   expect_identical(seen$n, 1L)
@@ -336,12 +336,12 @@ test_that("a failed embeddings request says what the server said", {
 test_that("embeddings are matched to texts by their index", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   r6_embed_endpoint(function(n, texts) {
     list(status = 200L, out = list(data = rev(r6_vectors(texts)),
                                    usage = list(prompt_tokens = 9L)))
   })
-  e <- gr_embed(r6_client(), c("one", "two", "three"))
+  e <- hr_embed(r6_client(), c("one", "two", "three"))
   expect_identical(attr(e, "embedding_source"), "api")
   for (i in 1:3) expect_equal(e[i, ], r6_unit(c(i, 1, 10 - i)))
 })
@@ -349,34 +349,34 @@ test_that("embeddings are matched to texts by their index", {
 test_that("a reply whose indices do not match the texts is a failed request", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   r6_embed_endpoint(function(n, texts) {
     v <- r6_vectors(texts)
     v[[2]]$index <- 0L
     list(status = 200L, out = list(data = v, usage = list(prompt_tokens = 9L)))
   })
-  expect_warning(e <- gr_embed(r6_client(), c("one", "two", "three")),
+  expect_warning(e <- hr_embed(r6_client(), c("one", "two", "three")),
                  "index", class = "gr_embed_fallback")
   expect_identical(attr(e, "embedding_source"), "lexical")
 })
 
 # ---------------------------------------------------------------------------
 # tokenize-embed-10: null or empty embeddings became an n x 0 matrix that
-# gr_embed() returned as good "api" vectors, and a single null in a batch was
+# hr_embed() returned as good "api" vectors, and a single null in a batch was
 # zero-padded into a vector no query could reach.
 # ---------------------------------------------------------------------------
 
 test_that("null or empty embeddings are a failed request, not an empty matrix", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   r6_embed_endpoint(function(n, texts) {
     list(status = 200L, out = list(
       data = lapply(seq_along(texts), function(i) list(index = i - 1L, embedding = NULL)),
       usage = list(prompt_tokens = 9L)))
   })
-  tr <- gr_trace()
-  expect_warning(e <- gr_embed(r6_client(), c("one", "two", "three"), trace = tr),
+  tr <- hr_trace()
+  expect_warning(e <- hr_embed(r6_client(), c("one", "two", "three"), trace = tr),
                  "no usable embedding", class = "gr_embed_fallback")
   expect_identical(attr(e, "embedding_source"), "lexical")
   expect_true(isTRUE(attr(e, "embedding_fallback")))
@@ -389,25 +389,25 @@ test_that("null or empty embeddings are a failed request, not an empty matrix", 
 test_that("one null embedding in a batch fails the batch", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   r6_embed_endpoint(function(n, texts) {
     v <- r6_vectors(texts)
     v[[2]]$embedding <- list()
     list(status = 200L, out = list(data = v, usage = list(prompt_tokens = 9L)))
   })
-  expect_warning(e <- gr_embed(r6_client(), c("one", "two", "three")),
+  expect_warning(e <- hr_embed(r6_client(), c("one", "two", "three")),
                  "1 of 3 text", class = "gr_embed_fallback")
   expect_identical(attr(e, "embedding_source"), "lexical")
 })
 
 test_that("an embedder that returns no dimensions or holes has failed", {
   local_registries()
-  cl <- gr_mock_client()
-  expect_warning(e <- gr_embed(cl, c("a b", "c d"),
+  cl <- hr_mock_client()
+  expect_warning(e <- hr_embed(cl, c("a b", "c d"),
                                embedder = function(texts, params) matrix(numeric(0), 2, 0)),
                  "no dimensions", class = "gr_embed_fallback")
   expect_identical(attr(e, "embedding_source"), "lexical")
-  expect_warning(e <- gr_embed(cl, c("a b", "c d"),
+  expect_warning(e <- hr_embed(cl, c("a b", "c d"),
                                embedder = function(texts, params) matrix(c(1, NA, 0, 1), 2)),
                  "non-finite", class = "gr_embed_fallback")
   expect_identical(attr(e, "embedding_source"), "lexical")
@@ -420,7 +420,7 @@ test_that("an embedder that returns no dimensions or holes has failed", {
 # ---------------------------------------------------------------------------
 
 test_that("as_json() writes any object that holds a trace or an answer", {
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   cmp <- quiet(gr_compare(gr_example(), "What was revenue?", c("fast", "thorough"),
                           client = cl))
   j <- jsonlite::parse_json(as_json(cmp))
@@ -445,7 +445,7 @@ test_that("as_json() writes any object that holds a trace or an answer", {
   expect_null(js$env)
   expect_null(js$client)
   # A client is never written, so neither is its key.
-  keyed <- gr_cache_client(gr_client(api_key = "sk-r6-secret"), gr_cache(withr::local_tempdir()))
+  keyed <- hr_cache_client(hr_client(api_key = "sk-r6-secret"), hr_cache(withr::local_tempdir()))
   expect_false(grepl("sk-r6-secret", as_json(list(client = keyed)), fixed = TRUE))
 })
 
@@ -465,13 +465,13 @@ test_that("an object with nothing to replace is written as before", {
 # ---------------------------------------------------------------------------
 
 test_that("a trace's fields that list things are arrays at every length", {
-  cl <- gr_mock_client(function(m, p) "45.2 million")
+  cl <- hr_mock_client(function(m, p) "45.2 million")
   cmp <- quiet(gr_compare(gr_example(), "What was revenue?", "fast", client = cl,
                           allow_duplicates = TRUE))
   j <- jsonlite::parse_json(as_json(cmp$trace))
   expect_identical(j$meta$recipes, list("fast"))
 
-  tr <- gr_trace()
+  tr <- hr_trace()
   harnessr:::trace_note(tr, "retrieve.rank", list(k = 1L, top_scores = 0.5))
   harnessr:::trace_note(tr, "ingest", list(blocks = 3L, clean_steps = "unicode"))
   j <- jsonlite::parse_json(as_json(tr))
@@ -488,48 +488,48 @@ test_that("a trace's fields that list things are arrays at every length", {
 # ---------------------------------------------------------------------------
 
 test_that("a trace parsed with jsonlite's defaults is refused, saying why", {
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   ans <- quiet(answer_document(gr_example(), "What was revenue?", "thorough", client = cl))
   f <- withr::local_tempfile(fileext = ".json")
-  gr_trace_save(ans$trace, f)
+  hr_trace_save(ans$trace, f)
   parsed <- jsonlite::fromJSON(f)
   expect_s3_class(parsed$steps, "data.frame")
-  err <- tryCatch(gr_replay_client(parsed), error = function(e) e)
+  err <- tryCatch(hr_replay_client(parsed), error = function(e) e)
   expect_s3_class(err, "gr_replay_unreadable")
   expect_match(conditionMessage(err), "simplifyVector = FALSE", fixed = TRUE)
   expect_false(grepl("no recorded model calls", conditionMessage(err), fixed = TRUE))
   # Parsed as the message says, it replays.
   again <- quiet(answer_document(gr_example(), "What was revenue?", "thorough",
-                                 client = gr_replay_client(jsonlite::fromJSON(f, simplifyVector = FALSE))))
+                                 client = hr_replay_client(jsonlite::fromJSON(f, simplifyVector = FALSE))))
   expect_identical(again$answer, ans$answer)
 })
 
 test_that("the JSON text of a trace or an answer replays", {
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl))
   js <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                               return = "json"))
   for (src in list(as_json(ans$trace), js, as.character(js))) {
-    rp <- gr_replay_client(src)
+    rp <- hr_replay_client(src)
     again <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = rp))
     expect_identical(again$answer, ans$answer)
     expect_identical(rp$stats()$misses, 0L)
   }
-  expect_error(gr_replay_client(list(answer = "x")), class = "gr_replay_unreadable")
-  expect_error(gr_replay_client("{ not json"), class = "gr_replay_unreadable")
+  expect_error(hr_replay_client(list(answer = "x")), class = "gr_replay_unreadable")
+  expect_error(hr_replay_client("{ not json"), class = "gr_replay_unreadable")
 })
 
 # ---------------------------------------------------------------------------
-# contracts-12: gr_embed()'s help said the client's embed function came before
-# gr_options("embedder"); the code, gr_options() and the tests say the option
+# contracts-12: hr_embed()'s help said the client's embed function came before
+# hr_options("embedder"); the code, hr_options() and the tests say the option
 # wins.
 # ---------------------------------------------------------------------------
 
-test_that("gr_embed()'s help gives the order the code uses", {
+test_that("hr_embed()'s help gives the order the code uses", {
   local_registries()
-  gr_options(embedder = "lexical")
-  cl <- gr_mock_client()
-  e <- gr_embed(cl, c("a b", "c d"))
+  hr_options(embedder = "lexical")
+  cl <- hr_mock_client()
+  e <- hr_embed(cl, c("a b", "c d"))
   expect_identical(attr(e, "embedding_source"), "lexical")
   expect_length(cl$embeds(), 0L)
   path <- testthat::test_path("..", "..", "R", "core-transport-embed.R")
@@ -549,7 +549,7 @@ test_that("a parallel batch leaves the caller's random numbers alone", {
   skip_if_no_future6()
   set.seed(42)
   quiet(harnessr:::gr_lapply(1:3, function(i, trace) i, parallel = TRUE, workers = 2,
-                            trace = gr_trace()))
+                            trace = hr_trace()))
   after <- stats::runif(1)
   set.seed(42)
   expect_identical(after, stats::runif(1))
@@ -564,7 +564,7 @@ test_that("a parallel batch leaves the caller's random numbers alone", {
 test_that("an item that fails in a parallel batch keeps every trace", {
   skip_if_no_future6()
   run <- function(parallel) {
-    tr <- gr_trace()
+    tr <- hr_trace()
     err <- tryCatch(quiet(harnessr:::gr_lapply(1:6, function(i, trace) {
       harnessr:::trace_record(trace, sprintf("item%d", i), list(),
                              harnessr:::gr_result(TRUE, "x", model = "mock-model",

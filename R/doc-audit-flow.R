@@ -24,7 +24,7 @@
 #' @seealso [gr_audit_report()], [gr_screen()], [gr_extract()]
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(messages, params) {
+#' cl <- hr_mock_client(function(messages, params) {
 #'   '{"decision":"include","reason":"Reports a revenue figure.",
 #'     "criterion":"Reports a revenue figure","quote":null}'
 #' })

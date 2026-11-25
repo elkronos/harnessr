@@ -14,7 +14,7 @@
 #' Is anyone watching?
 #' @noRd
 progress_wanted <- function() {
-  session_interactive() && isTRUE(gr_options("verbose")) &&
+  session_interactive() && isTRUE(hr_options("verbose")) &&
     !isTRUE(getOption("knitr.in.progress"))
 }
 
@@ -62,7 +62,7 @@ progress_tick <- function(p, k) {
 #' price adds nothing to `spent_usd`, so once one has been made the total is not
 #' known and the line says so rather than show a figure that is too low. A
 #' request that failed without sending a token cost nothing whatever its model,
-#' as gr_trace_cost() prices it, so it leaves the total known: an embeddings
+#' as hr_trace_cost() prices it, so it leaves the total known: an embeddings
 #' request to a gateway without embeddings fails like that, usually for an
 #' embedding model with no price, and turned the line to "cost unknown" for a
 #' run whose every paid request was priced.
@@ -80,7 +80,7 @@ progress_cost <- function(p) {
       m <- as_chr1(st$model, "unknown")
       known <- unname(p$priced[m])
       if (is.na(known)) {
-        known <- !is.na(tryCatch(suppressWarnings(gr_estimate_cost(m, 1, 1)),
+        known <- !is.na(tryCatch(suppressWarnings(hr_estimate_cost(m, 1, 1)),
                                  error = function(e) NA_real_))
         p$priced[m] <- known
       }

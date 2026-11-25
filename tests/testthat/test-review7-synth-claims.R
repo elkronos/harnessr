@@ -28,7 +28,7 @@ r7_client <- function(env = new.env(), claims = NULL, heads = c("Trials", "Surve
                       texts = c("Trials work.", "Surveys show harm.")) {
   env$seen <- list()
   force(claims)
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     env$seen[[length(env$seen) + 1L]] <- messages
     sys <- messages[[1]]$content
     if (grepl("turn a table of studies", sys, fixed = TRUE)) {
@@ -146,7 +146,7 @@ test_that("under a C locale an accented category declared in gr_fields() matches
                     n_filled = 1L, n_unverified = 0L, conflicts = NA_character_,
                     design = c("enquête", "essai"), lieu = c("ville", "campagne"),
                     stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(messages, params) paste0(
+  cl <- hr_mock_client(function(messages, params) paste0(
     '{"claims":[{"claim":"x","kind":"finding","supported_by":[1,2],',
     '"contradicted_by":[],"moderator":null,"scope":null}]}'))
   cm <- quiet(gr_claims(tab, question = "Q?", client = cl))
@@ -186,7 +186,7 @@ test_that("gr_outline() stamps its claims, and an outline from other claims is r
   # made when its call failed and every claim went to one section.
   expect_s3_class(quiet(gr_synthesise(r7_table(), outline = o, question = "Q?", client = cl,
                                       claims = cm)), "gr_synthesis")
-  broken <- gr_mock_client(function(messages, params) stop("down"))
+  broken <- hr_mock_client(function(messages, params) stop("down"))
   o2 <- quiet(gr_outline(cm, client = broken))
   expect_identical(attr(o2, "claims_fingerprint"), harnessr:::claims_fingerprint(cm$claims))
   expect_error(quiet(gr_synthesise(r7_table(), outline = o2, question = "Q?", client = cl,
@@ -249,7 +249,7 @@ test_that("a section row counts its failed, unsent and unmerged batches, and the
   # Before: synth_section() counted them for its warnings and dropped them, so
   # the audit report could only say the section was "marked partial".
   local_registries()
-  gr_register_model("r7-small", context_window = 3000, max_output = 400,
+  hr_register_model("r7-small", context_window = 3000, max_output = 400,
                     input_usd = 0, output_usd = 0)
   run <- function(cl) r7_warns(gr_synthesise(r7_big(), outline = c(Findings = "what"),
                                              question = "Q?", client = cl, model = "r7-small",
@@ -257,7 +257,7 @@ test_that("a section row counts its failed, unsent and unmerged batches, and the
   audit <- function(s) paste(harnessr:::audit_synthesis(s), collapse = "\n")
 
   # A clean run records zeroes, not NA.
-  r <- run(gr_mock_client(function(m, p) r7_batch_reply(m)))
+  r <- run(hr_mock_client(function(m, p) r7_batch_reply(m)))
   sec <- r$value$sections
   expect_true(all(c("lost_batches", "capped_batches", "merge_failed") %in% names(sec)))
   expect_identical(sec$lost_batches, 0L)
@@ -265,7 +265,7 @@ test_that("a section row counts its failed, unsent and unmerged batches, and the
   expect_identical(sec$merge_failed, FALSE)
 
   # One batch's call fails.
-  r <- run(gr_mock_client(function(m, p) {
+  r <- run(hr_mock_client(function(m, p) {
     if (!grepl("<draft", r7_sent(m), fixed = TRUE) && grepl("[study 1]\n", r7_sent(m), fixed = TRUE)) {
       stop("batch endpoint down")
     }
@@ -281,7 +281,7 @@ test_that("a section row counts its failed, unsent and unmerged batches, and the
   expect_false(grepl("This section is marked partial:", html, fixed = TRUE))
 
   # The merge fails.
-  r <- run(gr_mock_client(function(m, p) {
+  r <- run(hr_mock_client(function(m, p) {
     if (grepl("<draft", r7_sent(m), fixed = TRUE)) stop("merge endpoint down")
     r7_batch_reply(m)
   }))
@@ -292,8 +292,8 @@ test_that("a section row counts its failed, unsent and unmerged batches, and the
   expect_match(audit(r$value), "drafted but not merged", fixed = TRUE)
 
   # The run's ceiling stops the batches.
-  gr_options(max_calls = 2L)
-  r <- run(gr_mock_client(function(m, p) r7_batch_reply(m)))
+  hr_options(max_calls = 2L)
+  r <- run(hr_mock_client(function(m, p) r7_batch_reply(m)))
   expect_true("gr_synth_capped" %in% r$classes)
   sec <- r$value$sections
   expect_gt(sec$capped_batches, 0L)

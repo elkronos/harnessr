@@ -165,7 +165,7 @@ restate_now <- function(body, how = "auto") {
   how <- as_chr1(how, "auto")
   if (identical(how, "always")) return(TRUE)
   if (identical(how, "never")) return(FALSE)
-  gr_count_tokens(as_chr1(body)) > limit
+  hr_count_tokens(as_chr1(body)) > limit
 }
 
 #' The question again, after a body long enough to bury the first ask.

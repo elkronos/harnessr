@@ -9,7 +9,7 @@
 # A client that answers every prompt the readers here send, and records the
 # effort it was given with each call's label.
 effort_client <- function() {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("Rate how useful", sys, fixed = TRUE)) return('{"score": 8, "reason": "relevant"}')
     if (grepl("screen", sys, ignore.case = TRUE) && grepl("criteri", sys, ignore.case = TRUE)) {
@@ -31,9 +31,9 @@ reasoner <- "gpt-5.6-luna"
 test_that("without an effort, a request is built, keyed and recorded exactly as before", {
   msgs <- list(list(role = "system", content = "Be brief."),
                list(role = "user", content = "What was revenue?"))
-  info <- gr_model_info(reasoner)
+  info <- hr_model_info(reasoner)
   for (api in c("responses", "chat")) {
-    cl <- gr_client(api = api, extra_body = list(seed = 7L))
+    cl <- hr_client(api = api, extra_body = list(seed = 7L))
     a <- harnessr:::build_request_body(cl, msgs, reasoner, 2048L, NULL, NULL, "result", info,
                                       list(store = FALSE))
     b <- harnessr:::build_request_body(cl, msgs, reasoner, 2048L, NULL, NULL, "result", info,
@@ -45,7 +45,7 @@ test_that("without an effort, a request is built, keyed and recorded exactly as 
   # The old cache key, which the legacy lookup computes, against the formula it
   # had before the setting existed. A change here would turn every reply
   # stored before harnessr-cache-v3 into a miss.
-  cl <- gr_mock_client()
+  cl <- hr_mock_client()
   as_chr1 <- harnessr:::as_chr1
   old_cache <- harnessr:::gr_hash(c(
     "readgpt-cache-v2", as_chr1(cl$api, "?"), as_chr1(cl$base_url, "?"),
@@ -72,9 +72,9 @@ test_that("without an effort, a request is built, keyed and recorded exactly as 
 
   # A handler is given the params it always was, and the trace records them.
   seen <- NULL
-  cl <- gr_mock_client(function(m, p) { seen <<- p; "ok" })
-  tr <- gr_trace()
-  gr_call(cl, msgs, model = reasoner, trace = tr)
+  cl <- hr_mock_client(function(m, p) { seen <<- p; "ok" })
+  tr <- hr_trace()
+  hr_call(cl, msgs, model = reasoner, trace = tr)
   expect_identical(names(seen), c("model", "max_output", "temperature", "schema", "schema_name",
                                   "prompt_tokens"))
   expect_false("effort" %in% names(tr$steps[[1]]$params))
@@ -91,9 +91,9 @@ test_that("without an effort, a request is built, keyed and recorded exactly as 
 
 test_that("an effort goes in the field each API reads, over the client's default", {
   msgs <- list(list(role = "user", content = "What was revenue?"))
-  info <- gr_model_info(reasoner)
+  info <- hr_model_info(reasoner)
   body <- function(api, extra_body = list(), extra = list(), effort = "low") {
-    harnessr:::build_request_body(gr_client(api = api, extra_body = extra_body), msgs, reasoner,
+    harnessr:::build_request_body(hr_client(api = api, extra_body = extra_body), msgs, reasoner,
                                  2048L, NULL, NULL, "result", info, extra, effort = effort)
   }
   # Exact names: `$reasoning` partial-matches `reasoning_effort`.
@@ -145,11 +145,11 @@ test_that("a map is resolved per label: longest name, whole dotted parts, then t
 
 test_that("an effort reaches a reasoning model and never one that would refuse it", {
   seen <- list()
-  cl <- gr_mock_client(function(m, p) { seen[[length(seen) + 1L]] <<- p; "ok" })
-  tr <- gr_trace()
-  gr_call(cl, "hi", model = reasoner, effort = "low", trace = tr)
-  gr_call(cl, "hi", model = "gpt-4o", effort = "low", trace = tr)
-  gr_call(cl, "hi", effort = "low", trace = tr)                  # the mock's own model
+  cl <- hr_mock_client(function(m, p) { seen[[length(seen) + 1L]] <<- p; "ok" })
+  tr <- hr_trace()
+  hr_call(cl, "hi", model = reasoner, effort = "low", trace = tr)
+  hr_call(cl, "hi", model = "gpt-4o", effort = "low", trace = tr)
+  hr_call(cl, "hi", effort = "low", trace = tr)                  # the mock's own model
   expect_identical(seen[[1]]$effort, "low")
   expect_null(seen[[2]]$effort)
   expect_null(seen[[3]]$effort)
@@ -161,10 +161,10 @@ test_that("an effort reaches a reasoning model and never one that would refuse i
 
   # A model registered as a reasoning one takes it, whatever it is called.
   local_registries()
-  gr_register_model("gateway-thinker", context_window = 64000, max_output = 8000,
+  hr_register_model("gateway-thinker", context_window = 64000, max_output = 8000,
                     input_usd = 0, output_usd = 0, reasoning = TRUE,
                     supports_temperature = FALSE)
-  gr_call(cl, "hi", model = "gateway-thinker", effort = c(call = "high"))
+  hr_call(cl, "hi", model = "gateway-thinker", effort = c(call = "high"))
   expect_identical(seen[[4]]$effort, "high")
 })
 
@@ -183,12 +183,12 @@ test_that("a read sends each stage the effort its label resolves to", {
   # request, so a small window and long findings force one; the reads above
   # merge once, and `fan_in` does not shape this tree.
   local_registries()
-  gr_register_model("tiny-thinker", context_window = 6000L, max_output = 2000L,
+  hr_register_model("tiny-thinker", context_window = 6000L, max_output = 2000L,
                     input_usd = 0, output_usd = 0, reasoning = TRUE,
                     supports_temperature = FALSE)
   long <- paste(rep("Revenue was 45.2 million dollars in the year under review.", 60),
                 collapse = " ")
-  cl <- gr_mock_client(function(m, p) long)
+  cl <- hr_mock_client(function(m, p) long)
   ch2 <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 60)))
   quiet(gr_read(ch2, "What was revenue?", cl,
                 gr_read_spec("map_reduce", model = "tiny-thinker", max_answer_tokens = 1500L,
@@ -214,19 +214,19 @@ test_that("calls made in parallel workers resolve the same effort", {
   # A worker loads harnessr from the library, not from this source tree, so
   # under load_all() it runs whatever version was installed last.
   installed <- tryCatch(system2(file.path(R.home("bin"), "Rscript"),
-    c("-e", shQuote("cat('effort' %in% names(formals(harnessr::gr_call)))")),
+    c("-e", shQuote("cat('effort' %in% names(formals(harnessr::hr_call)))")),
     stdout = TRUE, stderr = FALSE), error = function(e) "FALSE", warning = function(w) "FALSE")
   skip_if_not(identical(utils::tail(installed, 1L), "TRUE"),
               "the installed harnessr, which workers load, predates `effort`")
   local_registries()
   # Registered in this session only: a worker knows it is a reasoning model
   # because the model registry is sent with the batch.
-  gr_register_model("par-thinker", context_window = 128000L, max_output = 16000L,
+  hr_register_model("par-thinker", context_window = 128000L, max_output = 16000L,
                     input_usd = 0, output_usd = 0, reasoning = TRUE,
                     supports_temperature = FALSE)
-  gr_options(workers = 2)
+  hr_options(workers = 2)
   ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150)))
-  cl <- gr_mock_client(function(m, p) sprintf("pid %d", Sys.getpid()))
+  cl <- hr_mock_client(function(m, p) sprintf("pid %d", Sys.getpid()))
   quiet(gr_read(ch, "What was revenue?", cl,
                 gr_read_spec("map_reduce", model = "par-thinker", parallel = TRUE,
                              effort = c(map = "low", reduce = "high"))))
@@ -288,7 +288,7 @@ test_that("gr_compare() keeps recipes apart that differ only in effort, and says
 test_that("the segmenters that call a model are sent the run's effort", {
   # A segmenter asks the client's model, so the client's model is the
   # reasoning one here.
-  cl <- gr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
+  cl <- hr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
   quiet(answer_document(gr_example(), "What was revenue?",
                         gr_recipe("ctx", segment = gr_segment_spec("contextual", max_tokens = 200,
                                                                    context_source = "llm"),
@@ -307,12 +307,12 @@ test_that("gr_compare() shares chunks between recipes whose segmenter is sent th
          b = gr_recipe("b", segment = seg, read = gr_read_spec("stuff", effort = eb)))
   }
   context_calls <- function(ea, eb) {
-    cl <- gr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
+    cl <- hr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
     quiet(gr_compare(gr_example(), "What was revenue?", pair(ctx, ea, eb), client = cl))
     e <- efforts_by_label(cl)
     e[names(e) == "segment.context"]
   }
-  cl <- gr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
+  cl <- hr_backend_client(function(m, p) "An excerpt about revenue.", model = reasoner)
   quiet(answer_document(gr_example(), "What was revenue?",
                         gr_recipe("one", segment = ctx, read = "stuff"), client = cl))
   n <- sum(names(efforts_by_label(cl)) == "segment.context")
@@ -334,7 +334,7 @@ test_that("gr_compare() shares chunks between recipes whose segmenter is sent th
   # A segmenter that sends no request takes no effort: the semantic one embeds
   # the document once for both.
   embedded <- 0L
-  cl <- gr_backend_client(function(m, p) "Revenue was 45.2 million dollars.", model = reasoner,
+  cl <- hr_backend_client(function(m, p) "Revenue was 45.2 million dollars.", model = reasoner,
                           embed = function(texts, params) {
                             embedded <<- embedded + length(texts)
                             cbind(nchar(texts), seq_along(texts), 1)
@@ -386,7 +386,7 @@ test_that("gr_screen() and gr_extract() take it through `...`", {
                   client = cl, model = reasoner, effort = c(screen = "low")))
   expect_identical(unname(efforts_by_label(cl)), "low")
 
-  cl <- gr_mock_client(function(m, p) '{"n":1204,"n__quote":"We randomly assigned 1,204 participants to two groups."}')
+  cl <- hr_mock_client(function(m, p) '{"n":1204,"n__quote":"We randomly assigned 1,204 participants to two groups."}')
   quiet(gr_extract(f, gr_fields(n = gr_field("Participants", type = "integer")), client = cl,
                    model = reasoner, effort = c("extract.chunk" = "minimal")))
   e <- efforts_by_label(cl)
@@ -409,7 +409,7 @@ test_that("gr_claims(), gr_outline() and gr_synthesise() take it at the end of t
     n_filled = 2L, n_unverified = 0L, conflicts = NA_character_,
     design = c("randomised trial", "cross-sectional"),
     finding = c("supports", "contradicts"), stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                   collapse = " ")
     if (grepl("<claims>", seen, fixed = TRUE)) {
@@ -445,10 +445,10 @@ test_that("gr_claims(), gr_outline() and gr_synthesise() take it at the end of t
 
 test_that("a cache keeps replies at different efforts apart", {
   dir <- tempfile("cache")
-  cl <- gr_cache_client(gr_mock_client(function(m, p) paste("at", p$effort)), gr_cache(dir))
-  a <- gr_call(cl, "hi", model = reasoner, effort = "low")
-  b <- gr_call(cl, "hi", model = reasoner, effort = "high")
-  c2 <- gr_call(cl, "hi", model = reasoner, effort = "low")
+  cl <- hr_cache_client(hr_mock_client(function(m, p) paste("at", p$effort)), hr_cache(dir))
+  a <- hr_call(cl, "hi", model = reasoner, effort = "low")
+  b <- hr_call(cl, "hi", model = reasoner, effort = "high")
+  c2 <- hr_call(cl, "hi", model = reasoner, effort = "low")
   expect_false(isTRUE(b$cached))
   expect_identical(b$text, "at high")
   expect_true(c2$cached)
@@ -462,20 +462,20 @@ test_that("a replay matches on the effort it was recorded with", {
                    read = gr_read_spec("map_reduce", model = reasoner))
   ans <- quiet(answer_document(doc, "What was revenue?", rec, client = cl, effort = "low"))
   f <- tempfile(fileext = ".json")
-  gr_trace_save(ans$trace, f)
+  hr_trace_save(ans$trace, f)
 
   # The same effort replays exactly, from the trace and from the file.
   for (src in list(ans$trace, f)) {
-    rp <- gr_replay_client(src)
+    rp <- hr_replay_client(src)
     again <- quiet(answer_document(doc, "What was revenue?", rec, client = rp, effort = "low"))
     expect_identical(again$answer, ans$answer)
     expect_identical(length(rp$missed()), 0L)
   }
   # Another effort, or none, is a different run, and the miss says why.
-  rp <- gr_replay_client(f)
+  rp <- hr_replay_client(f)
   expect_error(quiet(answer_document(doc, "What was revenue?", rec, client = rp, effort = "high")),
                "recorded for this model at reasoning effort 'low'", class = "gr_replay_miss")
-  rp <- gr_replay_client(f)
+  rp <- hr_replay_client(f)
   expect_error(quiet(answer_document(doc, "What was revenue?", rec, client = rp)),
                "asked for no effort", class = "gr_replay_miss")
 })
@@ -485,24 +485,24 @@ test_that("a replay does not need the recording session's reasoning-model regist
   handler <- function(m, p) paste("effort", p$effort %||% "none")
   local({
     local_registries()
-    gr_register_model("gw-thinker", context_window = 128000L, max_output = 16000L,
+    hr_register_model("gw-thinker", context_window = 128000L, max_output = 16000L,
                       input_usd = 0, output_usd = 0, reasoning = TRUE,
                       supports_temperature = FALSE)
-    tr <- gr_trace()
-    gr_call(gr_backend_client(handler, model = "gw-thinker"), "What was revenue?",
+    tr <- hr_trace()
+    hr_call(hr_backend_client(handler, model = "gw-thinker"), "What was revenue?",
             effort = "low", trace = tr)
-    gr_trace_save(tr, f)
+    hr_trace_save(tr, f)
   })
   # This session would send the model no effort: it does not know it reasons.
-  expect_false(isTRUE(quiet(gr_model_info("gw-thinker"))$reasoning))
-  rp <- gr_replay_client(f)
-  expect_identical(quiet(gr_call(rp, "What was revenue?", effort = "low"))$text, "effort low")
+  expect_false(isTRUE(quiet(hr_model_info("gw-thinker"))$reasoning))
+  rp <- hr_replay_client(f)
+  expect_identical(quiet(hr_call(rp, "What was revenue?", effort = "low"))$text, "effort low")
   expect_length(rp$missed(), 0L)
   # Another effort, or none, still misses, and the message says which the call
   # asked for. It said "no effort" for every one of them.
-  expect_error(quiet(gr_call(gr_replay_client(f), "What was revenue?", effort = "high")),
+  expect_error(quiet(hr_call(hr_replay_client(f), "What was revenue?", effort = "high")),
                "asked for effort 'high'", class = "gr_replay_miss")
-  expect_error(quiet(gr_call(gr_replay_client(f), "What was revenue?")),
+  expect_error(quiet(hr_call(hr_replay_client(f), "What was revenue?")),
                "asked for no effort", class = "gr_replay_miss")
 })
 
@@ -513,20 +513,20 @@ test_that("a replay looks up the recording's other models at the effort each is 
   # client's own model and as the other one.
   for (first in c(reasoner, "gpt-4o")) {
     other <- setdiff(c(reasoner, "gpt-4o"), first)
-    tr <- gr_trace()
-    a <- gr_backend_client(function(m, p) paste("From", first), model = first)
-    b <- gr_backend_client(function(m, p) paste("From", other), model = other)
+    tr <- hr_trace()
+    a <- hr_backend_client(function(m, p) paste("From", first), model = first)
+    b <- hr_backend_client(function(m, p) paste("From", other), model = other)
     quiet(gr_read(ch, "What was revenue?", a, sp, trace = tr))
     quiet(gr_read(ch, "What else was reported?", a, sp, trace = tr))
     quiet(gr_read(ch, "Who audited it?", b, sp, trace = tr))
-    rp <- gr_replay_client(tr)
+    rp <- hr_replay_client(tr)
     expect_identical(rp$model, first)
     expect_identical(quiet(gr_read(ch, "Who audited it?", rp, sp))$answer, paste("From", other))
     expect_identical(quiet(gr_read(ch, "What was revenue?", rp, sp))$answer, paste("From", first))
     expect_length(rp$missed(), 0L)
     # At another effort, the reasoning model's read misses; the other model's
     # requests carried no effort, so its read is the same requests.
-    rp <- gr_replay_client(tr)
+    rp <- hr_replay_client(tr)
     high <- gr_read_spec("stuff", effort = "high")
     if (identical(other, reasoner)) {
       expect_error(quiet(gr_read(ch, "Who audited it?", rp, high)), class = "gr_replay_miss")
@@ -539,21 +539,21 @@ test_that("a replay looks up the recording's other models at the effort each is 
 
 test_that("a call through an ellmer chat is not recorded as sent at the effort it asked for", {
   local_registries()
-  gr_register_model("stub-thinker", context_window = 128000L, max_output = 4096L,
+  hr_register_model("stub-thinker", context_window = 128000L, max_output = 4096L,
                     input_usd = 0, output_usd = 0, reasoning = TRUE,
                     supports_temperature = FALSE)
-  # gr_ellmer_client() is a backend client of this class around an ellmer chat
+  # hr_ellmer_client() is a backend client of this class around an ellmer chat
   # (see its last lines). Built by hand, so this runs without ellmer; the
   # adapter itself is tested below when ellmer is installed.
   seen <- character(0)
-  cl <- gr_backend_client(function(m, p) {
+  cl <- hr_backend_client(function(m, p) {
     seen <<- c(seen, p$effort %||% "none")
     "an answer"
   }, model = "stub-thinker")
   class(cl) <- c("gr_ellmer_client", class(cl))
-  tr <- gr_trace()
-  gr_call(cl, "hi", effort = "low", trace = tr)
-  gr_call(cl, "again", effort = "high", trace = tr)
+  tr <- hr_trace()
+  hr_call(cl, "hi", effort = "low", trace = tr)
+  hr_call(cl, "again", effort = "high", trace = tr)
   # The adapter is still handed it, to say it is not sent.
   expect_identical(seen, c("low", "high"))
   # The trace and the audit do not count it as sent, and keep what was asked.
@@ -564,13 +564,13 @@ test_that("a call through an ellmer chat is not recorded as sent at the effort i
 
   # Its replay asks for what the call asked for, and is traced the same way.
   f <- tempfile(fileext = ".json")
-  gr_trace_save(tr, f)
-  rp <- gr_replay_client(f)
-  tr2 <- gr_trace()
-  expect_identical(gr_call(rp, "hi", effort = "low", trace = tr2)$text, "an answer")
+  hr_trace_save(tr, f)
+  rp <- hr_replay_client(f)
+  tr2 <- hr_trace()
+  expect_identical(hr_call(rp, "hi", effort = "low", trace = tr2)$text, "an answer")
   expect_false("effort" %in% names(as.data.frame(tr2)))
   expect_identical(tr2$steps[[1]]$params$unsent_effort, "low")
-  expect_error(gr_call(gr_replay_client(f), "hi", effort = "high"), class = "gr_replay_miss")
+  expect_error(hr_call(hr_replay_client(f), "hi", effort = "high"), class = "gr_replay_miss")
 })
 
 test_that("the audit report shows what effort each stage ran at", {
@@ -599,7 +599,7 @@ test_that("a map that cannot be read is refused; a level that is not known is se
   expect_error(gr_read_spec(effort = c("low", default = "high")), class = "gr_bad_setting")
   expect_error(gr_read_spec(effort = c(map = "low", map = "high")), "'map'",
                class = "gr_bad_setting")
-  expect_error(gr_call(gr_mock_client(), "hi", effort = list("low")), class = "gr_bad_setting")
+  expect_error(hr_call(hr_mock_client(), "hi", effort = list("low")), class = "gr_bad_setting")
   expect_error(gr_claims(data.frame(a = 1), question = "Q?", effort = NA_character_),
                class = "gr_bad_setting")
 
@@ -607,15 +607,15 @@ test_that("a map that cannot be read is refused; a level that is not known is se
   expect_identical(sp$effort, "hihg")
   expect_silent(gr_read_spec(effort = c(map = "minimal", "xhigh", reduce = "none")))
   seen <- NULL
-  cl <- gr_mock_client(function(m, p) { seen <<- p$effort; "ok" })
-  expect_warning(gr_call(cl, "hi", model = reasoner, effort = "max"), class = "gr_effort_unknown")
+  cl <- hr_mock_client(function(m, p) { seen <<- p$effort; "ok" })
+  expect_warning(hr_call(cl, "hi", model = reasoner, effort = "max"), class = "gr_effort_unknown")
   expect_identical(seen, "max")
 })
 
 test_that("an ellmer chat is not sent an effort, and says so once", {
   skip_if_not_installed("ellmer")
   local_registries()
-  gr_register_model("stub-thinker", context_window = 128000L, max_output = 4096L,
+  hr_register_model("stub-thinker", context_window = 128000L, max_output = 4096L,
                     input_usd = 0, output_usd = 0, reasoning = TRUE,
                     supports_temperature = FALSE)
   make <- function() {
@@ -630,13 +630,13 @@ test_that("an ellmer chat is not sent an effort, and says so once", {
     self$last_turn <- function(role = "assistant") NULL
     self
   }
-  cl <- gr_ellmer_client(make())
+  cl <- hr_ellmer_client(make())
   quiet_cap <- function(expr) withCallingHandlers(expr, gr_ellmer_max_output = function(w)
     invokeRestart("muffleWarning"))
-  tr <- gr_trace()
-  expect_warning(quiet_cap(gr_call(cl, "hi", effort = "low", trace = tr)),
+  tr <- hr_trace()
+  expect_warning(quiet_cap(hr_call(cl, "hi", effort = "low", trace = tr)),
                  class = "gr_effort_unsupported")
-  expect_no_warning(quiet_cap(gr_call(cl, "again", effort = "low", trace = tr)))
+  expect_no_warning(quiet_cap(hr_call(cl, "again", effort = "low", trace = tr)))
   # And the trace does not say it was sent.
   expect_false("effort" %in% names(as.data.frame(tr)))
 })

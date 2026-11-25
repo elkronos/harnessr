@@ -126,8 +126,8 @@ test_that("a repeated sentence is placed in the segment it occurs in", {
 })
 
 test_that("fixed chunks of a text that repeats itself keep their boundaries", {
-  old <- gr_options(verbose = FALSE)
-  on.exit(gr_options(old))
+  old <- hr_options(verbose = FALSE)
+  on.exit(hr_options(old))
   # Three sentences five times over: 15 sentences. The four fixed chunks
   # are cut inside sentences 5, 9 and 13, so each cut counts at the end of
   # that sentence. Matched on text alone, every boundary was lost.
@@ -159,8 +159,8 @@ test_that("a reference with a boundary at every position takes k = 1, not NLTK's
 })
 
 test_that("a contextual chunk is matched on its source text, not its context line", {
-  old <- gr_options(verbose = FALSE)
-  on.exit(gr_options(old))
+  old <- hr_options(verbose = FALSE)
+  on.exit(hr_options(old))
   doc <- gr_ingest(paste("Revenue rose. Costs fell.", "Staff grew. Offices moved.", sep = "\n\n"))
   ch <- gr_segment(doc, list(method = "contextual", max_tokens = 60))
   expect_false(is.null(ch$chunks$source_text))
@@ -170,8 +170,8 @@ test_that("a contextual chunk is matched on its source text, not its context lin
 })
 
 test_that("gr_seg_recall counts the questions whose answer ranks in the top k", {
-  old <- gr_options(verbose = FALSE, embedder = "lexical")
-  on.exit(gr_options(old))
+  old <- hr_options(verbose = FALSE, embedder = "lexical")
+  on.exit(hr_options(old))
   doc <- paste("Revenue was 45.2 million dollars in fiscal 2024.",
                "The plant in Leeds made 12,400 units.",
                "Staff numbered 310 at year end.", sep = "\n\n")
@@ -195,8 +195,8 @@ test_that("gr_seg_recall counts the questions whose answer ranks in the top k", 
 })
 
 test_that("an answer cut in two is in no chunk and misses at every k", {
-  old <- gr_options(verbose = FALSE, embedder = "lexical")
-  on.exit(gr_options(old))
+  old <- hr_options(verbose = FALSE, embedder = "lexical")
+  on.exit(hr_options(old))
   doc <- paste("The group sold goods in many markets over the year and kept its costs under",
                "close watch throughout. Revenue was 45.2 million dollars in fiscal 2024 for",
                "the group as a whole.")
@@ -217,8 +217,8 @@ test_that("an answer cut in two is in no chunk and misses at every k", {
 })
 
 test_that("gr_seg_recall refuses what it cannot use", {
-  old <- gr_options(verbose = FALSE, embedder = "lexical")
-  on.exit(gr_options(old))
+  old <- hr_options(verbose = FALSE, embedder = "lexical")
+  on.exit(hr_options(old))
   ref <- gr_qa_reference(c(a = "Who is the chair?"), documents = "The chair is Ana Ruiz.",
                          answers = list("Ana Ruiz"), split = "dev")
   expect_error(gr_seg_recall(ref, "sentence"), class = "hr_bad_reference")

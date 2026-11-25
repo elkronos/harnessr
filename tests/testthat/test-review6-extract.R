@@ -44,7 +44,7 @@ test_that("a field sent as [] or {} is empty, and the document's other values st
   fl <- gr_fields(design = "The design", n = gr_field("Participants", type = "integer"),
                   funded = gr_field("Industry funding declared", type = "boolean"))
   for (empty in c("[]", "{}")) {
-    cl <- gr_mock_client(function(m, p) paste0(
+    cl <- hr_mock_client(function(m, p) paste0(
       '{"design":"randomised controlled trial","n":120,"funded":', empty, ',',
       '"design__quote":"This was a randomised controlled trial.",',
       '"n__quote":"We enrolled 120 patients.","funded__quote":null}'))
@@ -81,7 +81,7 @@ test_that("a boolean that is not a yes or a no is unknown, not a verified FALSE"
   txt <- "The trial was funded by Pfizer. We enrolled 120 patients."
   fl <- gr_fields(n = gr_field("Participants", type = "integer"),
                   funded = gr_field("Industry funding declared", type = "boolean"))
-  cl <- gr_mock_client(function(m, p) r6_json(
+  cl <- hr_mock_client(function(m, p) r6_json(
     n = 120, n__quote = "We enrolled 120 patients.",
     funded = "Yes - Pfizer funded it", funded__quote = "The trial was funded by Pfizer."))
   x <- quiet(gr_extract(r6_file(txt), fl, client = cl, keep_answers = TRUE))
@@ -99,7 +99,7 @@ test_that("a boolean that is not a yes or a no is unknown, not a verified FALSE"
   expect_output(print(x), "could not be read as its field's type", fixed = TRUE)
 
   # A way of saying "not reported" is still that, and flags nothing.
-  cl2 <- gr_mock_client(function(m, p) r6_json(
+  cl2 <- hr_mock_client(function(m, p) r6_json(
     n = 120, n__quote = "We enrolled 120 patients.", funded = "not stated", funded__quote = NULL))
   y <- quiet(gr_extract(r6_file(txt), fl, client = cl2, keep_answers = TRUE))
   expect_true(is.na(y$table$funded))
@@ -170,7 +170,7 @@ test_that("digits of other scripts are read, not recorded as not reported", {
   # End to end: the value is read, and its verbatim quote verifies it.
   quote <- "\u0634\u0645\u0644\u062a \u0627\u0644\u062f\u0631\u0627\u0633\u0629 \u0661\u0662\u0660 \u0645\u0631\u064a\u0636\u0627"
   fl <- gr_fields(n = gr_field("Participants", type = "integer"))
-  cl <- gr_mock_client(function(m, p) r6_json(n = "\u0661\u0662\u0660", n__quote = quote))
+  cl <- hr_mock_client(function(m, p) r6_json(n = "\u0661\u0662\u0660", n__quote = quote))
   x <- quiet(gr_extract(r6_file(quote), fl, client = cl, keep_answers = TRUE))
   expect_identical(x$table$n, 120L)
   expect_identical(x$table$n_filled, 1L)
@@ -181,7 +181,7 @@ test_that("digits of other scripts are read, not recorded as not reported", {
 test_that("a value that could not be read is unknown and counted, not 'not reported'", {
   txt <- "We randomised 120 patients (60 per arm)."
   fl <- gr_fields(n = gr_field("Participants", type = "integer"))
-  cl <- gr_mock_client(function(m, p) r6_json(n = "120 (60 per arm)", n__quote = txt))
+  cl <- hr_mock_client(function(m, p) r6_json(n = "120 (60 per arm)", n__quote = txt))
   x <- quiet(gr_extract(r6_file(txt), fl, client = cl, keep_answers = TRUE))
   expect_true(is.na(x$table$n))
   expect_identical(x$table$n_filled, 0L)
@@ -205,7 +205,7 @@ r6_conflict_doc <- function() {
 }
 
 r6_conflict_client <- function(choice) {
-  gr_mock_client(function(m, p) {
+  hr_mock_client(function(m, p) {
     if (grepl("different values", m[[1]]$content, fixed = TRUE)) {
       if (identical(choice, "fail")) stop("HTTP 500 server error")
       return(sprintf('{"choice": %s}', choice))
@@ -272,7 +272,7 @@ test_that("an adjudication skipped at the call limit does not fail a fully read 
   doc <- r6_conflict_doc()
   first <- quiet(gr_extract(doc, fl, client = r6_conflict_client(2), recipe = "thorough",
                             max_tokens = 48))
-  gr_options(max_calls = first$summary$chunks)
+  hr_options(max_calls = first$summary$chunks)
   store <- withr::local_tempdir()
   cl <- r6_conflict_client(2)
   x <- quiet(gr_extract(doc, fl, client = cl, recipe = "thorough", max_tokens = 48,
@@ -316,7 +316,7 @@ test_that("string values that differ only in case or a trailing full stop do not
   fl <- gr_fields(design = "The design", population = "The population")
   doc <- r6_file(r6_say("This was a Randomised controlled trial of the drug in Adults overall."),
                  r6_say("In summary this was a randomised controlled trial of the drug in adults."))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("different values", m[[1]]$content, fixed = TRUE)) return('{"choice": 1}')
     ex <- m[[length(m)]]$content
     if (grepl("Randomised", ex, fixed = TRUE)) {
@@ -343,7 +343,7 @@ test_that("string values that differ only in case or a trailing full stop do not
 
 test_that("reader = in ... is refused before anything is read", {
   fl <- gr_fields(n = gr_field("Participants", type = "integer"))
-  cl <- gr_mock_client(function(m, p) "The study enrolled 300 patients.")
+  cl <- hr_mock_client(function(m, p) "The study enrolled 300 patients.")
   expect_error(gr_extract(r6_file("We enrolled 300 patients."), fl, client = cl,
                           reader = "stuff"),
                class = "gr_bad_override")
@@ -362,7 +362,7 @@ test_that("a restored duplicate whose first copy is not in this run is the first
   b <- r6_file("We enrolled 120 patients.", dir = src, name = "b.txt")
   c <- r6_file("We enrolled 300 patients.", dir = src, name = "c.txt")
   fl <- gr_fields(n = gr_field("Participants", type = "integer"))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("120", m[[length(m)]]$content, fixed = TRUE)) {
       r6_json(n = 120, n__quote = "We enrolled 120 patients.")
     } else r6_json(n = 300, n__quote = "We enrolled 300 patients.")
@@ -400,15 +400,15 @@ test_that("on_error = 'stop' still folds the failing document's calls into the t
   local_registries()
   gr_register_reader("r6_crash", function(chunks, question, client, spec, trace) {
     for (k in 1:3) {
-      gr_call(client, list(list(role = "user", content = "x")), trace = trace, label = "r6.call")
+      hr_call(client, list(list(role = "user", content = "x")), trace = trace, label = "r6.call")
     }
     stop("the reader crashed after its calls")
   }, signature = "all|3|none")
   d <- withr::local_tempdir()
   r6_file("Alpha document text one.", dir = d, name = "a.txt")
   r6_file("Beta document text two.", dir = d, name = "b.txt")
-  cl <- gr_mock_client(function(m, p) "ok")
-  parent <- gr_trace()
+  cl <- hr_mock_client(function(m, p) "ok")
+  parent <- hr_trace()
   expect_error(quiet(gr_read_many(d, "Q?", "fast", client = cl, reader = "r6_crash",
                                   on_error = "stop", trace = parent)),
                "the reader crashed after its calls", fixed = TRUE)
@@ -417,7 +417,7 @@ test_that("on_error = 'stop' still folds the failing document's calls into the t
   expect_identical(parent$calls, 3L)
 
   # Under "continue" every document is folded in once, not twice.
-  parent2 <- gr_trace()
+  parent2 <- hr_trace()
   res <- quiet(gr_read_many(d, "Q?", "fast", client = cl, reader = "r6_crash", trace = parent2))
   expect_identical(res$summary$status, c("failed", "failed"))
   expect_identical(res$trace$calls, 6L)
@@ -435,7 +435,7 @@ test_that("documents in the store are restored after a run ceiling is reached", 
   r6_file("We enrolled 120 patients.", dir = src, name = "b.txt")
   r6_file("We enrolled 300 patients.", dir = src, name = "c.txt")
   fl <- gr_fields(n = gr_field("Participants", type = "integer"))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     ex <- m[[length(m)]]$content
     if (grepl("120", ex, fixed = TRUE)) return(r6_json(n = 120, n__quote = "We enrolled 120 patients."))
     if (grepl("300", ex, fixed = TRUE)) return(r6_json(n = 300, n__quote = "We enrolled 300 patients."))
@@ -461,7 +461,7 @@ test_that("documents in the store are restored after a run ceiling is reached", 
 test_that("a store entry is found from another time zone, and a same-second edit is new", {
   f <- r6_file("Revenue was 45.2 million.")
   rec <- harnessr:::as_recipe("fast")
-  cl <- gr_mock_client()
+  cl <- hr_mock_client()
   k1 <- withr::with_timezone("America/New_York", harnessr:::corpus_key(f, "q", rec, cl))
   k2 <- withr::with_timezone("UTC", harnessr:::corpus_key(f, "q", rec, cl))
   expect_identical(k1, k2)
@@ -480,10 +480,10 @@ test_that("a store entry is found from another time zone, and a same-second edit
   # End to end: a run resumed under another TZ pays for nothing. The backend's
   # model has no price, so the run has to allow that.
   local_registries()
-  gr_options(allow_unpriced = TRUE)
+  hr_options(allow_unpriced = TRUE)
   store <- withr::local_tempdir()
   calls <- 0L
-  bc <- gr_backend_client(function(m, p) { calls <<- calls + 1L; "Revenue was 51.8 million." },
+  bc <- hr_backend_client(function(m, p) { calls <<- calls + 1L; "Revenue was 51.8 million." },
                           id = "review6-tz")
   withr::with_timezone("America/New_York",
                        quiet(gr_read_many(f, "What was revenue?", "fast", client = bc, store = store)))
@@ -501,7 +501,7 @@ test_that("a store entry is found from another time zone, and a same-second edit
 
 test_that("an extraction prints its model calls and its embeddings requests apart", {
   fl <- gr_fields(n = gr_field("Participants", type = "integer"))
-  cl <- gr_mock_client(function(m, p) r6_json(n = 120, n__quote = "We enrolled 120 patients."))
+  cl <- hr_mock_client(function(m, p) r6_json(n = 120, n__quote = "We enrolled 120 patients."))
   x <- quiet(gr_extract(r6_file("We enrolled 120 patients."), fl, client = cl))
   harnessr:::embed_record(x$trace, "mock-embed", "We enrolled 120 patients.", NULL,
                          list(data = list(list(embedding = 1)), usage = list(prompt_tokens = 5L)))

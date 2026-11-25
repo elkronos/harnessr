@@ -26,7 +26,7 @@ legacy_keys_handler <- function(messages, params) {
 # A backend client with a fixed id: the id is part of the cache key, and a
 # mock client draws a new one every time it is built.
 legacy_keys_client <- function() {
-  harnessr::gr_backend_client(legacy_keys_handler, model = "gpt-4o-mini",
+  harnessr::hr_backend_client(legacy_keys_handler, model = "gpt-4o-mini",
                               id = "legacy-keys-fixture")
 }
 
@@ -34,7 +34,7 @@ legacy_keys_client <- function() {
 # a schema, a reasoning model at an effort, non-ASCII text, and one prompt
 # asked twice.
 legacy_keys_calls <- function(cl, trace = NULL) {
-  call <- function(...) harnessr::gr_call(cl, ..., trace = trace)
+  call <- function(...) harnessr::hr_call(cl, ..., trace = trace)
   list(
     call("What was revenue in 2024?"),
     call(list(list(role = "system", content = "Answer in one sentence."),

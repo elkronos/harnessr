@@ -2,7 +2,7 @@
 
 Bug reports, questions and pull requests are welcome at
 <https://github.com/elkronos/harnessr/issues>. For a bug, a short script that
-shows it with `gr_mock_client()` is the most useful thing you can send: it
+shows it with `hr_mock_client()` is the most useful thing you can send: it
 runs anywhere, with no key and no cost.
 
 ## Working on harnessr

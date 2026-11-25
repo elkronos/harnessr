@@ -13,8 +13,8 @@ skip_if_no_future <- function() {
 # after it.
 priced_mock <- function(handler, env = parent.frame()) {
   local_registries(env)
-  cl <- gr_mock_client(handler)
-  gr_register_model("mock-model", context_window = 128000, max_output = 16384,
+  cl <- hr_mock_client(handler)
+  hr_register_model("mock-model", context_window = 128000, max_output = 16384,
                     input_usd = 4, output_usd = 20)
   cl
 }
@@ -42,7 +42,7 @@ test_that("a parallel LLM segmentation stops at the limits where the sequential 
   cl <- priced_mock(bulky_decompose)
   doc <- quiet(gr_ingest(numbered_paragraphs(40)))
   seg <- function(method, par) {
-    tr <- gr_trace()
+    tr <- hr_trace()
     spec <- if (method == "proposition") {
       gr_segment_spec("proposition", max_tokens = 400, proposition_batch_tokens = 200, parallel = par)
     } else {
@@ -51,17 +51,17 @@ test_that("a parallel LLM segmentation stops at the limits where the sequential 
     ch <- quiet(gr_segment(doc, spec, client = cl, trace = tr))
     list(calls = tr$calls, stop = tr$budget_stop, reason = tr$stop_reason, n = nrow(ch$chunks))
   }
-  gr_options(workers = 2)
+  hr_options(workers = 2)
   for (method in c("proposition", "contextual")) {
     # The spending limit. Parallel used to send every batch: ten calls and
     # five times the limit, with budget_stop FALSE.
-    gr_options(max_calls = 1000, max_cost_usd = 0.02)
+    hr_options(max_calls = 1000, max_cost_usd = 0.02)
     s <- seg(method, FALSE); p <- seg(method, TRUE)
     expect_identical(p, s, info = method)
     expect_true(p$stop, info = method)
     expect_identical(p$reason, "cost", info = method)
     # The call cap.
-    gr_options(max_calls = 3, max_cost_usd = NULL)
+    hr_options(max_calls = 3, max_cost_usd = NULL)
     s <- seg(method, FALSE); p <- seg(method, TRUE)
     expect_identical(p, s, info = method)
     expect_identical(p$calls, 3L, info = method)
@@ -72,8 +72,8 @@ test_that("a parallel LLM segmentation stops at the limits where the sequential 
 test_that("a batch that could pass the call cap runs where each item is checked", {
   skip_if_no_future()
   local_registries()
-  gr_options(max_calls = 10, max_cost_usd = NULL)
-  tr <- gr_trace()
+  hr_options(max_calls = 10, max_cost_usd = NULL)
+  tr <- hr_trace()
   tr$calls <- 8L
   out <- harnessr:::gr_lapply(1:4, function(i, trace) {
     if (!harnessr:::trace_can_call(trace)) return(NA_integer_)
@@ -90,14 +90,14 @@ test_that("a batch that could pass the call cap runs where each item is checked"
 test_that("a batch that could pass the spending limit at its worst runs here", {
   skip_if_no_future()
   local_registries()
-  gr_options(max_calls = 100, max_cost_usd = 0.05)
+  hr_options(max_calls = 100, max_cost_usd = 0.05)
   spend <- function(each) function(i, trace) {
     if (!harnessr:::trace_can_call(trace)) return(NA_integer_)
     trace$calls <- trace$calls + 1L
     trace$spent_usd <- trace$spent_usd + each
     Sys.getpid()
   }
-  tr <- gr_trace()
+  tr <- hr_trace()
   out <- harnessr:::gr_lapply(1:4, spend(0.02), parallel = TRUE, workers = 2, trace = tr,
                              item_usd = 0.02)
   expect_identical(unlist(out), c(rep(Sys.getpid(), 3), NA_integer_))
@@ -106,7 +106,7 @@ test_that("a batch that could pass the spending limit at its worst runs here", {
 
   # Running here is not itself a stop: items that turn out cheap all run, and
   # the run does not claim a limit stopped it.
-  tr2 <- gr_trace()
+  tr2 <- hr_trace()
   out2 <- harnessr:::gr_lapply(1:4, spend(0.001), parallel = TRUE, workers = 2, trace = tr2,
                               item_usd = 0.02)
   expect_false(anyNA(unlist(out2)))
@@ -116,8 +116,8 @@ test_that("a batch that could pass the spending limit at its worst runs here", {
 test_that("a batch that fits every limit still goes to workers", {
   skip_if_no_future()
   local_registries()
-  gr_options(max_calls = 100, max_cost_usd = 1)
-  tr <- gr_trace()
+  hr_options(max_calls = 100, max_cost_usd = 1)
+  tr <- hr_trace()
   pids <- unlist(harnessr:::gr_lapply(1:4, function(i, trace) Sys.getpid(),
                                      parallel = TRUE, workers = 2, trace = tr, item_usd = 0.01))
   expect_true(all(pids != Sys.getpid()))
@@ -127,8 +127,8 @@ test_that("a batch that fits every limit still goes to workers", {
 test_that("a batch that passed a limit anyway is recorded as having done so", {
   skip_if_no_future()
   local_registries()
-  gr_options(max_calls = 100, max_cost_usd = 0.05)
-  tr <- gr_trace()
+  hr_options(max_calls = 100, max_cost_usd = 0.05)
+  tr <- hr_trace()
   # No item price: the caller vouched for the batch, and was wrong.
   harnessr:::gr_lapply(1:4, function(i, trace) {
     trace$calls <- trace$calls + 1L
@@ -147,10 +147,10 @@ test_that("a parallel hierarchical read stays under max_calls at every level", {
   # room for a whole batch before it sends one.
   skip_if_no_future()
   local_registries()
-  gr_options(workers = 2)
-  gr_register_model("small-ctx", context_window = 4000, max_output = 500,
+  hr_options(workers = 2)
+  hr_register_model("small-ctx", context_window = 4000, max_output = 500,
                     input_usd = 2, output_usd = 8)
-  cl <- gr_mock_client(function(m, p)
+  cl <- hr_mock_client(function(m, p)
     paste(rep("The section reports regional revenue and costs in detail.", 40), collapse = " "))
   txt <- paste(sprintf("Section %d. Revenue in region %d was %d million dollars, and costs rose.",
                        1:16, 1:16, 1:16), collapse = "\n\n")
@@ -163,24 +163,24 @@ test_that("a parallel hierarchical read stays under max_calls at every level", {
             trace = tr)
   }
   # The old two-level estimate: enough for the first two levels, not the rest.
-  gr_options(max_calls = n + ceiling(n / 2) + 3)
-  tr <- gr_trace()
+  hr_options(max_calls = n + ceiling(n / 2) + 3)
+  tr <- hr_trace()
   quiet(read_with(FALSE, tr))
-  expect_lte(tr$calls, as.integer(gr_options("max_calls")))
+  expect_lte(tr$calls, as.integer(hr_options("max_calls")))
   # In parallel the worst case is over the cap, so nothing is sent at all.
-  tr <- gr_trace()
+  tr <- hr_trace()
   expect_error(quiet(read_with(TRUE, tr)), class = "gr_call_cap")
   expect_identical(tr$calls, 0L)
 
   # With room for every level, parallel and sequential make the same calls.
-  gr_options(max_calls = 4L * n)
+  hr_options(max_calls = 4L * n)
   calls <- vapply(c(FALSE, TRUE), function(par) {
-    tr <- gr_trace()
+    tr <- hr_trace()
     quiet(read_with(par, tr))
     tr$calls
   }, integer(1))
   expect_identical(calls[2], calls[1])
-  expect_lte(calls[2], as.integer(gr_options("max_calls")))
+  expect_lte(calls[2], as.integer(hr_options("max_calls")))
 })
 
 # ---------------------------------------------------------------------------
@@ -189,7 +189,7 @@ test_that("a parallel hierarchical read stays under max_calls at every level", {
 
 test_that("an LLM segmenter run without a trace is held to the run's limits", {
   cl <- priced_mock(function(m, p) '{"propositions":["A is B.","C is D."]}')
-  gr_options(max_calls = 2, max_cost_usd = NULL)
+  hr_options(max_calls = 2, max_cost_usd = NULL)
   doc <- quiet(gr_ingest(numbered_paragraphs(40)))
   ch <- quiet(gr_segment(doc, list(method = "proposition", max_tokens = 400,
                                    proposition_batch_tokens = 200), client = cl))
@@ -203,7 +203,7 @@ test_that("an LLM segmenter run without a trace is held to the run's limits", {
 
   # The spending limit too. One request with its reply at the cap could cost
   # more than $0.001, so none is sent; one used to go out and pass it.
-  gr_options(max_calls = 1000, max_cost_usd = 0.001)
+  hr_options(max_calls = 1000, max_cost_usd = 0.001)
   cl$reset()
   ch <- quiet(gr_segment(doc, list(method = "proposition", max_tokens = 400,
                                    proposition_batch_tokens = 200), client = cl))
@@ -212,7 +212,7 @@ test_that("an LLM segmenter run without a trace is held to the run's limits", {
   expect_lte(ch$trace$spent_usd, 0.001)
 
   # A trace the caller passed is the one used, and is not copied onto the chunks.
-  tr <- gr_trace()
+  tr <- hr_trace()
   ch <- quiet(gr_segment(doc, list(method = "paragraph"), trace = tr))
   expect_null(ch$trace)
   expect_true(any(vapply(tr$steps, function(s) identical(s$label, "segment"), logical(1))))
@@ -226,11 +226,11 @@ test_that("the Shiny chunking preview applies the cost cap and does not claim to
   writeLines(numbered_paragraphs(60), file.path(dir, "long.txt"))
   withr::local_envvar(GPTREAD_DOC_ROOTS = normalizePath(dir))
   cl <- priced_mock(function(m, p) '{"propositions":["A is B.","C is D."]}')
-  gr_options(max_calls = 400, verbose = FALSE)
-  cap_before <- gr_options("max_cost_usd")
+  hr_options(max_calls = 400, verbose = FALSE)
+  cap_before <- hr_options("max_cost_usd")
   env <- new.env(parent = globalenv())
   # The app's own client needs a key and the network; the mock stands in.
-  env$gr_client <- function(model = NULL, api_key = NULL, ...) cl
+  env$hr_client <- function(model = NULL, api_key = NULL, ...) cl
   env$shinyApp <- function(ui, server, ...) server
   # The app attaches shiny; leave the search path as it was found.
   if (!"package:shiny" %in% search()) {
@@ -254,7 +254,7 @@ test_that("the Shiny chunking preview applies the cost cap and does not claim to
     expect_match(output$chunk_help, "No model calls are made")
   })
   # The field applied to the preview only.
-  expect_identical(gr_options("max_cost_usd"), cap_before)
+  expect_identical(hr_options("max_cost_usd"), cap_before)
 })
 
 # ---------------------------------------------------------------------------
@@ -328,7 +328,7 @@ test_that("a heading found inline keeps its leading number", {
 
 test_that("proposition chunks carry the document text they were written from", {
   src <- "The trial enrolled 120 patients.\n\nOutcomes improved in the treatment group."
-  cl <- gr_mock_client(function(m, p)
+  cl <- hr_mock_client(function(m, p)
     '{"propositions": ["The trial enrolled 120 patients.", "Mortality fell by 40% in the treatment arm."]}')
   ch <- quiet(gr_segment(quiet(gr_ingest(src)), list(method = "proposition", max_tokens = 200),
                          client = cl))
@@ -343,7 +343,7 @@ test_that("proposition chunks carry the document text they were written from", {
   paras <- sprintf("Paragraph %d reports that site %d enrolled %d adults over the year.",
                    1:12, 1:12, 10 * (1:12))
   k <- new.env(); k$n <- 0L
-  cl2 <- gr_mock_client(function(m, p) {
+  cl2 <- hr_mock_client(function(m, p) {
     k$n <- k$n + 1L
     sprintf('{"propositions": ["Batch %d holds a fact."]}', k$n)
   })
@@ -359,7 +359,7 @@ test_that("proposition chunks carry the document text they were written from", {
 
   # Cutting an oversized chunk to the cap keeps each piece's source.
   long <- paste(rep("The cohort was followed for five years at nine sites.", 30), collapse = " ")
-  cl3 <- gr_mock_client(function(m, p) sprintf('{"propositions": ["%s"]}', long))
+  cl3 <- hr_mock_client(function(m, p) sprintf('{"propositions": ["%s"]}', long))
   ch3 <- quiet(gr_segment(quiet(gr_ingest(src)), list(method = "proposition", max_tokens = 60),
                           client = cl3))
   expect_gt(nrow(ch3$chunks), 1L)
@@ -370,7 +370,7 @@ test_that("contextual chunks keep the context line out of their source text", {
   doc <- quiet(gr_ingest(paste("Annual report for the year.",
                                "Revenue for the year was 45.2 million dollars, up from 40.1 million.",
                                sep = "\n\n")))
-  cl <- gr_mock_client(function(m, p) "This excerpt reports that revenue rose to 52 million dollars.")
+  cl <- hr_mock_client(function(m, p) "This excerpt reports that revenue rose to 52 million dollars.")
   ch <- quiet(gr_segment(doc, list(method = "contextual", context_source = "llm", max_tokens = 400),
                          client = cl))
   expect_match(ch$chunks$text[1], "52 million", fixed = TRUE)
@@ -383,7 +383,7 @@ test_that("contextual chunks keep the context line out of their source text", {
   expect_identical(ch2$chunks$source_text[1], doc$text)
 
   # A header the model did not write leaves the chunk as the document's own.
-  dead <- gr_mock_client(function(m, p) stop("offline"))
+  dead <- hr_mock_client(function(m, p) stop("offline"))
   ch3 <- quiet(gr_segment(doc, list(method = "contextual", context_source = "llm", max_tokens = 400),
                           client = dead))
   expect_identical(ch3$chunks$text[1], doc$text)
@@ -417,8 +417,8 @@ test_that("a handler that calls a workspace helper works in parallel", {
   ))
   handler <- function(messages, params) review_seg_proxy(messages)
   environment(handler) <- globalenv()
-  cl <- gr_mock_client(handler)
-  gr_options(workers = 2)
+  cl <- hr_mock_client(handler)
+  hr_options(workers = 2)
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines(numbered_paragraphs(6), f)
   a <- quiet(answer_document(f, "What was revenue?", "thorough", client = cl,
@@ -435,8 +435,8 @@ test_that("a tokenizer that calls a workspace helper works in parallel", {
   local_workspace(list(review_seg_pieces = function(x) as.integer(ceiling(nchar(x) / 3))))
   tok <- function(x) review_seg_pieces(x)
   environment(tok) <- globalenv()
-  gr_set_tokenizer("review_seg_tok", tok)
-  gr_options(workers = 2)
+  hr_set_tokenizer("review_seg_tok", tok)
+  hr_options(workers = 2)
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines(numbered_paragraphs(6), f)
   # The parallel run aborted with 'could not find function "review_seg_pieces"'.
@@ -455,15 +455,15 @@ test_that("a replay under parallel = TRUE hands out the recording in order", {
   txt <- paste(sprintf("Paragraph %d of the annual report. In year %d revenue was %d million dollars.",
                        1:6, 2000 + 1:6, 10 * 1:6), collapse = "\n\n")
   k <- new.env(); k$n <- 0L
-  cl <- gr_mock_client(function(m, p) { k$n <- k$n + 1L; sprintf("Draw %d: revenue was %d.", k$n, k$n) })
-  gr_options(parallel = FALSE)
+  cl <- hr_mock_client(function(m, p) { k$n <- k$n + 1L; sprintf("Draw %d: revenue was %d.", k$n, k$n) })
+  hr_options(parallel = FALSE)
   rec <- quiet(gr_compare(txt, "What was revenue?", list("thorough", "thorough"), client = cl,
                           allow_duplicates = TRUE, max_tokens = 40, overlap_tokens = 0))
   f <- withr::local_tempfile(fileext = ".json")
-  gr_trace_save(rec$trace, f)
+  hr_trace_save(rec$trace, f)
 
-  gr_options(parallel = TRUE, workers = 2)
-  rp <- gr_replay_client(f)
+  hr_options(parallel = TRUE, workers = 2)
+  rp <- hr_replay_client(f)
   again <- quiet(gr_compare(txt, "What was revenue?", list("thorough", "thorough"), client = rp,
                             allow_duplicates = TRUE, max_tokens = 40, overlap_tokens = 0))
   answers <- function(x) vapply(x$answers, function(a) a$answer, character(1))
@@ -474,7 +474,7 @@ test_that("a replay under parallel = TRUE hands out the recording in order", {
   expect_identical(s$repeats, 0L)
 
   # A replay that diverges says so under parallel = TRUE too.
-  rp2 <- gr_replay_client(f, strict = FALSE)
+  rp2 <- hr_replay_client(f, strict = FALSE)
   quiet(gr_compare(gsub("revenue", "turnover", txt), "What was revenue?",
                    list("thorough", "thorough"), client = rp2,
                    allow_duplicates = TRUE, max_tokens = 40, overlap_tokens = 0))
@@ -484,25 +484,25 @@ test_that("a replay under parallel = TRUE hands out the recording in order", {
 test_that("a mock's calls and a cache's counts include what workers did", {
   skip_if_no_future()
   local_registries()
-  gr_options(workers = 2)
+  hr_options(workers = 2)
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines(numbered_paragraphs(6), f)
-  cache <- gr_cache(withr::local_tempdir())
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "Revenue was 10."), cache)
+  cache <- hr_cache(withr::local_tempdir())
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "Revenue was 10."), cache)
   a <- quiet(answer_document(f, "What was revenue?", "thorough", client = cl,
                              max_tokens = 40, parallel = TRUE))
   requests <- sum(vapply(a$trace$steps, function(s) !identical(s$kind, "local"), logical(1)))
   expect_gte(requests, 6L)
   # calls() held only the merge, and the cache counted one miss in seven.
   expect_identical(length(cl$calls()), requests)
-  expect_identical(gr_cache_stats(cache)$misses, requests)
-  expect_identical(gr_cache_stats(cache)$writes, requests)
+  expect_identical(hr_cache_stats(cache)$misses, requests)
+  expect_identical(hr_cache_stats(cache)$writes, requests)
   labels <- vapply(cl$calls(), function(x) x$label, character(1))
   expect_identical(labels, vapply(Filter(function(s) !identical(s$kind, "local"), a$trace$steps),
                                   function(s) s$label, character(1)))
 
   # The segmenters say which client they use.
-  cl2 <- gr_mock_client(function(m, p) '{"propositions": ["A is one.", "B is two."]}')
+  cl2 <- hr_mock_client(function(m, p) '{"propositions": ["A is one.", "B is two."]}')
   quiet(gr_segment(quiet(gr_ingest(numbered_paragraphs(20))),
                    list(method = "proposition", proposition_batch_tokens = 200, parallel = TRUE),
                    client = cl2))

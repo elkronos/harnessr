@@ -30,7 +30,7 @@ test_that("require_quote keeps a value whose quote stops before a superscript re
   doc <- r4_file("The cohort—482 participants in all—was followed for two years.",
                  paste("The primary outcome was all-cause mortality12 at one year,",
                        "as specified in the protocol."))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     paste0('{"n":482,"outcome":"all-cause mortality at one year",',
            '"n__quote":"482 participants in all",',
            '"outcome__quote":"The primary outcome was all-cause mortality"}')
@@ -117,7 +117,7 @@ test_that("an incomplete row does not name a recovered embeddings failure as its
     }
     stop("the request to 'bad-embed' did not return embeddings")
   })
-  gr_options(embedder = "gone-404-r4")
+  hr_options(embedder = "gone-404-r4")
   say3 <- function(s) paste(rep(s, 3), collapse = " ")
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines(paste(c(say3("We ran a randomised controlled trial of the new treatment across sites."),
@@ -127,7 +127,7 @@ test_that("an incomplete row does not name a recovered embeddings failure as its
                       n = gr_field("Number of participants", type = "integer"))
   # The excerpts holding the sample size come back as prose: failed requests
   # the trace records as successful, so its only error is the recovered one.
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("enrolled", messages[[length(messages)]]$content, fixed = TRUE)) {
       return("Sorry, I cannot help with that.")
     }
@@ -149,7 +149,7 @@ test_that("an incomplete row does not name a recovered embeddings failure as its
 test_that("extraction_table() names the first unrecovered error and never a recovered one", {
   f <- gr_fields(n = gr_field("n", type = "integer"))
   mk <- function(...) {
-    tr <- gr_trace()
+    tr <- hr_trace()
     tr$errors <- list(...)
     structure(list(answer = '{"n":null}', trace = tr,
                    notes = list(record = list(n = NULL), failed_calls = 1L, chunks = 2L),
@@ -177,7 +177,7 @@ test_that("extraction_table() names the first unrecovered error and never a reco
 r4_unstated <- function() {
   a <- r4_file("Twenty-four patients were enrolled at two sites. The trial ran for a year.")
   fl <- gr_fields(n = gr_field("Sample size", type = "integer"))
-  cl <- gr_mock_client(function(messages, params)
+  cl <- hr_mock_client(function(messages, params)
     '{"n":5000,"n__quote":"Twenty-four patients were enrolled at two sites."}')
   quiet(gr_extract(a, fl, client = cl, keep_answers = TRUE))
 }
@@ -203,7 +203,7 @@ test_that("the audit report tells a quote not found from one that does not state
   # A quote that is not in the chunk is still reported as not found.
   a <- r4_file("Twenty-four patients were enrolled at two sites. The trial ran for a year.")
   fl <- gr_fields(n = gr_field("Sample size", type = "integer"))
-  cl <- gr_mock_client(function(messages, params)
+  cl <- hr_mock_client(function(messages, params)
     '{"n":24,"n__quote":"Twenty-four people took part in the study."}')
   y <- quiet(gr_extract(a, fl, client = cl))
   expect_lt(y$evidence$match, 1)

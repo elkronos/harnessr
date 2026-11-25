@@ -12,7 +12,7 @@ honesty_extraction <- function(env = parent.frame()) {
   writeLines("This was a cohort study of 250 adults.", file.path(d, "b.txt"))
   fields <- gr_fields(design = "The study design",
                       n = gr_field("Participants", type = "integer"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                   collapse = " ")
     if (grepl("enrolled 120", seen, fixed = TRUE)) {
@@ -32,7 +32,7 @@ honesty_extraction <- function(env = parent.frame()) {
 recording_client <- function(answer) {
   sent <- new.env()
   sent$prompts <- list()
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     kind <- if (is.null(params$schema)) "text" else as.character(params$schema_name)
     sent$prompts[[length(sent$prompts) + 1L]] <- list(kind = kind, messages = messages)
     answer(kind, messages)
@@ -205,7 +205,7 @@ test_that("print() gives each claim's tally and sign test, and warns of low powe
   tab <- data.frame(document = paste0(letters[1:5], ".pdf"), status = "ok",
                     duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,
                     conflicts = NA_character_, finding = "better", stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(m, p) one_claim("[1,2,3,4,5]"))
+  cl <- hr_mock_client(function(m, p) one_claim("[1,2,3,4,5]"))
   cm <- gr_claims(tab, question = "Q?", client = cl)
   expect_equal(cm$claims$sign_p, 0.0625)
   expect_true(cm$claims$low_power)
@@ -291,13 +291,13 @@ test_that("a reconcile merge keeps claims of opposite direction or other populat
     out$.contradict <- rep(list(integer(0)), length(texts))
     out
   }
-  cl <- gr_mock_client(function(m, p) '{"groups":[[1,2,3,4]]}')
+  cl <- hr_mock_client(function(m, p) '{"groups":[[1,2,3,4]]}')
   claims <- rows(c("Exercise improves mood in adults.", "Exercise improves mood in children.",
                    "Exercise does not improve mood in adults.", "Exercise improves adult mood."),
                  list(1L, 2L, 3L, 4:5))
   got <- NULL
   expect_warning(got <- suppressMessages(ns$claims_reconcile(claims, "Q?", cl,
-                                                             gr_read_spec("stuff"), gr_trace())),
+                                                             gr_read_spec("stuff"), hr_trace())),
                  class = "gr_claims_kept_apart")
   expect_identical(nrow(got), 3L)
   sup <- lapply(got$.support, sort)
@@ -370,7 +370,7 @@ shuffle_corpus <- function() {
 }
 
 shuffle_client <- function() {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     txt <- as.character(messages[[length(messages)]]$content)
     if (identical(params$schema_name, "claim_groups")) {
       n <- length(gregexpr("(?m)^[0-9]+\\. ", txt, perl = TRUE)[[1]])
@@ -435,7 +435,7 @@ figure_table <- function() {
 }
 
 test_that("an uncited 63% in a 40-number pool is unbacked; n = 236 linked to its field is backed", {
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     paste0("Response reached 63% across the literature. The largest trial had n = 236. ",
            "Response was 63% in one trial [study 3].")
   })
@@ -460,7 +460,7 @@ test_that("an uncited 63% in a 40-number pool is unbacked; n = 236 linked to its
 })
 
 test_that("a field named for one figure does not back another in the sentence", {
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     "In the largest trial (n = 410), 57 participants dropped out."
   })
   tab <- figure_table()
@@ -494,7 +494,7 @@ test_that("the chance of a coincidental match grows with the pool and shrinks wi
 
 test_that("$uncited lists the studies the final text cites nowhere, and whether each was shown", {
   tab <- figure_table()[1:4, ]
-  cl <- gr_mock_client(function(m, p) "The largest trial had 236 people [study 1]. Another had 120 [study 2].")
+  cl <- hr_mock_client(function(m, p) "The largest trial had 236 people [study 1]. Another had 120 [study 2].")
   s <- suppressWarnings(gr_synthesise(tab, question = "Q?", outline = c(Findings = "What"),
                                       client = cl))
   expect_identical(s$uncited$study, 3:4)
@@ -534,7 +534,7 @@ test_that("gr_recheck() renders an edited text and checks its citations again", 
   tab <- data.frame(document = c("a.pdf", "b.pdf", "c.pdf"), status = "ok", n_filled = 2L,
                     n_unverified = 0L, citation = c("Smith, 2019", "Lee, 2021", "Ode, 2020"),
                     n = c(120L, 300L, 45L), stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(m, p) "One trial enrolled 120 people [study 1].")
+  cl <- hr_mock_client(function(m, p) "One trial enrolled 120 people [study 1].")
   s <- suppressWarnings(gr_synthesise(tab, question = "Q?", outline = c(Findings = "Size"),
                                       client = cl))
   expect_identical(s$cite_style, "author-year")
@@ -569,7 +569,7 @@ recheck_mood_size <- function() {
                     n_unverified = 0L, citation = c("Smith, 2019", "Lee, 2021", "Ode, 2020"),
                     finding = c("better", "better", "worse"), n = c(120L, 300L, 45L),
                     stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (identical(p$schema_name, "claim_groups")) return('{"groups":[[1],[2]]}')
     if (!is.null(p$schema) && grepl("claim", p$schema_name) &&
         !grepl("section|outline", p$schema_name)) {
@@ -628,7 +628,7 @@ test_that("gr_recheck() says shown is unknown for a synthesis saved without sect
 test_that("gr_recheck() checks figures with the style and bands the write-up used", {
   tab <- data.frame(document = c("a.pdf", "b.pdf"), status = "ok", n_filled = 1L,
                     n_unverified = 0L, n = c(120L, 300L), stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     "One trial enrolled about 130 people [study 1]. Each part ran to 250 words [study 2]."
   })
   s <- suppressWarnings(gr_synthesise(tab, question = "Q?", outline = c(Findings = "Size"),

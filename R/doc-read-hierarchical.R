@@ -15,13 +15,13 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
   summary_model <- spec$summary_model %||% spec$model
   summarise <- function(texts, level) {
     # The longest text with its summary at the cap; see map_reduce.
-    worst <- batch_item_usd(client, summary_model, max_tokens_of(gr_count_tokens(texts)) +
+    worst <- batch_item_usd(client, summary_model, max_tokens_of(hr_count_tokens(texts)) +
                               prompt_overhead(question, .gr_prompts$summarise_system, "never"),
                             spec$max_summary_tokens)
     got <- gr_lapply(seq_along(texts), function(i, trace) {
       from <- length(trace$steps)
       lab <- sprintf("hier.summarise.L%d", level)
-      r <- gr_call(client, list(
+      r <- hr_call(client, list(
         list(role = "system", content = .gr_prompts$summarise_system),
         list(role = "user", content = paste0("Question: ", question)),
         list(role = "user", content = paste0("<text>\n", texts[i], "\n</text>"))
@@ -31,8 +31,8 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
       # Not sent is not failed; see map_reduce.
       if (is_refused(r)) return(list(text = "", capped = TRUE))
       # The text summarised and the summary handed up, on the request's step.
-      trace_state(trace, from, lab, tokens_in = gr_count_tokens(texts[i]),
-                  tokens_out = if (usable_text(r)) gr_count_tokens(r$text) else 0L)
+      trace_state(trace, from, lab, tokens_in = hr_count_tokens(texts[i]),
+                  tokens_out = if (usable_text(r)) hr_count_tokens(r$text) else 0L)
       list(text = if (usable_text(r)) r$text else "", capped = FALSE,
            cut = usable_text(r) && reply_cut_off(r))
     }, parallel = spec$parallel, label = sprintf("summary L%d", level), trace = trace,
@@ -54,7 +54,7 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
   note_level <- function(current, level) {
     trace_note(trace, sprintf("hier.state.L%d", level),
                list(level = level, summaries = length(current),
-                    tokens = gr_count_tokens(paste(current, collapse = "\n\n"))))
+                    tokens = hr_count_tokens(paste(current, collapse = "\n\n"))))
   }
 
   # FALSE, not spec$cite: the merge call below asks for summaries without
@@ -62,7 +62,7 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
   # does go with it: a summary keeps the figures a contradiction rests on.
   overhead <- prompt_overhead(question, answer_system(FALSE, spec$premise), spec$restate,
                               structure = answer_structure(spec))
-  bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
+  bud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
 
   level <- 1L
   current <- count_failures(d$text, summarise(d$text, level))
@@ -75,7 +75,7 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
   }
   # Recurse until the combined summary fits, capping the depth so a model that
   # refuses to compress cannot spin forever.
-  while (gr_count_tokens(paste(current, collapse = "\n\n")) > bud$input && level < spec$max_levels) {
+  while (hr_count_tokens(paste(current, collapse = "\n\n")) > bud$input && level < spec$max_levels) {
     level <- level + 1L
     fan <- as.integer(spec$fan_in)
     groups <- split(current, ceiling(seq_along(current) / fan))
@@ -105,7 +105,7 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
   # Cutting the summaries to fit drops part of the document from the answer, the
   # same loss `stuff` reports as dropped chunks, so it is partial and not only a
   # warning.
-  truncated <- gr_count_tokens(body) > bud$input
+  truncated <- hr_count_tokens(body) > bud$input
   dropped <- 0L
   if (truncated) {
     t <- cut_piece(body, bud$input, "hier.summaries", trace, spec, "summaries", level = level)
@@ -127,7 +127,7 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
                  # when it is in them and in the document.
                  sources = body, document = reader_source_text(d))
   # A refused request adds no step, so this records nothing for it.
-  trace_state(trace, from, "hier.answer", tokens_in = gr_count_tokens(body))
+  trace_state(trace, from, "hier.answer", tokens_in = hr_count_tokens(body))
   if (usable_text(res) && reply_cut_off(res)) cut <- cut + 1L
   # Summaries handed back in place of an answer are no reply to classify.
   out <- if (usable_text(res)) premise_reply(res$text, spec$premise)

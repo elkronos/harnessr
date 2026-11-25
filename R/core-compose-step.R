@@ -229,7 +229,7 @@ print.hr_step <- function(x, ...) {
 #' @family harness
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 #' ref <- gr_qa_reference(
 #'   questions = c(revenue = "What was revenue in 2024?"),
 #'   documents = gr_example(), answers = list("45.2 million"), split = "test")
@@ -243,11 +243,11 @@ print.hr_step <- function(x, ...) {
 #'                     tidy = tidy, name = "checked")
 #' plain <- hr_chain(checked, tidy = NULL, name = "plain")
 #' names(attr(plain, "hr_steps"))
-#' old <- gr_options(verbose = FALSE)
+#' old <- hr_options(verbose = FALSE)
 #' bench <- hr_benchmark(list(checked, plain), ref, runs = 5, client = cl,
 #'                       scorer = gr_scorer_answer())
 #' table(bench$arm, bench$correct)
-#' gr_options(old)
+#' hr_options(old)
 hr_chain <- function(..., name, version = "0.0.1") {
   if (missing(name) || !is_bench_string(name)) {
     gr_abort("A chain needs `name`, one non-blank string.", class = c("hr_bad_chain", "hr_bad_arm"))

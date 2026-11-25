@@ -33,11 +33,11 @@ downloaded as \code{\link[=gr_ingest]{gr_ingest()}} downloads one.}
 
 \item{recipe}{One recipe, applied to every document.}
 
-\item{client}{A \code{gr_client}. Wrap it in \code{\link[=gr_cache_client]{gr_cache_client()}} for a long run:
+\item{client}{A \code{gr_client}. Wrap it in \code{\link[=hr_cache_client]{hr_cache_client()}} for a long run:
 with a durable cache directory, a restart pays for nothing it has already
-answered. A closure-backed client (\code{\link[=gr_backend_client]{gr_backend_client()}} or
-\code{\link[=gr_mock_client]{gr_mock_client()}}) reuses a cache or a \code{store} across sessions only if it
-was given a stable \code{id}; see \code{\link[=gr_backend_client]{gr_backend_client()}} for why.}
+answered. A closure-backed client (\code{\link[=hr_backend_client]{hr_backend_client()}} or
+\code{\link[=hr_mock_client]{hr_mock_client()}}) reuses a cache or a \code{store} across sessions only if it
+was given a stable \code{id}; see \code{\link[=hr_backend_client]{hr_backend_client()}} for why.}
 
 \item{store}{Optional directory. Each document's result is written there as
 it completes and restored on a later run instead of being read again. This
@@ -58,7 +58,7 @@ other hundred and ninety-nine.}
 \item{max_total_usd}{Stop once the run has spent this much, marking the
 remaining documents \code{"skipped"}, except any restored from \code{store}, which
 costs nothing. This is a \emph{corpus} ceiling and is separate
-from \code{gr_options(max_cost_usd =)}, which is a limit per document.
+from \code{hr_options(max_cost_usd =)}, which is a limit per document.
 It needs a model with a registered price: against one without, cost is
 \emph{unknown} rather than zero, the ceiling cannot be enforced, and you get a
 \code{gr_corpus_cost_unknown} warning instead of a silent free pass. The one
@@ -71,13 +71,13 @@ since what those documents cost in full is not known.}
 \item{max_total_calls}{Stop \emph{before} a document once the run has made this
 many requests, marking the rest \code{"skipped"}, except any restored from
 \code{store}, which makes no request. Requests are counted as
-\code{gr_options(max_calls =)} counts them: model calls and requests to an
+\code{hr_options(max_calls =)} counts them: model calls and requests to an
 embeddings endpoint alike, so a document read with \code{"needle"} through an
 API embedder spends more of it than its model calls alone, and more than
 the "model calls" a printed trace shows. The counterpart to
 \code{max_total_usd} for runs whose model has no registered price, and the only
 ceiling that bounds the run rather than each document:
-\code{gr_options(max_calls =)} is per document, so a corpus can make
+\code{hr_options(max_calls =)} is per document, so a corpus can make
 \code{length(sources)} times that many. Checked before each document, because a
 call ceiling noticed after the calls is not a ceiling. This means the run
 can overshoot by at most one document's worth, exactly as \code{max_total_usd}
@@ -89,10 +89,10 @@ runs you out of memory.}
 
 \item{recursive}{Descend into subdirectories when \code{sources} is a directory.}
 
-\item{trace}{A \code{\link[=gr_trace]{gr_trace()}} to fold this run's accounting into, so several
+\item{trace}{An \code{\link[=hr_trace]{hr_trace()}} to fold this run's accounting into, so several
 stages of one review add up to one figure. It is a \emph{parent}: this run still
 gets its own trace, which is what \verb{$trace} returns and what
-\code{gr_options(max_calls =)} is measured against. Running a stage directly on a
+\code{hr_options(max_calls =)} is measured against. Running a stage directly on a
 shared trace would charge the previous stage's calls against this one's
 ceiling. Omit it and there is no parent.}
 
@@ -177,12 +177,12 @@ those vectors ranked the chunks the reader sent (\code{retrieve}, \code{rerank},
 \code{iterative}), but not when they only placed a semantic segmenter's cuts;
 that, like a proposition batch kept as written, shows in \code{warnings}, and a
 contextual header that could not be written only in the trace's \code{errors}
-(see \code{\link[=gr_trace]{gr_trace()}}). A row that a
+(see \code{\link[=hr_trace]{hr_trace()}}). A row that a
 limit or a failed request stopped keeps \code{document_id}, \code{reader} and the chunk
 counts, since the text was read; only \code{answer} and \code{not_found} are left \code{NA}.
 A restored row keeps the numbers from when that document was first read, so
 its \code{cost_usd} is what it cost then, not what this run spent. That is why the
-run's own spend comes from \code{gr_trace_cost(x$trace)} and not from summing the
+run's own spend comes from \code{hr_trace_cost(x$trace)} and not from summing the
 column.
 }
 
@@ -200,7 +200,7 @@ has a row), so \code{subset(x$summary, is.na(duplicate_of))} is the deduplicated
 set and \code{sum(!is.na(x$summary$duplicate_of))} is the number to report as
 removed.
 
-This is about the table, not the bill: a \code{\link[=gr_cache_client]{gr_cache_client()}} already makes the
+This is about the table, not the bill: an \code{\link[=hr_cache_client]{hr_cache_client()}} already makes the
 second copy's calls free. What it could not do is stop the duplicate from
 appearing in the results as a second, independent document, which is how one
 study gets counted twice in a synthesis.
@@ -211,8 +211,8 @@ two documents here; matching those needs bibliographic metadata, not text.
 
 \section{Budgets}{
 
-Every document gets its own trace, so \code{gr_options(max_calls =)} and
-\code{gr_options(max_cost_usd =)} apply per document exactly as they would if you
+Every document gets its own trace, so \code{hr_options(max_calls =)} and
+\code{hr_options(max_cost_usd =)} apply per document exactly as they would if you
 read it alone. One enormous document therefore cannot starve the rest.
 
 That is a deliberate design and it leaves the run itself unbounded: two
@@ -230,11 +230,11 @@ parallel, and the per-worker traces the parallel helper already builds would
 carry the accounting across, so the obstacle is not the trace: it is that
 duplicate detection, the resume store and both run-level ceilings are all
 order-dependent, and a parallel loop would have to serialise on each of them. Within a document,
-\code{gr_options(parallel = TRUE)} already applies.
+\code{hr_options(parallel = TRUE)} already applies.
 }
 
 \examples{
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 
 a <- tempfile(fileext = ".txt"); writeLines("Revenue was 45.2 million.", a)
 b <- tempfile(fileext = ".txt"); writeLines("Revenue was 51.8 million.", b)
@@ -247,9 +247,9 @@ bad <- gr_read_many(c(a, "no-such-file.txt"), "What was revenue?", "fast", clien
 bad$summary[, c("document", "status", "error")]
 
 # What the run actually cost, counting only calls that were really issued.
-gr_trace_cost(out$trace)
+hr_trace_cost(out$trace)
 }
 \seealso{
-\code{\link[=answer_document]{answer_document()}}, \code{\link[=gr_compare]{gr_compare()}}, \code{\link[=gr_cache_client]{gr_cache_client()}},
-\code{\link[=gr_trace_cost]{gr_trace_cost()}}
+\code{\link[=answer_document]{answer_document()}}, \code{\link[=gr_compare]{gr_compare()}}, \code{\link[=hr_cache_client]{hr_cache_client()}},
+\code{\link[=hr_trace_cost]{hr_trace_cost()}}
 }

@@ -47,7 +47,7 @@ r3_endpoint <- function(embed_status = 200L, env = parent.frame()) {
 }
 
 r3_client <- function(embedding_model = "text-embedding-3-small") {
-  gr_client(api_key = "sk-test", base_url = "https://r3.invalid/v1", api = "chat",
+  hr_client(api_key = "sk-test", base_url = "https://r3.invalid/v1", api = "chat",
             model = "gpt-4o", embedding_model = embedding_model, max_retries = 0L)
 }
 
@@ -68,10 +68,10 @@ r3_doc <- function(n = 40L) {
 test_that("a failed embeddings request the fallback replaced is marked recovered", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   seen <- r3_endpoint(embed_status = 404L)
-  tr <- gr_trace()
-  expect_warning(e <- gr_embed(r3_client(), c("one", "two"), trace = tr),
+  tr <- hr_trace()
+  expect_warning(e <- hr_embed(r3_client(), c("one", "two"), trace = tr),
                  class = "gr_embed_fallback")
   expect_identical(seen$embed, 1L)
   expect_true(isTRUE(attr(e, "embedding_fallback")))
@@ -92,29 +92,29 @@ test_that("a failed embeddings request the fallback replaced is marked recovered
 test_that("a failure nothing recovered from is not marked", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   seen <- r3_endpoint(embed_status = 404L)
   cl <- r3_client()
 
   # fallback = "error": the caller is stopped, so the input was not embedded.
-  tr <- gr_trace()
-  expect_error(gr_embed(cl, c("one", "two"), trace = tr, fallback = "error"),
+  tr <- hr_trace()
+  expect_error(hr_embed(cl, c("one", "two"), trace = tr, fallback = "error"),
                class = "gr_embed_error")
   expect_length(tr$errors, 1L)
   expect_null(tr$errors[[1]]$recovered)
 
   # fallback = "none": an empty matrix, nothing embedded.
-  tr <- gr_trace()
-  e <- gr_embed(cl, c("one", "two"), trace = tr, fallback = "none")
+  tr <- hr_trace()
+  e <- hr_embed(cl, c("one", "two"), trace = tr, fallback = "none")
   expect_identical(dim(e), c(0L, 0L))
   expect_null(tr$errors[[1]]$recovered)
 
   # Only this call's failures: one already in the trace keeps its status.
-  tr <- gr_trace()
+  tr <- hr_trace()
   harnessr:::trace_record(tr, "map.answer", list(list(role = "user", content = "q")),
                          gr_result(FALSE, error = "HTTP 503: down", status = 503L,
                                    model = "gpt-4o"))
-  expect_warning(gr_embed(cl, c("one", "two"), trace = tr), class = "gr_embed_fallback")
+  expect_warning(hr_embed(cl, c("one", "two"), trace = tr), class = "gr_embed_fallback")
   expect_length(tr$errors, 2L)
   expect_null(tr$errors[[1]]$recovered)
   expect_true(isTRUE(tr$errors[[2]]$recovered))
@@ -123,7 +123,7 @@ test_that("a failure nothing recovered from is not marked", {
 test_that("an endpoint without embeddings no longer fails every document of a corpus", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   seen <- r3_endpoint(embed_status = 404L)
   dir <- withr::local_tempdir()
   a <- file.path(dir, "a.txt")
@@ -154,19 +154,19 @@ test_that("an endpoint without embeddings no longer fails every document of a co
 test_that("a request that failed without sending tokens costs nothing, priced or not", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   seen <- r3_endpoint(embed_status = 404L)
-  tr <- gr_trace()
+  tr <- hr_trace()
   harnessr:::trace_record(tr, "map.answer", list(list(role = "user", content = "q")),
                          gr_result(TRUE, text = "a", model = "gpt-4o",
                                    usage = list(input = 1000L, output = 10L)))
   # "bad-embed" has no registered price. The request failed, so it cost 0, and
   # the run's cost is still known row by row.
-  quiet(gr_embed(r3_client("bad-embed"), c("one", "two"), trace = tr))
+  quiet(hr_embed(r3_client("bad-embed"), c("one", "two"), trace = tr))
   df <- as.data.frame(tr)
   expect_identical(df$stage, c("map.answer", "embed.request"))
   expect_identical(df$usd[2], 0)
-  expect_equal(df$usd[1], gr_estimate_cost("gpt-4o", 1000L, 10L))
+  expect_equal(df$usd[1], hr_estimate_cost("gpt-4o", 1000L, 10L))
   # A request that did send tokens to an unpriced model is still unknown.
   harnessr:::trace_record(tr, "map.answer", list(list(role = "user", content = "q2")),
                          gr_result(TRUE, text = "a", model = "no-such-model",
@@ -177,7 +177,7 @@ test_that("a request that failed without sending tokens costs nothing, priced or
 # ---------------------------------------------------------------------------
 # cache-4: embedding tokens are counted apart from the model calls' tokens.
 # They went into trace$tokens_in, so the documented estimate,
-# gr_estimate_cost(model, tokens_in, tokens_out), priced them at the chat
+# hr_estimate_cost(model, tokens_in, tokens_out), priced them at the chat
 # model's rate: 20 to 100 times what a run that embeds cost. Before the fixes
 # they were not counted at all, and the estimate covered the model calls.
 # ---------------------------------------------------------------------------
@@ -185,22 +185,22 @@ test_that("a request that failed without sending tokens costs nothing, priced or
 test_that("embeddings requests count as calls, but their tokens stay out of tokens_in", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   seen <- r3_endpoint()
-  tr <- gr_trace()
-  e <- gr_embed(r3_client(), c("alpha beta gamma delta", "epsilon zeta"), batch_size = 1L,
+  tr <- hr_trace()
+  e <- hr_embed(r3_client(), c("alpha beta gamma delta", "epsilon zeta"), batch_size = 1L,
                 trace = tr)
   expect_identical(attr(e, "embedding_source"), "api")
   expect_identical(tr$calls, 2L)                    # the limits still see them
   expect_identical(tr$tokens_in, 0L)
   expect_identical(tr$tokens_out, 0L)
   expect_identical(tr$embed_tokens, 6L + 3L)
-  s <- gr_trace_summary(tr)
+  s <- hr_trace_summary(tr)
   expect_identical(s$embed_calls, 2L)
   expect_identical(s$embed_tokens, 9L)
   expect_identical(s$tokens_in, 0L)
   # Still priced, at the embedding model.
-  cost <- gr_trace_cost(tr)
+  cost <- hr_trace_cost(tr)
   expect_identical(cost$model, "text-embedding-3-small")
   expect_identical(cost$paid_in, 9L)
   expect_true(all(vapply(tr$steps[vapply(tr$steps, function(st) identical(st$label, "embed.request"),
@@ -211,13 +211,13 @@ test_that("embeddings requests count as calls, but their tokens stay out of toke
 test_that("the documented estimate prices a run that embeds by its model calls", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   seen <- r3_endpoint()
   ans <- quiet(answer_document(r3_doc(120L), "What was revenue?", "needle", client = r3_client()))
-  s <- gr_trace_summary(ans$trace)
+  s <- hr_trace_summary(ans$trace)
   expect_gt(s$embed_calls, 0L)
   expect_identical(s$calls, seen$chat + seen$embed)
-  cost <- gr_trace_cost(ans$trace)
+  cost <- hr_trace_cost(ans$trace)
   chat <- cost[cost$model == "gpt-4o", ]
   emb <- cost[cost$model == "text-embedding-3-small", ]
   # tokens_in and tokens_out are exactly the model calls' tokens, and
@@ -225,15 +225,15 @@ test_that("the documented estimate prices a run that embeds by its model calls",
   expect_identical(s$tokens_in, chat$paid_in)
   expect_identical(s$tokens_out, chat$paid_out)
   expect_identical(s$embed_tokens, emb$paid_in)
-  expect_equal(gr_estimate_cost("gpt-4o", s$tokens_in, s$tokens_out), chat$usd)
-  # gr_trace_cost() is still the whole bill.
+  expect_equal(hr_estimate_cost("gpt-4o", s$tokens_in, s$tokens_out), chat$usd)
+  # hr_trace_cost() is still the whole bill.
   expect_equal(sum(cost$usd), chat$usd + emb$usd)
-  expect_lt(gr_estimate_cost("gpt-4o", s$tokens_in, s$tokens_out), sum(cost$usd))
+  expect_lt(hr_estimate_cost("gpt-4o", s$tokens_in, s$tokens_out), sum(cost$usd))
 })
 
 test_that("embedding tokens survive being folded into a parent trace", {
-  parent <- gr_trace()
-  child <- gr_trace()
+  parent <- hr_trace()
+  child <- hr_trace()
   child$embed_tokens <- 40L
   child$tokens_in <- 7L
   harnessr:::trace_absorb(parent, child)
@@ -250,21 +250,21 @@ test_that("embedding tokens survive being folded into a parent trace", {
 test_that("print() lists embeddings requests apart from model calls", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   seen <- r3_endpoint(embed_status = 404L)
-  tr <- gr_trace()
+  tr <- hr_trace()
   harnessr:::trace_record(tr, "map.answer", list(list(role = "user", content = "q")),
                          gr_result(TRUE, text = "a", model = "gpt-4o",
                                    usage = list(input = 10L, output = 2L)))
   # The first request fails and the fallback takes over, so one is sent.
-  quiet(gr_embed(r3_client(), c("one", "two"), batch_size = 1L, trace = tr))
+  quiet(hr_embed(r3_client(), c("one", "two"), batch_size = 1L, trace = tr))
   out <- paste(capture.output(print(tr)), collapse = "\n")
   expect_match(out, "1 model calls, 1 embeddings request(s) (0 tokens), 10 in / 2 out tokens",
                fixed = TRUE)
   expect_match(out, "1 error(s) (1 recovered by a fallback)", fixed = TRUE)
 
   # A run that embeds nothing prints as it always did.
-  plain <- gr_trace()
+  plain <- hr_trace()
   harnessr:::trace_record(plain, "map.answer", list(list(role = "user", content = "q")),
                          gr_result(TRUE, text = "a", model = "gpt-4o",
                                    usage = list(input = 10L, output = 2L)))
@@ -339,7 +339,7 @@ test_that("an extraction's answer text keeps a 16-digit number", {
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines(c("Total assets were 12345678901234.56 dollars.", "",
                "The registry identifier is 1234567890123456."), f)
-  cl <- gr_mock_client(function(m, p) '{"assets": 12345678901234.56, "id": 1234567890123456}')
+  cl <- hr_mock_client(function(m, p) '{"assets": 12345678901234.56, "id": 1234567890123456}')
   fields <- gr_fields(assets = gr_field("Total assets", type = "number"),
                       id = gr_field("Registry identifier", type = "number"))
   x <- quiet(gr_extract(f, fields, client = cl))
@@ -354,10 +354,10 @@ test_that("an absorbed error still names the step that failed", {
   # trace_absorb() moved the child's steps after the parent's but left each
   # error's step number as it was, so the error pointed at one of the parent's
   # own steps, and trace_mark_recovered() marked that one instead.
-  parent <- gr_trace()
+  parent <- hr_trace()
   harnessr:::trace_record(parent, "first", list(list(role = "user", content = "a")),
                          harnessr:::gr_result(TRUE, text = "ok"))
-  child <- gr_trace()
+  child <- hr_trace()
   harnessr:::trace_record(child, "fails", list(list(role = "user", content = "b")),
                          harnessr:::gr_result(FALSE, error = "HTTP 500"))
   harnessr:::trace_absorb(parent, child)

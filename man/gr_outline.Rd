@@ -23,7 +23,7 @@ gr_outline(
 
 \item{question}{The review question. Taken from \code{claims} if omitted.}
 
-\item{client}{A \code{\link[=gr_client]{gr_client()}}. One is built from \code{model} if omitted.}
+\item{client}{An \code{\link[=hr_client]{hr_client()}}. One is built from \code{model} if omitted.}
 
 \item{model, temperature}{Passed to the model call.}
 
@@ -32,7 +32,7 @@ gr_outline(
 \item{closing}{The heading of the closing section, which receives gap claims
 and anything unplaced. \code{NULL} for no closing section.}
 
-\item{trace}{A \code{\link[=gr_trace]{gr_trace()}} to add this stage's calls to, or \code{NULL}. The
+\item{trace}{An \code{\link[=hr_trace]{hr_trace()}} to add this stage's calls to, or \code{NULL}. The
 calls are recorded on a trace of the stage's own, attached as
 \code{attr(, "trace")}, and folded into \code{trace} when the stage ends. The trace
 of \code{claims} is left as it was. Its requests are held to the governor of
@@ -134,7 +134,7 @@ tab <- data.frame(document = c("a.pdf", "b.pdf"), status = "ok",
                   duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,
                   conflicts = NA_character_, finding = c("supports", "contradicts"),
                   stringsAsFactors = FALSE)
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   if (grepl("<claims>", paste(unlist(messages), collapse = " "), fixed = TRUE)) {
     return(paste0('{"sections":[{"heading":"What it finds","brief":"the claims",',
                   '"claims":[1],"rationale":"one topic"}]}'))

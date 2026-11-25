@@ -29,7 +29,7 @@ gr_claims(
 \item{protocol}{A \code{\link[=gr_protocol]{gr_protocol()}}; its \code{question} is used when \code{question} is
 not given.}
 
-\item{client}{A \code{\link[=gr_client]{gr_client()}}. One is built from \code{model} if omitted.}
+\item{client}{An \code{\link[=hr_client]{hr_client()}}. One is built from \code{model} if omitted.}
 
 \item{model, temperature, max_claim_tokens}{Passed to the model call.
 \code{max_claim_tokens} is the reply limit for each call, and it also sets how
@@ -39,7 +39,7 @@ for fewer, larger batches.}
 \item{include_unclear}{Keep rows with nothing extracted. Off by default, the
 same as \code{\link[=gr_synthesise]{gr_synthesise()}}.}
 
-\item{trace}{A \code{\link[=gr_trace]{gr_trace()}} to add this stage's calls to, or \code{NULL}. The
+\item{trace}{An \code{\link[=hr_trace]{hr_trace()}} to add this stage's calls to, or \code{NULL}. The
 calls are recorded on a trace of the stage's own, returned as \verb{$trace},
 and folded into \code{trace} when the stage ends, as in \code{\link[=gr_read_many]{gr_read_many()}} and
 \code{\link[=gr_synthesise]{gr_synthesise()}}. Its requests are held to the governor of \code{trace}, if
@@ -249,7 +249,7 @@ tab <- data.frame(
   design = c("randomised trial", "cross-sectional"),
   finding = c("supports", "contradicts"), stringsAsFactors = FALSE)
 
-cl <- gr_mock_client(function(messages, params) paste0(
+cl <- hr_mock_client(function(messages, params) paste0(
   '{"claims":[{"claim":"The effect appears in trials but not in surveys.",',
   '"kind":"finding","supported_by":[1],"contradicted_by":[2],',
   '"moderator":"design","scope":"one trial, one survey"}]}'))

@@ -165,7 +165,7 @@ removed" count and every one of them still has a row; see \code{\link[=gr_read_m
 }
 
 \examples{
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   '{"decision":"include","reason":"Reports a randomised comparison.",
     "criterion":"Reports a randomised comparison",
     "quote":"We randomly assigned participants to two groups."}'

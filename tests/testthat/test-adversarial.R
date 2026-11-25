@@ -48,7 +48,7 @@ test_that("a fabricated id inside a combined marker still marks the section part
                     status = "ok", duplicate_of = NA_character_, n_filled = 1L,
                     n_unverified = 0L, conflicts = NA_character_,
                     finding = c("one", "two"), stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(m, p) "Both support it [studies 1 and 99].")
+  cl <- hr_mock_client(function(m, p) "Both support it [studies 1 and 99].")
   s <- quiet(gr_synthesise(tab, question = "Q?", outline = c(Findings = "what"),
                            client = cl, cite_style = "marker"))
   expect_identical(s$sections$n_unknown, 1L)
@@ -287,13 +287,13 @@ test_that("gr_hash() sees a name nested below the third level", {
 test_that("the temperature actually sent is part of the cache key", {
   local_registries()
   dir <- withr::local_tempdir()
-  cl <- gr_cache_client(gr_mock_client(function(m, p) sprintf("temp=%s", format(p$temperature))),
-                        gr_cache(dir))
-  old <- gr_options(temperature = 0)
-  a <- gr_call(cl, "What was revenue?")
-  gr_options(temperature = 1.9)
-  b <- gr_call(cl, "What was revenue?")
-  gr_options(old)
+  cl <- hr_cache_client(hr_mock_client(function(m, p) sprintf("temp=%s", format(p$temperature))),
+                        hr_cache(dir))
+  old <- hr_options(temperature = 0)
+  a <- hr_call(cl, "What was revenue?")
+  hr_options(temperature = 1.9)
+  b <- hr_call(cl, "What was revenue?")
+  hr_options(old)
   # A temperature sweep through one cache directory explored nothing: every
   # setting came back with the first sample's answer, marked cached.
   expect_false(isTRUE(b$cached))
@@ -308,10 +308,10 @@ test_that("the embedding endpoint is part of the embedding cache key", {
 test_that("the tokenizer is part of the corpus store key", {
   local_registries()
   rec <- gr_recipe("fast")
-  cl <- gr_mock_client(function(m, p) "x")
-  gr_set_tokenizer("chars")
+  cl <- hr_mock_client(function(m, p) "x")
+  hr_set_tokenizer("chars")
   a <- harnessr:::corpus_key("some document text", "Q?", rec, cl)
-  gr_set_tokenizer("words")
+  hr_set_tokenizer("words")
   b <- harnessr:::corpus_key("some document text", "Q?", rec, cl)
   # The tokenizer is what turns max_tokens into a chunk boundary, so the store
   # was handing back an answer built from a segmentation this run would not have
@@ -338,7 +338,7 @@ test_that("the sequential fallback for parallel = TRUE actually runs", {
   fn <- function(item, trace) item * 2
   out <- NULL
   expect_warning(out <- harnessr:::gr_lapply(list(1, 2, 3), fn, parallel = TRUE,
-                                            trace = gr_trace()),
+                                            trace = hr_trace()),
                  class = "gr_parallel_unavailable")
   expect_identical(unlist(out), c(2, 4, 6))
 })
@@ -357,7 +357,7 @@ test_that("a chunk set with a fractional median prints", {
 test_that("a setting that is not one number is named as such", {
   # `||` short-circuits on a scalar, so a length-2 value reached is.na(x) and
   # R >= 4.3 stopped with "'length = 2' in coercion to 'logical(1)'" -- naming
-  # neither the setting nor the function, from inside gr_budget().
+  # neither the setting nor the function, from inside hr_budget().
   expect_error(harnessr:::clamp(c(0.05, 0.10), 0, 1), class = "gr_bad_setting")
   expect_equal(harnessr:::clamp(0.5, 0, 1), 0.5)
   expect_equal(harnessr:::clamp(NA, 0, 1), 0)
@@ -401,14 +401,14 @@ test_that("the structural segmenter's placeholder is the one preview looks for",
 # ---------------------------------------------------------------------------
 
 test_that("a trace records finish_reason, so a replay reaches the same decision", {
-  tr <- gr_trace()
-  cl <- gr_mock_client(function(m, p)
+  tr <- hr_trace()
+  cl <- hr_mock_client(function(m, p)
     harnessr:::gr_result(TRUE, text = "a truncated revision", model = "mock-model",
                         finish_reason = "length"))
-  invisible(gr_call(cl, "write it", model = "mock-model", trace = tr))
+  invisible(hr_call(cl, "write it", model = "mock-model", trace = tr))
   expect_identical(tr$steps[[1]]$finish_reason, "length")
-  rp <- gr_replay_client(tr)
-  expect_identical(gr_call(rp, "write it", model = "mock-model")$finish_reason, "length")
+  rp <- hr_replay_client(tr)
+  expect_identical(hr_call(rp, "write it", model = "mock-model")$finish_reason, "length")
 })
 
 test_that("a file is opened even when its name contains a newline", {
@@ -448,7 +448,7 @@ test_that("a failed batch marks the section partial instead of vanishing from it
                     outcome = paste("The primary outcome improved.", strrep("more detail ", 40)),
                     stringsAsFactors = FALSE)
   nb <- 0L
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     s <- paste(vapply(m, function(x) as.character(x$content), character(1)), collapse = " ")
     if (grepl("<studies>", s, fixed = TRUE)) {
       nb <<- nb + 1L
@@ -466,7 +466,7 @@ test_that("a failed batch marks the section partial instead of vanishing from it
 # ---------------------------------------------------------------------------
 # The prompt budget and the prompt that is actually sent had drifted apart.
 #
-# Every reader sizes its excerpts against `gr_budget(overhead = ...)`. Three
+# Every reader sizes its excerpts against `hr_budget(overhead = ...)`. Three
 # separate things were added to the prompts after that arithmetic was written --
 # the tail restatement, the iterative step's extra system block, and the cited
 # variant of the answer system prompt -- and none of them was added to the
@@ -483,7 +483,7 @@ test_that("prompt_overhead() counts the question twice unless restatement is off
   sys <- "system"
   once <- harnessr:::prompt_overhead(q, sys, "never")
   twice <- harnessr:::prompt_overhead(q, sys, "auto")
-  expect_equal(twice - once, gr_count_tokens(q))
+  expect_equal(twice - once, hr_count_tokens(q))
   expect_equal(harnessr:::prompt_overhead(q, sys, "always"), twice)
   # The default is the safe direction: over-reserving costs a little context,
   # under-reserving cost the whole answer.
@@ -493,9 +493,9 @@ test_that("prompt_overhead() counts the question twice unless restatement is off
 test_that("restate = 'auto' still leaves room for the call it is going to make", {
   # Reproduction: with a long question and a model whose window the run nearly
   # fills, the body was fitted to bud$input and answer_messages() then prepended
-  # the question again. gr_call() refused to dispatch and the reader returned
+  # the question again. hr_call() refused to dispatch and the reader returned
   # NOT_IN_DOCUMENT with nothing in it but notes$error -- on the DEFAULT setting.
-  gr_register_model("restate-ctx", context_window = 3000L, max_output = 200L,
+  hr_register_model("restate-ctx", context_window = 3000L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
   doc <- gr_ingest(paste(vapply(1:60, function(i)
     paste(rep(sprintf("para %d words", i), 20), collapse = " "), character(1)),
@@ -516,8 +516,8 @@ test_that("the budget uses the system prompt the call actually sends", {
   # answer_messages(cite = TRUE) sends answer_system_cited, which is longer than
   # answer_system. Budgeting against the short one understated the overhead by
   # the difference on every cited read.
-  expect_gt(gr_count_tokens(harnessr:::answer_system(TRUE)),
-            gr_count_tokens(harnessr:::answer_system(FALSE)))
+  expect_gt(hr_count_tokens(harnessr:::answer_system(TRUE)),
+            hr_count_tokens(harnessr:::answer_system(FALSE)))
   msgs <- harnessr:::answer_messages("Q?", "body", cite = TRUE)
   expect_identical(msgs[[1]]$content, harnessr:::answer_system(TRUE))
   msgs <- harnessr:::answer_messages("Q?", "body", cite = FALSE)
@@ -541,13 +541,13 @@ test_that("the budget uses the system prompt the call actually sends", {
 test_that("the iterative step budgets for the system prompt it sends", {
   # The step call sends answer_system PLUS an iterative instruction block. The
   # overhead counted only the first, so the excerpts were sized to fill the gap.
-  gr_register_model("iter-ctx", context_window = 2000L, max_output = 300L,
+  hr_register_model("iter-ctx", context_window = 2000L, max_output = 300L,
                     input_usd = 0, output_usd = 0)
   doc <- gr_ingest(paste(vapply(1:12, function(i)
     paste(rep(sprintf("paragraph %d topic %d", i, i), 12), collapse = " "), character(1)),
     collapse = "\n\n"))
   ch <- quiet(gr_segment(doc, list(method = "paragraph", max_tokens = 60)))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("reading iteratively", messages[[1]]$content, fixed = TRUE)) {
       return('{"can_answer": true, "answer": "FOUND IT", "next_query": ""}')
     }
@@ -557,11 +557,11 @@ test_that("the iterative step budgets for the system prompt it sends", {
                                                  max_rounds = 2L, top_k = 3L)))
   step <- Filter(function(c) identical(c$label, "iterative.step"), cl$calls())
   expect_gt(length(step), 0L)
-  sent <- gr_count_tokens(paste(vapply(step[[1]]$messages,
+  sent <- hr_count_tokens(paste(vapply(step[[1]]$messages,
                                        function(m) as.character(m$content), character(1)),
                                 collapse = "\n"))
-  room <- gr_budget("iter-ctx", reserve_output = 1500L)$context_window
-  expect_lt(sent + 300L, floor(room * (1 - gr_options("safety_margin"))))
+  room <- hr_budget("iter-ctx", reserve_output = 1500L)$context_window
+  expect_lt(sent + 300L, floor(room * (1 - hr_options("safety_margin"))))
   # And the guarantee itself, which is a source-shape one because the defect was
   # source drift: the string is built once and used for BOTH the budget and the
   # call, so the two cannot describe different prompts.
@@ -574,13 +574,13 @@ test_that("iterative does not answer from an empty excerpt block", {
   # Nothing gathered fit one prompt, the call went out with
   # <excerpts></excerpts>, and the model answered from its own prior -- which
   # came back as the document's answer, can_answer true, chunks_used empty.
-  gr_register_model("micro-ctx", context_window = 600L, max_output = 400L,
+  hr_register_model("micro-ctx", context_window = 600L, max_output = 400L,
                     input_usd = 0, output_usd = 0)
   doc <- gr_ingest(paste(vapply(1:6, function(i)
     paste(rep(sprintf("paragraph %d content words here", i), 60), collapse = " "),
     character(1)), collapse = "\n\n"))
   ch <- quiet(gr_segment(doc, list(method = "paragraph", max_tokens = 300)))
-  cl <- gr_mock_client(function(messages, params)
+  cl <- hr_mock_client(function(messages, params)
     '{"can_answer": true, "answer": "ANSWER FROM THE MODEL PRIOR", "next_query": ""}')
   ans <- quiet(gr_read(ch, "What is paragraph 3 about?", cl,
                        list(reader = "iterative", model = "micro-ctx",
@@ -595,7 +595,7 @@ test_that("the synthesis section budgets for its own tail restatement", {
   # reach it -- and its tokens were not in the overhead either, so the studies
   # were fitted to a budget the tail then overran.
   expect_equal(length(formals(harnessr:::restate_tail)), 3L)
-  gr_register_model("sec-ctx", context_window = 2600L, max_output = 300L,
+  hr_register_model("sec-ctx", context_window = 2600L, max_output = 300L,
                     input_usd = 0, output_usd = 0)
   used <- data.frame(study = 1:40,
                      document = paste0("d", 1:40, ".pdf"),
@@ -605,18 +605,18 @@ test_that("the synthesis section budgets for its own tail restatement", {
                      finding = paste("a reasonably wordy finding sentence number", 1:40),
                      stringsAsFactors = FALSE)
   rendered <- harnessr:::render_studies(used)
-  usable <- floor(2600 * (1 - gr_options("safety_margin")))
+  usable <- floor(2600 * (1 - hr_options("safety_margin")))
   tails <- list()
   for (rs in c("always", "never")) {
     cl <- mock_echo("Something [study 1].")
     quiet(harnessr:::synth_section(
       "Findings", "what the evidence supports", "Does it work?", rendered, used, cl,
       gr_read_spec("stuff", model = "sec-ctx", max_answer_tokens = 300L, restate = rs),
-      gr_trace()))
+      hr_trace()))
     calls <- cl$calls()
     expect_gt(length(calls), 0L)
     for (cc in calls) {
-      sent <- gr_count_tokens(paste(vapply(cc$messages, function(m) as.character(m$content),
+      sent <- hr_count_tokens(paste(vapply(cc$messages, function(m) as.character(m$content),
                                            character(1)), collapse = "\n"))
       expect_lt(sent + 300L, usable, label = paste("restate =", rs))
     }
@@ -670,15 +670,15 @@ corpus_dir <- function(n = 5L, paras = 8L, env = parent.frame()) {
 }
 
 test_that("a corpus run can be capped, not only each document in it", {
-  # `gr_options(max_calls =)` is per document by design. That left the RUN
+  # `hr_options(max_calls =)` is per document by design. That left the RUN
   # unbounded: five documents under a 30-call ceiling made 125 calls, and the
   # only corpus ceiling, max_total_usd, is unenforceable against a model with no
   # registered price and is checked only after a document has been paid for.
   d <- corpus_dir()
   withr::local_options(list())
-  old <- gr_options("max_calls")
-  on.exit(gr_options(max_calls = old), add = TRUE)
-  gr_options(max_calls = 30L)
+  old <- hr_options("max_calls")
+  on.exit(hr_options(max_calls = old), add = TRUE)
+  hr_options(max_calls = 30L)
 
   cl <- mock_echo("An answer [chunk 1].")
   free <- quiet(gr_read_many(d, "What was revenue?", client = cl, recipe = "fast",
@@ -702,16 +702,16 @@ test_that("a corpus run can be capped, not only each document in it", {
 })
 
 test_that("gr_synthesise() stops at the run's ceiling like every other stage", {
-  # One gr_call() per section, neither guarded by trace_can_call(). A run that
+  # One hr_call() per section, neither guarded by trace_can_call(). A run that
   # had already spent its ceiling kept writing sections, one call each, while
   # gr_claims() beside it stopped at the first.
   tab <- data.frame(document = paste0(letters[1:3], ".pdf"), document_id = paste0("h", 1:3),
                     status = "ok", duplicate_of = NA_character_, n_filled = 1L,
                     n_unverified = 0L, conflicts = NA_character_,
                     finding = c("up", "down", "flat"), stringsAsFactors = FALSE)
-  old <- gr_options("max_calls")
-  on.exit(gr_options(max_calls = old), add = TRUE)
-  gr_options(max_calls = 1L)
+  old <- hr_options("max_calls")
+  on.exit(hr_options(max_calls = old), add = TRUE)
+  hr_options(max_calls = 1L)
 
   cl <- mock_echo("Something [study 1].")
   sy <- quiet(gr_synthesise(tab, question = "Q?", client = cl,
@@ -722,7 +722,7 @@ test_that("gr_synthesise() stops at the run's ceiling like every other stage", {
   # prose somebody might paste into a manuscript.
   expect_equal(sum(sy$sections$partial), 2L)
 
-  gr_options(max_calls = 1L)
+  hr_options(max_calls = 1L)
   cl2 <- mock_echo("Something [study 1].")
   expect_warning(suppressMessages(gr_synthesise(tab, question = "Q?", client = cl2,
                                                 outline = c(A = "first", B = "second"))),
@@ -730,7 +730,7 @@ test_that("gr_synthesise() stops at the run's ceiling like every other stage", {
 
   # Once per run, not once per section. Twelve identical warnings is how a real
   # one gets skimmed past, and the corpus ceiling beside it already warns once.
-  gr_options(max_calls = 0L)
+  hr_options(max_calls = 0L)
   seen <- character(0)
   withCallingHandlers(
     suppressMessages(gr_synthesise(tab, question = "Q?", client = mock_echo(),
@@ -743,7 +743,7 @@ test_that("gr_synthesise() stops at the run's ceiling like every other stage", {
   # them in batches and merges, and each of those calls has to be checked as
   # well. Only the single-prompt branch was guarded at first, so a big section
   # went on spending after the ceiling while a small one stopped.
-  gr_register_model("synth-tiny", context_window = 1400L, max_output = 400L,
+  hr_register_model("synth-tiny", context_window = 1400L, max_output = 400L,
                     input_usd = 0, output_usd = 0)
   n <- 120L
   big <- data.frame(document = paste0("d", seq_len(n), ".pdf"),
@@ -752,7 +752,7 @@ test_that("gr_synthesise() stops at the run's ceiling like every other stage", {
                     conflicts = NA_character_,
                     finding = paste("a reasonably wordy finding sentence number", seq_len(n)),
                     stringsAsFactors = FALSE)
-  gr_options(max_calls = 400L)
+  hr_options(max_calls = 400L)
   cl3 <- mock_echo("Something [study 1].")
   quiet(gr_synthesise(big, question = "Q?", client = cl3, model = "synth-tiny",
                       max_section_tokens = 200L, outline = c(A = "first")))
@@ -760,7 +760,7 @@ test_that("gr_synthesise() stops at the run's ceiling like every other stage", {
   expect_true(any(labs == "synthesise.batch"))   # the fixture really does batch
   expect_gt(length(cl3$calls()), 2L)
 
-  gr_options(max_calls = 2L)
+  hr_options(max_calls = 2L)
   cl4 <- mock_echo("Something [study 1].")
   quiet(gr_synthesise(big, question = "Q?", client = cl4, model = "synth-tiny",
                       max_section_tokens = 200L, outline = c(A = "first")))
@@ -770,7 +770,7 @@ test_that("gr_synthesise() stops at the run's ceiling like every other stage", {
   # from failed ones for the MESSAGE removed the only thing that set `partial`,
   # so a section that silently dropped a quarter of the corpus read as complete
   # while the warning said it had been marked partial.
-  gr_options(max_calls = 3L)
+  hr_options(max_calls = 3L)
   sy2 <- quiet(gr_synthesise(big, question = "Q?", client = mock_echo("Something [study 1]."),
                              model = "synth-tiny", max_section_tokens = 200L,
                              outline = c(A = "first", B = "second")))
@@ -781,7 +781,7 @@ test_that("gr_synthesise() stops at the run's ceiling like every other stage", {
   # tripped the ceiling suppressed the warning for every section after it and
   # those sections came back empty in silence.
   for (mc in 3:5) {
-    gr_options(max_calls = mc)
+    hr_options(max_calls = mc)
     seen2 <- character(0)
     withCallingHandlers(
       suppressMessages(gr_synthesise(big, question = "Q?", client = mock_echo("Something [study 1]."),
@@ -838,7 +838,7 @@ test_that("the search travels with the corpus it produced", {
   recs <- quiet(gr_records(ris, files = f, search = gr_search(
     databases = c(Scopus = "spaced practice AND retention"), dates = "2026-01-05")))
 
-  cl <- gr_mock_client(function(messages, params)
+  cl <- hr_mock_client(function(messages, params)
     '{"decision":"include","reason":"A trial.","criterion":"c","quote":null}')
   sc <- quiet(gr_screen(recs, question = "Q?", include = "c", client = cl))
   expect_s3_class(sc$records, "gr_records")
@@ -853,7 +853,7 @@ test_that("the search travels with the corpus it produced", {
   # passing the screening object itself is what does. An attribute on `included`
   # would have worked too and was rejected: print(screened$included) would then
   # dump the whole record set under a list of file paths.
-  ex <- gr_mock_client(function(messages, params)
+  ex <- hr_mock_client(function(messages, params)
     '{"n":482,"n__quote":"A randomised trial of 482 adults found a benefit."}')
   expect_null(quiet(gr_extract(sc$included, gr_fields(n = gr_field("N", type = "number")),
                                goal = "Q?", client = ex))$records)
@@ -869,7 +869,7 @@ test_that("the search travels with the corpus it produced", {
   expect_identical(sc$included, as.character(sc$included))
   expect_length(capture.output(print(sc$included)), 1L)
   expect_null(attributes(sc$included))
-  corp <- quiet(gr_read_many(recs, "Q?", client = gr_mock_client(function(messages, params) "x"),
+  corp <- quiet(gr_read_many(recs, "Q?", client = hr_mock_client(function(messages, params) "x"),
                              recipe = "fast"))
   expect_null(attributes(corp$sources))
   expect_length(capture.output(print(corp$sources)), 1L)
@@ -913,7 +913,7 @@ test_that("a shared trace accumulates the review without becoming its budget", {
 
   d <- withr::local_tempdir()
   writeLines("A randomised trial of 412 adults found mortality fell.", file.path(d, "a.txt"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("screen", sys, ignore.case = TRUE)) {
       return('{"decision":"include","reason":"r","criterion":"c","quote":null}')
@@ -924,7 +924,7 @@ test_that("a shared trace accumulates the review without becoming its budget", {
     }
     '{"n":412,"n__quote":"A randomised trial of 412 adults found mortality fell."}'
   })
-  tr <- gr_trace(meta = list(review = "one"))
+  tr <- hr_trace(meta = list(review = "one"))
   sc <- quiet(gr_screen(d, question = "Q?", include = "c", client = cl, trace = tr))
   x <- quiet(gr_extract(sc$included, gr_fields(n = gr_field("Participants", type = "number")),
                         goal = "Q?", client = cl, trace = tr))
@@ -944,14 +944,14 @@ test_that("a shared trace accumulates the review without becoming its budget", {
 
   # The defect this arrangement exists to prevent: a ceiling already spent by an
   # earlier stage must not silently blank the write-up.
-  old <- gr_options("max_calls")
-  on.exit(gr_options(max_calls = old), add = TRUE)
-  gr_options(max_calls = 3L)
+  old <- hr_options("max_calls")
+  on.exit(hr_options(max_calls = old), add = TRUE)
+  hr_options(max_calls = 3L)
   tab <- data.frame(document = paste0(letters[1:3], ".pdf"), document_id = paste0("h", 1:3),
                     status = "ok", duplicate_of = NA_character_, n_filled = 1L,
                     n_unverified = 0L, conflicts = NA_character_,
                     finding = c("up", "down", "flat"), stringsAsFactors = FALSE)
-  tr2 <- gr_trace()
+  tr2 <- hr_trace()
   quiet(gr_screen(d, question = "Q?", include = "c", client = cl, trace = tr2))
   expect_gte(tr2$calls, 1L)
   sy <- quiet(gr_synthesise(tab, question = "Q?", client = cl, trace = tr2,
@@ -976,12 +976,12 @@ test_that("a parent trace keeps what a run spent before it aborted", {
              file.path(d, "b.txt"))
   writeLines(paste(rep("Huge doc three about revenue and many other things.", 4000),
                    collapse = " "), file.path(d, "c.txt"))
-  old <- gr_options("max_cost_usd")
-  on.exit(gr_options(max_cost_usd = old), add = TRUE)
-  gr_options(max_cost_usd = 0.05)
+  old <- hr_options("max_cost_usd")
+  on.exit(hr_options(max_cost_usd = old), add = TRUE)
+  hr_options(max_cost_usd = 0.05)
 
   cl <- mock_echo("An answer [chunk 1].")
-  tr <- gr_trace()
+  tr <- hr_trace()
   # A priced model, named: a recipe without one reads with the client's, and
   # the mock's own model costs nothing.
   expect_error(quiet(gr_read_many(sort(list.files(d, full.names = TRUE)), "Q?", client = cl,
@@ -1026,10 +1026,10 @@ test_that("a trace or a ceiling that cannot be compared is refused, not ignored"
                                   max_total_calls = 1e10)), NA)
   # Inf is a legitimate way to say "no ceiling", and saying it that way must not
   # cost the notice that the run is uncapped. The notice is a message, and
-  # messages follow gr_options(verbose): set here, so the test does not pass or
+  # messages follow hr_options(verbose): set here, so the test does not pass or
   # fail on the session's setting -- CI runs the suite with it off.
-  old_v <- gr_options(verbose = TRUE)
-  on.exit(gr_options(old_v), add = TRUE)
+  old_v <- hr_options(verbose = TRUE)
+  on.exit(hr_options(old_v), add = TRUE)
   msgs <- character(0)
   withCallingHandlers(
     suppressWarnings(gr_read_many(d, "Q?", client = mock_echo(), recipe = "fast",
@@ -1047,7 +1047,7 @@ test_that("how good the screening is reaches the report", {
   writeLines("A randomised trial of 412 adults found mortality fell.", file.path(d, "a.txt"))
   writeLines("A survey of 60 adults found no change.", file.path(d, "b.txt"))
   writeLines("A randomised trial of 900 adults found mortality fell.", file.path(d, "c.txt"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                   collapse = " ")
     if (grepl("survey", seen, fixed = TRUE)) {
@@ -1089,7 +1089,7 @@ test_that("rerank does not answer from a prompt full of [chunk NA]", {
                          "We fitted a mixed-effects model with site as an intercept."), 120),
                collapse = "\n\n")
   sent <- new.env(parent = emptyenv())
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("Rate how useful", messages[[1]]$content, fixed = TRUE)) {
       return('{"score": "high", "reason": "r"}')
     }
@@ -1108,7 +1108,7 @@ test_that("rerank does not answer from a prompt full of [chunk NA]", {
   # comparison at all, so a mixed reply is what exercises the guard.
   first <- new.env(parent = emptyenv()); first$n <- 0L
   sent2 <- new.env(parent = emptyenv())
-  cl3 <- gr_mock_client(function(messages, params) {
+  cl3 <- hr_mock_client(function(messages, params) {
     if (grepl("Rate how useful", messages[[1]]$content, fixed = TRUE)) {
       first$n <- first$n + 1L
       return(if (first$n == 1L) '{"score": 9, "reason": "r"}' else '{"score": "high", "reason": "r"}')
@@ -1124,7 +1124,7 @@ test_that("rerank does not answer from a prompt full of [chunk NA]", {
   # Two more shapes of the same reply that used to crash rather than degrade.
   ch <- quiet(gr_segment(quiet(gr_ingest(doc)), list(method = "paragraph", max_tokens = 200)))
   for (reply in c('{"score":[8,9],"reason":"r"}', '{"score":{"v":8},"reason":"r"}')) {
-    cl2 <- gr_mock_client(function(messages, params) {
+    cl2 <- hr_mock_client(function(messages, params) {
       if (grepl("Rate how useful", messages[[1]]$content, fixed = TRUE)) return(reply)
       "ANSWER"
     })
@@ -1143,7 +1143,7 @@ test_that("a model reply is read by exact key, never by prefix", {
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines(paste(rep("The cohort comprised 482 participants across nine sites.", 60),
                    collapse = " "), f)
-  cl <- gr_mock_client(function(messages, params)
+  cl <- hr_mock_client(function(messages, params)
     '{"decisions":"include","reasoning":"r","criterions":"c","quotes":"x"}')
   s <- quiet(gr_screen(f, question = "q?", include = "Any study", client = cl))
   expect_false(identical(as.character(s$table$decision), "include"))
@@ -1151,7 +1151,7 @@ test_that("a model reply is read by exact key, never by prefix", {
 
   ch <- quiet(gr_segment(quiet(gr_ingest(paste(rep("Topic sentence here.", 80), collapse = " "))),
                          list(method = "sentence", max_tokens = 60)))
-  cl2 <- gr_mock_client(function(messages, params) {
+  cl2 <- hr_mock_client(function(messages, params) {
     if (grepl("reading iteratively", messages[[1]]$content, fixed = TRUE)) {
       return('{"can_answer_now": true, "answers": "Yes it was.", "next_query": ""}')
     }
@@ -1190,11 +1190,11 @@ test_that("a proposition list keeps its order whatever shape it arrived in", {
   # of arrays now breaks the schema (items are strings), so the batch is kept
   # as written, in its own order, as any batch with no usable reply is.
   for (j in shapes) {
-    cl <- gr_mock_client(function(messages, params) j)
+    cl <- hr_mock_client(function(messages, params) j)
     cs <- quiet(gr_segment(quiet(gr_ingest(src)), list(method = "proposition"), client = cl))
     expect_equal(flat(cs), if (grepl("[[", j, fixed = TRUE)) src else "A1. A2. B1. B2.", info = j)
   }
-  cl <- gr_mock_client(function(messages, params)
+  cl <- hr_mock_client(function(messages, params)
     '{"propositions":[{"text":"A1."},{"text":"A2."}]}')
   cs <- quiet(gr_segment(quiet(gr_ingest(src)), list(method = "proposition"), client = cl))
   expect_false(any(grepl("c(\"", cs$chunks$text, fixed = TRUE)))
@@ -1209,7 +1209,7 @@ test_that("a plan or a claim list that omits a required key degrades, not crashe
   # as.integer() on a LIST column is an error, not a warning, so
   # suppressWarnings() did not catch it and the preview reader crashed instead of
   # taking its documented "read everything" path.
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("You plan how to read", messages[[1]]$content, fixed = TRUE)) {
       return('{"sections":[{"id":[1,2],"treatment":"skip","reason":"r"}]}')
     }
@@ -1225,7 +1225,7 @@ test_that("a plan or a claim list that omits a required key degrades, not crashe
                     duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,
                     conflicts = NA_character_, finding = c("x", "y"),
                     stringsAsFactors = FALSE)
-  noclaim <- gr_mock_client(function(messages, params)
+  noclaim <- hr_mock_client(function(messages, params)
     '{"claims":[{"kind":"finding","supported_by":[1]},{"kind":"finding","supported_by":[2]}]}')
   cm <- quiet(gr_claims(tab, question = "Q?", client = noclaim))
   expect_equal(nrow(cm$claims), 0L)
@@ -1238,18 +1238,18 @@ test_that("a plan or a claim list that omits a required key degrades, not crashe
 })
 
 test_that("a limit that cannot be compared is refused where it is set", {
-  # gr_options() validated NAMES only. Every consumer then invented its own
+  # hr_options() validated NAMES only. Every consumer then invented its own
   # opinion of a bad value and the opinions pointed the wrong way:
   # is.finite(max_cost_usd) as a guard meant NA, or a value read from a config
   # file as text, silently removed the cost cap -- $710 against a $5 ceiling.
   # trace_can_call() did the same for max_calls and DISAGREED with preflight(),
   # which parsed a character cap and enforced it: one option, two answers.
-  old <- gr_options(max_cost_usd = 5, max_calls = 400L, safety_margin = 0.1,
+  old <- hr_options(max_cost_usd = 5, max_calls = 400L, safety_margin = 0.1,
                     min_output_tokens = 256L, workers = 4L, temperature = NULL)
-  on.exit(gr_options(old), add = TRUE)
+  on.exit(hr_options(old), add = TRUE)
   for (bad in list(NA, "5", c(1, 2), -1, list(1))) {
-    expect_error(gr_options(max_cost_usd = bad), class = "gr_bad_option")
-    expect_error(gr_options(max_calls = bad), class = "gr_bad_option")
+    expect_error(hr_options(max_cost_usd = bad), class = "gr_bad_option")
+    expect_error(hr_options(max_calls = bad), class = "gr_bad_option")
   }
   # A CEILING refuses what it cannot compare, because ignoring it spends money.
   # A TUNING knob is different: every value it can hold is safe, so an unusable
@@ -1257,60 +1257,60 @@ test_that("a limit that cannot be compared is refused where it is set", {
   # clamped into range -- the cost of refusing is a crashed script over a retry
   # count. "As it was", not the package default: from 0.3, a stray NA dropping
   # the margin to 0.1 pushes every input budget up.
-  gr_options(safety_margin = 0.3, min_output_tokens = 512L, workers = 8L)
+  hr_options(safety_margin = 0.3, min_output_tokens = 512L, workers = 8L)
   for (bad in list(NA, "x", c(1, 2))) {
-    expect_warning(gr_options(safety_margin = bad), class = "gr_bad_option")
-    expect_equal(gr_options("safety_margin"), 0.3)
-    expect_warning(gr_options(min_output_tokens = bad), class = "gr_bad_option")
-    expect_equal(gr_options("min_output_tokens"), 512)
-    expect_warning(gr_options(workers = bad), class = "gr_bad_option")
-    expect_equal(gr_options("workers"), 8)
+    expect_warning(hr_options(safety_margin = bad), class = "gr_bad_option")
+    expect_equal(hr_options("safety_margin"), 0.3)
+    expect_warning(hr_options(min_output_tokens = bad), class = "gr_bad_option")
+    expect_equal(hr_options("min_output_tokens"), 512)
+    expect_warning(hr_options(workers = bad), class = "gr_bad_option")
+    expect_equal(hr_options("workers"), 8)
   }
-  # A number written as text is that number, as it is for gr_budget().
-  expect_no_warning(gr_options(safety_margin = "0.2"))
-  expect_equal(gr_options("safety_margin"), 0.2)
-  expect_warning(gr_options(safety_margin = -1), class = "gr_bad_option")
-  expect_equal(gr_options("safety_margin"), 0)
-  expect_warning(gr_options(safety_margin = Inf), class = "gr_bad_option")
-  expect_equal(gr_options("safety_margin"), 0.5)
+  # A number written as text is that number, as it is for hr_budget().
+  expect_no_warning(hr_options(safety_margin = "0.2"))
+  expect_equal(hr_options("safety_margin"), 0.2)
+  expect_warning(hr_options(safety_margin = -1), class = "gr_bad_option")
+  expect_equal(hr_options("safety_margin"), 0)
+  expect_warning(hr_options(safety_margin = Inf), class = "gr_bad_option")
+  expect_equal(hr_options("safety_margin"), 0.5)
   # The range is the one the code that reads the option clamps to, so the
   # warning's "using N" is the value actually used.
-  expect_warning(gr_options(workers = 2000), "using 32", class = "gr_bad_option")
-  expect_equal(gr_options("workers"), 32)
-  old_r <- gr_options()[c("max_retries", "retry_pause_base", "request_timeout")]
-  on.exit(gr_options(old_r), add = TRUE)
-  expect_warning(gr_options(max_retries = 50), "using 10", class = "gr_bad_option")
-  expect_equal(gr_options("max_retries"), 10)
-  expect_identical(gr_client(api_key = "k")$max_retries, 10L)
-  expect_warning(gr_options(retry_pause_base = 700), "using 60\\.", class = "gr_bad_option")
-  expect_equal(gr_options("retry_pause_base"), 60)
-  expect_equal(gr_client(api_key = "k")$retry_pause_base, 60)
-  expect_warning(gr_options(request_timeout = 1e5), "using 3600", class = "gr_bad_option")
-  expect_equal(gr_client(api_key = "k")$timeout, 3600)
-  expect_warning(gr_options(min_output_tokens = -1), "using 0", class = "gr_bad_option")
-  expect_equal(gr_options("min_output_tokens"), 0)
-  gr_options(old_r)
+  expect_warning(hr_options(workers = 2000), "using 32", class = "gr_bad_option")
+  expect_equal(hr_options("workers"), 32)
+  old_r <- hr_options()[c("max_retries", "retry_pause_base", "request_timeout")]
+  on.exit(hr_options(old_r), add = TRUE)
+  expect_warning(hr_options(max_retries = 50), "using 10", class = "gr_bad_option")
+  expect_equal(hr_options("max_retries"), 10)
+  expect_identical(hr_client(api_key = "k")$max_retries, 10L)
+  expect_warning(hr_options(retry_pause_base = 700), "using 60\\.", class = "gr_bad_option")
+  expect_equal(hr_options("retry_pause_base"), 60)
+  expect_equal(hr_client(api_key = "k")$retry_pause_base, 60)
+  expect_warning(hr_options(request_timeout = 1e5), "using 3600", class = "gr_bad_option")
+  expect_equal(hr_client(api_key = "k")$timeout, 3600)
+  expect_warning(hr_options(min_output_tokens = -1), "using 0", class = "gr_bad_option")
+  expect_equal(hr_options("min_output_tokens"), 0)
+  hr_options(old_r)
   # Inf is "no limit" only for a ceiling. For temperature it went on the wire
   # as "temperature":"Inf".
-  expect_warning(gr_options(temperature = Inf), class = "gr_bad_option")
-  expect_equal(gr_options("temperature"), 2)
-  gr_options(temperature = NULL)
-  expect_null(gr_options("temperature"))
+  expect_warning(hr_options(temperature = Inf), class = "gr_bad_option")
+  expect_equal(hr_options("temperature"), 2)
+  hr_options(temperature = NULL)
+  expect_null(hr_options("temperature"))
   # And an in-range whole number is not reported as out of range because it
   # arrived as an integer: max(4L, 1) is a double, and identical(4, 4L) is FALSE.
-  expect_no_warning(gr_options(workers = 4L, max_retries = 3L, min_output_tokens = 512L))
-  gr_options(safety_margin = 0.1, min_output_tokens = 256L, workers = 4L)
+  expect_no_warning(hr_options(workers = 4L, max_retries = 3L, min_output_tokens = 512L))
+  hr_options(safety_margin = 0.1, min_output_tokens = 256L, workers = 4L)
   # NULL and Inf are the two explicit ways to say "no limit", and both survive.
-  gr_options(max_cost_usd = NULL)
-  expect_null(gr_options("max_cost_usd"))
-  expect_equal({ gr_options(max_cost_usd = Inf); gr_options("max_cost_usd") }, Inf)
-  expect_equal({ gr_options(max_calls = 0L); gr_options("max_calls") }, 0)
+  hr_options(max_cost_usd = NULL)
+  expect_null(hr_options("max_cost_usd"))
+  expect_equal({ hr_options(max_cost_usd = Inf); hr_options("max_cost_usd") }, Inf)
+  expect_equal({ hr_options(max_calls = 0L); hr_options("max_calls") }, 0)
   # A whole number stays a comparable DOUBLE: as.integer(1e10) is NA.
-  expect_equal({ gr_options(max_calls = 1e10); gr_options("max_calls") }, 1e10)
-  gr_options(max_calls = 400L, max_cost_usd = 5)
+  expect_equal({ hr_options(max_calls = 1e10); hr_options("max_calls") }, 1e10)
+  hr_options(max_calls = 400L, max_cost_usd = 5)
 
   # And the cap is really enforced, which is the point of refusing the value.
-  gr_register_model("swept-costly", context_window = 2e5, max_output = 16000,
+  hr_register_model("swept-costly", context_window = 2e5, max_output = 16000,
                     input_usd = 1e5, output_usd = 1e5)
   doc <- paste(rep("The cohort comprised 482 participants across nine sites.", 200),
                collapse = " ")
@@ -1343,13 +1343,13 @@ test_that("a missing value never becomes the destructive end of a scale", {
 
   # An overhead nobody can count would be budgeted as zero, which is the one
   # direction that overruns the window.
-  expect_error(gr_budget("gpt-4o", overhead = NA), class = "gr_budget_error")
-  expect_error(gr_budget("gpt-4o", overhead = 3e9), class = "gr_budget_error")
+  expect_error(hr_budget("gpt-4o", overhead = NA), class = "gr_budget_error")
+  expect_error(hr_budget("gpt-4o", overhead = 3e9), class = "gr_budget_error")
   # A safety margin of NA became ZERO -- no headroom at all, which is the one
   # condition the margin exists to prevent -- and the input budget went UP.
-  expect_equal(quiet(gr_budget("gpt-4o", overhead = 200, safety_margin = NA))$margin, 0.10)
-  expect_equal(quiet(gr_budget("gpt-4o", overhead = 200, safety_margin = NA))$input,
-               gr_budget("gpt-4o", overhead = 200, safety_margin = 0.10)$input)
+  expect_equal(quiet(hr_budget("gpt-4o", overhead = 200, safety_margin = NA))$margin, 0.10)
+  expect_equal(quiet(hr_budget("gpt-4o", overhead = 200, safety_margin = NA))$input,
+               hr_budget("gpt-4o", overhead = 200, safety_margin = 0.10)$input)
 
   # `4 >= "10"` is TRUE -- R compares as STRINGS -- so a character min_positives
   # declared an inadequate calibration adequate while still printing 10.
@@ -1373,7 +1373,7 @@ test_that("a missing value never becomes the destructive end of a scale", {
   # had not reported a value it stated plainly.
   fl <- withr::local_tempfile(fileext = ".txt")
   writeLines("We enrolled 3000000000 person-days of follow-up.", fl)
-  cc <- gr_mock_client(function(messages, params)
+  cc <- hr_mock_client(function(messages, params)
     '{"n": 3000000000, "n__quote": "We enrolled 3000000000 person-days of follow-up."}')
   x <- quiet(gr_extract(fl, gr_fields(n = gr_field("Person-days", type = "integer")),
                         client = cc))
@@ -1442,7 +1442,7 @@ test_that("a text field that arrives as an array fails the call, not the documen
                          "Adherence exceeded 91 percent in the treatment arm."), 20),
                collapse = "\n\n")
   ch <- quiet(gr_segment(quiet(gr_ingest(doc)), list(method = "paragraph", max_tokens = 120)))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("reading iteratively", messages[[1]]$content, fixed = TRUE)) {
       return('{"can_answer": true, "answer": ["The sample size was 482.", "Nine sites."], "next_query": ""}')
     }
@@ -1453,7 +1453,7 @@ test_that("a text field that arrives as an array fails the call, not the documen
   expect_identical(a$notes$stop_reason, "step failed")
   # The same for the next search: an array of terms is not a query.
   k <- new.env(); k$n <- 0L
-  cl2 <- gr_mock_client(function(messages, params) {
+  cl2 <- hr_mock_client(function(messages, params) {
     if (grepl("reading iteratively", messages[[1]]$content, fixed = TRUE)) {
       k$n <- k$n + 1L
       if (k$n == 1L) return('{"can_answer": false, "answer": "", "next_query": ["nine sites", "cohort"]}')
@@ -1481,7 +1481,7 @@ test_that("a text field that arrives as an array fails the call, not the documen
                    "482\nparticipants")
   expect_identical(jt(f('{"answer":[{"part":"A","n":1},{"part":"B","n":2}]}'), "answer"),
                    "A\n1\nB\n2")
-  obj <- gr_mock_client(function(messages, params) {
+  obj <- hr_mock_client(function(messages, params) {
     if (grepl("reading iteratively", messages[[1]]$content, fixed = TRUE)) {
       return('{"can_answer": true, "answer": {"participants": 482}, "next_query": ""}')
     }
@@ -1497,7 +1497,7 @@ test_that("a text field that arrives as an array fails the call, not the documen
   # with its reason rewritten (model-output-12), which is not what this checks.
   d <- withr::local_tempdir()
   writeLines("A randomised trial of 482 adults found a benefit.", file.path(d, "a.txt"))
-  sc_cl <- gr_mock_client(function(messages, params)
+  sc_cl <- hr_mock_client(function(messages, params)
     paste0('{"decision":"include","reason":["Not randomised.","No control group."],',
            '"criterion":["Randomised comparison","Adults"],',
            '"quote":["A randomised trial of 482 adults found a benefit."]}'))
@@ -1512,7 +1512,7 @@ test_that("a proposition batch that cannot be decomposed is kept as written", {
   # character(0): one bad batch in ten silently removed a tenth of the document
   # from everything downstream. Only a run in which EVERY batch failed noticed.
   k <- new.env(); k$n <- 0L
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     k$n <- k$n + 1L
     if (k$n %% 2L == 1L) '{"propositions":["The trial enrolled 482 adults."]}' else "not json"
   })
@@ -1568,7 +1568,7 @@ test_that("a rerank score that was never given is not a score", {
   ch <- quiet(gr_segment(quiet(gr_ingest(paste(paras, collapse = "\n\n"))),
                          list(method = "paragraph", max_tokens = 40)))
   expect_equal(nrow(ch$chunks), 4L)        # one site per chunk, or the rules below blur
-  scorer <- function(rule) gr_mock_client(function(messages, params) {
+  scorer <- function(rule) hr_mock_client(function(messages, params) {
     if (grepl("Rate how useful", messages[[1]]$content, fixed = TRUE)) {
       ex <- messages[[3]]$content
       return(rule(ex))
@@ -1619,14 +1619,14 @@ test_that("a rerank score that was never given is not a score", {
   # A candidate the call cap stopped judged nothing either. gr_read()'s
   # pre-flight check keeps this from happening through the front door, so the
   # reader is driven directly: two calls allowed, four candidates.
-  old <- gr_options(max_calls = 2)
-  on.exit(gr_options(old), add = TRUE)
+  old <- hr_options(max_calls = 2)
+  on.exit(hr_options(old), add = TRUE)
   zero <- scorer(function(ex) '{"score":0,"reason":"r"}')
-  r <- quiet(harnessr:::read_rerank(ch, "How many?", zero, spec(rerank_min_score = 0), gr_trace()))
+  r <- quiet(harnessr:::read_rerank(ch, "How many?", zero, spec(rerank_min_score = 0), hr_trace()))
   expect_length(r$chunks_used, 2L)
   expect_true(r$partial)
   # And with nothing over the bar, "not in the document" rests on half the list.
-  r <- quiet(harnessr:::read_rerank(ch, "How many?", zero, spec(rerank_min_score = 4), gr_trace()))
+  r <- quiet(harnessr:::read_rerank(ch, "How many?", zero, spec(rerank_min_score = 4), hr_trace()))
   expect_identical(r$answer, "NOT_IN_DOCUMENT")
   expect_true(r$partial)
 })
@@ -1732,7 +1732,7 @@ test_that("two values that differ past the seventh digit are two values", {
   writeLines(c(paste(rep("We enrolled 3000000001 person-days in site A.", 30), collapse = " "), "",
                paste(rep("We enrolled 3000000002 person-days in site B.", 30), collapse = " ")), fl)
   seen <- new.env(); seen$choose <- character(0)
-  cc <- gr_mock_client(function(messages, params) {
+  cc <- hr_mock_client(function(messages, params) {
     t <- paste(vapply(messages, function(z) as.character(z$content), character(1)), collapse = " ")
     if (grepl("Choose the", t, fixed = TRUE)) {
       seen$choose <- t
@@ -1753,24 +1753,24 @@ test_that("two values that differ past the seventh digit are two values", {
   expect_identical(x$table$n, 3000000001)
 })
 
-test_that("gr_budget takes the session's margin when it is given none it can use", {
-  old <- gr_options(safety_margin = 0.3)
-  on.exit(gr_options(old), add = TRUE)
-  expect_equal(gr_budget("gpt-4o", overhead = 200)$margin, 0.3)
-  expect_equal(quiet(gr_budget("gpt-4o", overhead = 200, safety_margin = NA))$margin, 0.3)
-  expect_warning(gr_budget("gpt-4o", overhead = 200, safety_margin = NA), class = "gr_bad_setting")
-  expect_equal(gr_budget("gpt-4o", overhead = 200, safety_margin = 0.2)$margin, 0.2)
+test_that("hr_budget takes the session's margin when it is given none it can use", {
+  old <- hr_options(safety_margin = 0.3)
+  on.exit(hr_options(old), add = TRUE)
+  expect_equal(hr_budget("gpt-4o", overhead = 200)$margin, 0.3)
+  expect_equal(quiet(hr_budget("gpt-4o", overhead = 200, safety_margin = NA))$margin, 0.3)
+  expect_warning(hr_budget("gpt-4o", overhead = 200, safety_margin = NA), class = "gr_bad_setting")
+  expect_equal(hr_budget("gpt-4o", overhead = 200, safety_margin = 0.2)$margin, 0.2)
   # Overhead: absent is zero, and a number written as text is that number.
-  expect_equal(gr_budget("gpt-4o", overhead = NULL)$input, gr_budget("gpt-4o", overhead = 0)$input)
-  expect_equal(gr_budget("gpt-4o", overhead = "200")$input, gr_budget("gpt-4o", overhead = 200)$input)
+  expect_equal(hr_budget("gpt-4o", overhead = NULL)$input, hr_budget("gpt-4o", overhead = 0)$input)
+  expect_equal(hr_budget("gpt-4o", overhead = "200")$input, hr_budget("gpt-4o", overhead = 200)$input)
   # But one number: the first of c(100, 9000) left 9000 tokens uncounted, and a
   # factor's first level is 1 whatever its label says.
-  expect_error(gr_budget("gpt-4o", overhead = c(100, 9000)), class = "gr_budget_error")
-  expect_error(gr_budget("gpt-4o", overhead = factor("300")), class = "gr_budget_error")
+  expect_error(hr_budget("gpt-4o", overhead = c(100, 9000)), class = "gr_budget_error")
+  expect_error(hr_budget("gpt-4o", overhead = factor("300")), class = "gr_budget_error")
   # An output reserve nobody can read takes the default reserve, not clamp()'s
   # floor of ONE token.
-  expect_warning(b <- gr_budget("gpt-4o", reserve_output = NA), class = "gr_bad_setting")
-  expect_identical(b$output, gr_budget("gpt-4o")$output)
+  expect_warning(b <- hr_budget("gpt-4o", reserve_output = NA), class = "gr_bad_setting")
+  expect_identical(b$output, hr_budget("gpt-4o")$output)
   expect_gt(b$output, 1L)
 })
 

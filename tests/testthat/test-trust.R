@@ -57,20 +57,20 @@ test_that("a client with no key stops at its first request instead of answering"
   local_clean_cache()
   no_key()
   ch <- gr_segment(gr_ingest(sample_doc(2, 3)), list(method = "paragraph", max_tokens = 120))
-  cl <- gr_client(max_retries = 0L)
+  cl <- hr_client(max_retries = 0L)
   for (reader in c("stuff", "map_reduce", "skim", "ensemble")) {
     expect_error(gr_read(ch, "How many participants?", cl, reader), class = "gr_auth_error",
                  info = reader)
   }
   # The embeddings path stops too, rather than falling back to lexical vectors
   # and reporting a quality problem.
-  expect_error(gr_embed(cl, c("one text", "another")), class = "gr_auth_error")
+  expect_error(hr_embed(cl, c("one text", "another")), class = "gr_auth_error")
 })
 
 test_that("a cached client is let through, and stops at the first request the cache cannot answer", {
   local_clean_cache()
   no_key()
-  cc <- gr_cache_client(gr_client(max_retries = 0L), gr_cache(tempfile("cache-")))
+  cc <- hr_cache_client(hr_client(max_retries = 0L), hr_cache(tempfile("cache-")))
   expect_true(harnessr:::stop_if_no_credentials(cc))
   # on_error = "continue" records a failed document and moves on. A missing key
   # is not one document's failure, so it stops the run all the same.
@@ -84,11 +84,11 @@ test_that("a cached client is let through, and stops at the first request the ca
 
 test_that("clients that carry their credential some other way are not stopped", {
   no_key()
-  expect_true(harnessr:::stop_if_no_credentials(gr_client(headers = c("api-key" = "corp"))))
+  expect_true(harnessr:::stop_if_no_credentials(hr_client(headers = c("api-key" = "corp"))))
   expect_true(harnessr:::stop_if_no_credentials(mock_echo()))
   expect_true(harnessr:::stop_if_no_credentials(
-    gr_backend_client(function(messages, params) "ok", model = "any-model", id = "trust-test")))
-  expect_error(harnessr:::stop_if_no_credentials(gr_client()), class = "gr_auth_error")
+    hr_backend_client(function(messages, params) "ok", model = "any-model", id = "trust-test")))
+  expect_error(harnessr:::stop_if_no_credentials(hr_client()), class = "gr_auth_error")
 })
 
 # ---------------------------------------------------------------------------
@@ -145,7 +145,7 @@ test_that("print() shows the cost, and the page and section of the evidence", {
 test_that("an unpriced model prints as cost unknown, never as free", {
   local_registries()
   local_clean_cache()
-  gr_register_model("unpriced-model", context_window = 100000L, max_output = 2000L)
+  hr_register_model("unpriced-model", context_window = 100000L, max_output = 2000L)
   ch <- gr_segment(gr_ingest(sample_doc(1, 2)), list(method = "paragraph", max_tokens = 400))
   ans <- quiet(gr_read(ch, "How many participants?", mock_echo("482."),
                        list(reader = "stuff", model = "unpriced-model")))
@@ -157,7 +157,7 @@ test_that("an unpriced model prints as cost unknown, never as free", {
 test_that("the reasons are read by exact name, not by prefix", {
   # With `$`, notes$degraded would partial-match degraded_to_bm25 and report a
   # fallback the reader never took.
-  a <- new_answer("An answer.", "rerank", "q", 1L, gr_trace(), partial = TRUE,
+  a <- new_answer("An answer.", "rerank", "q", 1L, hr_trace(), partial = TRUE,
                   notes = list(degraded_to_bm25 = TRUE))
   why <- harnessr:::partial_reasons(a)
   expect_true("relevance scoring fell back to word matching" %in% why)
@@ -327,7 +327,7 @@ test_that("a scanned PDF page read without OCR is recorded as unread", {
 
 test_that("hierarchical summaries cut to fit make the answer partial", {
   local_registries()
-  gr_register_model("small-window", context_window = 900L, max_output = 200L,
+  hr_register_model("small-window", context_window = 900L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
   ch <- gr_segment(gr_ingest(sample_doc(6, 5)), list(method = "paragraph", max_tokens = 60))
   a <- quiet(gr_read(ch, "Summarise the findings", mock_bulky(),
@@ -340,7 +340,7 @@ test_that("hierarchical summaries cut to fit make the answer partial", {
 
 test_that("refine marks the answer partial when it cuts an excerpt to fit", {
   local_registries()
-  gr_register_model("refine-window", context_window = 900L, max_output = 150L,
+  hr_register_model("refine-window", context_window = 900L, max_output = 150L,
                     input_usd = 0, output_usd = 0)
   long <- paste(rep("The cohort comprised 482 participants recruited across nine clinical sites.",
                     30), collapse = " ")
@@ -370,7 +370,7 @@ test_that("a run whose documents are all in the store needs no key", {
   local_registries()
   local_clean_cache()
   store <- tempfile("store-")
-  dead <- function() gr_client(base_url = "http://127.0.0.1:9", max_retries = 0L, timeout = 5)
+  dead <- function() hr_client(base_url = "http://127.0.0.1:9", max_retries = 0L, timeout = 5)
   # The first run has to SUCCEED to be stored: a document whose requests failed
   # is kept out of the store so that the next run reads it again. So its one
   # request is answered here, and every later request goes to the dead address.
@@ -452,7 +452,7 @@ test_that("a failed document keeps its warnings when it comes from the ingestion
       data.frame(text = sample_doc(3, 4), stringsAsFactors = FALSE)
     })
   f <- write_doc("nzx")
-  gr_options(max_calls = 2)
+  hr_options(max_calls = 2)
   run <- function() quiet(gr_read_many(f, "How many participants?", "thorough",
                                        client = mock_echo("482."), max_tokens = 60))$summary
   first <- run()
@@ -487,7 +487,7 @@ test_that("gr_compare() gives each recipe the losses of its own ingestion, in an
 test_that("a top-k reader's 'not found' is not printed as the whole document's", {
   local_registries()
   local_clean_cache()
-  gr_options(embedder = "lexical")
+  hr_options(embedder = "lexical")
   ch <- gr_segment(gr_ingest(sample_doc(3, 4)), list(method = "paragraph", max_tokens = 60))
   a <- gr_read(ch, "What was the dividend?", mock_echo("NOT_IN_DOCUMENT"),
                list(reader = "retrieve", top_k = 2))
@@ -496,7 +496,7 @@ test_that("a top-k reader's 'not found' is not printed as the whole document's",
 })
 
 test_that("print() copes with what a custom reader can hand back", {
-  tr <- gr_trace()
+  tr <- hr_trace()
   a <- new_answer("Revenue was 45.2 million.", "my_reader", "What was revenue?", 1L, tr,
                   partial = TRUE, notes = c(strategy = "first chunk"))
   expect_no_error(capture.output(print(a)))

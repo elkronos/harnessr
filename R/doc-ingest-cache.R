@@ -5,7 +5,7 @@
 #' harnessr keeps two caches in memory for the life of the R session: the
 #' documents [gr_ingest()] has already extracted and cleaned, keyed on the file
 #' and every setting that changes the result, and the vectors the built-in
-#' `"api"` embedder has already fetched (see [gr_embed()]). This empties them.
+#' `"api"` embedder has already fetched (see [hr_embed()]). This empties them.
 #' The next ingestion of a file reads and cleans it again, and the next ranking
 #' sends its embeddings requests again, which are counted against `max_calls`
 #' and `max_cost_usd` like any others.
@@ -16,25 +16,25 @@
 #' memory. It is for starting again from nothing: to give the memory back at
 #' once, or to time or test a run as a fresh session would see it.
 #'
-#' Not to be confused with [gr_cache_clear()], which deletes the model
-#' *responses* a [gr_cache()] keeps in a directory on disk. Neither touches
+#' Not to be confused with [hr_cache_clear()], which deletes the model
+#' *responses* an [hr_cache()] keeps in a directory on disk. Neither touches
 #' the other's cache: this leaves every stored response in place, and
-#' [gr_cache_clear()] leaves every document and vector in memory.
-#' `gr_options(cache_documents = FALSE, cache_embeddings = FALSE)` turns the
+#' [hr_cache_clear()] leaves every document and vector in memory.
+#' `hr_options(cache_documents = FALSE, cache_embeddings = FALSE)` turns the
 #' two memory caches off instead.
 #'
 #' @param what One or more of `"all"` (the default), `"documents"` and
 #'   `"embeddings"`.
 #' @return Invisibly, the caches cleared: `"documents"`, `"embeddings"` or both.
-#' @seealso [gr_cache_clear()] for the on-disk response cache, [gr_options()]
-#'   for `cache_documents` and `cache_embeddings`, [gr_ingest()], [gr_embed()]
+#' @seealso [hr_cache_clear()] for the on-disk response cache, [hr_options()]
+#'   for `cache_documents` and `cache_embeddings`, [gr_ingest()], [hr_embed()]
 #' @export
 #' @examples
 #' doc <- gr_ingest(gr_example())
 #' gr_flush_caches("documents")
 #' gr_flush_caches()
 gr_flush_caches <- function(what = "all") {
-  # Not gr_cache_clear(): while this was called that, it shadowed the exported
+  # Not hr_cache_clear(): while this was called that, it shadowed the exported
   # function of the name. R collates R/core-state.R after R/core-cache.R, so
   # this definition silently won and was exported under the other one's help.
   what <- match.arg(what, c("all", "documents", "embeddings"), several.ok = TRUE)

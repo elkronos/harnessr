@@ -10,7 +10,7 @@
 #  * v1 stored the API key with Sys.setenv(), which is PROCESS-wide. Two browser
 #    sessions in one R process overwrote each other's key, so user A's questions
 #    were billed to user B. The key now lives in a per-session reactiveVal and is
-#    handed to a per-session gr_client().
+#    handed to a per-session hr_client().
 #  * v1's `volumes <- getVolumes()` exposed the entire filesystem to any browser
 #    client, who could pick /etc/anything and have it read aloud through the chat
 #    bubble. Roots are now an explicit allow-list.
@@ -81,7 +81,7 @@ safe_path <- function(path, offered) {
 
 # What a blank cost field means, said where it is typed.
 cap_label <- local({
-  cap <- gr_options("max_cost_usd")
+  cap <- hr_options("max_cost_usd")
   sprintf("Abort if estimated cost exceeds (USD; blank = %s)",
           if (is.null(cap)) "no limit, as this R session sets none"
           else sprintf("this R session's cap, $%s", format(cap)))
@@ -153,8 +153,8 @@ ui <- fluidPage(
 
       h4("Model"),
       selectInput("model", "Model",
-                  choices = gr_models()[gr_models()$kind == "chat", "id"],
-                  selected = gr_options("model")),
+                  choices = hr_models()[hr_models()$kind == "chat", "id"],
+                  selected = hr_options("model")),
       numericInput("temperature", "Temperature (blank = model default)", NA, 0, 2, 0.1),
       passwordInput("api_key", "API key (this browser session only)"),
       numericInput("max_cost", cap_label, 2, 0, 1000, 0.5),
@@ -195,7 +195,7 @@ server <- function(input, output, session) {
   client <- reactive({
     key <- input$api_key
     if (!isTruthy(key)) return(NULL)
-    gr_client(model = input$model, api_key = key)
+    hr_client(model = input$model, api_key = key)
   })
 
   # The chosen root's documents, listed once per root: the file menu shows
@@ -270,10 +270,10 @@ server <- function(input, output, session) {
   })
 
   # The cost field, checked. NULL is a blank field, which leaves the R session's
-  # cap (gr_options("max_cost_usd")) in force, as the label says: blank used to
+  # cap (hr_options("max_cost_usd")) in force, as the label says: blank used to
   # mean no cap at all, so clearing the field lifted every spending limit
   # without a word. NA means the field was refused and the user told why.
-  # gr_options() refuses a cap it cannot compare, and a refusal raised outside
+  # hr_options() refuses a cap it cannot compare, and a refusal raised outside
   # any tryCatch would end the handler with R's error text instead of a message
   # about the field the user just typed in.
   cost_cap <- function() {
@@ -307,11 +307,11 @@ server <- function(input, output, session) {
     if (paid) {
       cap <- cost_cap()
       if (identical(cap, NA)) return()
-      old <- gr_options(cap_option(cap))
-      on.exit(gr_options(old), add = TRUE)
+      old <- hr_options(cap_option(cap))
+      on.exit(hr_options(old), add = TRUE)
     }
     # Its own trace, so the run's limits hold and what it spent can be reported.
-    tr <- gr_trace(meta = list(stage = "preview"))
+    tr <- hr_trace(meta = list(stage = "preview"))
     withProgress(message = if (paid) "Segmenting (makes model calls)" else "Segmenting (no model calls)",
                  value = 0.4, {
       out <- tryCatch({
@@ -360,8 +360,8 @@ server <- function(input, output, session) {
     }
     cap <- cost_cap()
     if (identical(cap, NA)) return()
-    old <- gr_options(c(cap_option(cap), list(parallel = isTRUE(input$parallel))))
-    on.exit(gr_options(old), add = TRUE)
+    old <- hr_options(c(cap_option(cap), list(parallel = isTRUE(input$parallel))))
+    on.exit(hr_options(old), add = TRUE)
 
     # A blank numericInput sends NA, but before the input has registered it is
     # NULL, and `if (is.na(NULL))` is `if (logical(0))`: "argument is of length

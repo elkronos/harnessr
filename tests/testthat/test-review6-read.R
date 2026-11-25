@@ -5,7 +5,7 @@
 
 # Chunks straight from text, one per element, with no segmenter in between.
 r6_chunks <- function(txt, section = NA_character_) {
-  new_chunks(txt, "precomputed", gr_segment_spec(max_tokens = max(gr_count_tokens(txt), 32L)),
+  new_chunks(txt, "precomputed", gr_segment_spec(max_tokens = max(hr_count_tokens(txt), 32L)),
              section = section)
 }
 
@@ -38,7 +38,7 @@ test_that("iterative ranks a query whose embedding fell back in the same space a
   }, numeric(6), USE.NAMES = FALSE))
   run <- function(fail_query) {
     n <- 0L
-    cl <- gr_mock_client(function(m, p) {
+    cl <- hr_mock_client(function(m, p) {
       if (grepl("reading iteratively", m[[1]]$content, fixed = TRUE)) {
         return('{"can_answer": true, "answer": "482 participants.", "next_query": ""}')
       }
@@ -73,7 +73,7 @@ test_that("iterative ranks a query whose embedding fell back in the same space a
 test_that("an ensemble is partial when a member it adjudicated is", {
   txt <- sprintf("Site %d enrolled %d participants in the trial.", 1:10, 40 + 1:10)
   ch <- r6_chunks(txt)
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     body <- paste(vapply(m, function(x) x$content, ""), collapse = "\n")
     ids <- as.integer(regmatches(body, gregexpr("(?<=\\[chunk )[0-9]+", body, perl = TRUE))[[1]])
     if (length(ids) == 1L && ids >= 4L) stop("HTTP 500")
@@ -91,7 +91,7 @@ test_that("an ensemble is partial when a member it adjudicated is", {
 
   # Members that both read everything leave it whole.
   whole <- quiet(gr_read(ch, "What was enrolment?",
-                         gr_mock_client(function(m, p) "Enrolment ranged from 41 to 50."),
+                         hr_mock_client(function(m, p) "Enrolment ranged from 41 to 50."),
                          list(reader = "ensemble", members = c("stuff", "map_reduce"))))
   expect_false(whole$partial)
   expect_length(whole$notes$partial_members, 0L)
@@ -104,14 +104,14 @@ test_that("an ensemble is partial when a member it adjudicated is", {
 
 test_that("hierarchical counts a failed summary at every level and keeps the group", {
   local_registries()
-  gr_register_model("r6-tiny-4k", context_window = 4000L, max_output = 1000L,
+  hr_register_model("r6-tiny-4k", context_window = 4000L, max_output = 1000L,
                     input_usd = 0, output_usd = 0)
   txt <- sprintf("Site %d enrolled %d participants in the trial.", 1:20, 40 + 1:20)
   ch <- r6_chunks(txt)
   long <- paste(rep("Summary sentence about enrolment at the site and its numbers.", 30),
                 collapse = " ")
   n2 <- 0L
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (r6_is(m, harnessr:::.gr_prompts$summarise_system)) {
       if (grepl("^<text>\nSite", m[[3]]$content)) return(long)
       n2 <<- n2 + 1L
@@ -142,7 +142,7 @@ test_that("hierarchical counts a failed summary at every level and keeps the gro
 test_that("iterative treats 'can answer' with no answer as a failed step", {
   ch <- quiet(gr_segment(gr_ingest(sample_doc(3, 3)), list(method = "paragraph", max_tokens = 120)))
   for (ans in c('""', "null", '"   "')) {
-    cl <- gr_mock_client(function(m, p) {
+    cl <- hr_mock_client(function(m, p) {
       if (grepl("reading iteratively", m[[1]]$content, fixed = TRUE)) {
         return(sprintf('{"can_answer": true, "answer": %s, "next_query": ""}', ans))
       }
@@ -208,7 +208,7 @@ test_that("MMR picks the same chunks whatever the length of the vectors", {
     else c(0.9, 0.3, 0.1, 0)
   }
   used <- lapply(c(1, 30), function(s) {
-    cl <- gr_mock_client(function(m, p) "ans", embed_handler = function(texts, params) {
+    cl <- hr_mock_client(function(m, p) "ans", embed_handler = function(texts, params) {
       t(vapply(texts, function(x) { v <- vec(x); s * v / sqrt(sum(v^2)) }, numeric(4),
                USE.NAMES = FALSE))
     })
@@ -226,16 +226,16 @@ test_that("MMR picks the same chunks whatever the length of the vectors", {
 
 test_that("a comparison's trace keeps the requests of a recipe that failed after making them", {
   local_registries()
-  gr_register_model("r6-priced", context_window = 128000L, max_output = 4000L,
+  hr_register_model("r6-priced", context_window = 128000L, max_output = 4000L,
                     input_usd = 10, output_usd = 30)
   gr_register_reader("r6_each_then_fail", function(chunks, question, client, spec, trace) {
     for (i in seq_len(nrow(chunks$chunks))) {
-      gr_call(client, list(list(role = "user", content = chunks$chunks$text[i])),
+      hr_call(client, list(list(role = "user", content = chunks$chunks$text[i])),
               model = spec$model, trace = trace, label = "custom")
     }
     stop("post-processing bug")
   }, signature = "custom|N|none", cost_calls = "N", description = "fails after its calls")
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million.")
   txt <- paste(sprintf("Paragraph %d says revenue rose by %d percent in the year under review.",
                        1:14, 1:14), collapse = "\n\n")
   recs <- list(
@@ -250,7 +250,7 @@ test_that("a comparison's trace keeps the requests of a recipe that failed after
   # Before: the trace recorded 1 call and only recipe b's spend.
   expect_equal(cmp$trace$calls, made)
   expect_equal(sum(as.data.frame(cmp$trace)$recipe == "a", na.rm = TRUE), made - 1L)
-  expect_equal(cmp$trace$spent_usd, sum(gr_trace_cost(cmp$trace)$usd))
+  expect_equal(cmp$trace$spent_usd, sum(hr_trace_cost(cmp$trace)$usd))
 })
 
 # ---------------------------------------------------------------------------
@@ -271,7 +271,7 @@ test_that("a recipe's segmentation in a comparison is counted for that recipe al
   prop <- gr_recipe("prop", segment = list(method = "proposition", max_tokens = 400,
                                            proposition_batch_tokens = 300),
                     read = list(reader = "stuff"))
-  gr_options(max_calls = 9)
+  hr_options(max_calls = 9)
   alone <- quiet(gr_compare(txt, "How many enrolled?", list(prop), client = mock_echo("An answer.")))
   harnessr:::gr_flush_caches()
   both <- quiet(gr_compare(txt, "How many enrolled?", list(thor, prop),
@@ -302,7 +302,7 @@ test_that("a comparison does not share a chunking that a limit cut short", {
   p2 <- gr_recipe("p2", segment = seg, read = list(reader = "stuff", max_answer_tokens = 900))
   # Room for the full chunking once: the first recipe's four batches and its
   # answer, and the second recipe charged the same four as if run alone.
-  gr_options(max_calls = 5)
+  hr_options(max_calls = 5)
   cmp <- quiet(gr_compare(txt, "How many enrolled?", list(p1, p2), client = mock_echo("An answer.")))
   df <- as.data.frame(cmp$trace)
   # One chunking, shared: made once, and it belongs to no one recipe.
@@ -324,7 +324,7 @@ test_that("a comparison does not share a chunking that a limit cut short", {
 
   # With room for only part of it, each recipe cuts the document itself.
   harnessr:::gr_flush_caches()
-  gr_options(max_calls = 3)
+  hr_options(max_calls = 3)
   cmp <- quiet(gr_compare(txt, "How many enrolled?", list(p1, p2), client = mock_echo("An answer.")))
   df <- as.data.frame(cmp$trace)
   expect_equal(sum(df$stage == "segment.proposition"), 6L)
@@ -338,14 +338,14 @@ test_that("a comparison does not share a chunking that a limit cut short", {
 
 test_that("skim reports a failed consolidation and checks citations against what survived it", {
   local_registries()
-  gr_register_model("r6-tiny-4k", context_window = 4000L, max_output = 1000L,
+  hr_register_model("r6-tiny-4k", context_window = 4000L, max_output = 1000L,
                     input_usd = 0, output_usd = 0)
   txt <- vapply(1:12, function(i) {
     paste(rep(sprintf("In site %d the enrolment was %d participants.", i, 40 + i), 50), collapse = " ")
   }, character(1))
   ch <- r6_chunks(txt)
   answer <- "Enrolment per site was 41 to 52 participants [chunk 3] [chunk 11]."
-  client <- function(consolidate) gr_mock_client(function(m, p) {
+  client <- function(consolidate) hr_mock_client(function(m, p) {
     sys <- m[[1]]$content
     if (grepl("extract evidence", sys, fixed = TRUE)) {
       return(sub("^<excerpt>\n\\[chunk [0-9]+\\]\n", "", sub("\n</excerpt>$", "", m[[3]]$content)))
@@ -383,7 +383,7 @@ test_that("skim reports a failed consolidation and checks citations against what
 # ---------------------------------------------------------------------------
 
 test_that("retrieve over no chunks makes no request and is not found", {
-  cl <- gr_mock_client(function(m, p) "The trial enrolled 482 participants.")
+  cl <- hr_mock_client(function(m, p) "The trial enrolled 482 participants.")
   a <- quiet(gr_read(r6_chunks(character(0)), "How many enrolled?", cl, list(reader = "retrieve")))
   # Before: one request with '[chunk NA]\nNA', its reply, chunks_used = NA.
   expect_length(cl$calls(), 0L)
@@ -399,7 +399,7 @@ test_that("retrieve over no chunks makes no request and is not found", {
 
 test_that("rerank says which chosen chunks did not fit, and does not answer from none", {
   local_registries()
-  gr_register_model("r6-tiny-8k", context_window = 8000L, max_output = 2000L,
+  hr_register_model("r6-tiny-8k", context_window = 8000L, max_output = 2000L,
                     input_usd = 0, output_usd = 0)
   para <- function(i, n) {
     paste(rep(sprintf("Revenue item %d was reported in the ledger for the year.", i), n), collapse = " ")
@@ -433,7 +433,7 @@ test_that("rerank says which chosen chunks did not fit, and does not answer from
 
 test_that("preview fits its whole answer prompt to the budget", {
   local_registries()
-  gr_register_model("r6-tiny-8k", context_window = 8000L, max_output = 2000L,
+  hr_register_model("r6-tiny-8k", context_window = 8000L, max_output = 2000L,
                     input_usd = 0, output_usd = 0)
   para <- function(s, i) {
     paste(rep(sprintf("Section %d part %d reports enrolment of %d participants.", s, i, 40 + s), 40),
@@ -444,10 +444,10 @@ test_that("preview fits its whole answer prompt to the budget", {
   q <- "What was enrolment?"
   spec <- list(reader = "preview", model = "r6-tiny-8k", max_answer_tokens = 1500,
                max_chunk_tokens = 1500)
-  bud <- gr_budget("r6-tiny-8k", reserve_output = 1500,
+  bud <- hr_budget("r6-tiny-8k", reserve_output = 1500,
                    overhead = harnessr:::prompt_overhead(q, harnessr:::answer_system(FALSE)))
   run <- function(skim_words) {
-    cl <- gr_mock_client(function(m, p) {
+    cl <- hr_mock_client(function(m, p) {
       sys <- m[[1]]$content
       if (grepl("You plan how to read a document", sys, fixed = TRUE)) {
         return(preview_plan_json(rep("read", 8)))
@@ -463,7 +463,7 @@ test_that("preview fits its whole answer prompt to the budget", {
     last <- r6_last(cl)
     list(a = a, last = last,
          body = last$messages[[2]]$content,
-         tokens = sum(gr_count_tokens(vapply(last$messages[-1], function(x) x$content, ""))))
+         tokens = sum(hr_count_tokens(vapply(last$messages[-1], function(x) x$content, ""))))
   }
   small <- run(60)
   expect_gt(small$a$notes$demoted_to_skim, 0L)
@@ -518,14 +518,14 @@ test_that("preview catches a citation of a section no request was shown", {
 
 test_that("map_reduce counts a merge request that failed below the last level", {
   local_registries()
-  gr_register_model("r6-tiny-4k", context_window = 4000L, max_output = 1000L,
+  hr_register_model("r6-tiny-4k", context_window = 4000L, max_output = 1000L,
                     input_usd = 0, output_usd = 0)
   txt <- sprintf("Site %d enrolled %d participants in the trial.", 1:12, 40 + 1:12)
   ch <- r6_chunks(txt)
   long <- paste(rep("Finding sentence about enrolment at the site and its numbers.", 70),
                 collapse = " ")
   n_merge <- 0L
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (r6_is(m, harnessr:::.gr_prompts$merge_system)) {
       n_merge <<- n_merge + 1L
       if (n_merge == 1L) stop("HTTP 500")
@@ -544,7 +544,7 @@ test_that("map_reduce counts a merge request that failed below the last level", 
   expect_equal(a$notes$merge_failures, 1L)
 
   # Merges that all work leave it whole.
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (r6_is(m, harnessr:::.gr_prompts$merge_system)) return("Merged.")
     long
   })

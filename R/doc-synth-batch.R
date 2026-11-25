@@ -139,9 +139,9 @@
 #'   such section they reach none, and a warning (`gr_gaps_unused`) says so.
 #'   They are cut, at a line, to a quarter of the model's input room, with a
 #'   warning (`gr_gaps_truncated`), and the closing section is then partial.
-#' @param trace A [gr_trace()] to fold this write-up's accounting into, as in
+#' @param trace An [hr_trace()] to fold this write-up's accounting into, as in
 #'   [gr_read_many()]. It is a parent, not this stage's counter: `$trace` is
-#'   still the write-up's own, so `gr_options(max_calls =)` bounds the write-up
+#'   still the write-up's own, so `hr_options(max_calls =)` bounds the write-up
 #'   rather than being spent by the screening that came before it.
 #' @param references Append a `## References` section built from the studies the
 #'   finished text actually cites. Alphabetical under `"author-year"`, numbered
@@ -436,7 +436,7 @@
 #' @examples
 #' fields <- gr_fields(design = "The study design",
 #'                     n = gr_field("Participants", type = "integer"))
-#' cl <- gr_mock_client(function(messages, params) {
+#' cl <- hr_mock_client(function(messages, params) {
 #'   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
 #'                 collapse = " ")
 #'   if (grepl("<studies>", seen, fixed = TRUE)) "One randomised trial of 120 people [study 1]."
@@ -626,7 +626,7 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
     }
   }
 
-  client <- client %||% gr_client(model = model %||% gr_options("model"))
+  client <- client %||% hr_client(model = model %||% hr_options("model"))
   # This function's own default, range check and name, not gr_read_spec()'s:
   # passed through raw, an NA fell back to max_answer_tokens' 1500, and any bad
   # value warned about a setting the caller never used.
@@ -634,9 +634,9 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
                                    16, 1e6, "max_section_tokens")
   spec <- gr_read_spec("stuff", model = model, temperature = temperature,
                        max_answer_tokens = max_section_tokens, effort = effort)
-  # gr_read_spec() leaves the model NULL when none is named, and gr_budget() and
-  # gr_call() fall back to different models on NULL: sections were sized for
-  # gr_options("model") and sent to the client's, so a small model got a prompt
+  # gr_read_spec() leaves the model NULL when none is named, and hr_budget() and
+  # hr_call() fall back to different models on NULL: sections were sized for
+  # hr_options("model") and sent to the client's, so a small model got a prompt
   # sized for a large one. Settled once here, so the sections, the merges and
   # the revision passes all size for, and ask, the same model.
   spec <- resolve_read_model(spec, client)
@@ -646,7 +646,7 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   # a trace that screening had already spent meant the call cap refused
   # every section and the review came back as a list of empty headings.
   parent <- as_parent_trace(trace)
-  trace <- gr_trace(meta = c(list(stage = "synthesise", question = question,
+  trace <- hr_trace(meta = c(list(stage = "synthesise", question = question,
                                   sections = length(outline), studies = nrow(used)),
                              if (!is.null(chosen))
                                list(outline_alternative = chosen$alternative,
@@ -699,7 +699,7 @@ gr_synthesise <- function(extraction, protocol = NULL, outline = NULL, question 
   # gaps it was given.
   gaps_cut <- FALSE
   if (!is.null(gaps)) {
-    room <- tryCatch(gr_budget(spec$model, reserve_output = spec$max_answer_tokens)$input,
+    room <- tryCatch(hr_budget(spec$model, reserve_output = spec$max_answer_tokens)$input,
                      gr_budget_error = function(e) NA_integer_)
     fit <- if (is.na(room)) gaps else cap_gap_lines(gaps, max(1L, room %/% 4L))
     if (!identical(fit, gaps)) {
@@ -1017,7 +1017,7 @@ print.gr_synthesis <- function(x, ...) {
                        "their batch cut off, failed or not sent; see $claims$lost\n"),
                 length(lost), nrow(x$studies)))
   }
-  cost <- gr_trace_cost(x$trace)
+  cost <- hr_trace_cost(x$trace)
   total <- if (nrow(cost)) sum(cost$usd) else 0
   # format_call_counts(), not `calls`: that counts embeddings requests too, and
   # a run that made any showed them as model calls, disagreeing with the trace.
@@ -1100,10 +1100,10 @@ claims_fingerprint <- function(cw) {
 #' count the lines.
 #' @noRd
 cap_gap_lines <- function(gaps, n) {
-  if (gr_count_tokens(gaps) <= n) return(gaps)
+  if (hr_count_tokens(gaps) <= n) return(gaps)
   lines <- strsplit(as_chr1(gaps), "\n", fixed = TRUE)[[1]]
-  keep <- cumsum(gr_count_tokens(lines) + 1L) <= n
-  out <- if (any(keep)) paste(lines[keep], collapse = "\n") else gr_truncate_tokens(lines[1], n)
+  keep <- cumsum(hr_count_tokens(lines) + 1L) <= n
+  out <- if (any(keep)) paste(lines[keep], collapse = "\n") else hr_truncate_tokens(lines[1], n)
   structure(out, kept = max(1L, sum(keep)), of = length(lines))
 }
 

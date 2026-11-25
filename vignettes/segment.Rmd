@@ -24,7 +24,7 @@ this one.
 
 ```{r message = FALSE}
 library(harnessr)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 ```
 
 `embedder = "lexical"` makes the one segmenter that embeds text, `semantic`, use
@@ -235,7 +235,7 @@ never more: `$extra$cost` declares `calls` and `calls_max` as the number of
 chunks. The mock client below stands in for that model:
 
 ```{r}
-writer <- gr_mock_client(function(messages, params) "This excerpt reports the 2024 results.")
+writer <- hr_mock_client(function(messages, params) "This excerpt reports the 2024 results.")
 ctx_llm <- gr_segment(doc, list(method = "contextual", max_tokens = 120,
                                 context_source = "llm"), client = writer)
 cat(ctx_llm$chunks$text[2])
@@ -288,7 +288,7 @@ Three segmenters spend something, and each takes a `client`:
   a warning, and counted in `$extra$batches_kept_as_written`.
 
 ```{r}
-cl <- gr_mock_client(function(messages, params) "unused")
+cl <- hr_mock_client(function(messages, params) "unused")
 sem <- gr_segment(doc, list(method = "semantic", max_tokens = 120), client = cl)
 gr_chunk_stats(sem)
 sem$extra$embedding_source
@@ -299,12 +299,12 @@ not meaning, and `$method` says so: `"semantic->lexical"`. With a real
 embeddings endpoint it is `"api"`, and the method is `"semantic"`. The label
 is all that differs; the chunks and the requests are the same.
 
-These requests count against the run's limits, `gr_options(max_calls =,
+These requests count against the run's limits, `hr_options(max_calls =,
 max_cost_usd =)`, like any other. Called without a `trace`, `gr_segment()`
 makes its own and returns it as `$trace`, so you can see what segmenting cost:
 
 ```{r}
-gr_trace_summary(ctx_llm$trace)[, c("calls", "tokens_in", "tokens_out")]
+hr_trace_summary(ctx_llm$trace)[, c("calls", "tokens_in", "tokens_out")]
 ```
 
 `vignette("runs")` covers limits and traces.
@@ -359,7 +359,7 @@ chunk sizes on dev, then compares one choice on test with intervals.
 qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
                       documents = gr_example(), answers = list("45.2 million"),
                       split = "dev")
-says <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+says <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
 sweep <- function(arms) {
   hr_benchmark(arms, qa, runs = 5, client = says, split = "dev",
                scorer = gr_scorer_answer())
@@ -406,7 +406,7 @@ best few send less text around the answer; larger chunks keep more context
 together and cost fewer requests.
 
 **Signs it needs changing.** Under `map_reduce` or `skim`, a cost dominated by
-the number of requests (`gr_trace_summary()`) points to larger chunks. Under
+the number of requests (`hr_trace_summary()`) points to larger chunks. Under
 `retrieve`, an answer that is right but rests on long chunks of unrelated
 text points to smaller ones, and an answer split across two chunks, of which
 only one was picked, points to larger ones or to overlap.
@@ -675,7 +675,7 @@ so set it before exposing the app to anyone else. The app opens only the PDF,
 Word, text, Markdown, HTML and image files under those folders, never hidden
 files or hidden folders. `extract` and `screen` are not offered, since they read
 against a protocol; use `gr_extract()` and `gr_screen()` (`vignette("review")`).
-A blank cost cap leaves `gr_options("max_cost_usd")` in force rather than
+A blank cost cap leaves `hr_options("max_cost_usd")` in force rather than
 lifting the limit.
 
 ## Your own segmenter
@@ -686,5 +686,5 @@ cap. `new_chunks()` builds the object it must return. `vignette("extending")`
 has a worked example.
 
 ```{r include = FALSE}
-gr_options(old)
+hr_options(old)
 ```

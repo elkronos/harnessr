@@ -150,7 +150,7 @@ echo
 Rscript -e "
   .libPaths(c('$LIB', .libPaths()))
   suppressPackageStartupMessages({ library(harnessr); library(testthat) })
-  gr_options(verbose = FALSE)
+  hr_options(verbose = FALSE)
   res <- as.data.frame(testthat::test_dir(file.path('$PKG', 'tests', 'testthat'),
                                           package = 'harnessr',
                                           reporter = 'progress',

@@ -33,14 +33,14 @@ test_that("hr_effort_escalate() checks its arguments", {
 
 test_that("a trigger raises the next stage only, and the log says whether it resolved", {
   pol <- hr_effort_escalate()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (identical(p$effort, "low") && grepl("first", m[[1]]$content)) {
       return(gr_result(TRUE, "Partial", finish_reason = "length"))
     }
     paste("done at", p$effort)
   })
-  tr <- gr_trace()
-  call <- function(txt, label) gr_call(cl, txt, model = ee_model, trace = tr, label = label,
+  tr <- hr_trace()
+  call <- function(txt, label) hr_call(cl, txt, model = ee_model, trace = tr, label = label,
                                        effort = pol)$text
   expect_identical(call("first a", "plan.draft"), "Partial")
   expect_identical(call("first b", "plan.draft"), "Partial")   # same stage: no change
@@ -64,9 +64,9 @@ test_that("a trigger raises the next stage only, and the log says whether it res
 
 test_that("a raise that does not resolve its trigger is logged as unresolved", {
   pol <- hr_effort_escalate(max_escalations = 2)
-  cl <- gr_mock_client(function(m, p) gr_result(TRUE, "cut", finish_reason = "length"))
-  tr <- gr_trace()
-  for (lab in c("a.one", "a.two")) gr_call(cl, "x", model = ee_model, trace = tr, label = lab,
+  cl <- hr_mock_client(function(m, p) gr_result(TRUE, "cut", finish_reason = "length"))
+  tr <- hr_trace()
+  for (lab in c("a.one", "a.two")) hr_call(cl, "x", model = ee_model, trace = tr, label = lab,
                                            effort = pol)
   log <- hr_effort_log(tr)   # the run ended in the raised stage: settled from the trace
   expect_false(log$resolved)
@@ -75,13 +75,13 @@ test_that("a raise that does not resolve its trigger is logged as unresolved", {
 
 test_that("a cut counts for the stage whose request it was made for", {
   pol <- hr_effort_escalate()
-  cl <- gr_mock_client(function(m, p) paste("done at", p$effort))
+  cl <- hr_mock_client(function(m, p) paste("done at", p$effort))
   long <- paste(rep("word", 200), collapse = " ")
-  call <- function(tr, label) gr_call(cl, "x", model = ee_model, trace = tr, label = label,
+  call <- function(tr, label) hr_call(cl, "x", model = ee_model, trace = tr, label = label,
                                       effort = pol)$text
   # A cut made while stage b packs its first request belongs to b: b goes out
   # at base and the stage after it is raised.
-  tr <- gr_trace()
+  tr <- hr_trace()
   expect_identical(call(tr, "a.x"), "done at low")
   hr_truncate(long, 10, trace = tr, where = "b.input")
   expect_identical(call(tr, "b.x"), "done at low")
@@ -91,13 +91,13 @@ test_that("a cut counts for the stage whose request it was made for", {
   expect_identical(log$stage, "c.x")
   expect_identical(log$triggers, "truncated")
   # A cut made before the run's first request belongs to the first stage.
-  tr2 <- gr_trace()
+  tr2 <- hr_trace()
   hr_truncate(long, 10, trace = tr2, where = "a.input")
   expect_identical(call(tr2, "a.x"), "done at low")
   expect_identical(call(tr2, "b.x"), "done at high")
   expect_identical(hr_effort_log(tr2)$after, "a.x")
   # An event reported after a stage's last request still belongs to it.
-  tr3 <- gr_trace()
+  tr3 <- hr_trace()
   call(tr3, "a.x")
   hr_effort_event(tr3, "unclear")
   expect_identical(call(tr3, "b.x"), "done at high")
@@ -105,11 +105,11 @@ test_that("a cut counts for the stage whose request it was made for", {
   # In a read: refine cuts the excerpt of its first chunk before the draft
   # request, so the cut is the draft's and the revisions are raised.
   local_registries()
-  gr_register_model("ee-tiny", context_window = 700, max_output = 100, reasoning = TRUE)
+  hr_register_model("ee-tiny", context_window = 700, max_output = 100, reasoning = TRUE)
   txt <- vapply(1:3, function(i) paste(rep(sprintf("Fact %d about the region.", i), 30),
                                        collapse = " "), "")
   ch <- new_chunks(txt, "precomputed", gr_segment_spec(max_tokens = 300))
-  tr4 <- gr_trace()
+  tr4 <- hr_trace()
   quiet(gr_read(ch, "Q?", cl, gr_read_spec("refine", model = "ee-tiny", effort_mode = "escalate"),
                 trace = tr4))
   ef <- ee_efforts(tr4)
@@ -120,10 +120,10 @@ test_that("a cut counts for the stage whose request it was made for", {
 
 test_that("a raised stage that fires again raises the next one while raises are left", {
   pol <- hr_effort_escalate(max_escalations = 2)
-  cl <- gr_mock_client(function(m, p) paste("done at", p$effort))
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(m, p) paste("done at", p$effort))
+  tr <- hr_trace()
   sent <- vapply(c("a.x", "b.x", "c.x", "d.x"), function(lab) {
-    out <- gr_call(cl, "x", model = ee_model, trace = tr, label = lab, effort = pol)$text
+    out <- hr_call(cl, "x", model = ee_model, trace = tr, label = lab, effort = pol)$text
     hr_effort_event(tr, "unclear")
     out
   }, "")
@@ -135,26 +135,26 @@ test_that("a reply sentinel fires only when every request of the stage gave it",
   seen <- character(0)
   answers <- c("NOT_IN_DOCUMENT", "Revenue was 45.2 million.", "x", "NOT_IN_DOCUMENT", "y")
   k <- 0
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     k <<- k + 1
     seen <<- c(seen, p$effort)
     answers[[k]]
   })
-  tr <- gr_trace()
-  gr_call(cl, "a", model = ee_model, trace = tr, label = "s.one", effort = pol)
-  gr_call(cl, "b", model = ee_model, trace = tr, label = "s.one", effort = pol)
-  gr_call(cl, "c", model = ee_model, trace = tr, label = "s.two", effort = pol)
+  tr <- hr_trace()
+  hr_call(cl, "a", model = ee_model, trace = tr, label = "s.one", effort = pol)
+  hr_call(cl, "b", model = ee_model, trace = tr, label = "s.one", effort = pol)
+  hr_call(cl, "c", model = ee_model, trace = tr, label = "s.two", effort = pol)
   expect_identical(seen, c("low", "low", "low"))
-  gr_call(cl, "d", model = ee_model, trace = tr, label = "s.three", effort = pol)
-  gr_call(cl, "e", model = ee_model, trace = tr, label = "s.four", effort = pol)
+  hr_call(cl, "d", model = ee_model, trace = tr, label = "s.three", effort = pol)
+  hr_call(cl, "e", model = ee_model, trace = tr, label = "s.four", effort = pol)
   expect_identical(seen[5], "high")
   expect_identical(hr_effort_log(tr)$triggers, "not_in_document")
 })
 
 test_that("a reply that is not the JSON asked for is a trigger", {
   pol <- hr_effort_escalate()
-  cl <- gr_mock_client(function(m, p) if (identical(p$effort, "low")) "not json" else '{"a": 1}')
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(m, p) if (identical(p$effort, "low")) "not json" else '{"a": 1}')
+  tr <- hr_trace()
   r1 <- gr_call_json(cl, "q", schema = list(type = "object"), model = ee_model, trace = tr,
                      label = "j.one", effort = pol)
   expect_false(r1$ok)
@@ -165,15 +165,15 @@ test_that("a reply that is not the JSON asked for is a trigger", {
 })
 
 test_that("hr_effort_event() records only under a policy", {
-  tr <- gr_trace()
+  tr <- hr_trace()
   expect_false(hr_effort_event(tr, "disagreement"))
   expect_length(tr$steps, 0L)
   expect_false(hr_effort_event(NULL, "disagreement"))
-  cl <- gr_mock_client(function(m, p) paste("at", p$effort))
+  cl <- hr_mock_client(function(m, p) paste("at", p$effort))
   pol <- hr_effort_escalate()
-  gr_call(cl, "a", model = ee_model, trace = tr, label = "e.one", effort = pol)
+  hr_call(cl, "a", model = ee_model, trace = tr, label = "e.one", effort = pol)
   expect_true(hr_effort_event(tr, "disagreement", members = 2))
-  expect_identical(gr_call(cl, "b", model = ee_model, trace = tr, label = "e.two",
+  expect_identical(hr_call(cl, "b", model = ee_model, trace = tr, label = "e.two",
                            effort = pol)$text, "at high")
   expect_error(hr_effort_event(tr, c("a", "b")), class = "gr_bad_setting")
 })
@@ -200,11 +200,11 @@ test_that("effort_mode is off by default and leaves a default spec alone", {
 test_that("under effort_mode = 'escalate' a read raises the stage after a trigger", {
   ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200))
   n <- 0
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     n <<- n + 1
     if (n == 1) "NOT_IN_DOCUMENT" else paste("Revenue at", p$effort)
   })
-  tr <- gr_trace()
+  tr <- hr_trace()
   quiet(gr_read(ch, "What was revenue?", cl,
                 gr_read_spec("refine", model = ee_model, effort_mode = "escalate"), trace = tr))
   ef <- ee_efforts(tr)
@@ -215,7 +215,7 @@ test_that("under effort_mode = 'escalate' a read raises the stage after a trigge
   expect_true(log$resolved)
   # Static: the same read at one effort throughout.
   n <- 0
-  tr2 <- gr_trace()
+  tr2 <- hr_trace()
   quiet(gr_read(ch, "What was revenue?", cl, gr_read_spec("refine", model = ee_model,
                                                           effort = "low"), trace = tr2))
   expect_true(all(ee_efforts(tr2)$effort == "low"))
@@ -224,7 +224,7 @@ test_that("under effort_mode = 'escalate' a read raises the stage after a trigge
 
 test_that("ensemble members that disagree raise the adjudication", {
   ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 120))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     sys <- m[[1]]$content
     if (grepl("different reading strategies", sys, fixed = TRUE)) return(paste("adj", p$effort))
     if (grepl("<excerpts>", m[[2]]$content, fixed = TRUE) &&
@@ -234,7 +234,7 @@ test_that("ensemble members that disagree raise the adjudication", {
     if (grepl("consolidate", sys)) return("Revenue was about 45 million.")
     "NOT_IN_DOCUMENT"
   })
-  tr <- gr_trace()
+  tr <- hr_trace()
   a <- quiet(gr_read(ch, "What was revenue?", cl,
                      gr_read_spec("ensemble", model = ee_model, effort_mode = "escalate"),
                      trace = tr))
@@ -253,13 +253,13 @@ ee_bench <- function() {
                       cluster = sprintf("c%02d", rep(1:20, each = 2)), split = "test")
   arm_at <- function(name, effort) {
     hr_arm(name, function(item, ctx) {
-      gr_call(ctx$client, paste("first", item), model = ee_model, trace = ctx$trace,
+      hr_call(ctx$client, paste("first", item), model = ee_model, trace = ctx$trace,
               label = "task.draft", effort = effort)
-      gr_call(ctx$client, paste("final", item), model = ee_model, trace = ctx$trace,
+      hr_call(ctx$client, paste("final", item), model = ee_model, trace = ctx$trace,
               label = "task.final", effort = effort)$text
     })
   }
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     hard <- grepl("q0[1-4]", m[[1]]$content)
     if (grepl("first", m[[1]]$content) && hard) {
       return(gr_result(TRUE, "cut", finish_reason = "length"))

@@ -21,7 +21,7 @@ test_that("fields lost to a failed request are not reported as 'not reported'", 
                  n = gr_field("Number of participants", type = "integer"))
   a <- rx_file(rx_say("We ran a randomised controlled trial of the new treatment across sites."),
                rx_say("We enrolled 120 participants in total over the recruitment window."))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     ex <- messages[[length(messages)]]$content
     if (grepl("enrolled", ex, fixed = TRUE)) stop("HTTP 429 rate limited")
     paste0('{"design":"randomised controlled trial","n":null,',
@@ -62,7 +62,7 @@ test_that("a document whose every extraction request failed is a failed read", {
   writeLines("We ran a randomised controlled trial. We enrolled 120 participants.",
              file.path(d, "a.txt"))
   writeLines("We ran a cohort study. We enrolled 300 participants.", file.path(d, "b.txt"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     ex <- messages[[length(messages)]]$content
     if (grepl("cohort", ex, fixed = TRUE)) stop("HTTP 500 server error")
     paste0('{"design":"randomised controlled trial","n":120,',
@@ -113,7 +113,7 @@ test_that("'None' backed by a quote is a finding; 'None' with no quote is nothin
   a <- rx_file("This was a randomised controlled trial of drug X versus placebo.",
                paste("The primary outcome showed a null result with no difference between arms.",
                      "Serious adverse events: None. Conflicts of interest: None."))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     as.character(jsonlite::toJSON(list(
       design = "randomised controlled trial",
       design__quote = "This was a randomised controlled trial of drug X versus placebo.",
@@ -144,7 +144,7 @@ test_that("agreeing chunks lend the value their best quote", {
   meth_txt <- paste(rx_say("Methods: recruitment ran across several clinics in the region for a year."),
                     "We enrolled 120 participants in the trial.")
   a <- rx_file(abs_txt, meth_txt)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     ex <- messages[[length(messages)]]$content
     if (grepl("We enrolled 120", ex, fixed = TRUE)) {
       return('{"n":120,"n__quote":"We enrolled 120 participants in the trial."}')
@@ -172,7 +172,7 @@ test_that("a quote that does not carry the value does not verify it", {
                  design = "The study design")
   a <- rx_file("We ran a randomised controlled trial. We enrolled 120 people. The trial was funded by Pfizer.")
   run <- function(json, rq = FALSE) {
-    cl <- gr_mock_client(function(messages, params) json)
+    cl <- hr_mock_client(function(messages, params) json)
     quiet(gr_extract(a, f, client = cl, require_quote = rq))
   }
   nulls <- '"funded":null,"funded__quote":null,"design":null,"design__quote":null'
@@ -228,7 +228,7 @@ test_that("extracted quotes are checked against the source text, not a model's r
                          list(method = "paragraph", max_tokens = 100)))
   ch$chunks$source_text <- ch$chunks$text
   ch$chunks$text <- paste("Context: this paper is a randomised controlled trial.", ch$chunks$text)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     '{"design":"randomised controlled trial","design__quote":"this paper is a randomised controlled trial"}'
   })
   ans <- quiet(gr_read(ch, "extract", cl, gr_read_spec("extract", fields = f)))
@@ -237,7 +237,7 @@ test_that("extracted quotes are checked against the source text, not a model's r
   expect_true(ans$partial)
 
   # The same quote of the document's own words verifies; NA means `text` is source.
-  cl2 <- gr_mock_client(function(messages, params) {
+  cl2 <- hr_mock_client(function(messages, params) {
     '{"design":"cohort study","design__quote":"We ran a cohort study of adults."}'
   })
   ans2 <- quiet(gr_read(ch, "extract", cl2, gr_read_spec("extract", fields = f)))
@@ -253,7 +253,7 @@ test_that("the answer text keeps every digit of an extracted number", {
                  n = gr_field("Participants", type = "integer"))
   a <- rx_file("We enrolled 120 participants in the trial.",
                "The effect was d = 0.84321 with p = 0.00003 overall.")
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     paste0('{"p":0.00003,"p__quote":"p = 0.00003","effect":0.84321,',
            '"effect__quote":"d = 0.84321","n":120,"n__quote":"120 participants"}')
   })

@@ -22,7 +22,7 @@ it removes, and how to check a folder before spending anything on it.
 
 ```{r message = FALSE}
 library(harnessr)
-old <- gr_options(verbose = FALSE)
+old <- hr_options(verbose = FALSE)
 ```
 
 ## What ingestion produces
@@ -309,7 +309,7 @@ Ingestion is cached for the rest of the R session. Asking a second question of t
 same file, or trying a different way of cutting it into chunks, reuses the
 extracted text instead of reading the file again. The cache notices when the file
 changes (its size or modification time) and when any ingestion setting changes.
-Turn it off with `gr_options(cache_documents = FALSE)`.
+Turn it off with `hr_options(cache_documents = FALSE)`.
 
 ## Before reading a whole folder
 
@@ -396,7 +396,7 @@ reads them with intervals.
 qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
                       documents = gr_example(), answers = list("45.2 million"),
                       split = "dev")
-says <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+says <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
 ```
 
 ### Cleaning presets and `references_after` {#set-clean}
@@ -546,7 +546,7 @@ gr_ingest("CONFIDENTIAL - internal only\n\nRevenue rose to 45.2 million dollars.
 `vignette("extending")` covers every kind of addition.
 
 ```{r include = FALSE}
-gr_options(old)
+hr_options(old)
 ```
 
 ## Next

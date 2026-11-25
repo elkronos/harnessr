@@ -72,7 +72,7 @@ answer_schema <- function(structure) {
 }
 
 #' Send one answering request as `spec` says: the free-text request through
-#' gr_call() at the defaults, exactly as before, or a structured one.
+#' hr_call() at the defaults, exactly as before, or a structured one.
 #'
 #' A structured reply is turned back into the text the readers read: the
 #' answer, NOT_IN_DOCUMENT for an outcome of "not_found", and the answer
@@ -92,7 +92,7 @@ answer_request <- function(client, messages, spec, trace, label, max_output,
                            model = spec$model, sources = character(0), document = NULL) {
   structure <- answer_structure(spec)
   if (is.null(structure)) {
-    return(gr_call(client, messages, model = model, max_output = max_output,
+    return(hr_call(client, messages, model = model, max_output = max_output,
                    temperature = spec$temperature, trace = trace, label = label,
                    effort = spec$effort))
   }

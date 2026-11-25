@@ -81,7 +81,7 @@ test_that("a real extraction with a failed request is read in part in the flow a
   p <- withr::local_tempfile(fileext = ".txt")
   writeLines(c(say("We ran a randomised controlled trial of the new treatment across sites."), "",
                say("We enrolled 120 participants in total over the recruitment window.")), p)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     ex <- messages[[length(messages)]]$content
     if (grepl("enrolled", ex, fixed = TRUE)) stop("HTTP 429 rate limited")
     paste0('{"design":"randomised controlled trial","n":null,',
@@ -127,7 +127,7 @@ m2_stub_chat <- function() {
 test_that("the ellmer model warning names the caller's model and does not say recipes carry one", {
   skip_if_not_installed("ellmer")
   local_registries()
-  gr_register_model("stub-model", context_window = 128000L, max_output = 4096L,
+  hr_register_model("stub-model", context_window = 128000L, max_output = 4096L,
                     input_usd = 0, output_usd = 0)
   said <- character(0)
   collect <- function(expr) withCallingHandlers(expr,
@@ -137,7 +137,7 @@ test_that("the ellmer model warning names the caller's model and does not say re
 
   # Before: "Recipes carry a model, so pass model = 'stub-model' to override
   # it", which told the caller to name a model; naming one is what causes this.
-  collect(gr_call(gr_ellmer_client(m2_stub_chat()), "q", model = "gpt-4o"))
+  collect(hr_call(hr_ellmer_client(m2_stub_chat()), "q", model = "gpt-4o"))
   expect_length(said, 1L)
   expect_match(said, "This run named model 'gpt-4o'", fixed = TRUE)
   expect_match(said, "answers, and is billed, as the model it was built with ('stub-model')",
@@ -149,7 +149,7 @@ test_that("the ellmer model warning names the caller's model and does not say re
   # nothing to warn about.
   said <- character(0)
   collect(suppressMessages(answer_document(gr_example(), "What was revenue?", "fast",
-                                           client = gr_ellmer_client(m2_stub_chat()))))
+                                           client = hr_ellmer_client(m2_stub_chat()))))
   expect_length(said, 0L)
 })
 
@@ -175,15 +175,15 @@ m2_chunks <- function() {
 }
 
 m2_price <- function() {
-  gr_register_model("mock-model", context_window = 128000, max_output = 16384,
+  hr_register_model("mock-model", context_window = 128000, max_output = 16384,
                     input_usd = 4, output_usd = 20)
-  gr_register_model("cheap-model", context_window = 128000, max_output = 16384,
+  hr_register_model("cheap-model", context_window = 128000, max_output = 16384,
                     input_usd = 1, output_usd = 2)
 }
 
 test_that("the extract reader hands gr_lapply its client and the most one request can cost", {
   local_registries()
-  cl <- gr_mock_client(function(m, p) '{"f01":null}')
+  cl <- hr_mock_client(function(m, p) '{"f01":null}')
   m2_price()
   ch <- m2_chunks()
   seen <- list()
@@ -194,7 +194,7 @@ test_that("the extract reader hands gr_lapply its client and the most one reques
   })
   read <- function(spec) {
     seen <<- list()
-    tr <- gr_trace()
+    tr <- hr_trace()
     quiet(gr_read(ch, "Fill the form", cl, spec, trace = tr))
     steps <- Filter(function(s) identical(s$label, "extract.chunk"), tr$steps)
     list(seen = seen[[1]], largest = max(vapply(steps, function(s) s$tokens$input, numeric(1))))
@@ -206,15 +206,15 @@ test_that("the extract reader hands gr_lapply its client and the most one reques
                            max_chunk_tokens = 64))
   expect_identical(got$seen$client, cl)
   # The largest prompt the batch sent, with its reply at the cap.
-  expect_equal(got$seen$item_usd, gr_estimate_cost("mock-model", got$largest, 64))
+  expect_equal(got$seen$item_usd, hr_estimate_cost("mock-model", got$largest, 64))
 
   # Priced at the model that receives the chunks.
   got <- read(gr_read_spec("extract", model = "mock-model", skim_model = "cheap-model",
                            fields = m2_fields(), max_chunk_tokens = 64))
-  expect_equal(got$seen$item_usd, gr_estimate_cost("cheap-model", got$largest, 64))
+  expect_equal(got$seen$item_usd, hr_estimate_cost("cheap-model", got$largest, 64))
 
   # No price, no figure: NA, which the spending check counts as the trace does.
-  gr_register_model("free-for-all", context_window = 128000, max_output = 16384)
+  hr_register_model("free-for-all", context_window = 128000, max_output = 16384)
   got <- read(gr_read_spec("extract", model = "free-for-all", fields = m2_fields(),
                            max_chunk_tokens = 64))
   expect_true(is.na(got$seen$item_usd))
@@ -227,25 +227,25 @@ test_that("an extraction through an ellmer chat is priced as the chat's model", 
   ellmer_like <- structure(list(model = "mock-model"),
                            class = c("gr_ellmer_client", "gr_backend_client", "gr_client"))
   expect_equal(harnessr:::extract_item_usd(ellmer_like, "cheap-model", 1000, 100),
-               gr_estimate_cost("mock-model", 1000, 100))
+               hr_estimate_cost("mock-model", 1000, 100))
   # The reply is priced at no more than the model can write.
-  gr_register_model("short-model", context_window = 8000, max_output = 50,
+  hr_register_model("short-model", context_window = 8000, max_output = 50,
                     input_usd = 1, output_usd = 10)
-  expect_equal(harnessr:::extract_item_usd(gr_mock_client(function(m, p) "x"), "short-model",
+  expect_equal(harnessr:::extract_item_usd(hr_mock_client(function(m, p) "x"), "short-model",
                                           1000, 700),
-               gr_estimate_cost("short-model", 1000, 50))
+               hr_estimate_cost("short-model", 1000, 50))
 })
 
 test_that("a parallel extraction stops at the spending limit where the sequential one does", {
   skip_if_not_installed("future")
   skip_if_not_installed("future.apply")
   local_registries()
-  cl <- gr_mock_client(function(m, p) '{"f01":null}')
+  cl <- hr_mock_client(function(m, p) '{"f01":null}')
   m2_price()
   ch <- m2_chunks()
   run <- function(par, limit) {
-    gr_options(max_calls = 1000, max_cost_usd = limit, workers = 2)
-    tr <- gr_trace()
+    hr_options(max_calls = 1000, max_cost_usd = limit, workers = 2)
+    tr <- hr_trace()
     # Every cap the same, so preflight's worst case prices replies no higher
     # than the reader sends them, and passes the read.
     spec <- gr_read_spec("extract", model = "mock-model", fields = m2_fields(),

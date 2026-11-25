@@ -17,7 +17,7 @@ Invisibly, the caches cleared: \code{"documents"}, \code{"embeddings"} or both.
 harnessr keeps two caches in memory for the life of the R session: the
 documents \code{\link[=gr_ingest]{gr_ingest()}} has already extracted and cleaned, keyed on the file
 and every setting that changes the result, and the vectors the built-in
-\code{"api"} embedder has already fetched (see \code{\link[=gr_embed]{gr_embed()}}). This empties them.
+\code{"api"} embedder has already fetched (see \code{\link[=hr_embed]{hr_embed()}}). This empties them.
 The next ingestion of a file reads and cleans it again, and the next ranking
 sends its embeddings requests again, which are counted against \code{max_calls}
 and \code{max_cost_usd} like any others.
@@ -29,11 +29,11 @@ so a long session or a Shiny server does not need this to stay within
 memory. It is for starting again from nothing: to give the memory back at
 once, or to time or test a run as a fresh session would see it.
 
-Not to be confused with \code{\link[=gr_cache_clear]{gr_cache_clear()}}, which deletes the model
-\emph{responses} a \code{\link[=gr_cache]{gr_cache()}} keeps in a directory on disk. Neither touches
+Not to be confused with \code{\link[=hr_cache_clear]{hr_cache_clear()}}, which deletes the model
+\emph{responses} an \code{\link[=hr_cache]{hr_cache()}} keeps in a directory on disk. Neither touches
 the other's cache: this leaves every stored response in place, and
-\code{\link[=gr_cache_clear]{gr_cache_clear()}} leaves every document and vector in memory.
-\code{gr_options(cache_documents = FALSE, cache_embeddings = FALSE)} turns the
+\code{\link[=hr_cache_clear]{hr_cache_clear()}} leaves every document and vector in memory.
+\code{hr_options(cache_documents = FALSE, cache_embeddings = FALSE)} turns the
 two memory caches off instead.
 }
 \examples{
@@ -42,6 +42,6 @@ gr_flush_caches("documents")
 gr_flush_caches()
 }
 \seealso{
-\code{\link[=gr_cache_clear]{gr_cache_clear()}} for the on-disk response cache, \code{\link[=gr_options]{gr_options()}}
-for \code{cache_documents} and \code{cache_embeddings}, \code{\link[=gr_ingest]{gr_ingest()}}, \code{\link[=gr_embed]{gr_embed()}}
+\code{\link[=hr_cache_clear]{hr_cache_clear()}} for the on-disk response cache, \code{\link[=hr_options]{hr_options()}}
+for \code{cache_documents} and \code{cache_embeddings}, \code{\link[=gr_ingest]{gr_ingest()}}, \code{\link[=hr_embed]{hr_embed()}}
 }

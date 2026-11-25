@@ -169,7 +169,7 @@ test_that("a visible step needs a list input and adds $check", {
 
 test_that("a held step passes its input on and attaches the result for the scorer", {
   s <- command_r("quit(status = 1)", held = TRUE)
-  tr <- gr_trace()
+  tr <- hr_trace()
   out <- s(list(draft = "x"), list(trace = tr, item_id = "q1", step = "check"))
   expect_identical(unclass(out)[["draft"]], "x")
   expect_null(out$check)
@@ -183,7 +183,7 @@ test_that("a held step passes its input on and attaches the result for the score
 
 test_that("the trace notes the run by hash, never its output", {
   s <- command_r("cat('secret-output-text')")
-  tr <- gr_trace()
+  tr <- hr_trace()
   s(list(), list(trace = tr))
   steps <- tr$steps
   expect_length(steps, 1L)

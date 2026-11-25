@@ -38,7 +38,7 @@ test_that("new_hr_ctx() checks what it is given once, where it is built", {
 })
 
 test_that("format_hr_ctx() says a key is set and never shows it", {
-  ctx <- harnessr:::new_hr_ctx(key = fake_key, opts = gr_options(),
+  ctx <- harnessr:::new_hr_ctx(key = fake_key, opts = hr_options(),
                                regs = harnessr:::worker_state(),
                                parent_meta = list(run = "a"),
                                governor = hr_governor(max_calls = 3),
@@ -90,11 +90,11 @@ test_that("a mock batch never sets the key, and the worker's value is what it wa
   skip_if_no_future()
   withr::local_envvar(OPENAI_API_KEY = NA)
   withr::local_options(harnessr.api_key = fake_key)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     Sys.getenv("OPENAI_API_KEY", unset = "<unset>")
   })
   got <- harnessr:::gr_lapply(1:4, function(i, trace) {
-    list(seen = gr_call(cl, "hi", trace = trace)$text,
+    list(seen = hr_call(cl, "hi", trace = trace)$text,
          after = Sys.getenv("OPENAI_API_KEY", unset = "<unset>"), pid = Sys.getpid())
   }, parallel = TRUE, workers = 2, client = cl)
   expect_false(any(vapply(got, `[[`, integer(1), "pid") == Sys.getpid()))
@@ -130,14 +130,14 @@ test_that("a backend handler that reads the environment gets the key in parallel
   withr::local_options(harnessr.api_key = fake_key)
   # The handler answers whether it saw the key, never the key itself, so the
   # scans below look only at what harnessr recorded.
-  cl <- gr_backend_client(function(messages, params) {
+  cl <- hr_backend_client(function(messages, params) {
     if (identical(Sys.getenv("OPENAI_API_KEY"), "sk-FAKE123")) "key seen" else "no key"
   }, model = "gpt-4o", id = "ctx-backend")
   cache_dir <- withr::local_tempdir("ctx-cache")
-  cl <- gr_cache_client(cl, gr_cache(cache_dir))
-  tr <- gr_trace()
+  cl <- hr_cache_client(cl, hr_cache(cache_dir))
+  tr <- hr_trace()
   got <- harnessr:::gr_lapply(1:4, function(i, trace) {
-    list(text = gr_call(cl, sprintf("item %d", i), trace = trace)$text, pid = Sys.getpid())
+    list(text = hr_call(cl, sprintf("item %d", i), trace = trace)$text, pid = Sys.getpid())
   }, parallel = TRUE, workers = 2, trace = tr, client = cl)
   expect_false(any(vapply(got, `[[`, integer(1), "pid") == Sys.getpid()))
   expect_identical(vapply(got, `[[`, character(1), "text"), rep("key seen", 4))
@@ -155,12 +155,12 @@ test_that("a backend handler that reads the environment gets the key in parallel
   # The same prompts run here with no key must give the same cache entries.
   withr::local_options(harnessr.api_key = NULL)
   keyless_dir <- withr::local_tempdir("ctx-cache-keyless")
-  cl2 <- gr_cache_client(gr_backend_client(function(messages, params) "no key",
+  cl2 <- hr_cache_client(hr_backend_client(function(messages, params) "no key",
                                            model = "gpt-4o", id = "ctx-backend"),
-                         gr_cache(keyless_dir))
+                         hr_cache(keyless_dir))
   harnessr:::gr_lapply(1:4, function(i, trace) {
-    gr_call(cl2, sprintf("item %d", i), trace = trace)$text
-  }, parallel = FALSE, trace = gr_trace(), client = cl2)
+    hr_call(cl2, sprintf("item %d", i), trace = trace)$text
+  }, parallel = FALSE, trace = hr_trace(), client = cl2)
   entries <- function(dir) sort(basename(list.files(dir, recursive = TRUE)))
   expect_identical(entries(cache_dir), entries(keyless_dir))
 })

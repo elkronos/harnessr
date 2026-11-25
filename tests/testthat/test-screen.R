@@ -6,7 +6,7 @@
 # the model got the call right.
 
 screen_client <- function(rules, default = NULL) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     seen <- paste(vapply(messages, function(m) paste(as.character(m$content), collapse = ""),
                          character(1)), collapse = "\n")
     for (r in rules) if (grepl(r$where, seen, fixed = TRUE)) return(r$json)
@@ -86,7 +86,7 @@ test_that("an unreadable answer is 'unclear', never a guess in either direction"
   # call, not a judgement, so it is not "unclear" either: no decision, status
   # "failed", and the error says why. "Unclear" counted in gr_flow() and
   # gr_calibrate() as the model deferring to a person, which it never did.
-  cl <- gr_mock_client(function(messages, params) "not json at all")
+  cl <- hr_mock_client(function(messages, params) "not json at all")
   a <- txt_file(trial_txt)
   s <- quiet(gr_screen(a, question = "Q?", include = "Reports a randomised comparison",
                        client = cl, keep_answers = TRUE))
@@ -183,7 +183,7 @@ test_that("screening is costed as the one call it is", {
   # -- made a long document abort against a call cap it would never have reached,
   # which is a reader that cannot be used on exactly the documents it is for.
   local_registries()
-  gr_options(max_calls = 3)
+  hr_options(max_calls = 3)
   paras <- vapply(1:8, function(i)
     sprintf("Paragraph %d of the document, with enough words in it to fill a chunk.", i),
     character(1))
@@ -297,7 +297,7 @@ test_that("screening feeds extraction, and duplicates are screened once", {
   expect_length(s$deferred, 0L)
 
   fields <- gr_fields(n = gr_field("Participants", type = "integer"))
-  ex <- gr_mock_client(function(messages, params) {
+  ex <- hr_mock_client(function(messages, params) {
     '{"n":1204,"n__quote":"We randomly assigned 1,204 participants to two groups."}'
   })
   x <- quiet(gr_extract(s$included, fields, client = ex, recipe = "fast"))
@@ -367,7 +367,7 @@ test_that("unclear records go forward, and the flow accounts for every record", 
   expect_identical(s$included, inc)
 
   fields <- gr_fields(n = gr_field("Participants", type = "integer"))
-  ex <- gr_mock_client(function(messages, params) '{"n":null,"n__quote":null}')
+  ex <- hr_mock_client(function(messages, params) '{"n":null,"n__quote":null}')
   expect_warning(x <- suppressMessages(gr_extract(s, fields, client = ex, recipe = "fast")),
                  class = "gr_unclear_dropped")
   expect_equal(nrow(x$table), 3L)

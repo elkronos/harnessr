@@ -46,12 +46,12 @@ test_that("the fixture was written under the old keys", {
 
 test_that("an old cache answers every call through the old key, each hit warning", {
   local_registries()
-  harnessr::gr_options(verbose = FALSE)
+  harnessr::hr_options(verbose = FALSE)
   dir <- withr::local_tempdir()
   file.copy(file.path(legacy_keys_dir(), "cache"), dir, recursive = TRUE)
-  cache <- gr_cache(file.path(dir, "cache"))
+  cache <- hr_cache(file.path(dir, "cache"))
   base <- legacy_keys_client()
-  cl <- gr_cache_client(base, cache)
+  cl <- hr_cache_client(base, cache)
 
   run <- legacy_keys_run(cl)
   expect_identical(run$warned, 6L)
@@ -61,7 +61,7 @@ test_that("an old cache answers every call through the old key, each hit warning
   }, logical(1))))
   # Nothing was sent, nothing was missed, and nothing was rewritten.
   expect_length(base$calls(), 0L)
-  s <- gr_cache_stats(cache)
+  s <- hr_cache_stats(cache)
   expect_identical(s[c("entries", "hits", "misses", "writes", "legacy_hits")],
                    data.frame(entries = 5L, hits = 6L, misses = 0L, writes = 0L,
                               legacy_hits = 6L))
@@ -74,31 +74,31 @@ test_that("an old cache answers every call through the old key, each hit warning
   expect_identical(again$warned, 1L)
   third <- legacy_keys_run(cl, each = FALSE)
   expect_identical(third$warned, 0L)
-  expect_identical(gr_cache_stats(cache)$legacy_hits, 18L)
+  expect_identical(hr_cache_stats(cache)$legacy_hits, 18L)
 })
 
 test_that("an old cache is not read for a draw", {
   local_registries()
   dir <- withr::local_tempdir()
   file.copy(file.path(legacy_keys_dir(), "cache"), dir, recursive = TRUE)
-  cache <- gr_cache(file.path(dir, "cache"))
+  cache <- hr_cache(file.path(dir, "cache"))
   base <- legacy_keys_client()
-  cl <- gr_cache_client(base, cache)
-  res <- gr_call(cl, "What was revenue in 2024?", draw_index = 1)
+  cl <- hr_cache_client(base, cache)
+  res <- hr_call(cl, "What was revenue in 2024?", draw_index = 1)
   expect_false(res$cached)
   expect_length(base$calls(), 1L)
   # Written under the new key, beside the old entries.
-  expect_identical(gr_cache_stats(cache)[c("entries", "legacy_hits")],
+  expect_identical(hr_cache_stats(cache)[c("entries", "legacy_hits")],
                    data.frame(entries = 6L, legacy_hits = 0L))
-  # gr_cache_clear() removes entries under both keys.
-  expect_identical(gr_cache_clear(cache), 6L)
+  # hr_cache_clear() removes entries under both keys.
+  expect_identical(hr_cache_clear(cache), 6L)
 })
 
 test_that("an old recording replays strictly through the old key, each hit warning", {
   local_registries()
-  harnessr::gr_options(verbose = FALSE)
-  rp <- gr_replay_client(file.path(legacy_keys_dir(), "recording.json"), strict = TRUE)
-  tr <- gr_trace()
+  harnessr::hr_options(verbose = FALSE)
+  rp <- hr_replay_client(file.path(legacy_keys_dir(), "recording.json"), strict = TRUE)
+  tr <- hr_trace()
   run <- legacy_keys_run(rp, trace = tr)
   expect_identical(run$warned, 6L)
   expect_identical(legacy_keys_text(run$out), legacy_keys_recorded())
@@ -110,31 +110,31 @@ test_that("an old recording replays strictly through the old key, each hit warni
   # or schema, so the replay's own trace records it without a new key, and a
   # replay of that trace goes through the old key again.
   expect_true(all(vapply(tr$steps, function(st) is.null(st$replay_key), logical(1))))
-  rp2 <- gr_replay_client(tr, strict = TRUE)
+  rp2 <- hr_replay_client(tr, strict = TRUE)
   again <- legacy_keys_run(rp2, trace = NULL)
   expect_identical(again$warned, 6L)
   expect_identical(legacy_keys_text(again$out), legacy_keys_recorded())
   expect_identical(rp2$stats()$legacy_hits, 6L)
 
   # The old recording holds two replies to the repeated prompt and no more.
-  expect_error(gr_call(rp, "What was revenue in 2024?"), class = "hr_replay_exhausted")
+  expect_error(hr_call(rp, "What was revenue in 2024?"), class = "hr_replay_exhausted")
 })
 
 test_that("a reply found by the old key at another temperature keeps no new key", {
   local_registries()
-  harnessr::gr_options(verbose = FALSE)
-  rp <- gr_replay_client(file.path(legacy_keys_dir(), "recording.json"), strict = TRUE)
-  tr <- gr_trace()
+  harnessr::hr_options(verbose = FALSE)
+  rp <- hr_replay_client(file.path(legacy_keys_dir(), "recording.json"), strict = TRUE)
+  tr <- hr_trace()
   res <- withCallingHandlers(
-    gr_call(rp, "What was revenue in 2024?", temperature = 0.9, trace = tr),
+    hr_call(rp, "What was revenue in 2024?", temperature = 0.9, trace = tr),
     hr_legacy_key = function(w) invokeRestart("muffleWarning"))
   expect_match(res$text, "default temperature", fixed = TRUE)
   expect_null(tr$steps[[1]]$replay_key)
 
   # Replayed at the same temperature, the reply is still one found by the old
   # key, and says so.
-  rp2 <- gr_replay_client(tr, strict = TRUE)
-  expect_warning(again <- gr_call(rp2, "What was revenue in 2024?", temperature = 0.9),
+  rp2 <- hr_replay_client(tr, strict = TRUE)
+  expect_warning(again <- hr_call(rp2, "What was revenue in 2024?", temperature = 0.9),
                  class = "hr_legacy_key")
   expect_identical(again$text, res$text)
   expect_identical(rp2$stats()$legacy_hits, 1L)

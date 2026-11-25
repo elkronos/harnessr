@@ -16,7 +16,7 @@ accepts.}
 \code{contextual(context_source = "llm")}.}
 
 \item{trace}{Optional \code{gr_trace}. When none is given one is made, so the
-model calls a segmenter makes are held to \code{gr_options(max_calls =, max_cost_usd =)} and recorded, and it is returned as \verb{$trace}.}
+model calls a segmenter makes are held to \code{hr_options(max_calls =, max_cost_usd =)} and recorded, and it is returned as \verb{$trace}.}
 }
 \value{
 A \link{gr_chunks} object. If the requested segmenter could not run it

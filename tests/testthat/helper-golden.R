@@ -198,11 +198,11 @@ golden_client <- function(dir) {
     n <<- n + 1L
     golden_reply(messages, params)
   }
-  cl <- harnessr::gr_mock_client(handler)
+  cl <- harnessr::hr_mock_client(handler)
   # The mock draws a fresh id per client, and the id is part of every cache
   # key, embedding key and corpus key. Pinned, two runs key alike.
   cl$.client_id <- "golden-mock"
-  cl <- harnessr::gr_cache_client(cl, harnessr::gr_cache(dir, read = FALSE, write = TRUE))
+  cl <- harnessr::hr_cache_client(cl, harnessr::hr_cache(dir, read = FALSE, write = TRUE))
   attr(cl, "golden_keys") <- function() {
     if (n > length(keys$seen)) keys$seen <- c(keys$seen, take())
     keys$seen
@@ -250,7 +250,7 @@ golden_trace <- function(trace, paths) {
 # Run `expr(client)` from a clean state and record it. `result` turns what the
 # run returned into the plain data whose hash is kept.
 golden_run <- function(expr, result = function(x) NULL) {
-  old <- harnessr::gr_options()
+  old <- harnessr::hr_options()
   # The document layer's registries, then the core's.
   st <- harnessr:::gr_state
   slots <- c("extractors", "cleaners", "segmenters", "readers", "embedders", "protocols")
@@ -261,12 +261,12 @@ golden_run <- function(expr, result = function(x) NULL) {
   on.exit({
     for (s in names(snap)) st[[s]] <- snap[[s]]
     for (s in names(core_snap)) core[[s]] <- core_snap[[s]]
-    harnessr::gr_options(old)
+    harnessr::hr_options(old)
     harnessr::gr_flush_caches()
   }, add = TRUE)
   # The defaults, whatever an earlier test or the session set.
-  harnessr::gr_options(harnessr:::gr_defaults)
-  harnessr::gr_options(verbose = FALSE)
+  harnessr::hr_options(harnessr:::gr_defaults)
+  harnessr::hr_options(verbose = FALSE)
   harnessr::gr_flush_caches()
   dir <- tempfile("golden-cache")
   on.exit(unlink(dir, recursive = TRUE), add = TRUE)

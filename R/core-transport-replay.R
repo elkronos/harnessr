@@ -23,22 +23,22 @@
 #' Save a trace to a file
 #'
 #' Writes the trace as JSON, in the form [as_json()] produces. The file is
-#' everything [gr_replay_client()] needs, so this is how a run leaves the
+#' everything [hr_replay_client()] needs, so this is how a run leaves the
 #' session it happened in.
 #'
 #' @param trace A `gr_trace`.
 #' @param path Destination file.
 #' @return `path`, invisibly.
-#' @seealso [gr_replay_client()], [as_json()], [gr_trace()]
+#' @seealso [hr_replay_client()], [as_json()], [hr_trace()]
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 #' ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #'
 #' f <- tempfile(fileext = ".json")
-#' gr_trace_save(ans$trace, f)
+#' hr_trace_save(ans$trace, f)
 #' file.exists(f)
-gr_trace_save <- function(trace, path) {
+hr_trace_save <- function(trace, path) {
   stopifnot(inherits(trace, "gr_trace"))
   path <- as_chr1(path)
   if (!nzchar(path)) gr_abort("`path` must be a file name.")
@@ -60,7 +60,7 @@ gr_trace_save <- function(trace, path) {
 #' also the cheapest possible bug report: a trace file is a re-runnable
 #' recording of exactly what went wrong.
 #'
-#' @param source A `gr_trace`; a path to a file written by [gr_trace_save()];
+#' @param source A `gr_trace`; a path to a file written by [hr_trace_save()];
 #'   the JSON text [as_json()] writes for a trace or for an answer (whose trace
 #'   is used); or an already-parsed list in that shape. Parse a file yourself
 #'   with `jsonlite::fromJSON(path, simplifyVector = FALSE)`: the default
@@ -78,7 +78,7 @@ gr_trace_save <- function(trace, path) {
 #'   result that looks like the original but is not. With `FALSE` a miss returns
 #'   a failed [gr_result] instead, so a partially recorded trace still runs.
 #' @return An object of class `gr_replay_client`, usable anywhere a
-#'   [gr_client()] is. It also carries `$stats()` and `$missed()`.
+#'   [hr_client()] is. It also carries `$stats()` and `$missed()`.
 #'
 #' @section Matching:
 #' A response is matched on the exact prompt messages plus the model id the
@@ -91,11 +91,11 @@ gr_trace_save <- function(trace, path) {
 #' than passing for the recording. A replay under the same effort
 #' matches even where this session's registry does not list a model as a
 #' reasoning model and the recording session's did (a gateway model
-#' registered with [gr_register_model()] there and not here), and a call
+#' registered with [hr_register_model()] there and not here), and a call
 #' through an ellmer chat, which sends no effort, is matched on the one it
 #' asked for. The model id can differ from the
 #' model the trace records as
-#' answering: a [gr_ellmer_client()] answers with its chat's model whatever the
+#' answering: an [hr_ellmer_client()] answers with its chat's model whatever the
 #' recipe asked for, and its runs replay all the same.
 #'
 #' A step recorded before `replay_key` existed (readgpt 0.6.0, and harnessr
@@ -109,7 +109,7 @@ gr_trace_save <- function(trace, path) {
 #' The replay client's own model, which a read that names none asks for, is
 #' the model the recorded reads asked for. One trace can hold reads through
 #' clients built for different models, and a recording made by readgpt 0.5.0
-#' asked for `gr_options("model")` on a read and for the client's model
+#' asked for `hr_options("model")` on a read and for the client's model
 #' everywhere else; a call that asks for the replay client's model and finds
 #' nothing under it is answered from the one other such model that holds the
 #' same prompt. A model the recorded settings named (`model`, `skim_model`,
@@ -120,7 +120,7 @@ gr_trace_save <- function(trace, path) {
 #' When a run issued the same request more than once (which happens at a
 #' temperature above zero, and in readers that revisit a chunk), the recorded
 #' responses are returned in the order they were produced. A call with a
-#' `draw_index` above 0 (see [gr_call()]) is answered with the reply recorded
+#' `draw_index` above 0 (see [hr_call()]) is answered with the reply recorded
 #' for that draw; in a recording that holds no draw indexes, draw k is the
 #' k-th reply recorded for the request. In a recording of [hr_benchmark()]
 #' each draw also names the arm that made it, and an arm's call is answered
@@ -141,13 +141,13 @@ gr_trace_save <- function(trace, path) {
 #' conditions, because replaying an API-embedded run with a deterministic
 #' local embedder would compute vectors the original never saw while looking
 #' exact. Anything else, including a run recorded with the default `"api"`
-#' embedder (or a [gr_mock_client()]'s embed handler), warns with class
+#' embedder (or an [hr_mock_client()]'s embed handler), warns with class
 #' `gr_replay_no_embeddings` and falls back to hashed lexical vectors. Those
 #' place semantic cuts and rank chunks differently, so such a replay usually
 #' sends prompts the recording does not hold: a strict replay stops with
 #' `gr_replay_miss`, whose message names this cause, and a non-strict one gets
 #' failed calls for them and does not give the recorded answer. Record a run
-#' you intend to publish or replay with `gr_options(embedder = "lexical")`, or
+#' you intend to publish or replay with `hr_options(embedder = "lexical")`, or
 #' with your own embedder registered as `deterministic = TRUE`.
 #'
 #' @section Limits:
@@ -177,16 +177,16 @@ gr_trace_save <- function(trace, path) {
 #' the step's key. In a recording made before `replay_key` existed, two calls
 #' that differ only by schema, temperature or output cap share a reply.
 #'
-#' @seealso [gr_trace_save()], [gr_cache()] for making future runs cheap,
-#'   [gr_mock_client()] for invented answers rather than recorded ones
+#' @seealso [hr_trace_save()], [hr_cache()] for making future runs cheap,
+#'   [hr_mock_client()] for invented answers rather than recorded ones
 #' @export
 #' @examples
 #' # A run.
-#' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 #' ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #'
 #' # The same run, from the recording, with no client and no key.
-#' rp <- gr_replay_client(ans$trace)
+#' rp <- hr_replay_client(ans$trace)
 #' again <- answer_document(gr_example(), "What was revenue?", "fast", client = rp)
 #' identical(again$answer, ans$answer)
 #'
@@ -194,10 +194,10 @@ gr_trace_save <- function(trace, path) {
 #'
 #' # Through a file, which is how a run reaches someone else.
 #' f <- tempfile(fileext = ".json")
-#' gr_trace_save(ans$trace, f)
+#' hr_trace_save(ans$trace, f)
 #' answer_document(gr_example(), "What was revenue?", "fast",
-#'                 client = gr_replay_client(f))$answer
-gr_replay_client <- function(source, strict = TRUE, on_exhausted = c("error", "flag")) {
+#'                 client = hr_replay_client(f))$answer
+hr_replay_client <- function(source, strict = TRUE, on_exhausted = c("error", "flag")) {
   on_exhausted <- match.arg(on_exhausted)
   # Read once: a file is parsed, and a trace listed, a single time for all the
   # lookups below.
@@ -250,7 +250,7 @@ gr_replay_client <- function(source, strict = TRUE, on_exhausted = c("error", "f
   #
   # One client's model cannot be every model a recording needs when its reads
   # followed clients built for different models, or when it was made by 0.5.0,
-  # whose reads asked for gr_options("model") and whose segmenters, extraction
+  # whose reads asked for hr_options("model") and whose segmenters, extraction
   # and claims asked for the client's model. The others are kept apart, and
   # answer only a call that asked for this client's model and found nothing
   # under it. See replay_default_models().
@@ -274,7 +274,7 @@ gr_replay_client <- function(source, strict = TRUE, on_exhausted = c("error", "f
     .client_id = paste0("replay-", gr_hash(lapply(steps, function(s)
       c(s$answered_model, s$response, unlist(lapply(s$prompt, function(m) m$content)))))),
     # Which embedder the RECORDING used, so a replay can tell an embedding it
-    # can reproduce from one it cannot. See gr_embed().
+    # can reproduce from one it cannot. See hr_embed().
     embed_source = embed_source,
     # Which limit cut the recorded run short, or NA, so a miss past the stop
     # can say why it missed. A trace saved before this was recorded says
@@ -325,7 +325,7 @@ print.gr_replay_client <- function(x, ...) {
 # --- internals -------------------------------------------------------------
 
 #' A recording as a plain list, in the shape trace_as_list() gives, from any
-#' source gr_replay_client() takes. Raises when it cannot be one, saying why.
+#' source hr_replay_client() takes. Raises when it cannot be one, saying why.
 #'
 #' Each misread used to end in a message about something else. A trace parsed
 #' with jsonlite's default simplification has its steps as a data frame, and
@@ -347,13 +347,13 @@ replay_read <- function(source) {
                     else jsonlite::fromJSON(source, simplifyVector = FALSE),
                     error = function(e) NULL)
     if (is.null(obj)) {
-      gr_abort(if (text) "Could not parse that JSON text as a trace. Write it with as_json() or gr_trace_save()."
-               else sprintf("Could not parse '%s' as a trace. Write it with gr_trace_save().", source),
+      gr_abort(if (text) "Could not parse that JSON text as a trace. Write it with as_json() or hr_trace_save()."
+               else sprintf("Could not parse '%s' as a trace. Write it with hr_trace_save().", source),
                class = "gr_replay_unreadable")
     }
   }
   if (!is.list(obj)) {
-    gr_abort(paste0("`source` must be a gr_trace, a path written by gr_trace_save(), the JSON ",
+    gr_abort(paste0("`source` must be a gr_trace, a path written by hr_trace_save(), the JSON ",
                     "text of a trace, or a parsed trace."),
              class = "gr_replay_unreadable")
   }
@@ -368,13 +368,13 @@ replay_read <- function(source) {
     gr_abort(paste0("This trace's steps were read as a data frame, which is what ",
                     "jsonlite::fromJSON() makes of them with its default simplifyVector = TRUE, ",
                     "and that loses the shape a replay needs. Pass the file's path to ",
-                    "gr_replay_client(), or read it with ",
+                    "hr_replay_client(), or read it with ",
                     "jsonlite::fromJSON(path, simplifyVector = FALSE)."),
              class = "gr_replay_unreadable")
   }
   if (is.null(steps) || !is.list(steps)) {
     gr_abort(paste0("`source` holds no list of `steps`, so it is not a trace. Pass a gr_trace, ",
-                    "a file written by gr_trace_save(), or the JSON text as_json() writes."),
+                    "a file written by hr_trace_save(), or the JSON text as_json() writes."),
              class = "gr_replay_unreadable")
   }
   obj
@@ -397,9 +397,9 @@ replay_steps <- function(source) {
     answered <- as_chr1(st$model, NA_character_)
     out[[length(out) + 1L]] <- list(
       prompt = prompt,
-      # The model the call ASKED for, which is what a replayed gr_call() looks
+      # The model the call ASKED for, which is what a replayed hr_call() looks
       # up. The step's own `model` is the one that answered, and a client that
-      # reports the provider's model (gr_ellmer_client() always does; so can a
+      # reports the provider's model (hr_ellmer_client() always does; so can a
       # backend handler) records a different name there: keyed on that, no
       # prompt of such a run was ever found, and every replay stopped with
       # gr_replay_miss on its first call. A trace without `params` (an older
@@ -480,7 +480,7 @@ replay_step_budget <- function(st, model) {
   if (!is.null(st$budget_usd)) return(max(as_num1(st$budget_usd, 0), 0))
   if (isTRUE(st$cached)) return(0)
   tok <- if (is.list(st$tokens)) st$tokens else list()
-  usd <- tryCatch(suppressWarnings(as.numeric(gr_estimate_cost(
+  usd <- tryCatch(suppressWarnings(as.numeric(hr_estimate_cost(
     as_chr1(model, "unknown"), as_int1(tok$input, 0L), as_int1(tok$output, 0L)))),
     error = function(e) NA_real_)
   if (length(usd) == 1L && is.finite(usd) && usd > 0) usd else 0
@@ -511,11 +511,11 @@ replay_source_list <- function(source) {
 #'   both): `read` is the noted model most calls asked for, and the other
 #'   noted models are `alts`.
 #' - A recording made by 0.5.0, whose notes do not name the model. Its reads
-#'   asked for gr_options("model") whatever the client, and its segmenters,
+#'   asked for hr_options("model") whatever the client, and its segmenters,
 #'   extraction and claims asked for the client's own model; its replay asked
-#'   for gr_options("model") on every read and for the model most calls asked
+#'   for hr_options("model") on every read and for the model most calls asked
 #'   for everywhere else, so its recordings of a read with a cheaper
-#'   skim_model or summary_model replayed. `read` is gr_options("model") when
+#'   skim_model or summary_model replayed. `read` is hr_options("model") when
 #'   the recording holds calls under it, as that version assumed, or else the
 #'   only model left, or the one most of them asked for; `alts` is the model
 #'   most of the rest asked for.
@@ -557,7 +557,7 @@ replay_default_models <- function(source, models) {
   }
   pool <- models[!models %in% named]
   if (!length(pool)) return(none)
-  opt <- as_chr1(gr_options("model"), "")
+  opt <- as_chr1(hr_options("model"), "")
   cand <- unique(pool)
   read <- if (opt %in% cand) opt else if (length(cand) == 1L) cand else replay_most_frequent(pool)
   rest <- pool[pool != read]
@@ -573,7 +573,7 @@ replay_most_frequent <- function(models) {
 #' Which embedder produced the vectors in the recorded run, if any.
 #'
 #' The transcript holds each embeddings request but not the vectors it
-#' returned. `gr_embed()` does write a local note saying which embedder it
+#' returned. `hr_embed()` does write a local note saying which embedder it
 #' used, and that is enough. A replay can reproduce a run's ranking only when
 #' it uses the SAME embedder and that embedder is deterministic. Without this the check was
 #' "is the current embedder deterministic", which is not the same question: a
@@ -737,7 +737,7 @@ replay_lookup <- function(client, req) {
       ka <- unlist(lapply(alts, function(a) {
         # Only looked up, never called, so a model this session does not know
         # is not warned about, nor refused under unknown_model_action = "error".
-        info <- tryCatch(suppressWarnings(gr_model_info(a)), error = function(e) NULL)
+        info <- tryCatch(suppressWarnings(hr_model_info(a)), error = function(e) NULL)
         ea <- effort_to_send(effort_map, label, info)
         held(a, ea) %||% (if (is.null(ea) && !is.null(asked)) held(a, asked, TRUE))
       }))
@@ -826,7 +826,7 @@ replay_lookup <- function(client, req) {
                   if (draw > 0L) sprintf("draw %d of this request", draw) else "this request", pos)
         },
         " The replay is making more calls than the recorded run did, so it is not reproducing ",
-        "that run. Pass on_exhausted = \"flag\" to gr_replay_client() to repeat the last ",
+        "that run. Pass on_exhausted = \"flag\" to hr_replay_client() to repeat the last ",
         "recorded reply instead, counted in $stats()$repeats."),
         class = "hr_replay_exhausted")
     }
@@ -972,7 +972,7 @@ replay_miss_causes <- function(client) {
       "gr_replay_no_embeddings warning), so its semantic cuts or chunk ranking can differ from ",
       "the recording's and send prompts the recording does not hold. A run that embeds replays ",
       "exactly only when it was recorded, and is replayed, with the same deterministic embedder, ",
-      "such as gr_options(embedder = 'lexical')"))
+      "such as hr_options(embedder = 'lexical')"))
   }
   stop <- as_chr1(client[[".recorded_stop", exact = TRUE]], NA_character_)
   if (!is.na(stop)) {

@@ -27,7 +27,7 @@ r6s_claim <- function(text, ids, kind = "finding") {
 r6s_client <- function(heads = c("Trials", "Surveys"), briefs = c("trials", "surveys"),
                        env = new.env(), claims = NULL) {
   env$seen <- list()
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("turn a table of studies", sys, fixed = TRUE)) {
       return(claims %||% sprintf('{"claims":[%s,%s]}', r6s_claim("Trials work.", c(1, 3)),
@@ -157,7 +157,7 @@ test_that("finding columns named source and date are shown to the writer, not ma
   tab$url <- c("https://registry.example/1", "https://registry.example/2")
   tab$publication <- c("published", "preprint")
   seen <- character(0)
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     seen <<- c(seen, sent_text(m))
     "Data came from a registry [study 1] and a survey [study 2]."
   })
@@ -187,7 +187,7 @@ test_that("a role given as NA keeps a conventionally named column as a finding",
   # carry a role leaves that role to the conventional names.
   expect_identical(harnessr:::bib_columns(tab, c(venue = "journal"))$authors, "authors")
   seen <- character(0)
-  cl <- gr_mock_client(function(m, p) { seen <<- c(seen, sent_text(m)); "A trial [study 1]." })
+  cl <- hr_mock_client(function(m, p) { seen <<- c(seen, sent_text(m)); "A trial [study 1]." })
   s <- quiet(gr_synthesise(tab, outline = c(Findings = "f"), question = "Q?", client = cl,
                            bib = list(venue = NA)))
   expect_match(seen[1], "journal: Lancet", fixed = TRUE)
@@ -205,7 +205,7 @@ test_that("citation-key prose can be followed to its reference entry", {
   tab <- r6s_table()[1:3, ]
   tab$document <- c("scan_0007.pdf", "scan_0333.pdf", "scan_0412.pdf")
   tab$citation <- c("Smith & Okafor, 2019", "Garcia, 2022", "Smith & Okafor, 2019")
-  cl <- gr_mock_client(function(m, p) "A benefit [study 1] [study 3]; a cohort agreed [study 2].")
+  cl <- hr_mock_client(function(m, p) "A benefit [study 1] [study 3]; a cohort agreed [study 2].")
   s <- quiet(gr_synthesise(tab, outline = c(Findings = "f"), question = "Q?", client = cl))
   expect_identical(s$cite_style, "author-year")
   expect_match(s$text, "(Smith & Okafor, 2019a; Smith & Okafor, 2019b)", fixed = TRUE)
@@ -224,7 +224,7 @@ test_that("citation-key prose can be followed to its reference entry", {
   tab2$year <- 2019L
   tab2$title <- c("B trial", "A trial")
   s <- quiet(gr_synthesise(tab2, outline = c(Findings = "f"), question = "Q?",
-                           client = gr_mock_client(function(m, p) "Both [study 1] [study 2].")))
+                           client = hr_mock_client(function(m, p) "Both [study 1] [study 2].")))
   expect_identical(s$references, c("- Smith, J. (2019a). A trial.", "- Smith, J. (2019b). B trial."))
 })
 
@@ -240,7 +240,7 @@ test_that("two in-press papers by the same authors are lettered, not merged into
   tab$authors <- "Smith, J., Okafor, A."
   tab$year <- "in press"
   tab$title <- c("Second paper", "First paper")
-  cl <- gr_mock_client(function(m, p) "Two trials found a benefit [study 1] [study 2].")
+  cl <- hr_mock_client(function(m, p) "Two trials found a benefit [study 1] [study 2].")
   s <- quiet(gr_synthesise(tab, outline = c(Findings = "f"), question = "Q?", client = cl))
   expect_match(s$text, "(Smith & Okafor, in press-a; Smith & Okafor, in press-b)", fixed = TRUE)
   expect_identical(s$references, c("- Smith, J., Okafor, A. (in press-a). First paper.",
@@ -312,7 +312,7 @@ r6s_ids <- function(x) {
 # Each batch draft cites every study it was sent; `merge` makes the merge's
 # reply from the drafts.
 r6s_batch_client <- function(merge, draft = NULL) {
-  gr_mock_client(function(m, p) {
+  hr_mock_client(function(m, p) {
     txt <- sent_text(m[-1])
     if (grepl("<draft", txt, fixed = TRUE)) return(merge(txt))
     ids <- r6s_ids(m[[length(m)]]$content)
@@ -331,7 +331,7 @@ test_that("a merge that keeps only the first batch's studies marks the section p
   # and kept only the first draft, and the section read 17 of 30 studies cited,
   # partial = FALSE, with no warning.
   local_registries()
-  gr_register_model("r6s-tiny", context_window = 1400L, max_output = 400L,
+  hr_register_model("r6s-tiny", context_window = 1400L, max_output = 400L,
                     input_usd = 0, output_usd = 0)
   first <- function(txt) paste("Merged:", regmatches(txt, gregexpr("Draft[^<]*", txt))[[1]][1])
   r <- r6s_batched(r6s_batch_client(first))
@@ -356,7 +356,7 @@ test_that("a batch draft cut to fit the merge marks the section partial", {
   # is a merge that then makes no progress, already partial; the report is
   # read whichever way it arrives.
   local_registries()
-  gr_register_model("r6s-tiny", context_window = 1400L, max_output = 400L,
+  hr_register_model("r6s-tiny", context_window = 1400L, max_output = 400L,
                     input_usd = 0, output_usd = 0)
   local_mocked_bindings(tree_merge = function(client, question, pieces, ...) {
     list(text = paste(pieces, collapse = " "), ok = TRUE, levels = 1L, truncated = 1L,
@@ -379,11 +379,11 @@ test_that("a batch draft cut to fit the merge marks the section partial", {
 # ---------------------------------------------------------------------------
 
 test_that("a section whose claims block exceeds the window is written a few claims at a time", {
-  # Before: the whole claims block was fixed overhead, gr_budget() raised
+  # Before: the whole claims block was fixed overhead, hr_budget() raised
   # gr_budget_error, and the write-up aborted after the first two sections had
   # been written and paid for: no gr_synthesis came back.
   local_registries()
-  gr_register_model("r6s-16k", context_window = 16384L, max_output = 4096L,
+  hr_register_model("r6s-16k", context_window = 16384L, max_output = 4096L,
                     input_usd = 0, output_usd = 0)
   n <- 1000L
   tab <- data.frame(document = sprintf("d%04d.pdf", 1:n), document_id = sprintf("h%04d", 1:n),
@@ -392,7 +392,7 @@ test_that("a section whose claims block exceeds the window is written a few clai
                     design = rep(c("trial", "cohort", "survey"), length.out = n),
                     stringsAsFactors = FALSE)
   prompts <- list()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     sys <- m[[1]]$content
     txt <- sent_text(m)
     if (grepl("turn a table of studies", sys, fixed = TRUE)) {
@@ -408,7 +408,7 @@ test_that("a section whose claims block exceeds the window is written a few clai
                             '{"heading":"Findings","brief":"f","claims":[%s],"rationale":null}]}'),
                      paste(setdiff(k, 1:2), collapse = ",")))
     }
-    prompts[[length(prompts) + 1L]] <<- list(tokens = gr_count_tokens(txt), text = txt)
+    prompts[[length(prompts) + 1L]] <<- list(tokens = hr_count_tokens(txt), text = txt)
     # A draft cites every study its prompt names, which covers every claim it
     # was given; a merge cites every study in the drafts.
     paste0("Text ", paste(sprintf("[study %d]", unique(r6s_ids(sent_text(m[-1])))), collapse = " "),
@@ -428,7 +428,7 @@ test_that("a section whose claims block exceeds the window is written a few clai
   expect_false(f$partial)
   expect_identical(f$n_unsupplied, 0L)
   # Every prompt fits the window, and none resends the whole claims block.
-  usable <- floor(16384 * (1 - gr_options("safety_margin")))
+  usable <- floor(16384 * (1 - hr_options("safety_margin")))
   expect_true(all(vapply(prompts, `[[`, 0, "tokens") + 1200 < usable))
   n_claims <- vapply(prompts, function(x) length(gregexpr("[claim ", x$text, fixed = TRUE)[[1]]), 0)
   expect_true(all(n_claims < f$n_claims))
@@ -439,9 +439,9 @@ test_that("a section that cannot be sized is empty and partial, and the others s
   # Before: any gr_budget_error in a section ended the write-up, discarding the
   # sections already written.
   local_registries()
-  gr_register_model("r6s-small", context_window = 3000L, max_output = 400L,
+  hr_register_model("r6s-small", context_window = 3000L, max_output = 400L,
                     input_usd = 0, output_usd = 0)
-  cl <- gr_mock_client(function(m, p) "A benefit [study 1].")
+  cl <- hr_mock_client(function(m, p) "A benefit [study 1].")
   huge <- paste(rep("cover every aspect of the evidence in depth", 400), collapse = " ")
   r <- r6s_warns(gr_synthesise(r6s_table(), outline = c(Findings = "what", Everything = huge),
                                question = "Q?", client = cl, model = "r6s-small",
@@ -525,7 +525,7 @@ test_that("with claims, the closing section is written from the gaps alone, or l
   expect_identical(wm$text, "No cohort study was found.")
   expect_false(wm$partial)
   # A study the gaps section names was never shown to it.
-  cl2 <- gr_mock_client(function(m, p2) {
+  cl2 <- hr_mock_client(function(m, p2) {
     if (grepl("does not cover", m[[1]]$content, fixed = TRUE)) return("Cohorts are missing [study 3].")
     "Trials found a benefit [study 1] [study 3]. Surveys found harm [study 2] [study 4]."
   })
@@ -544,7 +544,7 @@ test_that("with claims, the closing section is written from the gaps alone, or l
 
 test_that("gaps too long for the window are cut at a line and the closing section is partial", {
   local_registries()
-  gr_register_model("r6s-small", context_window = 3000L, max_output = 400L,
+  hr_register_model("r6s-small", context_window = 3000L, max_output = 400L,
                     input_usd = 0, output_usd = 0)
   env <- new.env()
   cl <- r6s_client(env = env)
@@ -571,7 +571,7 @@ test_that("gaps too long for the window are cut at a line and the closing sectio
 # ---------------------------------------------------------------------------
 
 test_that("print counts a synthesis's model calls apart from embeddings requests", {
-  cl <- gr_mock_client(function(m, p) "A benefit [study 1].")
+  cl <- hr_mock_client(function(m, p) "A benefit [study 1].")
   s <- quiet(gr_synthesise(r6s_table(), outline = c(Findings = "f"), question = "Q?", client = cl))
   tr <- s$trace
   tr$steps[[length(tr$steps) + 1L]] <- list(kind = "embedding", label = "embed")

@@ -10,7 +10,7 @@ gr_check_reader(reader, client = NULL)
 \item{reader}{A registered reader's name; see \code{\link[=gr_readers]{gr_readers()}}.}
 
 \item{client}{A \code{gr_client} to read with. \code{NULL} (the default) uses a
-\code{\link[=gr_mock_client]{gr_mock_client()}} whose reply to a request with a JSON schema is an
+\code{\link[=hr_mock_client]{hr_mock_client()}} whose reply to a request with a JSON schema is an
 object of that schema's shape, and a fixed sentence otherwise.}
 }
 \value{
@@ -25,7 +25,7 @@ registered and runs as before. Use it on a reader of your own after
 }
 \details{
 The document is cut with \code{list(method = "paragraph", max_tokens = 150)} and
-read on a fresh \code{\link[=gr_trace]{gr_trace()}}. Readers that need more than a question are
+read on a fresh \code{\link[=hr_trace]{hr_trace()}}. Readers that need more than a question are
 given what they need: \code{extract} one field, \code{screen} one inclusion
 criterion, and \code{ensemble} the members \code{"stuff"} and \code{"retrieve"}.
 }
@@ -61,7 +61,7 @@ gr_check_reader("stuff")
 # A reader whose calls carry a label it did not declare.
 gr_register_reader("loose", signature = "one|1|none", calls = "loose.answer",
   fn = function(chunks, question, client, spec, trace) {
-    res <- gr_call(client, list(list(role = "user", content = question)),
+    res <- hr_call(client, list(list(role = "user", content = question)),
                    model = spec$model, trace = trace, label = "other.answer")
     new_answer(res$text, "loose", question, integer(0), trace)
   })

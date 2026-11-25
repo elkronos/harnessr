@@ -21,7 +21,7 @@ walked, on its own or among other paths; a file is taken as given.}
 everything.}
 
 \item{model}{Model id used for the cost floor. Defaults to
-\code{gr_options("model")}.}
+\code{hr_options("model")}.}
 
 \item{ocr_min_chars}{A PDF page with fewer than this many characters of
 extractable text is counted as needing OCR. Read exactly as

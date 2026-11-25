@@ -149,7 +149,7 @@ test_that("gr_audit_report() takes the recall as a last argument, and old calls 
   seeds$used_to_build <- c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE)
   r <- gr_search_recall(recall_records(), seeds)
   fields <- gr_fields(design = "The study design")
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     '{"design":"randomised trial","design__quote":"We ran a randomised trial."}'
   })
   f <- tempfile(fileext = ".txt"); writeLines("We ran a randomised trial.", f)

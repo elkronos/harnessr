@@ -16,20 +16,20 @@
 #' A governor holds the limits that every request a run makes is checked
 #' against before it is sent: how many calls the run may make, what it may
 #' spend, the largest output cap one request may carry, and which models it
-#' may call. [gr_call()], and every reader, judge, adjudication, segmenter and
+#' may call. [hr_call()], and every reader, judge, adjudication, segmenter and
 #' embeddings request in the package, goes through the same check, so a limit
 #' holds whether or not the code that makes the call looks at it.
 #'
 #' A request is checked against its worst case: the most prompt tokens it can
 #' be billed for at the model's input price, plus its output cap as sent (for a
-#' reasoning model the raised cap; see [gr_call()]) at the output price. The
+#' reasoning model the raised cap; see [hr_call()]) at the output price. The
 #' prompt is counted as the trace counts it, with the JSON schema and extra
 #' body fields the request carries, a few tokens for each message's framing,
-#' and `safety_margin` (see [gr_options()]) on top. One that would take the run
+#' and `safety_margin` (see [hr_options()]) on top. One that would take the run
 #' past `max_cost_usd` is refused, so a run ends at or under the limit rather
 #' than one request over it. That bound rests on two things the governor
 #' cannot see: that a provider stops a reply at its cap (a
-#' [gr_mock_client()] or [gr_backend_client()] handler that returns more is
+#' [hr_mock_client()] or [hr_backend_client()] handler that returns more is
 #' charged for what it returned), and that the provider counts the prompt
 #' within the margin of the local tokenizer. A provider that reports more
 #' prompt tokens than that, or a tokenizer far from the provider's (the
@@ -38,7 +38,7 @@
 #' it still has headroom that a smaller cap would have used.
 #'
 #' A refused request is not sent and is not a call: it adds nothing to the
-#' trace's `calls`, steps or spend. It comes back from [gr_call()] as a
+#' trace's `calls`, steps or spend. It comes back from [hr_call()] as a
 #' failed [gr_result] with `refused = TRUE` and an error that names the limit,
 #' and a condition of class `hr_budget_refused` is signalled, which a caller
 #' can catch with `withCallingHandlers()` or `tryCatch()` to stop instead. The
@@ -56,8 +56,8 @@
 #' apply: `max_tokens_total` is the limit that bounds such a run, since the
 #' spending limit cannot. An embedding model with no price is not refused; its
 #' requests count against `max_calls` and add nothing to the spend, as
-#' [gr_read_many()] warns. [gr_mock_client()] makes no paid requests and is
-#' never refused as unpriced. A request a [gr_cache()] answers spends nothing
+#' [gr_read_many()] warns. [hr_mock_client()] makes no paid requests and is
+#' never refused as unpriced. A request an [hr_cache()] answers spends nothing
 #' and is checked only against `max_calls`, `max_output_tokens` and
 #' `allowed_models`.
 #'
@@ -66,16 +66,16 @@
 #' sent to be embedded. A request is refused when what the run has used plus
 #' its own worst case (prompt as above, reply at its cap) would pass it.
 #'
-#' A governor is attached to a run with `gr_trace(governor = )`, and then
+#' A governor is attached to a run with `hr_trace(governor = )`, and then
 #' governs the requests recorded into that trace. A stage that keeps a trace
 #' of its own and folds it into the one it is given ([gr_read_many()],
 #' [gr_claims()], [gr_outline()] and [gr_synthesise()]) holds its requests to
 #' that trace's governor, less the calls the given trace has already made and
 #' what it has spent and used in tokens, so the governor's limits hold for
-#' the run as a whole. Without a governor, `gr_options(max_calls =)` stays a
+#' the run as a whole. Without a governor, `hr_options(max_calls =)` stays a
 #' limit per document for [gr_read_many()] and per stage for the others. A
 #' trace made without one, including those the package makes for itself,
-#' reads the limits from [gr_options()] each time it checks, so changing an
+#' reads the limits from [hr_options()] each time it checks, so changing an
 #' option affects runs that are already going, as it always has.
 #'
 #' @param max_calls Most requests the run may make, cache hits and embeddings
@@ -92,27 +92,27 @@
 #' @param allow_unpriced `TRUE` to send requests to models with no registered
 #'   price under a spending limit.
 #' @return An object of class `hr_governor`: a list of the six limits.
-#' @seealso [gr_options()] for the session defaults, [gr_trace()],
-#'   [gr_register_model()] to give a model its prices
+#' @seealso [hr_options()] for the session defaults, [hr_trace()],
+#'   [hr_register_model()] to give a model its prices
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "ok")
-#' tr <- gr_trace(governor = hr_governor(max_calls = 2))
-#' vapply(1:3, function(i) gr_call(cl, "hi", trace = tr)$ok, logical(1))
+#' cl <- hr_mock_client(function(m, p) "ok")
+#' tr <- hr_trace(governor = hr_governor(max_calls = 2))
+#' vapply(1:3, function(i) hr_call(cl, "hi", trace = tr)$ok, logical(1))
 #' tr$calls
 #' tr$stop_reason
 #'
 #' # A request whose worst case would pass the spending limit is not sent.
-#' tr <- gr_trace(governor = hr_governor(max_cost_usd = 0.001))
-#' res <- gr_call(cl, "hi", model = "gpt-4o", trace = tr)
+#' tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.001))
+#' res <- hr_call(cl, "hi", model = "gpt-4o", trace = tr)
 #' res$refused
 #' res$error
-hr_governor <- function(max_calls = gr_options("max_calls"),
-                        max_cost_usd = gr_options("max_cost_usd"),
-                        max_tokens_total = gr_options("max_tokens_total"),
-                        max_output_tokens = gr_options("max_output_tokens"),
-                        allowed_models = gr_options("allowed_models"),
-                        allow_unpriced = gr_options("allow_unpriced")) {
+hr_governor <- function(max_calls = hr_options("max_calls"),
+                        max_cost_usd = hr_options("max_cost_usd"),
+                        max_tokens_total = hr_options("max_tokens_total"),
+                        max_output_tokens = hr_options("max_output_tokens"),
+                        allowed_models = hr_options("allowed_models"),
+                        allow_unpriced = hr_options("allow_unpriced")) {
   # The same checks as the options, so a governor cannot hold a limit the
   # options would refuse.
   structure(list(max_calls = check_option("max_calls", max_calls),
@@ -213,7 +213,7 @@ governor_tighter <- function(a, b) {
 #' output cap at the output price. NA when the model has no price.
 #' @noRd
 worst_case_usd <- function(model, input_tokens, output_tokens) {
-  tryCatch(suppressWarnings(as.numeric(gr_estimate_cost(as_chr1(model, "unknown"),
+  tryCatch(suppressWarnings(as.numeric(hr_estimate_cost(as_chr1(model, "unknown"),
                                                         max(as_num1(input_tokens, 0), 0),
                                                         max(as_num1(output_tokens, 0), 0)))),
            error = function(e) NA_real_)
@@ -252,14 +252,14 @@ governor_check <- function(trace, request, stage = c("both", "call", "send")) {
     if (!is.null(allowed) && !model %in% allowed) {
       return(refuse("model", sprintf(paste0(
         "model not allowed: '%s' is not among the run's allowed models (%s), so the '%s' ",
-        "request was not sent; see gr_options(allowed_models =)"),
+        "request was not sent; see hr_options(allowed_models =)"),
         model, paste(allowed, collapse = ", "), label)))
     }
     ceiling <- finite_limit(gov$max_output_tokens)
     if (!is.null(ceiling) && out_tokens > ceiling) {
       return(refuse("output", sprintf(paste0(
         "output ceiling reached: the '%s' request would be sent with an output cap of %s ",
-        "tokens, above the %s-token ceiling of gr_options(max_output_tokens =), so it was not ",
+        "tokens, above the %s-token ceiling of hr_options(max_output_tokens =), so it was not ",
         "sent; ask for a smaller max_output"),
         label, format(out_tokens, scientific = FALSE), format(ceiling, scientific = FALSE))))
     }
@@ -270,7 +270,7 @@ governor_check <- function(trace, request, stage = c("both", "call", "send")) {
       # integer range.
       return(refuse("calls", sprintf(paste0(
         "call cap reached: the run has made %s of the %s calls it may make, so the '%s' ",
-        "request was not sent; raise gr_options(max_calls =)"),
+        "request was not sent; raise hr_options(max_calls =)"),
         format(calls, scientific = FALSE), format(cap, scientific = FALSE), label)))
     }
   }
@@ -281,7 +281,7 @@ governor_check <- function(trace, request, stage = c("both", "call", "send")) {
       return(refuse("tokens", sprintf(paste0(
         "token ceiling reached: the '%s' request could use up to %s tokens (prompt, and reply ",
         "at its cap), and the run has used %s of its %s, so it was not sent; raise ",
-        "gr_options(max_tokens_total =) or ask for a smaller max_output"),
+        "hr_options(max_tokens_total =) or ask for a smaller max_output"),
         label, format(in_tokens + out_tokens, scientific = FALSE),
         format(tokens_used(trace), scientific = FALSE), format(tokens, scientific = FALSE))))
     }
@@ -293,8 +293,8 @@ governor_check <- function(trace, request, stage = c("both", "call", "send")) {
       return(refuse("unpriced", sprintf(paste0(
         "unpriced model: '%s' has no registered price, so what the '%s' request costs cannot ",
         "be held to the $%s spending limit, and it was not sent. Register its prices with ",
-        "gr_register_model(input_usd =, output_usd =), or send it unpriced with ",
-        "gr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"),
+        "hr_register_model(input_usd =, output_usd =), or send it unpriced with ",
+        "hr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"),
         model, label, format(limit, scientific = FALSE))))
     }
     spent <- budget_spent(trace)
@@ -305,7 +305,7 @@ governor_check <- function(trace, request, stage = c("both", "call", "send")) {
       return(refuse("cost", sprintf(paste0(
         "spending limit reached: the '%s' request could cost up to $%s (up to %s prompt tokens, ",
         "and %s reply tokens at its cap), and the run has spent $%s of its $%s limit, so it ",
-        "was not sent; raise gr_options(max_cost_usd =) or ask for a smaller max_output"),
+        "was not sent; raise hr_options(max_cost_usd =) or ask for a smaller max_output"),
         label, fmt_usd(worst), format(as_num1(request$input_tokens, 0), scientific = FALSE),
         format(out_tokens, scientific = FALSE), fmt_usd(spent),
         format(limit, scientific = FALSE)), worst = worst))
@@ -367,7 +367,7 @@ governor_headroom <- function(trace) {
 #'
 #' Kept for readers registered with gr_register_reader() that check it before
 #' each call, as the 0.6.0 help page told them to. The package's own code no
-#' longer calls it: gr_call() refuses a request that would pass a limit, so a
+#' longer calls it: hr_call() refuses a request that would pass a limit, so a
 #' reader that never asks cannot overspend. It says no when `n` more calls
 #' would pass `max_calls` or the run has already spent its limit, and records
 #' the stop as it always did.
@@ -415,12 +415,12 @@ warn_capped_batch <- function(trace, who, n, advice) {
   gov <- trace_governor(trace)
   room <- governor_headroom(trace)
   if (n > room$calls) {
-    gr_warn(sprintf("%s needs %d calls but the run cap is %s; %s or raise gr_options(max_calls =).",
+    gr_warn(sprintf("%s needs %d calls but the run cap is %s; %s or raise hr_options(max_calls =).",
                     who, n, format(gov$max_calls, scientific = FALSE), advice),
             class = "gr_call_cap")
   } else if (is.finite(room$usd) && room$usd <= 0 && budget_spent(trace) > 0) {
     gr_warn(sprintf(paste0("%s needs %d calls but the run has spent $%s, which reaches the $%s ",
-                           "spending limit; raise gr_options(max_cost_usd =)."),
+                           "spending limit; raise hr_options(max_cost_usd =)."),
                     who, n, fmt_usd(budget_spent(trace)),
                     format(gov$max_cost_usd, scientific = FALSE)),
             class = "gr_cost_cap")

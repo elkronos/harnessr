@@ -10,7 +10,7 @@
 # (regex on the excerpt) -> (field, value, quote), so a test controls exactly
 # which chunk reports what.
 mock_form <- function(rules) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     txt <- paste(vapply(messages, function(m) as_chr1_t(m$content), character(1)),
                  collapse = "\n")
     ex <- sub(".*<excerpt>", "", txt)
@@ -211,7 +211,7 @@ test_that("an excerpt that fills nothing is an answer, not a failed call", {
   # here would count each chunk as a failed call and mark the document partial --
   # reporting "we could not read this" for "it does not say".
   f <- gr_fields(design = "The study design")
-  cl <- gr_mock_client(function(messages, params) "{}")
+  cl <- hr_mock_client(function(messages, params) "{}")
   a <- two_para_file("Nothing relevant here at all.", "Nor here either.")
   x <- quiet(gr_extract(a, f, client = cl, recipe = "thorough", max_tokens = 40,
                         keep_answers = TRUE))
@@ -222,7 +222,7 @@ test_that("an excerpt that fills nothing is an answer, not a failed call", {
 
   # A genuinely broken reply is still a failure: the document is "failed", to
   # be read again, and its partial answer says why.
-  dead <- gr_mock_client(function(messages, params) "this is not json")
+  dead <- hr_mock_client(function(messages, params) "this is not json")
   y <- quiet(gr_extract(a, f, client = dead, recipe = "thorough", max_tokens = 40,
                         keep_answers = TRUE))
   expect_gt(y$answers[[1]]$notes$failed_calls, 0L)
@@ -236,7 +236,7 @@ test_that("the record keeps one entry per field, even when a value is discarded"
   # against a length-2 name vector, and the wrong fields get reported as filled.
   f <- gr_fields(n = gr_field("Participants", type = "integer"),
                  design = "The study design")
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     '{"n":1204,"n__quote":"A trial was run here.",
       "design":"randomised trial","design__quote":"Invented sentence, not present."}'
   })
@@ -325,7 +325,7 @@ test_that("a document that contradicts itself reports the conflict", {
   # Two chunks, two different sample sizes. `resolve = "first"` must not silently
   # pick one and present it as agreed -- the conflict is the finding.
   f <- gr_fields(n = gr_field("Participants randomised", type = "integer"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     ex <- sub(".*<excerpt>", "",
               paste(vapply(messages, function(m) as_chr1_t(m$content), character(1)),
                     collapse = "\n"))
@@ -343,7 +343,7 @@ test_that("a document that contradicts itself reports the conflict", {
 test_that("resolve = 'model' spends exactly one extra call, and only on the conflict", {
   f <- gr_fields(n = gr_field("Participants randomised", type = "integer"),
                  s = "A string field nobody reports")
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     txt <- paste(vapply(messages, function(m) as_chr1_t(m$content), character(1)),
                  collapse = "\n")
     if (grepl("Choose the", txt, fixed = TRUE)) return('{"choice":2}')
@@ -454,7 +454,7 @@ test_that("a model that paraphrases instead of quoting is visible in the table",
   # of plausible numbers. A span that is not in the chunk it is attributed to
   # must come back verified = FALSE, and mark the answer partial.
   f <- gr_fields(n = gr_field("Participants randomised", type = "integer"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     '{"n":1204,"n__quote":"A sentence that appears nowhere in the document at all."}'
   })
   a <- two_para_file("A trial was run here.", "It then ended here.")
@@ -474,7 +474,7 @@ test_that("a value with no quote is counted, not hidden", {
   # outright. n_unverified is what separates them.
   f <- gr_fields(n = gr_field("Participants randomised", type = "integer"),
                  design = "The study design")
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     # `n` is quoted and the quote is real; `design` is asserted with no quote.
     # (The quote states the number: a real sentence that does not is not
     # evidence for it, which test-review-extract.R covers.)
@@ -495,7 +495,7 @@ test_that("a value with no quote is counted, not hidden", {
 
 test_that("a paraphrase counts as unverified too", {
   f <- gr_fields(n = gr_field("Participants randomised", type = "integer"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     '{"n":1204,"n__quote":"A sentence that appears nowhere in this document."}'
   })
   a <- two_para_file("A trial was run here.", "It then ended here.")
@@ -509,7 +509,7 @@ test_that("a paraphrase counts as unverified too", {
 test_that("require_quote discards what it cannot verify, and says how much", {
   f <- gr_fields(n = gr_field("Participants randomised", type = "integer"),
                  design = "The study design")
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     '{"n":1204,"n__quote":"A trial of 1,204 adults was run here.",
       "design":"randomised trial","design__quote":"Invented sentence, not present."}'
   })

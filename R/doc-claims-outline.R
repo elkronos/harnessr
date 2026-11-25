@@ -76,12 +76,12 @@
 #'
 #' @param claims A [gr_claims()] result.
 #' @param question The review question. Taken from `claims` if omitted.
-#' @param client A [gr_client()]. One is built from `model` if omitted.
+#' @param client An [hr_client()]. One is built from `model` if omitted.
 #' @param model,temperature Passed to the model call.
 #' @param max_sections Upper bound on sections, before the closing one.
 #' @param closing The heading of the closing section, which receives gap claims
 #'   and anything unplaced. `NULL` for no closing section.
-#' @param trace A [gr_trace()] to add this stage's calls to, or `NULL`. The
+#' @param trace An [hr_trace()] to add this stage's calls to, or `NULL`. The
 #'   calls are recorded on a trace of the stage's own, attached as
 #'   `attr(, "trace")`, and folded into `trace` when the stage ends. The trace
 #'   of `claims` is left as it was. Its requests are held to the governor of
@@ -124,7 +124,7 @@
 #'                   duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,
 #'                   conflicts = NA_character_, finding = c("supports", "contradicts"),
 #'                   stringsAsFactors = FALSE)
-#' cl <- gr_mock_client(function(messages, params) {
+#' cl <- hr_mock_client(function(messages, params) {
 #'   if (grepl("<claims>", paste(unlist(messages), collapse = " "), fixed = TRUE)) {
 #'     return(paste0('{"sections":[{"heading":"What it finds","brief":"the claims",',
 #'                   '"claims":[1],"rationale":"one topic"}]}'))
@@ -159,7 +159,7 @@ gr_outline <- function(claims, question = NULL, client = NULL, model = NULL,
   # paid for rather than after it.
   alternatives <- clamp_warn(na_default(alternatives, 1L, "alternatives"), 1,
                              .gr_outline_max_alternatives, "alternatives")
-  client <- client %||% gr_client(model = model %||% gr_options("model"))
+  client <- client %||% hr_client(model = model %||% hr_options("model"))
   # The model first, because the default reply limit depends on it.
   spec <- resolve_read_model(gr_read_spec("stuff", model = model, temperature = temperature,
                                           effort = effort),
@@ -169,12 +169,12 @@ gr_outline <- function(claims, question = NULL, client = NULL, model = NULL,
   # 300 claims on an ordinary model and from 20 on a reasoning one, which spends
   # the same limit thinking first. Every claim then went to one section, and the
   # warning's advice could not help: the same claims ask for the same reply.
-  info <- gr_model_info(spec$model)
+  info <- hr_model_info(spec$model)
   auto <- outline_reply_tokens(nrow(cw), max_sections, info)
   max_outline_tokens <- if (is.null(max_outline_tokens)) auto else
     clamp_warn(na_default(max_outline_tokens, auto, "max_outline_tokens"), 16, 1e6,
                "max_outline_tokens")
-  # Clamped to what the model can emit, as gr_call() would, so that the limit a
+  # Clamped to what the model can emit, as hr_call() would, so that the limit a
   # warning names is the limit the request carried.
   spec$max_answer_tokens <- min(as.integer(max_outline_tokens), as.integer(info$max_output))
   # Its own trace, folded into a given one, as every corpus stage does (see
@@ -186,7 +186,7 @@ gr_outline <- function(claims, question = NULL, client = NULL, model = NULL,
   # Held to the parent's governor, less what the parent has spent, as in
   # gr_claims() and gr_synthesise(), so the alternatives' capped and
   # governor_exhausted() checks see the run's limits too.
-  trace <- gr_trace(meta = list(stage = "outline", question = question,
+  trace <- hr_trace(meta = list(stage = "outline", question = question,
                                 claims = nrow(cw)),
                     governor = fork_governor(parent))
   # Each request is the draw of the run the parent is (trace_inherit_draw()).

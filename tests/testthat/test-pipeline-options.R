@@ -24,7 +24,7 @@ po_sample_file <- function() {
 }
 
 po_sample_client <- function(choice = NULL) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     txt <- po_text(messages)
     if (grepl("Choose the", txt, fixed = TRUE)) return(sprintf('{"choice":%d}', choice))
     ex <- sub(".*<excerpt>", "", txt)
@@ -187,10 +187,10 @@ po_rate_sentences <- c(
 
 po_semantic <- function(sentences, ...) {
   local_registries()
-  gr_options(embedder = "lexical")
+  hr_options(embedder = "lexical")
   po_quiet(gr_segment(paste(sentences, collapse = " "),
                       gr_segment_spec("semantic", max_tokens = 4000, ...),
-                      client = gr_mock_client()))
+                      client = hr_mock_client()))
 }
 
 test_that("semantic_threshold is off by default and leaves the spec as it was", {
@@ -223,7 +223,7 @@ test_that("semantic on lexical vectors is labelled semantic->lexical", {
   # Vectors from an embeddings endpoint (here the mock's) keep "semantic".
   ch <- po_quiet(gr_segment(paste(po_cat_sentences, collapse = " "),
                             gr_segment_spec("semantic", max_tokens = 4000),
-                            client = gr_mock_client()))
+                            client = hr_mock_client()))
   expect_identical(ch$method, "semantic")
 })
 
@@ -296,7 +296,7 @@ test_that("grouped packing splits 60 rows in 3 chunks that each open with the he
   header <- paste(rows[1:2], collapse = "\n")
   data_rows <- rows[-(1:2)]
   # Room for 20 rows after the header, as the packer counts them.
-  cap <- gr_count_tokens(paste0(header, "\n")) + sum(gr_count_tokens(data_rows[1:20]))
+  cap <- hr_count_tokens(paste0(header, "\n")) + sum(hr_count_tokens(data_rows[1:20]))
   d <- po_table_doc(60L)
   ch <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = cap,
                                                table_packing = "grouped")))
@@ -481,7 +481,7 @@ po_exclude <- "Animal study"
 
 po_screener <- function(reply) {
   seen <- new.env()
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     seen$messages <- messages
     seen$params <- params
     reply
@@ -583,7 +583,7 @@ po_sections_file <- function() {
 po_recording_client <- function(propositions = NULL) {
   seen <- new.env()
   seen$asks <- character(0)
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     seen$asks <- c(seen$asks, m[[2]]$content)
     if (grepl("Decompose", m[[1]]$content, fixed = TRUE)) {
       return(propositions(m[[2]]$content))
@@ -732,7 +732,7 @@ test_that("balanced packing keeps the chunk count and evens the sizes, losing no
 
 test_that("runt_merge = 'both' merges a leading runt forward; 'backward' leaves it", {
   body <- "Body"
-  while (gr_count_tokens(body) < 56L) body <- paste(body, "word")
+  while (hr_count_tokens(body) < 56L) body <- paste(body, "word")
   d <- po_quiet(gr_ingest(paste(c("Short title.", body, "Another paragraph follows here."),
                                 collapse = "\n\n")))
   back <- po_quiet(gr_segment(d, gr_segment_spec("paragraph", max_tokens = 60, min_tokens = 20)))
@@ -757,7 +757,7 @@ test_that("packing and runt_merge are swept as recipe arms", {
 })
 
 po_draw_screener <- function(decisions) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     k <- max(1L, as.integer(params$draw_index %||% 0L))
     d <- decisions[[k]]
     sprintf('{"decision":"%s","reason":"Draw %d.","criterion":%s,"quote":null}', d, k,
@@ -817,7 +817,7 @@ test_that("each benchmark run sends its own screening draws, so a cache keeps ru
   f <- po_screen_file()
   ref <- hr_reference(f, labels = "include", cluster = "d", split = "test")
   sent <- integer(0)
-  base <- gr_mock_client(function(messages, params) {
+  base <- hr_mock_client(function(messages, params) {
     sent <<- c(sent, as.integer(params$draw_index %||% 0L))
     '{"decision":"include","reason":"r","criterion":null,"quote":null}'
   })
@@ -834,7 +834,7 @@ test_that("each benchmark run sends its own screening draws, so a cache keeps ru
   expect_identical(sent, 1:4)
   # Under a cache, the second run is not answered from the first run's entries.
   sent <- integer(0)
-  cached <- gr_cache_client(base, gr_cache(tempfile("po-cache")))
+  cached <- hr_cache_client(base, hr_cache(tempfile("po-cache")))
   b <- po_quiet(hr_benchmark(list(arm(2)), ref, runs = 2, client = cached))
   expect_identical(nrow(b), 2L)
   expect_identical(sent, 1:4)

@@ -127,7 +127,7 @@ test_that("a protocol can be registered and comes back the same", {
 })
 
 test_that("gr_extract() takes a protocol in place of a schema", {
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     '{"conclusion":"It worked.","conclusion__quote":"We conclude that it worked."}'
   })
   f <- tempfile(fileext = ".txt")
@@ -153,7 +153,7 @@ test_that("gr_extract() takes a protocol in place of a schema", {
   expect_false(identical(default$answers[[1]]$segmentation$method, "paragraph"))
 
   # An explicit argument still wins over the protocol.
-  cl2 <- gr_mock_client(function(messages, params) {
+  cl2 <- hr_mock_client(function(messages, params) {
     '{"conclusion":"It worked.","conclusion__quote":"We conclude that it worked."}'
   })
   quiet(gr_extract(f, p, goal = "A different framing entirely", client = cl2,
@@ -165,7 +165,7 @@ test_that("gr_extract() takes a protocol in place of a schema", {
 })
 
 test_that("a protocol with no schema says so before spending anything", {
-  cl <- gr_mock_client(function(messages, params) "{}")
+  cl <- hr_mock_client(function(messages, params) "{}")
   f <- tempfile(fileext = ".txt"); writeLines("Some text here.", f)
   screening_only <- gr_protocol("screen", question = "Is it relevant?",
                                 include = "Reports original research")
@@ -222,7 +222,7 @@ test_that("a template nobody edited is refused before anything is spent", {
   # framing. It matters most for `claims`, whose `finding` values are defined
   # relative to the question: unedited, "supports" and "contradicts" mean
   # nothing, and they are what the claims layer reads to find a disagreement.
-  cl <- gr_mock_client(function(m, p) "{}")
+  cl <- hr_mock_client(function(m, p) "{}")
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("We ran a randomised trial and it worked.", f)
 

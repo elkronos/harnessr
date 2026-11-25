@@ -22,9 +22,9 @@
 #' trace the benchmark made for that run (`ctx$trace`), so the run's tokens,
 #' cost and refusals are counted and held to the benchmark's limits, and the
 #' answer's `trace` is that run's trace. That trace also gives every request
-#' of the run the run's draw index (see `draw_index` in [gr_call()]), segmenter
+#' of the run the run's draw index (see `draw_index` in [hr_call()]), segmenter
 #' and reader requests included, so the runs of one arm on one item are
-#' separate draws under a [gr_cache()] or a [gr_replay_client()] rather than
+#' separate draws under an [hr_cache()] or an [hr_replay_client()] rather than
 #' one stored reply repeated, which [hr_benchmark()] would refuse.
 #'
 #' A reader checks before it starts whether the run's call and spending
@@ -59,7 +59,7 @@
 #' @family harness
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 #' ref <- gr_qa_reference(
 #'   questions = c(revenue = "What was revenue in 2024?",
 #'                 ceo = "Who is the chief executive?"),
@@ -169,7 +169,7 @@ doc_arm_run <- function(recipe, overrides) {
           gr_abort(paste0("'auto' chooses a recipe from the document's length, so it needs the ",
                           "document itself, not chunks."), class = "gr_bad_recipe")
         }
-        client <- ctx$client %||% gr_client(model = recipe$read$model)
+        client <- ctx$client %||% hr_client(model = recipe$read$model)
         gr_read(item$document, item$question, client, recipe$read, trace = ctx$trace)
       } else {
         do.call(answer_document, c(list(item$document, item$question, recipe,

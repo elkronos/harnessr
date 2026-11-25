@@ -50,28 +50,28 @@ test_that("counting and truncating bytes in another encoding falls back, not ove
   b <- r7_cp1252()
   expect_false(validUTF8(b))
   # Before: Error in sub(re, "", x, perl = TRUE): input string 1 is invalid UTF-8.
-  n <- gr_count_tokens(b)
+  n <- hr_count_tokens(b)
   expect_true(is.integer(n) && n > 0L)
   # A byte for a character: never fewer than the transcoded text counts.
-  expect_gte(n, gr_count_tokens(harnessr:::to_utf8(b)))
-  expect_identical(gr_count_tokens(c(b, "", NA, "   ", b)), c(n, 0L, 0L, 0L, n))
+  expect_gte(n, hr_count_tokens(harnessr:::to_utf8(b)))
+  expect_identical(hr_count_tokens(c(b, "", NA, "   ", b)), c(n, 0L, 0L, 0L, n))
   # A line of no-break spaces still costs tokens, as it did.
-  expect_gt(gr_count_tokens("\u00a0\u00a0\u00a0"), 0L)
+  expect_gt(hr_count_tokens("\u00a0\u00a0\u00a0"), 0L)
 
   long <- paste(rep(b, 60), collapse = " ")
-  out <- gr_truncate_tokens(long, 12)
+  out <- hr_truncate_tokens(long, 12)
   expect_true(validUTF8(out))
-  expect_lte(gr_count_tokens(out), 12L)
+  expect_lte(hr_count_tokens(out), 12L)
   expect_true(nzchar(out))
-  expect_identical(gr_truncate_tokens(b, 100), b)
+  expect_identical(hr_truncate_tokens(b, 100), b)
 
-  old <- gr_tokenizer()
-  withr::defer(gr_set_tokenizer(old))
-  gr_set_tokenizer("chars")
+  old <- hr_tokenizer()
+  withr::defer(hr_set_tokenizer(old))
+  hr_set_tokenizer("chars")
   # Before: invalid multibyte string, element 1. Six bytes, six characters.
-  expect_identical(gr_count_tokens(c(b, "abcdefgh", "")), c(2L, 2L, 0L))
-  gr_set_tokenizer("words")
-  expect_identical(gr_count_tokens(b), 2L)
+  expect_identical(hr_count_tokens(c(b, "abcdefgh", "")), c(2L, 2L, 0L))
+  hr_set_tokenizer("words")
+  expect_identical(hr_count_tokens(b), 2L)
 })
 
 test_that("the tiktoken counter hands Python text, not bytes it cannot decode", {
@@ -93,7 +93,7 @@ test_that("the tiktoken counter hands Python text, not bytes it cannot decode", 
 # caches, was @noRd and not exported.
 # ---------------------------------------------------------------------------
 
-test_that("gr_flush_caches() is documented and exported, apart from gr_cache_clear()", {
+test_that("gr_flush_caches() is documented and exported, apart from hr_cache_clear()", {
   src <- test_path("..", "..", "R", "doc-ingest-cache.R")
   skip_if_not(file.exists(src), "no source tree (installed package)")
   lines <- readLines(src, warn = FALSE)
@@ -104,7 +104,7 @@ test_that("gr_flush_caches() is documented and exported, apart from gr_cache_cle
   block <- lines[start:(at - 1L)]
   expect_true(any(block == "#' @export"))
   expect_false(any(grepl("@noRd", block, fixed = TRUE)))
-  expect_true(any(grepl("[gr_cache_clear()]", block, fixed = TRUE)))
+  expect_true(any(grepl("[hr_cache_clear()]", block, fixed = TRUE)))
   expect_true(any(grepl("@examples", block, fixed = TRUE)))
 })
 
@@ -156,10 +156,10 @@ test_that("the embedding cache drops the vectors used least recently past its bu
   expect_identical(ls(st$embed_cache), c("d", "e"))
 })
 
-test_that("gr_embed() serves vectors from the bounded cache and asks again for dropped ones", {
+test_that("hr_embed() serves vectors from the bounded cache and asks again for dropped ones", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = TRUE)
+  hr_options(cache_embeddings = TRUE)
   seen <- new.env(parent = emptyenv())
   seen$texts <- character(0)
   local_mocked_bindings(
@@ -179,10 +179,10 @@ test_that("gr_embed() serves vectors from the bounded cache and asks again for d
     .package = "httr")
   # Room for two of these vectors.
   local_mocked_bindings(.gr_embed_cache_bytes = 2.5 * as.numeric(utils::object.size(c(1, 2, 3))))
-  cl <- gr_client(api_key = "sk-test", base_url = "https://r7.invalid/v1", api = "chat",
+  cl <- hr_client(api_key = "sk-test", base_url = "https://r7.invalid/v1", api = "chat",
                   model = "gpt-4o", embedding_model = "text-embedding-3-small",
                   max_retries = 0L, retry_pause_base = 0)
-  emb <- function(x) gr_embed(cl, x)
+  emb <- function(x) hr_embed(cl, x)
 
   first <- emb(c("a", "bb", "ccc"))
   expect_identical(attr(first, "embedding_source"), "api")

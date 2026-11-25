@@ -196,7 +196,7 @@ store and cache keys it had before they existed.
 \item \code{semantic_window} (default \code{2}, advanced): untested. Set when semantic was written; not tuned.
 \item \code{semantic_percentile} (default \code{90}, advanced): untested. Set when semantic was written; not tuned.
 \item \code{proposition_batch_tokens} (default \code{900}, advanced): untested. Set when proposition was written; not tuned.
-\item \code{parallel} (default \code{NULL}, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.
+\item \code{parallel} (default \code{NULL}, advanced): untested. Not a tuned value: NULL follows hr_options("parallel"). It does not change output.
 \item \code{context_reply_tokens} (default \code{90}, advanced): untested. The cap the code had as a constant; not tuned.
 \item \code{context_document_tokens} (default \code{1500}, advanced): untested. The length the code had as a constant; not tuned.
 \item \code{proposition_reply_tokens} (default \code{2000}, advanced): untested. The cap the code had as a constant; not tuned.

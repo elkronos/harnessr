@@ -9,12 +9,12 @@
 #'
 #' Three things to know about the mock. It registers two model ids
 #' (`"mock-model"`, `"mock-embed"`) in the session's model registry the first
-#' time it is called, so they appear in [gr_models()] afterwards. Its default
+#' time it is called, so they appear in [hr_models()] afterwards. Its default
 #' handler returns plain text, so readers that need JSON-schema output
 #' (`rerank`, `iterative`) take their documented degraded path unless your
-#' handler returns valid JSON for those prompts. And [gr_embed()] uses its
-#' `embed_handler` unless `gr_options(embedder =)` names a registered embedder
-#' (see the `embedder` argument of [gr_embed()]), reporting
+#' handler returns valid JSON for those prompts. And [hr_embed()] uses its
+#' `embed_handler` unless `hr_options(embedder =)` names a registered embedder
+#' (see the `embedder` argument of [hr_embed()]), reporting
 #' `embedding_source = "api"`, so an offline run gets semantic-shaped vectors
 #' rather than the lexical fallback. A mock embed handler that fails or returns
 #' the wrong number of rows is still caught and still degrades, like any other.
@@ -25,7 +25,7 @@
 #' \describe{
 #'   \item{`"bad_json"`}{Every reply is a JSON object cut off part way, so a
 #'     request with a JSON schema gets a reply that does not parse.}
-#'   \item{`"refuse"`}{Every reply is empty, which [gr_call()] reports as a
+#'   \item{`"refuse"`}{Every reply is empty, which [hr_call()] reports as a
 #'     failed result with `finish_reason = "empty"`, as it does a refusal from
 #'     a provider.}
 #'   \item{`"at_cap"`}{Every reply is the handler's, marked as cut off at the
@@ -49,12 +49,12 @@
 #'   status codes such as `c(429, 500, 200)`. See Details.
 #' @return An object of class `gr_client`, with `$calls()`, `$embeds()` and
 #'   `$reset()`.
-#' @seealso [gr_client()], [gr_call()], [gr_result], [gr_example()] for a
+#' @seealso [hr_client()], [hr_call()], [gr_result], [gr_example()] for a
 #'   document to run against
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(messages, params) "mock answer")
-#' gr_call(cl, list(list(role = "user", content = "hi")))$text
+#' cl <- hr_mock_client(function(messages, params) "mock answer")
+#' hr_call(cl, list(list(role = "user", content = "hi")))$text
 #'
 #' # `$calls()` is how you prove two reading strategies differ: it records the
 #' # exact prompts each one sent.
@@ -64,15 +64,15 @@
 #' table(vapply(cl$calls(), function(x) x$label, character(1)))
 #'
 #' # A provider that is rate limited, then fails, then answers.
-#' flaky <- gr_mock_client(mode = c(429, 500, 200))
-#' vapply(1:3, function(i) gr_call(flaky, "hi")$ok, logical(1))
-gr_mock_client <- function(handler = NULL, embed_handler = NULL, mode = NULL) {
+#' flaky <- hr_mock_client(mode = c(429, 500, 200))
+#' vapply(1:3, function(i) hr_call(flaky, "hi")$ok, logical(1))
+hr_mock_client <- function(handler = NULL, embed_handler = NULL, mode = NULL) {
   mode <- mock_mode(mode)
   # Registered so the mock does not trip the unknown-model warning on every call.
   if (is.null(hr_state$models[["mock-model"]])) {
-    gr_register_model("mock-model", context_window = 128000L, max_output = 16384L,
+    hr_register_model("mock-model", context_window = 128000L, max_output = 16384L,
                       input_usd = 0, output_usd = 0)
-    gr_register_model("mock-embed", context_window = 8191L, max_output = 0L,
+    hr_register_model("mock-embed", context_window = 8191L, max_output = 0L,
                       input_usd = 0, output_usd = 0, kind = "embedding", dimensions = 64L)
   }
   log <- new.env(parent = emptyenv())
@@ -98,7 +98,7 @@ gr_mock_client <- function(handler = NULL, embed_handler = NULL, mode = NULL) {
   client <- structure(list(
     model = "mock-model", api = "mock", base_url = "mock://", embedding_model = "mock-embed",
     max_retries = 0L, retry_pause_base = 0, timeout = 1, extra_body = list(),
-    # See gr_backend_client() for why a closure-backed client carries an id.
+    # See hr_backend_client() for why a closure-backed client carries an id.
     .client_id = gr_new_id("mock"),
     handler = handler, embed_handler = embed_handler, .log = log,
     calls  = function() log$calls,
@@ -159,7 +159,7 @@ mock_mode_handler <- function(handler, mode, log) {
         if (inherits(out, "gr_result") && !isTRUE(out$ok)) return(out)
         text <- if (inherits(out, "gr_result")) out$text else as_chr1(out, "")
         cap <- as_int1(params$max_output, NA_integer_)
-        output <- if (is.na(cap)) sum(gr_count_tokens(text)) else cap
+        output <- if (is.na(cap)) sum(hr_count_tokens(text)) else cap
         gr_result(TRUE, text = text, finish_reason = "length",
                   usage = usage_record(as_int1(params$prompt_tokens, 0L), output,
                                        local_provenance()))

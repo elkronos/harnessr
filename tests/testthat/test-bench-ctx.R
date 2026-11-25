@@ -14,7 +14,7 @@ ctx_client <- function(answer = "Revenue was 45.2 million dollars.") {
   env <- new.env()
   env$n <- 0L
   env$sent <- list()
-  env$client <- gr_mock_client(function(messages, params) {
+  env$client <- hr_mock_client(function(messages, params) {
     env$n <- env$n + 1L
     env$sent[[length(env$sent) + 1L]] <- list(messages = messages, params = params)
     if (grepl("You grade one response", messages[[1]]$content, fixed = TRUE)) {
@@ -38,7 +38,7 @@ test_that("ctx carries judge and note next to the shortcuts it had", {
     "x"
   })
   ref <- hr_reference(list(q1 = "a"), "x", "a", split = "test")
-  quiet(hr_benchmark(arm, ref, runs = 1, client = gr_mock_client(function(m, p) "x")))
+  quiet(hr_benchmark(arm, ref, runs = 1, client = hr_mock_client(function(m, p) "x")))
   expect_identical(names(got), c("client", "trace", "governor", "draw_index", "item_id",
                                  "arm", "run", "params", "call", "call_json", "judge",
                                  "note"))
@@ -47,7 +47,7 @@ test_that("ctx carries judge and note next to the shortcuts it had", {
 })
 
 test_that("ctx$judge is in the run's usd once and carries the run's draw", {
-  gr_register_model("bench-ctx-priced", context_window = 128000L, max_output = 4096L,
+  hr_register_model("bench-ctx-priced", context_window = 128000L, max_output = 4096L,
                     input_usd = 2, output_usd = 8)
   m <- ctx_client()
   own <- new.env()
@@ -75,10 +75,10 @@ test_that("ctx$judge is in the run's usd once and carries the run's draw", {
     expect_gt(j$judge_cost$usd, 0)
     answer <- Filter(function(s) identical(s$label, "answer"), tr$steps)
     expect_length(answer, 1L)
-    answer_usd <- sum(gr_trace_cost(tr)$usd) - j$judge_cost$usd
+    answer_usd <- sum(hr_trace_cost(tr)$usd) - j$judge_cost$usd
     expect_gt(answer_usd, 0)
     expect_equal(b$usd[i], answer_usd + j$judge_cost$usd)
-    expect_equal(b$usd[i], sum(gr_trace_cost(tr)$usd))
+    expect_equal(b$usd[i], sum(hr_trace_cost(tr)$usd))
   }
   # Three requests a run, all counted by the benchmark's governor.
   expect_identical(attr(b, "trace")$calls, 12L)
@@ -91,7 +91,7 @@ test_that("ctx$judge is in the run's usd once and carries the run's draw", {
 
 test_that("ctx$judge under a cache gives each run its own verdict", {
   m <- ctx_client()
-  cached <- gr_cache_client(m$client, gr_cache(tempfile("bench-ctx-")))
+  cached <- hr_cache_client(m$client, hr_cache(tempfile("bench-ctx-")))
   verdicts <- new.env()
   arm <- hr_arm("cached", function(item, ctx) {
     j <- ctx$judge("45.2 million", mode = "grade", reference = "45.2 million",
@@ -123,7 +123,7 @@ test_that("ctx$note records a signal on the run's trace about the item", {
     "45.2 million"
   })
   sent <- 0L
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     sent <<- sent + 1L
     "x"
   })
@@ -147,12 +147,12 @@ test_that("hr_signals() reads a benchmark once per run, with arm, run and item",
   })
   plain <- hr_arm("plain", function(item, ctx) "12,400")
   b <- quiet(hr_benchmark(list(noted, plain), ctx_reference(), runs = 2,
-                          client = gr_mock_client(function(m, p) "x"),
+                          client = hr_mock_client(function(m, p) "x"),
                           scorer = gr_scorer_answer()))
   s <- hr_signals(b)
   expect_identical(names(s)[1:4], c("run_id", "arm", "run", "item"))
   expect_identical(setdiff(names(s), c("arm", "run", "item")),
-                   names(hr_signals(gr_trace())))
+                   names(hr_signals(hr_trace())))
   # One row per note: two items by two runs of the arm that notes. The
   # benchmark's own trace holds the same steps and is not read again.
   expect_identical(nrow(s), 4L)
@@ -182,7 +182,7 @@ test_that("hr_signals() reads a benchmark once per run, with arm, run and item",
 })
 
 test_that("hr_signals() of a benchmark includes the signals a reader recorded", {
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     '{"can_answer": true, "answer": "45.2 million dollars", "next_query": ""}'
   })
   arm <- hr_arm("iter", function(item, ctx) {

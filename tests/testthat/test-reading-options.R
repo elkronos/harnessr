@@ -3,7 +3,7 @@
 # records check that. These tests check what each option does when it is on.
 
 ro_chunks <- function(txt, section = NA_character_) {
-  new_chunks(txt, "precomputed", gr_segment_spec(max_tokens = max(gr_count_tokens(txt), 32L)),
+  new_chunks(txt, "precomputed", gr_segment_spec(max_tokens = max(hr_count_tokens(txt), 32L)),
              section = section)
 }
 
@@ -24,7 +24,7 @@ ro_preview_doc <- function() {
 }
 
 ro_planner <- function(treatments, answer = function(body) "PLANNED ANSWER") {
-  gr_mock_client(function(m, p) {
+  hr_mock_client(function(m, p) {
     sys <- m[[1]]$content
     if (grepl("You plan how to read a document", sys, fixed = TRUE)) {
       return(preview_plan_json(treatments))
@@ -46,7 +46,7 @@ test_that("each skip is logged with its score, and the plan is followed by defau
   ch <- ro_preview_doc()
   q <- "How many participants across nine sites?"
   cl <- ro_planner(c("read", "read", "skip", "read"))
-  tr <- gr_trace()
+  tr <- hr_trace()
   a <- quiet(gr_read(ch, q, cl, "preview", trace = tr))
   skips <- ro_steps(tr, "preview.skip")
   expect_length(skips, 1L)
@@ -62,7 +62,7 @@ test_that("unskip_k = 1 reads the only section holding the question's words", {
   ch <- ro_preview_doc()
   q <- "How many participants across nine sites?"
   cl <- ro_planner(c("read", "read", "skip", "skip"))
-  tr <- gr_trace()
+  tr <- hr_trace()
   a <- quiet(gr_read(ch, q, cl, gr_read_spec("preview", unskip_k = 1), trace = tr))
   expect_identical(a$notes$unskipped, 3L)
   expect_identical(a$notes$skipped, 1L)
@@ -88,7 +88,7 @@ test_that("reread_on = 'not_found' reads what the plan left out after a not-foun
   expect_false("preview.reread" %in% vapply(cl$calls(), function(x) x$label, ""))
   # Opted in: one more request over the skipped section finds it.
   cl <- ro_planner(c("read", "read", "skip", "read"), answer)
-  tr <- gr_trace()
+  tr <- hr_trace()
   a <- quiet(gr_read(ch, q, cl, gr_read_spec("preview", reread_on = "not_found"), trace = tr))
   expect_identical(a$answer, "482 participants.")
   expect_identical(vapply(cl$calls(), function(x) x$label, "")[length(cl$calls())],
@@ -109,7 +109,7 @@ test_that("reread_on = 'not_found' reads what the plan left out after a not-foun
 
 test_that("reread_on raises the preview's worst case by one request", {
   ch <- ro_preview_doc()
-  st <- harnessr:::read_input_stats(ch, gr_read_spec("preview"), gr_mock_client(), "q")
+  st <- harnessr:::read_input_stats(ch, gr_read_spec("preview"), hr_mock_client(), "q")
   base <- harnessr:::cost_preview(st, gr_read_spec("preview"))
   more <- harnessr:::cost_preview(st, gr_read_spec("preview", reread_on = "not_found"))
   expect_identical(as.integer(more$calls_max), as.integer(base$calls_max) + 1L)
@@ -120,7 +120,7 @@ test_that("reread_on raises the preview's worst case by one request", {
 # ---------------------------------------------------------------------------
 
 ro_rerank_client <- function(score = 1, answer = "NOT_IN_DOCUMENT") {
-  gr_mock_client(function(m, p) {
+  hr_mock_client(function(m, p) {
     if (identical(p$schema_name, "relevance")) {
       return(sprintf('{"score": %d, "reason": "weak"}', as.integer(score)))
     }
@@ -135,7 +135,7 @@ ro_rerank_doc <- function() {
 test_that("rerank records retrieval_low_score when every candidate scores low", {
   ch <- ro_rerank_doc()
   cl <- ro_rerank_client(score = 1)
-  tr <- gr_trace()
+  tr <- hr_trace()
   a <- quiet(gr_read(ch, "What was revenue?", cl, "rerank", trace = tr))
   expect_true(is_not_found(a$answer))
   expect_true(a$notes$retrieval_low_score)
@@ -187,9 +187,9 @@ ro_rank_doc <- function() {
 
 ro_order <- function(reader, spec_args, embedder = NULL) {
   local_registries()
-  if (!is.null(embedder)) gr_options(embedder = embedder)
+  if (!is.null(embedder)) hr_options(embedder = embedder)
   ch <- ro_rank_doc()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (identical(p$schema_name, "iterative_step")) {
       return('{"can_answer": true, "answer": "45.2 million", "next_query": ""}')
     }
@@ -245,7 +245,7 @@ ro_mmr_client <- function() {
          else c(0, 0, as.numeric(nchar(t) %% 3 == 0:2))
     v / sqrt(sum(v^2))
   }
-  gr_mock_client(function(m, p) "45 million", embed_handler = function(texts, params) {
+  hr_mock_client(function(m, p) "45 million", embed_handler = function(texts, params) {
     t(vapply(texts, vec, numeric(5), USE.NAMES = FALSE))
   })
 }
@@ -274,7 +274,7 @@ test_that("rrf with mmr below 1 weighs relevance on the scale of similarity", {
 
 test_that("a min_score no chunk passes is recorded", {
   ch <- ro_rank_doc()
-  cl <- gr_mock_client(function(m, p) "Revenue was 45 million.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45 million.")
   a <- quiet(gr_read(ch, "What was revenue?", cl, gr_read_spec("retrieve", top_k = 3L,
                                                                 fusion = "rrf", min_score = 0.1)))
   expect_length(a$chunks_used, 1L)
@@ -298,29 +298,29 @@ ro_doc <- function() {
 test_that("every answer from gr_read() carries an outcome", {
   ch <- ro_doc()
   a <- quiet(gr_read(ch, "Did anyone drop out?",
-                     gr_mock_client(function(m, p) "None of the 40 participants dropped out."),
+                     hr_mock_client(function(m, p) "None of the 40 participants dropped out."),
                      "stuff"))
   expect_identical(a$outcome, "answered")
   expect_false(is_not_found(a))
-  a <- quiet(gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "NOT_IN_DOCUMENT"),
+  a <- quiet(gr_read(ch, "What was revenue?", hr_mock_client(function(m, p) "NOT_IN_DOCUMENT"),
                      "stuff"))
   expect_identical(a$outcome, "not_found")
   expect_true(is_not_found(a))
   # A failed request is not a not-found.
-  a <- quiet(gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) stop("down")),
+  a <- quiet(gr_read(ch, "What was revenue?", hr_mock_client(function(m, p) stop("down")),
                      "stuff"))
   expect_identical(a$outcome, "failed")
   expect_true(is_not_found(a$answer))
   expect_false(is_not_found(a))
   # A limit that stopped the run is a refusal.
-  stopped <- new_answer("NOT_IN_DOCUMENT", "stuff", "q", integer(0), gr_trace(), partial = TRUE,
+  stopped <- new_answer("NOT_IN_DOCUMENT", "stuff", "q", integer(0), hr_trace(), partial = TRUE,
                         notes = list(call_cap_reached = 1))
   expect_identical(harnessr:::answer_outcome(stopped), "refused")
   # A partial answer.
-  ans <- new_answer("x", "stuff", "q", 1L, gr_trace(), partial = TRUE)
+  ans <- new_answer("x", "stuff", "q", 1L, hr_trace(), partial = TRUE)
   expect_identical(harnessr:::answer_outcome(ans), "partial")
   # Without an outcome, the sentinel decides.
-  expect_true(is_not_found(new_answer("NOT_IN_DOCUMENT", "stuff", "q", integer(0), gr_trace())))
+  expect_true(is_not_found(new_answer("NOT_IN_DOCUMENT", "stuff", "q", integer(0), hr_trace())))
   expect_true(is_not_found(list(answer = "NOT_IN_DOCUMENT")))
   expect_false(is_not_found(list(answer = "NOT_IN_DOCUMENT", outcome = "failed")))
   expect_match(harnessr::as_json(a), "\"outcome\"")
@@ -331,14 +331,14 @@ test_that("a run whose every request failed is failed for every reader", {
                     "None of the 40 participants dropped out before the end."))
   for (rd in c("stuff", "retrieve", "map_reduce", "refine", "rerank", "skim", "hierarchical",
                "iterative", "preview", "ensemble")) {
-    a <- quiet(gr_read(ch, "Did anyone drop out?", gr_mock_client(function(m, p) stop("down")),
+    a <- quiet(gr_read(ch, "Did anyone drop out?", hr_mock_client(function(m, p) stop("down")),
                        gr_read_spec(rd)))
     expect_identical(a$outcome, "failed", info = rd)
     expect_false(is_not_found(a), info = rd)
   }
   # Some reply came back and said not found: that is a not-found.
   n <- 0L
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     n <<- n + 1L
     if (n == 1L) stop("down")
     "NOT_IN_DOCUMENT"
@@ -357,7 +357,7 @@ test_that("answer_format = 'parsed' is the default and sends no schema", {
   expect_null(gr_read_spec("stuff")$answer_format)
   expect_identical(gr_read_spec("stuff", answer_format = "schema")$answer_format, "schema")
   expect_error(gr_read_spec("stuff", answer_format = "json"), class = "gr_bad_setting")
-  cl <- gr_mock_client(function(m, p) "NOT_IN_DOCUMENT")
+  cl <- hr_mock_client(function(m, p) "NOT_IN_DOCUMENT")
   quiet(gr_read(ro_doc(), "q?", cl, "stuff"))
   expect_false(identical(cl$calls()[[1]]$params$schema_name, "answer"))
 })
@@ -366,7 +366,7 @@ test_that("both formats classify the two example sentences", {
   ch <- ro_doc()
   q <- "Did anyone drop out?"
   # Parsed: the reply as free text, the sentinel read from it.
-  parsed <- function(reply) quiet(gr_read(ch, q, gr_mock_client(function(m, p) reply), "stuff"))
+  parsed <- function(reply) quiet(gr_read(ch, q, hr_mock_client(function(m, p) reply), "stuff"))
   expect_identical(parsed("None of the 40 participants dropped out.")$outcome, "answered")
   expect_identical(parsed("NOT_IN_DOCUMENT. The excerpt does not mention revenue.")$outcome,
                    "not_found")
@@ -376,7 +376,7 @@ test_that("both formats classify the two example sentences", {
   # Schema: the outcome is a field of the reply.
   spec <- gr_read_spec("stuff", answer_format = "schema")
   schema <- function(answer, outcome) {
-    cl <- gr_mock_client(function(m, p) {
+    cl <- hr_mock_client(function(m, p) {
       expect_identical(p$schema_name, "answer")
       jsonlite::toJSON(list(answer = answer, outcome = outcome), auto_unbox = TRUE)
     })
@@ -392,7 +392,7 @@ test_that("both formats classify the two example sentences", {
   expect_identical(b$answer, "NOT_IN_DOCUMENT")
   expect_identical(b$notes$structured$reply, "The excerpt does not mention revenue.")
   # A reply that does not parse is read as free text.
-  c <- quiet(gr_read(ch, q, gr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), spec))
+  c <- quiet(gr_read(ch, q, hr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), spec))
   expect_identical(c$outcome, "not_found")
   expect_false(c$notes$structured$parsed)
 })
@@ -400,7 +400,7 @@ test_that("both formats classify the two example sentences", {
 test_that("answer_format = 'schema' reaches each covered reader's answer request", {
   ch <- ro_chunks(sprintf("Revenue line %d was %d dollars.", 1:4, 100 + 1:4))
   for (r in c("stuff", "retrieve", "map_reduce", "skim", "hierarchical")) {
-    cl <- gr_mock_client(function(m, p) {
+    cl <- hr_mock_client(function(m, p) {
       if (identical(p$schema_name, "answer")) {
         return('{"answer": "Revenue was 101 dollars.", "outcome": "answered"}')
       }
@@ -444,7 +444,7 @@ test_that("premise_verdict is opt-in and needs premise = TRUE", {
                                 premise_verdict = "structured")$premise_verdict, "structured")
   expect_error(gr_read_spec("stuff", premise_verdict = "structured"), class = "gr_bad_setting")
   # Under premise = TRUE alone, the sentence rule is sent, with no schema.
-  cl <- gr_mock_client(function(m, p) "FALSE_PREMISE: Revenue rose.")
+  cl <- hr_mock_client(function(m, p) "FALSE_PREMISE: Revenue rose.")
   a <- quiet(gr_read(ro_premise_doc(), "Why did revenue fall?", cl,
                      gr_read_spec("stuff", premise = TRUE)))
   expect_false(identical(cl$calls()[[1]]$params$schema_name, "answer"))
@@ -456,7 +456,7 @@ test_that("a structured verdict carries its quote, checked against the excerpts"
   ch <- ro_premise_doc()
   q <- "Why did revenue fall in 2023?"
   spec <- gr_read_spec("stuff", premise = TRUE, premise_verdict = "structured")
-  cl <- gr_mock_client(ro_verdict("contradicted", "Revenue rose 12% in 2023"))
+  cl <- hr_mock_client(ro_verdict("contradicted", "Revenue rose 12% in 2023"))
   a <- quiet(gr_read(ch, q, cl, spec))
   expect_identical(cl$calls()[[1]]$params$schema_name, "answer")
   sys <- cl$calls()[[1]]$messages[[1]]$content
@@ -467,11 +467,11 @@ test_that("a structured verdict carries its quote, checked against the excerpts"
   expect_true(a$premise_verdict$quote_verified)
   expect_false(is_not_found(a))
   # A quote that is not in the excerpts is recorded as not verified.
-  a <- quiet(gr_read(ch, q, gr_mock_client(ro_verdict("contradicted", "Revenue doubled")), spec))
+  a <- quiet(gr_read(ch, q, hr_mock_client(ro_verdict("contradicted", "Revenue doubled")), spec))
   expect_false(a$premise_verdict$quote_verified)
   # A premise that holds is an ordinary answer.
   a <- quiet(gr_read(ch, "How much did revenue rise?",
-                     gr_mock_client(ro_verdict("holds", "", "It rose 12%.")), spec))
+                     hr_mock_client(ro_verdict("holds", "", "It rose 12%.")), spec))
   expect_identical(a$answer, "It rose 12%.")
   expect_true(is.na(a$premise))
   expect_identical(a$premise_verdict$premise_status, "holds")
@@ -486,7 +486,7 @@ test_that("a verdict's quote is checked against what that request was shown", {
   shown <- NA
   verdict <- ro_verdict("contradicted", "Revenue rose 12% in 2023")
   planner <- function(treatments) {
-    gr_mock_client(function(m, p) {
+    hr_mock_client(function(m, p) {
       if (grepl("You plan how to read a document", m[[1]]$content, fixed = TRUE)) {
         return(preview_plan_json(treatments))
       }
@@ -507,19 +507,19 @@ test_that("a verdict's quote is checked against what that request was shown", {
   expect_true(a$premise_verdict$quote_verified)
   # Text a model wrote counts only where the document says it too.
   ns <- asNamespace("harnessr")
-  cl <- gr_mock_client(ro_verdict("contradicted", "Revenue doubled in 2023"))
-  res <- ns$answer_request(cl, list(list(role = "user", content = "x")), spec, gr_trace(), "t", 50L,
+  cl <- hr_mock_client(ro_verdict("contradicted", "Revenue doubled in 2023"))
+  res <- ns$answer_request(cl, list(list(role = "user", content = "x")), spec, hr_trace(), "t", 50L,
                            sources = "Summary: Revenue doubled in 2023.",
                            document = doc$chunks$text)
   expect_false(res$structured$quote_verified)
-  cl <- gr_mock_client(ro_verdict("contradicted", "Revenue rose 12% in 2023"))
-  res <- ns$answer_request(cl, list(list(role = "user", content = "x")), spec, gr_trace(), "t", 50L,
+  cl <- hr_mock_client(ro_verdict("contradicted", "Revenue rose 12% in 2023"))
+  res <- ns$answer_request(cl, list(list(role = "user", content = "x")), spec, hr_trace(), "t", 50L,
                            sources = "Summary: Revenue rose 12% in 2023, it says.",
                            document = doc$chunks$text)
   expect_true(res$structured$quote_verified)
   # skim and hierarchical: shown passages or summaries, and the document.
   for (rd in c("skim", "hierarchical")) {
-    cl <- gr_mock_client(function(m, p) {
+    cl <- hr_mock_client(function(m, p) {
       if (identical(p$schema_name, "answer")) return(verdict(m, p))
       "Staff numbers grew to 310."
     })
@@ -536,7 +536,7 @@ test_that("map_reduce drops a premise flag whose quote is absent", {
                        parallel = FALSE)
   # Chunk 1 flags with its own words; chunk 2 flags with a quote it does not
   # hold; chunk 3 is silent.
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (identical(p$schema_name, "answer")) {
       body <- m[[2]]$content
       if (grepl("Revenue rose", body, fixed = TRUE)) {
@@ -561,7 +561,7 @@ test_that("map_reduce drops a premise flag whose quote is absent", {
     expect_false(grepl("did not fall", body, fixed = TRUE))
   }
   # Without the structured verdict, nothing is dropped.
-  cl2 <- gr_mock_client(function(m, p) {
+  cl2 <- hr_mock_client(function(m, p) {
     if (grepl("Leipzig|Revenue rose", m[[2]]$content)) "FALSE_PREMISE: Revenue rose." else
       "NOT_IN_DOCUMENT"
   })
@@ -577,7 +577,7 @@ test_that("map_reduce drops a premise flag whose quote is absent", {
 
 test_that("gr_methods_text() describes an answer from its record only", {
   ch <- ro_chunks(sprintf("Revenue line %d was %d dollars.", 1:4, 100 + 1:4))
-  cl <- gr_mock_client(function(m, p) "Revenue was 101 dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 101 dollars.")
   a <- quiet(gr_read(ch, "What was revenue line 1?", cl, gr_read_spec("retrieve", top_k = 2)))
   txt <- gr_methods_text(a)
   expect_s3_class(txt, "gr_methods_text")
@@ -601,7 +601,7 @@ test_that("gr_methods_text() describes an answer from its record only", {
   a2 <- quiet(gr_read(ch, "What was revenue line 1?", cl, "stuff"))
   expect_match(gr_methods_text(a2), "the 'stuff' reader at its default settings", fixed = TRUE)
   # The served model, when the provider reported one.
-  tr <- gr_trace()
+  tr <- hr_trace()
   harnessr:::trace_record(tr, "x.answer", list(list(role = "system", content = "S")),
                        list(ok = TRUE, text = "a", model = "m1", served_model = "m1-2026",
                             usage = list(input = 3L, output = 1L)))
@@ -611,8 +611,8 @@ test_that("gr_methods_text() describes an answer from its record only", {
 })
 
 test_that("gr_methods_text() does not count a cached request's tokens as sent", {
-  cache <- gr_cache(tempfile())
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "Revenue was 45.2 million."), cache)
+  cache <- hr_cache(tempfile())
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "Revenue was 45.2 million."), cache)
   ch <- ro_chunks(sprintf("Revenue line %d was %d dollars.", 1:3, 100 + 1:3))
   x1 <- quiet(gr_read(ch, "What was revenue?", cl, "map_reduce"))
   t1 <- gr_methods_text(x1)
@@ -626,7 +626,7 @@ test_that("gr_methods_text() does not count a cached request's tokens as sent", 
   expect_false(grepl("It made", t2, fixed = TRUE))
   # Some sent, some from the cache.
   x3 <- quiet(gr_read(ch, "What was revenue in 2024?", cl, gr_read_spec("map_reduce")))
-  tr <- gr_trace()
+  tr <- hr_trace()
   tr$steps <- c(harnessr:::answer_trace(x2)$steps, harnessr:::answer_trace(x1)$steps)
   t3 <- gr_methods_text(tr)
   expect_match(t3, "The [0-9]+ sent to the provider carried [0-9,]+ prompt token\\(s\\)")
@@ -637,7 +637,7 @@ test_that("gr_methods_text() does not count a cached request's tokens as sent", 
 test_that("gr_methods_text() describes a benchmark's design and requests", {
   qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
                         documents = gr_example(), answers = list("45.2 million"), split = "dev")
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   arms <- hr_sweep(gr_arm("needle", list(method = "structural", max_tokens = 120,
                                           overlap_tokens = 0)),
                    list(top_k = c(2, 4)))
@@ -672,8 +672,8 @@ test_that("a step's spec is checked when the step is built", {
 })
 
 test_that("steps chain by hand and record on ctx$trace", {
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  tr <- hr_trace()
   ctx <- list(client = cl, trace = tr)
   steps <- list(gr_step("ingest"),
                 gr_step("segment", method = "structural", max_tokens = 120, overlap_tokens = 0),
@@ -695,7 +695,7 @@ test_that("steps chain by hand and record on ctx$trace", {
 test_that("gr_step_retrieve() keeps what the retrieve reader would send", {
   ch <- ro_rank_doc()
   q <- "What was revenue in 2024?"
-  cl <- gr_mock_client(function(m, p) "45.2 million")
+  cl <- hr_mock_client(function(m, p) "45.2 million")
   st <- quiet(gr_step_retrieve(top_k = 3)(list(question = q, chunks = ch), list(client = cl)))
   a <- quiet(gr_read(ch, q, cl, gr_read_spec("retrieve", top_k = 3)))
   expect_identical(as.integer(st$chunks$chunks$chunk_id), as.integer(a$chunks_used))
@@ -710,7 +710,7 @@ test_that("steps run inside an hr_arm() under a benchmark", {
   steps <- list(gr_step("segment", method = "structural", max_tokens = 120, overlap_tokens = 0),
                 gr_step_retrieve(top_k = 2), gr_step("read", reader = "stuff"))
   arm <- hr_arm("steps", function(item, ctx) Reduce(function(x, s) s(x, ctx), steps, item))
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   bench <- quiet(hr_benchmark(list(arm), qa, runs = 2, client = cl, split = "dev",
                               scorer = gr_scorer_answer()))
   expect_true(all(bench$correct))
@@ -720,7 +720,7 @@ test_that("steps run inside an hr_arm() under a benchmark", {
 
 test_that("a step needs what it reads", {
   expect_error(gr_step("read", reader = "stuff")(list(document = gr_example()),
-                                                 list(client = gr_mock_client())),
+                                                 list(client = hr_mock_client())),
                "question", class = "gr_bad_setting")
   expect_error(gr_step("ingest")(list(question = "q"), NULL), "document",
                class = "gr_bad_setting")

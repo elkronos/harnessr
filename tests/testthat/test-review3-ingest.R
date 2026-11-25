@@ -240,6 +240,6 @@ test_that("registering a cleaner or extractor again starts a new cache entry", {
   expect_match(quiet(gr_ingest(z))$text, "NEW", fixed = TRUE)
 
   # Nothing registered in between: the cache still answers.
-  gr_options(verbose = TRUE)          # restored by local_registries()
+  hr_options(verbose = TRUE)          # restored by local_registries()
   expect_message(gr_ingest(z), "cached", fixed = TRUE)
 })

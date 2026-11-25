@@ -41,18 +41,18 @@ r2s_warns <- function(expr) {
 # ---------------------------------------------------------------------------
 
 test_that("with no model named, the write-up sizes for the model the client asks", {
-  # Before: gr_read_spec() left the model NULL, gr_budget(NULL) sized for
-  # gr_options("model") and gr_call(model = NULL) asked the client's. On a
+  # Before: gr_read_spec() left the model NULL, hr_budget(NULL) sized for
+  # hr_options("model") and hr_call(model = NULL) asked the client's. On a
   # 4096-token client the forty studies went out as one 5173-token prompt, the
   # call failed before it was sent, and the section came back empty; gr_claims()
   # sent batches of 30 studies (4039 prompt tokens, room for a 25-token reply);
   # and the 'cut' pass kept a whole-draft rewrite the model cannot emit.
   local_registries()
-  gr_register_model("tiny-local", context_window = 4096, max_output = 512,
+  hr_register_model("tiny-local", context_window = 4096, max_output = 512,
                     input_usd = 0, output_usd = 0)
   seen <- new.env(parent = emptyenv())
   seen$p <- list()
-  cl <- gr_backend_client(function(messages, params) {
+  cl <- hr_backend_client(function(messages, params) {
     seen$p[[length(seen$p) + 1L]] <- params[c("model", "prompt_tokens")]
     sys <- messages[[1]]$content
     if (grepl("turn a table of studies", sys, fixed = TRUE)) {
@@ -114,12 +114,12 @@ test_that("with no model named, the write-up sizes for the model the client asks
 
 test_that("a model named on the call still wins over the client's", {
   local_registries()
-  gr_register_model("tiny-local", context_window = 4096, max_output = 512,
+  hr_register_model("tiny-local", context_window = 4096, max_output = 512,
                     input_usd = 0, output_usd = 0)
-  gr_register_model("house-a", context_window = 64000, max_output = 4000,
+  hr_register_model("house-a", context_window = 64000, max_output = 4000,
                     input_usd = 0, output_usd = 0)
   seen <- character(0)
-  cl <- gr_backend_client(function(messages, params) {
+  cl <- hr_backend_client(function(messages, params) {
     seen <<- c(seen, params$model)
     "A modest reduction was reported [study 1]."
   }, model = "tiny-local")
@@ -136,9 +136,9 @@ test_that("a model named on the call still wins over the client's", {
 # ---------------------------------------------------------------------------
 
 test_that("a section whose reply stopped at the reply limit is partial and says so", {
-  # Before: gr_call() keeps a cut-off reply ok = TRUE, usable_text() accepted
+  # Before: hr_call() keeps a cut-off reply ok = TRUE, usable_text() accepted
   # it, and "However, the trial" came back with partial = FALSE and no warning.
-  cl <- gr_mock_client(function(m, p) r2s_cut("One trial found a benefit [study 1]. However, the trial"))
+  cl <- hr_mock_client(function(m, p) r2s_cut("One trial found a benefit [study 1]. However, the trial"))
   r <- r2s_warns(gr_synthesise(r2s_table(), outline = c(Findings = "what"), question = "Q?",
                                client = cl))
   s <- r$value$sections
@@ -151,7 +151,7 @@ test_that("a section whose reply stopped at the reply limit is partial and says 
 
   # A reply that finished is not flagged.
   ok <- quiet(gr_synthesise(r2s_table(), outline = c(Findings = "what"), question = "Q?",
-                            client = gr_mock_client(function(m, p) "One trial found a benefit [study 1].")))
+                            client = hr_mock_client(function(m, p) "One trial found a benefit [study 1].")))
   expect_identical(ok$sections$n_truncated, 0L)
   expect_false(ok$sections$partial)
 })
@@ -159,7 +159,7 @@ test_that("a section whose reply stopped at the reply limit is partial and says 
 test_that("a batch draft or a merge cut off at the limit marks the section partial", {
   local_registries()
   # A small window, so forty studies are drafted in batches and merged.
-  gr_register_model("small-merge", context_window = 3000, max_output = 400,
+  hr_register_model("small-merge", context_window = 3000, max_output = 400,
                     input_usd = 0, output_usd = 0)
   merge_msg <- function(m) grepl("<draft", paste(vapply(m, `[[`, "", "content"), collapse = " "),
                                  fixed = TRUE)
@@ -168,7 +168,7 @@ test_that("a batch draft or a merge cut off at the limit marks the section parti
                                               max_section_tokens = 300))
 
   # Before: the merge reply "... [study 1] but" was the section, partial FALSE.
-  r <- run(gr_mock_client(function(m, p) {
+  r <- run(hr_mock_client(function(m, p) {
     if (merge_msg(m)) r2s_cut("Merged: a modest benefit [study 1] but") else "Draft: a benefit [study 1]."
   }))
   labels <- vapply(r$value$trace$steps, `[[`, "", "label")
@@ -178,7 +178,7 @@ test_that("a batch draft or a merge cut off at the limit marks the section parti
   expect_true("gr_synth_truncated" %in% r$classes)
 
   # Before: every batch draft cut off, merged as if whole, partial FALSE.
-  r <- run(gr_mock_client(function(m, p) {
+  r <- run(hr_mock_client(function(m, p) {
     if (merge_msg(m)) "Merged: a modest benefit [study 1]." else r2s_cut("Draft: a benefit [study 1] and")
   }))
   n_batches <- sum(vapply(r$value$trace$steps, `[[`, "", "label") == "synthesise.batch")
@@ -191,9 +191,9 @@ test_that("batch drafts that could not be merged are not a finished section", {
   # the drafts joined and capped -- with "[merge failed ...]" in it or not --
   # and partial = FALSE.
   local_registries()
-  gr_register_model("small-merge", context_window = 3000, max_output = 400,
+  hr_register_model("small-merge", context_window = 3000, max_output = 400,
                     input_usd = 0, output_usd = 0)
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("<draft", paste(vapply(m, `[[`, "", "content"), collapse = " "), fixed = TRUE)) {
       stop("merge endpoint down")
     }
@@ -210,7 +210,7 @@ test_that("batch drafts that could not be merged are not a finished section", {
 
 test_that("the closing section, written from the gaps, is partial when its reply is cut off", {
   tab <- r2s_table()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     sys <- m[[1]]$content
     body <- paste(vapply(m, `[[`, "", "content"), collapse = " ")
     if (grepl("turn a table of studies", sys, fixed = TRUE)) {
@@ -240,7 +240,7 @@ test_that("gr_claims says which studies a cut-off batch lost, on the result", {
   # as complete to anything that looked at it later.
   tab <- r2s_table(4L, finding = c("supports", "contradicts", "supports", "mixed"))
   # Two studies per batch, so four studies are two batches.
-  one <- gr_mock_client(function(m, p) {
+  one <- hr_mock_client(function(m, p) {
     blk <- m[[3]]$content
     if (grepl("[study 3]", blk, fixed = TRUE)) return(r2s_cut('{"claims":[{"claim":"Tr'))
     paste0('{"claims":[{"claim":"Trials help.","kind":"finding","supported_by":[1],',
@@ -255,13 +255,13 @@ test_that("gr_claims says which studies a cut-off batch lost, on the result", {
   expect_output(print(cm), "PARTIAL: 2 of 4 studies contributed nothing")
 
   # Every batch cut off: no claims, every study lost.
-  all_cut <- gr_mock_client(function(m, p) r2s_cut('{"claims":[{"claim":"Tr'))
+  all_cut <- hr_mock_client(function(m, p) r2s_cut('{"claims":[{"claim":"Tr'))
   cm <- quiet(gr_claims(tab, question = "Q?", client = all_cut))
   expect_true(cm$partial)
   expect_identical(cm$lost, 1:4)
 
   # A complete run says so.
-  fine <- gr_mock_client(function(m, p) paste0(
+  fine <- hr_mock_client(function(m, p) paste0(
     '{"claims":[{"claim":"Trials help.","kind":"finding","supported_by":[1],',
     '"contradicted_by":[],"moderator":null,"scope":null}]}'))
   cm <- quiet(gr_claims(tab, question = "Q?", client = fine, max_claim_tokens = 480))
@@ -270,7 +270,7 @@ test_that("gr_claims says which studies a cut-off batch lost, on the result", {
 
   # A batch the call limit stopped is lost too, not a batch with nothing in it.
   local_registries()
-  gr_options(max_calls = 1)
+  hr_options(max_calls = 1)
   cm <- quiet(gr_claims(tab, question = "Q?", client = fine, max_claim_tokens = 480))
   expect_true(cm$partial)
   expect_identical(cm$lost, 3:4)
@@ -280,10 +280,10 @@ test_that("gr_outline says its reply was cut off rather than asking to try again
   # Before: "did not return usable sections ... or try again", which cannot
   # help: the same claims ask for the same reply, cut off in the same place.
   tab <- r2s_table()
-  cm <- quiet(gr_claims(tab, question = "Q?", client = gr_mock_client(function(m, p) paste0(
+  cm <- quiet(gr_claims(tab, question = "Q?", client = hr_mock_client(function(m, p) paste0(
     '{"claims":[{"claim":"Trials help.","kind":"finding","supported_by":[1],',
     '"contradicted_by":[],"moderator":null,"scope":null}]}'))))
-  cl <- gr_mock_client(function(m, p) r2s_cut('{"sections":[{"heading":"Trials","brief":"t","claims":[1'))
+  cl <- hr_mock_client(function(m, p) r2s_cut('{"sections":[{"heading":"Trials","brief":"t","claims":[1'))
   r <- r2s_warns(gr_outline(cm, client = cl))
   expect_true(all(c("gr_outline_truncated", "gr_outline_failed") %in% r$classes))
   expect_match(r$messages[r$first == "gr_outline_truncated"], "stopped at the 1200-token reply limit",
@@ -302,7 +302,7 @@ test_that("a section with a citation the check cannot read is partial", {
   for (txt in c("Three trials found a benefit [studies 1 to 7].",
                 "Three trials found a benefit [study one].")) {
     r <- r2s_warns(gr_synthesise(r2s_table(), outline = c(Findings = "what"), question = "Q?",
-                                 client = gr_mock_client(function(m, p) txt)))
+                                 client = hr_mock_client(function(m, p) txt)))
     s <- r$value$sections
     expect_identical(s$n_unparsed, 1L)
     expect_true(s$partial)
@@ -311,7 +311,7 @@ test_that("a section with a citation the check cannot read is partial", {
   }
   # Forms the grammar reads are not flagged.
   s <- quiet(gr_synthesise(r2s_table(), outline = c(Findings = "what"), question = "Q?",
-                           client = gr_mock_client(function(m, p) "A benefit [studies 1, 2, and 3].")))
+                           client = hr_mock_client(function(m, p) "A benefit [studies 1, 2, and 3].")))
   expect_identical(s$sections$n_unparsed, 0L)
   expect_identical(s$sections$n_cited, 3L)
   expect_false(s$sections$partial)
@@ -353,7 +353,7 @@ test_that("a revision that writes a citation the check cannot read is discarded"
   # revision replaced the draft, and the published review carried a citation
   # nothing had checked.
   tab <- r2s_table()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("<draft>", m[[length(m)]]$content, fixed = TRUE)) {
       return("A benefit was reported [study 1], and replicated [studies 2 to 9].")
     }

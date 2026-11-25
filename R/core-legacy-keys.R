@@ -53,7 +53,7 @@ legacy_replay_key_v1 <- function(messages, model, effort = NULL) {
 #' each cache directory or recording.
 #'
 #' Once, because a run through a warm old cache would otherwise warn on every
-#' call. The counts in gr_cache_stats() and a replay client's `$stats()` say
+#' call. The counts in hr_cache_stats() and a replay client's `$stats()` say
 #' how many replies came that way. `what` is "cache" or "replay"; `where` is
 #' the cache directory or the replay client's id.
 #' @noRd
@@ -66,7 +66,7 @@ legacy_key_warn <- function(what, where) {
     sprintf(paste0("A reply in the cache at %s was found under its old key (readgpt-cache-v2). ",
                    "Entries written before harnessr-cache-v3 are still read for calls with no ",
                    "draw index, and new entries are written under the new key. ",
-                   "Shown once per cache this session; gr_cache_stats() counts these hits."),
+                   "Shown once per cache this session; hr_cache_stats() counts these hits."),
             where)
   } else {
     paste0("A reply in this recording was found under its old key (readgpt-replay-v1), ",

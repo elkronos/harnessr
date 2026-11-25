@@ -57,21 +57,21 @@
 #'
 #' The room is measured for the model that answers: the one passed as `model`
 #' in `...`, or else the client's. A model whose limits harnessr has to guess
-#' (see [gr_model_info()]) always gets `"thorough"`; register its real limits
-#' with [gr_register_model()].
+#' (see [hr_model_info()]) always gets `"thorough"`; register its real limits
+#' with [hr_register_model()].
 #'
 #' The answer's `recipe` names the recipe used, `notes$auto_recipe` records that
 #' `"auto"` chose it, and the trace has an `auto_recipe` step with the token
-#' count and the limit the choice was made on. A [gr_replay_client()] repeats
+#' count and the limit the choice was made on. An [hr_replay_client()] repeats
 #' the recorded choice rather than making it again. Overrides in `...` apply to
 #' whichever recipe is chosen. [gr_read_many()], [gr_compare()] and the review
 #' functions need one fixed recipe and refuse `"auto"`.
 #' @seealso [gr_recipes()] for the built-in pipelines, [gr_compare()] to run
-#'   several, [gr_answer] for the returned object, [gr_options()] for the cost
+#'   several, [gr_answer] for the returned object, [hr_options()] for the cost
 #'   and call caps
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "The answer is 42.")
+#' cl <- hr_mock_client(function(m, p) "The answer is 42.")
 #' txt <- "Chapter one.\n\nThe answer to the great question is 42, as recorded."
 #' answer_document(txt, "What is the answer?", "fast", client = cl, return = "text")
 answer_document <- function(source, question, recipe = "auto", client = NULL,
@@ -96,11 +96,11 @@ answer_document <- function(source, question, recipe = "auto", client = NULL,
     rec <- apply_overrides(as_recipe(recipe), list(...))
     first <- rec
   }
-  client <- client %||% gr_client(model = first$read$model)
+  client <- client %||% hr_client(model = first$read$model)
   # Before ingestion: a missing key fails every request, and finding that out
   # after an OCR pass over a long scan wastes the wait.
   stop_if_no_credentials(client)
-  trace <- trace %||% gr_trace(meta = list(recipe = if (auto) "auto" else first$name,
+  trace <- trace %||% hr_trace(meta = list(recipe = if (auto) "auto" else first$name,
                                            question = question,
                                            source = source_label(source)))
   # Where this run's steps start, so they can be labelled with the document and
@@ -114,7 +114,7 @@ answer_document <- function(source, question, recipe = "auto", client = NULL,
     # recipe, or else the client's, which is what gr_read() reads with when the
     # spec names none.
     models <- first$read$model %||% as_chr1(client[["model", exact = TRUE]], "")
-    pick <- pick_auto_recipe(gr_count_tokens(doc$text), first, models, client, trace,
+    pick <- pick_auto_recipe(hr_count_tokens(doc$text), first, models, client, trace,
                              key = gr_hash(list("auto", doc$text, question)))
     for (w in cand[[pick]]$warnings) warning(w)
     rec <- cand[[pick]]$recipe
@@ -174,19 +174,19 @@ auto_shared_warnings <- function(cand) {
 #' Which of the two recipes reads this document: "fast" or "thorough".
 #'
 #' "fast" sends the whole document in one request, so it is chosen only when
-#' the document is at most `gr_options("auto_max_tokens")` (50000: about 70
+#' the document is at most `hr_options("auto_max_tokens")` (50000: about 70
 #' pages of prose, and under a twentieth of the default model's window) and
-#' fills at most `gr_options("auto_room_share")` (half) of the room a request
+#' fills at most `hr_options("auto_room_share")` (half) of the room a request
 #' leaves for the document, on every model in `models`: the rest absorbs the
 #' error in counting tokens locally. A model with a small window
-#' lowers the threshold. A model whose limits are a guess (see gr_model_info())
+#' lowers the threshold. A model whose limits are a guess (see hr_model_info())
 #' is no basis for sending everything at once, and neither is a document whose
 #' size cannot be counted; both are read the way that works at any size.
 #' @noRd
-pick_auto_recipe <- function(tokens, fast, models = fast$read$model %||% gr_options("model"),
+pick_auto_recipe <- function(tokens, fast, models = fast$read$model %||% hr_options("model"),
                              client = NULL, trace = NULL, key = NULL) {
   # A replay makes the choice the recorded run made for this document and
-  # question; see gr_replay_client().
+  # question; see hr_replay_client().
   recorded <- if (is.function(client[["auto_choice", exact = TRUE]])) client$auto_choice(key)
   if (length(recorded) == 1L && recorded %in% c("fast", "thorough")) {
     trace_note(trace, "auto_recipe", list(chose = recorded, key = key, replayed = TRUE))
@@ -196,14 +196,14 @@ pick_auto_recipe <- function(tokens, fast, models = fast$read$model %||% gr_opti
   models <- unique(models[!is.na(models) & nzchar(models)])
   room <- vapply(models, function(m) {
     # The reader warns about an unrecognised model itself; once is enough.
-    b <- tryCatch(suppressWarnings(gr_budget(m, reserve_output = fast$read$max_answer_tokens),
+    b <- tryCatch(suppressWarnings(hr_budget(m, reserve_output = fast$read$max_answer_tokens),
                                    classes = "gr_unknown_model"),
                   error = function(e) NULL)
     if (is.null(b) || !isTRUE(b$certain)) NA_real_ else as.numeric(b$input)
   }, numeric(1))
   limit <- if (!length(room) || anyNA(room)) NA_real_
-           else floor(min(as_num1(gr_options("auto_max_tokens"), 50000),
-                          min(room) * as_num1(gr_options("auto_room_share"), 0.5)))
+           else floor(min(as_num1(hr_options("auto_max_tokens"), 50000),
+                          min(room) * as_num1(hr_options("auto_room_share"), 0.5)))
   pick <- if (!is.na(tokens) && !is.na(limit) && tokens <= limit) "fast" else "thorough"
   trace_note(trace, "auto_recipe", list(chose = pick, tokens = tokens, limit = limit,
                                         models = models, key = key))

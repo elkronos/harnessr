@@ -18,11 +18,11 @@
 #' @param system,owner,run_by,purpose,approved_by Who the run is for and who
 #'   ran it: the system it belongs to, the person or team accountable for that
 #'   system, the person who ran it, what it was for, and who approved it. Each
-#'   is one string. One left `NULL` is taken from `gr_options("actor")`, and is
+#'   is one string. One left `NULL` is taken from `hr_options("actor")`, and is
 #'   `NA` when that does not name it either.
 #' @param governor An [hr_governor()] holding the limits every request recorded
 #'   into this trace is checked against before it is sent, or `NULL` (the
-#'   default) to read them from [gr_options()] at each check.
+#'   default) to read them from [hr_options()] at each check.
 #' @return A `gr_trace`. It is an environment, so it accumulates by reference:
 #'   pass the same trace to several calls and they all record into it. Fields:
 #'   `run_id`, `started`, `meta`, `actor`, `config`, `steps`, `calls`,
@@ -31,12 +31,12 @@
 #'   `governor`.
 #'
 #'   `actor` holds the five fields above. `config` is a snapshot of the
-#'   options in force when the trace was made ([gr_options()], with the values
+#'   options in force when the trace was made ([hr_options()], with the values
 #'   of `api_headers` left out, since they can hold credentials) and the R
 #'   version, so a saved trace says what it ran under. [as_json()] writes
 #'   `started` in UTC, as ISO 8601 with a trailing `Z`.
-#'   `cached` counts the calls answered from a [gr_cache()] or a
-#'   [gr_replay_client()] rather than the network, so `calls - cached` is what
+#'   `cached` counts the calls answered from an [hr_cache()] or a
+#'   [hr_replay_client()] rather than the network, so `calls - cached` is what
 #'   the run paid for. `calls` includes requests to an embeddings endpoint,
 #'   recorded as steps labelled `"embed.request"`. Their tokens are counted in
 #'   `embed_tokens`, not in `tokens_in`, so `tokens_in` and `tokens_out` stay
@@ -46,7 +46,7 @@
 #'   `error`. A failure the run recovered from without losing any input also
 #'   carries `recovered = TRUE`: the document was read in full, and
 #'   [gr_read_many()] does not count it as failed. Only some fallbacks mark the
-#'   answer partial. An embeddings request replaced by [gr_embed()]'s lexical
+#'   answer partial. An embeddings request replaced by [hr_embed()]'s lexical
 #'   fallback does when the vectors ranked the chunks a reader sent (the
 #'   `retrieve`, `rerank` and `iterative` readers). The same fallback while
 #'   [gr_segment()] made semantic cuts, and a proposition batch kept as
@@ -57,21 +57,21 @@
 #'   `budget_stop` is `TRUE` once a limit stopped the run, and `stop_reason`
 #'   says which: `"calls"` for `max_calls`, `"cost"` for `max_cost_usd`,
 #'   `"tokens"` for `max_tokens_total`, and `"output"`, `"model"` or
-#'   `"unpriced"` for the other limits of [hr_governor()] (see [gr_options()]).
+#'   `"unpriced"` for the other limits of [hr_governor()] (see [hr_options()]).
 #'   `refusals` has one entry per request the governor did not send: its
 #'   `label`, `model`, the `limit` it would have passed, its worst-case cost
 #'   `worst_usd`, the run's `calls` and `spent_usd` at that moment, and the
 #'   `message`. A refused request is not a call and has no step. `spent_usd`
 #'   is what the calls so far cost. A call to a model with no registered price
 #'   (sent under `allow_unpriced = TRUE`) adds nothing to it, so
-#'   [gr_trace_cost()] is the full account. `replayed_usd` is what the calls a
-#'   [gr_replay_client()] answered cost when they were recorded, counted when
+#'   [hr_trace_cost()] is the full account. `replayed_usd` is what the calls a
+#'   [hr_replay_client()] answered cost when they were recorded, counted when
 #'   the spending limit stopped the recorded run: nothing was paid for them,
 #'   but `max_cost_usd` is checked against `spent_usd + replayed_usd`, so the
-#'   replay stops at the same call. A call answered from a [gr_cache()] adds to neither, so a
+#'   replay stops at the same call. A call answered from an [hr_cache()] adds to neither, so a
 #'   re-run through a warm cache under the same limit reads further than the
 #'   run that filled it.
-#'   [as_json()] and [gr_trace_save()] write `budget_stop`, `stop_reason`,
+#'   [as_json()] and [hr_trace_save()] write `budget_stop`, `stop_reason`,
 #'   `spent_usd` and `replayed_usd`, so a saved run says whether it was cut
 #'   short, and `refusals` and `governor` when there are any.
 #'
@@ -82,17 +82,17 @@
 #' the model it asked for (`model`), a step records:
 #' \describe{
 #'   \item{`params`}{What the call asked for: the parameters a
-#'     [gr_mock_client()] or [gr_backend_client()] handler is given, which is
-#'     also what a [gr_replay_client()] looks a call up by.}
+#'     [hr_mock_client()] or [hr_backend_client()] handler is given, which is
+#'     also what an [hr_replay_client()] looks a call up by.}
 #'   \item{`params_sent`}{The request as it went out, every default resolved:
 #'     `model`, `api`, `base_url`, `max_output` (for a reasoning model, the
-#'     larger cap its request is sent with; see [gr_call()]), `temperature`
+#'     larger cap its request is sent with; see [hr_call()]), `temperature`
 #'     (`NA` when none was sent), `effort`, `schema_name`, and SHA-256 hashes
 #'     of the JSON schema (`schema_hash`) and of the extra body fields the
-#'     client and the call added (`extra_body_hash`). For a [gr_client()] it
+#'     client and the call added (`extra_body_hash`). For an [hr_client()] it
 #'     is read from the request body; for a handler, from the parameters the
 #'     handler was given, which carry no extra body fields. A call answered
-#'     from a [gr_cache()] records what would have been sent, and one a replay
+#'     from an [hr_cache()] records what would have been sent, and one a replay
 #'     answered records what the recorded call sent.}
 #'   \item{`tokens`}{`input` and `output`, plus `reasoning` and
 #'     `cached_input` when the provider reported them (they are parts of
@@ -122,11 +122,11 @@
 #'   \item{`stage`}{What the request was for, such as `"map.answer"` or
 #'     `"reduce"`.}
 #'   \item{`model`, `ok`, `cached`}{The model, whether a usable reply came
-#'     back, and whether it came from a [gr_cache()] or a [gr_replay_client()].}
+#'     back, and whether it came from an [hr_cache()] or an [hr_replay_client()].}
 #'   \item{`tokens_in`, `tokens_out`}{The size of the prompt and the reply.}
 #'   \item{`usd`}{What the request cost, 0 when it came from a cache or failed
 #'     without sending any tokens. `NA` when the model has no registered price,
-#'     as in [gr_trace_cost()], whose total the column adds up to.}
+#'     as in [hr_trace_cost()], whose total the column adds up to.}
 #'   \item{`seconds`}{How long the request took, retries included. `NA` for a
 #'     trace written by a version of readgpt that did not time requests.}
 #'   \item{`error`}{The error, or `NA`.}
@@ -141,16 +141,16 @@
 #'     request in the trace has it.}
 #' }
 #' A request's `usd` prices its cached input tokens at the model's cached
-#' input rate when [gr_register_model()] gave it one, and at the input rate
+#' input rate when [hr_register_model()] gave it one, and at the input rate
 #' otherwise.
 #' @param x A `gr_trace`.
 #' @param row.names Optional row names for the result.
 #' @param optional,... Ignored; part of the [as.data.frame()] generic.
-#' @seealso [gr_trace_summary()], [as_json()], [gr_answer], [gr_cache()]
+#' @seealso [hr_trace_summary()], [as_json()], [gr_answer], [hr_cache()]
 #' @export
 #' @examples
-#' tr <- gr_trace(meta = list(purpose = "demo"))
-#' cl <- gr_mock_client(function(m, p) "an answer")
+#' tr <- hr_trace(meta = list(purpose = "demo"))
+#' cl <- hr_mock_client(function(m, p) "an answer")
 #' ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150))
 #' invisible(gr_read(ch, "What was revenue?", cl, "map_reduce", trace = tr))
 #' print(tr)
@@ -158,7 +158,7 @@
 #' # One row per request, with what each cost and how long it took.
 #' reqs <- as.data.frame(tr)
 #' reqs[, c("step", "stage", "tokens_in", "tokens_out", "usd", "seconds")]
-gr_trace <- function(run_id = NULL, meta = list(), system = NULL, owner = NULL, run_by = NULL,
+hr_trace <- function(run_id = NULL, meta = list(), system = NULL, owner = NULL, run_by = NULL,
                      purpose = NULL, approved_by = NULL, governor = NULL) {
   if (!is.null(governor) && !inherits(governor, "hr_governor")) {
     gr_abort("`governor` must come from hr_governor(), or be NULL.", class = "gr_bad_setting")
@@ -172,8 +172,8 @@ gr_trace <- function(run_id = NULL, meta = list(), system = NULL, owner = NULL, 
   given <- list(system = system, owner = owner, run_by = run_by, purpose = purpose,
                 approved_by = approved_by)
   given <- given[!vapply(given, is.null, logical(1))]
-  e$actor <- trace_actor(utils::modifyList(as.list(gr_options("actor") %||% list()),
-                                           check_actor(given, "gr_trace()")))
+  e$actor <- trace_actor(utils::modifyList(as.list(hr_options("actor") %||% list()),
+                                           check_actor(given, "hr_trace()")))
   # The options in force when the run began, so a trace read back later says
   # what settings it ran under without the session that wrote it.
   e$config <- config_snapshot()
@@ -190,10 +190,10 @@ gr_trace <- function(run_id = NULL, meta = list(), system = NULL, owner = NULL, 
   e$tokens_in <- 0L
   e$tokens_out <- 0L
   # Tokens sent to an embeddings endpoint. Kept apart from `tokens_in`, which
-  # gr_trace_summary() documents as the model calls' prompts: embedding tokens
+  # hr_trace_summary() documents as the model calls' prompts: embedding tokens
   # cost about a hundredth as much, so folded in they made
-  # gr_estimate_cost(model, tokens_in, tokens_out) price a run that embeds at
-  # up to 100 times what it cost. gr_trace_cost() prices each request at its
+  # hr_estimate_cost(model, tokens_in, tokens_out) price a run that embeds at
+  # up to 100 times what it cost. hr_trace_cost() prices each request at its
   # own model, embeddings included.
   e$embed_tokens <- 0L
   e$errors <- list()
@@ -202,7 +202,7 @@ gr_trace <- function(run_id = NULL, meta = list(), system = NULL, owner = NULL, 
   # spending limit is enforced while a run is going and not only estimated
   # before it starts. A call to a model with no registered price adds nothing,
   # which makes this a floor on the spend: a floor that reaches the limit means
-  # the spend has too. gr_trace_cost() is the full account, and says "unknown"
+  # the spend has too. hr_trace_cost() is the full account, and says "unknown"
   # where this cannot.
   e$spent_usd <- 0
   # What the calls a replay answered from a recording cost when they were
@@ -216,7 +216,7 @@ gr_trace <- function(run_id = NULL, meta = list(), system = NULL, owner = NULL, 
   e$stop_reason <- NA_character_
   # The requests the governor did not send. None of them is a call or a step.
   e$refusals <- list()
-  # NULL: the limits are read from gr_options() at each check.
+  # NULL: the limits are read from hr_options() at each check.
   e$governor <- governor
   structure(e, class = "gr_trace")
 }
@@ -236,11 +236,11 @@ trace_actor <- function(x) {
 #' @noRd
 .gr_actor_fields <- c("system", "owner", "run_by", "purpose", "approved_by")
 
-#' Check actor fields given as an option or to gr_trace(): a named list or
+#' Check actor fields given as an option or to hr_trace(): a named list or
 #' character vector, each name one of .gr_actor_fields, each value one string
 #' or NA.
 #' @noRd
-check_actor <- function(value, where = "gr_options(actor = )") {
+check_actor <- function(value, where = "hr_options(actor = )") {
   if (is.null(value) || !length(value)) return(list())
   nms <- names(value)
   if ((!is.list(value) && !is.character(value)) || is.null(nms) || any(!nzchar(nms))) {
@@ -269,7 +269,7 @@ check_actor <- function(value, where = "gr_options(actor = )") {
 #' their names are kept.
 #' @noRd
 config_snapshot <- function() {
-  opts <- gr_options()
+  opts <- hr_options()
   # The options that were constants in the code until they were declared are
   # recorded only when one is not its default, so a trace made at the
   # defaults reads as one made before they existed.
@@ -304,7 +304,7 @@ step_tokens <- function(usage) {
 #' @noRd
 usage_cost <- function(model, usage) {
   u <- if (is.list(usage)) usage else list()
-  tryCatch(suppressWarnings(as.numeric(gr_estimate_cost(
+  tryCatch(suppressWarnings(as.numeric(hr_estimate_cost(
     as_chr1(model, "unknown"), u$input %||% 0L, u$output %||% 0L,
     cached_input_tokens = u$cached_input %||% 0L))),
     error = function(e) NA_real_)
@@ -344,7 +344,7 @@ trace_record <- function(trace, label, messages, result, params = list(), second
     trace$tokens_in <- trace$tokens_in + as.integer(result$usage$input %||% 0L)
     trace$tokens_out <- trace$tokens_out + as.integer(result$usage$output %||% 0L)
   }
-  # Priced by the model the step records, as gr_trace_cost() prices it. A call
+  # Priced by the model the step records, as hr_trace_cost() prices it. A call
   # answered from a cache or a replay spent nothing.
   budget <- 0
   if (!isTRUE(result$cached)) {
@@ -475,7 +475,7 @@ trace_push_steps <- function(trace, new) {
 #' Mark the failures recorded from error `from` on as recovered.
 #'
 #' For a caller that has just recovered from them without losing any input, as
-#' gr_embed() does when its lexical fallback replaces a failed embeddings
+#' hr_embed() does when its lexical fallback replaces a failed embeddings
 #' request. A document-level check (failed_note() in corpus.R) passes over a
 #' recovered failure: the document was read in full, on the fallback, and the
 #' answer already says what the fallback cost it.
@@ -628,7 +628,7 @@ trace_stamp <- function(trace, from, source = NULL, recipe = NULL) {
 as_parent_trace <- function(trace, arg = "trace") {
   if (is.null(trace)) return(NULL)
   if (!inherits(trace, "gr_trace")) {
-    gr_abort(sprintf("`%s` must come from gr_trace(), or be NULL.", arg),
+    gr_abort(sprintf("`%s` must come from hr_trace(), or be NULL.", arg),
              class = "gr_bad_trace")
   }
   trace
@@ -645,41 +645,41 @@ as_parent_trace <- function(trace, arg = "trace") {
 #'   an embeddings endpoint. `tokens_in` and `tokens_out` are the size of the
 #'   model calls' prompts and replies; the text sent to be embedded is counted
 #'   in `embed_tokens` instead, because an embedding model is priced at a small
-#'   fraction of a chat model's rate. There is no cost column: [gr_trace_cost()]
+#'   fraction of a chat model's rate. There is no cost column: [hr_trace_cost()]
 #'   prices every request at its own model, embeddings included, and is what the
-#'   run cost. Combining `tokens_in`/`tokens_out` with [gr_estimate_cost()]
+#'   run cost. Combining `tokens_in`/`tokens_out` with [hr_estimate_cost()]
 #'   estimates the model calls alone at one model's prices.
 #'
-#'   `cached` is how many of those calls were answered from a [gr_cache()] or a
-#'   [gr_replay_client()]. Their tokens are still counted in `tokens_in` and
+#'   `cached` is how many of those calls were answered from an [hr_cache()] or a
+#'   [hr_replay_client()]. Their tokens are still counted in `tokens_in` and
 #'   `tokens_out`, because that is how large the prompts and replies were; they
 #'   were simply not paid for again. A run with `cached == calls` cost nothing,
-#'   so feeding its token counts to [gr_estimate_cost()] gives you what the run
+#'   so feeding its token counts to [hr_estimate_cost()] gives you what the run
 #'   *would* have cost, not what it did.
 #'
 #'   `errors` counts every failed request, including any the run recovered
-#'   from (see `errors` in [gr_trace()]).
+#'   from (see `errors` in [hr_trace()]).
 #'
 #'   `tokens_reasoning` and `tokens_cached_in` are the reasoning tokens and
 #'   cached input tokens the provider reported for the model calls, 0 where it
 #'   reported none. They are parts of `tokens_out` and `tokens_in`, not
 #'   additions to them. `usage_estimated` is the share of requests whose token
 #'   counts were estimated locally because the provider reported none (see
-#'   `tokens` under "Steps" in [gr_trace()]), from 0 to 1, or `NA` when no
+#'   `tokens` under "Steps" in [hr_trace()]), from 0 to 1, or `NA` when no
 #'   request says.
-#' @seealso [gr_trace()], [as_json()], [gr_trace_cost()], [gr_estimate_cost()],
-#'   [gr_cache()]
+#' @seealso [hr_trace()], [as_json()], [hr_trace_cost()], [hr_estimate_cost()],
+#'   [hr_cache()]
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "45.2 million dollars")
+#' cl <- hr_mock_client(function(m, p) "45.2 million dollars")
 #' ans <- answer_document(gr_example(), "What was revenue?", "thorough", client = cl)
-#' gr_trace_summary(ans$trace)
+#' hr_trace_summary(ans$trace)
 #'
 #' # What the run cost, each request priced at its own model (nothing, for a
 #' # mock), and what its model calls would cost at another model's prices.
-#' gr_trace_cost(ans$trace)
-#' gr_estimate_cost("gpt-4o", ans$trace$tokens_in, ans$trace$tokens_out)
-gr_trace_summary <- function(trace) {
+#' hr_trace_cost(ans$trace)
+#' hr_estimate_cost("gpt-4o", ans$trace$tokens_in, ans$trace$tokens_out)
+hr_trace_summary <- function(trace) {
   stopifnot(inherits(trace, "gr_trace"))
   data.frame(
     run_id = trace$run_id,
@@ -730,10 +730,10 @@ usage_estimated_share <- function(steps) {
   round(mean(prov == "estimated"), 4)
 }
 
-#' @rdname gr_trace
+#' @rdname hr_trace
 #' @export
 as.data.frame.gr_trace <- function(x, row.names = NULL, optional = FALSE, ...) {
-  # The requests gr_trace_cost() prices, so the two agree on what a run cost.
+  # The requests hr_trace_cost() prices, so the two agree on what a run cost.
   steps <- Filter(function(s) !identical(s$kind, "local") && !is.null(s$tokens), x$steps)
   chr <- function(f) vapply(steps, function(s) as_chr1(f(s), NA_character_), character(1))
   tin <- vapply(steps, function(s) as_int1(s$tokens$input, NA_integer_), integer(1))
@@ -741,7 +741,7 @@ as.data.frame.gr_trace <- function(x, row.names = NULL, optional = FALSE, ...) {
   cached <- vapply(steps, function(s) isTRUE(s$cached), logical(1))
   model <- chr(function(s) s$model)
   ok <- vapply(steps, function(s) isTRUE(s$ok), logical(1))
-  # A cached request is priced at no tokens, as gr_trace_cost() prices it: 0
+  # A cached request is priced at no tokens, as hr_trace_cost() prices it: 0
   # for a model with a price, NA for one without.
   usd <- vapply(seq_along(steps), function(i) {
     # A request that failed and sent no tokens cost nothing whatever its model.
@@ -804,7 +804,7 @@ as.data.frame.gr_trace <- function(x, row.names = NULL, optional = FALSE, ...) {
 #' @noRd
 format_call_counts <- function(trace) {
   if (!inherits(trace, "gr_trace")) return("0 model call(s)")
-  s <- gr_trace_summary(trace)
+  s <- hr_trace_summary(trace)
   embed <- as.integer(s$embed_calls)
   paste0(sprintf("%d model call(s)", as.integer(s$calls) - embed),
          if (embed > 0L) sprintf(", %d embeddings request(s)", embed) else "")
@@ -812,7 +812,7 @@ format_call_counts <- function(trace) {
 
 #' @export
 print.gr_trace <- function(x, ...) {
-  s <- gr_trace_summary(x)
+  s <- hr_trace_summary(x)
   recovered <- sum(vapply(x$errors, function(e) isTRUE(e$recovered), logical(1)))
   # Model calls and embeddings requests apart: both are requests the limits
   # count, but only the first are model calls, and the two are priced and

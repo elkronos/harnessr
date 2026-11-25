@@ -24,8 +24,8 @@
 #' # The same chunks, two strategies, two very different call patterns. Each gets
 #' # its own client and trace, so the call counts are comparable.
 #' run <- function(reader, ...) {
-#'   cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-#'   tr <- gr_trace()
+#'   cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#'   tr <- hr_trace()
 #'   a <- gr_read(ch, "What was revenue?", cl, c(list(reader = reader), list(...)), trace = tr)
 #'   data.frame(reader = a$reader, signature = a$signature,
 #'              calls = length(cl$calls()), chunks_used = length(a$chunks_used))
@@ -39,13 +39,13 @@ gr_read <- function(chunks, question, client, spec = NULL, trace = NULL) {
   # written out by paste() as "<c3><a9>" in a C locale.
   if (is.character(question)) question <- to_utf8(question)
   if (!is_nonblank(question)) gr_abort("`question` must be a non-empty string.")
-  if (!inherits(client, "gr_client")) gr_abort("`client` must come from gr_client() or gr_mock_client().")
+  if (!inherits(client, "gr_client")) gr_abort("`client` must come from hr_client() or hr_mock_client().")
   spec <- as_read_spec(spec)
   # What the caller configured, for the trace: a model that merely follows the
-  # client is not a setting, as one that followed gr_options() was not.
+  # client is not a setting, as one that followed hr_options() was not.
   settings <- read_settings(spec)
   spec <- resolve_read_model(spec, client)
-  trace <- trace %||% gr_trace(meta = list(reader = spec$reader))
+  trace <- trace %||% hr_trace(meta = list(reader = spec$reader))
   rd <- registry_get("reader", spec$reader)
 
   gr_msg(sprintf("Reading with '%s' (%s) over %d chunk(s).",
@@ -194,7 +194,7 @@ preflight <- function(chunks, spec, trace, client = NULL, question = "",
   # never sized for: with it, a `stuff` or `refine` read spent more than the
   # bound recorded for it.
   per_request <- 200L + if (isTRUE(spec$premise))
-    max(gr_count_tokens(unlist(.gr_premise_prompts))) else 0L
+    max(hr_count_tokens(unlist(.gr_premise_prompts))) else 0L
   est_in <- tok + model_worst * per_request + level_in
   # Size the completion estimate by the LARGER of the two caps: only the
   # per-chunk readers use max_chunk_tokens, and the rest size their answers with
@@ -207,7 +207,7 @@ preflight <- function(chunks, spec, trace, client = NULL, question = "",
   # difference. Prompt tokens of 0 leave that room at its largest.
   per_out <- max(spec$max_chunk_tokens, spec$max_answer_tokens, spec$max_summary_tokens)
   est_out_for <- function(m) {
-    info <- tryCatch(quiet_model(gr_model_info(m)), error = function(e) NULL)
+    info <- tryCatch(quiet_model(hr_model_info(m)), error = function(e) NULL)
     max(model_worst * (if (is.null(info)) per_out else reasoning_output_cap(per_out, info, 0)),
         total$tokens_out_max)
   }
@@ -223,7 +223,7 @@ preflight <- function(chunks, spec, trace, client = NULL, question = "",
   # the dear one.
   models <- billed %||% unique(c(spec$model, spec$skim_model, spec$summary_model))
   priced_worst <- vapply(models, function(m) as.numeric(quiet_model(
-    gr_estimate_cost(m, est_in, est_out_for(m)))), numeric(1))
+    hr_estimate_cost(m, est_in, est_out_for(m)))), numeric(1))
   # The dearest PRICED model. One model without a price made max() NA, and the
   # parallel refusal below, which needs a number, was then skipped for the whole
   # run, the priced model that receives the batch included. Only a run with no
@@ -234,7 +234,7 @@ preflight <- function(chunks, spec, trace, client = NULL, question = "",
   # (each reader's cost says which; an ellmer chat bills them all as its own).
   every_chunk <- length(total$sends) > 0L
   floors <- vapply(total$sends, function(s) as.numeric(quiet_model(
-    gr_estimate_cost(billed %||% s$model, s$tokens, 0))), numeric(1))
+    hr_estimate_cost(billed %||% s$model, s$tokens, 0))), numeric(1))
   # The same rule as `worst`: an ensemble member read by an unpriced model has
   # an unknown share, and summing it made the whole floor NA and waived the
   # refusal for the members whose share is known.
@@ -242,7 +242,7 @@ preflight <- function(chunks, spec, trace, client = NULL, question = "",
                 else sum(floors, na.rm = TRUE)
   budget <- trace_governor(trace)$max_cost_usd
   unit <- if (!is.null(budget) && is.finite(budget)) {
-    vapply(models, function(m) as.numeric(quiet_model(gr_estimate_cost(m, 1, 1))), numeric(1))
+    vapply(models, function(m) as.numeric(quiet_model(hr_estimate_cost(m, 1, 1))), numeric(1))
   }
   # A mock sends nothing that is paid for and a replay costs what its
   # recording says, so neither is stopped for a model with no price.
@@ -292,7 +292,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
     gr_abort(sprintf(paste0("Reader '%s' over %d chunks would need about %d more %s ",
                             "(%s%d already made this run), above the %s-call cap. Use a larger ",
                             "`max_tokens` when segmenting (fewer chunks), pick a top-k reader, ",
-                            "or raise gr_options(max_calls = ...)."),
+                            "or raise hr_options(max_calls = ...)."),
                      spec$reader, n, est_calls,
                      if (embed_calls > 0L) "requests" else "model calls",
                      if (embed_calls > 0L) sprintf("%d of them for embeddings; ", embed_calls)
@@ -307,7 +307,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
                             "stopped part way, so a parallel read is held to its worst case: ",
                             "'%s' over %d chunks can need up to %d more model calls (%d already ",
                             "made this run), above the %s-call cap. Raise it with ",
-                            "gr_options(max_calls = ...), or read without parallel = TRUE, where ",
+                            "hr_options(max_calls = ...), or read without parallel = TRUE, where ",
                             "the cap is checked before every request."),
                      spec$reader, n, worst_calls, already, format(cap, scientific = FALSE)),
              class = "gr_call_cap", limit = "calls")
@@ -325,8 +325,8 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
   if (identical(limit, "unpriced")) {
     gr_abort(sprintf(paste0("%s no registered price, so what %s requests cost cannot be held to ",
                             "the $%s max_cost_usd limit, and the run was not started. Register ",
-                            "prices with gr_register_model(input_usd =, output_usd =), or allow ",
-                            "unpriced models with gr_options(allow_unpriced = TRUE)."),
+                            "prices with hr_register_model(input_usd =, output_usd =), or allow ",
+                            "unpriced models with hr_options(allow_unpriced = TRUE)."),
                      models_txt(unpriced), their(unpriced), limit_txt),
              class = c("hr_unpriced_model", "hr_budget_refused"), limit = "unpriced")
   }
@@ -335,7 +335,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
   if (length(unpriced)) {
     gr_warn(sprintf(paste0("%s no pricing in the registry, so what %s requests cost cannot be ",
                            "counted against the $%s max_cost_usd limit. Register prices with ",
-                           "gr_register_model(input_usd =, output_usd =) to enable it."),
+                           "hr_register_model(input_usd =, output_usd =) to enable it."),
                     models_txt(unpriced), their(unpriced), limit_txt),
             class = "gr_cost_uncheckable")
   }
@@ -348,7 +348,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
   spent <- chk$spent
   if (identical(limit, "spent")) {
     gr_abort(sprintf(paste0("This run has already spent $%s, which reaches the $%s limit. ",
-                            "Raise it with gr_options(max_cost_usd = ...)."),
+                            "Raise it with hr_options(max_cost_usd = ...)."),
                      fmt_usd(spent), limit_txt),
              class = "gr_cost_cap", limit = "cost")
   }
@@ -356,7 +356,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
   # request to one that has a price would already pass it.
   if (identical(limit, "zero")) {
     gr_abort(sprintf(paste0("The spending limit is $0, and '%s' has a price. Raise it with ",
-                            "gr_options(max_cost_usd = ...), or use a model registered at no cost."),
+                            "hr_options(max_cost_usd = ...), or use a model registered at no cost."),
                      chk$zero_model),
              class = "gr_cost_cap", limit = "cost")
   }
@@ -366,7 +366,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
     gr_abort(sprintf(paste0("Reading this document with '%s' sends every chunk at least once, ",
                             "which costs about $%s before any reply (%d chunk(s), %s input ",
                             "tokens)%s, above the $%s limit. Raise it with ",
-                            "gr_options(max_cost_usd = ...), or use a reader that sends only the ",
+                            "hr_options(max_cost_usd = ...), or use a reader that sends only the ",
                             "chunks it picks, such as recipe = \"needle\"."),
                      spec$reader, fmt_usd(input_cost), n,
                      format(tok, big.mark = ",", scientific = FALSE), already_txt, limit_txt),
@@ -376,7 +376,7 @@ preflight_refuse <- function(chk, spec, n, est_calls, embed_calls, worst_calls, 
     gr_abort(sprintf(paste0("With parallel = TRUE, requests go out in batches that cannot be ",
                             "stopped part way, so a parallel read is held to its worst case: ",
                             "every reply at its cap, about $%s for '%s' over %d chunk(s)%s, ",
-                            "above the $%s limit. Raise it with gr_options(max_cost_usd = ...), ",
+                            "above the $%s limit. Raise it with hr_options(max_cost_usd = ...), ",
                             "or read without parallel = TRUE, where spending is checked before ",
                             "every request."),
                      fmt_usd(worst), spec$reader, n, already_txt, limit_txt),
@@ -406,13 +406,13 @@ read_input_stats <- function(chunks, spec, client, question) {
   quiet_model <- function(expr) suppressWarnings(expr, classes = "gr_unknown_model")
   counter <- embed_counter(client)
   reply_cap <- function(m, cap) {
-    mo <- tryCatch(as.numeric(quiet_model(gr_model_info(m))$max_output),
+    mo <- tryCatch(as.numeric(quiet_model(hr_model_info(m))$max_output),
                    error = function(e) NA_real_)
     as.numeric(if (length(mo) != 1L || is.na(mo)) cap else min(cap, mo))
   }
   per_out <- max(as_num1(spec$max_chunk_tokens, 0), as_num1(spec$max_answer_tokens, 0),
                  as_num1(spec$max_summary_tokens, 0))
-  info <- tryCatch(quiet_model(gr_model_info(spec$model)), error = function(e) NULL)
+  info <- tryCatch(quiet_model(hr_model_info(spec$model)), error = function(e) NULL)
   out_cap <- reply_cap(spec$model, per_out)
   if (!is.null(info)) out_cap <- as.numeric(reasoning_output_cap(out_cap, info, 0))
   list(
@@ -422,7 +422,7 @@ read_input_stats <- function(chunks, spec, client, question) {
     question = question,
     out_cap = out_cap,
     reply_cap = reply_cap,
-    room = function(system, restate = "never") tryCatch(as.numeric(quiet_model(gr_budget(
+    room = function(system, restate = "never") tryCatch(as.numeric(quiet_model(hr_budget(
       spec$model, reserve_output = spec$max_answer_tokens,
       overhead = prompt_overhead(question, system, restate)))$input), error = function(e) NA_real_),
     embed_api = !is.null(counter),
@@ -468,10 +468,10 @@ default_reader_cost <- function(signature) {
 #'
 #' Only the built-in "api" embedder sends requests: a client's own embed
 #' function, a registered one such as "lexical", and a backend or replay
-#' client (which gr_embed() moves to lexical vectors) send none, and there is
+#' client (which hr_embed() moves to lexical vectors) send none, and there is
 #' then no counter (NULL). A text in the session's embedding cache is not
 #' sent again, and with the cache on a reader finds what an earlier ensemble
-#' member embedded there. 64 texts to a request, gr_embed()'s default.
+#' member embedded there. 64 texts to a request, hr_embed()'s default.
 #' @noRd
 embed_counter <- function(client) {
   if (!inherits(client, "gr_client")) return(NULL)
@@ -480,7 +480,7 @@ embed_counter <- function(client) {
       as_chr1(client[["api", exact = TRUE]], "") %in% c("backend", "replay")) {
     return(NULL)
   }
-  cache <- isTRUE(gr_options("cache_embeddings"))
+  cache <- isTRUE(hr_options("cache_embeddings"))
   model <- as_chr1(client[["embedding_model", exact = TRUE]], "")
   # The key embed_api() files a vector under. Should the two drift apart, a
   # cached text is counted as sent, which can refuse a run near the cap but
@@ -517,7 +517,7 @@ embed_counter <- function(client) {
 merge_tree_worst <- function(k, piece, answer, room, levels = 6L) {
   if (length(room) != 1L || is.na(room) || room <= 0) return(NULL)
   if (k <= 1) return(list(calls = 0, input = 0))
-  tag <- gr_count_tokens("<findings 999>\n\n</findings 999>\n\n")
+  tag <- hr_count_tokens("<findings 999>\n\n</findings 999>\n\n")
   calls <- 0
   input <- 0
   for (level in seq_len(as_int1(levels, 6L) + 1L)) {
@@ -561,7 +561,7 @@ summary_levels_worst <- function(n, summary, room, fan, max_levels) {
 resolve_read_model <- function(spec, client) {
   if (!is.null(spec$model)) return(spec)
   m <- as_chr1(client[["model", exact = TRUE]], "")
-  spec$model <- if (nzchar(m)) m else as_chr1(gr_options("model"))
+  spec$model <- if (nzchar(m)) m else as_chr1(hr_options("model"))
   spec
 }
 
@@ -569,7 +569,7 @@ resolve_read_model <- function(spec, client) {
 #' than each request naming it.
 #'
 #' An ellmer chat answers with the model it was built with whatever a request
-#' asks for, and gr_ellmer_client() reports that model on every result, which
+#' asks for, and hr_ellmer_client() reports that model on every result, which
 #' is the model the trace prices a call by. NULL for every other client, whose
 #' calls are billed as the model each request names.
 #' @noRd

@@ -96,7 +96,7 @@ preview_outline <- function(d, units, budget, trace = NULL, spec = list()) {
               first_words(d$text[rows[length(rows)]], w))
     }, character(1))
     body <- paste(lines, collapse = "\n")
-    if (gr_count_tokens(body) <= budget) return(body)
+    if (hr_count_tokens(body) <= budget) return(body)
   }
   cut_piece(body, budget, "preview.outline", trace, spec, "outline")$text
 }
@@ -206,7 +206,7 @@ read_preview <- function(chunks, question, client, spec, trace) {
   # whether the question holds, so the premise rule goes only to the answer.
   overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate,
                               structure = answer_structure(spec))
-  bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
+  bud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   # as.integer(), because `unlist()` on an empty list returns NULL, not
   # integer(0), and `fit_chunks()` reads `order %||% seq_len(nrow(df))`, so a
   # plan that marked every section skip handed it NULL and it read the WHOLE
@@ -243,7 +243,7 @@ read_preview <- function(chunks, question, client, spec, trace) {
     # The largest section as it is sent, rendered and cut to `cap`, with its
     # reply at the cap; see map_reduce.
     sent <- vapply(units[skim_units], function(rows)
-      as.numeric(gr_count_tokens(render_chunks(d[rows, , drop = FALSE]))), numeric(1))
+      as.numeric(hr_count_tokens(render_chunks(d[rows, , drop = FALSE]))), numeric(1))
     worst <- batch_item_usd(client, skim_model, min(cap, max_tokens_of(sent)) +
                               prompt_overhead(question, .gr_prompts$extract_system, "never"),
                             spec$max_chunk_tokens)
@@ -254,12 +254,12 @@ read_preview <- function(chunks, question, client, spec, trace) {
       # too big for one call used to lose its tail silently, so the run said it
       # had looked at a section it had seen half of.
       lost <- 0L
-      if (gr_count_tokens(body) > cap) {
+      if (hr_count_tokens(body) > cap) {
         t <- cut_piece(body, cap, "preview.skim", trace, spec, "excerpts",
                        chunk_ids = d$chunk_id[rows])
         body <- t$text; lost <- t$dropped
       }
-      r <- gr_call(client, list(
+      r <- hr_call(client, list(
         list(role = "system", content = .gr_prompts$extract_system),
         list(role = "user", content = paste0("Question: ", question)),
         list(role = "user", content = paste0("<excerpt>\n", body, "\n</excerpt>"))
@@ -298,15 +298,15 @@ read_preview <- function(chunks, question, client, spec, trace) {
 
   # The answer prompt is budgeted as a whole. The read rows were fitted to all
   # of it and the skim evidence went in on top, which is exactly when the read
-  # rows had filled it (demotion only happens then), so gr_call() cut the
+  # rows had filled it (demotion only happens then), so hr_call() cut the
   # reply's room (partial = FALSE, over an answer that could stop mid-sentence)
   # or refused the call. The evidence goes into the room the read rows leave,
   # whole, in document order; what does not fit is left out and counted.
   ev_dropped <- 0L
   if (!is.null(ev_skim) && nrow(ev_skim)) {
     room <- bud$input -
-      if (length(keep_rows)) gr_count_tokens(render_chunks(d[keep_rows, , drop = FALSE])) else 0L
-    need <- gr_count_tokens(sprintf("[chunk %d]\n%s", ev_skim$chunk_id, ev_skim$text))
+      if (length(keep_rows)) hr_count_tokens(render_chunks(d[keep_rows, , drop = FALSE])) else 0L
+    need <- hr_count_tokens(sprintf("[chunk %d]\n%s", ev_skim$chunk_id, ev_skim$text))
     fits <- logical(length(need))
     for (i in seq_along(need)) {
       if (need[i] <= room) { fits[i] <- TRUE; room <- room - need[i] }

@@ -1,5 +1,49 @@
 # harnessr 0.6.0.9000
 
+## Renamed core functions
+
+The 27 core functions that still began with `gr_` now begin with `hr_`, like
+the rest of the core layer. Document-layer functions such as `gr_read()` and
+`gr_extract()` keep `gr_`.
+
+| Old name | New name |
+|---|---|
+| `gr_api_key()` | `hr_api_key()` |
+| `gr_backend_client()` | `hr_backend_client()` |
+| `gr_budget()` | `hr_budget()` |
+| `gr_cache()` | `hr_cache()` |
+| `gr_cache_clear()` | `hr_cache_clear()` |
+| `gr_cache_client()` | `hr_cache_client()` |
+| `gr_cache_stats()` | `hr_cache_stats()` |
+| `gr_call()` | `hr_call()` |
+| `gr_client()` | `hr_client()` |
+| `gr_count_tokens()` | `hr_count_tokens()` |
+| `gr_ellmer_client()` | `hr_ellmer_client()` |
+| `gr_embed()` | `hr_embed()` |
+| `gr_estimate_cost()` | `hr_estimate_cost()` |
+| `gr_mock_client()` | `hr_mock_client()` |
+| `gr_model_info()` | `hr_model_info()` |
+| `gr_model_limits()` | `hr_model_limits()` |
+| `gr_models()` | `hr_models()` |
+| `gr_options()` | `hr_options()` |
+| `gr_register_model()` | `hr_register_model()` |
+| `gr_replay_client()` | `hr_replay_client()` |
+| `gr_set_tokenizer()` | `hr_set_tokenizer()` |
+| `gr_tokenizer()` | `hr_tokenizer()` |
+| `gr_trace()` | `hr_trace()` |
+| `gr_trace_cost()` | `hr_trace_cost()` |
+| `gr_trace_save()` | `hr_trace_save()` |
+| `gr_trace_summary()` | `hr_trace_summary()` |
+| `gr_truncate_tokens()` | `hr_truncate_tokens()` |
+
+* The old names are gone, with no alias, so a script that calls `gr_call()`
+  stops with "could not find function".
+* Class names and condition classes keep `gr_`: `inherits(hr_mock_client(f),
+  "gr_mock_client")` is `TRUE`, and a handler for `gr_call_cap` catches the
+  same condition as before.
+* Caches, traces saved with `hr_trace_save()`, replay cassettes and signal
+  calibrations written by earlier versions still load.
+
 ## Context, effort and revision checks
 
 Each option below is off by default, so a default spec sends the requests it

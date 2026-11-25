@@ -7,7 +7,7 @@
 gr_register_embedder(name, fn, description = "", deterministic = FALSE)
 }
 \arguments{
-\item{name}{Short id, used as the value of \code{gr_options(embedder =)} and as
+\item{name}{Short id, used as the value of \code{hr_options(embedder =)} and as
 the \code{"embedding_source"} recorded on the result.}
 
 \item{fn}{Function of \verb{(texts, params)} returning a numeric matrix with one
@@ -20,7 +20,7 @@ applies its own \code{fallback} policy, which is not the embedder's business.}
 
 \item{deterministic}{\code{TRUE} if the same text always gives the same vector in
 any session on any machine. \strong{Say so only if it is true.} It is what lets a
-\code{\link[=gr_replay_client]{gr_replay_client()}} reproduce a run's chunk ranking instead of degrading to
+\code{\link[=hr_replay_client]{hr_replay_client()}} reproduce a run's chunk ranking instead of degrading to
 lexical vectors, and claiming it wrongly turns a replay from a recording
 into a plausible-looking fiction.}
 }
@@ -49,11 +49,11 @@ gr_register_embedder("first-letters",
 
 gr_embedders()
 
-old <- gr_options(embedder = "first-letters")
-attr(gr_embed(gr_client(), c("alpha", "beta")), "embedding_source")
-gr_options(old)
+old <- hr_options(embedder = "first-letters")
+attr(hr_embed(hr_client(), c("alpha", "beta")), "embedding_source")
+hr_options(old)
 }
 \seealso{
-\code{\link[=gr_embedders]{gr_embedders()}}, \code{\link[=gr_embed]{gr_embed()}}, \code{\link[=gr_options]{gr_options()}} for \code{embedder},
-\code{\link[=gr_backend_client]{gr_backend_client()}} to supply an embedder alongside a transport
+\code{\link[=gr_embedders]{gr_embedders()}}, \code{\link[=hr_embed]{hr_embed()}}, \code{\link[=hr_options]{hr_options()}} for \code{embedder},
+\code{\link[=hr_backend_client]{hr_backend_client()}} to supply an embedder alongside a transport
 }

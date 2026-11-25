@@ -153,7 +153,7 @@ print.gr_result <- function(x, ...) {
 #' @param max_output Maximum completion tokens. Clamped to the model's limit
 #'   and to what the context window actually leaves after the prompt. A value
 #'   that is not a single number (`NA`, text) warns and uses the model's limit,
-#'   as `NULL` does. For a reasoning model (see [gr_model_info()]) the cap an
+#'   as `NULL` does. For a reasoning model (see [hr_model_info()]) the cap an
 #'   API request carries also bounds the model's hidden reasoning, so a small
 #'   cap is sent as at least 2048 tokens (within the model's limit and the
 #'   context window); otherwise the reasoning can use all of it and the reply
@@ -169,19 +169,19 @@ print.gr_result <- function(x, ...) {
 #' @param effort Reasoning effort for this call, or `NULL` (the default) to
 #'   send none. One string, or a character vector named by label prefix,
 #'   resolved against `label` as [gr_read_spec()] describes. Sent only when
-#'   `model` is a reasoning model (see [gr_model_info()]), as `reasoning =
+#'   `model` is a reasoning model (see [hr_model_info()]), as `reasoning =
 #'   {effort}` on the Responses API and `reasoning_effort` on Chat Completions;
-#'   a [gr_mock_client()] or [gr_backend_client()] handler finds it in
+#'   an [hr_mock_client()] or [hr_backend_client()] handler finds it in
 #'   `params$effort`. Must be named in full, since it follows `...`. It may
 #'   also be an [hr_effort_escalate()] policy, which sends the call at its
 #'   base effort, or raised when a trigger fired in the stage before this
 #'   call's; the trace carries the policy's state, so give one.
 #' @param draw_index Which draw of a sampled request this is: 0 (the default)
 #'   for an ordinary call, or 1, 2, ... for repeated draws of the same request.
-#'   Above 0 it is part of the [gr_cache()] key, so N identical calls with
+#'   Above 0 it is part of the [hr_cache()] key, so N identical calls with
 #'   draw indexes 1 to N are N cached replies rather than one reply N times,
-#'   and a [gr_replay_client()] answers draw k with the k-th recorded reply to
-#'   the request. A [gr_mock_client()] or [gr_backend_client()] handler finds
+#'   and an [hr_replay_client()] answers draw k with the k-th recorded reply to
+#'   the request. An [hr_mock_client()] or [hr_backend_client()] handler finds
 #'   it in `params$draw_index`, and the trace records it in the step's
 #'   `params`; at 0 neither carries it, so an unsampled call is unchanged.
 #'   Must be named in full, since it follows `...`.
@@ -189,12 +189,12 @@ print.gr_result <- function(x, ...) {
 #'   `""` on failure. A successful HTTP call that returned no text (a refusal, a
 #'   content filter) is reported as `ok = FALSE`, so an empty completion is never
 #'   passed downstream as evidence. `$cached` is `TRUE` when the response came
-#'   from a [gr_cache()] or a [gr_replay_client()] instead of the network.
+#'   from an [hr_cache()] or an [hr_replay_client()] instead of the network.
 #'   A reply cut off at the output cap keeps `ok = TRUE`, since its text is what
 #'   the model wrote, but always carries `finish_reason = "length"`, whatever the
 #'   provider called it (`"max_tokens"`, `"MAX_TOKENS"`, a Responses API status
 #'   of `"incomplete"`); check for it wherever a complete reply matters. Such a
-#'   reply is not written to a [gr_cache()].
+#'   reply is not written to an [hr_cache()].
 #'   `$served_model`, `$response_id` and `$fingerprint` are what the provider
 #'   said about its reply (`NA` where it said nothing; `$model` stays the model
 #'   asked for), and `$attempts` is how many requests were sent for it,
@@ -204,36 +204,36 @@ print.gr_result <- function(x, ...) {
 #'   `$error` naming the limit and the condition in `$refusal`, after a
 #'   condition of class `hr_budget_refused` is signalled. It is not recorded
 #'   as a step of the trace.
-#' @seealso [gr_client()], [gr_mock_client()], [gr_result], [gr_budget()],
-#'   [gr_cache_client()], [gr_replay_client()]
+#' @seealso [hr_client()], [hr_mock_client()], [gr_result], [hr_budget()],
+#'   [hr_cache_client()], [hr_replay_client()]
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(messages, params) "The answer is 42.")
-#' res <- gr_call(cl, "What is the answer?")
+#' cl <- hr_mock_client(function(messages, params) "The answer is 42.")
+#' res <- hr_call(cl, "What is the answer?")
 #' c(ok = res$ok, text = res$text)
 #'
 #' # A failed call still returns a usable object.
-#' bad <- gr_call(gr_mock_client(function(m, p) stop("network down")), "hi")
+#' bad <- hr_call(hr_mock_client(function(m, p) stop("network down")), "hi")
 #' c(ok = bad$ok, text = sprintf("<%s>", bad$text), error = bad$error)
 #'
 #' # A reasoning effort reaches a reasoning model, and the handler sees it.
-#' seen <- gr_mock_client(function(m, p) {
+#' seen <- hr_mock_client(function(m, p) {
 #'   paste("effort:", if (is.null(p$effort)) "none" else p$effort)
 #' })
-#' gr_call(seen, "hi", model = "gpt-5.6-luna", effort = "low")$text
-#' gr_call(seen, "hi", model = "gpt-4o", effort = "low")$text   # not a reasoning model
+#' hr_call(seen, "hi", model = "gpt-5.6-luna", effort = "low")$text
+#' hr_call(seen, "hi", model = "gpt-4o", effort = "low")$text   # not a reasoning model
 #'
 #' # Draws of one request, each cached under its own key.
 #' n <- 0
-#' sampler <- gr_mock_client(function(m, p) { n <<- n + 1; paste("draw", n) })
-#' sampler <- gr_cache_client(sampler, gr_cache(file.path(tempdir(), "harnessr-draws")))
-#' vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")
-#' vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")  # cached
-gr_call <- function(client, messages, model = NULL, max_output = NULL,
+#' sampler <- hr_mock_client(function(m, p) { n <<- n + 1; paste("draw", n) })
+#' sampler <- hr_cache_client(sampler, hr_cache(file.path(tempdir(), "harnessr-draws")))
+#' vapply(1:3, function(k) hr_call(sampler, "Pick one.", draw_index = k)$text, "")
+#' vapply(1:3, function(k) hr_call(sampler, "Pick one.", draw_index = k)$text, "")  # cached
+hr_call <- function(client, messages, model = NULL, max_output = NULL,
                     temperature = NULL, schema = NULL, schema_name = "result",
                     trace = NULL, label = "call", ..., effort = NULL, draw_index = 0L) {
   # Checked here too, so the error names the function the user called.
-  if (!inherits(client, "gr_client")) gr_abort("`client` must come from gr_client() or gr_mock_client().")
+  if (!inherits(client, "gr_client")) gr_abort("`client` must come from hr_client() or hr_mock_client().")
   # After `...`, so it is matched only by its full name: `...` is the request
   # body's own fields, and a field a gateway happens to call `eff` must still
   # go to the gateway.
@@ -257,7 +257,7 @@ check_draw_index <- function(draw_index) {
   as.integer(draw_index)
 }
 
-#' gr_call(), with a test a reply must pass before it is cached.
+#' hr_call(), with a test a reply must pass before it is cached.
 #'
 #' `accept` is a function of the reply text. The cache wrote every reply with
 #' ok = TRUE, but for a schema call gr_call_json() parses afterwards, and a
@@ -271,19 +271,19 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
                        temperature = NULL, schema = NULL, schema_name = "result",
                        trace = NULL, label = "call", extra = list(), accept = NULL,
                        effort = NULL, draw_index = 0L) {
-  if (!inherits(client, "gr_client")) gr_abort("`client` must come from gr_client() or gr_mock_client().")
+  if (!inherits(client, "gr_client")) gr_abort("`client` must come from hr_client() or hr_mock_client().")
   messages <- normalise_messages(messages)
   model <- as_chr1(model %||% client$model)
-  info <- gr_model_info(model)
+  info <- hr_model_info(model)
 
   # Counted in the model's own encoding where the tokenizer has one (tiktoken).
-  prompt_tokens <- sum(gr_count_tokens(vapply(messages, function(m) as_chr1(m$content), character(1)),
+  prompt_tokens <- sum(hr_count_tokens(vapply(messages, function(m) as_chr1(m$content), character(1)),
                                        model = model))
   # A cap that cannot be read is the model's cap, as NULL is. clamp() maps NA
   # to its floor, so max_output = NA (a spec field left unset, text that is
   # not a number) sent every request capped at ONE token (below the
   # Responses API's minimum of 16, so a 400), with no word about the setting.
-  # gr_budget() was fixed for the same thing in `reserve_output`.
+  # hr_budget() was fixed for the same thing in `reserve_output`.
   if (!is.null(max_output) &&
       !(length(max_output) == 1L && (is.numeric(max_output) || is.character(max_output)) &&
         !is.na(suppressWarnings(as.numeric(max_output))))) {
@@ -383,7 +383,7 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
     res$params_sent <- NULL
   }
   # An ellmer chat is handed the effort only so that it can say it does not
-  # send it (gr_ellmer_client()). Recorded as `effort`, the trace, its
+  # send it (hr_ellmer_client()). Recorded as `effort`, the trace, its
   # `effort` column and the audit report said every request ran at an effort
   # none of them carried. So the step keeps it as the effort the call asked
   # for, under its own name, as does a replay of such a step. The handler's
@@ -452,7 +452,7 @@ governor_input_tokens <- function(client, req) {
   json_tokens <- function(x) {
     if (is.null(x) || (is.list(x) && !length(x))) return(0)
     json <- jsonlite::toJSON(x, auto_unbox = TRUE, digits = NA, null = "null", na = "null")
-    sum(gr_count_tokens(as.character(json), model = req$model))
+    sum(hr_count_tokens(as.character(json), model = req$model))
   }
   schema <- if (!is.null(req$schema)) list(name = req$schema_name, schema = req$schema)
   # Only an HTTP client puts the extra body fields on the request; a handler
@@ -461,7 +461,7 @@ governor_input_tokens <- function(client, req) {
     utils::modifyList(client$extra_body %||% list(), req$extra %||% list())
   }
   framing <- .gr_message_overhead * length(req$messages) + .gr_reply_overhead
-  margin <- as_num1(gr_options("safety_margin"), 0.1)
+  margin <- as_num1(hr_options("safety_margin"), 0.1)
   ceiling((counted + framing + json_tokens(schema) + json_tokens(extra)) * (1 + max(margin, 0)))
 }
 
@@ -486,7 +486,7 @@ call_cap <- function(max_output, info, prompt_tokens) {
 #' default, and none for a model that does not take one.
 #' @noRd
 call_temperature <- function(temperature, info) {
-  temperature <- temperature %||% gr_options("temperature")
+  temperature <- temperature %||% hr_options("temperature")
   if (isTRUE(info$reasoning) || !isTRUE(info$supports_temperature)) NULL else temperature
 }
 
@@ -506,7 +506,7 @@ call_temperature <- function(temperature, info) {
 #' @noRd
 request_replay_key <- function(req, model, effort, sent_effort = FALSE) {
   info <- if (identical(model, req$model)) req$info
-          else tryCatch(suppressWarnings(gr_model_info(model)), error = function(e) NULL)
+          else tryCatch(suppressWarnings(hr_model_info(model)), error = function(e) NULL)
   if (is.null(info)) return(NA_character_)
   temperature <- if (isTRUE(sent_effort)) NULL else call_temperature(req$temperature, info)
   replay_key(req$messages, model, effort, temperature = temperature, max_output = req$asked_cap,
@@ -558,7 +558,7 @@ client_dispatch.gr_replay_client <- function(client, req) {
 client_dispatch.gr_client <- function(client, req) {
   # Resolved BEFORE the key, not after. `temperature` arrives NULL whenever the
   # caller did not name one, and build_request_body() then filled it from
-  # gr_options("temperature"), after cache_key() had already hashed the NULL.
+  # hr_options("temperature"), after cache_key() had already hashed the NULL.
   # So two runs that sent different temperatures to the API computed the same
   # key: a temperature sweep through one cache directory explored nothing and
   # reported the first sample's answer for every setting. The reasoning-model
@@ -624,8 +624,8 @@ client_dispatch.gr_client <- function(client, req) {
 #' An internal S3 generic. `req` is the request client_dispatch() was given,
 #' with `temperature` already resolved. The `gr_client` method is the HTTP
 #' transport; the `gr_backend_client` method serves every client whose answer
-#' comes from an R function (gr_mock_client(), gr_backend_client() and so
-#' gr_ellmer_client()).
+#' comes from an R function (hr_mock_client(), hr_backend_client() and so
+#' hr_ellmer_client()).
 #' @noRd
 client_send <- function(client, req) UseMethod("client_send")
 
@@ -661,7 +661,7 @@ request_url <- function(client) {
 #' What a request carries once every default is resolved.
 #'
 #' An internal S3 generic. The trace used to record the caller's values: a
-#' temperature left NULL that the request filled from gr_options(), and the cap
+#' temperature left NULL that the request filled from hr_options(), and the cap
 #' the caller asked for where a reasoning model was sent a larger one. This is
 #' read from the request itself: for the HTTP client from the body
 #' request_body() builds, for a closure client from the params its handler is
@@ -777,7 +777,7 @@ client_sends_effort.gr_ellmer_client <- function(client) FALSE
 #' reasoning: the reply came back "incomplete" with no text, context headers
 #' were silently dropped and rerank reported that the endpoint might not
 #' support JSON schema. Every one of those calls was billed. Such a request is sent
-#' with room for the reasoning (at least `gr_options("reasoning_floor")` tokens,
+#' with room for the reasoning (at least `hr_options("reasoning_floor")` tokens,
 #' 2048 by default, within
 #' the model's limit and what the context window leaves after the prompt). A cap
 #' at or above that is sent as it is. Only the HTTP request changes: the cache
@@ -793,10 +793,10 @@ reasoning_output_cap <- function(max_output, info, prompt_tokens) {
   as.integer(max(max_output, min(floor_cap, room)))
 }
 
-#' The least output cap a reasoning model is sent: `gr_options("reasoning_floor")`,
+#' The least output cap a reasoning model is sent: `hr_options("reasoning_floor")`,
 #' 2048 unless set; see reasoning_output_cap().
 #' @noRd
-reasoning_floor <- function() as_num1(gr_options("reasoning_floor"), 2048)
+reasoning_floor <- function() as_num1(hr_options("reasoning_floor"), 2048)
 
 #' Token usage the trace can trust.
 #'
@@ -824,7 +824,7 @@ settle_usage <- function(usage, prompt_tokens, text) {
   if (!given %in% .gr_usage_provenance) given <- "reported"
   prov <- if (is.na(inp) || is.na(out)) weaker_provenance(given, local_provenance()) else given
   usage_record(input  = if (is.na(inp)) as_int1(prompt_tokens, 0L) else inp,
-               output = if (is.na(out)) sum(gr_count_tokens(as_chr1(text))) else out,
+               output = if (is.na(out)) sum(hr_count_tokens(as_chr1(text))) else out,
                provenance = prov,
                reasoning = num(get("reasoning")), cached_input = num(get("cached_input")))
 }
@@ -844,7 +844,7 @@ weaker_provenance <- function(a, b) {
 #' OpenAI models do, and "estimated" with any other tokenizer.
 #' @noRd
 local_provenance <- function() {
-  if (identical(gr_options("tokenizer"), "tiktoken")) "counted" else "estimated"
+  if (identical(hr_options("tokenizer"), "tiktoken")) "counted" else "estimated"
 }
 
 #' One usage record, its fields always in this order.
@@ -922,7 +922,7 @@ handler_result <- function(out, model, prompt_tokens) {
                 usage = usage_record(prompt_tokens, 0L, local_provenance()))
     } else {
       gr_result(TRUE, text = txt, model = model,
-                usage = usage_record(prompt_tokens, sum(gr_count_tokens(txt)),
+                usage = usage_record(prompt_tokens, sum(hr_count_tokens(txt)),
                                      local_provenance()))
     }
   }
@@ -940,7 +940,7 @@ gr_call_json <- function(client, messages, schema, schema_name = "result",
   # The same test decides what is cached, so a reply this function would call
   # a failure is never stored as a success (see model_call()).
   accept <- function(txt) json_reply(txt, schema, allow_empty, own_scalars)$ok
-  # gr_call()'s own arguments, so `...` is matched exactly as it was.
+  # hr_call()'s own arguments, so `...` is matched exactly as it was.
   send <- function(client, messages, model = NULL, max_output = NULL, temperature = NULL,
                    schema = NULL, schema_name = "result", trace = NULL, label = "call", ...,
                    effort = NULL, draw_index = 0L) {

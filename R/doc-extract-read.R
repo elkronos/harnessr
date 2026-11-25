@@ -50,8 +50,8 @@ read_extract <- function(chunks, question, client, spec, trace) {
   # preflight's flat allowance for the prompt around a chunk, a parallel
   # extraction of 40 fields spent two thirds past max_cost_usd.
   worst <- extract_item_usd(client, model,
-                            sum(gr_count_tokens(vapply(fixed, `[[`, character(1), "content"))) +
-                              max(c(0L, gr_count_tokens(excerpts))),
+                            sum(hr_count_tokens(vapply(fixed, `[[`, character(1), "content"))) +
+                              max(c(0L, hr_count_tokens(excerpts))),
                             spec$max_chunk_tokens)
 
   got <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
@@ -355,18 +355,18 @@ best_supported_hit <- function(hits) {
 #' @noRd
 extract_item_usd <- function(client, model, input_tokens, max_output) {
   billed <- client_billed_model(client) %||% model %||%
-    as_chr1(client[["model", exact = TRUE]], gr_options("model"))
+    as_chr1(client[["model", exact = TRUE]], hr_options("model"))
   # The request itself warns about an unknown model; once is enough.
   quiet <- function(expr) tryCatch(suppressWarnings(expr, classes = "gr_unknown_model"),
                                    error = function(e) NULL)
-  info <- quiet(gr_model_info(billed))
+  info <- quiet(hr_model_info(billed))
   if (is.null(info)) return(NA_real_)
   # Priced at the cap the request is sent with: a reasoning model is sent
   # room to reason above a short cap (reasoning_output_cap()), and is billed
   # for what it spends there.
   out <- reasoning_output_cap(min(as_num1(max_output, 0), as_num1(info$max_output, Inf)),
                               info, input_tokens)
-  as_num1(quiet(gr_estimate_cost(billed, input_tokens, out)), NA_real_)
+  as_num1(quiet(hr_estimate_cost(billed, input_tokens, out)), NA_real_)
 }
 
 #' quote_backs_value() for one reading of the quotation: `passages`, as

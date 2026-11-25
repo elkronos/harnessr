@@ -1777,7 +1777,7 @@ cited_chunks <- function(text) cited_ids(text, "chunk")
 #' "-12%", "< 0.05" or "45.2 million"), numbers written in words ("twelve")
 #' and negations are the window's, exactly. `quote_status` is `"verbatim"`
 #' for no edit; `"near_verbatim"` for a similarity of at least 0.90 (0.95
-#' under 40 characters; see `near_verbatim_sim` in [gr_options()]) with the
+#' under 40 characters; see `near_verbatim_sim` in [hr_options()]) with the
 #' critical tokens identical and five words or more; `"unverified"` otherwise; and `"not_checked"` where there was nothing
 #' to compare, or where a passage was too long to score: the edit table has a
 #' cell for each pair of characters, and a passage whose length times the
@@ -1799,7 +1799,7 @@ cited_chunks <- function(text) cited_ids(text, "chunk")
 #' @export
 #' @examples
 #' # A model that quotes faithfully.
-#' honest <- gr_mock_client(function(messages, params) {
+#' honest <- hr_mock_client(function(messages, params) {
 #'   txt <- messages[[length(messages)]]$content
 #'   if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) {
 #'     return("Revenue rose to 45.2 million dollars.")
@@ -1814,7 +1814,7 @@ cited_chunks <- function(text) cited_ids(text, "chunk")
 #'
 #' # A model that invents one. The span is fluent, plausible, and not in the
 #' # document. That is exactly the case a reader cannot catch by eye.
-#' liar <- gr_mock_client(function(messages, params) {
+#' liar <- hr_mock_client(function(messages, params) {
 #'   if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) {
 #'     return("Revenue rose to 88.9 billion dollars on record demand.")
 #'   }

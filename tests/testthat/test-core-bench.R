@@ -12,7 +12,7 @@ bench_ref <- function(split = "test") {
 # apostrophe.
 capital_client <- function() {
   capitals <- c(France = "Paris", Peru = "Lima", Chad = "Ndjamena", Fiji = "Suva")
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     capitals[[sub("Capital of ", "", messages[[1]]$content)]]
   })
 }
@@ -242,7 +242,7 @@ test_that("hr_benchmark returns one row per cluster x item x arm x run", {
 
 test_that("each run is its own draw, numbered 1 to runs, and reaches the request", {
   seen <- integer(0)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     seen[length(seen) + 1L] <<- params$draw_index
     "Paris"
   })
@@ -253,13 +253,13 @@ test_that("each run is its own draw, numbered 1 to runs, and reaches the request
   # Under a cache the seven draws are seven entries, and a second benchmark
   # reads them back as the same seven distinct draws.
   n <- 0
-  counting <- gr_mock_client(function(messages, params) {
+  counting <- hr_mock_client(function(messages, params) {
     n <<- n + 1
     paste("Paris", n)
   })
   d <- tempfile("bench-cache-")
   on.exit(unlink(d, recursive = TRUE), add = TRUE)
-  cached <- gr_cache_client(counting, gr_cache(d))
+  cached <- hr_cache_client(counting, hr_cache(d))
   first <- hr_benchmark(ask_arm(), ref, runs = 5, client = cached)
   again <- hr_benchmark(ask_arm(), ref, runs = 5, client = cached)
   expect_identical(first$outcome, paste("paris", 1:5))
@@ -271,10 +271,10 @@ test_that("an arm whose runs are copies of one stored reply is refused", {
   ref <- hr_reference(list(q1 = "France"), "Paris", "a", split = "test")
   d <- tempfile("bench-cache-")
   on.exit(unlink(d, recursive = TRUE), add = TRUE)
-  cached <- gr_cache_client(gr_mock_client(function(m, p) "Paris"), gr_cache(d))
+  cached <- hr_cache_client(hr_mock_client(function(m, p) "Paris"), hr_cache(d))
   # The same draw index on every run: run 2 is the cache entry run 1 wrote.
   fixed <- hr_arm("fixed", function(item, ctx) {
-    gr_call(ctx$client, paste0("Capital of ", item), trace = ctx$trace, draw_index = 1)$text
+    hr_call(ctx$client, paste0("Capital of ", item), trace = ctx$trace, draw_index = 1)$text
   })
   expect_error(hr_benchmark(fixed, ref, runs = 5, client = cached),
                class = "hr_duplicate_draw")
@@ -282,19 +282,19 @@ test_that("an arm whose runs are copies of one stored reply is refused", {
   expect_silent(suppressWarnings(hr_benchmark(fixed, ref, runs = 1, client = cached)))
   # A request that names no draw index takes the run's from ctx$trace.
   undrawn <- hr_arm("undrawn", function(item, ctx) {
-    gr_call(ctx$client, paste0("Capital of ", item), trace = ctx$trace)$text
+    hr_call(ctx$client, paste0("Capital of ", item), trace = ctx$trace)$text
   })
   expect_identical(hr_benchmark(undrawn, ref, runs = 5, client = cached)$draw_index, 1:5)
 })
 
 test_that("a reply whose response id repeats across runs is refused", {
   ref <- hr_reference(list(q1 = "France"), "Paris", "a", split = "test")
-  same_id <- gr_mock_client(function(m, p) {
+  same_id <- hr_mock_client(function(m, p) {
     harnessr:::gr_result(TRUE, text = "Paris", response_id = "resp_1")
   })
   expect_error(hr_benchmark(ask_arm(), ref, runs = 5, client = same_id),
                class = "hr_duplicate_draw")
-  fresh_id <- gr_mock_client(function(m, p) {
+  fresh_id <- hr_mock_client(function(m, p) {
     harnessr:::gr_result(TRUE, text = "Paris",
                          response_id = paste0("resp_", p$draw_index))
   })
@@ -308,12 +308,12 @@ test_that("a replay that runs out of draws and repeats one is refused", {
                                             client = capital_client()))
   rec <- attr(recorded, "trace")
   # The recording holds draws 1 and 2; draws 3 to 5 would repeat draw 2.
-  replay <- gr_replay_client(rec, on_exhausted = "flag")
+  replay <- hr_replay_client(rec, on_exhausted = "flag")
   expect_error(hr_benchmark(ask_arm(), ref, runs = 5, client = replay),
                class = "hr_duplicate_draw")
   # Within what was recorded, the replay gives the recorded draws.
   again <- suppressWarnings(hr_benchmark(ask_arm(), ref, runs = 2,
-                                         client = gr_replay_client(rec)))
+                                         client = hr_replay_client(rec)))
   expect_identical(again$outcome, c("paris", "paris"))
   expect_identical(again$usd_provenance, c("none", "none"))
 })
@@ -321,7 +321,7 @@ test_that("a replay that runs out of draws and repeats one is refused", {
 test_that("an item with no label is NA on every run and left out of accuracy", {
   ref <- hr_reference(list(q1 = "France", q2 = "Peru"), c("Paris", NA), "a", split = "test")
   # Draws 1 and 2 come back empty (parse failures), the rest answer Paris.
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (params$draw_index <= 2) "" else "Paris"
   })
   b <- hr_benchmark(ask_arm(), ref, runs = 5, client = cl)
@@ -350,7 +350,7 @@ test_that("rows on the dev split are not reportable", {
   expect_output(print(b), "5 row\\(s\\) on the dev split are not reportable")
   # q1 (dev) is right every run and q2 (test) too, but only q2 is accuracy:
   # make the dev item wrong to see that it stays out.
-  wrong_dev <- gr_mock_client(function(messages, params) {
+  wrong_dev <- hr_mock_client(function(messages, params) {
     if (grepl("France", messages[[1]]$content)) "Lyon" else "Lima"
   })
   w <- hr_benchmark(ask_arm(), ref, runs = 5, client = wrong_dev, split = c("dev", "test"))
@@ -396,7 +396,7 @@ test_that("a benchmark warns when its limits stop runs, and says which", {
   ref <- bench_ref()
   catch <- function(expr) tryCatch(expr, hr_budget_stopped = function(w) conditionMessage(w))
   # A governor passed in: the count, the limit and the first stopped run are
-  # named, and nothing is said about gr_options().
+  # named, and nothing is said about hr_options().
   w <- catch(hr_benchmark(ask_arm(), ref, runs = 5, client = capital_client(),
                           governor = hr_governor(max_calls = 7)))
   b <- suppressWarnings(hr_benchmark(ask_arm(), ref, runs = 5, client = capital_client(),
@@ -405,18 +405,18 @@ test_that("a benchmark warns when its limits stop runs, and says which", {
   expect_match(w, "^13 of 20 runs were stopped by the benchmark's limits \\(calls: 13\\)\\. All of them are counted wrong")
   expect_match(w, sprintf("The first was item '%s', arm 'ask', run %d.", b$item[first], b$run[first]),
                fixed = TRUE)
-  expect_false(grepl("gr_options", w, fixed = TRUE))
+  expect_false(grepl("hr_options", w, fixed = TRUE))
 
-  # No governor: the limits are gr_options()'s, and the warning gives the
+  # No governor: the limits are hr_options()'s, and the warning gives the
   # option that stopped the runs and how to set limits for the benchmark.
-  old <- gr_options(max_calls = 7L, max_cost_usd = 5, max_output_tokens = NULL,
+  old <- hr_options(max_calls = 7L, max_cost_usd = 5, max_output_tokens = NULL,
                     max_tokens_total = NULL)
-  on.exit(gr_options(old), add = TRUE)
+  on.exit(hr_options(old), add = TRUE)
   w <- catch(hr_benchmark(ask_arm(), ref, runs = 5, client = capital_client()))
-  expect_match(w, "The limits came from gr_options() (max_calls 7).", fixed = TRUE)
+  expect_match(w, "The limits came from hr_options() (max_calls 7).", fixed = TRUE)
   expect_match(w, "governor = hr_governor(...)", fixed = TRUE)
   # Large limits are written out, not as 1e+05.
-  gr_options(max_calls = 100000L, max_output_tokens = 5L)
+  hr_options(max_calls = 100000L, max_output_tokens = 5L)
   out_arm <- hr_arm("out", function(item, ctx) {
     ctx$call(paste0("Capital of ", item), max_output = 50)$text
   })
@@ -424,14 +424,14 @@ test_that("a benchmark warns when its limits stop runs, and says which", {
   # A limit on each request is named with its own option, and the advice
   # about limits for the whole benchmark, which would not help, is left out.
   expect_match(w, "(output: 20)", fixed = TRUE)
-  expect_match(w, "The limits came from gr_options() (max_output_tokens 5).", fixed = TRUE)
+  expect_match(w, "The limits came from hr_options() (max_output_tokens 5).", fixed = TRUE)
   expect_false(grepl("whole benchmark", w, fixed = TRUE))
-  gr_options(max_output_tokens = NULL, max_tokens_total = 1)
+  hr_options(max_output_tokens = NULL, max_tokens_total = 1)
   w <- catch(hr_benchmark(ask_arm(), ref, runs = 5, client = capital_client()))
   expect_match(w, "(tokens: 20)", fixed = TRUE)
   expect_match(w, "(max_tokens_total 1)", fixed = TRUE)
-  gr_options(old)
-  expect_null(gr_options("max_tokens_total"))
+  hr_options(old)
+  expect_null(hr_options("max_tokens_total"))
 
   # Runs on the dev split or on unlabelled items are not counted wrong, and
   # the warning says how many of the stopped runs are.
@@ -578,7 +578,7 @@ test_that("a replay gives each arm its own draws, for a subset of the arms or an
   #   q2 a1: lima lyon lima lima lyon       q2 a2: lima lima lyon lima lima
   ref <- hr_reference(list(q1 = "France", q2 = "Peru"), c("Paris", "Lima"), "a", split = "test")
   n <- 0
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     n <<- n + 1
     if (n %% 3 == 0) "Lyon" else if (grepl("France", messages[[1]]$content)) "Paris" else "Lima"
   })
@@ -591,13 +591,13 @@ test_that("a replay gives each arm its own draws, for a subset of the arms or an
   expect_identical(b$outcome[b$arm == "a2"], want_a2)
   path <- tempfile(fileext = ".json")
   on.exit(unlink(path), add = TRUE)
-  gr_trace_save(attr(b, "trace"), path)
+  hr_trace_save(attr(b, "trace"), path)
   for (rec in list(attr(b, "trace"), path)) {
     # Before the fix, a2 alone got a1's replies: paris paris lyon paris
     # paris for q1.
-    alone <- hr_benchmark(list(a2), ref, runs = 5, client = gr_replay_client(rec))
+    alone <- hr_benchmark(list(a2), ref, runs = 5, client = hr_replay_client(rec))
     expect_identical(alone$outcome, want_a2)
-    swapped <- hr_benchmark(list(a2, a1), ref, runs = 5, client = gr_replay_client(rec))
+    swapped <- hr_benchmark(list(a2, a1), ref, runs = 5, client = hr_replay_client(rec))
     expect_identical(swapped$outcome[swapped$arm == "a1"], want_a1)
     expect_identical(swapped$outcome[swapped$arm == "a2"], want_a2)
   }

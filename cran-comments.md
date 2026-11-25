@@ -14,17 +14,17 @@ This package talks to language-model APIs. Nothing in the checked material makes
 a network request:
 
 * Every example that would reach an endpoint is wrapped in `\dontrun{}`. The
-  rest use `gr_mock_client()`, a client whose handler is an ordinary R function,
+  rest use `hr_mock_client()`, a client whose handler is an ordinary R function,
   so they run offline and deterministically.
 * The test suite (1040 tests) uses the same mock throughout and sets no API key.
 * The vignette is built against the mock client, with
-  `gr_options(embedder = "lexical")` for a deterministic embedding backend, so
+  `hr_options(embedder = "lexical")` for a deterministic embedding backend, so
   it compiles with no key and no network.
 
 Files are written only under `tempdir()`. The response cache
-(`gr_cache()`) defaults to a directory under `tempdir()` and creates it on first
-write; a persistent location is opt-in via `gr_options(cache_dir = )`, and the
+(`hr_cache()`) defaults to a directory under `tempdir()` and creates it on first
+write; a persistent location is opt-in via `hr_options(cache_dir = )`, and the
 documentation suggests `tools::R_user_dir("harnessr", "cache")` for it.
 
 `ellmer` is a suggested dependency used by a single exported function,
-`gr_ellmer_client()`; its tests are guarded with `skip_if_not_installed()`.
+`hr_ellmer_client()`; its tests are guarded with `skip_if_not_installed()`.

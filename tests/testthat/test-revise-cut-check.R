@@ -15,8 +15,8 @@ cc_warns <- function(expr) {
 }
 
 # One pass, straight through revise_once(), with `revision` as the reply.
-cc_revise <- function(draft, revision, pass = "cut", trace = gr_trace()) {
-  cl <- gr_mock_client(function(m, p) revision)
+cc_revise <- function(draft, revision, pass = "cut", trace = hr_trace()) {
+  cl <- hr_mock_client(function(m, p) revision)
   cc_warns(harnessr:::revise_once(draft, "Q?", cl, gr_read_spec("stuff", model = "mock-model"),
                                  trace, NULL, pass))
 }
@@ -34,7 +34,7 @@ cc_table <- function() {
 # A writer whose section is cc_draft's prose, and whose passes are named by the
 # opening of their system prompts; a pass not named hands its draft back.
 cc_client <- function(passes = list()) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     last <- messages[[length(messages)]]$content
     if (grepl("<draft>", last, fixed = TRUE)) {
@@ -99,7 +99,7 @@ test_that("a cut that came back longer, or only rearranged its markup, is discar
   # Fewer tokens, same prose: the heading gone and two markers written as one.
   markup <- sub("## Findings\n\n", "", sub("[study 1] [study 2]", "[studies 1-2]", cc_draft,
                                            fixed = TRUE), fixed = TRUE)
-  expect_lt(gr_count_tokens(markup), gr_count_tokens(cc_draft))
+  expect_lt(hr_count_tokens(markup), hr_count_tokens(cc_draft))
   r <- cc_revise(cc_draft, markup)
   expect_false(r$value$kept)
   expect_identical(r$classes, "gr_revision_uncut")
@@ -171,7 +171,7 @@ test_that("only the cut is held to a length", {
 })
 
 test_that("the measurement is in the trace as a local step, and costs no request", {
-  tr <- gr_trace()
+  tr <- hr_trace()
   cc_revise(cc_draft, cc_draft, trace = tr)
   labels <- vapply(tr$steps, function(s) s$label, character(1))
   expect_identical(labels, c("synthesise.revise.cut", "synthesise.revise.cut.length"))
@@ -214,16 +214,16 @@ test_that("$coherence carries the counts, and the next pass runs on what the cut
 })
 
 test_that("a pass not sent, or refused before it was measured, has no counts", {
-  empty <- harnessr:::synth_revise(cc_draft, "Q?", gr_mock_client(function(m, p) "x"),
-                                  gr_read_spec("stuff", model = "mock-model"), gr_trace(),
+  empty <- harnessr:::synth_revise(cc_draft, "Q?", hr_mock_client(function(m, p) "x"),
+                                  gr_read_spec("stuff", model = "mock-model"), hr_trace(),
                                   passes = character(0))$report
   expect_identical(nrow(empty), 0L)
   expect_identical(empty$words_before, integer(0))
   expect_identical(empty$words_after, integer(0))
   fr <- paste0("Trois petits essais suggèrent un bénéfice modeste ",
                "[study 1] [study 2]. Une cohorte pourrait montrer un risque [study 3].")
-  r <- cc_warns(harnessr:::synth_revise(fr, "Q?", gr_mock_client(function(m, p) fr),
-                                       gr_read_spec("stuff", model = "mock-model"), gr_trace(),
+  r <- cc_warns(harnessr:::synth_revise(fr, "Q?", hr_mock_client(function(m, p) fr),
+                                       gr_read_spec("stuff", model = "mock-model"), hr_trace(),
                                        passes = "cut"))
   expect_identical(r$value$report$words_before, NA_integer_)
   expect_identical(r$value$report$words_after, NA_integer_)

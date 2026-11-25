@@ -5,12 +5,12 @@
 \title{Limits on what a run may send}
 \usage{
 hr_governor(
-  max_calls = gr_options("max_calls"),
-  max_cost_usd = gr_options("max_cost_usd"),
-  max_tokens_total = gr_options("max_tokens_total"),
-  max_output_tokens = gr_options("max_output_tokens"),
-  allowed_models = gr_options("allowed_models"),
-  allow_unpriced = gr_options("allow_unpriced")
+  max_calls = hr_options("max_calls"),
+  max_cost_usd = hr_options("max_cost_usd"),
+  max_tokens_total = hr_options("max_tokens_total"),
+  max_output_tokens = hr_options("max_output_tokens"),
+  allowed_models = hr_options("allowed_models"),
+  allow_unpriced = hr_options("allow_unpriced")
 )
 }
 \arguments{
@@ -40,21 +40,21 @@ An object of class \code{hr_governor}: a list of the six limits.
 A governor holds the limits that every request a run makes is checked
 against before it is sent: how many calls the run may make, what it may
 spend, the largest output cap one request may carry, and which models it
-may call. \code{\link[=gr_call]{gr_call()}}, and every reader, judge, adjudication, segmenter and
+may call. \code{\link[=hr_call]{hr_call()}}, and every reader, judge, adjudication, segmenter and
 embeddings request in the package, goes through the same check, so a limit
 holds whether or not the code that makes the call looks at it.
 }
 \details{
 A request is checked against its worst case: the most prompt tokens it can
 be billed for at the model's input price, plus its output cap as sent (for a
-reasoning model the raised cap; see \code{\link[=gr_call]{gr_call()}}) at the output price. The
+reasoning model the raised cap; see \code{\link[=hr_call]{hr_call()}}) at the output price. The
 prompt is counted as the trace counts it, with the JSON schema and extra
 body fields the request carries, a few tokens for each message's framing,
-and \code{safety_margin} (see \code{\link[=gr_options]{gr_options()}}) on top. One that would take the run
+and \code{safety_margin} (see \code{\link[=hr_options]{hr_options()}}) on top. One that would take the run
 past \code{max_cost_usd} is refused, so a run ends at or under the limit rather
 than one request over it. That bound rests on two things the governor
 cannot see: that a provider stops a reply at its cap (a
-\code{\link[=gr_mock_client]{gr_mock_client()}} or \code{\link[=gr_backend_client]{gr_backend_client()}} handler that returns more is
+\code{\link[=hr_mock_client]{hr_mock_client()}} or \code{\link[=hr_backend_client]{hr_backend_client()}} handler that returns more is
 charged for what it returned), and that the provider counts the prompt
 within the margin of the local tokenizer. A provider that reports more
 prompt tokens than that, or a tokenizer far from the provider's (the
@@ -63,7 +63,7 @@ whose requests leave their output cap at the model's limit is stopped while
 it still has headroom that a smaller cap would have used.
 
 A refused request is not sent and is not a call: it adds nothing to the
-trace's \code{calls}, steps or spend. It comes back from \code{\link[=gr_call]{gr_call()}} as a
+trace's \code{calls}, steps or spend. It comes back from \code{\link[=hr_call]{hr_call()}} as a
 failed \link{gr_result} with \code{refused = TRUE} and an error that names the limit,
 and a condition of class \code{hr_budget_refused} is signalled, which a caller
 can catch with \code{withCallingHandlers()} or \code{tryCatch()} to stop instead. The
@@ -81,8 +81,8 @@ never 0, and \code{max_calls}, \code{max_tokens_total} and the other limits stil
 apply: \code{max_tokens_total} is the limit that bounds such a run, since the
 spending limit cannot. An embedding model with no price is not refused; its
 requests count against \code{max_calls} and add nothing to the spend, as
-\code{\link[=gr_read_many]{gr_read_many()}} warns. \code{\link[=gr_mock_client]{gr_mock_client()}} makes no paid requests and is
-never refused as unpriced. A request a \code{\link[=gr_cache]{gr_cache()}} answers spends nothing
+\code{\link[=gr_read_many]{gr_read_many()}} warns. \code{\link[=hr_mock_client]{hr_mock_client()}} makes no paid requests and is
+never refused as unpriced. A request an \code{\link[=hr_cache]{hr_cache()}} answers spends nothing
 and is checked only against \code{max_calls}, \code{max_output_tokens} and
 \code{allowed_models}.
 
@@ -91,32 +91,32 @@ tokens of every call the trace records, cache hits included, and the text
 sent to be embedded. A request is refused when what the run has used plus
 its own worst case (prompt as above, reply at its cap) would pass it.
 
-A governor is attached to a run with \code{gr_trace(governor = )}, and then
+A governor is attached to a run with \code{hr_trace(governor = )}, and then
 governs the requests recorded into that trace. A stage that keeps a trace
 of its own and folds it into the one it is given (\code{\link[=gr_read_many]{gr_read_many()}},
 \code{\link[=gr_claims]{gr_claims()}}, \code{\link[=gr_outline]{gr_outline()}} and \code{\link[=gr_synthesise]{gr_synthesise()}}) holds its requests to
 that trace's governor, less the calls the given trace has already made and
 what it has spent and used in tokens, so the governor's limits hold for
-the run as a whole. Without a governor, \code{gr_options(max_calls =)} stays a
+the run as a whole. Without a governor, \code{hr_options(max_calls =)} stays a
 limit per document for \code{\link[=gr_read_many]{gr_read_many()}} and per stage for the others. A
 trace made without one, including those the package makes for itself,
-reads the limits from \code{\link[=gr_options]{gr_options()}} each time it checks, so changing an
+reads the limits from \code{\link[=hr_options]{hr_options()}} each time it checks, so changing an
 option affects runs that are already going, as it always has.
 }
 \examples{
-cl <- gr_mock_client(function(m, p) "ok")
-tr <- gr_trace(governor = hr_governor(max_calls = 2))
-vapply(1:3, function(i) gr_call(cl, "hi", trace = tr)$ok, logical(1))
+cl <- hr_mock_client(function(m, p) "ok")
+tr <- hr_trace(governor = hr_governor(max_calls = 2))
+vapply(1:3, function(i) hr_call(cl, "hi", trace = tr)$ok, logical(1))
 tr$calls
 tr$stop_reason
 
 # A request whose worst case would pass the spending limit is not sent.
-tr <- gr_trace(governor = hr_governor(max_cost_usd = 0.001))
-res <- gr_call(cl, "hi", model = "gpt-4o", trace = tr)
+tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.001))
+res <- hr_call(cl, "hi", model = "gpt-4o", trace = tr)
 res$refused
 res$error
 }
 \seealso{
-\code{\link[=gr_options]{gr_options()}} for the session defaults, \code{\link[=gr_trace]{gr_trace()}},
-\code{\link[=gr_register_model]{gr_register_model()}} to give a model its prices
+\code{\link[=hr_options]{hr_options()}} for the session defaults, \code{\link[=hr_trace]{hr_trace()}},
+\code{\link[=hr_register_model]{hr_register_model()}} to give a model its prices
 }

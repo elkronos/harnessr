@@ -16,8 +16,8 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
   system_prompt <- system_prompt %||% .gr_prompts$merge_system
   # The same model for the budget and the request: gr_read() fills a spec's
   # model from the client, but a caller that builds its own spec may leave it
-  # NULL, and gr_budget() and gr_call() fall back to different models on NULL.
-  spec$model <- spec$model %||% as_chr1(client[["model", exact = TRUE]], gr_options("model"))
+  # NULL, and hr_budget() and hr_call() fall back to different models on NULL.
+  spec$model <- spec$model %||% as_chr1(client[["model", exact = TRUE]], hr_options("model"))
   pieces <- pieces[has_content(pieces)]
   # Under a context policy with order_merges = TRUE, the findings are placed
   # by context_order; otherwise they keep the order they came in.
@@ -38,14 +38,14 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
     # so the question appears once. Left at the default it would reserve room
     # for a second copy that is never sent and shrink every merge group.
     overhead <- prompt_overhead(question, system_prompt, "never")
-    bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
+    bud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
 
     # Each finding as the prompt carries it: in its tags, and joined to the
     # next by a blank line. Counted bare, 300 one-word findings came to 1,200
     # tokens against a 2,145-token budget and went out as one prompt of 3,501,
-    # which gr_call() refused for a 3,000-token window. The numbered tags of
+    # which hr_call() refused for a 3,000-token window. The numbered tags of
     # the final level, the longer of the two, size every level.
-    sized <- function(p) gr_count_tokens(sprintf("<%s %d>\n%s\n</%s %d>\n\n", kind,
+    sized <- function(p) hr_count_tokens(sprintf("<%s %d>\n%s\n</%s %d>\n\n", kind,
                                                  seq_along(p), p, kind, seq_along(p)))
     pts <- sized(pieces)
 
@@ -60,7 +60,7 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
                      sum(over), bud$input))
       # Cut to leave room for its tags, which the truncation does not count.
       big <- pieces[over]
-      room <- pmax(1, bud$input - (pts[over] - gr_count_tokens(big)))
+      room <- pmax(1, bud$input - (pts[over] - hr_count_tokens(big)))
       pieces[over] <- vapply(seq_along(big), function(k) {
         cut_piece(big[k], room[k], paste0(label, ".input"), trace, spec, "findings",
                   level = level, piece = which(over)[k])$text
@@ -83,7 +83,7 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
     if (length(groups) == 1L && length(groups[[1]]) == length(pieces)) {
       body <- paste(sprintf("<%s %d>\n%s\n</%s %d>", kind, seq_along(pieces), pieces,
                             kind, seq_along(pieces)), collapse = "\n\n")
-      res <- gr_call(client, list(
+      res <- hr_call(client, list(
         list(role = "system", content = system_prompt),
         list(role = "user", content = body),
         list(role = "user", content = paste0("Question: ", question))
@@ -118,7 +118,7 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
     got <- gr_lapply(groups, function(g, trace) {
       if (length(g) == 1L) return(list(text = g, cut = FALSE, failed = FALSE))
       body <- paste(sprintf("<%s>\n%s\n</%s>", kind, g, kind), collapse = "\n\n")
-      res <- gr_call(client, list(
+      res <- hr_call(client, list(
         list(role = "system", content = system_prompt),
         list(role = "user", content = body),
         list(role = "user", content = paste0("Question: ", question))

@@ -82,7 +82,7 @@ jobs:
         run: |
           Rscript -e '
             suppressPackageStartupMessages({library(harnessr); library(testthat)})
-            gr_options(verbose = FALSE)
+            hr_options(verbose = FALSE)
             res <- as.data.frame(test_dir("tests/testthat", package = "harnessr",
                                           reporter = "summary", stop_on_failure = FALSE))
             cat(sprintf("\nPASS %d  FAIL %d  ERROR %d\n",
@@ -105,7 +105,7 @@ jobs:
             lines  <- readLines("README.md", warn = FALSE)
             fences <- grep("^```", lines)
             suppressPackageStartupMessages(library(harnessr))
-            gr_options(verbose = FALSE, max_cost_usd = NULL,
+            hr_options(verbose = FALSE, max_cost_usd = NULL,
                        api_base = Sys.getenv("GPTREAD_API_BASE"), max_retries = 0L)
             # The plain answer every block expects, except that the claims-layer
             # calls are answered in the shape they ask for, every required field
@@ -137,7 +137,7 @@ jobs:
               # this step is that the documented code parses and runs, not that
               # OpenAI is reachable.
               if (grepl("report\\.pdf|thesis\\.pdf|install_local|install_github|runApp|sk-\\.\\.\\.|library\\(ellmer\\)", txt) ||
-                  (grepl("gr_client\\(", txt) && !grepl("gr_mock_client", txt))) {
+                  (grepl("hr_client\\(", txt) && !grepl("hr_mock_client", txt))) {
                 skipped <- skipped + 1; next
               }
               env <- new.env(parent = globalenv())
@@ -147,11 +147,11 @@ jobs:
               # whether a block resolved `cl` depended on its position in the
               # file, and a block moved above the first `ans` reference would
               # have failed for no reason a reader could see.
-              assign("cl", gr_mock_client(reply), envir = env)
+              assign("cl", hr_mock_client(reply), envir = env)
               # Lazy: only the blocks that actually reference `ans` pay for it.
               delayedAssign("ans", {
                 answer_document(gr_example(), "What was revenue?", "needle",
-                                client = gr_mock_client(function(m, p) "Revenue was 45.2 million dollars."))
+                                client = hr_mock_client(function(m, p) "Revenue was 45.2 million dollars."))
               }, assign.env = env)
               # The review walkthrough continues from a run of your own, as the
               # quick start continues from `ans`: `protocol`, the extraction `x`,
@@ -169,7 +169,7 @@ jobs:
                 dir.create(d, showWarnings = FALSE)
                 writeLines("North region. Revenue was 45.2 million dollars.", file.path(d, "north.txt"))
                 writeLines("South region. Revenue was 51.8 million dollars.", file.path(d, "south.txt"))
-                gr_extract(d, protocol, recipe = "fast", client = gr_mock_client(function(m, p) {
+                gr_extract(d, protocol, recipe = "fast", client = hr_mock_client(function(m, p) {
                   seen <- paste(vapply(m, function(z) as.character(z$content), character(1)),
                                 collapse = " ")
                   # With the quotes, which gr_claims() needs: a value whose quote
@@ -210,10 +210,10 @@ jobs:
         run: |
           Rscript -e '
             suppressPackageStartupMessages(library(harnessr))
-            gr_options(verbose = FALSE, max_cost_usd = NULL)
+            hr_options(verbose = FALSE, max_cost_usd = NULL)
             lines <- readLines("README.md", warn = FALSE); fences <- grep("^```", lines)
             starts <- fences[grepl("^```[rR]$", lines[fences])]
-            cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+            cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
             checked <- 0; bad_blocks <- 0
             for (s in starts) {
               e <- fences[fences > s][1]
@@ -224,8 +224,8 @@ jobs:
               if (!nzchar(trimws(txt))) next
               # Skip blocks whose output is inherently non-deterministic (run ids,
               # timings) or that need files/services CI does not have.
-              if (grepl("report\\.pdf|thesis\\.pdf|install_local|install_github|runApp|sk-\\.\\.\\.|gr_trace_summary|run_id|library\\(ellmer\\)", txt)) next
-              if (grepl("gr_client\\(", txt) && !grepl("gr_mock_client", txt)) next
+              if (grepl("report\\.pdf|thesis\\.pdf|install_local|install_github|runApp|sk-\\.\\.\\.|hr_trace_summary|run_id|library\\(ellmer\\)", txt)) next
+              if (grepl("hr_client\\(", txt) && !grepl("hr_mock_client", txt)) next
               env <- new.env(parent = globalenv()); assign("cl", cl, envir = env)
               got <- tryCatch(capture.output(print(eval(parse(text = txt), envir = env))),
                               error = function(e) paste("ERROR:", conditionMessage(e)))

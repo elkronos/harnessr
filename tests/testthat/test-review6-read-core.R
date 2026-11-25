@@ -41,7 +41,7 @@ test_that("the sentinel opening a reply, then explained, is not-found", {
 test_that("map_reduce neither merges nor lists the chunks that explained a non-answer", {
   ch <- manual_chunks(c("Revenue was 45.2 million in 2023.", "Headcount grew to 1,204 staff.",
                         "Costs fell by 3 percent overall.", "The office moved to Leeds in May."))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("Revenue was", messages[[2]]$content, fixed = TRUE)) return("Revenue was 45.2 million.")
     "NOT_IN_DOCUMENT. This excerpt does not mention revenue."
   })
@@ -57,7 +57,7 @@ test_that("map_reduce neither merges nor lists the chunks that explained a non-a
 
 test_that("an ensemble member that explained its non-answer is not adjudicated as one", {
   ch <- manual_chunks(c("Revenue was 45.2 million in 2023.", "Headcount grew to 1,204 staff."))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     body <- messages[[2]]$content
     if (grepl("[chunk 1", body, fixed = TRUE) && grepl("[chunk 2", body, fixed = TRUE)) {
       return("NOT_IN_DOCUMENT. The excerpts do not say.")
@@ -99,7 +99,7 @@ test_that("the sentinels are recognised in the punctuation of other scripts", {
 test_that("map_reduce over chunks that all reply the sentinel with an ideographic stop is not-found", {
   ch <- manual_chunks(c("\u4eba\u6570\u589e\u52a0\u4e86\u3002", "\u6210\u672c\u4e0b\u964d\u4e86\u3002",
                         "\u529e\u516c\u5ba4\u642c\u8fc1\u4e86\u3002"))
-  cl <- gr_mock_client(function(messages, params) "NOT_IN_DOCUMENT\u3002")
+  cl <- hr_mock_client(function(messages, params) "NOT_IN_DOCUMENT\u3002")
   a <- quiet(gr_read(ch, "What was revenue?", cl, "map_reduce"))
   # Was: four calls (a merge of three sentinels) and an answer that was the
   # sentinel, with is_not_found() FALSE.
@@ -167,13 +167,13 @@ test_that("a common phrase on many pages is left unplaced, quickly", {
 # ---------------------------------------------------------------------------
 
 test_that("one answer's record holds its own run, not every run of a shared trace", {
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (any(grepl("CONFIDENTIAL", vapply(messages, `[[`, "", "content"), fixed = TRUE))) {
       stop("gateway refused")
     }
     "It says so."
   })
-  tr <- gr_trace()
+  tr <- hr_trace()
   a1 <- quiet(answer_document("Public memo: revenue was 45.2 million in 2023.", "What was revenue?",
                               "fast", client = cl, trace = tr))
   n1 <- length(tr$steps)
@@ -198,8 +198,8 @@ test_that("one answer's record holds its own run, not every run of a shared trac
 
 test_that("an answer that records where its run started reports only from there", {
   # The field gr_read() and answer_document() set: steps `first` to `last`.
-  cl <- gr_mock_client(function(messages, params) "It says so.")
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(messages, params) "It says so.")
+  tr <- hr_trace()
   quiet(answer_document("Public memo: revenue was 45.2 million in 2023.", "What was revenue?",
                         "fast", client = cl, trace = tr))
   n1 <- length(tr$steps)
@@ -267,7 +267,7 @@ test_that("an extraction keeps a value quoted from a decomposed or full-width so
     writeBin(charToRaw(enc2utf8(paste0("Background about the trial design.\n\n", text, "\n"))), f)
     fl <- gr_fields(n = gr_field("Participants randomised", type = "integer"))
     js <- as.character(jsonlite::toJSON(list(n = 120, n__quote = quote), auto_unbox = TRUE))
-    cl <- gr_mock_client(function(messages, params) js)
+    cl <- hr_mock_client(function(messages, params) js)
     quiet(gr_extract(f, fl, client = cl, recipe = "fast", require_quote = TRUE))
   }
   fr <- one("Nous avons randomise\u0301 120 patients dans deux centres.",
@@ -310,7 +310,7 @@ test_that("French and CJK quote marks and full stops around a quotation are typo
 
 test_that("chunks whose pages are labels or fractions are read, and the prompt names them", {
   seen <- character(0)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     seen <<- c(seen, messages[[2]]$content)
     "Revenue was 45.2 million."
   })
@@ -331,19 +331,19 @@ test_that("chunks whose pages are labels or fractions are read, and the prompt n
 # read-core-12: tree_merge() packed findings by their bare size, while each
 # goes out in "<findings i>" tags. 300 one-word findings counted 1,200
 # tokens against a 2,145-token budget, went out as a 3,501-token prompt,
-# and gr_call() refused it for a 3,000-token window.
+# and hr_call() refused it for a 3,000-token window.
 # ---------------------------------------------------------------------------
 
 test_that("merge groups are sized with the tags each finding is sent in", {
-  quiet(gr_register_model("review6-merge-ctx", context_window = 3000L, max_output = 500L,
+  quiet(hr_register_model("review6-merge-ctx", context_window = 3000L, max_output = 500L,
                           input_usd = 0, output_usd = 0))
-  cl <- gr_mock_client(function(messages, params) "Merged answer.")
+  cl <- hr_mock_client(function(messages, params) "Merged answer.")
   spec <- gr_read_spec("map_reduce", model = "review6-merge-ctx", max_answer_tokens = 300L)
-  tr <- gr_trace()
+  tr <- hr_trace()
   res <- quiet(harnessr:::tree_merge(cl, "Did revenue rise in 2023?", rep("Yes.", 300), spec, tr))
   expect_true(res$ok)                                        # was FALSE
   expect_length(tr$errors, 0L)
   sent <- vapply(tr$steps, function(s)
-    sum(gr_count_tokens(vapply(s$prompt, function(m) m$content, character(1)))), numeric(1))
+    sum(hr_count_tokens(vapply(s$prompt, function(m) m$content, character(1)))), numeric(1))
   expect_true(all(sent + 300 <= 3000))
 })

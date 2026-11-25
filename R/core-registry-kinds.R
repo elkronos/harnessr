@@ -22,7 +22,7 @@ hr_state$tokenizers     <- list()
 
 hr_state$embed_cache    <- new.env(parent = emptyenv())
 
-# What gr_options() has set; gr_defaults fills in the rest.
+# What hr_options() has set; gr_defaults fills in the rest.
 hr_state$options        <- list()
 
 # The kinds of module a layer above the core has said it registers, by name.
@@ -37,7 +37,7 @@ hr_state$kind_access    <- list()
 # (see register_core_kinds()).
 hr_state$steps          <- list()
 
-# The built-in "lexical" embedder's function, kept by .onLoad(). gr_embed()
+# The built-in "lexical" embedder's function, kept by .onLoad(). hr_embed()
 # runs it when the embedder registered as "lexical" fails on the fallback path.
 hr_state$embed_fallback <- NULL
 

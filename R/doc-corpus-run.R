@@ -30,11 +30,11 @@ limit_note <- function(ans) {
   calls <- n[["call_cap_reached", exact = TRUE]]
   if (!is.null(cost)) {
     return(list(limit = sprintf("$%s spending limit", format(cost, scientific = FALSE)),
-                option = "gr_options(max_cost_usd =)"))
+                option = "hr_options(max_cost_usd =)"))
   }
   if (!is.null(calls)) {
     return(list(limit = sprintf("%s-request limit", format(calls, scientific = FALSE)),
-                option = "gr_options(max_calls =)"))
+                option = "hr_options(max_calls =)"))
   }
   NULL
 }
@@ -49,7 +49,7 @@ limit_note <- function(ans) {
 #' two overlap, so the larger count is taken, not the sum.
 #'
 #' A trace error marked `recovered = TRUE` is left out: the pipeline got round
-#' it without losing input, as gr_embed() does when an embeddings request fails
+#' it without losing input, as hr_embed() does when an embeddings request fails
 #' and it ranks on lexical vectors instead. The document was read in full, and
 #' the answer already says it is partial where the fallback degrades it. Counted,
 #' it made every document "failed" and kept it out of the store on any endpoint
@@ -78,7 +78,7 @@ failed_note <- function(ans, trace = NULL) {
 #'
 #' `usd` is the row's `cost_usd`: NA when any model in the read has no
 #' registered price, because a total that silently omits one is what
-#' gr_trace_cost() exists to prevent. `priced` is what the priced models cost, a
+#' hr_trace_cost() exists to prevent. `priced` is what the priced models cost, a
 #' floor under `usd`. The unpriced models are split into those that made only
 #' embeddings requests (`unpriced_embed`) and the rest (`unpriced`).
 #'
@@ -93,9 +93,9 @@ failed_note <- function(ans, trace = NULL) {
 #' without the model doing the reading, a floor bounds almost nothing.
 #' @noRd
 corpus_cost <- function(trace) {
-  cost <- gr_trace_cost(trace)
+  cost <- hr_trace_cost(trace)
   unpriced <- cost$model[is.na(cost$usd)]
-  # The steps gr_trace_cost() prices, so the models line up with its rows.
+  # The steps hr_trace_cost() prices, so the models line up with its rows.
   steps <- Filter(function(s) !identical(s$kind, "local") && !is.null(s$tokens), trace$steps)
   model <- vapply(steps, function(s) as_chr1(s$model, "unknown"), character(1))
   embed <- vapply(steps, function(s) identical(s$label, "embed.request"), logical(1))
@@ -128,11 +128,11 @@ corpus_models_have <- function(models) {
 #'   downloaded as [gr_ingest()] downloads one.
 #' @param question The question, asked of every document.
 #' @param recipe One recipe, applied to every document.
-#' @param client A `gr_client`. Wrap it in [gr_cache_client()] for a long run:
+#' @param client A `gr_client`. Wrap it in [hr_cache_client()] for a long run:
 #'   with a durable cache directory, a restart pays for nothing it has already
-#'   answered. A closure-backed client ([gr_backend_client()] or
-#'   [gr_mock_client()]) reuses a cache or a `store` across sessions only if it
-#'   was given a stable `id`; see [gr_backend_client()] for why.
+#'   answered. A closure-backed client ([hr_backend_client()] or
+#'   [hr_mock_client()]) reuses a cache or a `store` across sessions only if it
+#'   was given a stable `id`; see [hr_backend_client()] for why.
 #' @param store Optional directory. Each document's result is written there as
 #'   it completes and restored on a later run instead of being read again. This
 #'   is what makes a four-hour run survive being interrupted. Only a document
@@ -150,7 +150,7 @@ corpus_models_have <- function(models) {
 #' @param max_total_usd Stop once the run has spent this much, marking the
 #'   remaining documents `"skipped"`, except any restored from `store`, which
 #'   costs nothing. This is a *corpus* ceiling and is separate
-#'   from `gr_options(max_cost_usd =)`, which is a limit per document.
+#'   from `hr_options(max_cost_usd =)`, which is a limit per document.
 #'   It needs a model with a registered price: against one without, cost is
 #'   *unknown* rather than zero, the ceiling cannot be enforced, and you get a
 #'   `gr_corpus_cost_unknown` warning instead of a silent free pass. The one
@@ -162,13 +162,13 @@ corpus_models_have <- function(models) {
 #' @param max_total_calls Stop *before* a document once the run has made this
 #'   many requests, marking the rest `"skipped"`, except any restored from
 #'   `store`, which makes no request. Requests are counted as
-#'   `gr_options(max_calls =)` counts them: model calls and requests to an
+#'   `hr_options(max_calls =)` counts them: model calls and requests to an
 #'   embeddings endpoint alike, so a document read with `"needle"` through an
 #'   API embedder spends more of it than its model calls alone, and more than
 #'   the "model calls" a printed trace shows. The counterpart to
 #'   `max_total_usd` for runs whose model has no registered price, and the only
 #'   ceiling that bounds the run rather than each document:
-#'   `gr_options(max_calls =)` is per document, so a corpus can make
+#'   `hr_options(max_calls =)` is per document, so a corpus can make
 #'   `length(sources)` times that many. Checked before each document, because a
 #'   call ceiling noticed after the calls is not a ceiling. This means the run
 #'   can overshoot by at most one document's worth, exactly as `max_total_usd`
@@ -177,10 +177,10 @@ corpus_models_have <- function(models) {
 #'   large corpus, where holding every trace and evidence table is the thing that
 #'   runs you out of memory.
 #' @param recursive Descend into subdirectories when `sources` is a directory.
-#' @param trace A [gr_trace()] to fold this run's accounting into, so several
+#' @param trace An [hr_trace()] to fold this run's accounting into, so several
 #'   stages of one review add up to one figure. It is a *parent*: this run still
 #'   gets its own trace, which is what `$trace` returns and what
-#'   `gr_options(max_calls =)` is measured against. Running a stage directly on a
+#'   `hr_options(max_calls =)` is measured against. Running a stage directly on a
 #'   shared trace would charge the previous stage's calls against this one's
 #'   ceiling. Omit it and there is no parent.
 #' @param ... Overrides applied to the recipe, as in [answer_document()].
@@ -255,12 +255,12 @@ corpus_models_have <- function(models) {
 #' `iterative`), but not when they only placed a semantic segmenter's cuts;
 #' that, like a proposition batch kept as written, shows in `warnings`, and a
 #' contextual header that could not be written only in the trace's `errors`
-#' (see [gr_trace()]). A row that a
+#' (see [hr_trace()]). A row that a
 #' limit or a failed request stopped keeps `document_id`, `reader` and the chunk
 #' counts, since the text was read; only `answer` and `not_found` are left `NA`.
 #' A restored row keeps the numbers from when that document was first read, so
 #' its `cost_usd` is what it cost then, not what this run spent. That is why the
-#' run's own spend comes from `gr_trace_cost(x$trace)` and not from summing the
+#' run's own spend comes from `hr_trace_cost(x$trace)` and not from summing the
 #' column.
 #'
 #' @section Documents that are the same document:
@@ -276,7 +276,7 @@ corpus_models_have <- function(models) {
 #' set and `sum(!is.na(x$summary$duplicate_of))` is the number to report as
 #' removed.
 #'
-#' This is about the table, not the bill: a [gr_cache_client()] already makes the
+#' This is about the table, not the bill: an [hr_cache_client()] already makes the
 #' second copy's calls free. What it could not do is stop the duplicate from
 #' appearing in the results as a second, independent document, which is how one
 #' study gets counted twice in a synthesis.
@@ -285,8 +285,8 @@ corpus_models_have <- function(models) {
 #' two documents here; matching those needs bibliographic metadata, not text.
 #'
 #' @section Budgets:
-#' Every document gets its own trace, so `gr_options(max_calls =)` and
-#' `gr_options(max_cost_usd =)` apply per document exactly as they would if you
+#' Every document gets its own trace, so `hr_options(max_calls =)` and
+#' `hr_options(max_cost_usd =)` apply per document exactly as they would if you
 #' read it alone. One enormous document therefore cannot starve the rest.
 #'
 #' That is a deliberate design and it leaves the run itself unbounded: two
@@ -302,13 +302,13 @@ corpus_models_have <- function(models) {
 #' carry the accounting across, so the obstacle is not the trace: it is that
 #' duplicate detection, the resume store and both run-level ceilings are all
 #' order-dependent, and a parallel loop would have to serialise on each of them. Within a document,
-#' `gr_options(parallel = TRUE)` already applies.
+#' `hr_options(parallel = TRUE)` already applies.
 #'
-#' @seealso [answer_document()], [gr_compare()], [gr_cache_client()],
-#'   [gr_trace_cost()]
+#' @seealso [answer_document()], [gr_compare()], [hr_cache_client()],
+#'   [hr_trace_cost()]
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 #'
 #' a <- tempfile(fileext = ".txt"); writeLines("Revenue was 45.2 million.", a)
 #' b <- tempfile(fileext = ".txt"); writeLines("Revenue was 51.8 million.", b)
@@ -321,7 +321,7 @@ corpus_models_have <- function(models) {
 #' bad$summary[, c("document", "status", "error")]
 #'
 #' # What the run actually cost, counting only calls that were really issued.
-#' gr_trace_cost(out$trace)
+#' hr_trace_cost(out$trace)
 gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
                          store = NULL, on_error = c("continue", "stop"),
                          max_total_usd = NULL, max_total_calls = NULL,
@@ -369,7 +369,7 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
   # Whether every row gets a `premise` column (corpus_row()): decided by the
   # recipe, so failed and skipped rows have it too and the rows bind.
   check_premise <- isTRUE(rec$read$premise)
-  client <- client %||% gr_client(model = rec$read$model)
+  client <- client %||% hr_client(model = rec$read$model)
   # Checked at the first document that has to be READ, not here: a run whose
   # every document is already in `store` sends no request and needs no key.
   credentials_checked <- FALSE
@@ -397,7 +397,7 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
   max_total_usd <- as_usd_ceiling(max_total_usd)
   # Held to the given trace's governor, less what that trace has spent, so a
   # user's hr_governor() covers this run as it covers a single read.
-  trace <- gr_trace(meta = list(recipe = rec$name, question = question,
+  trace <- hr_trace(meta = list(recipe = rec$name, question = question,
                                 documents = length(sources)),
                     governor = fork_governor(parent))
   # Each request is the draw of the run the parent is (trace_inherit_draw()).
@@ -414,13 +414,13 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
   if (is.null(max_total_calls) && is.null(max_total_usd) && length(sources) > 1L) {
     # Doubles, not integers: 3L * 1000000000L overflows to NA, and the notice
     # then announced a worst case of "NA call(s)".
-    cap <- gr_options("max_calls")
+    cap <- hr_options("max_calls")
     cap <- if (length(cap) != 1L || !is.numeric(cap) || !is.finite(cap)) NA_real_ else as.numeric(cap)
     gr_msg(if (is.na(cap)) sprintf(
-      paste0("%d document(s), and gr_options(max_calls) is not set, so nothing bounds how many ",
+      paste0("%d document(s), and hr_options(max_calls) is not set, so nothing bounds how many ",
              "calls this run makes. Pass max_total_calls = to cap it."), length(sources))
       else sprintf(
-      paste0("%d document(s), and gr_options(max_calls) is %s PER DOCUMENT, so this run may make ",
+      paste0("%d document(s), and hr_options(max_calls) is %s PER DOCUMENT, so this run may make ",
              "up to %s call(s). Pass max_total_calls = to cap the run."),
       length(sources), format(cap, scientific = FALSE, trim = TRUE),
       format(length(sources) * cap, scientific = FALSE, trim = TRUE)))
@@ -522,9 +522,9 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     if (!stopped && !is.null(max_total_calls) && trace$calls >= max_total_calls) {
       stopped <- TRUE
       # Named as requests, with the two kinds apart: the ceiling counts
-      # embeddings requests as gr_options(max_calls =) does, and "3 call(s)"
+      # embeddings requests as hr_options(max_calls =) does, and "3 call(s)"
       # beside a trace that printed "1 model calls" read as a miscount.
-      embed <- as.integer(gr_trace_summary(trace)$embed_calls)
+      embed <- as.integer(hr_trace_summary(trace)$embed_calls)
       gr_warn(sprintf(paste0("Stopped before document %d of %d: the run has made %d request(s)%s, ",
                              "at or above the %s `max_total_calls` ceiling, which counts ",
                              "embeddings requests as well as model calls. The remaining ",
@@ -559,13 +559,13 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
                    else ""))
     started <- Sys.time()
     # One trace per document, folded into the parent afterwards. Without a
-    # governor, `gr_options(max_calls =)` is a limit per document: sharing the
+    # governor, `hr_options(max_calls =)` is a limit per document: sharing the
     # parent outright would count earlier documents against later ones, so the
     # same document would answer differently depending on its position in the
     # corpus, the bug gr_compare() had between recipes. With a governor, the
     # forked one holds its call, spending and token limits less what the
     # documents before this one used, so they bound the whole run.
-    sub <- gr_trace(meta = list(recipe = rec$name, question = question, source = lab),
+    sub <- hr_trace(meta = list(recipe = rec$name, question = question, source = lab),
                     governor = fork_governor(trace))
     trace_inherit_draw(sub, trace)
     # What the run spent before this document, so the progress line gives the
@@ -631,7 +631,7 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     finally = trace_absorb(trace, sub)), gr_warning = doc_rec$record)
 
     secs <- round(as.numeric(difftime(Sys.time(), started, units = "secs")), 2)
-    # NOT na.rm = TRUE. gr_trace_cost() returns NA for a model with no registered
+    # NOT na.rm = TRUE. hr_trace_cost() returns NA for a model with no registered
     # price precisely so that a total cannot quietly omit it; dropping the NA here
     # turned "we do not know what this cost" into "$0.0000", which then made
     # `max_total_usd` unenforceable while the run reported itself free.
@@ -720,7 +720,7 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       warned_unpriced <- TRUE
       gr_warn(sprintf(paste0("`max_total_usd` cannot be enforced: %s no registered price, so ",
                              "what it costs is unknown rather than zero. Register the price with ",
-                             "gr_register_model(input_usd =, output_usd =), or drop the ceiling. ",
+                             "hr_register_model(input_usd =, output_usd =), or drop the ceiling. ",
                              "The run continues, uncapped."), corpus_models_have(unpriced_chat)),
               class = "gr_corpus_cost_unknown")
     }
@@ -732,7 +732,7 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       gr_warn(sprintf(paste0("`max_total_usd` is checked against the spend that has a price: ",
                              "embedding %s no registered price, so %s requests are not counted ",
                              "and the run can pass the ceiling by what they cost. Register it with ",
-                             "gr_register_model('%s', context_window =, max_output = 0, ",
+                             "hr_register_model('%s', context_window =, max_output = 0, ",
                              "input_usd =, kind = \"embedding\") to count them."),
                       corpus_models_have(unpriced_embed),
                       if (length(unpriced_embed) == 1L) "its" else "their", unpriced_embed[[1]]),
@@ -1050,7 +1050,7 @@ corpus_row <- function(document, status, answer = NULL, trace = NULL, error = NA
                        seconds = NA_real_, cost = NA_real_, document_id = NA_character_,
                        warnings = NULL, premise = FALSE) {
   seg <- if (is.null(answer)) list() else (answer$segmentation %||% list())
-  s <- if (is.null(trace)) NULL else gr_trace_summary(trace)
+  s <- if (is.null(trace)) NULL else hr_trace_summary(trace)
   row <- data.frame(
     document    = as_chr1(document),
     # The stable half of a citation. `document` is a filename: it changes when

@@ -16,7 +16,7 @@
 #'   is clamped to the model's `max_output`. `NULL` reserves
 #'   `min(max_output, max(min_output_tokens, usable / 4))`, where `usable` is the
 #'   context window after `safety_margin` and `min_output_tokens` is a
-#'   [gr_options()] setting (default 256).
+#'   [hr_options()] setting (default 256).
 #' @param overhead Tokens consumed by system prompts, question text and message
 #'   framing that are not part of the document payload.
 #' @param safety_margin Fraction of the context window left unused to absorb
@@ -24,41 +24,41 @@
 #'   \[0, 0.5\].
 #' @return A list with `input`, `output`, `context_window`, `overhead`, `margin`
 #'   and `certain` (`FALSE` when the model's limits were guessed rather than
-#'   known; see [gr_model_info()]).
-#' @seealso [gr_model_info()], [gr_estimate_cost()], [gr_count_tokens()]
+#'   known; see [hr_model_info()]).
+#' @seealso [hr_model_info()], [hr_estimate_cost()], [hr_count_tokens()]
 #' @export
 #' @family cost and token functions
 #' @examples
-#' unlist(gr_budget("gpt-4o", reserve_output = 1024, overhead = 200))
+#' unlist(hr_budget("gpt-4o", reserve_output = 1024, overhead = 200))
 #'
 #' # The same question leaves very different room on different models.
 #' vapply(c("gpt-4", "gpt-4o", "gpt-5.6-terra"),
-#'        function(m) gr_budget(m)$input, numeric(1))
+#'        function(m) hr_budget(m)$input, numeric(1))
 #'
 #' # No positive budget is an error naming what to change, never a negative
 #' # number that silently reverses the document downstream.
-#' tryCatch(gr_budget("gpt-4", overhead = 9000),
+#' tryCatch(hr_budget("gpt-4", overhead = 9000),
 #'          gr_budget_error = function(e) conditionMessage(e))
-gr_budget <- function(model = NULL, reserve_output = NULL, overhead = 0,
+hr_budget <- function(model = NULL, reserve_output = NULL, overhead = 0,
                       safety_margin = NULL) {
-  info <- gr_model_info(model)
+  info <- hr_model_info(model)
   ctx <- info$context_window
   # na_default(), not bare clamp(): clamp() maps NA to `lo`, and `lo` here is
   # ZERO margin. That leaves no headroom at all, the exact condition the margin
   # exists to prevent. Same defect the `mmr` setting was fixed for, in the one
   # place where it decides whether a prompt fits.
   # The fallback is the SESSION's margin, not a hard-coded 0.10: with
-  # gr_options(safety_margin = 0.3) set, an NA argument used to budget at 0.10
+  # hr_options(safety_margin = 0.3) set, an NA argument used to budget at 0.10
   # while omitting the argument budgeted at 0.3, so NA and omission differed
   # and NA pushed the input budget up. The option is validated when set, so it
   # is always a usable number.
-  session_margin <- gr_options("safety_margin")
+  session_margin <- hr_options("safety_margin")
   safety_margin <- clamp_warn(na_default(safety_margin %||% session_margin, session_margin,
                                          "safety_margin"),
                               0, 0.5, "safety_margin", integer = FALSE)
   usable <- floor(ctx * (1 - safety_margin))
 
-  min_out <- as_int1(gr_options("min_output_tokens"), 256L)
+  min_out <- as_int1(hr_options("min_output_tokens"), 256L)
   # One number, or text that is one: as_num1() would take the first element of
   # c(100, 9000) and budget the rest as if it were not there.
   one_num <- function(x) if (length(x) == 1L && (is.numeric(x) || is.character(x)))
@@ -71,7 +71,7 @@ gr_budget <- function(model = NULL, reserve_output = NULL, overhead = 0,
     reserve_output <- NULL
   }
   reserve_output <- if (is.null(reserve_output)) {
-    share <- as_num1(gr_options("output_reserve_share"), 0.25)
+    share <- as_num1(hr_options("output_reserve_share"), 0.25)
     min(info$max_output, max(min_out, floor(usable * share)))
   } else {
     as.integer(clamp(one_num(reserve_output), 1, info$max_output))

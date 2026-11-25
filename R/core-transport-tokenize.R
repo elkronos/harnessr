@@ -24,20 +24,20 @@
 #'   integer vector of token counts. Supplying it registers a custom tokenizer
 #'   under `name`.
 #' @return Invisibly, the name of the newly active tokenizer.
-#' @seealso [gr_tokenizer()], [gr_count_tokens()], [gr_budget()]
+#' @seealso [hr_tokenizer()], [hr_count_tokens()], [hr_budget()]
 #' @family cost and token functions
 #' @export
 #' @examples
-#' old <- gr_tokenizer()
-#' gr_set_tokenizer("heuristic")
-#' gr_count_tokens("the quick brown fox")
+#' old <- hr_tokenizer()
+#' hr_set_tokenizer("heuristic")
+#' hr_count_tokens("the quick brown fox")
 #'
 #' # Register your own; budgets recompute against it immediately.
-#' gr_set_tokenizer("naive_words",
+#' hr_set_tokenizer("naive_words",
 #'                  function(x) lengths(strsplit(trimws(x), "\\s+")))
-#' gr_count_tokens("the quick brown fox")
-#' gr_set_tokenizer(old)
-gr_set_tokenizer <- function(name, fn = NULL) {
+#' hr_count_tokens("the quick brown fox")
+#' hr_set_tokenizer(old)
+hr_set_tokenizer <- function(name, fn = NULL) {
   if (!is.null(fn)) {
     if (!is.function(fn)) gr_abort("`fn` must be a function.")
     hr_state$tokenizers <- utils::modifyList(hr_state$tokenizers %||% list(),
@@ -53,19 +53,19 @@ gr_set_tokenizer <- function(name, fn = NULL) {
                     "'tiktoken' install. Falling back is not automatic here because a ",
                     "silent fallback would change every budget calculation."))
   }
-  gr_options(tokenizer = name)
+  hr_options(tokenizer = name)
   invisible(name)
 }
 
 #' The active tokenizer
 #'
 #' @return The name of the tokenizer currently in use, visibly.
-#' @seealso [gr_set_tokenizer()], [gr_count_tokens()]
+#' @seealso [hr_set_tokenizer()], [hr_count_tokens()]
 #' @family cost and token functions
 #' @export
 #' @examples
-#' gr_tokenizer()
-gr_tokenizer <- function() gr_options("tokenizer")
+#' hr_tokenizer()
+hr_tokenizer <- function() hr_options("tokenizer")
 
 #' Count tokens in text
 #'
@@ -81,10 +81,10 @@ gr_tokenizer <- function() gr_options("tokenizer")
 #' undercounting produces a hard API failure after you have paid for the
 #' request. Rare long words (technical and medical vocabulary) can still come in
 #' under the real count, by about a tenth for a table of medical terms; that is
-#' what the `safety_margin` of [gr_budget()] is for.
+#' what the `safety_margin` of [hr_budget()] is for.
 #'
 #' For counts from OpenAI's own tokenizer install reticulate plus Python
-#' `tiktoken` and call `gr_set_tokenizer("tiktoken")`. Given `model`, it counts
+#' `tiktoken` and call `hr_set_tokenizer("tiktoken")`. Given `model`, it counts
 #' in that model's encoding. Without one, which is how the package's own budgets
 #' call it, it counts in both encodings current OpenAI models use (`cl100k_base`
 #' and `o200k_base`) and keeps the larger, so the count holds for any of them.
@@ -99,22 +99,22 @@ gr_tokenizer <- function() gr_options("tokenizer")
 #' @return Integer vector of token counts: under the default tokenizer, an
 #'   estimate built to err high (see above for the one kind of text where it
 #'   can fall short).
-#' @seealso [gr_set_tokenizer()], [gr_truncate_tokens()], [gr_budget()]
+#' @seealso [hr_set_tokenizer()], [hr_truncate_tokens()], [hr_budget()]
 #' @family cost and token functions
 #' @export
 #' @examples
-#' gr_count_tokens(c("the quick brown fox", "", "a much longer sentence than that one"))
+#' hr_count_tokens(c("the quick brown fox", "", "a much longer sentence than that one"))
 #'
 #' # Compare tokenizers on the same text.
-#' old <- gr_tokenizer()
+#' old <- hr_tokenizer()
 #' vapply(c("heuristic", "words", "chars"), function(t) {
-#'   gr_set_tokenizer(t); gr_count_tokens("the quick brown fox jumps")
+#'   hr_set_tokenizer(t); hr_count_tokens("the quick brown fox jumps")
 #' }, integer(1))
-#' gr_set_tokenizer(old)
-gr_count_tokens <- function(text, model = NULL) {
+#' hr_set_tokenizer(old)
+hr_count_tokens <- function(text, model = NULL) {
   if (is.null(text) || length(text) == 0L) return(integer(0))
   text <- vapply(text, as_chr1, character(1), USE.NAMES = FALSE)
-  which <- gr_options("tokenizer")
+  which <- hr_options("tokenizer")
   custom <- (hr_state$tokenizers %||% list())[[which]]
   out <- if (!is.null(custom)) {
     as.integer(custom(text))

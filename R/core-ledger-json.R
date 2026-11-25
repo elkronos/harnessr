@@ -26,10 +26,10 @@
 #'   written as a scalar, except in the fields of a trace that list things (a
 #'   comparison's `recipes`, the scores a ranking kept, the cleaning steps an
 #'   ingest ran), which are arrays at every length.
-#' @seealso [gr_trace_summary()], [gr_answer]
+#' @seealso [hr_trace_summary()], [gr_answer]
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "45.2 million dollars")
+#' cl <- hr_mock_client(function(m, p) "45.2 million dollars")
 #' ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #'
 #' # The answer plus every prompt and response from the same single run.
@@ -250,7 +250,7 @@ trace_as_list <- function(x) {
     meta = json_arrays(x$meta, .gr_trace_arrays),
     actor = trace_actor(x$actor),
     config = x$config,
-    summary = as.list(gr_trace_summary(x)),
+    summary = as.list(hr_trace_summary(x)),
     steps = steps,
     errors = x$errors,
     # Whether a limit cut the run short, and which. Left out, a saved run that

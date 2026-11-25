@@ -19,7 +19,7 @@ review_docs <- function(env = parent.frame()) {
 # after. The same object across runs, so the store key is the same and only the
 # outage differs.
 outage_client <- function(state) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     state$calls <- state$calls + 1L
     if (isTRUE(state$down)) stop("HTTP 503: service unavailable")
     sys <- as.character(messages[[1]]$content)
@@ -44,7 +44,7 @@ outage_client <- function(state) {
 
 test_that("a screening call that failed leaves no decision, and the run says so", {
   d <- review_docs()
-  cl <- gr_mock_client(function(m, p) gr_result(FALSE, error = "HTTP 500 after 3 retries"))
+  cl <- hr_mock_client(function(m, p) gr_result(FALSE, error = "HTTP 500 after 3 retries"))
   s <- quiet(gr_screen(d, question = "Does treatment lower blood pressure?",
                        include = "A randomised trial", client = cl, keep_answers = TRUE))
   expect_true(all(is.na(s$table$decision)))
@@ -70,7 +70,7 @@ test_that("a screening call that failed leaves no decision, and the run says so"
 
 test_that("a failed screening call is not a model deferral in a calibration", {
   d <- review_docs()
-  cl <- gr_mock_client(function(m, p) stop("HTTP 500 server error"))
+  cl <- hr_mock_client(function(m, p) stop("HTTP 500 server error"))
   s <- quiet(gr_screen(d, question = "Q?", include = "A randomised trial", client = cl))
   ref <- data.frame(document = s$table$document, human_decision = "include",
                     stringsAsFactors = FALSE)
@@ -81,7 +81,7 @@ test_that("a failed screening call is not a model deferral in a calibration", {
 
 test_that("a real 'unclear' is still a decision, and a label outside the schema is not", {
   d <- review_docs()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     '{"decision":"unclear","reason":"Hard to say.","criterion":null,"quote":null}'
   })
   s <- quiet(gr_screen(d, question = "Q?", include = "A randomised trial", client = cl))
@@ -90,7 +90,7 @@ test_that("a real 'unclear' is still a decision, and a label outside the schema 
   # "maybe" used to be read as "unclear". It is not one of the schema's
   # values, so the reply is refused: no decision, and the call counts as
   # failed rather than as the model deferring to a person.
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     '{"decision":"maybe","reason":"Hard to say.","criterion":null,"quote":null}'
   })
   s <- quiet(gr_screen(d, question = "Q?", include = "A randomised trial", client = cl))
@@ -104,7 +104,7 @@ test_that("a screening quote is checked against source_text, not a model-written
   ch <- new_chunks(c("[This excerpt reports a randomised trial.]\n\nWe surveyed 60 teenagers about sleep.",
                      "Nothing else is reported."), "contextual", list(max_tokens = 500))
   ch$chunks$source_text <- c("We surveyed 60 teenagers about sleep.", NA)
-  quoting <- function(q) gr_mock_client(function(m, p) {
+  quoting <- function(q) hr_mock_client(function(m, p) {
     sprintf('{"decision":"include","reason":"r","criterion":null,"quote":"%s"}', q)
   })
   spec <- list(reader = "screen", include = "A randomised trial")
@@ -163,7 +163,7 @@ test_that("one failed document among good ones: only the good ones are stored", 
   d <- review_docs()
   st <- withr::local_tempdir()
   flaky <- new.env(); flaky$n <- 0L
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     flaky$n <- flaky$n + 1L
     seen <- paste(vapply(m, function(x) as.character(x$content), ""), collapse = " ")
     if (flaky$n == 1L && grepl("randomised trial of 400", seen, fixed = TRUE)) {
@@ -227,7 +227,7 @@ test_that("the store key changes with extra_body, the embedding model and the em
   local_registries()
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("Revenue in 2023 was 12 million dollars.", f)
-  mk <- function(...) gr_client(model = "gpt-4o-mini", api = "chat",
+  mk <- function(...) hr_client(model = "gpt-4o-mini", api = "chat",
                                 base_url = "http://127.0.0.1:9/v1", api_key = "sk-x", ...)
   key <- function(cl, recipe = "fast") corpus_key(f, "q", as_recipe(recipe), cl)
 
@@ -241,12 +241,12 @@ test_that("the store key changes with extra_body, the embedding model and the em
   expect_false(identical(key(small, "needle"), key(large, "needle")))
 
   before <- key(small, "needle")
-  gr_options(embedder = "lexical")
+  hr_options(embedder = "lexical")
   expect_false(identical(before, key(small, "needle")))
 
   # An embedder option naming nothing registered is the run's error to raise,
   # not the key's.
-  gr_options(embedder = "no-such-embedder")
+  hr_options(embedder = "no-such-embedder")
   expect_no_error(key(small, "needle"))
 })
 
@@ -254,13 +254,13 @@ test_that("a rerun with a different extra_body is read again, not restored", {
   local_registries()
   local_clean_cache()
   # The backend's model has no price, so the run has to allow that.
-  gr_options(allow_unpriced = TRUE)
+  hr_options(allow_unpriced = TRUE)
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("Revenue in 2023 was 12 million dollars.", f)
   st <- withr::local_tempdir()
   # The effort is read from the request's extra_body, as a provider would.
   cl <- function(effort) {
-    b <- gr_backend_client(function(messages, params) {
+    b <- hr_backend_client(function(messages, params) {
       sprintf("Answer produced at effort=%s.", effort)
     }, id = "review-stable-backend")
     b$extra_body <- list(reasoning = list(effort = effort))
@@ -283,7 +283,7 @@ store_fixture <- function(env = parent.frame()) {
   doc <- file.path(dir, "a.txt")
   writeLines("Revenue was 45.2 million dollars.", doc)
   st <- file.path(dir, "store"); dir.create(st)
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million.")
   list(doc = doc, store = st, client = cl, marker = file.path(dir, "MARKER"),
        key = corpus_key(doc, "Q?", as_recipe("fast"), cl))
 }

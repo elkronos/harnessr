@@ -10,7 +10,7 @@ shiny_app <- function(dir, cl, fns = list(), env = parent.frame()) {
   app <- system.file("shiny", "app.R", package = "harnessr")
   skip_if(!nzchar(app), "the Shiny app is not available")
   e <- new.env(parent = globalenv())
-  e$gr_client <- function(model = NULL, api_key = NULL, ...) cl
+  e$hr_client <- function(model = NULL, api_key = NULL, ...) cl
   e$shinyApp <- function(ui, server, ...) server
   for (nm in names(fns)) assign(nm, fns[[nm]], envir = e)
   # The app attaches shiny; leave the search path as it was found.
@@ -55,11 +55,11 @@ source_file <- function(...) {
 test_that("custom cleaning with every step unticked cleans nothing", {
   local_registries()
   local_clean_cache()
-  gr_options(verbose = FALSE)
+  hr_options(verbose = FALSE)
   dir <- withr::local_tempdir()
   writeLines(c("The gain was attri-", "buted to the new plant.", "", "Page 3", "",
                "Revenue was 45.2 million dollars."), file.path(dir, "report.txt"))
-  e <- shiny_app(dir, gr_mock_client(function(m, p) "unused"))
+  e <- shiny_app(dir, hr_mock_client(function(m, p) "unused"))
   f <- normalizePath(file.path(dir, "report.txt"))
   shiny::testServer(e$server, {
     # An empty checkbox group reaches the server as NULL.
@@ -84,10 +84,10 @@ test_that("custom cleaning with every step unticked cleans nothing", {
 test_that("a second click on Ask made during a run does not bill the run twice", {
   local_registries()
   local_clean_cache()
-  gr_options(verbose = FALSE)
+  hr_options(verbose = FALSE)
   dir <- withr::local_tempdir()
   writeLines(revenue_lines(), file.path(dir, "report.txt"))
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   e <- shiny_app(dir, cl)
   f <- normalizePath(file.path(dir, "report.txt"))
   shiny::testServer(e$server, {
@@ -119,11 +119,11 @@ test_that("a second click on Ask made during a run does not bill the run twice",
 test_that("the app says why an answer is partial when every request failed", {
   local_registries()
   local_clean_cache()
-  gr_options(verbose = FALSE)
+  hr_options(verbose = FALSE)
   dir <- withr::local_tempdir()
   writeLines(revenue_lines(), file.path(dir, "report.txt"))
   # A mistyped key: every request comes back HTTP 401, recorded, not raised.
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     structure(list(ok = FALSE, text = "", error = "HTTP 401: Incorrect API key provided",
                    status = 401L, usage = list(input = 0L, output = 0L), model = "mock",
                    finish_reason = NA_character_, retryable = FALSE, raw = NULL),
@@ -152,10 +152,10 @@ test_that("the app says why an answer is partial when every request failed", {
 test_that("a complete answer shows no reason and its own text", {
   local_registries()
   local_clean_cache()
-  gr_options(verbose = FALSE)
+  hr_options(verbose = FALSE)
   dir <- withr::local_tempdir()
   writeLines(revenue_lines(), file.path(dir, "report.txt"))
-  e <- shiny_app(dir, gr_mock_client(function(m, p) "Revenue was 45.2 million dollars."))
+  e <- shiny_app(dir, hr_mock_client(function(m, p) "Revenue was 45.2 million dollars."))
   f <- normalizePath(file.path(dir, "report.txt"))
   shiny::testServer(e$server, {
     app_inputs(session, f, readers = "stuff")
@@ -170,14 +170,14 @@ test_that("a complete answer shows no reason and its own text", {
 test_that("a recipe that threw still shows its whole error", {
   local_registries()
   local_clean_cache()
-  gr_options(verbose = FALSE)
+  hr_options(verbose = FALSE)
   long <- paste("This reader refused to run, and here is a long and specific reason that",
                 "runs well past one hundred and twenty characters: set top_k to 3 and retry.")
   gr_register_reader("boom", function(chunks, question, client, spec, trace) stop(long),
                      signature = "boom|0|none")
   dir <- withr::local_tempdir()
   writeLines(revenue_lines(), file.path(dir, "report.txt"))
-  e <- shiny_app(dir, gr_mock_client(function(m, p) "unused"))
+  e <- shiny_app(dir, hr_mock_client(function(m, p) "unused"))
   f <- normalizePath(file.path(dir, "report.txt"))
   shiny::testServer(e$server, {
     app_inputs(session, f, readers = "boom")
@@ -196,7 +196,7 @@ test_that("a recipe that threw still shows its whole error", {
 test_that("the app reads only the files it lists, and never touches a crafted path", {
   local_registries()
   local_clean_cache()
-  gr_options(verbose = FALSE)
+  hr_options(verbose = FALSE)
   dir <- withr::local_tempdir()
   dir.create(file.path(dir, ".private"))
   dir.create(file.path(dir, "sub"))
@@ -208,7 +208,7 @@ test_that("the app reads only the files it lists, and never touches a crafted pa
   # Every filesystem call the app makes on a path, recorded.
   seen <- character(0)
   rec <- function(f) function(x, ...) { seen <<- c(seen, as.character(x)); f(x, ...) }
-  e <- shiny_app(dir, gr_mock_client(function(m, p) "unused"),
+  e <- shiny_app(dir, hr_mock_client(function(m, p) "unused"),
                  fns = list(normalizePath = rec(base::normalizePath),
                             file.exists = rec(base::file.exists),
                             dir.exists = rec(base::dir.exists)))
@@ -245,12 +245,12 @@ test_that("the app reads only the files it lists, and never touches a crafted pa
 test_that("a listed file that is a symlink out of the root is still refused", {
   skip_on_os("windows")
   local_registries()
-  gr_options(verbose = FALSE)
+  hr_options(verbose = FALSE)
   dir <- withr::local_tempdir()
   outside <- withr::local_tempdir()
   writeLines("secret outside the root", file.path(outside, "secret.txt"))
   skip_if_not(file.symlink(file.path(outside, "secret.txt"), file.path(dir, "link.txt")))
-  e <- shiny_app(dir, gr_mock_client(function(m, p) "unused"))
+  e <- shiny_app(dir, hr_mock_client(function(m, p) "unused"))
   listed <- e$list_documents(e$ALLOWED_ROOTS[[1]])
   expect_length(listed, 1L)
   expect_null(e$safe_path(listed, listed))
@@ -263,7 +263,7 @@ test_that("a listed file that is a symlink out of the root is still refused", {
 test_that("the app offers every reader except the two that need a protocol", {
   local_registries()
   dir <- withr::local_tempdir()
-  e <- shiny_app(dir, gr_mock_client(function(m, p) "unused"))
+  e <- shiny_app(dir, hr_mock_client(function(m, p) "unused"))
   expect_false(any(c("extract", "screen") %in% e$read_choices))
   expect_setequal(e$read_choices, setdiff(gr_readers()$name, c("extract", "screen")))
 })
@@ -275,12 +275,12 @@ test_that("the app offers every reader except the two that need a protocol", {
 test_that("clearing the cost field keeps the R session's cap, and the label says so", {
   local_registries()
   local_clean_cache()
-  gr_options(verbose = FALSE, max_cost_usd = 3)
+  hr_options(verbose = FALSE, max_cost_usd = 3)
   dir <- withr::local_tempdir()
   writeLines(revenue_lines(), file.path(dir, "report.txt"))
   cap_in_run <- list()
-  cl <- gr_mock_client(function(m, p) {
-    cap_in_run[[length(cap_in_run) + 1L]] <<- gr_options("max_cost_usd")
+  cl <- hr_mock_client(function(m, p) {
+    cap_in_run[[length(cap_in_run) + 1L]] <<- hr_options("max_cost_usd")
     "Revenue was 45.2 million dollars."
   })
   e <- shiny_app(dir, cl)
@@ -296,10 +296,10 @@ test_that("clearing the cost field keeps the R session's cap, and the label says
     session$setInputs(max_cost = 0.5, question = "What was the margin?", go = 2)
     expect_identical(cap_in_run[[2]], 0.5)
   })
-  expect_identical(gr_options("max_cost_usd"), 3)
+  expect_identical(hr_options("max_cost_usd"), 3)
 
   # With no session cap, the label says blank is no limit.
-  gr_options(max_cost_usd = NULL)
+  hr_options(max_cost_usd = NULL)
   e2 <- shiny_app(dir, cl)
   expect_match(e2$cap_label, "blank = no limit", fixed = TRUE)
 })
@@ -330,7 +330,7 @@ test_that("the offline demo runs every section and every reader", {
 test_that("an answer from gr_compare carries its recipe's read, and the help says so", {
   local_registries()
   local_clean_cache()
-  gr_options(verbose = FALSE)
+  hr_options(verbose = FALSE)
   cmp <- quiet(gr_compare(gr_example(), "What was revenue?",
                           list(gr_recipe("a", segment = "paragraph", read = "stuff"),
                                gr_recipe("b", segment = "sentence", read = "stuff")),

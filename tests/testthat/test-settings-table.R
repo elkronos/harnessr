@@ -27,8 +27,8 @@ test_that("gr_settings_table() has every declared setting of every stage", {
     args <- setdiff(names(formals(get(fn, envir = ns))), c(decl$inputs, "..."))
     for (a in args) expect_true(has(decl$stage, paste0(fn, "()"), a), info = paste(fn, a))
   }
-  for (nm in union(names(gr_options()), names(ns$.gr_option_rules))) {
-    expect_true(has("options", "gr_options()", nm), info = nm)
+  for (nm in union(names(hr_options()), names(ns$.gr_option_rules))) {
+    expect_true(has("options", "hr_options()", nm), info = nm)
   }
   expect_false(anyDuplicated(paste(s$stage, s$where, s$name)) > 0)
 })
@@ -74,7 +74,7 @@ test_that("the table's own declarations name real settings and agree with the co
   expect_true(all(ns$.gr_stage_basic %in% keys))
   expect_true(all(names(ns$.gr_stage_evidence) %in% keys))
   for (e in ns$.gr_stage_evidence) expect_true(ns$evidence_ok(e))
-  expect_true(all(ns$.gr_option_basic %in% names(gr_options())))
+  expect_true(all(ns$.gr_option_basic %in% names(hr_options())))
   guide_keys <- c(paste(s$stage, s$name, sep = "."),
                   paste(s$stage, sub("\\(\\)$", "", s$where), s$name, sep = "."))
   expect_true(all(names(ns$.gr_setting_guides) %in% guide_keys))

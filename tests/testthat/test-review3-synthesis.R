@@ -30,7 +30,7 @@ r3s_claim <- function(text, ids) {
 r3s_client <- function(revise = NULL) {
   write <- c(Trials = "A benefit [study 1], confirmed elsewhere [study 3].",
              Replication = "It replicated [study 3].")
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     last <- messages[[length(messages)]]$content
     all_txt <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
@@ -162,7 +162,7 @@ r3s_batch_table <- function(n = 40L) {
 # study 40, which it was not given. With `honest`, the batch holding study 40
 # cites it too.
 r3s_batch_client <- function(honest = FALSE) {
-  gr_mock_client(function(m, p) {
+  hr_mock_client(function(m, p) {
     txt <- paste(vapply(m, `[[`, "", "content"), collapse = " ")
     if (grepl("<draft", txt, fixed = TRUE)) {
       return(paste("Merged:", paste(trimws(regmatches(txt, gregexpr("Draft[^<]*", txt))[[1]]),
@@ -181,7 +181,7 @@ test_that("a batch draft citing a study outside its batch is reported and left a
   # held studies 1-16 citing [study 40] passed: n_unsupplied 0, partial FALSE,
   # "(Author40, 2040)" in the text and Author40 in the reference list.
   local_registries()
-  gr_register_model("r3s-small", context_window = 3000, max_output = 400,
+  hr_register_model("r3s-small", context_window = 3000, max_output = 400,
                     input_usd = 0, output_usd = 0)
   s <- quiet(gr_synthesise(r3s_batch_table(), outline = c(Findings = "what"), question = "Q?",
                            client = r3s_batch_client(), model = "r3s-small",
@@ -200,7 +200,7 @@ test_that("a study another batch of the section was given is counted, but still 
   # batch that did not are one text. Leaving the marker would un-render the
   # honest citation too, so it is rendered -- and the section says so.
   local_registries()
-  gr_register_model("r3s-small", context_window = 3000, max_output = 400,
+  hr_register_model("r3s-small", context_window = 3000, max_output = 400,
                     input_usd = 0, output_usd = 0)
   s <- quiet(gr_synthesise(r3s_batch_table(), outline = c(Findings = "what"), question = "Q?",
                            client = r3s_batch_client(honest = TRUE), model = "r3s-small",
@@ -216,11 +216,11 @@ test_that("with claims, a batch citing a study from its claims block is not repo
   # behind every claim, so citing one outside the batch is what it was asked
   # to do. A per-batch check there would leave correct citations as markers.
   local_registries()
-  gr_register_model("r3s-small", context_window = 3000, max_output = 400,
+  hr_register_model("r3s-small", context_window = 3000, max_output = 400,
                     input_usd = 0, output_usd = 0)
   tab <- r3s_batch_table()
   tab$authors <- NULL; tab$year <- NULL
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     sys <- m[[1]]$content
     txt <- paste(vapply(m, `[[`, "", "content"), collapse = " ")
     if (grepl("turn a table of studies", sys, fixed = TRUE)) {
@@ -287,7 +287,7 @@ test_that("a lone acronym author is cited by name, not read as initials", {
                     authors = c("Smith, J. and Okafor, A.", "WHO", "Garcia, R."),
                     year = c(2019L, 2020L, 2021L), design = c("RCT", "guideline", "cohort"),
                     stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     "A trial [study 1], the guideline [study 2] and a cohort [study 3]."
   })
   s <- quiet(gr_synthesise(tab, outline = c(Findings = "what"), question = "Q?", client = cl))
@@ -322,7 +322,7 @@ test_that("an author list ending in et al. is cited as et al., never as one or t
   expect_identical(harnessr:::bib_keys(tab, cols, form = "narrative")[1], "Smith et al. (2020)")
   # An et al. list the rest of which cannot be read still falls back.
   expect_null(harnessr:::bib_surnames("Smith, Jones, Lee, et al."))
-  cl <- gr_mock_client(function(messages, params) "One [study 1] and another [study 2].")
+  cl <- hr_mock_client(function(messages, params) "One [study 1] and another [study 2].")
   syn <- quiet(gr_synthesise(tab[1:2, ], outline = c(Findings = "what"), question = "Q?", client = cl))
   expect_match(syn$text, "One (Smith et al., 2020) and another (Smith et al., 2021).", fixed = TRUE)
 })
@@ -357,7 +357,7 @@ test_that("a byline's degrees are taken out, not printed as surnames", {
   tab <- data.frame(document = "a.pdf", status = "ok", duplicate_of = NA_character_,
                     n_filled = 2L, authors = "John Smith MD, Aisha Okafor PhD", year = 2019L,
                     design = "RCT", stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(messages, params) "A trial [study 1].")
+  cl <- hr_mock_client(function(messages, params) "A trial [study 1].")
   s <- quiet(gr_synthesise(tab, outline = c(Findings = "what"), question = "Q?", client = cl))
   expect_match(s$text, "A trial (Smith & Okafor, 2019).", fixed = TRUE)
 })
@@ -436,7 +436,7 @@ test_that("studies lost to a claims batch are counted in the flow, the report an
                     design = rep(c("randomised trial", "cohort", "survey"), length.out = n),
                     finding = rep(c("supports", "no difference", "contradicts"), length.out = n),
                     stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     txt <- paste(vapply(messages, function(m) as.character(m$content), character(1)), collapse = "\n")
     if (grepl("Group the ones", sys, fixed = TRUE)) return('{"groups":[]}')

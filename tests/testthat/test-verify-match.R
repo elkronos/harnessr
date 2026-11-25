@@ -188,7 +188,7 @@ test_that("verify is a spec field only when TRUE and is checked", {
 
 test_that("by default the iterative step sends what it always sent", {
   ch <- iter_chunks()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("reading iteratively", m[[1]]$content, fixed = TRUE)) {
       return('{"can_answer": true, "answer": "Revenue was 45.2 million.", "next_query": ""}')
     }
@@ -207,7 +207,7 @@ test_that("by default the iterative step sends what it always sent", {
 test_that("verify = TRUE: a fabricated quotation does not stop the loop", {
   ch <- iter_chunks()
   seen <- list()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (!grepl("reading iteratively", m[[1]]$content, fixed = TRUE)) return("x")
     seen[[length(seen) + 1L]] <<- m
     if (length(seen) == 1L) {
@@ -240,7 +240,7 @@ test_that("verify = TRUE: a fabricated quotation does not stop the loop", {
 
 test_that("verify = TRUE: a step with a verified quotation stops at once", {
   ch <- iter_chunks()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (!grepl("reading iteratively", m[[1]]$content, fixed = TRUE)) return("x")
     iter_step("Revenue was 45.2 million.",
               list(list(chunk_id = 2L,
@@ -258,7 +258,7 @@ test_that("verify = TRUE: a step with a verified quotation stops at once", {
 test_that("verify = TRUE: a refusal is sent back after retrieval has run out", {
   ch <- iter_chunks()
   seen <- list()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (!grepl("reading iteratively", m[[1]]$content, fixed = TRUE)) return("x")
     seen[[length(seen) + 1L]] <<- m
     if (length(seen) == 1L) {
@@ -285,7 +285,7 @@ test_that("verify = TRUE: a refusal is sent back after retrieval has run out", {
 
 test_that("verify = TRUE with premise = TRUE: a premise verdict needs no quotation", {
   ch <- iter_chunks()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("reading iteratively", m[[1]]$content, fixed = TRUE)) {
       return(paste0('{"can_answer": false, "answer": "Revenue rose in 2024.", ',
                     '"next_query": "", "false_premise": true, "quotes": []}'))
@@ -306,7 +306,7 @@ test_that("verify = TRUE with premise = TRUE: a premise verdict needs no quotati
 
 test_that("verify = TRUE: a quotation from a chunk not shown does not count", {
   ch <- iter_chunks()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (!grepl("reading iteratively", m[[1]]$content, fixed = TRUE)) return("x")
     # Chunk 99 does not exist; the text is real but cited to nothing.
     iter_step("Revenue was 45.2 million.",
@@ -325,7 +325,7 @@ test_that("verify = TRUE: a quotation from a chunk not shown does not count", {
 
 test_that("verify = TRUE checks a skim answer's quotations and records the shadow status", {
   ch <- iter_chunks()
-  cl <- gr_mock_client(function(m, p) "Revenue of 88.9 billion dollars on record demand.")
+  cl <- hr_mock_client(function(m, p) "Revenue of 88.9 billion dollars on record demand.")
   a <- quiet(gr_read(ch, "What was revenue?", cl, gr_read_spec("skim", verify = TRUE)))
   expect_true(a$partial)
   expect_gt(a$notes$unverified_evidence, 0L)

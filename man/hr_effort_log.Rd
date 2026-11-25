@@ -21,7 +21,7 @@ triggers). A raise whose stage is the last of the run is settled from the
 trace as it is now.
 }
 \examples{
-hr_effort_log(gr_trace())
+hr_effort_log(hr_trace())
 }
 \seealso{
 \code{\link[=hr_effort_escalate]{hr_effort_escalate()}}, \code{\link[=hr_effort_check]{hr_effort_check()}}

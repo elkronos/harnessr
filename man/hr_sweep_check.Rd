@@ -34,17 +34,17 @@ cannot tell them apart. A request answered from a cache counts as sent:
 its prompt is recorded as it would have gone out.
 }
 \examples{
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ref <- gr_qa_reference(
   questions = c(revenue = "What was revenue in 2024?"),
   documents = gr_example(), answers = list("45.2 million"), split = "test")
-old <- gr_options(verbose = FALSE)
+old <- hr_options(verbose = FALSE)
 # `stuff` sends the whole document, so top_k changes nothing.
 arms <- hr_sweep(gr_arm("fast"), list(top_k = c(2, 8)))
 bench <- hr_benchmark(arms, ref, runs = 5, client = cl,
                       scorer = gr_scorer_answer())
 hr_sweep_check(bench)
-gr_options(old)
+hr_options(old)
 }
 \seealso{
 \code{\link[=hr_sweep]{hr_sweep()}}, \code{\link[=hr_benchmark]{hr_benchmark()}}

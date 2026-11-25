@@ -24,7 +24,7 @@ fig_table <- function() {
 
 # A client that writes `text` for every section, and revises with `revise`.
 fig_client <- function(text, revise = NULL) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     last <- messages[[length(messages)]]$content
     if (grepl("<draft>", last, fixed = TRUE)) {
       d <- sub("(?s)^.*<draft>\n", "", last, perl = TRUE)
@@ -435,7 +435,7 @@ test_that("the check sends nothing and changes no request", {
 # ---------------------------------------------------------------------------
 
 fig_claims_client <- function(write) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("turn a table of studies", sys, fixed = TRUE)) {
       return(paste0('{"claims":[',

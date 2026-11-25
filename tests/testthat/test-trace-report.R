@@ -8,7 +8,7 @@ req_doc <- function(n = 6L) {
 }
 
 test_that("as.data.frame() on a trace gives one row per request, and no local steps", {
-  cl <- gr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
   ans <- quiet(answer_document(req_doc(), "What was revenue?", "thorough", client = cl,
                                max_tokens = 40, overlap_tokens = 0))
   df <- as.data.frame(ans$trace)
@@ -33,18 +33,18 @@ test_that("as.data.frame() on a trace gives one row per request, and no local st
   expect_match(df$prompt[1], "\n\n[user] ", fixed = TRUE)
 })
 
-test_that("the usd column adds up to gr_trace_cost(), and cached and unpriced rows say so", {
-  gr_register_model("rpt-priced", context_window = 8000, max_output = 500,
+test_that("the usd column adds up to hr_trace_cost(), and cached and unpriced rows say so", {
+  hr_register_model("rpt-priced", context_window = 8000, max_output = 500,
                     input_usd = 2, output_usd = 8)
-  cache <- gr_cache(withr::local_tempdir())
-  base <- gr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
-  cl <- gr_cache_client(base, cache)
+  cache <- hr_cache(withr::local_tempdir())
+  base <- hr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
+  cl <- hr_cache_client(base, cache)
   first <- quiet(answer_document(req_doc(), "What was revenue?", "thorough", client = cl,
                                  model = "rpt-priced", max_tokens = 40, overlap_tokens = 0))
   df <- as.data.frame(first$trace)
   expect_false(any(df$cached))
   expect_true(all(df$usd > 0))
-  expect_equal(sum(df$usd), sum(gr_trace_cost(first$trace)$usd))
+  expect_equal(sum(df$usd), sum(hr_trace_cost(first$trace)$usd))
   expect_equal(df$usd, (df$tokens_in * 2 + df$tokens_out * 8) / 1e6)
 
   again <- quiet(answer_document(req_doc(), "What was revenue?", "thorough", client = cl,
@@ -52,34 +52,34 @@ test_that("the usd column adds up to gr_trace_cost(), and cached and unpriced ro
   df2 <- as.data.frame(again$trace)
   expect_true(all(df2$cached))
   expect_equal(df2$usd, rep(0, nrow(df2)))
-  expect_equal(sum(gr_trace_cost(again$trace)$usd), 0)
+  expect_equal(sum(hr_trace_cost(again$trace)$usd), 0)
 
-  free <- gr_mock_client(function(m, p) "x")
-  tr <- gr_trace()
-  quiet(gr_call(free, "hi", model = "rpt-no-such-model", trace = tr))
+  free <- hr_mock_client(function(m, p) "x")
+  tr <- hr_trace()
+  quiet(hr_call(free, "hi", model = "rpt-no-such-model", trace = tr))
   expect_true(is.na(as.data.frame(tr)$usd))
 })
 
 test_that("each request records how long it took", {
-  slow <- gr_mock_client(function(m, p) { Sys.sleep(0.3); "done" })
-  tr <- gr_trace()
-  gr_call(slow, "hi", trace = tr)
+  slow <- hr_mock_client(function(m, p) { Sys.sleep(0.3); "done" })
+  tr <- hr_trace()
+  hr_call(slow, "hi", trace = tr)
   expect_gte(tr$steps[[1]]$seconds, 0.25)
   expect_gte(as.data.frame(tr)$seconds, 0.25)
 
   # A request with no room for a reply is refused before it is sent: no time.
-  gr_register_model("rpt-tiny", context_window = 60, max_output = 20)
-  tr2 <- gr_trace()
-  res <- gr_call(slow, paste(rep("word", 200), collapse = " "), model = "rpt-tiny", trace = tr2)
+  hr_register_model("rpt-tiny", context_window = 60, max_output = 20)
+  tr2 <- hr_trace()
+  res <- hr_call(slow, paste(rep("word", 200), collapse = " "), model = "rpt-tiny", trace = tr2)
   expect_false(res$ok)
   expect_identical(tr2$steps[[1]]$seconds, 0)
   expect_match(as.data.frame(tr2)$error, "no room|leaving no room")
 })
 
 test_that("a failed request has its error and no reply", {
-  bad <- gr_mock_client(function(m, p) stop("network down"))
-  tr <- gr_trace()
-  gr_call(bad, "hi", trace = tr)
+  bad <- hr_mock_client(function(m, p) stop("network down"))
+  tr <- hr_trace()
+  hr_call(bad, "hi", trace = tr)
   df <- as.data.frame(tr)
   expect_false(df$ok)
   expect_match(df$error, "network down")
@@ -87,13 +87,13 @@ test_that("a failed request has its error and no reply", {
 })
 
 test_that("an empty trace gives a table with no rows and the same columns", {
-  df <- as.data.frame(gr_trace())
+  df <- as.data.frame(hr_trace())
   expect_equal(nrow(df), 0L)
   expect_named(df, c("step", "document", "recipe", "stage", "model", "ok", "cached",
                      "tokens_in", "tokens_out", "usd", "seconds", "error", "prompt", "reply"))
   expect_type(df$usd, "double")
-  tr <- gr_trace()
-  gr_call(gr_mock_client(function(m, p) "x"), "hi", trace = tr)
+  tr <- hr_trace()
+  hr_call(hr_mock_client(function(m, p) "x"), "hi", trace = tr)
   expect_equal(rownames(as.data.frame(tr, row.names = "only")), "only")
 })
 
@@ -101,7 +101,7 @@ test_that("a corpus trace says which document each request was about", {
   d <- withr::local_tempdir()
   writeLines("Alpha revenue was 10.5 million.", file.path(d, "alpha.txt"))
   writeLines("Beta revenue was 20.5 million.", file.path(d, "beta.txt"))
-  cl <- gr_mock_client(function(m, p) "Revenue was stated.")
+  cl <- hr_mock_client(function(m, p) "Revenue was stated.")
   co <- quiet(gr_read_many(d, "What was revenue?", "fast", client = cl))
   df <- as.data.frame(co$trace)
   expect_setequal(unique(df$document), c("alpha.txt", "beta.txt"))
@@ -113,7 +113,7 @@ test_that("a corpus trace says which document each request was about", {
   expect_equal(unique(own$recipe), "fast")
 
   # Folded into a parent, the document survives the second fold.
-  parent <- gr_trace()
+  parent <- hr_trace()
   co2 <- quiet(gr_read_many(d, "What was revenue now?", "fast", client = cl, trace = parent))
   expect_setequal(unique(as.data.frame(parent)$document), c("alpha.txt", "beta.txt"))
 })
@@ -121,7 +121,7 @@ test_that("a corpus trace says which document each request was about", {
 test_that("each run's requests keep their own document and recipe in a shared trace", {
   a <- tempfile(fileext = ".txt"); writeLines("Revenue was 45.2 million.", a)
   b <- tempfile(fileext = ".txt"); writeLines("Revenue was 51.8 million.", b)
-  cl <- gr_mock_client(function(m, p) "Revenue was stated.")
+  cl <- hr_mock_client(function(m, p) "Revenue was stated.")
   x1 <- quiet(answer_document(a, "What was revenue?", client = cl))
   expect_equal(x1$recipe, "fast")
   quiet(answer_document(b, "What was revenue?", "thorough", client = cl, trace = x1$trace))
@@ -132,8 +132,8 @@ test_that("each run's requests keep their own document and recipe in a shared tr
   expect_equal(unique(df$recipe[df$document == basename(b)]), "thorough")
 
   # A request already in the trace keeps what it had: here, nothing.
-  tr <- gr_trace()
-  gr_call(cl, "hi", trace = tr)
+  tr <- hr_trace()
+  hr_call(cl, "hi", trace = tr)
   quiet(answer_document(a, "What was revenue?", "fast", client = cl, trace = tr))
   got <- as.data.frame(tr)[, c("document", "recipe")]
   expect_equal(got$document, c(NA, basename(a)))
@@ -141,15 +141,15 @@ test_that("each run's requests keep their own document and recipe in a shared tr
 })
 
 test_that("folding a trace in never takes a recipe from a list of recipes", {
-  parent <- gr_trace()
-  child <- gr_trace(meta = list(recipes = c("fast", "thorough")))
-  gr_call(gr_mock_client(function(m, p) "x"), "hi", trace = child)
+  parent <- hr_trace()
+  child <- hr_trace(meta = list(recipes = c("fast", "thorough")))
+  hr_call(hr_mock_client(function(m, p) "x"), "hi", trace = child)
   harnessr:::trace_absorb(parent, child)
   expect_true(is.na(as.data.frame(parent)$recipe))
 })
 
 test_that("a comparison's shared requests belong to no recipe, and each answer to its own", {
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   cmp <- quiet(gr_compare(gr_example(), "What was revenue?", c("fast", "thorough"),
                           client = cl, method = "contextual", context_source = "llm"))
   df <- as.data.frame(cmp$trace)
@@ -159,17 +159,17 @@ test_that("a comparison's shared requests belong to no recipe, and each answer t
   expect_equal(unique(as.data.frame(cmp$answers$fast$trace)$document), "annual_report.md")
 })
 
-test_that("a cached request to a model with no price is unknown, as gr_trace_cost() says", {
-  gr_register_model("rpt-local", context_window = 32768, max_output = 4096)
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+test_that("a cached request to a model with no price is unknown, as hr_trace_cost() says", {
+  hr_register_model("rpt-local", context_window = 32768, max_output = 4096)
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl,
                                model = "rpt-local"))
   again <- quiet(answer_document(gr_example(), "What was revenue?", "fast",
-                                 client = gr_replay_client(ans$trace), model = "rpt-local"))
+                                 client = hr_replay_client(ans$trace), model = "rpt-local"))
   df <- as.data.frame(again$trace)
   expect_true(all(df$cached))
   expect_true(all(is.na(df$usd)))
-  expect_identical(sum(df$usd), sum(gr_trace_cost(again$trace)$usd))
+  expect_identical(sum(df$usd), sum(hr_trace_cost(again$trace)$usd))
 })
 
 # --- progress --------------------------------------------------------------
@@ -188,9 +188,9 @@ catch_msgs <- function(expr) {
 
 test_that("a per-chunk reader keeps one line up to date with the count and the spend", {
   local_mocked_bindings(progress_wanted = function() TRUE)
-  gr_register_model("rpt-priced", context_window = 8000, max_output = 500,
+  hr_register_model("rpt-priced", context_window = 8000, max_output = 500,
                     input_usd = 2, output_usd = 8)
-  cl <- gr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
   got <- catch_msgs(answer_document(req_doc(), "What was revenue?", "thorough", client = cl,
                                     model = "rpt-priced", max_tokens = 40,
                                     overlap_tokens = 0))
@@ -207,7 +207,7 @@ test_that("a per-chunk reader keeps one line up to date with the count and the s
 })
 
 test_that("nothing is drawn for a script, a single item, or with messages suppressed", {
-  cl <- gr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
   got <- catch_msgs(answer_document(req_doc(), "What was revenue?", "thorough", client = cl,
                                     max_tokens = 40, overlap_tokens = 0))
   expect_length(got$progress, 0L)
@@ -224,7 +224,7 @@ test_that("nothing is drawn for a script, a single item, or with messages suppre
 
 test_that("a model with no registered price makes the spend unknown, not zero", {
   local_mocked_bindings(progress_wanted = function() TRUE)
-  cl <- gr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
   got <- catch_msgs(suppressWarnings(answer_document(
     req_doc(), "What was revenue?", "thorough", client = cl, model = "rpt-unpriced-model",
     max_tokens = 40, overlap_tokens = 0)))
@@ -244,14 +244,14 @@ test_that("a line is never wider than the console", {
 })
 
 test_that("progress is for a person at the console: not scripts, not knitting, not quiet", {
-  old <- gr_options(verbose = TRUE)
-  withr::defer(gr_options(old))
+  old <- hr_options(verbose = TRUE)
+  withr::defer(hr_options(old))
   local_mocked_bindings(session_interactive = function() TRUE)
   expect_true(harnessr:::progress_wanted())
   withr::with_options(list(knitr.in.progress = TRUE), expect_false(harnessr:::progress_wanted()))
-  gr_options(verbose = FALSE)
+  hr_options(verbose = FALSE)
   expect_false(harnessr:::progress_wanted())
-  gr_options(verbose = TRUE)
+  hr_options(verbose = TRUE)
   local_mocked_bindings(session_interactive = function() FALSE)
   expect_false(harnessr:::progress_wanted())
 })
@@ -310,7 +310,7 @@ test_that("a line that is never shown does not stop the next one", {
 
 test_that("refine, which reads in a loop of its own, shows the line too", {
   local_mocked_bindings(progress_wanted = function() TRUE)
-  cl <- gr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
   got <- catch_msgs(answer_document(req_doc(), "What was revenue?", "thorough", client = cl,
                                     reader = "refine", max_tokens = 40, overlap_tokens = 0))
   expect_equal(got$value$reader, "refine")
@@ -321,15 +321,15 @@ test_that("refine, which reads in a loop of its own, shows the line too", {
 
 test_that("in a comparison the line carries on from the recipes before", {
   local_mocked_bindings(progress_wanted = function() TRUE)
-  gr_register_model("rpt-priced", context_window = 8000, max_output = 500,
+  hr_register_model("rpt-priced", context_window = 8000, max_output = 500,
                     input_usd = 2, output_usd = 8)
-  cl <- gr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
   got <- catch_msgs(gr_compare(req_doc(), "What was revenue?", c("thorough", "narrative"),
                                client = cl, model = "rpt-priced", max_tokens = 40,
                                overlap_tokens = 0))
   starts <- grep("chunk 0 of", got$progress, value = TRUE)
   expect_length(starts, 2L)
-  first <- sum(gr_trace_cost(got$value$answers$thorough$trace)$usd)
+  first <- sum(hr_trace_cost(got$value$answers$thorough$trace)$usd)
   expect_gt(first, 0)
   expect_match(starts[1], "$0.0000 spent", fixed = TRUE)
   expect_match(starts[2], sprintf("$%.4f spent", first), fixed = TRUE)
@@ -340,7 +340,7 @@ test_that("a corpus whose spend is unknown says so from the next document on", {
   d <- withr::local_tempdir()
   writeLines(req_doc(), file.path(d, "a.txt"))
   writeLines(sub("Paragraph 1", "Paragraph one", req_doc()), file.path(d, "b.txt"))
-  cl <- gr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
   got <- catch_msgs(suppressWarnings(gr_read_many(d, "What was revenue?", "thorough",
                                                   client = cl, model = "rpt-unpriced-model",
                                                   max_tokens = 40, overlap_tokens = 0)))
@@ -350,14 +350,14 @@ test_that("a corpus whose spend is unknown says so from the next document on", {
 })
 
 test_that("gr_read_many() gives what the run has spent before each document", {
-  old <- gr_options(verbose = TRUE)
-  withr::defer(gr_options(old))
-  gr_register_model("rpt-priced", context_window = 8000, max_output = 500,
+  old <- hr_options(verbose = TRUE)
+  withr::defer(hr_options(old))
+  hr_register_model("rpt-priced", context_window = 8000, max_output = 500,
                     input_usd = 2, output_usd = 8)
   d <- withr::local_tempdir()
   for (nm in c("a", "b", "c")) writeLines(sprintf("Doc %s revenue was 10.5 million.", nm),
                                           file.path(d, paste0(nm, ".txt")))
-  cl <- gr_mock_client(function(m, p) "Revenue was 10.5 million.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 10.5 million.")
   store <- file.path(withr::local_tempdir(), "store")
   got <- catch_msgs(suppressWarnings(gr_read_many(d, "What was revenue?", "fast", client = cl,
                                                   model = "rpt-priced", store = store)))
@@ -375,12 +375,12 @@ test_that("gr_read_many() gives what the run has spent before each document", {
 
 test_that("in a corpus the line carries on from what the run has spent", {
   local_mocked_bindings(progress_wanted = function() TRUE)
-  gr_register_model("rpt-priced", context_window = 8000, max_output = 500,
+  hr_register_model("rpt-priced", context_window = 8000, max_output = 500,
                     input_usd = 2, output_usd = 8)
   d <- withr::local_tempdir()
   for (nm in c("a", "b")) writeLines(req_doc(), file.path(d, paste0(nm, ".txt")))
   writeLines(sub("Paragraph 1", "Paragraph one", req_doc()), file.path(d, "b.txt"))
-  cl <- gr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 41.5 million dollars.")
   got <- catch_msgs(gr_read_many(d, "What was revenue?", "thorough", client = cl,
                                  model = "rpt-priced", max_tokens = 40, overlap_tokens = 0))
   starts <- grep("chunk 0 of", got$progress, value = TRUE)
@@ -403,7 +403,7 @@ read_page <- function(...) {
 answer_with <- function(evidence, text = "Revenue was 45.2 million [chunk 7].", partial = FALSE,
                         question = "What was revenue?", notes = list()) {
   a <- new_answer(text, "stuff", question, chunks_used = unique(evidence$chunk_id),
-                  trace = gr_trace(), evidence = evidence, partial = partial, notes = notes)
+                  trace = hr_trace(), evidence = evidence, partial = partial, notes = notes)
   a$signature <- "all|1|none"
   a
 }
@@ -468,7 +468,7 @@ test_that("a quotation is marked where it stands, and one that is not there is f
 })
 
 test_that("a reader's answer from each chunk is shown as its own words", {
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     u <- paste(vapply(m, `[[`, "", "content"), collapse = "\n")
     if (grepl("Paragraph 2 ", u, fixed = TRUE) && !grepl("<findings", u, fixed = TRUE))
       return("In this part, revenue was 42.5 million.")
@@ -599,7 +599,7 @@ test_that("numbers are not marked beside a quotation, and text around a mark is 
 test_that("a trace from before requests were timed says the times are not recorded", {
   ev <- harnessr:::evidence_table(1L, "Revenue 45.2.", kind = "verbatim")
   a <- answer_with(ev)
-  gr_call(gr_mock_client(function(m, p) "x"), "hi", trace = a$trace)
+  hr_call(hr_mock_client(function(m, p) "x"), "hi", trace = a$trace)
   a$trace$steps <- lapply(a$trace$steps, function(s) { s$seconds <- NULL; s })
   # An answer that old also predates `trace_steps`, so its whole trace is its
   # own. Kept, the field says the step above came after the answer, which
@@ -614,7 +614,7 @@ test_that("a corpus gives one row per document, then each answer and its passage
   writeLines("Alpha revenue was 10.5 million.", file.path(d, "alpha.txt"))
   writeLines("Alpha revenue was 10.5 million.", file.path(d, "alpha_copy.txt"))
   writeLines("Beta says nothing on the subject.", file.path(d, "beta.txt"))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     u <- paste(vapply(m, `[[`, "", "content"), collapse = "\n")
     if (grepl("Alpha", u, fixed = TRUE)) "Revenue was 10.5 million." else "NOT_IN_DOCUMENT"
   })
@@ -648,7 +648,7 @@ test_that("a copy found again on a resumed run is still shown as a copy", {
   d <- withr::local_tempdir()
   writeLines("Alpha revenue was 10.5 million.", file.path(d, "alpha.txt"))
   writeLines("Alpha revenue was 10.5 million.", file.path(d, "alpha_copy.txt"))
-  cl <- gr_mock_client(function(m, p) "Revenue was 10.5 million.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 10.5 million.")
   store <- file.path(withr::local_tempdir(), "store")
   quiet(gr_read_many(d, "What was revenue?", "fast", client = cl, store = store))
   co <- quiet(gr_read_many(d, "What was revenue?", "fast", client = cl, store = store))
@@ -704,7 +704,7 @@ test_that("open = TRUE shows the page in the viewer or, outside tempdir(), the b
 test_that("a review report still has its search and caveats, and can carry an answer", {
   ev <- harnessr:::evidence_table(1L, "Revenue 45.2.", kind = "verbatim")
   fields <- gr_fields(design = "The study design")
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     '{"design":"randomised trial","design__quote":"We ran a randomised trial."}'
   })
   f <- tempfile(fileext = ".txt"); writeLines("We ran a randomised trial.", f)

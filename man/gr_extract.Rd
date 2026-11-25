@@ -228,7 +228,7 @@ fields <- gr_fields(
 )
 
 # A mock that fills the form, so the example runs offline.
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   '{"design":"randomised controlled trial","n":120,
     "design__quote":"We ran a randomised controlled trial.",
     "n__quote":"We enrolled 120 participants."}'
@@ -243,5 +243,5 @@ x$evidence[, c("field", "quote", "verified")]
 }
 \seealso{
 \code{\link[=gr_fields]{gr_fields()}}, \code{\link[=gr_protocol]{gr_protocol()}}, \code{\link[=gr_read_many]{gr_read_many()}},
-\code{\link[=gr_verify_evidence]{gr_verify_evidence()}}, \code{\link[=gr_trace_cost]{gr_trace_cost()}}
+\code{\link[=gr_verify_evidence]{gr_verify_evidence()}}, \code{\link[=hr_trace_cost]{hr_trace_cost()}}
 }

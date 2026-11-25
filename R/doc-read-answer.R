@@ -70,7 +70,7 @@
 #' @export
 #' @examples
 #' # The minimum a custom reader has to return.
-#' tr <- gr_trace()
+#' tr <- hr_trace()
 #' a <- new_answer("Revenue was 45.2 million.", "my_reader", "What was revenue?",
 #'                 chunks_used = 1L, trace = tr, notes = list(strategy = "first chunk"))
 #' a$partial
@@ -196,7 +196,7 @@ trace_slice <- function(trace, idx) {
   tout <- vapply(req, function(s) as_int1(s$tokens$output, 0L), integer(1))
   usd <- vapply(seq_along(req), function(i) {
     if (cached[i]) return(0)
-    v <- tryCatch(suppressWarnings(as.numeric(gr_estimate_cost(
+    v <- tryCatch(suppressWarnings(as.numeric(hr_estimate_cost(
       as_chr1(req[[i]]$model, "unknown"), tin[i], tout[i]))), error = function(e) NA_real_)
     if (length(v) == 1L && !is.na(v)) v else 0
   }, numeric(1))
@@ -220,7 +220,7 @@ print.gr_answer <- function(x, ...) {
   cat(sprintf("  Q: %s\n", substr(x$question, 1, 160)))
   tr <- answer_trace(x)
   if (inherits(tr, "gr_trace")) {
-    s <- gr_trace_summary(tr)
+    s <- hr_trace_summary(tr)
     recovered <- sum(vapply(tr$errors, is_recovered_error, logical(1)))
     # Model calls and embeddings requests apart, as print.gr_trace() counts
     # them: `calls` has both, so a needle run that made one model call printed
@@ -519,7 +519,7 @@ as_json.gr_answer <- function(x, pretty = TRUE, ...) {
 #' # An answer from gr_read() carries its outcome, which is read first.
 #' ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 400))
 #' ans <- gr_read(ch, "Who audited the accounts?",
-#'                gr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), "stuff")
+#'                hr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), "stuff")
 #' ans$outcome
 #' is_not_found(ans)
 is_not_found <- function(x) {

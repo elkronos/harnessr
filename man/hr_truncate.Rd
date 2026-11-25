@@ -27,7 +27,7 @@ units is accepted as well.}
 first. Ties keep the earlier unit.}
 
 \item{marker}{The text that marks a cut; \code{""} for none. As in
-\code{\link[=gr_truncate_tokens]{gr_truncate_tokens()}}, it is dropped when it would cost half the budget
+\code{\link[=hr_truncate_tokens]{hr_truncate_tokens()}}, it is dropped when it would cost half the budget
 or more.}
 
 \item{trace}{Optional \code{gr_trace} to write the cut to.}
@@ -43,7 +43,7 @@ A single string.
 }
 \description{
 \code{keep = "head"} (the default) keeps the start of \code{text} and is
-\code{\link[=gr_truncate_tokens]{gr_truncate_tokens()}} itself, so a caller that switches to this function
+\code{\link[=hr_truncate_tokens]{hr_truncate_tokens()}} itself, so a caller that switches to this function
 sends what it sent before. \code{"tail"} keeps the end, with \code{marker} at the
 front. \code{"both"} keeps the start and the end, about half the budget each,
 with \code{marker} between them on a line of its own. \code{"scored"} splits the text
@@ -65,32 +65,32 @@ units dropped, as \code{"units 2, 5"}), the token counts before and after and
 }
 \examples{
 txt <- paste("Para", 1:6, "says something about revenue.", collapse = "\n\n")
-hr_truncate(txt, 20)                      # the start, as gr_truncate_tokens()
+hr_truncate(txt, 20)                      # the start, as hr_truncate_tokens()
 hr_truncate(txt, 20, keep = "tail")       # the end
 cat(hr_truncate(txt, 24, keep = "both"))  # both ends
 # The paragraphs that score highest, in document order.
 cat(hr_truncate(txt, 20, keep = "scored", scores = c(1, 9, 2, 8, 3, 4)))
 
 # The cut is written to a trace.
-tr <- gr_trace()
+tr <- hr_trace()
 invisible(hr_truncate(txt, 20, keep = "tail", trace = tr, where = "demo", piece = "notes"))
 tr$steps[[1]]$detail[c("where", "piece", "dropped_part", "tokens_dropped")]
 }
 \seealso{
-\code{\link[=hr_context_policy]{hr_context_policy()}}, \code{\link[=hr_context_fit]{hr_context_fit()}}, \code{\link[=gr_truncate_tokens]{gr_truncate_tokens()}}
+\code{\link[=hr_context_policy]{hr_context_policy()}}, \code{\link[=hr_context_fit]{hr_context_fit()}}, \code{\link[=hr_truncate_tokens]{hr_truncate_tokens()}}
 
 Other cost and token functions: 
-\code{\link{gr_budget}()},
-\code{\link{gr_count_tokens}()},
-\code{\link{gr_estimate_cost}()},
-\code{\link{gr_model_info}()},
-\code{\link{gr_model_limits}()},
-\code{\link{gr_models}()},
-\code{\link{gr_register_model}()},
-\code{\link{gr_set_tokenizer}()},
-\code{\link{gr_tokenizer}()},
-\code{\link{gr_truncate_tokens}()},
+\code{\link{hr_budget}()},
 \code{\link{hr_context_fit}()},
-\code{\link{hr_context_policy}()}
+\code{\link{hr_context_policy}()},
+\code{\link{hr_count_tokens}()},
+\code{\link{hr_estimate_cost}()},
+\code{\link{hr_model_info}()},
+\code{\link{hr_model_limits}()},
+\code{\link{hr_models}()},
+\code{\link{hr_register_model}()},
+\code{\link{hr_set_tokenizer}()},
+\code{\link{hr_tokenizer}()},
+\code{\link{hr_truncate_tokens}()}
 }
 \concept{cost and token functions}

@@ -163,9 +163,9 @@ such section they reach none, and a warning (\code{gr_gaps_unused}) says so.
 They are cut, at a line, to a quarter of the model's input room, with a
 warning (\code{gr_gaps_truncated}), and the closing section is then partial.}
 
-\item{trace}{A \code{\link[=gr_trace]{gr_trace()}} to fold this write-up's accounting into, as in
+\item{trace}{An \code{\link[=hr_trace]{hr_trace()}} to fold this write-up's accounting into, as in
 \code{\link[=gr_read_many]{gr_read_many()}}. It is a parent, not this stage's counter: \verb{$trace} is
-still the write-up's own, so \code{gr_options(max_calls =)} bounds the write-up
+still the write-up's own, so \code{hr_options(max_calls =)} bounds the write-up
 rather than being spent by the screening that came before it.}
 
 \item{effort}{Reasoning effort, or \code{NULL} (the default) to send none: one
@@ -462,7 +462,7 @@ can be trusted, and those are checked apart.
 \examples{
 fields <- gr_fields(design = "The study design",
                     n = gr_field("Participants", type = "integer"))
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                 collapse = " ")
   if (grepl("<studies>", seen, fixed = TRUE)) "One randomised trial of 120 people [study 1]."

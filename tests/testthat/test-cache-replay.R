@@ -24,13 +24,13 @@
 test_that("an identical request is served from the cache, and the handler is not called", {
   local_registries()
   n <- 0L
-  cl <- gr_cache_client(
-    gr_mock_client(function(m, p) { n <<- n + 1L; "42" }),
-    gr_cache(withr::local_tempdir())
+  cl <- hr_cache_client(
+    hr_mock_client(function(m, p) { n <<- n + 1L; "42" }),
+    hr_cache(withr::local_tempdir())
   )
 
-  first  <- gr_call(cl, "What is the answer?")
-  second <- gr_call(cl, "What is the answer?")
+  first  <- hr_call(cl, "What is the answer?")
+  second <- hr_call(cl, "What is the answer?")
 
   expect_identical(first$text, "42")
   expect_identical(second$text, "42")
@@ -41,25 +41,25 @@ test_that("an identical request is served from the cache, and the handler is not
 
 test_that("a cache hit is marked, so spending can be told from replay", {
   local_registries()
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "x"),
-                        gr_cache(withr::local_tempdir()))
-  expect_false(gr_call(cl, "q")$cached)
-  expect_true(gr_call(cl, "q")$cached)
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "x"),
+                        hr_cache(withr::local_tempdir()))
+  expect_false(hr_call(cl, "q")$cached)
+  expect_true(hr_call(cl, "q")$cached)
 })
 
 test_that("the trace counts cached calls separately from paid ones", {
   local_registries()
-  cache <- gr_cache(withr::local_tempdir())
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "x"), cache)
+  cache <- hr_cache(withr::local_tempdir())
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "x"), cache)
 
-  paid <- gr_trace()
-  invisible(gr_call(cl, "q", trace = paid))
-  expect_identical(gr_trace_summary(paid)$calls, 1L)
-  expect_identical(gr_trace_summary(paid)$cached, 0L)
+  paid <- hr_trace()
+  invisible(hr_call(cl, "q", trace = paid))
+  expect_identical(hr_trace_summary(paid)$calls, 1L)
+  expect_identical(hr_trace_summary(paid)$cached, 0L)
 
-  free <- gr_trace()
-  invisible(gr_call(cl, "q", trace = free))
-  s <- gr_trace_summary(free)
+  free <- hr_trace()
+  invisible(hr_call(cl, "q", trace = free))
+  s <- hr_trace_summary(free)
   expect_identical(s$calls, 1L)
   expect_identical(s$cached, 1L)
   # Tokens are still reported -- the prompt was that big -- but nothing was paid.
@@ -68,14 +68,14 @@ test_that("the trace counts cached calls separately from paid ones", {
 
 test_that("a whole cached run reports itself as having cost nothing", {
   local_registries()
-  cache <- gr_cache(withr::local_tempdir())
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "Revenue was 45.2 million."), cache)
+  cache <- hr_cache(withr::local_tempdir())
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "Revenue was 45.2 million."), cache)
 
   a <- quiet(answer_document(gr_example(), "What was revenue?", "thorough", client = cl))
   b <- quiet(answer_document(gr_example(), "What was revenue?", "thorough", client = cl))
 
   expect_identical(a$answer, b$answer)
-  sb <- gr_trace_summary(b$trace)
+  sb <- hr_trace_summary(b$trace)
   expect_gt(sb$calls, 0L)
   expect_identical(sb$cached, sb$calls)
 })
@@ -89,36 +89,36 @@ test_that("the key separates every request property that can change the answer",
   local_registries()
   dir <- withr::local_tempdir()
   n <- 0L
-  base <- gr_mock_client(function(m, p) { n <<- n + 1L; "answer" })
-  cl <- gr_cache_client(base, gr_cache(dir))
-  gr_register_model("other-mock", context_window = 128000L, max_output = 4096L,
+  base <- hr_mock_client(function(m, p) { n <<- n + 1L; "answer" })
+  cl <- hr_cache_client(base, hr_cache(dir))
+  hr_register_model("other-mock", context_window = 128000L, max_output = 4096L,
                     input_usd = 0, output_usd = 0)
 
   variants <- list(
-    baseline    = function() gr_call(cl, "the prompt"),
-    repeated    = function() gr_call(cl, "the prompt"),                       # hit
-    other_text  = function() gr_call(cl, "the prompt."),                      # one character
-    other_model = function() gr_call(cl, "the prompt", model = "other-mock"),
-    temp_zero   = function() gr_call(cl, "the prompt", temperature = 0),
-    temp_one    = function() gr_call(cl, "the prompt", temperature = 1),
-    capped      = function() gr_call(cl, "the prompt", max_output = 16L),
-    schema      = function() gr_call(cl, "the prompt",
+    baseline    = function() hr_call(cl, "the prompt"),
+    repeated    = function() hr_call(cl, "the prompt"),                       # hit
+    other_text  = function() hr_call(cl, "the prompt."),                      # one character
+    other_model = function() hr_call(cl, "the prompt", model = "other-mock"),
+    temp_zero   = function() hr_call(cl, "the prompt", temperature = 0),
+    temp_one    = function() hr_call(cl, "the prompt", temperature = 1),
+    capped      = function() hr_call(cl, "the prompt", max_output = 16L),
+    schema      = function() hr_call(cl, "the prompt",
                                      schema = list(type = "object",
                                                    properties = list(a = list(type = "string")))),
-    schema_name = function() gr_call(cl, "the prompt",
+    schema_name = function() hr_call(cl, "the prompt",
                                      schema = list(type = "object",
                                                    properties = list(a = list(type = "string"))),
                                      schema_name = "different"),
-    two_msgs    = function() gr_call(cl, list(list(role = "system", content = "be terse"),
+    two_msgs    = function() hr_call(cl, list(list(role = "system", content = "be terse"),
                                               list(role = "user", content = "the prompt"))),
-    roles_swap  = function() gr_call(cl, list(list(role = "user", content = "be terse"),
+    roles_swap  = function() hr_call(cl, list(list(role = "user", content = "be terse"),
                                               list(role = "user", content = "the prompt")))
   )
   for (f in variants) invisible(f())
 
   # Eleven requests, one of which repeats the first: ten distinct keys.
   expect_identical(n, 10L)
-  expect_identical(gr_cache_stats(gr_cache(dir))$entries, 10L)
+  expect_identical(hr_cache_stats(hr_cache(dir))$entries, 10L)
 })
 
 test_that("a different endpoint is a different cache entry", {
@@ -126,12 +126,12 @@ test_that("a different endpoint is a different cache entry", {
   dir <- withr::local_tempdir()
   n <- 0L
   mk <- function(base_url) {
-    cl <- gr_mock_client(function(m, p) { n <<- n + 1L; "answer" })
+    cl <- hr_mock_client(function(m, p) { n <<- n + 1L; "answer" })
     cl$base_url <- base_url
-    gr_cache_client(cl, gr_cache(dir))
+    hr_cache_client(cl, hr_cache(dir))
   }
-  invisible(gr_call(mk("https://a.example/v1"), "same prompt"))
-  invisible(gr_call(mk("https://b.example/v1"), "same prompt"))
+  invisible(hr_call(mk("https://a.example/v1"), "same prompt"))
+  invisible(hr_call(mk("https://b.example/v1"), "same prompt"))
   expect_identical(n, 2L)
 })
 
@@ -140,19 +140,19 @@ test_that("failures are never cached", {
   dir <- withr::local_tempdir()
 
   n <- 0L
-  dead <- gr_cache_client(gr_mock_client(function(m, p) { n <<- n + 1L; stop("transport") }),
-                          gr_cache(dir))
-  invisible(gr_call(dead, "q")); invisible(gr_call(dead, "q"))
+  dead <- hr_cache_client(hr_mock_client(function(m, p) { n <<- n + 1L; stop("transport") }),
+                          hr_cache(dir))
+  invisible(hr_call(dead, "q")); invisible(hr_call(dead, "q"))
   expect_identical(n, 2L)
 
   # An empty completion is a failure too -- caching it would make a one-off
   # content filter permanent.
   m <- 0L
-  empty <- gr_cache_client(gr_mock_client(function(m_, p) { m <<- m + 1L; "" }), gr_cache(dir))
-  invisible(gr_call(empty, "q2")); invisible(gr_call(empty, "q2"))
+  empty <- hr_cache_client(hr_mock_client(function(m_, p) { m <<- m + 1L; "" }), hr_cache(dir))
+  invisible(hr_call(empty, "q2")); invisible(hr_call(empty, "q2"))
   expect_identical(m, 2L)
 
-  expect_identical(gr_cache_stats(gr_cache(dir))$entries, 0L)
+  expect_identical(hr_cache_stats(hr_cache(dir))$entries, 0L)
 })
 
 # ---------------------------------------------------------------------------
@@ -164,14 +164,14 @@ test_that("a corrupt entry is a miss, not an error", {
   local_registries()
   dir <- withr::local_tempdir()
   n <- 0L
-  cl <- gr_cache_client(gr_mock_client(function(m, p) { n <<- n + 1L; "ok" }), gr_cache(dir))
-  invisible(gr_call(cl, "q"))
+  cl <- hr_cache_client(hr_mock_client(function(m, p) { n <<- n + 1L; "ok" }), hr_cache(dir))
+  invisible(hr_call(cl, "q"))
 
   f <- list.files(dir, pattern = "\\.rds$", recursive = TRUE, full.names = TRUE)
   expect_length(f, 1L)
   writeBin(as.raw(c(0x00, 0x01, 0x02, 0x03)), f)          # truncated / garbage
 
-  expect_no_error(res <- gr_call(cl, "q"))
+  expect_no_error(res <- hr_call(cl, "q"))
   expect_true(res$ok)
   expect_identical(n, 2L)
 })
@@ -179,11 +179,11 @@ test_that("a corrupt entry is a miss, not an error", {
 test_that("an RDS holding the wrong object is a miss, not an error", {
   local_registries()
   dir <- withr::local_tempdir()
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "ok"), gr_cache(dir))
-  invisible(gr_call(cl, "q"))
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "ok"), hr_cache(dir))
+  invisible(hr_call(cl, "q"))
   f <- list.files(dir, pattern = "\\.rds$", recursive = TRUE, full.names = TRUE)
   saveRDS(list(format = 99L, result = "not a gr_result"), f)
-  expect_no_error(res <- gr_call(cl, "q"))
+  expect_no_error(res <- hr_call(cl, "q"))
   expect_true(res$ok)
 })
 
@@ -192,17 +192,17 @@ test_that("an unwritable cache directory does not stop the run", {
   # A path whose parent is a regular file can never be created.
   blocker <- withr::local_tempfile()
   writeLines("not a directory", blocker)
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "ok"),
-                        gr_cache(file.path(blocker, "cache")))
-  expect_no_error(res <- gr_call(cl, "q"))
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "ok"),
+                        hr_cache(file.path(blocker, "cache")))
+  expect_no_error(res <- hr_call(cl, "q"))
   expect_true(res$ok)
 })
 
 test_that("writing leaves no temporary files behind", {
   local_registries()
   dir <- withr::local_tempdir()
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "ok"), gr_cache(dir))
-  for (i in 1:5) invisible(gr_call(cl, paste("q", i)))
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "ok"), hr_cache(dir))
+  for (i in 1:5) invisible(hr_call(cl, paste("q", i)))
   expect_length(list.files(dir, pattern = "tmp", recursive = TRUE), 0L)
   # An empty directory satisfies the line above, so this test passed with
   # cache_put() replaced by a no-op. Five distinct prompts, five entries.
@@ -216,16 +216,16 @@ test_that("read and write can each be switched off", {
   n <- 0L
   handler <- function(m, p) { n <<- n + 1L; "ok" }
 
-  no_write <- gr_cache_client(gr_mock_client(handler), gr_cache(dir, write = FALSE))
-  invisible(gr_call(no_write, "q")); invisible(gr_call(no_write, "q"))
+  no_write <- hr_cache_client(hr_mock_client(handler), hr_cache(dir, write = FALSE))
+  invisible(hr_call(no_write, "q")); invisible(hr_call(no_write, "q"))
   expect_identical(n, 2L)
-  expect_identical(gr_cache_stats(gr_cache(dir))$entries, 0L)
+  expect_identical(hr_cache_stats(hr_cache(dir))$entries, 0L)
 
   n <- 0L
-  writing <- gr_cache_client(gr_mock_client(handler), gr_cache(dir))
-  invisible(gr_call(writing, "q"))
-  no_read <- gr_cache_client(gr_mock_client(handler), gr_cache(dir, read = FALSE))
-  invisible(gr_call(no_read, "q"))
+  writing <- hr_cache_client(hr_mock_client(handler), hr_cache(dir))
+  invisible(hr_call(writing, "q"))
+  no_read <- hr_cache_client(hr_mock_client(handler), hr_cache(dir, read = FALSE))
+  invisible(hr_call(no_read, "q"))
   expect_identical(n, 2L)
 })
 
@@ -233,8 +233,8 @@ test_that("the cache stores the response but not the prompt", {
   local_registries()
   dir <- withr::local_tempdir()
   secret <- "PATIENT-IDENTIFIER-90210"
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "a harmless answer"), gr_cache(dir))
-  invisible(gr_call(cl, paste("Summarise this:", secret)))
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "a harmless answer"), hr_cache(dir))
+  invisible(hr_call(cl, paste("Summarise this:", secret)))
 
   f <- list.files(dir, pattern = "\\.rds$", recursive = TRUE, full.names = TRUE)
   entry <- readRDS(f)
@@ -254,11 +254,11 @@ test_that("the raw parsed API response is dropped before an entry is written", {
   dir <- withr::local_tempdir()
   bulky <- list(id = "resp_1", output = list(list(content = list(list(
     type = "output_text", text = "SENSITIVE-RAW-PAYLOAD")))))
-  cl <- gr_cache_client(
-    gr_mock_client(function(m, p) harnessr:::gr_result(TRUE, text = "clean answer", raw = bulky)),
-    gr_cache(dir))
+  cl <- hr_cache_client(
+    hr_mock_client(function(m, p) harnessr:::gr_result(TRUE, text = "clean answer", raw = bulky)),
+    hr_cache(dir))
 
-  first <- gr_call(cl, "q")
+  first <- hr_call(cl, "q")
   expect_false(is.null(first$raw))                    # the live result keeps it
 
   entry <- readRDS(list.files(dir, pattern = "\\.rds$", recursive = TRUE, full.names = TRUE))
@@ -266,7 +266,7 @@ test_that("the raw parsed API response is dropped before an entry is written", {
   flat <- paste(unlist(lapply(entry, function(x) as.character(unlist(x)))), collapse = " ")
   expect_false(grepl("SENSITIVE-RAW-PAYLOAD", flat, fixed = TRUE))
 
-  hit <- gr_call(cl, "q")                             # and a hit is still usable
+  hit <- hr_call(cl, "q")                             # and a hit is still usable
   expect_true(hit$cached)
   expect_identical(hit$text, "clean answer")
   expect_null(hit$raw)
@@ -275,47 +275,47 @@ test_that("the raw parsed API response is dropped before an entry is written", {
 test_that("stats and clear report and empty the cache", {
   local_registries()
   dir <- withr::local_tempdir()
-  cache <- gr_cache(dir)
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "ok"), cache)
-  invisible(gr_call(cl, "one")); invisible(gr_call(cl, "two")); invisible(gr_call(cl, "one"))
+  cache <- hr_cache(dir)
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "ok"), cache)
+  invisible(hr_call(cl, "one")); invisible(hr_call(cl, "two")); invisible(hr_call(cl, "one"))
 
-  s <- gr_cache_stats(cache)
+  s <- hr_cache_stats(cache)
   expect_identical(s$entries, 2L)
   expect_identical(s$writes, 2L)
   expect_identical(s$hits, 1L)
   expect_identical(s$misses, 2L)
   expect_gt(s$bytes, 0)
 
-  expect_identical(gr_cache_clear(cache), 2L)
-  expect_identical(gr_cache_stats(cache)$entries, 0L)
-  expect_identical(gr_cache_stats(cache)$hits, 0L)
+  expect_identical(hr_cache_clear(cache), 2L)
+  expect_identical(hr_cache_stats(cache)$entries, 0L)
+  expect_identical(hr_cache_stats(cache)$hits, 0L)
 })
 
-test_that("gr_cache_client validates its arguments and can detach", {
+test_that("hr_cache_client validates its arguments and can detach", {
   local_registries()
-  expect_error(gr_cache_client("not a client"), "gr_client")
-  expect_error(gr_cache_client(gr_mock_client(), cache = "not a cache"), "gr_cache")
-  cl <- gr_cache_client(gr_mock_client(), gr_cache(withr::local_tempdir()))
+  expect_error(hr_cache_client("not a client"), "hr_client")
+  expect_error(hr_cache_client(hr_mock_client(), cache = "not a cache"), "hr_cache")
+  cl <- hr_cache_client(hr_mock_client(), hr_cache(withr::local_tempdir()))
   expect_true(inherits(cl$.cache, "gr_cache"))
-  expect_null(gr_cache_client(cl, NULL)$.cache)
+  expect_null(hr_cache_client(cl, NULL)$.cache)
 })
 
 test_that("a cached mock client is still a mock client", {
   local_registries()
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "ok"), gr_cache(withr::local_tempdir()))
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "ok"), hr_cache(withr::local_tempdir()))
   expect_s3_class(cl, "gr_mock_client")
   expect_s3_class(cl, "gr_client")
   expect_true(is.function(cl$calls))
 })
 
-test_that("the exported gr_cache_clear is the response-cache one, not the internal flusher", {
+test_that("the exported hr_cache_clear is the response-cache one, not the internal flusher", {
   # R collates R/core-state.R after R/core-cache.R, so an internal function with
   # the same name silently replaced the exported one and the package shipped the
   # wrong implementation under the right documentation. The internal one is now
   # gr_flush_caches(); this asserts the shadowing has not come back.
-  expect_true("cache" %in% names(formals(gr_cache_clear)))
-  expect_false("what" %in% names(formals(gr_cache_clear)))
-  expect_error(gr_cache_clear("documents"), "gr_cache")
+  expect_true("cache" %in% names(formals(hr_cache_clear)))
+  expect_false("what" %in% names(formals(hr_cache_clear)))
+  expect_error(hr_cache_clear("documents"), "gr_cache")
   expect_identical(harnessr:::gr_flush_caches("documents"), "documents")
 })
 
@@ -325,11 +325,11 @@ test_that("the exported gr_cache_clear is the response-cache one, not the intern
 
 test_that("a recorded run replays to the same answer with no client", {
   local_registries()
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   original <- quiet(answer_document(gr_example(), "What was revenue?", "thorough",
                                     client = cl))
 
-  rp <- gr_replay_client(original$trace)
+  rp <- hr_replay_client(original$trace)
   replayed <- quiet(answer_document(gr_example(), "What was revenue?", "thorough",
                                     client = rp))
 
@@ -338,74 +338,74 @@ test_that("a recorded run replays to the same answer with no client", {
   expect_gt(rp$stats()$hits, 0L)
   expect_identical(rp$stats()$misses, 0L)
   # Nothing was paid for: every call came from the recording.
-  s <- gr_trace_summary(replayed$trace)
+  s <- hr_trace_summary(replayed$trace)
   expect_identical(s$cached, s$calls)
 })
 
 test_that("a trace survives the round trip through a file", {
   local_registries()
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   original <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl))
 
   f <- withr::local_tempfile(fileext = ".json")
-  expect_identical(gr_trace_save(original$trace, f), f)
+  expect_identical(hr_trace_save(original$trace, f), f)
   expect_true(file.exists(f))
   expect_true(jsonlite::validate(paste(readLines(f, warn = FALSE), collapse = "\n")))
 
   replayed <- quiet(answer_document(gr_example(), "What was revenue?", "fast",
-                                    client = gr_replay_client(f)))
+                                    client = hr_replay_client(f)))
   expect_identical(replayed$answer, original$answer)
 })
 
 test_that("repeated identical prompts replay in the order they were recorded", {
   local_registries()
-  tr <- gr_trace()
+  tr <- hr_trace()
   n <- 0L
-  cl <- gr_mock_client(function(m, p) { n <<- n + 1L; paste("answer", n) })
-  invisible(gr_call(cl, "same prompt", trace = tr))
-  invisible(gr_call(cl, "same prompt", trace = tr))
-  invisible(gr_call(cl, "same prompt", trace = tr))
+  cl <- hr_mock_client(function(m, p) { n <<- n + 1L; paste("answer", n) })
+  invisible(hr_call(cl, "same prompt", trace = tr))
+  invisible(hr_call(cl, "same prompt", trace = tr))
+  invisible(hr_call(cl, "same prompt", trace = tr))
 
-  rp <- gr_replay_client(tr)
-  expect_identical(gr_call(rp, "same prompt")$text, "answer 1")
-  expect_identical(gr_call(rp, "same prompt")$text, "answer 2")
-  expect_identical(gr_call(rp, "same prompt")$text, "answer 3")
+  rp <- hr_replay_client(tr)
+  expect_identical(hr_call(rp, "same prompt")$text, "answer 1")
+  expect_identical(hr_call(rp, "same prompt")$text, "answer 2")
+  expect_identical(hr_call(rp, "same prompt")$text, "answer 3")
 
   # A fourth call has nothing left: the replay is making a call the recorded
   # run did not make, which is an error rather than a fourth copy of a reply.
-  expect_error(gr_call(rp, "same prompt"), class = "hr_replay_exhausted")
+  expect_error(hr_call(rp, "same prompt"), class = "hr_replay_exhausted")
   expect_identical(rp$stats()$repeats, 0L)
 
   # on_exhausted = "flag" keeps the old behaviour: the last response repeats,
   # and `$stats()` says so rather than pretending the replay was exact.
-  flag <- gr_replay_client(tr, on_exhausted = "flag")
-  for (i in 1:3) invisible(gr_call(flag, "same prompt"))
-  expect_identical(gr_call(flag, "same prompt")$text, "answer 3")
+  flag <- hr_replay_client(tr, on_exhausted = "flag")
+  for (i in 1:3) invisible(hr_call(flag, "same prompt"))
+  expect_identical(hr_call(flag, "same prompt")$text, "answer 3")
   expect_identical(flag$stats()$repeats, 1L)
 })
 
 test_that("N identical calls with draw indexes 1 to N are N cache entries", {
   local_registries()
   n <- 0L
-  cl <- gr_mock_client(function(m, p) { n <<- n + 1L; paste("draw", p$draw_index, "reply", n) })
-  cache <- gr_cache(withr::local_tempdir())
-  cl <- gr_cache_client(cl, cache)
-  first <- vapply(1:4, function(k) gr_call(cl, "Pick one.", draw_index = k)$text, "")
+  cl <- hr_mock_client(function(m, p) { n <<- n + 1L; paste("draw", p$draw_index, "reply", n) })
+  cache <- hr_cache(withr::local_tempdir())
+  cl <- hr_cache_client(cl, cache)
+  first <- vapply(1:4, function(k) hr_call(cl, "Pick one.", draw_index = k)$text, "")
   expect_identical(first, sprintf("draw %d reply %d", 1:4, 1:4))
-  expect_identical(gr_cache_stats(cache)$entries, 4L)
+  expect_identical(hr_cache_stats(cache)$entries, 4L)
   # A rerun is the same four replies, in the same order, from the cache.
-  again <- vapply(1:4, function(k) gr_call(cl, "Pick one.", draw_index = k)$text, "")
+  again <- vapply(1:4, function(k) hr_call(cl, "Pick one.", draw_index = k)$text, "")
   expect_identical(again, first)
   expect_identical(n, 4L)
-  expect_identical(gr_cache_stats(cache)[c("hits", "misses", "writes", "legacy_hits")],
+  expect_identical(hr_cache_stats(cache)[c("hits", "misses", "writes", "legacy_hits")],
                    data.frame(hits = 4L, misses = 4L, writes = 4L, legacy_hits = 0L))
   # Without a draw index the four are one call, as an unsampled call always was.
-  for (i in 1:4) invisible(gr_call(cl, "Pick again."))
+  for (i in 1:4) invisible(hr_call(cl, "Pick again."))
   expect_identical(n, 5L)
 })
 
 test_that("draw 0 keys without a draw part, and the key is a SHA-256", {
-  cl <- gr_mock_client()
+  cl <- hr_mock_client()
   msgs <- list(list(role = "user", content = "hi"))
   key <- function(d) harnessr:::cache_key(cl, msgs, "mock-model", 100L, NULL, NULL, "result",
                                           list(), draw_index = d)
@@ -418,79 +418,79 @@ test_that("draw 0 keys without a draw part, and the key is a SHA-256", {
   # A handler is not given a draw index for an ordinary call, and the trace
   # does not record one.
   seen <- NULL
-  cl <- gr_mock_client(function(m, p) { seen <<- p; "ok" })
-  tr <- gr_trace()
-  gr_call(cl, "hi", trace = tr)
+  cl <- hr_mock_client(function(m, p) { seen <<- p; "ok" })
+  tr <- hr_trace()
+  hr_call(cl, "hi", trace = tr)
   expect_false("draw_index" %in% names(seen))
   expect_false("draw_index" %in% names(tr$steps[[1]]$params))
-  gr_call(cl, "hi", trace = tr, draw_index = 2)
+  hr_call(cl, "hi", trace = tr, draw_index = 2)
   expect_identical(seen$draw_index, 2L)
   expect_identical(tr$steps[[2]]$params$draw_index, 2L)
 
   for (bad in list(-1, 1.5, NA, "1", c(1, 2))) {
-    expect_error(gr_call(cl, "hi", draw_index = bad), class = "gr_bad_setting")
+    expect_error(hr_call(cl, "hi", draw_index = bad), class = "gr_bad_setting")
   }
 })
 
 test_that("a replay answers each recorded draw and raises past the last one", {
   local_registries()
-  tr <- gr_trace()
-  cl <- gr_mock_client(function(m, p) paste("draw", p$draw_index))
-  for (k in 1:3) invisible(gr_call(cl, "Pick one.", draw_index = k, trace = tr))
+  tr <- hr_trace()
+  cl <- hr_mock_client(function(m, p) paste("draw", p$draw_index))
+  for (k in 1:3) invisible(hr_call(cl, "Pick one.", draw_index = k, trace = tr))
 
-  rp <- gr_replay_client(tr)
+  rp <- hr_replay_client(tr)
   # Asked for out of order, each draw gets its own reply.
-  expect_identical(gr_call(rp, "Pick one.", draw_index = 2)$text, "draw 2")
-  expect_identical(gr_call(rp, "Pick one.", draw_index = 1)$text, "draw 1")
-  expect_identical(gr_call(rp, "Pick one.", draw_index = 3)$text, "draw 3")
-  expect_error(gr_call(rp, "Pick one.", draw_index = 4), class = "hr_replay_exhausted")
+  expect_identical(hr_call(rp, "Pick one.", draw_index = 2)$text, "draw 2")
+  expect_identical(hr_call(rp, "Pick one.", draw_index = 1)$text, "draw 1")
+  expect_identical(hr_call(rp, "Pick one.", draw_index = 3)$text, "draw 3")
+  expect_error(hr_call(rp, "Pick one.", draw_index = 4), class = "hr_replay_exhausted")
   expect_identical(rp$stats()[c("hits", "misses", "legacy_hits")],
                    data.frame(hits = 3L, misses = 0L, legacy_hits = 0L))
 })
 
 test_that("a replay misses at another temperature, output cap or schema", {
   local_registries()
-  tr <- gr_trace()
-  cl <- gr_mock_client(function(m, p) if (is.null(p$schema)) "recorded" else '{"a": 1}')
-  invisible(gr_call(cl, "Say it.", temperature = 0.2, max_output = 500, trace = tr))
+  tr <- hr_trace()
+  cl <- hr_mock_client(function(m, p) if (is.null(p$schema)) "recorded" else '{"a": 1}')
+  invisible(hr_call(cl, "Say it.", temperature = 0.2, max_output = 500, trace = tr))
   schema <- list(type = "object", properties = list(a = list(type = "number")))
-  invisible(gr_call(cl, "Say it as JSON.", schema = schema, trace = tr))
+  invisible(hr_call(cl, "Say it as JSON.", schema = schema, trace = tr))
 
-  rp <- gr_replay_client(tr)
-  expect_error(gr_call(rp, "Say it.", temperature = 0.7, max_output = 500),
+  rp <- hr_replay_client(tr)
+  expect_error(hr_call(rp, "Say it.", temperature = 0.7, max_output = 500),
                class = "gr_replay_miss")
-  expect_error(gr_call(rp, "Say it.", temperature = 0.2, max_output = 900),
+  expect_error(hr_call(rp, "Say it.", temperature = 0.2, max_output = 900),
                class = "gr_replay_miss")
   other <- list(type = "object", properties = list(b = list(type = "number")))
-  expect_error(gr_call(rp, "Say it as JSON.", schema = other), class = "gr_replay_miss")
-  expect_identical(gr_call(rp, "Say it.", temperature = 0.2, max_output = 500)$text, "recorded")
-  expect_identical(gr_call(rp, "Say it as JSON.", schema = schema)$text, '{"a": 1}')
+  expect_error(hr_call(rp, "Say it as JSON.", schema = other), class = "gr_replay_miss")
+  expect_identical(hr_call(rp, "Say it.", temperature = 0.2, max_output = 500)$text, "recorded")
+  expect_identical(hr_call(rp, "Say it as JSON.", schema = schema)$text, '{"a": 1}')
   expect_identical(rp$stats()$legacy_hits, 0L)
 })
 
 test_that("a miss on the temperature or output cap names them, not the effort", {
   local_registries()
-  tr <- gr_trace()
-  cl <- gr_backend_client(function(m, p) "recorded", model = "gpt-4o-mini")
-  invisible(gr_call(cl, "Q?", temperature = 0.2, max_output = 100, trace = tr))
+  tr <- hr_trace()
+  cl <- hr_backend_client(function(m, p) "recorded", model = "gpt-4o-mini")
+  invisible(hr_call(cl, "Q?", temperature = 0.2, max_output = 100, trace = tr))
 
-  rp <- gr_replay_client(tr, strict = FALSE)
-  res <- gr_call(rp, "Q?", temperature = 0.7, max_output = 100)
+  rp <- hr_replay_client(tr, strict = FALSE)
+  res <- hr_call(rp, "Q?", temperature = 0.7, max_output = 100)
   expect_false(res$ok)
   expect_match(res$error, "another temperature, output cap or JSON schema", fixed = TRUE)
   expect_match(res$error, "asked for temperature 0.2, output cap 100", fixed = TRUE)
   expect_match(res$error, "asks for temperature 0.7, output cap 100", fixed = TRUE)
   expect_match(res$error, "They differ in the temperature.", fixed = TRUE)
   expect_no_match(res$error, "`effort`", fixed = TRUE)
-  res <- gr_call(rp, "Q?", temperature = 0.2, max_output = 50)
+  res <- hr_call(rp, "Q?", temperature = 0.2, max_output = 50)
   expect_match(res$error, "asks for temperature 0.2, output cap 50", fixed = TRUE)
   expect_match(res$error, "They differ in the output cap asked for.", fixed = TRUE)
 
   # A miss on the effort still says so.
-  tr <- gr_trace()
-  cl <- gr_backend_client(function(m, p) "recorded", model = "gpt-5-mini")
-  invisible(gr_call(cl, "Q?", effort = "low", trace = tr))
-  res <- gr_call(gr_replay_client(tr, strict = FALSE), "Q?", effort = "high")
+  tr <- hr_trace()
+  cl <- hr_backend_client(function(m, p) "recorded", model = "gpt-5-mini")
+  invisible(hr_call(cl, "Q?", effort = "low", trace = tr))
+  res <- hr_call(hr_replay_client(tr, strict = FALSE), "Q?", effort = "high")
   expect_match(res$error, "at reasoning effort 'low'", fixed = TRUE)
 })
 
@@ -498,11 +498,11 @@ test_that("a miss names the asked cap and a schema body, not what was sent", {
   local_registries()
   # Recorded with no cap: the cap sent is the model's limit, and a replay that
   # asks for that limit by number still misses on the cap it asked for.
-  tr <- gr_trace()
-  cl <- gr_backend_client(function(m, p) "r", model = "gpt-4o-mini")
-  invisible(gr_call(cl, "Q?", trace = tr))
-  limit <- gr_model_info("gpt-4o-mini")$max_output
-  res <- gr_call(gr_replay_client(tr, strict = FALSE), "Q?", max_output = limit)
+  tr <- hr_trace()
+  cl <- hr_backend_client(function(m, p) "r", model = "gpt-4o-mini")
+  invisible(hr_call(cl, "Q?", trace = tr))
+  limit <- hr_model_info("gpt-4o-mini")$max_output
+  res <- hr_call(hr_replay_client(tr, strict = FALSE), "Q?", max_output = limit)
   expect_false(res$ok)
   expect_match(res$error, "asked for temperature none, no output cap and no schema",
                fixed = TRUE)
@@ -511,10 +511,10 @@ test_that("a miss names the asked cap and a schema body, not what was sent", {
   expect_match(res$error, "They differ in the output cap asked for.", fixed = TRUE)
 
   # A schema that keeps its name and changes its body.
-  tr <- gr_trace()
-  cl <- gr_backend_client(function(m, p) "{}", model = "gpt-4o-mini")
-  invisible(gr_call(cl, "Q?", schema = list(type = "object"), schema_name = "ans", trace = tr))
-  res <- gr_call(gr_replay_client(tr, strict = FALSE), "Q?",
+  tr <- hr_trace()
+  cl <- hr_backend_client(function(m, p) "{}", model = "gpt-4o-mini")
+  invisible(hr_call(cl, "Q?", schema = list(type = "object"), schema_name = "ans", trace = tr))
+  res <- hr_call(hr_replay_client(tr, strict = FALSE), "Q?",
                  schema = list(type = "object", x = 1), schema_name = "ans")
   expect_false(res$ok)
   expect_match(res$error, paste0("this call asks for temperature none, no output cap and ",
@@ -522,10 +522,10 @@ test_that("a miss names the asked cap and a schema body, not what was sent", {
   expect_match(res$error, "They differ in the JSON schema.", fixed = TRUE)
 
   # An integer temperature is the same temperature as the double recorded.
-  tr <- gr_trace()
-  cl <- gr_backend_client(function(m, p) "{}", model = "gpt-4o-mini")
-  invisible(gr_call(cl, "Q?", temperature = 1, schema = list(type = "object"), trace = tr))
-  res <- gr_call(gr_replay_client(tr, strict = FALSE), "Q?", temperature = 1L,
+  tr <- hr_trace()
+  cl <- hr_backend_client(function(m, p) "{}", model = "gpt-4o-mini")
+  invisible(hr_call(cl, "Q?", temperature = 1, schema = list(type = "object"), trace = tr))
+  res <- hr_call(hr_replay_client(tr, strict = FALSE), "Q?", temperature = 1L,
                  schema = list(type = "array"))
   expect_false(res$ok)
   expect_match(res$error, "They differ in the JSON schema.", fixed = TRUE)
@@ -534,35 +534,35 @@ test_that("a miss names the asked cap and a schema body, not what was sent", {
 
 test_that("a repeated reply is recorded without a replay key", {
   local_registries()
-  tr <- gr_trace()
-  cl <- gr_mock_client(function(m, p) "only reply")
-  invisible(gr_call(cl, "same prompt", trace = tr))
+  tr <- hr_trace()
+  cl <- hr_mock_client(function(m, p) "only reply")
+  invisible(hr_call(cl, "same prompt", trace = tr))
 
-  flag <- gr_replay_client(tr, on_exhausted = "flag")
-  tr2 <- gr_trace()
-  for (i in 1:2) invisible(gr_call(flag, "same prompt", trace = tr2))
+  flag <- hr_replay_client(tr, on_exhausted = "flag")
+  tr2 <- hr_trace()
+  for (i in 1:2) invisible(hr_call(flag, "same prompt", trace = tr2))
   expect_identical(flag$stats()$repeats, 1L)
   expect_match(tr2$steps[[1]]$replay_key, "^[0-9a-f]{64}$")
   expect_null(tr2$steps[[2]]$replay_key)
 
   # A replay of that trace is not exact where the first was not.
-  rp <- gr_replay_client(tr2)
-  expect_identical(gr_call(rp, "same prompt")$text, "only reply")
-  expect_error(gr_call(rp, "same prompt"), class = "hr_replay_exhausted")
+  rp <- hr_replay_client(tr2)
+  expect_identical(hr_call(rp, "same prompt")$text, "only reply")
+  expect_error(hr_call(rp, "same prompt"), class = "hr_replay_exhausted")
 })
 
 test_that("an unrecorded prompt is a loud failure by default", {
   local_registries()
-  tr <- gr_trace()
-  cl <- gr_mock_client(function(m, p) "recorded")
-  invisible(gr_call(cl, "the recorded prompt", trace = tr))
+  tr <- hr_trace()
+  cl <- hr_mock_client(function(m, p) "recorded")
+  invisible(hr_call(cl, "the recorded prompt", trace = tr))
 
-  strict <- gr_replay_client(tr)
-  expect_error(gr_call(strict, "a prompt nobody recorded"), class = "gr_replay_miss")
+  strict <- hr_replay_client(tr)
+  expect_error(hr_call(strict, "a prompt nobody recorded"), class = "gr_replay_miss")
   expect_length(strict$missed(), 1L)
 
-  lenient <- gr_replay_client(tr, strict = FALSE)
-  res <- gr_call(lenient, "a prompt nobody recorded")
+  lenient <- hr_replay_client(tr, strict = FALSE)
+  res <- hr_call(lenient, "a prompt nobody recorded")
   expect_false(res$ok)
   expect_true(res$cached)
   expect_match(res$error, "No recorded response")
@@ -570,50 +570,50 @@ test_that("an unrecorded prompt is a loud failure by default", {
 
 test_that("a miss caused only by the model says so", {
   local_registries()
-  tr <- gr_trace()
-  cl <- gr_mock_client(function(m, p) "recorded")
-  invisible(gr_call(cl, "shared prompt", trace = tr))
-  gr_register_model("another-mock", context_window = 128000L, max_output = 4096L,
+  tr <- hr_trace()
+  cl <- hr_mock_client(function(m, p) "recorded")
+  invisible(hr_call(cl, "shared prompt", trace = tr))
+  hr_register_model("another-mock", context_window = 128000L, max_output = 4096L,
                     input_usd = 0, output_usd = 0)
 
-  rp <- gr_replay_client(tr, strict = FALSE)
-  res <- gr_call(rp, "shared prompt", model = "another-mock")
+  rp <- hr_replay_client(tr, strict = FALSE)
+  res <- hr_call(rp, "shared prompt", model = "another-mock")
   expect_false(res$ok)
   expect_match(res$error, "IS recorded under model")
 })
 
 test_that("a trace with no model calls cannot be replayed", {
-  expect_error(gr_replay_client(gr_trace()), class = "gr_replay_empty")
+  expect_error(hr_replay_client(hr_trace()), class = "gr_replay_empty")
 })
 
 test_that("an unreadable or missing trace file is reported clearly", {
-  expect_error(gr_replay_client(file.path(tempdir(), "no-such-trace.json")),
+  expect_error(hr_replay_client(file.path(tempdir(), "no-such-trace.json")),
                class = "gr_file_not_found")
   bad <- withr::local_tempfile(fileext = ".json")
   writeLines("{ this is not json", bad)
-  expect_error(gr_replay_client(bad), class = "gr_replay_unreadable")
-  expect_error(gr_replay_client(42), class = "gr_replay_unreadable")
+  expect_error(hr_replay_client(bad), class = "gr_replay_unreadable")
+  expect_error(hr_replay_client(42), class = "gr_replay_unreadable")
 })
 
 test_that("replay says plainly that it cannot reproduce embeddings", {
   local_registries()
-  tr <- gr_trace()
-  invisible(gr_call(gr_mock_client(function(m, p) "x"), "q", trace = tr))
-  rp <- gr_replay_client(tr)
+  tr <- hr_trace()
+  invisible(hr_call(hr_mock_client(function(m, p) "x"), "q", trace = tr))
+  rp <- hr_replay_client(tr)
 
-  expect_warning(e <- gr_embed(rp, c("alpha text", "beta text")),
+  expect_warning(e <- hr_embed(rp, c("alpha text", "beta text")),
                  class = "gr_replay_no_embeddings")
   expect_identical(nrow(e), 2L)
   expect_identical(attr(e, "embedding_source"), "lexical")
   # And it never pretends to have succeeded when told not to fall back.
-  expect_error(gr_embed(rp, "alpha", fallback = "error"), class = "gr_embed_error")
+  expect_error(hr_embed(rp, "alpha", fallback = "error"), class = "gr_embed_error")
 })
 
 test_that("a replay client is accepted anywhere a client is", {
   local_registries()
-  tr <- gr_trace()
-  invisible(gr_call(gr_mock_client(function(m, p) "x"), "q", trace = tr))
-  rp <- gr_replay_client(tr)
+  tr <- hr_trace()
+  invisible(hr_call(hr_mock_client(function(m, p) "x"), "q", trace = tr))
+  rp <- hr_replay_client(tr)
   expect_s3_class(rp, "gr_client")
   expect_output(print(rp), "gr_replay_client")
   expect_identical(rp$stats()$recorded, 1L)
@@ -621,12 +621,12 @@ test_that("a replay client is accepted anywhere a client is", {
 
 test_that("local trace steps are not mistaken for model calls", {
   local_registries()
-  cl <- gr_mock_client(function(m, p) "an answer")
+  cl <- hr_mock_client(function(m, p) "an answer")
   ans <- quiet(answer_document(gr_example(), "What was revenue?", "thorough", client = cl))
   n_local <- sum(vapply(ans$trace$steps,
                         function(s) identical(s$kind, "local"), logical(1)))
   expect_gt(n_local, 0L)
-  expect_identical(gr_replay_client(ans$trace)$n_recorded,
+  expect_identical(hr_replay_client(ans$trace)$n_recorded,
                    length(ans$trace$steps) - n_local)
 })
 
@@ -654,11 +654,11 @@ test_that("a saved trace preserves non-ASCII text", {
   q <- unmarked("Quel \u00e9tait le chiffre d\u2019affaires ? caf\u00e9 na\u00efve")
   a <- unmarked("r\u00e9ponse enregistr\u00e9e \u2014 45,2 M\u20ac")
 
-  tr <- gr_trace()
-  invisible(gr_call(gr_mock_client(function(m, p) a), q, trace = tr))
+  tr <- hr_trace()
+  invisible(hr_call(hr_mock_client(function(m, p) a), q, trace = tr))
 
   f <- withr::local_tempfile(fileext = ".json")
-  gr_trace_save(tr, f)
+  hr_trace_save(tr, f)
   raw <- paste(readLines(f, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
 
   expect_true(jsonlite::validate(raw))
@@ -674,11 +674,11 @@ test_that("a run with a non-ASCII question and answer replays from a file", {
   a <- unmarked("r\u00e9ponse enregistr\u00e9e \u2014 45,2 M\u20ac")
 
   original <- quiet(answer_document(gr_example(), q, "thorough",
-                                    client = gr_mock_client(function(m, p) a)))
+                                    client = hr_mock_client(function(m, p) a)))
   f <- withr::local_tempfile(fileext = ".json")
-  gr_trace_save(original$trace, f)
+  hr_trace_save(original$trace, f)
 
-  rp <- gr_replay_client(f)
+  rp <- hr_replay_client(f)
   replayed <- quiet(answer_document(gr_example(), q, "thorough", client = rp))
 
   expect_length(rp$missed(), 0L)
@@ -692,22 +692,22 @@ test_that("the cache key depends on characters, not on how they are labelled", {
   # hashed differently and the same prompt was billed twice.
   local_registries()
   n <- 0L
-  cl <- gr_cache_client(gr_mock_client(function(m, p) { n <<- n + 1L; "ok" }),
-                        gr_cache(withr::local_tempdir()))
+  cl <- hr_cache_client(hr_mock_client(function(m, p) { n <<- n + 1L; "ok" }),
+                        hr_cache(withr::local_tempdir()))
   txt <- "caf\u00e9 r\u00e9sum\u00e9 na\u00efve \u2014 45,2 M\u20ac"
   labelled <- txt; Encoding(labelled) <- "UTF-8"
   bare <- unmarked(txt)
   expect_identical(charToRaw(labelled), charToRaw(bare))     # same bytes
 
-  invisible(gr_call(cl, labelled))
-  invisible(gr_call(cl, bare))
+  invisible(hr_call(cl, labelled))
+  invisible(hr_call(cl, bare))
   expect_identical(n, 1L)
 })
 
 test_that("a result labels valid UTF-8 text without converting it", {
   local_registries()
   a <- "r\u00e9ponse \u2014 45,2 M\u20ac"
-  res <- gr_call(gr_mock_client(function(m, p) unmarked(a)), "q")
+  res <- hr_call(hr_mock_client(function(m, p) unmarked(a)), "q")
   expect_identical(Encoding(res$text), "UTF-8")            # labelled
   expect_identical(charToRaw(res$text), charToRaw(a))      # and unchanged
 })

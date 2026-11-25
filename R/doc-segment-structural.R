@@ -28,7 +28,7 @@ seg_structural <- function(doc, spec, client, trace) {
     # of a script without case (Chinese, Arabic) also starts a heading.
     is_head <- grepl(paste0("^(#{1,6}[ \t]|\\d+(\\.\\d+)*[ \t.)]+[\\p{Lu}\\p{Lt}\\p{Lo}]|",
                             "\\p{Lu}[\\p{Lu}\\p{N} ,'\u2019&/-]{6,}$)"),
-                     mark_utf8(b$text), perl = TRUE) & gr_count_tokens(b$text) < 30L
+                     mark_utf8(b$text), perl = TRUE) & hr_count_tokens(b$text) < 30L
     # The label is the heading line as written, less any markdown hashes. The
     # heading block is dropped from the body below and this label is prefixed
     # in its place, so it has to carry the whole line: the normalised form
@@ -76,7 +76,7 @@ seg_structural <- function(doc, spec, client, trace) {
     # section is long enough to need several chunks.
     prefix <- if (labelled) paste0("## ", nm, "\n\n") else ""
     packed <- pack_units(b$text[body_idx],
-                         max(spec$max_tokens - gr_count_tokens(prefix), 32L),
+                         max(spec$max_tokens - hr_count_tokens(prefix), 32L),
                          spec$overlap_tokens, spec$min_tokens,
                          meta = b[body_idx, c("page", "section", "block_id"), drop = FALSE],
                          balanced = pack_balanced(spec),

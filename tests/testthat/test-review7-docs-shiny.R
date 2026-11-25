@@ -45,15 +45,15 @@ test_that("the gr_answer docs say what trace_steps is and that a shared trace ho
   expect_match(tr_item, "still holds every run recorded into it", fixed = TRUE)
   expect_match(tr_item, "`trace_steps` says which of its steps are this run's", fixed = TRUE)
   # What the field is, as the docs describe it.
-  a <- new_answer("It says so.", "stuff", "Q?", integer(0), gr_trace())
+  a <- new_answer("It says so.", "stuff", "Q?", integer(0), hr_trace())
   expect_true(is.integer(a$trace_steps))
   expect_named(a$trace_steps, c("first", "last"))
   expect_null(new_answer("It says so.", "stuff", "Q?", integer(0), NULL)$trace_steps)
 })
 
 test_that("an answer's record leaves out a run made on its trace after it, as documented", {
-  cl <- gr_mock_client(function(messages, params) "It says so.")
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(messages, params) "It says so.")
+  tr <- hr_trace()
   a1 <- quiet(answer_document("Public memo: revenue was 45.2 million in 2023.", "What was revenue?",
                               "fast", client = cl, trace = tr))
   quiet(answer_document("Second memo: the Sheffield site closed in May.", "What closed?",
@@ -83,7 +83,7 @@ test_that("the gr_chunks docs list contextual's extras", {
   meta <- quiet(gr_segment(txt, gr_segment_spec("contextual", max_tokens = 200)))
   expect_identical(meta$extra$context_source, "metadata")
   expect_null(meta$extra$blurbs_missing)
-  cl <- gr_mock_client(function(messages, params) "This excerpt is about enrolment.")
+  cl <- hr_mock_client(function(messages, params) "This excerpt is about enrolment.")
   llm <- quiet(gr_segment(txt, gr_segment_spec("contextual", context_source = "llm",
                                                 max_tokens = 200), client = cl))
   expect_identical(llm$extra$context_source, "llm")
@@ -104,15 +104,15 @@ test_that("the app's history download keeps non-ASCII text in a C locale", {
   skip_if_not_installed("shiny")
   local_registries()
   local_clean_cache()
-  gr_options(verbose = FALSE)
+  hr_options(verbose = FALSE)
   app <- system.file("shiny", "app.R", package = "harnessr")
   skip_if(!nzchar(app), "the Shiny app is not available")
   dir <- withr::local_tempdir()
   writeLines(c("Revenue was 45.2 million dollars in fiscal 2024.", "",
                "Gross margin improved to 41 percent."), file.path(dir, "report.txt"))
-  cl <- gr_mock_client(function(m, p) "Margin was \u2265 40 percent at Malm\u00f6.")
+  cl <- hr_mock_client(function(m, p) "Margin was \u2265 40 percent at Malm\u00f6.")
   e <- new.env(parent = globalenv())
-  e$gr_client <- function(model = NULL, api_key = NULL, ...) cl
+  e$hr_client <- function(model = NULL, api_key = NULL, ...) cl
   e$shinyApp <- function(ui, server, ...) server
   if (!"package:shiny" %in% search()) {
     withr::defer(try(detach("package:shiny", character.only = TRUE), silent = TRUE))

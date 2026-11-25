@@ -2,14 +2,14 @@
 # warning of hr_benchmark(), and hr_sweep_check().
 
 local_quiet <- function(env = parent.frame()) {
-  old <- gr_options(verbose = FALSE, embedder = "lexical")
-  withr::defer(gr_options(old), envir = env)
+  old <- hr_options(verbose = FALSE, embedder = "lexical")
+  withr::defer(hr_options(old), envir = env)
 }
 sweep_ref <- function() {
   gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
                   documents = gr_example(), answers = list("45.2 million"), split = "test")
 }
-sweep_client <- function() gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+sweep_client <- function() hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 bench_quiet <- function(arms, runs = 5) {
   hr_benchmark(arms, sweep_ref(), runs = runs, client = sweep_client(),
                scorer = gr_scorer_answer())

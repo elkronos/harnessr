@@ -89,7 +89,7 @@ test_that("the claims readers give the same output for an older claims table", {
   syn <- function(claims) {
     quiet(gr_synthesise(upgrade_fixture("extraction"), protocol = golden_protocol(),
                         outline = upgrade_fixture("outline"), claims = claims,
-                        client = gr_mock_client(golden_reply)))
+                        client = hr_mock_client(golden_reply)))
   }
   expect_identical(syn(old)$text, syn(cm)$text)
   # gr_synthesise() keeps the claims table it read, filled.
@@ -108,7 +108,7 @@ test_that("gr_gaps() under a narrower `bib` keeps an older table's hidden column
                     duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,
                     conflicts = NA_character_, design = c("cohort", "cohort", "rct", "rct"),
                     authors = "Smith, J.; Okafor, A.", stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(messages, params) paste0(
+  cl <- hr_mock_client(function(messages, params) paste0(
     '{"claims":[{"claim":"One cohort found it.","kind":"finding","supported_by":[1],',
     '"contradicted_by":[],"moderator":null,"scope":"one study"}]}'))
   cm <- quiet(gr_claims(tab, question = "Q?", client = cl))

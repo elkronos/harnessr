@@ -1,7 +1,7 @@
 # core-transport-ellmer.R: talk to a model through someone else's client.
 #
 # WHY THIS FILE EXISTS
-# `gr_client()` speaks one HTTP dialect: an OpenAI-compatible /responses or
+# `hr_client()` speaks one HTTP dialect: an OpenAI-compatible /responses or
 # /chat/completions endpoint. That was the right first move and it is the wrong
 # only move. The three axes this package exists for (ingest, segment, read)
 # have nothing to do with which vendor answers the call, and wiring them to one
@@ -16,10 +16,10 @@
 # is. So the useful thing is not to reimplement their transport, it is to accept
 # it.
 #
-# `gr_backend_client()` is the seam. A backend is any function of
+# `hr_backend_client()` is the seam. A backend is any function of
 # `(messages, params)` that returns text, and everything the package does around
 # the call (token caps, cost rails, provenance, traces, caching, replay,
-# comparison) keeps working unchanged. `gr_ellmer_client()` is then sixty
+# comparison) keeps working unchanged. `hr_ellmer_client()` is then sixty
 # lines on top of it rather than a second HTTP stack.
 
 # ---------------------------------------------------------------------------
@@ -41,7 +41,7 @@
 #' promised to stay (the slots of its model and turn objects, `Chat$new()`).
 #' A weekly check runs the adapter's tests against ellmer's development
 #' version, but a new ellmer release can still break it before a harnessr
-#' release catches up. The built-in [gr_client()] does not depend on ellmer.
+#' release catches up. The built-in [hr_client()] does not depend on ellmer.
 #'
 #' @param chat An ellmer `Chat`, e.g. from `ellmer::chat_anthropic()` or
 #'   `ellmer::chat_ollama()`.
@@ -50,9 +50,9 @@
 #'   it, `retrieve` and the `semantic` segmenter fall back to lexical vectors and
 #'   warn.
 #' @param model Model id reported to this package. Defaults to the chat's own
-#'   model. Register it with [gr_register_model()] if it is not already known.
+#'   model. Register it with [hr_register_model()] if it is not already known.
 #'   The context window is what sizes your chunks, so a wrong one is not cosmetic.
-#' @return A [gr_backend_client()].
+#' @return An [hr_backend_client()].
 #'
 #' @section Requirements on the chat:
 #' The adapter calls `$chat()`, `$chat_structured()`, `$clone()`, `$set_turns()`
@@ -104,13 +104,13 @@
 #' clone with its turns cleared. Your chat object is never mutated, and no
 #' conversation history leaks from one chunk's call into the next.
 #'
-#' For [gr_cache()] and [gr_read_many()]'s `store`, the client's identity covers
+#' For [hr_cache()] and [gr_read_many()]'s `store`, the client's identity covers
 #' the provider, endpoint, model, the chat's `params()` and `api_args`, and its
 #' system prompt, so two chats that differ in any of them never share answers.
 #' A chat whose settings cannot be read gets an identity that lasts only for the
 #' session.
 #'
-#' @seealso [gr_backend_client()], [gr_client()], [gr_register_model()]
+#' @seealso [hr_backend_client()], [hr_client()], [hr_register_model()]
 #' @export
 #' @examples
 #' \dontrun{
@@ -119,20 +119,20 @@
 #' # Any provider ellmer speaks to, with any reading strategy here. The chat
 #' # is billed as its own model, which needs a registered price for a
 #' # spending limit to hold; use your provider's current prices.
-#' gr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 64000,
+#' hr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 64000,
 #'                   input_usd = 3, output_usd = 15)
-#' cl <- gr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
+#' cl <- hr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
 #' ans <- answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
 #'
 #' # Locally, for nothing. A local model has no price, so let it run unpriced:
-#' gr_options(allow_unpriced = TRUE)
-#' local <- gr_ellmer_client(chat_ollama(model = "llama3.1"))
+#' hr_options(allow_unpriced = TRUE)
+#' local <- hr_ellmer_client(chat_ollama(model = "llama3.1"))
 #' gr_compare("report.pdf", "What was revenue?",
 #'            c("fast", "thorough"), client = local)$summary
 #' }
-gr_ellmer_client <- function(chat, embed = NULL, model = NULL) {
+hr_ellmer_client <- function(chat, embed = NULL, model = NULL) {
   if (!requireNamespace("ellmer", quietly = TRUE)) {
-    gr_abort(paste0("gr_ellmer_client() needs the 'ellmer' package. ",
+    gr_abort(paste0("hr_ellmer_client() needs the 'ellmer' package. ",
                     "Install it with install.packages('ellmer')."),
              class = "gr_missing_dep")
   }
@@ -184,7 +184,7 @@ gr_ellmer_client <- function(chat, embed = NULL, model = NULL) {
     one <- chat$clone(deep = TRUE)
     # The per-call output cap. Every cap this package sets (a map step's 700
     # tokens, a revision's room for the whole draft, the context-headroom clamp
-    # in gr_call()) was dropped here, and the chat's own max_tokens went out
+    # in hr_call()) was dropped here, and the chat's own max_tokens went out
     # instead: a default chat_anthropic() cut a 7000-token revision at 4096, and
     # a chat built with a large limit wrote replies far longer than the caps the
     # cost preflight priced.
@@ -287,7 +287,7 @@ gr_ellmer_client <- function(chat, embed = NULL, model = NULL) {
   # stable: a provider, a model, an endpoint. So this one CAN say what it is,
   # and a durable cache or a resumable store works across sessions. For the
   # real transport, that is the whole point of having them.
-  cl <- gr_backend_client(handler, embed = embed, model = model,
+  cl <- hr_backend_client(handler, embed = embed, model = model,
                           embedding_model = paste0(model, "-embed"),
                           id = ellmer_identity(chat, model))
   # The chat bills as its own model whatever a recipe names, so pricing has to
@@ -309,7 +309,7 @@ gr_ellmer_client <- function(chat, embed = NULL, model = NULL) {
 #'
 #' A chat whose settings cannot be read (not ellmer's, or an ellmer that keeps
 #' them somewhere else) gets a session-scoped id, the same safe default as a
-#' bare [gr_backend_client()]: a cache that cannot be reused next session rather
+#' bare [hr_backend_client()]: a cache that cannot be reused next session rather
 #' than one that returns another chat's answers.
 #' @noRd
 ellmer_identity <- function(chat, model) {
@@ -572,7 +572,7 @@ ellmer_split_messages <- function(messages) {
 #' package's own tokenizer is deliberately biased to over-count.
 #' @noRd
 ellmer_usage <- function(chat, params, txt) {
-  local <- usage_record(as_int1(params$prompt_tokens, 0L), sum(gr_count_tokens(as_chr1(txt))),
+  local <- usage_record(as_int1(params$prompt_tokens, 0L), sum(hr_count_tokens(as_chr1(txt))),
                         local_provenance())
   tk <- tryCatch(chat$get_tokens(), error = function(e) NULL)
   if (!is.data.frame(tk) || !nrow(tk)) return(local)

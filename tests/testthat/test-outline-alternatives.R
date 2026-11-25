@@ -57,7 +57,7 @@ oa_text <- function(messages) {
 # messages and returns the reply.
 oa_client <- function(replies = list(oa_first, oa_by_design, oa_renamed),
                       section_text = "It is so [study 1].") {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     all_txt <- oa_text(messages)
     if (grepl("turn a table of studies", sys, fixed = TRUE)) return(oa_claims_json)
@@ -142,8 +142,8 @@ test_that("the response cache cannot hand back one sample as every alternative",
   local_registries()
   n <- 0L
   base <- oa_client(replies = list(oa_first, oa_renamed, oa_by_design))
-  counting <- gr_mock_client(function(m, p) { n <<- n + 1L; base$handler(m, p) })
-  cl <- gr_cache_client(counting, gr_cache(withr::local_tempdir()))
+  counting <- hr_mock_client(function(m, p) { n <<- n + 1L; base$handler(m, p) })
+  cl <- hr_cache_client(counting, hr_cache(withr::local_tempdir()))
   cm <- quiet(gr_claims(oa_table(), question = "Does it work?", client = cl))
   # A first run without alternatives fills the cache with the first outline.
   o1 <- quiet(gr_outline(cm, client = cl))
@@ -169,11 +169,11 @@ test_that("a run with alternatives replays from its recording with no model", {
   f <- oa_setup(oa_client(replies = list(oa_first, oa_renamed, oa_by_design)))
   # The claims and the outline each record on a trace of their own; the
   # review's trace is the parent both fold into, and it is what is replayed.
-  review <- gr_trace()
+  review <- hr_trace()
   harnessr:::trace_absorb(review, f$claims$trace)
   o <- suppressWarnings(quiet(gr_outline(f$claims, client = f$client, alternatives = 3,
                                          trace = review)))
-  rp <- gr_replay_client(review)
+  rp <- hr_replay_client(review)
   cm2 <- quiet(gr_claims(oa_table(), question = "Does it work?", client = rp))
   o2 <- suppressWarnings(quiet(gr_outline(cm2, client = rp, alternatives = 3)))
   expect_identical(rp$stats()$misses, 0L)
@@ -303,10 +303,10 @@ test_that("an alternative is verified exactly as the first outline is", {
 test_that("an alternative's messages say which outline they are about", {
   messy <- oa_sections(Solo = c(1, 3))
   f <- oa_setup(oa_client(replies = list(oa_first, messy)))
-  # These are messages, which follow gr_options(verbose): set here, so the test
+  # These are messages, which follow hr_options(verbose): set here, so the test
   # does not pass or fail on what an earlier test left it as.
-  old_v <- gr_options(verbose = TRUE)
-  on.exit(gr_options(old_v), add = TRUE)
+  old_v <- hr_options(verbose = TRUE)
+  on.exit(hr_options(old_v), add = TRUE)
   msgs <- character(0)
   withCallingHandlers(
     suppressWarnings(gr_outline(f$claims, client = f$client, alternatives = 2)),
@@ -402,7 +402,7 @@ test_that("no alternative is asked for once the run reaches its call cap", {
   f <- oa_setup()
   # The outline counts its own calls only, not the one that drew the claims:
   # the cap leaves room for the first outline and one alternative.
-  gr_options(max_calls = 2L)
+  hr_options(max_calls = 2L)
   o <- NULL
   expect_warning(o <- suppressMessages(gr_outline(f$claims, client = f$client, alternatives = 3)),
                  class = "gr_outline_alternatives_short")
@@ -430,7 +430,7 @@ test_that("nothing is asked for when the first outline did not come back", {
 test_that("one claim is not regrouped, because it can be grouped only one way", {
   one <- paste0('{"claims":[{"claim":"It works.","kind":"finding","supported_by":[1],',
                 '"contradicted_by":[],"moderator":null,"scope":null}]}')
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("turn a table of studies", messages[[1]]$content, fixed = TRUE)) return(one)
     oa_sections(Only = 1)
   })

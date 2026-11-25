@@ -49,7 +49,7 @@
 #'   [gr_read_many()], because the point of the function is to show you
 #'   everything.
 #' @param model Model id used for the cost floor. Defaults to
-#'   `gr_options("model")`.
+#'   `hr_options("model")`.
 #' @param ocr_min_chars A PDF page with fewer than this many characters of
 #'   extractable text is counted as needing OCR. Read exactly as
 #'   [gr_ingest_spec()] reads it, default included, so what this predicts is
@@ -187,7 +187,7 @@ gr_inventory <- function(sources, recursive = TRUE, model = NULL,
                           totals = list(files = 0L, readable = 0L, bytes = 0,
                                         tokens = 0, tokens_unknown = 0L,
                                         cost_floor_usd = NA_real_),
-                          root = root, model = as_chr1(model %||% gr_options("model"))),
+                          root = root, model = as_chr1(model %||% hr_options("model"))),
                      class = "gr_inventory"))
   }
 
@@ -233,8 +233,8 @@ gr_inventory <- function(sources, recursive = TRUE, model = NULL,
   # is a floor, and `tokens_unknown` is what says so.
   tok <- sum(files$tokens[readable], na.rm = TRUE)
   unknown <- sum(readable & is.na(files$tokens))
-  model <- as_chr1(model %||% gr_options("model"))
-  cost <- suppressWarnings(gr_estimate_cost(model, tok, sum(readable) * 500))
+  model <- as_chr1(model %||% hr_options("model"))
+  cost <- suppressWarnings(hr_estimate_cost(model, tok, sum(readable) * 500))
 
   by <- as.data.frame(table(factor(files$status,
                                    levels = c("ready", "needs_ocr", "needs_package",
@@ -386,7 +386,7 @@ probe_text <- function(path) {
   if (!nzchar(trimws(body))) {
     return(list(status = "empty", tokens = 0, note = "no text content"))
   }
-  list(status = "ready", tokens = as.numeric(sum(gr_count_tokens(body))), note = NA_character_)
+  list(status = "ready", tokens = as.numeric(sum(hr_count_tokens(body))), note = NA_character_)
 }
 
 #' Does this PDF have a text layer, or is it a scan?
@@ -450,7 +450,7 @@ probe_pdf <- function(path, ocr_min_chars, max_pdf_pages) {
   }
   # Tokens from the sampled pages, scaled to the whole document. An estimate,
   # and said to be one, rather than reading four hundred pages to be exact.
-  seen <- as.numeric(sum(gr_count_tokens(paste(pg, collapse = "\n"))))
+  seen <- as.numeric(sum(hr_count_tokens(paste(pg, collapse = "\n"))))
   list(status = "ready", tokens = seen * (n / length(take)), pages = n, ocr_pages = est,
        note = if (!any(thin)) NA_character_
               else paste0(if (sampled) "about " else "", est, " of ", n, " pages have no text layer",

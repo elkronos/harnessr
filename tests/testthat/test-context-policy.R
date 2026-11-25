@@ -5,7 +5,7 @@
 # check that. These tests check what each does when it is on.
 
 cp_chunks <- function(txt) {
-  new_chunks(txt, "precomputed", gr_segment_spec(max_tokens = max(gr_count_tokens(txt), 32L)))
+  new_chunks(txt, "precomputed", gr_segment_spec(max_tokens = max(hr_count_tokens(txt), 32L)))
 }
 
 cp_truncates <- function(tr) {
@@ -17,13 +17,13 @@ cp_paras <- paste("Paragraph", 1:8, "reports a figure for one of the regions.",
 
 # --- hr_truncate -------------------------------------------------------------
 
-test_that("hr_truncate() keeps the head by default, exactly as gr_truncate_tokens()", {
+test_that("hr_truncate() keeps the head by default, exactly as hr_truncate_tokens()", {
   texts <- c(cp_paras, paste(rep("alpha beta gamma", 40), collapse = " "),
              "Arm | N\nA | 482\nB | 479\nC | 470", "short enough", "")
   for (t in texts) for (n in c(0, 1, 3, 8, 20, 200)) {
-    expect_identical(hr_truncate(t, n), gr_truncate_tokens(t, n), info = paste(n, t))
+    expect_identical(hr_truncate(t, n), hr_truncate_tokens(t, n), info = paste(n, t))
     expect_identical(hr_truncate(t, n, keep = "head", marker = ""),
-                     gr_truncate_tokens(t, n, marker = ""))
+                     hr_truncate_tokens(t, n, marker = ""))
   }
 })
 
@@ -40,7 +40,7 @@ test_that("tail, both and scored keep the part asked for and stay within n", {
   expect_match(sc, "Paragraph 4.*Paragraph 6")
   expect_false(grepl("Paragraph 1 ", sc, fixed = TRUE))
   for (k in c("tail", "both")) for (n in c(1, 2, 5, 9, 17, 40)) {
-    expect_lte(gr_count_tokens(hr_truncate(cp_paras, n, keep = k)), n)
+    expect_lte(hr_count_tokens(hr_truncate(cp_paras, n, keep = k)), n)
   }
   units <- c("first unit", "second unit", "third unit")
   expect_identical(hr_truncate(units, 100, keep = "scored", scores = 1:3),
@@ -63,10 +63,10 @@ test_that("tail and both use the whole budget when no marker is used", {
     }
     expect_true(endsWith(x, tail), info = n)
     expect_false(grepl("^\\s*$", both) && nzchar(both), info = n)
-    expect_lte(gr_count_tokens(both), n)
+    expect_lte(hr_count_tokens(both), n)
   }
   # Nothing kept is "" and logged as all dropped, not a bare line break.
-  tr <- gr_trace()
+  tr <- hr_trace()
   expect_identical(hr_truncate(x, 3, keep = "both", marker = "", trace = tr), "")
   expect_identical(cp_truncates(tr)[[1]]$detail$dropped_part, "all")
   cjk <- strrep("\u65e5\u672c\u8a9e\u306e\u30c6\u30ad\u30b9\u30c8", 200)
@@ -79,18 +79,18 @@ test_that("scored keeps a unit at every budget where one fits, with or without t
   u <- paste("Para", 1:6, "says something about revenue.")
   kept <- vapply(6:40, function(n) {
     out <- hr_truncate(u, n, keep = "scored", scores = 6:1)
-    expect_lte(gr_count_tokens(out), n)
+    expect_lte(hr_count_tokens(out), n)
     sum(vapply(u, function(x) grepl(x, out, fixed = TRUE), TRUE))
   }, numeric(1))
   # The units kept never fall as the budget grows.
   expect_true(all(diff(kept) >= 0))
-  one <- min(which(vapply(6:40, function(n) gr_count_tokens(u[1]) <= n, TRUE))) + 5L
+  one <- min(which(vapply(6:40, function(n) hr_count_tokens(u[1]) <= n, TRUE))) + 5L
   expect_match(hr_truncate(u, one, keep = "scored", scores = 6:1), "^Para 1 ")
   expect_match(hr_truncate(u, 16, keep = "scored", scores = 6:1), "^Para 1 ")
 })
 
 test_that("every cut writes a truncate step that names the piece and what was dropped", {
-  tr <- gr_trace()
+  tr <- hr_trace()
   invisible(hr_truncate(cp_paras, 20, keep = "tail", trace = tr, where = "demo", piece = "notes"))
   invisible(hr_truncate(cp_paras, 20, trace = tr, where = "demo2"))
   invisible(hr_truncate(cp_paras, 45, keep = "scored", scores = 8:1, trace = tr, where = "demo3"))
@@ -122,7 +122,7 @@ test_that("hr_context_fit() never cuts a pinned piece and cuts in the order give
   pieces <- c(question = "What was revenue?",
               draft = paste(rep("Revenue rose.", 30), collapse = " "),
               excerpt = paste(rep("Costs fell.", 30), collapse = " "))
-  tr <- gr_trace()
+  tr <- hr_trace()
   fit <- hr_context_fit(pieces, 80, hr_context_policy(pin = c("question", "draft")),
                         trace = tr, where = "t")
   expect_identical(fit$pieces[["draft"]], pieces[["draft"]])
@@ -169,9 +169,9 @@ test_that("under a context policy refine fits its draft and excerpt together", {
   long <- paste(rep("Sales rose in the north region this year.", 150), collapse = " ")
   ch <- cp_chunks(c("Revenue was 45.2 million dollars.", long))
   local_registries()
-  gr_register_model("cp-small", context_window = 1500, max_output = 200)
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  tr <- gr_trace()
+  hr_register_model("cp-small", context_window = 1500, max_output = 200)
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  tr <- hr_trace()
   pol <- hr_context_policy(keep = c(excerpt = "tail", "head"))
   a <- quiet(gr_read(ch, "What was revenue?", cl,
                      gr_read_spec("refine", model = "cp-small", max_answer_tokens = 100,
@@ -184,7 +184,7 @@ test_that("under a context policy refine fits its draft and excerpt together", {
   expect_gte(a$notes$truncations, 1L)
   expect_true(a$partial)
   # Without a policy, the same read halves the budget and keeps the head.
-  tr0 <- gr_trace()
+  tr0 <- hr_trace()
   quiet(gr_read(ch, "What was revenue?", cl,
                 gr_read_spec("refine", model = "cp-small", max_answer_tokens = 100),
                 trace = tr0))
@@ -193,20 +193,20 @@ test_that("under a context policy refine fits its draft and excerpt together", {
 
 test_that("a policy whose pinned pieces do not fit warns and refine cuts as without one", {
   local_registries()
-  gr_register_model("cp-pin", context_window = 700, max_output = 100, input_usd = 1,
+  hr_register_model("cp-pin", context_window = 700, max_output = 100, input_usd = 1,
                     output_usd = 1)
   txt <- vapply(1:3, function(i) paste(rep(sprintf("Fact %d about the region.", i), 75),
                                        collapse = " "), "")
   ch <- cp_chunks(txt)
-  cl <- gr_mock_client(function(m, p) "An answer.")
+  cl <- hr_mock_client(function(m, p) "An answer.")
   pol <- hr_context_policy(pin = c("question", "instructions", "draft", "excerpt"))
-  tr <- gr_trace()
+  tr <- hr_trace()
   expect_warning(
     a <- suppressMessages(gr_read(ch, "Q?", cl, gr_read_spec("refine", model = "cp-pin",
                                                        max_answer_tokens = 100,
                                                        context_policy = pol), trace = tr)),
     class = "gr_context_policy_unfit")
-  tr0 <- gr_trace()
+  tr0 <- hr_trace()
   b <- quiet(gr_read(ch, "Q?", cl, gr_read_spec("refine", model = "cp-pin",
                                                 max_answer_tokens = 100), trace = tr0))
   expect_identical(a$notes$failed_calls, b$notes$failed_calls)
@@ -215,20 +215,20 @@ test_that("a policy whose pinned pieces do not fit warns and refine cuts as with
   # A pinned piece that a packer has to cut is cut as before, with the warning.
   long <- paste(rep("word", 200), collapse = " ")
   spec <- list(context_policy = hr_context_policy(pin = c("question", "instructions", "outline")))
-  tr2 <- gr_trace()
+  tr2 <- hr_trace()
   expect_warning(out <- cut_piece(long, 10, "x", tr2, spec, "outline"),
                  class = "gr_context_policy_unfit")
   expect_identical(out$text, truncate_logged(long, 10, "x")$text)
   # Once per cut site and run.
   expect_no_warning(cut_piece(long, 10, "x", tr2, spec, "outline"))
-  expect_no_warning(cut_piece("short", 10, "y", gr_trace(), spec, "outline"))
+  expect_no_warning(cut_piece("short", 10, "y", hr_trace(), spec, "outline"))
 })
 
 test_that("refine_state = 'ledger' applies edits and answers from the list", {
   ch <- cp_chunks(c("Revenue was 40 million.", "Costs were 12 million.",
                     "Correction: revenue was 45.2 million, not 40 million."))
   seen <- list()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     seen[[length(seen) + 1L]] <<- m
     last <- m[[length(m)]]$content
     excerpt <- if (length(m) >= 4L) m[[4]]$content else ""
@@ -239,7 +239,7 @@ test_that("refine_state = 'ledger' applies edits and answers from the list", {
     }
     "Revenue was 45.2 million."
   })
-  tr <- gr_trace()
+  tr <- hr_trace()
   a <- quiet(gr_read(ch, "What was revenue?", cl, gr_read_spec("refine", refine_state = "ledger"),
                      trace = tr))
   labels <- vapply(Filter(function(s) is.null(s$kind), tr$steps), `[[`, "", "label")
@@ -255,8 +255,8 @@ test_that("refine_state = 'ledger' applies edits and answers from the list", {
   expect_identical(led, c("a", "B", "d"))
   expect_identical(ledger_from_text(ledger_text(c("x y", "z"))), c("x y", "z"))
   # An empty ledger is not found, with no answering request.
-  none <- gr_mock_client(function(m, p) "NONE")
-  tr2 <- gr_trace()
+  none <- hr_mock_client(function(m, p) "NONE")
+  tr2 <- hr_trace()
   b <- quiet(gr_read(ch, "Who is the chief executive?", none,
                      gr_read_spec("refine", refine_state = "ledger"), trace = tr2))
   expect_true(is_not_found(b$answer))
@@ -272,7 +272,7 @@ test_that("a cut ledger keeps only whole findings", {
                      "that ended in June of the following year."), 1:11, 41:51)
   t <- ledger_text(L)
   for (n in c(150, 200, 270, 280, 300)) {
-    kept <- ledger_whole(L, gr_truncate_tokens(t, n, ""))
+    kept <- ledger_whole(L, hr_truncate_tokens(t, n, ""))
     expect_true(all(kept %in% L), info = n)
     expect_identical(kept, L[seq_along(kept)], info = n)
   }
@@ -283,11 +283,11 @@ test_that("a cut ledger keeps only whole findings", {
   # In a read, under the default cut and under a policy, every finding the
   # last request carries is one the ledger was given whole.
   local_registries()
-  gr_register_model("cp-led", context_window = 900, max_output = 100)
+  hr_register_model("cp-led", context_window = 900, max_output = 100)
   ch <- cp_chunks(sprintf("Site %d reported its budget for the year.", 1:4))
   for (pol in list(NULL, hr_context_policy(pin = c("question", "instructions", "excerpt")))) {
     seen <- list()
-    cl <- gr_mock_client(function(m, p) {
+    cl <- hr_mock_client(function(m, p) {
       seen[[length(seen) + 1L]] <<- m
       if (grepl("Reply with the edits", m[[length(m)]]$content, fixed = TRUE)) {
         return(paste0("ADD: ", L, collapse = "\n"))
@@ -309,7 +309,7 @@ test_that("a cut ledger keeps only whole findings", {
 test_that("order_merges places findings and members by context_order", {
   ch <- cp_chunks(sprintf("Region %s reported revenue.", c("A", "B", "C", "D")))
   merges <- list()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("consolidate", m[[1]]$content)) {
       merges[[length(merges) + 1L]] <<- m[[2]]$content
       return("Merged.")
@@ -333,19 +333,19 @@ test_that("order_merges places findings and members by context_order", {
 
 test_that("under a context policy a chunk packer names the chunks it left out", {
   local_registries()
-  gr_register_model("cp-tiny", context_window = 700, max_output = 100)
+  hr_register_model("cp-tiny", context_window = 700, max_output = 100)
   txt <- vapply(1:12, function(i) paste(rep(sprintf("Fact %d about the region.", i), 8),
                                         collapse = " "), "")
   ch <- cp_chunks(txt)
-  cl <- gr_mock_client(function(m, p) "An answer.")
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(m, p) "An answer.")
+  tr <- hr_trace()
   quiet(gr_read(ch, "Q?", cl, gr_read_spec("stuff", model = "cp-tiny", max_answer_tokens = 50,
                                            context_policy = hr_context_policy()), trace = tr))
   st <- cp_truncates(tr)
   expect_length(st, 1L)
   expect_identical(st[[1]]$detail$where, "stuff.chunks")
   expect_match(st[[1]]$detail$dropped_part, "^chunks ")
-  tr0 <- gr_trace()
+  tr0 <- hr_trace()
   quiet(gr_read(ch, "Q?", cl, gr_read_spec("stuff", model = "cp-tiny", max_answer_tokens = 50),
                 trace = tr0))
   expect_length(cp_truncates(tr0), 0L)

@@ -1,7 +1,7 @@
 # test-headers.R -- extra HTTP headers on a client.
 #
 # The package could authenticate exactly one way: `Authorization: Bearer` with
-# whatever gr_api_key() resolved. That covers OpenAI and every proxy that
+# whatever hr_api_key() resolved. That covers OpenAI and every proxy that
 # imitates it, and nothing else -- not Azure OpenAI's `api-key`, not an API
 # Management subscription key, not a gateway that requires a cost-centre id. A
 # private company's endpoint is usually one of those, so `base_url` on its own
@@ -104,13 +104,13 @@ test_that("duplicate header names collapse case-insensitively, last wins", {
 })
 
 test_that("request_headers() sends a bearer when only a key is set", {
-  cl <- gr_client(api_key = "sk-test", base_url = "https://x.invalid")
+  cl <- hr_client(api_key = "sk-test", base_url = "https://x.invalid")
   h <- harnessr:::request_headers(cl)
   expect_identical(h, c(Authorization = "Bearer sk-test"))
 })
 
 test_that("request_headers() keeps the bearer alongside extra headers", {
-  cl <- gr_client(api_key = "sk-test", base_url = "https://x.invalid",
+  cl <- hr_client(api_key = "sk-test", base_url = "https://x.invalid",
                   headers = c("X-Correlation-Id" = "run-7", "X-Cost-Centre" = "1234"))
   h <- harnessr:::request_headers(cl)
   expect_identical(h[["Authorization"]], "Bearer sk-test")
@@ -120,7 +120,7 @@ test_that("request_headers() keeps the bearer alongside extra headers", {
 })
 
 test_that("a named Authorization replaces the automatic one, whatever its case", {
-  cl <- gr_client(api_key = "sk-test", base_url = "https://x.invalid",
+  cl <- hr_client(api_key = "sk-test", base_url = "https://x.invalid",
                   headers = c(authorization = "Token other"))
   h <- harnessr:::request_headers(cl)
   # Exactly one authorization header, and it is the caller's. Two would leave
@@ -136,13 +136,13 @@ test_that("headers make the API key optional", {
 
   # A gateway authenticated by `api-key` needs no bearer, and nothing here can
   # tell which of a stranger's headers is the credential.
-  cl <- gr_client(base_url = "https://gw.invalid", headers = c("api-key" = "abc"))
+  cl <- hr_client(base_url = "https://gw.invalid", headers = c("api-key" = "abc"))
   h <- harnessr:::request_headers(cl)
   expect_identical(h, c("api-key" = "abc"))
   expect_false("Authorization" %in% names(h))
 
   # No key and no headers is still the fast local failure it always was.
-  bare <- gr_client(base_url = "https://gw.invalid")
+  bare <- hr_client(base_url = "https://gw.invalid")
   expect_null(harnessr:::request_headers(bare))
 })
 
@@ -150,35 +150,35 @@ test_that("NA suppresses the bearer even when a key would resolve", {
   # The case this exists for: OPENAI_API_KEY set for one client in the session,
   # and a second client pointed at a company gateway that must not receive it.
   withr::local_envvar(OPENAI_API_KEY = "sk-personal")
-  cl <- gr_client(base_url = "https://gw.invalid",
+  cl <- hr_client(base_url = "https://gw.invalid",
                   headers = c("api-key" = "corp", Authorization = NA))
   h <- harnessr:::request_headers(cl)
   expect_identical(h, c("api-key" = "corp"))
   expect_false(any(grepl("sk-personal", h, fixed = TRUE)))
 })
 
-test_that("gr_client() validates headers at construction, not at call time", {
-  expect_error(gr_client(headers = c("bad name" = "v")), class = "gr_header_error")
-  expect_error(gr_client(headers = c("api-key" = "a\nb")), class = "gr_header_error")
+test_that("hr_client() validates headers at construction, not at call time", {
+  expect_error(hr_client(headers = c("bad name" = "v")), class = "gr_header_error")
+  expect_error(hr_client(headers = c("api-key" = "a\nb")), class = "gr_header_error")
 })
 
 test_that("a malformed set inherited from the option blames the option", {
   local_registries()
-  gr_options(api_headers = c("bad name" = "v"))
-  err <- tryCatch(gr_client(), gr_header_error = function(e) e)
+  hr_options(api_headers = c("bad name" = "v"))
+  err <- tryCatch(hr_client(), gr_header_error = function(e) e)
   expect_s3_class(err, "gr_header_error")
   # Naming `headers` here would send the reader to a line they did not write.
   expect_match(conditionMessage(err), "api_headers option")
 })
 
-test_that("gr_client() inherits the api_headers option, and can opt out", {
+test_that("hr_client() inherits the api_headers option, and can opt out", {
   local_registries()
-  gr_options(api_headers = c("X-Team" = "ml"))
+  hr_options(api_headers = c("X-Team" = "ml"))
 
-  expect_identical(gr_client()$headers, c("X-Team" = "ml"))
-  expect_identical(gr_client(headers = c("api-key" = "k"))$headers, c("api-key" = "k"))
+  expect_identical(hr_client()$headers, c("X-Team" = "ml"))
+  expect_identical(hr_client(headers = c("api-key" = "k"))$headers, c("api-key" = "k"))
   # An explicit empty set is a decision, not a missing argument.
-  expect_length(gr_client(headers = character(0))$headers, 0L)
+  expect_length(hr_client(headers = character(0))$headers, 0L)
 })
 
 # ---------------------------------------------------------------------------
@@ -203,7 +203,7 @@ capture_post_headers <- function(env = parent.frame()) {
 }
 
 test_that("http_call() puts the client's headers on the request", {
-  cl <- gr_client(api_key = "sk-test", base_url = "https://gw.invalid", api = "chat",
+  cl <- hr_client(api_key = "sk-test", base_url = "https://gw.invalid", api = "chat",
                   max_retries = 0L,
                   headers = c("api-key" = "corp", "X-Correlation-Id" = "run-7"))
   seen <- capture_post_headers()
@@ -220,7 +220,7 @@ test_that("http_call() puts the client's headers on the request", {
 test_that("http_call() reaches the network on headers alone, with no key", {
   withr::local_envvar(OPENAI_API_KEY = NA)
   withr::local_options(harnessr.api_key = NULL)
-  cl <- gr_client(base_url = "https://gw.invalid", api = "chat", max_retries = 0L,
+  cl <- hr_client(base_url = "https://gw.invalid", api = "chat", max_retries = 0L,
                   headers = c("api-key" = "corp"))
   seen <- capture_post_headers()
 
@@ -236,7 +236,7 @@ test_that("http_call() reaches the network on headers alone, with no key", {
 test_that("http_call() stops locally when there is no auth at all", {
   withr::local_envvar(OPENAI_API_KEY = NA)
   withr::local_options(harnessr.api_key = NULL)
-  cl <- gr_client(base_url = "https://gw.invalid", max_retries = 0L)
+  cl <- hr_client(base_url = "https://gw.invalid", max_retries = 0L)
   seen <- capture_post_headers()
 
   # An error, not a failed result: every request would fail the same way, and a
@@ -254,7 +254,7 @@ test_that("the embeddings endpoint uses the same headers as the chat endpoint", 
   withr::local_options(harnessr.api_key = NULL)
   # No retries: an embeddings request that fails in transport is retried like
   # a model call now (review6 tokenize-embed-04), and this one always fails.
-  cl <- gr_client(base_url = "https://gw.invalid", headers = c("api-key" = "corp"),
+  cl <- hr_client(base_url = "https://gw.invalid", headers = c("api-key" = "corp"),
                   max_retries = 0L)
   seen <- capture_post_headers()
 
@@ -276,7 +276,7 @@ test_that("printing a client shows header names and no header values", {
   # There was no print method at all, so a client echoed at the console printed
   # as a plain list -- api_key included, in full. Adding headers would have put
   # a second credential in the same place.
-  cl <- gr_client(api_key = "sk-secret-value", base_url = "https://gw.invalid",
+  cl <- hr_client(api_key = "sk-secret-value", base_url = "https://gw.invalid",
                   headers = c("api-key" = "corp-secret-value", "X-Team" = "ml"))
   out <- paste(utils::capture.output(print(cl)), collapse = "\n")
 
@@ -289,10 +289,10 @@ test_that("printing a client shows header names and no header values", {
 
 test_that("headers are not part of the cache key", {
   # Same reason `api_key` is not: a rotating bearer or a per-request correlation
-  # id would make every lookup a miss. Documented on gr_client(), pinned here.
-  a <- gr_client(api_key = "sk-test", base_url = "https://gw.invalid",
+  # id would make every lookup a miss. Documented on hr_client(), pinned here.
+  a <- hr_client(api_key = "sk-test", base_url = "https://gw.invalid",
                  headers = c("X-Correlation-Id" = "run-1"))
-  b <- gr_client(api_key = "sk-test", base_url = "https://gw.invalid",
+  b <- hr_client(api_key = "sk-test", base_url = "https://gw.invalid",
                  headers = c("X-Correlation-Id" = "run-2"))
   msgs <- list(list(role = "user", content = "hello"))
   args <- list(msgs, "gpt-4o", 64L, NULL, NULL, "result", list())

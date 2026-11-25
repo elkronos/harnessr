@@ -246,7 +246,7 @@ test_that("a cleaner or extractor registered again is not served from the cache"
   expect_match(quiet(gr_ingest(z))$text, "NEW", fixed = TRUE)
 
   # And the same settings with the same code still come from the cache.
-  gr_options(verbose = TRUE)          # restored by local_registries()
+  hr_options(verbose = TRUE)          # restored by local_registries()
   a <- quiet(gr_ingest(f, spec))
   expect_message(b <- gr_ingest(f, spec), "cached", fixed = TRUE)
   expect_identical(a, b)

@@ -10,7 +10,7 @@ verified <- function(span, src, ...) isTRUE(sm(span, src, ...)$verified)
 
 skim_read <- function(doc, quote) {
   ch <- quiet(gr_segment(gr_ingest(doc), list(method = "paragraph", max_tokens = 400)))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) return(quote)
     "The answer."
   })
@@ -105,7 +105,7 @@ test_that("a dropped negation outside English makes a skim answer partial and dr
   expect_false(gr_verify_evidence(a)$verified)
 
   f <- txt_file("Dans cet essai, le traitement n'a pas r\u00e9duit la mortalit\u00e9 \u00e0 un an.")
-  cl <- gr_mock_client(function(m, p) paste0(
+  cl <- hr_mock_client(function(m, p) paste0(
     '{"effect":"r\u00e9duit la mortalit\u00e9",',
     '"effect__quote":"le traitement ... r\u00e9duit la mortalit\u00e9 \u00e0 un an"}'))
   x <- quiet(gr_extract(f, gr_fields(effect = gr_field("Effect on mortality")), client = cl,
@@ -251,7 +251,7 @@ test_that("a chunk that begins with a bare decimal or an ellipsis verifies as it
     expect_identical(sm(s, s, whole = TRUE), list(verified = TRUE, match = 1), label = s)
   }
   f <- txt_file("The correlation was r = .45 between engagement and retention.")
-  cl <- gr_mock_client(function(m, p) '{"r":0.45,"r__quote":".45 between engagement and retention"}')
+  cl <- hr_mock_client(function(m, p) '{"r":0.45,"r__quote":".45 between engagement and retention"}')
   x <- quiet(gr_extract(f, gr_fields(r = gr_field("Correlation", type = "number")), client = cl,
                         recipe = "thorough", require_quote = TRUE))
   expect_equal(x$table$r[1], 0.45)
@@ -270,7 +270,7 @@ test_that("a cleaned en dash after a word does not hide the number after it", {
   expect_true(verified("1,204 patients were randomised by March.",
                        "Enrolment exceeded the target-1,204 patients were randomised by March."))
   f <- txt_file("Enrolment exceeded the target\u20131,204 patients were randomised by March.")
-  cl <- gr_mock_client(function(m, p) '{"n":1204,"n__quote":"1,204 patients were randomised by March."}')
+  cl <- hr_mock_client(function(m, p) '{"n":1204,"n__quote":"1,204 patients were randomised by March."}')
   x <- quiet(gr_extract(f, gr_fields(n = gr_field("Number randomised", type = "integer")),
                         client = cl, recipe = "thorough", require_quote = TRUE))
   expect_identical(x$table$n[1], 1204L)
@@ -305,7 +305,7 @@ test_that("a circled list number or a footnote mark is not part of the number", 
                    c(0L, 0L, 0L, 0L, 2L, 2L, 2L))
 
   f <- txt_file("The trial enrolled 482\u00b9. Follow-up lasted two years.")
-  cl <- gr_mock_client(function(m, p) '{"n":482,"n__quote":"The trial enrolled 482."}')
+  cl <- hr_mock_client(function(m, p) '{"n":482,"n__quote":"The trial enrolled 482."}')
   x <- quiet(gr_extract(f, gr_fields(n = gr_field("Participants", type = "integer")), client = cl,
                         recipe = "thorough", require_quote = TRUE))
   expect_identical(x$table$n[1], 482L)

@@ -15,7 +15,7 @@ audit_fixture <- function(bad_quote = FALSE, extra = character(0)) {
 }
 
 audit_client <- function(bad_quote = FALSE, bad_citation = FALSE) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                   collapse = " ")
     line <- regmatches(seen, regexpr("Revenue was [0-9.]+ million[^.]*\\.", seen))
@@ -144,7 +144,7 @@ test_that("text from the document cannot escape into the markup", {
   # running whatever the document contained.
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("The rate was <5% & \"unstable\", per <script>alert(1)</script> notes.", f)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     paste0('{"note":"<5% & unstable","note__quote":',
            '"The rate was <5% & \\"unstable\\", per <script>alert(1)</script> notes."}')
   })
@@ -171,7 +171,7 @@ test_that("the file is complete and is UTF-8 whatever the locale", {
   # already UTF-8.
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("Le taux était de 45,2 — stable.", f)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     '{"note":"stable","note__quote":"Le taux était de 45,2 — stable."}'
   })
   x <- quiet(gr_extract(f, gr_fields(note = "The note"), client = cl, recipe = "fast"))

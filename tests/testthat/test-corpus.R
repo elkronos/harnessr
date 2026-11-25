@@ -132,7 +132,7 @@ test_that("each document gets its own budget, so a long one cannot starve the re
   # sat in the corpus -- the bug gr_compare() had between recipes.
   local_registries()
   d <- local_corpus()
-  gr_options(max_calls = 1L)
+  hr_options(max_calls = 1L)
   out <- quiet(gr_read_many(file.path(d, c("a.txt", "b.txt", "c.md")), "Q?", "fast",
                             client = mock_echo()))
   expect_identical(out$summary$status, c("ok", "ok", "ok"))
@@ -143,10 +143,10 @@ test_that("each document gets its own budget, so a long one cannot starve the re
 
 test_that("the corpus ceiling stops the run and says which documents were skipped", {
   local_registries()
-  gr_register_model("priced", context_window = 100000L, max_output = 4096L,
+  hr_register_model("priced", context_window = 100000L, max_output = 4096L,
                     input_usd = 1000, output_usd = 1000)
   d <- local_corpus()
-  cl <- gr_backend_client(function(m, p) "an answer", model = "priced")
+  cl <- hr_backend_client(function(m, p) "an answer", model = "priced")
   # suppressMessages, not quiet(): quiet() also suppresses warnings, and the
   # warning is what is under test here.
   expect_warning(
@@ -178,7 +178,7 @@ test_that("a second run restores from the store instead of re-reading", {
   d <- local_corpus()
   st <- withr::local_tempdir()
   n <- 0L
-  cl <- gr_mock_client(function(m, p) { n <<- n + 1L; "an answer" })
+  cl <- hr_mock_client(function(m, p) { n <<- n + 1L; "an answer" })
 
   first <- quiet(gr_read_many(d, "Q?", "fast", client = cl, store = st))
   spent <- n
@@ -200,7 +200,7 @@ test_that("the store is keyed on everything that changes the result", {
   writeLines("Revenue was 45.2 million dollars.", f)
   st <- withr::local_tempdir()
   n <- 0L
-  cl <- gr_mock_client(function(m, p) { n <<- n + 1L; "an answer" })
+  cl <- hr_mock_client(function(m, p) { n <<- n + 1L; "an answer" })
   run <- function(...) quiet(gr_read_many(f, ..., client = cl, store = st))
 
   run("Q1?", "fast"); base <- n
@@ -256,48 +256,48 @@ test_that("writing the store leaves no temporary files", {
 })
 
 # ---------------------------------------------------------------------------
-# gr_trace_cost
+# hr_trace_cost
 # ---------------------------------------------------------------------------
 
 test_that("cost counts only the calls that were actually issued", {
   local_registries()
-  gr_register_model("priced", context_window = 100000L, max_output = 4096L,
+  hr_register_model("priced", context_window = 100000L, max_output = 4096L,
                     input_usd = 3, output_usd = 6)
-  cache <- gr_cache(withr::local_tempdir())
-  cl <- gr_cache_client(gr_backend_client(function(m, p) "an answer", model = "priced"), cache)
+  cache <- hr_cache(withr::local_tempdir())
+  cl <- hr_cache_client(hr_backend_client(function(m, p) "an answer", model = "priced"), cache)
 
-  paid <- gr_trace()
-  invisible(gr_call(cl, "the question", model = "priced", trace = paid))
-  cp <- gr_trace_cost(paid)
+  paid <- hr_trace()
+  invisible(hr_call(cl, "the question", model = "priced", trace = paid))
+  cp <- hr_trace_cost(paid)
   expect_identical(nrow(cp), 1L)
   expect_identical(cp$model, "priced")
   expect_identical(cp$paid_calls, 1L)
   expect_gt(cp$usd, 0)
 
-  free <- gr_trace()
-  invisible(gr_call(cl, "the question", model = "priced", trace = free))
-  cf <- gr_trace_cost(free)
+  free <- hr_trace()
+  invisible(hr_call(cl, "the question", model = "priced", trace = free))
+  cf <- hr_trace_cost(free)
   expect_identical(cf$calls, 1L)            # the call happened
   expect_identical(cf$paid_calls, 0L)       # and cost nothing
   expect_identical(cf$usd, 0)
   expect_identical(cf$paid_in, 0L)
   # The trace still reports the prompt size: shape is not the same as spend.
-  expect_gt(gr_trace_summary(free)$tokens_in, 0L)
+  expect_gt(hr_trace_summary(free)$tokens_in, 0L)
 })
 
 test_that("cost is reported per model, and an unpriced model is NA rather than free", {
   local_registries()
   # A chat model with no price is sent only when the run allows it.
-  gr_options(allow_unpriced = TRUE)
-  gr_register_model("cheap", context_window = 100000L, max_output = 4096L,
+  hr_options(allow_unpriced = TRUE)
+  hr_register_model("cheap", context_window = 100000L, max_output = 4096L,
                     input_usd = 1, output_usd = 1)
-  gr_register_model("unpriced", context_window = 100000L, max_output = 4096L)
-  tr <- gr_trace()
-  cl <- gr_backend_client(function(m, p) "an answer", model = "cheap")
-  invisible(gr_call(cl, "one", model = "cheap", trace = tr))
-  invisible(gr_call(cl, "two", model = "unpriced", trace = tr))
+  hr_register_model("unpriced", context_window = 100000L, max_output = 4096L)
+  tr <- hr_trace()
+  cl <- hr_backend_client(function(m, p) "an answer", model = "cheap")
+  invisible(hr_call(cl, "one", model = "cheap", trace = tr))
+  invisible(hr_call(cl, "two", model = "unpriced", trace = tr))
 
-  cost <- suppressWarnings(gr_trace_cost(tr))
+  cost <- suppressWarnings(hr_trace_cost(tr))
   expect_identical(nrow(cost), 2L)
   expect_identical(cost$model, c("cheap", "unpriced"))
   expect_gt(cost$usd[cost$model == "cheap"], 0)
@@ -307,10 +307,10 @@ test_that("cost is reported per model, and an unpriced model is NA rather than f
 })
 
 test_that("a trace with no model calls costs nothing and returns an empty frame", {
-  cost <- gr_trace_cost(gr_trace())
+  cost <- hr_trace_cost(hr_trace())
   expect_identical(nrow(cost), 0L)
   expect_identical(sum(cost$usd), 0)
-  expect_error(gr_trace_cost("not a trace"))
+  expect_error(hr_trace_cost("not a trace"))
 })
 
 # --- the same document, twice ----------------------------------------------
@@ -491,7 +491,7 @@ test_that("a corpus run resolves evidence pages too", {
   f <- tempfile(fileext = ".pagedoc2"); writeLines("placeholder", f)
 
   sentence <- "Page two says the trial enrolled 1,204 participants overall."
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     seen <- paste(vapply(messages, function(m) paste(as.character(m$content), collapse = ""),
                          character(1)), collapse = "\n")
     if (grepl("<excerpt>", seen, fixed = TRUE) && !grepl("1,204", seen, fixed = TRUE)) {

@@ -319,7 +319,7 @@ seg_boundary_vector <- function(x, what) {
 #' with no label are left out.
 #'
 #' The ranking is cosine similarity on the embeddings `client` gives (see
-#' [gr_embed()]), blended with BM25 by `lexical_blend` when the embeddings
+#' [hr_embed()]), blended with BM25 by `lexical_blend` when the embeddings
 #' are lexical, as in [gr_read()]. `read` takes those [gr_read_spec()]
 #' settings (`lexical_blend`, `bm25_k1`, `bm25_b`). The `mmr` and
 #' `min_score` settings of the reader are not applied: this is the ranking
@@ -349,7 +349,7 @@ seg_boundary_vector <- function(x, what) {
 #' @family segmentation functions
 #' @export
 #' @examples
-#' old <- gr_options(verbose = FALSE, embedder = "lexical")
+#' old <- hr_options(verbose = FALSE, embedder = "lexical")
 #' doc <- paste("Revenue was 45.2 million dollars in fiscal 2024.",
 #'              "The plant in Leeds made 12,400 units.",
 #'              "Staff numbered 310 at year end.", sep = "\n\n")
@@ -358,7 +358,7 @@ seg_boundary_vector <- function(x, what) {
 #'                        split = "test")
 #' gr_seg_recall(ref, list(sentence = list(method = "sentence", max_tokens = 40),
 #'                         fixed = list(method = "fixed", max_tokens = 32)), k = 1:2)
-#' gr_options(old)
+#' hr_options(old)
 gr_seg_recall <- function(reference, segmenters, k = c(1, 3, 5), client = NULL, read = list(),
                           split = "test") {
   check_reference(reference)
@@ -367,7 +367,7 @@ gr_seg_recall <- function(reference, segmenters, k = c(1, 3, 5), client = NULL, 
   }
   k <- sort(unique(as.integer(k)))
   if (!is.null(client) && !inherits(client, "gr_client")) {
-    gr_abort("`client` must come from gr_client() or gr_mock_client(), or be NULL.",
+    gr_abort("`client` must come from hr_client() or hr_mock_client(), or be NULL.",
              class = "gr_bad_setting")
   }
   if (!is.list(read) || (length(read) && is.null(names(read)))) {
@@ -414,7 +414,7 @@ gr_seg_recall <- function(reference, segmenters, k = c(1, 3, 5), client = NULL, 
   }
   items <- lapply(sel, function(i) qa_item(reference$items[[i]]))
   doc_key <- vapply(items, function(it) gr_hash(it$document), character(1))
-  trace <- gr_trace(meta = list(stage = "seg_recall"))
+  trace <- hr_trace(meta = list(stage = "seg_recall"))
   docs <- list()
   for (j in seq_along(items)) {
     if (is.null(docs[[doc_key[j]]])) {
