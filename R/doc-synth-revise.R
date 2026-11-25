@@ -1,10 +1,10 @@
-# doc-synth-revise.R -- editing a finished draft without strengthening what it
+# doc-synth-revise.R: editing a finished draft without strengthening what it
 # says.
 #
 # WHY THIS FILE EXISTS
 # There was one pass, `coherence = TRUE`, doing three jobs at once: reorder,
-# trim, and polish. It kept two guards -- the revision must not lose citations,
-# and it must not arrive truncated -- and both are necessary. Neither is
+# trim, and polish. It kept two guards (the revision must not lose citations,
+# and it must not arrive truncated), and both are necessary. Neither is
 # sufficient, because the most damaging thing an editing pass can do leaves the
 # citations exactly where they were.
 #
@@ -23,7 +23,7 @@
 #' Stems, matched at a word boundary and open at the end, so inflection does not
 #' matter: `\\bsuggest` catches "suggests" and "suggested". The boundary is the
 #' point. These were matched as bare substrings, which made "improved" an
-#' instance of the booster "prove" -- so a draft saying "outcomes improved"
+#' instance of the booster "prove", so a draft saying "outcomes improved"
 #' licensed a revision saying "proves the drug works", and a revision that ADDED
 #' the hedge "unproven" was rejected for introducing a booster. Both directions
 #' wrong, from one missing `\\b`.
@@ -74,7 +74,7 @@
 #' Split prose into sentences, minus the markdown headings.
 #'
 #' Headings go first because they are not claims and an editing pass is meant to
-#' be free to rewrite them -- and because a heading with no terminator glued
+#' be free to rewrite them, and because a heading with no terminator glued
 #' itself to the first sentence of its section, which then measured as one unit.
 #'
 #' The ideographic full stop, question and exclamation marks end a sentence as
@@ -101,8 +101,8 @@ split_sentences <- function(txt) {
 #' its own belongs to the sentence before it.
 #'
 #' "... a benefit in every adult. [study 1] [study 2]" splits after the full
-#' stop, and the markers became a "sentence" of their own -- the only claim
-#' sentence, with no words in it -- so the universal in the sentence they cite
+#' stop, and the markers became a "sentence" of their own: the only claim
+#' sentence, with no words in it. So the universal in the sentence they cite
 #' was never counted. Moving a marker past the full stop was enough to pass.
 #' @noRd
 measured_sentences <- function(text, word = "study") {
@@ -178,8 +178,8 @@ measured_sentences <- function(text, word = "study") {
 #' include no English function word at all. It can be wrong both ways on a
 #' text of a few words: a short English draft with an accented name is not
 #' revised, which costs the revision and never the draft; and a sentence or
-#' two in a language with no accents and none of the listed words -- short
-#' Indonesian, say -- is read as English, and measured by English words.
+#' two in a language with no accents and none of the listed words (short
+#' Indonesian, say) is read as English, and measured by English words.
 #' @noRd
 guard_reads <- function(text, word = "study") {
   txt <- gsub(cite_grammar(word)$marker, " ", as_chr1(text), perl = TRUE, ignore.case = TRUE)
@@ -280,12 +280,12 @@ count_marks <- function(low, pats, prefix = TRUE) {
 #'
 #' Hedges and universals over the claim-bearing sentences; BOOSTERS over all
 #' prose except headings. The asymmetry is deliberate. A universal has ordinary
-#' non-claim uses in framing -- "the evidence, all of which is relevant" -- so
+#' non-claim uses in framing ("the evidence, all of which is relevant"), so
 #' measuring it outside a claim would refuse the transitions an editing pass
 #' exists to rewrite. A booster does not: an editing pass has no business
 #' introducing "demonstrates", "confirms" or "conclusive" anywhere in a review,
 #' and restricting the booster check to cited sentences left the one place such a
-#' sentence actually gets written -- uncited framing prose between the claims --
+#' sentence actually gets written (uncited framing prose between the claims)
 #' entirely unguarded.
 #'
 #' `universals_all` is the universal count over all prose too, for the
@@ -314,8 +314,8 @@ claim_strength <- function(text, word = "study") {
 #'   * A booster stem that was not there before. An editing pass has no business
 #'     introducing "demonstrates" where the draft said "suggests".
 #'   * Fewer hedges than the draft's rate implies, scaled by how much
-#'     claim-bearing prose survived. Shorter is allowed to carry fewer hedges --
-#'     that is the `cut` pass doing its job -- but never NONE if the draft had
+#'     claim-bearing prose survived. Shorter is allowed to carry fewer hedges
+#'     (that is the `cut` pass doing its job), but never NONE if the draft had
 #'     any: `floor()` made the implied minimum 0 whenever the revision had fewer
 #'     claim sentences than the draft, so merging two hedged sentences into one
 #'     unhedged sentence passed, which is the exact edit this guard exists to
@@ -325,7 +325,7 @@ claim_strength <- function(text, word = "study") {
 #'     stands.
 #'
 #' Universals are counted over the claim sentences, so that framing prose can
-#' say "all of which" -- unless the revision has FEWER claim sentences or MORE
+#' say "all of which", unless the revision has FEWER claim sentences or MORE
 #' uncited ones than the draft. Then a claim may be sitting in uncited prose,
 #' its marker dropped or moved, and universals are counted over everything:
 #' "Participants over 65 had more adverse events [study 1]" came back as "All
@@ -555,7 +555,7 @@ synth_revise <- function(drafted, question, client, spec, trace, style = NULL,
 #' Every provider's spelling of "stopped at the output limit".
 #'
 #' Chat Completions says "length", Anthropic "max_tokens", Gemini "MAX_TOKENS",
-#' and the Responses API -- this package's default -- reports the reply's
+#' and the Responses API (this package's default) reports the reply's
 #' status, "incomplete", with "max_output_tokens" as the reason. Only "length"
 #' was recognised, so on the default path a revision cut off after its last
 #' unique citation passed every other check and replaced the draft, and the
@@ -595,7 +595,7 @@ revise_once <- function(drafted, question, client, spec, trace, style, pass) {
   bud <- gr_budget(spec$model, reserve_output = need, overhead = overhead)
   # `bud$output < need` as well as the input test. gr_budget() shrinks the output
   # reserve to the floor rather than failing when the window is tight, and a
-  # smaller reserve makes bud$input LARGER -- so a draft with no room for its own
+  # smaller reserve makes bud$input LARGER, so a draft with no room for its own
   # rewrite passed this check, and the call then went out with max_output = need
   # anyway. Bigger drafts were being sent where smaller ones were skipped.
   if (bud$output < need || gr_count_tokens(drafted) > bud$input) {
@@ -646,7 +646,7 @@ revise_once <- function(drafted, question, client, spec, trace, style, pass) {
   }
   # The comparison above sees only what cited_ids() can read. A revision that
   # wrote "[studies 2 to 9]" matched the draft's citations exactly and replaced
-  # it, and the published review carried a citation no check had looked at --
+  # it, and the published review carried a citation no check had looked at,
   # while every section's own count of unreadable citations described the
   # draft, not this.
   unread <- setdiff(unparsed_citations(res$text, "study"), unparsed_citations(drafted, "study"))
