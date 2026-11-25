@@ -5,13 +5,14 @@
 # an old cell must not be exported, and every function in a new cell must be.
 # The core table must hold exactly the renames NEWS.md lists under "## Renamed
 # core functions", and the other tables must cover the "## Removed" table, so
-# test-removed-names.R guards every old name the guide lists. The vignette
-# source is not installed, so this runs from the source tree and skips under
-# R CMD check.
+# test-removed-names.R guards every old name the guide lists. This reads the
+# source tree when it is there, and otherwise the copy of the vignette that a
+# built package installs in doc/. An install without vignettes skips.
 
 migrate_lines <- function() {
   path <- test_path("..", "..", "vignettes", "migrate.Rmd")
-  skip_if_not(file.exists(path), "vignettes/migrate.Rmd is not in an installed package")
+  if (!file.exists(path)) path <- system.file("doc", "migrate.Rmd", package = "harnessr")
+  skip_if_not(nzchar(path) && file.exists(path), "migrate.Rmd is not installed")
   readLines(path, warn = FALSE, encoding = "UTF-8")
 }
 
