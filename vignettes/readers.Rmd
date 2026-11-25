@@ -315,22 +315,22 @@ instead of assuming it.
 
 ## Choosing and placing chunks
 
-`retrieve`, `rerank` and `iterative` choose which chunks the model sees. These
-settings control the choice and where the chosen chunks go; each says which
-readers it applies to.
+`retrieve`, `rerank` and `iterative` choose which chunks the model sees. The
+settings below control that choice and where the chosen chunks go, and each
+names the readers it applies to.
 
 **`top_k`** (`retrieve`, `rerank`, `iterative`) is how many chunks to send, 6 by
 default. For `iterative` it is how many each round adds: the chunks gathered in
-earlier rounds stay in the prompt as long as they fit. Too few and the answer
-can be missed; too many and you pay for text that does not help.
+earlier rounds stay in the prompt as long as they fit. With too few, the model
+can miss the answer; with too many, you pay for text that does not help.
 
 **`min_score`** (`retrieve`) drops chunks less similar to the question than a
 threshold, though the single best chunk is always kept.
 
 **`mmr`** (`retrieve`, `iterative`) stops near-duplicates crowding each other
-out. Plain top-k picks the chunks most like the question; if three paragraphs
-say the same thing, all three get in. Below 1, `mmr` balances relevance against
-similarity to what is already picked (0.7 is a reasonable start):
+out. Plain top-k picks the chunks most like the question, so if three
+paragraphs say the same thing, all three get in. Below 1, `mmr` weighs relevance
+against similarity to the chunks already picked (0.7 is a reasonable start):
 
 ```{r}
 repetitive <- paste(c(
@@ -349,33 +349,33 @@ picked <- function(mmr) {
 rbind("top-k (mmr = 1)" = picked(1), "mmr = 0.3" = picked(0.3))
 ```
 
-Plain top-k spent all three places on the same fact; `mmr = 0.3` kept the best
-one and used the other two for something different. It costs nothing extra.
+Plain top-k spent all three places on the same fact. `mmr = 0.3` kept the best
+one and used the other two for something different, at no extra cost.
 
 **`context_order`** (`retrieve`, `rerank`, `iterative`) decides where the chosen
 chunks sit in the prompt. Models attend best to the beginning and end of a long
 prompt, so `"edges"` puts the best chunk first and the second-best last;
 `"document"` keeps the order they appear in the document, which reads more
 naturally when chunks are consecutive; the default `"relevance"` puts the best
-first. It never changes which chunks were chosen, only where they sit.
+first. `context_order` moves the chosen chunks and leaves the choice alone.
 
 **`restate`** (every reader but `extract` and `screen`) repeats the question
 before the excerpts as well as after them, because a question asked once, after
 several thousand tokens of text, is a long way from the start of the prompt.
 `"auto"` does this when the text is long, `"always"` and `"never"` override.
 
-Whether `mmr`, `context_order` or `restate` help depends on your documents and
-model; test them rather than assume.
+`mmr`, `context_order` and `restate` help on some documents and models and not
+on others, so test them on yours.
 
 ## Embeddings
 
 `retrieve`, `iterative` and the `semantic` way of cutting chunks
 (`vignette("segment")`) need *embeddings*. By default harnessr asks the model
 provider for them, which costs a little and needs an internet connection.
-`hr_options(embedder = "lexical")` uses word-matching vectors computed locally
-instead: free, offline and exactly repeatable, but they match words rather than
-meaning, so "turnover" will not find "revenue". Use lexical vectors for practice
-and testing, and real embeddings for real work.
+`hr_options(embedder = "lexical")` computes word-matching vectors on your
+machine instead. They are free, offline and exactly repeatable, but they match
+words and not meaning, so "turnover" will not find "revenue". Use lexical
+vectors for practice and testing, and real embeddings for real work.
 
 ```{r}
 gr_embedders()[, c("name", "deterministic", "description")]
@@ -383,12 +383,13 @@ gr_embedders()[, c("name", "deterministic", "description")]
 
 ## Reasoning effort, stage by stage
 
-The default models reason before they answer. That reasoning is billed as
-output and counts against the same cap as the reply, so it is part of what every
-request costs. `effort` in `gr_read_spec()` sets how much of it to do: one value,
-such as `"low"`, for every request, or a vector named by stage. It is sent only to
-models harnessr lists as reasoning models (`hr_model_info(model)$reasoning`). By
-default nothing is sent, and each request goes out at the provider's default.
+The default models reason before they answer. The provider bills that
+reasoning as output and counts it against the same cap as the reply, so it adds
+to every request's cost. `effort` in `gr_read_spec()` sets how much reasoning to
+ask for: one value, such as `"low"`, for every request, or a vector named by
+stage. harnessr sends it only to models it lists as reasoning models
+(`hr_model_info(model)$reasoning`). By default it sends nothing, and each
+request goes out at the provider's default.
 
 Every request a reader makes carries a label naming its stage:
 
@@ -405,10 +406,10 @@ Every request a reader makes carries a label naming its stage:
 | `preview` | `preview.skim` (each skimmed section) | `preview.plan`, `preview.answer` |
 | `ensemble` | as its members | as its members, then `ensemble.adjudicate` |
 
-The per-chunk requests are many and each does a small job, so they are where a
-lower effort saves most; `?gr_read_spec` suggests a starting profile. A name
-covers its own label and every label that starts with it and a dot, so `map`
-covers `map.answer`, and an unnamed value covers the rest.
+The per-chunk requests are many and each does a small job, so a lower effort
+saves most there; `?gr_read_spec` suggests a starting profile. A name covers its
+own label and every label that starts with it and a dot, so `map` covers
+`map.answer`, and an unnamed value covers the rest.
 
 `hr_trace()` records every request a run makes. Here `map_reduce` reads the eight
 chunks at low effort and merges at high:
@@ -422,18 +423,18 @@ ans <- gr_read(chunks, "What was revenue in 2024?", hr_mock_client(stand_in), sp
 with(as.data.frame(tr), table(stage, effort))
 ```
 
-`model = "gpt-5.6-luna"` names a reasoning model: with the stand-in's own model
-nothing would be sent, and the trace would have no `effort` column. A request at
-`"high"` can spend the whole output cap reasoning and come back cut off, so give
-it room with `max_answer_tokens`. `gr_compare()` (below) counts recipes that
-differ only in effort as different, so you can test what a lower effort costs.
-`vignette("runs")` covers effort across a literature review and what each trace
-step records.
+`model = "gpt-5.6-luna"` names a reasoning model. With the stand-in's own model,
+harnessr would send no effort and the trace would have no `effort` column. A
+request at `"high"` can spend the whole output cap reasoning and come back cut
+off, so give it room with `max_answer_tokens`. `gr_compare()` (below) counts
+recipes that differ only in effort as different, so you can test what a lower
+effort costs. `vignette("runs")` covers effort across a literature review and
+what each trace step records.
 
 ## Asking for citations
 
-With `cite = TRUE` the model is asked to cite the chunks it used, as `[chunk 3]`.
-Each chunk id leads back to a page and section through `ans$evidence`:
+With `cite = TRUE`, the reader asks the model to cite the chunks it used, as
+`[chunk 3]`. `ans$evidence` leads each chunk id back to a page and section:
 
 ```{r}
 citing <- hr_mock_client(function(messages, params)
@@ -444,9 +445,9 @@ ans$answer
 ans$evidence[ans$evidence$chunk_id == 2, c("chunk_id", "section")]
 ```
 
-A citation to a chunk the model was never sent is caught and recorded in
-`ans$notes$cited_unknown`, and marks the answer partial. `hierarchical` does not
-support citations, because it answers from summaries rather than chunks.
+If the model cites a chunk it was never sent, harnessr records the citation in
+`ans$notes$cited_unknown` and marks the answer partial. `hierarchical` does not
+support citations, because it answers from summaries and not from chunks.
 
 ## Checking what an answer rests on
 
