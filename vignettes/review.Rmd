@@ -1174,9 +1174,9 @@ and what it trades off, the signs in your results that point to changing it,
 where its default came from, and how to test a change. `vignette("settings")`
 lists every argument of every review stage with its default.
 
-A setting of a review stage is tested the way a reading setting is: as arms of
-a benchmark, one per value, on a reference a person labelled. `hr_sweep()`
-builds them from a function of the setting, and "Screening settings" in
+Test a review setting the way you test a reading setting: as arms of a
+benchmark, one per value, on a reference a person labelled. `hr_sweep()` builds
+the arms from a function of the setting, and "Screening settings" in
 `vignette("compare")` compares two values of `screen_tokens` that way on 16
 records, with intervals. Where a setting changes no request, the walkthrough
 shows its effect on the objects above instead.
@@ -1191,16 +1191,16 @@ many records a person must judge. Raising either asks for more records judged
 by hand. `max_width` is the widest interval a sample of one stratum may have
 for its headline rate to count as adequate.
 
-**Signs they need changing.** These are choices for the review, not tuning:
-set them before you see the sample, from what the review promises. A protocol
-that promises 95% recall needs `recall_target = 0.95`; a field that reports
-recall at 90% or 99% needs that instead. A `$verdict` that is not met with no
-misses in the sample means the sample is too small for the target, not that
-the screener failed; draw the size `gr_screen_sample_size()` gives.
+**Signs they need changing.** These are choices for the review, so do not tune
+them: set them before you see the sample, from what the review promises. A
+protocol that promises 95% recall needs `recall_target = 0.95`; a field that
+reports recall at 90% or 99% needs that instead. If `$verdict` is not met
+although the sample has no misses, the sample is too small for the target and
+the screener has not failed; draw the size `gr_screen_sample_size()` gives.
 
 **Where the defaults came from.** `recall_target = 0.95` is a target reviews
-commonly set, and `conf = 0.95` the conventional level; both are choices, not
-measured values. `max_width = 0.10` was set when the rule was written
+commonly set, and `conf = 0.95` the conventional level; both are choices, and
+neither was measured. `max_width = 0.10` was set when the rule was written
 (`untested`).
 
 **How to test them.** Nothing here calls a model, so the effect of each value
@@ -1230,24 +1230,26 @@ c(width_0.10 = gr_calibrate(big, check)$adequate,
 
 The interval on the rate of eligible records among those 60 is wider than 10
 points and narrower than 20, so the sample is adequate under the wider bar
-only. A wider bar does not make the sample say more; it says less is enough.
+only. Widening the bar accepts a less precise figure; the sample says no more
+than before.
 
 ### Screening replies: `criteria_schema`, `samples` and `sample_rule` {#set-screen-reply}
 
-**What it controls.** What each screening reply holds. `"decision"` asks for
-a decision, a reason, the deciding criterion and a quote. `"per_criterion"`
-also asks, for every criterion of the protocol, whether the excerpt shows it
-`"met"`, `"not_met"` or `"not_reported"`, records them in a
-`criteria_status` column, and holds an exclusion to them: a reply that
-excludes a document although no inclusion criterion is `"not_met"` and no
-exclusion criterion is `"met"` (for example, when the excerpt does not report
-a criterion) is recorded as `"unclear"`, for a person to decide. `samples`
-sends each screening request that many times, as separate draws, and
-`sample_rule` combines them: `"include_if_any"` includes a document any draw
-included and excludes one only when every draw excluded it, so a study one
-draw would keep is not lost to the others; `"majority"` takes the decision
-most draws gave. The table then records each draw's decision
-(`sample_decisions`) and the share that included (`include_share`).
+**What it controls.** `criteria_schema` sets what each screening reply holds.
+`"decision"` asks for a decision, a reason, the deciding criterion and a quote.
+`"per_criterion"` also asks, for every criterion of the protocol, whether the
+excerpt shows it `"met"`, `"not_met"` or `"not_reported"`, and records the
+answers in a `criteria_status` column. It then holds an exclusion to them: a
+reply that excludes a document although no inclusion criterion is `"not_met"`
+and no exclusion criterion is `"met"` (for example, when the excerpt does not
+report a criterion) is recorded as `"unclear"`, for a person to decide.
+
+`samples` sends each screening request that many times, as separate draws, and
+`sample_rule` combines them. `"include_if_any"` includes a document any draw
+included and excludes one only when every draw excluded it, so a study one draw
+would keep is not lost to the others. `"majority"` takes the decision most
+draws gave. The table then records each draw's decision (`sample_decisions`)
+and the share that included (`include_share`).
 
 **Signs it needs changing.** Exclusions whose reasons say the excerpt does
 not mention something ("the age of participants is not given") are
@@ -1263,9 +1265,9 @@ sends one request per document, as before, and `"include_if_any"` was chosen
 so that no study a draw would keep is lost; neither has been compared
 (`untested`).
 
-**How to test it.** It changes the request, a schema and one more
-instruction, so the first test is what it does to the same reply. This
-stand-in excludes the southern report for a figure it says is not reported:
+**How to test it.** `criteria_schema` changes the request (a schema and one
+more instruction), so first test what it does to the same reply. This stand-in
+excludes the southern report for a figure it says is not reported:
 
 ```{r}
 strict_screener <- hr_mock_client(function(messages, params) {
@@ -1285,9 +1287,9 @@ per <- gr_screen(reports, protocol, client = strict_screener,
 per$table[, c("document", "decision", "criteria_status")]
 ```
 
-The southern report is held back as `"unclear"` instead of excluded. Three
-draws from a stand-in that includes the southern report once in three show
-`include_if_any`:
+`gr_screen()` holds the southern report back as `"unclear"` instead of
+excluding it. Three draws from a stand-in that includes the southern report
+once in three show `include_if_any`:
 
 ```{r}
 draws <- hr_mock_client(function(messages, params) {
@@ -1301,10 +1303,9 @@ sampled <- gr_screen(reports, protocol, client = draws, samples = 3)
 sampled$table[, c("document", "decision", "sample_decisions", "include_share")]
 ```
 
-On your
-own records, compare the two with labels, one arm per value, as in "Knowing
-how good the screening is" above, with `labelled` an `hr_reference()` of a
-person's decisions:
+On your own records, compare the two values against labels, one arm per value,
+as in "Knowing how good the screening is" above. Here `labelled` is an
+`hr_reference()` of a person's decisions:
 
 ```{r eval = FALSE}
 arms <- hr_sweep(function(criteria_schema) {
@@ -1323,11 +1324,15 @@ the screening requests for the second arm.
 ### Extraction: `resolve`, `agreement_columns` and `require_quote` {#set-extract}
 
 **What they control.** `resolve` decides what happens when two chunks of one
-document give different values for a field: `"first"` keeps the earlier one
-and records the disagreement in `conflicts`, for nothing; `"vote"` keeps the
-value most chunks gave, also for nothing, with a tie going to the earliest
-value as under `"first"`; `"model"` spends one
-request per disagreeing field to choose. `agreement_columns = TRUE` adds a
+document give different values for a field:
+
+- `"first"` keeps the earlier value and records the disagreement in
+  `conflicts`, at no cost.
+- `"vote"` keeps the value most chunks gave, also at no cost; a tie goes to
+  the earliest value, as under `"first"`.
+- `"model"` spends one request per disagreeing field to choose.
+
+`agreement_columns = TRUE` adds a
 `<field>_agreement` column (how many of the chunks that reported the field
 give its most common value, as `"2/3"`) and a `<field>_conflict` column for
 each field; it changes no request. `require_quote = TRUE` drops any value
@@ -1337,10 +1342,10 @@ a quotation found in the document.
 **Signs they need changing.** Many rows with `conflicts` filled, on fields
 where the later value is the right one (a corrected figure, a final sample
 size after dropouts), point to `resolve = "model"`, or to `"vote"` when the
-value most chunks repeat is usually the right one; turn on
-`agreement_columns` to see how lopsided each conflict is. `n_unverified` above zero
-on fields you will publish points to `require_quote = TRUE`, or to reading
-those values by hand. A protocol that says "no quote, no datum" needs it on.
+value most chunks repeat is usually the right one. Turn on `agreement_columns`
+to see how lopsided each conflict is. `n_unverified` above zero on fields you
+will publish points to `require_quote = TRUE`, or to reading those values by
+hand. A protocol that says "no quote, no datum" needs it on.
 
 **Where the defaults came from.** `"first"` costs nothing and keeps every
 disagreement visible; it has not been compared with `"model"` or `"vote"`.
@@ -1350,7 +1355,7 @@ disagreement visible; it has not been compared with `"model"` or `"vote"`.
 `untested`.
 
 **How to test them.** `require_quote` changes no request, only which values
-are kept, so its effect shows on one run:
+are kept, so one run shows its effect:
 
 ```{r}
 strict <- gr_extract(screened, protocol, client = extractor, recipe = "fast",
@@ -1362,7 +1367,7 @@ c(kept_all = sum(!is.na(table$table$revenue)),
 Every value the stand-in gave carries a quotation found in its document, so
 both keep the same values here. On your own documents, compare the two tables
 with `gr_extract_agreement()` against a person's, as above. `resolve` changes
-requests only where chunks disagree, so it is tested as arms on a labelled
+requests only where chunks disagree, so test it as arms on a labelled
 reference, one arm per value. With `fields_ref` an `hr_reference()` of
 documents labelled with a person's value for one field and `my_client` your
 client:
@@ -1388,34 +1393,38 @@ agreed <- gr_extract(screened, protocol, client = extractor, recipe = "fast",
 agreed$table[, c("document", "revenue", "revenue_agreement", "revenue_conflict")]
 ```
 
-The `"fast"` recipe cuts chunks of up to 4,000 tokens, so each of these
-short reports is one chunk and every
-agreement here is `"1/1"` and nothing conflicts. On documents cut into many
+The `"fast"` recipe cuts chunks of up to 4,000 tokens, so each of these short
+reports is one chunk, every agreement here is `"1/1"` and nothing conflicts. On documents cut into many
 chunks, a field with `"1/3"` and a conflict is one to read by hand.
 
 ### Synthesis: `unverified`, `coherence_rounds`, `figure_bands`, `prominence` and `revision_check` {#set-synthesis}
 
-**What they control.** `unverified`, on `gr_claims()`, says whether the
-claims prompt leaves out a value whose quote did not verify (`"exclude"`) or
-shows it marked unverified (`"include"`). `coherence_rounds` is how many rounds each revision
-pass of `coherence` may run; each round is a request, and every round is
-checked as a single pass is. `figure_bands` sets how near a value a qualified
-figure must be to count as backed: "about 50" within `about` of a value
-(10%), "more than 50" within `over` above it, "fewer than 50" within `under`
-below it. It sends nothing; it changes what `$figures` reports. `prominence`
-sets the shares of a section's claims, by rank, that the writing prompt asks
-for two or three sentences and for one or two; it is used only with `claims`.
-`revision_check = "judge"` puts a model judge behind the word-counting guard
-of the `coherence` passes: each sentence a kept revision changed is graded
-against the draft sentences it came from, and one that claims more ("is
-associated with" made "reduces", which no word list catches) or says what
-they do not is flagged. It costs a request per changed sentence, and it only
-flags: the revision is kept as it was, and a person reads the flags.
+**What they control.**
+
+- `unverified`, on `gr_claims()`, says whether the claims prompt leaves out a
+  value whose quote did not verify (`"exclude"`) or shows it marked unverified
+  (`"include"`).
+- `coherence_rounds` is how many rounds each revision pass of `coherence` may
+  run. Each round is a request, and each round is checked as a single pass is.
+- `figure_bands` sets how near a value a qualified figure must be to count as
+  backed: "about 50" within `about` of a value (10%), "more than 50" within
+  `over` above it, "fewer than 50" within `under` below it. It sends nothing;
+  it changes what `$figures` reports.
+- `prominence` sets the shares of a section's claims, by rank, that the
+  writing prompt asks for two or three sentences and for one or two. It is
+  used only with `claims`.
+- `revision_check = "judge"` puts a model judge behind the word-counting guard
+  of the `coherence` passes. The judge grades each sentence a kept revision
+  changed against the draft sentences it came from, and flags one that claims
+  more ("is associated with" made "reduces", which no word list catches) or
+  says what they do not. It costs a request per changed sentence. It only
+  flags: the revision is kept as it was, and a person reads the flags.
 
 **Signs they need changing.** A long `cm$unverified` list for values you can
-see in the documents points to the extraction's quotes, not to `"include"`:
-look at why they failed. A `$coherence` table where the last allowed
-round still changed the text, with nothing discarded, points to another round.
+see in the documents points to the extraction's quotes: look at why they
+failed before you switch to `"include"`. A `$coherence` table where the last
+allowed round still changed the text, with nothing discarded, points to
+another round.
 `$figures` rows with `backed = FALSE` for a rounded figure that is right
 ("about 50 million" for 51.8) point to a wider `about`; rows backed for a
 figure you would call wrong point to a narrower one. Sections that give a
@@ -1432,11 +1441,10 @@ round here. `figure_bands = c(about = 0.10, over = 0.25, under = 0.25)` was set
 when the check of figures was written, and `prominence = c(top = 1/3,
 middle = 1/3)`, thirds, when claims were added. `revision_check = "lexicon"`
 keeps the guard as it was; the judge is not validated against people's
-labels. All are `untested`.
-`prominence` shares out the sentence budget over claims ranked by the sign
-test of their direction tally, then by study weight.
+labels. All are `untested`. `prominence` shares out the sentence budget over
+claims ranked by the sign test of their direction tally, then by study weight.
 
-**How to test them.** `figure_bands` is tested on a draft, with no request.
+**How to test them.** Test `figure_bands` on a draft; it sends no request.
 Here the writer rounds 51.8 to "about 50":
 
 ```{r}
@@ -1454,7 +1462,7 @@ rbind(bands(0.10), bands(0.02))
 "About 50" is within 10% of 51.8 but not within 2%, so under the narrower
 band the figure is unbacked and `gr_synthesise()` warns.
 
-`revision_check` is tested on one revision. Here the revising model turns the
+Test `revision_check` on one revision. Here the revising model turns the
 draft's "was higher in" into "caused", and a stand-in judge calls that
 stronger:
 
@@ -1482,8 +1490,8 @@ Both kept the revision: the word-counting guard finds no stronger word in
 "caused", and the judge only flags. Under `"judge"` the `flagged` column
 counts the sentence, and `$revision_flags` holds it with the judge's reason.
 
-`coherence_rounds` and
-`prominence` change what is sent, so they are tested as arms. With
+`coherence_rounds` and `prominence` change what is sent, so test them as arms.
+With
 `review_ref` an `hr_reference()` of review questions labelled by a person,
 `my_scorer` an `hr_scorer()` (or a judge validated as in
 `vignette("evaluate")`) and `my_client` your client:
@@ -1527,22 +1535,27 @@ the arithmetic closes:
 gr_flow(screened, table)[, c("stage", "n")]
 ```
 
-The records screened split into include, exclude, unclear, could not be read
-(no screening call was made) and screening call failed (a call was made and its
-reply failed or was not the form asked for), and those five rows sum to
-"screened". "resolved by a person" counts the decisions a person made with
+The records screened split into five rows that sum to "screened": include,
+exclude, unclear, could not be read (no screening call was made) and screening
+call failed (a call was made and its reply failed or was not the form asked
+for). "resolved by a person" counts the decisions a person made with
 `gr_resolve()`, "kept for full text" is `$forward`, and "deferred to full text"
 is the unclear part of it, `$deferred`. Pass `records =` to start the counts at
 identification, and `claims =` to add the claim-level counts.
 
-`gr_audit_report()` writes the whole chain out as one self-contained HTML file
-for the reviewer or co-author whose question is "how do you know?". It holds the
-protocol as fixed in advance, what happened to every document (the screener's
-decision, and who resolved each record, when and why), every value with its
-quote and page and whether the quote is there, what was written and which rows
-each claim rests on, every claim with the studies for and against it and where
-each one ended up, and what it cost. It takes the objects the run already
-produced:
+`gr_audit_report()` writes the whole chain to one self-contained HTML file, for
+the reviewer or co-author who asks "how do you know?". It holds:
+
+- the protocol as fixed in advance;
+- what happened to every document: the screener's decision, and who resolved
+  each record, when and why;
+- every value with its quote and page, and whether the quote is there;
+- what was written, and which rows each claim rests on;
+- every claim with the studies for and against it, and where each one ended
+  up;
+- what it cost.
+
+It takes the objects the run already produced:
 
 ```{r eval = FALSE}
 gr_audit_report("audit.html", screening = screened, extraction = table,
@@ -1555,11 +1568,11 @@ gr_audit_report("audit.html", screening = screened, extraction = table,
 at least one stage to report on.
 
 The report's header gives the time it was written and the harnessr version
-that wrote it, and below them, for each stage, when that stage ran and the
-version that ran it, read from the stage's own trace. The times are shown
-side by side and not compared, so a report written months after the run shows
-both times and says nothing more. Only the version is checked: a stage run on
-a version other than the report's is flagged:
+that wrote it. Below them, for each stage, it gives when that stage ran and the
+version that ran it, read from the stage's own trace. The times sit side by
+side without comparison, so a report written months after the run shows both
+times and nothing more. Only the version is checked: a stage run on a version
+other than the report's is flagged:
 
 ```{r}
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
@@ -1567,15 +1580,15 @@ page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
 grep("UTC</td>", readLines(page), value = TRUE)
 ```
 
-The report puts the failures near the top: unverified quotes, documents that
-could not be read, screening calls that failed or came back in the wrong form,
-and citations pointing at rows that do not exist are counted there. It also
-states what the checking does not establish: that a quoted sentence occurs in
-the document is not evidence that it supports the value taken from it. It says
-what each check looks at: a quote is in the chunk it was credited to, a number
-is one its quote states, a citation names a row the section was given, and a
-figure in the write-up is in what the writer was shown for that sentence.
-None of them confirms that a value or a sentence is right.
+The report puts the failures near the top and counts them there: unverified
+quotes, documents that could not be read, screening calls that failed or came
+back in the wrong form, and citations pointing at rows that do not exist. It
+also states the limits of the checks. A quoted sentence that occurs in the
+document is not evidence that it supports the value taken from it. Each check
+looks at one thing: a quote is in the chunk it was credited to, a number is one
+its quote states, a citation names a row the section was given, and a figure
+in the write-up is in what the writer was shown for that sentence. None of
+them confirms that a value or a sentence is right.
 
 ```{r include = FALSE}
 hr_options(old)
