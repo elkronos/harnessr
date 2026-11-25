@@ -12,15 +12,15 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 Every stage of harnessr except one is a pure function of its input. Extraction,
-cleaning, segmentation, ranking and merging give the same result every time. The
-model call is the only step that costs money, the only step that can die halfway
-through a long run, and, above a temperature of zero, the only step that does
-not return the same thing twice.
+cleaning, segmentation, ranking and merging give the same result every time.
+The model call is the exception. It is the only step that costs money and the
+only one that can die halfway through a long run. Above a temperature of zero,
+it is also the only step whose reply can differ from one call to the next.
 
-This guide covers what harnessr does about that: what a run records, the limits
-every request is checked against before it is sent, the cache that makes a
-repeat free, and the replay that reproduces a run from its trace with no key and
-no spend. `vignette("harnessr")` introduces the package and its ideas.
+This guide covers how harnessr handles that step: the record each run keeps,
+the limits every request is checked against before it is sent, a cache that
+makes a repeat free, and a replay that reproduces a run from its trace with no
+key and no spend. `vignette("harnessr")` introduces the package and its ideas.
 
 ## Setting up
 
@@ -28,10 +28,11 @@ The examples run offline. `hr_mock_client()` plays the part of the model, and
 `embedder = "lexical"` gives free, deterministic word-overlap vectors in place of
 an embeddings endpoint.
 
-A mock costs nothing, which would leave every limit below with nothing to count.
-So the examples give it a price: `hr_register_model()` registers a model id at
-$2 per million input tokens and $8 per million output tokens, and each run names
-that model, so every request is priced at those rates.
+A mock costs nothing, so the spending limits below would have nothing to count.
+The examples give it a price instead. `hr_register_model()` registers the model
+id `"priced-mock"` at $2 per million input tokens and $8 per million output
+tokens. Runs that name that model are priced at those rates, and most runs
+below do.
 
 ```{r message = FALSE}
 library(harnessr)
@@ -45,8 +46,8 @@ cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollar
 
 ## What a run records
 
-Everything below is recorded on the answer, and `print(ans)` sums it up: the
-cost, where the evidence came from and, when the answer is partial, why.
+The answer carries everything in this section, and `print(ans)` sums it up:
+the cost, where the evidence came from and, for a partial answer, why.
 
 ```{r}
 ans <- answer_document(gr_example(), "What was revenue?", "thorough",
@@ -54,8 +55,8 @@ ans <- answer_document(gr_example(), "What was revenue?", "thorough",
 ans
 ```
 
-Check `ans$partial` first. `TRUE` means something degraded, and `ans$notes` says
-what: `dropped_chunks`, `failed_calls`, `unread_pages`, `call_cap_reached`,
+Check `ans$partial` first. `TRUE` means something degraded, and `ans$notes`
+lists what: `dropped_chunks`, `failed_calls`, `unread_pages`, `call_cap_reached`,
 `cost_cap_reached` and so on. `ans$warnings` holds every warning raised while the
 document was read.
 
@@ -69,13 +70,13 @@ hr_trace_cost(ans$trace)[, c("model", "calls", "paid_calls", "usd")]
 as.data.frame(ans$trace)[, c("step", "stage", "tokens_in", "tokens_out", "usd")]
 ```
 
-The token totals are the size of the prompts and replies, which is the shape of
-a run, not its bill. `hr_trace_cost()` counts only the calls that were issued: a
-call answered from a cache or a recording spent nothing, however long its
-prompt. A model with no registered price contributes `NA`, never 0, so a total
-cannot quietly leave one out.
+The token totals measure the prompts and replies, so they show the size of a
+run. The bill comes from `hr_trace_cost()`, which counts only the calls that
+were issued. A call answered from a cache or a recording spent nothing, however
+long its prompt. A model with no registered price contributes `NA`, never 0, so
+no total can leave one out unnoticed.
 
-You can also ask what a run would cost before you make it:
+`hr_estimate_cost()` prices a run before you make it:
 
 ```{r}
 hr_estimate_cost("priced-mock", input_tokens = 120000, output_tokens = 4000)
@@ -84,17 +85,17 @@ hr_estimate_cost("priced-mock", input_tokens = 120000, output_tokens = 4000)
 ### What each request records
 
 Each request is one entry in `trace$steps`. Besides its label, prompt, reply and
-the model it asked for, a step records:
+the model requested, a step records:
 
 - `params`, what the call asked for, and `params_sent`, the request as it went
   out with every default resolved: the model, `api`, `base_url`, the output cap
   sent, the temperature (`NA` when none was sent), the effort, the
   schema name, and SHA-256 hashes of the JSON schema and of any extra body
-  fields. A reasoning model's small cap goes out raised to 2048, and
-  `params_sent` shows the raised one.
+  fields. A small cap sent to a reasoning model is raised to 2048, and
+  `params_sent` shows the raised cap.
 - `served_model`, `response_id` and `fingerprint`, where the provider returns
-  them. `model` stays the model asked for, which is what the step is priced and
-  replayed by.
+  them. `model` keeps the model requested, and the step is priced and replayed
+  by that model.
 - `attempts`, the number of requests sent, retries included (0 for a reply from
   a cache or a recording), and `started_utc` and `ended_utc` in ISO 8601 UTC.
 - `tokens`, with `provenance`: `"reported"` by the provider, `"counted"` here
@@ -111,22 +112,27 @@ str(step$params_sent)
 
 A mock reports no usage, so its counts are estimated. `hr_trace_summary()`
 gives the share of requests whose counts were estimated as `usage_estimated`,
-and `print()` on a trace says so when it is above zero.
+and `print()` on a trace reports that share when it is above zero.
 
 `refine` and `hierarchical` also record the length of the state they carry
-forward. Each `refine.draft` and `refine.revise` step has `state$tokens_in`, the
-draft the request carried, and `state$tokens_out`, the draft carried on from it
-(the old one when the reply was unusable). Each `hier.summarise.L<k>` step has
-the length of the text it summarised and of the summary it returned, and each
-level adds a local `hier.state.L<k>` step with the number of summaries handed on
-and their combined length. A draft that shrinks sharply in one revision shows up
-there.
+forward:
 
-Every cut made to fit a limit writes a local `truncate` step with where it was
-made (`detail$where`), the token limit, and the tokens before, kept and dropped.
-`refine` and `hierarchical` answers add the tokens cut as
-`notes$tokens_truncated`, and printing one says how many tokens were cut to fit.
-Here a model with a 1,000-token window makes `refine` cut its growing draft:
+- Each `refine.draft` and `refine.revise` step has `state$tokens_in`, the length
+  of the draft the request carried, and `state$tokens_out`, the length of the
+  draft carried on from it (the old draft when the reply was unusable).
+- Each `hier.summarise.L<k>` step has the length of the text it summarised and
+  of the summary it returned.
+- Each level adds a local `hier.state.L<k>` step with the number of summaries
+  handed on and their combined length.
+
+A draft that shrinks sharply in one revision shows up in these fields.
+
+Each cut made to fit a limit writes a local `truncate` step. It holds where the
+cut was made (`detail$where`), the token limit, and the tokens before, kept and
+dropped. A `refine` or `hierarchical` answer also adds up the tokens cut in
+`notes$tokens_truncated`, and printing the answer reports how many tokens were
+cut to fit. Here a model with a 1,000-token window makes `refine` cut its
+growing draft:
 
 ```{r}
 hr_register_model("small-window", context_window = 1000, max_output = 500,
@@ -142,18 +148,18 @@ str(cuts[[1]]$detail)
 cut$notes$tokens_truncated
 ```
 
-The other places a cut can be made are `refine.excerpt`, `hier.summaries`,
+A cut can also be made at `refine.excerpt`, `hier.summaries`,
 `preview.skim`, `preview.outline`, `<label>.input` for a finding cut to fit a
 merge, `<label>.giveup` for the capped findings a failed merge returns,
 `segment.contextual.header`, `segment.contextual.document`, `screen.opening`,
 `synthesise.gaps` and `embed.input`.
 
-A trace also records who the run is for and what it ran under. `hr_trace()`
-takes `system`, `owner`, `run_by`, `purpose` and `approved_by`, and
-`hr_options(actor = list(...))` sets them for every trace; a field named nowhere
-is `NA`. `trace$config` is a snapshot of the options in force when the trace was
-made, with the R version. The values of `api_headers` are left out, since they
-can hold credentials.
+A trace also records who the run is for and the settings it ran under.
+`hr_trace()` takes `system`, `owner`, `run_by`, `purpose` and `approved_by`.
+`hr_options(actor = list(...))` sets them for every trace, and a field you set
+in neither place is `NA`. `trace$config` is a snapshot of the options in force
+when the trace was made, plus the R version. It leaves out the values of
+`api_headers`, since they can hold credentials.
 
 ```{r}
 tr <- hr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
@@ -161,31 +167,38 @@ tr
 names(tr$config)
 ```
 
-`as_json(ans)` writes the answer with every prompt and response from the same
-run, and `hr_trace_save()` writes the trace alone, which is what a replay reads.
+`as_json(ans)` writes the answer with every prompt and response of its run.
+`hr_trace_save()` writes the trace alone, and a replay reads that file.
 
 ### Errors and warnings by class
 
-Errors are classed, so you can catch a specific failure: `gr_auth_error`,
-`gr_file_not_found`, `gr_empty_document`, `gr_unsupported_format`,
-`gr_overflow`, `gr_call_cap`, `gr_cost_cap`, `gr_budget_error`,
-`gr_unknown_model`, `gr_unknown_override`, `gr_no_recipes`, `gr_bad_ensemble`,
-`gr_missing_dep`, `gr_bad_setting` for a setting outside its choices
-(`vignette("extending")`), `hr_unknown_effort_key` and `hr_unpriced_model`
-(both below), and `hr_dim_mismatch` when two vectors of different lengths are
-compared, such as a lexical fallback vector against an API embedding.
-Degradations are classed warnings: `gr_segment_fallback`, `gr_embed_fallback`,
-`gr_rerank_degraded`, `gr_iterative_degraded`, `gr_ensemble_degenerate`,
-`gr_duplicate_recipe`, `gr_ocr_unavailable`, `gr_clamped` with
-`hr_param_clamped` for a parameter moved to its nearest bound
-(`vignette("extending")`), `gr_parallel_share` for a parallel item whose
-share refused a later request (below), `gr_bad_correct` for a
-`gr_compare()` `correct` function that fails (below), and `gr_unclear_dropped`
-when `gr_extract()` leaves unclear screening records out (`vignette("review")`).
+Errors are classed, so you can catch a specific failure:
 
-In an interactive session a long read keeps one line up to date with how many
-chunks it has read and what it has spent, and `gr_read_many()` gives the spend
-so far before each document.
+- `gr_auth_error`, `gr_file_not_found`, `gr_empty_document`,
+  `gr_unsupported_format`, `gr_overflow`, `gr_call_cap`, `gr_cost_cap`,
+  `gr_budget_error`, `gr_unknown_model`, `gr_unknown_override`,
+  `gr_no_recipes`, `gr_bad_ensemble` and `gr_missing_dep`.
+- `gr_bad_setting` for a setting outside its choices (`vignette("extending")`).
+- `hr_unknown_effort_key` and `hr_unpriced_model`, both covered below.
+- `hr_dim_mismatch` when two vectors of different lengths are compared, such as
+  a lexical fallback vector against an API embedding.
+
+Degradations are classed warnings:
+
+- `gr_segment_fallback`, `gr_embed_fallback`, `gr_rerank_degraded`,
+  `gr_iterative_degraded`, `gr_ensemble_degenerate`, `gr_duplicate_recipe` and
+  `gr_ocr_unavailable`.
+- `gr_clamped` with `hr_param_clamped` for a parameter moved to its nearest
+  bound (`vignette("extending")`).
+- `gr_parallel_share` for a parallel item whose share refused a later request
+  (below).
+- `gr_bad_correct` for a `gr_compare()` `correct` function that fails (below).
+- `gr_unclear_dropped` when `gr_extract()` leaves unclear screening records out
+  (`vignette("review")`).
+
+In an interactive session, a long read keeps one progress line up to date with
+the number of chunks read and the spend so far. `gr_read_many()` also reports
+the spend so far before each document.
 
 ## Limits
 
