@@ -12,32 +12,113 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 Read this page if you have code written for readgpt, the package's name up to
-version 0.6.0, or for its first version (v1). `NEWS.md` lists every change
-release by release.
+version 0.6.0, or for its first version (v1). Each table lists an old name,
+the name that replaced it and what to change in your code. None of the old
+names has an alias: calling an old function stops with "could not find
+function". `NEWS.md` lists every change release by release.
 
-## From readgpt to harnessr
+Files you saved with an older version still load. "What still loads", at the
+end of this page, lists them.
+
+## From readgpt 0.6.0: core functions now start with hr_
+
+The 27 core functions that began with `gr_` now begin with `hr_`, like the
+rest of the core layer. Document-layer functions such as `gr_read()`,
+`gr_ingest()` and `gr_extract()` keep `gr_`, so replace only the names in this
+table. A blanket search and replace of `gr_` breaks them.
+
+| Old | New | What to change |
+|---|---|---|
+| `gr_api_key()` | `hr_api_key()` | Rename the call. |
+| `gr_backend_client()` | `hr_backend_client()` | Rename the call. |
+| `gr_budget()` | `hr_budget()` | Rename the call. |
+| `gr_cache()` | `hr_cache()` | Rename the call. |
+| `gr_cache_clear()` | `hr_cache_clear()` | Rename the call. |
+| `gr_cache_client()` | `hr_cache_client()` | Rename the call. |
+| `gr_cache_stats()` | `hr_cache_stats()` | Rename the call. |
+| `gr_call()` | `hr_call()` | Rename the call. |
+| `gr_client()` | `hr_client()` | Rename the call. |
+| `gr_count_tokens()` | `hr_count_tokens()` | Rename the call. |
+| `gr_ellmer_client()` | `hr_ellmer_client()` | Rename the call. |
+| `gr_embed()` | `hr_embed()` | Rename the call. |
+| `gr_estimate_cost()` | `hr_estimate_cost()` | Rename the call. |
+| `gr_mock_client()` | `hr_mock_client()` | Rename the call. |
+| `gr_model_info()` | `hr_model_info()` | Rename the call. |
+| `gr_model_limits()` | `hr_model_limits()` | Rename the call. |
+| `gr_models()` | `hr_models()` | Rename the call. |
+| `gr_options()` | `hr_options()` | Rename the call. |
+| `gr_register_model()` | `hr_register_model()` | Rename the call. |
+| `gr_replay_client()` | `hr_replay_client()` | Rename the call. |
+| `gr_set_tokenizer()` | `hr_set_tokenizer()` | Rename the call. |
+| `gr_tokenizer()` | `hr_tokenizer()` | Rename the call. |
+| `gr_trace()` | `hr_trace()` | Rename the call. |
+| `gr_trace_cost()` | `hr_trace_cost()` | Rename the call. |
+| `gr_trace_save()` | `hr_trace_save()` | Rename the call. |
+| `gr_trace_summary()` | `hr_trace_summary()` | Rename the call. |
+| `gr_truncate_tokens()` | `hr_truncate_tokens()` | Rename the call. |
+
+The objects these functions return keep their `gr_` classes. Code that tests
+`inherits(x, "gr_client")` or handles a `gr_call_cap` condition works as
+before.
+
+### Before and after
+
+Most scripts written for 0.6.0 make a client, call it and read the trace. In
+0.6.0 that read:
+
+```{r eval = FALSE}
+library(readgpt)
+cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+tr <- gr_trace()
+res <- gr_call(cl, "What was revenue?", trace = tr)
+gr_trace_summary(tr)$calls
+```
+
+Now it reads as below. The package name and the four core calls change; the
+arguments, the reply and the class stay the same:
+
+```{r message = FALSE}
+library(harnessr)
+old <- hr_options(verbose = FALSE)
+cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+tr <- hr_trace()
+res <- hr_call(cl, "What was revenue?", trace = tr)
+res$text
+hr_trace_summary(tr)$calls
+inherits(cl, "gr_mock_client")
+```
+
+```{r include = FALSE}
+hr_options(old)
+```
+
+## From readgpt 0.6.0: the package, options and other removed names
 
 harnessr was called readgpt up to version 0.6.0, and so was its GitHub
-repository. The rename leaves requests, cache keys and recordings unchanged,
-and caches and recordings made under the old name still answer. The old
-function and option names are removed; `NEWS.md` lists each one with its
-replacement.
+repository. The rename leaves requests, cache keys and recordings unchanged.
+
+| Old | New | What to change |
+|---|---|---|
+| `readgpt` | `harnessr` | Load it with `library(harnessr)` and install it with `remotes::install_github("elkronos/harnessr")`. GitHub sends the old repository address to the new one. |
+| `readgpt_example()` | `gr_example()` | Rename the call. It returns the same path to the bundled example document. |
+| `options(readgpt.api_key =)` | `options(harnessr.api_key =)` | Rename the option. harnessr ignores the old one, so a key set only there is not found. |
+| `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` | Rename the option. harnessr ignores the old one. |
+| `gr_calibrate()`'s `$kappa_legacy` | `gr_calibrate()`'s `$kappa` | Read `$kappa`. `$decisions` holds the 3x2 counts the old figure came from. |
+| the `gr_deprecated` warning class | none | Drop handlers for it. Nothing warns about an old name now. |
 
 ## From v1
 
-The v1 entry points are removed. Each one has a replacement:
+v1, the package's first version, had six entry points that 0.2.0 replaced
+and later versions removed. Each has a replacement:
 
-| v1 | now |
-|---|---|
-| `answer_question(f, q, mode = "Chunked")` | `answer_document(f, q, "thorough")` |
-| `parse_text(f, chunk_method = "semantic")` | `gr_ingest(f)`, then `gr_segment(doc, "semantic")` |
-| `gpt_read_chunked()` | `gr_read(ch, q, cl, "map_reduce")` |
-| `gpt_read_retrieval()` | `gr_read(ch, q, cl, "skim")` |
-| `gpt_read_hierarchical()` | `gr_read(ch, q, cl, "hierarchical")` |
-| `gpt_read_multipass()` | `gr_read(ch, q, cl, "ensemble")` |
-| `readgpt_example()` | `gr_example()` |
-| `options(readgpt.api_key =)` | `options(harnessr.api_key =)` |
-| `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` |
+| Old | New | What to change |
+|---|---|---|
+| `answer_question()` | `answer_document()` | `answer_question(f, q, mode = "Chunked")` becomes `answer_document(f, q, "thorough")`. To run several recipes on one document, use `gr_compare()`. |
+| `parse_text()` | `gr_ingest()`, then `gr_segment()` | `parse_text(f, chunk_method = "semantic")` becomes `gr_segment(gr_ingest(f), "semantic", client = cl)`. Semantic chunking embeds, so it needs a client; without one it warns and cuts paragraphs. |
+| `gpt_read_chunked()` | `gr_read()` | Segment first, then call `gr_read(chunks, q, cl, "map_reduce")`. |
+| `gpt_read_retrieval()` | `gr_read()` | Segment first, then call `gr_read(chunks, q, cl, "skim")`. |
+| `gpt_read_hierarchical()` | `gr_read()` | Segment first, then call `gr_read(chunks, q, cl, "hierarchical")`. |
+| `gpt_read_multipass()` | `gr_read()` | Segment first, then call `gr_read(chunks, q, cl, "ensemble")`. |
 
 Three behaviour changes from v1 are deliberate and will alter your results:
 
@@ -62,7 +143,6 @@ chunking under the current code, use the `legacy` recipe. It strips digits, as
 v1 did, and cuts 3000-token paragraph chunks with no overlap:
 
 ```{r message = FALSE}
-library(harnessr)
 old <- hr_options(verbose = FALSE)
 legacy <- gr_recipes("legacy")
 gr_ingest("Revenue was 45.2 million dollars in fiscal 2024.", legacy$ingest)$text
@@ -75,3 +155,39 @@ hr_options(old)
 
 The regression suite in `tests/testthat/` reproduces each of these defects
 against the current code.
+
+## What still loads
+
+The renames did not change the files the package writes. Each item below
+names the test in `tests/testthat/` that loads such a file.
+
+- **Response caches.** A cache written by readgpt 0.6.0 or earlier answers
+  every call it holds through the old key, and nothing is sent. A reply found
+  that way raises an `hr_legacy_key` warning, once per cache in a session. A
+  call with a draw index does not read the old keys. Tests: "an old cache
+  answers every call through the old key, each hit warning" and "an old cache
+  is not read for a draw", in `test-compat-legacy-keys.R`.
+- **readgpt's cache directory.** When your cache directory is
+  `tools::R_user_dir("harnessr", "cache")`, entries readgpt kept in
+  `tools::R_user_dir("readgpt", "cache")` answer too, after it. harnessr
+  never writes to or clears the old directory. Test: "entries readgpt kept in
+  its documented cache directory still answer", in
+  `test-compat-legacy-keys.R`.
+- **Traces and replay recordings (cassettes).** A trace saved by
+  `gr_trace_save()` in 0.6.0 replays with `hr_replay_client()`, strict mode
+  included. Test: "an old recording replays strictly through the old key, each
+  hit warning", in `test-compat-legacy-keys.R`. A trace's `meta` still records
+  the version under `readgpt`, so traces from before and after the rename read
+  the same way. Test: "a trace records the configuration that produced it, not
+  just the recipe's name", in `test-hardening.R`.
+- **Signal calibrations.** Calibrations keep their own contract version, 0.1,
+  so a record saved under 0.1 stays valid. Test: "a calibration key keeps
+  contract version 0.1, so a saved record stays valid", in
+  `test-contract-02.R`.
+- **Stores.** A `gr_read_many()` store written by an older version resumes.
+  Tests: "a store written by an older version still resumes", in
+  `test-corpus.R`, and "a store entry written by 0.5.0 is read again once, then
+  restored", in `test-review3-corpus.R`.
+- **Class names.** Objects keep their `gr_` classes, so an object saved before
+  the rename still dispatches. Test: "the renamed constructors still make gr_
+  classes", in `test-core-names.R`.
