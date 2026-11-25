@@ -31,12 +31,19 @@ This package talks to language-model APIs. Nothing in the checked material makes
 a network request:
 
 * Every example that would reach an endpoint is wrapped in `\dontrun{}`. The
-  rest use `hr_mock_client()`, a client whose handler is an ordinary R function,
-  so they run offline and deterministically.
-* The test suite (1040 tests) uses the same mock throughout and sets no API key.
-* The vignette is built against the mock client, with
-  `hr_options(embedder = "lexical")` for a deterministic embedding backend, so
-  it compiles with no key and no network.
+  rest call a client whose handler is an ordinary R function
+  (`hr_mock_client()` or `hr_backend_client()`), or replay a run recorded with
+  one, so they run offline and deterministically.
+* The test suite needs no API key and sends nothing off the machine. Model
+  calls go to `hr_mock_client()` or a backend function. The tests of the HTTP
+  transport and of the ellmer adapter replace the request with a local fake.
+  One test of the download size limit, skipped on CRAN, starts a server on
+  127.0.0.1 in a child R process and downloads from it. The tests of key
+  lookup set a fake key for the length of one test.
+* The guides (vignettes) send every model call to an offline client, mostly
+  `hr_mock_client()`, so they build with no key and no network. Most also set
+  `hr_options(embedder = "lexical")` for a deterministic embedding backend.
+  Chunks that show a call to a real provider are not evaluated.
 
 Files are written only under `tempdir()`. The response cache
 (`hr_cache()`) defaults to a directory under `tempdir()` and creates it on first
