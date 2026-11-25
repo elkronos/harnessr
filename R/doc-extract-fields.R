@@ -1,4 +1,4 @@
-# doc-extract-fields.R -- a goal expressed as fields rather than as a sentence.
+# doc-extract-fields.R: a goal expressed as fields rather than as a sentence.
 #
 # WHY THIS FILE EXISTS
 # "Read this paper and tell me about it" is a worse instruction than "extract the
@@ -10,8 +10,8 @@
 # So the useful version of "make it goal-driven" is not a fuzzier prompt. It is
 # a typed schema: a goal is a set of fields, extraction fills them, and the
 # result is a data frame you can sort, count, filter and publish. Everything a
-# corpus-scale reading task actually needs -- screening, evidence tables,
-# synthesis -- is built on that shape.
+# corpus-scale reading task actually needs (screening, evidence tables,
+# synthesis) is built on that shape.
 #
 # Two things the types buy beyond tidiness. A field that was LOOKED FOR AND NOT
 # REPORTED is distinguishable from one the run failed to reach, which is the
@@ -176,7 +176,7 @@ print.gr_fields <- function(x, ...) {
 #' Every field is nullable, and that is the point: a chunk that does not mention
 #' the sample size must be able to say so, rather than being pushed into
 #' inventing one. Reconciliation then treats null as "this chunk had nothing",
-#' which is a different thing from "the document does not report it" -- the
+#' which is a different thing from "the document does not report it". The
 #' second is only known once every chunk has been asked.
 #' @noRd
 fields_schema <- function(fields) {
@@ -191,7 +191,7 @@ fields_schema <- function(fields) {
     base
   })
   # A quoted span per field, so a filled value can be checked against the chunk
-  # it came from -- the same guarantee gr_verify_evidence() gives an answer.
+  # it came from. gr_verify_evidence() gives an answer the same guarantee.
   quotes <- lapply(fields, function(f) list(type = c("string", "null"),
                                             description = "The exact sentence this value came from, copied verbatim, or null."))
   names(quotes) <- paste0(names(fields), "__quote")
@@ -276,7 +276,7 @@ coerce_field <- function(value, field) {
   # A declared enum value is a value, whatever it spells, so membership is
   # decided before any word is read as "missing". The documented schemas use
   # values = c("positive", "null", "mixed"), and the null-word filter running
-  # first recorded every null result as not reported -- dropping exactly the
+  # first recorded every null result as not reported. That dropped exactly the
   # studies a synthesis most needs to count. Anything undeclared is still NULL.
   if (identical(field$type, "enum")) {
     s <- as_chr1(v)
@@ -292,7 +292,7 @@ coerce_field <- function(value, field) {
   if (!identical(field$type, "string") && is_placeholder_value(v)) return(NULL)
   # Above .Machine$integer.max an integer field is stored as a DOUBLE, not
   # thrown away. as.integer(3e9) is NA, so a person-days or population count
-  # came out as "not reported" and n_filled dropped to 0 -- the extraction
+  # came out as "not reported" and n_filled dropped to 0. The extraction
   # table said the document was silent about a value it had stated plainly.
   # A fraction is not a whole number, and rounding one invents it: "0,85" is
   # not 1, and "1.204" (a thousand and more, written the European way) is not
@@ -302,8 +302,8 @@ coerce_field <- function(value, field) {
   switch(field$type,
     string  = as_chr1(v),
     # Only the words that answer yes or no. `%in%` against the yes-words alone
-    # made every other string a confident FALSE -- "unclear", "not stated",
-    # and "Yes - Pfizer funded it" -- with a verbatim quote beside it, so
+    # made every other string a confident FALSE ("unclear", "not stated",
+    # and "Yes - Pfizer funded it") with a verbatim quote beside it, so
     # the evidence check passed and an industry-funded trial was counted as
     # unfunded.
     boolean = { if (is.logical(v)) return(v)
@@ -346,7 +346,7 @@ unreadable_value <- function(raw) {
 #' every digit in the value was glued into a single number: "120 (60 per arm)"
 #' became 12060, "482 (Table 1)" became 4821, and "1,204 randomised; 1,180
 #' analysed" became 12041180. Those are fabricated figures, and they were the
-#' worst kind, because the QUOTE they came with was verbatim -- so the evidence
+#' worst kind, because the QUOTE they came with was verbatim. So the evidence
 #' check passed, `n_unverified` stayed 0, and the audit report certified a
 #' number that appears nowhere in the paper.
 #'
