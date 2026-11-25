@@ -132,23 +132,23 @@ it from the cache, as it does for a file.
 
 ## Sections and headings
 
-For Markdown, HTML, Word and PDF files, each block records the heading it falls
-under (the next section says how a PDF's headings are found). The example report
-has these sections:
+In Markdown, HTML, Word and PDF files, each block records the heading it falls
+under (the next section says how harnessr finds a PDF's headings). The example
+report has these sections:
 
 ```{r}
 unique(doc$blocks$section)
 ```
 
-Sections matter later. The `structural` way of cutting a document into chunks
+Later steps use them. The `structural` way of cutting a document into chunks
 never lets a chunk straddle two sections (`vignette("segment")`), and the
 `preview` reading strategy plans its reading section by section. A plain text
 file has no headings, so its blocks have no section.
 
 ## PDFs
 
-A PDF is read page by page, and every block carries its page number. That is what
-lets a quotation be traced to "page 12" rather than to "somewhere in the file".
+harnessr reads a PDF page by page, and every block carries its page number, so
+you can trace a quotation to "page 12" rather than to "somewhere in the file".
 
 ```{r eval = has_pdftools}
 pdf_file <- tempfile(fileext = ".pdf")
@@ -164,18 +164,18 @@ report <- gr_ingest(pdf_file)
 report$blocks[, c("page", "section", "kind", "text")]
 ```
 
-A PDF's text comes out as the page looks, which is not always the order a person
-reads in, so harnessr puts it back in reading order:
+A PDF's text comes out in the order of the page layout, which is not always the
+order a person reads in. harnessr puts it back in reading order:
 
 - A page set in two columns is read one column after the other. Without this,
   each line would join the start of a line from each column.
 - Running heads and feet (short lines repeated at the top or bottom of many
   pages, such as a journal name or "Page 3 of 12") are removed.
-- Headings are found, so blocks carry sections as they do for Markdown and
-  Word. They come from the PDF's bookmarks when it has them. Otherwise a line
-  that is only a standard section name ("Introduction", "2. Methods",
-  "Results") counts. That is how "Summary" was found above; "Outlook" is not a
-  standard name, so it stayed text.
+- It finds headings, so blocks carry sections as they do for Markdown and
+  Word. It takes them from the PDF's bookmarks when it has them. Otherwise a
+  line that is only a standard section name ("Introduction", "2. Methods",
+  "Results") counts. That is how harnessr found "Summary" above; "Outlook" is
+  not a standard name, so it stayed text.
 
 `gr_ingest_spec(layout = "raw")` turns all three off and keeps each page as it
 is laid out. Footnotes, tables and pages in three or more columns can still come
@@ -184,10 +184,10 @@ relying on a new kind of PDF.
 
 ## Scanned pages and OCR
 
-A scanned PDF is a picture of text, with no text inside it to extract. Reading it
-needs *optical character recognition* (OCR), which turns the picture back into
-text. OCR is slow (seconds per page) and never perfect, so harnessr uses it only
-where it is needed:
+A scanned PDF is a picture of text, with no text inside it to extract. To read
+it, harnessr needs *optical character recognition* (OCR), which turns the
+picture back into text. OCR is slow (seconds per page) and never perfect, so by
+default harnessr runs it only on pages that need it:
 
 ```{r eval = FALSE}
 # The default: OCR any page with fewer than 40 characters of text.
@@ -206,25 +206,25 @@ gr_ingest("scan.pdf", gr_ingest_spec(ocr_lang = "deu", ocr_dpi = 400))
 
 OCR on PDFs needs both `tesseract` and `magick`. Without them a scanned page
 comes back nearly empty and harnessr warns (`gr_ocr_unavailable`). The document
-lists those pages in `doc$stats$unread_pages`, and an answer drawn from it is
-marked partial. The same holds with `ocr = "never"`: a page with no text, or
-only a stamp or a running head, is listed as unread. A document with too little
-text left is refused outright, as the next section shows. The `"scanned"` recipe
-is set up for this kind of document.
+lists those pages in `doc$stats$unread_pages`, and harnessr marks an answer
+drawn from it as partial. The same holds with `ocr = "never"`: harnessr lists a
+page with no text, or only a stamp or a running head, as unread. A document
+with too little text left is refused outright, as "When too little text is
+left" below shows. The `"scanned"` recipe is set up for this kind of document.
 
 ## Cleaning
 
 Extracted text is rarely clean. PDFs break words across lines with hyphens, repeat
 the page number on every page, and use typographic ligatures ("ﬁ" for "fi").
-harnessr tidies this with *cleaners*. Each does one job and can be turned on or
-off:
+harnessr tidies this with *cleaners*. Each does one job, and you can turn each
+on or off:
 
 ```{r}
 gr_cleaners()[, c("name", "stage", "default_on")]
 ```
 
-The five marked `default_on` run unless you say otherwise. The ones below are off
-by default, for these reasons:
+The five marked `default_on` run unless you turn them off. Some of the others
+are off by default for these reasons:
 
 - `remove_numbers` replaces every digit with a space, which makes any question
   about a figure, date or percentage unanswerable.
@@ -232,16 +232,16 @@ by default, for these reasons:
   destroys documents made mostly of tables.
 - `urls` and `emails` remove links and addresses, which are sometimes the answer.
 - `references` cuts everything from a line reading just "References",
-  "Bibliography" or "Works cited" to the end of the document, when that line
-  starts at or after 40% of the text, so a table of contents near the start
-  does not cut the document. The line may be numbered ("7. References") or a
-  Markdown heading ("## References"); a line inside a fenced code block is
-  not a heading. `cleaner_opts = list(references_after = )`
-  moves that share, a number from 0 to 1. The cut loses the reference list if
-  your question is about the sources.
+  "Bibliography" or "Works cited" to the end of the document. It cuts only
+  when that line starts at or after 40% of the text, so a table of contents
+  near the start does not cut the document. The line may be numbered
+  ("7. References") or a Markdown heading ("## References"); a line inside a
+  fenced code block is not a heading. `cleaner_opts = list(references_after = )`
+  moves that share, a number from 0 to 1. If your question is about the
+  sources, the cut loses the reference list you need.
 
-Cleaning cannot be undone later: no reader can recover what it removes. Know
-what each choice costs before you make it.
+No reader can recover what a cleaner removes, so know what each choice costs
+before you make it.
 
 ### Presets
 
@@ -256,7 +256,7 @@ Instead of naming cleaners one by one, use a *preset*:
 | `"scan"` | standard, plus repeated page headers and footers |
 | `"legacy"` | what the first version of this package did, number stripping included; for comparison only |
 
-Here is how much text each leaves of the example report:
+Each preset leaves this many characters of the example report:
 
 ```{r}
 presets <- c("none", "minimal", "standard", "academic", "scan", "legacy")
@@ -286,8 +286,9 @@ compare.
 
 `gr_clean()` runs cleaners on any text, so you can try a configuration on a few of
 your own lines first. Cleaners always run in two stages, `early` before `late`,
-whatever order you list them in; otherwise number removal would strip the "1"
-from "Page 1" before the page-number cleaner could recognise the line:
+whatever order you list them in. Without the stages, number removal could strip
+the "1" from "Page 1" before the page-number cleaner recognised the line:
+
 
 ```{r}
 cleaned <- gr_clean(c("Page 1", "Revenue rose to 45.2 million in 2024."),
