@@ -252,3 +252,36 @@ test_that("README and the guides show the diagrams, each with alt text", {
     expect_gt(nchar(alt), 100)
   }
 })
+
+# The fig.alt of the chunk that shows `svg` in vignettes/<v>.Rmd.
+vignette_alt <- function(v, svg) {
+  lines <- readLines(file.path(diagram_root(), "vignettes", paste0(v, ".Rmd")), warn = FALSE)
+  at <- which(lines == sprintf('knitr::include_graphics("../man/figures/%s")', svg))
+  expect_length(at, 1)
+  alt <- regmatches(lines[at - 1], regexpr('fig.alt = "[^"]+"', lines[at - 1]))
+  expect_length(alt, 1)
+  sub('^fig.alt = "(.*)"$', "\\1", alt)
+}
+
+number_words <- c("one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+                  "ten", "eleven", "twelve")
+
+test_that("the alt text of the guides states the same facts as the package", {
+  alt <- vignette_alt("extending", "registry.svg")
+  kinds <- names(harnessr:::hr_kinds())
+  expect_match(alt, sprintf("one of %s kinds: ", number_words[length(kinds)]), fixed = TRUE)
+  for (k in kinds) expect_match(alt, paste0("\\b", k, "\\b"), info = k)
+  listed <- sub("[.].*$", "", sub("^.* kinds: ", "", alt))
+  expect_setequal(strsplit(listed, ", | and ")[[1]], kinds)
+  expect_match(alt, sprintf("module contract %s.", harnessr:::hr_contract_version()),
+               fixed = TRUE)
+  expect_match(alt, sprintf("their own contract, %s.", harnessr:::.hr_signal_contract),
+               fixed = TRUE)
+
+  alt <- vignette_alt("harnessr", "document-run.svg")
+  stages <- setdiff(names(formals(harnessr::gr_recipe)), "name")
+  expect_match(alt, sprintf("runs %s stages in order: ", number_words[length(stages)]),
+               fixed = TRUE)
+  shown <- regmatches(alt, gregexpr("[a-z]+ with gr_[a-z]+\\(\\)", alt))[[1]]
+  expect_identical(shown, sprintf("%s with gr_%s()", stages, stages))
+})
