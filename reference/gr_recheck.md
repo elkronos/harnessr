@@ -57,7 +57,10 @@ to verified records again; and `$uncited` and `$contradictions` are
 worked out again. The sections, their counts and `$draft` are left as
 written: they describe the draft, not the edit. For a synthesis saved
 before `$section_studies` was kept, `shown` in `$uncited` is `NA`, since
-what each section was shown is not known.
+what each section was shown is not known. A synthesis saved by an
+earlier version comes back with the fields added since filled with their
+defaults: no studies lost or left unrendered, and the citation style and
+bibliographic columns it was written with.
 
 ## See also
 

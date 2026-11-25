@@ -91,16 +91,16 @@ f <- tempfile(fileext = ".txt")
 writeLines("Participants were adults.", f)
 s <- gr_screen(f, question = "Does the treatment work?",
                include = "Reports a randomised comparison", client = cl)
-#> [1/1] file1be8318f7f26.txt
-#> Extracting 'file1be8318f7f26.txt' with the 'txt' extractor.
+#> [1/1] file1b9bf07f1dc.txt
+#> Extracting 'file1b9bf07f1dc.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~9 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'screen' (head|1|none) over 1 chunk(s).
 s$deferred
-#> [1] "/tmp/RtmpBFd4hi/file1be8318f7f26.txt"
+#> [1] "/tmp/RtmphcfKit/file1b9bf07f1dc.txt"
 s <- gr_resolve(s, basename(f), "include", by = "A. Reviewer",
                 reason = "Methods section describes randomisation.")
 s$table[, c("document", "decision", "screener_decision", "resolved_by")]
-#>               document decision screener_decision resolved_by
-#> 1 file1be8318f7f26.txt  include           unclear A. Reviewer
+#>              document decision screener_decision resolved_by
+#> 1 file1b9bf07f1dc.txt  include           unclear A. Reviewer
 ```

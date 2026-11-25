@@ -1111,6 +1111,36 @@ changed.
 
 ### Fixed
 
+- A worker in a parallel batch sets `OPENAI_API_KEY` for each item and
+  puts back the value it had when the item ends. A key passed as `key`
+  or through the `harnessr.api_key` option no longer stays in the worker
+  process after its item. A worker started from a session with
+  `OPENAI_API_KEY` set has that key from the start and keeps it. A
+  backend handler or
+  [`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
+  that reads the key from the environment still gets it. A batch through
+  [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+  sets no key. Requests and cache keys do not change.
+
+- A `gr_claims`, `gr_synthesis` or `gr_calibration` you saved with an
+  earlier version gets the fields added since filled with their defaults
+  when
+  [`gr_gaps()`](https://elkronos.github.io/harnessr/reference/gr_gaps.md),
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md),
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md),
+  [`gr_recheck()`](https://elkronos.github.io/harnessr/reference/gr_recheck.md)
+  or
+  [`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
+  reads it, or [`print()`](https://rdrr.io/r/base/print.html) reads a
+  `gr_claims` or `gr_synthesis`. Each one gives the output it gave for
+  that object before.
+  [`gr_recheck()`](https://elkronos.github.io/harnessr/reference/gr_recheck.md)
+  returns the filled object, and
+  [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+  stores the filled claims table in `$claims`. A hand-built object such
+  as `structure(list(table = tab), class = "gr_screening")` passes
+  through unchanged. Requests and cache keys do not change.
+
 - The `references` cleaner, in the `"academic"` and `"legacy"` presets,
   now cuts at a Markdown heading such as `## References` or
   `### 7. References`, with or without closing `#` marks, and not at a
