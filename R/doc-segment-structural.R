@@ -24,7 +24,7 @@ seg_structural <- function(doc, spec, client, trace) {
     # Capitals of any script, not A-Z: with ASCII classes a French heading
     # starting with an accented capital, or any Cyrillic one, was never a
     # heading, so its text was filed, and prefixed, under the heading before
-    # it -- and a Russian document found none at all. After a number, a letter
+    # it. A Russian document found none at all. After a number, a letter
     # of a script without case (Chinese, Arabic) also starts a heading.
     is_head <- grepl(paste0("^(#{1,6}[ \t]|\\d+(\\.\\d+)*[ \t.)]+[\\p{Lu}\\p{Lt}\\p{Lo}]|",
                             "\\p{Lu}[\\p{Lu}\\p{N} ,'\u2019&/-]{6,}$)"),
@@ -33,8 +33,8 @@ seg_structural <- function(doc, spec, client, trace) {
     # heading block is dropped from the body below and this label is prefixed
     # in its place, so it has to carry the whole line: the normalised form
     # stripped leading numbers, and "2022 Results" and "2023 Results" both
-    # became "## Results", leaving neither year in any chunk -- and a
-    # year-led sentence taken for a heading lost its year the same way.
+    # became "## Results", leaving neither year in any chunk. A year-led
+    # sentence taken for a heading lost its year the same way.
     cur <- NA_character_
     for (i in seq_len(nrow(b))) {
       if (is_head[i]) cur <- trimws(sub("^#{1,6}[ \t]*", "", trimws(b$text[i]), perl = TRUE))
@@ -65,7 +65,7 @@ seg_structural <- function(doc, spec, client, trace) {
     # prefix, dropping it would lose the heading text from the document.
     body_idx <- if (labelled) idx[!is_head[idx]] else idx
     if (!length(body_idx)) {
-      # The section is nothing but its heading -- a document title, a part
+      # The section is nothing but its heading: a document title, a part
       # divider. Skipping it dropped that text from the chunk set entirely, so
       # the document's own title reached no reader. Emit the heading as its own
       # chunk instead, unprefixed (the prefix would only repeat it).

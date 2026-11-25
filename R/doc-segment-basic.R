@@ -37,7 +37,7 @@ seg_fixed <- function(doc, spec, client, trace) {
   # occurred inside the one before, but the final window always ends at the
   # last word, past where the one before ended, so it is never a positional
   # duplicate: every time the check fired it deleted text found in no other
-  # chunk -- a closing "Motion carried." that repeats earlier wording.
+  # chunk, such as a closing "Motion carried." that repeats earlier wording.
   new_chunks(unlist(txt, use.names = FALSE), "fixed", spec)
 }
 
