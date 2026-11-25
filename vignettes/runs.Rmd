@@ -208,11 +208,14 @@ Two limits are on by default: a run may spend $5 and make 400 calls.
 unlist(hr_options()[c("max_cost_usd", "max_calls")])
 ```
 
-They are checked twice. Before the first request, a run is refused with a
-classed error naming the option to change when it would need more calls than
-`max_calls`, or when its reader sends every chunk and sending them would already
-cost more than `max_cost_usd`. Here `map_reduce` over five chunks needs six
-calls:
+They are checked at two points. The first is before the first request. A run
+is refused there, with a classed error that names the option to change, when:
+
+- it would need more calls than `max_calls`, or
+- its reader sends every chunk, and sending them would already cost more than
+  `max_cost_usd`.
+
+Here `map_reduce` over five chunks needs six calls:
 
 ```{r}
 chunks <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150))
@@ -226,17 +229,18 @@ tryCatch(
 
 ### Every request is checked before it is sent
 
-Then every request is checked before it goes out, against what the run has spent
-plus the most the request could cost: its prompt at the input price and its
-output cap at the output price. The prompt is counted with the JSON schema and
-extra body fields the request carries and a few tokens of framing per message,
-then raised by `safety_margin`, since the provider bills for all of that. A
-request that could take the run past a limit is not sent, so a run ends at or
-under its limit rather than one request over it.
+The second check runs on every request before it goes out. It compares the
+limit with what the run has spent plus the most the request could cost: its
+prompt at the input price and its output cap at the output price. The prompt
+count includes the JSON schema and extra body fields the request carries and a
+few tokens of framing per message, since the provider bills for all of that.
+That count is then raised by `safety_margin`. A request that could take the run
+past a limit is not sent, so a run ends at or under its limit rather than one
+request over it.
 
 Under a limit of one cent, the five chunk requests below go out and the merge
-does not. Its reply cap is 1500 tokens, which at $8 per million could cost more
-than the run has left, so the answer comes back partial:
+does not. The merge's reply cap is 1500 tokens, which at $8 per million could
+cost more than the run has left, so the answer comes back partial:
 
 ```{r}
 tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.01))
@@ -246,11 +250,13 @@ data.frame(calls = tr$calls, spent_usd = tr$spent_usd, stop_reason = tr$stop_rea
 tr$refusals[[1]]$message
 ```
 
-The bound rests on two things harnessr cannot see: that the provider stops each
-reply at its cap, and that it counts the prompt within `safety_margin` of the
-local tokenizer. A run that leaves its output caps at the model's limit stops
-while it still has headroom a smaller cap would have used. With the merge's reply
-held to 500 tokens, the same run fits:
+The bound assumes two things harnessr cannot see. The provider must stop each
+reply at its cap, and its count of the prompt must fall within `safety_margin`
+of the local tokenizer's.
+
+A run that leaves its output caps at the model's limit stops while it still has
+headroom that a smaller cap would have used. With the merge's reply held to 500
+tokens, the same run fits:
 
 ```{r}
 tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.01))
@@ -262,14 +268,14 @@ fits$partial
 data.frame(calls = tr$calls, spent_usd = tr$spent_usd)
 ```
 
-A refused request is not a call. It adds nothing to the trace's calls, steps or
-spend. `hr_call()` returns it as a failed result with `refused = TRUE` and an
-error naming the limit, after signalling a condition of class
-`hr_budget_refused`, which you can catch to stop instead. The trace lists it in
-`refusals`, sets `budget_stop` and names the limit in `stop_reason`: `"calls"`,
-`"cost"`, `"tokens"`, `"output"`, `"model"` or `"unpriced"`. Readers and review
-stages mark the answer or section partial and do not count the request as
-failed.
+A refused request is not a call, and it adds nothing to the trace's calls, steps
+or spend. `hr_call()` first signals a condition of class `hr_budget_refused`,
+which you can catch to stop the run there. Otherwise it returns the request as a
+failed result with `refused = TRUE` and an error naming the limit. The trace
+lists the request in `refusals`, sets `budget_stop` and names the limit in
+`stop_reason`: `"calls"`, `"cost"`, `"tokens"`, `"output"`, `"model"` or
+`"unpriced"`. Readers and review stages mark the answer or section partial and
+do not count the refused request as failed.
 
 The check sits on the call path itself, so it covers every request: readers,
 judges, the ensemble's adjudication, conflict resolution in `gr_extract()`,
@@ -278,9 +284,9 @@ embeddings, and any request a custom reader or a script makes with `hr_call()`.
 
 ### A governor for one run
 
-`hr_governor()` holds a run's limits. Attach one with `hr_trace(governor = )`;
-a trace without one reads the limits from `hr_options()` each time it checks.
-It has six:
+`hr_governor()` holds a run's six limits. Attach one with
+`hr_trace(governor = )`. A trace without a governor reads the limits from
+`hr_options()` at each check.
 
 | limit | what it holds | default |
 |---|---|---|
@@ -291,10 +297,10 @@ It has six:
 | `allowed_models` | the model ids the run may call, text and embedding models alike | any |
 | `allow_unpriced` | whether a model with no registered price may be called under a spending limit | `FALSE` |
 
-Each is also an option of the same name, so `hr_options(max_tokens_total = 50000)`
-sets it for every run, and each trace's config snapshot lists them all. `NULL`
-or `Inf` removes a limit. A limit that cannot be compared is refused when you
-set it:
+Each limit is also an option of the same name:
+`hr_options(max_tokens_total = 50000)` sets it for every run, and each trace's
+config snapshot lists all six. `NULL` or `Inf` removes a limit. A limit that
+cannot be compared is refused as soon as you set it:
 
 ```{r}
 tryCatch(hr_options(max_cost_usd = NA), error = function(e) conditionMessage(e))
@@ -310,18 +316,18 @@ data.frame(refused = res$refused, stop_reason = tr$stop_reason)
 ```
 
 `gr_read_many()`, `gr_claims()`, `gr_outline()` and `gr_synthesise()` keep a
-trace of their own and fold it into the one they are given. They hold their
-requests to that trace's governor, less what it has already spent and used in
-tokens; `max_calls` stays a limit per document and per stage. `gr_compare()`
+trace of their own and fold it into the trace you pass them. Their requests are
+held to that trace's governor, less what it has already spent and the tokens it
+has used. `max_calls` stays a limit per document and per stage. `gr_compare()`
 holds the whole comparison to `max_cost_usd` and `max_tokens_total`.
 
 ### Models with no price
 
-A language model with no registered price adds nothing to the spend, so a
-spending limit could never stop it. While `max_cost_usd` is set, a request to one is
-refused with a condition of class `hr_unpriced_model`, and `gr_read()` stops
-before its first request. `hr_backend_client()` wraps an R function as a paying
-client, so it shows the refusal offline:
+A language model with no registered price adds nothing to the spend, so no
+spending limit could stop it. While `max_cost_usd` is set, a request to such a
+model is refused with a condition of class `hr_unpriced_model`, and `gr_read()`
+stops before its first request. `hr_backend_client()` wraps an R function as a
+paying client, which lets this example show the refusal offline:
 
 ```{r}
 hr_register_model("unpriced-model", context_window = 128000, max_output = 4096)
@@ -333,45 +339,54 @@ res$error
 ```
 
 Register the model's prices with `hr_register_model()`, or set
-`hr_options(allow_unpriced = TRUE)`. Then its requests are sent, still count
-against `max_calls` and `max_tokens_total`, and are priced `NA` in the trace.
-`max_tokens_total` is the limit that still bounds such a run. `hr_mock_client()`
-and replays are never refused for this, and neither are embedding models with no
-price.
+`hr_options(allow_unpriced = TRUE)`. Under `allow_unpriced`, its requests are
+sent, still count against `max_calls` and `max_tokens_total`, and are priced
+`NA` in the trace. `max_tokens_total` is then the limit that still bounds the
+run. `hr_mock_client()` and replays are never refused for this, and neither are
+embedding models with no price.
 
 An `hr_ellmer_client()` is priced as the model its ellmer object was built with,
 whatever a recipe names, so one built on a model with no registered price is
 refused too. Register that model at your provider's current prices, or let a
 local model run unpriced; `vignette("harnessr")` shows both.
+
 Through ellmer, a `temperature` in a read spec is ignored with a warning,
-because sampling parameters belong to the ellmer object, and embeddings come
-from a function you pass as `embed =`; without one, `retrieve` and the
-`semantic` segmenter fall back to lexical vectors and say so.
+because sampling parameters belong to the ellmer object. Embeddings come from a
+function you pass as `embed =`. Without one, `retrieve` and the `semantic`
+segmenter fall back to lexical vectors and warn.
 
 ### Parallel batches
 
 With `parallel = TRUE`, per-chunk requests go out in batches that cannot be
-stopped part way. Each worker's items are held to an equal share of the calls
-and dollars the run has left. If a worker's share refuses an item before it is
-sent, the item is run again in the calling process against the run's own
-limits. A batch the run's limits cannot cover is not split across workers; it
-runs in the calling process. Batch items make one request each; an item that
-made more and had a later one refused by its share warns with class
-`gr_parallel_share`, and the run is not marked as stopped.
+stopped part way. The limits apply to them like this:
+
+- Each worker's items are held to an equal share of the calls and dollars the
+  run has left.
+- An item that its worker's share refuses before it is sent runs again in the
+  calling process, against the run's own limits.
+- A batch the run's limits cannot cover runs in the calling process instead of
+  being split across workers.
+- Batch items make one request each. An item that made more, and had a later
+  one refused by its share, warns with class `gr_parallel_share`, and the run is
+  not marked as stopped.
 
 ### How much the model reasons
 
-`effort` sets how much a reasoning model reasons on each call, by stage;
-`vignette("readers")` explains how it is billed, which models it is sent to,
-and the label each stage's calls carry. In a review, the same vector goes to
-each stage: `gr_screen()` and `gr_extract()` take it as a recipe override, and
-`gr_claims()`, `gr_outline()` and `gr_synthesise()` take it as an argument, so
-`effort = c(extract = "low", synthesise = "high")` keeps the per-chunk
-extraction cheap and spends on the writing. A name that matches no declared call
-stops with an error of class `hr_unknown_effort_key` that lists the stems, so a
-misspelt `c(extrac = "low")` cannot send every extraction at the provider's
-default unnoticed. `?gr_read_spec` lists every label and suggests a profile: low
-for the many per-chunk calls, high for the few that judge.
+`effort` sets how much a reasoning model reasons on each call, stage by stage.
+`vignette("readers")` explains how effort is billed, which models it is sent
+to, and the label each stage's calls carry.
+
+In a review, the same vector goes to each stage. `gr_screen()` and
+`gr_extract()` take it as a recipe override; `gr_claims()`, `gr_outline()` and
+`gr_synthesise()` take it as an argument. With
+`effort = c(extract = "low", synthesise = "high")`, the per-chunk extraction
+stays cheap and the spending goes to the writing.
+
+A name that matches no declared call stops with an error of class
+`hr_unknown_effort_key` that lists the stems. A misspelt `c(extrac = "low")`
+therefore cannot send every extraction at the provider's default unnoticed.
+`?gr_read_spec` lists every label and suggests a profile: low for the many
+per-chunk calls, high for the few that judge.
 
 ## Paying once
 
