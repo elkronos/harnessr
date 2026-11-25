@@ -94,9 +94,9 @@ show_settings("segment")
 
 ## Read
 
-These settings decide how the model reads the chunks. The stage also holds
-the ones `gr_read_many()` adds for a folder. `vignette("readers")` covers
-them.
+With these settings you choose how the model reads the chunks. The stage
+also holds the ones `gr_read_many()` adds for a folder. `vignette("readers")`
+covers them.
 
 ```{r echo = FALSE}
 show_settings("read")
@@ -202,7 +202,7 @@ knitr::kable(gr_segmenters()[, c("name", "cost", "needs_client", "description")]
 
 ### Readers
 
-A reader decides how the chunks reach the model. `signature` gives which
+A reader decides how the chunks reach the model. `signature` records which
 chunks it sends, how many requests it makes, and how information passes
 between them. `cost_calls` is the number of requests.
 
