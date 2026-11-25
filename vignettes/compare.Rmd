@@ -342,8 +342,9 @@ from 1 to 25 points.
 
 ## One setting swept over its values
 
-`top_k` is how many chunks `retrieve` sends. More chunks make it likelier the
-answer is among them and the prompt longer. The sweep runs on dev:
+`top_k` sets how many chunks `retrieve` sends. More chunks raise the chance
+that the answer is among them, and they make the prompt longer. The sweep runs
+on dev:
 
 ```{r}
 top_k_arms <- lapply(c(1, 2, 4), function(k) {
@@ -356,9 +357,9 @@ b_k_dev <- hr_benchmark(top_k_arms, qa, runs = 5, client = reader, split = "dev"
 b_k_dev
 ```
 
-`top_k = 2` is highest on dev, 0.950. `top_k = 1` misses the questions whose
-answer ranks second, and `top_k = 4` gives the stand-in a longer prompt, which
-it reads worse. On test the choice is compared with `top_k = 4`, the value
+`top_k = 2` is highest on dev, at 0.950. `top_k = 1` misses the questions
+whose answer ranks second. `top_k = 4` gives the stand-in a longer prompt,
+which it reads worse. On test the chosen value faces `top_k = 4`, the value
 nearer the default of 6:
 
 ```{r}
@@ -371,24 +372,26 @@ r_k$cost[, c("arm", "usd_per_item", "tokens_per_item")]
 ```
 
 With 10 runs (at 5, the notes put run-to-run variance at 79% of the total),
-`top_k = 2` is 6.9 points more accurate than `top_k = 4` on test, with an
-interval from 1.8 to 12.0 points, and sends 155 tokens per question instead
-of 213. The difference is far below the 25.5-point minimum detectable
-difference above, and the interval still excludes 0. That is not a
-contradiction. The 25.5 points is the true difference this design would
-detect 80% of the time, on an assumed disagreement of 15% and a correlation
-of 0.1; it is not the width of an interval and not a floor under what can be
-shown. A smaller true difference is detected less often, not never. The
-interval rests on what these two arms did. Plan with values measured in a
-pilot on dev, and read the result from the report.
+`top_k = 2` is 6.9 points more accurate than `top_k = 4` on test. The interval
+runs from 1.8 to 12.0 points, and `top_k = 2` sends 155 tokens per question
+instead of 213.
+
+The difference is far below the 25.5-point minimum detectable difference
+above, and the interval still excludes 0. The two figures do not contradict
+each other. The 25.5 points is the true difference this design would detect
+80% of the time, on an assumed disagreement of 15% and a correlation of 0.1.
+It is neither the width of an interval nor a floor under what can be shown: a
+smaller true difference is detected less often, not never. The interval rests
+on what these two arms did. Plan with values measured in a pilot on dev, and
+read the result from the report.
 
 ## Screening settings
 
-An arm can be any function, so a screening setting is compared the same way.
-Here 16 records of hand-hygiene studies are screened for randomised
+An arm can be any function, so you compare a screening setting the same way.
+Here a screener checks 16 records of hand-hygiene studies for randomised
 comparisons. Every record opens with the same background, and the sentence
-that settles it comes in the second, third or fourth sentence, so a screener
-shown too little of a record cannot decide:
+that settles it comes second, third or fourth, so a screener shown too little
+of a record cannot decide:
 
 ```{r}
 rec_dir <- file.path(tempdir(), "compare-records")
@@ -418,10 +421,11 @@ screens <- hr_reference(setNames(as.list(paths), sprintf("s%02d", seq_len(n))),
                         cluster = sprintf("batch%d", rep(1:4, each = 4)), split = "test")
 ```
 
-The stand-in screener decides from the allocation sentence when it is in the
-excerpt it was shown, and says `unclear` otherwise. One arm per value of
-`screen_tokens`, the cap on what the screener is shown; each run screens one
-record through `gr_screen()`, on the run's trace and at its draw index:
+The stand-in screener decides from the allocation sentence if the excerpt it
+was shown holds that sentence, and says `unclear` otherwise. Each value of
+`screen_tokens`, the cap on what the screener is shown, gets one arm. Each run
+screens one record through `gr_screen()`, on the run's trace and at its draw
+index:
 
 ```{r}
 screener <- hr_mock_client(function(messages, params) {
@@ -453,22 +457,23 @@ r_scr$cost[, c("arm", "usd_per_item", "tokens_per_item")]
 ```
 
 At 40 tokens the allocation sentence fits in the excerpt for 3 of the 16
-records, and the screener says `unclear` about the other 13: accuracy 0.188,
-with an interval from 0.059 to 0.460, against 1.000 at 80 tokens. That
-interval, 0.714 to 1.000, is Korn and Graubard's, one-sided because every run
-was right. The cap saves little, 352 tokens per record against 363, since the
-instructions and criteria are most of each request. An `unclear` decision is
-counted wrong here. It is not an exclusion, since a person settles it, but it
-costs that person a look; a scorer that counts it another way is a few lines
-with `hr_scorer()`.
+records, and the screener says `unclear` about the other 13. Accuracy is
+0.188, with an interval from 0.059 to 0.460, against 1.000 at 80 tokens. That
+second interval, 0.714 to 1.000, is Korn and Graubard's, one-sided because
+every run was right. The cap saves little, 352 tokens per record against 363,
+since the instructions and criteria are most of each request.
+
+This guide counts an `unclear` decision as wrong. It is not an exclusion,
+since a person settles it, but it costs that person a look. A scorer that
+counts it another way takes a few lines with `hr_scorer()`.
 
 ## A judge against people's labels
 
-Some outputs need a judge, and a judge is a model whose decisions have to be
-checked against people before its scores mean anything. A pairwise judge says
-which of two texts answers better. Its labels come from a pairwise sheet: two
-texts per row, in an order drawn for that row, with the order kept in an
-opaque key so that the person cannot tell which text is which candidate.
+Some outputs need a judge. A judge is a model, and you check its decisions
+against people before its scores mean anything. A pairwise judge says which of two
+texts answers better. Its labels come from a pairwise sheet: two texts per
+row, in an order drawn for that row. An opaque key keeps the order, so the
+person labelling cannot tell which text is which candidate.
 
 Here 180 pairs set the right sentence against a wrong one (the 2026 forecast
 in place of the 2024 figure), or two right sentences against each other:
@@ -489,8 +494,8 @@ head(sheet[, c("item_id", "text_1", "text_2", "order_key")], 3)
 ```
 
 A person fills `preferred` with 1, 2 or tie for each row as shown. Here the
-filling is simulated: the text with the 2024 figure is preferred, and two
-right texts are a tie.
+code below simulates the filling: the text with the 2024 figure is preferred,
+and two right texts are a tie.
 
 ```{r}
 filled <- read.csv(sheet_path, fileEncoding = "UTF-8-BOM")
@@ -502,14 +507,14 @@ labels <- gr_read_labels(sheet_path, "pairwise")
 table(shown_first = labels$shown_first, preferred = labels$preferred)
 ```
 
-`gr_read_labels()` turns each answer back into candidate order with the key:
-`preferred` is `A`, `B` or `tie` whichever text was shown first. A key that
-was edited, lost or pasted onto another row is an error of class
+`gr_read_labels()` uses the key to turn each answer back into candidate
+order, so `preferred` is `A`, `B` or `tie` whichever text was shown first. A
+key that was edited, lost or pasted onto another row is an error of class
 `gr_bad_labels`.
 
 The judge sees each pair in both orders. This stand-in judge prefers the text
-with the 2024 figure but, a quarter of the time, simply picks whichever text it
-was shown first:
+with the 2024 figure, but a quarter of the time it picks whichever text it was
+shown first:
 
 ```{r}
 judge_cl <- hr_mock_client(function(messages, params) {
@@ -533,7 +538,7 @@ table(verdicts, useNA = "ifany")
 
 A verdict that changes with the order is `unresolved`, recorded as `NA`. With
 `positive = "A"`, `hr_judge_validate()` measures how well the judge finds the
-pairs where candidate A is better; a tie and a B both count as negative:
+pairs where candidate A is better. A tie and a B both count as negative:
 
 ```{r}
 cfg_pair <- hr_judge_config("mock-judge", rubric, mode = "pairwise")
@@ -543,21 +548,21 @@ v_pair
 ```
 
 The judge finds 0.767 of the 60 pairs where people preferred A, with an
-interval from 0.646 to 0.856, and never prefers A where they did not
+interval from 0.646 to 0.856. It never prefers A where they did not
 (specificity 1.000). Its swap inconsistency is 0.322: on 58 of 180 pairs the
-verdict changed with the order. Those count as not preferring A, which is how a
-scorer would count them, and they are why sensitivity is low; a judge that
-changes its mind on a third of pairs needs a better rubric or model before its
-scores are used. With `positive = "A"` a tie is negative, so a judge that calls
+verdict changed with the order. Those pairs count as not preferring A, as a
+scorer would count them, and they are why sensitivity is low. A judge whose
+verdict changes on a third of pairs needs a better rubric or model before you
+use its scores. With `positive = "A"` a tie is negative, so a judge that calls
 a tie where people preferred A has missed it.
 
 ### When the judge is the model it grades
 
 A model grading its own answers can favour them. `hr_scorer_judge()` takes the
-judge's model in `judge_model` (the configuration's by default), and
+judge's model in `judge_model` (the configuration's by default).
 `hr_benchmark()` marks each run whose requests went to that same model in
-`self_judged`. Nothing is refused, and the report says so. Here the grade judge
-runs on `mock-model`, the model the arm reads with; its validation record is
+`self_judged`. It refuses no run, and the report says so. Here the grade judge
+runs on `mock-model`, the model the arm reads with. Its validation record is
 simulated, as in `vignette("evaluate")`:
 
 ```{r}
@@ -580,14 +585,14 @@ table(judged$self_judged, useNA = "ifany")
 cat(hr_report(judged, B = 200)$notes, sep = "\n")
 ```
 
-All 320 runs, 32 questions times 10, are marked `self_judged`, and the first
+All 320 runs (32 questions times 10) are marked `self_judged`, and the first
 note says so. At 5 runs the notes put run-to-run variance at 82% of the total
-and asked for 10, so this benchmark runs 10 times; at 10 the notes no longer
-ask for more.
+and asked for 10, so this benchmark runs 10 times. At 10 runs the notes no
+longer ask for more.
 
-`judge_model = "mock-judge"` would mark the same runs `FALSE`, and a run with no
-model request is `NA`. The match is exact, so give the served model id when the
-provider names its model differently from the one asked for.
+`judge_model = "mock-judge"` would mark the same runs `FALSE`. A run with no
+model request is `NA`. The match is exact: if the provider names its model
+differently from the one you asked for, give the served model id.
 
 ## Reading a comparison honestly
 
