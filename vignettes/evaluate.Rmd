@@ -192,10 +192,10 @@ for question answering.
 An arm is one configuration to compare: a function of an item and a context
 that returns the arm's output for that item. `ctx` carries the benchmark's
 client, a trace of this run alone, the governor the run is held to and the
-run's `draw_index`; `ctx$call()` is `hr_call()` with the client, the trace and
-the draw index filled in. Every
-request an arm makes has to go through that trace, since it is how the
-benchmark counts the run's tokens and dollars and holds it to the limit:
+run's `draw_index`. `ctx$call()` is `hr_call()` with the client, the trace and
+the draw index filled in. Send every request an arm makes through that trace:
+the benchmark counts the run's tokens and dollars there and holds the run to the
+limit through it:
 
 ```{r}
 ask <- function(name, model) {
@@ -207,37 +207,37 @@ ask("large", "mock-large")
 ```
 
 The arm records a SHA-256 hash of its name, code, settings and `version`. The
-code is hashed as text with the values it names from the environment it was
-made in, the workspace included: an arm written at top level that reads a
-global prompt gets a new hash when the prompt changes. The same arm has the
-same hash in every session and after
-`saveRDS()`, and an arm edited after it was built is refused rather than run
-under its old name. Change `version` when the arm's behaviour changes.
+hash covers the code as text plus the values it names from the environment it
+was made in, the workspace included. An arm written at top level that reads a
+global prompt therefore gets a new hash when the prompt changes. The same arm
+has the same hash in every session and after `saveRDS()`. `hr_benchmark()`
+refuses an arm edited after it was built instead of running it under its old
+name. Change `version` when the arm's behaviour changes.
 
 `gr_arm()` wraps a reading recipe as an arm, and `gr_arms()` builds one per
 recipe. Each run reads the item's document with `answer_document()`, or with
 `gr_read()` when the document is already chunked, and returns the `gr_answer`.
-`settings` takes what `answer_document()` takes in `...`; here they make the
-same recipe two arms on two models:
+`settings` takes what `answer_document()` takes in `...`. Here the settings
+make one recipe into two arms on two models:
 
 ```{r}
 arms <- list(gr_arm("fast", settings = list(model = "mock-small"), name = "small"),
              gr_arm("fast", settings = list(model = "mock-large"), name = "large"))
 ```
 
-A `gr_arm()`'s version is the package version, since readers and prompts change
-between releases. Every request of a run, segmenter and reader requests
-included, carries the run's draw index. A reader that finds the run's limits
-leave it too little room to start returns a partial not-found answer noting the
-limit, which is scored as a budget stop rather than an error.
+A `gr_arm()` takes the package version as its version, since readers and
+prompts change between releases. Every request of a run carries the run's draw
+index, segmenter and reader requests included. When the run's limits leave a
+reader too little room to start, the reader returns a partial not-found answer
+that notes the limit, and that answer is scored as a budget stop, not an error.
 
 A scorer turns an output and a label into `correct`, an `outcome` (what it
 compared) and a `failure_kind` saying why a wrong output was wrong:
 `"parse_failure"`, `"refusal"`, `"not_in_document"`, `"wrong"`, `"budget_stop"`
 or `"error"`. `hr_scorer_exact()`, the default, compares text after folding case
-and white space. `gr_scorer_answer()` is the one for reading recipes: an answer
-is right when it contains any acceptable answer, after folding case, white
-space and thousands separators, with numbers matched whole (`"12"` is not
+and white space. For reading recipes, use `gr_scorer_answer()`. It counts an
+answer right when the answer contains any acceptable answer, after folding
+case, white space and thousands separators, with numbers matched whole (`"12"` is not
 found in `".12"` or `"-12"`, but is found in `"12-15"`, and `"45.2"` in
 `"45.2m"`):
 
@@ -249,17 +249,19 @@ s$fn(item, "Leeds made 112,400 units.", "12400")$correct
 s$fn(item, "Revenue was 45.2 million dollars.", "12400")$failure_kind
 ```
 
-On an unanswerable item it is right when `is_not_found()` is `TRUE` and no limit
-or refusal stopped the run, since a reader that ran out of budget did not look.
-`hr_scorer()` makes a scorer of your own from a function of `(item, output,
-label)`; its help has one that accepts a number within 1% of the label.
+On an unanswerable item it counts an answer right when `is_not_found()` is
+`TRUE` and no limit or refusal stopped the run, since a reader that ran out of
+budget did not look. To write your own scorer, pass a function of `(item,
+output, label)` to `hr_scorer()`; its help has one that accepts a number within
+1% of the label.
 
 ## Running a benchmark
 
 `hr_benchmark()` runs every arm on every item of the chosen splits `runs`
 times, scores each output, and returns one row per cluster, item, arm and run.
-The stand-in model below knows each report's facts. Asked as `mock-small` it
-loses its way on 30% of requests; as `mock-large` it does not:
+The stand-in model below knows each report's facts. Asked as `mock-small`, it
+replies that the report is unclear on 30% of requests; asked as `mock-large`,
+it never does:
 
 ```{r}
 facts <- list(
@@ -285,24 +287,26 @@ bench
 head(bench[, c("item", "arm", "run", "correct", "failure_kind", "usd", "draw_index")])
 ```
 
-The printed accuracy is the mean over runs within each item, then over items,
-and is descriptive: no interval. The arms run under a private random stream
-started from `seed` (1 by default), which is why the mock's `runif()` gives the
+The printed accuracy is the mean over runs within each item, then over items.
+It is descriptive and has no interval. The arms run under a private random
+stream started from `seed` (1 by default), so the mock's `runif()` gives the
 same draws every time this guide is built, and the caller's random state is
 left as it was. Rows on the dev split are marked `reportable = FALSE` and
-printed apart. Five runs is the default and the expected minimum; fewer warns
-with class `hr_few_runs`, because with fewer the spread from run to run cannot
-be told from the difference between arms.
+printed apart.
+
+Five runs is the default and the expected minimum. Fewer warns with class
+`hr_few_runs`, because with fewer runs you cannot tell the spread from run to
+run apart from the difference between arms.
 
 ### One limit for the whole benchmark
 
-The benchmark is one run under one `hr_governor()`. Each run's trace is held to
-the governor's limits less what the runs before it used, so the limit you set
-is the most the whole comparison can spend. With `governor = NULL` the limits
-come from `hr_options()`, whose default of 400 calls is easy to exceed: two arms
-on 300 items for 5 runs is 3000 calls. A run stopped by a refused request is
-recorded as a `"budget_stop"`, counted wrong, and the runs after it are still
-started, so every row exists and the refusals are visible:
+The whole benchmark is one run under one `hr_governor()`. Each run's trace is
+held to the governor's limits less what the runs before it used, so the limit
+you set is the most the whole comparison can spend. With `governor = NULL` the
+limits come from `hr_options()`, and its default of 400 calls is easy to
+exceed: two arms on 300 items for 5 runs make 3000 calls. A run stopped by a
+refused request is recorded as a `"budget_stop"` and counted wrong. The runs
+after it still start, so every row exists and you can see the refusals:
 
 ```{r}
 capitals <- hr_reference(items = list(q1 = "France", q2 = "Peru", q3 = "Chad", q4 = "Fiji"),
@@ -317,24 +321,26 @@ short <- hr_benchmark(capital, capitals, runs = 5, client = geo,
 table(short$failure_kind, useNA = "ifany")
 ```
 
-The first six runs were answered, and the other fourteen were refused before
-anything was sent. `hr_benchmark()` warns (class `hr_budget_stopped`) whenever
-a limit stops a run, with the number stopped, the limit that stopped them, how
-many of them count against an arm and the first run stopped. When the limits
-came from `hr_options()`, the warning gives the values of the options that
-stopped runs and says to pass a governor sized for the benchmark.
+The first six runs got answers. The governor refused the other fourteen before
+anything was sent. Whenever a limit stops a run, `hr_benchmark()` warns with
+class `hr_budget_stopped` and gives the number stopped, the limit that stopped
+them, how many of them count against an arm and the first run stopped. When the
+limits came from `hr_options()`, the warning gives the values of the options
+that stopped runs and says to pass a governor sized for the benchmark.
 
 ### Repeated runs must be repeated draws
 
-Run `r` is given `ctx$draw_index = r`, and its `ctx$trace` carries `r`, so
+Run `r` gets `ctx$draw_index = r`, and its `ctx$trace` carries `r`, so
 `ctx$call()` and every stage called with `trace = ctx$trace` send their
 requests at the run's draw. Under an `hr_cache()` each run is its own cache
-entry and under an `hr_replay_client()` its own recorded draw. The recorded draw also names the arm, so a replay
-answers each arm with its own replies, whether it replays every arm or a few,
-in any order. Five runs answered from one stored reply would agree
-perfectly and measure nothing, so an arm whose runs come back as copies is
-refused with an error of class `hr_duplicate_draw`. An arm that sends every
-run's request at one fixed draw index is one:
+entry, and under an `hr_replay_client()` its own recorded draw. The recorded
+draw also names the arm, so a replay answers each arm with its own replies,
+whether it replays every arm or a few, in any order.
+
+Five runs answered from one stored reply would agree perfectly and measure
+nothing. `hr_benchmark()` therefore refuses an arm whose runs come back as
+copies, with an error of class `hr_duplicate_draw`. An arm that sends every
+run's request at one fixed draw index is such an arm:
 
 ```{r}
 cache <- hr_cache()
@@ -349,11 +355,10 @@ tryCatch(hr_benchmark(fixed_draw, capitals, runs = 5, client = cached),
          hr_duplicate_draw = function(e) class(e)[1])
 ```
 
-A cache is still worth having: running the `capital` benchmark again under the
-same cache sends no request and costs nothing, each run answered from its own
-entry.
-An `hr_mock_client()` keeps no cache, so under it the `fixed_draw` arm is not
-refused; under a cache it is.
+A cache still saves requests. Run the `capital` benchmark again under the same
+cache and it sends no request and costs nothing, since each run is answered
+from its own entry. An `hr_mock_client()` keeps no cache, so under it the
+`fixed_draw` arm is not refused; under a cache it is.
 
 ## Reading the report
 
