@@ -56,3 +56,11 @@ test_that("a trace saved by hr_trace_save() reads back as a gr_trace", {
   replay <- hr_replay_client(path)
   expect_identical(hr_call(replay, "a question")$text, "an answer")
 })
+
+test_that("hr_model_limits() gives the two limits hr_model_info() holds", {
+  info <- hr_model_info("gpt-4o")
+  lim <- hr_model_limits("gpt-4o")
+  expect_identical(names(lim), c("context_window", "output_tokens"))
+  expect_identical(lim$context_window, info$context_window)
+  expect_identical(lim$output_tokens, info$max_output)
+})
