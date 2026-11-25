@@ -11,12 +11,14 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-This page lists every setting harnessr has, stage by stage, and the building
-blocks the settings choose between. The tables are made from
-`gr_settings_table()` and the registries when the page is built, so they say
-what the installed code does. A setting with a walkthrough links to it: the
-section of a guide that says what the setting trades off, the signs that point
-to changing it, where its default came from and how to test a change.
+This page lists every setting in harnessr, stage by stage, and the building
+blocks those settings choose between. harnessr builds the tables from
+`gr_settings_table()` and the registries when the page is built, so they match
+the installed code.
+
+A setting with a walkthrough links to it. The walkthrough is a section of a
+guide that covers what the setting trades off, the signs that you should
+change it, where its default came from and how to test a change.
 
 ```{r message = FALSE}
 library(harnessr)
@@ -27,27 +29,33 @@ table(settings$stage, settings$tier)[unique(settings$stage), ]
 
 ## Reading the tables
 
-Each row is one setting. `where` is the function that takes it. `default` is
-the value used when you give none: a string without quotes, the first of a set
-of choices, anything else as R code. `tier` is `basic` for the few settings
-most runs change and `advanced` for the rest. `status` says where the default
-came from: `measured` (a measurement backs it), `cited` (a published source
-gives it) or `untested` (it was chosen, and nothing has measured it); a blank
-means nothing is declared, which is the case for switches, limits and most
-function arguments. `gr_settings_table()` adds the `source` behind each
-status, and `?gr_read_spec`, `?gr_segment_spec`, `?gr_ingest_spec` and
-`?hr_options` give the full help.
+Each row is one setting, and these columns describe it:
 
-A setting is given where its stage takes it. Ingest, segment and read
+- `where`: the function that takes the setting.
+- `default`: the value used when you give none. A string appears without
+  quotes, a set of choices shows its first choice, and anything else appears
+  as R code.
+- `tier`: `basic` for the few settings most runs change, `advanced` for the
+  rest.
+- `status`: where the default came from. `measured` means a measurement backs
+  it, `cited` means a published source gives it, and `untested` means it was
+  chosen and nothing has measured it. A blank means nothing is declared, as
+  for switches, limits and most function arguments.
+
+`gr_settings_table()` also returns the `source` behind each status. For the
+full help, see `?gr_read_spec`, `?gr_segment_spec`, `?gr_ingest_spec` and
+`?hr_options`.
+
+You give a setting where its stage takes it. Ingest, segment and read
 settings go in a spec (`gr_read_spec(top_k = 4)`), in a recipe, or by name to
 `answer_document()`, `gr_read_many()` and `gr_arm()`, which put each on the
-step it belongs to. The review and evaluation settings are arguments of their
-functions. Options are set for the session with `hr_options()`.
+step it belongs to. Review and evaluation settings are arguments of their
+functions. You set options for the session with `hr_options()`.
 
-To find out whether a value is better for your documents, build one arm per
-value with `hr_sweep()` and compare them with `hr_benchmark()` and
-`hr_report()`, as `vignette("compare")` does; `hr_sweep_check()` says which
-values sent the same requests.
+To find out whether a value works better on your documents, build one arm per
+value with `hr_sweep()` and compare the arms with `hr_benchmark()` and
+`hr_report()`, as `vignette("compare")` does. `hr_sweep_check()` reports
+which values sent the same requests.
 
 ```{r}
 show_settings <- function(stage) {
