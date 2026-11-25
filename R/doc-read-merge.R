@@ -99,7 +99,7 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
                     error = res$error))
       }
       if (!res$ok) {
-        # Concatenation is a documented, visible degradation -- not a silent one.
+        # Concatenation is a documented, visible degradation.
         return(list(text = merge_giveup(pieces, spec, trace, label), ok = FALSE, levels = level,
                     truncated = truncated, truncated_calls = cut, failed = failed + 1L,
                     error = res$error))
@@ -137,7 +137,7 @@ tree_merge <- function(client, question, pieces, spec, trace, label = "merge",
     pieces <- pieces[has_content(pieces)]
 
     # Progress guard. If a level did not shrink the pile, another level will not
-    # either -- every input to it is the same. Stop now with a bounded answer
+    # either, as every input to it is the same. Stop now with a bounded answer
     # rather than burning six more rounds of calls to reach the same place.
     if (!length(pieces)) return(list(text = .NOT_FOUND, ok = FALSE, levels = level,
                                      truncated = truncated, truncated_calls = cut,

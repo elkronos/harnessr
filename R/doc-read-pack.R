@@ -36,9 +36,9 @@ page_text <- function(p) {
 #'
 #' The multi-chunk readers (`stuff`, `retrieve`, `rerank`) go through this; the
 #' rest bound their prompts with `gr_truncate_tokens()` or `tree_merge()`. Every
-#' path is bounded one way or the other -- that is the failure mode that produced
-#' unbounded merge prompts and HTTP 400s in v1's chunked and hierarchical
-#' readers.
+#' path is bounded one way or the other. An unbounded path is the failure mode
+#' that produced unbounded merge prompts and HTTP 400s in v1's chunked and
+#' hierarchical readers.
 #' @noRd
 fit_chunks <- function(df, budget_tokens, order = NULL, prefix = FALSE) {
   idx <- order %||% seq_len(nrow(df))
@@ -47,7 +47,7 @@ fit_chunks <- function(df, budget_tokens, order = NULL, prefix = FALSE) {
     t <- gr_count_tokens(render_chunks(df[i, , drop = FALSE]))
     if (total + t > budget_tokens) {
       # Skipping over an oversized chunk and carrying on is right for a RANKED
-      # order -- take as much of the good stuff as fits. It is wrong for a
+      # order: take as much of the good stuff as fits. It is wrong for a
       # contiguous read: `screen` shows the model the opening of a document, and
       # an opening assembled from chunks 1, 2 and 47 is not an opening. `prefix`
       # stops at the first thing that does not fit.
@@ -63,8 +63,8 @@ fit_chunks <- function(df, budget_tokens, order = NULL, prefix = FALSE) {
 prompt_overhead <- function(question, system_prompt, restate = "auto", structure = NULL) {
   # The question is counted TWICE unless restatement is off, because that is how
   # many times it appears. `answer_messages()` adds a second copy before the body
-  # once the body is long, and the body was sized against a budget computed here
-  # -- so the prompt overran the window by exactly the length of the question.
+  # once the body is long, and the body was sized against a budget computed here,
+  # so the prompt overran the window by exactly the length of the question.
   # With a long question and a model whose window the run nearly fills,
   # gr_call() refused to dispatch at all and the reader returned NOT_IN_DOCUMENT
   # with nothing in it but `notes$error`. The default is the safe direction:
@@ -117,8 +117,8 @@ max_tokens_of <- function(x) {
 
 #' The document text behind each chunk row, to verify a quotation against.
 #'
-#' A segmenter that writes model text into `text` -- a contextual header, or
-#' propositions rewritten from the source -- keeps the document text it worked
+#' A segmenter that writes model text into `text` (a contextual header, or
+#' propositions rewritten from the source) keeps the document text it worked
 #' from in `source_text`. A quotation is checked against that, so a figure the
 #' segmenting model invented cannot verify as a quotation of the document; and
 #' verbatim evidence shows it, since that is what the document says. An absent

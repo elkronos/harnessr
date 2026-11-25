@@ -4,7 +4,7 @@
 # hierarchical: all | N + tree + 1 | tree
 # Genuinely recursive: summarise, then summarise the summaries, until what
 # remains fits, then answer. The old "Hierarchical" mode did exactly one
-# summarisation level and then concatenated -- so on a 40-chunk document its
+# summarisation level and then concatenated, so on a 40-chunk document its
 # final prompt was 40 x 512 = 20,480 tokens against a 16,385-token window.
 # ---------------------------------------------------------------------------
 #' @noRd
@@ -82,8 +82,8 @@ read_hierarchical <- function(chunks, question, client, spec, trace) {
     prev_n <- length(current)
     grouped <- vapply(groups, paste, character(1), collapse = "\n\n")
     # Counted at every level, as at the first. A group whose summary failed
-    # was filtered out uncounted, and the fan_in summaries in it -- five chunks
-    # at level 2, twenty-five at level 3 -- left the answer with nothing in the
+    # was filtered out uncounted, and the fan_in summaries in it (five chunks
+    # at level 2, twenty-five at level 3) left the answer with nothing in the
     # notes or the flag to say so.
     nxt <- count_failures(grouped, summarise(grouped, level))
     got <- has_content(nxt)

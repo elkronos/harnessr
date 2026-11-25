@@ -10,14 +10,14 @@
 #'
 #' `iterative` used to paste everything gathered and call `gr_truncate_tokens()`
 #' on the result, which was wrong twice over. It cut the TAIL, so the chunks from
-#' the most recent round were the ones dropped -- in a reader whose whole premise
+#' the most recent round were the ones dropped. In a reader whose whole premise
 #' is "that did not answer it, go and get more", it discarded the material it had
 #' just decided it needed. And it cut mid-chunk, which breaks the audit chain: a
 #' chunk cut in half no longer contains the sentence an answer quotes from it, so
 #' `verified` comes back false for a reason that has nothing to do with the
 #' document.
 #'
-#' Whole chunks, ranked by the score that justified taking them -- a chunk's
+#' Whole chunks, ranked by the score that justified taking them: a chunk's
 #' score at the round it was selected, not its score against the latest query,
 #' because the earlier query is what it was chosen to answer. Everything that
 #' reaches the prompt is intact and therefore still checkable, and what did not
@@ -150,7 +150,7 @@ read_iterative <- function(chunks, question, client, spec, trace) {
 
     # Nothing gathered fits one prompt. The call was made anyway, with an empty
     # <excerpts></excerpts>, and a model asked a question with no document in
-    # front of it answers from its own prior -- which came back as the
+    # front of it answers from its own prior. That came back as the
     # document's answer, can_answer = true, chunks_used empty. An answer with no
     # excerpt behind it is the one thing this package must not return.
     if (!length(step$rows)) { done_reason <- "no gathered chunk fits one prompt"; break }
@@ -242,8 +242,8 @@ read_iterative <- function(chunks, question, client, spec, trace) {
       why <- if (contradicted) "premise contradicted" else "model satisfied"
       trace_note(trace, "iterative.stop", list(rounds = rounds, reason = why))
       # `step$rows`, not `seen`: a chunk that did not fit the prompt was never
-      # shown to the model, and reporting it as used -- with a row in the
-      # evidence table -- claims provenance the answer does not have.
+      # shown to the model, and reporting it as used (with a row in the
+      # evidence table) claims provenance the answer does not have.
       keep <- step$rows
       # The step's JSON parsed, but the provider says the reply stopped at the
       # cap, so the answer inside it may be missing its end.
