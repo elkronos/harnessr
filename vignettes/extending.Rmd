@@ -368,8 +368,8 @@ effort setting.
 
 ## Using what you registered
 
-A registered module is named like a built-in. A recipe binds one choice from
-each axis, and `answer_document()` runs it:
+You name a registered module as you name a built-in. A recipe binds one
+choice from each axis, and `answer_document()` runs it:
 
 ```{r}
 mine <- gr_recipe("bullets_longest",
@@ -380,8 +380,8 @@ answer_document(gr_example(), "What was revenue?", recipe = mine,
 ```
 
 `gr_compare()` runs several recipes on one document and question, sharing one
-trace, so your addition can be measured against a built-in on calls, tokens and
-cost:
+trace, so you can measure your addition against a built-in on calls, tokens
+and cost:
 
 ```{r}
 cmp <- gr_compare(gr_example(), "What was revenue?",
@@ -391,8 +391,8 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "calls")]
 
 ## Registering any kind with hr_register()
 
-`hr_register()` registers a module of any kind through one function. Name the
-kind first; the other arguments are those of that kind's own function, so
+`hr_register()` registers a module of any kind. Name the kind first. The
+other arguments are those of that kind's own function, so
 `hr_register("reader", ...)` takes what `gr_register_reader()` takes and runs
 the same checks. This reader answers from the shortest chunk:
 
@@ -412,16 +412,16 @@ hr_register("reader", "shortest", signature = "one|1|none", cost_calls = "1",
 ```
 
 The kinds are `"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"`,
-`"embedder"`, `"protocol"` and `"step"`. Any other kind is an error of class
-`hr_unknown_kind`, and a module the kind's own function would refuse is
-refused here too:
+`"embedder"`, `"protocol"` and `"step"`. For any other kind, `hr_register()`
+raises an error of class `hr_unknown_kind`. It also refuses a module that the
+kind's own function would refuse:
 
 ```{r}
 tryCatch(hr_register("reader", "auto", fn = identity, signature = "one|1|none"),
          gr_reserved_name = function(e) conditionMessage(e))
 ```
 
-Every kind keeps its modules in the registry. `hr_register()` stores an entry
+The registry holds the modules of every kind. `hr_register()` stores an entry
 with its version and contract, and a lookup such as `gr_read()` finds the entry
 by name and calls its function:
 
@@ -440,13 +440,16 @@ r <- hr_modules("reader")
 r[r$name %in% c("longest", "shortest"), c("name", "signature", "calls")]
 ```
 
-The listings such as `gr_readers()` keep their own columns, and a module you
-register with `hr_register()` appears in them as one registered with the
-kind's own function does. Each listing ends with two more columns: `version`,
-the version you gave `hr_register()`, and `contract`, the module contract it
-was registered under. A module registered with a `gr_register_*()` function
-has `NA` in both. Pass `version` when you register, and the listings show which
-version of your module is in place:
+Listings such as `gr_readers()` keep their own columns. A module you register
+with `hr_register()` appears in them as one registered with the kind's own
+function does. Each listing ends with two more columns:
+
+- `version`, the version you gave `hr_register()`;
+- `contract`, the module contract it was registered under.
+
+A module registered with a `gr_register_*()` function has `NA` in both. Pass
+`version` when you register, and the listings show which version of your
+module is in place:
 
 ```{r}
 hr_register("reader", "shortest", signature = "one|1|none", cost_calls = "1",
@@ -466,20 +469,24 @@ hr_register("step", "shout", fn = hr_step("shout", function(input, ctx) toupper(
 hr_modules("step")[, c("name", "input", "output", "version", "contract")]
 ```
 
-A segmenter that calls a model can also take `effort_label` through
-`hr_register()`: a function of the segment spec that returns the label its
-requests carry, or `""` when the spec sends none. A run's `effort` map then
-reaches your segmenter as the effort for that label alone, as it reaches the
-built-in `contextual` and `proposition` segmenters. Without `effort_label`,
-your segmenter gets the whole map and picks its own labels from it.
+Through `hr_register()`, a segmenter that calls a model can also take
+`effort_label`. It is a function of the segment spec that returns the label
+the segmenter's requests carry, or `""` when the spec sends none. With it,
+your segmenter receives only the effort for that label from a run's `effort`
+map, as the built-in `contextual` and `proposition` segmenters do. Without
+`effort_label`, your segmenter gets the whole map and picks its own labels
+from it.
 
 ## Parameter schemas
 
 Each spec constructor states its parameters once, as a schema: type, default,
 range and choices. `gr_read_spec()`, `gr_segment_spec()` and `gr_ingest_spec()`
-check their arguments this way, and the same three functions are there for a
-module of your own. `hr_param()` declares one parameter, `hr_schema()` collects
-them, and `hr_validate()` applies the rules.
+check their arguments against a schema. You can use the same three schema
+functions for a module of your own:
+
+- `hr_param()` declares one parameter;
+- `hr_schema()` collects them;
+- `hr_validate()` applies the rules.
 
 ```{r}
 s <- hr_schema(
@@ -493,11 +500,11 @@ s <- hr_schema(
 s
 ```
 
-The parameters resolve in schema order, so a bound that depends on another
-parameter, such as `overlap_tokens` above, comes after it. A number out of range
-is moved to the nearest bound and warned about with class `gr_clamped` (and
-`hr_param_clamped`). An `enum` is matched as `match.arg()` matches, so an
-unambiguous abbreviation is accepted:
+`hr_validate()` resolves the parameters in schema order, so a parameter whose
+bound depends on another, such as `overlap_tokens` above, comes after it. It
+moves a number out of range to the nearest bound and warns with class
+`gr_clamped` (and `hr_param_clamped`). It matches an `enum` as `match.arg()`
+does, so it accepts an unambiguous abbreviation:
 
 ```{r}
 withCallingHandlers(
@@ -508,8 +515,8 @@ withCallingHandlers(
   })
 ```
 
-A name the schema does not have is an error of class `hr_unknown_param`, and a
-value outside an `enum`'s choices is an error naming them:
+A name the schema does not have raises an error of class `hr_unknown_param`.
+A value outside an `enum`'s choices raises an error that names the choices:
 
 ```{r}
 tryCatch(hr_validate(s, list(top_k = 3)),
@@ -518,14 +525,19 @@ tryCatch(hr_validate(s, list(top_k = 3)),
 
 The types are `integer`, `number`, `string`, `boolean`, `enum`,
 `string_vector`, `named_map`, `module_ref` and `file`; `?hr_param` gives the
-rule for each. A `resolve` function replaces the type's rule for a parameter
-that needs its own. The other fields describe the parameter rather than check
-it: `help` (one plain sentence), `cost_class` (how it moves the cost of a run:
-`"none"`, `"local"`, `"per_call_constant"`, `"per_unit"`, `"per_sample"` or
-`"per_round"`), `affects_output` (whether it belongs in cache and store keys),
-`tier` (`"basic"` or `"advanced"`, for grouping in a user interface),
-`evidence`, `depends_on` and `since`. They are there so a later UI or command
-line can be built from the same list.
+rule for each. For a parameter that needs a rule of its own, a `resolve`
+function replaces the type's rule.
+
+The other fields describe the parameter and do not check it:
+
+- `help`: one plain sentence.
+- `cost_class`: how it moves the cost of a run, one of `"none"`, `"local"`,
+  `"per_call_constant"`, `"per_unit"`, `"per_sample"` or `"per_round"`.
+- `affects_output`: whether it belongs in cache and store keys.
+- `tier`: `"basic"` or `"advanced"`, for grouping in a user interface.
+- `evidence`, `depends_on` and `since`.
+
+These fields let a later UI or command line be built from the same list.
 
 ## Checking a module against the contract
 
