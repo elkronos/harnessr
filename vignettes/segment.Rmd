@@ -451,7 +451,7 @@ the number of requests (`hr_trace_summary()`) points to larger chunks. Under
   points to larger chunks or to overlap.
 
 **Where the default came from.** The 1200-token default was set when the
-segmenters were written and never tuned (`untested`). The recipes set their
+segmenters were written and not tuned (`untested`). The recipes set their
 own, from 500 (`"needle"`) to 4000 (`"fast"`).
 
 **How to test it.**
