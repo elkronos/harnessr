@@ -168,8 +168,8 @@ function:
   never one you construct, and pass it the `trace`. Through the trace,
   `hr_call()` counts, prices and limits your calls.
 - Expect refusals. harnessr does not send a request that would pass
-  `max_calls` or `max_cost_usd`, and `hr_call()` returns it with
-  `refused = TRUE`. Stop or degrade when that happens.
+  `max_calls` or `max_cost_usd`, and `hr_call()` returns a result with
+  `refused = TRUE` instead. Stop or degrade when that happens.
 - Honour at least `spec$model`, `spec$max_answer_tokens`, `spec$temperature`
   and `spec$effort`.
 - Budget the prompt with `hr_budget()` instead of assuming the document fits.
