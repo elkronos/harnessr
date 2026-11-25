@@ -74,9 +74,10 @@ show_settings <- function(stage) {
 
 ## Ingest
 
-What comes out of a file: cleaning, OCR, the PDF layout pass, and the floor on
-how much text must survive. The entries of `cleaner_opts` and `layout_opts`
-are listed with their parent's name. `vignette("ingest")` covers them.
+These settings control what comes out of a file: cleaning, OCR, the PDF
+layout pass, and the floor on how much text must survive. The entries of
+`cleaner_opts` and `layout_opts` appear under their parent's name, as
+`cleaner_opts.references_after`. `vignette("ingest")` covers them.
 
 ```{r echo = FALSE}
 show_settings("ingest")
@@ -84,7 +85,8 @@ show_settings("ingest")
 
 ## Segment
 
-How the text is cut into chunks. `vignette("segment")` covers them.
+harnessr cuts the text into chunks with these settings. `vignette("segment")`
+covers them.
 
 ```{r echo = FALSE}
 show_settings("segment")
@@ -92,8 +94,9 @@ show_settings("segment")
 
 ## Read
 
-How the model reads the chunks, and the settings `gr_read_many()` adds for a
-folder. `vignette("readers")` covers them.
+These settings decide how the model reads the chunks. The stage also holds
+the ones `gr_read_many()` adds for a folder. `vignette("readers")` covers
+them.
 
 ```{r echo = FALSE}
 show_settings("read")
@@ -101,9 +104,13 @@ show_settings("read")
 
 ## Screening
 
-The arguments of `gr_screen()`, of `gr_reference()` and `gr_calibrate()`,
-which measure the screening against a person, and of the sample size and
-stopping tests. `vignette("review")` covers them.
+The arguments of these functions, which `vignette("review")` covers:
+
+- `gr_screen()`, which decides which documents a review reads.
+- `gr_reference()` and `gr_calibrate()`, which measure the screening against a
+  person.
+- `gr_screen_sample_size()` and `gr_stop_test()`, the sample size and stopping
+  tests.
 
 ```{r echo = FALSE}
 show_settings("screen")
@@ -111,8 +118,8 @@ show_settings("screen")
 
 ## Extraction
 
-The arguments of `gr_extract()`. Recipe settings passed to it in `...` are the
-ingest and segment settings above.
+The arguments of `gr_extract()`. The recipe settings you pass to it in `...`
+are the ingest and segment settings above.
 
 ```{r echo = FALSE}
 show_settings("extract")
@@ -138,8 +145,8 @@ show_settings("evaluate")
 
 ## Options
 
-Session settings, set with `hr_options()` and read when a run starts.
-`vignette("runs")` covers the limits.
+Session settings. You set them with `hr_options()`, and a run reads them when
+it starts. `vignette("runs")` covers the limits.
 
 ```{r echo = FALSE}
 show_settings("options")
