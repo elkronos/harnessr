@@ -126,7 +126,7 @@ shrink_only <- c("tests/testthat/fixtures/boundary/allowed.csv",
                  "tests/testthat/fixtures/boundary/dash-allowed.csv")
 
 # Rows added to a shrink-only list and not just moved within it. The header
-# row is the same before and after, so it never counts.
+# row is the same before and after, so it counts only when the list is new.
 shrink_only_added <- function(added, removed) {
   added <- added[nzchar(trimws(added))]
   added[!squish(added) %in% squish(removed)]
