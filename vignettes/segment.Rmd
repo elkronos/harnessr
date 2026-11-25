@@ -606,8 +606,8 @@ table record which table and which rows they hold (`table_id` and
 
 **Signs it needs changing.** Try `"grouped"` when answers read a figure from
 the wrong column of a long table, or cannot say what a row's numbers are. With
-it, every chunk of rows names its columns. Many small tables, each smaller
-than a chunk, gain nothing from it.
+it, every chunk of rows carries the column names. Many small tables, each
+smaller than a chunk, gain nothing from it.
 
 **Where the default came from.** `"rows"` is how tables were packed before the
 setting existed. It has not been compared with `"grouped"` (`untested`).
@@ -649,33 +649,36 @@ hr_report(bench)
 ### Context lines and propositions: `contextual` and `proposition` {#set-contextual}
 
 **What they control.** `contextual` starts each chunk with a line saying where
-it sits, built from the file's metadata for nothing, or written by a model
-with `context_source = "llm"` (one request per chunk, capped at
+it sits. The line is built from the file's metadata at no cost, or, with
+`context_source = "llm"`, written by a model: one request per chunk, capped at
 `context_reply_tokens`, from the first `context_document_tokens` of the
-document). `proposition` has a model rewrite the text into standalone
-statements, one request per `proposition_batch_tokens` of text. Both help a
-chunk retrieved on its own to make sense; both put words in the chunk that are
-not the document's, which is why quotations are checked against
-`source_text`.
+document. `proposition` has a model rewrite the text into standalone
+statements, one request per `proposition_batch_tokens` of text.
 
-**Signs they are needed.** Answers that confuse two sections that say similar
-things ("revenue rose" in the 2023 and the 2024 section), or retrieval that
-picks a chunk whose subject is a pronoun, point to `contextual`. Dense factual
-text where each sentence leans on the one before points to `proposition`. A
-segmentation bill that is a large share of the run (`ctx$trace`) points away
-from the model-written versions.
+Both help a chunk retrieved on its own to make sense. Both also put words in
+the chunk that are not the document's, which is why harnessr checks quotations
+against `source_text`.
 
-**Where the defaults came from.** `context_source = "metadata"` was chosen as
-the source that makes no request, and has not been compared with `"llm"`.
-The section path `"llm"` sends and the test that finds an invented
-proposition (every number in the passage, half its words in the passage or
-its context) were set when they were written; neither was tuned.
-`proposition_check = "count"` keeps every proposition, and
-`proposition_context_tokens = 0` sends each batch alone, as before; neither
-has been compared with the alternatives.
-`proposition_batch_tokens` (900), `context_reply_tokens` (90),
-`context_document_tokens` (1500) and `proposition_reply_tokens` (2000) are the
-values the code had as constants; none was tuned (`untested`).
+**Signs they are needed.** Two signs point to `contextual`: answers that
+confuse two sections that say similar things ("revenue rose" in the 2023 and
+the 2024 section), and retrieval that picks a chunk whose subject is a
+pronoun. Dense factual text where each sentence leans on the one before points
+to `proposition`. A segmentation bill that is a large share of the run
+(`ctx$trace`) points away from the model-written versions.
+
+**Where the defaults came from.**
+
+- `context_source = "metadata"` was chosen as the source that makes no
+  request. It has not been compared with `"llm"`.
+- Two rules were set when they were written, and neither was tuned: the
+  section path `"llm"` sends, and the test that finds an invented proposition
+  (every number in the passage, half its words in the passage or its context).
+- `proposition_check = "count"` keeps every proposition, and
+  `proposition_context_tokens = 0` sends each batch alone, as before. Neither
+  has been compared with the alternatives.
+- `proposition_batch_tokens` (900), `context_reply_tokens` (90),
+  `context_document_tokens` (1500) and `proposition_reply_tokens` (2000) are
+  the values the code had as constants. None was tuned (`untested`).
 
 **How to test them.** Compare `contextual` with the segmenter it builds on:
 
@@ -686,10 +689,11 @@ aggregate(tokens_in ~ param.method, bench, mean)
 ```
 
 `contextual` sent 81 fewer prompt tokens here. The room it holds back for its
-lines makes its chunks smaller, 73 tokens on average against 81, and the
-recipe's eight chunks then hold less text.
+lines makes its chunks smaller, 73 tokens on average against 81, so the
+recipe's eight chunks hold less text.
+
 `proposition` and `context_source = "llm"` need a model that writes real
-statements, so they run on your own reference and client:
+statements, so run them on your own reference and client:
 
 ```{r eval = FALSE}
 arms <- hr_sweep(gr_arm("needle"), data.frame(
@@ -700,36 +704,38 @@ bench <- hr_benchmark(arms, my_reference, runs = 5, client = my_client, split = 
 aggregate(cbind(correct, usd) ~ param.method + param.context_source, bench, mean)
 ```
 
-`proposition_check = "drop"` changes no request, only which propositions are
-kept, so `$extra$propositions_unsupported` on one segmentation shows what it
-would drop before you sweep it.
+`proposition_check = "drop"` changes which propositions are kept and no
+request. Before you sweep it, `$extra$propositions_unsupported` on one
+segmentation shows what it would drop.
 
-`context_source` is stored in the recipe even under a segmenter that ignores
-it, so give it the value the other rows use for every row where it does
-nothing, as above; a row that changes nothing else would otherwise be a second
-arm sending the same requests, which `hr_sweep_check()` would then report.
+The recipe stores `context_source` even under a segmenter that ignores it. In
+every row where it does nothing, give it the value the other rows use, as
+above. A row that differs only in an ignored `context_source` would be a
+second arm sending the same requests, which `hr_sweep_check()` would then
+report.
 
 ## Previewing chunks in the Shiny app
 
 The bundled app has a control for every axis: cleaning and OCR, the
 segmenter, the reading strategies and the model. For segmentation it also sets
 `max_tokens`, overlap and minimum chunk size. Its "Preview chunking" button
-shows how the current settings cut the document before anything is spent on
-reading.
-For a segmenter that calls a model, the button says so.
+shows how the current settings cut the document before you spend anything on
+reading. For a segmenter that calls a model, the button says so.
 
 ```{r eval = FALSE}
 shiny::runApp(system.file("shiny", package = "harnessr"))
 ```
 
-`GPTREAD_DOC_ROOTS` (colon-separated) sets which folders the app can read.
-Unset, it defaults to `~/Documents`, falling back to your entire home directory,
-so set it before exposing the app to anyone else. The app opens only the PDF,
-Word, text, Markdown, HTML and image files under those folders, never hidden
-files or hidden folders. `extract` and `screen` are not offered, since they read
-against a protocol; use `gr_extract()` and `gr_screen()` (`vignette("review")`).
-A blank cost cap leaves `hr_options("max_cost_usd")` in force rather than
-lifting the limit.
+`GPTREAD_DOC_ROOTS` sets which folders the app can read. Separate folders
+with the platform's path separator: a colon, or a semicolon on Windows. Unset,
+it defaults to `~/Documents`, falling back to your entire home directory, so
+set it before you expose the app to anyone else.
+
+The app opens only the PDF, Word, text, Markdown, HTML and image files under
+those folders, never hidden files or hidden folders. It does not offer
+`extract` or `screen`, since they read against a protocol. Use `gr_extract()`
+and `gr_screen()` instead (`vignette("review")`). A blank cost cap leaves
+`hr_options("max_cost_usd")` in force; it does not lift the limit.
 
 ## Your own segmenter
 
