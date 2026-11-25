@@ -134,14 +134,16 @@ the whole document.
 
 ### `stuff`: everything in one request
 
-Puts the whole document into a single prompt. It is the simplest reader, and
-usually the cheapest way to have the model read all of a document, with one set
-of instructions and one reply. Its cost still grows with the document's length.
-The model sees everything at once, so it can connect facts from different
-places. The limit is the context window: if the document does not fit,
-`stuff` sends what fits, warns, and marks the answer partial
-(`on_overflow = "error"` makes it stop instead). Very long prompts also dilute
-attention; details in the middle of a long prompt are more easily missed.
+`stuff` puts the whole document into a single prompt. It is the simplest
+reader, and usually the cheapest way to have the model read all of a document,
+with one set of instructions and one reply. Its cost still grows with the
+document's length. The model sees everything at once, so it can connect facts
+from different places.
+
+The context window sets the limit. If the document does not fit, `stuff` sends
+what fits, warns, and marks the answer partial (`on_overflow = "error"` makes it
+stop instead). Very long prompts also dilute attention, and a model misses
+details in the middle of a long prompt more easily.
 
 **Use it for** documents comfortably inside the model's context window.
 **Recipe:** `"fast"`, which `answer_document()` uses by default for a document
@@ -149,11 +151,11 @@ of up to 50,000 tokens, or less on a model with a small context window.
 
 ### `map_reduce`: every chunk separately, then combined
 
-Asks the question of each chunk on its own ("map"), then combines the answers in
-stages ("reduce"). Nothing is skipped, each request is small, and the per-chunk
-requests can run in parallel. It costs N requests plus the combining steps, and a
-fact that only makes sense across two chunks can be missed, because no single
-request sees both.
+`map_reduce` asks the question of each chunk on its own (the "map"), then
+combines the answers in stages (the "reduce"). It skips nothing, each request is
+small, and the per-chunk requests can run in parallel. It costs N requests plus
+the combining steps. It can miss a fact that only makes sense across two chunks,
+because no single request sees both.
 
 **Use it for** questions where every mention matters: "list every risk named in
 this report". **Recipe:** `"thorough"`, which `answer_document()` uses by
@@ -161,89 +163,93 @@ default for a longer document.
 
 ### `refine`: a draft revised chunk by chunk
 
-Reads the chunks in order, keeping a running answer and revising it with each new
-chunk. Later text can correct earlier conclusions, which suits documents whose
-argument develops. It costs N requests that cannot run in parallel, and the
-running answer can drift.
+`refine` reads the chunks in order and keeps a running answer, revising it with
+each new chunk. Later text can correct earlier conclusions, which suits
+documents whose argument develops. It costs N requests that cannot run in
+parallel, and the running answer can drift.
 
 **Use it for** narratives and arguments that build. **Recipe:** `"narrative"`.
 
 ### `skim`: quote first, then answer
 
-For each chunk, asks the model to copy out any passages that bear on the
+For each chunk, `skim` asks the model to copy out any passages that bear on the
 question, then answers once from those passages alone. The final answer rests on
-quotations, which harnessr checks against the text (see below). It costs N + 1
-requests; the per-chunk step can use a cheaper model through `skim_model`.
+quotations, and harnessr checks them against the text (see "Checking what an
+answer rests on" below). It costs N + 1 requests, and `skim_model` can put the
+per-chunk step on a cheaper model.
 
 **Use it for** questions where you want the answer tied to exact wording.
 **Recipe:** `"precise"`.
 
 ### `hierarchical`: summaries of summaries
 
-Summarises each chunk, then summarises groups of summaries (`fan_in` at a time),
-level by level, until everything fits in one prompt, and answers from that. It
-suits questions about a whole long document, such as "what is this report's
-overall argument?", at the price of detail lost in summarising. `summary_model`
-can use a cheaper model for the summaries; `max_levels` caps the depth.
+`hierarchical` summarises each chunk, then summarises the summaries in groups of
+`fan_in`, level by level, until everything fits in one prompt, and answers from
+that. It suits questions about a whole long document, such as "what is this
+report's overall argument?", and loses detail in the summarising.
+`summary_model` can put the summaries on a cheaper model, and `max_levels` caps
+the depth.
 
 **Use it for** long, structured documents where you want an overview.
 **Recipe:** `"survey"`.
 
 ### `retrieve`: only the most relevant chunks
 
-Turns the question and every chunk into *embeddings* (lists of numbers that
-place similar text close together) and sends only the `top_k` chunks closest to
-the question, in a single request. The cost of the answer does not grow with the
-document, which makes it the usual choice for finding one fact in something long.
-The risk: a chunk that answers the question but does not *look* like it is never
-sent.
+`retrieve` turns the question and every chunk into *embeddings* (lists of
+numbers that place similar text close together) and sends only the `top_k`
+chunks closest to the question, in a single request. The cost of the answer does
+not grow with the document, so `retrieve` is the usual choice for finding one
+fact in something long. It never sends a chunk that answers the question but
+does not *look* like it.
 
 **Use it for** a specific fact in a long document. **Recipe:** `"needle"`.
 
 ### `rerank`: shortlist, then let the model judge
 
-Makes a quick word-matching shortlist (`rerank_candidates` chunks, 20 by default),
-asks the model to score each for relevance from 0 to 10, and answers from the
-chunks scoring at least `rerank_min_score`. The model's judgement is better than
-word matching, at the price of one scoring request per shortlisted chunk.
-`skim_model` can do the scoring more cheaply.
+`rerank` makes a quick word-matching shortlist (`rerank_candidates` chunks, 20
+by default), asks the model to score each from 0 to 10 for relevance, and
+answers from the chunks scoring at least `rerank_min_score`. The model judges
+relevance better than word matching does, at the price of one scoring request
+per shortlisted chunk. `skim_model` can do the scoring more cheaply.
 
 If no chunk could be scored, for example because the provider does not support
-the structured replies the scoring needs, it falls back to the word-matching
-order and warns. If only some chunks were scored, the answer is marked partial.
+the structured replies the scoring needs, `rerank` falls back to the
+word-matching order and warns. If only some chunks were scored, it marks the
+answer partial.
 
 **Use it for** long documents where word matching alone picks badly, including
 scanned ones. **Recipe:** `"scanned"`.
 
 ### `iterative`: look, decide what is missing, look again
 
-Retrieves a few chunks and asks the model whether it can answer yet, and if not,
-what it should look for next. Then it retrieves again, up to `max_rounds` times. It
-suits questions needing several facts from different places ("how did the drop in
-margin affect the dividend?"). `ans$notes$queries` records what it searched for in
-each round, and `ans$notes$stop_reason` why it stopped.
+`iterative` retrieves a few chunks and asks the model whether it can answer yet
+and, if not, what to look for next. Then it retrieves again, up to `max_rounds`
+times. It suits questions that need several facts from different places ("how
+did the drop in margin affect the dividend?"). `ans$notes$queries` records what
+it searched for in each round, and `ans$notes$stop_reason` why it stopped.
 
 **Use it for** multi-step questions. **Recipe:** `"research"`.
 
 ### `preview`: plan, then read
 
-Shows the model an outline of the document (section headings, sizes, and short
-excerpts) and asks which sections to read in full, which to skim, and which to
-skip. Then it reads accordingly. A section the plan does not mention is read, never
-skipped, so silence cannot lose part of the document; the plan is recorded in
-`ans$notes$plan`, so "sections 3 and 5 were not read" is visible. If no usable
-plan comes back, it reads everything and marks the answer partial.
+`preview` shows the model an outline of the document (section headings, sizes
+and short excerpts) and asks which sections to read in full, which to skim and
+which to skip. Then it reads accordingly. It reads every section the plan does
+not mention, so a plan's silence cannot lose part of the document.
+`ans$notes$plan` records the plan, so you can see that "sections 3 and 5 were
+not read". If no usable plan comes back, `preview` reads everything and marks
+the answer partial.
 
 **Use it for** long documents with clear sections, when most of them are
 irrelevant to the question.
 
 ### `ensemble`: several readers, compared
 
-Runs two or more different readers (`members`; by default `retrieve` and
-`map_reduce`) and asks the model to reconcile their answers. It costs the sum of
-its members plus one request, and pays off when a wrong answer is expensive.
-Members must have different signatures, because running the same method twice is
-not a second opinion.
+`ensemble` runs two or more different readers (`members`, by default `retrieve`
+and `map_reduce`) and asks the model to reconcile their answers. It costs the
+sum of its members plus one request, and pays off when a wrong answer is
+expensive. Members must have different signatures: the same method run twice
+gives no second opinion.
 
 **Use it for** high-stakes questions. **Recipe:** `"consensus"`.
 
@@ -268,8 +274,9 @@ literature-review workflow in `vignette("review")`.
 | long document, most sections irrelevant | `preview` | none | depends on the plan |
 | a wrong answer would be costly | `ensemble` | `"consensus"` | as its members |
 
-If unsure, run two or three on a document where you already know the answer and
-compare (see "Trying readers on your own documents" below).
+If you are unsure, run two or three readers on a document whose answer you
+already know and compare them (see "Trying readers on your own documents"
+below).
 
 ## Recipes
 
@@ -287,8 +294,9 @@ do.call(rbind, lapply(names(gr_recipes()), function(n) {
 `answer_document()` defaults to `"auto"`, which reads a document of up to 50,000
 tokens (less on a model with a small context window) with `"fast"`, in one
 request, and a longer one with `"thorough"`, one request per chunk. Both send
-every chunk. `ans$recipe` says which was used. `gr_read_many()`, `gr_compare()`
-and the review functions take one fixed recipe and refuse `"auto"`.
+every chunk, and `ans$recipe` names the one used. `gr_read_many()`,
+`gr_compare()` and the review functions take one fixed recipe and refuse
+`"auto"`.
 
 Printing a recipe shows every setting on all three steps:
 
@@ -296,14 +304,14 @@ Printing a recipe shows every setting on all three steps:
 gr_recipes("thorough")
 ```
 
-A recipe is a starting point. Any of its settings can be overridden by name in
-the call, as in `answer_document(file, question, "needle", top_k = 3)`, and
-`gr_recipe()` builds one from scratch (there is an example under "Trying readers
-on your own documents" below).
+You can override any of a recipe's settings by name in the call, as in
+`answer_document(file, question, "needle", top_k = 3)`. `gr_recipe()` builds a
+recipe from scratch, with an example under "Trying readers on your own
+documents" below.
 
 `"legacy"` reproduces the previous release's behaviour (digit stripping,
 3000-token paragraph chunks, no overlap), so you can measure the difference
-rather than assume it.
+instead of assuming it.
 
 ## Choosing and placing chunks
 
