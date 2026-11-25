@@ -1330,7 +1330,7 @@ render_revised <- function(texts, headings, marked, unsupplied, render) {
         if (is.na(i)) return(if (key %in% sus) as_before(key) else "unsure")
         if (j %in% own[[i]]) {
           if (key %in% sus) return(as_before(key))
-          # Reworded under a reporting heading is the reported sentence --
+          # Reworded under a reporting heading is the reported sentence,
           # unless an honest one had been standing there to be reworded.
           return(if (any(prev$sec[pu][pst == "honest"] %in% i)) "unsure" else "reported")
         }

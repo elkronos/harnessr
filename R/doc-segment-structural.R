@@ -3,7 +3,7 @@
 #' What `structural` writes where a chunk has no heading above it.
 #'
 #' A literal, not NA, because the column is also a display label. That made it
-#' invisible to every downstream test of the form `all(is.na(section))` --
+#' invisible to every downstream test of the form `all(is.na(section))`:
 #' `preview` read it as "this document has structure" and planned one unit for
 #' the whole thing. Named here so the producer and the consumers cannot disagree
 #' about the spelling.
