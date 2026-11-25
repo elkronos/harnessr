@@ -904,8 +904,8 @@ checks, and the package never chooses the command.
 
 A configuration that calls a model should beat one that does not.
 `hr_baseline_classifier()` fits a ridge logistic regression on tf-idf features
-(`hr_tfidf()`) and cross-fits it, so every item is predicted by a model that
-never saw it, with the vocabulary fitted on each training fold only. Folds are
+(`hr_tfidf()`) and cross-fits it, so a model that never saw an item predicts
+it, with the vocabulary fitted on each training fold only. Folds are
 stratified by label, or keep each `cluster` whole:
 
 ```{r}
@@ -941,8 +941,8 @@ prioritised screening may stop; `vignette("review")` covers it.
 
 A provider can change a model behind the same name. `hr_drift_check()` reruns
 an arm live on the items of a frozen benchmark and compares the two item by
-item, with `alpha` and an optional `alert` fixed in the call before anything is
-rerun. Here the model has since learned two capitals wrong:
+item. You fix `alpha` and an optional `alert` in the call, before anything is
+rerun. Here the model now gets two capitals wrong:
 
 ```{r}
 six <- hr_reference(
@@ -964,25 +964,28 @@ drift
 ```
 
 Test (a) is the change in accuracy, live minus frozen, by a cluster bootstrap
-over documents, with the clustered McNemar test beside it. Test (b) asks
+over documents, with the clustered McNemar test beside it. Test (b) checks
 whether frozen and live runs disagree more than replicate runs disagree among
-themselves; per item it estimates the squared change, so it also sees losses
-and gains that cancel in accuracy. Here (a) finds the two lost items, a change
-of -0.333 with an interval that lies wholly beyond the alert of 0.1. Test (b)
-does not reject: with three clusters its one-sided bound reaches 0. The live
-rerun is in `drift$live`, an `hr_bench` you can report or keep as the next
-frozen sample. Fewer than 5 frozen runs, a changed
-arm, another reference or scorer, and a live rerun answered from a cache or a
-recording are refused: that last one would be the frozen reply again, not the
-model today.
+themselves. Per item it estimates the squared change, so it also catches
+losses and gains that cancel in accuracy.
+
+Here (a) finds the two lost items: a change of -0.333 with an interval that
+lies wholly beyond the alert of 0.1. Test (b) does not reject, since with three
+clusters its one-sided bound reaches 0. The live rerun is in `drift$live`, an
+`hr_bench` you can report or keep as the next frozen sample.
+
+`hr_drift_check()` refuses fewer than 5 frozen runs, a changed arm, another
+reference or scorer, and a live rerun answered from a cache or a recording.
+That last one would return the frozen reply again instead of the model's
+answer today.
 
 ## Signals, calibration and gate thresholds
 
 Some readers report on their own work: the `iterative` reader says at each step
 whether it can answer, `preview` says which sections its plan would skip, and
 `ensemble` says how it settled its members. `hr_signal()` records such a value
-as a local step in the trace, which sends no request and changes no cache key,
-and `hr_signals()` reads them back:
+as a local step in the trace. That step sends no request and changes no cache
+key. `hr_signals()` reads the values back:
 
 ```{r}
 reader <- hr_mock_client(function(m, p) {
@@ -994,16 +997,18 @@ hr_signals(read)[, c("signal", "value", "score", "refs")]
 ```
 
 A signal is advisory. Nothing in the package acts on one, and a signal may
-gate an action only after it has been measured against items whose right
-answer is known. `hr_calibrate_signal()` does that on a graded set, which must
-include unanswerable items: a signal measured only on answerable questions has
-never been asked about the case where "I can answer" is most often wrong. It
-fits a map from the signal to a probability on half of each cluster's items
-and measures it on the other half, with the Brier score, type-2 AUROC, the area
-under the risk-coverage curve and a debiased calibration error, each with a
-cluster bootstrap interval. The record is keyed by the served model, its
-version, the task, format, prompt hash, effort, module and contract version.
-The graded set here is simulated, 1200 items in 120 documents:
+gate an action only after you measure it against items whose right answer is
+known. `hr_calibrate_signal()` takes that measure on a graded set, which must
+include unanswerable items. A signal measured only on answerable questions has
+never been tested on the case where "I can answer" is most often wrong.
+
+`hr_calibrate_signal()` fits a map from the signal to a probability on half of
+each cluster's items and measures it on the other half. It reports the Brier
+score, type-2 AUROC, the area under the risk-coverage curve and a debiased
+calibration error, each with a cluster bootstrap interval. The record is keyed
+by the served model, its version, the task, format, prompt hash, effort, module
+and contract version. The graded set here is simulated, 1200 items in 120
+documents:
 
 ```{r}
 set.seed(2)
@@ -1020,15 +1025,14 @@ cal <- hr_calibrate_signal("gr.iterative.can_answer", graded, key, seed = 3, B =
 cal
 ```
 
-A new record is always advisory. `hr_gate_threshold()` looks for the loosest
-threshold at which acting on the items at or above it keeps a risk below
-`alpha` with confidence 1 - `delta`, by Learn-then-Test: thresholds are tested
-from strict to loose with a one-sided Clopper-Pearson bound, and the sequence
-stops at the first that fails. Errors from one document go together, so the
-bound is taken on an effective number of items, `n / deff`, where the design
-effect `deff` is measured over the calibration half's clusters at each
-threshold. `alpha` has no default, since it is a decision
-about the task:
+A new record is always advisory. `hr_gate_threshold()` uses Learn-then-Test to
+find the loosest threshold at which acting on the items at or above it keeps a
+risk below `alpha` with confidence 1 - `delta`. It tests thresholds from strict
+to loose with a one-sided Clopper-Pearson bound and stops at the first that
+fails. Errors from one document go together, so the bound is taken on an
+effective number of items, `n / deff`, where the design effect `deff` is
+measured over the calibration half's clusters at each threshold. `alpha` has no
+default, since you set it for the task:
 
 ```{r}
 cal <- hr_gate_threshold(cal, "stop", alpha = 0.1)
@@ -1037,16 +1041,22 @@ cal$status
 ```
 
 At the threshold kept, 147 items of the calibration half are acted on, 7 of
-them wrongly. The design effect is 1.26, so the bound counts them as about
-117 independent items, and the upper bound on the error among them is 0.094
-(0.088 if the items were independent). A record
-becomes `"gating"` only with a passing threshold, at least 100 wrong items in
-the graded set, a map that rises with the signal and a calibration error over
-at least 5 bins. Items with the same `p` share a bin, so a signal with fewer
-than 5 values, such as a logical one, stays advisory. A graded set with a
-`split` column, as `hr_assign_splits()` gives, is calibrated on its
-`calibration` rows alone. Even then the signal gates only through a policy, and only for
-a run whose key matches the record:
+them wrongly. The design effect is 1.26, so the bound counts them as about 117
+independent items, and the upper bound on the error among them is 0.094 (0.088
+if the items were independent).
+
+A record becomes `"gating"` only when it has all four of these:
+
+- a passing threshold;
+- at least 100 wrong items in the graded set;
+- a map that rises with the signal;
+- a calibration error over at least 5 bins.
+
+Items with the same `p` share a bin, so a signal with fewer than 5 values, such
+as a logical one, stays advisory. A graded set with a `split` column, as
+`hr_assign_splits()` gives, is calibrated on its `calibration` rows alone. Even
+with a gating record, the signal gates only through a policy, and only for a
+run whose key matches the record:
 
 ```{r}
 policy <- hr_signal_policy("gr.iterative.can_answer", "stop")
@@ -1063,7 +1073,7 @@ in this release nothing gates on a signal.
 
 ## The statistics underneath
 
-The functions above rest on five that can be used on their own.
+The functions above rest on five that you can also use on their own.
 
 `hr_prop_ci()` gives Wilson, Clopper-Pearson or Jeffreys intervals for a
 proportion. Use Wilson for a descriptive rate and Clopper-Pearson for an "at
@@ -1079,8 +1089,8 @@ observed agreement, Cohen's kappa with a bootstrap interval, the prevalence and
 bias indices, PABAK, Gwet's AC1, and sensitivity, specificity, PPV and NPV when
 `positive` is given. Kappa is never reported alone, since it moves with
 prevalence as much as with agreement. For a matrix of coders, or an ordinal,
-interval or ratio level, it reports Krippendorff's alpha instead, and only
-percent agreement below 30 items.
+interval or ratio level, it reports Krippendorff's alpha instead. Below 30
+items that can be paired, alpha is `NA` and only percent agreement is reported.
 
 ```{r}
 screener <- rep(c("keep", "drop", "keep", "drop"), c(40, 9, 6, 45))
@@ -1089,10 +1099,10 @@ hr_agreement(screener, person, positive = "keep", B = 200)$stats[1:4, ]
 ```
 
 `hr_ht_estimate()` estimates a total, a mean or a ratio from a sample drawn
-with known inclusion probabilities, optionally by stratum; it is how screening
-recall is weighted on a stacked reference. `hr_ppi()` is the prediction-powered
+with known inclusion probabilities, optionally by stratum. Screening recall on
+a stacked reference is weighted with it. `hr_ppi()` is the prediction-powered
 estimate behind `hr_judge_ppi()`. `hr_alt_test()` runs the alternative
-annotator test of Calderon, Reichart and Dror (2025), which asks whether a
+annotator test of Calderon, Reichart and Dror (2025), which tests whether a
 model's labels can stand in for those of three or more people, with the margin
 set by the people's declared expertise (`expertise` has no default):
 
@@ -1107,8 +1117,8 @@ alt$passed
 ```
 
 The model here wins against each of the four annotators, so the winning rate
-omega is 1 and the test passes; it needs at least 30 items with two or more
-human labels, and warns below 50.
+omega is 1 and the test passes. The test needs at least 30 items with two or
+more human labels, and `hr_alt_test()` warns below 50.
 
 ```{r include = FALSE}
 hr_options(old)
