@@ -5,9 +5,11 @@
 # an old cell must not be exported, and every function in a new cell must be.
 # The core table must hold exactly the renames NEWS.md lists under "## Renamed
 # core functions", and the other tables must cover the "## Removed" table, so
-# test-removed-names.R guards every old name the guide lists. This reads the
-# source tree when it is there, and otherwise the copy of the vignette that a
-# built package installs in doc/. An install without vignettes skips.
+# test-removed-names.R guards every old name the guide lists. Each removed
+# name's replacement, and the reader a gr_read() call names, must be the one
+# NEWS.md gives, and the reader must exist. This reads the source tree when it
+# is there, and otherwise the copy of the vignette that a built package
+# installs in doc/. An install without vignettes skips.
 
 migrate_lines <- function() {
   path <- test_path("..", "..", "vignettes", "migrate.Rmd")
@@ -154,4 +156,64 @@ test_that("the guide lists every name NEWS.md removes", {
   # Every old name but the package's is in that table, so test-removed-names.R
   # keeps each one out of the code.
   expect_identical(sort(setdiff(listed, "readgpt")), sort(removed))
+})
+
+# A row's NEWS.md "Removed" entry, found by the old name, and the guide row
+# with the same old name.
+removed_pairs <- function() {
+  news <- section_table(news_lines(), "^## Removed[[:space:]]*$")
+  tabs <- migrate_tables()
+  guide <- rbind(tabs$other, tabs$v1)
+  news_old <- vapply(news[, 1], function(x) old_item(x)[["name"]], "", USE.NAMES = FALSE)
+  guide_old <- vapply(guide[, 1], function(x) old_item(x)[["name"]], "", USE.NAMES = FALSE)
+  rows <- match(news_old, guide_old)
+  list(news = news, guide = guide[rows, , drop = FALSE], old = news_old, rows = rows)
+}
+
+# The reader named in a cell: `reader = "x"` in NEWS.md, or the quoted last
+# argument of `gr_read(...)` in the guide.
+cell_reader <- function(cell) {
+  m <- regmatches(cell, regexec("reader = \"([a-z_]+)\"", cell))[[1]]
+  if (length(m)) return(m[2])
+  m <- regmatches(cell, regexec("gr_read[(][^)]*\"([a-z_]+)\"[)]", cell))[[1]]
+  if (length(m)) return(m[2])
+  NA_character_
+}
+
+test_that("each removed name's replacement in the guide is the one NEWS.md gives", {
+  p <- removed_pairs()
+  expect(!anyNA(p$rows),
+         sprintf("Removed in NEWS.md but not in vignettes/migrate.Rmd: %s.",
+                 paste(p$old[is.na(p$rows)], collapse = ", ")))
+  expect_identical(nrow(p$guide), nrow(p$news))
+  for (i in seq_len(nrow(p$news))) {
+    news_new <- p$news[i, 2]
+    guide_new <- p$guide[i, 2]
+    # The first thing each New cell names is the same function, field or
+    # option, and the guide names no function NEWS.md does not. A field's
+    # cell may name the function the field belongs to, as the old cell does.
+    expect_identical(old_item(guide_new), old_item(news_new), info = p$old[i])
+    extra <- setdiff(cell_functions(guide_new),
+                     c(cell_functions(news_new), cell_functions(p$guide[i, 1])))
+    expect(length(extra) == 0,
+           sprintf("vignettes/migrate.Rmd pairs %s with %s, which NEWS.md does not.",
+                   p$old[i], paste(extra, collapse = ", ")))
+  }
+})
+
+test_that("the reader the guide names for each removed reader is the one NEWS.md gives", {
+  p <- removed_pairs()
+  news_readers <- vapply(p$news[, 2], cell_reader, "", USE.NAMES = FALSE)
+  guide_readers <- vapply(p$guide[, 3], cell_reader, "", USE.NAMES = FALSE)
+  expect_gte(sum(!is.na(news_readers)), 4L)
+  expect_identical(guide_readers, news_readers)
+  named <- guide_readers[!is.na(guide_readers)]
+  unknown <- setdiff(named, gr_readers()$name)
+  expect(length(unknown) == 0,
+         sprintf("vignettes/migrate.Rmd names readers that do not exist: %s.",
+                 paste(unknown, collapse = ", ")))
+  # No other cell in the guide calls gr_read() with a reader.
+  tabs <- do.call(rbind, migrate_tables())
+  all_readers <- vapply(tabs[, 3], cell_reader, "", USE.NAMES = FALSE)
+  expect_identical(sum(!is.na(all_readers)), length(named))
 })
