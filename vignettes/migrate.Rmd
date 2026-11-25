@@ -1,0 +1,77 @@
+---
+title: "Upgrading from older versions"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Upgrading from older versions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Read this page if you have code written for readgpt, the package's name up to
+version 0.6.0, or for its first version (v1). `NEWS.md` lists every change
+release by release.
+
+## From readgpt to harnessr
+
+harnessr was called readgpt up to version 0.6.0, and so was its GitHub
+repository. The rename leaves requests, cache keys and recordings unchanged,
+and caches and recordings made under the old name still answer. The old
+function and option names are removed; `NEWS.md` lists each one with its
+replacement.
+
+## From v1
+
+The v1 entry points are removed. Each one has a replacement:
+
+| v1 | now |
+|---|---|
+| `answer_question(f, q, mode = "Chunked")` | `answer_document(f, q, "thorough")` |
+| `parse_text(f, chunk_method = "semantic")` | `gr_ingest(f)`, then `gr_segment(doc, "semantic")` |
+| `gpt_read_chunked()` | `gr_read(ch, q, cl, "map_reduce")` |
+| `gpt_read_retrieval()` | `gr_read(ch, q, cl, "skim")` |
+| `gpt_read_hierarchical()` | `gr_read(ch, q, cl, "hierarchical")` |
+| `gpt_read_multipass()` | `gr_read(ch, q, cl, "ensemble")` |
+| `readgpt_example()` | `gr_example()` |
+| `options(readgpt.api_key =)` | `options(harnessr.api_key =)` |
+| `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` |
+
+Three behaviour changes from v1 are deliberate and will alter your results:
+
+1. **`mode` no longer defaults to all five modes.** `answer_question(f, q)` in v1
+   ran every mode: 41 API calls on an 8-paragraph document, where one was
+   expected.
+2. **Modes no longer contaminate each other.** In v1, `mode = c("Chunked",
+   "Semantic")` changed Chunked's chunking, its cost, and its answer relative to
+   `mode = "Chunked"` alone.
+3. **Digits are no longer stripped by default.** v1's `remove_numbers = TRUE`
+   default was unreachable from `answer_question()`, so every figure, date and
+   percentage was deleted before the model saw the document.
+
+For v1's `refine = TRUE`, ask for citations with `cite = TRUE` in
+`gr_read_spec()`. Its verification pass has no replacement because it could
+not run: it called a `search_text()` function that the repository never
+defined.
+
+The v1 source is kept under `legacy/` in the repository for reference and A/B
+comparison. The package does not load it. To reproduce its ingestion and
+chunking under the current code, use the `legacy` recipe. It strips digits, as
+v1 did, and cuts 3000-token paragraph chunks with no overlap:
+
+```{r message = FALSE}
+library(harnessr)
+old <- hr_options(verbose = FALSE)
+legacy <- gr_recipes("legacy")
+gr_ingest("Revenue was 45.2 million dollars in fiscal 2024.", legacy$ingest)$text
+unlist(legacy$segment[c("method", "max_tokens", "overlap_tokens")])
+```
+
+```{r include = FALSE}
+hr_options(old)
+```
+
+The regression suite in `tests/testthat/` reproduces each of these defects
+against the current code.
