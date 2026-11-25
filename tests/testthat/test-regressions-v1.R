@@ -10,7 +10,7 @@ test_that("token budgets are positive for every model, including unknown ones", 
   for (m in c("gpt-3.5-turbo", "gpt-3.5-turbo-0125", "gpt-4", "gpt-4o", "gpt-4o-mini",
               "gpt-4-turbo", "gpt-4.1", "gpt-5", "gpt-5.6-terra", "o3-mini",
               "some-model-released-after-this-package")) {
-    b <- quiet(gr_budget(m, reserve_output = 1024, overhead = 200))
+    b <- quiet(hr_budget(m, reserve_output = 1024, overhead = 200))
     expect_gt(b$input, 0)
     expect_lte(b$input + b$output, b$context_window)
   }
@@ -18,16 +18,16 @@ test_that("token budgets are positive for every model, including unknown ones", 
 
 test_that("a model whose output reserve cannot fit errors instead of going negative", {
   local_registries()
-  gr_register_model("tiny-ctx", context_window = 512, max_output = 400)
-  expect_error(gr_budget("tiny-ctx", reserve_output = 400, overhead = 5000),
+  hr_register_model("tiny-ctx", context_window = 512, max_output = 400)
+  expect_error(hr_budget("tiny-ctx", reserve_output = 400, overhead = 5000),
                class = "gr_budget_error")
 })
 
 test_that("gpt-4o is not mistaken for 8k-context gpt-4", {
   # v1: grepl("gpt-4", model) matched gpt-4o and returned an 8192 window,
   # over-chunking every document ~26x.
-  expect_equal(gr_model_info("gpt-4o")$context_window, 128000L)
-  expect_equal(gr_model_info("gpt-4")$context_window, 8192L)
+  expect_equal(hr_model_info("gpt-4o")$context_window, 128000L)
+  expect_equal(hr_model_info("gpt-4")$context_window, 8192L)
 })
 
 test_that("semantic segmentation survives a one-paragraph document", {
@@ -143,7 +143,7 @@ test_that("a failed model call contributes nothing, never the string 'NULL'", {
   # deparsed it, and the literal "NULL" was spliced into the merge prompt.
   doc <- gr_ingest(sample_doc(2, 2))
   ch <- gr_segment(doc, list(method = "paragraph", max_tokens = 120))
-  flaky <- gr_mock_client(local({
+  flaky <- hr_mock_client(local({
     n <- 0L
     function(messages, params) { n <<- n + 1L; if (n %% 2L == 0L) stop("boom") else "Real finding." }
   }))
@@ -171,7 +171,7 @@ test_that("an empty completion does not crash any reader", {
 test_that("model responses keep their formatting", {
   # v1: gsub("\\n+", " ", result) flattened every answer, destroying lists,
   # tables and code blocks unconditionally.
-  cl <- gr_mock_client(function(m, p) "1. First\n2. Second\n\n- bullet\n- bullet")
+  cl <- hr_mock_client(function(m, p) "1. First\n2. Second\n\n- bullet\n- bullet")
   a <- gr_read(gr_segment(gr_ingest(sample_doc(1, 2)), "paragraph"), "Q?", cl, "stuff")
   expect_true(grepl("\n", a$answer, fixed = TRUE))
 })
@@ -179,7 +179,7 @@ test_that("model responses keep their formatting", {
 test_that("'not found' matching is exact, not a substring sweep", {
   # v1: grepl("not found|no information|not applicable", ...) discarded
   # "The log was not found, but revenue was 45 million dollars."
-  cl <- gr_mock_client(function(m, p) "The server log was not found, but revenue was 45 million dollars.")
+  cl <- hr_mock_client(function(m, p) "The server log was not found, but revenue was 45 million dollars.")
   a <- gr_read(gr_segment(gr_ingest(sample_doc(1, 2)), "paragraph"), "Revenue?", cl, "map_reduce")
   expect_true(grepl("45 million", a$answer))
 })
@@ -192,11 +192,11 @@ test_that("embeddings depend on content, not string length, and leave the RNG al
   a <- "The mitochondrion is the powerhouse of the cell."
   b <- "Quarterly revenue fell by twelve percent in Q3!!"
   expect_equal(nchar(a), nchar(b))
-  e <- gr_embed(cl, c(a, b))
+  e <- hr_embed(cl, c(a, b))
   expect_false(isTRUE(all.equal(as.numeric(e[1, ]), as.numeric(e[2, ]))))
 
   set.seed(42); before <- sample(1000, 5)
-  set.seed(42); invisible(gr_embed(cl, c(a, b, "third text")))
+  set.seed(42); invisible(hr_embed(cl, c(a, b, "third text")))
   after <- sample(1000, 5)
   expect_identical(before, after)
 })
@@ -241,8 +241,8 @@ test_that("a runaway call count is refused before any money is spent", {
   ch <- gr_segment(doc, list(method = "sentence", max_tokens = 40))
   cl <- mock_echo()
   withr::local_options(list())
-  old <- gr_options(max_calls = 5L)
-  on.exit(gr_options(old), add = TRUE)
+  old <- hr_options(max_calls = 5L)
+  on.exit(hr_options(old), add = TRUE)
   expect_error(gr_read(ch, "Q?", cl, "map_reduce"), class = "gr_call_cap")
   expect_length(cl$calls(), 0L)
 })
@@ -250,8 +250,8 @@ test_that("a runaway call count is refused before any money is spent", {
 test_that("estimated cost is checked before the run starts", {
   doc <- gr_ingest(sample_doc(6, 6))
   ch <- gr_segment(doc, list(method = "sentence", max_tokens = 40))
-  old <- gr_options(max_cost_usd = 1e-9, max_calls = 10000L)
-  on.exit(gr_options(old), add = TRUE)
+  old <- hr_options(max_cost_usd = 1e-9, max_calls = 10000L)
+  on.exit(hr_options(old), add = TRUE)
   expect_error(gr_read(ch, "Q?", mock_echo(), list(reader = "map_reduce", model = "gpt-4o")),
                class = "gr_cost_cap")
 })
@@ -316,7 +316,7 @@ test_that("the stuff overflow error names a real option value", {
   # No prices, so the cost cap cannot be checked -- which the package says out
   # loud. Assert that warning rather than letting it float, or a real regression
   # in the pricing guard would look exactly like this run.
-  gr_register_model("tiny-for-overflow", context_window = 900, max_output = 128)
+  hr_register_model("tiny-for-overflow", context_window = 900, max_output = 128)
   err <- withCallingHandlers(
     tryCatch(
       gr_read(ch, "Q?", mock_echo(),

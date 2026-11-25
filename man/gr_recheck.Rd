@@ -53,7 +53,7 @@ the citation style and bibliographic columns it was written with.
 \examples{
 tab <- data.frame(document = c("a.pdf", "b.pdf"), status = "ok",
                   n_filled = 1L, n_unverified = 0L, n = c(120L, 300L))
-cl <- gr_mock_client(function(messages, params) "One trial enrolled 120 people [study 1].")
+cl <- hr_mock_client(function(messages, params) "One trial enrolled 120 people [study 1].")
 s <- gr_synthesise(tab, question = "How large were the trials?",
                    outline = c(Findings = "Sample sizes"), client = cl)
 edited <- paste0(s$text_marked, " Another enrolled 300 [study 2]. A third [study 9].")

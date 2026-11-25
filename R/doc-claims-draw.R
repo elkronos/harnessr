@@ -197,14 +197,14 @@
 #' @param question The review question. Taken from `protocol` if omitted.
 #' @param protocol A [gr_protocol()]; its `question` is used when `question` is
 #'   not given.
-#' @param client A [gr_client()]. One is built from `model` if omitted.
+#' @param client An [hr_client()]. One is built from `model` if omitted.
 #' @param model,temperature,max_claim_tokens Passed to the model call.
 #'   `max_claim_tokens` is the reply limit for each call, and it also sets how
 #'   many studies go into one: about `(max_claim_tokens - 400) / 40`. Raise it
 #'   for fewer, larger batches.
 #' @param include_unclear Keep rows with nothing extracted. Off by default, the
 #'   same as [gr_synthesise()].
-#' @param trace A [gr_trace()] to add this stage's calls to, or `NULL`. The
+#' @param trace An [hr_trace()] to add this stage's calls to, or `NULL`. The
 #'   calls are recorded on a trace of the stage's own, returned as `$trace`,
 #'   and folded into `trace` when the stage ends, as in [gr_read_many()] and
 #'   [gr_synthesise()]. Its requests are held to the governor of `trace`, if
@@ -286,7 +286,7 @@
 #'   design = c("randomised trial", "cross-sectional"),
 #'   finding = c("supports", "contradicts"), stringsAsFactors = FALSE)
 #'
-#' cl <- gr_mock_client(function(messages, params) paste0(
+#' cl <- hr_mock_client(function(messages, params) paste0(
 #'   '{"claims":[{"claim":"The effect appears in trials but not in surveys.",',
 #'   '"kind":"finding","supported_by":[1],"contradicted_by":[2],',
 #'   '"moderator":"design","scope":"one trial, one survey"}]}'))
@@ -328,16 +328,16 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   }
 
   used <- synth_studies(tab, include_unclear)
-  client <- client %||% gr_client(model = model %||% gr_options("model"))
+  client <- client %||% hr_client(model = model %||% hr_options("model"))
   # This function's own default, range check and name, not gr_read_spec()'s;
   # and the budget reserves what the spec settled on. Passed through raw, an NA
-  # reached gr_budget() as the output reserve while the spec said 1500.
+  # reached hr_budget() as the output reserve while the spec said 1500.
   max_claim_tokens <- clamp_warn(na_default(max_claim_tokens, 1600L, "max_claim_tokens"),
                                  16, 1e6, "max_claim_tokens")
   spec <- gr_read_spec("stuff", model = model, temperature = temperature,
                        max_answer_tokens = max_claim_tokens, effort = effort)
-  # One model for the batch sizing and the requests. Left NULL, gr_budget()
-  # sized batches for gr_options("model") while gr_call() asked the client's.
+  # One model for the batch sizing and the requests. Left NULL, hr_budget()
+  # sized batches for hr_options("model") while hr_call() asked the client's.
   spec <- resolve_read_model(spec, client)
   # The rule every corpus stage follows (as_parent_trace()): a given trace is
   # the parent this stage's accounting is folded into, and the stage records on
@@ -348,9 +348,9 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   parent <- as_parent_trace(trace)
   # Held to the parent's governor, less what the parent has spent, as in
   # gr_read_many() and gr_synthesise(). Without it the stage read the limits
-  # from gr_options() and a governor's allowed models, spending limit and
+  # from hr_options() and a governor's allowed models, spending limit and
   # token limit did not hold for its requests.
-  trace <- gr_trace(meta = list(stage = "claims", question = question,
+  trace <- hr_trace(meta = list(stage = "claims", question = question,
                                 studies = nrow(used)),
                     governor = fork_governor(parent))
   # Each request is the draw of the run the parent is (trace_inherit_draw()).
@@ -389,7 +389,7 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   }
   # "never": claims_batch() sends the question once.
   overhead <- prompt_overhead(question, .gr_prompts$claims_system, "never")
-  bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
+  bud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   # Sized by what comes BACK as well as by what goes in. The reply names every
   # study it uses and carries a claim, a scope and a moderator per claim, so it
   # grows with the batch while `max_claim_tokens` stays where it is. Sized by the
@@ -530,7 +530,7 @@ reconcile_reply_tokens <- function(n) {
 #' What went wrong with a call that returned nothing usable, as a phrase
 #' following "the ... call".
 #'
-#' Three causes that need three different remedies. gr_call() shrinks the reply
+#' Three causes that need three different remedies. hr_call() shrinks the reply
 #' to whatever the context window leaves after the prompt, so a long prompt is
 #' cut off BELOW the limit it asked for, and "raise the limit" was advice that
 #' could not help. `knob` names the argument that raises `cap`. `problem` is
@@ -539,8 +539,8 @@ reconcile_reply_tokens <- function(n) {
 #' @noRd
 call_failure <- function(result, messages, model, cap, knob, problem = NULL) {
   if (reply_cut_off(result)) {
-    info <- gr_model_info(model)
-    prompt <- sum(gr_count_tokens(vapply(messages, function(m) as_chr1(m$content), character(1))))
+    info <- hr_model_info(model)
+    prompt <- sum(hr_count_tokens(vapply(messages, function(m) as_chr1(m$content), character(1))))
     room <- as.integer(info$context_window - prompt - 32L)
     if (room < min(cap, info$max_output)) {
       return(sprintf(paste0("stopped short: its %d-token prompt left about %d tokens for the ",
@@ -709,7 +709,7 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
   listed <- paste(sprintf("%d. %s", seq_len(n), claims$claim), collapse = "\n")
   # Sized by the claims, as the draw is sized by its studies: the reply names
   # every claim once, so a fixed limit cut off the reply for a large corpus and
-  # every claim came back unmerged. gr_call() clamps it to what the model can emit.
+  # every claim came back unmerged. hr_call() clamps it to what the model can emit.
   cap <- max(as.integer(spec$max_answer_tokens), reconcile_reply_tokens(n))
   msgs <- list(
     list(role = "system", content = .gr_prompts$reconcile_system),

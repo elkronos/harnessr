@@ -29,7 +29,7 @@ rerank_prefilter <- function(d, question, client, trace, pre, m) {
   if (m >= n || any(pre > 0)) {
     return(list(cand = order(pre, decreasing = TRUE)[seq_len(m)], scores = pre, method = "bm25"))
   }
-  emb <- gr_embed(client, c(question, d$text), trace = trace)
+  emb <- hr_embed(client, c(question, d$text), trace = trace)
   sim <- if (nrow(emb) == n + 1L) cosine_against(emb[-1, , drop = FALSE], emb[1, ]) else numeric(0)
   semantic <- !identical(attr(emb, "embedding_source"), "lexical") &&
     !isTRUE(attr(emb, "embedding_fallback")) &&
@@ -191,7 +191,7 @@ read_rerank <- function(chunks, question, client, spec, trace) {
   # only to the request that answers.
   overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate,
                               structure = answer_structure(spec))
-  bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
+  bud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   fit <- fit_chunks(d, bud$input, order = as.integer(keep_ord))
   log_dropped_chunks(trace, "rerank.chunks", d, fit$dropped, spec)
   fit$idx <- arrange_context(fit$idx, spec$context_order)

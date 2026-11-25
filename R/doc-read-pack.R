@@ -35,7 +35,7 @@ page_text <- function(p) {
 #' the rendered body.
 #'
 #' The multi-chunk readers (`stuff`, `retrieve`, `rerank`) go through this; the
-#' rest bound their prompts with `gr_truncate_tokens()` or `tree_merge()`. Every
+#' rest bound their prompts with `hr_truncate_tokens()` or `tree_merge()`. Every
 #' path is bounded one way or the other. An unbounded path is the failure mode
 #' that produced unbounded merge prompts and HTTP 400s in v1's chunked and
 #' hierarchical readers.
@@ -44,7 +44,7 @@ fit_chunks <- function(df, budget_tokens, order = NULL, prefix = FALSE) {
   idx <- order %||% seq_len(nrow(df))
   used <- integer(0); total <- 0L
   for (i in idx) {
-    t <- gr_count_tokens(render_chunks(df[i, , drop = FALSE]))
+    t <- hr_count_tokens(render_chunks(df[i, , drop = FALSE]))
     if (total + t > budget_tokens) {
       # Skipping over an oversized chunk and carrying on is right for a RANKED
       # order: take as much of the good stuff as fits. It is wrong for a
@@ -66,18 +66,18 @@ prompt_overhead <- function(question, system_prompt, restate = "auto", structure
   # once the body is long, and the body was sized against a budget computed here,
   # so the prompt overran the window by exactly the length of the question.
   # With a long question and a model whose window the run nearly fills,
-  # gr_call() refused to dispatch at all and the reader returned NOT_IN_DOCUMENT
+  # hr_call() refused to dispatch at all and the reader returned NOT_IN_DOCUMENT
   # with nothing in it but `notes$error`. The default is the safe direction:
   # reserving room that goes unused costs a little context, under-reserving
   # costs the answer.
   again <- if (identical(as_chr1(restate, "auto"), "never")) 0L else
-    gr_count_tokens(as_chr1(question))
+    hr_count_tokens(as_chr1(question))
   # A structured answer request (answer_structure()) adds its instructions to
   # the system prompt; counted here so the excerpts are sized for them. Under
   # a structured premise verdict the sentence rule is left out of what is
   # sent, so this counts a little more than is sent, the safe direction.
-  extra <- if (is.null(structure)) 0L else gr_count_tokens(answer_structure_prompt(structure))
-  sum(gr_count_tokens(c(as_chr1(question), as_chr1(system_prompt)))) + again + 64L + extra
+  extra <- if (is.null(structure)) 0L else hr_count_tokens(answer_structure_prompt(structure))
+  sum(hr_count_tokens(c(as_chr1(question), as_chr1(system_prompt)))) + again + 64L + extra
 }
 
 #' The most one request of a batch can cost: `input_tokens` in and the reply
@@ -100,11 +100,11 @@ batch_item_usd <- function(client, model, input_tokens, max_output) {
   # The request itself warns about an unknown model; once is enough.
   quiet <- function(expr) tryCatch(suppressWarnings(expr, classes = "gr_unknown_model"),
                                    error = function(e) NULL)
-  info <- quiet(gr_model_info(m))
+  info <- quiet(hr_model_info(m))
   if (is.null(info)) return(NA_real_)
   out <- reasoning_output_cap(min(as_num1(max_output, 0), as_num1(info$max_output, Inf)),
                               info, input_tokens)
-  as_num1(quiet(gr_estimate_cost(m, input_tokens, out)), NA_real_)
+  as_num1(quiet(hr_estimate_cost(m, input_tokens, out)), NA_real_)
 }
 
 #' The largest of some token counts, 0 for none.
@@ -143,15 +143,15 @@ cut_piece <- function(text, n, where, trace, spec, name, marker = " ...[truncate
   pol <- spec[["context_policy", exact = TRUE]]
   if (is.null(pol) || name %in% pol$pin) {
     if (!is.null(pol)) {
-      have <- gr_count_tokens(as_chr1(text, ""))
+      have <- hr_count_tokens(as_chr1(text, ""))
       if (have > n) policy_unfit_warning(trace, where, name, have, n)
     }
     return(truncate_logged(text, n, where, trace, marker = marker, ...))
   }
   out <- hr_truncate(text, n, keep = piece_keep(pol, name), marker = marker, trace = trace,
                      where = where, piece = name)
-  list(text = out, dropped = as.integer(max(gr_count_tokens(as_chr1(text, "")) -
-                                              gr_count_tokens(out), 0)))
+  list(text = out, dropped = as.integer(max(hr_count_tokens(as_chr1(text, "")) -
+                                              hr_count_tokens(out), 0)))
 }
 
 #' Warn that a context policy's pinned pieces do not fit a request, so the
@@ -196,7 +196,7 @@ log_dropped_chunks <- function(trace, where, d, dropped, spec) {
   trace_note(trace, "truncate", list(
     where = where, piece = "chunks", keep = "whole chunks",
     dropped_part = paste("chunks", paste(d$chunk_id[dropped], collapse = ", ")),
-    tokens_dropped = as.integer(sum(gr_count_tokens(render_chunks(d[dropped, , drop = FALSE]))))))
+    tokens_dropped = as.integer(sum(hr_count_tokens(render_chunks(d[dropped, , drop = FALSE]))))))
   invisible(NULL)
 }
 

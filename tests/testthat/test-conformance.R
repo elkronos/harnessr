@@ -90,9 +90,9 @@ test_that("a reader that breaks the contract is reported, and still registered",
   gr_register_reader("sloppy", signature = "one|2|none", calls = "sloppy.answer",
     cost = function(input_stats, params) hr_cost(calls = 1),
     fn = function(chunks, question, client, spec, trace) {
-      a <- gr_call(client, list(list(role = "user", content = question)),
+      a <- hr_call(client, list(list(role = "user", content = question)),
                    model = spec$model, trace = trace, label = "sloppy.answer")
-      b <- gr_call(client, list(list(role = "user", content = question)),
+      b <- hr_call(client, list(list(role = "user", content = question)),
                    model = spec$model, trace = trace, label = "unlisted.step")
       ev <- data.frame(chunk_id = 999L, text = a$text, page = NA_integer_,
                        section = NA_character_, score = NA_real_, stringsAsFactors = FALSE)
@@ -124,7 +124,7 @@ test_that("a reader that errors fails `runs`, and one without a cost is not chec
 
   gr_register_reader("costless", signature = "one|1|none", calls = "costless.answer",
     fn = function(chunks, question, client, spec, trace) {
-      res <- gr_call(client, list(list(role = "user", content = question)),
+      res <- hr_call(client, list(list(role = "user", content = question)),
                      model = spec$model, trace = trace, label = "costless.answer")
       new_answer(res$text, "costless", question, chunks$chunks$chunk_id[1], trace)
     })
@@ -159,12 +159,12 @@ test_that("a segmenter that declares no calls is given the client passed to the 
   gr_register_segmenter("sneaky", calls = character(0),
     fn = function(doc, spec, client, trace) {
       if (!is.null(client)) {
-        gr_call(client, list(list(role = "user", content = "context")),
+        hr_call(client, list(list(role = "user", content = "context")),
                 model = spec$model, trace = trace, label = "undeclared.step")
       }
       new_chunks(c("Revenue was 45.2 million dollars.", "Costs rose."), "sneaky", spec)
     })
-  res <- quiet(gr_check_segmenter("sneaky", client = gr_mock_client()))
+  res <- quiet(gr_check_segmenter("sneaky", client = hr_mock_client()))
   expect_false(res$ok[res$rule == "calls_declared"])
   expect_match(res$detail[res$rule == "calls_declared"], "undeclared.step", fixed = TRUE)
   # With no client given, it is not handed the offline one.
@@ -229,7 +229,7 @@ test_that("extractors, cleaners, embedders and protocols that break the rules ar
   expect_setequal(failed, c("unit_rows", "deterministic"))
 
   gr_register_embedder("short", fn = function(texts, params) diag(2))
-  # gr_embed() refuses vectors for the wrong number of texts, so the run fails.
+  # hr_embed() refuses vectors for the wrong number of texts, so the run fails.
   res <- quiet(harnessr:::check_kind("embedder", "short"))
   expect_false(res$ok[res$rule == "runs"])
   expect_match(res$detail[res$rule == "runs"], "row", fixed = TRUE)
@@ -254,7 +254,7 @@ test_that("every reader and segmenter keeps its rules under each mock mode", {
   for (mode in modes) {
     label <- paste(mode, collapse = "-")
     for (r in gr_readers()$name) {
-      cl <- gr_mock_client(harnessr:::check_reply, mode = mode)
+      cl <- hr_mock_client(harnessr:::check_reply, mode = mode)
       res <- quiet(gr_check_reader(r, client = cl))
       expect_identical(no_failures(res), "",
                        label = sprintf("reader '%s' under mode %s", r, label))
@@ -262,7 +262,7 @@ test_that("every reader and segmenter keeps its rules under each mock mode", {
       expect_true(res$ok[res$rule == "calls_within_cost"] %in% c(TRUE, NA))
     }
     for (s in gr_segmenters()$name) {
-      cl <- gr_mock_client(harnessr:::check_reply, mode = mode)
+      cl <- hr_mock_client(harnessr:::check_reply, mode = mode)
       res <- quiet(gr_check_segmenter(s, client = cl))
       expect_identical(no_failures(res), "",
                        label = sprintf("segmenter '%s' under mode %s", s, label))
@@ -301,7 +301,7 @@ test_that("an answer cut short by a refused request must be marked partial", {
     cost = function(input_stats, params) hr_cost(calls = 1),
     fn = function(chunks, question, client, spec, trace) {
       texts <- vapply(1:3, function(i) {
-        gr_call(client, list(list(role = "user", content = question)), model = spec$model,
+        hr_call(client, list(list(role = "user", content = question)), model = spec$model,
                 trace = trace, label = "greedy.answer")$text
       }, character(1))
       ans <- new_answer(paste(texts, collapse = " "), "greedy", question,
@@ -314,12 +314,12 @@ test_that("an answer cut short by a refused request must be marked partial", {
   expect_true(res$ok[res$rule == "within_max_calls"])
   expect_true(res$ok[res$rule == "partial_when_capped"])
   # The rule itself fails an answer that is not marked partial.
-  tr <- gr_trace()
+  tr <- hr_trace()
   tr$budget_stop <- TRUE
   rule <- harnessr:::gr_rules_governor(tr, 1)$partial_when_capped
   got <- rule(structure(list(partial = FALSE), class = "gr_answer"))
   expect_false(got$ok)
   expect_match(got$detail, "not marked partial", fixed = TRUE)
-  expect_true(is.na(harnessr:::gr_rules_governor(gr_trace(), 1)$partial_when_capped(
+  expect_true(is.na(harnessr:::gr_rules_governor(hr_trace(), 1)$partial_when_capped(
     structure(list(partial = FALSE), class = "gr_answer"))$ok))
 })

@@ -143,7 +143,7 @@
 #' request, is cut to the text around what is highlighted, with each cut shown
 #' as "\[...\]".
 #' Last comes one row per request, from `as.data.frame()` on the answer's
-#' trace (see [gr_trace()]), without the prompts and replies. Where the answer
+#' trace (see [hr_trace()]), without the prompts and replies. Where the answer
 #' records which steps of a trace shared with other runs are its own, the
 #' requests, the rows and the cost are those steps only.
 #'
@@ -185,7 +185,7 @@
 #' @export
 #' @examples
 #' fields <- gr_fields(design = "The study design")
-#' cl <- gr_mock_client(function(messages, params) {
+#' cl <- hr_mock_client(function(messages, params) {
 #'   '{"design":"randomised trial","design__quote":"We ran a randomised trial."}'
 #' })
 #' f <- tempfile(fileext = ".txt"); writeLines("We ran a randomised trial.", f)
@@ -195,7 +195,7 @@
 #' file.exists(out)
 #'
 #' # One answer and the passages behind it.
-#' cl2 <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' cl2 <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 #' ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl2)
 #' page <- gr_audit_report(tempfile(fileext = ".html"), answer = ans, open = FALSE)
 gr_audit_report <- function(path, screening = NULL, extraction = NULL,
@@ -342,7 +342,7 @@ audit_head <- function(title) {
 #' The report is often written long after the run, by a later version, and a
 #' header that gave only the report's own time and version stated those as
 #' the run's. Each stage's time and version come from its trace, which records
-#' both when it is made (gr_trace()).
+#' both when it is made (hr_trace()).
 #' @noRd
 audit_header <- function(title, question, protocol, screening, extraction, synthesis,
                          answer = NULL, claims = NULL) {
@@ -368,7 +368,7 @@ audit_header <- function(title, question, protocol, screening, extraction, synth
 #' When each stage ran and the harnessr version that ran it, from its trace.
 #'
 #' `started` is when the stage's trace was made, shown in UTC, and the
-#' version is the one gr_trace() records in `meta` (under its old name,
+#' version is the one hr_trace() records in `meta` (under its old name,
 #' `readgpt`). A stage saved without a trace, or with one from before either
 #' was recorded, says "not recorded". A version other than the report's is
 #' flagged: prompts and readers change between versions.
@@ -1175,7 +1175,7 @@ audit_cost <- function(screening = NULL, extraction = NULL, synthesis = NULL, re
   if (!length(traces)) return(NULL)
   rows <- lapply(names(traces), function(nm) {
     x <- traces[[nm]]
-    cost <- gr_trace_cost(x$trace)
+    cost <- hr_trace_cost(x$trace)
     data.frame(stage = nm, calls = as.integer(x$trace$calls),
                cached = as.integer(x$trace$cached %||% 0L),
                tokens_in = as.integer(x$trace$tokens_in),
@@ -1230,7 +1230,7 @@ claims_cost_stage <- function(claims, outline_trace = NULL) {
   }
   req <- Filter(function(st) !identical(st$kind, "local") && !is.null(st$tokens), mine)
   if (!length(req)) return(NULL)
-  tr <- gr_trace(meta = list(stage = "claims"))
+  tr <- hr_trace(meta = list(stage = "claims"))
   tr$steps <- req
   tr$calls <- length(req)
   tr$cached <- sum(vapply(req, function(st) isTRUE(st$cached), logical(1)))

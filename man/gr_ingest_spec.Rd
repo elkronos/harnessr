@@ -116,7 +116,7 @@ Each setting's default, its tier and the evidence behind the value, as in
 \item \code{ocr_min_chars} (default \code{40}, advanced): untested. Set when OCR was added; not tuned.
 \item \code{min_chars} (default \code{20}, basic): untested. A floor that catches an empty extraction; not tuned.
 \item \code{extractor} (default \code{NULL}, advanced): untested. Not a tuned value: NULL chooses by file type.
-\item \code{parallel} (default \code{NULL}, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.
+\item \code{parallel} (default \code{NULL}, advanced): untested. Not a tuned value: NULL follows hr_options("parallel"). It does not change output.
 \item \code{cleaner_opts} (default \code{list()}, advanced): untested. Empty: each cleaner uses its own defaults, listed under \code{cleaner_opts}.
 \item \code{layout_opts} (default \code{list()}, advanced): untested. Empty: the pass uses the values it was written with, listed under \code{layout_opts}; none was tuned.
 \item \code{ocr_trigger} (default \code{"raw_text"}, advanced): untested. "raw_text" counts the whole text layer, as before; not compared with "after_running_lines".

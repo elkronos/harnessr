@@ -40,10 +40,10 @@ for \code{"llm"}, \code{blurbs_missing} (chunks left without a context line) and
 \code{blurbs_at_limit} (of those, how many were skipped at the run's call or
 cost limit), \code{cap_enforced} when oversized chunks had to be split.}
 \item{\code{trace}}{Set only when \code{\link[=gr_segment]{gr_segment()}} was called without a \code{trace}
-and so made its own: the \link{gr_trace} it recorded into, holding the
+and so made its own: the \code{gr_trace} (see \code{\link[=hr_trace]{hr_trace()}}) it recorded into, holding the
 requests the segmenter made (embeddings for \code{semantic}, model calls for
 \code{proposition} and for \code{contextual} with \code{context_source = "llm"}),
-which were held to \code{gr_options(max_calls =, max_cost_usd =)}. When a
+which were held to \code{hr_options(max_calls =, max_cost_usd =)}. When a
 \code{trace} is passed they are recorded there instead, and this field is
 absent.}
 }

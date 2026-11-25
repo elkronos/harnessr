@@ -8,12 +8,12 @@ cost_doc <- function(n = 6L) {
 
 priced_mock <- function(env = parent.frame()) {
   local_registries(env)
-  gr_register_model("cmp-priced", context_window = 8000, max_output = 500,
+  hr_register_model("cmp-priced", context_window = 8000, max_output = 500,
                     input_usd = 2, output_usd = 8)
-  gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 }
 
-usd_of <- function(trace) sum(gr_trace_cost(trace)$usd)
+usd_of <- function(trace) sum(hr_trace_cost(trace)$usd)
 
 two_readers <- function(segment = list(method = "paragraph", max_tokens = 40,
                                        overlap_tokens = 0)) {
@@ -29,7 +29,7 @@ test_that("each recipe's row says what its requests cost at the registered price
   expect_true(all(c("calls", "tokens_in", "tokens_out", "usd", "usd_estimated") %in% names(s)))
   expect_false(any(c("correct", "usd_per_correct") %in% names(s)))
   for (nm in s$recipe) {
-    own <- gr_trace_cost(cmp$answers[[nm]]$trace)
+    own <- hr_trace_cost(cmp$answers[[nm]]$trace)
     row <- s[s$recipe == nm, ]
     expect_equal(row$usd, sum(own$usd))
     expect_equal(row$calls, sum(own$calls))
@@ -46,7 +46,7 @@ test_that("each recipe's row says what its requests cost at the registered price
 test_that("a shared chunking is charged to every recipe that used it", {
   cl <- priced_mock()
   # The chunk contexts are written by the mock's own model, so price it too.
-  gr_register_model("mock-model", context_window = 128000L, max_output = 16384L,
+  hr_register_model("mock-model", context_window = 128000L, max_output = 16384L,
                     input_usd = 1, output_usd = 4)
   seg <- list(method = "contextual", context_source = "llm", max_tokens = 40,
               overlap_tokens = 0)
@@ -146,14 +146,14 @@ test_that("a recipe a spending limit stopped before it found anything is not kno
   # Room for the first recipe and nothing after it. A request is sent only
   # when its worst case fits what is left, so the limit is the first recipe's
   # request at its worst, read from the refusal of a run that cannot afford it.
-  old <- gr_options("max_cost_usd")
-  on.exit(gr_options(max_cost_usd = old), add = TRUE)
-  gr_options(max_cost_usd = one$summary$usd * 1.01)
+  old <- hr_options("max_cost_usd")
+  on.exit(hr_options(max_cost_usd = old), add = TRUE)
+  hr_options(max_cost_usd = one$summary$usd * 1.01)
   probe <- quiet(gr_compare(cost_doc(), "What was revenue?", two_readers()[1], client = cl,
                             model = "cmp-priced"))
   worst <- Filter(function(r) identical(r$label, "stuff.answer"), probe$trace$refusals)
   expect_length(worst, 1L)
-  gr_options(max_cost_usd = worst[[1]]$worst_usd)
+  hr_options(max_cost_usd = worst[[1]]$worst_usd)
   cmp <- quiet(gr_compare(cost_doc(), "What was revenue?", two_readers(), client = cl,
                           model = "cmp-priced", correct = "45.2 million"))
   s <- cmp$summary
@@ -184,7 +184,7 @@ test_that("a failed recipe is wrong, and keeps the cost of what it sent", {
 
 test_that("a free model's wrong answer has no cost per right answer", {
   local_registries()
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   cmp <- quiet(gr_compare(cost_doc(), "What was revenue?", two_readers()[1], client = cl,
                           correct = "99 million"))
   expect_equal(cmp$summary$usd, 0)
@@ -195,7 +195,7 @@ test_that("a free model's wrong answer has no cost per right answer", {
 
 test_that("an unpriced model leaves the cost unknown, not zero", {
   local_registries()
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   cmp <- quiet(gr_compare(cost_doc(), "What was revenue?", two_readers()[1], client = cl,
                           model = "cmp-unpriced-model", correct = "45.2 million"))
   expect_true(is.na(cmp$summary$usd))
@@ -225,7 +225,7 @@ test_that("the estimated share follows the step provenance on a mock run", {
 
 test_that("the estimated share is of the dollars, over requests that say how they counted", {
   local_registries()
-  gr_register_model("cmp-priced", context_window = 8000, max_output = 500,
+  hr_register_model("cmp-priced", context_window = 8000, max_output = 500,
                     input_usd = 1, output_usd = 0)
   step <- function(input, prov, cached = FALSE) {
     list(model = "cmp-priced", ok = TRUE, cached = cached,
@@ -235,7 +235,7 @@ test_that("the estimated share is of the dollars, over requests that say how the
                                       step(600, NA_character_)))
   expect_equal(cost$calls, 3L)
   expect_equal(cost$tokens_in, 1000L)
-  expect_equal(cost$usd, as.numeric(gr_estimate_cost("cmp-priced", 1000L, 0L)))
+  expect_equal(cost$usd, as.numeric(hr_estimate_cost("cmp-priced", 1000L, 0L)))
   # 300 of the 400 tokens whose provenance is known were estimated.
   expect_equal(cost$usd_estimated, 0.75)
 
@@ -255,9 +255,9 @@ test_that("the estimated share is of the dollars, over requests that say how the
 
 test_that("max_tokens_total holds across the comparison, not per recipe", {
   local_registries()
-  old <- gr_options("max_tokens_total")
-  on.exit(gr_options(max_tokens_total = old), add = TRUE)
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  old <- hr_options("max_tokens_total")
+  on.exit(hr_options(max_tokens_total = old), add = TRUE)
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   recs <- two_readers()
   recs$mapped <- gr_recipe("again", segment = recs$stuffed$segment,
                            read = list(reader = "stuff", temperature = 0.5))
@@ -266,14 +266,14 @@ test_that("max_tokens_total holds across the comparison, not per recipe", {
   used <- tokens(one$trace)
   # The worst case of the recipe's one request, read from the refusal of a run
   # that cannot afford it.
-  gr_options(max_tokens_total = used)
+  hr_options(max_tokens_total = used)
   probe <- quiet(gr_compare(cost_doc(), "What was revenue?", recs[1], client = cl))
   msg <- probe$trace$refusals[[1]]$message
   worst <- as.numeric(sub(".*could use up to ([0-9]+) tokens.*", "\\1", msg))
   expect_gt(worst, used)
   # Room for either recipe alone, not for both.
   limit <- worst + used %/% 2
-  gr_options(max_tokens_total = limit)
+  hr_options(max_tokens_total = limit)
   cmp <- quiet(gr_compare(cost_doc(), "What was revenue?", recs, client = cl,
                           correct = "45.2 million"))
   expect_lte(tokens(cmp$trace), limit)
@@ -285,11 +285,11 @@ test_that("max_tokens_total holds across the comparison, not per recipe", {
 
 test_that("a recipe on an unpriced model under a spending limit is not known, not wrong", {
   local_registries()
-  old <- gr_options("max_cost_usd")
-  on.exit(gr_options(max_cost_usd = old), add = TRUE)
-  gr_options(max_cost_usd = 1)
+  old <- hr_options("max_cost_usd")
+  on.exit(hr_options(max_cost_usd = old), add = TRUE)
+  hr_options(max_cost_usd = 1)
   # A mock is never refused as unpriced; a backend client is.
-  cl <- gr_backend_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_backend_client(function(m, p) "Revenue was 45.2 million dollars.")
   cmp <- quiet(gr_compare(cost_doc(), "What was revenue?", two_readers()[1], client = cl,
                           model = "cmp-unpriced-model", correct = "45.2 million"))
   expect_identical(cmp$summary$calls, 0L)

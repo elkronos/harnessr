@@ -163,7 +163,7 @@ A passage over 6,000 characters, such as a whole document sent in one
 request, is cut to the text around what is highlighted, with each cut shown
 as "[...]".
 Last comes one row per request, from \code{as.data.frame()} on the answer's
-trace (see \code{\link[=gr_trace]{gr_trace()}}), without the prompts and replies. Where the answer
+trace (see \code{\link[=hr_trace]{hr_trace()}}), without the prompts and replies. Where the answer
 records which steps of a trace shared with other runs are its own, the
 requests, the rows and the cost are those steps only.
 
@@ -208,7 +208,7 @@ an \code{effort} column.
 
 \examples{
 fields <- gr_fields(design = "The study design")
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   '{"design":"randomised trial","design__quote":"We ran a randomised trial."}'
 })
 f <- tempfile(fileext = ".txt"); writeLines("We ran a randomised trial.", f)
@@ -218,7 +218,7 @@ out <- gr_audit_report(tempfile(fileext = ".html"), extraction = x, open = FALSE
 file.exists(out)
 
 # One answer and the passages behind it.
-cl2 <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl2 <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl2)
 page <- gr_audit_report(tempfile(fileext = ".html"), answer = ans, open = FALSE)
 }

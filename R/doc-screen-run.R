@@ -47,7 +47,7 @@ read_screen <- function(chunks, question, client, spec, trace) {
   schema <- if (per_criterion) screen_schema_per_criterion(include, exclude) else .gr_screen_schema
   # "never": the message list below carries the question once.
   overhead <- prompt_overhead(paste(question, listing), .gr_prompts$screen_system, "never")
-  bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
+  bud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   cap <- min(bud$input, as_int1(spec[["screen_tokens"]], bud$input))
 
   # A CONTIGUOUS opening, not the chunks that happen to fit. What a screener
@@ -375,7 +375,7 @@ combine_draws <- function(js, rule = "include_if_any") {
 #' @seealso [gr_protocol()], [gr_extract()], [gr_read_many()]
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(messages, params) {
+#' cl <- hr_mock_client(function(messages, params) {
 #'   '{"decision":"include","reason":"Reports a randomised comparison.",
 #'     "criterion":"Reports a randomised comparison",
 #'     "quote":"We randomly assigned participants to two groups."}'
@@ -596,25 +596,25 @@ criteria_prompt <- function(include, exclude) {
 screen_opening <- function(row, cap) {
   bare <- row
   bare$text <- ""
-  room <- cap - gr_count_tokens(render_chunks(bare))
+  room <- cap - hr_count_tokens(render_chunks(bare))
   for (attempt in 1:3) {
     if (room <= 0) return(NULL)
-    # A generous character prefix first: gr_truncate_tokens() searches the whole
+    # A generous character prefix first: hr_truncate_tokens() searches the whole
     # text for the boundary, and a chunk of 100,000 words cut to 300 tokens took
     # a second. Sixteen characters a token is more than any text needs to hold
     # `room` tokens; where it does not, the whole text is searched as before.
     cut <- ""
     if (nchar(row$text) > room * 16) {
       pre <- substr(row$text, 1L, room * 16)
-      if (gr_count_tokens(pre) > room) cut <- gr_truncate_tokens(pre, room, marker = "")
+      if (hr_count_tokens(pre) > room) cut <- hr_truncate_tokens(pre, room, marker = "")
     }
-    if (!nzchar(cut)) cut <- gr_truncate_tokens(row$text, room, marker = "")
+    if (!nzchar(cut)) cut <- hr_truncate_tokens(row$text, room, marker = "")
     if (!nzchar(trimws(cut))) return(NULL)
     try_row <- row
     try_row$text <- cut
-    over <- gr_count_tokens(render_chunks(try_row)) - cap
+    over <- hr_count_tokens(render_chunks(try_row)) - cap
     if (over <= 0) {
-      try_row$tokens <- as.integer(gr_count_tokens(cut))
+      try_row$tokens <- as.integer(hr_count_tokens(cut))
       if (!is.null(try_row$chars)) try_row$chars <- nchar(cut)
       return(try_row)
     }

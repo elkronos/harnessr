@@ -75,7 +75,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
       out
     }))
   }
-  parallel <- isTRUE(parallel %||% gr_options("parallel"))
+  parallel <- isTRUE(parallel %||% hr_options("parallel"))
   if (!parallel || length(x) <= 1L) return(sequential())
   # Room for one more call is not room for the batch. That used to be the only
   # check, so a batch went out whole whenever the run had any headroom at all:
@@ -115,7 +115,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   # alone, a replay of a recorded batch stopped at a different item from the
   # recording, and said nothing of it.
   if (inherits(client, "gr_replay_client")) {
-    if (as.integer(clamp(workers %||% gr_options("workers"), 1, 32)) <= 1L) return(sequential())
+    if (as.integer(clamp(workers %||% hr_options("workers"), 1, 32)) <= 1L) return(sequential())
     gr_msg(sprintf("Running %d %s(s) one at a time: a replay hands out its recording in order.",
                    length(x), label))
     parent_meta <- if (inherits(trace, "gr_trace")) trace$meta else list()
@@ -134,28 +134,28 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
     return(sequential())
   }
 
-  workers <- as.integer(clamp(workers %||% gr_options("workers"), 1, 32))
+  workers <- as.integer(clamp(workers %||% hr_options("workers"), 1, 32))
   # One worker is this process by another route: future evaluates the futures
   # of a one-worker multisession plan here, so each item updated the client's
   # own log and cache counters in place, and the merge below then added what
-  # the item reported a second time. $calls() and gr_cache_stats() counted
+  # the item reported a second time. $calls() and hr_cache_stats() counted
   # every call twice. One worker gains nothing, so the batch runs here.
   if (workers <= 1L) return(sequential())
   # Workers are separate processes: the API key lives in this process's
   # environment and must be carried across explicitly. A worker sets it for
-  # each item, because a backend handler or gr_ellmer_client() reads it from
+  # each item, because a backend handler or hr_ellmer_client() reads it from
   # the environment itself. A mock client never sends it, so it gets none.
   key <- if (inherits(client, "gr_mock_client")) "" else
-    as_chr1(key %||% tryCatch(gr_api_key(), error = function(e) ""), "")
-  opts <- gr_options()
+    as_chr1(key %||% tryCatch(hr_api_key(), error = function(e) ""), "")
+  opts <- hr_options()
   # The registries travel too. `future.packages` names this package, so the
   # worker loads it and re-runs .onLoad(), which registers the BUILT-INS and
-  # nothing else. So a model registered with gr_register_model() was unknown
+  # nothing else. So a model registered with hr_register_model() was unknown
   # there, and the worker read with the fallback context window instead of the
   # one the caller set (4000 output tokens against a real ceiling of 512).
   # Options crossed and the registry they refer to did not, which is worse
   # than neither crossing:
-  # gr_options(tokenizer = "mytok") arrived naming a function that was not
+  # hr_options(tokenizer = "mytok") arrived naming a function that was not
   # there, and the parallel run aborted where the sequential one succeeded.
   regs <- worker_state()
   # The user's own functions travel inside those, and inside the client: a mock
@@ -185,7 +185,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
 
   # A worker is a separate PROCESS, so the trace it is handed is a copy and
   # every call it records is thrown away with it. That is not a cosmetic loss:
-  # the trace is where the token totals, gr_trace_cost() and the run's own
+  # the trace is where the token totals, hr_trace_cost() and the run's own
   # account of what it did all come from, so `parallel = TRUE` used to buy speed
   # by silently under-reporting the run in proportion to how parallel it was.
   #
@@ -197,7 +197,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   # The same holds for what the client keeps: a mock's or backend's log of the
   # calls it answered, and an attached cache's hit, miss and write counts. A
   # worker's copy recorded them and was thrown away, so $calls() came back
-  # empty after a parallel run and gr_cache_stats() counted one call in seven.
+  # empty after a parallel run and hr_cache_stats() counted one call in seven.
   # Each item reports what it added, and the parent adds it back in the order
   # of `x`, as it does the traces. Written out here and in worker_item()'s
   # closure rather than as package helpers, because a worker resolves package
@@ -399,7 +399,7 @@ worker_item <- function(fn, ctx, state) {
     }
     for (layer in ctx$regs$layers) layer$restore(layer$values)
     # Held to the item's share of the run's limits (batch_share()).
-    sub <- gr_trace(meta = ctx$parent_meta, governor = ctx$governor)
+    sub <- hr_trace(meta = ctx$parent_meta, governor = ctx$governor)
     # The run's draw, so each item's request is the draw the run's would be.
     if (!is.null(ctx$draw$index)) sub$draw_index <- ctx$draw$index
     if (!is.null(ctx$draw$scope)) sub$draw_scope <- ctx$draw$scope
@@ -426,7 +426,7 @@ worker_item <- function(fn, ctx, state) {
 
 #' The user's own functions a batch runs in its workers.
 #'
-#' Every item of every batch makes its one request through gr_call(), which
+#' Every item of every batch makes its one request through hr_call(), which
 #' calls the client's handler (a mock's or a backend's) and counts tokens with
 #' the tokenizer in use. Nothing else of the user's runs there: readers,
 #' segmenters, embedders, cleaners and extractors, and the client's embedding

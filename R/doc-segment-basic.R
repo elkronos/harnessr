@@ -17,7 +17,7 @@ seg_fixed <- function(doc, spec, client, trace) {
   # growing one word at a time: that re-counted the whole window at every word,
   # so a window cost O(W^2) and a 1e5-token cap took minutes on a long report.
   n <- length(w)
-  count_words <- function(a, b) gr_count_tokens(paste(w[a:b], collapse = " "))
+  count_words <- function(a, b) hr_count_tokens(paste(w[a:b], collapse = " "))
   txt <- list()
   i <- 1L
   while (i <= n) {
@@ -137,7 +137,7 @@ seg_paragraph_grouped <- function(doc, spec) {
     if (is.na(first_row)) first_row <- 1L
     num <- first_row + seq_along(rows) - 1L
     rest <- seq_along(rows)[-1L]
-    room <- spec$max_tokens - gr_count_tokens(paste0(rows[1], "\n"))
+    room <- spec$max_tokens - hr_count_tokens(paste0(rows[1], "\n"))
     with_header <- length(rest) > 0L && room >= 16L
     # Each group keeps the text pack_units() gave it. A row longer than the
     # cap is split into pieces whose spans all point at that one row, so
@@ -222,14 +222,14 @@ seg_recursive <- function(doc, spec, client, trace) {
     vapply(split(parts, grp), paste, character(1), collapse = "", USE.NAMES = FALSE)
   }
   split_rec <- function(txt, depth) {
-    if (gr_count_tokens(txt) <= spec$max_tokens) return(txt)
+    if (hr_count_tokens(txt) <= spec$max_tokens) return(txt)
     if (depth > length(cuts)) {
       return(split_by_budget(strsplit(txt, "", fixed = TRUE)[[1]], "", spec$max_tokens))
     }
     parts <- glue_blank(split_at(txt, depth))
     if (length(parts) <= 1L) return(split_rec(txt, depth + 1L))
     unlist(lapply(parts, function(p) {
-      if (gr_count_tokens(p) <= spec$max_tokens) p else split_rec(p, depth + 1L)
+      if (hr_count_tokens(p) <= spec$max_tokens) p else split_rec(p, depth + 1L)
     }), use.names = FALSE)
   }
   pieces <- split_rec(mark_utf8(doc$text), 1L)
@@ -286,7 +286,7 @@ seg_page <- function(doc, spec, client, trace) {
     joined <- paste(b$text[idx], collapse = "\n\n")
     # A page over the cap is split rather than sent oversized, but the split is
     # reported so the user knows the page/chunk correspondence broke.
-    parts <- if (gr_count_tokens(joined) > spec$max_tokens) {
+    parts <- if (hr_count_tokens(joined) > spec$max_tokens) {
       gr_msg(sprintf("Page %s exceeds the %d-token cap; splitting it into parts.",
                      if (is.na(nm)) "(none)" else nm, spec$max_tokens))
       hard_split(joined, spec$max_tokens)

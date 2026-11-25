@@ -81,7 +81,7 @@ gr_extractors <- function() {
 
 #' Find the extractor that claims an extension.
 #'
-#' LAST registration wins, matching [gr_register_model()]'s "registered entries
+#' LAST registration wins, matching [hr_register_model()]'s "registered entries
 #' take precedence" rule. Scanning forwards let the built-ins keep every
 #' extension forever: `gr_register_extractor("my_pdf", "pdf", ...)` appeared to
 #' succeed, showed up in `gr_extractors()`, and was then never called, because

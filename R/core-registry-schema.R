@@ -26,7 +26,7 @@ as_spec_list <- function(x, what = "spec") {
 #' thirty defaults; `format_settings()` makes it one readable string.
 #'
 #' Defaults are taken from the constructor at the time of the call, so a
-#' `model` or `parallel` that merely follows `gr_options()` is not reported as
+#' `model` or `parallel` that merely follows `hr_options()` is not reported as
 #' a setting.
 #' @noRd
 spec_settings <- function(spec, defaults, drop = character(0)) {

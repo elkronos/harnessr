@@ -198,7 +198,7 @@
 #' the sentence it was taken from and a check that the sentence is really there.
 #'
 #' @seealso [gr_fields()], [gr_protocol()], [gr_read_many()],
-#'   [gr_verify_evidence()], [gr_trace_cost()]
+#'   [gr_verify_evidence()], [hr_trace_cost()]
 #' @export
 #' @examples
 #' fields <- gr_fields(
@@ -207,7 +207,7 @@
 #' )
 #'
 #' # A mock that fills the form, so the example runs offline.
-#' cl <- gr_mock_client(function(messages, params) {
+#' cl <- hr_mock_client(function(messages, params) {
 #'   '{"design":"randomised controlled trial","n":120,
 #'     "design__quote":"We ran a randomised controlled trial.",
 #'     "n__quote":"We enrolled 120 participants."}'
@@ -380,7 +380,7 @@ print.gr_extraction <- function(x, ...) {
                                        100 * mean(m >= 1)) else "",
                 if (length(v)) sprintf(", %.0f%% verified", 100 * mean(v)) else ""))
   }
-  cost <- gr_trace_cost(x$trace)
+  cost <- hr_trace_cost(x$trace)
   total <- if (nrow(cost)) sum(cost$usd) else 0
   # format_call_counts(): the trace's `calls` counts embeddings requests too,
   # and printed them as model calls.

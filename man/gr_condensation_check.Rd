@@ -113,7 +113,7 @@ head(chk$items[, c("item", "kind", "question", "answer", "lure")])
 
 # Two arms that differ only in what refine carries, on a stand-in model
 # that answers every question with the planted budget.
-cl <- gr_mock_client(function(m, p) {
+cl <- hr_mock_client(function(m, p) {
   if (grepl("Reply with the edits", m[[length(m)]]$content, fixed = TRUE)) return("NONE")
   "The budget was 41.3 million dollars."
 })

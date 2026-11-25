@@ -135,7 +135,7 @@ numbers (with sign, a comparison sign before them and unit, such as
 "-12\%", "< 0.05" or "45.2 million"), numbers written in words ("twelve")
 and negations are the window's, exactly. \code{quote_status} is \code{"verbatim"}
 for no edit; \code{"near_verbatim"} for a similarity of at least 0.90 (0.95
-under 40 characters; see \code{near_verbatim_sim} in \code{\link[=gr_options]{gr_options()}}) with the
+under 40 characters; see \code{near_verbatim_sim} in \code{\link[=hr_options]{hr_options()}}) with the
 critical tokens identical and five words or more; \code{"unverified"} otherwise; and \code{"not_checked"} where there was nothing
 to compare, or where a passage was too long to score: the edit table has a
 cell for each pair of characters, and a passage whose length times the
@@ -158,7 +158,7 @@ listed in \code{ans$notes$cited_unparsed} and makes the answer \code{partial} to
 
 \examples{
 # A model that quotes faithfully.
-honest <- gr_mock_client(function(messages, params) {
+honest <- hr_mock_client(function(messages, params) {
   txt <- messages[[length(messages)]]$content
   if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) {
     return("Revenue rose to 45.2 million dollars.")
@@ -173,7 +173,7 @@ gr_verify_evidence(ans)
 
 # A model that invents one. The span is fluent, plausible, and not in the
 # document. That is exactly the case a reader cannot catch by eye.
-liar <- gr_mock_client(function(messages, params) {
+liar <- hr_mock_client(function(messages, params) {
   if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) {
     return("Revenue rose to 88.9 billion dollars on record demand.")
   }

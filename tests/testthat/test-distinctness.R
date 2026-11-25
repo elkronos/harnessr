@@ -181,8 +181,8 @@ test_that("a failed recipe is recorded, not deleted from the results", {
   doc_text <- sample_doc(4, 4)
   bad <- gr_recipe("bad", segment = list(method = "sentence", max_tokens = 60),
                    read = list(reader = "map_reduce", model = "gpt-4o"))
-  old <- gr_options(max_calls = 3L)
-  on.exit(gr_options(old), add = TRUE)
+  old <- hr_options(max_calls = 3L)
+  on.exit(hr_options(old), add = TRUE)
   cmp <- quiet(gr_compare(doc_text, "Q?",
                           list(gr_recipe("ok", segment = list(method = "paragraph",
                                                               max_tokens = 4000),
@@ -266,7 +266,7 @@ test_that("iterative stops at max_rounds and still answers from what it gathered
 
 test_that("hierarchical really recurses when the summaries do not fit", {
   local_registries()
-  gr_register_model("small-window", context_window = 900L, max_output = 200L,
+  hr_register_model("small-window", context_window = 900L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
   ch <- gr_segment(gr_ingest(sample_doc(6, 5)), list(method = "paragraph", max_tokens = 60))
   n <- nrow(ch$chunks)
@@ -290,7 +290,7 @@ test_that("hierarchical really recurses when the summaries do not fit", {
 
 test_that("max_levels caps the recursion and says so rather than truncating in silence", {
   local_registries()
-  gr_register_model("small-window", context_window = 900L, max_output = 200L,
+  hr_register_model("small-window", context_window = 900L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
   ch <- gr_segment(gr_ingest(sample_doc(6, 5)), list(method = "paragraph", max_tokens = 60))
   cl <- mock_bulky()
@@ -305,7 +305,7 @@ test_that("max_levels caps the recursion and says so rather than truncating in s
 
 test_that("skim_model and summary_model route the cheap pass off the answer model", {
   local_registries()
-  gr_register_model("cheap-model", context_window = 128000L, max_output = 4096L,
+  hr_register_model("cheap-model", context_window = 128000L, max_output = 4096L,
                     input_usd = 0, output_usd = 0)
   ch <- gr_segment(gr_ingest(sample_doc(3, 3)), list(method = "paragraph", max_tokens = 120))
   models_by_label <- function(cl) {
@@ -322,7 +322,7 @@ test_that("skim_model and summary_model route the cheap pass off the answer mode
   expect_true(all(m[names(m) == "skim.extract"] == "cheap-model"))
   expect_true(all(m[names(m) != "skim.extract"] == "mock-model"))
 
-  gr_register_model("small-window", context_window = 900L, max_output = 200L,
+  hr_register_model("small-window", context_window = 900L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
   ch2 <- gr_segment(gr_ingest(sample_doc(6, 5)), list(method = "paragraph", max_tokens = 60))
   cl2 <- mock_bulky()
@@ -424,7 +424,7 @@ test_that("survey defaults an unplanned section to read, never to skip", {
   # it" -- the opposite default would let a malformed reply drop a document's
   # contents without anything saying so.
   ch <- gr_segment(gr_ingest(sample_doc(4, 3)), list(method = "structural", max_tokens = 150))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("You plan how to read a document", messages[[1]]$content, fixed = TRUE)) {
       return(preview_plan_json_ids(c(1L), "skip"))   # speaks about section 1 only
     }
@@ -452,7 +452,7 @@ test_that("survey demotes to skim what will not fit, rather than dropping it", {
   # not fit still gets one look; it does not vanish because the planner was
   # optimistic.
   local_registries()
-  gr_register_model("small-window", context_window = 1200L, max_output = 200L,
+  hr_register_model("small-window", context_window = 1200L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
   ch <- gr_segment(gr_ingest(sample_doc(6, 4)), list(method = "structural", max_tokens = 120))
   cl <- mock_planner(rep("read", 6))

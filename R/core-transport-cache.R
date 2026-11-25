@@ -34,7 +34,7 @@
 
 #' A response cache
 #'
-#' Wrap a client with [gr_cache_client()] and every successful model call is
+#' Wrap a client with [hr_cache_client()] and every successful model call is
 #' written to disk, keyed on the exact request. Re-issuing the same request
 #' returns the stored response without touching the network: free, instant, and
 #' byte-identical even at a temperature above zero. A failed call is never
@@ -53,9 +53,9 @@
 #' it; new entries go only to the harnessr directory, and the old one is never
 #' cleared.
 #'
-#' Cross-session reuse needs a client that can say what it is. [gr_client()] and
-#' [gr_ellmer_client()] can: an endpoint and a model describe what will answer
-#' next month as well as today. A bare [gr_backend_client()] cannot, because what
+#' Cross-session reuse needs a client that can say what it is. [hr_client()] and
+#' [hr_ellmer_client()] can: an endpoint and a model describe what will answer
+#' next month as well as today. A bare [hr_backend_client()] cannot, because what
 #' answers is an R closure, so by default it gets a fresh identity per object and
 #' its entries are session-scoped. Give it a stable `id` to opt in.
 #'
@@ -90,7 +90,7 @@
 #' At a temperature above zero a cache hit replays one sample rather than
 #' drawing a new one. That is the point: it is what makes a run reproducible.
 #' But it means N identical calls are one draw N times. To keep N draws, give
-#' each call its own `draw_index` (see [gr_call()]): it is part of the key when
+#' each call its own `draw_index` (see [hr_call()]): it is part of the key when
 #' it is above 0, so draws 1 to N are N entries, and a rerun gets the same N
 #' replies back in the same order. A call with the default `draw_index = 0`
 #' keys as an unsampled call always has. Use a fresh cache directory, or
@@ -103,25 +103,25 @@
 #' read. A call with no draw index that finds nothing under its key is looked
 #' up under the old key too, and a reply found there is used. The first such
 #' hit in a session warns once for the cache, with class `hr_legacy_key`, and
-#' [gr_cache_stats()] counts them as `legacy_hits`. Old entries are never
+#' [hr_cache_stats()] counts them as `legacy_hits`. Old entries are never
 #' rewritten, and new ones are written under the new key only, so a cache
 #' directory stays readable by the version that wrote it.
 #'
-#' @seealso [gr_cache_client()] to attach one, [gr_cache_stats()],
-#'   [gr_cache_clear()], [gr_replay_client()] for reproducing a recorded run
+#' @seealso [hr_cache_client()] to attach one, [hr_cache_stats()],
+#'   [hr_cache_clear()], [hr_replay_client()] for reproducing a recorded run
 #' @export
 #' @examples
-#' cache <- gr_cache(dir = file.path(tempdir(), "harnessr-example-cache"))
+#' cache <- hr_cache(dir = file.path(tempdir(), "harnessr-example-cache"))
 #' cache
 #'
 #' # Nothing is written until a call is cached.
-#' gr_cache_stats(cache)[c("entries", "hits", "misses")]
-gr_cache <- function(dir = NULL, read = TRUE, write = TRUE) {
+#' hr_cache_stats(cache)[c("entries", "hits", "misses")]
+hr_cache <- function(dir = NULL, read = TRUE, write = TRUE) {
   # `%||%` falls back only for NULL, so "" (Sys.getenv() of an unset variable)
   # and NA (which as_chr1() turns into "") were kept. file.path("", "ab", key)
   # is "/ab/key.rds": as a normal user nothing was ever written and the run was
   # not resumable, as root the entries went into the filesystem root, and
-  # cache_files() skips "" so gr_cache_stats() and gr_cache_clear() could not
+  # cache_files() skips "" so hr_cache_stats() and hr_cache_clear() could not
   # see them either way. An explicit value is refused, as an empty header value
   # is; an unset option is unset.
   if (!is.null(dir) &&
@@ -130,7 +130,7 @@ gr_cache <- function(dir = NULL, read = TRUE, write = TRUE) {
                     "variable is not set. Pass NULL for a cache that lasts this session."),
              class = "gr_bad_setting")
   }
-  dir <- dir %||% (gr_options("cache_dir") %|z|% default_cache_dir())
+  dir <- dir %||% (hr_options("cache_dir") %|z|% default_cache_dir())
   st <- new.env(parent = emptyenv())
   st$hits <- 0L
   st$misses <- 0L
@@ -146,7 +146,7 @@ gr_cache <- function(dir = NULL, read = TRUE, write = TRUE) {
 
 #' @export
 print.gr_cache <- function(x, ...) {
-  s <- gr_cache_stats(x)
+  s <- hr_cache_stats(x)
   cat(sprintf("<gr_cache> %s\n", x$dir))
   cat(sprintf("  %d entr%s, %s on disk; %d hit(s), %d miss(es), %d write(s)%s\n",
               s$entries, if (identical(s$entries, 1L)) "y" else "ies",
@@ -164,28 +164,28 @@ print.gr_cache <- function(x, ...) {
 #' still a mock client and `$calls()` still records only the calls that were
 #' issued, which is how you check that the cache is working.
 #'
-#' @param client A [gr_client()] or [gr_mock_client()].
-#' @param cache A [gr_cache()]. Pass `NULL` to detach.
+#' @param client An [hr_client()] or [hr_mock_client()].
+#' @param cache An [hr_cache()]. Pass `NULL` to detach.
 #' @return The client, with the cache attached.
-#' @seealso [gr_cache()], [gr_cache_stats()]
+#' @seealso [hr_cache()], [hr_cache_stats()]
 #' @export
 #' @examples
 #' calls <- 0
-#' cl <- gr_mock_client(function(m, p) { calls <<- calls + 1; "42" })
-#' cl <- gr_cache_client(cl, gr_cache(file.path(tempdir(), "harnessr-doc-cache")))
+#' cl <- hr_mock_client(function(m, p) { calls <<- calls + 1; "42" })
+#' cl <- hr_cache_client(cl, hr_cache(file.path(tempdir(), "harnessr-doc-cache")))
 #'
-#' gr_call(cl, "What is the answer?")$text
-#' gr_call(cl, "What is the answer?")$text   # served from the cache
+#' hr_call(cl, "What is the answer?")$text
+#' hr_call(cl, "What is the answer?")$text   # served from the cache
 #' calls                                     # the handler ran once
 #'
 #' # A cache hit is marked, so a trace can tell spending from replay.
-#' gr_call(cl, "What is the answer?")$cached
-gr_cache_client <- function(client, cache = gr_cache()) {
+#' hr_call(cl, "What is the answer?")$cached
+hr_cache_client <- function(client, cache = hr_cache()) {
   if (!inherits(client, "gr_client")) {
-    gr_abort("`client` must come from gr_client() or gr_mock_client().")
+    gr_abort("`client` must come from hr_client() or hr_mock_client().")
   }
   if (!is.null(cache) && !inherits(cache, "gr_cache")) {
-    gr_abort("`cache` must come from gr_cache(), or be NULL to detach.")
+    gr_abort("`cache` must come from hr_cache(), or be NULL to detach.")
   }
   client$.cache <- cache
   client
@@ -193,21 +193,21 @@ gr_cache_client <- function(client, cache = gr_cache()) {
 
 #' Cache statistics
 #'
-#' @param cache A [gr_cache()].
+#' @param cache An [hr_cache()].
 #' @return A one-row data frame: `dir`, `entries`, `bytes`, `hits`, `misses`,
 #'   `writes` and `legacy_hits`. `entries` and `bytes` are read from disk, so
 #'   they include entries written by earlier sessions; the counters cover this
 #'   session only. `legacy_hits` is how many of the hits were found under the
-#'   old `readgpt-cache-v2` key (see [gr_cache()]).
-#' @seealso [gr_cache()], [gr_cache_clear()]
+#'   old `readgpt-cache-v2` key (see [hr_cache()]).
+#' @seealso [hr_cache()], [hr_cache_clear()]
 #' @export
 #' @examples
-#' cache <- gr_cache(file.path(tempdir(), "harnessr-stats-cache"))
-#' cl <- gr_cache_client(gr_mock_client(function(m, p) "hi"), cache)
-#' invisible(gr_call(cl, "one"))
-#' invisible(gr_call(cl, "one"))
-#' gr_cache_stats(cache)[c("entries", "hits", "misses", "writes")]
-gr_cache_stats <- function(cache) {
+#' cache <- hr_cache(file.path(tempdir(), "harnessr-stats-cache"))
+#' cl <- hr_cache_client(hr_mock_client(function(m, p) "hi"), cache)
+#' invisible(hr_call(cl, "one"))
+#' invisible(hr_call(cl, "one"))
+#' hr_cache_stats(cache)[c("entries", "hits", "misses", "writes")]
+hr_cache_stats <- function(cache) {
   stopifnot(inherits(cache, "gr_cache"))
   files <- cache_files(cache$dir)
   data.frame(
@@ -231,17 +231,17 @@ gr_cache_stats <- function(cache) {
 #' (a [gr_read_many()] store, your own files): only files in the cache's own
 #' layout are removed.
 #'
-#' @param cache A [gr_cache()].
+#' @param cache An [hr_cache()].
 #' @return The number of entries removed, invisibly.
-#' @seealso [gr_cache()], [gr_cache_stats()]
+#' @seealso [hr_cache()], [hr_cache_stats()]
 #' @export
 #' @examples
-#' cache <- gr_cache(file.path(tempdir(), "harnessr-clear-cache"))
-#' cl <- gr_cache_client(gr_mock_client(function(m, p) "hi"), cache)
-#' invisible(gr_call(cl, "something"))
-#' gr_cache_clear(cache)
-#' gr_cache_stats(cache)$entries
-gr_cache_clear <- function(cache) {
+#' cache <- hr_cache(file.path(tempdir(), "harnessr-clear-cache"))
+#' cl <- hr_cache_client(hr_mock_client(function(m, p) "hi"), cache)
+#' invisible(hr_call(cl, "something"))
+#' hr_cache_clear(cache)
+#' hr_cache_stats(cache)$entries
+hr_cache_clear <- function(cache) {
   stopifnot(inherits(cache, "gr_cache"))
   files <- cache_files(cache$dir)
   if (length(files)) unlink(files)
@@ -287,7 +287,7 @@ legacy_cache_dir <- function(dir) {
 #'
 #' Only files in the layout cache_path() writes: `<shard>/<key>.rds`, where the
 #' key is 64 hex digits (harnessr-cache-v3) or 16 (readgpt-cache-v2, still read
-#' and still cleared) and the shard is its first two. gr_cache_clear() unlinks
+#' and still cleared) and the shard is its first two. hr_cache_clear() unlinks
 #' whatever this returns, and a cache directory is often a real project folder
 #' (the documentation suggests passing one) that also holds a gr_read_many()
 #' store, saved results or anything else ending in `.rds`. Matching on the

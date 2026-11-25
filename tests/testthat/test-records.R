@@ -259,7 +259,7 @@ test_that("bibliographic identity comes from the export, not from a model", {
                "PY  - 2019", "DO  - 10.1000/aaa", "ER  -"), file.path(d, "a.ris"))
   recs <- gr_records(d, files = files)
 
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("fill a data-extraction form", sys, fixed = TRUE)) {
       return('{"design":"randomised trial","design__quote":"A randomised trial of spacing"}')

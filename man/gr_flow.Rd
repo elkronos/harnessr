@@ -35,7 +35,7 @@ text" is \verb{$forward} (include and unclear), and "deferred to full text" the
 unclear part of it, \verb{$deferred}.
 }
 \examples{
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   '{"decision":"include","reason":"Reports a revenue figure.",
     "criterion":"Reports a revenue figure","quote":null}'
 })

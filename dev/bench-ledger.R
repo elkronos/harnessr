@@ -38,19 +38,19 @@ fns <- list(
 )
 
 time_notes <- function(f) {
-  tr <- harnessr::gr_trace()
+  tr <- harnessr::hr_trace()
   s <- system.time(for (i in seq_len(n)) f$note(tr, "note", list(i = i)))[["elapsed"]]
   stopifnot(length(tr$steps) == n)
   s
 }
 
 time_children <- function(f) {
-  parent <- harnessr::gr_trace()
+  parent <- harnessr::hr_trace()
   parent$draw_index <- 2L
   parent$draw_scope <- "armA"
-  # Made before the clock starts: gr_trace() reads the options and the
+  # Made before the clock starts: hr_trace() reads the options and the
   # package version, which costs more than the appends being timed.
-  kids <- lapply(seq_len(n), function(i) harnessr::gr_trace())
+  kids <- lapply(seq_len(n), function(i) harnessr::hr_trace())
   s <- system.time(for (i in seq_len(n)) {
     child <- ns$trace_inherit_draw(kids[[i]], parent)
     f$note(child, "child.note")

@@ -37,7 +37,7 @@
 #'
 #' Kept here rather than in `.gr_prompts`: it is only ever sent as an addition
 #' to the outline request, so it is part of the prompt gr_outline() builds and
-#' never something gr_call() adds.
+#' never something hr_call() adds.
 #' @noRd
 .gr_outline_alt_prompt <- paste0(
   "These groupings of the same claims have been proposed already. Each lists its sections ",
@@ -362,7 +362,7 @@ outline_choice <- function(outline) {
 #'                   duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,
 #'                   conflicts = NA_character_, design = c("trial", "survey"),
 #'                   stringsAsFactors = FALSE)
-#' cl <- gr_mock_client(function(messages, params) {
+#' cl <- hr_mock_client(function(messages, params) {
 #'   seen <- paste(unlist(lapply(messages, `[[`, "content")), collapse = " ")
 #'   if (grepl("<earlier_outlines>", seen, fixed = TRUE)) {
 #'     return(paste0('{"sections":[{"heading":"Trials find it","brief":"the trials",',

@@ -32,8 +32,8 @@ ledger_requests <- function(tr) {
 
 test_that("the review's trace is the sum of its stages, with no call recorded twice", {
   local_registries()
-  cl <- gr_mock_client(golden_reply)
-  review <- gr_trace()
+  cl <- hr_mock_client(golden_reply)
+  review <- hr_trace()
   r <- ledger_quiet(ledger_review(cl, review))
   stages <- r[c("screen", "extract", "claims", "outline", "synthesise")]
   for (nm in names(stages)) expect_s3_class(stages[[nm]], "gr_trace")
@@ -48,8 +48,8 @@ test_that("the review's trace is the sum of its stages, with no call recorded tw
   expect_identical(as.numeric(review$tokens_out), sum_of("tokens_out"))
   expect_identical(length(review$steps),
                    sum(vapply(stages, function(t) length(t$steps), integer(1))))
-  expect_equal(sum(gr_trace_cost(review)$usd),
-               sum(vapply(stages, function(t) sum(gr_trace_cost(t)$usd), numeric(1))))
+  expect_equal(sum(hr_trace_cost(review)$usd),
+               sum(vapply(stages, function(t) sum(hr_trace_cost(t)$usd), numeric(1))))
   # Each request the client answered is in the parent exactly once.
   expect_identical(length(ledger_requests(review)), length(cl$calls()))
   expect_identical(review$calls, length(cl$calls()))
@@ -64,7 +64,7 @@ test_that("the review's trace is the sum of its stages, with no call recorded tw
 
 test_that("gr_outline() leaves the trace of the claims it is given as it was", {
   local_registries()
-  cl <- gr_mock_client(golden_reply)
+  cl <- hr_mock_client(golden_reply)
   cm <- ledger_quiet(gr_claims(golden_table(cl), question = "How did revenue change?",
                                client = cl))
   before <- list(calls = cm$trace$calls, steps = length(cm$trace$steps))
@@ -80,10 +80,10 @@ test_that("gr_outline() leaves the trace of the claims it is given as it was", {
 
 test_that("a parent past the call limit does not stop claims or the outline", {
   local_registries()
-  cl <- gr_mock_client(golden_reply)
+  cl <- hr_mock_client(golden_reply)
   tab <- golden_table(cl)
-  gr_options(max_calls = 5)
-  review <- gr_trace()
+  hr_options(max_calls = 5)
+  review <- hr_trace()
   # As if an earlier stage had spent more than the per-stage limit.
   review$calls <- 50L
   cm <- ledger_quiet(gr_claims(tab, question = "How did revenue change?", client = cl,
@@ -99,13 +99,13 @@ test_that("a parent past the call limit does not stop claims or the outline", {
 test_that("calls made before an error still reach the parent", {
   local_registries()
   n <- 0L
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     n <<- n + 1L
     golden_reply(messages, params)
   })
   cm <- ledger_quiet(gr_claims(golden_table(cl), question = "How did revenue change?",
                                client = cl))
-  review <- gr_trace()
+  review <- hr_trace()
   before <- n
   # Fails after the outline's request was answered.
   local_mocked_bindings(finish_outline = function(...) stop("boom"))
@@ -117,12 +117,12 @@ test_that("calls made before an error still reach the parent", {
 test_that("calls gr_claims() made before an error still reach the parent", {
   local_registries()
   n <- 0L
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     n <<- n + 1L
     golden_reply(messages, params)
   })
   tab <- golden_table(cl)
-  review <- gr_trace()
+  review <- hr_trace()
   before <- n
   # Fails after the claims.draw request was answered.
   local_mocked_bindings(new_claims = function(...) stop("boom"))
@@ -134,11 +134,11 @@ test_that("calls gr_claims() made before an error still reach the parent", {
 
 test_that("an outline at the call cap is not requested and costs the parent nothing", {
   local_registries()
-  cl <- gr_mock_client(golden_reply)
+  cl <- hr_mock_client(golden_reply)
   cm <- ledger_quiet(gr_claims(golden_table(cl), question = "How did revenue change?",
                                client = cl))
-  gr_options(max_calls = 0)
-  review <- gr_trace()
+  hr_options(max_calls = 0)
+  review <- hr_trace()
   before <- length(cl$calls())
   o <- NULL
   expect_warning(o <- suppressMessages(gr_outline(cm, client = cl, trace = review)),
@@ -150,8 +150,8 @@ test_that("an outline at the call cap is not requested and costs the parent noth
 
 test_that("the audit's claims row counts the outline's calls once", {
   local_registries()
-  cl <- gr_mock_client(golden_reply)
-  review <- gr_trace()
+  cl <- hr_mock_client(golden_reply)
+  review <- hr_trace()
   r <- ledger_quiet(ledger_review(cl, review))
   st <- harnessr:::claims_cost_stage(r$claims_result, r$synthesis$outline_trace)
   expect_identical(st$trace$calls, r$claims$calls + r$outline$calls)

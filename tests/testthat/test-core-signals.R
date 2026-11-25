@@ -28,7 +28,7 @@ cal_with_half <- function(d, grid, cluster = "c") {
 # ---- recording ----------------------------------------------------------------
 
 test_that("hr_signal records a local step and hr_signals reads it back", {
-  tr <- gr_trace()
+  tr <- hr_trace()
   s <- hr_signal("demo.flag", TRUE, tr, item_id = "q1", refs = list(round = 2L))
   expect_s3_class(s, "hr_signal")
   expect_equal(s$step, 1L)
@@ -51,12 +51,12 @@ test_that("hr_signal records a local step and hr_signals reads it back", {
   expect_true(is.na(hr_signal("demo.flag", FALSE)$step))
   expect_error(hr_signal("demo", NA, tr), class = "gr_bad_setting")
   expect_error(hr_signal("demo", 1:3, tr, item_id = c("a", "b")), class = "gr_bad_setting")
-  expect_equal(nrow(hr_signals(gr_trace())), 0L)
+  expect_equal(nrow(hr_signals(hr_trace())), 0L)
 })
 
 test_that("the iterative, preview and ensemble readers record their signals", {
   ch <- suppressMessages(gr_segment(gr_example(), list(method = "sentence", max_tokens = 150)))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     sys <- as.character(m[[1]]$content)
     if (grepl("reading iteratively", sys, fixed = TRUE)) {
       return('{"can_answer": true, "answer": "45.2 million dollars.", "next_query": ""}')
@@ -314,8 +314,8 @@ test_that("a logical signal is measured over two bins and stays advisory", {
 })
 
 test_that("only the calibration split is calibrated on", {
-  old <- gr_options(verbose = TRUE)
-  on.exit(gr_options(old), add = TRUE)
+  old <- hr_options(verbose = TRUE)
+  on.exit(hr_options(old), add = TRUE)
   g <- seeded(3, {
     s <- stats::runif(400)
     data.frame(cluster = rep(1:40, each = 10), score = s, correct = stats::runif(400) < s,
@@ -348,8 +348,8 @@ test_that("graded columns are read by exact name", {
 })
 
 test_that("two traces that share a run_id are both read", {
-  t1 <- gr_trace(run_id = "pilot")
-  t2 <- gr_trace(run_id = "pilot")
+  t1 <- hr_trace(run_id = "pilot")
+  t2 <- hr_trace(run_id = "pilot")
   hr_signal("s", TRUE, t1, item_id = "q1")
   hr_signal("s", FALSE, t2, item_id = "q2")
   tab <- hr_signals(list(t1, t2))

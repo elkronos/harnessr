@@ -109,7 +109,7 @@ read_ensemble <- function(chunks, question, client, spec, trace) {
                         findings[at]), collapse = "\n\n")
   # The adjudication is a request like the members' own, checked by the
   # governor before it is sent.
-  res <- gr_call(client, list(
+  res <- hr_call(client, list(
     list(role = "system", content = paste0(
       merge_system_prompt(spec$premise),
       " These findings come from different reading strategies over the same document. Where they ",

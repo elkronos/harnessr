@@ -51,8 +51,8 @@ test_that("a workspace object no batch uses is not sent to workers", {
   environment(emb) <- globalenv()
   gr_register_embedder("review3_local", emb)
   withr::local_options(future.globals.maxSize = 20 * 1024^2)
-  gr_options(workers = 2)
-  cl <- gr_mock_client(function(m, p)
+  hr_options(workers = 2)
+  cl <- hr_mock_client(function(m, p)
     sprintf('{"propositions": ["Process %d wrote this."]}', Sys.getpid()))
   ch <- NULL
   expect_no_warning(ch <- suppressMessages(gr_segment(par_doc(), prop_spec(), client = cl)))
@@ -87,11 +87,11 @@ test_that("what a handler needs from the workspace is sent once", {
   ))
   handler <- function(messages, params) review3_reply()
   environment(handler) <- globalenv()
-  cl <- gr_mock_client(handler)
+  cl <- hr_mock_client(handler)
   # Room for the table once, not twice: it also travelled inside the function
   # each worker runs, whose frame still held everything gathered for the batch.
   withr::local_options(future.globals.maxSize = 40 * 1024^2)
-  gr_options(workers = 2)
+  hr_options(workers = 2)
   ch <- NULL
   expect_no_warning(ch <- suppressMessages(gr_segment(par_doc(), prop_spec(), client = cl)))
   txt <- unlist(strsplit(ch$chunks$text, "\n", fixed = TRUE))
@@ -125,11 +125,11 @@ test_that("a batch whose globals pass future's size limit runs here instead of a
   ))
   handler <- function(messages, params) review3_answer()
   environment(handler) <- globalenv()
-  cache <- gr_cache(withr::local_tempdir())
-  cl <- gr_cache_client(gr_mock_client(handler), cache)
+  cache <- hr_cache(withr::local_tempdir())
+  cl <- hr_cache_client(hr_mock_client(handler), cache)
   withr::local_options(future.globals.maxSize = 10 * 1024^2)
-  gr_options(workers = 2)
-  tr <- gr_trace()
+  hr_options(workers = 2)
+  tr <- hr_trace()
   ch <- NULL
   # Before any fix a limit this small aborted the run ("Will not launch future
   # due to the size of the globals"); then the gathering of the handler's
@@ -146,17 +146,17 @@ test_that("a batch whose globals pass future's size limit runs here instead of a
   expect_gt(tr$calls, 1L)
   expect_identical(as.integer(readLines(review3_seen)), rep(Sys.getpid(), tr$calls))
   expect_identical(length(cl$calls()), tr$calls)
-  expect_identical(gr_cache_stats(cache)$misses, tr$calls)
-  expect_identical(gr_cache_stats(cache)$writes, tr$calls)
+  expect_identical(hr_cache_stats(cache)$misses, tr$calls)
+  expect_identical(hr_cache_stats(cache)$writes, tr$calls)
 })
 
 test_that("only future's size refusal is turned into a sequential run", {
   skip_if_no_future()
   local_registries()
-  gr_options(max_calls = 100, max_cost_usd = NULL)
+  hr_options(max_calls = 100, max_cost_usd = NULL)
   cancel <- function() warning("Caught FutureError. Canceling all iterations ...", call. = FALSE)
   run <- function() harnessr:::gr_lapply(1:3, function(i, trace) i * 2, parallel = TRUE,
-                                        workers = 2, trace = gr_trace())
+                                        workers = 2, trace = hr_trace())
   testthat::local_mocked_bindings(
     future_lapply = function(...) {
       cancel()
@@ -201,21 +201,21 @@ test_that("only future's size refusal is turned into a sequential run", {
 test_that("with one worker a mock's calls and a cache's counts are not doubled", {
   skip_if_no_future()
   local_registries()
-  cache <- gr_cache(withr::local_tempdir())
-  mk <- gr_mock_client(function(m, p) '{"propositions": ["Alpha is one.", "Beta is two."]}')
-  cl <- gr_cache_client(mk, cache)
-  gr_options(workers = 1)
-  tr <- gr_trace()
+  cache <- hr_cache(withr::local_tempdir())
+  mk <- hr_mock_client(function(m, p) '{"propositions": ["Alpha is one.", "Beta is two."]}')
+  cl <- hr_cache_client(mk, cache)
+  hr_options(workers = 1)
+  tr <- hr_trace()
   quiet(gr_segment(par_doc(), prop_spec(), client = cl, trace = tr))
   expect_gt(tr$calls, 1L)
   # 2x each: a one-worker plan runs its futures in this process, where the
   # client's log and counters were updated in place and then added again.
   expect_identical(length(mk$calls()), tr$calls)
-  expect_identical(gr_cache_stats(cache)$misses, tr$calls)
-  expect_identical(gr_cache_stats(cache)$writes, tr$calls)
+  expect_identical(hr_cache_stats(cache)$misses, tr$calls)
+  expect_identical(hr_cache_stats(cache)$writes, tr$calls)
 
   # An item that ran in this process is not added back, however it got here.
-  gr_options(max_calls = 100, max_cost_usd = NULL)
+  hr_options(max_calls = 100, max_cost_usd = NULL)
   log <- new.env(parent = emptyenv())
   log$calls <- list()
   fake <- structure(list(.log = log), class = "gr_client")
@@ -224,7 +224,7 @@ test_that("with one worker a mock's calls and a cache's counts are not doubled",
   out <- suppressMessages(harnessr:::gr_lapply(1:3, function(i, trace) {
     log$calls <- c(log$calls, list(list(label = paste("item", i))))
     i
-  }, parallel = TRUE, workers = 2, trace = gr_trace(), client = fake))
+  }, parallel = TRUE, workers = 2, trace = hr_trace(), client = fake))
   expect_identical(unlist(out), 1:3)
   expect_identical(length(log$calls), 3L)
 })

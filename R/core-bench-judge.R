@@ -212,8 +212,8 @@ print.hr_judge_config <- function(x, ...) {
 #' `degradation = "judge_inconsistent"`, never a pick. Position bias of this
 #' kind is common in model judges (Zheng et al. 2023; Wang et al. 2024).
 #'
-#' Every request goes through [gr_call()]'s path, so the governor checks it
-#' before it is sent, a [gr_cache()] keys it with its draw index, and the
+#' Every request goes through [hr_call()]'s path, so the governor checks it
+#' before it is sent, an [hr_cache()] keys it with its draw index, and the
 #' trace records it, under the label `judge.<mode>.o<k>` for order k. The
 #' requests are recorded in a trace of the judge's own (`$trace`), and their
 #' cost is reported in `$judge_cost`.
@@ -257,7 +257,7 @@ print.hr_judge_config <- function(x, ...) {
 #'   are folded into it.
 #' @param governor Optional [hr_governor()] for the judge's requests. With
 #'   `trace`, the judge is held to this and to the trace's governor.
-#' @param draw_index Draw index passed to every request (see [gr_call()]).
+#' @param draw_index Draw index passed to every request (see [hr_call()]).
 #'   0, the default, takes the draw index of `trace`, if any.
 #' @param x An `hr_judgement`.
 #' @param ... Ignored.
@@ -293,7 +293,7 @@ print.hr_judge_config <- function(x, ...) {
 #' @export
 #' @examples
 #' # A judge that always picks the candidate naming Paris.
-#' fair <- gr_mock_client(function(messages, params) {
+#' fair <- hr_mock_client(function(messages, params) {
 #'   txt <- messages[[2]]$content
 #'   pick <- if (grepl("Candidate A:\nParis", txt, fixed = TRUE)) "A" else "B"
 #'   sprintf('{"verdict": "%s", "reason": "It names the capital."}', pick)
@@ -304,7 +304,7 @@ print.hr_judge_config <- function(x, ...) {
 #' j$verdicts[, c("order", "shown", "verdict", "value")]
 #'
 #' # A judge that always says "A" follows the position, so it is unresolved.
-#' first <- gr_mock_client(function(messages, params) '{"verdict": "A", "reason": "."}')
+#' first <- hr_mock_client(function(messages, params) '{"verdict": "A", "reason": "."}')
 #' hr_judge(c("Paris", "Lyon"), first, mode = "select",
 #'          rubric = "Which candidate names the capital of France?")$outcome
 hr_judge <- function(candidates, client, mode = c("select", "grade", "pairwise"),
@@ -312,10 +312,10 @@ hr_judge <- function(candidates, client, mode = c("select", "grade", "pairwise")
                      trace = NULL, governor = NULL, draw_index = 0L) {
   mode <- match.arg(mode)
   if (!inherits(client, "gr_client")) {
-    gr_abort("`client` must come from gr_client() or gr_mock_client().", class = "gr_bad_setting")
+    gr_abort("`client` must come from hr_client() or hr_mock_client().", class = "gr_bad_setting")
   }
   if (!is.null(trace) && !inherits(trace, "gr_trace")) {
-    gr_abort("`trace` must come from gr_trace(), or be NULL.", class = "gr_bad_trace")
+    gr_abort("`trace` must come from hr_trace(), or be NULL.", class = "gr_bad_trace")
   }
   if (!is.null(governor) && !inherits(governor, "hr_governor")) {
     gr_abort("`governor` must come from hr_governor(), or be NULL.", class = "gr_bad_setting")
@@ -328,7 +328,7 @@ hr_judge <- function(candidates, client, mode = c("select", "grade", "pairwise")
   # `governor` as well when one is given: its calls are folded into the run,
   # so a governor of its own alone would let the run pass its limits.
   if (!is.null(trace)) governor <- governor_tighter(bench_governor(trace), governor)
-  jt <- gr_trace(governor = governor, meta = list(judge = cfg$hash))
+  jt <- hr_trace(governor = governor, meta = list(judge = cfg$hash))
   if (is.null(trace)) return(judge_run(cfg, candidates, reference, client, jt,
                                        draw_index = draw_index))
   # The judge's requests are draws of the run `trace` records, so a cache or a
@@ -495,9 +495,9 @@ judge_messages <- function(cfg, text, perm, reference, allowed) {
 judge_steps_cost <- function(jt, from) {
   n <- length(jt$steps)
   steps <- if (n > from) jt$steps[seq.int(from + 1L, n)] else list()
-  tmp <- gr_trace()
+  tmp <- hr_trace()
   tmp$steps <- steps
-  cost <- gr_trace_cost(tmp)
+  cost <- hr_trace_cost(tmp)
   tok <- function(f) sum(vapply(steps, function(s) as_int1(s$tokens[[f]], 0L), integer(1)))
   list(usd = if (nrow(cost)) sum(cost$usd) else 0, tokens_in = tok("input"),
        tokens_out = tok("output"), calls = length(steps))
@@ -847,7 +847,7 @@ print.hr_judge_validation <- function(x, ...) {
 #' @param client The `gr_client` the judge calls.
 #' @param governor Optional [hr_governor()] for the judge's requests.
 #' @param draw_index Draw index passed to every judge request (see
-#'   [gr_call()]). With a caching client and a fixed index, identical outputs
+#'   [hr_call()]). With a caching client and a fixed index, identical outputs
 #'   graded against the same label reuse one cached verdict; give another
 #'   index for a fresh judge draw.
 #' @param judge_model The model the judge runs on, as the arms' traces would
@@ -871,13 +871,13 @@ print.hr_judge_validation <- function(x, ...) {
 #' @examples
 #' cfg <- hr_judge_config("mock-model", "Does the response give the reference's answer?",
 #'                        mode = "grade")
-#' try(hr_scorer_judge(cfg, NULL, gr_mock_client()))
+#' try(hr_scorer_judge(cfg, NULL, hr_mock_client()))
 #'
 #' set.seed(3)
 #' human <- rep(c(TRUE, FALSE), c(60, 60))
 #' v <- hr_judge_validate(cfg, data.frame(judge = ifelse(runif(120) < 0.9, human, !human),
 #'                                        human = human), B = 200)
-#' grader <- gr_mock_client(function(messages, params) {
+#' grader <- hr_mock_client(function(messages, params) {
 #'   txt <- messages[[2]]$content
 #'   ok <- grepl("Response to grade:\nParis", txt, fixed = TRUE)
 #'   sprintf('{"verdict": "%s", "reason": "."}', if (ok) "pass" else "fail")
@@ -905,13 +905,13 @@ hr_scorer_judge <- function(judge_config, validation, client, governor = NULL,
     gr_abort("hr_scorer_judge() needs a judge in mode \"grade\".", class = "gr_bad_setting")
   }
   if (!inherits(client, "gr_client")) {
-    gr_abort("`client` must come from gr_client() or gr_mock_client().", class = "gr_bad_setting")
+    gr_abort("`client` must come from hr_client() or hr_mock_client().", class = "gr_bad_setting")
   }
   if (!is.null(governor) && !inherits(governor, "hr_governor")) {
     gr_abort("`governor` must come from hr_governor(), or be NULL.", class = "gr_bad_setting")
   }
   cfg <- judge_config
-  jt <- gr_trace(governor = governor, meta = list(judge = cfg$hash, scorer = TRUE))
+  jt <- hr_trace(governor = governor, meta = list(judge = cfg$hash, scorer = TRUE))
   fn <- function(item, output, label) {
     given <- output_failure(output)
     if (!is.na(given)) return(list(correct = FALSE, outcome = NA_character_,

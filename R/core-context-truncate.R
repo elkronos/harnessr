@@ -18,16 +18,16 @@
 #'   dropped when it would cost half the budget or more.
 #' @return A single string. `""` when `n <= 0` or the input is blank. This is
 #'   not treated as an error.
-#' @seealso [gr_count_tokens()]
+#' @seealso [hr_count_tokens()]
 #' @family cost and token functions
 #' @export
 #' @examples
-#' gr_truncate_tokens(paste(rep("alpha beta gamma", 40), collapse = " "), 20)
-#' gr_truncate_tokens("short enough already", 100)
+#' hr_truncate_tokens(paste(rep("alpha beta gamma", 40), collapse = " "), 20)
+#' hr_truncate_tokens("short enough already", 100)
 #'
 #' # A table keeps its rows.
-#' cat(gr_truncate_tokens("Arm | N | Events\nA | 482 | 31\nB | 479 | 44\nC | 470 | 50", 24))
-gr_truncate_tokens <- function(text, n, marker = " ...[truncated]") {
+#' cat(hr_truncate_tokens("Arm | N | Events\nA | 482 | 31\nB | 479 | 44\nC | 470 | 50", 24))
+hr_truncate_tokens <- function(text, n, marker = " ...[truncated]") {
   text <- mark_utf8(as_chr1(text))
   force(n)   # see clamp(): forcing inside suppressWarnings() eats the caller's warnings
   n <- suppressWarnings(as.numeric(n)[1])
@@ -35,16 +35,16 @@ gr_truncate_tokens <- function(text, n, marker = " ...[truncated]") {
   if (is.infinite(n) && n > 0) return(text)          # Inf used to crash
   n <- as.integer(clamp(n, 0, .Machine$integer.max))
   if (n <= 0L || !nzchar(text)) return("")
-  if (gr_count_tokens(text) <= n) return(text)
+  if (hr_count_tokens(text) <= n) return(text)
   # Positions are characters, and the cuts below are substr() of the text
   # itself; that needs text R can index by character.
   if (!validUTF8(text)) text <- to_utf8(text)
 
   # Drop the marker when it would eat the whole budget. The old code always
   # subtracted its cost, so every n <= 10 returned "": total content loss.
-  mk <- if (gr_count_tokens(marker) < n / 2) marker else ""
-  budget <- max(n - gr_count_tokens(mk), 1L)
-  fits <- function(k) gr_count_tokens(substr(text, 1L, k)) <= budget
+  mk <- if (hr_count_tokens(marker) < n / 2) marker else ""
+  budget <- max(n - hr_count_tokens(mk), 1L)
+  fits <- function(k) hr_count_tokens(substr(text, 1L, k)) <= budget
   # The largest k in [lo, hi] that fits, given that lo does (or is 0).
   widest <- function(lo, hi, at = identity) {
     while (lo < hi) {
@@ -69,7 +69,7 @@ gr_truncate_tokens <- function(text, n, marker = " ...[truncated]") {
   if (whole < length(ends)) {
     from <- as.integer(m[whole + 1L])
     unit <- substr(text, from, ends[whole + 1L])
-    if (whole == 0L || gr_count_tokens(unit) > 16L) {
+    if (whole == 0L || hr_count_tokens(unit) > 16L) {
       inner <- widest(from - 1L, ends[whole + 1L] - 1L)
       if (inner >= from) cut <- inner
     }
@@ -77,7 +77,7 @@ gr_truncate_tokens <- function(text, n, marker = " ...[truncated]") {
   if (cut <= 0L) return("")
   out <- paste0(substr(text, 1L, cut), mk)
   # Counts are not strictly additive; never hand back more than was asked for.
-  if (gr_count_tokens(out) > n) out <- substr(text, 1L, cut)
+  if (hr_count_tokens(out) > n) out <- substr(text, 1L, cut)
   out
 }
 
@@ -104,8 +104,8 @@ trace_truncation <- function(trace, where, before, after, limit = NA_integer_,
   if (nzchar(marker) && endsWith(kept, marker)) {
     kept <- substr(kept, 1L, nchar(kept) - nchar(marker))
   }
-  had <- as.integer(gr_count_tokens(before))
-  left <- as.integer(gr_count_tokens(kept))
+  had <- as.integer(hr_count_tokens(before))
+  left <- as.integer(hr_count_tokens(kept))
   dropped <- max(had - left, 0L)
   trace_note(trace, "truncate", c(list(where = as_chr1(where),
                                        limit = as_int1(limit, NA_integer_),
@@ -114,14 +114,14 @@ trace_truncation <- function(trace, where, before, after, limit = NA_integer_,
   invisible(dropped)
 }
 
-#' gr_truncate_tokens(), with the cut written to the trace.
+#' hr_truncate_tokens(), with the cut written to the trace.
 #'
-#' The text returned is exactly what gr_truncate_tokens() returns, so a caller
+#' The text returned is exactly what hr_truncate_tokens() returns, so a caller
 #' that switches to this sends the same request it sent before. Returns a list:
 #' `text`, and `dropped`, the tokens the cut removed (0 when the text fit).
 #' @noRd
 truncate_logged <- function(text, n, where, trace = NULL, marker = " ...[truncated]", ...) {
-  out <- gr_truncate_tokens(text, n, marker)
+  out <- hr_truncate_tokens(text, n, marker)
   dropped <- trace_truncation(trace, where, text, out, limit = n, marker = marker, ...)
   list(text = out, dropped = dropped)
 }

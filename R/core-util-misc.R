@@ -39,7 +39,7 @@ as_chr1 <- function(x, default = "") {
 #' `utils::modifyList()` DELETES a key whose value is NULL, and `data.frame()`
 #' silently drops a zero-length column. A registry entry holding NULL or
 #' `numeric(0)` therefore produced rows with different column sets, and the
-#' `rbind` that builds `gr_models()` failed. Every registry field that becomes a
+#' `rbind` that builds `hr_models()` failed. Every registry field that becomes a
 #' data-frame column goes through this.
 #' @noRd
 as_num1 <- function(x, default = NA_real_) {
@@ -212,7 +212,7 @@ clamp <- function(x, lo = -Inf, hi = Inf) {
   x <- suppressWarnings(as.numeric(x))
   # `||` short-circuits on a scalar, so a length-2 x reached `is.na(x)` and R
   # >= 4.3 stopped with "'length = 2' in coercion to 'logical(1)'": a message
-  # naming neither the setting nor the function, from inside gr_budget(), for
+  # naming neither the setting nor the function, from inside hr_budget(), for
   # every read in the session. A setting that is not one number is a setting to
   # fix, so say so.
   if (length(x) > 1L) {
@@ -273,7 +273,7 @@ warning_recorder <- function() {
 #' Verbosity-aware message.
 #' @noRd
 gr_msg <- function(...) {
-  if (isTRUE(gr_options("verbose"))) message(...)
+  if (isTRUE(hr_options("verbose"))) message(...)
   invisible(NULL)
 }
 

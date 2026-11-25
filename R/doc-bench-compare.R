@@ -14,11 +14,11 @@
 #' different `top_k` share a signature and are genuinely different runs.
 #'
 #' Each row of `summary` says what its recipe cost, priced from the requests
-#' on the trace by the model each one used (see [gr_trace_cost()]). A recipe is
+#' on the trace by the model each one used (see [hr_trace_cost()]). A recipe is
 #' charged what it would cost run alone: a segmentation it shares with an
 #' earlier recipe is charged to both, as `max_calls` counts it for both, so
 #' `sum(summary$usd)` can be more than the comparison spent, which is
-#' `sum(gr_trace_cost(trace)$usd)`. Give `correct` and each row also says
+#' `sum(hr_trace_cost(trace)$usd)`. Give `correct` and each row also says
 #' whether the answer was right and what a right answer cost.
 #'
 #' The comparison is descriptive: one run of each recipe on one question,
@@ -29,7 +29,7 @@
 #' intervals from [hr_report()].
 #'
 #' A comparison is one run for the spending and token limits: `max_cost_usd`
-#' and `max_tokens_total` in [gr_options()] are checked against what every
+#' and `max_tokens_total` in [hr_options()] are checked against what every
 #' recipe and every segmentation has spent and used so far, so a recipe that
 #' reaches either limit stops `partial` and the ones after it are refused and
 #' recorded as failed. `max_calls` is counted for
@@ -74,7 +74,7 @@
 #'       of those that were billed: a request answered from a cache or a
 #'       recording is counted in `calls` and costs nothing.}
 #'     \item{`usd`}{What those requests cost, at the prices registered with
-#'       [gr_register_model()]. `NA` when a model the recipe used has no
+#'       [hr_register_model()]. `NA` when a model the recipe used has no
 #'       registered price.}
 #'     \item{`usd_estimated`}{The share of `usd` spent on requests whose token
 #'       counts were estimated locally because the provider reported none, from
@@ -93,7 +93,7 @@
 #'   [hr_benchmark()] for the comparison with intervals
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 #'
 #' # Three pipelines over one document. Extraction is shared, so this costs one
 #' # extraction, not three; only the segmentation and the reader vary.
@@ -102,11 +102,11 @@
 #' cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "chunks_used")]
 #'
 #' # One trace covers all three, so this is the cost of the whole comparison.
-#' gr_trace_summary(cmp$trace)
+#' hr_trace_summary(cmp$trace)
 #'
 #' # What each recipe cost, and what a right answer cost. The mock is free, so
 #' # register a price for it under another name to see the columns filled.
-#' gr_register_model("priced-mock", context_window = 128000, max_output = 4096,
+#' hr_register_model("priced-mock", context_window = 128000, max_output = 4096,
 #'                   input_usd = 2, output_usd = 8)
 #' cmp <- gr_compare(gr_example(), "What was revenue?", c("fast", "precise"),
 #'                   client = cl, model = "priced-mock", correct = "45.2 million")
@@ -163,9 +163,9 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
     recs <- recs[!duplicated(keys)]
   }
 
-  trace <- gr_trace(meta = list(question = question, recipes = names(recs),
+  trace <- hr_trace(meta = list(question = question, recipes = names(recs),
                                 source = source_label(source)))
-  client <- client %||% gr_client(model = recs[[1]]$read$model)
+  client <- client %||% hr_client(model = recs[[1]]$read$model)
   stop_if_no_credentials(client)
   doc <- gr_ingest(source, recs[[1]]$ingest, trace = trace)
 
@@ -186,7 +186,7 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
     # the recipe different chunks than it got alone.
     # Made before the tryCatch and folded in after it, so a recipe that fails
     # after spending still has its requests in the comparison's trace.
-    sub <- gr_trace(meta = list(recipe = nm, source = source_label(source)))
+    sub <- hr_trace(meta = list(recipe = nm, source = source_label(source)))
     # Where this recipe's steps start in the comparison's trace, for the answer
     # of a recipe that fails, which is made on that trace.
     start <- length(trace$steps)
@@ -221,7 +221,7 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
       }
       # What the comparison had spent beyond that, for the progress line, which
       # adds this trace's own spend. NA, when a cost is unknown, stays NA.
-      sub$spent_before <- sum(gr_trace_cost(trace)$usd) - seed
+      sub$spent_before <- sum(hr_trace_cost(trace)$usd) - seed
       # Key on the document's actual TEXT, not its character count. Counting
       # characters meant any length-preserving cleaner produced a cache hit on
       # different text, and one recipe was handed another recipe's chunks:
@@ -268,9 +268,9 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
       # recipe that was not tried from one that got it wrong.
       # An unpriced model under a spending limit is stopped by that limit too.
       if (inherits(e, c("gr_cost_cap", "hr_unpriced_model"))) {
-        notes$cost_cap_reached <- gr_options("max_cost_usd")
+        notes$cost_cap_reached <- hr_options("max_cost_usd")
       }
-      if (inherits(e, "gr_call_cap")) notes$call_cap_reached <- gr_options("max_calls")
+      if (inherits(e, "gr_call_cap")) notes$call_cap_reached <- hr_options("max_calls")
       if (inherits(e, "hr_budget_refused") && is.null(notes$cost_cap_reached)) {
         notes$limit_refused <- TRUE
       }
@@ -347,8 +347,8 @@ gr_compare <- function(source, question, recipes = c("fast", "needle", "thorough
 
 #' What one recipe's requests cost, as the cost columns of gr_compare().
 #'
-#' Priced by gr_trace_cost() on the recipe's own steps. The estimated share is
-#' of the dollars, not of the requests (gr_trace_summary() gives that): an
+#' Priced by hr_trace_cost() on the recipe's own steps. The estimated share is
+#' of the dollars, not of the requests (hr_trace_summary() gives that): an
 #' estimated count on a cheap request matters less than one on a long prompt.
 #' Requests with no recorded provenance are left out of the share's
 #' denominator, since nothing says whether their counts were estimated.
@@ -359,9 +359,9 @@ recipe_cost <- function(steps) {
   prov <- vapply(steps, function(s) as_chr1(s$tokens$provenance, NA_character_), character(1))
   usd_of <- function(st) {
     if (!length(st)) return(0)
-    sum(gr_trace_cost(structure(list(steps = st), class = "gr_trace"))$usd)
+    sum(hr_trace_cost(structure(list(steps = st), class = "gr_trace"))$usd)
   }
-  cost <- if (length(steps)) gr_trace_cost(structure(list(steps = steps), class = "gr_trace"))
+  cost <- if (length(steps)) hr_trace_cost(structure(list(steps = steps), class = "gr_trace"))
           else NULL
   usd <- if (is.null(cost)) 0 else sum(cost$usd)
   known <- usd_of(steps[!is.na(prov)])

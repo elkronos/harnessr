@@ -25,7 +25,7 @@ boundary. Nothing is written unless an escalation policy has already sent
 a request on this trace, so a run without one records nothing new.
 }
 \examples{
-tr <- gr_trace()
+tr <- hr_trace()
 hr_effort_event(tr, "disagreement")   # no policy has run: nothing recorded
 }
 \seealso{

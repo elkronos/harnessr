@@ -20,7 +20,7 @@ r5_extract <- function(text, value, type = "integer", quote = text) {
   fl <- gr_fields(x = gr_field("The value", type = type))
   js <- as.character(jsonlite::toJSON(list(x = value, x__quote = quote),
                                       auto_unbox = TRUE, digits = NA))
-  cl <- gr_mock_client(function(messages, params) js)
+  cl <- hr_mock_client(function(messages, params) js)
   list(lax = quiet(gr_extract(f, fl, client = cl, recipe = "fast", keep_answers = TRUE)),
        strict = quiet(gr_extract(f, fl, client = cl, recipe = "fast", require_quote = TRUE)))
 }

@@ -45,7 +45,7 @@ in (0, 1), or \code{NULL} for no alert.}
 \item{scorer}{The scorer the frozen benchmark used; checked by name.}
 
 \item{governor}{An \code{\link[=hr_governor]{hr_governor()}} the live rerun is held to, or \code{NULL}
-to take the limits from \code{\link[=gr_options]{gr_options()}}.}
+to take the limits from \code{\link[=hr_options]{hr_options()}}.}
 
 \item{B}{The number of cluster resamples, at least 100.}
 
@@ -206,7 +206,7 @@ ref <- hr_reference(
 capitals <- c(France = "Paris", Peru = "Lima", Chad = "N'Djamena", Fiji = "Suva",
               Chile = "Santiago", Laos = "Vientiane")
 answer <- function(capitals) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     capitals[[sub("Capital of ", "", messages[[1]]$content)]]
   })
 }

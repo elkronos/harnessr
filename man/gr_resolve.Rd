@@ -50,7 +50,7 @@ records would otherwise credit the screener with the person's calls.
 \code{\link[=gr_flow]{gr_flow()}} counts the resolved records in a row of their own.
 }
 \examples{
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   '{"decision":"unclear","reason":"The excerpt does not say.",
     "criterion":null,"quote":null}'
 })

@@ -78,7 +78,7 @@ test_that("the search over repeated passages is bounded and fails closed", {
 test_that("a skim quotation that elides a negation makes the answer partial", {
   doc <- "In the trial, the drug did not reduce mortality at 12 months."
   ch <- quiet(gr_segment(gr_ingest(doc), list(method = "paragraph", max_tokens = 200)))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("You extract evidence", m[[1]]$content, fixed = TRUE))
       return("the drug did ... reduce mortality at 12 months.")
     "The drug reduced mortality."
@@ -92,7 +92,7 @@ test_that("a skim quotation that elides a negation makes the answer partial", {
                "quotation(s) not found in the document", fixed = TRUE)
 
   # The faithful one does not.
-  ok <- gr_mock_client(function(m, p) {
+  ok <- hr_mock_client(function(m, p) {
     if (grepl("You extract evidence", m[[1]]$content, fixed = TRUE))
       return("In the trial, the drug did not ... reduce mortality at 12 months.")
     "The drug did not reduce mortality."
@@ -143,7 +143,7 @@ test_that("Han and Cyrillic quotations are checked under a C locale", {
 # A trace of one model call, one embeddings request the lexical fallback
 # replaced, and, with `fail`, a model call that failed.
 r4_trace <- function(fail = TRUE) {
-  tr <- gr_trace()
+  tr <- hr_trace()
   msg <- list(list(role = "user", content = "q"))
   harnessr:::trace_record(tr, "map.answer", msg,
                          gr_result(TRUE, text = "a", model = "gpt-4o",
@@ -170,7 +170,7 @@ test_that("print() on an answer counts embeddings requests apart from model call
   expect_match(line, "2 error(s) (1 recovered by a fallback)", fixed = TRUE)
 
   # An answer that embedded nothing prints as it always did.
-  plain <- gr_trace()
+  plain <- hr_trace()
   harnessr:::trace_record(plain, "map.answer", list(list(role = "user", content = "q")),
                          gr_result(TRUE, text = "a", model = "gpt-4o",
                                    usage = list(input = 10L, output = 2L)))
@@ -239,15 +239,15 @@ r4_endpoint <- function(embed_status = 404L, env = parent.frame()) {
 test_that("a needle answer on an endpoint without embeddings prints its model calls", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   r4_endpoint(404L)
-  cl <- gr_client(api_key = "sk-test", base_url = "https://r4.invalid/v1", api = "chat",
+  cl <- hr_client(api_key = "sk-test", base_url = "https://r4.invalid/v1", api = "chat",
                   model = "gpt-4o", embedding_model = "text-embedding-3-small",
                   max_retries = 0L)
   doc <- paste(sprintf("Paragraph %d describes operations in region %d and the staff there.",
                        1:40, 1:40), collapse = "\n\n")
   a <- quiet(answer_document(doc, "What was revenue?", "needle", client = cl))
-  s <- gr_trace_summary(a$trace)
+  s <- hr_trace_summary(a$trace)
   expect_gt(s$embed_calls, 0L)
   line <- capture.output(print(a))[3]
   expect_match(line, sprintf("  %d model call(s), %d embeddings request(s)",

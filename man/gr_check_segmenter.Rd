@@ -10,7 +10,7 @@ gr_check_segmenter(segmenter, client = NULL)
 \item{segmenter}{A registered segmenter's name; see \code{\link[=gr_segmenters]{gr_segmenters()}}.}
 
 \item{client}{A \code{gr_client} to read with. \code{NULL} (the default) uses a
-\code{\link[=gr_mock_client]{gr_mock_client()}} whose reply to a request with a JSON schema is an
+\code{\link[=hr_mock_client]{hr_mock_client()}} whose reply to a request with a JSON schema is an
 object of that schema's shape, and a fixed sentence otherwise.}
 }
 \value{

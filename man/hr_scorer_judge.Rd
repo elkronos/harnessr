@@ -23,7 +23,7 @@ hr_scorer_judge(
 \item{governor}{Optional \code{\link[=hr_governor]{hr_governor()}} for the judge's requests.}
 
 \item{draw_index}{Draw index passed to every judge request (see
-\code{\link[=gr_call]{gr_call()}}). With a caching client and a fixed index, identical outputs
+\code{\link[=hr_call]{hr_call()}}). With a caching client and a fixed index, identical outputs
 graded against the same label reuse one cached verdict; give another
 index for a fresh judge draw.}
 
@@ -73,13 +73,13 @@ a different model to it.
 \examples{
 cfg <- hr_judge_config("mock-model", "Does the response give the reference's answer?",
                        mode = "grade")
-try(hr_scorer_judge(cfg, NULL, gr_mock_client()))
+try(hr_scorer_judge(cfg, NULL, hr_mock_client()))
 
 set.seed(3)
 human <- rep(c(TRUE, FALSE), c(60, 60))
 v <- hr_judge_validate(cfg, data.frame(judge = ifelse(runif(120) < 0.9, human, !human),
                                        human = human), B = 200)
-grader <- gr_mock_client(function(messages, params) {
+grader <- hr_mock_client(function(messages, params) {
   txt <- messages[[2]]$content
   ok <- grepl("Response to grade:\nParis", txt, fixed = TRUE)
   sprintf('{"verdict": "\%s", "reason": "."}', if (ok) "pass" else "fail")

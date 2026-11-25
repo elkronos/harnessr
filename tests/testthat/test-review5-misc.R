@@ -6,7 +6,7 @@
 
 # A 0.5.0 recording of `obj` (a trace as a list): its pre-flight notes did not
 # name the model the read asked for, and a read that asked for
-# gr_options("model") had no `model` among its settings, since that was the
+# hr_options("model") had no `model` among its settings, since that was the
 # default. Everything else is as it is recorded now.
 r5_as_050 <- function(obj) {
   for (i in seq_along(obj$steps)) {
@@ -26,7 +26,7 @@ r5_save <- function(obj) {
 
 # ---------------------------------------------------------------------------
 # cross-3: a trace recorded by 0.5.0 from a read with a cheaper skim_model or
-# summary_model did not replay. 0.5.0 read with gr_options("model") whatever
+# summary_model did not replay. 0.5.0 read with hr_options("model") whatever
 # the client, and wrote no model on the pre-flight note, so the replay client
 # fell back to the model most calls asked for: the cheap one. A read now asks
 # for its client's model, so the answer call asked for gpt-4o-mini, found its
@@ -37,28 +37,28 @@ r5_save <- function(obj) {
 test_that("a 0.5.0 recording with a skim or summary model replays", {
   local_registries()
   local_clean_cache()
-  gr_options(max_calls = 1e4, max_cost_usd = 1e4)
+  hr_options(max_calls = 1e4, max_cost_usd = 1e4)
   ch <- quiet(gr_segment(gr_ingest(sample_doc(3, 3)), list(method = "paragraph", max_tokens = 120)))
   q <- "How many participants?"
   specs <- list(list(reader = "skim", skim_model = "gpt-4o-mini"),
                 list(reader = "hierarchical", summary_model = "gpt-4o-mini"),
                 list(reader = "rerank", skim_model = "gpt-4o-mini"))
   for (spec in specs) {
-    tr <- gr_trace()
-    # How 0.5.0 recorded it: the read asked for gr_options("model"), and the
+    tr <- hr_trace()
+    # How 0.5.0 recorded it: the read asked for hr_options("model"), and the
     # client (a mock, "mock-model") never came into it.
     live <- quiet(gr_read(ch, q, mock_echo("The cohort comprised 482 participants."),
-                          c(spec, list(model = gr_options("model"))), trace = tr))
+                          c(spec, list(model = hr_options("model"))), trace = tr))
     f <- r5_save(r5_as_050(harnessr:::trace_as_list(tr)))
-    rp <- gr_replay_client(f)
-    expect_identical(rp$model, gr_options("model"), info = spec$reader)
+    rp <- hr_replay_client(f)
+    expect_identical(rp$model, hr_options("model"), info = spec$reader)
     again <- quiet(gr_read(ch, q, rp, spec))
     expect_identical(rp$stats()$misses, 0L, info = spec$reader)
     expect_identical(again$answer, live$answer, info = spec$reader)
 
     # A replay that leaves the skim_model out still misses, as it did in
     # 0.5.0: the calls that setting made answer only a call that names it.
-    rp <- gr_replay_client(f)
+    rp <- hr_replay_client(f)
     expect_error(quiet(gr_read(ch, q, rp, list(reader = spec$reader))),
                  class = "gr_replay_miss", info = spec$reader)
   }
@@ -66,27 +66,27 @@ test_that("a 0.5.0 recording with a skim or summary model replays", {
 
 test_that("a 0.5.0 recording whose segmenter followed the client replays", {
   # In 0.5.0 the contextual segmenter asked for the client's model and the
-  # read for gr_options("model"): two models where a recording now has one.
+  # read for hr_options("model"): two models where a recording now has one.
   # The model most calls asked for fits one of them, so 0.5.0 replayed this
   # only when the segmenter made most of the calls, and the fixed code before
   # this change missed on whichever half the guess did not fit.
   local_registries()
   local_clean_cache()
-  gr_options(max_calls = 1e4, max_cost_usd = 1e4)
+  hr_options(max_calls = 1e4, max_cost_usd = 1e4)
   cl <- mock_echo("The cohort comprised 482 participants.")
   doc <- quiet(gr_ingest(sample_doc(3, 3)))
   seg <- list(method = "contextual", context_source = "llm", max_tokens = 150)
   q <- "How many participants?"
   for (spec in list(list(reader = "stuff"), list(reader = "skim", skim_model = "gpt-4o-mini"))) {
-    tr <- gr_trace()
+    tr <- hr_trace()
     ch <- quiet(gr_segment(doc, seg, client = cl, trace = tr))
-    live <- quiet(gr_read(ch, q, cl, c(spec, list(model = gr_options("model"))), trace = tr))
+    live <- quiet(gr_read(ch, q, cl, c(spec, list(model = hr_options("model"))), trace = tr))
     asked <- vapply(Filter(function(s) !identical(s$kind, "local"), tr$steps),
                     function(s) as.character(s$params$model), character(1))
-    expect_true(all(c("mock-model", gr_options("model")) %in% asked))
+    expect_true(all(c("mock-model", hr_options("model")) %in% asked))
     f <- r5_save(r5_as_050(harnessr:::trace_as_list(tr)))
-    rp <- gr_replay_client(f)
-    tr2 <- gr_trace()
+    rp <- hr_replay_client(f)
+    tr2 <- hr_trace()
     ch2 <- quiet(gr_segment(doc, seg, client = rp, trace = tr2))
     again <- quiet(gr_read(ch2, q, rp, spec, trace = tr2))
     expect_identical(rp$stats()$misses, 0L, info = spec$reader)
@@ -100,18 +100,18 @@ test_that("reads through two clients with different models replay through one", 
   # the other read stopped with gr_replay_miss.
   local_registries()
   local_clean_cache()
-  gr_options(max_calls = 1e4, max_cost_usd = 1e4)
+  hr_options(max_calls = 1e4, max_cost_usd = 1e4)
   ch <- quiet(gr_segment(gr_ingest(sample_doc(3, 3)), list(method = "paragraph", max_tokens = 120)))
   q <- "How many participants?"
   ca <- mock_echo("The cohort comprised 482 participants.")
   ca$model <- "mock-a"
   cb <- mock_echo("Four hundred and eighty-two took part.")
   cb$model <- "mock-b"
-  tr <- gr_trace()
+  tr <- hr_trace()
   la <- quiet(gr_read(ch, q, ca, list(reader = "skim"), trace = tr))
   lb <- quiet(gr_read(ch, q, cb, list(reader = "map_reduce"), trace = tr))
   f <- r5_save(harnessr:::trace_as_list(tr))
-  rp <- gr_replay_client(f)
+  rp <- hr_replay_client(f)
   a <- quiet(gr_read(ch, q, rp, list(reader = "skim")))
   b <- quiet(gr_read(ch, q, rp, list(reader = "map_reduce")))
   expect_identical(rp$stats()$misses, 0L)
@@ -122,12 +122,12 @@ test_that("reads through two clients with different models replay through one", 
   # answers, so it is a miss rather than either of them.
   cc <- mock_echo("Answer C.")
   cc$model <- "mock-c"
-  tr <- gr_trace()
+  tr <- hr_trace()
   quiet(gr_read(ch, q, cc, list(reader = "map_reduce"), trace = tr))
   quiet(gr_read(ch, q, cc, list(reader = "map_reduce"), trace = tr))
   quiet(gr_read(ch, q, ca, list(reader = "stuff"), trace = tr))
   quiet(gr_read(ch, q, cb, list(reader = "stuff"), trace = tr))
-  rp <- gr_replay_client(harnessr:::trace_as_list(tr))
+  rp <- hr_replay_client(harnessr:::trace_as_list(tr))
   expect_identical(rp$model, "mock-c")
   expect_error(quiet(gr_read(ch, q, rp, list(reader = "stuff"))), class = "gr_replay_miss")
 })
@@ -163,7 +163,7 @@ test_that("an ellmer extraction keeps a 16-digit identifier exactly", {
   skip_if_not_installed("ellmer")
   skip_if_not_installed("httr2")
   local_registries()
-  gr_register_model("claude-test", context_window = 200000L, max_output = 64000L,
+  hr_register_model("claude-test", context_window = 200000L, max_output = 64000L,
                     input_usd = 3, output_usd = 15)
   data <- paste0('{"registry_id":1234567890123456,"total_usd":12345678901234.56,',
                  '"registry_id__quote":"The trial registry number is 1234567890123456.",',
@@ -179,7 +179,7 @@ test_that("an ellmer extraction keeps a 16-digit identifier exactly", {
   writeLines(c("Methods. We randomised 120 adults.",
                "The trial registry number is 1234567890123456.",
                "Total spending was 12345678901234.56 dollars."), doc)
-  cl <- gr_ellmer_client(ellmer::chat_anthropic(model = "claude-test", credentials = function() "k"))
+  cl <- hr_ellmer_client(ellmer::chat_anthropic(model = "claude-test", credentials = function() "k"))
   ex <- quiet(gr_extract(doc, gr_fields(
     registry_id = gr_field("the trial registry number", "number"),
     total_usd = gr_field("total spending in dollars", "number")), client = cl))
@@ -237,7 +237,7 @@ test_that("ellmer's own truncation errors are recognised at any console width", 
 # embeddings requests), while its own trace, printed next, counted them apart;
 # and the max_total_calls warning said "the run has made 3 call(s)" of a run
 # whose trace printed "1 model calls". The ceiling counts both kinds, as
-# gr_options(max_calls =) does, and says so.
+# hr_options(max_calls =) does, and says so.
 # ---------------------------------------------------------------------------
 
 # An OpenAI-shaped server whose embeddings endpoint answers with vectors.
@@ -280,13 +280,13 @@ r5_docs <- function(n) {
 test_that("a corpus prints its model calls and its embeddings requests apart", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   r5_endpoint()
-  cl <- gr_client(api_key = "sk-test", base_url = "https://r5.invalid/v1", api = "chat",
+  cl <- hr_client(api_key = "sk-test", base_url = "https://r5.invalid/v1", api = "chat",
                   model = "gpt-4o", embedding_model = "text-embedding-3-small", max_retries = 0L)
   res <- quiet(gr_read_many(r5_docs(2), "What was revenue?", "needle", client = cl,
                             max_total_calls = 1000))
-  s <- gr_trace_summary(res$trace)
+  s <- hr_trace_summary(res$trace)
   expect_gt(s$embed_calls, 0L)
   out <- capture.output(print(res))
   line <- grep("this run:", out, value = TRUE, fixed = TRUE)
@@ -302,9 +302,9 @@ test_that("a corpus prints its model calls and its embeddings requests apart", {
 test_that("the max_total_calls warning counts requests and says which", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   r5_endpoint()
-  cl <- gr_client(api_key = "sk-test", base_url = "https://r5.invalid/v1", api = "chat",
+  cl <- hr_client(api_key = "sk-test", base_url = "https://r5.invalid/v1", api = "chat",
                   model = "gpt-4o", embedding_model = "text-embedding-3-small", max_retries = 0L)
   msg <- NULL
   res <- withCallingHandlers(
@@ -315,7 +315,7 @@ test_that("the max_total_calls warning counts requests and says which", {
       invokeRestart("muffleWarning")
     },
     warning = function(w) invokeRestart("muffleWarning"))
-  s <- gr_trace_summary(res$trace)
+  s <- hr_trace_summary(res$trace)
   expect_gt(s$embed_calls, 0L)
   expect_false(is.null(msg))
   expect_match(msg, sprintf("the run has made %d request(s) (%d model call(s), %d embeddings request(s))",
@@ -326,7 +326,7 @@ test_that("the max_total_calls warning counts requests and says which", {
 
 # ---------------------------------------------------------------------------
 # corpus-trace-1 and parallel-segment-1: the help for gr_read_many() and
-# gr_trace() said a recovered failure marks the answer partial. Only a
+# hr_trace() said a recovered failure marks the answer partial. Only a
 # fallback that ranked the chunks a reader sent does; the help now says so.
 # These pin what it says for the segmenters.
 # ---------------------------------------------------------------------------
@@ -334,11 +334,11 @@ test_that("the max_total_calls warning counts requests and says which", {
 test_that("a recovered segmenter failure is recorded, and partial is left alone", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   q <- "How many participants?"
   # Semantic cuts made on lexical vectors, read by a reader that does not
   # embed: not partial, and the fallback is in $warnings.
-  cl <- gr_mock_client(function(m, p) "The cohort comprised 482 participants.",
+  cl <- hr_mock_client(function(m, p) "The cohort comprised 482 participants.",
                        embed_handler = function(texts) stop("HTTP 503: down"))
   a <- quiet(answer_document(sample_doc(3, 3), q, gr_recipe("sem",
     segment = list(method = "semantic", max_tokens = 120),
@@ -347,7 +347,7 @@ test_that("a recovered segmenter failure is recorded, and partial is left alone"
   expect_true(any(grepl("lexical", a$warnings, fixed = TRUE)))
   expect_true(all(vapply(a$trace$errors, function(e) isTRUE(e$recovered), logical(1))))
   # A contextual header that could not be written: only the trace says so.
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("You situate an excerpt", m[[1]]$content, fixed = TRUE)) stop("HTTP 503: down")
     "The cohort comprised 482 participants."
   })
@@ -358,7 +358,7 @@ test_that("a recovered segmenter failure is recorded, and partial is left alone"
   expect_gt(length(a$trace$errors), 0L)
   expect_true(all(vapply(a$trace$errors, function(e) isTRUE(e$recovered), logical(1))))
   # A proposition batch kept as written: not partial, and $warnings says so.
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("Decompose text into standalone propositions", m[[1]]$content, fixed = TRUE)) {
       stop("HTTP 503: down")
     }

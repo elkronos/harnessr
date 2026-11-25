@@ -14,8 +14,8 @@
 #' `ctx` is a list with
 #' \describe{
 #'   \item{`client`}{The client given to [hr_benchmark()].}
-#'   \item{`trace`}{A [gr_trace()] of this run alone. Every request the arm
-#'     makes must be recorded into it (`gr_call(..., trace = ctx$trace)`):
+#'   \item{`trace`}{An [hr_trace()] of this run alone. Every request the arm
+#'     makes must be recorded into it (`hr_call(..., trace = ctx$trace)`):
 #'     it is how the benchmark counts the run's tokens, dollars and refusals,
 #'     and how it holds the run to the benchmark's limits. It carries the
 #'     run's draw index and the arm's name as its draw scope, so a stage
@@ -27,18 +27,18 @@
 #'     to `trace`.}
 #'   \item{`draw_index`}{The run number, 1 to `runs`. Every request
 #'     recorded in `ctx$trace` is sent at it unless the request names another
-#'     draw index, so each run is its own draw: under a [gr_cache()] or a
-#'     [gr_replay_client()] a request sent at one fixed draw index answers
+#'     draw index, so each run is its own draw: under an [hr_cache()] or a
+#'     [hr_replay_client()] a request sent at one fixed draw index answers
 #'     every run with the same stored reply, and the benchmark refuses such
 #'     an arm.}
 #'   \item{`call`}{A shortcut, `ctx$call(messages, ...)`, for
-#'     `gr_call(ctx$client, messages, ..., trace = ctx$trace, draw_index =
+#'     `hr_call(ctx$client, messages, ..., trace = ctx$trace, draw_index =
 #'     ctx$draw_index)`.}
 #'   \item{`call_json`}{A structured call, `ctx$call_json(messages, schema,
 #'     ...)`, sent as `call` sends one: with the benchmark's client, recorded
 #'     in `ctx$trace`, held to its governor and at the run's draw. `schema` is
 #'     a JSON schema (a list) the reply must meet, and `...` takes the other
-#'     arguments of [gr_call()], such as `model`, `label` and
+#'     arguments of [hr_call()], such as `model`, `label` and
 #'     `schema_name`. It returns the parsed reply, a list, when the request
 #'     succeeded and the reply meets the schema. Otherwise it returns a failed
 #'     [gr_result] (`ok = FALSE`): the request's own result when the request

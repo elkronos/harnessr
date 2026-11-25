@@ -23,10 +23,10 @@ corpus_key <- function(src, question, rec, client) {
     list("text", key_text(as.character(src)))
   }
   # The embedder the readers and the semantic segmenter would use. They call
-  # gr_embed() without naming one, so it comes from gr_options(embedder =) or the
+  # hr_embed() without naming one, so it comes from hr_options(embedder =) or the
   # client. An unregistered name is an error for the run to raise, not the key.
   embedder <- tryCatch(as_chr1(resolve_embedder(client)$name, "?"),
-                       error = function(e) as_chr1(gr_options("embedder"), "?"))
+                       error = function(e) as_chr1(hr_options("embedder"), "?"))
   # v3: the client's extra_body and the embedding configuration joined the key.
   # v4: a file is identified by its content rather than its mtime.
   parts <- list("readgpt-corpus-v4", ident, key_text(question),
@@ -35,7 +35,7 @@ corpus_key <- function(src, question, rec, client) {
                 # under "words" segments differently and is answered differently.
                 # Without it the store handed back an answer built from a
                 # segmentation this run would never have produced.
-                as_chr1(gr_options("tokenizer"), "?"),
+                as_chr1(hr_options("tokenizer"), "?"),
                 unclass(rec$ingest), unclass(rec$segment), unclass(rec$read),
                 as_chr1(client$model, "?"), as_chr1(client$api, "?"),
                 as_chr1(client$base_url, "?"),
@@ -54,7 +54,7 @@ corpus_key <- function(src, question, rec, client) {
                 as_chr1(client$embedding_model, "?"), embedder)
   # The options that change a reply or what an answer records without being
   # part of a spec: the reasoning model's least output cap, the reply room
-  # gr_budget() leaves, and the near-verbatim thresholds. A part only when one
+  # hr_budget() leaves, and the near-verbatim thresholds. A part only when one
   # is not its default, so a store written at the defaults keeps its keys.
   late <- nondefault_options(c("reasoning_floor", "output_reserve_share", "near_verbatim_sim",
                                "near_verbatim_sim_short", "near_verbatim_short_chars"))
@@ -170,7 +170,7 @@ corpus_is_plain <- function(x) {
 #'
 #' Read without running anything: an active binding is refused before it is
 #' touched, and `substitute()` returns a promise's code instead of forcing it,
-#' which then fails the plain-data test. A gr_trace() has an empty parent and
+#' which then fails the plain-data test. An hr_trace() has an empty parent and
 #' only plain values, so a real one always passes.
 #' @noRd
 corpus_trace_bindings <- function(e) {

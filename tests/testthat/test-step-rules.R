@@ -3,7 +3,7 @@
 
 test_that("a document chain passes the step rules", {
   local_clean_cache()
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   chain <- hr_chain(segment = gr_step("segment"), read = gr_step("read", reader = "stuff"),
                     name = "plain")
   rules <- harnessr:::hr_rules_step(chain)

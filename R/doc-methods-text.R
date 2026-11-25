@@ -23,16 +23,16 @@
 #' trace.
 #'
 #' @param x A [gr_answer] (its own run's steps; see [gr_answer]), a
-#'   [gr_trace], or a benchmark from [hr_benchmark()].
+#'   `gr_trace` (see [hr_trace()]), or a benchmark from [hr_benchmark()].
 #' @return A character string, one paragraph, of class `gr_methods_text`;
 #'   `print()` wraps it.
-#' @seealso [as_json()] and [gr_trace_save()] for the full record,
+#' @seealso [as_json()] and [hr_trace_save()] for the full record,
 #'   [gr_audit_report()] for a readable account of one answer
 #' @family reading functions
 #' @export
 #' @examples
 #' ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150))
-#' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 #' ans <- gr_read(ch, "What was revenue?", cl, gr_read_spec("retrieve", top_k = 3))
 #' gr_methods_text(ans)
 gr_methods_text <- function(x) {

@@ -48,26 +48,26 @@
 #'   \item{`chunks`}{A [gr_chunks]. `chunks$chunks` is the data frame:
 #'     `chunk_id`, `text`, `tokens`, `chars`, `page`, `section`, `block_id`.}
 #'   \item{`question`}{The question, already validated as non-blank.}
-#'   \item{`client`}{Pass it to [gr_call()]; never construct your own.}
+#'   \item{`client`}{Pass it to [hr_call()]; never construct your own.}
 #'   \item{`spec`}{A [gr_read_spec()]. Honour at least `model`,
 #'     `max_answer_tokens`, `temperature` and `effort`. [gr_read()] has already
 #'     filled `model` from the client when the spec named none. Pass
-#'     `effort = spec$effort` to every [gr_call()], which resolves a setting
+#'     `effort = spec$effort` to every [hr_call()], which resolves a setting
 #'     by stage against the call's `label`, so give each call a label of its
 #'     own and declare its stem in `calls`; a call without a label is sent no
 #'     effort.}
-#'   \item{`trace`}{Pass it to every [gr_call()] so your calls are counted,
+#'   \item{`trace`}{Pass it to every [hr_call()] so your calls are counted,
 #'     priced and held to the run's limits: a request that would pass
 #'     `max_calls` or `max_cost_usd` is not sent, and comes back with
 #'     `refused = TRUE` (see [hr_governor()]). Stop or degrade when one does.
 #'     A reader that still checks `harnessr:::trace_can_call(trace)` first, as
 #'     earlier versions advised, keeps working.}
 #' }
-#' Return [new_answer()]. Budget your prompt with [gr_budget()] rather than
+#' Return [new_answer()]. Budget your prompt with [hr_budget()] rather than
 #' assuming the document fits.
 #'
 #' @seealso [new_answer()] to build the return value, [gr_readers()],
-#'   [gr_reader_signature()], [gr_read()], [gr_answer], [gr_budget()]
+#'   [gr_reader_signature()], [gr_read()], [gr_answer], [hr_budget()]
 #' @family reading functions
 #' @export
 #' @examples
@@ -78,7 +78,7 @@
 #'   fn = function(chunks, question, client, spec, trace) {
 #'     d <- chunks$chunks
 #'     i <- which.max(d$tokens)
-#'     res <- gr_call(client, list(
+#'     res <- hr_call(client, list(
 #'       list(role = "user", content = paste0(d$text[i], "\n\nQuestion: ", question))),
 #'       model = spec$model, effort = spec$effort, trace = trace,
 #'       label = "longest.answer")
@@ -86,7 +86,7 @@
 #'   })
 #'
 #' ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
-#' gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million"),
+#' gr_read(ch, "What was revenue?", hr_mock_client(function(m, p) "45.2 million"),
 #'         "longest")$answer
 gr_register_reader <- function(name, fn, signature, description = "", cost_calls = "",
                                calls = NULL, cost = NULL) {
@@ -199,14 +199,14 @@ gr_reader_signature <- function(reader) {
 #'
 #' @param reader Reader name; see `gr_readers()`.
 #' @param model Chat model id. `NULL` (the default) means the model of the
-#'   client the spec is read with, so `gr_client(model = "gpt-4o-mini")` is the
+#'   client the spec is read with, so `hr_client(model = "gpt-4o-mini")` is the
 #'   model that answers, is budgeted for and is billed. A model named here, or
 #'   in a recipe, is used whatever the client's.
 #' @param temperature Sampling temperature, or `NULL` to omit the field. You do
 #'   not need to null it yourself for reasoning models: it is dropped
 #'   automatically for any model whose registry entry has
 #'   `supports_temperature = FALSE`, which includes the default model. Check with
-#'   `gr_model_info(model)$supports_temperature`.
+#'   `hr_model_info(model)$supports_temperature`.
 #' @param max_answer_tokens Output cap for final answers and merges.
 #' @param max_chunk_tokens Output cap for per-chunk calls.
 #' @param max_summary_tokens Output cap for summarisation calls.
@@ -287,7 +287,7 @@ gr_reader_signature <- function(reader) {
 #'   request at a time, since it hands out its recording in order.
 #'
 #'   Two things do not cross the process boundary. The limits in
-#'   [gr_options()] are checked before a batch is sent and not inside it,
+#'   [hr_options()] are checked before a batch is sent and not inside it,
 #'   since a worker cannot see what the others spend. So the pre-flight check,
 #'   which runs in the parent, holds a parallel run to its worst case, every
 #'   reply at its cap and as many merge or summary levels as replies that size
@@ -295,7 +295,7 @@ gr_reader_signature <- function(reader) {
 #'   the workers only when it fits what the run has left at its own worst
 #'   case, and otherwise runs one request at a time, each checked. And a
 #'   handler that records calls in variables of its own (a closure passed to
-#'   [gr_backend_client()] or [gr_mock_client()]) records a worker's calls in
+#'   [hr_backend_client()] or [hr_mock_client()]) records a worker's calls in
 #'   that worker's copy, which this process never sees; ask the trace, or the
 #'   client's `$calls()`, instead.
 #' @param delay_between_calls Seconds to sleep between sequential calls, for
@@ -583,13 +583,13 @@ gr_reader_signature <- function(reader) {
 #' per-chunk calls reason as long as the one call that drafts its claims.
 #'
 #' The effort is sent as `reasoning = {"effort": ...}` on the Responses API and
-#' as `reasoning_effort` on Chat Completions, and a [gr_mock_client()] or
-#' [gr_backend_client()] handler finds it in `params$effort`. It is sent only to
-#' a model whose [gr_model_info()] says `reasoning = TRUE`, and left out without
+#' as `reasoning_effort` on Chat Completions, and an [hr_mock_client()] or
+#' [hr_backend_client()] handler finds it in `params$effort`. It is sent only to
+#' a model whose [hr_model_info()] says `reasoning = TRUE`, and left out without
 #' a warning for any other, which would refuse the field, as `temperature` is
 #' left out for a model that refuses that; register a gateway's reasoning model
-#' with [gr_register_model()] to reach it. For the calls it covers it replaces
-#' an effort the client's `extra_body` sets. A [gr_ellmer_client()] cannot take
+#' with [hr_register_model()] to reach it. For the calls it covers it replaces
+#' an effort the client's `extra_body` sets. An [hr_ellmer_client()] cannot take
 #' it per call, says so once (`gr_effort_unsupported`) and does not record it
 #' as sent. A value is passed
 #' through as given; one that is not `"none"`, `"minimal"`, `"low"`,
@@ -598,9 +598,9 @@ gr_reader_signature <- function(reader) {
 #'
 #' Each request's effort is in its trace step (`params$effort`, and an `effort`
 #' column of `as.data.frame(trace)`), and [gr_audit_report()] shows it beside
-#' what each stage cost. It is part of the [gr_cache()] key, and, when set, of
+#' what each stage cost. It is part of the [hr_cache()] key, and, when set, of
 #' a recipe's store key in [gr_read_many()], of what [gr_compare()] counts as
-#' a different recipe, and of the key a [gr_replay_client()] matches on, so
+#' a different recipe, and of the key an [hr_replay_client()] matches on, so
 #' runs at different efforts never share answers. Unset, none of those keys
 #' change.
 #'
@@ -649,15 +649,15 @@ gr_reader_signature <- function(reader) {
 #' # Reasoning effort by stage: little for the per-chunk calls, more for the
 #' # merge. The trace says which request carried which.
 #' ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150))
-#' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 #' sp <- gr_read_spec("map_reduce", model = "gpt-5.6-luna",
 #'                    effort = c(map = "low", reduce = "high"))
-#' tr <- gr_trace()
+#' tr <- hr_trace()
 #' invisible(gr_read(ch, "What was revenue?", cl, sp, trace = tr))
 #' unique(as.data.frame(tr)[, c("stage", "effort")])
 #' # A loaded question, checked against the document. The mock plays a model
 #' # that finds the excerpts contradict it.
-#' cl <- gr_mock_client(function(m, p)
+#' cl <- hr_mock_client(function(m, p)
 #'   "FALSE_PREMISE: Revenue rose 12% in 2023, to 45.2 million.")
 #' ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 400))
 #' ans <- gr_read(ch, "Why did revenue fall in 2023?", cl,
@@ -817,8 +817,8 @@ as_read_spec <- function(spec) {
            evidence = ev_untested(paste0("The reader that sends every chunk, chosen because it ",
                                          "reads the whole document at any length; no ",
                                          "comparison of readers is recorded."))),
-  # NULL is kept, not filled from gr_options("model"): filled here, every
-  # reader passed a model to gr_call(), which only falls back to the client's
+  # NULL is kept, not filled from hr_options("model"): filled here, every
+  # reader passed a model to hr_call(), which only falls back to the client's
   # when given none, so a client built for another model was never the one
   # asked, budgeted for or billed. gr_read() fills it from the client.
   hr_param("model", "string", default = NULL, help = "Chat model id; NULL means the client's.",
@@ -827,8 +827,8 @@ as_read_spec <- function(spec) {
   hr_param("temperature", "number", default = NULL, help = "Sampling temperature.",
            tier = "advanced",
            evidence = ev_untested(paste0("Not a tuned value: NULL takes ",
-                                         "gr_options(\"temperature\"), which sends none.")),
-           resolve = function(x, p, params) x %||% gr_options("temperature")),
+                                         "hr_options(\"temperature\"), which sends none.")),
+           resolve = function(x, p, params) x %||% hr_options("temperature")),
   hr_param("max_answer_tokens", "integer", default = 1500L, min = 16, max = 1e6,
            help = "Output cap for final answers and merges.", tier = "advanced",
            evidence = ev_untested("Set as a generous cap for an answer; not measured.")),
@@ -890,8 +890,8 @@ as_read_spec <- function(spec) {
   hr_param("parallel", "boolean", default = NULL, affects_output = FALSE, tier = "advanced",
            help = "Run per-chunk calls in parallel.",
            evidence = ev_untested(paste0("Not a tuned value: NULL follows ",
-                                         "gr_options(\"parallel\"). It does not change output.")),
-           resolve = function(x, p, params) x %||% gr_options("parallel")),
+                                         "hr_options(\"parallel\"). It does not change output.")),
+           resolve = function(x, p, params) x %||% hr_options("parallel")),
   hr_param("delay_between_calls", "number", default = 0, min = 0, max = 600,
            affects_output = FALSE, tier = "advanced",
            help = "Seconds to sleep between sequential calls.",
@@ -1045,7 +1045,7 @@ nondefault_params <- function(p, schema, names) {
 
 #' The settings of a read spec that differ from its defaults, for the trace
 #' and gr_compare(). Defaults come from gr_read_spec() itself, so a model or
-#' `parallel` that merely follows gr_options() is not reported as a setting.
+#' `parallel` that merely follows hr_options() is not reported as a setting.
 #' @noRd
 read_settings <- function(spec) {
   spec_settings(spec, suppressWarnings(gr_read_spec(reader = spec$reader)), drop = "reader")

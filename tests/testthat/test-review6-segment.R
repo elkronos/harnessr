@@ -37,7 +37,7 @@ r6_trial_paragraphs <- function(n = 14) {
 # ---------------------------------------------------------------------------
 
 r6_blurb_fails <- function() {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     if (grepl("You situate an excerpt", messages[[1]]$content, fixed = TRUE)) {
       stop("HTTP 503 service unavailable")
     }
@@ -65,8 +65,8 @@ test_that("contextual chunks whose context call failed are counted and warned ab
 test_that("contextual chunks skipped at the call cap are counted and warned about", {
   local_clean_cache()
   local_registries()
-  gr_options(max_calls = 3)
-  cl <- gr_mock_client(function(messages, params) "This excerpt is about enrolment.")
+  hr_options(max_calls = 3)
+  cl <- hr_mock_client(function(messages, params) "This excerpt is about enrolment.")
   spec <- gr_segment_spec("contextual", context_source = "llm", max_tokens = 200)
   got <- r6_warnings(gr_segment(r6_trial_paragraphs(), spec, client = cl))
   ch <- got$value
@@ -89,7 +89,7 @@ test_that("an answer read from contextual chunks without their context says so",
 
 test_that("contextual chunks that all got their context line raise nothing", {
   local_clean_cache()
-  cl <- gr_mock_client(function(messages, params) "This excerpt is about enrolment.")
+  cl <- hr_mock_client(function(messages, params) "This excerpt is about enrolment.")
   spec <- gr_segment_spec("contextual", context_source = "llm", max_tokens = 200)
   got <- r6_warnings(gr_segment(r6_trial_paragraphs(), spec, client = cl))
   expect_length(got$warnings, 0L)
@@ -163,7 +163,7 @@ test_that("fixed keeps a final window whose text also occurs in the window befor
 test_that("fixed finds each window without re-counting it word by word", {
   local_registries()
   n_calls <- 0L
-  gr_set_tokenizer("r6_counting", function(x) {
+  hr_set_tokenizer("r6_counting", function(x) {
     n_calls <<- n_calls + 1L
     vapply(x, function(s) length(strsplit(trimws(s), "\\s+")[[1]]), integer(1), USE.NAMES = FALSE)
   })
@@ -191,7 +191,7 @@ test_that("a semantic chunk spanning two pages reports no single page", {
                   "Revenue in region 3 rose sharply. Revenue in region 4 rose sharply.",
                   "The weather was cold. The weather was wet. The weather was grey."),
                 page = c(1L, 2L, 2L))
-  cl <- gr_mock_client(function(messages, params) "x",
+  cl <- hr_mock_client(function(messages, params) "x",
     embed_handler = function(texts, params) {
       t(vapply(texts, function(s) {
         v <- numeric(64); v[if (grepl("weather", s)) 2L else 1L] <- 1; v
@@ -242,7 +242,7 @@ test_that("contextual chunks near the cap keep a model-written header", {
   doc <- r6_near_cap_doc()
   long <- paste(rep("This excerpt reports a finding from the results section of the trial.", 5),
                 collapse = " ")
-  cl <- gr_mock_client(function(messages, params) long)
+  cl <- hr_mock_client(function(messages, params) long)
   ch <- quiet(gr_segment(doc, list(method = "contextual", max_tokens = 200, context_source = "llm"),
                          client = cl))
   expect_null(ch$extra$cap_enforced)
@@ -274,13 +274,13 @@ test_that("an over-cap word inside a sentence is split, not passed over the cap"
   expect_true(grepl(blob, gsub("\\s", "", paste(ch$chunks$text, collapse = "")), fixed = TRUE))
   pieces <- harnessr:::hard_split(paste("See the attached file. The attachment was", blob,
                                        "and nothing else."), 500)
-  expect_true(all(gr_count_tokens(pieces) <= 500L))
+  expect_true(all(hr_count_tokens(pieces) <= 500L))
   expect_true(any(grepl(substr(blob, 1, 40), pieces, fixed = TRUE)))
 })
 
 test_that("a tokenizer that counts joining spaces still gets chunks within the cap", {
   local_registries()
-  gr_set_tokenizer("chars")
+  hr_set_tokenizer("chars")
   yes <- paste(rep("Yes. No. Ok. Go.", 200), collapse = " ")
   for (m in c("paragraph", "sentence", "structural", "recursive", "fixed")) {
     ch <- quiet(gr_segment(yes, list(method = m, max_tokens = 64)))
@@ -288,7 +288,7 @@ test_that("a tokenizer that counts joining spaces still gets chunks within the c
     # Packed within the cap by the segmenter itself, not re-cut afterwards.
     expect_null(ch$extra$cap_enforced, info = m)
   }
-  expect_true(all(gr_count_tokens(harnessr:::hard_split(yes, 64)) <= 64L))
+  expect_true(all(hr_count_tokens(harnessr:::hard_split(yes, 64)) <= 64L))
   # And overlap still fits beside the unit it is carried to.
   ch <- quiet(gr_segment(yes, list(method = "sentence", max_tokens = 64, overlap_tokens = 16)))
   expect_true(all(ch$chunks$tokens <= 64L))
@@ -297,7 +297,7 @@ test_that("a tokenizer that counts joining spaces still gets chunks within the c
 
 test_that("a cap that cannot be enforced stops rather than passing a chunk over it", {
   local_registries()
-  gr_set_tokenizer("r6_huge", function(x) 100L * nchar(x))
+  hr_set_tokenizer("r6_huge", function(x) 100L * nchar(x))
   expect_error(quiet(gr_segment("A few short words, long enough to ingest.",
                                 list(method = "paragraph", max_tokens = 32))),
                class = "gr_cap_unenforceable")
@@ -386,7 +386,7 @@ test_that("overlap is carried for Chinese text", {
   }
   tail <- harnessr:::tail_by_tokens(zh_para(1), 30)
   expect_true(nzchar(tail))
-  expect_true(gr_count_tokens(tail) <= 30L)
+  expect_true(hr_count_tokens(tail) <= 30L)
   expect_true(endsWith(zh_para(1), tail))
 })
 

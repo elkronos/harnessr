@@ -5,7 +5,7 @@
 # Run with:  Rscript inst/examples/demo.R
 
 library(harnessr)
-gr_options(verbose = FALSE, model = "gpt-4o", max_cost_usd = NULL)
+hr_options(verbose = FALSE, model = "gpt-4o", max_cost_usd = NULL)
 
 doc_text <- paste(
   "# Annual Report 2024", "",
@@ -26,7 +26,7 @@ doc_text <- paste(
 
 # A deterministic offline stand-in for the API. It records every prompt, which
 # is what lets us assert on call patterns rather than on returned strings.
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   txt <- paste(vapply(messages, function(m) m$content, character(1)), collapse = " ")
   if (grepl("Rate how useful", txt, fixed = TRUE)) return('{"score": 7, "reason": "on topic"}')
   if (grepl("reading iteratively", txt, fixed = TRUE)) {
@@ -132,15 +132,15 @@ withCallingHandlers(
 # ---------------------------------------------------------------------------
 rule("Guard rails")
 cat(sprintf("  budget for an unknown model stays positive : %d tokens\n",
-            suppressWarnings(gr_budget("model-from-2027", reserve_output = 1024)$input)))
+            suppressWarnings(hr_budget("model-from-2027", reserve_output = 1024)$input)))
 cat("  runaway call count is refused up front    : ")
-old <- gr_options(max_calls = 3L)
+old <- hr_options(max_calls = 3L)
 cat(tryCatch({ gr_read(gr_segment(doc, list(method = "sentence", max_tokens = 40)),
                        question, cl, "map_reduce"); "NOT REFUSED" },
              gr_call_cap = function(e) "refused with an actionable message"), "\n")
-gr_options(old)
+hr_options(old)
 cat("  every reader survives a dead API          : ")
-dead <- gr_mock_client(function(m, p) stop("503"))
+dead <- hr_mock_client(function(m, p) stop("503"))
 cat(all(vapply(gr_readers()$name, function(r) {
   a <- suppressWarnings(tryCatch(gr_read(ch, question, dead, reader_spec(r, top_k = 2)),
                                  error = function(e) NULL))

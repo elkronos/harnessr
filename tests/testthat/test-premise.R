@@ -20,7 +20,7 @@ premise_fixture <- function() {
 premise_model <- function(flag = "**FALSE_PREMISE:** Revenue rose 12% in 2023, to 45.2 million.",
                           merge = NULL, adjudicate = NULL, revise = NULL, step = NULL,
                           silent = "NOT_IN_DOCUMENT", costs = NULL) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     rest <- paste(vapply(messages[-1], function(x) as.character(x$content), ""), collapse = "\n")
     ruled <- grepl("FALSE_PREMISE", sys, fixed = TRUE)
@@ -177,14 +177,14 @@ test_that("the rule is in the string the budget is computed from", {
 test_that("the recorded worst-case cost covers the rule in every answering prompt", {
   local_registries()
   # Priced at a unit a token, so the bound and the spend compare as tokens.
-  gr_register_model("priced-in", context_window = 128000, max_output = 4000,
+  hr_register_model("priced-in", context_window = 128000, max_output = 4000,
                     input_usd = 1e6, output_usd = 0)
-  gr_options(max_cost_usd = Inf, max_calls = 100000)
+  hr_options(max_cost_usd = Inf, max_calls = 100000)
   ch <- new_chunks(sprintf("Item %d: revenue line %d rose.", 1:40, 1:40), "fixture",
                    gr_segment_spec(max_tokens = 400))
   est <- function(reader, ...) {
-    tr <- gr_trace()
-    quiet(gr_read(ch, "Why did revenue fall?", gr_mock_client(function(m, p) "Revenue rose."),
+    tr <- hr_trace()
+    quiet(gr_read(ch, "Why did revenue fall?", hr_mock_client(function(m, p) "Revenue rose."),
                   gr_read_spec(reader, model = "priced-in", ...), trace = tr))
     pf <- Filter(function(s) identical(s$label, "preflight"), tr$steps)[[1]]$detail
     c(bound = pf$est_cost_usd, spent = tr$spent_usd)
@@ -334,7 +334,7 @@ test_that("map_reduce: two-sentinel chunks are silent, and a merge that gave up 
   expect_true(is_not_found(a$answer))
   expect_identical(a$notes$reason, "no chunk yielded an answer")
 
-  failing <- gr_mock_client(function(messages, params) {
+  failing <- hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("You consolidate partial findings", sys, fixed = TRUE)) stop("merge outage")
     excerpt <- messages[[2]]$content
@@ -470,7 +470,7 @@ test_that("ensemble adjudicates its members' corrections as corrections", {
 # A model given the rule that flags what it can see of the rise, and an
 # adjudication that fails.
 adjudication_down <- function() {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("different reading strategies", sys, fixed = TRUE)) stop("adjudication outage")
     if (!grepl("Revenue rose", body_of(list(messages = messages)), fixed = TRUE)) {
@@ -506,7 +506,7 @@ test_that("screen and extract send and return what they always did", {
   local_registries()
   ch <- premise_fixture()
   run <- function(spec) {
-    cl <- gr_mock_client(function(messages, params)
+    cl <- hr_mock_client(function(messages, params)
       '{"decision":"include","reason":"Fine.","criterion":null,"quote":null}')
     a <- quiet(gr_read(ch, "Q?", cl, spec))
     list(a = a, sent = lapply(cl$calls(), function(k) k$messages))
@@ -519,7 +519,7 @@ test_that("screen and extract send and return what they always did", {
 
   f <- gr_fields(revenue = "Revenue in 2023")
   ex <- function(spec) {
-    cl <- gr_mock_client(function(messages, params) '{"revenue":"45.2 million"}')
+    cl <- hr_mock_client(function(messages, params) '{"revenue":"45.2 million"}')
     a <- quiet(gr_read(ch, "extract", cl, spec))
     list(a = a, sent = lapply(cl$calls(), function(k) k$messages))
   }
@@ -532,7 +532,7 @@ test_that("screen and extract send and return what they always did", {
 # --- the object and what shows it -----------------------------------------------
 
 test_that("new_answer() leaves the field out unless a reader passes it", {
-  tr <- gr_trace()
+  tr <- hr_trace()
   expect_false("premise" %in% names(new_answer("x", "r", "q", 1L, tr)))
   expect_true(is.na(new_answer("x", "r", "q", 1L, tr, premise = NA)$premise))
   expect_true(is.na(new_answer("x", "r", "q", 1L, tr, premise = "  ")$premise))
@@ -557,7 +557,7 @@ test_that("the audit report names the chunks or members that reported the premis
   doc <- paste("Revenue rose 12% in 2023, to 45.2 million.",
                "Costs were flat at 30 million across the year.",
                "The board expects growth to continue next year.", sep = "\n\n")
-  failing <- gr_mock_client(function(messages, params) {
+  failing <- hr_mock_client(function(messages, params) {
     if (grepl("You consolidate partial findings", messages[[1]]$content, fixed = TRUE)) {
       stop("merge outage")
     }

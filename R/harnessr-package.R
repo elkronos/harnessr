@@ -4,11 +4,11 @@
 #'
 #' The general core sends model calls and keeps them under control: clients
 #' for an API, a local backend or [ellmer](https://ellmer.tidyverse.org) (see
-#' [gr_client()], [gr_backend_client()], [gr_ellmer_client()], and
-#' [gr_mock_client()] for offline work), spending and call limits checked
-#' before each request ([gr_options()]), a response cache ([gr_cache()]),
-#' recordings that replay offline ([gr_replay_client()]), and a trace of every
-#' call ([gr_trace()]).
+#' [hr_client()], [hr_backend_client()], [hr_ellmer_client()], and
+#' [hr_mock_client()] for offline work), spending and call limits checked
+#' before each request ([hr_options()]), a response cache ([hr_cache()]),
+#' recordings that replay offline ([hr_replay_client()]), and a trace of every
+#' call ([hr_trace()]).
 #'
 #' The document layer, built on that core, controls how a model reads a
 #' document. The three decisions that drive answer quality are pulled apart
@@ -40,7 +40,7 @@
 #' ```r
 #' Sys.setenv(OPENAI_API_KEY = "sk-...")
 #'
-#' # No key yet? Everything below works offline against gr_mock_client() and the
+#' # No key yet? Everything below works offline against hr_mock_client() and the
 #' # bundled document at gr_example().
 #'
 #' # One question, one pipeline.
@@ -76,14 +76,14 @@
 #' `gr_compare()` two or three on your own document and read `cmp$summary`.
 #'
 #' @section Cost control:
-#' Two limits are on by default, both [gr_options()]: `max_cost_usd` (5) and
+#' Two limits are on by default, both [hr_options()]: `max_cost_usd` (5) and
 #' `max_calls` (400). Before the first request, a run is refused with a classed
 #' error naming the option to change when it would need more calls than
 #' `max_calls`, or when its reader sends every chunk and sending them would cost
 #' more than `max_cost_usd`. Both are checked again before every request, so a
 #' run that reaches either one stops and returns a `partial` answer rather than
 #' continuing to spend. A parallel read that sends batches, which cannot be
-#' stopped part way, is held to its worst case instead; see [gr_options()].
+#' stopped part way, is held to its worst case instead; see [hr_options()].
 #'
 #' Preview segmentation for free before committing to a reader:
 #' ```r
@@ -107,9 +107,9 @@
 #' @section Extending it:
 #' Each axis is a registry, so additions behave exactly like built-ins:
 #' [gr_register_extractor()], [gr_register_cleaner()],
-#' [gr_register_segmenter()], [gr_register_reader()], [gr_register_model()].
+#' [gr_register_segmenter()], [gr_register_reader()], [hr_register_model()].
 #'
-#' @seealso [answer_document()], [gr_compare()], [gr_recipes()], [gr_options()]
+#' @seealso [answer_document()], [gr_compare()], [gr_recipes()], [hr_options()]
 #' @keywords internal
 "_PACKAGE"
 
@@ -189,7 +189,7 @@
 #'   \item{`reader`, `signature`}{Which strategy ran, and its traversal
 #'     signature (see [gr_reader_signature()]).}
 #'   \item{`question`}{The question, as asked.}
-#'   \item{`trace`}{The [gr_trace] for this run. From [answer_document()] it
+#'   \item{`trace`}{The `gr_trace` (see [hr_trace()]) for this run. From [answer_document()] it
 #'     holds the whole run: ingestion, segmentation and the read. **An answer
 #'     taken from a [gr_compare()] holds only its own recipe's segmentation and
 #'     read** (its segmentation requests, which `semantic`, `proposition` and
@@ -227,7 +227,7 @@
 #' @name gr_answer
 #' @seealso [gr_read()], [answer_document()], [as_json()]
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 #' ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #' ans$partial
 #' ans$evidence[, c("chunk_id", "page", "score")]
@@ -271,10 +271,10 @@ NULL
 #'     `blurbs_at_limit` (of those, how many were skipped at the run's call or
 #'     cost limit), `cap_enforced` when oversized chunks had to be split.}
 #'   \item{`trace`}{Set only when [gr_segment()] was called without a `trace`
-#'     and so made its own: the [gr_trace] it recorded into, holding the
+#'     and so made its own: the `gr_trace` (see [hr_trace()]) it recorded into, holding the
 #'     requests the segmenter made (embeddings for `semantic`, model calls for
 #'     `proposition` and for `contextual` with `context_source = "llm"`),
-#'     which were held to `gr_options(max_calls =, max_cost_usd =)`. When a
+#'     which were held to `hr_options(max_calls =, max_cost_usd =)`. When a
 #'     `trace` is passed they are recorded there instead, and this field is
 #'     absent.}
 #' }
@@ -345,7 +345,7 @@ NULL
 
 #' The result of one model call
 #'
-#' Returned by [gr_call()]. Designed so a caller can never be handed `NULL` or
+#' Returned by [hr_call()]. Designed so a caller can never be handed `NULL` or
 #' `character(0)` where a string is expected.
 #'
 #' @section Fields:
@@ -366,10 +366,10 @@ NULL
 #' @section Methods:
 #' `print()` shows `ok`, the model, the token usage and either the text or the
 #' error.
-#' @seealso [gr_call()] which returns one, [gr_client()], [gr_mock_client()]
+#' @seealso [hr_call()] which returns one, [hr_client()], [hr_mock_client()]
 #' @name gr_result
-#' @seealso [gr_call()], [gr_client()], [gr_mock_client()]
+#' @seealso [hr_call()], [hr_client()], [hr_mock_client()]
 #' @examples
-#' res <- gr_call(gr_mock_client(function(m, p) "hello"), "hi")
+#' res <- hr_call(hr_mock_client(function(m, p) "hello"), "hi")
 #' c(ok = res$ok, text = res$text)
 NULL

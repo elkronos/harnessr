@@ -159,14 +159,14 @@ test_that("every request a built-in reader makes carries a label it declares", {
   stems_of <- function(r) strsplit(readers$calls[readers$name == r], ", ", fixed = TRUE)[[1]]
   for (r in c("stuff", "map_reduce", "refine", "skim", "retrieve", "rerank", "hierarchical",
               "iterative", "preview")) {
-    tr <- gr_trace()
+    tr <- hr_trace()
     quiet(gr_read(ch, "How many participants?", mock_echo("482 participants."),
                   gr_read_spec(r, fan_in = 2, max_summary_tokens = 16), trace = tr))
     labels <- request_labels(tr)
     expect_true(length(labels) > 0, info = r)
     for (l in labels) expect_true(covered_by(l, stems_of(r)), info = paste(r, l))
   }
-  tr <- gr_trace()
+  tr <- hr_trace()
   quiet(gr_read(ch, "How many participants?", mock_echo("482 participants."),
                 gr_read_spec("ensemble", members = c("stuff", "refine")), trace = tr))
   stems <- c(stems_of("ensemble"), stems_of("stuff"), stems_of("refine"))
@@ -178,7 +178,7 @@ test_that("the segmenters that call a model label their calls as declared", {
   doc <- gr_ingest(sample_doc(2, 3))
   s <- gr_segmenters()
   for (m in c("proposition", "contextual")) {
-    tr <- gr_trace()
+    tr <- hr_trace()
     quiet(gr_segment(doc, gr_segment_spec(m, context_source = "llm", max_tokens = 200),
                      client = mock_echo("A context line."), trace = tr))
     labels <- request_labels(tr)
@@ -216,23 +216,23 @@ test_that("the pre-flight check counts a reader by its cost function", {
                      cost = function(input_stats, params) {
                        hr_cost(calls = 10, calls_max = 12, embed_max = 1)
                      })
-  gr_options(max_calls = 5)
-  expect_error(quiet(gr_read(ch, "q", gr_mock_client(), "costly")), "about 11 more requests",
+  hr_options(max_calls = 5)
+  expect_error(quiet(gr_read(ch, "q", hr_mock_client(), "costly")), "about 11 more requests",
                class = "gr_call_cap")
   expect_identical(sent, 0L)
-  gr_options(max_calls = 100)
-  tr <- gr_trace()
-  quiet(gr_read(ch, "q", gr_mock_client(), "costly", trace = tr))
+  hr_options(max_calls = 100)
+  tr <- hr_trace()
+  quiet(gr_read(ch, "q", hr_mock_client(), "costly", trace = tr))
   note <- Filter(function(s) identical(s$label, "preflight"), tr$steps)[[1]]$detail
   expect_identical(c(note$est_calls, note$embed_calls, note$worst_calls), c(11L, 1L, 13L))
   # A reader that states no cost is one request per chunk.
   gr_register_reader("plain", fn, signature = "some|N|none")
-  tr <- gr_trace()
-  quiet(gr_read(ch, "q", gr_mock_client(), "plain", trace = tr))
+  tr <- hr_trace()
+  quiet(gr_read(ch, "q", hr_mock_client(), "plain", trace = tr))
   note <- Filter(function(s) identical(s$label, "preflight"), tr$steps)[[1]]$detail
   expect_identical(note$est_calls, as.integer(n))
   # An ensemble is its members' costs and one adjudication.
-  tr <- gr_trace()
+  tr <- hr_trace()
   quiet(gr_read(ch, "q", mock_echo(), list(reader = "ensemble", members = c("costly", "stuff")),
                 trace = tr))
   note <- Filter(function(s) identical(s$label, "preflight"), tr$steps)[[1]]$detail
@@ -244,8 +244,8 @@ test_that("the pre-flight check counts a reader by its cost function", {
                      cost = function(input_stats, params) {
                        list(calls_max = 4, tokens_in_max = 0, tokens_out_max = 0, embed_max = 0)
                      })
-  tr <- gr_trace()
-  quiet(gr_read(ch, "q", gr_mock_client(), "worst", trace = tr))
+  tr <- hr_trace()
+  quiet(gr_read(ch, "q", hr_mock_client(), "worst", trace = tr))
   note <- Filter(function(s) identical(s$label, "preflight"), tr$steps)[[1]]$detail
   expect_identical(c(note$est_calls, note$worst_calls), c(4L, 4L))
   # The core tells a cost function the reply cap a request is sent.
@@ -255,7 +255,7 @@ test_that("the pre-flight check counts a reader by its cost function", {
                        seen <<- input_stats$out_cap
                        hr_cost(calls = 1)
                      })
-  quiet(gr_read(ch, "q", gr_mock_client(), "peek"))
+  quiet(gr_read(ch, "q", hr_mock_client(), "peek"))
   expect_true(is.numeric(seen) && length(seen) == 1L && seen > 0)
 })
 
@@ -273,7 +273,7 @@ test_that("hr_cost checks its counts and costs add up", {
 
 test_that("the governor names the limit a whole run cannot fit", {
   chk <- function(...) harnessr:::governor_run_check(...)$limit
-  tr <- gr_trace(governor = hr_governor(max_calls = 5, max_cost_usd = 1))
+  tr <- hr_trace(governor = hr_governor(max_calls = 5, max_cost_usd = 1))
   expect_identical(chk(tr, calls = 6, calls_max = 6), "calls")
   expect_identical(chk(tr, calls = 4, calls_max = 9, parallel = TRUE), "calls_worst")
   expect_true(is.na(chk(tr, calls = 4, calls_max = 9, parallel = FALSE, calls_only = TRUE)))
@@ -283,6 +283,6 @@ test_that("the governor names the limit a whole run cannot fit", {
   expect_identical(chk(tr, calls = 1, calls_max = 1, unit_usd = c(m = 1), parallel = TRUE,
                        worst_usd = 2), "worst")
   expect_true(is.na(chk(tr, calls = 1, calls_max = 1, unit_usd = c(m = 1), worst_usd = 2)))
-  tr0 <- gr_trace(governor = hr_governor(max_cost_usd = 0))
+  tr0 <- hr_trace(governor = hr_governor(max_cost_usd = 0))
   expect_identical(chk(tr0, calls = 1, calls_max = 1, unit_usd = c(m = 1)), "zero")
 })

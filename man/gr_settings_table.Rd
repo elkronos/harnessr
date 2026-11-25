@@ -14,7 +14,7 @@ gr_settings_table(stage = NULL)
 \value{
 A data frame with one row per setting and the columns \code{stage},
 \code{name}, \code{where} (the function that takes it, as \code{"gr_read_spec()"}, or
-\code{"gr_options()"}), \code{default} (as text: a string without quotes, the
+\code{"hr_options()"}), \code{default} (as text: a string without quotes, the
 first choice of a set of choices, other values as R code), \code{tier}
 (\code{"basic"} for the few settings most runs change, else
 \code{"advanced"}), \code{status} and \code{source} (where the default came from:
@@ -48,7 +48,7 @@ the functions of each stage (\code{\link[=gr_screen]{gr_screen()}}, \code{\link[
 leaving out the inputs a call works on (the
 documents, the client, the trace). Defaults are the functions' own,
 and descriptions the first sentence of each argument's help.}
-\item{\code{options}}{Every \code{\link[=gr_options]{gr_options()}} option, with its default, the
+\item{\code{options}}{Every \code{\link[=hr_options]{hr_options()}} option, with its default, the
 evidence its rule declares, and the first sentence of its entry in
 the help page.}
 }

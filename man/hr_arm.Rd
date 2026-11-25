@@ -44,8 +44,8 @@ which the benchmark's scorer then compares with the item's label.
 \code{ctx} is a list with
 \describe{
 \item{\code{client}}{The client given to \code{\link[=hr_benchmark]{hr_benchmark()}}.}
-\item{\code{trace}}{A \code{\link[=gr_trace]{gr_trace()}} of this run alone. Every request the arm
-makes must be recorded into it (\code{gr_call(..., trace = ctx$trace)}):
+\item{\code{trace}}{An \code{\link[=hr_trace]{hr_trace()}} of this run alone. Every request the arm
+makes must be recorded into it (\code{hr_call(..., trace = ctx$trace)}):
 it is how the benchmark counts the run's tokens, dollars and refusals,
 and how it holds the run to the benchmark's limits. It carries the
 run's draw index and the arm's name as its draw scope, so a stage
@@ -57,16 +57,16 @@ benchmark's limits less what earlier runs used. It is already attached
 to \code{trace}.}
 \item{\code{draw_index}}{The run number, 1 to \code{runs}. Every request
 recorded in \code{ctx$trace} is sent at it unless the request names another
-draw index, so each run is its own draw: under a \code{\link[=gr_cache]{gr_cache()}} or a
-\code{\link[=gr_replay_client]{gr_replay_client()}} a request sent at one fixed draw index answers
+draw index, so each run is its own draw: under an \code{\link[=hr_cache]{hr_cache()}} or a
+\code{\link[=hr_replay_client]{hr_replay_client()}} a request sent at one fixed draw index answers
 every run with the same stored reply, and the benchmark refuses such
 an arm.}
 \item{\code{call}}{A shortcut, \code{ctx$call(messages, ...)}, for
-\code{gr_call(ctx$client, messages, ..., trace = ctx$trace, draw_index = ctx$draw_index)}.}
+\code{hr_call(ctx$client, messages, ..., trace = ctx$trace, draw_index = ctx$draw_index)}.}
 \item{\code{call_json}}{A structured call, \code{ctx$call_json(messages, schema, ...)}, sent as \code{call} sends one: with the benchmark's client, recorded
 in \code{ctx$trace}, held to its governor and at the run's draw. \code{schema} is
 a JSON schema (a list) the reply must meet, and \code{...} takes the other
-arguments of \code{\link[=gr_call]{gr_call()}}, such as \code{model}, \code{label} and
+arguments of \code{\link[=hr_call]{hr_call()}}, such as \code{model}, \code{label} and
 \code{schema_name}. It returns the parsed reply, a list, when the request
 succeeded and the reply meets the schema. Otherwise it returns a failed
 \link{gr_result} (\code{ok = FALSE}): the request's own result when the request

@@ -82,15 +82,15 @@ arms <- hr_sweep(function(top_k, max_tokens) {
 }, expand.grid(top_k = c(2, 8), max_tokens = c(200, 500)))
 names(arms)
 
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ref <- gr_qa_reference(
   questions = c(revenue = "What was revenue in 2024?"),
   documents = gr_example(), answers = list("45.2 million"), split = "test")
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 bench <- hr_benchmark(arms, ref, runs = 5, client = cl,
                       scorer = gr_scorer_answer())
 aggregate(correct ~ param.top_k + param.max_tokens, bench, mean)
-gr_options(old)
+hr_options(old)
 }
 \seealso{
 \code{\link[=hr_benchmark]{hr_benchmark()}}, \code{\link[=hr_sweep_check]{hr_sweep_check()}}, \code{\link[=gr_arm]{gr_arm()}}, \code{\link[=hr_chain]{hr_chain()}},

@@ -10,7 +10,7 @@ read_stuff <- function(chunks, question, client, spec, trace) {
   d <- chunks$chunks
   overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate,
                               structure = answer_structure(spec))
-  bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
+  bud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   fit <- fit_chunks(d, bud$input)
   log_dropped_chunks(trace, "stuff.chunks", d, fit$dropped, spec)
 

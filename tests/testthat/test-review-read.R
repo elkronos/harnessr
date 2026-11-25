@@ -6,7 +6,7 @@
 recording_backend <- function(model, reply = "Revenue was 45.2 million dollars.") {
   seen <- new.env(parent = emptyenv())
   seen$params <- list()
-  cl <- gr_backend_client(function(messages, params) {
+  cl <- hr_backend_client(function(messages, params) {
     seen$params[[length(seen$params) + 1L]] <- params[c("model", "max_output")]
     reply
   }, model = model)
@@ -43,9 +43,9 @@ fake_chat <- function(model_id) {
 test_that("a read without a model uses, budgets for and is billed as the client's model", {
   local_registries()
   local_clean_cache()
-  gr_register_model("tiny-local", context_window = 4096, max_output = 512,
+  hr_register_model("tiny-local", context_window = 4096, max_output = 512,
                     input_usd = 0, output_usd = 0)
-  gr_register_model("house-a", context_window = 64000, max_output = 4000,
+  hr_register_model("house-a", context_window = 64000, max_output = 4000,
                     input_usd = 0.15, output_usd = 0.6)
   ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200)))
 
@@ -57,10 +57,10 @@ test_that("a read without a model uses, budgets for and is billed as the client'
   expect_lte(max(rb$max_output()), 512)
 
   rb <- recording_backend("house-a")
-  tr <- gr_trace()
+  tr <- hr_trace()
   a <- quiet(gr_read(ch, "What was revenue?", rb$client, "map_reduce", trace = tr))
   expect_identical(unique(rb$models()), "house-a")
-  expect_identical(unique(gr_trace_cost(tr)$model), "house-a")
+  expect_identical(unique(hr_trace_cost(tr)$model), "house-a")
 
   # The same through answer_document() and gr_compare().
   rb <- recording_backend("house-a")
@@ -73,9 +73,9 @@ test_that("a read without a model uses, budgets for and is billed as the client'
 test_that("a model named in the spec, the recipe or the overrides still wins over the client's", {
   local_registries()
   local_clean_cache()
-  gr_register_model("tiny-local", context_window = 4096, max_output = 512,
+  hr_register_model("tiny-local", context_window = 4096, max_output = 512,
                     input_usd = 0, output_usd = 0)
-  gr_register_model("house-a", context_window = 64000, max_output = 4000,
+  hr_register_model("house-a", context_window = 64000, max_output = 4000,
                     input_usd = 0.15, output_usd = 0.6)
   ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200)))
   rb <- recording_backend("house-a")
@@ -94,7 +94,7 @@ test_that("a spec keeps no model of its own until it is read", {
   out <- capture.output(print(gr_recipes("fast")))
   expect_true(any(grepl("read    : stuff", out, fixed = TRUE)))
   # A model that follows the client is not recorded as a setting.
-  tr <- gr_trace()
+  tr <- hr_trace()
   ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200)))
   a <- quiet(gr_read(ch, "Q?", mock_echo(), "stuff", trace = tr))
   pf <- Filter(function(s) identical(s$label, "preflight"), tr$steps)[[1]]$detail
@@ -109,10 +109,10 @@ test_that("an unpriced model does not waive the parallel worst case for a priced
   skip_if_not_installed("future")
   skip_if_not_installed("future.apply")
   local_registries()
-  gr_register_model("pricey", context_window = 128000, max_output = 16000,
+  hr_register_model("pricey", context_window = 128000, max_output = 16000,
                     input_usd = 10, output_usd = 40)
-  gr_register_model("house-model", context_window = 128000, max_output = 16000)
-  gr_options(max_cost_usd = 0.5, max_calls = 10000)
+  hr_register_model("house-model", context_window = 128000, max_output = 16000)
+  hr_options(max_cost_usd = 0.5, max_calls = 10000)
   ch <- quiet(gr_segment(sample_doc(6, 6), list(method = "paragraph", max_tokens = 120)))
   cl <- mock_echo()
   spec <- function(main) gr_read_spec("rerank", model = main, skim_model = "pricey",
@@ -126,12 +126,12 @@ test_that("an unpriced model does not waive the parallel worst case for a priced
 
 test_that("an ensemble's known floor is not waived by a member read by an unpriced model", {
   local_registries()
-  gr_register_model("pricey", context_window = 128000, max_output = 16000,
+  hr_register_model("pricey", context_window = 128000, max_output = 16000,
                     input_usd = 10, output_usd = 40)
-  gr_register_model("house-model", context_window = 128000, max_output = 16000)
+  hr_register_model("house-model", context_window = 128000, max_output = 16000)
   ch <- quiet(gr_segment(sample_doc(6, 6), list(method = "paragraph", max_tokens = 120)))
-  floor_priced <- gr_estimate_cost("pricey", sum(ch$chunks$tokens), 0)
-  gr_options(max_cost_usd = floor_priced / 2, max_calls = 10000)
+  floor_priced <- hr_estimate_cost("pricey", sum(ch$chunks$tokens), 0)
+  hr_options(max_cost_usd = floor_priced / 2, max_calls = 10000)
   cl <- mock_echo()
   expect_error(quiet(gr_read(ch, "Q?", cl, gr_read_spec("ensemble", model = "pricey",
                                                           skim_model = "house-model",
@@ -147,10 +147,10 @@ test_that("an ensemble's known floor is not waived by a member read by an unpric
 test_that("an ellmer chat's own unpriced model is refused, override or not", {
   skip_if_not_installed("ellmer")
   local_registries()
-  gr_register_model("claude-test", context_window = 200000, max_output = 8000)
-  gr_options(max_cost_usd = 1)
+  hr_register_model("claude-test", context_window = 200000, max_output = 8000)
+  hr_options(max_cost_usd = 1)
   ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 200)))
-  cl <- gr_ellmer_client(fake_chat("claude-test"))
+  cl <- hr_ellmer_client(fake_chat("claude-test"))
   expect_identical(harnessr:::client_billed_model(cl), "claude-test")
   # The fake chat cannot take a per-call output cap either; that warning is
   # tested in test-backend.R and is not the one this test is about. Under a
@@ -165,7 +165,7 @@ test_that("an ellmer chat's own unpriced model is refused, override or not", {
     class = "hr_unpriced_model", regexp = "claude-test")
   # Allowed to run unpriced, it says the limit cannot be checked, for the
   # chat's model in both cases.
-  gr_options(allow_unpriced = TRUE)
+  hr_options(allow_unpriced = TRUE)
   for (settings in list("stuff", list(reader = "stuff", model = "gpt-5.6-terra"))) {
     ws <- character(0)
     withCallingHandlers(suppressMessages(gr_read(ch, "Q?", cl, settings)),
@@ -177,7 +177,7 @@ test_that("an ellmer chat's own unpriced model is refused, override or not", {
   }
   # Other clients bill as the model each request names.
   expect_null(harnessr:::client_billed_model(mock_echo()))
-  expect_null(harnessr:::client_billed_model(gr_backend_client(function(m, p) "x", model = "bk")))
+  expect_null(harnessr:::client_billed_model(hr_backend_client(function(m, p) "x", model = "bk")))
 })
 
 # ---------------------------------------------------------------------------
@@ -201,8 +201,8 @@ test_that("the worst case counts every merge and summary level", {
 
 test_that("a hierarchical read's recorded worst case is not below what it makes", {
   local_registries()
-  gr_register_model("small-ctx", 4000, 500, input_usd = 2, output_usd = 8)
-  gr_options(max_calls = 100000, max_cost_usd = NULL)
+  hr_register_model("small-ctx", 4000, 500, input_usd = 2, output_usd = 8)
+  hr_options(max_calls = 100000, max_cost_usd = NULL)
   paras <- vapply(1:40, function(i) paste(sprintf("Paragraph %d.", i),
     paste(rep("The cohort comprised participants across clinical sites and endpoints.", 5),
           collapse = " ")), "")
@@ -211,7 +211,7 @@ test_that("a hierarchical read's recorded worst case is not below what it makes"
   cl <- mock_bulky(28)
   spec <- list(reader = "hierarchical", model = "small-ctx", fan_in = 2,
                max_answer_tokens = 400, max_summary_tokens = 400, max_chunk_tokens = 400)
-  tr <- gr_trace()
+  tr <- hr_trace()
   a <- quiet(gr_read(ch, "Q?", cl, spec, trace = tr))
   pf <- Filter(function(s) identical(s$label, "preflight"), tr$steps)[[1]]$detail
   expect_gte(pf$worst_calls, tr$calls)
@@ -219,7 +219,7 @@ test_that("a hierarchical read's recorded worst case is not below what it makes"
   expect_gte(pf$est_cost_usd, tr$spent_usd)
 
   # skim: consolidating the evidence is part of its worst case too.
-  tr <- gr_trace()
+  tr <- hr_trace()
   s <- quiet(gr_read(ch, "Q?", cl, list(reader = "skim", model = "small-ctx",
                                         max_answer_tokens = 400, max_chunk_tokens = 400),
                      trace = tr))
@@ -232,7 +232,7 @@ test_that("a parallel read is refused when its worst case passes a limit", {
   skip_if_not_installed("future")
   skip_if_not_installed("future.apply")
   local_registries()
-  gr_register_model("small-ctx", 4000, 500, input_usd = 2, output_usd = 8)
+  hr_register_model("small-ctx", 4000, 500, input_usd = 2, output_usd = 8)
   paras <- vapply(1:64, function(i) paste(sprintf("Paragraph %d.", i),
     paste(rep("The cohort comprised participants across clinical sites and endpoints.", 5),
           collapse = " ")), "")
@@ -242,7 +242,7 @@ test_that("a parallel read is refused when its worst case passes a limit", {
                max_answer_tokens = 400, max_summary_tokens = 400, parallel = TRUE)
   cl <- mock_bulky(28)
   # Room for the old estimate (n + n/2 + 1) but not for every level.
-  gr_options(max_calls = n + ceiling(n / 2) + 3, max_cost_usd = NULL)
+  hr_options(max_calls = n + ceiling(n / 2) + 3, max_cost_usd = NULL)
   expect_error(quiet(gr_read(ch, "Q?", cl, spec)), class = "gr_call_cap", regexp = "worst case")
   expect_length(cl$calls(), 0L)
   # Sequential, the same cap stops the run part way instead.
@@ -257,7 +257,7 @@ test_that("a parallel read is refused when its worst case passes a limit", {
 test_that("gr_compare holds all its recipes to one spending limit", {
   local_registries()
   local_clean_cache()
-  gr_register_model("price-test", context_window = 200000, max_output = 8000,
+  hr_register_model("price-test", context_window = 200000, max_output = 8000,
                     input_usd = 1, output_usd = 10000)
   txt <- sample_doc(6, 6)
   q <- "What was the cohort size?"
@@ -271,10 +271,10 @@ test_that("gr_compare holds all its recipes to one spending limit", {
                                                        max_summary_tokens = 16L))
   # A reply shorter than that cap, as a provider's would be.
   cl <- mock_echo("The cohort comprised 482 participants.")
-  gr_options(max_calls = 1000, max_cost_usd = NULL)
+  hr_options(max_calls = 1000, max_cost_usd = NULL)
   one <- quiet(gr_compare(txt, q, list(mk("map_reduce")), client = cl))
   lim <- one$trace$spent_usd * 1.2
-  gr_options(max_cost_usd = lim)
+  hr_options(max_cost_usd = lim)
   cmp <- quiet(gr_compare(txt, q, list(mk("map_reduce"), mk("refine"), mk("skim"),
                                        mk("hierarchical")), client = cl))
   # Not past the limit at all: it used to be passed by the request that
@@ -287,7 +287,7 @@ test_that("gr_compare holds all its recipes to one spending limit", {
   expect_true(all(vapply(cmp$trace$refusals, function(r) identical(r$limit, "cost"),
                          logical(1))))
   # The shared trace still adds up to its steps.
-  expect_equal(cmp$trace$spent_usd, sum(gr_trace_cost(cmp$trace)$usd))
+  expect_equal(cmp$trace$spent_usd, sum(hr_trace_cost(cmp$trace)$usd))
 })
 
 # ---------------------------------------------------------------------------
@@ -316,7 +316,7 @@ test_that("a quotation with a changed figure does not verify", {
 test_that("a skim quotation that drops a digit makes the answer partial", {
   doc <- "Overall, 25% of patients had nausea during the first week of treatment."
   ch <- quiet(gr_segment(gr_ingest(doc), list(method = "paragraph", max_tokens = 200)))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("You extract evidence", m[[1]]$content, fixed = TRUE))
       return("5% of patients had nausea during the first week of treatment.")
     "5% of patients had nausea."
@@ -367,7 +367,7 @@ test_that("a faithful multi-passage extraction does not make a skim answer parti
                "The study was funded by the national research council.",
                "Headache was reported by 12 patients.")
   ch <- quiet(gr_segment(gr_ingest(src), list(method = "paragraph", max_tokens = 200)))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("You extract evidence", m[[1]]$content, fixed = TRUE))
       return(paste0("Overall, 25% of patients had nausea during the trial.\n\n",
                     "Headache was reported by 12 patients."))
@@ -416,7 +416,7 @@ test_that("every common way of writing a citation is read", {
 test_that("a synthesised section citing a missing study in a list is not clean", {
   local_clean_cache()
   make_client <- function(section_text) {
-    gr_mock_client(function(messages, params) {
+    hr_mock_client(function(messages, params) {
       seen <- paste(vapply(messages, function(m) paste(as.character(m$content), collapse = ""),
                            character(1)), collapse = "\n")
       if (grepl("<studies>", seen, fixed = TRUE)) return(section_text)
@@ -449,7 +449,7 @@ test_that("a synthesised section citing a missing study in a list is not clean",
 test_that("a fabricated id in a list or range makes the answer partial", {
   ch <- new_chunks(c("Revenue rose to 45.2 million dollars.", "Headcount grew to 1,204."),
                    "precomputed", gr_segment_spec(max_tokens = 400))
-  read_with <- function(txt) quiet(gr_read(ch, "Q?", gr_mock_client(function(m, p) txt),
+  read_with <- function(txt) quiet(gr_read(ch, "Q?", hr_mock_client(function(m, p) txt),
                                            list(reader = "stuff", cite = TRUE)))
   a <- read_with("Revenue rose [chunks 1, 2, and 9].")
   expect_true(a$partial)
@@ -472,7 +472,7 @@ test_that("a quotation of a model-written context header does not verify", {
   body <- "Annual report for the year.\n\nRevenue for the year was 45.2 million dollars."
   hdr <- "[This excerpt reports that revenue rose to 52 million dollars.]\n\n"
   ch <- chunks_with_source(paste0(hdr, body), body)
-  liar <- gr_mock_client(function(m, p) {
+  liar <- hr_mock_client(function(m, p) {
     if (grepl("You extract evidence", m[[1]]$content, fixed = TRUE))
       return("revenue rose to 52 million dollars.")
     "Revenue was 52 million dollars."
@@ -486,7 +486,7 @@ test_that("a quotation of a model-written context header does not verify", {
   a2$evidence$source_text <- NA_character_
   expect_false(gr_verify_evidence(a2, ch)$verified)
 
-  honest <- gr_mock_client(function(m, p) {
+  honest <- hr_mock_client(function(m, p) {
     if (grepl("You extract evidence", m[[1]]$content, fixed = TRUE))
       return("Revenue for the year was 45.2 million dollars.")
     "Revenue was 45.2 million dollars."
@@ -503,7 +503,7 @@ test_that("a quotation of a model-written context header does not verify", {
 test_that("a proposition the segmenting model invented does not verify", {
   props <- "The trial enrolled 120 patients.\nMortality fell by 40% in the treatment arm."
   ch <- chunks_with_source(props, "The trial enrolled 120 patients and outcomes improved.")
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("You extract evidence", m[[1]]$content, fixed = TRUE))
       return("Mortality fell by 40% in the treatment arm.")
     "Mortality fell by 40% [chunk 1]."
@@ -517,7 +517,7 @@ test_that("a proposition the segmenting model invented does not verify", {
   na_src <- chunks_with_source(props, NA_character_)
   expect_true(quiet(gr_read(na_src, "Q?", cl, "skim"))$evidence$verified)
   # preview's skimmed sections follow the same rule.
-  skimmer <- gr_mock_client(function(m, p) {
+  skimmer <- hr_mock_client(function(m, p) {
     sys <- m[[1]]$content
     if (grepl("You plan how to read a document", sys, fixed = TRUE)) return(preview_plan_json("skim"))
     if (grepl("extract evidence, not answers", sys, fixed = TRUE))

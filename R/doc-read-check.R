@@ -15,7 +15,7 @@
 #' [gr_register_reader()].
 #'
 #' The document is cut with `list(method = "paragraph", max_tokens = 150)` and
-#' read on a fresh [gr_trace()]. Readers that need more than a question are
+#' read on a fresh [hr_trace()]. Readers that need more than a question are
 #' given what they need: `extract` one field, `screen` one inclusion
 #' criterion, and `ensemble` the members `"stuff"` and `"retrieve"`.
 #'
@@ -45,7 +45,7 @@
 #'
 #' @param reader A registered reader's name; see [gr_readers()].
 #' @param client A `gr_client` to read with. `NULL` (the default) uses a
-#'   [gr_mock_client()] whose reply to a request with a JSON schema is an
+#'   [hr_mock_client()] whose reply to a request with a JSON schema is an
 #'   object of that schema's shape, and a fixed sentence otherwise.
 #' @return An `hr_conformance` data frame; see [hr_check_module()].
 #' @seealso [hr_check_module()], [gr_check_segmenter()], [gr_register_reader()]
@@ -57,7 +57,7 @@
 #' # A reader whose calls carry a label it did not declare.
 #' gr_register_reader("loose", signature = "one|1|none", calls = "loose.answer",
 #'   fn = function(chunks, question, client, spec, trace) {
-#'     res <- gr_call(client, list(list(role = "user", content = question)),
+#'     res <- hr_call(client, list(list(role = "user", content = question)),
 #'                    model = spec$model, trace = trace, label = "other.answer")
 #'     new_answer(res$text, "loose", question, integer(0), trace)
 #'   })
@@ -71,7 +71,7 @@ gr_check_reader <- function(reader, client = NULL) {
                                         list(method = "paragraph", max_tokens = 150L)))
   ids <- chunks$chunks$chunk_id
   spec <- c(list(reader = reader), check_read_inputs(reader))
-  trace <- gr_trace(meta = list(check = reader))
+  trace <- hr_trace(meta = list(check = reader))
   stems <- rd$calls
   if (identical(reader, "ensemble")) {
     for (m in spec$members) stems <- c(stems, registry_get("reader")[[m]]$calls)
@@ -182,7 +182,7 @@ gr_check_segmenter <- function(segmenter, client = NULL) {
   uses_client <- isTRUE(sg$needs_client) || length(sg$calls) > 0L
   client <- if (!is.null(client) || uses_client) check_client(client)
   spec <- gr_segment_spec(method = segmenter, max_tokens = 150L, context_source = "llm")
-  trace <- gr_trace(meta = list(check = segmenter))
+  trace <- hr_trace(meta = list(check = segmenter))
   columns <- c("chunk_id", "text", "tokens", "chars", "page", "section", "block_id")
   rules <- list(
     chunks_class = function(ch) list(ok = inherits(ch, "gr_chunks") && is.data.frame(ch$chunks),
@@ -221,9 +221,9 @@ gr_check_segmenter <- function(segmenter, client = NULL) {
 #' The client a check runs with: the one given, or the offline one below.
 #' @noRd
 check_client <- function(client) {
-  if (is.null(client)) return(gr_mock_client(check_reply))
+  if (is.null(client)) return(hr_mock_client(check_reply))
   if (!inherits(client, "gr_client")) {
-    gr_abort("`client` must come from gr_client() or gr_mock_client(), or be NULL.",
+    gr_abort("`client` must come from hr_client() or hr_mock_client(), or be NULL.",
              class = "gr_bad_setting")
   }
   client
@@ -509,10 +509,10 @@ check_cleaner <- function(cleaner) {
                   kind = "cleaner", name = cleaner)
 }
 
-#' Embed three short texts with one registered embedder through gr_embed()
+#' Embed three short texts with one registered embedder through hr_embed()
 #' and check the vectors. `client` is the offline one unless given. For
 #' "api", a client with an embed function (the offline one has one) stands
-#' in for the endpoint, as gr_embed() uses it for such a client.
+#' in for the endpoint, as hr_embed() uses it for such a client.
 #' @noRd
 check_embedder <- function(embedder, client = NULL) {
   embedder <- as_chr1(embedder, "")
@@ -523,11 +523,11 @@ check_embedder <- function(embedder, client = NULL) {
   via_client <- identical(embedder, "api") && is.function(client$embed_handler)
   again <- function() {
     if (!via_client) {
-      return(gr_embed(client, texts, cache = FALSE, fallback = "error", embedder = embedder))
+      return(hr_embed(client, texts, cache = FALSE, fallback = "error", embedder = embedder))
     }
-    old <- gr_options(embedder = NULL)
-    on.exit(gr_options(old), add = TRUE)
-    gr_embed(client, texts, cache = FALSE, fallback = "error")
+    old <- hr_options(embedder = NULL)
+    on.exit(hr_options(old), add = TRUE)
+    hr_embed(client, texts, cache = FALSE, fallback = "error")
   }
   hr_check_module(emb$fn, again,
                   rules = gr_rules_embedder(texts, embedder, emb$deterministic, again),
@@ -581,7 +581,7 @@ check_reader_governor <- function(reader, max_calls, client = NULL) {
   chunks <- suppressWarnings(gr_segment(gr_example(),
                                         list(method = "paragraph", max_tokens = 150L)))
   spec <- c(list(reader = reader), check_read_inputs(reader))
-  trace <- gr_trace(governor = hr_governor(max_calls = max_calls),
+  trace <- hr_trace(governor = hr_governor(max_calls = max_calls),
                     meta = list(check = reader))
   # Only the refusal is kept: a warning of the same class, which a read
   # gives when a batch will not fit, must not end the read.

@@ -61,7 +61,7 @@ test_that("a strong route for a later record beats a weak route for an earlier o
 
   # Where it did harm: the bibliographic join put Park's authors, year and DOI
   # on Smith's trial.
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("fill a data-extraction form", messages[[1]]$content, fixed = TRUE)) {
       return('{"n": 120, "n__quote": "A trial with n = 120"}')
     }

@@ -16,7 +16,7 @@
 #' Cut text to a token count, keeping the part you choose
 #'
 #' `keep = "head"` (the default) keeps the start of `text` and is
-#' [gr_truncate_tokens()] itself, so a caller that switches to this function
+#' [hr_truncate_tokens()] itself, so a caller that switches to this function
 #' sends what it sent before. `"tail"` keeps the end, with `marker` at the
 #' front. `"both"` keeps the start and the end, about half the budget each,
 #' with `marker` between them on a line of its own. `"scored"` splits the text
@@ -42,7 +42,7 @@
 #' @param scores For `keep = "scored"`: one number per unit, higher kept
 #'   first. Ties keep the earlier unit.
 #' @param marker The text that marks a cut; `""` for none. As in
-#'   [gr_truncate_tokens()], it is dropped when it would cost half the budget
+#'   [hr_truncate_tokens()], it is dropped when it would cost half the budget
 #'   or more.
 #' @param trace Optional `gr_trace` to write the cut to.
 #' @param where The cut site, written to the trace, in the dotted style of
@@ -50,19 +50,19 @@
 #' @param piece The name of the piece that was cut, written to the trace, or
 #'   `NULL`.
 #' @return A single string.
-#' @seealso [hr_context_policy()], [hr_context_fit()], [gr_truncate_tokens()]
+#' @seealso [hr_context_policy()], [hr_context_fit()], [hr_truncate_tokens()]
 #' @family cost and token functions
 #' @export
 #' @examples
 #' txt <- paste("Para", 1:6, "says something about revenue.", collapse = "\n\n")
-#' hr_truncate(txt, 20)                      # the start, as gr_truncate_tokens()
+#' hr_truncate(txt, 20)                      # the start, as hr_truncate_tokens()
 #' hr_truncate(txt, 20, keep = "tail")       # the end
 #' cat(hr_truncate(txt, 24, keep = "both"))  # both ends
 #' # The paragraphs that score highest, in document order.
 #' cat(hr_truncate(txt, 20, keep = "scored", scores = c(1, 9, 2, 8, 3, 4)))
 #'
 #' # The cut is written to a trace.
-#' tr <- gr_trace()
+#' tr <- hr_trace()
 #' invisible(hr_truncate(txt, 20, keep = "tail", trace = tr, where = "demo", piece = "notes"))
 #' tr$steps[[1]]$detail[c("where", "piece", "dropped_part", "tokens_dropped")]
 hr_truncate <- function(text, n, keep = c("head", "tail", "both", "scored"), scores = NULL,
@@ -72,7 +72,7 @@ hr_truncate <- function(text, n, keep = c("head", "tail", "both", "scored"), sco
   marker <- as_chr1(marker, "")
   if (!identical(keep, "scored") || length(text) <= 1L) text <- as_chr1(text, "")
   if (identical(keep, "head")) {
-    out <- gr_truncate_tokens(text, n, marker)
+    out <- hr_truncate_tokens(text, n, marker)
     log_cut(trace, where, piece, keep, text, out, n, marker,
             if (nzchar(out) || !nzchar(text)) "end" else "all")
     return(out)
@@ -89,17 +89,17 @@ hr_truncate <- function(text, n, keep = c("head", "tail", "both", "scored"), sco
     log_cut(trace, where, piece, keep, text, "", n, "", "all")
     return("")
   }
-  if (gr_count_tokens(text) <= n) return(text)
+  if (hr_count_tokens(text) <= n) return(text)
   if (!validUTF8(text)) text <- to_utf8(text)
   mk <- trimws(marker)
-  if (gr_count_tokens(mk) >= n / 2) mk <- ""
+  if (hr_count_tokens(mk) >= n / 2) mk <- ""
   # The marker and the space or line that joins it cost what they cost; with
   # no marker the whole budget is the text's.
-  budget <- if (nzchar(mk)) max(n - gr_count_tokens(mk) - 1L, 1L) else n
+  budget <- if (nzchar(mk)) max(n - hr_count_tokens(mk) - 1L, 1L) else n
   tail_cut <- function() {
     kept <- tail_tokens(text, budget)
     out <- if (nzchar(mk) && nzchar(kept)) paste0(mk, " ", kept) else kept
-    if (gr_count_tokens(out) > n) out <- kept
+    if (hr_count_tokens(out) > n) out <- kept
     log_cut(trace, where, piece, "tail", text, kept, n, "", if (nzchar(kept)) "start" else "all")
     out
   }
@@ -108,20 +108,20 @@ hr_truncate <- function(text, n, keep = c("head", "tail", "both", "scored"), sco
   # takes the first half; when no word of the start fits in it, the start
   # takes what the whole budget allows and the end what is left.
   sep <- if (nzchar(mk)) paste0("\n", mk, "\n") else "\n"
-  first <- gr_truncate_tokens(text, max(budget %/% 2L, 1L), marker = "")
-  if (!nzchar(first)) first <- gr_truncate_tokens(text, budget, marker = "")
+  first <- hr_truncate_tokens(text, max(budget %/% 2L, 1L), marker = "")
+  if (!nzchar(first)) first <- hr_truncate_tokens(text, budget, marker = "")
   if (!nzchar(first)) {
     # Not even the start fits: keep what the end allows, as "tail" does.
     return(tail_cut())
   }
   rest <- substr(text, nchar(first) + 1L, nchar(text))
-  last <- tail_tokens(rest, max(budget - gr_count_tokens(first), 0L))
-  while (nzchar(last) && gr_count_tokens(paste0(first, sep, last)) > n) {
-    last <- tail_tokens(last, max(gr_count_tokens(last) - 2L, 0L))
+  last <- tail_tokens(rest, max(budget - hr_count_tokens(first), 0L))
+  while (nzchar(last) && hr_count_tokens(paste0(first, sep, last)) > n) {
+    last <- tail_tokens(last, max(hr_count_tokens(last) - 2L, 0L))
   }
   if (!nzchar(last)) {
     # No room for the end: keep the start, as "head" does.
-    out <- gr_truncate_tokens(text, n, marker)
+    out <- hr_truncate_tokens(text, n, marker)
     log_cut(trace, where, piece, "both", text, out, n, marker, "end")
     return(out)
   }
@@ -149,9 +149,9 @@ match_keep <- function(keep, arg = "keep") {
 tail_tokens <- function(text, n) {
   n <- as.integer(n)
   if (n <= 0L || !nzchar(text)) return("")
-  if (gr_count_tokens(text) <= n) return(text)
+  if (hr_count_tokens(text) <= n) return(text)
   len <- nchar(text)
-  fits <- function(k) gr_count_tokens(substr(text, k, len)) <= n
+  fits <- function(k) hr_count_tokens(substr(text, k, len)) <= n
   # The smallest start position that fits.
   lo <- 1L; hi <- len + 1L
   while (lo < hi) {
@@ -188,19 +188,19 @@ truncate_scored <- function(text, n, scores, marker, trace, where, piece) {
   whole <- paste(units, collapse = "\n\n")
   if (is.infinite(n) && n > 0) return(whole)
   n <- as.integer(clamp(n, 0, .Machine$integer.max))
-  if (gr_count_tokens(whole) <= n && n > 0L) return(whole)
+  if (hr_count_tokens(whole) <= n && n > 0L) return(whole)
   mk <- trimws(marker)
-  if (gr_count_tokens(mk) >= n / 2) mk <- ""
+  if (hr_count_tokens(mk) >= n / 2) mk <- ""
   ord <- order(-scores, seq_along(units))
   pick <- function(budget) {
     kept <- integer(0)
     for (i in ord) {
       try_ids <- sort(c(kept, i))
-      if (gr_count_tokens(paste(units[try_ids], collapse = "\n\n")) <= budget) kept <- try_ids
+      if (hr_count_tokens(paste(units[try_ids], collapse = "\n\n")) <= budget) kept <- try_ids
     }
     kept
   }
-  kept <- pick(if (nzchar(mk)) n - gr_count_tokens(mk) - 1L else n)
+  kept <- pick(if (nzchar(mk)) n - hr_count_tokens(mk) - 1L else n)
   # A unit that fits only without the marker is kept without it.
   if (!length(kept) && nzchar(mk)) {
     mk <- ""
@@ -208,7 +208,7 @@ truncate_scored <- function(text, n, scores, marker, trace, where, piece) {
   }
   body <- paste(units[kept], collapse = "\n\n")
   out <- if (length(kept) && nzchar(mk)) paste0(body, "\n\n", mk) else body
-  if (gr_count_tokens(out) > n) out <- body
+  if (hr_count_tokens(out) > n) out <- body
   gone <- setdiff(seq_along(units), kept)
   log_cut(trace, where, piece, "scored", whole, body, n, "",
           if (length(gone)) paste("units", paste(gone, collapse = ", ")) else "none")
@@ -351,7 +351,7 @@ policy_keep <- function(policy, piece, scored = FALSE) {
 #'             draft = paste(rep("Revenue rose.", 30), collapse = " "),
 #'             excerpt = paste(rep("Costs fell.", 30), collapse = " "))
 #' fit <- hr_context_fit(pieces, 80, hr_context_policy(pin = c("question", "draft")))
-#' vapply(fit$pieces, gr_count_tokens, numeric(1))
+#' vapply(fit$pieces, hr_count_tokens, numeric(1))
 #' fit$cut
 hr_context_fit <- function(pieces, budget, policy = hr_context_policy(), scores = NULL,
                            trace = NULL, where = "context") {
@@ -370,7 +370,7 @@ hr_context_fit <- function(pieces, budget, policy = hr_context_policy(), scores 
     gr_abort("`budget` must be one number of tokens, 0 or more.", class = "gr_bad_setting")
   }
   pieces[is.na(pieces)] <- ""
-  size <- function() sum(gr_count_tokens(pieces))
+  size <- function() sum(hr_count_tokens(pieces))
   total <- size()
   cut <- character(0)
   dropped <- 0
@@ -380,7 +380,7 @@ hr_context_fit <- function(pieces, budget, policy = hr_context_policy(), scores 
     for (p in seq_cut) {
       excess <- total - budget
       if (excess <= 0) break
-      had <- gr_count_tokens(pieces[[p]])
+      had <- hr_count_tokens(pieces[[p]])
       if (had <= 0) next
       target <- had - excess
       sc <- scores[[p]]
@@ -394,7 +394,7 @@ hr_context_fit <- function(pieces, budget, policy = hr_context_policy(), scores 
                     where = paste0(where, ".", p), piece = p)
       }
       cut <- c(cut, p)
-      dropped <- dropped + max(had - gr_count_tokens(pieces[[p]]), 0)
+      dropped <- dropped + max(had - hr_count_tokens(pieces[[p]]), 0)
       total <- size()
     }
   }

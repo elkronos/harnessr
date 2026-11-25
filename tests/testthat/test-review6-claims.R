@@ -50,8 +50,8 @@ test_that("a flat groups array leaves the claims unmerged, with a warning", {
   claims <- r6c_rows(r6c_claim("Trials in adults found a benefit.", 1),
                      r6c_claim("Surveys of children found no effect.", 2),
                      r6c_claim("Harms were rare.", 3))
-  cl <- gr_mock_client(function(m, p) '{"groups":[1,2,3]}')
-  r <- r6c_warns(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  cl <- hr_mock_client(function(m, p) '{"groups":[1,2,3]}')
+  r <- r6c_warns(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), hr_trace()))
   expect_identical(nrow(r$value), 3L)
   expect_identical(lengths(r$value$.support), c(1L, 1L, 1L))
   expect_true("gr_claims_unmerged" %in% r$classes)
@@ -63,14 +63,14 @@ test_that("a flat groups array leaves the claims unmerged, with a warning", {
   # are kept apart whatever the reply groups (P3-07): the three above come
   # back as three, the adults' benefit, the children's null finding and the
   # rare harms each on its own, since a benefit and a harm are read apart.
-  cl <- gr_mock_client(function(m, p) '{"groups":[[1,2,3]]}')
+  cl <- hr_mock_client(function(m, p) '{"groups":[[1,2,3]]}')
   agree <- r6c_rows(r6c_claim("Trials in adults found a benefit.", 1),
                     r6c_claim("Cohorts of adults found a benefit.", 2),
                     r6c_claim("Adults benefited in trials.", 3))
   expect_identical(nrow(quiet(harnessr:::claims_reconcile(agree, "Q?", cl, gr_read_spec("stuff"),
-                                                         gr_trace()))), 1L)
+                                                         hr_trace()))), 1L)
   expect_identical(nrow(quiet(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"),
-                                                         gr_trace()))), 3L)
+                                                         hr_trace()))), 3L)
 })
 
 # ---------------------------------------------------------------------------
@@ -86,33 +86,33 @@ test_that("a merged claim names the wordings it absorbed", {
   opposite <- r6c_rows(
     r6c_claim("The treatment improved symptoms in clinical samples.", 1),
     r6c_claim("The treatment did not improve symptoms in the community samples studied.", 2:3))
-  cl <- gr_mock_client(function(m, p) '{"groups":[[1,2]]}')
-  got <- quiet(harnessr:::claims_reconcile(opposite, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  cl <- hr_mock_client(function(m, p) '{"groups":[[1,2]]}')
+  got <- quiet(harnessr:::claims_reconcile(opposite, "Q?", cl, gr_read_spec("stuff"), hr_trace()))
   expect_identical(nrow(got), 2L)
   expect_match(got$note, "kept apart from", fixed = TRUE)
   claims <- r6c_rows(
     r6c_claim("The treatment improved symptoms in clinical samples.", 1),
     r6c_claim("The treatment improved symptoms in the community samples studied.", 2:3))
-  got <- quiet(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  got <- quiet(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), hr_trace()))
   expect_identical(nrow(got), 1L)
   expect_match(got$note, "merged with: 'The treatment improved symptoms in clinical samples.'",
                fixed = TRUE)
   # The same claim twice is a merge with nothing to report.
   same <- r6c_rows(r6c_claim("It works.", 1), r6c_claim("It  works.", 2))
-  got <- quiet(harnessr:::claims_reconcile(same, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  got <- quiet(harnessr:::claims_reconcile(same, "Q?", cl, gr_read_spec("stuff"), hr_trace()))
   expect_true(is.na(got$note))
 })
 
 test_that("a group mixing a finding with a gap is warned about", {
   claims <- r6c_rows(r6c_claim("Trials find the effect.", 1),
                      r6c_claim("No study followed up past a year.", 2, kind = "gap"))
-  cl <- gr_mock_client(function(m, p) '{"groups":[[1,2]]}')
-  r <- r6c_warns(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  cl <- hr_mock_client(function(m, p) '{"groups":[[1,2]]}')
+  r <- r6c_warns(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), hr_trace()))
   expect_true("gr_claims_merged" %in% r$classes)
   expect_match(r$value$note, "merged with:", fixed = TRUE)
   # Claims of one kind merge without that warning.
   claims$kind <- "finding"
-  r <- r6c_warns(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  r <- r6c_warns(harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), hr_trace()))
   expect_false("gr_claims_merged" %in% r$classes)
 })
 
@@ -121,7 +121,7 @@ test_that("a group mixing a finding with a gap is warned about", {
 # ---------------------------------------------------------------------------
 
 r6c_batched <- function(reconcile) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("Group the ones", sys, fixed = TRUE)) return(reconcile(params))
     txt <- paste(vapply(messages, function(m) m$content, ""), collapse = "\n")
@@ -155,25 +155,25 @@ test_that("the reconcile reply limit grows with the number of claims", {
   n <- 400L
   claims <- r6c_rows(r6c_claim("Seed.", 1))[rep(1L, n), ]
   claims$claim <- sprintf("Claim number %d.", seq_len(n))
-  cl <- gr_mock_client(function(m, p) { seen <<- p$max_output; '{"groups":[]}' })
+  cl <- hr_mock_client(function(m, p) { seen <<- p$max_output; '{"groups":[]}' })
   quiet(harnessr:::claims_reconcile(claims, "Q?", cl,
                                    gr_read_spec("stuff", model = "mock-model",
-                                                max_answer_tokens = 1600L), gr_trace()))
+                                                max_answer_tokens = 1600L), hr_trace()))
   expect_gte(seen, harnessr:::reconcile_reply_tokens(n))
   expect_gt(seen, 1600L)
 })
 
 test_that("a reconcile reply cut off by the window is not blamed on the reply limit", {
   local_registries()
-  gr_register_model("recon-small", context_window = 700L, max_output = 600L,
+  hr_register_model("recon-small", context_window = 700L, max_output = 600L,
                     input_usd = 0, output_usd = 0)
   claims <- r6c_rows(r6c_claim("Seed.", 1))[rep(1L, 40L), ]
   claims$claim <- sprintf("Claim number %d says something moderately long about the evidence.",
                           seq_len(40L))
-  cl <- gr_mock_client(function(m, p) gr_result(TRUE, '{"groups":[[1,', finish_reason = "length"))
+  cl <- hr_mock_client(function(m, p) gr_result(TRUE, '{"groups":[[1,', finish_reason = "length"))
   r <- r6c_warns(harnessr:::claims_reconcile(
     claims, "Q?", cl, gr_read_spec("stuff", model = "recon-small", max_answer_tokens = 400L),
-    gr_trace()))
+    hr_trace()))
   msg <- r$messages[r$classes == "gr_claims_unmerged"]
   expect_match(msg, "context window", fixed = TRUE)
   expect_no_match(msg, "raise `max_claim_tokens`", fixed = TRUE)
@@ -187,7 +187,7 @@ test_that("a moderator naming a column that does not vary is cleared", {
   # Before: every study is an RCT, the claim came back "distinguished by:
   # design", and gr_gaps() dropped it from the unexplained disagreements while
   # reporting that design never varies.
-  cl <- gr_mock_client(function(m, p) sprintf('{"claims":[%s]}',
+  cl <- hr_mock_client(function(m, p) sprintf('{"claims":[%s]}',
     r6c_claim("Most trials found a benefit.", 1:2, 3L, moderator = "design")))
   cm <- quiet(gr_claims(r6c_table(), question = "Q?", client = cl))
   expect_true(is.na(cm$claims$moderator))
@@ -226,7 +226,7 @@ test_that("a moderator is checked again after a merge changes the sides", {
   tab <- rbind(tab, transform(tab, document = paste0("x", document),
                               document_id = paste0("x", document_id),
                               design = c("cohort", "RCT", "RCT")))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("Group the ones", messages[[1]]$content, fixed = TRUE)) return('{"groups":[[1,2]]}')
     txt <- paste(vapply(messages, function(m) m$content, ""), collapse = "\n")
     ids <- as.integer(regmatches(txt, gregexpr("(?<=\\[study )[0-9]+", txt, perl = TRUE))[[1]])
@@ -256,7 +256,7 @@ test_that("gr_claims(bib =) withholds custom bibliographic columns from the mode
   # Before: gr_claims() had no `bib`, so `first_author` reached the prompt, and
   # a moderator naming it was kept.
   seen <- NULL
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     seen <<- paste(vapply(m, function(x) x$content, ""), collapse = "\n")
     sprintf('{"claims":[%s]}', r6c_claim("Some found a benefit.", 1:2, 3L,
                                          moderator = "first_author"))
@@ -275,7 +275,7 @@ test_that("gr_claims(bib =) withholds custom bibliographic columns from the mode
 test_that("gr_gaps leaves bibliographic columns out of the gaps", {
   # Before: "no variation (venue): every study reports 'Lancet'" and its like
   # went to the closing section as gaps the writer had to state.
-  cl <- gr_mock_client(function(m, p) sprintf('{"claims":[%s]}', r6c_claim("A.", 1:3)))
+  cl <- hr_mock_client(function(m, p) sprintf('{"claims":[%s]}', r6c_claim("A.", 1:3)))
   tab <- r6c_bib_table()
   names(tab)[names(tab) == "first_author"] <- "authors"
   names(tab)[names(tab) == "pub_year"] <- "year"
@@ -307,13 +307,13 @@ r6c_many_claims <- function(n) {
   body <- paste(vapply(seq_len(n), function(i) r6c_claim(sprintf("Claim %d.", i), 1L), ""),
                 collapse = ",")
   quiet(gr_claims(tab, question = "Q?",
-                  client = gr_mock_client(function(m, p) sprintf('{"claims":[%s]}', body))))
+                  client = hr_mock_client(function(m, p) sprintf('{"claims":[%s]}', body))))
 }
 
 test_that("gr_outline's reply limit can be raised and grows with the claims", {
   # Before: a literal 1200, with `max_outline_tokens` an unused argument.
   seen <- NULL
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     seen <<- p$max_output
     '{"sections":[{"heading":"A","brief":"b","claims":[1],"rationale":null}]}'
   })
@@ -325,10 +325,10 @@ test_that("gr_outline's reply limit can be raised and grows with the claims", {
   big <- r6c_many_claims(300L)
   quiet(gr_outline(big, client = cl))
   expect_gt(seen, 1200L)
-  expect_identical(seen, harnessr:::outline_reply_tokens(300L, 6L, gr_model_info("mock-model")))
+  expect_identical(seen, harnessr:::outline_reply_tokens(300L, 6L, hr_model_info("mock-model")))
   # A reasoning model spends part of the limit thinking, so it gets more.
   local_registries()
-  gr_register_model("outline-think", context_window = 200000L, max_output = 64000L,
+  hr_register_model("outline-think", context_window = 200000L, max_output = 64000L,
                     input_usd = 0, output_usd = 0, reasoning = TRUE)
   quiet(gr_outline(cm, client = cl, model = "outline-think"))
   expect_gt(seen, 1200L + 3000L)
@@ -336,7 +336,7 @@ test_that("gr_outline's reply limit can be raised and grows with the claims", {
 
 test_that("a cut-off outline names the argument that raises its limit", {
   cm <- r6c_many_claims(2L)
-  cl <- gr_mock_client(function(m, p) gr_result(TRUE, '{"sections":[{"heading":"T',
+  cl <- hr_mock_client(function(m, p) gr_result(TRUE, '{"sections":[{"heading":"T',
                                                 finish_reason = "length"))
   r <- r6c_warns(gr_outline(cm, client = cl, max_outline_tokens = 900))
   msg <- r$messages[r$classes == "gr_outline_truncated"]
@@ -349,9 +349,9 @@ test_that("a cut-off outline names the argument that raises its limit", {
 # ---------------------------------------------------------------------------
 
 r6c_revise <- function(draft, revision, pass = "register") {
-  cl <- gr_mock_client(function(m, p) revision)
+  cl <- hr_mock_client(function(m, p) revision)
   r6c_warns(harnessr:::revise_once(draft, "Q?", cl, gr_read_spec("stuff", model = "mock-model"),
-                                  gr_trace(), NULL, pass))
+                                  hr_trace(), NULL, pass))
 }
 
 test_that("a marker moved past the full stop still makes its sentence a claim", {
@@ -415,10 +415,10 @@ test_that("a draft the guard cannot read is not revised", {
   fr_rev <- paste0("Tous les essais d\u00e9montrent clairement un b\u00e9n\u00e9fice ",
                    "[study 1] [study 2]. Le m\u00e9dicament est prouv\u00e9 s\u00fbr [study 3].")
   expect_false(harnessr:::strength_guard(fr_draft, fr_rev)$ok)
-  cl <- gr_mock_client(function(m, p) fr_rev)
+  cl <- hr_mock_client(function(m, p) fr_rev)
   r <- r6c_warns(harnessr:::synth_revise(fr_draft, "Q?", cl,
                                         gr_read_spec("stuff", model = "mock-model"),
-                                        gr_trace(), "en fran\u00e7ais", "register"))
+                                        hr_trace(), "en fran\u00e7ais", "register"))
   expect_null(r$value$text)
   expect_false(r$value$report$ran)
   expect_true("gr_revision_unguarded" %in% r$classes)
@@ -444,7 +444,7 @@ test_that("a draft the guard cannot read is not revised", {
 test_that("an unreadable draft skips every pass through gr_synthesise", {
   fr <- paste0("Trois petits essais sugg\u00e8rent un b\u00e9n\u00e9fice modeste [study 1] ",
                "[study 2]. Une cohorte pourrait montrer un risque [study 3].")
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("<draft>", messages[[length(messages)]]$content, fixed = TRUE)) {
       return("Tous les essais d\u00e9montrent clairement un b\u00e9n\u00e9fice [study 1] [study 2].")
     }

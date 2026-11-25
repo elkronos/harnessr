@@ -19,7 +19,7 @@ claims_table <- function(n = 4L) {
 
 # A client that answers each stage of the layer from a fixed script.
 claims_client <- function(claims = NULL, sections = NULL, groups = NULL, section_text = NULL) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     all_txt <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                      collapse = " ")
@@ -129,7 +129,7 @@ test_that("claims from different batches are reconciled, and none is lost", {
       rbind(harnessr:::claim_rows(jsonlite::fromJSON(per_batch)$claims),
             harnessr:::claim_rows(jsonlite::fromJSON(per_batch)$claims)),
       harnessr:::synth_studies(claims_table(), FALSE))$claims,
-    "Q?", cl, gr_read_spec("stuff"), gr_trace())
+    "Q?", cl, gr_read_spec("stuff"), hr_trace())
   # Four claims in, three groups named, but claim 4 was never placed -- and it
   # keeps its own group rather than disappearing.
   expect_equal(nrow(got), 3L)
@@ -144,7 +144,7 @@ test_that("the reconcile pass cannot invent a claim or use a number that was not
       '"moderator":null,"scope":null},{"claim":"Two.","kind":"finding","supported_by":[2],',
       '"contradicted_by":[],"moderator":null,"scope":null}]}'))$claims),
     harnessr:::synth_studies(claims_table(), FALSE))$claims
-  got <- harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), gr_trace())
+  got <- harnessr:::claims_reconcile(claims, "Q?", cl, gr_read_spec("stuff"), hr_trace())
   expect_equal(nrow(got), 2L)
   expect_setequal(unlist(got$.support), c(1L, 2L))
   # Indexing `claims[c(1, 99), ]` does not error -- it produces a row of NAs, so
@@ -453,7 +453,7 @@ test_that("prose that makes no claim can be rewritten freely", {
 
 test_that("an escalating revision is discarded and the draft is what you get", {
   base <- c("Included studies" = "Two trials suggest a possible benefit [study 1] [study 2].")
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("reorder a finished review", sys, fixed = TRUE)) {
       return("## Included studies\n\nAll trials demonstrate a benefit [study 1] [study 2].")
@@ -533,7 +533,7 @@ test_that("a merge that moves a contradiction onto the supporting side says so",
               '"supported_by":[1,3],"contradicted_by":[2],"moderator":"design","scope":"t"}]}')
   B <- paste0('{"claims":[{"claim":"The drug lowers mortality.","kind":"finding",',
               '"supported_by":[2],"contradicted_by":[4],"moderator":null,"scope":"all"}]}')
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("Group the ones", messages[[1]]$content, fixed = TRUE)) return('{"groups":[[1,2]]}')
     "x"
   })
@@ -541,7 +541,7 @@ test_that("a merge that moves a contradiction onto the supporting side says so",
     rbind(harnessr:::claim_rows(jsonlite::fromJSON(A)$claims),
           harnessr:::claim_rows(jsonlite::fromJSON(B)$claims)),
     harnessr:::synth_studies(claims_table(), FALSE))$claims
-  got <- quiet(harnessr:::claims_reconcile(before, "Q?", cl, gr_read_spec("stuff"), gr_trace()))
+  got <- quiet(harnessr:::claims_reconcile(before, "Q?", cl, gr_read_spec("stuff"), hr_trace()))
   expect_equal(nrow(got), 1L)
   expect_equal(got$.support[[1]], c(1L, 2L, 3L))
   expect_equal(got$.contradict[[1]], 4L)
@@ -700,18 +700,18 @@ test_that("an abbreviation does not end a sentence, and a heading is not part of
 })
 
 test_that("a draft with no room for its own rewrite is skipped, not sent", {
-  # gr_budget() shrinks the output reserve to the floor rather than failing when
+  # hr_budget() shrinks the output reserve to the floor rather than failing when
   # the window is tight, which makes bud$input LARGER -- so the draft passed the
   # input test and the call went out with max_output = need anyway.
-  gr_register_model("revise-tight", context_window = 4000L, max_output = 3900L,
+  hr_register_model("revise-tight", context_window = 4000L, max_output = 3900L,
                     input_usd = 0, output_usd = 0)
   draft <- paste(rep("The effect may be small [study 1].", 330), collapse = " ")
-  need <- as.integer(ceiling(gr_count_tokens(draft) * 1.15) + 64L)
+  need <- as.integer(ceiling(hr_count_tokens(draft) * 1.15) + 64L)
   expect_lt(need, 3900L)   # the output-limit guard is NOT what catches this
-  cl <- gr_mock_client(function(messages, params) draft)
+  cl <- hr_mock_client(function(messages, params) draft)
   r <- quiet(harnessr:::revise_once(
     draft, "Q?", cl, gr_read_spec("stuff", model = "revise-tight", max_answer_tokens = 300L),
-    gr_trace(), NULL, "cut"))
+    hr_trace(), NULL, "cut"))
   expect_false(r$ran)
   expect_length(cl$calls(), 0L)
   expect_equal(r$reason, "draft exceeds the context window")
@@ -720,12 +720,12 @@ test_that("a draft with no room for its own rewrite is skipped, not sent", {
 test_that("gr_claims() and gr_outline() hold their requests to the given trace's governor", {
   f <- outline_fixture(paste0(
     '{"sections":[{"heading":"A","brief":"first","claims":[1,2,3],"rationale":null}]}'))
-  p <- gr_trace(governor = hr_governor(allowed_models = "nothing-allowed"))
+  p <- hr_trace(governor = hr_governor(allowed_models = "nothing-allowed"))
   cm <- quiet(gr_claims(claims_table(), question = "Q?", client = f$client, trace = p))
   expect_identical(p$calls, 0L)
   expect_true(any(vapply(p$refusals, function(r) identical(r$limit, "model"), logical(1))))
   expect_identical(nrow(cm$claims), 0L)
-  p2 <- gr_trace(governor = hr_governor(allowed_models = "nothing-allowed"))
+  p2 <- hr_trace(governor = hr_governor(allowed_models = "nothing-allowed"))
   quiet(gr_outline(f$claims, client = f$client, trace = p2))
   expect_identical(p2$calls, 0L)
   expect_true(any(vapply(p2$refusals, function(r) identical(r$label, "outline.derive"), logical(1))))
@@ -734,7 +734,7 @@ test_that("gr_claims() and gr_outline() hold their requests to the given trace's
 test_that("max_calls on the given trace's governor holds for the run across claims and outline", {
   f <- outline_fixture(paste0(
     '{"sections":[{"heading":"A","brief":"first","claims":[1,2,3],"rationale":null}]}'))
-  p <- gr_trace(governor = hr_governor(max_calls = 2))
+  p <- hr_trace(governor = hr_governor(max_calls = 2))
   quiet(gr_claims(claims_table(), question = "Q?", client = f$client, trace = p))
   quiet(gr_claims(claims_table(), question = "Q?", client = f$client, trace = p))
   quiet(gr_outline(f$claims, client = f$client, trace = p))

@@ -78,7 +78,7 @@ that answered \code{NOT_IN_DOCUMENT} was read and paid for but is not listed.
 \item{\code{reader}, \code{signature}}{Which strategy ran, and its traversal
 signature (see \code{\link[=gr_reader_signature]{gr_reader_signature()}}).}
 \item{\code{question}}{The question, as asked.}
-\item{\code{trace}}{The \link{gr_trace} for this run. From \code{\link[=answer_document]{answer_document()}} it
+\item{\code{trace}}{The \code{gr_trace} (see \code{\link[=hr_trace]{hr_trace()}}) for this run. From \code{\link[=answer_document]{answer_document()}} it
 holds the whole run: ingestion, segmentation and the read. \strong{An answer
 taken from a \code{\link[=gr_compare]{gr_compare()}} holds only its own recipe's segmentation and
 read} (its segmentation requests, which \code{semantic}, \code{proposition} and
@@ -114,7 +114,7 @@ every prompt and response this run made
 }
 
 \examples{
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 ans$partial
 ans$evidence[, c("chunk_id", "page", "score")]

@@ -10,7 +10,7 @@ draw_judge <- function(answer = "Revenue was 45.2 million dollars [chunk 1].") {
   env <- new.env()
   env$n <- 0L
   env$sent <- list()
-  env$client <- gr_mock_client(function(messages, params) {
+  env$client <- hr_mock_client(function(messages, params) {
     env$n <- env$n + 1L
     env$sent[[length(env$sent) + 1L]] <- list(messages = messages, params = params)
     if (grepl("You grade one response", messages[[1]]$content, fixed = TRUE)) {
@@ -36,13 +36,13 @@ judge_steps <- function(trace) {
 
 test_that("a judge given a trace counts against that trace's governor", {
   m <- draw_judge()
-  run <- gr_trace(governor = hr_governor(max_calls = 2))
+  run <- hr_trace(governor = hr_governor(max_calls = 2))
   res <- hr_judge("Paris", m$client, mode = "grade", reference = "Paris", rubric = "r",
                   trace = run)
   expect_identical(res$judge_cost$calls, 2L)
   expect_identical(run$calls, 2L)
   # The run's two calls are spent, so its next request is refused.
-  r <- suppressWarnings(gr_call(m$client, "Answer.", trace = run))
+  r <- suppressWarnings(hr_call(m$client, "Answer.", trace = run))
   expect_false(r$ok)
   expect_length(run$refusals, 1L)
   expect_identical(m$n, 2L)
@@ -50,9 +50,9 @@ test_that("a judge given a trace counts against that trace's governor", {
 
 test_that("a judge given a trace is drawn at the trace's draw index and scope", {
   m <- draw_judge()
-  cached <- gr_cache_client(m$client, gr_cache(tempfile("judge-draws-")))
+  cached <- hr_cache_client(m$client, hr_cache(tempfile("judge-draws-")))
   reasons <- vapply(1:3, function(r) {
-    tr <- gr_trace()
+    tr <- hr_trace()
     tr$draw_index <- r
     tr$draw_scope <- "arm"
     j <- hr_judge("Paris", cached, mode = "grade", reference = "Paris", rubric = "r",
@@ -67,7 +67,7 @@ test_that("a judge given a trace is drawn at the trace's draw index and scope", 
   expect_identical(reasons, c("reply 1", "reply 2", "reply 3"))
   expect_identical(vapply(m$sent, function(s) as.integer(s$params$draw_index), 1L), 1:3)
   # A draw index given to the judge is used instead of the trace's.
-  tr <- gr_trace()
+  tr <- hr_trace()
   tr$draw_index <- 5L
   invisible(hr_judge("Paris", cached, mode = "grade", reference = "Paris", rubric = "r",
                      trace = tr, orders = 1, draw_index = 7))
@@ -75,7 +75,7 @@ test_that("a judge given a trace is drawn at the trace's draw index and scope", 
 })
 
 test_that("a judge in a benchmark arm is in the run's usd and the benchmark's count", {
-  gr_register_model("judge-draws-priced", context_window = 128000L, max_output = 4096L,
+  hr_register_model("judge-draws-priced", context_window = 128000L, max_output = 4096L,
                     input_usd = 2, output_usd = 8)
   m <- draw_judge("Revenue was 45.2 million dollars.")
   log <- new.env()
@@ -98,7 +98,7 @@ test_that("a judge in a benchmark arm is in the run's usd and the benchmark's co
     expect_true(all(vapply(js, function(s) identical(as.integer(s$params$draw_index), 1L),
                            logical(1))))
     # The run's usd holds the answer and the judge, once each.
-    expect_equal(b$usd[i], sum(gr_trace_cost(tr)$usd))
+    expect_equal(b$usd[i], sum(hr_trace_cost(tr)$usd))
     expect_gt(log[[b$item[i]]], 0)
     answer_usd <- b$usd[i] - log[[b$item[i]]]
     expect_gt(answer_usd, 0)
@@ -116,7 +116,7 @@ test_that("a judge in a benchmark arm is in the run's usd and the benchmark's co
 
 test_that("a judged arm under a cache makes distinct draws", {
   m <- draw_judge()
-  cached <- gr_cache_client(m$client, gr_cache(tempfile("judge-bench-")))
+  cached <- hr_cache_client(m$client, hr_cache(tempfile("judge-bench-")))
   ref <- hr_reference(list(q1 = "France"), "Paris", "a", split = "test")
   arm <- hr_arm("judged", function(item, ctx) {
     j <- hr_judge("Paris", ctx$client, mode = "grade", reference = "Paris", rubric = "r",
@@ -129,7 +129,7 @@ test_that("a judged arm under a cache makes distinct draws", {
 
 test_that("a stage called with ctx$trace in an arm is sent at the run's draw", {
   m <- draw_judge()
-  cached <- gr_cache_client(m$client, gr_cache(tempfile("stage-bench-")))
+  cached <- hr_cache_client(m$client, hr_cache(tempfile("stage-bench-")))
   arm <- hr_arm("stages", function(item, ctx) {
     ch <- gr_segment(item$document, list(method = "paragraph", max_tokens = 200),
                      trace = ctx$trace)
@@ -152,12 +152,12 @@ test_that("ctx$call_json is a structured call on the run's trace and draw", {
                  required = list("answer"), additionalProperties = FALSE)
   sent <- new.env()
   sent$draws <- integer()
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     sent$draws <- c(sent$draws, as.integer(params$draw_index))
     if (grepl("Peru", messages[[length(messages)]]$content)) return("not json")
     sprintf('{"answer": "Paris %d"}', params$draw_index)
   })
-  cached <- gr_cache_client(cl, gr_cache(tempfile("call-json-")))
+  cached <- hr_cache_client(cl, hr_cache(tempfile("call-json-")))
   ref <- hr_reference(list(q1 = "France", q2 = "Peru"), c("Paris", "Lima"), "a",
                       split = "test")
   got <- new.env()
@@ -182,7 +182,7 @@ test_that("ctx$call_json is a structured call on the run's trace and draw", {
   req <- Filter(function(s) !is.null(s$model), tr$steps)
   expect_identical(vapply(req, function(s) s$label, ""), "capital")
   # A failed request comes back as that request's failed result.
-  down <- gr_mock_client(function(messages, params) stop("network down"))
+  down <- hr_mock_client(function(messages, params) stop("network down"))
   b2 <- quiet(suppressWarnings(hr_benchmark(arm, ref, runs = 1, client = down,
                                             scorer = hr_scorer_exact())))
   expect_false(got[["France 1"]]$ok)
@@ -196,11 +196,11 @@ test_that("a judge recorded at draw 0 replays when asked at a run's draw", {
                   orders = 2)
   path <- tempfile(fileext = ".json")
   on.exit(unlink(path), add = TRUE)
-  gr_trace_save(rec$trace, path)
-  tr <- gr_trace()
+  hr_trace_save(rec$trace, path)
+  tr <- hr_trace()
   tr$draw_index <- 1L
   tr$draw_scope <- "arm"
-  again <- hr_judge("Paris", gr_replay_client(path), mode = "grade", reference = "Paris",
+  again <- hr_judge("Paris", hr_replay_client(path), mode = "grade", reference = "Paris",
                     rubric = "r", orders = 2, trace = tr)
   expect_identical(again$verdicts$reason, rec$verdicts$reason)
   expect_identical(again$outcome, rec$outcome)
@@ -218,9 +218,9 @@ test_that("a benchmark recorded before a run's trace carried its draw still repl
   # the run's draw and the arm's scope when the arm set them on its trace, as
   # recipe arms did, or at draw 0 when it did not.
   record <- function(runs, drawn) {
-    rec <- gr_trace()
+    rec <- hr_trace()
     for (i in seq_along(ref$ids)) for (r in seq_len(runs)) {
-      child <- gr_trace()
+      child <- hr_trace()
       if (drawn) {
         child$draw_index <- r
         child$draw_scope <- "stages"
@@ -229,12 +229,12 @@ test_that("a benchmark recorded before a run's trace carried its draw still repl
       harnessr:::trace_absorb(rec, child)
     }
     path <- tempfile(fileext = ".json")
-    gr_trace_save(rec, path)
+    hr_trace_save(rec, path)
     path
   }
   arm <- hr_arm("stages", function(item, ctx) read_it(item, ctx$client, ctx$trace))
   replay <- function(path, runs) {
-    quiet(suppressWarnings(hr_benchmark(arm, ref, runs = runs, client = gr_replay_client(path),
+    quiet(suppressWarnings(hr_benchmark(arm, ref, runs = runs, client = hr_replay_client(path),
                                         scorer = gr_scorer_answer())))
   }
   drawn <- record(2, TRUE)
@@ -251,7 +251,7 @@ test_that("a benchmark recorded before a run's trace carried its draw still repl
 test_that("a judge given a trace and a governor is held to both", {
   m <- draw_judge()
   # Alone, the judge's own governor would allow it; the run has one call left.
-  run <- gr_trace(governor = hr_governor(max_calls = 1))
+  run <- hr_trace(governor = hr_governor(max_calls = 1))
   res <- suppressWarnings(hr_judge("Paris", m$client, mode = "grade", reference = "Paris",
                                    rubric = "r", trace = run,
                                    governor = hr_governor(max_calls = 100)))
@@ -260,7 +260,7 @@ test_that("a judge given a trace and a governor is held to both", {
   expect_length(run$refusals, 1L)
   expect_true(run$budget_stop)
   # The lower limit holds whichever governor sets it.
-  run2 <- gr_trace(governor = hr_governor(max_calls = 100))
+  run2 <- hr_trace(governor = hr_governor(max_calls = 100))
   invisible(suppressWarnings(hr_judge("Paris", m$client, mode = "grade", reference = "Paris",
                                       rubric = "r", trace = run2,
                                       governor = hr_governor(max_calls = 1))))

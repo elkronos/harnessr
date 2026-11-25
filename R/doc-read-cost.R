@@ -17,7 +17,7 @@
 #' @noRd
 cost_stuff <- function(stats, params) {
   # What fits in one request, not the whole document: the rest is cut.
-  room <- tryCatch(suppressWarnings(gr_budget(params$model,
+  room <- tryCatch(suppressWarnings(hr_budget(params$model,
                                               reserve_output = params$max_answer_tokens)$input,
                                     classes = "gr_unknown_model"),
                    error = function(e) stats$tokens)

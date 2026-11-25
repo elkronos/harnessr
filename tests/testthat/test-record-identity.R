@@ -47,7 +47,7 @@ identity_corpus <- function() {
 test_that("gr_read_many() checks each file against its record, and drops nothing", {
   recs <- identity_corpus()
   expect_true(all(recs$records$retrieved))
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   expect_warning(out <- suppressMessages(gr_read_many(recs, "What was revenue?", "fast",
                                                       client = cl)),
                  class = "gr_identity_mismatch")
@@ -74,7 +74,7 @@ test_that("the check reaches screening and extraction, and gr_flow() does not mo
   recs <- identity_corpus()
   p <- gr_protocol("identity", question = "What was revenue?", include = "Reports revenue",
                    fields = gr_fields(revenue = gr_field("Revenue in millions", type = "number")))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (identical(p$schema_name, "screen") || any(grepl("screen", vapply(m, function(z)
       as.character(z$content), character(1)), ignore.case = TRUE)))
       return("{\"decision\":\"include\",\"criterion\":null,\"reason\":\"ok\",\"quote\":null}")
@@ -92,7 +92,7 @@ test_that("the check reaches screening and extraction, and gr_flow() does not mo
 })
 
 test_that("a run without records keeps its columns, and a store keeps the check", {
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   a <- tempfile(fileext = ".txt"); writeLines("Revenue was 45.2 million.", a)
   out <- suppressMessages(gr_read_many(a, "What was revenue?", "fast", client = cl))
   expect_null(out$summary$identity)
@@ -159,7 +159,7 @@ test_that("after remove_numbers the title is compared without its digits", {
                "TY  - JOUR", "AU  - Okafor, A.", "TI  - Spaced practice and long-term retention",
                "PY  - 2019", "DO  - 10.1000/sp1", "ER  - "), ris)
   recs <- gr_records(ris, files = d)
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   for (rc in c("fast", "legacy")) {
     expect_no_warning(out <- suppressMessages(gr_read_many(recs, "What was revenue?", rc,
                                                            client = cl)),
@@ -169,7 +169,7 @@ test_that("after remove_numbers the title is compared without its digits", {
 })
 
 test_that("a run without records drops the check from rows a records run stored", {
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   recs <- identity_corpus()
   store <- tempfile("store")
   first <- suppressWarnings(suppressMessages(
@@ -206,7 +206,7 @@ test_that("the mismatch message names what was looked for", {
 })
 
 test_that("a restored row keeps its check only for the record it was checked against", {
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   recs <- identity_corpus()
   store <- tempfile("store")
   first <- suppressWarnings(suppressMessages(

@@ -49,7 +49,7 @@ are folded into it.}
 \item{governor}{Optional \code{\link[=hr_governor]{hr_governor()}} for the judge's requests. With
 \code{trace}, the judge is held to this and to the trace's governor.}
 
-\item{draw_index}{Draw index passed to every request (see \code{\link[=gr_call]{gr_call()}}).
+\item{draw_index}{Draw index passed to every request (see \code{\link[=hr_call]{hr_call()}}).
 0, the default, takes the draw index of \code{trace}, if any.}
 
 \item{x}{An \code{hr_judgement}.}
@@ -88,8 +88,8 @@ name, differ between orders, the result is \code{"unresolved"} with
 kind is common in model judges (Zheng et al. 2023; Wang et al. 2024).
 }
 \details{
-Every request goes through \code{\link[=gr_call]{gr_call()}}'s path, so the governor checks it
-before it is sent, a \code{\link[=gr_cache]{gr_cache()}} keys it with its draw index, and the
+Every request goes through \code{\link[=hr_call]{hr_call()}}'s path, so the governor checks it
+before it is sent, an \code{\link[=hr_cache]{hr_cache()}} keys it with its draw index, and the
 trace records it, under the label \verb{judge.<mode>.o<k>} for order k. The
 requests are recorded in a trace of the judge's own (\verb{$trace}), and their
 cost is reported in \verb{$judge_cost}.
@@ -118,7 +118,7 @@ A failed request, or a reply with no allowed verdict, makes the result
 }
 \examples{
 # A judge that always picks the candidate naming Paris.
-fair <- gr_mock_client(function(messages, params) {
+fair <- hr_mock_client(function(messages, params) {
   txt <- messages[[2]]$content
   pick <- if (grepl("Candidate A:\nParis", txt, fixed = TRUE)) "A" else "B"
   sprintf('{"verdict": "\%s", "reason": "It names the capital."}', pick)
@@ -129,7 +129,7 @@ j$value
 j$verdicts[, c("order", "shown", "verdict", "value")]
 
 # A judge that always says "A" follows the position, so it is unresolved.
-first <- gr_mock_client(function(messages, params) '{"verdict": "A", "reason": "."}')
+first <- hr_mock_client(function(messages, params) '{"verdict": "A", "reason": "."}')
 hr_judge(c("Paris", "Lyon"), first, mode = "select",
          rubric = "Which candidate names the capital of France?")$outcome
 }

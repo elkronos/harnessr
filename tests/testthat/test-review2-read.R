@@ -25,7 +25,7 @@ quiet_msgs <- function(expr) suppressMessages(expr)
 # made with an output cap in `cut_caps`. Each stage of a read has its own cap
 # in review2_spec(), so a test can cut one stage and leave the rest whole.
 review2_client <- function(cut_caps = integer(0), text = "million dollars") {
-  gr_mock_client(function(m, p) {
+  hr_mock_client(function(m, p) {
     sys <- m[[1]]$content
     last <- m[[length(m)]]$content
     reply <- if (grepl("Rate how useful", sys, fixed = TRUE)) {
@@ -98,7 +98,7 @@ test_that("an intermediate reply cut off at the cap makes a whole final answer p
   }
   # refine: only the first draft is cut; each revision after it is whole.
   first <- TRUE
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (first) { first <<- FALSE; return(cut_reply("Revenue in region 1 was")) }
     "million dollars"
   })
@@ -107,7 +107,7 @@ test_that("an intermediate reply cut off at the cap makes a whole final answer p
   expect_identical(a$notes$truncated_calls, 1L)
 
   # ensemble: one member's answer is cut, the adjudication is whole.
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("different reading strategies", m[[1]]$content, fixed = TRUE)) return("both agree")
     if (as.integer(p$max_output) == .chunk_cap) return(cut_reply("Revenue in region"))
     "million dollars"
@@ -121,28 +121,28 @@ test_that("an intermediate reply cut off at the cap makes a whole final answer p
 test_that("tree_merge() counts merge replies cut off at every level", {
   local_registries()
   # Small enough that eight findings take a level of merges before the last.
-  gr_register_model("merge-small", context_window = 4000, max_output = 800,
+  hr_register_model("merge-small", context_window = 4000, max_output = 800,
                     input_usd = 0, output_usd = 0)
   spec <- gr_read_spec("map_reduce", model = "merge-small", max_answer_tokens = 300)
   pieces <- rep(paste(rep("finding text words", 200), collapse = " "), 8)
   final <- function(m) grepl("<findings 1>", m[[2]]$content, fixed = TRUE)
   # The levels cut, the final merge whole.
-  cl <- gr_mock_client(function(m, p) if (final(m)) "merged" else cut_reply("merged part"))
-  out <- quiet(harnessr:::tree_merge(cl, "q", pieces, spec, gr_trace()))
+  cl <- hr_mock_client(function(m, p) if (final(m)) "merged" else cut_reply("merged part"))
+  out <- quiet(harnessr:::tree_merge(cl, "q", pieces, spec, hr_trace()))
   expect_true(out$ok)
   expect_gte(out$levels, 2L)
   expect_gte(out$truncated_calls, 2L)
   # Only the final merge cut.
-  cl <- gr_mock_client(function(m, p) if (final(m)) cut_reply("merged") else "merged part")
-  out <- quiet(harnessr:::tree_merge(cl, "q", pieces, spec, gr_trace()))
+  cl <- hr_mock_client(function(m, p) if (final(m)) cut_reply("merged") else "merged part")
+  out <- quiet(harnessr:::tree_merge(cl, "q", pieces, spec, hr_trace()))
   expect_identical(out$truncated_calls, 1L)
   # Nothing to merge reports none.
-  expect_identical(harnessr:::tree_merge(cl, "q", "one", spec, gr_trace())$truncated_calls, 0L)
+  expect_identical(harnessr:::tree_merge(cl, "q", "one", spec, hr_trace())$truncated_calls, 0L)
 })
 
 test_that("an iterative step cut off before its JSON closes says so", {
   ch <- review2_chunks()
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("reading iteratively", m[[1]]$content, fixed = TRUE)) {
       return(cut_reply('{"can_answer": true, "answer": "Revenue in reg'))
     }
@@ -178,18 +178,18 @@ record_batches <- function(env = parent.frame()) {
 # the trace prices it.
 dearest_step <- function(trace, labels) {
   st <- Filter(function(s) any(startsWith(as.character(s$label %||% ""), labels)), trace$steps)
-  max(vapply(st, function(s) gr_estimate_cost(s$model, s$tokens$input, s$tokens$output),
+  max(vapply(st, function(s) hr_estimate_cost(s$model, s$tokens$input, s$tokens$output),
              numeric(1)))
 }
 
 test_that("every batch a reader sends carries its client and the most one item can cost", {
   local_registries()
-  gr_register_model("priced-batch", context_window = 4000, max_output = 800,
+  hr_register_model("priced-batch", context_window = 4000, max_output = 800,
                     input_usd = 2, output_usd = 8)
   seen <- record_batches()
   ch <- review2_chunks()
   # Replies at the full cap, so the recorded requests are as dear as they get.
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (grepl("Rate how useful", m[[1]]$content, fixed = TRUE))
       return('{"score": 8, "reason": "relevant"}')
     if (grepl("You plan how to read", m[[1]]$content, fixed = TRUE))
@@ -202,7 +202,7 @@ test_that("every batch a reader sends carries its client and the most one item c
                  hierarchical = "hier.summarise", preview = "preview.skim")
   for (r in names(stages)) {
     seen$calls <- list()
-    tr <- gr_trace()
+    tr <- hr_trace()
     quiet(gr_read(ch, "What was revenue?", cl, review2_spec(r, model = "priced-batch"), trace = tr))
     b <- seen$calls[[1]]
     expect_identical(b$client, cl, info = r)
@@ -213,7 +213,7 @@ test_that("every batch a reader sends carries its client and the most one item c
   # A merge level, which is a batch too.
   seen$calls <- list()
   spec <- gr_read_spec("map_reduce", model = "priced-batch", max_answer_tokens = 300)
-  tr <- gr_trace()
+  tr <- hr_trace()
   quiet(harnessr:::tree_merge(cl, "q", rep(paste(rep("finding text words", 200), collapse = " "), 8),
                              spec, tr))
   b <- Filter(function(x) identical(x$label, "merge group"), seen$calls)[[1]]
@@ -221,7 +221,7 @@ test_that("every batch a reader sends carries its client and the most one item c
   expect_gte(b$item_usd, dearest_step(tr, "merge.level"))
 
   # A model with no price has no worst case to hold a batch to.
-  gr_register_model("free-batch", context_window = 4000, max_output = 800)
+  hr_register_model("free-batch", context_window = 4000, max_output = 800)
   seen$calls <- list()
   quiet(gr_read(ch, "What was revenue?", cl, review2_spec("map_reduce", model = "free-batch")))
   expect_true(is.na(seen$calls[[1]]$item_usd))
@@ -231,19 +231,19 @@ test_that("a parallel merge level runs where each request is checked when it cou
   skip_if_not_installed("future")
   skip_if_not_installed("future.apply")
   local_registries()
-  gr_register_model("priced-merge", context_window = 4000, max_output = 800,
+  hr_register_model("priced-merge", context_window = 4000, max_output = 800,
                     input_usd = 2, output_usd = 8)
   # verbose, so the fallback's message is shown whatever the suite was run with;
   # local_registries() restores the options afterwards.
-  gr_options(max_calls = 1000, max_cost_usd = 0.05, workers = 2, verbose = TRUE)
-  cl <- gr_mock_client(function(m, p) "merged finding")
+  hr_options(max_calls = 1000, max_cost_usd = 0.05, workers = 2, verbose = TRUE)
+  cl <- hr_mock_client(function(m, p) "merged finding")
   spec <- gr_read_spec("map_reduce", model = "priced-merge", max_answer_tokens = 300,
                        parallel = TRUE)
   pieces <- rep(paste(rep("finding text words", 200), collapse = " "), 8)
   # Close enough to the limit that one merge request could pass it. Sent to
   # workers, the whole level went out: three requests past the limit. Run here,
   # one request used to go out and pass it; now none is sent.
-  tr <- gr_trace()
+  tr <- hr_trace()
   tr$spent_usd <- 0.045
   msgs <- testthat::capture_messages(out <- harnessr:::tree_merge(cl, "q", pieces, spec, tr))
   expect_true(any(grepl("one at a time", msgs)))
@@ -258,15 +258,15 @@ test_that("a parallel map step near the spending limit stops where a sequential 
   skip_if_not_installed("future")
   skip_if_not_installed("future.apply")
   local_registries()
-  gr_register_model("priced-map", context_window = 4000, max_output = 800,
+  hr_register_model("priced-map", context_window = 4000, max_output = 800,
                     input_usd = 2, output_usd = 8)
-  gr_options(max_calls = 1000, max_cost_usd = 0.05, workers = 2)
+  hr_options(max_calls = 1000, max_cost_usd = 0.05, workers = 2)
   ch <- review2_chunks()
-  cl <- gr_mock_client(function(m, p) "million dollars")
+  cl <- hr_mock_client(function(m, p) "million dollars")
   spec <- gr_read_spec("map_reduce", model = "priced-map", parallel = TRUE)
   run <- function(parallel) {
     spec$parallel <- parallel
-    tr <- gr_trace()
+    tr <- hr_trace()
     tr$spent_usd <- 0.04995
     quiet(harnessr:::read_map_reduce(ch, "What was revenue?", cl, spec, tr))
     tr
@@ -297,7 +297,7 @@ blind_q <- "How much money did this firm bring in?"
 # Scores 9 for the turnover paragraph and 1 for the rest; embeds the question
 # and that paragraph close together when asked to.
 blind_client <- function() {
-  gr_mock_client(function(m, p) {
+  hr_mock_client(function(m, p) {
     if (grepl("Rate how useful", m[[1]]$content, fixed = TRUE)) {
       hit <- grepl("Turnover", m[[3]]$content, fixed = TRUE)
       return(sprintf('{"score": %d, "reason": "r"}', if (hit) 9L else 1L))
@@ -333,7 +333,7 @@ test_that("a question sharing no word with any chunk is ranked by embeddings, an
 
 test_that("when embeddings cannot rank either, the candidates are an evenly spread sample", {
   local_registries()
-  gr_options(embedder = "lexical")
+  hr_options(embedder = "lexical")
   ch <- blind_chunks()
   cl <- blind_client()
   expect_warning(a <- quiet_msgs(gr_read(ch, blind_q, cl, list(reader = "rerank",
@@ -398,9 +398,9 @@ fake_openai <- function(env = parent.frame()) {
 }
 
 api_embed_client <- function() {
-  gr_register_model("priced-embed2", context_window = 8191L, max_output = 0L,
+  hr_register_model("priced-embed2", context_window = 8191L, max_output = 0L,
                     input_usd = 0.02, kind = "embedding", dimensions = 3L)
-  gr_client(api_key = "sk-test", base_url = "https://embed.invalid/v1", api = "chat",
+  hr_client(api_key = "sk-test", base_url = "https://embed.invalid/v1", api = "chat",
             model = "gpt-4o-mini", embedding_model = "priced-embed2")
 }
 
@@ -417,12 +417,12 @@ preflight_detail <- function(tr) {
 test_that("a cap too small for retrieve's embedding requests refuses the read up front", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE, max_calls = 3)
+  hr_options(cache_embeddings = FALSE, max_calls = 3)
   seen <- fake_openai()
   cl <- api_embed_client()
   ch <- many_chunks()
   expect_identical(nrow(ch$chunks), 200L)
-  tr <- gr_trace()
+  tr <- hr_trace()
   # 201 texts at 64 a request is four requests, and one for the answer.
   expect_error(quiet(gr_read(ch, "What was revenue in region 7?", cl, "retrieve", trace = tr)),
                class = "gr_call_cap", regexp = "5 more requests (4 of them for embeddings;", fixed = TRUE)
@@ -430,8 +430,8 @@ test_that("a cap too small for retrieve's embedding requests refuses the read up
   expect_identical(seen$embed, 0L)
   expect_identical(seen$chat, 0L)
 
-  gr_options(max_calls = 5)
-  tr <- gr_trace()
+  hr_options(max_calls = 5)
+  tr <- hr_trace()
   a <- quiet(gr_read(ch, "What was revenue in region 7?", cl, "retrieve", trace = tr))
   expect_false(a$partial)
   pf <- preflight_detail(tr)
@@ -444,14 +444,14 @@ test_that("a cap too small for retrieve's embedding requests refuses the read up
 test_that("embeddings already cached are not counted against the cap", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = TRUE, max_calls = 100)
+  hr_options(cache_embeddings = TRUE, max_calls = 100)
   seen <- fake_openai()
   cl <- api_embed_client()
   ch <- many_chunks()
   q <- "What was revenue in region 7?"
   quiet(gr_read(ch, q, cl, "retrieve"))
-  gr_options(max_calls = 1)
-  tr <- gr_trace()
+  hr_options(max_calls = 1)
+  tr <- hr_trace()
   a <- quiet(gr_read(ch, q, cl, "retrieve", trace = tr))
   expect_false(a$partial)
   expect_identical(preflight_detail(tr)$embed_calls, 0L)
@@ -461,11 +461,11 @@ test_that("embeddings already cached are not counted against the cap", {
 test_that("iterative counts its chunk and query embeddings, and a step a round and the answer", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE, max_calls = 100)
+  hr_options(cache_embeddings = FALSE, max_calls = 100)
   seen <- fake_openai()
   cl <- api_embed_client()
   ch <- many_chunks(100)
-  tr <- gr_trace()
+  tr <- hr_trace()
   quiet(gr_read(ch, "What was revenue?", cl, list(reader = "iterative", max_rounds = 3,
                                                   top_k = 2), trace = tr))
   pf <- preflight_detail(tr)
@@ -476,7 +476,7 @@ test_that("iterative counts its chunk and query embeddings, and a step a round a
   expect_lte(tr$calls, pf$est_calls)
 
   # A client that brings its own embed function sends nothing to count.
-  tr <- gr_trace()
+  tr <- hr_trace()
   quiet(gr_read(ch, "What was revenue?", mock_iterative_loop(refuse = 5L),
                 list(reader = "iterative", max_rounds = 3, top_k = 2), trace = tr))
   expect_identical(preflight_detail(tr)$embed_calls, 0L)
@@ -486,15 +486,15 @@ test_that("iterative counts its chunk and query embeddings, and a step a round a
 test_that("rerank counts the embedding requests of a prefilter that cannot rank", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE, max_calls = 100)
+  hr_options(cache_embeddings = FALSE, max_calls = 100)
   seen <- fake_openai()
   cl <- api_embed_client()
   ch <- blind_chunks()
-  tr <- gr_trace()
+  tr <- hr_trace()
   quiet(gr_read(ch, blind_q, cl, list(reader = "rerank", rerank_candidates = 4), trace = tr))
   expect_identical(preflight_detail(tr)$embed_calls, 1L)
   expect_identical(seen$embed, 1L)
-  tr <- gr_trace()
+  tr <- hr_trace()
   quiet(gr_read(ch, "What was the turnover?", cl, list(reader = "rerank", rerank_candidates = 4),
                 trace = tr))
   expect_identical(preflight_detail(tr)$embed_calls, 0L)
@@ -508,7 +508,7 @@ test_that("a quote that does not carry its value is unverified in gr_verify_evid
   doc <- "We ran a randomised controlled trial. We enrolled 120 people. The trial was funded by Pfizer."
   fields <- gr_fields(n = gr_field("participants enrolled", "integer"),
                       design = gr_field("study design"))
-  cl <- gr_mock_client(function(m, p) paste0(
+  cl <- hr_mock_client(function(m, p) paste0(
     '{"n": 5000, "n__quote": "We enrolled 120 people.", "design": "randomised controlled trial",',
     ' "design__quote": "We ran a randomised controlled trial."}'))
   ch <- quiet(gr_segment(gr_ingest(doc), list(method = "paragraph", max_tokens = 200)))

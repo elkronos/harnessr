@@ -29,7 +29,7 @@
 #' which is what [hr_benchmark()] gives an arm's run function: inside an
 #' [hr_arm()] every request a step makes is counted, held to the benchmark's
 #' limits and sent at the run's draw. Outside a benchmark, pass a list such
-#' as `list(client = cl, trace = gr_trace())`.
+#' as `list(client = cl, trace = hr_trace())`.
 #'
 #' Steps pass a list along. The first step takes the item ([gr_qa_reference()]
 #' items are lists with `question` and `document`); `"ingest"` adds `doc`,
@@ -71,8 +71,8 @@
 #' @family reading functions
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-#' ctx <- list(client = cl, trace = gr_trace())
+#' cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' ctx <- list(client = cl, trace = hr_trace())
 #' steps <- list(gr_step("segment", method = "paragraph", max_tokens = 120),
 #'               gr_step_retrieve(top_k = 2),
 #'               gr_step("read", reader = "stuff"))

@@ -258,7 +258,7 @@
 #'     leaving out the inputs a call works on (the
 #'     documents, the client, the trace). Defaults are the functions' own,
 #'     and descriptions the first sentence of each argument's help.}
-#'   \item{`options`}{Every [gr_options()] option, with its default, the
+#'   \item{`options`}{Every [hr_options()] option, with its default, the
 #'     evidence its rule declares, and the first sentence of its entry in
 #'     the help page.}
 #' }
@@ -270,7 +270,7 @@
 #'   `"evaluate"` and `"options"`.
 #' @return A data frame with one row per setting and the columns `stage`,
 #'   `name`, `where` (the function that takes it, as `"gr_read_spec()"`, or
-#'   `"gr_options()"`), `default` (as text: a string without quotes, the
+#'   `"hr_options()"`), `default` (as text: a string without quotes, the
 #'   first choice of a set of choices, other values as R code), `tier`
 #'   (`"basic"` for the few settings most runs change, else
 #'   `"advanced"`), `status` and `source` (where the default came from:
@@ -380,7 +380,7 @@ option_rows <- function(rd) {
   nms <- names(gr_defaults)
   desc <- rd_option_text(rd)
   ev <- lapply(nms, function(nm) .gr_option_rules[[nm]]$evidence)
-  settings_rows("options", "gr_options()", nms,
+  settings_rows("options", "hr_options()", nms,
                 vapply(gr_defaults, function(v) {
                   if (is.character(v) && length(v) == 1L) v else format_setting_value(v)
                 }, character(1), USE.NAMES = FALSE),
@@ -478,11 +478,11 @@ rd_argument_text <- function(rd, fn, depth = 0L) {
   out
 }
 
-#' Each option's entry in the Options section of gr_options()'s help, by
+#' Each option's entry in the Options section of hr_options()'s help, by
 #' option name.
 #' @noRd
 rd_option_text <- function(rd) {
-  page <- rd_page(rd, "gr_options")
+  page <- rd_page(rd, "hr_options")
   out <- character(0)
   if (is.null(page)) return(out)
   for (sec in page) {

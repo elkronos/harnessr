@@ -130,7 +130,7 @@ test_that("a quotation found with its hyphens taken out is given its page", {
 test_that("a skim quotation that keeps the hyphen verifies on the answer", {
   doc <- quiet(gr_ingest("The trial was investigator-\nblinded and ran for two years."))
   ch <- quiet(gr_segment(doc, list(method = "paragraph", max_tokens = 200)))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) {
       return("The trial was investigator-blinded")
     }
@@ -148,8 +148,8 @@ test_that("a skim quotation that keeps the hyphen verifies on the answer", {
 # ---------------------------------------------------------------------------
 
 test_that("the report on one answer counts only its own run's requests", {
-  cl <- gr_mock_client(function(messages, params) "It says so.")
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(messages, params) "It says so.")
+  tr <- hr_trace()
   a1 <- quiet(answer_document("Public memo: revenue was 45.2 million in 2023.",
                               "What was revenue?", "fast", client = cl, trace = tr))
   calls1 <- tr$calls
@@ -172,8 +172,8 @@ test_that("the report on one answer counts only its own run's requests", {
 })
 
 test_that("a failure elsewhere on a shared trace is still flagged, and said to be the trace's", {
-  cl <- gr_mock_client(function(messages, params) "It says so.")
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(messages, params) "It says so.")
+  tr <- hr_trace()
   a1 <- quiet(answer_document("Public memo: revenue was 45.2 million in 2023.",
                               "What was revenue?", "fast", client = cl, trace = tr))
   quiet(answer_document("Second memo: costs fell 3 percent.", "What happened to costs?",
@@ -190,11 +190,11 @@ test_that("a failure elsewhere on a shared trace is still flagged, and said to b
 test_that("a run whose every request failed is not reported as having read the document", {
   # The requests of this run all failed; another run on the same trace
   # succeeded. That run's reply is not this run having read something.
-  tr <- gr_trace()
+  tr <- hr_trace()
   a1 <- quiet(answer_document("Public memo: revenue was 45.2 million in 2023.",
                               "What was revenue?", "fast", client = mock_dead(), trace = tr))
   quiet(answer_document("Second memo: costs fell 3 percent.", "What happened to costs?",
-                        "fast", client = gr_mock_client(function(m, p) "Costs fell."),
+                        "fast", client = hr_mock_client(function(m, p) "Costs fell."),
                         trace = tr))
   skip_if_not(is_not_found(a1$answer), "the failed read did not come back not found")
   a1$notes$error <- NULL
@@ -212,7 +212,7 @@ test_that("a composed quotation is marked in a decomposed passage", {
   nfd <- "Nous avons randomisé 120 patients dans cette étude. Le suivi a duré deux ans."
   nfc <- "Nous avons randomisé 120 patients dans cette étude."
   ch <- quiet(gr_segment(gr_ingest(nfd), list(method = "paragraph", max_tokens = 200)))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) return(nfc)
     "They randomised 120 patients."
   })
@@ -261,7 +261,7 @@ test_that("the report says why a calibration falls short in the calibration's ow
 
 test_that("a criterion the protocol does not list is flagged in the screening table", {
   f <- r7_files(c(a.txt = "We randomly assigned 200 adults in Kenya. The trial was run in Kenya."))
-  cl <- gr_mock_client(function(messages, params) paste0(
+  cl <- hr_mock_client(function(messages, params) paste0(
     '{"decision":"exclude","reason":"Run in Kenya.","criterion":"Conducted outside Europe",',
     '"quote":"The trial was run in Kenya."}'))
   s <- quiet(gr_screen(f, question = "Does it work?", include = "Reports a randomised comparison",
@@ -271,7 +271,7 @@ test_that("a criterion the protocol does not list is flagged in the screening ta
   expect_match(page, "<th>criterion</th><th>criterion_valid</th>", fixed = TRUE)
   expect_match(page, "<td><span class='flag'>FALSE</span></td>", fixed = TRUE)
   # A criterion the protocol lists is not flagged.
-  cl2 <- gr_mock_client(function(messages, params) paste0(
+  cl2 <- hr_mock_client(function(messages, params) paste0(
     '{"decision":"exclude","reason":"Children.","criterion":"Participants are children",',
     '"quote":null}'))
   s2 <- quiet(gr_screen(f, question = "Does it work?", include = "Reports a randomised comparison",
@@ -288,7 +288,7 @@ test_that("a criterion the protocol does not list is flagged in the screening ta
 test_that("a row whose values could not be read did not report nothing", {
   f <- r7_files(c(a.txt = "We enrolled 120 participants, 60 per arm, in the trial."))
   fields <- gr_fields(n = gr_field("Number of participants", type = "integer"))
-  cl <- gr_mock_client(function(m, p)
+  cl <- hr_mock_client(function(m, p)
     '{"n":"120 (60 per arm)","n__quote":"We enrolled 120 participants"}')
   x <- quiet(gr_extract(f, fields, client = cl))
   expect_identical(x$table$n_filled, 0L)
@@ -319,7 +319,7 @@ r7_claims_table <- function() {
 }
 
 r7_batched <- function(reconcile) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("Group the ones", sys, fixed = TRUE)) return(reconcile(params))
     txt <- paste(vapply(messages, function(m) m$content, ""), collapse = "\n")
@@ -364,7 +364,7 @@ test_that("print() counts a duplicate's unverified values and spans once", {
   f <- r7_files(c(a.txt = "We enrolled 120 participants in the trial.",
                   b.txt = "We enrolled 120 participants in the trial."))
   fields <- gr_fields(n = gr_field("Number of participants", type = "integer"))
-  cl <- gr_mock_client(function(m, p) '{"n":120,"n__quote":"We recruited 120 people"}')
+  cl <- hr_mock_client(function(m, p) '{"n":120,"n__quote":"We recruited 120 people"}')
   x <- quiet(gr_extract(f, fields, client = cl))
   expect_identical(x$table$status, c("ok", "duplicate"))
   expect_identical(x$table$n_unverified, c(1L, 1L))

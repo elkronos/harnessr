@@ -8,7 +8,7 @@ compose_reference <- function() {
 }
 
 compose_client <- function() {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     if (grepl("You grade one response", messages[[1]]$content, fixed = TRUE)) {
       return('{"verdict": "pass", "reason": "same figure"}')
     }
@@ -421,7 +421,7 @@ test_that("a chain and the chain without its judge benchmark under a cache", {
   checked <- hr_chain(segment = st$segment, retrieve = st$retrieve, read = st$read,
                       judge = compose_judge(), name = "checked")
   nojudge <- hr_chain(checked, judge = NULL, name = "nojudge")
-  cl <- gr_cache_client(compose_client(), gr_cache(tempfile("compose-")))
+  cl <- hr_cache_client(compose_client(), hr_cache(tempfile("compose-")))
   b <- expect_no_error(quiet(hr_benchmark(list(checked, nojudge), compose_reference(),
                                           runs = 2, client = cl,
                                           scorer = gr_scorer_answer())))

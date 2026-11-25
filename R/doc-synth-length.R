@@ -27,7 +27,7 @@
 
 #' Words of prose in a review, the unit the length check counts in.
 #'
-#' Words, not tokens. gr_count_tokens() answers in whichever tokenizer the
+#' Words, not tokens. hr_count_tokens() answers in whichever tokenizer the
 #' session has set (the heuristic, tiktoken, "words", a custom one), so the
 #' same revision could be shorter under one setting and not under another. A
 #' token count also moves when nothing a reader reads does: "[study 1] [study

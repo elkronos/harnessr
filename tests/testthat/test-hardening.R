@@ -29,7 +29,7 @@ test_that("the token estimate never undercounts, on any script", {
     ""
   )
   for (s in hostile) {
-    est <- gr_count_tokens(s)
+    est <- hr_count_tokens(s)
     expect_true(is.integer(est) && !is.na(est) && est >= 0L)
     # A byte-per-token floor is a hard lower bound no real tokenizer beats.
     expect_gte(est, ceiling(nchar(s, type = "bytes") / 8))
@@ -39,60 +39,60 @@ test_that("the token estimate never undercounts, on any script", {
 test_that("truncation respects the budget and survives degenerate inputs", {
   long <- paste(rep("The quarterly revenue figure was reported.", 200), collapse = " ")
   for (n in c(0, 1, 5, 50, 500)) {
-    out <- gr_truncate_tokens(long, n)
-    expect_lte(gr_count_tokens(out), max(n, 0))
+    out <- hr_truncate_tokens(long, n)
+    expect_lte(hr_count_tokens(out), max(n, 0))
   }
   # Inf used to crash: as.integer(Inf) is NA with a warning.
-  expect_identical(gr_truncate_tokens(long, Inf), long)
-  expect_identical(gr_truncate_tokens("", 100), "")
-  expect_identical(gr_truncate_tokens(long, -5), "")
-  expect_identical(gr_truncate_tokens(long, NA), "")
+  expect_identical(hr_truncate_tokens(long, Inf), long)
+  expect_identical(hr_truncate_tokens("", 100), "")
+  expect_identical(hr_truncate_tokens(long, -5), "")
+  expect_identical(hr_truncate_tokens(long, NA), "")
   # Space-free text still has to be cut: word granularity cannot help here.
   blob <- strrep("x", 5000)
-  expect_lte(gr_count_tokens(gr_truncate_tokens(blob, 20)), 20)
+  expect_lte(hr_count_tokens(hr_truncate_tokens(blob, 20)), 20)
   # A marker larger than the whole budget is dropped rather than emitted alone.
-  short <- gr_truncate_tokens(long, 3, " ...[a very long truncation marker indeed]")
-  expect_lte(gr_count_tokens(short), 3)
+  short <- hr_truncate_tokens(long, 3, " ...[a very long truncation marker indeed]")
+  expect_lte(hr_count_tokens(short), 3)
 })
 
 # ---------------------------------------------------------------------------
 # Budget arithmetic -- the single chokepoint
 # ---------------------------------------------------------------------------
 
-test_that("gr_budget cannot return a non-positive input budget", {
-  for (m in gr_models()$id[gr_models()$kind == "chat"]) {
-    b <- gr_budget(m)
+test_that("hr_budget cannot return a non-positive input budget", {
+  for (m in hr_models()$id[hr_models()$kind == "chat"]) {
+    b <- hr_budget(m)
     expect_gt(b$input, 0)
-    expect_lte(b$input + b$output, gr_model_info(m)$context_window)
+    expect_lte(b$input + b$output, hr_model_info(m)$context_window)
   }
   # Overhead larger than the window has to raise, not return a negative number
   # that then becomes ceiling(n / negative) group indices.
-  expect_error(gr_budget("gpt-4o-mini", overhead = 1e9), class = "gr_budget_error")
+  expect_error(hr_budget("gpt-4o-mini", overhead = 1e9), class = "gr_budget_error")
 })
 
-test_that("gr_register_model rejects an output reserve that exceeds the window", {
+test_that("hr_register_model rejects an output reserve that exceeds the window", {
   local_registries()
-  expect_error(gr_register_model("bad-1", context_window = 100, max_output = 200))
-  expect_error(gr_register_model("bad-2", context_window = 0, max_output = 10))
+  expect_error(hr_register_model("bad-1", context_window = 100, max_output = 200))
+  expect_error(hr_register_model("bad-2", context_window = 0, max_output = 10))
 })
 
-test_that("a NULL price does not delete the column and break gr_models()", {
+test_that("a NULL price does not delete the column and break hr_models()", {
   local_registries()
   # modifyList() DELETES a key whose value is NULL, and data.frame() drops a
-  # zero-length column, so one such registration used to make gr_models() throw
+  # zero-length column, so one such registration used to make hr_models() throw
   # for the rest of the session.
-  gr_register_model("nullprice-1", context_window = 1000, max_output = 100,
+  hr_register_model("nullprice-1", context_window = 1000, max_output = 100,
                     input_usd = NULL, output_usd = numeric(0), dimensions = NULL)
-  tbl <- gr_models()
+  tbl <- hr_models()
   expect_true("nullprice-1" %in% tbl$id)
   expect_true(is.na(tbl$input_usd_per_1m[tbl$id == "nullprice-1"]))
   expect_true(all(c("input_usd_per_1m", "output_usd_per_1m") %in% names(tbl)))
 })
 
 test_that("an unrecognised model in a known family warns rather than guessing silently", {
-  expect_warning(gr_model_info("gpt-4.5-preview"), class = "gr_unknown_model")
-  expect_false(quiet(gr_model_info("gpt-4.5-preview"))$certain)
-  expect_true(gr_model_info("gpt-4o-mini")$certain)
+  expect_warning(hr_model_info("gpt-4.5-preview"), class = "gr_unknown_model")
+  expect_false(quiet(hr_model_info("gpt-4.5-preview"))$certain)
+  expect_true(hr_model_info("gpt-4o-mini")$certain)
 })
 
 # ---------------------------------------------------------------------------
@@ -247,17 +247,17 @@ test_that("min_tokens merges runt chunks instead of billing for them", {
   loose <- harnessr:::pack_units(units, max_tokens = 32, min_tokens = 0)
   tight <- harnessr:::pack_units(units, max_tokens = 32, min_tokens = 10)
   expect_lt(length(tight$text), length(loose$text))
-  expect_lte(max(gr_count_tokens(tight$text)), 32)
+  expect_lte(max(hr_count_tokens(tight$text)), 32)
 
   # The invariant, not just the one example: a chunk may sit below the minimum
   # only when absorbing it would have broken the cap.
   for (mt in c(30L, 45L, 60L)) {
     out <- harnessr:::pack_units(units, max_tokens = mt, min_tokens = as.integer(mt / 2))
-    toks <- gr_count_tokens(out$text)
+    toks <- hr_count_tokens(out$text)
     expect_lte(max(toks), mt)
     for (i in seq_along(toks)[-1]) {
       if (toks[i] < mt / 2) {
-        joined <- gr_count_tokens(paste(out$text[i - 1L], out$text[i], sep = "\n\n"))
+        joined <- hr_count_tokens(paste(out$text[i - 1L], out$text[i], sep = "\n\n"))
         expect_gt(joined, mt)
       }
     }
@@ -419,15 +419,15 @@ test_that("the call cap is enforced before the first call, not after the last", 
   ch <- gr_segment(gr_ingest(sample_doc(4, 4)), list(method = "paragraph", max_tokens = 100))
   skip_if(nrow(ch$chunks) < 5)
   cl <- mock_echo()
-  gr_options(max_calls = 3L)
-  expect_error(quiet(gr_read(ch, "q", cl, list(reader = "map_reduce"), trace = gr_trace())),
+  hr_options(max_calls = 3L)
+  expect_error(quiet(gr_read(ch, "q", cl, list(reader = "map_reduce"), trace = hr_trace())),
                class = "gr_call_cap")
   # Pre-flight, so nothing was spent discovering the cap.
   expect_equal(length(cl$calls()), 0L)
 
   # A cap the reader can respect stops it part way instead of refusing outright.
-  gr_options(max_calls = 200L)
-  tr <- gr_trace()
+  hr_options(max_calls = 200L)
+  tr <- hr_trace()
   cl2 <- mock_echo()
   quiet(gr_read(ch, "q", cl2, list(reader = "map_reduce"), trace = tr))
   expect_lte(length(cl2$calls()), 200L)
@@ -438,7 +438,7 @@ test_that("turning the call cap off does not break every read", {
   # `is.finite(NULL)` is logical(0), so `if (is.finite(cap) && ...)` failed with
   # "argument is of length zero" -- every read aborted the moment a user used
   # the documented way to remove the cap.
-  gr_options(max_calls = NULL)
+  hr_options(max_calls = NULL)
   ch <- gr_segment(gr_ingest(sample_doc(2, 2)), list(method = "paragraph", max_tokens = 150))
   expect_no_error(quiet(gr_read(ch, "q", mock_echo(), list(reader = "map_reduce"))))
 })
@@ -457,16 +457,16 @@ test_that("merging a finding larger than the whole budget terminates and stays b
   cl <- mock_dead()
   out <- quiet(harnessr:::tree_merge(cl, "What was revenue?",
                                     c(big, "Small finding one.", "Small finding two."),
-                                    spec, gr_trace()))
+                                    spec, hr_trace()))
   expect_lte(out$levels, 3L)
-  expect_lt(gr_count_tokens(out$text), 4000L)
+  expect_lt(hr_count_tokens(out$text), 4000L)
   expect_gt(out$truncated, 0L)
 })
 
 test_that("merging a single finding short-circuits without a call", {
   spec <- gr_read_spec(model = "gpt-4o-mini")
   cl <- mock_echo()
-  out <- harnessr:::tree_merge(cl, "q", "the only finding", spec, gr_trace())
+  out <- harnessr:::tree_merge(cl, "q", "the only finding", spec, hr_trace())
   expect_identical(out$text, "the only finding")
   expect_equal(length(cl$calls()), 0L)
 })
@@ -537,18 +537,18 @@ test_that("as_json preserves an explicit null rather than dropping the field", {
   expect_null(parsed$c)
 })
 
-test_that("gr_options stores an explicit NULL instead of ignoring it", {
-  old <- gr_options(max_cost_usd = NULL)
-  on.exit(gr_options(old), add = TRUE)
-  expect_null(gr_options("max_cost_usd"))
-  gr_options(old)
-  expect_false(is.null(gr_options("max_cost_usd")))
+test_that("hr_options stores an explicit NULL instead of ignoring it", {
+  old <- hr_options(max_cost_usd = NULL)
+  on.exit(hr_options(old), add = TRUE)
+  expect_null(hr_options("max_cost_usd"))
+  hr_options(old)
+  expect_false(is.null(hr_options("max_cost_usd")))
 })
 
 test_that("the trace records what actually happened, not what was intended", {
   # Mutation survivor: several trace fields were never asserted on.
   ch <- gr_segment(gr_ingest(sample_doc(2, 3)), list(method = "paragraph", max_tokens = 150))
-  tr <- gr_trace()
+  tr <- hr_trace()
   cl <- mock_echo()
   quiet(gr_read(ch, "What was the endpoint?", cl, list(reader = "map_reduce"), trace = tr))
   expect_equal(tr$calls, length(cl$calls()))
@@ -562,7 +562,7 @@ test_that("the trace records what actually happened, not what was intended", {
     expect_gt(length(s$prompt), 0L)
     expect_true(!is.null(s$response) || isFALSE(s$ok))
   }
-  summ <- gr_trace_summary(tr)
+  summ <- hr_trace_summary(tr)
   expect_equal(summ$calls, tr$calls)
 })
 
@@ -639,15 +639,15 @@ test_that("merging is bounded on the call-cap path too, not only on failure", {
   # every finding put together.
   local_registries()
   spec <- gr_read_spec(model = "gpt-4o-mini", max_answer_tokens = 300)
-  tr <- gr_trace()
-  gr_options(max_calls = 0L)
+  tr <- hr_trace()
+  hr_options(max_calls = 0L)
   pieces <- vapply(1:5, function(i)
     paste(rep(sprintf("Finding %d about the quarterly revenue figure.", i), 120), collapse = " "),
     character(1))
   out <- quiet(harnessr:::tree_merge(mock_echo(), "q", pieces, spec, tr))
   expect_false(out$ok)
-  expect_lt(gr_count_tokens(out$text), sum(gr_count_tokens(pieces)))
-  expect_lte(gr_count_tokens(out$text), 3L * 300L + 50L)
+  expect_lt(hr_count_tokens(out$text), sum(hr_count_tokens(pieces)))
+  expect_lte(hr_count_tokens(out$text), 3L * 300L + 50L)
 })
 
 # ---------------------------------------------------------------------------
@@ -666,7 +666,7 @@ test_that("a custom reader can be written with exported functions only", {
     fn = function(chunks, question, client, spec, trace) {
       d <- chunks$chunks
       i <- which.max(d$tokens)
-      res <- gr_call(client, list(list(role = "user",
+      res <- hr_call(client, list(list(role = "user",
                                        content = paste0(d$text[i], "\n\nQ: ", question))),
                      model = spec$model, trace = trace, label = "longest.answer")
       new_answer(res$text, "longest", question, d$chunk_id[i], trace,
@@ -798,11 +798,11 @@ test_that("the mock client agrees with the real client about an empty completion
   # client reports that as ok = FALSE. The mock used to report ok = TRUE with an
   # empty string, so the invariant `gr_result` documents was both violated and
   # untestable offline -- and every reader's empty-answer path went unexercised.
-  res <- gr_call(gr_mock_client(function(m, p) ""), "hi")
+  res <- hr_call(hr_mock_client(function(m, p) ""), "hi")
   expect_false(res$ok)
   expect_identical(res$text, "")
   expect_true(nzchar(res$error))
-  ok <- gr_call(gr_mock_client(function(m, p) "a real answer"), "hi")
+  ok <- hr_call(hr_mock_client(function(m, p) "a real answer"), "hi")
   expect_true(ok$ok)
   # Every gr_result has a single-string `text`, on both paths.
   for (r in list(res, ok)) {
@@ -942,14 +942,14 @@ test_that("token counts depend on the bytes, not on the encoding label", {
   s <- "Northwind Instruments — Annual Report 2024"
   labelled <- s;   Encoding(labelled) <- "UTF-8"
   unlabelled <- s; Encoding(unlabelled) <- "unknown"
-  expect_identical(gr_count_tokens(labelled), gr_count_tokens(unlabelled))
+  expect_identical(hr_count_tokens(labelled), hr_count_tokens(unlabelled))
 
   # And across the scripts the estimator special-cases.
   for (txt in c("café résumé", "中文字", "\U0001F600\U0001F600",
                 "مرحبا", "plain ascii only")) {
     a <- txt; Encoding(a) <- "UTF-8"
     b <- txt; Encoding(b) <- "unknown"
-    expect_identical(gr_count_tokens(a), gr_count_tokens(b), label = sprintf("%s", txt))
+    expect_identical(hr_count_tokens(a), hr_count_tokens(b), label = sprintf("%s", txt))
   }
 })
 
@@ -999,7 +999,7 @@ test_that("a misspelt setting is not silently parked in `...`", {
   # gr_read_spec("retrieve", topk = 8) is accepted in full, stores a `topk`
   # nobody reads, and leaves top_k at its default. The run then works perfectly
   # and answers a different question, which is the failure mode this package
-  # spends most of its guards trying not to have. gr_options() already refuses an
+  # spends most of its guards trying not to have. hr_options() already refuses an
   # unknown name outright; this is the same guarantee where `...` must stay open.
   expect_warning(s <- gr_read_spec("retrieve", topk = 8), class = "gr_near_miss")
   expect_identical(s$top_k, 6L)          # the real setting is untouched, hence the warning
@@ -1041,25 +1041,25 @@ test_that("the near-miss check is exact about what counts as near", {
 })
 
 test_that("an unknown token count is not costed as a free one", {
-  # The same defect gr_read_many() had, living in gr_estimate_cost(): summing
+  # The same defect gr_read_many() had, living in hr_estimate_cost(): summing
   # with na.rm = TRUE turns "we do not know how many tokens" into "zero tokens",
   # and a run whose size nobody knows is reported as having cost nothing.
-  # gr_estimate_cost(m, NA, NA) returned 0. The rule the package settled on is
+  # hr_estimate_cost(m, NA, NA) returned 0. The rule the package settled on is
   # that a cost which cannot be computed comes back NA, so a total cannot
   # quietly omit it.
-  expect_equal(gr_estimate_cost("gpt-4o", 1e6, 1e5), 3.5)
-  expect_true(is.na(gr_estimate_cost("gpt-4o", NA, 1e5)))
-  expect_true(is.na(gr_estimate_cost("gpt-4o", 1e6, NA)))
-  expect_true(is.na(gr_estimate_cost("gpt-4o", NA, NA)))
-  expect_true(is.na(gr_estimate_cost("gpt-4o", "not a number", 1e5)))
-  expect_true(is.na(gr_estimate_cost("gpt-4o", Inf, 1e5)))
+  expect_equal(hr_estimate_cost("gpt-4o", 1e6, 1e5), 3.5)
+  expect_true(is.na(hr_estimate_cost("gpt-4o", NA, 1e5)))
+  expect_true(is.na(hr_estimate_cost("gpt-4o", 1e6, NA)))
+  expect_true(is.na(hr_estimate_cost("gpt-4o", NA, NA)))
+  expect_true(is.na(hr_estimate_cost("gpt-4o", "not a number", 1e5)))
+  expect_true(is.na(hr_estimate_cost("gpt-4o", Inf, 1e5)))
 
   # NULL is not NA. A length-zero sum really is zero: nothing was sent.
-  expect_equal(gr_estimate_cost("gpt-4o", NULL, 1e5), 1)
+  expect_equal(hr_estimate_cost("gpt-4o", NULL, 1e5), 1)
   # A vector of per-call counts still adds up.
-  expect_equal(gr_estimate_cost("gpt-4o", c(5e5, 5e5), 1e5), 3.5)
+  expect_equal(hr_estimate_cost("gpt-4o", c(5e5, 5e5), 1e5), 3.5)
   # And an unpriced model is still NA for its own reason.
-  expect_true(is.na(quiet(gr_estimate_cost("a-model-nobody-registered", 1e6, 1e5))))
+  expect_true(is.na(quiet(hr_estimate_cost("a-model-nobody-registered", 1e6, 1e5))))
 })
 
 test_that("a provider that reports no usable token count falls back, not to zero", {
@@ -1116,24 +1116,24 @@ test_that("an HTTP provider that omits its usage block is counted, not zeroed", 
     expect_true(is.na(r$usage$output), info = u)
   }
 
-  # Through gr_call(): what the trace records is the local count, not 0.
+  # Through hr_call(): what the trace records is the local count, not 0.
   local_registries()
-  gr_register_model("priced-model", context_window = 128000L, max_output = 4096L,
+  hr_register_model("priced-model", context_window = 128000L, max_output = 4096L,
                     input_usd = 1, output_usd = 1)
-  cl <- gr_client(api_key = "sk-not-real", model = "priced-model", base_url = "https://x.invalid")
+  cl <- hr_client(api_key = "sk-not-real", model = "priced-model", base_url = "https://x.invalid")
   testthat::local_mocked_bindings(
     http_call = function(client, url, body) parse(fake_resp(body("")), "chat"),
     .package = "harnessr")
-  tr <- gr_trace()
-  res <- gr_call(cl, "How many participants were recruited?", model = "priced-model",
+  tr <- hr_trace()
+  res <- hr_call(cl, "How many participants were recruited?", model = "priced-model",
                  trace = tr, label = "probe")
   expect_true(res$ok)
   expect_gt(res$usage$input, 0L)
   expect_gt(res$usage$output, 0L)
-  expect_equal(res$usage$output, sum(gr_count_tokens(reply)))
+  expect_equal(res$usage$output, sum(hr_count_tokens(reply)))
   expect_gt(tr$tokens_in, 0L)
   expect_gt(tr$tokens_out, 0L)
-  cost <- gr_trace_cost(tr)
+  cost <- hr_trace_cost(tr)
   expect_equal(nrow(cost), 1L)
   expect_gt(cost$paid_in, 0L)
   expect_gt(cost$usd, 0)      # a priced model, a real call: not free
@@ -1144,36 +1144,36 @@ test_that("a handler-built result that leaves usage out is counted like a bare s
   # hand-built gr_result with no `usage` took `list(0, 0)` instead: the same
   # function, two rules, and the second one recorded a call as free.
   txt <- "a reply with several words in it"
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     r <- gr_result_for_test(ok = TRUE, text = txt); r$usage <- NULL; r
   })
-  tr <- gr_trace()
-  res <- gr_call(cl, "q", trace = tr, label = "probe")
+  tr <- hr_trace()
+  res <- hr_call(cl, "q", trace = tr, label = "probe")
   expect_true(res$ok)
-  expect_equal(res$usage$output, sum(gr_count_tokens(txt)))
+  expect_equal(res$usage$output, sum(hr_count_tokens(txt)))
   expect_gt(res$usage$input, 0L)
   expect_gt(tr$tokens_in, 0L)
 })
 
 test_that("a step whose token count is unknown makes the cost unknown, not smaller", {
-  # gr_trace_cost() turned an NA step count into 0 before summing, so a trace
+  # hr_trace_cost() turned an NA step count into 0 before summing, so a trace
   # read back from a file with one unknown step reported a confident, too-small
   # dollar figure beside an NA token total. The report renders NA as a dash;
   # zero it would have rendered as a price.
   local_registries()
-  gr_register_model("priced-model", context_window = 128000L, max_output = 4096L,
+  hr_register_model("priced-model", context_window = 128000L, max_output = 4096L,
                     input_usd = 1, output_usd = 1)
-  tr <- gr_trace()
+  tr <- hr_trace()
   step <- function(inp, out) list(step = length(tr$steps) + 1L, label = "x", at = "t",
                                   model = "priced-model", ok = TRUE, cached = FALSE,
                                   tokens = list(input = inp, output = out))
   tr$steps <- list(step(100L, 10L), step(NA_integer_, 10L))
-  cost <- gr_trace_cost(tr)
+  cost <- hr_trace_cost(tr)
   expect_true(is.na(cost$paid_in))
   expect_true(is.na(cost$usd))
   tr$steps <- list(step(100L, 10L), step(50L, 5L))
-  expect_equal(gr_trace_cost(tr)$paid_in, 150L)
-  expect_false(is.na(gr_trace_cost(tr)$usd))
+  expect_equal(hr_trace_cost(tr)$paid_in, 150L)
+  expect_false(is.na(hr_trace_cost(tr)$usd))
 })
 
 test_that("a trace records the configuration that produced it, not just the recipe's name", {
@@ -1198,7 +1198,7 @@ test_that("a trace records the configuration that produced it, not just the reci
   expect_match(cmp$summary$settings[2], "mmr=0.7")
   expect_match(cmp$summary$settings[1], "max_tokens=150")
 
-  # The same facts sit on the trace steps, so they survive gr_trace_save().
+  # The same facts sit on the trace steps, so they survive hr_trace_save().
   pf <- Filter(function(s) identical(s$label, "preflight"), cmp$trace$steps)
   expect_length(pf, 2L)
   expect_identical(pf[[1]]$detail$settings$top_k, 3L)
@@ -1216,7 +1216,7 @@ test_that("a trace records the configuration that produced it, not just the reci
   # And the version, on every trace, through a save and back.
   expect_identical(a$trace$meta$readgpt, as.character(utils::packageVersion("harnessr")))
   f <- withr::local_tempfile(fileext = ".json")
-  gr_trace_save(a$trace, f)
+  hr_trace_save(a$trace, f)
   back <- jsonlite::fromJSON(f, simplifyVector = FALSE)
   expect_identical(back$meta$readgpt, as.character(utils::packageVersion("harnessr")))
   expect_identical(back$steps[[which(vapply(back$steps, function(s) identical(s$label, "preflight"),

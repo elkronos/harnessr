@@ -26,7 +26,7 @@ read_refine <- function(chunks, question, client, spec, trace) {
                   prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate),
                   if (is_ledger) prompt_overhead(question, ledger_system_prompt(spec$premise),
                                                  "never"))
-  bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
+  bud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   p <- progress_start(nrow(d), "chunk", trace)
   with_progress(p, for (i in seq_len(nrow(d))) {
     if (i > 1L) progress_tick(p, i - 1L)
@@ -70,33 +70,33 @@ read_refine <- function(chunks, question, client, spec, trace) {
         if (is_ledger) {
           # A finding the cut went through is dropped whole.
           ledger <- ledger_whole(ledger, fit$pieces[["ledger"]])
-          cut_tokens <- cut_tokens + as.integer(max(gr_count_tokens(fit$pieces[["ledger"]]) -
-                                                      gr_count_tokens(ledger_text(ledger)), 0))
+          cut_tokens <- cut_tokens + as.integer(max(hr_count_tokens(fit$pieces[["ledger"]]) -
+                                                      hr_count_tokens(ledger_text(ledger)), 0))
         } else {
           draft <- fit$pieces[["draft"]]
         }
       }
     } else {
-      if (gr_count_tokens(excerpt) > half) {
+      if (hr_count_tokens(excerpt) > half) {
         t <- truncate_logged(excerpt, half, "refine.excerpt", trace, chunk_id = d$chunk_id[i])
         excerpt <- t$text; cuts <- cuts + 1L; cut_tokens <- cut_tokens + t$dropped
       }
-      if (!is.null(draft) && gr_count_tokens(draft) > half) {
+      if (!is.null(draft) && hr_count_tokens(draft) > half) {
         t <- truncate_logged(draft, half, "refine.draft", trace, chunk_id = d$chunk_id[i])
         draft <- t$text; cuts <- cuts + 1L; cut_tokens <- cut_tokens + t$dropped
       }
-      if (is_ledger && length(ledger) && gr_count_tokens(ledger_text(ledger)) > half) {
+      if (is_ledger && length(ledger) && hr_count_tokens(ledger_text(ledger)) > half) {
         t <- truncate_logged(ledger_text(ledger), half, "refine.ledger", trace,
                              chunk_id = d$chunk_id[i], marker = "")
-        all_tokens <- gr_count_tokens(ledger_text(ledger))
+        all_tokens <- hr_count_tokens(ledger_text(ledger))
         ledger <- ledger_whole(ledger, t$text); cuts <- cuts + 1L
         cut_tokens <- cut_tokens + as.integer(max(all_tokens -
-                                                    gr_count_tokens(ledger_text(ledger)), 0))
+                                                    hr_count_tokens(ledger_text(ledger)), 0))
       }
     }
     # The draft as this request carries it, for the state length below.
-    state_in <- if (is_ledger) gr_count_tokens(ledger_text(ledger))
-                else if (is.null(draft)) 0L else gr_count_tokens(draft)
+    state_in <- if (is_ledger) hr_count_tokens(ledger_text(ledger))
+                else if (is.null(draft)) 0L else hr_count_tokens(draft)
     from <- length(trace$steps)
     msgs <- if (is_ledger) {
       ledger_messages(question, ledger, excerpt, spec$premise)
@@ -117,7 +117,7 @@ read_refine <- function(chunks, question, client, spec, trace) {
       )
     }
     step_label <- if (if (is_ledger) i == 1L else is.null(draft)) "refine.draft" else "refine.revise"
-    res <- gr_call(client, msgs, model = spec$model, max_output = spec$max_answer_tokens,
+    res <- hr_call(client, msgs, model = spec$model, max_output = spec$max_answer_tokens,
                    temperature = spec$temperature, trace = trace,
                    label = step_label, effort = spec$effort)
     # A limit ends the pass, with the draft as it was before this chunk.
@@ -137,7 +137,7 @@ read_refine <- function(chunks, question, client, spec, trace) {
       before <- ledger
       ledger <- ledger_apply(ledger, res$text)
       trace_state(trace, from, step_label, tokens_in = state_in,
-                  tokens_out = gr_count_tokens(ledger_text(ledger)))
+                  tokens_out = hr_count_tokens(ledger_text(ledger)))
       if (reply_cut_off(res)) cut <- cut + 1L
       used <- c(used, d$chunk_id[i])
       if (i > 1L && !identical(before, ledger)) revisions <- revisions + 1L
@@ -145,7 +145,7 @@ read_refine <- function(chunks, question, client, spec, trace) {
       next
     }
     trace_state(trace, from, step_label, tokens_in = state_in,
-                tokens_out = if (usable_text(res)) gr_count_tokens(res$text) else state_in)
+                tokens_out = if (usable_text(res)) hr_count_tokens(res$text) else state_in)
     if (!usable_text(res)) { failures <- failures + 1L; next }
     # A draft cut off at the output cap is carried forward as the draft, so
     # whatever it lost is lost from every revision after it.
@@ -265,7 +265,7 @@ ledger_apply <- function(ledger, reply) {
 #' @noRd
 ledger_answer <- function(ledger, question, client, spec, trace) {
   if (!length(ledger)) return(list(text = .NOT_FOUND))
-  res <- gr_call(client, answer_messages(question, ledger_text(ledger), label = "Findings",
+  res <- hr_call(client, answer_messages(question, ledger_text(ledger), label = "Findings",
                                          restate = restate_how(spec), premise = spec$premise),
                  model = spec$model, max_output = spec$max_answer_tokens,
                  temperature = spec$temperature, trace = trace, label = "refine.answer",

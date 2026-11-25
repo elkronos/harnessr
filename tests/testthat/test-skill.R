@@ -213,7 +213,7 @@ test_that("the skill reaches the step's requests as a system message, and ctx$sk
   dir <- skill_dir(refs = list(style.md = "Write million in full."))
   on.exit(unlink(dir, recursive = TRUE))
   s <- hr_skill(dir)
-  cl <- gr_mock_client(function(m, p) "45.2 million")
+  cl <- hr_mock_client(function(m, p) "45.2 million")
   seen <- NULL
   ask <- hr_step("ask", function(input, ctx) {
     seen <<- ctx$skill
@@ -248,7 +248,7 @@ test_that("the skill reaches the step's requests as a system message, and ctx$sk
 
   # Outside a chain the step is called as it is, without the skill.
   cl$reset()
-  ask(list(question = "q"), list(call = function(m, ...) gr_call(cl, m)))
+  ask(list(question = "q"), list(call = function(m, ...) hr_call(cl, m)))
   expect_identical(cl$calls()[[1]]$messages[[1]]$role, "user")
 })
 
@@ -286,7 +286,7 @@ test_that("a skill's scripts are listed and never run", {
   on.exit(unlink(c(dir, sentinel), recursive = TRUE))
   s <- hr_skill(dir)
   invisible(utils::capture.output(print(s)))
-  cl <- gr_mock_client(function(m, p) "45.2 million")
+  cl <- hr_mock_client(function(m, p) "45.2 million")
   bench <- hr_benchmark(skill_chain(s), skill_ref(), runs = 5, client = cl,
                         scorer = hr_scorer_exact())
   expect_false(file.exists(sentinel))

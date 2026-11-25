@@ -42,9 +42,9 @@ The run uses the benchmark's client and records every request into the
 trace the benchmark made for that run (\code{ctx$trace}), so the run's tokens,
 cost and refusals are counted and held to the benchmark's limits, and the
 answer's \code{trace} is that run's trace. That trace also gives every request
-of the run the run's draw index (see \code{draw_index} in \code{\link[=gr_call]{gr_call()}}), segmenter
+of the run the run's draw index (see \code{draw_index} in \code{\link[=hr_call]{hr_call()}}), segmenter
 and reader requests included, so the runs of one arm on one item are
-separate draws under a \code{\link[=gr_cache]{gr_cache()}} or a \code{\link[=gr_replay_client]{gr_replay_client()}} rather than
+separate draws under an \code{\link[=hr_cache]{hr_cache()}} or an \code{\link[=hr_replay_client]{hr_replay_client()}} rather than
 one stored reply repeated, which \code{\link[=hr_benchmark]{hr_benchmark()}} would refuse.
 
 A reader checks before it starts whether the run's call and spending
@@ -65,7 +65,7 @@ the recipe's own value, say) have the same configuration, and
 \code{\link[=hr_benchmark]{hr_benchmark()}} warns when it is given both.
 }
 \examples{
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ref <- gr_qa_reference(
   questions = c(revenue = "What was revenue in 2024?",
                 ceo = "Who is the chief executive?"),

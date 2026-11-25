@@ -23,7 +23,7 @@ rs_table <- function() {
 # One mock for the whole claims -> outline -> synthesise chain. `claims` and
 # `sections` are the JSON replies; `write` maps a section heading to its prose.
 rs_client <- function(claims, sections, write) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     all_txt <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                      collapse = " ")
@@ -112,7 +112,7 @@ test_that("a claim may only rest on studies its own batch was shown", {
   # table, so batch 2 naming study 1 -- shown only to batch 1 -- kept it as
   # support, with nothing in $dropped.
   local_registries()
-  gr_register_model("rs-tiny", context_window = 2500L, max_output = 300L,
+  hr_register_model("rs-tiny", context_window = 2500L, max_output = 300L,
                     input_usd = 0, output_usd = 0)
   n <- 12L
   tab <- data.frame(document = paste0("d", 1:n, ".pdf"), document_id = paste0("h", 1:n),
@@ -122,7 +122,7 @@ test_that("a claim may only rest on studies its own batch was shown", {
                                                           collapse = " "), ""),
                     stringsAsFactors = FALSE)
   batch <- 0L
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("Group the ones", sys, fixed = TRUE)) return('{"groups":[]}')
     txt <- paste(vapply(messages, function(m) as.character(m$content), character(1)), collapse = " ")
@@ -179,7 +179,7 @@ test_that("a review cites PubMed-style author lists by the right names", {
                                 "Smith, J., Okafor, A., & Lee, K."),
                     year = c(2019L, 2022L, 2020L), design = c("RCT", "cohort", "RCT"),
                     stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(messages, params) "A trial [study 1], a cohort [study 2], a third [study 3].")
+  cl <- hr_mock_client(function(messages, params) "A trial [study 1], a cohort [study 2], a third [study 3].")
   s <- quiet(gr_synthesise(tab, outline = c(Findings = "what"), question = "Q?", client = cl))
   expect_identical(s$cite_style, "author-year")
   expect_match(s$text, "A trial (Smith & Okafor, 2019)", fixed = TRUE)
@@ -192,7 +192,7 @@ test_that("an author list that cannot be read makes the run fall back to markers
                     duplicate_of = NA_character_, n_filled = 2L,
                     authors = c("Smith, J.", "Smith, Jones, Lee"), year = c(2019L, 2020L),
                     design = c("RCT", "cohort"), stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(messages, params) "Two studies [study 1] [study 2].")
+  cl <- hr_mock_client(function(messages, params) "Two studies [study 1] [study 2].")
   s <- quiet(gr_synthesise(tab, outline = c(Findings = "what"), question = "Q?", client = cl))
   expect_identical(s$cite_style, "marker")
   expect_match(s$text, "[study 1] [study 2]", fixed = TRUE)
@@ -216,7 +216,7 @@ test_that("a revision cut off at the limit is discarded, whatever the provider c
   tab <- data.frame(document = c("a.pdf", "b.pdf"), status = "ok", duplicate_of = NA_character_,
                     n_filled = 1L, finding = c("x", "y"), stringsAsFactors = FALSE)
   for (fr in c("incomplete", "max_tokens", "max_output_tokens", "MAX_TOKENS", "length")) {
-    cl <- gr_mock_client(function(messages, params) {
+    cl <- hr_mock_client(function(messages, params) {
       sys <- messages[[1]]$content
       if (grepl("cut a finished review", sys, fixed = TRUE)) {
         r <- gr_result_for_test(TRUE, text = cut)
@@ -255,7 +255,7 @@ rs_many <- function(n) {
 # named -- and is cut off exactly as the API cuts it when the reply is longer
 # than params$max_output. `cut_if` forces a cut on the batches it matches.
 rs_claims_model <- function(cut_if = function(ids) FALSE) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     if (grepl("Group the ones", sys, fixed = TRUE)) return('{"groups":[]}')
     txt <- paste(vapply(messages, function(m) as.character(m$content), character(1)), collapse = "\n")
@@ -266,9 +266,9 @@ rs_claims_model <- function(cut_if = function(ids) FALSE) {
       'adult outpatients.","kind":"finding","supported_by":[%s],"contradicted_by":[],',
       '"moderator":"design","scope":"Trials and cohorts of adults in primary care."}'),
       paste(g, collapse = ",")), ""), collapse = ","))
-    if (cut_if(ids) || sum(gr_count_tokens(full)) > params$max_output) {
-      r <- gr_result_for_test(TRUE, text = harnessr:::gr_truncate_tokens(
-        full, min(params$max_output, sum(gr_count_tokens(full)) - 5L), ""))
+    if (cut_if(ids) || sum(hr_count_tokens(full)) > params$max_output) {
+      r <- gr_result_for_test(TRUE, text = harnessr:::hr_truncate_tokens(
+        full, min(params$max_output, sum(hr_count_tokens(full)) - 5L), ""))
       r$finish_reason <- "length"
       return(r)
     }
@@ -355,7 +355,7 @@ test_that("every schema the claims layer sends obeys the strict-mode rules", {
   # TRUE, OpenAI refuses both with a 400 -- every claims call failed on the
   # default client, and every outline fell back to one section.
   sent <- list()
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (!is.null(params$schema)) sent[[length(sent) + 1L]] <<- params$schema
     sys <- messages[[1]]$content
     if (grepl("sections of a review", sys, fixed = TRUE)) {

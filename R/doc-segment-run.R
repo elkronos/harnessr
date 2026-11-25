@@ -228,7 +228,7 @@ gr_segment_spec <- function(method = "paragraph", max_tokens = 1200L,
   hr_param("parallel", "boolean", default = NULL, affects_output = FALSE, tier = "advanced",
            help = "Parallelise per-chunk model work.", resolve = param_as_given,
            evidence = ev_untested(paste0("Not a tuned value: NULL follows ",
-                                         "gr_options(\"parallel\"). It does not change output."))),
+                                         "hr_options(\"parallel\"). It does not change output."))),
   # Constants in the code until they were declared here; stored only when not
   # the default (.gr_segment_late_params).
   hr_param("context_reply_tokens", "integer", default = 90L, min = 16, max = 4000,
@@ -299,7 +299,7 @@ segment_settings <- function(spec) {
 #' @param client A `gr_client`, needed only by `semantic`, `proposition` and
 #'   `contextual(context_source = "llm")`.
 #' @param trace Optional `gr_trace`. When none is given one is made, so the
-#'   model calls a segmenter makes are held to `gr_options(max_calls =,
+#'   model calls a segmenter makes are held to `hr_options(max_calls =,
 #'   max_cost_usd =)` and recorded, and it is returned as `$trace`.
 #' @return A [gr_chunks] object. If the requested segmenter could not run it
 #'   falls back and records the fallback in `$method`, e.g.
@@ -326,7 +326,7 @@ gr_segment <- function(doc, spec = NULL, client = NULL, trace = NULL) {
   # and left no account of them, and the Shiny preview did exactly that.
   # gr_read() makes its own for the same reason.
   own_trace <- is.null(trace)
-  trace <- trace %||% gr_trace(meta = list(stage = "segment"))
+  trace <- trace %||% hr_trace(meta = list(stage = "segment"))
   if (!inherits(doc, "gr_document")) doc <- gr_ingest(doc, trace = trace)
   spec <- as_segment_spec(spec)
   seg <- registry_get("segmenter", spec$method)
@@ -396,7 +396,7 @@ gr_segment <- function(doc, spec = NULL, client = NULL, trace = NULL) {
       gr_abort(sprintf(paste0("Cannot hold '%s' chunks to the %d-token cap: %d chunk(s) are over it ",
                               "even split to single characters, so the tokenizer ('%s') counts ",
                               "one character as more than the cap."),
-                       spec$method, spec$max_tokens, length(still), gr_tokenizer()),
+                       spec$method, spec$max_tokens, length(still), hr_tokenizer()),
                class = "gr_cap_unenforceable")
     }
   }

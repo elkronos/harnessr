@@ -6,10 +6,10 @@ test_that("the mock and the backend client send through one method", {
   expect_identical(harnessr:::client_send.gr_mock_client,
                    harnessr:::client_send.gr_backend_client)
   handler <- function(m, p) paste("reply to", m[[1]]$content)
-  mock <- gr_mock_client(handler)
-  back <- gr_backend_client(handler, model = "mock-model")
-  a <- gr_call(mock, "hi", label = "one")
-  b <- gr_call(back, "hi", label = "one")
+  mock <- hr_mock_client(handler)
+  back <- hr_backend_client(handler, model = "mock-model")
+  a <- hr_call(mock, "hi", label = "one")
+  b <- hr_call(back, "hi", label = "one")
   expect_identical(unclass(a), unclass(b))
   la <- mock$calls()[[1]]
   lb <- back$calls()[[1]]
@@ -25,8 +25,8 @@ test_that("each client class finds its own dispatch method", {
     }
     NA_character_
   }
-  mock <- gr_mock_client(function(m, p) "ok")
-  back <- gr_backend_client(function(m, p) "ok")
+  mock <- hr_mock_client(function(m, p) "ok")
+  back <- hr_backend_client(function(m, p) "ok")
   ellm <- back
   class(ellm) <- c("gr_ellmer_client", class(ellm))
   expect_identical(find("client_dispatch", mock), "gr_client")
@@ -39,18 +39,18 @@ test_that("each client class finds its own dispatch method", {
 
 test_that("a cache sits in front of a closure client and a replay never sends", {
   n <- 0
-  cl <- gr_cache_client(gr_mock_client(function(m, p) { n <<- n + 1; "42" }),
-                        gr_cache(tempfile("dispatch-cache")))
-  tr <- gr_trace()
-  first <- gr_call(cl, "what?", trace = tr)
-  second <- gr_call(cl, "what?")
+  cl <- hr_cache_client(hr_mock_client(function(m, p) { n <<- n + 1; "42" }),
+                        hr_cache(tempfile("dispatch-cache")))
+  tr <- hr_trace()
+  first <- hr_call(cl, "what?", trace = tr)
+  second <- hr_call(cl, "what?")
   expect_identical(n, 1)
   expect_false(first$cached)
   expect_true(second$cached)
 
   f <- tempfile(fileext = ".json")
-  gr_trace_save(tr, f)
-  rp <- gr_replay_client(f)
-  expect_identical(gr_call(rp, "what?")$text, "42")
+  hr_trace_save(tr, f)
+  rp <- hr_replay_client(f)
+  expect_identical(hr_call(rp, "what?")$text, "42")
   expect_identical(n, 1)
 })

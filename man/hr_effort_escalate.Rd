@@ -36,7 +36,7 @@ the text a reply that signals it starts with.}
 An object of class \code{hr_effort_escalate}.
 }
 \description{
-A policy for a call's \code{effort} (\code{\link[=gr_call]{gr_call()}}) or a read's \code{effort_mode}
+A policy for a call's \code{effort} (\code{\link[=hr_call]{hr_call()}}) or a read's \code{effort_mode}
 (\code{\link[=gr_read_spec]{gr_read_spec()}}). Every stage starts at \code{base} (one level, or a map named
 by call stem, resolved as a static effort is). When a trigger in \code{on}
 fired during a stage, the next stage is sent at \code{to}. The stage after a
@@ -74,16 +74,16 @@ pol <- hr_effort_escalate(base = "low", to = "high",
 pol
 
 # A first stage that found nothing raises the second.
-cl <- gr_mock_client(function(m, p) {
+cl <- hr_mock_client(function(m, p) {
   if (identical(p$effort, "low") && grepl("first", m[[1]]$content)) {
     return("NOT_IN_DOCUMENT")
   }
   paste("done at", p$effort)
 })
-tr <- gr_trace()
-gr_call(cl, "first step", model = "gpt-5.6-luna", trace = tr, label = "plan.draft",
+tr <- hr_trace()
+hr_call(cl, "first step", model = "gpt-5.6-luna", trace = tr, label = "plan.draft",
         effort = pol)$text
-gr_call(cl, "second step", model = "gpt-5.6-luna", trace = tr, label = "plan.final",
+hr_call(cl, "second step", model = "gpt-5.6-luna", trace = tr, label = "plan.final",
         effort = pol)$text
 hr_effort_log(tr)
 }

@@ -55,7 +55,7 @@ gr_read_spec(
 \item{reader}{Reader name; see \code{gr_readers()}.}
 
 \item{model}{Chat model id. \code{NULL} (the default) means the model of the
-client the spec is read with, so \code{gr_client(model = "gpt-4o-mini")} is the
+client the spec is read with, so \code{hr_client(model = "gpt-4o-mini")} is the
 model that answers, is budgeted for and is billed. A model named here, or
 in a recipe, is used whatever the client's.}
 
@@ -63,7 +63,7 @@ in a recipe, is used whatever the client's.}
 not need to null it yourself for reasoning models: it is dropped
 automatically for any model whose registry entry has
 \code{supports_temperature = FALSE}, which includes the default model. Check with
-\code{gr_model_info(model)$supports_temperature}.}
+\code{hr_model_info(model)$supports_temperature}.}
 
 \item{max_answer_tokens}{Output cap for final answers and merges.}
 
@@ -160,7 +160,7 @@ workers, added back in input order. A replay client always runs one
 request at a time, since it hands out its recording in order.
 
 Two things do not cross the process boundary. The limits in
-\code{\link[=gr_options]{gr_options()}} are checked before a batch is sent and not inside it,
+\code{\link[=hr_options]{hr_options()}} are checked before a batch is sent and not inside it,
 since a worker cannot see what the others spend. So the pre-flight check,
 which runs in the parent, holds a parallel run to its worst case, every
 reply at its cap and as many merge or summary levels as replies that size
@@ -168,7 +168,7 @@ need, against both \code{max_calls} and \code{max_cost_usd}; and each batch goes
 the workers only when it fits what the run has left at its own worst
 case, and otherwise runs one request at a time, each checked. And a
 handler that records calls in variables of its own (a closure passed to
-\code{\link[=gr_backend_client]{gr_backend_client()}} or \code{\link[=gr_mock_client]{gr_mock_client()}}) records a worker's calls in
+\code{\link[=hr_backend_client]{hr_backend_client()}} or \code{\link[=hr_mock_client]{hr_mock_client()}}) records a worker's calls in
 that worker's copy, which this process never sees; ask the trace, or the
 client's \verb{$calls()}, instead.}
 
@@ -490,7 +490,7 @@ keeps the store and cache keys it had before they existed.
 \item \code{effort} (default \code{NULL}, advanced): untested. Unset: no effort is sent, and the provider's own default applies.
 \item \code{reader} (default \code{"map_reduce"}, basic): untested. The reader that sends every chunk, chosen because it reads the whole document at any length; no comparison of readers is recorded.
 \item \code{model} (default \code{NULL}, basic): untested. Not a tuned value: NULL takes the client's model.
-\item \code{temperature} (default \code{NULL}, advanced): untested. Not a tuned value: NULL takes gr_options("temperature"), which sends none.
+\item \code{temperature} (default \code{NULL}, advanced): untested. Not a tuned value: NULL takes hr_options("temperature"), which sends none.
 \item \code{max_answer_tokens} (default \code{1500}, advanced): untested. Set as a generous cap for an answer; not measured.
 \item \code{max_chunk_tokens} (default \code{700}, advanced): untested. Set as a cap for one chunk's finding; not measured.
 \item \code{max_summary_tokens} (default \code{500}, advanced): untested. Set as a cap for one summary; not measured.
@@ -507,7 +507,7 @@ keeps the store and cache keys it had before they existed.
 \item \code{cite} (default \code{FALSE}, basic): untested. Off, so the answer prompt is the one used before the setting existed.
 \item \code{skim_model} (default \code{NULL}, advanced): untested. Not a tuned value: NULL uses \code{model}.
 \item \code{summary_model} (default \code{NULL}, advanced): untested. Not a tuned value: NULL uses \code{model}.
-\item \code{parallel} (default \code{NULL}, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.
+\item \code{parallel} (default \code{NULL}, advanced): untested. Not a tuned value: NULL follows hr_options("parallel"). It does not change output.
 \item \code{delay_between_calls} (default \code{0}, advanced): untested. No pause. It does not change output.
 \item \code{accept_near_verbatim} (default \code{FALSE}, advanced): untested. Off, as the code behaved before the setting existed. Not measured as a stopping rule; on the labelled quotation set, 25 of 46 quotations with one content word swapped score near_verbatim (NEWS, 0.6.0.9000).
 \item \code{max_merge_levels} (default \code{6}, advanced): untested. The cap the merge code had as a constant; not tuned.
@@ -536,13 +536,13 @@ Nothing sets how much unless \code{effort} does, so a corpus's hundreds of
 per-chunk calls reason as long as the one call that drafts its claims.
 
 The effort is sent as \code{reasoning = {"effort": ...}} on the Responses API and
-as \code{reasoning_effort} on Chat Completions, and a \code{\link[=gr_mock_client]{gr_mock_client()}} or
-\code{\link[=gr_backend_client]{gr_backend_client()}} handler finds it in \code{params$effort}. It is sent only to
-a model whose \code{\link[=gr_model_info]{gr_model_info()}} says \code{reasoning = TRUE}, and left out without
+as \code{reasoning_effort} on Chat Completions, and an \code{\link[=hr_mock_client]{hr_mock_client()}} or
+\code{\link[=hr_backend_client]{hr_backend_client()}} handler finds it in \code{params$effort}. It is sent only to
+a model whose \code{\link[=hr_model_info]{hr_model_info()}} says \code{reasoning = TRUE}, and left out without
 a warning for any other, which would refuse the field, as \code{temperature} is
 left out for a model that refuses that; register a gateway's reasoning model
-with \code{\link[=gr_register_model]{gr_register_model()}} to reach it. For the calls it covers it replaces
-an effort the client's \code{extra_body} sets. A \code{\link[=gr_ellmer_client]{gr_ellmer_client()}} cannot take
+with \code{\link[=hr_register_model]{hr_register_model()}} to reach it. For the calls it covers it replaces
+an effort the client's \code{extra_body} sets. An \code{\link[=hr_ellmer_client]{hr_ellmer_client()}} cannot take
 it per call, says so once (\code{gr_effort_unsupported}) and does not record it
 as sent. A value is passed
 through as given; one that is not \code{"none"}, \code{"minimal"}, \code{"low"},
@@ -551,9 +551,9 @@ sent anyway, since providers add levels.
 
 Each request's effort is in its trace step (\code{params$effort}, and an \code{effort}
 column of \code{as.data.frame(trace)}), and \code{\link[=gr_audit_report]{gr_audit_report()}} shows it beside
-what each stage cost. It is part of the \code{\link[=gr_cache]{gr_cache()}} key, and, when set, of
+what each stage cost. It is part of the \code{\link[=hr_cache]{hr_cache()}} key, and, when set, of
 a recipe's store key in \code{\link[=gr_read_many]{gr_read_many()}}, of what \code{\link[=gr_compare]{gr_compare()}} counts as
-a different recipe, and of the key a \code{\link[=gr_replay_client]{gr_replay_client()}} matches on, so
+a different recipe, and of the key an \code{\link[=hr_replay_client]{hr_replay_client()}} matches on, so
 runs at different efforts never share answers. Unset, none of those keys
 change.
 
@@ -598,15 +598,15 @@ suppressWarnings(gr_read_spec("hierarchical", fan_in = 999)$fan_in)
 # Reasoning effort by stage: little for the per-chunk calls, more for the
 # merge. The trace says which request carried which.
 ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150))
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 sp <- gr_read_spec("map_reduce", model = "gpt-5.6-luna",
                    effort = c(map = "low", reduce = "high"))
-tr <- gr_trace()
+tr <- hr_trace()
 invisible(gr_read(ch, "What was revenue?", cl, sp, trace = tr))
 unique(as.data.frame(tr)[, c("stage", "effort")])
 # A loaded question, checked against the document. The mock plays a model
 # that finds the excerpts contradict it.
-cl <- gr_mock_client(function(m, p)
+cl <- hr_mock_client(function(m, p)
   "FALSE_PREMISE: Revenue rose 12\% in 2023, to 45.2 million.")
 ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 400))
 ans <- gr_read(ch, "Why did revenue fall in 2023?", cl,

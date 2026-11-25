@@ -3,7 +3,7 @@
 # `parallel = TRUE` was a speed flag that silently disabled the accounting. A
 # worker is a separate process, so the trace it was handed was a copy and every
 # call it recorded went away with it: a six-chunk map_reduce reported one call
-# instead of seven, and gr_trace_cost() under-reported the bill in proportion to
+# instead of seven, and hr_trace_cost() under-reported the bill in proportion to
 # how parallel the run was. The answer was right, which is what made it hard to
 # notice.
 #
@@ -20,8 +20,8 @@ para_doc <- function(n = 6) {
 
 # Everything the trace claims about a run, in one comparable row.
 trace_shape <- function(ans) {
-  s <- gr_trace_summary(ans$trace)
-  cost <- gr_trace_cost(ans$trace)
+  s <- hr_trace_summary(ans$trace)
+  cost <- hr_trace_cost(ans$trace)
   list(calls = as.integer(s$calls), steps = as.integer(s$steps),
        cached = as.integer(s$cached),
        tokens_in = as.integer(s$tokens_in), tokens_out = as.integer(s$tokens_out),
@@ -32,7 +32,7 @@ as_chr1_p <- function(x) if (length(x)) as.character(x)[1] else NA_character_
 
 read_both <- function(recipe, f, ...) {
   out <- lapply(c(FALSE, TRUE), function(par) {
-    cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+    cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
     quiet(answer_document(f, "What was revenue?", recipe, client = cl,
                           max_tokens = 40, parallel = par, ...))
   })
@@ -68,11 +68,11 @@ test_that("the merge tree records its calls from workers too", {
   # more than one group, and therefore what exercises the parallel path at all.
   skip_if_no_future()
   local_registries()
-  gr_register_model("small-ctx", context_window = 1200L, max_output = 200L,
+  hr_register_model("small-ctx", context_window = 1200L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
   f <- para_doc(10)
   shape <- lapply(c(FALSE, TRUE), function(par) {
-    cl <- gr_mock_client(function(messages, params)
+    cl <- hr_mock_client(function(messages, params)
       paste(rep("A finding about revenue in one of the regions.", 12), collapse = " "))
     a <- quiet(answer_document(f, "What was revenue?", "thorough", client = cl,
                                model = "small-ctx", max_tokens = 40, parallel = par))
@@ -87,11 +87,11 @@ test_that("every call a worker makes reaches the parent trace", {
   skip_if_no_future()
   f <- para_doc(6)
   both <- read_both("thorough", f)
-  s <- gr_trace_summary(both$par$trace)
+  s <- hr_trace_summary(both$par$trace)
   # Six per-chunk calls plus the merge. Before the fix this was 1.
   expect_gte(s$calls, 6L)
   expect_gt(s$tokens_in, 0L)
-  expect_false(any(is.na(gr_trace_cost(both$par$trace)$usd)))
+  expect_false(any(is.na(hr_trace_cost(both$par$trace)$usd)))
   labels <- vapply(both$par$trace$steps, function(x) as_chr1_p(x$label), character(1))
   expect_true(sum(labels == "map.answer") >= 6L)
 })
@@ -102,11 +102,11 @@ test_that("the assembled trace reads in input order, not completion order", {
   # same work would not be comparable.
   skip_if_no_future()
   f <- para_doc(6)
-  cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
   a <- quiet(answer_document(f, "What was revenue?", "thorough", client = cl,
                              max_tokens = 40, parallel = TRUE))
   b <- quiet(answer_document(f, "What was revenue?", "thorough",
-                             client = gr_mock_client(function(m, p) "Revenue was 45.2 million dollars."),
+                             client = hr_mock_client(function(m, p) "Revenue was 45.2 million dollars."),
                              max_tokens = 40, parallel = TRUE))
   lab <- function(x) vapply(x$trace$steps, function(s) as_chr1_p(s$label), character(1))
   expect_identical(lab(a), lab(b))
@@ -118,7 +118,7 @@ test_that("gr_lapply() hands the trace to its function either way", {
   # The sequential path must pass it through too, or the two paths diverge in
   # the one respect this whole change is about.
   gl <- harnessr:::gr_lapply
-  tr <- harnessr:::gr_trace()
+  tr <- harnessr:::hr_trace()
   got <- gl(1:3, function(i, trace) identical(trace, tr), parallel = FALSE, trace = tr)
   expect_true(all(unlist(got)))
 
@@ -130,7 +130,7 @@ test_that("gr_lapply() hands the trace to its function either way", {
 test_that("gr_lapply() absorbs worker traces, and is harmless without one", {
   skip_if_no_future()
   gl <- harnessr:::gr_lapply
-  tr <- harnessr:::gr_trace()
+  tr <- harnessr:::hr_trace()
   res <- gl(1:4, function(i, trace) {
     harnessr:::trace_record(trace, sprintf("w%d", i), list(),
                            harnessr:::gr_result(TRUE, "x", model = "mock-model",
@@ -155,7 +155,7 @@ test_that("a budget stop inside a worker is not lost", {
   # set on the worker's trace, so it has to travel back with everything else.
   skip_if_no_future()
   gl <- harnessr:::gr_lapply
-  tr <- harnessr:::gr_trace()
+  tr <- harnessr:::hr_trace()
   gl(1:2, function(i, trace) { if (i == 2L) trace$budget_stop <- TRUE; i },
      parallel = TRUE, workers = 2, trace = tr)
   expect_true(tr$budget_stop)
@@ -238,7 +238,7 @@ par_matrix_recipe <- function(reader, segment = list(method = "paragraph", max_t
 
 # One run, with the messages it printed. `client` and `trace` are functions,
 # so each run gets its own.
-par_matrix_run <- function(par, recipe, client = function() gr_mock_client(golden_reply),
+par_matrix_run <- function(par, recipe, client = function() hr_mock_client(golden_reply),
                            trace = function() NULL, file = par_matrix_doc()) {
   # The document cache keys on the ingest spec, which records `parallel`, so
   # a run is not served a document the run before it ingested.
@@ -295,7 +295,7 @@ local_par_matrix <- function(env = parent.frame()) {
   local_registries(env)
   # Two workers, a call cap far above what a run needs so the preflight
   # passes on both paths, and the messages that say the run went parallel.
-  gr_options(workers = 2, max_calls = 500, verbose = TRUE)
+  hr_options(workers = 2, max_calls = 500, verbose = TRUE)
 }
 
 test_that("every reader records the same run sequentially and across two workers", {
@@ -313,7 +313,7 @@ test_that("a parallel run through a response cache records what a sequential one
   local_par_matrix()
   # A fresh cache for each run, so neither is served by the other.
   par_matrix_compare(par_matrix_recipe("map_reduce"), info = "cache", client = function() {
-    gr_cache_client(gr_mock_client(golden_reply), gr_cache(tempfile("par-cache")))
+    hr_cache_client(hr_mock_client(golden_reply), hr_cache(tempfile("par-cache")))
   })
 })
 
@@ -326,7 +326,7 @@ test_that("a parallel replay records what a sequential replay does", {
   # A replay hands out its recording in order, so a batch it serves runs in
   # this process, one item at a time, and says so.
   out <- par_matrix_compare(rec, info = "replay", file = f, workers = FALSE,
-                            client = function() gr_replay_client(recorded$trace))
+                            client = function() hr_replay_client(recorded$trace))
   expect_true(any(grepl("one at a time: a replay", out$par$messages, fixed = TRUE)))
   expect_identical(out$par$answer$answer, recorded$answer$answer)
 })
@@ -335,7 +335,7 @@ test_that("a parallel run under a parent trace keeps its draw index and scope", 
   skip_if_no_future()
   local_par_matrix()
   out <- par_matrix_compare(par_matrix_recipe("skim"), info = "parent trace", trace = function() {
-    tr <- gr_trace()
+    tr <- hr_trace()
     tr$draw_index <- 3L
     tr$draw_scope <- "armA"
     tr
@@ -351,7 +351,7 @@ test_that("a parallel run under a raised effort records what a sequential one do
   skip_if_no_future()
   local_par_matrix()
   par_matrix_compare(par_matrix_recipe("map_reduce"), info = "effort raised",
-                     trace = function() gr_trace(meta = list(effort_raised = "high")))
+                     trace = function() hr_trace(meta = list(effort_raised = "high")))
 })
 
 test_that("a model segmenter records the same run sequentially and across two workers", {
@@ -367,15 +367,15 @@ test_that("a model segmenter records the same run sequentially and across two wo
 test_that("a user reader and tokenizer record the same run sequentially and across two workers", {
   skip_if_no_future()
   local_par_matrix()
-  old_tok <- gr_tokenizer()
-  on.exit(gr_set_tokenizer(old_tok), add = TRUE)
-  gr_set_tokenizer("par_words", function(x) lengths(strsplit(trimws(x), "\\s+")))
+  old_tok <- hr_tokenizer()
+  on.exit(hr_set_tokenizer(old_tok), add = TRUE)
+  hr_set_tokenizer("par_words", function(x) lengths(strsplit(trimws(x), "\\s+")))
   gr_register_reader("par_first", signature = "one|1|none", cost_calls = "1",
                      calls = "par_first.answer",
                      cost = function(input_stats, params) hr_cost(calls = 1),
                      fn = function(chunks, question, client, spec, trace) {
                        d <- chunks$chunks
-                       res <- gr_call(client, list(list(
+                       res <- hr_call(client, list(list(
                          role = "user", content = paste0(d$text[1], "\n\nQuestion: ", question))),
                          trace = trace, label = "par_first.answer")
                        new_answer(res$text, "par_first", question, d$chunk_id[1], trace)

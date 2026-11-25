@@ -227,7 +227,7 @@ check_layout_opts <- function(x, p, params) {
   hr_param("parallel", "boolean", default = NULL, affects_output = FALSE, tier = "advanced",
            help = "Parallelise page-level OCR.", resolve = param_as_given,
            evidence = ev_untested(paste0("Not a tuned value: NULL follows ",
-                                         "gr_options(\"parallel\"). It does not change output."))),
+                                         "hr_options(\"parallel\"). It does not change output."))),
   hr_param("cleaner_opts", "named_map", default = list(), tier = "advanced",
            help = "Extra options passed to individual cleaners.", resolve = param_as_given,
            evidence = ev_untested(paste0("Empty: each cleaner uses its own defaults, listed ",
@@ -317,7 +317,7 @@ check_layout_opts <- function(x, p, params) {
 #' c(standard = doc$stats$chars, none = raw$stats$chars)
 gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
   spec <- as_ingest_spec(spec)
-  cache <- isTRUE(cache %||% gr_options("cache_documents"))
+  cache <- isTRUE(cache %||% hr_options("cache_documents"))
 
   # A single-line string that carries a file extension is a PATH, not prose. If
   # it does not exist, say so. Falling through to the inline-text branch means a
@@ -508,7 +508,7 @@ gr_ingest <- function(source, spec = NULL, cache = NULL, trace = NULL) {
     spec = spec,
     stats = list(blocks = nrow(blocks), chars = sum(nchar(blocks$text)),
                  chars_removed = raw_chars - sum(nchar(blocks$text)),
-                 tokens = sum(gr_count_tokens(blocks$text)),
+                 tokens = sum(hr_count_tokens(blocks$text)),
                  # A trailing page that never became text is still a page of the
                  # document; counting only pages with blocks under-reported it.
                  # So is one whose blocks the cleaner took out (a references

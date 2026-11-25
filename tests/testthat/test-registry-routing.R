@@ -97,34 +97,34 @@ test_that("a segmenter registered without a label gets the whole effort map", {
                    read$effort)
 })
 
-test_that("the document layer's embedder choice agrees with gr_embed()", {
+test_that("the document layer's embedder choice agrees with hr_embed()", {
   local_registries()
   keep_slot("embedders")
-  cl <- gr_mock_client()
+  cl <- hr_mock_client()
   texts <- c("cats sleep", "dogs bark")
-  source_of <- function() attr(gr_embed(cl, texts), "embedding_source")
+  source_of <- function() attr(hr_embed(cl, texts), "embedding_source")
   expect_identical(harnessr:::resolve_embedder(cl)$name, source_of())
-  gr_options(embedder = "lexical")
+  hr_options(embedder = "lexical")
   expect_identical(harnessr:::resolve_embedder(cl)$name, source_of())
   gr_register_embedder("ones", function(texts, params) matrix(1, length(texts), 2),
                        deterministic = TRUE)
-  gr_options(embedder = "ones")
+  hr_options(embedder = "ones")
   expect_identical(harnessr:::resolve_embedder(cl)$name, source_of())
   expect_identical(source_of(), "ones")
 })
 
-test_that("gr_embed() falls back on the registered lexical embedder", {
+test_that("hr_embed() falls back on the registered lexical embedder", {
   local_registries()
   keep_slot("embedders")
   broken <- function(texts, params) stop("down")
   texts <- c("cats sleep", "dogs bark")
-  out <- suppressWarnings(gr_embed(gr_mock_client(), texts, embedder = broken))
+  out <- suppressWarnings(hr_embed(hr_mock_client(), texts, embedder = broken))
   expect_identical(attr(out, "embedding_source"), "lexical")
   expect_true(isTRUE(attr(out, "embedding_fallback")))
   expect_equal(as.vector(out), as.vector(harnessr:::lexical_embed(texts)))
   gr_register_embedder("lexical", function(texts, params) matrix(1, length(texts), 3),
                        deterministic = TRUE)
-  out <- suppressWarnings(gr_embed(gr_mock_client(), texts, embedder = broken))
+  out <- suppressWarnings(hr_embed(hr_mock_client(), texts, embedder = broken))
   expect_identical(ncol(out), 3L)
 })
 
@@ -136,7 +136,7 @@ test_that("a registered lexical embedder that fails falls back on the built-in o
   hr_register("embedder", "lexical", fn = function(texts, params) stop("lexical down"))
   warned <- character(0)
   out <- withCallingHandlers(
-    gr_embed(gr_mock_client(), texts, embedder = broken),
+    hr_embed(hr_mock_client(), texts, embedder = broken),
     warning = function(w) {
       warned <<- c(warned, conditionMessage(w))
       invokeRestart("muffleWarning")
@@ -146,7 +146,7 @@ test_that("a registered lexical embedder that fails falls back on the built-in o
   expect_true(isTRUE(attr(out, "embedding_fallback")))
   expect_equal(as.vector(out), as.vector(harnessr:::lexical_embed(texts)))
   # With fallback = "error" the request's failure is the error, as before.
-  expect_error(suppressWarnings(gr_embed(gr_mock_client(), texts, embedder = broken,
+  expect_error(suppressWarnings(hr_embed(hr_mock_client(), texts, embedder = broken,
                                          fallback = "error")),
                class = "gr_embed_error")
 })

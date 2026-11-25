@@ -16,7 +16,7 @@
 #
 # The replacement is a data-driven registry with explicit match precedence
 # (exact id > alias > family regex > default), user extension via
-# `gr_register_model()`, and a budget function that is mathematically incapable
+# `hr_register_model()`, and a budget function that is mathematically incapable
 # of returning a non-positive value. It errors with an actionable message
 # instead.
 
@@ -92,7 +92,7 @@
 )
 
 # Conservative last resort. Deliberately small context but a *proportionate*
-# output reserve, so `gr_budget()` can never go negative on this path.
+# output reserve, so `hr_budget()` can never go negative on this path.
 .gr_unknown_model <- list(
   context_window = 128000L, max_output = 4096L, input_usd = NA_real_,
   output_usd = NA_real_, reasoning = FALSE, supports_temperature = TRUE,
@@ -121,18 +121,18 @@
 #'   its prompt cache, where that is billed at its own rate. `NA` (the
 #'   default) prices them as other input tokens, which never undercounts.
 #' @return Invisibly, `id`.
-#' @seealso [gr_models()] to see the registry, [gr_model_info()] for lookup and
-#'   its `certain` flag, [gr_budget()], [gr_estimate_cost()]
+#' @seealso [hr_models()] to see the registry, [hr_model_info()] for lookup and
+#'   its `certain` flag, [hr_budget()], [hr_estimate_cost()]
 #' @family cost and token functions
 #' @export
 #' @examples
-#' gr_register_model("my-local-llama", context_window = 32768, max_output = 4096)
-#' gr_model_info("my-local-llama")[c("context_window", "source", "certain")]
+#' hr_register_model("my-local-llama", context_window = 32768, max_output = 4096)
+#' hr_model_info("my-local-llama")[c("context_window", "source", "certain")]
 #'
 #' # Without prices, the cost cap cannot be checked; harnessr says so rather
 #' # than assuming the run is free.
-#' is.na(gr_estimate_cost("my-local-llama", 1000, 500))
-gr_register_model <- function(id, context_window, max_output,
+#' is.na(hr_estimate_cost("my-local-llama", 1000, 500))
+hr_register_model <- function(id, context_window, max_output,
                               input_usd = NA_real_, output_usd = NA_real_,
                               reasoning = FALSE, supports_temperature = TRUE,
                               kind = c("chat", "embedding"), dimensions = NA_integer_,
@@ -163,9 +163,9 @@ gr_register_model <- function(id, context_window, max_output,
                             "previous implementation compute negative input budgets."),
                      max_output, context_window))
   }
-  # Every field below becomes a column in gr_models(). NULL or a zero-length
+  # Every field below becomes a column in hr_models(). NULL or a zero-length
   # value here does not store "unknown": modifyList() deletes the key and
-  # data.frame() drops the column, so one such registration made gr_models()
+  # data.frame() drops the column, so one such registration made hr_models()
   # fail for the whole session. Coerce to a scalar, or to NA.
   registry_set("models", id, list(
     id = id, context_window = context_window, max_output = max_output,
@@ -188,27 +188,27 @@ gr_register_model <- function(id, context_window, max_output,
 #' An alias (`"chatgpt-4o-latest"`, say) takes the entry of the model it names,
 #' a registered override of that model included, and reports the alias as its
 #' `id`. A family-regex match and the default both warn with class
-#' `gr_unknown_model`; under `gr_options(unknown_model_action = "error")` both
+#' `gr_unknown_model`; under `hr_options(unknown_model_action = "error")` both
 #' stop instead, because neither id is in the registry.
 #'
 #' @param model Model id.
 #' @return A named list: `id`, `context_window`, `max_output`, `input_usd`,
 #'   `output_usd` and `cached_input_usd` (per 1M tokens, used by
-#'   [gr_estimate_cost()]), `reasoning`, `supports_temperature`, `kind`,
+#'   [hr_estimate_cost()]), `reasoning`, `supports_temperature`, `kind`,
 #'   `dimensions`, `as_of`, `certain`, and
 #'   `source` (`"registered"`, `"builtin"`, `"alias"`, `"pattern:..."` or
 #'   `"default"`). `certain` is `FALSE` when the answer came from a family regex
 #'   or the fallback; verify before relying on it for cost control.
-#' @seealso [gr_register_model()], [gr_models()], [gr_budget()]
+#' @seealso [hr_register_model()], [hr_models()], [hr_budget()]
 #' @family cost and token functions
 #' @export
 #' @examples
-#' gr_model_info("gpt-4o")[c("context_window", "max_output", "certain")]
+#' hr_model_info("gpt-4o")[c("context_window", "max_output", "certain")]
 #'
 #' # An unrecognised id warns and falls back to conservative limits.
-#' suppressWarnings(gr_model_info("some-model-from-next-year")$certain)
-gr_model_info <- function(model = NULL) {
-  model <- as_chr1(model %||% gr_options("model"))
+#' suppressWarnings(hr_model_info("some-model-from-next-year")$certain)
+hr_model_info <- function(model = NULL) {
+  model <- as_chr1(model %||% hr_options("model"))
   if (!nzchar(model)) gr_abort("`model` must be a non-empty string.")
 
   if (!is.null(hr_state$models[[model]])) {
@@ -222,7 +222,7 @@ gr_model_info <- function(model = NULL) {
   }
   # An alias resolves to its target as the target itself would: a registered
   # override first. Looking in the built-ins alone kept charging the stale
-  # built-in price for "chatgpt-4o-latest" after gr_register_model("gpt-4o")
+  # built-in price for "chatgpt-4o-latest" after hr_register_model("gpt-4o")
   # corrected it, so a spending limit allowed twice the intended spend. The id
   # is set after the merge: c(target, list(id = alias)) held two `id`
   # elements, and the target's won.
@@ -233,7 +233,7 @@ gr_model_info <- function(model = NULL) {
     out$id <- model; out$certain <- TRUE; out$source <- "alias"
     return(out)
   }
-  action <- gr_options("unknown_model_action")
+  action <- hr_options("unknown_model_action")
   for (p in hr_state$model_patterns) {
     if (grepl(p$pattern, model, perl = TRUE)) {
       out <- utils::modifyList(.gr_unknown_model, p[setdiff(names(p), "pattern")])
@@ -243,7 +243,7 @@ gr_model_info <- function(model = NULL) {
       # over-chunks the document by ~20x and multiplies the API calls to match.
       msg <- sprintf(paste0("Model '%s' is not in the registry; matched family pattern '%s' ",
                             "-> %d-token context, %d-token output. Verify with ",
-                            "gr_model_info('%s'), and correct it with gr_register_model() ",
+                            "hr_model_info('%s'), and correct it with hr_register_model() ",
                             "if that is wrong."),
                      model, p$pattern, out$context_window, out$max_output, model)
       # The option is "what to do when an id is not in the registry", and a
@@ -258,7 +258,7 @@ gr_model_info <- function(model = NULL) {
   }
   msg <- sprintf(paste0("Model '%s' is not in the registry. Falling back to a conservative ",
                         "%d-token context with a %d-token output reserve. Register the real ",
-                        "limits with gr_register_model('%s', context_window = ..., max_output = ...) ",
+                        "limits with hr_register_model('%s', context_window = ..., max_output = ...) ",
                         "so budgets and cost estimates are correct."),
                  model, .gr_unknown_model$context_window, .gr_unknown_model$max_output, model)
   if (identical(action, "error")) gr_abort(msg, class = "gr_unknown_model")
@@ -270,19 +270,19 @@ gr_model_info <- function(model = NULL) {
 
 #' Context and output limits for a model
 #'
-#' A two-field convenience wrapper over [gr_model_info()].
+#' A two-field convenience wrapper over [hr_model_info()].
 #'
 #' @param model Model id.
 #' @return A list with exactly two elements: `context_window` and
-#'   `output_tokens`. (Note the second name differs from [gr_model_info()]'s
+#'   `output_tokens`. (Note the second name differs from [hr_model_info()]'s
 #'   `max_output`.)
-#' @seealso [gr_model_info()], [gr_budget()]
+#' @seealso [hr_model_info()], [hr_budget()]
 #' @family cost and token functions
 #' @export
 #' @examples
-#' gr_model_limits("gpt-4o")
-gr_model_limits <- function(model = NULL) {
-  info <- gr_model_info(model)
+#' hr_model_limits("gpt-4o")
+hr_model_limits <- function(model = NULL) {
+  info <- hr_model_info(model)
   list(context_window = info$context_window, output_tokens = info$max_output)
 }
 
@@ -291,12 +291,12 @@ gr_model_limits <- function(model = NULL) {
 #'   `reasoning`, `input_usd_per_1m`, `output_usd_per_1m`, `as_of` (the month
 #'   the entry was recorded; a stale date is a prompt to verify) and
 #'   `cached_input_usd_per_1m`.
-#' @seealso [gr_model_info()], [gr_register_model()]
+#' @seealso [hr_model_info()], [hr_register_model()]
 #' @family cost and token functions
 #' @export
 #' @examples
-#' subset(gr_models(), kind == "chat")[, c("id", "context_window", "as_of")]
-gr_models <- function() {
+#' subset(hr_models(), kind == "chat")[, c("id", "context_window", "as_of")]
+hr_models <- function() {
   all <- utils::modifyList(hr_state$seed_models %||% list(), hr_state$models %||% list())
   if (!length(all)) return(data.frame())
   df <- do.call(rbind, lapply(names(all), function(nm) {
@@ -327,19 +327,19 @@ gr_models <- function() {
 #'   pricing in the registry, or no output price and `output_tokens` above zero
 #'   (an embedding model's missing output price counts as zero, since it
 #'   produces no output tokens). Pricing is seeded from the registry's `as_of`
-#'   snapshot. Treat it as an estimate, and use [gr_register_model()] to
+#'   snapshot. Treat it as an estimate, and use [hr_register_model()] to
 #'   correct it.
-#' @seealso [gr_model_info()], [gr_register_model()], [gr_trace_summary()]
+#' @seealso [hr_model_info()], [hr_register_model()], [hr_trace_summary()]
 #' @family cost and token functions
 #' @export
 #' @examples
-#' gr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
-#' gr_estimate_cost("a-model-with-no-pricing", 1000, 100)
-gr_estimate_cost <- function(model, input_tokens, output_tokens = 0, cached_input_tokens = 0) {
-  info <- gr_model_info(model)
+#' hr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
+#' hr_estimate_cost("a-model-with-no-pricing", 1000, 100)
+hr_estimate_cost <- function(model, input_tokens, output_tokens = 0, cached_input_tokens = 0) {
+  info <- hr_model_info(model)
   if (is.na(info$input_usd)) return(NA_real_)
   # An UNKNOWN token count is not a zero one. `sum(na.rm = TRUE)` made
-  # gr_estimate_cost(m, NA, NA) return 0: a run reported as free because
+  # hr_estimate_cost(m, NA, NA) return 0: a run reported as free because
   # nobody knew what it was. That is the same defect gr_read_many() had, and the
   # rule it settled on: a cost that cannot be computed comes back NA so a total
   # cannot quietly omit it. NULL still means none, because a length-zero sum

@@ -13,7 +13,7 @@
 #' gr_seg_recall() ranks with this too, so both rank alike.
 #' @noRd
 retrieve_scores <- function(texts, question, client, spec, trace) {
-  emb <- gr_embed(client, c(question, texts), trace = trace)
+  emb <- hr_embed(client, c(question, texts), trace = trace)
   src <- attr(emb, "embedding_source") %||% "api"
   scores <- if (nrow(emb) >= 2L) cosine_against(emb[-1, , drop = FALSE], emb[1, ])
             else rep(0, length(texts))
@@ -73,7 +73,7 @@ read_retrieve <- function(chunks, question, client, spec, trace) {
 
   overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate,
                               structure = answer_structure(spec))
-  bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
+  bud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   fit <- fit_chunks(d, bud$input, order = keep)
   log_dropped_chunks(trace, "retrieve.chunks", d, fit$dropped, spec)
   # Fit first, then arrange: what gets in is a relevance question, where it sits

@@ -92,8 +92,8 @@ test_that("a reply that breaks the schema fails the call and is never cached", {
   dir <- withr::local_tempdir()
   replies <- c(sub('"include"', '"maybe"', js_good, fixed = TRUE), js_good)
   sent <- 0L
-  cl <- gr_mock_client(function(m, p) { sent <<- sent + 1L; replies[min(sent, 2L)] })
-  cl <- gr_cache_client(cl, gr_cache(dir))
+  cl <- hr_mock_client(function(m, p) { sent <<- sent + 1L; replies[min(sent, 2L)] })
+  cl <- hr_cache_client(cl, hr_cache(dir))
   msgs <- list(list(role = "user", content = "Decide."))
 
   bad <- harnessr:::gr_call_json(cl, msgs, schema = js_schema)
@@ -117,13 +117,13 @@ test_that("a cached reply that breaks the schema is asked again", {
   dir <- withr::local_tempdir()
   msgs <- list(list(role = "user", content = "Decide."))
   bad <- sub('"score":3', '"score":"three"', js_good, fixed = TRUE)
-  # A plain gr_call() stores any reply, as an entry written before the check
+  # A plain hr_call() stores any reply, as an entry written before the check
   # existed would have been.
-  old_client <- gr_cache_client(gr_mock_client(function(m, p) bad), gr_cache(dir))
-  expect_true(gr_call(old_client, msgs, schema = js_schema, schema_name = "result")$ok)
+  old_client <- hr_cache_client(hr_mock_client(function(m, p) bad), hr_cache(dir))
+  expect_true(hr_call(old_client, msgs, schema = js_schema, schema_name = "result")$ok)
 
   sent <- 0L
-  cl <- gr_cache_client(gr_mock_client(function(m, p) { sent <<- sent + 1L; js_good }), gr_cache(dir))
+  cl <- hr_cache_client(hr_mock_client(function(m, p) { sent <<- sent + 1L; js_good }), hr_cache(dir))
   cl$.client_id <- old_client$.client_id
   out <- harnessr:::gr_call_json(cl, msgs, schema = js_schema)
   expect_true(out$ok)
@@ -146,7 +146,7 @@ test_that("a lone surrogate in a value that breaks the schema is a problem, not 
   }
   expect_true(harnessr:::json_reply('{"d":"a"}', enum_schema)$ok)
 
-  cl <- gr_mock_client(function(messages, params)
+  cl <- hr_mock_client(function(messages, params)
     '{"decision":"\\udc00include","reason":"r","criterion":null,"quote":null}')
   f <- withr::local_tempfile(fileext = ".txt")
   writeLines("We randomly assigned 1,204 participants to two groups.", f)

@@ -32,9 +32,9 @@ anthropic_tool_reply <- function(data, stop_reason = "tool_use", output_tokens =
 }
 
 claude_client <- function() {
-  gr_register_model("claude-test", context_window = 200000L, max_output = 64000L,
+  hr_register_model("claude-test", context_window = 200000L, max_output = 64000L,
                     input_usd = 3, output_usd = 15)
-  gr_ellmer_client(ellmer::chat_anthropic(model = "claude-test", credentials = function() "k"))
+  hr_ellmer_client(ellmer::chat_anthropic(model = "claude-test", credentials = function() "k"))
 }
 
 # --- client-1 / cross-1 / r2-export-serialization-fidelity-02 ---------------
@@ -68,7 +68,7 @@ test_that("an ellmer extraction keeps every digit the model sent", {
 test_that("a schema asked for in the prompt keeps its numbers too", {
   skip_if_not_installed("ellmer")
   local_registries()
-  gr_register_model("stub-model", context_window = 128000L, max_output = 4096L,
+  hr_register_model("stub-model", context_window = 128000L, max_output = 4096L,
                     input_usd = 0, output_usd = 0)
   seen <- new.env()
   chat <- local({
@@ -86,7 +86,7 @@ test_that("a schema asked for in the prompt keeps its numbers too", {
   })
   odd <- list(type = "object", properties = list(
     a = list(anyOf = list(list(type = "number", minimum = 0.00003)))))
-  quiet(harnessr:::gr_call_json(gr_ellmer_client(chat), "Question?", schema = odd))
+  quiet(harnessr:::gr_call_json(hr_ellmer_client(chat), "Question?", schema = odd))
   expect_match(seen$user, "3e-05", fixed = TRUE)
 })
 
@@ -116,14 +116,14 @@ test_that("an ellmer reconcile saying every claim is distinct keeps every claim"
 
   spec <- gr_read_spec("stuff", model = "claude-test", max_answer_tokens = 800L)
   claims <- reconcile_claims()
-  out <- quiet(harnessr:::claims_reconcile(claims, "Does it work?", cl, spec, gr_trace()))
+  out <- quiet(harnessr:::claims_reconcile(claims, "Does it work?", cl, spec, hr_trace()))
   expect_identical(nrow(out), 3L)
   expect_setequal(out$kind, c("finding", "method", "gap"))
   expect_identical(lengths(out$.support), c(1L, 1L, 1L))
 
   # A real merge still merges.
   groups <- '{"groups":[[1,3],[2]]}'
-  out <- quiet(harnessr:::claims_reconcile(claims, "Does it work?", cl, spec, gr_trace()))
+  out <- quiet(harnessr:::claims_reconcile(claims, "Does it work?", cl, spec, hr_trace()))
   expect_identical(nrow(out), 2L)
   expect_setequal(unlist(out$.support), 1:3)
 })
@@ -136,9 +136,9 @@ test_that("an ellmer structured reply cut off at the cap is reported as cut off"
   body <- NULL
   httr2::local_mocked_responses(function(req) body)
   cl <- claude_client()
-  gr_register_model("gpt-test", context_window = 200000L, max_output = 64000L,
+  hr_register_model("gpt-test", context_window = 200000L, max_output = 64000L,
                     input_usd = 1, output_usd = 1)
-  clo <- gr_ellmer_client(ellmer::chat_openai(model = "gpt-test", credentials = function() "k"))
+  clo <- hr_ellmer_client(ellmer::chat_openai(model = "gpt-test", credentials = function() "k"))
   responses_cut <- json_response(paste0(
     '{"id":"r","object":"response","status":"incomplete",',
     '"incomplete_details":{"reason":"max_output_tokens"},"model":"gpt-test",',
@@ -214,7 +214,7 @@ test_that("gr_claims() through ellmer says a cut-off batch was cut off", {
 test_that("a nullable enum sent to an OpenAI-family chat can still be null", {
   skip_without_ellmer_05()
   local_registries()
-  gr_register_model("gpt-test", context_window = 200000L, max_output = 64000L,
+  hr_register_model("gpt-test", context_window = 200000L, max_output = 64000L,
                     input_usd = 1, output_usd = 1)
   seen <- new.env(); seen$bodies <- list()
   reply <- '{"design":null,"design__quote":null}'
@@ -232,7 +232,7 @@ test_that("a nullable enum sent to an OpenAI-family chat can still be null", {
     design = gr_field("design", "enum", values = c("RCT", "quasi"))))
   prop_json <- function(p) as.character(jsonlite::toJSON(p, auto_unbox = TRUE, null = "null"))
 
-  clo <- gr_ellmer_client(ellmer::chat_openai(model = "gpt-test", credentials = function() "k"))
+  clo <- hr_ellmer_client(ellmer::chat_openai(model = "gpt-test", credentials = function() "k"))
   r <- quiet(harnessr:::gr_call_json(clo, "x", schema = schema, max_output = 200L))
   s <- seen$bodies[[1]]$text$format$schema
   # Strict mode lists every field as required, so null must be among the
@@ -282,17 +282,17 @@ test_that("only providers rendered in OpenAI's strict form get null among enum v
 
 test_that("text-embedding-ada-002 is priced, so its embedding steps have a cost", {
   local_registries()
-  expect_no_warning(info <- gr_model_info("text-embedding-ada-002"))
+  expect_no_warning(info <- hr_model_info("text-embedding-ada-002"))
   expect_true(info$certain)
   expect_identical(info$kind, "embedding")
   expect_identical(as.integer(info$dimensions), 1536L)
-  expect_equal(gr_estimate_cost("text-embedding-ada-002", 1e6), 0.10)
+  expect_equal(hr_estimate_cost("text-embedding-ada-002", 1e6), 0.10)
 
-  tr <- gr_trace()
+  tr <- hr_trace()
   harnessr:::trace_record(tr, "embed.request", list(list(role = "user", content = "x")),
                          gr_result(TRUE, text = "", model = "text-embedding-ada-002",
                                    usage = list(input = 5000L, output = 0L)))
-  cost <- gr_trace_cost(tr)
+  cost <- hr_trace_cost(tr)
   expect_false(anyNA(cost$usd))
   expect_equal(sum(cost$usd), 5000 / 1e6 * 0.10)
 })

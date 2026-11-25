@@ -143,6 +143,6 @@ hash_fallback <- function(s) {
   # `digest` is a hard dependency.
   gr_abort(paste0("The 'digest' package is required for cache-key hashing but is not ",
                   "installed. Install it (install.packages('digest')), or disable ",
-                  "caching with gr_options(cache_documents = FALSE, cache_embeddings = FALSE)."),
+                  "caching with hr_options(cache_documents = FALSE, cache_embeddings = FALSE)."),
            class = "gr_missing_dep")
 }

@@ -2,14 +2,14 @@
 # defects found in review. Each block names the finding it pins.
 
 # ---------------------------------------------------------------------------
-# cache-trace-01: gr_cache_clear() and gr_cache_stats() touch only cache entries
+# cache-trace-01: hr_cache_clear() and hr_cache_stats() touch only cache entries
 # ---------------------------------------------------------------------------
 
-test_that("gr_cache_clear() removes cache entries and leaves every other file alone", {
+test_that("hr_cache_clear() removes cache entries and leaves every other file alone", {
   local_registries()
   dir <- withr::local_tempdir()
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "ok"), gr_cache(dir))
-  invisible(gr_call(cl, "q"))
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "ok"), hr_cache(dir))
+  invisible(hr_call(cl, "q"))
   entry <- list.files(dir, pattern = "\\.rds$", recursive = TRUE)
   expect_length(entry, 1L)
 
@@ -23,11 +23,11 @@ test_that("gr_cache_clear() removes cache entries and leaves every other file al
   saveRDS(5, file.path(dir, "ab", "cd23456789abcdef.rds"))  # a key in the wrong shard
   others <- setdiff(list.files(dir, recursive = TRUE), entry)
 
-  cache <- gr_cache(dir)
-  expect_identical(gr_cache_stats(cache)$entries, 1L)
-  expect_identical(gr_cache_clear(cache), 1L)
+  cache <- hr_cache(dir)
+  expect_identical(hr_cache_stats(cache)$entries, 1L)
+  expect_identical(hr_cache_clear(cache), 1L)
   expect_identical(sort(list.files(dir, recursive = TRUE)), sort(others))
-  expect_identical(gr_cache_stats(cache)$entries, 0L)
+  expect_identical(hr_cache_stats(cache)$entries, 0L)
 })
 
 test_that("a gr_read_many() store kept in the cache directory survives a clear", {
@@ -35,16 +35,16 @@ test_that("a gr_read_many() store kept in the cache directory survives a clear",
   local_clean_cache()
   proj <- withr::local_tempdir()
   saveRDS(data.frame(x = 1:3), file.path(proj, "analysis_results.rds"))
-  cache <- gr_cache(proj)
-  cl <- gr_cache_client(gr_mock_client(function(m, p) "Revenue was 10 million."), cache)
+  cache <- hr_cache(proj)
+  cl <- hr_cache_client(hr_mock_client(function(m, p) "Revenue was 10 million."), cache)
   doc <- "The company reported revenue of 10 million dollars in 2023. Costs were 4 million."
   quiet(gr_read_many(doc, "What was revenue?", "fast", client = cl, store = proj))
   before <- list.files(proj, recursive = TRUE)
   store <- before[!grepl("/", before, fixed = TRUE) & before != "analysis_results.rds"]
   expect_length(store, 1L)
 
-  expect_identical(gr_cache_stats(cache)$entries, 1L)
-  expect_identical(gr_cache_clear(cache), 1L)
+  expect_identical(hr_cache_stats(cache)$entries, 1L)
+  expect_identical(hr_cache_clear(cache), 1L)
   expect_true(all(c("analysis_results.rds", store) %in% list.files(proj, recursive = TRUE)))
 })
 
@@ -62,9 +62,9 @@ test_that("an entry whose result is an environment is a miss, not a result", {
   local_registries()
   dir <- withr::local_tempdir()
   n <- 0L
-  cl <- gr_cache_client(gr_mock_client(function(m, p) { n <<- n + 1L; "fresh answer" }),
-                        gr_cache(dir))
-  invisible(gr_call(cl, "q"))
+  cl <- hr_cache_client(hr_mock_client(function(m, p) { n <<- n + 1L; "fresh answer" }),
+                        hr_cache(dir))
+  invisible(hr_call(cl, "q"))
   f <- cached_entry_file(dir)
 
   # Passes the old checks: a list of format 1 whose result inherits gr_result.
@@ -74,7 +74,7 @@ test_that("an entry whose result is an environment is a miss, not a result", {
   class(env) <- "gr_result"
   saveRDS(list(format = 1L, key = "k", created = Sys.time(), result = env), f)
 
-  res <- gr_call(cl, "q")
+  res <- hr_call(cl, "q")
   expect_identical(n, 2L)                    # the handler answered
   expect_true(is.list(res))
   expect_identical(res$text, "fresh answer")
@@ -85,28 +85,28 @@ test_that("an entry holding a function anywhere inside it is a miss", {
   local_registries()
   dir <- withr::local_tempdir()
   n <- 0L
-  cl <- gr_cache_client(gr_mock_client(function(m, p) { n <<- n + 1L; "fresh answer" }),
-                        gr_cache(dir))
-  invisible(gr_call(cl, "q"))
+  cl <- hr_cache_client(hr_mock_client(function(m, p) { n <<- n + 1L; "fresh answer" }),
+                        hr_cache(dir))
+  invisible(hr_call(cl, "q"))
   f <- cached_entry_file(dir)
   good <- readRDS(f)
 
   bad <- good
   bad$result$usage$input <- function() 1L
   saveRDS(bad, f)
-  expect_false(gr_call(cl, "q")$cached)
+  expect_false(hr_call(cl, "q")$cached)
   expect_identical(n, 2L)
 
   bad <- good
   attr(bad$result, "extra") <- new.env()     # hidden in an attribute
   saveRDS(bad, f)
-  expect_false(gr_call(cl, "q")$cached)
+  expect_false(hr_call(cl, "q")$cached)
   expect_identical(n, 3L)
 
   bad <- good
   bad$result$text <- quote(a + b)            # a language object
   saveRDS(bad, f)
-  expect_false(gr_call(cl, "q")$cached)
+  expect_false(hr_call(cl, "q")$cached)
   expect_identical(n, 4L)
 })
 
@@ -114,10 +114,10 @@ test_that("a valid entry still reads back as a fresh gr_result", {
   local_registries()
   dir <- withr::local_tempdir()
   n <- 0L
-  cl <- gr_cache_client(gr_mock_client(function(m, p) { n <<- n + 1L; "stored answer" }),
-                        gr_cache(dir))
-  first <- gr_call(cl, "q")
-  again <- gr_call(cl, "q")
+  cl <- hr_cache_client(hr_mock_client(function(m, p) { n <<- n + 1L; "stored answer" }),
+                        hr_cache(dir))
+  first <- hr_call(cl, "q")
+  again <- hr_call(cl, "q")
   expect_identical(n, 1L)
   expect_s3_class(again, "gr_result")
   expect_true(again$cached)
@@ -130,7 +130,7 @@ test_that("a valid entry still reads back as a fresh gr_result", {
   e <- readRDS(f)
   e$result$ok <- FALSE
   saveRDS(e, f)
-  expect_false(gr_call(cl, "q")$cached)
+  expect_false(hr_call(cl, "q")$cached)
 })
 
 test_that("is_plain_data() accepts data and refuses code and references", {
@@ -153,10 +153,10 @@ test_that("a run whose backend reports its own model replays", {
   local_registries()
   local_clean_cache()
   # The backend's model has no price, so the run has to allow that.
-  gr_options(allow_unpriced = TRUE)
+  hr_options(allow_unpriced = TRUE)
   doc <- gr_example()
   q <- "What was revenue?"
-  bk <- gr_backend_client(function(messages, params) {
+  bk <- hr_backend_client(function(messages, params) {
     gr_result(TRUE, text = "Revenue was 45.2 million dollars.", model = "provider-model-2026-01")
   })
   ans <- quiet(answer_document(doc, q, "fast", client = bk))
@@ -164,7 +164,7 @@ test_that("a run whose backend reports its own model replays", {
                    function(s) s$model, character(1))
   expect_true(all(models == "provider-model-2026-01"))
 
-  rp <- gr_replay_client(ans$trace)
+  rp <- hr_replay_client(ans$trace)
   again <- quiet(answer_document(doc, q, "fast", client = rp))
   expect_identical(again$answer, ans$answer)
   expect_identical(rp$stats()$misses, 0L)
@@ -176,8 +176,8 @@ test_that("a run whose backend reports its own model replays", {
 
   # And through a file, which is how a run reaches someone else.
   f <- withr::local_tempfile(fileext = ".json")
-  gr_trace_save(ans$trace, f)
-  from_file <- quiet(answer_document(doc, q, "fast", client = gr_replay_client(f)))
+  hr_trace_save(ans$trace, f)
+  from_file <- quiet(answer_document(doc, q, "fast", client = hr_replay_client(f)))
   expect_identical(from_file$answer, ans$answer)
 })
 
@@ -201,13 +201,13 @@ test_that("an ellmer run, the documented example, replays", {
   }
   # As the documented example now does: a spending limit holds only for a
   # model with a registered price, and the chat bills as this one.
-  gr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 8000,
+  hr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 8000,
                     input_usd = 3, output_usd = 15)
   doc <- gr_example()
   q <- "What was revenue?"
   for (recipe in c("fast", "thorough")) {
-    ans <- quiet(answer_document(doc, q, recipe, client = gr_ellmer_client(make_chat())))
-    rp <- gr_replay_client(ans$trace)
+    ans <- quiet(answer_document(doc, q, recipe, client = hr_ellmer_client(make_chat())))
+    rp <- hr_replay_client(ans$trace)
     again <- expect_no_error(quiet(answer_document(doc, q, recipe, client = rp)))
     expect_identical(again$answer, ans$answer)
     expect_identical(rp$stats()$misses, 0L)
@@ -217,11 +217,11 @@ test_that("an ellmer run, the documented example, replays", {
 test_that("a trace without params is still keyed on the model it recorded", {
   local_registries()
   local_clean_cache()
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
   ans <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = cl))
   parsed <- jsonlite::fromJSON(as.character(as_json(ans$trace)), simplifyVector = FALSE)
   parsed$steps <- lapply(parsed$steps, function(s) { s$params <- NULL; s })
-  rp <- gr_replay_client(parsed)
+  rp <- hr_replay_client(parsed)
   again <- quiet(answer_document(gr_example(), "What was revenue?", "fast", client = rp))
   expect_identical(again$answer, ans$answer)
   expect_identical(rp$stats()$misses, 0L)
@@ -280,7 +280,7 @@ test_that("rerank on a Russian document scores the chunk that holds the answer",
   expect_true(any(grepl(key, ch$chunks$text, fixed = TRUE)))
 
   scored <- character(0)
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("Rate how useful", messages[[1]]$content, fixed = TRUE)) {
       ex <- messages[[3]]$content
       scored <<- c(scored, ex)
@@ -295,7 +295,7 @@ test_that("rerank on a Russian document scores the chunk that holds the answer",
   expect_true(any(grepl(key, scored, fixed = TRUE)))
   expect_identical(r$answer, "ANSWER: seven billion")
 
-  gr_options(embedder = "lexical")           # restored by local_registries()
+  hr_options(embedder = "lexical")           # restored by local_registries()
   r2 <- quiet(gr_read(ch, q, cl, gr_read_spec("retrieve", top_k = 2)))
   expect_identical(r2$answer, "ANSWER: seven billion")
 })
@@ -326,30 +326,30 @@ fake_embeddings_endpoint <- function(env = parent.frame()) {
 }
 
 priced_embedding_client <- function() {
-  gr_register_model("priced-embed", context_window = 8191L, max_output = 0L,
+  hr_register_model("priced-embed", context_window = 8191L, max_output = 0L,
                     input_usd = 1, kind = "embedding", dimensions = 3L)
-  gr_client(api_key = "sk-test", base_url = "https://embed.invalid/v1",
+  hr_client(api_key = "sk-test", base_url = "https://embed.invalid/v1",
             embedding_model = "priced-embed")
 }
 
 test_that("each embeddings request is recorded in the trace and priced", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE)
+  hr_options(cache_embeddings = FALSE)
   seen <- fake_embeddings_endpoint()
   cl <- priced_embedding_client()
-  tr <- gr_trace()
-  e <- gr_embed(cl, c("one", "two", "three"), batch_size = 2L, trace = tr)
+  tr <- hr_trace()
+  e <- hr_embed(cl, c("one", "two", "three"), batch_size = 2L, trace = tr)
   expect_identical(attr(e, "embedding_source"), "api")
   expect_identical(seen$n, 2L)
   expect_identical(tr$calls, 2L)
   # Counted apart from the model calls' prompts (review3 cache-4), so
-  # gr_estimate_cost(model, tokens_in, tokens_out) does not price them at a
+  # hr_estimate_cost(model, tokens_in, tokens_out) does not price them at a
   # chat model's rate.
   expect_identical(tr$tokens_in, 0L)
   expect_identical(tr$embed_tokens, 300L)
   expect_equal(tr$spent_usd, 300 / 1e6)
-  cost <- gr_trace_cost(tr)
+  cost <- hr_trace_cost(tr)
   expect_identical(cost$model, "priced-embed")
   expect_identical(cost$paid_calls, 2L)
   expect_identical(cost$paid_in, 300L)
@@ -362,11 +362,11 @@ test_that("each embeddings request is recorded in the trace and priced", {
 test_that("max_calls = 0 sends no embeddings request, and says so", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE, max_calls = 0)
+  hr_options(cache_embeddings = FALSE, max_calls = 0)
   seen <- fake_embeddings_endpoint()
   cl <- priced_embedding_client()
-  tr <- gr_trace()
-  expect_warning(e <- gr_embed(cl, c("one", "two"), trace = tr),
+  tr <- hr_trace()
+  expect_warning(e <- hr_embed(cl, c("one", "two"), trace = tr),
                  class = "gr_embed_fallback", regexp = "call cap")
   expect_identical(seen$n, 0L)
   expect_identical(attr(e, "embedding_source"), "lexical")
@@ -376,7 +376,7 @@ test_that("max_calls = 0 sends no embeddings request, and says so", {
   expect_identical(tr$calls, 0L)
 
   # With fallback = "error" the refusal stops the caller instead.
-  expect_error(gr_embed(cl, c("one", "two"), trace = gr_trace(), fallback = "error"),
+  expect_error(hr_embed(cl, c("one", "two"), trace = hr_trace(), fallback = "error"),
                class = "gr_embed_error")
   expect_identical(seen$n, 0L)
 })
@@ -384,13 +384,13 @@ test_that("max_calls = 0 sends no embeddings request, and says so", {
 test_that("the spending limit stops embeddings requests once it is reached", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = FALSE, max_cost_usd = 0.0001)
+  hr_options(cache_embeddings = FALSE, max_cost_usd = 0.0001)
   seen <- fake_embeddings_endpoint()
   cl <- priced_embedding_client()
-  tr <- gr_trace()
+  tr <- hr_trace()
   # Each request of two texts costs $0.0002, so the first reaches the limit
   # and the second is never sent.
-  expect_warning(gr_embed(cl, c("a", "b", "c", "d"), batch_size = 2L, trace = tr),
+  expect_warning(hr_embed(cl, c("a", "b", "c", "d"), batch_size = 2L, trace = tr),
                  class = "gr_embed_fallback", regexp = "spending limit")
   expect_identical(seen$n, 1L)
   expect_identical(tr$calls, 1L)
@@ -401,13 +401,13 @@ test_that("the spending limit stops embeddings requests once it is reached", {
 test_that("embeddings served from the session cache are free", {
   local_registries()
   local_clean_cache()
-  gr_options(cache_embeddings = TRUE)
+  hr_options(cache_embeddings = TRUE)
   seen <- fake_embeddings_endpoint()
   cl <- priced_embedding_client()
-  tr1 <- gr_trace()
-  invisible(gr_embed(cl, c("one", "two"), trace = tr1))
-  tr2 <- gr_trace()
-  invisible(gr_embed(cl, c("one", "two"), trace = tr2))
+  tr1 <- hr_trace()
+  invisible(hr_embed(cl, c("one", "two"), trace = tr1))
+  tr2 <- hr_trace()
+  invisible(hr_embed(cl, c("one", "two"), trace = tr2))
   expect_identical(seen$n, 1L)
   expect_identical(tr1$calls, 1L)
   expect_identical(tr2$calls, 0L)
@@ -438,7 +438,7 @@ test_that("an extraction's answer text carries the values the table holds", {
   fields <- gr_fields(p = gr_field("P value", type = "number"),
                       effect = gr_field("Effect size", type = "number"),
                       n = gr_field("Participants", type = "integer"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     paste0('{"p":0.00003,"p__quote":"p = 0.00003","effect":0.84321,',
            '"effect__quote":"d = 0.84321","n":120,"n__quote":"120 participants"}')
   })

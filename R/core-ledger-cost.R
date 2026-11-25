@@ -3,10 +3,10 @@
 #' What a run actually cost
 #'
 #' Costs a trace using each step's own model and counting only the calls that
-#' were issued: a call served from a [gr_cache()] or a
-#' [gr_replay_client()] spent nothing, however many tokens its prompt contained.
+#' were issued: a call served from an [hr_cache()] or a
+#' [hr_replay_client()] spent nothing, however many tokens its prompt contained.
 #'
-#' This is why the token totals on [gr_trace_summary()] are not a bill. They
+#' This is why the token totals on [hr_trace_summary()] are not a bill. They
 #' report how large the prompts and replies were, which is the right measure of
 #' a run's *shape*; a fully cached re-run has the same shape as the original and
 #' cost nothing at all.
@@ -17,29 +17,29 @@
 #'   `sum(x$usd)` is the run's cost. `paid_reasoning` and `paid_cached_in` are
 #'   the reasoning and cached input tokens the provider reported among
 #'   `paid_out` and `paid_in`; cached input is priced at the model's cached
-#'   input rate where [gr_register_model()] gave it one. A model with
+#'   input rate where [hr_register_model()] gave it one. A model with
 #'   no registered price contributes `NA`, so a total that silently omitted an
 #'   unpriced model is impossible. The exception is a model whose every request
 #'   failed without sending a token (an embeddings request to an endpoint that
 #'   has none, say): that cost nothing, priced or not, so it contributes 0.
-#' @seealso [gr_trace_summary()], [gr_estimate_cost()], [gr_cache()],
+#' @seealso [hr_trace_summary()], [hr_estimate_cost()], [hr_cache()],
 #'   [gr_read_many()]
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+#' cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 #' ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
-#' gr_trace_cost(ans$trace)
+#' hr_trace_cost(ans$trace)
 #'
 #' # Priced by the model each step records: a mock's own model, at no cost.
 #' # A cached re-run costs nothing for a different reason: paid_calls falls
 #' # to zero while calls does not.
-#' cache <- gr_cache(file.path(tempdir(), "harnessr-cost-example"))
+#' cache <- hr_cache(file.path(tempdir(), "harnessr-cost-example"))
 #' again <- answer_document(gr_example(), "What was revenue?", "fast",
-#'                          client = gr_cache_client(cl, cache))
+#'                          client = hr_cache_client(cl, cache))
 #' twice <- answer_document(gr_example(), "What was revenue?", "fast",
-#'                          client = gr_cache_client(cl, cache))
-#' gr_trace_cost(twice$trace)[c("calls", "paid_calls", "usd")]
-gr_trace_cost <- function(trace) {
+#'                          client = hr_cache_client(cl, cache))
+#' hr_trace_cost(twice$trace)[c("calls", "paid_calls", "usd")]
+hr_trace_cost <- function(trace) {
   stopifnot(inherits(trace, "gr_trace"))
   steps <- Filter(function(s) !identical(s$kind, "local") && !is.null(s$tokens), trace$steps)
   if (!length(steps)) {
@@ -77,7 +77,7 @@ gr_trace_cost <- function(trace) {
       # Priced over the rest, cached requests included, so a cached request of
       # a model with no price is still NA. Nothing left, nothing to price.
       usd = if (!any(i & !free)) 0
-            else tryCatch(as.numeric(gr_estimate_cost(m, pin, pout,
+            else tryCatch(as.numeric(hr_estimate_cost(m, pin, pout,
                                                       cached_input_tokens = pcach)),
                           error = function(e) NA_real_,
                           warning = function(w) NA_real_),
@@ -93,7 +93,7 @@ gr_trace_cost <- function(trace) {
 #' makes the total unknown, never zero.
 #' @noRd
 format_trace_cost <- function(trace) {
-  cost <- gr_trace_cost(trace)
+  cost <- hr_trace_cost(trace)
   if (!nrow(cost)) return("no cost recorded")
   total <- sum(cost$usd)
   if (is.na(total)) {

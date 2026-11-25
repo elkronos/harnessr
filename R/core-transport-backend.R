@@ -5,11 +5,11 @@
 #' Wraps an arbitrary R function as a client. `handler` receives
 #' `(messages, params)` and returns a string or a [gr_result]; everything else
 #' the package does (context budgeting, cost and call caps, provenance, the
-#' run trace, [gr_cache()], [gr_replay_client()], [gr_compare()]) works
+#' run trace, [hr_cache()], [hr_replay_client()], [gr_compare()]) works
 #' exactly as it does for the built-in HTTP client.
 #'
 #' Use it to reach a provider this package does not speak to, a company proxy, a
-#' local model, or another R package's client. [gr_ellmer_client()] is this
+#' local model, or another R package's client. [hr_ellmer_client()] is this
 #' function with an `ellmer` chat object plugged in.
 #'
 #' @param handler Function of `(messages, params)`. `messages` is a list of
@@ -23,10 +23,10 @@
 #'   matrix with one row per input. Without it, readers that embed
 #'   (`retrieve`, and the `semantic` segmenter) fall back to hashed lexical
 #'   vectors and warn.
-#' @param id Stable identity for this backend, used by [gr_cache()] and by
+#' @param id Stable identity for this backend, used by [hr_cache()] and by
 #'   [gr_read_many()]'s `store`. **Read this before setting up a durable cache.**
 #'
-#'   For [gr_client()] a cache key can be built from the API shape, base URL and
+#'   For [hr_client()] a cache key can be built from the API shape, base URL and
 #'   model, because those completely describe what will answer: two clients with
 #'   the same three give the same answers today and next month, which is what
 #'   makes a cache safe to keep on disk. A backend has none of that (every one
@@ -43,13 +43,13 @@
 #'   differ in what they captured.
 #' @param model,embedding_model Model ids reported to the rest of the package.
 #'   If `model` is not in the model registry you will get the usual unknown-model
-#'   warning and a conservative context window; [gr_register_model()] fixes that,
+#'   warning and a conservative context window; [hr_register_model()] fixes that,
 #'   and getting it right matters because it is what sizes your chunks.
 #' @param max_retries,timeout Recorded on the client for completeness. Retrying
 #'   is the backend's business: this package does not retry a handler, because
 #'   it cannot know whether the failure was transient.
 #' @return An object of class `gr_backend_client`, usable anywhere a
-#'   [gr_client()] is, with `$calls()` recording every request made through it.
+#'   [hr_client()] is, with `$calls()` recording every request made through it.
 #'
 #' @section Failure is data, not an exception:
 #' A handler that raises is caught and reported as a failed [gr_result], the
@@ -57,24 +57,24 @@
 #' returns `""` is treated as an empty completion, which this package reports as
 #' `ok = FALSE` rather than passing `""` downstream as evidence.
 #'
-#' @seealso [gr_ellmer_client()], [gr_client()], [gr_mock_client()],
-#'   [gr_register_model()], [gr_cache_client()]
+#' @seealso [hr_ellmer_client()], [hr_client()], [hr_mock_client()],
+#'   [hr_register_model()], [hr_cache_client()]
 #' @export
 #' @examples
 #' # Any function will do. This one is deterministic so the example is too.
-#' cl <- gr_backend_client(function(messages, params) {
+#' cl <- hr_backend_client(function(messages, params) {
 #'   user <- Filter(function(m) m$role == "user", messages)
 #'   sprintf("I was asked %d thing(s) with a %d-token cap.",
 #'           length(user), params$max_output)
 #' }, model = "my-backend")
 #'
-#' gr_call(cl, "What was revenue?", max_output = 128L)$text
+#' hr_call(cl, "What was revenue?", max_output = 128L)$text
 #'
 #' # It composes with everything else: caching, tracing, cost accounting.
-#' tr <- gr_trace()
-#' invisible(gr_call(cl, "again", trace = tr))
-#' gr_trace_summary(tr)[c("calls", "tokens_in", "tokens_out")]
-gr_backend_client <- function(handler, embed = NULL, model = "backend-model",
+#' tr <- hr_trace()
+#' invisible(hr_call(cl, "again", trace = tr))
+#' hr_trace_summary(tr)[c("calls", "tokens_in", "tokens_out")]
+hr_backend_client <- function(handler, embed = NULL, model = "backend-model",
                               embedding_model = "backend-embed", id = NULL,
                               max_retries = 0L, timeout = NULL) {
   if (!is.function(handler)) {
@@ -92,7 +92,7 @@ gr_backend_client <- function(handler, embed = NULL, model = "backend-model",
     embedding_model = as_chr1(embedding_model, "backend-embed"),
     max_retries = as.integer(clamp(max_retries, 0, 10)),
     retry_pause_base = 0,
-    timeout = clamp(timeout %||% gr_options("request_timeout"), 1, 3600),
+    timeout = clamp(timeout %||% hr_options("request_timeout"), 1, 3600),
     extra_body = list(),
     # The identity the cache and corpus-store keys depend on. See `id` above.
     #

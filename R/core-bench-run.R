@@ -21,8 +21,8 @@
 #' run makes through `ctx$call()`, `ctx$call_json()` or a stage called with
 #' `trace = ctx$trace` ([gr_read()], [gr_segment()], [answer_document()],
 #' [hr_judge()] and the like) is sent at the run's draw, and each run is its own
-#' entry in a [gr_cache()] and its own recorded draw in a
-#' [gr_replay_client()]. Each request a run makes with a draw index is
+#' entry in an [hr_cache()] and its own recorded draw in a
+#' [hr_replay_client()]. Each request a run makes with a draw index is
 #' recorded under the arm's name as well, so a replay of a benchmark answers
 #' each arm with the replies that arm got, even when two arms sent the same
 #' request, and whether all the arms are replayed or some, in any order. An arm whose runs are not distinct draws is refused
@@ -33,7 +33,7 @@
 #' earlier run, or when a recording served a reply without its own draw key
 #' (a repeat after the recording ran out of draws, or a recording made
 #' without per-draw keys). Every request a run makes should therefore carry
-#' the run's draw index. A [gr_mock_client()] keeps no cache, so under it an arm that
+#' the run's draw index. An [hr_mock_client()] keeps no cache, so under it an arm that
 #' leaves the index out is not refused; under a cache it would be.
 #'
 #' Every request is checked against `governor` before it is sent, for the
@@ -44,7 +44,7 @@
 #' (or `NA` on an item with no label, as below).
 #' The runs after it are still started, so every row exists and the refusals
 #' are visible; their requests are refused before anything is sent. With `governor = NULL` the limits are
-#' read from [gr_options()] when the benchmark starts and apply to the whole
+#' read from [hr_options()] when the benchmark starts and apply to the whole
 #' benchmark, as they apply to one run of a reader. Those defaults are set
 #' for one run (400 calls), and a benchmark of two arms on 300 items for 5
 #' runs needs several thousand, so pass a governor sized for the benchmark.
@@ -52,7 +52,7 @@
 #' `hr_budget_stopped`) with the number of runs stopped, the limits that
 #' stopped them, how many of them count against an arm (runs on the dev
 #' split or on items with no label do not) and the first run stopped. With
-#' `governor = NULL` it also gives the [gr_options()] values behind those
+#' `governor = NULL` it also gives the [hr_options()] values behind those
 #' limits.
 #'
 #' A reader's pre-flight check that finds the run's limits leave too little
@@ -94,7 +94,7 @@
 #' @param scorer An [hr_scorer()]; [hr_scorer_exact()] by default.
 #' @param split The split or splits of the reference to run on.
 #' @param governor An [hr_governor()] the whole benchmark is held to, or
-#'   `NULL` to take the limits from [gr_options()].
+#'   `NULL` to take the limits from [hr_options()].
 #' @param seed The seed of the arms' private random stream.
 #' @param x An `hr_bench`.
 #' @param ... Ignored.
@@ -113,7 +113,7 @@
 #'     run's prompt and reply tokens over its model calls, and the reasoning
 #'     and cached input tokens among them that the provider reported.}
 #'   \item{`usd`}{What the run cost, every request priced at its own model,
-#'     embeddings included, as [gr_trace_cost()] prices it: 0 for requests a
+#'     embeddings included, as [hr_trace_cost()] prices it: 0 for requests a
 #'     cache or a recording answered, `NA` when a model has no price.}
 #'   \item{`usd_provenance`}{Where the token counts the cost rests on came
 #'     from, over the requests that were paid for: `"reported"` when the
@@ -160,7 +160,7 @@
 #'   labels = c("Paris", "Lima", "N'Djamena", "Suva"),
 #'   cluster = c("a", "a", "b", "b"), split = "test")
 #' capitals <- c(France = "Paris", Peru = "Lima", Chad = "Ndjamena", Fiji = "Suva")
-#' cl <- gr_mock_client(function(messages, params) {
+#' cl <- hr_mock_client(function(messages, params) {
 #'   country <- sub("Capital of ", "", messages[[1]]$content)
 #'   capitals[[country]]
 #' })
@@ -180,7 +180,7 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
   runs <- as.integer(runs)
   if (missing(client)) client <- NULL
   if (!is.null(client) && !inherits(client, "gr_client")) {
-    gr_abort("`client` must come from gr_client(), gr_mock_client() or the like, or be NULL.",
+    gr_abort("`client` must come from hr_client(), hr_mock_client() or the like, or be NULL.",
              class = "gr_bad_setting")
   }
   if (!inherits(scorer, "hr_scorer")) {
@@ -215,7 +215,7 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
   clusters <- unique(reference$cluster[sel])
   sel <- sel[order(match(reference$cluster[sel], clusters), sel)]
 
-  parent <- gr_trace(governor = governor, meta = list(
+  parent <- hr_trace(governor = governor, meta = list(
     benchmark = list(reference = reference$hash, arms = names(arms), runs = runs,
                      split = split, scorer = scorer$name, seed = seed)))
   reference_lock(reference, parent$run_id)
@@ -239,7 +239,7 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
         seen <- list()
         for (r in seq_len(runs)) {
           k <- k + 1L
-          child <- gr_trace(run_id = sprintf("%s:%d", parent$run_id, k),
+          child <- hr_trace(run_id = sprintf("%s:%d", parent$run_id, k),
                             meta = list(recipe = arm$name, item = id,
                                         cluster = reference$cluster[[i]], run = r),
                             governor = bench_governor(parent))
@@ -302,7 +302,7 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
               arm$name, where, dup), class = "hr_duplicate_draw")
           }
           seen[[length(seen) + 1L]] <- sig
-          cost <- gr_trace_cost(child)
+          cost <- hr_trace_cost(child)
           col$cluster[k] <- reference$cluster[[i]]
           col$item[k] <- id
           col$arm[k] <- arm$name
@@ -359,7 +359,7 @@ preflight_limit <- function(trace) {
 #' Warn when the benchmark's limits stopped runs. The warning names how many
 #' runs stopped, which limits stopped them, how many of them count against
 #' an arm (not those on the dev split or on items with no label), and the
-#' first run that stopped. When the limits came from gr_options(), it gives
+#' first run that stopped. When the limits came from hr_options(), it gives
 #' the values of the options behind the limits that stopped runs, and, when
 #' one of them is a limit on the whole run, how to set it for the benchmark.
 #' @noRd
@@ -394,7 +394,7 @@ warn_budget_stops <- function(rows, stop_limit, governor, from_options) {
       } else paste(as.character(v), collapse = ", ")
       sprintf("%s %s", o, v)
     }, character(1))
-    msg <- paste0(msg, sprintf(" The limits came from gr_options() (%s).",
+    msg <- paste0(msg, sprintf(" The limits came from hr_options() (%s).",
                                paste(shown, collapse = "; ")))
     if (any(named %in% c("max_calls", "max_cost_usd", "max_tokens_total"))) {
       msg <- paste0(msg, paste0(" Its call, spending and token limits are set for one run of ",
@@ -425,7 +425,7 @@ bench_ctx <- function(client, trace, run, item_id, arm) {
   list(client = client, trace = trace, governor = trace$governor, draw_index = run,
        item_id = item_id, arm = arm$name, run = run, params = arm$params,
        call = function(messages, ...) {
-         gr_call(client, messages, ..., trace = trace, draw_index = run)
+         hr_call(client, messages, ..., trace = trace, draw_index = run)
        },
        call_json = function(messages, schema, ...) {
          bench_call_json(client, messages, schema, ..., trace = trace, draw_index = run)

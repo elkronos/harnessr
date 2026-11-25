@@ -33,7 +33,7 @@ r4_excerpt <- function(body) sub("(?s).*<excerpt>\\n(.*)\\n</excerpt>.*", "\\1",
 # Fails the context call for the excerpt about adverse events, and the
 # proposition call for the batch holding paragraph 3; answers everything else.
 r4_client <- function() {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     body <- messages[[length(messages)]]$content
     if (grepl("You situate an excerpt", sys, fixed = TRUE)) {
@@ -65,7 +65,7 @@ r4_proposition <- function() {
 test_that("a failed context call that keeps its chunk is a recovered failure", {
   local_clean_cache()
   doc <- quiet(gr_ingest(paste(r4_trial_text(), collapse = "\n")))
-  tr <- gr_trace()
+  tr <- hr_trace()
   ch <- quiet(gr_segment(doc, r4_contextual(), client = r4_client(), trace = tr))
   # The chunk whose call failed is kept, whole, without a header.
   bare <- grepl("Adverse events", ch$chunks$text, fixed = TRUE)
@@ -85,7 +85,7 @@ test_that("a failed context call that keeps its chunk is a recovered failure", {
 test_that("a proposition batch kept as written is a recovered failure", {
   local_clean_cache()
   doc <- quiet(gr_ingest(paste(r4_long_text(), collapse = "\n\n")))
-  tr <- gr_trace()
+  tr <- hr_trace()
   ch <- quiet(gr_segment(doc, r4_proposition(), client = r4_client(), trace = tr))
   expect_identical(ch$extra$batches_kept_as_written, 1L)
   expect_true(any(grepl("Paragraph 3 ", ch$chunks$text, fixed = TRUE)))
@@ -97,8 +97,8 @@ test_that("a proposition batch kept as written is a recovered failure", {
 test_that("every proposition batch failing, with the sentence fallback, is recovered", {
   local_clean_cache()
   doc <- quiet(gr_ingest(paste(r4_long_text(), collapse = "\n\n")))
-  cl <- gr_mock_client(function(messages, params) stop("HTTP 503 service unavailable"))
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(messages, params) stop("HTTP 503 service unavailable"))
+  tr <- hr_trace()
   ch <- quiet(gr_segment(doc, r4_proposition(), client = cl, trace = tr))
   expect_identical(ch$method, "proposition->sentence")
   e <- r4_errors(tr)
@@ -111,10 +111,10 @@ test_that("a segmenter marks only its own failures, not ones already in the trac
   local_clean_cache()
   doc <- quiet(gr_ingest(paste(r4_trial_text(), collapse = "\n")))
   cl <- r4_client()
-  tr <- gr_trace()
+  tr <- hr_trace()
   # An earlier failure in the same trace, of the same kind: not this run's.
-  earlier <- gr_mock_client(function(messages, params) stop("HTTP 500"))
-  invisible(gr_call(earlier, list(list(role = "system", content = "You situate an excerpt"),
+  earlier <- hr_mock_client(function(messages, params) stop("HTTP 500"))
+  invisible(hr_call(earlier, list(list(role = "system", content = "You situate an excerpt"),
                                   list(role = "user", content = "x")),
                     trace = tr, label = "segment.context"))
   ch <- quiet(gr_segment(doc, r4_contextual(), client = cl, trace = tr))
@@ -128,12 +128,12 @@ test_that("recovered steps are found by label when a batch's errors come from wo
   # A parallel batch's errors are absorbed from each worker's own trace, which
   # numbers its steps from 1, so an error's `step` does not locate the step in
   # the run's trace. What is marked is the failed step the batch added.
-  tr <- gr_trace()
+  tr <- hr_trace()
   harnessr:::trace_note(tr, "ingest")
   mark <- harnessr:::seg_trace_mark(tr)
-  sub <- gr_trace()
-  cl <- gr_mock_client(function(messages, params) stop("HTTP 503"))
-  invisible(gr_call(cl, list(list(role = "user", content = "x")), trace = sub,
+  sub <- hr_trace()
+  cl <- hr_mock_client(function(messages, params) stop("HTTP 503"))
+  invisible(hr_call(cl, list(list(role = "user", content = "x")), trace = sub,
                     label = "segment.context"))
   harnessr:::trace_absorb(tr, sub)
   harnessr:::seg_mark_recovered(tr, mark, "segment.context")
@@ -148,9 +148,9 @@ test_that("a parallel contextual segmentation marks its failed call recovered", 
   skip_if_not_installed("future.apply")
   local_registries()
   local_clean_cache()
-  gr_options(workers = 2)
+  hr_options(workers = 2)
   doc <- quiet(gr_ingest(paste(r4_trial_text(), collapse = "\n")))
-  tr <- gr_trace()
+  tr <- hr_trace()
   harnessr:::trace_note(tr, "before")
   ch <- quiet(gr_segment(doc, r4_contextual(parallel = TRUE), client = r4_client(), trace = tr))
   e <- r4_errors(tr)
@@ -211,7 +211,7 @@ test_that("a request that failed in the read still fails the document", {
   local_clean_cache()
   d <- withr::local_tempdir()
   writeLines(r4_trial_text(), file.path(d, "a.txt"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("You situate an excerpt", messages[[1]]$content, fixed = TRUE)) {
       return("This excerpt is part of the trial report.")
     }
@@ -230,7 +230,7 @@ test_that("gr_extract() names no failure for a context call that was recovered",
   d <- withr::local_tempdir()
   writeLines(r4_trial_text(), file.path(d, "a.txt"))
   f <- gr_fields(n = gr_field("Number of participants", type = "integer"))
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("You situate an excerpt", messages[[1]]$content, fixed = TRUE)) {
       if (grepl("Adverse events", r4_excerpt(messages[[2]]$content), fixed = TRUE)) {
         stop("HTTP 503 service unavailable")

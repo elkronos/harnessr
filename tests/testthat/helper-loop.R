@@ -45,7 +45,7 @@ loop_reference <- function(tasks, work) {
 # same replies.
 loop_client <- function() {
   dir <- loop_dir()
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     text <- messages[[length(messages)]]$content
     task <- sub("^Task: ([A-Za-z_]+).*$", "\\1", strsplit(text, "\n", fixed = TRUE)[[1]][1])
     file <- if (grepl("failed its tests", text, fixed = TRUE)) "fix.R" else "draft.R"
@@ -138,7 +138,7 @@ loop_rules <- function() {
 # shortcut, as hr_benchmark() gives an arm.
 loop_ctx <- function(client) {
   list(client = client, item_id = NA_character_,
-       call = function(messages, ...) gr_call(client, messages, ...))
+       call = function(messages, ...) hr_call(client, messages, ...))
 }
 
 # Every message text the stand-in model was sent.

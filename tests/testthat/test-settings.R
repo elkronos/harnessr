@@ -8,8 +8,8 @@
 ns <- asNamespace("harnessr")
 # Every option as it was when the test started, put back when it ends.
 local_options <- function(env = parent.frame()) {
-  old <- gr_options()
-  withr::defer(gr_options(old), envir = env)
+  old <- hr_options()
+  withr::defer(hr_options(old), envir = env)
 }
 spec_schemas <- function() {
   list(read = ns$.gr_read_schema, segment = ns$.gr_segment_schema,
@@ -89,28 +89,28 @@ test_that("a default spec carries none of the settings declared later", {
 
 test_that("the new options leave keys and the trace's options alone at their defaults", {
   local_options()
-  cl <- gr_mock_client(function(m, p) "x")
+  cl <- hr_mock_client(function(m, p) "x")
   key <- function() ns$cache_key(cl, list(list(role = "user", content = "q")), "m", 100L,
                                  NULL, NULL, NULL, NULL)
   base <- key()
   snap <- ns$config_snapshot()$options
   expect_false(any(ns$.gr_late_options %in% names(snap)))
-  gr_options(reasoning_floor = 512)
+  hr_options(reasoning_floor = 512)
   expect_false(identical(key(), base))
   expect_identical(ns$config_snapshot()$options$reasoning_floor, 512)
-  gr_options(reasoning_floor = 2048)
+  hr_options(reasoning_floor = 2048)
   expect_identical(key(), base)
   expect_false("reasoning_floor" %in% names(ns$config_snapshot()$options))
 })
 
 test_that("a non-default option moves the corpus store key, and the default does not", {
   local_options()
-  cl <- gr_mock_client(function(m, p) "x")
+  cl <- hr_mock_client(function(m, p) "x")
   rec <- ns$as_recipe("fast")
   k0 <- ns$corpus_key("some text", "Q?", rec, cl)
-  gr_options(near_verbatim_sim = 0.8)
+  hr_options(near_verbatim_sim = 0.8)
   k1 <- ns$corpus_key("some text", "Q?", rec, cl)
-  gr_options(near_verbatim_sim = 0.9)
+  hr_options(near_verbatim_sim = 0.9)
   expect_false(identical(k0, k1))
   expect_identical(ns$corpus_key("some text", "Q?", rec, cl), k0)
 })
@@ -121,11 +121,11 @@ test_that("auto_max_tokens and auto_room_share move the auto recipe's choice", {
   local_options()
   fast <- list(read = list(max_answer_tokens = 1500L, model = "gpt-5.6-terra"))
   expect_identical(ns$pick_auto_recipe(1000, fast), "fast")
-  gr_options(auto_max_tokens = 500)
+  hr_options(auto_max_tokens = 500)
   expect_identical(ns$pick_auto_recipe(1000, fast), "thorough")
-  gr_options(auto_max_tokens = 50000)
+  hr_options(auto_max_tokens = 50000)
   expect_identical(ns$pick_auto_recipe(40000, fast), "fast")
-  gr_options(auto_room_share = 0.01)
+  hr_options(auto_room_share = 0.01)
   expect_identical(ns$pick_auto_recipe(40000, fast), "thorough")
 })
 
@@ -133,23 +133,23 @@ test_that("reasoning_floor sets the least cap a reasoning model is sent", {
   local_options()
   info <- list(reasoning = TRUE, max_output = 100000, context_window = 400000)
   expect_identical(ns$reasoning_output_cap(100L, info, 0), 2048L)
-  gr_options(reasoning_floor = 512)
+  hr_options(reasoning_floor = 512)
   expect_identical(ns$reasoning_output_cap(100L, info, 0), 512L)
-  gr_options(reasoning_floor = 0)
+  hr_options(reasoning_floor = 0)
   expect_identical(ns$reasoning_output_cap(100L, info, 0), 100L)
-  expect_warning(gr_options(reasoning_floor = -1), class = "gr_bad_option")
-  expect_identical(gr_options("reasoning_floor"), 0)
+  expect_warning(hr_options(reasoning_floor = -1), class = "gr_bad_option")
+  expect_identical(hr_options("reasoning_floor"), 0)
 })
 
-test_that("output_reserve_share sets the reply room gr_budget() reserves", {
+test_that("output_reserve_share sets the reply room hr_budget() reserves", {
   local_options()
-  def <- gr_budget("gpt-5.6-terra")
-  gr_options(output_reserve_share = 0.05)
-  small <- gr_budget("gpt-5.6-terra")
+  def <- hr_budget("gpt-5.6-terra")
+  hr_options(output_reserve_share = 0.05)
+  small <- hr_budget("gpt-5.6-terra")
   expect_lt(small$output, def$output)
   expect_gt(small$input, def$input)
   # An explicit reserve is not touched.
-  expect_identical(gr_budget("gpt-5.6-terra", reserve_output = 1000)$output, 1000L)
+  expect_identical(hr_budget("gpt-5.6-terra", reserve_output = 1000)$output, 1000L)
 })
 
 test_that("the near-verbatim thresholds decide the shadow matcher's status", {
@@ -157,13 +157,13 @@ test_that("the near-verbatim thresholds decide the shadow matcher's status", {
   src <- "The company reported total revenue of 45.2 million dollars in the fiscal year 2024."
   q <- "The firm reported total revenue of 45.2 million dollars in the fiscal year 2024."
   expect_identical(ns$match_span(q, src)$status, "near_verbatim")
-  gr_options(near_verbatim_sim = 0.99)
+  hr_options(near_verbatim_sim = 0.99)
   expect_identical(ns$match_span(q, src)$status, "unverified")
   # The short-passage floor applies once the passage counts as short.
-  gr_options(near_verbatim_sim = 0.9, near_verbatim_sim_short = 0.99,
+  hr_options(near_verbatim_sim = 0.9, near_verbatim_sim_short = 0.99,
              near_verbatim_short_chars = 1000)
   expect_identical(ns$match_span(q, src)$status, "unverified")
-  gr_options(near_verbatim_sim_short = 0.95, near_verbatim_short_chars = 40)
+  hr_options(near_verbatim_sim_short = 0.95, near_verbatim_short_chars = 40)
   expect_identical(ns$match_span(q, src)$status, "near_verbatim")
 })
 
@@ -191,7 +191,7 @@ test_that("accept_near_verbatim without verify is refused, naming verify", {
                class = "gr_bad_setting")
   # Given as an override of a recipe that does not verify, it is refused too.
   expect_error(quiet(answer_document(gr_example(), "q?", "fast",
-                                     client = gr_mock_client(function(m, p) "x"),
+                                     client = hr_mock_client(function(m, p) "x"),
                                      accept_near_verbatim = TRUE)),
                "`verify = TRUE`", class = "gr_bad_setting")
   expect_true(gr_read_spec("iterative", verify = TRUE,
@@ -203,7 +203,7 @@ test_that("accept_near_verbatim without verify is refused, naming verify", {
 
 test_that("with accept_near_verbatim the iterative reader answers, marked partial", {
   ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 80)))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (!grepl("reading iteratively", m[[1]]$content, fixed = TRUE)) return("x")
     as.character(jsonlite::toJSON(list(
       can_answer = TRUE, answer = "Revenue was 45.2 million.", next_query = "",
@@ -227,14 +227,14 @@ test_that("with accept_near_verbatim the iterative reader answers, marked partia
 
 test_that("max_merge_levels caps how deep a merge goes", {
   local_registries()
-  gr_register_model("merge-ctx", context_window = 1200L, max_output = 200L,
+  hr_register_model("merge-ctx", context_window = 1200L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
-  cl <- gr_mock_client(function(m, p) paste(rep("merged finding text", 60), collapse = " "))
+  cl <- hr_mock_client(function(m, p) paste(rep("merged finding text", 60), collapse = " "))
   pieces <- rep(paste(rep("a finding about revenue", 10), collapse = " "), 200)
   merge <- function(levels) {
     sp <- gr_read_spec("map_reduce", model = "merge-ctx", max_answer_tokens = 100L,
                        max_merge_levels = levels)
-    quiet(ns$tree_merge(cl, "Q?", pieces, sp, gr_trace()))
+    quiet(ns$tree_merge(cl, "Q?", pieces, sp, hr_trace()))
   }
   deep <- merge(6L)
   expect_true(deep$ok)
@@ -248,25 +248,25 @@ test_that("max_merge_levels caps how deep a merge goes", {
 test_that("the pre-flight call bound follows max_merge_levels above and below the default", {
   local_registries()
   local_options()
-  gr_options(max_calls = 2000L)
-  gr_register_model("merge-bound-ctx", context_window = 900L, max_output = 300L,
+  hr_options(max_calls = 2000L)
+  hr_register_model("merge-bound-ctx", context_window = 900L, max_output = 300L,
                     input_usd = 0, output_usd = 0)
   # Each reply is as long as a finding, so a merge takes two at a time and
   # 512 findings need nine levels.
   piece <- paste(rep("Revenue rose.", 50), collapse = " ")
-  cl <- gr_mock_client(function(m, p) piece)
-  room <- gr_budget("merge-bound-ctx", reserve_output = 200L,
+  cl <- hr_mock_client(function(m, p) piece)
+  room <- hr_budget("merge-bound-ctx", reserve_output = 200L,
                     overhead = ns$prompt_overhead("Q?", ns$.gr_prompts$merge_system,
                                                   "never"))$input
   stats <- list(n_chunks = 512L, tokens = 1e5,
                 reply_cap = function(model, cap) 200, room = function(...) room)
-  default_worst <- ns$merge_tree_worst(512, gr_count_tokens(piece), 200, room)
+  default_worst <- ns$merge_tree_worst(512, hr_count_tokens(piece), 200, room)
   for (levels in c(12L, 3L)) {
     sp <- gr_read_spec("map_reduce", model = "merge-bound-ctx", max_answer_tokens = 200L,
                        max_merge_levels = levels)
-    tr <- gr_trace()
+    tr <- hr_trace()
     m <- quiet(ns$tree_merge(cl, "Q?", rep(piece, 512), sp, tr))
-    worst <- ns$merge_tree_worst(512, gr_count_tokens(piece), 200, room, levels = levels)
+    worst <- ns$merge_tree_worst(512, hr_count_tokens(piece), 200, room, levels = levels)
     expect_gte(worst$calls, tr$calls)
     # The cost functions pass the spec's cap on.
     expect_equal(ns$cost_map_reduce(stats, sp)$calls_max, 512 + worst$calls)
@@ -300,14 +300,14 @@ test_that("a NULL override of a setting held only when not default names the def
   expect_error(ns$apply_overrides(set, list(max_merge_levels = NULL)),
                "recipe's value (9)", fixed = TRUE, class = "gr_bad_override")
   expect_error(answer_document(gr_example(), "q?", "fast",
-                               client = gr_mock_client(function(m, p) "x"),
+                               client = hr_mock_client(function(m, p) "x"),
                                restate_tokens = NULL),
                "(the default, 1200)", fixed = TRUE, class = "gr_bad_override")
 })
 
 test_that("restate_tokens sets the body length that brings the question forward", {
   sent <- NULL
-  cl <- gr_mock_client(function(m, p) { sent <<- m; "Revenue was 45.2 million." })
+  cl <- hr_mock_client(function(m, p) { sent <<- m; "Revenue was 45.2 million." })
   ch <- mk_chunks("Revenue was 45.2 million dollars in 2024.")
   # The excerpts are the second message; the question always comes last.
   quiet(gr_read(ch, "What was revenue?", cl, gr_read_spec("stuff")))
@@ -326,7 +326,7 @@ test_that("bm25_b changes which chunk rerank's prefilter puts forward", {
                           "revenue again here and more words."),
                     "Costs fell."))
   scored <- character(0)
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     if (identical(p$schema_name, "relevance")) {
       scored <<- c(scored, m[[3]]$content)
       return('{"score": 8, "reason": "r"}')
@@ -346,8 +346,8 @@ test_that("bm25_b changes which chunk rerank's prefilter puts forward", {
 
 test_that("lexical_blend weighs cosine against BM25 in an offline retrieve", {
   local_options()
-  gr_options(embedder = "lexical")
-  cl <- gr_mock_client(function(m, p) "Answer.")
+  hr_options(embedder = "lexical")
+  cl <- hr_mock_client(function(m, p) "Answer.")
   ch <- mk_chunks(c("beta beta beta beta beta", "alpha gamma delta epsilon", "beta iota kappa"))
   pick <- function(w) {
     quiet(gr_read(ch, "alpha beta", cl,
@@ -364,7 +364,7 @@ test_that("the contextual and proposition caps reach the requests", {
                                    400), collapse = " ")))
   caps <- integer(0)
   docs <- character(0)
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     caps <<- c(caps, as.integer(p$max_output))
     if (!is.null(p$schema)) return('{"propositions": ["Revenue rose in 2024."]}')
     docs <<- c(docs, m[[2]]$content)
@@ -496,7 +496,7 @@ test_that("layout_opts is checked and changes which running lines are dropped", 
 
 test_that("gr_compare()'s settings column names layout_opts and cleaner_opts entries", {
   local_options()
-  gr_options(embedder = "lexical")
+  hr_options(embedder = "lexical")
   rd <- gr_read_spec(reader = "retrieve")
   recipes <- list(
     a = gr_recipe(read = rd),
@@ -504,7 +504,7 @@ test_that("gr_compare()'s settings column names layout_opts and cleaner_opts ent
     r = gr_recipe(read = rd, ingest = gr_ingest_spec(clean = "academic",
                                                      cleaner_opts = list(references_after = 0.5))))
   cmp <- quiet(gr_compare(gr_example(), "What was revenue?", recipes,
-                          client = gr_mock_client(function(m, p) "It rose.")))
+                          client = hr_mock_client(function(m, p) "It rose.")))
   expect_identical(cmp$summary$settings,
                    c("", "layout_opts.depth=3", "cleaner_opts.references_after=0.5"))
 })
@@ -512,7 +512,7 @@ test_that("gr_compare()'s settings column names layout_opts and cleaner_opts ent
 # --- synthesis ----------------------------------------------------------------
 
 synth_client <- function(sentence) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                   collapse = " ")
     if (grepl("<studies>", seen, fixed = TRUE)) sentence
@@ -583,7 +583,7 @@ test_that("coherence_rounds lets a pass revise its own revision", {
   draft <- paste0("## Findings\n\nTwo small trials may suggest a modest benefit [study 1] ",
                   "[study 2]. One cohort could show harm [study 3].")
   calls <- 0L
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     calls <<- calls + 1L
     d <- sub("^<draft>\n", "", sub("\n</draft>$", "", m[[3]]$content))
     if (grepl("modest", d, fixed = TRUE)) return(sub("modest", "slight", d, fixed = TRUE))
@@ -591,12 +591,12 @@ test_that("coherence_rounds lets a pass revise its own revision", {
     d
   })
   sp <- gr_read_spec("stuff", model = "mock-model")
-  one <- quiet(ns$synth_revise(draft, "Q?", cl, sp, gr_trace(), passes = "register"))
+  one <- quiet(ns$synth_revise(draft, "Q?", cl, sp, hr_trace(), passes = "register"))
   expect_identical(calls, 1L)
   expect_identical(one$report$round, 1L)
   expect_match(one$text, "slight benefit", fixed = TRUE)
   calls <- 0L
-  more <- quiet(ns$synth_revise(draft, "Q?", cl, sp, gr_trace(), passes = "register",
+  more <- quiet(ns$synth_revise(draft, "Q?", cl, sp, hr_trace(), passes = "register",
                                 rounds = 5L))
   # The third round gave the text back unchanged, so the pass stopped there.
   expect_identical(calls, 3L)
@@ -656,7 +656,7 @@ test_that("hr_calibrate_signal's minimums are settable and recorded", {
 })
 
 test_that("a run's trace records the ingest settings it used", {
-  cl <- gr_mock_client(function(m, p) "x")
+  cl <- hr_mock_client(function(m, p) "x")
   a <- quiet(answer_document(gr_example(), "q?", "fast", client = cl,
                              layout_opts = list(depth = 4)))
   ing <- Filter(function(s) identical(s$label, "ingest"), a$trace$steps)

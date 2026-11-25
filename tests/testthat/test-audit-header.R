@@ -3,7 +3,7 @@
 
 header_extraction <- function() {
   fields <- gr_fields(design = "The study design")
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     '{"design":"randomised trial","design__quote":"We ran a randomised trial."}'
   })
   f <- tempfile(fileext = ".txt"); writeLines("We ran a randomised trial.", f)

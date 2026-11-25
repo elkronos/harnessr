@@ -33,11 +33,11 @@ if (requireNamespace("pkgload", quietly = TRUE)) {
 }
 source(file.path("tests", "testthat", "helper-golden.R"), local = TRUE)
 
-harnessr::gr_options(verbose = FALSE)
+harnessr::hr_options(verbose = FALSE)
 dir <- file.path("tests", "testthat", "fixtures", "stages")
 dir.create(dir, recursive = TRUE, showWarnings = FALSE)
 
-cl <- harnessr::gr_mock_client(golden_reply)
+cl <- harnessr::hr_mock_client(golden_reply)
 p <- golden_protocol()
 quietly <- function(e) suppressWarnings(suppressMessages(e))
 s <- quietly(harnessr::gr_screen(harnessr::gr_example(), p, client = cl))

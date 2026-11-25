@@ -258,12 +258,12 @@ test_that("a message holding the key separator does not share a key with two mes
   expect_identical(h(c("user", "Say A", "user", "Say B")), "d0c71ca023983cd4")
 
   dir <- withr::local_tempdir()
-  cl <- gr_cache_client(gr_mock_client(function(m, p) {
+  cl <- hr_cache_client(hr_mock_client(function(m, p) {
     paste(length(m), "message(s):", paste(vapply(m, `[[`, "", "content"), collapse = " | "))
-  }), gr_cache(dir))
-  a <- quiet(gr_call(cl, list(list(role = "user", content = "Say A"),
+  }), hr_cache(dir))
+  a <- quiet(hr_call(cl, list(list(role = "user", content = "Say A"),
                               list(role = "user", content = "Say B"))))
-  b <- quiet(gr_call(cl, list(list(role = "user", content = "Say A\u0002user\u0002Say B"))))
+  b <- quiet(hr_call(cl, list(list(role = "user", content = "Say A\u0002user\u0002Say B"))))
   expect_false(isTRUE(b$cached))
   expect_match(b$text, "^1 message")
 })

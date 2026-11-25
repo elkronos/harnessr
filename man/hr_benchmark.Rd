@@ -34,7 +34,7 @@ for arms that call no model.}
 \item{split}{The split or splits of the reference to run on.}
 
 \item{governor}{An \code{\link[=hr_governor]{hr_governor()}} the whole benchmark is held to, or
-\code{NULL} to take the limits from \code{\link[=gr_options]{gr_options()}}.}
+\code{NULL} to take the limits from \code{\link[=hr_options]{hr_options()}}.}
 
 \item{seed}{The seed of the arms' private random stream.}
 
@@ -58,7 +58,7 @@ with no label (its \code{failure_kind} is still recorded).}
 run's prompt and reply tokens over its model calls, and the reasoning
 and cached input tokens among them that the provider reported.}
 \item{\code{usd}}{What the run cost, every request priced at its own model,
-embeddings included, as \code{\link[=gr_trace_cost]{gr_trace_cost()}} prices it: 0 for requests a
+embeddings included, as \code{\link[=hr_trace_cost]{hr_trace_cost()}} prices it: 0 for requests a
 cache or a recording answered, \code{NA} when a model has no price.}
 \item{\code{usd_provenance}}{Where the token counts the cost rests on came
 from, over the requests that were paid for: \code{"reported"} when the
@@ -109,8 +109,8 @@ Run \code{r} of each arm on each item is given \code{ctx$draw_index = r} (see
 run makes through \code{ctx$call()}, \code{ctx$call_json()} or a stage called with
 \code{trace = ctx$trace} (\code{\link[=gr_read]{gr_read()}}, \code{\link[=gr_segment]{gr_segment()}}, \code{\link[=answer_document]{answer_document()}},
 \code{\link[=hr_judge]{hr_judge()}} and the like) is sent at the run's draw, and each run is its own
-entry in a \code{\link[=gr_cache]{gr_cache()}} and its own recorded draw in a
-\code{\link[=gr_replay_client]{gr_replay_client()}}. Each request a run makes with a draw index is
+entry in an \code{\link[=hr_cache]{hr_cache()}} and its own recorded draw in a
+\code{\link[=hr_replay_client]{hr_replay_client()}}. Each request a run makes with a draw index is
 recorded under the arm's name as well, so a replay of a benchmark answers
 each arm with the replies that arm got, even when two arms sent the same
 request, and whether all the arms are replayed or some, in any order. An arm whose runs are not distinct draws is refused
@@ -121,7 +121,7 @@ run, when one of its replies has the provider response id of a reply in an
 earlier run, or when a recording served a reply without its own draw key
 (a repeat after the recording ran out of draws, or a recording made
 without per-draw keys). Every request a run makes should therefore carry
-the run's draw index. A \code{\link[=gr_mock_client]{gr_mock_client()}} keeps no cache, so under it an arm that
+the run's draw index. An \code{\link[=hr_mock_client]{hr_mock_client()}} keeps no cache, so under it an arm that
 leaves the index out is not refused; under a cache it would be.
 
 Every request is checked against \code{governor} before it is sent, for the
@@ -132,7 +132,7 @@ there), is recorded as \code{failure_kind = "budget_stop"} and counted wrong
 (or \code{NA} on an item with no label, as below).
 The runs after it are still started, so every row exists and the refusals
 are visible; their requests are refused before anything is sent. With \code{governor = NULL} the limits are
-read from \code{\link[=gr_options]{gr_options()}} when the benchmark starts and apply to the whole
+read from \code{\link[=hr_options]{hr_options()}} when the benchmark starts and apply to the whole
 benchmark, as they apply to one run of a reader. Those defaults are set
 for one run (400 calls), and a benchmark of two arms on 300 items for 5
 runs needs several thousand, so pass a governor sized for the benchmark.
@@ -140,7 +140,7 @@ When any run is stopped, \code{hr_benchmark()} warns (class
 \code{hr_budget_stopped}) with the number of runs stopped, the limits that
 stopped them, how many of them count against an arm (runs on the dev
 split or on items with no label do not) and the first run stopped. With
-\code{governor = NULL} it also gives the \code{\link[=gr_options]{gr_options()}} values behind those
+\code{governor = NULL} it also gives the \code{\link[=hr_options]{hr_options()}} values behind those
 limits.
 
 A reader's pre-flight check that finds the run's limits leave too little
@@ -179,7 +179,7 @@ ref <- hr_reference(
   labels = c("Paris", "Lima", "N'Djamena", "Suva"),
   cluster = c("a", "a", "b", "b"), split = "test")
 capitals <- c(France = "Paris", Peru = "Lima", Chad = "Ndjamena", Fiji = "Suva")
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   country <- sub("Capital of ", "", messages[[1]]$content)
   capitals[[country]]
 })

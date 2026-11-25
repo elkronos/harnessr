@@ -6,7 +6,7 @@
 # question about the chief executive is not answered by the report, and the
 # question about the auditor is refused.
 qa_client <- function() {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     q <- messages[[length(messages)]]$content
     hot <- identical(params$temperature, 1)
     if (grepl("auditor", q, fixed = TRUE)) {
@@ -172,7 +172,7 @@ test_that("gr_scorer_answer maps answer states to failure kinds", {
   expect_identical(s$fn(item, gr_result(FALSE, finish_reason = "refusal"), "x")$failure_kind,
                    "refusal")
 
-  tr <- gr_trace()
+  tr <- hr_trace()
   capped <- new_answer("NOT_IN_DOCUMENT", "stuff", "q", integer(0), tr, partial = TRUE,
                        notes = list(cost_cap_reached = 0.01))
   expect_identical(s$fn(item, capped, "x")$failure_kind, "budget_stop")
@@ -250,7 +250,7 @@ test_that("an arm run reads the item's document into the run's trace at the run'
   cl <- qa_client()
   arm <- gr_arm("fast")
   # The trace carries the run's draw, as the one hr_benchmark() hands an arm does.
-  tr <- gr_trace()
+  tr <- hr_trace()
   tr$draw_index <- 3L
   ctx <- list(client = cl, trace = tr, governor = NULL, draw_index = 3L)
   item <- list(question = "What was revenue in 2024?", document = gr_example())
@@ -266,10 +266,10 @@ test_that("an arm run reads the item's document into the run's trace at the run'
   # Chunks are read with gr_read(); "auto" needs the document itself.
   ch <- quiet(gr_segment(gr_example(), list(method = "paragraph", max_tokens = 4000)))
   b <- quiet(arm$run(list(question = "What was revenue in 2024?", document = ch),
-                     list(client = cl, trace = gr_trace(), draw_index = 1L)))
+                     list(client = cl, trace = hr_trace(), draw_index = 1L)))
   expect_identical(b$answer, "Revenue was 45.2 million dollars.")
   expect_error(gr_arm("auto")$run(list(question = "q", document = ch),
-                                  list(client = cl, trace = gr_trace(), draw_index = 1L)),
+                                  list(client = cl, trace = hr_trace(), draw_index = 1L)),
                class = "gr_bad_recipe")
   expect_error(arm$run("just a question", ctx), class = "hr_bad_reference")
 })
@@ -346,13 +346,13 @@ test_that("a reader stopped before it starts by a spending limit or an unpriced 
     }, gr_cost_uncheckable = function(w) invokeRestart("muffleWarning"))
     msg
   }
-  cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+  cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
   local_model <- function(...) {
-    suppressWarnings(gr_register_model("bench-priced-model", context_window = 128000L,
+    suppressWarnings(hr_register_model("bench-priced-model", context_window = 128000L,
                                        max_output = 16384L, ...))
   }
   local_model(input_usd = 10, output_usd = 30)
-  on.exit(suppressWarnings(gr_register_model("bench-priced-model", context_window = 128000L,
+  on.exit(suppressWarnings(hr_register_model("bench-priced-model", context_window = 128000L,
                                              max_output = 16384L)), add = TRUE)
   arm <- gr_arm("fast", list(model = "bench-priced-model"))
   w <- stop_of(hr_benchmark(arm, ref, runs = 5, client = cl, scorer = gr_scorer_answer(),
@@ -363,7 +363,7 @@ test_that("a reader stopped before it starts by a spending limit or an unpriced 
   # starts; a mock is let through with a warning instead. Nothing is sent:
   # the check comes before the first request, and the address is closed.
   local_model()
-  real <- gr_client(model = "bench-priced-model", api_key = "sk-not-a-real-key",
+  real <- hr_client(model = "bench-priced-model", api_key = "sk-not-a-real-key",
                     base_url = "http://127.0.0.1:9/v1", max_retries = 0L)
   w <- stop_of(hr_benchmark(gr_arm("fast"), ref, runs = 5, client = real,
                             scorer = gr_scorer_answer(), governor = hr_governor(max_cost_usd = 1)))
@@ -371,7 +371,7 @@ test_that("a reader stopped before it starts by a spending limit or an unpriced 
   # A priced model under a limit too small for one read is stopped by the
   # reader's own check, before the governor sees a request: the cost label
   # then comes from the check's error and the note it leaves on the trace.
-  priced <- gr_client(model = "gpt-4o", api_key = "sk-not-a-real-key",
+  priced <- hr_client(model = "gpt-4o", api_key = "sk-not-a-real-key",
                       base_url = "http://127.0.0.1:9/v1", max_retries = 0L)
   b <- NULL
   w <- stop_of(b <- hr_benchmark(gr_arm("fast"), ref, runs = 5, client = priced,
@@ -387,7 +387,7 @@ test_that("a reader stopped before it starts by a spending limit or an unpriced 
 
 test_that("recipe arms under a cache are separate draws, and a second pass is answered from it", {
   dir <- withr::local_tempdir()
-  cl <- gr_cache_client(qa_client(), gr_cache(dir))
+  cl <- hr_cache_client(qa_client(), hr_cache(dir))
   ref <- qa_ref()
   first <- quiet(hr_benchmark(two_arms(), ref, runs = 5, client = cl, scorer = gr_scorer_answer()))
   # The reference is locked once scored, so the second pass builds it again.
@@ -414,15 +414,15 @@ test_that("hr_report gives a descriptive summary of a short recipe benchmark", {
 })
 
 test_that("a draw index on the trace reaches requests that do not give one", {
-  cl <- gr_mock_client(function(m, p) "ok")
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(m, p) "ok")
+  tr <- hr_trace()
   tr$draw_index <- 2L
-  gr_call(cl, "hi", trace = tr)
-  gr_call(cl, "hi", trace = tr, draw_index = 4)
+  hr_call(cl, "hi", trace = tr)
+  hr_call(cl, "hi", trace = tr, draw_index = 4)
   expect_identical(vapply(cl$calls(), function(x) x$params$draw_index, integer(1)), c(2L, 4L))
   # Without one on the trace, nothing changes.
-  plain <- gr_trace()
-  gr_call(cl, "hi", trace = plain)
+  plain <- hr_trace()
+  hr_call(cl, "hi", trace = plain)
   expect_null(cl$calls()[[3]]$params$draw_index)
 })
 

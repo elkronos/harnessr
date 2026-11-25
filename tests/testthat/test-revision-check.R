@@ -19,7 +19,7 @@ rc_moved <- paste(
 # with" and it says "reduces"; anything else holds. The revision pass itself
 # gets `revision`.
 rc_client <- function(revision) {
-  gr_mock_client(function(m, p) {
+  hr_mock_client(function(m, p) {
     if (grepl("You grade one response", m[[1]]$content, fixed = TRUE)) {
       body <- m[[2]]$content
       ref <- sub(".*Reference answer:\n(.*?)\n\n.*", "\\1", body)
@@ -45,7 +45,7 @@ test_that("the lexicon guard passes both revisions, so only the judge can tell t
 })
 
 test_that("the judge rejects 'is associated with' becoming 'reduces'", {
-  tr <- gr_trace()
+  tr <- hr_trace()
   j <- judge_revision(rc_draft, rc_stronger, rc_client(""), rc_spec(), tr)
   expect_identical(nrow(j), 1L)
   expect_match(j$sentence, "reduces blood pressure")
@@ -55,13 +55,13 @@ test_that("the judge rejects 'is associated with' becoming 'reduces'", {
 })
 
 test_that("the judge accepts a hedge moved into another sentence", {
-  j <- judge_revision(rc_hedged_draft, rc_moved, rc_client(""), rc_spec(), gr_trace())
+  j <- judge_revision(rc_hedged_draft, rc_moved, rc_client(""), rc_spec(), hr_trace())
   expect_identical(nrow(j), 2L)
   expect_true(all(j$verdict == "holds"))
 })
 
 test_that("the judge is advisory: a flagged revision is kept, word for word", {
-  tr <- gr_trace()
+  tr <- hr_trace()
   expect_warning(step <- revise_once(rc_draft, "Does exercise help?", rc_client(rc_stronger),
                                      rc_spec(), tr, NULL, "register"),
                  class = "gr_revision_flagged")
@@ -69,12 +69,12 @@ test_that("the judge is advisory: a flagged revision is kept, word for word", {
   expect_identical(step$text, rc_stronger)
   expect_identical(step$judged$verdict, "stronger")
   ok <- revise_once(rc_hedged_draft, "Does training help?", rc_client(rc_moved), rc_spec(),
-                    gr_trace(), NULL, "register")
+                    hr_trace(), NULL, "register")
   expect_true(ok$kept)
   expect_true(all(ok$judged$verdict == "holds"))
   # Without the setting no judge is asked.
   cl <- rc_client(rc_stronger)
-  plain <- revise_once(rc_draft, "Does exercise help?", cl, rc_spec(NULL), gr_trace(), NULL,
+  plain <- revise_once(rc_draft, "Does exercise help?", cl, rc_spec(NULL), hr_trace(), NULL,
                        "register")
   expect_true(plain$kept)
   expect_null(plain$judged)
@@ -83,12 +83,12 @@ test_that("the judge is advisory: a flagged revision is kept, word for word", {
 
 test_that("synth_revise() reports the flags only under the judge", {
   rev <- suppressWarnings(synth_revise(rc_draft, "Does exercise help?", rc_client(rc_stronger),
-                                       rc_spec(), gr_trace(), passes = "register"))
+                                       rc_spec(), hr_trace(), passes = "register"))
   expect_identical(rev$report$flagged, 1L)
   expect_identical(rev$flags$verdict, "stronger")
   expect_identical(rev$flags$pass, "register")
   plain <- synth_revise(rc_draft, "Does exercise help?", rc_client(rc_stronger), rc_spec(NULL),
-                        gr_trace(), passes = "register")
+                        hr_trace(), passes = "register")
   expect_false("flagged" %in% names(plain$report))
   expect_null(plain$flags)
 })

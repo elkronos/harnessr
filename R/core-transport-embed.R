@@ -28,7 +28,7 @@
 #' @param cache Use the session embedding cache.
 #' @param trace Optional trace. With the built-in `"api"` embedder, each
 #'   request to the embeddings endpoint is checked against `max_calls` and
-#'   `max_cost_usd` (see [gr_options()]) before it is sent and recorded in the
+#'   `max_cost_usd` (see [hr_options()]) before it is sent and recorded in the
 #'   trace, priced, once it is made; its tokens are counted in the trace's
 #'   `embed_tokens`, not `tokens_in`. A request the limits refuse is a failure,
 #'   handled by `fallback`. A failed request that the lexical fallback replaces
@@ -36,10 +36,10 @@
 #'   embedded, on word overlap, so nothing was left unread.
 #' @param embedder A registered embedder name (see [gr_embedders()]), or a
 #'   function of `(texts, params)`. When it is `NULL` the first of these is
-#'   used: `gr_options("embedder")` when it names one, then the embed function
-#'   supplied with the client (a [gr_mock_client()]'s `embed_handler`, or the
-#'   `embed` given to [gr_backend_client()] or [gr_ellmer_client()]), then the
-#'   built-in `"api"`. So an embedder named in [gr_options()] wins over the
+#'   used: `hr_options("embedder")` when it names one, then the embed function
+#'   supplied with the client (an [hr_mock_client()]'s `embed_handler`, or the
+#'   `embed` given to [hr_backend_client()] or [hr_ellmer_client()]), then the
+#'   built-in `"api"`. So an embedder named in [hr_options()] wins over the
 #'   client's own embed function.
 #' @param fallback What to do when the embedding request fails. **Defaults to
 #'   `"lexical"`**: hashed bag-of-words vectors that measure word overlap, not
@@ -54,7 +54,7 @@
 #'   or labels them with `index` fields that are not one for each text sent
 #'   (vectors are matched to texts by `index` when the reply gives it). It
 #'   retries a rate limit (HTTP 429), a server error or a dropped connection up
-#'   to the client's `max_retries`, as [gr_call()] does, and the warning names
+#'   to the client's `max_retries`, as [hr_call()] does, and the warning names
 #'   the HTTP status and the provider's message. A refused key (HTTP 401 or
 #'   403) is a failure like the others rather than a stop, since a key can be
 #'   allowed to chat and not to embed; a missing key stops the run.
@@ -65,12 +65,12 @@
 #'   With `fallback = "none"` and a failed request the result is a 0 x 0 matrix.
 #' @export
 #' @seealso [gr_embedders()] for what is registered, [gr_register_embedder()]
-#'   to add one, [gr_client()], [gr_segment_spec()] for `method = "semantic"`,
-#'   [gr_read_spec()] for `reader = "retrieve"`, [gr_models()] for the
+#'   to add one, [hr_client()], [gr_segment_spec()] for `method = "semantic"`,
+#'   [gr_read_spec()] for `reader = "retrieve"`, [hr_models()] for the
 #'   embedding models in the registry
 #' @examples
-#' cl <- gr_mock_client()
-#' e <- gr_embed(cl, c("cats sleep all day", "dogs bark all night",
+#' cl <- hr_mock_client()
+#' e <- hr_embed(cl, c("cats sleep all day", "dogs bark all night",
 #'                     "revenue rose to 45.2 million"))
 #'
 #' # Always check this before treating the rows as semantic: on the lexical
@@ -84,13 +84,13 @@
 #' # visible after the fact.
 #' gr_segment(gr_example(), list(method = "semantic", max_tokens = 200),
 #'            client = cl)$extra$embedding_source
-gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL,
+hr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL,
                      trace = NULL, fallback = c("lexical", "error", "none"),
                      embedder = NULL) {
   fallback <- match.arg(fallback)
   texts <- vapply(texts %||% character(0), as_chr1, character(1), USE.NAMES = FALSE)
   if (!length(texts)) return(matrix(numeric(0), nrow = 0, ncol = 0))
-  cache <- isTRUE(cache %||% gr_options("cache_embeddings"))
+  cache <- isTRUE(cache %||% hr_options("cache_embeddings"))
   model <- as_chr1(model %||% client$embedding_model)
   emb <- pick_embedder(client, embedder)
   # Where this call's failed requests start in the trace, so the ones the
@@ -108,7 +108,7 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
     # without embeddings (a gateway, a local server with no embedding model).
     trace_mark_recovered(trace, first_error)
     # Marked as a FALLBACK, not merely as lexical. Choosing
-    # gr_options(embedder = "lexical") is a decision; being dropped onto it
+    # hr_options(embedder = "lexical") is a decision; being dropped onto it
     # because the real embedder failed is a degradation, and the readers OR that
     # into `partial`, which the documentation tells people to check first.
     # The registered "lexical" embedder, read through the embedder kind's
@@ -159,7 +159,7 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
         "vectors, which place semantic cuts and rank chunks differently from the original run, ",
         "so the replay can send prompts the recording does not hold (a gr_replay_miss, or ",
         "failed calls with strict = FALSE) and not give the recorded answer. Record the run ",
-        "with a deterministic embedder (gr_options(embedder = 'lexical'), or one registered ",
+        "with a deterministic embedder (hr_options(embedder = 'lexical'), or one registered ",
         "with gr_register_embedder(deterministic = TRUE)) and replay it with the same one, ",
         "and the replay is exact."),
         "gr_replay_no_embeddings"))
@@ -175,8 +175,8 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
       "This client has no embeddings endpoint and no embed function, so there is no way to ",
       "embed text. Falling back to hashed lexical vectors: these approximate word overlap, ",
       "not meaning, so semantic segmentation and top-k retrieval will be markedly less ",
-      "accurate. Pass `embed =` to gr_backend_client() or gr_ellmer_client(), or set ",
-      "gr_options(embedder = ) to a registered embedder; see gr_embedders()."),
+      "accurate. Pass `embed =` to hr_backend_client() or hr_ellmer_client(), or set ",
+      "hr_options(embedder = ) to a registered embedder; see gr_embedders()."),
       "gr_backend_no_embeddings"))
   }
 
@@ -214,8 +214,8 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
 #'
 #' The option's default is `NULL`, meaning "whatever the client brought". An
 #' earlier version asked whether the option had been set, so that a value you
-#' set could beat the handler `gr_mock_client()` makes whether or not you asked
-#' for one. `gr_options(gr_options())`, which restores a saved option list as
+#' set could beat the handler `hr_mock_client()` makes whether or not you asked
+#' for one. `hr_options(hr_options())`, which restores a saved option list as
 #' the test helpers and `on.exit()` handlers do, sets every option, so that
 #' check could not tell the two apart. The function reads the option's value:
 #' `NULL` means the client's embedder.
@@ -230,7 +230,7 @@ pick_embedder <- function(client, embedder = NULL) {
     }
     return(registry_get("embedder", as_chr1(embedder)))
   }
-  opt <- gr_options("embedder")
+  opt <- hr_options("embedder")
   if (!is.null(opt) && is_nonblank(as_chr1(opt))) {
     return(registry_get("embedder", as_chr1(opt)))
   }
@@ -291,7 +291,7 @@ embed_api <- function(texts, params) {
   }
 
   if (length(todo)) {
-    limit <- gr_model_info(model)$context_window
+    limit <- hr_model_info(model)$context_window
     # A text longer than the embedding model's window is cut to fit, and the
     # cut goes into the trace: a vector of the opening alone ranks the chunk
     # by its opening alone.
@@ -307,7 +307,7 @@ embed_api <- function(texts, params) {
       idx <- todo[start:min(start + batch - 1L, length(todo))]
       texts_b <- payload[match(idx, todo)]
       body <- list(model = model, input = as.list(texts_b))
-      # Same auth path as gr_call(), deliberately: a gateway that needs an
+      # Same auth path as hr_call(), deliberately: a gateway that needs an
       # `api-key` header for chat needs it for embeddings too, and two copies of
       # the header logic is how one of them ends up a release behind.
       headers <- request_headers(client)
@@ -316,8 +316,8 @@ embed_api <- function(texts, params) {
       # to the same limits and goes in the same ledger. It used to do neither:
       # semantic segmentation, retrieve and iterative spent outside
       # max_calls and max_cost_usd (even `max_calls = 0` sent them), and the
-      # trace and gr_trace_cost() said the run cost nothing. A refusal raises
-      # like any other failure here, so gr_embed()'s `fallback` decides what
+      # trace and hr_trace_cost() said the run cost nothing. A refusal raises
+      # like any other failure here, so hr_embed()'s `fallback` decides what
       # happens next; cache hits never get this far and stay free. The
       # governor checks it as it checks a model call, against its worst case:
       # every input token at the model's price (an embedding has no reply). An
@@ -359,7 +359,7 @@ embed_api <- function(texts, params) {
   matrix(unlist(out, use.names = FALSE), nrow = length(out), byrow = TRUE)
 }
 
-#' POST one embeddings request, retrying a transient failure as gr_call() does.
+#' POST one embeddings request, retrying a transient failure as hr_call() does.
 #'
 #' It used to be one attempt: a single 429 on any batch of a long document sent
 #' every row of the matrix to the lexical fallback, although the client's
@@ -423,9 +423,9 @@ embed_http_problem <- function(resp) {
 #' a gateway that gathers a batch out of order gave every text another text's
 #' vector with nothing to show for it. An element with no embedding (`null`,
 #' `[]`) became an empty vector, padded with zeros: a whole batch of them made
-#' an n x 0 matrix that gr_embed() returned as good "api" vectors, and one of
+#' an n x 0 matrix that hr_embed() returned as good "api" vectors, and one of
 #' them made a text no query could ever reach. Either is a failed request now,
-#' and gr_embed()'s `fallback` decides what happens next.
+#' and hr_embed()'s `fallback` decides what happens next.
 #' @return `list(vectors =)` or `list(problem =)`.
 #' @noRd
 embed_vectors <- function(parsed, n) {
@@ -468,11 +468,11 @@ embed_vectors <- function(parsed, n) {
 #' Record one embeddings request in the trace, priced like a model call.
 #'
 #' It has no prompt messages, so a replay passes over it (a trace does not
-#' record vectors; see gr_embed()), while gr_trace_cost(), `spent_usd` and
+#' record vectors; see hr_embed()), while hr_trace_cost(), `spent_usd` and
 #' `as.data.frame()` count it like any other request. Tokens are the provider's
 #' `usage.prompt_tokens`, or a local count when it reports none (see
 #' settle_usage()), and go to the trace's `embed_tokens`. A failed request is
-#' recorded as failed with no tokens, as http_call() records one; gr_embed()
+#' recorded as failed with no tokens, as http_call() records one; hr_embed()
 #' marks it recovered when its fallback replaces it.
 #' @noRd
 embed_record <- function(trace, model, texts, resp, parsed, problem = NULL, seconds = NA_real_) {
@@ -485,7 +485,7 @@ embed_record <- function(trace, model, texts, resp, parsed, problem = NULL, seco
     ug <- if (is.list(parsed[["usage"]])) parsed[["usage"]] else list()
     usage <- settle_usage(list(input = ug[["prompt_tokens"]] %||% ug[["input_tokens"]],
                                output = 0L),
-                          sum(gr_count_tokens(texts)), "")
+                          sum(hr_count_tokens(texts)), "")
     # A reply that held embeddings the checks refused was still answered, and
     # billed, so its tokens stay on the step; only its vectors are unusable.
     served <- as_chr1(parsed[["model"]], NA_character_)
@@ -515,11 +515,11 @@ embed_record <- function(trace, model, texts, resp, parsed, problem = NULL, seco
 #' with `safety_margin` on top: the provider bills the prompt tokens it
 #' counts, and a batch counted at the local figure alone could be admitted
 #' and leave the run over its limit. A refusal raises with the classes
-#' gr_embed() expects, so its `fallback` decides what happens next.
+#' hr_embed() expects, so its `fallback` decides what happens next.
 #' @noRd
 embed_governor_check <- function(trace, model, texts, i = 1L, n = 1L) {
-  margin <- max(as_num1(gr_options("safety_margin"), 0.1), 0)
-  tokens <- ceiling(sum(gr_count_tokens(texts)) * (1 + margin))
+  margin <- max(as_num1(hr_options("safety_margin"), 0.1), 0)
+  tokens <- ceiling(sum(hr_count_tokens(texts)) * (1 + margin))
   refusal <- governor_check(trace, list(
     model = model, label = "embed.request", input_tokens = tokens,
     output_tokens = 0, unpriced_ok = TRUE), "both")

@@ -13,7 +13,7 @@ drift_ref <- function(n_clusters, per) {
 # `p_right`, a named vector of chances by item, it answers "yes" at random
 # with that chance on every call instead.
 drift_client <- function(wrong = character(0), p_right = NULL) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     item <- messages[[1]]$content
     if (!is.null(p_right)) return(if (stats::runif(1) < p_right[[item]]) "yes" else "no")
     if (item %in% wrong) "no" else "yes"
@@ -224,7 +224,7 @@ test_that("another arm, reference or scorer, or a cached rerun, is refused", {
   # it, which is the frozen sample again.
   dir <- tempfile("drift-cache")
   on.exit(unlink(dir, recursive = TRUE), add = TRUE)
-  cached <- gr_cache_client(drift_client(), gr_cache(dir))
+  cached <- hr_cache_client(drift_client(), hr_cache(dir))
   frozen2 <- hr_benchmark(arm, ref, runs = 5, client = cached)
   expect_error(hr_drift_check(frozen2, arm, client = cached, reference = ref),
                class = "hr_drift_not_live")

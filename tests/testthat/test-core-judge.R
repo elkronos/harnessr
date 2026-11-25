@@ -6,7 +6,7 @@
 judge_client <- function(rule) {
   log <- new.env()
   log$sent <- list()
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     log$sent[[length(log$sent) + 1L]] <- list(messages = messages, params = params)
     sprintf('{"verdict": "%s", "reason": "checked"}', rule(messages[[2]]$content))
   })
@@ -120,29 +120,29 @@ test_that("a reply with no allowed verdict, or a failed call, makes the judgemen
   res <- hr_judge(c("x", "y"), bad$client, mode = "select", rubric = "r")
   expect_identical(res$outcome, "failed")
   expect_true(is.na(res$value))
-  down <- gr_mock_client(function(m, p) stop("network down"))
+  down <- hr_mock_client(function(m, p) stop("network down"))
   expect_identical(hr_judge(c("x", "y"), down, mode = "select", rubric = "r")$outcome, "failed")
 })
 
 test_that("judge cost is folded into the run it is part of, once", {
-  gr_register_model("judge-priced", context_window = 128000L, max_output = 4096L,
+  hr_register_model("judge-priced", context_window = 128000L, max_output = 4096L,
                     input_usd = 2, output_usd = 8)
   j <- judge_client(paris_rule)
-  run <- gr_trace()
-  invisible(gr_call(j$client, "Answer the question.", trace = run, label = "run.answer"))
-  before <- sum(gr_trace_cost(run)$usd)
+  run <- hr_trace()
+  invisible(hr_call(j$client, "Answer the question.", trace = run, label = "run.answer"))
+  before <- sum(hr_trace_cost(run)$usd)
   res <- hr_judge(c("Paris", "Lyon"), j$client, mode = "select", model = "judge-priced",
                   rubric = "Which names the capital of France?", trace = run)
   # The judge's own ledger holds both requests and their price, as before.
   expect_identical(res$judge_cost$calls, 2L)
   expect_identical(res$trace$calls, 2L)
   expect_gt(res$judge_cost$usd, 0)
-  expect_equal(res$judge_cost$usd, sum(gr_trace_cost(res$trace)$usd))
+  expect_equal(res$judge_cost$usd, sum(hr_trace_cost(res$trace)$usd))
   expect_identical(res$judge_cost$tokens_in, res$trace$tokens_in)
   expect_identical(res$judge_cost$tokens_out, res$trace$tokens_out)
   # The run holds its own call and the judge's two, and their cost once.
   expect_identical(run$calls, 3L)
-  expect_equal(sum(gr_trace_cost(run)$usd), before + res$judge_cost$usd)
+  expect_equal(sum(hr_trace_cost(run)$usd), before + res$judge_cost$usd)
   expect_equal(run$spent_usd, before + res$judge_cost$usd)
   labels <- vapply(run$steps, function(s) s$label, "")
   expect_identical(labels, c("run.answer", "judge.select.o1", "judge.select.o2",
@@ -163,8 +163,8 @@ test_that("judge cost is folded into the run it is part of, once", {
 
 test_that("judge calls are held to what the run's governor has left", {
   j <- judge_client(paris_rule)
-  run <- gr_trace(governor = hr_governor(max_calls = 2))
-  invisible(gr_call(j$client, "Answer.", trace = run))
+  run <- hr_trace(governor = hr_governor(max_calls = 2))
+  invisible(hr_call(j$client, "Answer.", trace = run))
   res <- suppressWarnings(hr_judge(c("Paris", "Lyon"), j$client, mode = "select",
                                    rubric = "r", trace = run))
   # One call left: the first order is asked, the second refused.
@@ -177,7 +177,7 @@ test_that("judge calls are held to what the run's governor has left", {
 test_that("judge requests use the cache with their draw index", {
   j <- judge_client(paris_rule)
   dir <- file.path(tempdir(), paste0("judge-cache-", as.integer(Sys.time())))
-  cached <- gr_cache_client(j$client, gr_cache(dir))
+  cached <- hr_cache_client(j$client, hr_cache(dir))
   ask <- function(d) hr_judge(c("Paris", "Lyon"), cached, mode = "select", rubric = "r",
                               draw_index = d)
   first <- ask(1)
@@ -403,7 +403,7 @@ test_that("hr_scorer_judge grades runs, counts unresolved as wrong and keeps its
   # In a benchmark the judge's calls stay out of the runs' traces.
   ref <- hr_reference(list(q1 = "France", q2 = "Peru"), labels = c("Paris", "Lima"),
                       cluster = c("d1", "d2"), split = "test")
-  answers <- gr_mock_client(function(m, p) "Paris")
+  answers <- hr_mock_client(function(m, p) "Paris")
   arm <- hr_arm("ask", function(item, ctx) ctx$call(paste("Capital of", item))$text)
   sc2 <- hr_scorer_judge(cfg, v, j$client)
   bench <- suppressWarnings(hr_benchmark(arm, ref, runs = 2, client = answers, scorer = sc2))
@@ -418,7 +418,7 @@ test_that("hr_scorer_judge passes its draw index to the cache", {
   v <- hr_judge_validate(cfg, known_labels(), B = 0)
   j <- judge_client(function(txt) "pass")
   dir <- file.path(tempdir(), paste0("scorer-cache-", as.integer(Sys.time())))
-  cached <- gr_cache_client(j$client, gr_cache(dir))
+  cached <- hr_cache_client(j$client, hr_cache(dir))
   expect_error(hr_scorer_judge(cfg, v, cached, draw_index = -1), class = "gr_bad_setting")
   invisible(hr_scorer_judge(cfg, v, cached, draw_index = 3)$fn("q", "Paris", "Paris"))
   expect_length(j$log$sent, 2L)
@@ -471,7 +471,7 @@ test_that("hr_benchmark marks runs graded by a judge on the arm's own model", {
   j <- judge_client(function(txt) "pass")
   ref <- hr_reference(list(q1 = "France", q2 = "Peru"), labels = c("Paris", "Lima"),
                       cluster = c("d1", "d2"), split = "test")
-  answers <- gr_mock_client(function(m, p) "Paris")
+  answers <- hr_mock_client(function(m, p) "Paris")
   arm <- hr_arm("ask", function(item, ctx) ctx$call(paste("Capital of", item))$text)
   run <- function(scorer, a = arm, client = answers) {
     suppressWarnings(hr_benchmark(a, ref, runs = 2, client = client, scorer = scorer))
@@ -489,7 +489,7 @@ test_that("hr_benchmark marks runs graded by a judge on the arm's own model", {
                    rep(FALSE, 4))
   # The served model counts too: a provider that answers as "judge-model"
   # makes a run self-judged by a judge of that name.
-  served <- gr_mock_client(function(m, p) {
+  served <- hr_mock_client(function(m, p) {
     gr_result(TRUE, "Paris", model = "mock-model", served_model = "judge-model")
   })
   expect_identical(run(hr_scorer_judge(cfg, v, j$client, judge_model = "judge-model"),
@@ -516,7 +516,7 @@ test_that("hr_report notes self-judged runs and never refuses them", {
   ref <- hr_reference(list(q1 = "France", q2 = "Peru", q3 = "Chad", q4 = "Fiji"),
                       labels = c("Paris", "Lima", "N'Djamena", "Suva"),
                       cluster = c("a", "a", "b", "b"), split = "test")
-  answers <- gr_mock_client(function(m, p) "Paris")
+  answers <- hr_mock_client(function(m, p) "Paris")
   arm <- hr_arm("ask", function(item, ctx) ctx$call(paste("Capital of", item))$text)
   quiet <- hr_arm("quiet", function(item, ctx) "Paris")
   bench <- hr_benchmark(list(arm, quiet), ref, runs = 5, client = answers,
@@ -541,7 +541,7 @@ test_that("self_judged leaves out the requests of a judge the arm calls in its r
   j <- judge_client(function(txt) "pass")
   ref <- hr_reference(list(q1 = "France", q2 = "Peru"), labels = c("Paris", "Lima"),
                       cluster = c("a", "b"), split = "test")
-  mix <- gr_mock_client(function(m, p) {
+  mix <- hr_mock_client(function(m, p) {
     txt <- paste(vapply(m, function(x) x$content, ""), collapse = "\n")
     if (grepl("You grade one response", txt, fixed = TRUE)) {
       return('{"verdict": "pass", "reason": "c"}')

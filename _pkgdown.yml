@@ -48,17 +48,17 @@ reference:
     function you write, and an offline stand-in for practice and tests. See
     `vignette("harnessr")` and the README.
   contents:
-  - gr_client
-  - gr_api_key
-  - gr_ellmer_client
-  - gr_backend_client
-  - gr_mock_client
-  - gr_call
+  - hr_client
+  - hr_api_key
+  - hr_ellmer_client
+  - hr_backend_client
+  - hr_mock_client
+  - hr_call
   - gr_result
-  - gr_models
-  - gr_model_info
-  - gr_model_limits
-  - gr_register_model
+  - hr_models
+  - hr_model_info
+  - hr_model_limits
+  - hr_register_model
 
 - title: Get text out of files
   desc: >
@@ -97,7 +97,7 @@ reference:
   - gr_read_spec
   - gr_readers
   - gr_reader_signature
-  - gr_embed
+  - hr_embed
   - gr_embedders
   - gr_verify_evidence
 
@@ -141,24 +141,24 @@ reference:
     Settings and spending limits, token counts and cost estimates, and the
     trace every run records. See `vignette("runs")`.
   contents:
-  - gr_options
+  - hr_options
   - hr_governor
-  - gr_estimate_cost
-  - gr_count_tokens
-  - gr_tokenizer
-  - gr_set_tokenizer
-  - gr_truncate_tokens
+  - hr_estimate_cost
+  - hr_count_tokens
+  - hr_tokenizer
+  - hr_set_tokenizer
+  - hr_truncate_tokens
   - hr_truncate
   - hr_context_policy
   - hr_context_fit
   - hr_effort_escalate
   - hr_effort_event
   - hr_effort_log
-  - gr_budget
-  - gr_trace
-  - gr_trace_summary
-  - gr_trace_cost
-  - gr_trace_save
+  - hr_budget
+  - hr_trace
+  - hr_trace_summary
+  - hr_trace_cost
+  - hr_trace_save
   - as_json
   - gr_methods_text
 
@@ -167,12 +167,12 @@ reference:
     Paying for a request once, and replaying a recorded run without a model.
     See `vignette("runs")`.
   contents:
-  - gr_cache
-  - gr_cache_client
-  - gr_cache_stats
-  - gr_cache_clear
+  - hr_cache
+  - hr_cache_client
+  - hr_cache_stats
+  - hr_cache_clear
   - gr_flush_caches
-  - gr_replay_client
+  - hr_replay_client
 
 - title: Statistics
   desc: >

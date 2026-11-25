@@ -273,7 +273,7 @@ test_that("a transport failure on one document is reported as partial, not as an
   # model call failed, and what comes back must not look like a finding.
   d <- hostile_corpus()
   n <- 0L
-  flaky <- gr_mock_client(function(messages, params) {
+  flaky <- hr_mock_client(function(messages, params) {
     n <<- n + 1L
     if (n == 1L) stop("simulated 503 from the provider")
     "AN ANSWER"

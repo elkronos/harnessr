@@ -46,7 +46,7 @@ test_that("the kept record takes the DOI and venue its duplicate carried", {
   expect_identical(r$records$source_file, c("a_scholar.bib", "b_scopus.ris"))
   expect_identical(r3_matched(r), c("10.1000_spaced.2019.txt", NA))
 
-  cl <- gr_mock_client(function(messages, params) '{"n": 120, "n__quote": "A trial with n = 120"}')
+  cl <- hr_mock_client(function(messages, params) '{"n": 120, "n__quote": "A trial with n = 120"}')
   ext <- quiet(gr_extract(r, gr_fields(n = gr_field("participants", type = "integer")), client = cl))
   # The extraction table said DOI NA and venue NA for a document it had found
   # through that very DOI.

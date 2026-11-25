@@ -31,7 +31,7 @@ test_that("iterative_fit keeps whole chunks and drops the weakest, not the newes
   # A budget that fits three of the four. The old code truncated the tail, which
   # dropped the material the loop had just gone back for; the weakest chunk is
   # the one that should go.
-  one <- harnessr:::gr_count_tokens(harnessr:::render_chunks(d[1, , drop = FALSE]))
+  one <- harnessr:::hr_count_tokens(harnessr:::render_chunks(d[1, , drop = FALSE]))
   tight <- harnessr:::iterative_fit(d, seen, score, one * 3L, "relevance")
   expect_length(tight$rows, 3L)
   expect_identical(tight$dropped, 2L)
@@ -61,7 +61,7 @@ test_that("a chunk that did not fit the prompt is not reported as read", {
   # everything SEEN, including chunks truncation had removed from the prompt --
   # claiming support the answer does not have.
   local_registries()
-  gr_register_model("tiny-ctx", context_window = 900L, max_output = 200L,
+  hr_register_model("tiny-ctx", context_window = 900L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
   doc <- ctx_doc(paras = 10L)
   ch <- quiet(gr_segment(doc, list(method = "paragraph", max_tokens = 120)))
@@ -81,10 +81,10 @@ test_that("the same holds when the model answers mid-loop", {
   # own accounting, and restoring the old mid-loop truncation there changes
   # nothing the other test can see.
   local_registries()
-  gr_register_model("tiny-ctx", context_window = 900L, max_output = 200L,
+  hr_register_model("tiny-ctx", context_window = 900L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
   round <- 0L
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     if (grepl("reading iteratively", messages[[1]]$content, fixed = TRUE)) {
       round <<- round + 1L
       if (round == 1L) {
@@ -112,7 +112,7 @@ test_that("iterative's final call is budgeted, which it never used to be", {
   # gathered, so several rounds of top_k chunks went out over the window and the
   # provider rejected the call after the whole loop had been paid for.
   local_registries()
-  gr_register_model("tiny-ctx", context_window = 900L, max_output = 200L,
+  hr_register_model("tiny-ctx", context_window = 900L, max_output = 200L,
                     input_usd = 0, output_usd = 0)
   doc <- ctx_doc(paras = 10L)
   ch <- quiet(gr_segment(doc, list(method = "paragraph", max_tokens = 120)))
@@ -123,7 +123,7 @@ test_that("iterative's final call is budgeted, which it never used to be", {
   expect_length(final, 1L)
   body <- paste(vapply(final[[1]]$messages, function(m) as.character(m$content), character(1)),
                 collapse = "\n")
-  expect_lte(gr_count_tokens(body), as.integer(gr_model_info("tiny-ctx")$context_window))
+  expect_lte(hr_count_tokens(body), as.integer(hr_model_info("tiny-ctx")$context_window))
 })
 
 # ---------------------------------------------------------------------------
@@ -181,7 +181,7 @@ test_that("the question reaches the far end of the iterative step prompt too", {
   # That prompt asked first and then handed over several thousand tokens, which
   # is the opposite of what answer_messages() does everywhere else.
   local_registries()
-  gr_register_model("wide-ctx", context_window = 128000L, max_output = 4096L,
+  hr_register_model("wide-ctx", context_window = 128000L, max_output = 4096L,
                     input_usd = 0, output_usd = 0)
   doc <- ctx_doc(paras = 14L, per = 60L)
   ch <- quiet(gr_segment(doc, list(method = "paragraph", max_tokens = 900)))

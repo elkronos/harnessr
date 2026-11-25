@@ -38,7 +38,7 @@ list \emph{deletes the key}, which is why the old code's \code{final_answer} fie
 silently disappeared from the JSON whenever a call failed.
 }
 \examples{
-cl <- gr_mock_client(function(m, p) "45.2 million dollars")
+cl <- hr_mock_client(function(m, p) "45.2 million dollars")
 ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 
 # The answer plus every prompt and response from the same single run.
@@ -46,5 +46,5 @@ txt <- as_json(ans)
 names(jsonlite::fromJSON(txt))
 }
 \seealso{
-\code{\link[=gr_trace_summary]{gr_trace_summary()}}, \link{gr_answer}
+\code{\link[=hr_trace_summary]{hr_trace_summary()}}, \link{gr_answer}
 }

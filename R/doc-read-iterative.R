@@ -8,7 +8,7 @@
 # ---------------------------------------------------------------------------
 #' The gathered chunks that fit one prompt, whole.
 #'
-#' `iterative` used to paste everything gathered and call `gr_truncate_tokens()`
+#' `iterative` used to paste everything gathered and call `hr_truncate_tokens()`
 #' on the result, which was wrong twice over. It cut the TAIL, so the chunks from
 #' the most recent round were the ones dropped. In a reader whose whole premise
 #' is "that did not answer it, go and get more", it discarded the material it had
@@ -40,7 +40,7 @@ iterative_fit <- function(d, seen, score, budget, how = "relevance") {
 #' @noRd
 read_iterative <- function(chunks, question, client, spec, trace) {
   d <- chunks$chunks
-  emb <- gr_embed(client, d$text, trace = trace)
+  emb <- hr_embed(client, d$text, trace = trace)
   degraded_embed <- isTRUE(attr(emb, "embedding_fallback"))
   src <- attr(emb, "embedding_source") %||% "api"
   # The chunks on word overlap, for a round whose query could only be embedded
@@ -99,7 +99,7 @@ read_iterative <- function(chunks, question, client, spec, trace) {
   while (rounds < spec$max_rounds) {
     rounds <- rounds + 1L
     q <- queries[length(queries)]
-    q_emb <- gr_embed(client, q, trace = trace)
+    q_emb <- hr_embed(client, q, trace = trace)
     rank_emb <- emb
     q_vec <- if (nrow(q_emb)) q_emb[1, ] else numeric(0)
     # One space for the query and the chunks. The query is embedded on its own
@@ -140,10 +140,10 @@ read_iterative <- function(chunks, question, client, spec, trace) {
       seen_score <- c(seen_score, sc[take])
     }
 
-    obud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens,
+    obud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens,
                       overhead = prompt_overhead(question, step_system, spec$restate))
     # A refusal sent back under verify = TRUE is one message more to fit.
-    room <- obud$input - if (nzchar(feedback)) gr_count_tokens(feedback) + 8L else 0L
+    room <- obud$input - if (nzchar(feedback)) hr_count_tokens(feedback) + 8L else 0L
     step <- iterative_fit(d, seen, seen_score, room, spec$context_order)
     body <- step$body
     dropped <- step$dropped
@@ -299,7 +299,7 @@ read_iterative <- function(chunks, question, client, spec, trace) {
   # budget and this one rendered everything gathered. Several rounds of top_k
   # chunks routinely exceed the window, and the call was simply rejected by the
   # provider after the whole loop had been paid for.
-  fbud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens,
+  fbud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens,
                     overhead = prompt_overhead(question, answer_system(spec$cite, spec$premise),
                                                spec$restate, structure = answer_structure(spec)))
   final <- iterative_fit(d, seen, seen_score, fbud$input, spec$context_order)

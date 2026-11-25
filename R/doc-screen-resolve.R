@@ -31,7 +31,7 @@
 #' @family corpus functions
 #' @export
 #' @examples
-#' cl <- gr_mock_client(function(messages, params) {
+#' cl <- hr_mock_client(function(messages, params) {
 #'   '{"decision":"unclear","reason":"The excerpt does not say.",
 #'     "criterion":null,"quote":null}'
 #' })

@@ -30,7 +30,7 @@ r6_table <- function(n = 4L) {
 # moderator that is not a column; both claims survive. An outline with two
 # sections, and a structure pass that merges them into one.
 r6_claims_client <- function(revision = NULL) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     sys <- messages[[1]]$content
     all <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                  collapse = " ")
@@ -64,7 +64,7 @@ r6_claims_client <- function(revision = NULL) {
 
 test_that("a protocol edited after the run is flagged, and what the screening used is shown", {
   f <- r6_files(list(a.txt = "A randomised comparison of two treatments in adults."))
-  cl <- gr_mock_client(function(m, p) paste0('{"decision":"include","reason":"r",',
+  cl <- hr_mock_client(function(m, p) paste0('{"decision":"include","reason":"r",',
                                               '"criterion":"Reports a randomised comparison",',
                                               '"quote":null}'))
   p <- gr_protocol("p", question = "Does it work?",
@@ -99,7 +99,7 @@ test_that("a protocol edited after the run is flagged, and what the screening us
   # With no stage to compare against, the report does not vouch for it.
   syn_free <- r6_page(answer = quiet(answer_document(gr_example(), "What was revenue?",
                                                      "fast",
-                                                     client = gr_mock_client(function(m, p) "45.2"))),
+                                                     client = hr_mock_client(function(m, p) "45.2"))),
                       protocol = p)
   expect_match(syn_free, "cannot confirm these are the ones the run used", fixed = TRUE)
   expect_false(grepl("Fixed before", syn_free, fixed = TRUE))
@@ -108,7 +108,7 @@ test_that("a protocol edited after the run is flagged, and what the screening us
 test_that("a schema or an outline that is not the one the run used is flagged", {
   f <- r6_files(list(a.txt = "We ran a randomised trial."))
   fl <- gr_fields(design = "The study design")
-  cl <- gr_mock_client(function(m, p)
+  cl <- hr_mock_client(function(m, p)
     '{"design":"randomised trial","design__quote":"We ran a randomised trial."}')
   p <- gr_protocol("p", question = "What designs?", fields = fl,
                    outline = c(Designs = "Which designs were used"))
@@ -121,7 +121,7 @@ test_that("a schema or an outline that is not the one the run used is flagged", 
   expect_match(h, "The extraction differs from it in its schema.", fixed = TRUE)
   expect_match(h, "<h3>The schema the extraction used</h3>", fixed = TRUE)
 
-  syn <- quiet(gr_synthesise(x, p, client = gr_mock_client(function(m, pp) "Trials [study 1].")))
+  syn <- quiet(gr_synthesise(x, p, client = hr_mock_client(function(m, pp) "Trials [study 1].")))
   expect_false(grepl("differs from it", r6_page(synthesis = syn, protocol = p), fixed = TRUE))
   p3 <- p
   p3$outline <- c(Findings = "What was found")
@@ -132,7 +132,7 @@ test_that("a schema or an outline that is not the one the run used is flagged", 
 
 test_that("with no protocol, the report shows the criteria the screening recorded", {
   f <- r6_files(list(a.txt = "A randomised comparison of two treatments in adults."))
-  cl <- gr_mock_client(function(m, p) paste0('{"decision":"include","reason":"r",',
+  cl <- hr_mock_client(function(m, p) paste0('{"decision":"include","reason":"r",',
                                               '"criterion":"Randomised","quote":null}'))
   s <- quiet(gr_screen(f, question = "Q?", include = "Randomised", exclude = "Animal study",
                        client = cl))
@@ -176,7 +176,7 @@ test_that("a corpus read from presigned links does not put the links' secrets in
   urls <- c("https://bucket.example.org/p.txt?X-Amz-Credential=AKIAKEYID&X-Amz-Signature=SECRETSIG",
             "https://bucket.example.org/denied.txt?X-Amz-Signature=SECRETSIG2")
   co <- quiet(gr_read_many(urls, "What was revenue?", "fast",
-                           client = gr_mock_client(function(m, p) "Revenue was 45.2 million.")))
+                           client = hr_mock_client(function(m, p) "Revenue was 45.2 million.")))
   # The objects no longer hold the secrets either: the corpus labels a fetched
   # document, and the ingest keeps its source, with the query as a fingerprint
   # set off by a space (see url_shown()), which the report shows as it is.
@@ -198,7 +198,7 @@ test_that("a failed request is not reported as every request succeeding", {
   doc <- paste(sprintf(paste0("## Section %d\n\nParagraph %d says revenue in region %d was %d.5 ",
                               "million dollars in the year under review, a figure the board noted."),
                        1:6, 1:6, 1:6, 40 + 1:6), collapse = "\n\n")
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     body <- m[[2]]$content
     one <- lengths(regmatches(body, gregexpr("[chunk ", body, fixed = TRUE))) == 1L
     if (one && grepl("Paragraph 3 says", body, fixed = TRUE)) stop("HTTP 500 upstream")
@@ -229,7 +229,7 @@ test_that("a failed request is not reported as every request succeeding", {
 
 test_that("a clean answer is not partial, and a recovered failure is named as recovered", {
   a <- quiet(answer_document(gr_example(), "What was revenue?", "fast",
-                             client = gr_mock_client(function(m, p) "Revenue was 45.2 million.")))
+                             client = hr_mock_client(function(m, p) "Revenue was 45.2 million.")))
   h <- r6_page(answer = a)
   expect_match(h, "<p class='ok'>Not partial: no request failed", fixed = TRUE)
 
@@ -248,7 +248,7 @@ test_that("a clean answer is not partial, and a recovered failure is named as re
 test_that("an answer whose only request failed is no answer, not 'not found'", {
   f <- r6_files(list(a.txt = "Revenue was 45.2 million.",
                      b.txt = "The memo covers staffing only, in some detail."))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     u <- paste(vapply(m, `[[`, "", "content"), collapse = "\n")
     if (grepl("staffing", u, fixed = TRUE)) stop("HTTP 500 Internal Server Error")
     "Revenue was 45.2 million."
@@ -266,7 +266,7 @@ test_that("an answer whose only request failed is no answer, not 'not found'", {
 
   # A reader that read and found nothing still says "not found".
   none <- quiet(answer_document(f[2], "What was revenue?", "fast",
-                                client = gr_mock_client(function(m, p) "NOT_IN_DOCUMENT")))
+                                client = hr_mock_client(function(m, p) "NOT_IN_DOCUMENT")))
   expect_match(r6_page(answer = none), "<strong>Not found in the document.</strong>", fixed = TRUE)
 })
 
@@ -286,7 +286,7 @@ test_that("the flow counts dropped claims apart from removed study numbers and m
   expect_identical(n("study numbers removed"), 2L)
   expect_identical(n("moderators cleared"), 1L)
 
-  gone <- gr_mock_client(function(messages, params) {
+  gone <- hr_mock_client(function(messages, params) {
     if (grepl("turn a table of studies", messages[[1]]$content, fixed = TRUE)) {
       return(paste0('{"claims":[{"claim":"Real.","kind":"finding","supported_by":[1],',
                     '"contradicted_by":[],"moderator":null,"scope":null},',
@@ -355,12 +355,12 @@ test_that("a kept revision is shown as what was written, with the draft apart", 
 
 test_that("the cost table has the claims and outline calls, and only those", {
   cl <- r6_claims_client()
-  tr <- gr_trace()
+  tr <- hr_trace()
   # Something else on the same trace: a screening's calls, already a row of
   # their own, must not be counted again as claims.
   f <- r6_files(list(a.txt = "A randomised comparison."))
   s <- quiet(gr_screen(f, question = "Q?", include = "Randomised", trace = tr,
-                       client = gr_mock_client(function(m, p) paste0(
+                       client = hr_mock_client(function(m, p) paste0(
                          '{"decision":"include","reason":"r","criterion":"Randomised",',
                          '"quote":null}'))))
   cm <- quiet(gr_claims(r6_table(), question = "Q?", client = cl, trace = tr))
@@ -387,7 +387,7 @@ test_that("the cost table has the claims and outline calls, and only those", {
 
 test_that("a section missing a batch of studies is flagged", {
   local_registries()
-  gr_register_model("small-merge6", context_window = 3000, max_output = 400,
+  hr_register_model("small-merge6", context_window = 3000, max_output = 400,
                     input_usd = 0, output_usd = 0)
   tab <- data.frame(document = sprintf("d%02d.pdf", 1:40), document_id = sprintf("h%02d", 1:40),
                     status = "ok", duplicate_of = NA_character_, n_filled = 2L,
@@ -395,7 +395,7 @@ test_that("a section missing a batch of studies is flagged", {
                     finding = paste(rep("The intervention reduced the outcome modestly in adults.",
                                         9), collapse = " "),
                     stringsAsFactors = FALSE)
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     u <- paste(vapply(m, `[[`, "", "content"), collapse = " ")
     if (grepl("<draft", u, fixed = TRUE)) {
       st <- sub(".*?<draft", "", u)
@@ -432,7 +432,7 @@ test_that("a section missing a batch of studies is flagged", {
 
 test_that("a citation the revision left as a marker is said in the report", {
   syn <- quiet(gr_synthesise(r6_table(2L), outline = c(Findings = "what"), question = "Q?",
-                             client = gr_mock_client(function(m, p) "A benefit [study 1].")))
+                             client = hr_mock_client(function(m, p) "A benefit [study 1].")))
   syn$unrendered <- 2L
   expect_match(r6_page(synthesis = syn),
                "<p class='flag'>Study 2 is cited honestly but left as a [study N] marker",
@@ -453,7 +453,7 @@ test_that("a duplicate document's values and spans are not counted twice", {
                      c.txt = "Revenue was 51.8 million. Staff was 30."))
   fields <- gr_fields(revenue = gr_field("Revenue", type = "number"),
                       staff = gr_field("Staff", type = "integer"))
-  cl <- gr_mock_client(function(m, p) {
+  cl <- hr_mock_client(function(m, p) {
     u <- paste(vapply(m, `[[`, "", "content"), collapse = " ")
     if (grepl("45.2", u, fixed = TRUE)) {
       return(paste0('{"revenue":45.2,"staff":12,"revenue__quote":"Revenue was 45.2 million.",',
@@ -487,7 +487,7 @@ test_that("the page caveat says an unplaced span keeps its chunk's page", {
   })
   f <- tempfile(fileext = ".pgs6")
   writeLines("x", f)
-  cl <- gr_mock_client(function(m, p) '{"n":450,"n__quote":"The trial enrolled 450 adults in total."}')
+  cl <- hr_mock_client(function(m, p) '{"n":450,"n__quote":"The trial enrolled 450 adults in total."}')
   x <- quiet(gr_extract(f, gr_fields(n = gr_field("Participants", "integer")),
                         recipe = list(segment = list(method = "page", max_tokens = 400),
                                       read = list(reader = "extract")), client = cl))
@@ -507,7 +507,7 @@ test_that("the page caveat says an unplaced span keeps its chunk's page", {
 
 test_that("an unstated value is qualified by the forms the check reads", {
   f <- r6_files(list(a.txt = "Twenty-four patients were enrolled at two sites."))
-  cl <- gr_mock_client(function(messages, params)
+  cl <- hr_mock_client(function(messages, params)
     '{"n":5000,"n__quote":"Twenty-four patients were enrolled at two sites."}')
   x <- quiet(gr_extract(f, gr_fields(n = gr_field("Sample size", type = "integer")),
                         client = cl, keep_answers = TRUE))

@@ -61,7 +61,7 @@ is_not_found("The log said NOT_IN_DOCUMENT, but revenue was 45.2 million.")
 # An answer from gr_read() carries its outcome, which is read first.
 ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 400))
 ans <- gr_read(ch, "Who audited the accounts?",
-               gr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), "stuff")
+               hr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), "stuff")
 ans$outcome
 is_not_found(ans)
 }

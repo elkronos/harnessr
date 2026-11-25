@@ -15,7 +15,7 @@ read_skim <- function(chunks, question, client, spec, trace) {
                             prompt_overhead(question, .gr_prompts$extract_system, "never"),
                           spec$max_chunk_tokens)
   res <- gr_lapply(seq_len(nrow(d)), function(i, trace) {
-    r <- gr_call(client, list(
+    r <- hr_call(client, list(
       list(role = "system", content = .gr_prompts$extract_system),
       list(role = "user", content = paste0("Question: ", question)),
       list(role = "user", content = paste0("<excerpt>\n", render_chunks(d[i, , drop = FALSE]),
@@ -54,7 +54,7 @@ read_skim <- function(chunks, question, client, spec, trace) {
   # rule goes only to the request that answers.
   overhead <- prompt_overhead(question, answer_system(spec$cite, spec$premise), spec$restate,
                               structure = answer_structure(spec))
-  bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
+  bud <- hr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   pieces <- sprintf("[chunk %d]\n%s", ev$chunk_id, ev$text)
   body <- paste(pieces, collapse = "\n\n")
   consolidated <- FALSE
@@ -64,7 +64,7 @@ read_skim <- function(chunks, question, client, spec, trace) {
   merge_error <- NULL
   sent <- d$chunk_id
   cite <- spec$cite
-  if (gr_count_tokens(body) > bud$input) {
+  if (hr_count_tokens(body) > bud$input) {
     # Evidence itself can exceed the window on a large document. Consolidate it
     # tree-wise rather than truncating blind. Each passage keeps its label, so
     # a consolidation that carries one forward says where it came from.

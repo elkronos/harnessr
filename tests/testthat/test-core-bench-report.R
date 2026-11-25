@@ -517,7 +517,7 @@ test_that("hr_report reads an hr_benchmark result, prints and writes JSON", {
     labels = c("Paris", "Lima", "N'Djamena", "Suva"),
     cluster = c("a", "a", "b", "b"), split = c("test", "test", "test", "dev"))
   capitals <- c(France = "Paris", Peru = "Lima", Chad = "Ndjamena", Fiji = "Suva")
-  cl <- gr_mock_client(function(messages, params) {
+  cl <- hr_mock_client(function(messages, params) {
     capitals[[sub("Capital of ", "", messages[[1]]$content)]]
   })
   ask <- hr_arm("ask", function(item, ctx) ctx$call(paste0("Capital of ", item))$text)
