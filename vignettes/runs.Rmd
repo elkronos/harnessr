@@ -208,8 +208,8 @@ Two limits are on by default: a run may spend $5 and make 400 calls.
 unlist(hr_options()[c("max_cost_usd", "max_calls")])
 ```
 
-They are checked at two points. The first is before the first request. A run
-is refused there, with a classed error that names the option to change, when:
+They are checked at two points. Before the first request, a run is refused,
+with a classed error that names the option to change, when:
 
 - it would need more calls than `max_calls`, or
 - its reader sends every chunk, and sending them would already cost more than
@@ -324,7 +324,7 @@ holds the whole comparison to `max_cost_usd` and `max_tokens_total`.
 ### Models with no price
 
 A language model with no registered price adds nothing to the spend, so no
-spending limit could stop it. While `max_cost_usd` is set, a request to such a
+spending limit could stop it. With `max_cost_usd` set, a request to such a
 model is refused with a condition of class `hr_unpriced_model`, and `gr_read()`
 stops before its first request. `hr_backend_client()` wraps an R function as a
 paying client, which lets this example show the refusal offline:
@@ -502,7 +502,7 @@ records as `replay_key`. The key covers:
 A prompt with no recorded reply raises `gr_replay_miss` rather than getting an
 invented answer. A miss means the replay has diverged from the recording, and a
 result that looks like the original but differs from it is worse than no replay
-at all. When the prompt was recorded under other settings, the error message
+at all. If the prompt was recorded under other settings, the error message
 names the recorded temperature, cap or schema next to the ones asked for. Pass
 `strict = FALSE` to run a partial recording anyway.
 
@@ -801,7 +801,7 @@ chunks), the raised stage is the smaller share.
 
 `hr_effort_check()` reads a benchmark of such arms with the non-inferiority test
 of `hr_report()`. That test needs a reference with a test split and enough items
-and runs for intervals, so run the check on your own:
+and runs for intervals, so run the check on your own benchmark:
 
 ```{r eval = FALSE}
 chk <- hr_effort_check(bench, candidate = "thorough:effort=escalate", margin = 0.05)
