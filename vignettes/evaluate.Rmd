@@ -364,77 +364,85 @@ from its own entry. An `hr_mock_client()` keeps no cache, so under it the
 
 `hr_report()` turns the reportable rows into accuracy per arm with intervals
 that keep clusters together, paired differences, stability, reliability, cost
-and failures. `B` is the number of cluster bootstrap resamples, 2000 by
-default; this guide uses fewer so it builds quickly.
+and failures. `B` sets the number of cluster bootstrap resamples, 2000 by
+default. This guide uses fewer so it builds quickly.
 
 ```{r}
 rpt <- hr_report(bench, B = 200)
 rpt
 ```
 
-Which interval is used depends on the size of the benchmark, and the second
-line of the print says which and why. With at least 300 items and at least 30
-clusters, `method = "auto"` uses a studentised cluster bootstrap: each resample
-draws whole clusters with all their items, runs and arms. Below either
-threshold, as here, it uses a cluster-robust t interval on the logit scale,
-with t quantiles on C - 1 degrees of freedom for C clusters. Where neither is
-defined, because accuracy is 0 or 1 or the same in every cluster, the arm gets
-Korn and Graubard's interval, one-sided from that bound; that is why `large`
-reads [0.561, 1.000] with four clusters behind it, and a note says so. No
-interval treats items or runs as independent trials. `method = "exact"`
-(Clopper-Pearson on the effective number of items) and `method = "bayes"` (a
-beta-binomial model with a cluster random effect) are there on request.
+The size of the benchmark decides the interval, and the second line of the
+print names it and says why. With at least 300 items and at least 30 clusters,
+`method = "auto"` uses a studentised cluster bootstrap: each resample draws
+whole clusters with all their items, runs and arms. Below either threshold, as
+here, it uses a cluster-robust t interval on the logit scale, with t quantiles
+on C - 1 degrees of freedom for C clusters.
 
-These defaults were chosen by simulation. In `dev/sim-coverage.R` (2000
-replicates) the studentised bootstrap covered 95.5% and 95.0% with 386 items in
-40 clusters, where the BCa bootstrap it replaced covered 93.5%, and the
-cluster-robust t interval covered 95.7% and 95.8% with 50 items in 10 clusters.
-The workflow `validation.yaml` reruns that simulation, and the one behind
-`hr_mdd()`, every night.
+Neither interval is defined when accuracy is 0 or 1 or the same in every
+cluster. The arm then gets Korn and Graubard's interval, one-sided from that
+bound, and a note says so. That is why `large` reads [0.561, 1.000] with four
+clusters behind it. No interval treats items or runs as independent trials.
+`method = "exact"` (Clopper-Pearson on the effective number of items) and
+`method = "bayes"` (a beta-binomial model with a cluster random effect) are
+there on request.
+
+These defaults come from simulation. In `dev/sim-coverage.R` (2000 replicates)
+the studentised bootstrap covered 95.5% and 95.0% with 386 items in 40
+clusters, where the BCa bootstrap it replaced covered 93.5%. The cluster-robust
+t interval covered 95.7% and 95.8% with 50 items in 10 clusters. The workflow
+`validation.yaml` reruns that simulation, and the one behind `hr_mdd()`, every
+night.
 
 Paired differences are taken item by item, so each one compares the arms on
-the same question, with a cluster-robust t interval at every size and
-simultaneous intervals over all pairs beside it. Arms are listed in benchmark
-order, not ranked; the rank interval is how much the order could change over
-resamples, and `small` and `large` here are ranked 2 and 1 in every one.
+the same question. Each difference gets a cluster-robust t interval at every
+size, with simultaneous intervals over all pairs beside it. The report lists
+arms in benchmark order and does not rank them. The rank interval shows how
+much the order could change over resamples: `small` and `large` here rank 2
+and 1 in every one.
 
-The stability rows describe each arm against itself. The flip rate is the share
-of items whose correctness changed between runs, TARa the share whose scored
-output was the same on every run, and `run_sd` the spread of whole-run accuracy.
-`small` flips on 75% of its items, which an accuracy of 0.750 alone would hide.
-Reliability is pass^k, the chance that k runs drawn from an item's runs are all
-right, estimated without bias: an arm right 75% of the time is right on all
-five runs of an item only 25% of the time here.
+The stability rows compare each arm with itself:
 
-Cost is in dollars and tokens per item and per correct item, since a cheap arm
-that is often wrong can cost more per right answer than it looks. An arm whose
-dollars rest on estimated token counts for more than 5% of its spend is
-flagged; the mock reports no token counts, so both are flagged here. The
+- the flip rate is the share of items whose correctness changed between runs;
+- TARa is the share whose scored output was the same on every run;
+- `run_sd` is the spread of whole-run accuracy.
+
+`small` flips on 75% of its items, and an accuracy of 0.750 alone would hide
+that. Reliability is pass^k, the chance that k runs drawn from an item's runs
+are all right, estimated without bias. Here an arm right 75% of the time is
+right on all five runs of an item only 25% of the time.
+
+Cost comes in dollars and tokens per item and per correct item, since a cheap
+arm that is often wrong can cost more per right answer than it looks. The
+report flags an arm when more than 5% of its spend rests on estimated token
+counts. The mock reports no token counts, so both arms are flagged here. The
 frontier is the set of arms no other arm beats on both dollars per item and
-accuracy, with each arm's share of resamples on it. Failures are counted by
-kind, every one counted wrong, with accuracy recomputed without parse failures
-and refusals beside it. The variance line splits the spread into within-item
-(run to run) and between-item parts; when runs account for more than 10% of it,
-as here at 80%, the report says to use 10 runs.
+accuracy, with each arm's share of resamples on it.
 
-Below 5 runs the report is descriptive only, with point estimates and no
-intervals. An item scored on some runs and not others is refused. Everything
-is in the returned list (`rpt$accuracy`, `rpt$contrasts`, `rpt$pass_k`,
+Failures are counted by kind, and every one counts as wrong. Beside them, the
+report gives accuracy recomputed without parse failures and refusals. The
+variance line splits the spread into within-item (run to run) and between-item
+parts. When runs account for more than 10% of it, as here at 80%, the report
+says to use 10 runs.
+
+With fewer than 5 runs the report is descriptive only: point estimates and no
+intervals. The report refuses an item scored on some runs and not others. The
+returned list holds every part (`rpt$accuracy`, `rpt$contrasts`, `rpt$pass_k`,
 `rpt$cost`, `rpt$frontier`, `rpt$failures`, `rpt$variance`, `rpt$notes`), and
 `as_json()` writes it out.
 
 ### Errors the arms share {#set-errcorr}
 
-**What it controls.** `hr_error_correlation()` says how far the arms' errors
-go together: the phi coefficient between each pair's errors within strata of
-item difficulty (`n_strata`, or your own `strata`), the share of items both
-got wrong where they gave the same wrong answer, and a sample of `n_check`
-items every arm got wrong, for a person to read. Two arms with good
+**What it controls.** `hr_error_correlation()` measures how far the arms'
+errors go together. It gives the phi coefficient between each pair's errors
+within strata of item difficulty (`n_strata`, or your own `strata`), the share
+of items both got wrong where they gave the same wrong answer, and a sample of
+`n_check` items every arm got wrong, for a person to read. Two arms with good
 accuracy that fail on the same items gain little from being combined, or from
-checking each other. It reads the benchmark's rows (with `held_out = TRUE`,
-only those that count as evidence) and sends nothing. Yen's Q3, the residual
-correlation of an item response model, is not computed: it needs a mixed-model
-package harnessr does not depend on.
+checking each other. The function reads the benchmark's rows (with
+`held_out = TRUE`, only those that count as evidence) and sends nothing. It
+does not compute Yen's Q3, the residual correlation of an item response model,
+since that needs a mixed-model package harnessr does not depend on.
 
 **Signs it needs reading.** A plan to vote across arms, to use one arm to
 check another, or to call two arms' agreement a sign of being right; or a
@@ -465,9 +473,9 @@ ec$check
 ```
 
 Every pair is positively correlated, and every pair that is wrong together
-gives the same wrong answer, "no": the three items every arm gets wrong carry
-most of it. With difficulty strata (`n_strata = 3`, the default) the items are
-cut by the share of runs that got them wrong:
+gives the same wrong answer, "no". Most of that comes from the three items
+every arm gets wrong. With difficulty strata (`n_strata = 3`, the default),
+the function cuts the items by the share of runs that got them wrong:
 
 ```{r}
 ec3 <- hr_error_correlation(eb)
@@ -485,15 +493,19 @@ out negative.
 ### What a reader keeps: `gr_condensation_check()`
 
 A reader that carries a running draft through a document, as `refine` does,
-condenses as it goes, and can lose an early fact, take a value from a
+condenses as it goes. It can lose an early fact, take a value from a
 near-namesake, or keep a figure the document later corrected.
 `gr_condensation_check()` builds a benchmark that measures each of these
-without a model judge. It plants facts in a document (synthetic filler, or a
-text of your own), each with a question whose answer is the planted value;
-plants lures, the same measure for a near-namesake with another value; and
-states one fact wrongly near the start and corrects it near the end. Each
-document is given forwards and reversed by paragraph (`gr_reverse_text()`),
-so a fact the forward reader meets last, the reverse reader meets first.
+without a model judge. In a document (synthetic filler, or a text of your own)
+it:
+
+- plants facts, each with a question whose answer is the planted value;
+- plants lures, the same measure for a near-namesake with another value;
+- states one fact wrongly near the start and corrects it near the end.
+
+Each document is given forwards and reversed by paragraph
+(`gr_reverse_text()`), so the reverse reader meets first the fact the forward
+reader meets last.
 
 ```{r}
 chk <- gr_condensation_check(n_facts = 4, n_lures = 1, paragraphs = 8)
@@ -501,10 +513,10 @@ chk
 chk$items[chk$items$order == "forward", c("kind", "question", "answer", "lure", "superseded")]
 ```
 
-The arms differ in how they carry the document. Here a stand-in model plays a
-reader whose draft takes the lure's value and keeps the superseded figure,
-while a ledger of findings does not; on a real model the same code measures
-what each actually does.
+The two arms below differ in how they carry the document: a running draft or a
+ledger of findings. Here a stand-in model plays a reader whose draft takes the
+lure's value and keeps the superseded figure, while a ledger of findings does
+neither. On a real model the same code measures what each one does.
 
 ```{r}
 facts <- chk$items
@@ -524,13 +536,17 @@ cb <- hr_benchmark(arms, chk$reference, runs = 5, client = condenser, scorer = c
 gr_condensation_summary(chk, cb)
 ```
 
-`fact_recall` is the share of runs whose answer holds the planted value,
-`lure_rate` the share of runs on lure items whose answer holds the lure's,
-`correction_won` the share of runs on the corrected fact that give the new
-figure and not the old, and `late_recall` fact recall over the facts in the
-last third of the document as it was read. `hr_report()` reads the same
-benchmark with intervals, since the check's `reference` and `scorer` are
-ordinary ones.
+In the summary:
+
+- `fact_recall` is the share of runs whose answer holds the planted value;
+- `lure_rate` is the share of runs on lure items whose answer holds the lure's;
+- `correction_won` is the share of runs on the corrected fact that give the new
+  figure and not the old;
+- `late_recall` is fact recall over the facts in the last third of the document
+  as it was read.
+
+The check's `reference` and `scorer` are ordinary ones, so `hr_report()` reads
+the same benchmark with intervals.
 
 ## Planning the size, and non-inferiority
 
