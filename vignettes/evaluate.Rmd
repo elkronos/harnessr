@@ -227,7 +227,7 @@ arms <- list(gr_arm("fast", settings = list(model = "mock-small"), name = "small
 
 A `gr_arm()` takes the package version as its version, since readers and
 prompts change between releases. Every request of a run carries the run's draw
-index, segmenter and reader requests included. When the run's limits leave a
+index, segmenter and reader requests included. If the run's limits leave a
 reader too little room to start, the reader returns a partial not-found answer
 that notes the limit, and that answer is scored as a budget stop, not an error.
 
@@ -237,9 +237,9 @@ compared) and a `failure_kind` saying why a wrong output was wrong:
 or `"error"`. `hr_scorer_exact()`, the default, compares text after folding case
 and white space. For reading recipes, use `gr_scorer_answer()`. It counts an
 answer right when the answer contains any acceptable answer, after folding
-case, white space and thousands separators, with numbers matched whole (`"12"` is not
-found in `".12"` or `"-12"`, but is found in `"12-15"`, and `"45.2"` in
-`"45.2m"`):
+case, white space and thousands separators. Numbers are matched whole: `"12"`
+is not found in `".12"` or `"-12"`, but is found in `"12-15"`, and `"45.2"` in
+`"45.2m"`:
 
 ```{r}
 s <- gr_scorer_answer()
@@ -675,8 +675,8 @@ compares the judge's decisions with blind human labels for one configuration.
 It refuses fewer than 50 human-positive or 50 human-negative items, with class
 `hr_judge_too_few_labels`, and you cannot lower those minimums. At 10%
 prevalence, 100 labels hold 10 positives, and sensitivity then has an interval
-of about plus or minus 0.3. Here the simulated judge decides right 90% of the
-time:
+of about plus or minus 0.3. Here the judge's simulated decisions are right 90%
+of the time:
 
 ```{r}
 hr_register_model("mock-judge", context_window = 128000, max_output = 4096,
@@ -1067,7 +1067,7 @@ hr_calibration_valid(cal, later)
 hr_apply_signal(0.95, policy, cal, later)$reason
 ```
 
-When the signal cannot gate, the item is routed by `on_fail`: to a check (the
+If the signal cannot gate, `on_fail` routes the item: to a check (the
 default), to a person, or nowhere. No reader calls `hr_apply_signal()` yet, so
 in this release nothing gates on a signal.
 
