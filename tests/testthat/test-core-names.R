@@ -46,6 +46,19 @@ test_that("the renamed constructors still make gr_ classes", {
   expect_true(inherits(replay, "gr_client"))
 })
 
+test_that("a gr_result saved before the rename prints with its method", {
+  # fixtures/legacy-0.6.0/cache was written by the build at c91b04b, which
+  # still exported the core functions as gr_ (see dev/record-legacy-keys.R).
+  files <- list.files(file.path(legacy_keys_dir(), "cache"), pattern = "[.]rds$",
+                      recursive = TRUE, full.names = TRUE)
+  expect_gt(length(files), 0L)
+  res <- readRDS(sort(files)[1])$result
+  expect_identical(class(res), "gr_result")
+  out <- capture.output(print(res))
+  expect_match(out[1], "^<gr_result> ok=TRUE model=gpt-4o-mini in=")
+  expect_match(out[2], res$text, fixed = TRUE)
+})
+
 test_that("a trace saved by hr_trace_save() reads back as a gr_trace", {
   local_registries()
   mock <- hr_mock_client(function(m, p) "an answer")

@@ -1,8 +1,8 @@
 # ---------------------------------------------------------------------------
 # Secrets. First, because this package reads an API key from the environment.
 #
-# .Rprofile is here because the README documents it as a place to put
-# OPENAI_API_KEY. A project .Rprofile is otherwise a perfectly normal thing to
+# .Rprofile is here because the get started guide documents it as a place
+# to put the API key. A project .Rprofile is otherwise a perfectly normal thing to
 # commit, so if you use one for settings rather than secrets, keep the key in
 # .Renviron and un-ignore this line.
 # ---------------------------------------------------------------------------
@@ -52,12 +52,6 @@ readgpt_history_*.json
 
 # Tables written by dev/sim-coverage.R and dev/sim-power.R.
 sim-results/
-
-# The audit reports the README's examples write to the working directory,
-# gr_audit_report("answer.html", ...) and gr_audit_report("audit.html", ...).
-# The tests workflow runs those examples from the repository root.
-/answer.html
-/audit.html
 
 # ---------------------------------------------------------------------------
 # One-time migration scaffolding. These exist to get from the previous release

@@ -172,3 +172,39 @@ test_that("the old cache key names this package's functions as readgpt's", {
                           collapse = "\u0001"))
   expect_false(identical(extra_hash, as_harnessr))
 })
+
+test_that("entries readgpt kept in its documented cache directory still answer", {
+  # readgpt's help suggested tools::R_user_dir("readgpt", "cache"). A cache set
+  # to harnessr's directory reads the old one after it, writes nothing there and
+  # leaves it in place. R_USER_CACHE_DIR moves both directories into a temp dir.
+  local_registries()
+  harnessr::hr_options(verbose = FALSE)
+  withr::local_envvar(R_USER_CACHE_DIR = withr::local_tempdir())
+  new <- tools::R_user_dir("harnessr", "cache")
+  old <- tools::R_user_dir("readgpt", "cache")
+  dir.create(new, recursive = TRUE)
+  dir.create(old, recursive = TRUE)
+  for (f in list.files(file.path(legacy_keys_dir(), "cache"), recursive = TRUE)) {
+    dir.create(file.path(old, dirname(f)), showWarnings = FALSE)
+    file.copy(file.path(legacy_keys_dir(), "cache", f), file.path(old, f))
+  }
+  old_files <- list.files(old, recursive = TRUE)
+  expect_length(old_files, 5L)
+
+  cache <- hr_cache(new)
+  base <- legacy_keys_client()
+  run <- legacy_keys_run(hr_cache_client(base, cache))
+  expect_identical(legacy_keys_text(run$out), legacy_keys_recorded())
+  expect_length(base$calls(), 0L)
+  expect_identical(hr_cache_stats(cache)[c("hits", "misses", "writes")],
+                   data.frame(hits = 6L, misses = 0L, writes = 0L))
+  expect_length(list.files(new, recursive = TRUE), 0L)
+  expect_identical(list.files(old, recursive = TRUE), old_files)
+
+  # A cache anywhere else does not look in readgpt's directory: every call is
+  # sent, except the repeated prompt, which the new cache now answers.
+  other <- hr_cache(withr::local_tempdir())
+  base2 <- legacy_keys_client()
+  invisible(legacy_keys_run(hr_cache_client(base2, other)))
+  expect_length(base2$calls(), 5L)
+})

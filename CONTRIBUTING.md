@@ -14,17 +14,22 @@ From the repository root:
 ```bash
 bash run-tests.sh            # install what is missing, install the package, run the suite
 bash run-tests.sh --check    # a full R CMD check instead
+bash run-tests.sh --help     # the other options
 ```
 
-Every test uses an offline mock client, so no key is needed and no request
-leaves your machine. The parallel tests start worker processes, and each
+The suite needs `testthat` and `withr`. Install `future` and
+`future.apply` too: without them, the tests of a parallel run's call and
+cost counts are skipped. Every test uses an offline mock client, so no key
+is needed and no request leaves your machine. The parallel tests start worker processes, and each
 worker loads the installed harnessr, not your source tree. `run-tests.sh`
 installs the package first; when you run a test file yourself, reinstall
 with `R CMD INSTALL .` before it, or the workers run the old code. The tests
 workflow on GitHub runs the same suite, then runs every R block of the
-README, knits every guide with no key and no network, and fails if any of
-that left a new or changed file in the repository that `git status`
-reports. Files `.gitignore` names are not reported, so output that matches
+README and compares the output each block documents with real output. It
+knits every guide with no key and no network, checks the registry counts
+the get started guide states against the registries, fails if two readers
+share a traversal signature, and fails if any of that left a new or
+changed file in the repository that `git status` reports. Files `.gitignore` names are not reported, so output that matches
 one of its patterns (`docs/`, `*.Rout`, `readgpt_history_*.json`,
 `sim-results/`) passes that check unseen.
 
@@ -58,6 +63,17 @@ A pull request runs these workflows:
 | `pr-checks.yaml` | `pull request checks` | the `tests`, `deps`, `namespace`, `commits` and `dashes` modes, one step each; every step runs even when an earlier one fails, and the step name says which check failed |
 | `pr-lint.yaml` | `lint changed R files` | the `lint` mode |
 | `pkgdown.yaml` | `pkgdown` | builds the site without publishing it, only when the pull request changes a file the site is built from (the list is in the workflow) |
+
+Two more workflows never run on pull requests. `ellmer-devel.yaml` runs
+weekly and by hand: it installs ellmer from its GitHub repository and runs
+every test file that exercises `hr_ellmer_client()`. `validation.yaml` runs
+nightly and by hand: it simulates clustered benchmarks to check the
+coverage of `hr_report()`'s intervals (`dev/sim-coverage.R`) and checks
+`hr_mdd()` against a power simulation (`dev/sim-power.R`), 2000 replicates
+each, and keeps the tables as an artifact.
+
+No workflow needs a repository secret. `OPENAI_API_KEY` is empty, or a
+dummy value for the README blocks, so a real key cannot change a result.
 
 The `dashes` step fails when a pull request adds a line with an em dash, an
 en dash or a double hyphen between spaces. It reads `R/`, `man/`,
@@ -117,10 +133,7 @@ check that never starts stays pending.
 - **Results go outside the package.** Tests, guides and help page
   examples write to `tempdir()` or a directory the user chose, never into
   the repository. Live runs and their results are kept outside the
-  repository too. Two README examples are the exception:
-  `gr_audit_report("answer.html", ...)` and `gr_audit_report("audit.html", ...)`
-  write to the working directory, so `.gitignore` names `/answer.html` and
-  `/audit.html`.
+  repository too.
 
 ### What harnessr does not do
 

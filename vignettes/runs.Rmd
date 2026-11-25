@@ -329,7 +329,7 @@ price.
 An `hr_ellmer_client()` is priced as the model its ellmer object was built with,
 whatever a recipe names, so one built on a model with no registered price is
 refused too. Register that model at your provider's current prices, or let a
-local model run unpriced; the README's "Connecting a model" section shows both.
+local model run unpriced; `vignette("harnessr")` shows both.
 Through ellmer, a `temperature` in a read spec is ignored with a warning,
 because sampling parameters belong to the ellmer object, and embeddings come
 from a function you pass as `embed =`; without one, `retrieve` and the
