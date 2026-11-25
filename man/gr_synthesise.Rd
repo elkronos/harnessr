@@ -75,7 +75,7 @@ conventional names are looked for, which is why
 \code{gr_protocols("bibliography")} works without configuration: \code{citation}
 (or \code{cite}, \code{citation_key}, \code{cite_key}), \code{authors} (or \code{author}), \code{year},
 \code{title}, \code{venue} (or \code{journal}) and \code{doi}, in any case. Names that are as
-often findings -- \code{date}, \code{source}, \code{url}, \code{published}, \code{publication} --
+often findings (\code{date}, \code{source}, \code{url}, \code{published}, \code{publication})
 are not taken for bibliographic ones unless named here. A column found
 this way is withheld from the writing prompts and used for the citations
 and references; give a role as \code{NA} to keep a column of that name as a
@@ -149,12 +149,12 @@ than being handed every study and writing a paragraph per row. Needs an
 an outline derived from these same claims: the run stops
 (\code{gr_claims_mismatch}) when the outline says it came from other claims,
 and (\code{gr_claims_unplaced}) when the assignment places a claim in a heading
-the outline does not have -- a heading renamed after \code{\link[=gr_outline]{gr_outline()}}, say;
-rename it in \code{attr(outline, "claims")$section} too. A section given no
+the outline does not have, such as a heading renamed after \code{\link[=gr_outline]{gr_outline()}}.
+Rename it in \code{attr(outline, "claims")$section} too. A section given no
 claims is written from the rows, as without \code{claims}, except the closing
-section, which is written from \code{gaps} alone and is left out when there
-are none. A section too large for one prompt is written a few claims at a
-time, each batch sent only its claims' studies, and merged.}
+section, which is written from \code{gaps} alone and is left out when there are
+none. A section too large for one prompt is written a few claims at a time,
+each batch sent only its claims' studies, and merged.}
 
 \item{gaps}{A \code{\link[=gr_gaps]{gr_gaps()}} result, or lines of text. Given to the closing
 section \code{\link[=gr_outline]{gr_outline()}} named, \code{attr(outline, "closing")}, with an
@@ -381,7 +381,7 @@ document: the expensive reading has already happened.
 The merge folds every batch draft into one reply of at most
 \code{max_section_tokens}, the same limit each draft had, so a section drafted
 from a very large table covers only what that one reply can hold. Nothing
-checks that it cites every study -- a section need not -- but without
+checks that it cites every study (a section need not), but without
 \code{claims} a batch none of whose studies the merged section cites is
 reported (\code{gr_synth_batch_dropped}) and marks it partial. Raise
 \code{max_section_tokens}, or divide the table between narrower sections.
