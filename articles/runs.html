@@ -92,23 +92,23 @@ introduces the package and its ideas.</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
-<p>The examples run offline. <code><a href="../reference/gr_mock_client.html">gr_mock_client()</a></code> plays the
+<p>The examples run offline. <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> plays the
 part of the model, and <code>embedder = "lexical"</code> gives free,
 deterministic word-overlap vectors in place of an embeddings
 endpoint.</p>
 <p>A mock costs nothing, which would leave every limit below with
 nothing to count. So the examples give it a price:
-<code><a href="../reference/gr_register_model.html">gr_register_model()</a></code> registers a model id at $2 per million
+<code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> registers a model id at $2 per million
 input tokens and $8 per million output tokens, and each run names that
 model, so every request is priced at those rates.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/gr_register_model.html">gr_register_model</a></span><span class="op">(</span><span class="st">"priced-mock"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span>
+<span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"priced-mock"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">2</span>, output_usd <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
-<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
+<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="what-a-run-records">What a run records<a class="anchor" aria-label="anchor" href="#what-a-run-records"></a>
@@ -134,15 +134,15 @@ something degraded, and <code>ans$notes</code> says what:
 <code>cost_cap_reached</code> and so on. <code>ans$warnings</code> holds
 every warning raised while the document was read.</p>
 <p>The trace holds every request the run made.
-<code><a href="../reference/gr_trace_summary.html">gr_trace_summary()</a></code> gives the totals,
-<code><a href="../reference/gr_trace_cost.html">gr_trace_cost()</a></code> the bill by model, and
+<code><a href="../reference/hr_trace_summary.html">hr_trace_summary()</a></code> gives the totals,
+<code><a href="../reference/hr_trace_cost.html">hr_trace_cost()</a></code> the bill by model, and
 <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> one row per request with its stage, tokens,
 cost, time, prompt and reply:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_trace_summary.html">gr_trace_summary</a></span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"cached"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span>, <span class="st">"errors"</span><span class="op">)</span><span class="op">]</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_trace_summary.html">hr_trace_summary</a></span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"cached"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span>, <span class="st">"errors"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   calls cached tokens_in tokens_out errors</span></span>
 <span><span class="co">#&gt; 1    11      0      2444        143      0</span></span>
-<span><span class="fu"><a href="../reference/gr_trace_cost.html">gr_trace_cost</a></span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>, <span class="st">"calls"</span>, <span class="st">"paid_calls"</span>, <span class="st">"usd"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu"><a href="../reference/hr_trace_cost.html">hr_trace_cost</a></span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>, <span class="st">"calls"</span>, <span class="st">"paid_calls"</span>, <span class="st">"usd"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;         model calls paid_calls      usd</span></span>
 <span><span class="co">#&gt; 1 priced-mock    11         11 0.006032</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"step"</span>, <span class="st">"stage"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span>, <span class="st">"usd"</span><span class="op">)</span><span class="op">]</span></span>
@@ -159,14 +159,14 @@ cost, time, prompt and reply:</p>
 <span><span class="co">#&gt; 10   13 map.answer       227         13 0.000558</span></span>
 <span><span class="co">#&gt; 11   14     reduce       296         13 0.000696</span></span></code></pre></div>
 <p>The token totals are the size of the prompts and replies, which is
-the shape of a run, not its bill. <code><a href="../reference/gr_trace_cost.html">gr_trace_cost()</a></code> counts
+the shape of a run, not its bill. <code><a href="../reference/hr_trace_cost.html">hr_trace_cost()</a></code> counts
 only the calls that were issued: a call answered from a cache or a
 recording spent nothing, however long its prompt. A model with no
 registered price contributes <code>NA</code>, never 0, so a total cannot
 quietly leave one out.</p>
 <p>You can also ask what a run would cost before you make it:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_estimate_cost.html">gr_estimate_cost</a></span><span class="op">(</span><span class="st">"priced-mock"</span>, input_tokens <span class="op">=</span> <span class="fl">120000</span>, output_tokens <span class="op">=</span> <span class="fl">4000</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"priced-mock"</span>, input_tokens <span class="op">=</span> <span class="fl">120000</span>, output_tokens <span class="op">=</span> <span class="fl">4000</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0.272</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="what-each-request-records">What each request records<a class="anchor" aria-label="anchor" href="#what-each-request-records"></a>
@@ -207,7 +207,7 @@ are kept as <code>tokens$reasoning</code> and
 <span><span class="co">#&gt; List of 4</span></span>
 <span><span class="co">#&gt;  $ label      : chr "reduce"</span></span>
 <span><span class="co">#&gt;  $ attempts   : int 1</span></span>
-<span><span class="co">#&gt;  $ started_utc: chr "2026-11-25T12:17:43.217Z"</span></span>
+<span><span class="co">#&gt;  $ started_utc: chr "2026-11-25T12:40:47.831Z"</span></span>
 <span><span class="co">#&gt;  $ tokens     :List of 3</span></span>
 <span><span class="co">#&gt;   ..$ input     : int 296</span></span>
 <span><span class="co">#&gt;   ..$ output    : int 13</span></span>
@@ -224,7 +224,7 @@ are kept as <code>tokens$reasoning</code> and
 <span><span class="co">#&gt;  $ schema_hash    : chr NA</span></span>
 <span><span class="co">#&gt;  $ extra_body_hash: chr NA</span></span></code></pre></div>
 <p>A mock reports no usage, so its counts are estimated.
-<code><a href="../reference/gr_trace_summary.html">gr_trace_summary()</a></code> gives the share of requests whose counts
+<code><a href="../reference/hr_trace_summary.html">hr_trace_summary()</a></code> gives the share of requests whose counts
 were estimated as <code>usage_estimated</code>, and <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>
 on a trace says so when it is above zero.</p>
 <p><code>refine</code> and <code>hierarchical</code> also record the
@@ -245,12 +245,12 @@ limit, and the tokens before, kept and dropped. <code>refine</code> and
 tokens were cut to fit. Here a model with a 1,000-token window makes
 <code>refine</code> cut its growing draft:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_model.html">gr_register_model</a></span><span class="op">(</span><span class="st">"small-window"</span>, context_window <span class="op">=</span> <span class="fl">1000</span>, max_output <span class="op">=</span> <span class="fl">500</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"small-window"</span>, context_window <span class="op">=</span> <span class="fl">1000</span>, max_output <span class="op">=</span> <span class="fl">500</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">2</span>, output_usd <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
 <span><span class="va">long_draft</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"Revenue was 45.2 million dollars, and the draft says so."</span>, <span class="fl">30</span><span class="op">)</span>,</span>
 <span>                    collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span></span>
 <span><span class="va">cut</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"fast"</span>,</span>
-<span>                       client <span class="op">=</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="va">long_draft</span><span class="op">)</span>,</span>
+<span>                       client <span class="op">=</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="va">long_draft</span><span class="op">)</span>,</span>
 <span>                       reader <span class="op">=</span> <span class="st">"refine"</span>, model <span class="op">=</span> <span class="st">"small-window"</span>,</span>
 <span>                       max_tokens <span class="op">=</span> <span class="fl">120</span>, max_answer_tokens <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
 <span><span class="va">cuts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Filter</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">label</span>, <span class="st">"truncate"</span><span class="op">)</span>, <span class="va">cut</span><span class="op">$</span><span class="va">trace</span><span class="op">$</span><span class="va">steps</span><span class="op">)</span></span>
@@ -273,25 +273,25 @@ capped findings a failed merge returns,
 <code>segment.contextual.document</code>, <code>screen.opening</code>,
 <code>synthesise.gaps</code> and <code>embed.input</code>.</p>
 <p>A trace also records who the run is for and what it ran under.
-<code><a href="../reference/gr_trace.html">gr_trace()</a></code> takes <code>system</code>, <code>owner</code>,
+<code><a href="../reference/hr_trace.html">hr_trace()</a></code> takes <code>system</code>, <code>owner</code>,
 <code>run_by</code>, <code>purpose</code> and <code>approved_by</code>,
-and <code>gr_options(actor = list(...))</code> sets them for every
+and <code>hr_options(actor = list(...))</code> sets them for every
 trace; a field named nowhere is <code>NA</code>.
 <code>trace$config</code> is a snapshot of the options in force when the
 trace was made, with the R version. The values of
 <code>api_headers</code> are left out, since they can hold
 credentials.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_trace.html">gr_trace</a></span><span class="op">(</span>owner <span class="op">=</span> <span class="st">"finance team"</span>, run_by <span class="op">=</span> <span class="st">"ana"</span>, purpose <span class="op">=</span> <span class="st">"Q3 check"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>owner <span class="op">=</span> <span class="st">"finance team"</span>, run_by <span class="op">=</span> <span class="st">"ana"</span>, purpose <span class="op">=</span> <span class="st">"Q3 check"</span><span class="op">)</span></span>
 <span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261125121743.781_bb1193&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261125124048.292_3f0995&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   cost: no cost recorded</span></span>
 <span><span class="co">#&gt;   actor: owner = finance team, run_by = ana, purpose = Q3 check </span></span>
-<span><span class="co">#&gt;   started: 2026-11-25T12:17:43.781Z</span></span>
+<span><span class="co">#&gt;   started: 2026-11-25T12:40:48.292Z</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">tr</span><span class="op">$</span><span class="va">config</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "options"   "r_version"</span></span></code></pre></div>
 <p><code>as_json(ans)</code> writes the answer with every prompt and
-response from the same run, and <code><a href="../reference/gr_trace_save.html">gr_trace_save()</a></code> writes the
+response from the same run, and <code><a href="../reference/hr_trace_save.html">hr_trace_save()</a></code> writes the
 trace alone, which is what a replay reads.</p>
 </div>
 <div class="section level3">
@@ -333,7 +333,7 @@ document.</p>
 <p>Two limits are on by default: a run may spend $5 and make 400
 calls.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"max_cost_usd"</span>, <span class="st">"max_calls"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"max_cost_usd"</span>, <span class="st">"max_calls"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt; max_cost_usd    max_calls </span></span>
 <span><span class="co">#&gt;            5          400</span></span></code></pre></div>
 <p>They are checked twice. Before the first request, a run is refused
@@ -347,9 +347,9 @@ Here <code>map_reduce</code> over five chunks needs six calls:</p>
 <span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue?"</span>, <span class="va">cl</span>, <span class="va">spec</span>,</span>
-<span>          trace <span class="op">=</span> <span class="fu"><a href="../reference/gr_trace.html">gr_trace</a></span><span class="op">(</span>governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_calls <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>          trace <span class="op">=</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_calls <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  gr_call_cap <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Reader 'map_reduce' over 5 chunks would need about 6 more model calls (0 already made this run), above the 3-call cap. Use a larger `max_tokens` when segmenting (fewer chunks), pick a top-k reader, or raise gr_options(max_calls = ...)."</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "Reader 'map_reduce' over 5 chunks would need about 6 more model calls (0 already made this run), above the 3-call cap. Use a larger `max_tokens` when segmenting (fewer chunks), pick a top-k reader, or raise hr_options(max_calls = ...)."</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="every-request-is-checked-before-it-is-sent">Every request is checked before it is sent<a class="anchor" aria-label="anchor" href="#every-request-is-checked-before-it-is-sent"></a>
 </h3>
@@ -366,7 +366,7 @@ the merge does not. Its reply cap is 1500 tokens, which at $8 per
 million could cost more than the run has left, so the answer comes back
 partial:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_trace.html">gr_trace</a></span><span class="op">(</span>governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_cost_usd <span class="op">=</span> <span class="fl">0.01</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_cost_usd <span class="op">=</span> <span class="fl">0.01</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">capped</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue?"</span>, <span class="va">cl</span>, <span class="va">spec</span>, trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span></span>
 <span><span class="va">capped</span><span class="op">$</span><span class="va">partial</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
@@ -374,7 +374,7 @@ partial:</p>
 <span><span class="co">#&gt;   calls spent_usd stop_reason</span></span>
 <span><span class="co">#&gt; 1     5  0.002428        cost</span></span>
 <span><span class="va">tr</span><span class="op">$</span><span class="va">refusals</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">message</span></span>
-<span><span class="co">#&gt; [1] "spending limit reached: the 'reduce' request could cost up to $0.01 (up to 232 prompt tokens, and 1500 reply tokens at its cap), and the run has spent $0.0024 of its $0.01 limit, so it was not sent; raise gr_options(max_cost_usd =) or ask for a smaller max_output"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "spending limit reached: the 'reduce' request could cost up to $0.01 (up to 232 prompt tokens, and 1500 reply tokens at its cap), and the run has spent $0.0024 of its $0.01 limit, so it was not sent; raise hr_options(max_cost_usd =) or ask for a smaller max_output"</span></span></code></pre></div>
 <p>The bound rests on two things harnessr cannot see: that the provider
 stops each reply at its cap, and that it counts the prompt within
 <code>safety_margin</code> of the local tokenizer. A run that leaves its
@@ -382,7 +382,7 @@ output caps at the model’s limit stops while it still has headroom a
 smaller cap would have used. With the merge’s reply held to 500 tokens,
 the same run fits:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_trace.html">gr_trace</a></span><span class="op">(</span>governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_cost_usd <span class="op">=</span> <span class="fl">0.01</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_cost_usd <span class="op">=</span> <span class="fl">0.01</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">fits</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue?"</span>, <span class="va">cl</span>,</span>
 <span>                <span class="fu"><a href="../reference/gr_read_spec.html">gr_read_spec</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"map_reduce"</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span>,</span>
 <span>                             max_answer_tokens <span class="op">=</span> <span class="fl">500</span><span class="op">)</span>,</span>
@@ -393,7 +393,7 @@ the same run fits:</p>
 <span><span class="co">#&gt;   calls spent_usd</span></span>
 <span><span class="co">#&gt; 1     6  0.002922</span></span></code></pre></div>
 <p>A refused request is not a call. It adds nothing to the trace’s
-calls, steps or spend. <code><a href="../reference/gr_call.html">gr_call()</a></code> returns it as a failed
+calls, steps or spend. <code><a href="../reference/hr_call.html">hr_call()</a></code> returns it as a failed
 result with <code>refused = TRUE</code> and an error naming the limit,
 after signalling a condition of class <code>hr_budget_refused</code>,
 which you can catch to stop instead. The trace lists it in
@@ -406,14 +406,14 @@ section partial and do not count the request as failed.</p>
 readers, judges, the ensemble’s adjudication, conflict resolution in
 <code><a href="../reference/gr_extract.html">gr_extract()</a></code>, context and proposition segmentation, claims,
 outlines, screening, synthesis, embeddings, and any request a custom
-reader or a script makes with <code><a href="../reference/gr_call.html">gr_call()</a></code>.</p>
+reader or a script makes with <code><a href="../reference/hr_call.html">hr_call()</a></code>.</p>
 </div>
 <div class="section level3">
 <h3 id="a-governor-for-one-run">A governor for one run<a class="anchor" aria-label="anchor" href="#a-governor-for-one-run"></a>
 </h3>
 <p><code><a href="../reference/hr_governor.html">hr_governor()</a></code> holds a run’s limits. Attach one with
-<code>gr_trace(governor = )</code>; a trace without one reads the limits
-from <code><a href="../reference/gr_options.html">gr_options()</a></code> each time it checks. It has six:</p>
+<code>hr_trace(governor = )</code>; a trace without one reads the limits
+from <code><a href="../reference/hr_options.html">hr_options()</a></code> each time it checks. It has six:</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -461,18 +461,18 @@ spending limit</td>
 </tbody>
 </table>
 <p>Each is also an option of the same name, so
-<code>gr_options(max_tokens_total = 50000)</code> sets it for every run,
+<code>hr_options(max_tokens_total = 50000)</code> sets it for every run,
 and each trace’s config snapshot lists them all. <code>NULL</code> or
 <code>Inf</code> removes a limit. A limit that cannot be compared is
 refused when you set it:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>max_cost_usd <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "gr_options(max_cost_usd = ) must be a single number or NULL, not NA. A limit that cannot be compared is not a limit, so this is refused here rather than ignored later."</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>max_cost_usd <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "hr_options(max_cost_usd = ) must be a single number or NULL, not NA. A limit that cannot be compared is not a limit, so this is refused here rather than ignored later."</span></span></code></pre></div>
 <p>A request to a model the run may not call is refused the same way as
 one over budget:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_trace.html">gr_trace</a></span><span class="op">(</span>governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>allowed_models <span class="op">=</span> <span class="st">"gpt-4o"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"What was revenue?"</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span>, trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>allowed_models <span class="op">=</span> <span class="st">"gpt-4o"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">cl</span>, <span class="st">"What was revenue?"</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span>, trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>refused <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">refused</span>, stop_reason <span class="op">=</span> <span class="va">tr</span><span class="op">$</span><span class="va">stop_reason</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   refused stop_reason</span></span>
 <span><span class="co">#&gt; 1    TRUE       model</span></span></code></pre></div>
@@ -491,25 +491,25 @@ per stage. <code><a href="../reference/gr_compare.html">gr_compare()</a></code> 
 so a spending limit could never stop it. While <code>max_cost_usd</code>
 is set, a request to one is refused with a condition of class
 <code>hr_unpriced_model</code>, and <code><a href="../reference/gr_read.html">gr_read()</a></code> stops before
-its first request. <code><a href="../reference/gr_backend_client.html">gr_backend_client()</a></code> wraps an R function
+its first request. <code><a href="../reference/hr_backend_client.html">hr_backend_client()</a></code> wraps an R function
 as a paying client, so it shows the refusal offline:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_model.html">gr_register_model</a></span><span class="op">(</span><span class="st">"unpriced-model"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span><span class="op">)</span></span>
-<span><span class="va">backend</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_backend_client.html">gr_backend_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"unpriced-model"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span><span class="op">)</span></span>
+<span><span class="va">backend</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_backend_client.html">hr_backend_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">backend</span>, <span class="st">"What was revenue?"</span>, model <span class="op">=</span> <span class="st">"unpriced-model"</span><span class="op">)</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">backend</span>, <span class="st">"What was revenue?"</span>, model <span class="op">=</span> <span class="st">"unpriced-model"</span><span class="op">)</span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">refused</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">error</span></span>
-<span><span class="co">#&gt; [1] "unpriced model: 'unpriced-model' has no registered price, so what the 'call' request costs cannot be held to the $5 spending limit, and it was not sent. Register its prices with gr_register_model(input_usd =, output_usd =), or send it unpriced with gr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"</span></span></code></pre></div>
-<p>Register the model’s prices with <code><a href="../reference/gr_register_model.html">gr_register_model()</a></code>, or
-set <code>gr_options(allow_unpriced = TRUE)</code>. Then its requests
+<span><span class="co">#&gt; [1] "unpriced model: 'unpriced-model' has no registered price, so what the 'call' request costs cannot be held to the $5 spending limit, and it was not sent. Register its prices with hr_register_model(input_usd =, output_usd =), or send it unpriced with hr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"</span></span></code></pre></div>
+<p>Register the model’s prices with <code><a href="../reference/hr_register_model.html">hr_register_model()</a></code>, or
+set <code>hr_options(allow_unpriced = TRUE)</code>. Then its requests
 are sent, still count against <code>max_calls</code> and
 <code>max_tokens_total</code>, and are priced <code>NA</code> in the
 trace. <code>max_tokens_total</code> is the limit that still bounds such
-a run. <code><a href="../reference/gr_mock_client.html">gr_mock_client()</a></code> and replays are never refused for
+a run. <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> and replays are never refused for
 this, and neither are embedding models with no price.</p>
-<p>A <code><a href="../reference/gr_ellmer_client.html">gr_ellmer_client()</a></code> is priced as the model its ellmer
+<p>An <code><a href="../reference/hr_ellmer_client.html">hr_ellmer_client()</a></code> is priced as the model its ellmer
 object was built with, whatever a recipe names, so one built on a model
 with no registered price is refused too. Register that model at your
 provider’s current prices, or let a local model run unpriced; the
@@ -557,28 +557,28 @@ the few that judge.</p>
 <div class="section level2">
 <h2 id="paying-once">Paying once<a class="anchor" aria-label="anchor" href="#paying-once"></a>
 </h2>
-<p><code><a href="../reference/gr_cache.html">gr_cache()</a></code> stores each successful response, keyed on the
+<p><code><a href="../reference/hr_cache.html">hr_cache()</a></code> stores each successful response, keyed on the
 exact request. A repeat is free and identical:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cache</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_cache.html">gr_cache</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"harnessr-runs-cache"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">cached</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_cache_client.html">gr_cache_client</a></span><span class="op">(</span><span class="va">cl</span>, <span class="va">cache</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">cache</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_cache.html">hr_cache</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"harnessr-runs-cache"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">cached</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_cache_client.html">hr_cache_client</a></span><span class="op">(</span><span class="va">cl</span>, <span class="va">cache</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">first</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"thorough"</span>,</span>
 <span>                          client <span class="op">=</span> <span class="va">cached</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span><span class="op">)</span></span>
 <span><span class="va">second</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"thorough"</span>,</span>
 <span>                          client <span class="op">=</span> <span class="va">cached</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/gr_trace_summary.html">gr_trace_summary</a></span><span class="op">(</span><span class="va">second</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"cached"</span>, <span class="st">"tokens_in"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu"><a href="../reference/hr_trace_summary.html">hr_trace_summary</a></span><span class="op">(</span><span class="va">second</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"cached"</span>, <span class="st">"tokens_in"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   calls cached tokens_in</span></span>
 <span><span class="co">#&gt; 1     1      1       607</span></span>
-<span><span class="fu"><a href="../reference/gr_trace_cost.html">gr_trace_cost</a></span><span class="op">(</span><span class="va">second</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"paid_calls"</span>, <span class="st">"usd"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu"><a href="../reference/hr_trace_cost.html">hr_trace_cost</a></span><span class="op">(</span><span class="va">second</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"paid_calls"</span>, <span class="st">"usd"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   calls paid_calls usd</span></span>
 <span><span class="co">#&gt; 1     1          0   0</span></span></code></pre></div>
 <p><code>cached</code> counts the calls answered from the cache rather
 than the network, so <code>calls - cached</code> is what the run paid
 for. The token counts stay, since that is how big the prompts were, but
 a run with <code>cached == calls</code> cost nothing, so do not hand its
-totals to <code><a href="../reference/gr_estimate_cost.html">gr_estimate_cost()</a></code> and call the result a
+totals to <code><a href="../reference/hr_estimate_cost.html">hr_estimate_cost()</a></code> and call the result a
 bill.</p>
 <p>The key covers everything that can change the reply: the messages,
 the model, the resolved output cap, the temperature, the JSON schema,
@@ -595,9 +595,9 @@ costs nothing and vanishes with the session. For a long run, point it
 somewhere real and the run becomes resumable. Restart after a crash and
 every completed call is already paid for:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>cache_dir <span class="op">=</span> <span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">R_user_dir</a></span><span class="op">(</span><span class="st">"harnessr"</span>, <span class="st">"cache"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="../reference/gr_cache_stats.html">gr_cache_stats()</a></code> reports entries, bytes, hits, misses
-and writes, and <code><a href="../reference/gr_cache_clear.html">gr_cache_clear()</a></code> empties a cache. Set
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>cache_dir <span class="op">=</span> <span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">R_user_dir</a></span><span class="op">(</span><span class="st">"harnessr"</span>, <span class="st">"cache"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/hr_cache_stats.html">hr_cache_stats()</a></code> reports entries, bytes, hits, misses
+and writes, and <code><a href="../reference/hr_cache_clear.html">hr_cache_clear()</a></code> empties a cache. Set
 <code>write = FALSE</code> to run against a frozen cache, or
 <code>read = FALSE</code> to refresh entries already stored.</p>
 <div class="section level3">
@@ -612,12 +612,12 @@ are N entries, and a rerun gets the same N replies back in the same
 order:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
-<span><span class="va">sampler</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span> <span class="va">n</span> <span class="op">&lt;&lt;-</span> <span class="va">n</span> <span class="op">+</span> <span class="fl">1</span>; <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"draw"</span>, <span class="va">n</span><span class="op">)</span> <span class="op">}</span><span class="op">)</span></span>
-<span><span class="va">sampler</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_cache_client.html">gr_cache_client</a></span><span class="op">(</span><span class="va">sampler</span>, <span class="fu"><a href="../reference/gr_cache.html">gr_cache</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"harnessr-runs-draws"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sampler</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span> <span class="va">n</span> <span class="op">&lt;&lt;-</span> <span class="va">n</span> <span class="op">+</span> <span class="fl">1</span>; <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"draw"</span>, <span class="va">n</span><span class="op">)</span> <span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">sampler</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_cache_client.html">hr_cache_client</a></span><span class="op">(</span><span class="va">sampler</span>, <span class="fu"><a href="../reference/hr_cache.html">hr_cache</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"harnessr-runs-draws"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">sampler</span>, <span class="st">"Pick one."</span>, draw_index <span class="op">=</span> <span class="va">k</span><span class="op">)</span><span class="op">$</span><span class="va">text</span>, <span class="st">""</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">sampler</span>, <span class="st">"Pick one."</span>, draw_index <span class="op">=</span> <span class="va">k</span><span class="op">)</span><span class="op">$</span><span class="va">text</span>, <span class="st">""</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "draw 1" "draw 2" "draw 3"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">sampler</span>, <span class="st">"Pick one."</span>, draw_index <span class="op">=</span> <span class="va">k</span><span class="op">)</span><span class="op">$</span><span class="va">text</span>, <span class="st">""</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">sampler</span>, <span class="st">"Pick one."</span>, draw_index <span class="op">=</span> <span class="va">k</span><span class="op">)</span><span class="op">$</span><span class="va">text</span>, <span class="st">""</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "draw 1" "draw 2" "draw 3"</span></span></code></pre></div>
 <p>The second line is answered from the cache. A call with the default
 <code>draw_index = 0</code> keys as an ordinary call always has. Use a
@@ -632,9 +632,9 @@ for draws already stored.</p>
 (<code>readgpt-cache-v2</code>, by readgpt 0.6.0 and earlier builds of
 harnessr) are still read for calls with no draw index. The first reply
 found that way in a session warns once, with class
-<code>hr_legacy_key</code>, and <code><a href="../reference/gr_cache_stats.html">gr_cache_stats()</a></code> counts
+<code>hr_legacy_key</code>, and <code><a href="../reference/hr_cache_stats.html">hr_cache_stats()</a></code> counts
 them as <code>legacy_hits</code>. Old entries are never rewritten, and
-<code><a href="../reference/gr_cache_clear.html">gr_cache_clear()</a></code> removes both. With
+<code><a href="../reference/hr_cache_clear.html">hr_cache_clear()</a></code> removes both. With
 <code>tools::R_user_dir("harnessr", "cache")</code> set, entries readgpt
 kept in <code>tools::R_user_dir("readgpt", "cache")</code> are read too,
 after it.</p>
@@ -649,10 +649,10 @@ so a trace plus the source document reproduces a run exactly, with no
 key and no spend:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"run.json"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/gr_trace_save.html">gr_trace_save</a></span><span class="op">(</span><span class="va">first</span><span class="op">$</span><span class="va">trace</span>, <span class="va">f</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hr_trace_save.html">hr_trace_save</a></span><span class="op">(</span><span class="va">first</span><span class="op">$</span><span class="va">trace</span>, <span class="va">f</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">replayed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"thorough"</span>,</span>
-<span>                            client <span class="op">=</span> <span class="fu"><a href="../reference/gr_replay_client.html">gr_replay_client</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span><span class="op">)</span></span>
+<span>                            client <span class="op">=</span> <span class="fu"><a href="../reference/hr_replay_client.html">hr_replay_client</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">replayed</span><span class="op">$</span><span class="va">answer</span>, <span class="va">first</span><span class="op">$</span><span class="va">answer</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>Ship the trace next to the paper and a reader reproduces the run
@@ -673,18 +673,18 @@ recorded temperature, cap or schema next to the ones asked for. Pass
 too, of class <code>hr_replay_exhausted</code>. Draw k of a request is
 answered with the reply recorded for that draw:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_trace.html">gr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
-<span><span class="va">sampler</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span> <span class="va">n</span> <span class="op">&lt;&lt;-</span> <span class="va">n</span> <span class="op">+</span> <span class="fl">1</span>; <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"draw"</span>, <span class="va">n</span><span class="op">)</span> <span class="op">}</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">sampler</span>, <span class="st">"Pick one."</span>, draw_index <span class="op">=</span> <span class="va">k</span>, trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sampler</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span> <span class="va">n</span> <span class="op">&lt;&lt;-</span> <span class="va">n</span> <span class="op">+</span> <span class="fl">1</span>; <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"draw"</span>, <span class="va">n</span><span class="op">)</span> <span class="op">}</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">sampler</span>, <span class="st">"Pick one."</span>, draw_index <span class="op">=</span> <span class="va">k</span>, trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">rp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_replay_client.html">gr_replay_client</a></span><span class="op">(</span><span class="va">tr</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">rp</span>, <span class="st">"Pick one."</span>, draw_index <span class="op">=</span> <span class="va">k</span><span class="op">)</span><span class="op">$</span><span class="va">text</span>, <span class="st">""</span><span class="op">)</span></span>
+<span><span class="va">rp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_replay_client.html">hr_replay_client</a></span><span class="op">(</span><span class="va">tr</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">rp</span>, <span class="st">"Pick one."</span>, draw_index <span class="op">=</span> <span class="va">k</span><span class="op">)</span><span class="op">$</span><span class="va">text</span>, <span class="st">""</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "draw 1" "draw 2" "draw 3"</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">rp</span>, <span class="st">"Pick one."</span>, draw_index <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">rp</span>, <span class="st">"Pick one."</span>, draw_index <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
 <span>         hr_replay_exhausted <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "The recording holds no reply for draw 4 of this request; it holds 3 draw(s) of it. The replay is making more calls than the recorded run did, so it is not reproducing that run. Pass on_exhausted = \"flag\" to gr_replay_client() to repeat the last recorded reply instead, counted in $stats()$repeats."</span></span></code></pre></div>
-<p><code>gr_replay_client(on_exhausted = "flag")</code> repeats the last
+<span><span class="co">#&gt; [1] "The recording holds no reply for draw 4 of this request; it holds 3 draw(s) of it. The replay is making more calls than the recorded run did, so it is not reproducing that run. Pass on_exhausted = \"flag\" to hr_replay_client() to repeat the last recorded reply instead, counted in $stats()$repeats."</span></span></code></pre></div>
+<p><code>hr_replay_client(on_exhausted = "flag")</code> repeats the last
 recorded reply instead, which is what every replay did before, and
 counts each repeat in <code>$stats()$repeats</code>. A step recorded
 before <code>replay_key</code> existed is looked up by the old key,
@@ -707,14 +707,14 @@ the <code>retrieve</code> and <code>iterative</code> readers, the
 does not hold. A strict replay then stops with
 <code>gr_replay_miss</code>, whose message names this cause.</p>
 <p>Record a run you intend to publish with
-<code>gr_options(embedder = "lexical")</code>, as this guide does, or
+<code>hr_options(embedder = "lexical")</code>, as this guide does, or
 with your own embedder registered as
 <code>deterministic = TRUE</code>:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">run</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"needle"</span>,</span>
 <span>                       client <span class="op">=</span> <span class="va">cl</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span><span class="op">)</span></span>
 <span><span class="va">again</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/answer_document.html">answer_document</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"needle"</span>,</span>
-<span>                         client <span class="op">=</span> <span class="fu"><a href="../reference/gr_replay_client.html">gr_replay_client</a></span><span class="op">(</span><span class="va">run</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span><span class="op">)</span></span>
+<span>                         client <span class="op">=</span> <span class="fu"><a href="../reference/hr_replay_client.html">hr_replay_client</a></span><span class="op">(</span><span class="va">run</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">again</span><span class="op">$</span><span class="va">chunks_used</span>, <span class="va">run</span><span class="op">$</span><span class="va">chunks_used</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 </div>
@@ -765,31 +765,31 @@ a right answer:</p>
 before it found anything is <code>NA</code>, not wrong. A recipe is
 charged for a segmentation it shares with an earlier recipe, as it would
 be run alone, so the column can add up to more than
-<code>gr_trace_cost(cmp$trace)</code>.</p>
+<code>hr_trace_cost(cmp$trace)</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="models-prices-and-token-counts">Models, prices and token counts<a class="anchor" aria-label="anchor" href="#models-prices-and-token-counts"></a>
 </h2>
-<p><code><a href="../reference/gr_models.html">gr_models()</a></code> lists the context windows and prices
-harnessr knows, and <code><a href="../reference/gr_model_limits.html">gr_model_limits()</a></code> and
-<code><a href="../reference/gr_model_info.html">gr_model_info()</a></code> look one model up. Check them before a long
+<p><code><a href="../reference/hr_models.html">hr_models()</a></code> lists the context windows and prices
+harnessr knows, and <code><a href="../reference/hr_model_limits.html">hr_model_limits()</a></code> and
+<code><a href="../reference/hr_model_info.html">hr_model_info()</a></code> look one model up. Check them before a long
 run: an unregistered model falls back to a conservative 128k window with
 no price, so its cost shows as <code>NA</code> rather than a wrong
-figure. <code><a href="../reference/gr_register_model.html">gr_register_model()</a></code> fixes that in one line, and its
+figure. <code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> fixes that in one line, and its
 <code>cached_input_usd</code> prices input the provider served from its
 prompt cache at its own rate. A model with no cached rate prices cached
 input as other input.</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_model.html">gr_register_model</a></span><span class="op">(</span><span class="st">"priced-reasoner"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">16000</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"priced-reasoner"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">16000</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">2</span>, output_usd <span class="op">=</span> <span class="fl">8</span>, reasoning <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/gr_models.html">gr_models</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="../reference/gr_models.html">gr_models</a></span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"priced-mock"</span>, <span class="st">"priced-reasoner"</span><span class="op">)</span>,</span>
+<span><span class="fu"><a href="../reference/hr_models.html">hr_models</a></span><span class="op">(</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="../reference/hr_models.html">hr_models</a></span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"priced-mock"</span>, <span class="st">"priced-reasoner"</span><span class="op">)</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id"</span>, <span class="st">"context_window"</span>, <span class="st">"reasoning"</span>, <span class="st">"input_usd_per_1m"</span>, <span class="st">"output_usd_per_1m"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;                 id context_window reasoning input_usd_per_1m output_usd_per_1m</span></span>
 <span><span class="co">#&gt; 19     priced-mock         128000     FALSE                2                 8</span></span>
 <span><span class="co">#&gt; 20 priced-reasoner         128000      TRUE                2                 8</span></span></code></pre></div>
-<p><code><a href="../reference/gr_tokenizer.html">gr_tokenizer()</a></code> says which counter is in use. The
+<p><code><a href="../reference/hr_tokenizer.html">hr_tokenizer()</a></code> says which counter is in use. The
 default, <code>"heuristic"</code>, needs nothing installed.
-<code>gr_set_tokenizer("tiktoken")</code> switches to OpenAI’s own
+<code>hr_set_tokenizer("tiktoken")</code> switches to OpenAI’s own
 tokenizer where the reticulate package and Python’s
 <code>tiktoken</code> are installed: it counts in a model’s encoding
 when one is given and otherwise, as the package’s budgets do, in the
@@ -797,9 +797,9 @@ larger of <code>cl100k_base</code> and <code>o200k_base</code>. For a
 model that is not OpenAI’s it is an estimate. Without those packages it
 stops rather than falling back, because a silent fallback would change
 every budget calculation.</p>
-<p><code><a href="../reference/gr_budget.html">gr_budget()</a></code> does the context arithmetic for every
+<p><code><a href="../reference/hr_budget.html">hr_budget()</a></code> does the context arithmetic for every
 request. It cannot return a non-positive input budget; it raises an
-error that says what to change instead. <code><a href="../reference/gr_options.html">?gr_options</a></code>
+error that says what to change instead. <code><a href="../reference/hr_options.html">?hr_options</a></code>
 documents every setting.</p>
 </div>
 <div class="section level2">
@@ -829,7 +829,7 @@ size, cost what it costs.</p>
 <code>stop_reason</code> is set, or an error of class
 <code>gr_call_cap</code> or <code>gr_cost_cap</code> before the first
 request means a limit stopped the run. Raise it only after checking that
-the run should cost that much: <code><a href="../reference/gr_estimate_cost.html">gr_estimate_cost()</a></code> and
+the run should cost that much: <code><a href="../reference/hr_estimate_cost.html">hr_estimate_cost()</a></code> and
 <code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code> say so before anything is sent. A run that
 spends far less than its limit, every time, can have the limit lowered
 to catch the run that does not. A refusal with
@@ -888,7 +888,7 @@ more than early ones is the sign of a governor too small for the whole
 benchmark rather than an arm that costs too much.</p>
 <p><strong>Where the default came from.</strong>
 <code>governor = NULL</code> takes the limits from
-<code><a href="../reference/gr_options.html">gr_options()</a></code> when the benchmark starts, and those are set
+<code><a href="../reference/hr_options.html">hr_options()</a></code> when the benchmark starts, and those are set
 for one read (400 calls), while a benchmark of two arms on 300 items for
 5 runs needs several thousand. Size it for the benchmark: arms x items x
 runs x requests per run.</p>
@@ -940,9 +940,9 @@ report with a stand-in reasoning model that, at low effort, finds
 nothing in the first chunk, where <code>refine</code> drafts its
 answer:</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_model.html">gr_register_model</a></span><span class="op">(</span><span class="st">"priced-reasoner"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">8192</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"priced-reasoner"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">8192</span>,</span>
 <span>                  input_usd <span class="op">=</span> <span class="fl">1</span>, output_usd <span class="op">=</span> <span class="fl">4</span>, reasoning <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">thinks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="va">thinks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">effort</span>, <span class="st">"low"</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span>
 <span>      <span class="fu"><a href="https://rdrr.io/r/base/startsWith.html" class="external-link">startsWith</a></span><span class="op">(</span><span class="va">messages</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, <span class="st">"&lt;excerpts&gt;"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="st">"NOT_IN_DOCUMENT"</span><span class="op">)</span></span>
@@ -1012,8 +1012,8 @@ documents and a literature review.</li>
 its <code>cost</code> function, so the check before the first request
 counts it correctly.</li>
 <li>
-<code><a href="../reference/hr_governor.html">?hr_governor</a></code>, <code><a href="../reference/gr_cache.html">?gr_cache</a></code> and
-<code><a href="../reference/gr_replay_client.html">?gr_replay_client</a></code>: the full rules.</li>
+<code><a href="../reference/hr_governor.html">?hr_governor</a></code>, <code><a href="../reference/hr_cache.html">?hr_cache</a></code> and
+<code><a href="../reference/hr_replay_client.html">?hr_replay_client</a></code>: the full rules.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

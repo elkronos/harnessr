@@ -48,7 +48,7 @@ hr_scorer_judge(
 - draw_index:
 
   Draw index passed to every judge request (see
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)).
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)).
   With a caching client and a fixed index, identical outputs graded
   against the same label reuse one cached verdict; give another index
   for a fresh judge draw.
@@ -116,15 +116,15 @@ Other judges:
 ``` r
 cfg <- hr_judge_config("mock-model", "Does the response give the reference's answer?",
                        mode = "grade")
-try(hr_scorer_judge(cfg, NULL, gr_mock_client()))
-#> Error in hr_scorer_judge(cfg, NULL, gr_mock_client()) : 
+try(hr_scorer_judge(cfg, NULL, hr_mock_client()))
+#> Error in hr_scorer_judge(cfg, NULL, hr_mock_client()) : 
 #>   This judge has no valid validation record: no validation record from hr_judge_validate(). Validate the configuration against blind human labels with hr_judge_validate() first.
 
 set.seed(3)
 human <- rep(c(TRUE, FALSE), c(60, 60))
 v <- hr_judge_validate(cfg, data.frame(judge = ifelse(runif(120) < 0.9, human, !human),
                                        human = human), B = 200)
-grader <- gr_mock_client(function(messages, params) {
+grader <- hr_mock_client(function(messages, params) {
   txt <- messages[[2]]$content
   ok <- grepl("Response to grade:\nParis", txt, fixed = TRUE)
   sprintf('{"verdict": "%s", "reason": "."}', if (ok) "pass" else "fail")

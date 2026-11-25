@@ -108,9 +108,9 @@ then judges; <code><a href="gr_scorer_answer.html">gr_scorer_answer()</a></code>
 trace the benchmark made for that run (<code>ctx$trace</code>), so the run's tokens,
 cost and refusals are counted and held to the benchmark's limits, and the
 answer's <code>trace</code> is that run's trace. That trace also gives every request
-of the run the run's draw index (see <code>draw_index</code> in <code><a href="gr_call.html">gr_call()</a></code>), segmenter
+of the run the run's draw index (see <code>draw_index</code> in <code><a href="hr_call.html">hr_call()</a></code>), segmenter
 and reader requests included, so the runs of one arm on one item are
-separate draws under a <code><a href="gr_cache.html">gr_cache()</a></code> or a <code><a href="gr_replay_client.html">gr_replay_client()</a></code> rather than
+separate draws under an <code><a href="hr_cache.html">hr_cache()</a></code> or an <code><a href="hr_replay_client.html">hr_replay_client()</a></code> rather than
 one stored reply repeated, which <code><a href="hr_benchmark.html">hr_benchmark()</a></code> would refuse.</p>
 <p>A reader checks before it starts whether the run's call and spending
 limits leave room for it. When they do not, the run returns a
@@ -162,7 +162,7 @@ the recipe's own value, say) have the same configuration, and
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ref</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_qa_reference.html">gr_qa_reference</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  questions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>revenue <span class="op">=</span> <span class="st">"What was revenue in 2024?"</span>,</span></span>
 <span class="r-in"><span>                ceo <span class="op">=</span> <span class="st">"Who is the chief executive?"</span><span class="op">)</span>,</span></span>

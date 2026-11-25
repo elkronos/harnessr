@@ -126,18 +126,18 @@ vectors named by piece. A piece without scores is cut with <code>"head"</code>.<
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="hr_context_policy.html">hr_context_policy()</a></code>, <code><a href="hr_truncate.html">hr_truncate()</a></code></p>
 <p>Other cost and token functions:
-<code><a href="gr_budget.html">gr_budget()</a></code>,
-<code><a href="gr_count_tokens.html">gr_count_tokens()</a></code>,
-<code><a href="gr_estimate_cost.html">gr_estimate_cost()</a></code>,
-<code><a href="gr_model_info.html">gr_model_info()</a></code>,
-<code><a href="gr_model_limits.html">gr_model_limits()</a></code>,
-<code><a href="gr_models.html">gr_models()</a></code>,
-<code><a href="gr_register_model.html">gr_register_model()</a></code>,
-<code><a href="gr_set_tokenizer.html">gr_set_tokenizer()</a></code>,
-<code><a href="gr_tokenizer.html">gr_tokenizer()</a></code>,
-<code><a href="gr_truncate_tokens.html">gr_truncate_tokens()</a></code>,
+<code><a href="hr_budget.html">hr_budget()</a></code>,
 <code><a href="hr_context_policy.html">hr_context_policy()</a></code>,
-<code><a href="hr_truncate.html">hr_truncate()</a></code></p></div>
+<code><a href="hr_count_tokens.html">hr_count_tokens()</a></code>,
+<code><a href="hr_estimate_cost.html">hr_estimate_cost()</a></code>,
+<code><a href="hr_model_info.html">hr_model_info()</a></code>,
+<code><a href="hr_model_limits.html">hr_model_limits()</a></code>,
+<code><a href="hr_models.html">hr_models()</a></code>,
+<code><a href="hr_register_model.html">hr_register_model()</a></code>,
+<code><a href="hr_set_tokenizer.html">hr_set_tokenizer()</a></code>,
+<code><a href="hr_tokenizer.html">hr_tokenizer()</a></code>,
+<code><a href="hr_truncate.html">hr_truncate()</a></code>,
+<code><a href="hr_truncate_tokens.html">hr_truncate_tokens()</a></code></p></div>
     </div>
 
     <div class="section level2">
@@ -146,7 +146,7 @@ vectors named by piece. A piece without scores is cut with <code>"head"</code>.<
 <span class="r-in"><span>            draft <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"Revenue rose."</span>, <span class="fl">30</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>            excerpt <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"Costs fell."</span>, <span class="fl">30</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">hr_context_fit</span><span class="op">(</span><span class="va">pieces</span>, <span class="fl">80</span>, <span class="fu"><a href="hr_context_policy.html">hr_context_policy</a></span><span class="op">(</span>pin <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"question"</span>, <span class="st">"draft"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">pieces</span>, <span class="va">gr_count_tokens</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">pieces</span>, <span class="va">hr_count_tokens</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> question    draft  excerpt </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        7       93        0 </span>
 <span class="r-in"><span><span class="va">fit</span><span class="op">$</span><span class="va">cut</span></span></span>

@@ -27,7 +27,7 @@ segmenters, settings, screening and judges.
 ## Setting up
 
 Everything below runs offline.
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 stands in for the model, and `embedder = "lexical"` keeps retrieval free
 and deterministic. Two mock model ids get prices, so the benchmarks
 below have a cost to compare: `mock-small` at \$0.20 and \$0.80 per
@@ -36,11 +36,11 @@ million input and output tokens, and `mock-large` at ten times that.
 ``` r
 
 library(harnessr)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 
-gr_register_model("mock-small", context_window = 128000, max_output = 4096,
+hr_register_model("mock-small", context_window = 128000, max_output = 4096,
                   input_usd = 0.2, output_usd = 0.8)
-gr_register_model("mock-large", context_window = 128000, max_output = 4096,
+hr_register_model("mock-large", context_window = 128000, max_output = 4096,
                   input_usd = 2, output_usd = 8)
 ```
 
@@ -224,7 +224,7 @@ An arm is one configuration to compare: a function of an item and a
 context that returns the arm’s output for that item. `ctx` carries the
 benchmark’s client, a trace of this run alone, the governor the run is
 held to and the run’s `draw_index`; `ctx$call()` is
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
 with the client, the trace and the draw index filled in. Every request
 an arm makes has to go through that trace, since it is how the benchmark
 counts the run’s tokens and dollars and holds it to the limit:
@@ -326,7 +326,7 @@ facts <- list(
   eastern  = c(revenue = "Revenue was 38.9 million dollars."),
   western  = c(revenue = "Revenue was 29.4 million dollars.", exports = "Exports rose 7 percent."))
 
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), ""), collapse = " ")
   region <- regmatches(seen, regexpr("(northern|southern|eastern|western)", seen))
   asked <- sub(".*Question", "", seen)
@@ -372,7 +372,7 @@ The benchmark is one run under one
 Each run’s trace is held to the governor’s limits less what the runs
 before it used, so the limit you set is the most the whole comparison
 can spend. With `governor = NULL` the limits come from
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md),
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md),
 whose default of 400 calls is easy to exceed: two arms on 300 items for
 5 runs is 3000 calls. A run stopped by a refused request is recorded as
 a `"budget_stop"`, counted wrong, and the runs after it are still
@@ -384,7 +384,7 @@ capitals <- hr_reference(items = list(q1 = "France", q2 = "Peru", q3 = "Chad", q
                          labels = c("Paris", "Lima", "N'Djamena", "Suva"),
                          cluster = c("a", "a", "b", "b"), split = "test")
 atlas <- c(France = "Paris", Peru = "Lima", Chad = "N'Djamena", Fiji = "Suva")
-geo <- gr_mock_client(function(messages, params) atlas[[sub("Capital of ", "", messages[[1]]$content)]])
+geo <- hr_mock_client(function(messages, params) atlas[[sub("Capital of ", "", messages[[1]]$content)]])
 capital <- hr_arm("capital", function(item, ctx) ctx$call(paste0("Capital of ", item))$text)
 
 short <- hr_benchmark(capital, capitals, runs = 5, client = geo,
@@ -405,7 +405,7 @@ before anything was sent.
 warns (class `hr_budget_stopped`) whenever a limit stops a run, with the
 number stopped, the limit that stopped them, how many of them count
 against an arm and the first run stopped. When the limits came from
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md),
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md),
 the warning gives the values of the options that stopped runs and says
 to pass a governor sized for the benchmark.
 
@@ -413,10 +413,10 @@ to pass a governor sized for the benchmark.
 
 Run `r` is given `ctx$draw_index = r`, and its `ctx$trace` carries `r`,
 so `ctx$call()` and every stage called with `trace = ctx$trace` send
-their requests at the run’s draw. Under a
-[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
-each run is its own cache entry and under a
-[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
+their requests at the run’s draw. Under an
+[`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
+each run is its own cache entry and under an
+[`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
 its own recorded draw. The recorded draw also names the arm, so a replay
 answers each arm with its own replies, whether it replays every arm or a
 few, in any order. Five runs answered from one stored reply would agree
@@ -426,12 +426,12 @@ every run’s request at one fixed draw index is one:
 
 ``` r
 
-cache <- gr_cache()
-cached <- gr_cache_client(geo, cache)
+cache <- hr_cache()
+cached <- hr_cache_client(geo, cache)
 invisible(hr_benchmark(capital, capitals, runs = 5, client = cached))
 
 fixed_draw <- hr_arm("fixed_draw", function(item, ctx) {
-  gr_call(ctx$client, paste0("Capital of ", item), trace = ctx$trace,
+  hr_call(ctx$client, paste0("Capital of ", item), trace = ctx$trace,
           draw_index = 1)$text
 })
 tryCatch(hr_benchmark(fixed_draw, capitals, runs = 5, client = cached),
@@ -441,8 +441,8 @@ tryCatch(hr_benchmark(fixed_draw, capitals, runs = 5, client = cached),
 
 A cache is still worth having: running the `capital` benchmark again
 under the same cache sends no request and costs nothing, each run
-answered from its own entry. A
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+answered from its own entry. An
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 keeps no cache, so under it the `fixed_draw` arm is not refused; under a
 cache it is.
 
@@ -686,7 +686,7 @@ the same code measures what each actually does.
 ``` r
 
 facts <- chk$items
-condenser <- gr_mock_client(function(messages, params) {
+condenser <- hr_mock_client(function(messages, params) {
   text <- vapply(messages, function(m) m$content, "")
   if (grepl("Reply with the edits", text[length(text)], fixed = TRUE)) return("ADD: noted.")
   asks <- text[startsWith(text, "Question: ")]
@@ -791,10 +791,10 @@ plan <- hr_reference(ids, labels = rep("yes", n), cluster = docs, split = "test"
 design <- hr_mdd(n, n_clusters = 50, icc = 0.1, p_disc = 0.15)
 reg <- hr_register_contrasts(plan, hr_contrast("small", "large", margin = 0.10), design)
 reg
-#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-25T12:15:58.775Z
+#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-25T12:39:17.620Z
 #>  contrast       label        margin mdd cost_test
 #>  small vs large confirmatory 10.0   7.8 yes      
-#>   Margins and MDD in points; reference d453122a93af; hash 3dd681c08e9d
+#>   Margins and MDD in points; reference d453122a93af; hash e451dc7cacc1
 ```
 
 Here the stand-in model finds each item easier or harder by document and
@@ -805,7 +805,7 @@ allows the 3000 calls the benchmark needs:
 
 set.seed(11)
 ease <- setNames(rnorm(50, 2, 1)[as.integer(factor(docs))] + rnorm(n, 0, 1.5), ids)
-grader <- gr_mock_client(function(messages, params) {
+grader <- hr_mock_client(function(messages, params) {
   shift <- if (identical(params$model, "mock-small")) -0.3 else 0
   item <- sub("Item ", "", messages[[1]]$content)
   if (runif(1) < plogis(ease[[item]] + shift)) "yes" else "no"
@@ -857,7 +857,7 @@ This stand-in always picks whatever is shown first:
 
 ``` r
 
-first <- gr_mock_client(function(messages, params) '{"verdict": "A", "reason": "It is first."}')
+first <- hr_mock_client(function(messages, params) '{"verdict": "A", "reason": "It is first."}')
 j <- hr_judge(c(short = "Revenue was 45.2 million.", long = "Revenue was 51.8 million."),
               first, mode = "select", rubric = "Which candidate gives fiscal 2024 revenue?")
 j$outcome
@@ -869,7 +869,7 @@ j$verdicts[, c("order", "shown", "verdict", "value")]
 ```
 
 The judge’s requests go through the same check as
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md),
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md),
 under the labels `judge.<mode>.o<k>`, into a trace of the judge’s own.
 Their cost is in `j$judge_cost` and never in the trace of the run being
 judged.
@@ -888,7 +888,7 @@ judge’s decisions here are simulated as right 90% of the time:
 
 ``` r
 
-gr_register_model("mock-judge", context_window = 128000, max_output = 4096,
+hr_register_model("mock-judge", context_window = 128000, max_output = 4096,
                   input_usd = 1, output_usd = 4)
 cfg <- hr_judge_config("mock-judge", "Does the response give the reference's answer?",
                        mode = "grade")
@@ -935,7 +935,7 @@ scorer’s own trace, out of the benchmark’s cost columns:
 
 ``` r
 
-grader_judge <- gr_mock_client(function(messages, params) {
+grader_judge <- hr_mock_client(function(messages, params) {
   shown <- sub(".*Response to grade:", "", messages[[2]]$content)
   ok <- grepl("45.2 million", shown, fixed = TRUE)
   sprintf('{"verdict": "%s", "reason": "Compared."}', if (ok) "pass" else "fail")
@@ -1239,7 +1239,7 @@ then <- c(France = "Paris", Peru = "Lima", Chad = "N'Djamena", Fiji = "Suva",
 now <- then
 now[c("Chad", "Laos")] <- c("Ndjamena", "Luang Prabang")
 answers <- function(table) {
-  gr_mock_client(function(messages, params) table[[sub("Capital of ", "", messages[[1]]$content)]])
+  hr_mock_client(function(messages, params) table[[sub("Capital of ", "", messages[[1]]$content)]])
 }
 
 frozen <- hr_benchmark(capital, six, runs = 5, client = answers(then))
@@ -1286,7 +1286,7 @@ reads them back:
 
 ``` r
 
-reader <- gr_mock_client(function(m, p) {
+reader <- hr_mock_client(function(m, p) {
   '{"can_answer": true, "answer": "45.2 million dollars", "next_query": ""}'
 })
 ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150))

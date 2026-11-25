@@ -120,21 +120,21 @@ Other signals:
 ## Examples
 
 ``` r
-tr <- gr_trace()
+tr <- hr_trace()
 hr_signal("demo.confident", TRUE, tr, item_id = "q1")
 hr_signal("demo.confident", c(0.9, 0.2), tr, item_id = c("q2", "q3"))
 hr_signals(tr)
 #>                          run_id step source recipe         signal    type
-#> 1 run_20261125121238.788_58255c    1   <NA>   <NA> demo.confident logical
-#> 2 run_20261125121238.788_58255c    2   <NA>   <NA> demo.confident numeric
-#> 3 run_20261125121238.788_58255c    2   <NA>   <NA> demo.confident numeric
+#> 1 run_20261125123616.853_b1643c    1   <NA>   <NA> demo.confident logical
+#> 2 run_20261125123616.853_b1643c    2   <NA>   <NA> demo.confident numeric
+#> 3 run_20261125123616.853_b1643c    2   <NA>   <NA> demo.confident numeric
 #>   item_id index value score refs
 #> 1      q1     1  TRUE   1.0 <NA>
 #> 2      q2     1   0.9   0.9 <NA>
 #> 3      q3     2   0.2   0.2 <NA>
 
 # The readers record their own signals.
-cl <- gr_mock_client(function(m, p) {
+cl <- hr_mock_client(function(m, p) {
   '{"can_answer": true, "answer": "45.2 million dollars", "next_query": ""}'
 })
 ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150))
@@ -144,7 +144,7 @@ ans <- gr_read(ch, "What was revenue?", cl, "iterative")
 #> Reading with 'iterative' (topk|rounds*2|forward) over 5 chunk(s).
 hr_signals(ans)
 #>                          run_id step source recipe                  signal
-#> 1 run_20261125121238.841_268e07    5   <NA>   <NA> gr.iterative.can_answer
+#> 1 run_20261125123616.895_8dba13    5   <NA>   <NA> gr.iterative.can_answer
 #>      type item_id index value score        refs
 #> 1 logical    <NA>     1  TRUE     1 {"round":1}
 

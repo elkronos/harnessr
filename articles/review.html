@@ -111,14 +111,14 @@ labelled set of questions, with intervals, is in
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
-<p>Everything below runs offline. <code><a href="../reference/gr_mock_client.html">gr_mock_client()</a></code> stands
+<p>Everything below runs offline. <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> stands
 in for the model: its handler is an ordinary R function.
 <code>embedder = "lexical"</code> keeps retrieval free and
 deterministic.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
-<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
-<span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
+<span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="reading-many-documents">Reading many documents<a class="anchor" aria-label="anchor" href="#reading-many-documents"></a>
@@ -161,8 +161,8 @@ does not.</p>
 column, and the other hundred and ninety-nine answers survive. Pass
 <code>on_error = "stop"</code> if you would rather it aborted.</p>
 <p>Budgets are per document, and the run has its own. Every document
-gets its own trace, so <code>gr_options(max_calls =)</code> and
-<code>gr_options(max_cost_usd =)</code> apply to each one exactly as if
+gets its own trace, so <code>hr_options(max_calls =)</code> and
+<code>hr_options(max_cost_usd =)</code> apply to each one exactly as if
 you had read it alone, and one enormous document cannot starve the rest.
 On its own that leaves the run unbounded: two hundred documents under a
 400-call ceiling is a corpus ceiling of eighty thousand calls. So there
@@ -186,14 +186,14 @@ each result is written as it completes and restored on a later run.
 Combined with a durable response cache, restarting a four-hour job costs
 approximately nothing:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">durable</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_cache_client.html">gr_cache_client</a></span><span class="op">(</span><span class="va">cl</span>, <span class="fu"><a href="../reference/gr_cache.html">gr_cache</a></span><span class="op">(</span><span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">R_user_dir</a></span><span class="op">(</span><span class="st">"harnessr"</span>, <span class="st">"cache"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">durable</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_cache_client.html">hr_cache_client</a></span><span class="op">(</span><span class="va">cl</span>, <span class="fu"><a href="../reference/hr_cache.html">hr_cache</a></span><span class="op">(</span><span class="fu">tools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/tools/userdir.html" class="external-link">R_user_dir</a></span><span class="op">(</span><span class="st">"harnessr"</span>, <span class="st">"cache"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/gr_read_many.html">gr_read_many</a></span><span class="op">(</span><span class="va">reports</span>, <span class="st">"What was revenue?"</span>, <span class="st">"thorough"</span>,</span>
 <span>             client <span class="op">=</span> <span class="va">durable</span>, store <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"run-store"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The store is keyed on the document’s path, size and mtime, the
 question, the whole pipeline and the model, so an edited document is a
-new job, not a stale hit. A <code><a href="../reference/gr_backend_client.html">gr_backend_client()</a></code> needs a
+new job, not a stale hit. An <code><a href="../reference/hr_backend_client.html">hr_backend_client()</a></code> needs a
 stable <code>id</code> for a store or a cache to be reused by a later
-session; <code><a href="../reference/gr_client.html">gr_client()</a></code> and <code><a href="../reference/gr_ellmer_client.html">gr_ellmer_client()</a></code>
+session; <code><a href="../reference/hr_client.html">hr_client()</a></code> and <code><a href="../reference/hr_ellmer_client.html">hr_ellmer_client()</a></code>
 already know what they are.</p>
 <p>The same document is read once. The same paper reaches you from three
 databases under three filenames. A source whose cleaned text repeats one
@@ -212,12 +212,12 @@ changes when the file is renamed, collides between folders, and does not
 exist at all for a document passed as text, while the id is the same
 string for the same document in every run and on every machine.</p>
 <p>You can see what it cost. <code>out$trace</code> holds the run’s
-calls, and <code><a href="../reference/gr_trace_cost.html">gr_trace_cost()</a></code> prices them at each step’s own
+calls, and <code><a href="../reference/hr_trace_cost.html">hr_trace_cost()</a></code> prices them at each step’s own
 model, counting only the calls that were issued. The mock client has no
 price, so this bill is zero; <code><a href="../articles/runs.html">vignette("runs")</a></code> explains the
 columns and how to register a price.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_trace_cost.html">gr_trace_cost</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>, <span class="st">"calls"</span>, <span class="st">"paid_calls"</span>, <span class="st">"usd"</span><span class="op">)</span><span class="op">]</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_trace_cost.html">hr_trace_cost</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>, <span class="st">"calls"</span>, <span class="st">"paid_calls"</span>, <span class="st">"usd"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;        model calls paid_calls usd</span></span>
 <span><span class="co">#&gt; 1 mock-model     2          2   0</span></span></code></pre></div>
 </div>
@@ -346,7 +346,7 @@ a record set, <code><a href="../reference/gr_read_many.html">gr_read_many()</a><
 opening of each document’s text, and say in an <code>identity</code>
 column whether they found either:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">said</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"A randomised trial."</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">said</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"A randomised trial."</span><span class="op">)</span></span>
 <span><span class="va">read</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read_many.html">gr_read_many</a></span><span class="op">(</span><span class="va">recs</span>, <span class="st">"What was the design?"</span>, <span class="st">"fast"</span>, client <span class="op">=</span> <span class="va">said</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning in gr_read_many(recs, "What was the design?", "fast", client = said):</span></span>
 <span><span class="co">#&gt; 'smith2019.txt' may not be the paper its record names: the opening of its text</span></span>
@@ -382,7 +382,7 @@ one direction:</p>
 <code><a href="../reference/gr_outline.html">gr_outline()</a></code> and <code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code> accumulates
 the whole review in one place. It is a parent: each stage still records
 on a trace of its own, which is what its <code>$trace</code> returns and
-what <code>gr_options(max_calls =)</code> is measured against, and adds
+what <code>hr_options(max_calls =)</code> is measured against, and adds
 its calls to the shared one when it finishes. So the screening cannot
 spend the write-up’s ceiling, the shared trace’s totals are the sum of
 the stages’, and each request is counted once.</p>
@@ -442,7 +442,7 @@ does not settle it is how automated screening loses studies.</p>
 <p>This stand-in screener includes the northern report and cannot decide
 about the southern one:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">screener</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">screener</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">seen</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">messages</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">content</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"51.8"</span>, <span class="va">seen</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -900,7 +900,7 @@ checked against the chunk it was attributed to. A paragraph about one
 paper cannot be compared with a paragraph about two hundred others; a
 table can be sorted, counted, filtered and published.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">extractor</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">extractor</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">seen</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">messages</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">content</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span></span>
 <span>  <span class="va">n</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"45.2"</span>, <span class="va">seen</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="st">"45.2"</span> <span class="kw">else</span> <span class="st">"51.8"</span></span>
@@ -1017,7 +1017,7 @@ because it was not read.</p>
 <p><code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code> makes one call per section of the
 outline, and every section cites the rows it rests on:</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Revenue was higher in the southern region, at 51.8 million dollars [study 2],"</span>,</span>
 <span>        <span class="st">"than in the northern, at 45.2 million [study 1]."</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
@@ -1146,7 +1146,7 @@ it needs is easy to show directly:</p>
 <span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">cite_writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span></span>
+<span><span class="va">cite_writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span></span>
 <span>  <span class="st">"Three studies met the criteria [study 1] [study 2] [study 3]."</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">cited</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_synthesise.html">gr_synthesise</a></span><span class="op">(</span></span>
@@ -1254,7 +1254,7 @@ first. Each claim names the studies that support it, the studies that
 contradict it, and the field that distinguishes them. The stand-in below
 plays all three stages that follow:</p>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">claim_writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">claim_writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">sys</span> <span class="op">&lt;-</span> <span class="va">messages</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"turn a table of studies"</span>, <span class="va">sys</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">'{"claims":[{"claim":"Revenue is higher in the south than the north.",'</span>,</span>
@@ -1543,7 +1543,7 @@ one more instruction, so the first test is what it does to the same
 reply. This stand-in excludes the southern report for a figure it says
 is not reported:</p>
 <div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">strict_screener</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">strict_screener</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">seen</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">messages</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">content</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span></span>
 <span>  <span class="va">south</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"51.8"</span>, <span class="va">seen</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -1568,7 +1568,7 @@ is not reported:</p>
 excluded. Three draws from a stand-in that includes the southern report
 once in three show <code>include_if_any</code>:</p>
 <div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">seen</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">messages</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">content</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span></span>
 <span>  <span class="va">keep</span> <span class="op">&lt;-</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"51.8"</span>, <span class="va">seen</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">draw_index</span>, <span class="fl">2L</span><span class="op">)</span></span>
@@ -1734,7 +1734,7 @@ tally, then by study weight.</p>
 tested on a draft, with no request. Here the writer rounds 51.8 to
 “about 50”:</p>
 <div class="sourceCode" id="cb51"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">rounder</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">rounder</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="st">"Revenue was about 50 million dollars in the south [study 2]."</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span><span class="va">bands</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">about</span><span class="op">)</span> <span class="op">{</span></span>
@@ -1759,7 +1759,7 @@ warns.</p>
 revising model turns the draft’s “was higher in” into “caused”, and a
 stand-in judge calls that stronger:</p>
 <div class="sourceCode" id="cb52"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">strengthen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">strengthen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"You grade one response"</span>, <span class="va">messages</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">stronger</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"caused"</span>, <span class="va">messages</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="kw">if</span> <span class="op">(</span><span class="va">stronger</span><span class="op">)</span> <span class="st">'{"verdict": "stronger", "reason": "A comparison became a cause."}'</span></span>
@@ -1881,8 +1881,8 @@ flagged:</p>
 <code class="sourceCode R"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_audit_report.html">gr_audit_report</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".html"</span><span class="op">)</span>, screening <span class="op">=</span> <span class="va">screened</span>,</span>
 <span>                        extraction <span class="op">=</span> <span class="va">table</span>, open <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"UTC&lt;/td&gt;"</span>, <span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="va">page</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "&lt;tr&gt;&lt;td&gt;screening&lt;/td&gt;&lt;td&gt;2026-11-25 12:17:32 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;" </span></span>
-<span><span class="co">#&gt; [2] "&lt;tr&gt;&lt;td&gt;extraction&lt;/td&gt;&lt;td&gt;2026-11-25 12:17:33 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "&lt;tr&gt;&lt;td&gt;screening&lt;/td&gt;&lt;td&gt;2026-11-25 12:40:38 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;" </span></span>
+<span><span class="co">#&gt; [2] "&lt;tr&gt;&lt;td&gt;extraction&lt;/td&gt;&lt;td&gt;2026-11-25 12:40:39 UTC&lt;/td&gt;&lt;td&gt;0.6.0.9000&lt;/td&gt;&lt;/tr&gt;"</span></span></code></pre></div>
 <p>The report puts the failures near the top: unverified quotes,
 documents that could not be read, screening calls that failed or came
 back in the wrong form, and citations pointing at rows that do not exist

@@ -153,7 +153,7 @@ recording is counted in <code>calls</code> and costs nothing.</p></dd>
 
 <dt><code>usd</code></dt>
 <dd><p>What those requests cost, at the prices registered with
-<code><a href="gr_register_model.html">gr_register_model()</a></code>. <code>NA</code> when a model the recipe used has no
+<code><a href="hr_register_model.html">hr_register_model()</a></code>. <code>NA</code> when a model the recipe used has no
 registered price.</p></dd>
 
 <dt><code>usd_estimated</code></dt>
@@ -183,11 +183,11 @@ identical read spec are collapsed with a warning rather than billed twice. A
 shared reader signature alone is not enough: two <code>retrieve</code> recipes with
 different <code>top_k</code> share a signature and are genuinely different runs.</p>
 <p>Each row of <code>summary</code> says what its recipe cost, priced from the requests
-on the trace by the model each one used (see <code><a href="gr_trace_cost.html">gr_trace_cost()</a></code>). A recipe is
+on the trace by the model each one used (see <code><a href="hr_trace_cost.html">hr_trace_cost()</a></code>). A recipe is
 charged what it would cost run alone: a segmentation it shares with an
 earlier recipe is charged to both, as <code>max_calls</code> counts it for both, so
 <code>sum(summary$usd)</code> can be more than the comparison spent, which is
-<code>sum(gr_trace_cost(trace)$usd)</code>. Give <code>correct</code> and each row also says
+<code>sum(hr_trace_cost(trace)$usd)</code>. Give <code>correct</code> and each row also says
 whether the answer was right and what a right answer cost.</p>
 <p>The comparison is descriptive: one run of each recipe on one question,
 with no interval. Run-to-run spread can exceed the gap between recipes, so
@@ -196,7 +196,7 @@ with repeated runs: build the arms with <code><a href="gr_arm.html">gr_arms()</a
 <code><a href="gr_qa_reference.html">gr_qa_reference()</a></code>, run them with <code><a href="hr_benchmark.html">hr_benchmark()</a></code>, and read the
 intervals from <code><a href="hr_report.html">hr_report()</a></code>.</p>
 <p>A comparison is one run for the spending and token limits: <code>max_cost_usd</code>
-and <code>max_tokens_total</code> in <code><a href="gr_options.html">gr_options()</a></code> are checked against what every
+and <code>max_tokens_total</code> in <code><a href="hr_options.html">hr_options()</a></code> are checked against what every
 recipe and every segmentation has spent and used so far, so a recipe that
 reaches either limit stops <code>partial</code> and the ones after it are refused and
 recorded as failed. <code>max_calls</code> is counted for
@@ -212,7 +212,7 @@ cut short is not shared with a later recipe.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Three pipelines over one document. Extraction is shared, so this costs one</span></span></span>
 <span class="r-in"><span><span class="co"># extraction, not three; only the segmentation and the reader vary.</span></span></span>
@@ -232,17 +232,17 @@ cut short is not shared with a later recipe.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3  needle  semantic      2 retrieve  topk|1|none           2</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># One trace covers all three, so this is the cost of the whole comparison.</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="gr_trace_summary.html">gr_trace_summary</a></span><span class="op">(</span><span class="va">cmp</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="hr_trace_summary.html">hr_trace_summary</a></span><span class="op">(</span><span class="va">cmp</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                          run_id calls cached steps tokens_in tokens_out errors</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261125121158.408_afd95e     5      0    16      2122         65      0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261125123541.871_427bb6     5      0    16      2122         65      0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      0.17           0            0                0                0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      0.15           0            0                0                0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   usage_estimated</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1               1</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># What each recipe cost, and what a right answer cost. The mock is free, so</span></span></span>
 <span class="r-in"><span><span class="co"># register a price for it under another name to see the columns filled.</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="gr_register_model.html">gr_register_model</a></span><span class="op">(</span><span class="st">"priced-mock"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span></span>
+<span class="r-in"><span><span class="fu"><a href="hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"priced-mock"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span>,</span></span>
 <span class="r-in"><span>                  input_usd <span class="op">=</span> <span class="fl">2</span>, output_usd <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu">gr_compare</span><span class="op">(</span><span class="fu"><a href="gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fast"</span>, <span class="st">"precise"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                  client <span class="op">=</span> <span class="va">cl</span>, model <span class="op">=</span> <span class="st">"priced-mock"</span>, correct <span class="op">=</span> <span class="st">"45.2 million"</span><span class="op">)</span></span></span>

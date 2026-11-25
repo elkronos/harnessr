@@ -17,13 +17,13 @@ introduces the package and its ideas.
 ## Setting up
 
 The examples run offline.
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 plays the part of the model, and `embedder = "lexical"` gives free,
 deterministic word-overlap vectors in place of an embeddings endpoint.
 
 A mock costs nothing, which would leave every limit below with nothing
 to count. So the examples give it a price:
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
+[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
 registers a model id at \$2 per million input tokens and \$8 per million
 output tokens, and each run names that model, so every request is priced
 at those rates.
@@ -32,11 +32,11 @@ at those rates.
 
 library(harnessr)
 
-gr_register_model("priced-mock", context_window = 128000, max_output = 4096,
+hr_register_model("priced-mock", context_window = 128000, max_output = 4096,
                   input_usd = 2, output_usd = 8)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 
-cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
 ```
 
 ## What a run records
@@ -65,19 +65,19 @@ Check `ans$partial` first. `TRUE` means something degraded, and
 every warning raised while the document was read.
 
 The trace holds every request the run made.
-[`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md)
+[`hr_trace_summary()`](https://elkronos.github.io/harnessr/reference/hr_trace_summary.md)
 gives the totals,
-[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
+[`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)
 the bill by model, and
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) one row
 per request with its stage, tokens, cost, time, prompt and reply:
 
 ``` r
 
-gr_trace_summary(ans$trace)[, c("calls", "cached", "tokens_in", "tokens_out", "errors")]
+hr_trace_summary(ans$trace)[, c("calls", "cached", "tokens_in", "tokens_out", "errors")]
 #>   calls cached tokens_in tokens_out errors
 #> 1    11      0      2444        143      0
-gr_trace_cost(ans$trace)[, c("model", "calls", "paid_calls", "usd")]
+hr_trace_cost(ans$trace)[, c("model", "calls", "paid_calls", "usd")]
 #>         model calls paid_calls      usd
 #> 1 priced-mock    11         11 0.006032
 as.data.frame(ans$trace)[, c("step", "stage", "tokens_in", "tokens_out", "usd")]
@@ -97,7 +97,7 @@ as.data.frame(ans$trace)[, c("step", "stage", "tokens_in", "tokens_out", "usd")]
 
 The token totals are the size of the prompts and replies, which is the
 shape of a run, not its bill.
-[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
+[`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)
 counts only the calls that were issued: a call answered from a cache or
 a recording spent nothing, however long its prompt. A model with no
 registered price contributes `NA`, never 0, so a total cannot quietly
@@ -107,7 +107,7 @@ You can also ask what a run would cost before you make it:
 
 ``` r
 
-gr_estimate_cost("priced-mock", input_tokens = 120000, output_tokens = 4000)
+hr_estimate_cost("priced-mock", input_tokens = 120000, output_tokens = 4000)
 #> [1] 0.272
 ```
 
@@ -141,7 +141,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 #> List of 4
 #>  $ label      : chr "reduce"
 #>  $ attempts   : int 1
-#>  $ started_utc: chr "2026-11-25T12:17:43.217Z"
+#>  $ started_utc: chr "2026-11-25T12:40:47.831Z"
 #>  $ tokens     :List of 3
 #>   ..$ input     : int 296
 #>   ..$ output    : int 13
@@ -160,7 +160,7 @@ str(step$params_sent)
 ```
 
 A mock reports no usage, so its counts are estimated.
-[`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md)
+[`hr_trace_summary()`](https://elkronos.github.io/harnessr/reference/hr_trace_summary.md)
 gives the share of requests whose counts were estimated as
 `usage_estimated`, and [`print()`](https://rdrr.io/r/base/print.html) on
 a trace says so when it is above zero.
@@ -184,12 +184,12 @@ its growing draft:
 
 ``` r
 
-gr_register_model("small-window", context_window = 1000, max_output = 500,
+hr_register_model("small-window", context_window = 1000, max_output = 500,
                   input_usd = 2, output_usd = 8)
 long_draft <- paste(rep("Revenue was 45.2 million dollars, and the draft says so.", 30),
                     collapse = " ")
 cut <- answer_document(gr_example(), "What was revenue?", "fast",
-                       client = gr_mock_client(function(messages, params) long_draft),
+                       client = hr_mock_client(function(messages, params) long_draft),
                        reader = "refine", model = "small-window",
                        max_tokens = 120, max_answer_tokens = 200)
 cuts <- Filter(function(s) identical(s$label, "truncate"), cut$trace$steps)
@@ -213,28 +213,28 @@ failed merge returns, `segment.contextual.header`,
 `embed.input`.
 
 A trace also records who the run is for and what it ran under.
-[`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
+[`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
 takes `system`, `owner`, `run_by`, `purpose` and `approved_by`, and
-`gr_options(actor = list(...))` sets them for every trace; a field named
+`hr_options(actor = list(...))` sets them for every trace; a field named
 nowhere is `NA`. `trace$config` is a snapshot of the options in force
 when the trace was made, with the R version. The values of `api_headers`
 are left out, since they can hold credentials.
 
 ``` r
 
-tr <- gr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
+tr <- hr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
-#> <gr_trace run_20261125121743.781_bb1193>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261125124048.292_3f0995>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   cost: no cost recorded
 #>   actor: owner = finance team, run_by = ana, purpose = Q3 check 
-#>   started: 2026-11-25T12:17:43.781Z
+#>   started: 2026-11-25T12:40:48.292Z
 names(tr$config)
 #> [1] "options"   "r_version"
 ```
 
 `as_json(ans)` writes the answer with every prompt and response from the
 same run, and
-[`gr_trace_save()`](https://elkronos.github.io/harnessr/reference/gr_trace_save.md)
+[`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md)
 writes the trace alone, which is what a replay reads.
 
 ### Errors and warnings by class
@@ -273,7 +273,7 @@ Two limits are on by default: a run may spend \$5 and make 400 calls.
 
 ``` r
 
-unlist(gr_options()[c("max_cost_usd", "max_calls")])
+unlist(hr_options()[c("max_cost_usd", "max_calls")])
 #> max_cost_usd    max_calls 
 #>            5          400
 ```
@@ -291,9 +291,9 @@ spec <- gr_read_spec(reader = "map_reduce", model = "priced-mock")
 
 tryCatch(
   gr_read(chunks, "What was revenue?", cl, spec,
-          trace = gr_trace(governor = hr_governor(max_calls = 3))),
+          trace = hr_trace(governor = hr_governor(max_calls = 3))),
   gr_call_cap = function(e) conditionMessage(e))
-#> [1] "Reader 'map_reduce' over 5 chunks would need about 6 more model calls (0 already made this run), above the 3-call cap. Use a larger `max_tokens` when segmenting (fewer chunks), pick a top-k reader, or raise gr_options(max_calls = ...)."
+#> [1] "Reader 'map_reduce' over 5 chunks would need about 6 more model calls (0 already made this run), above the 3-call cap. Use a larger `max_tokens` when segmenting (fewer chunks), pick a top-k reader, or raise hr_options(max_calls = ...)."
 ```
 
 ### Every request is checked before it is sent
@@ -313,7 +313,7 @@ could cost more than the run has left, so the answer comes back partial:
 
 ``` r
 
-tr <- gr_trace(governor = hr_governor(max_cost_usd = 0.01))
+tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.01))
 capped <- gr_read(chunks, "What was revenue?", cl, spec, trace = tr)
 capped$partial
 #> [1] TRUE
@@ -321,7 +321,7 @@ data.frame(calls = tr$calls, spent_usd = tr$spent_usd, stop_reason = tr$stop_rea
 #>   calls spent_usd stop_reason
 #> 1     5  0.002428        cost
 tr$refusals[[1]]$message
-#> [1] "spending limit reached: the 'reduce' request could cost up to $0.01 (up to 232 prompt tokens, and 1500 reply tokens at its cap), and the run has spent $0.0024 of its $0.01 limit, so it was not sent; raise gr_options(max_cost_usd =) or ask for a smaller max_output"
+#> [1] "spending limit reached: the 'reduce' request could cost up to $0.01 (up to 232 prompt tokens, and 1500 reply tokens at its cap), and the run has spent $0.0024 of its $0.01 limit, so it was not sent; raise hr_options(max_cost_usd =) or ask for a smaller max_output"
 ```
 
 The bound rests on two things harnessr cannot see: that the provider
@@ -333,7 +333,7 @@ run fits:
 
 ``` r
 
-tr <- gr_trace(governor = hr_governor(max_cost_usd = 0.01))
+tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.01))
 fits <- gr_read(chunks, "What was revenue?", cl,
                 gr_read_spec(reader = "map_reduce", model = "priced-mock",
                              max_answer_tokens = 500),
@@ -347,7 +347,7 @@ data.frame(calls = tr$calls, spent_usd = tr$spent_usd)
 
 A refused request is not a call. It adds nothing to the trace’s calls,
 steps or spend.
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
 returns it as a failed result with `refused = TRUE` and an error naming
 the limit, after signalling a condition of class `hr_budget_refused`,
 which you can catch to stop instead. The trace lists it in `refusals`,
@@ -362,14 +362,14 @@ readers, judges, the ensemble’s adjudication, conflict resolution in
 context and proposition segmentation, claims, outlines, screening,
 synthesis, embeddings, and any request a custom reader or a script makes
 with
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md).
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md).
 
 ### A governor for one run
 
 [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)
-holds a run’s limits. Attach one with `gr_trace(governor = )`; a trace
+holds a run’s limits. Attach one with `hr_trace(governor = )`; a trace
 without one reads the limits from
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 each time it checks. It has six:
 
 | limit | what it holds | default |
@@ -382,14 +382,14 @@ each time it checks. It has six:
 | `allow_unpriced` | whether a model with no registered price may be called under a spending limit | `FALSE` |
 
 Each is also an option of the same name, so
-`gr_options(max_tokens_total = 50000)` sets it for every run, and each
+`hr_options(max_tokens_total = 50000)` sets it for every run, and each
 trace’s config snapshot lists them all. `NULL` or `Inf` removes a limit.
 A limit that cannot be compared is refused when you set it:
 
 ``` r
 
-tryCatch(gr_options(max_cost_usd = NA), error = function(e) conditionMessage(e))
-#> [1] "gr_options(max_cost_usd = ) must be a single number or NULL, not NA. A limit that cannot be compared is not a limit, so this is refused here rather than ignored later."
+tryCatch(hr_options(max_cost_usd = NA), error = function(e) conditionMessage(e))
+#> [1] "hr_options(max_cost_usd = ) must be a single number or NULL, not NA. A limit that cannot be compared is not a limit, so this is refused here rather than ignored later."
 ```
 
 A request to a model the run may not call is refused the same way as one
@@ -397,8 +397,8 @@ over budget:
 
 ``` r
 
-tr <- gr_trace(governor = hr_governor(allowed_models = "gpt-4o"))
-res <- gr_call(cl, "What was revenue?", model = "priced-mock", trace = tr)
+tr <- hr_trace(governor = hr_governor(allowed_models = "gpt-4o"))
+res <- hr_call(cl, "What was revenue?", model = "priced-mock", trace = tr)
 data.frame(refused = res$refused, stop_reason = tr$stop_reason)
 #>   refused stop_reason
 #> 1    TRUE       model
@@ -424,33 +424,33 @@ request to one is refused with a condition of class `hr_unpriced_model`,
 and
 [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
 stops before its first request.
-[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
+[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md)
 wraps an R function as a paying client, so it shows the refusal offline:
 
 ``` r
 
-gr_register_model("unpriced-model", context_window = 128000, max_output = 4096)
-backend <- gr_backend_client(function(messages, params) "Revenue was 45.2 million dollars.")
+hr_register_model("unpriced-model", context_window = 128000, max_output = 4096)
+backend <- hr_backend_client(function(messages, params) "Revenue was 45.2 million dollars.")
 
-res <- gr_call(backend, "What was revenue?", model = "unpriced-model")
+res <- hr_call(backend, "What was revenue?", model = "unpriced-model")
 res$refused
 #> [1] TRUE
 res$error
-#> [1] "unpriced model: 'unpriced-model' has no registered price, so what the 'call' request costs cannot be held to the $5 spending limit, and it was not sent. Register its prices with gr_register_model(input_usd =, output_usd =), or send it unpriced with gr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"
+#> [1] "unpriced model: 'unpriced-model' has no registered price, so what the 'call' request costs cannot be held to the $5 spending limit, and it was not sent. Register its prices with hr_register_model(input_usd =, output_usd =), or send it unpriced with hr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"
 ```
 
 Register the model’s prices with
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
-or set `gr_options(allow_unpriced = TRUE)`. Then its requests are sent,
+[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md),
+or set `hr_options(allow_unpriced = TRUE)`. Then its requests are sent,
 still count against `max_calls` and `max_tokens_total`, and are priced
 `NA` in the trace. `max_tokens_total` is the limit that still bounds
 such a run.
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 and replays are never refused for this, and neither are embedding models
 with no price.
 
-A
-[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
+An
+[`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
 is priced as the model its ellmer object was built with, whatever a
 recipe names, so one built on a model with no registered price is
 refused too. Register that model at your provider’s current prices, or
@@ -500,24 +500,24 @@ calls, high for the few that judge.
 
 ## Paying once
 
-[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
+[`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
 stores each successful response, keyed on the exact request. A repeat is
 free and identical:
 
 ``` r
 
-cache  <- gr_cache(file.path(tempdir(), "harnessr-runs-cache"))
-cached <- gr_cache_client(cl, cache)
+cache  <- hr_cache(file.path(tempdir(), "harnessr-runs-cache"))
+cached <- hr_cache_client(cl, cache)
 
 first  <- answer_document(gr_example(), "What was revenue?", "thorough",
                           client = cached, model = "priced-mock")
 second <- answer_document(gr_example(), "What was revenue?", "thorough",
                           client = cached, model = "priced-mock")
 
-gr_trace_summary(second$trace)[, c("calls", "cached", "tokens_in")]
+hr_trace_summary(second$trace)[, c("calls", "cached", "tokens_in")]
 #>   calls cached tokens_in
 #> 1     1      1       607
-gr_trace_cost(second$trace)[, c("calls", "paid_calls", "usd")]
+hr_trace_cost(second$trace)[, c("calls", "paid_calls", "usd")]
 #>   calls paid_calls usd
 #> 1     1          0   0
 ```
@@ -526,7 +526,7 @@ gr_trace_cost(second$trace)[, c("calls", "paid_calls", "usd")]
 network, so `calls - cached` is what the run paid for. The token counts
 stay, since that is how big the prompts were, but a run with
 `cached == calls` cost nothing, so do not hand its totals to
-[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md)
+[`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md)
 and call the result a bill.
 
 The key covers everything that can change the reply: the messages, the
@@ -548,12 +548,12 @@ every completed call is already paid for:
 
 ``` r
 
-gr_options(cache_dir = tools::R_user_dir("harnessr", "cache"))
+hr_options(cache_dir = tools::R_user_dir("harnessr", "cache"))
 ```
 
-[`gr_cache_stats()`](https://elkronos.github.io/harnessr/reference/gr_cache_stats.md)
+[`hr_cache_stats()`](https://elkronos.github.io/harnessr/reference/hr_cache_stats.md)
 reports entries, bytes, hits, misses and writes, and
-[`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md)
+[`hr_cache_clear()`](https://elkronos.github.io/harnessr/reference/hr_cache_clear.md)
 empties a cache. Set `write = FALSE` to run against a frozen cache, or
 `read = FALSE` to refresh entries already stored.
 
@@ -569,12 +569,12 @@ entries, and a rerun gets the same N replies back in the same order:
 ``` r
 
 n <- 0
-sampler <- gr_mock_client(function(messages, params) { n <<- n + 1; paste("draw", n) })
-sampler <- gr_cache_client(sampler, gr_cache(file.path(tempdir(), "harnessr-runs-draws")))
+sampler <- hr_mock_client(function(messages, params) { n <<- n + 1; paste("draw", n) })
+sampler <- hr_cache_client(sampler, hr_cache(file.path(tempdir(), "harnessr-runs-draws")))
 
-vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")
+vapply(1:3, function(k) hr_call(sampler, "Pick one.", draw_index = k)$text, "")
 #> [1] "draw 1" "draw 2" "draw 3"
-vapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k)$text, "")
+vapply(1:3, function(k) hr_call(sampler, "Pick one.", draw_index = k)$text, "")
 #> [1] "draw 1" "draw 2" "draw 3"
 ```
 
@@ -590,9 +590,9 @@ written under the old key (`readgpt-cache-v2`, by readgpt 0.6.0 and
 earlier builds of harnessr) are still read for calls with no draw index.
 The first reply found that way in a session warns once, with class
 `hr_legacy_key`, and
-[`gr_cache_stats()`](https://elkronos.github.io/harnessr/reference/gr_cache_stats.md)
+[`hr_cache_stats()`](https://elkronos.github.io/harnessr/reference/hr_cache_stats.md)
 counts them as `legacy_hits`. Old entries are never rewritten, and
-[`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md)
+[`hr_cache_clear()`](https://elkronos.github.io/harnessr/reference/hr_cache_clear.md)
 removes both. With `tools::R_user_dir("harnessr", "cache")` set, entries
 readgpt kept in `tools::R_user_dir("readgpt", "cache")` are read too,
 after it.
@@ -607,10 +607,10 @@ key and no spend:
 ``` r
 
 f <- file.path(tempdir(), "run.json")
-gr_trace_save(first$trace, f)
+hr_trace_save(first$trace, f)
 
 replayed <- answer_document(gr_example(), "What was revenue?", "thorough",
-                            client = gr_replay_client(f), model = "priced-mock")
+                            client = hr_replay_client(f), model = "priced-mock")
 identical(replayed$answer, first$answer)
 #> [1] TRUE
 ```
@@ -636,20 +636,20 @@ reply recorded for that draw:
 
 ``` r
 
-tr <- gr_trace()
+tr <- hr_trace()
 n <- 0
-sampler <- gr_mock_client(function(messages, params) { n <<- n + 1; paste("draw", n) })
-invisible(lapply(1:3, function(k) gr_call(sampler, "Pick one.", draw_index = k, trace = tr)))
+sampler <- hr_mock_client(function(messages, params) { n <<- n + 1; paste("draw", n) })
+invisible(lapply(1:3, function(k) hr_call(sampler, "Pick one.", draw_index = k, trace = tr)))
 
-rp <- gr_replay_client(tr)
-vapply(1:3, function(k) gr_call(rp, "Pick one.", draw_index = k)$text, "")
+rp <- hr_replay_client(tr)
+vapply(1:3, function(k) hr_call(rp, "Pick one.", draw_index = k)$text, "")
 #> [1] "draw 1" "draw 2" "draw 3"
-tryCatch(gr_call(rp, "Pick one.", draw_index = 4),
+tryCatch(hr_call(rp, "Pick one.", draw_index = 4),
          hr_replay_exhausted = function(e) conditionMessage(e))
-#> [1] "The recording holds no reply for draw 4 of this request; it holds 3 draw(s) of it. The replay is making more calls than the recorded run did, so it is not reproducing that run. Pass on_exhausted = \"flag\" to gr_replay_client() to repeat the last recorded reply instead, counted in $stats()$repeats."
+#> [1] "The recording holds no reply for draw 4 of this request; it holds 3 draw(s) of it. The replay is making more calls than the recorded run did, so it is not reproducing that run. Pass on_exhausted = \"flag\" to hr_replay_client() to repeat the last recorded reply instead, counted in $stats()$repeats."
 ```
 
-`gr_replay_client(on_exhausted = "flag")` repeats the last recorded
+`hr_replay_client(on_exhausted = "flag")` repeats the last recorded
 reply instead, which is what every replay did before, and counts each
 repeat in `$stats()$repeats`. A step recorded before `replay_key`
 existed is looked up by the old key, `readgpt-replay-v1` (messages,
@@ -672,7 +672,7 @@ recording does not hold. A strict replay then stops with
 `gr_replay_miss`, whose message names this cause.
 
 Record a run you intend to publish with
-`gr_options(embedder = "lexical")`, as this guide does, or with your own
+`hr_options(embedder = "lexical")`, as this guide does, or with your own
 embedder registered as `deterministic = TRUE`:
 
 ``` r
@@ -680,7 +680,7 @@ embedder registered as `deterministic = TRUE`:
 run <- answer_document(gr_example(), "What was revenue?", "needle",
                        client = cl, model = "priced-mock")
 again <- answer_document(gr_example(), "What was revenue?", "needle",
-                         client = gr_replay_client(run$trace), model = "priced-mock")
+                         client = hr_replay_client(run$trace), model = "priced-mock")
 identical(again$chunks_used, run$chunks_used)
 #> [1] TRUE
 ```
@@ -731,37 +731,37 @@ that cost something, and `NA` when correctness is not known. A recipe a
 limit stopped before it found anything is `NA`, not wrong. A recipe is
 charged for a segmentation it shares with an earlier recipe, as it would
 be run alone, so the column can add up to more than
-`gr_trace_cost(cmp$trace)`.
+`hr_trace_cost(cmp$trace)`.
 
 ## Models, prices and token counts
 
-[`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md)
+[`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md)
 lists the context windows and prices harnessr knows, and
-[`gr_model_limits()`](https://elkronos.github.io/harnessr/reference/gr_model_limits.md)
+[`hr_model_limits()`](https://elkronos.github.io/harnessr/reference/hr_model_limits.md)
 and
-[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md)
+[`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md)
 look one model up. Check them before a long run: an unregistered model
 falls back to a conservative 128k window with no price, so its cost
 shows as `NA` rather than a wrong figure.
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
+[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
 fixes that in one line, and its `cached_input_usd` prices input the
 provider served from its prompt cache at its own rate. A model with no
 cached rate prices cached input as other input.
 
 ``` r
 
-gr_register_model("priced-reasoner", context_window = 128000, max_output = 16000,
+hr_register_model("priced-reasoner", context_window = 128000, max_output = 16000,
                   input_usd = 2, output_usd = 8, reasoning = TRUE)
-gr_models()[gr_models()$id %in% c("priced-mock", "priced-reasoner"),
+hr_models()[hr_models()$id %in% c("priced-mock", "priced-reasoner"),
             c("id", "context_window", "reasoning", "input_usd_per_1m", "output_usd_per_1m")]
 #>                 id context_window reasoning input_usd_per_1m output_usd_per_1m
 #> 19     priced-mock         128000     FALSE                2                 8
 #> 20 priced-reasoner         128000      TRUE                2                 8
 ```
 
-[`gr_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_tokenizer.md)
+[`hr_tokenizer()`](https://elkronos.github.io/harnessr/reference/hr_tokenizer.md)
 says which counter is in use. The default, `"heuristic"`, needs nothing
-installed. `gr_set_tokenizer("tiktoken")` switches to OpenAI’s own
+installed. `hr_set_tokenizer("tiktoken")` switches to OpenAI’s own
 tokenizer where the reticulate package and Python’s `tiktoken` are
 installed: it counts in a model’s encoding when one is given and
 otherwise, as the package’s budgets do, in the larger of `cl100k_base`
@@ -769,11 +769,11 @@ and `o200k_base`. For a model that is not OpenAI’s it is an estimate.
 Without those packages it stops rather than falling back, because a
 silent fallback would change every budget calculation.
 
-[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
+[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
 does the context arithmetic for every request. It cannot return a
 non-positive input budget; it raises an error that says what to change
 instead.
-[`?gr_options`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`?hr_options`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 documents every setting.
 
 ## Choosing the settings
@@ -800,7 +800,7 @@ document at a small chunk size, cost what it costs.
 `stop_reason` is set, or an error of class `gr_call_cap` or
 `gr_cost_cap` before the first request means a limit stopped the run.
 Raise it only after checking that the run should cost that much:
-[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md)
+[`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md)
 and
 [`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
 say so before anything is sent. A run that spends far less than its
@@ -867,7 +867,7 @@ early ones is the sign of a governor too small for the whole benchmark
 rather than an arm that costs too much.
 
 **Where the default came from.** `governor = NULL` takes the limits from
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 when the benchmark starts, and those are set for one read (400 calls),
 while a benchmark of two arms on 300 items for 5 runs needs several
 thousand. Size it for the benchmark: arms x items x runs x requests per
@@ -925,9 +925,9 @@ where `refine` drafts its answer:
 
 ``` r
 
-gr_register_model("priced-reasoner", context_window = 128000, max_output = 8192,
+hr_register_model("priced-reasoner", context_window = 128000, max_output = 8192,
                   input_usd = 1, output_usd = 4, reasoning = TRUE)
-thinks <- gr_mock_client(function(messages, params) {
+thinks <- hr_mock_client(function(messages, params) {
   if (identical(params$effort, "low") &&
       startsWith(messages[[2]]$content, "<excerpts>")) {
     return("NOT_IN_DOCUMENT")
@@ -999,7 +999,7 @@ the result is marked post hoc.
   declaring a reader’s calls and its `cost` function, so the check
   before the first request counts it correctly.
 - [`?hr_governor`](https://elkronos.github.io/harnessr/reference/hr_governor.md),
-  [`?gr_cache`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
+  [`?hr_cache`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
   and
-  [`?gr_replay_client`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md):
+  [`?hr_replay_client`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md):
   the full rules.

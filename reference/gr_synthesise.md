@@ -217,12 +217,12 @@ gr_synthesise(
 
 - trace:
 
-  A
-  [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
+  An
+  [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
   to fold this write-up's accounting into, as in
   [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
   It is a parent, not this stage's counter: `$trace` is still the
-  write-up's own, so `gr_options(max_calls =)` bounds the write-up
+  write-up's own, so `hr_options(max_calls =)` bounds the write-up
   rather than being spent by the screening that came before it.
 
 - effort:
@@ -614,7 +614,7 @@ to check and render an edited `text_marked` again
 ``` r
 fields <- gr_fields(design = "The study design",
                     n = gr_field("Participants", type = "integer"))
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                 collapse = " ")
   if (grepl("<studies>", seen, fixed = TRUE)) "One randomised trial of 120 people [study 1]."
@@ -626,8 +626,8 @@ cl <- gr_mock_client(function(messages, params) {
 f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised trial. We enrolled 120 people.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1be9796cd929.txt
-#> Extracting 'file1be9796cd929.txt' with the 'txt' extractor.
+#> [1/1] file1b8c4fc491ed.txt
+#> Extracting 'file1b8c4fc491ed.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).

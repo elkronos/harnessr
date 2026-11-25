@@ -64,7 +64,7 @@ ans$partial
 
 Every console block below is real output from the bundled example
 document, with
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 standing in for the API, so you can reproduce all of it without a key.
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 runs several recipes over one document and extracts it only once, so you
@@ -72,7 +72,7 @@ can choose a pipeline before committing to it:
 
 ``` r
 
-cl  <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl  <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 cmp <- gr_compare(gr_example(), "What was revenue in fiscal 2024?",
                   c("fast", "needle", "thorough", "survey"), client = cl)
 cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "settings")]
@@ -112,7 +112,7 @@ ans <- answer_document("thesis.pdf", "How was the sample recruited?", rec)
 
 Sys.setenv(OPENAI_API_KEY = "sk-...")   # or
 options(harnessr.api_key = "sk-...")     # or
-cl <- gr_client(api_key = "sk-...")     # per client, for multi-user Shiny
+cl <- hr_client(api_key = "sk-...")     # per client, for multi-user Shiny
 ```
 
 An explicit argument wins over the `harnessr.api_key` option, which wins
@@ -127,14 +127,14 @@ stop before reading the document, with a `gr_auth_error` that says how
 to set one, so a missing key does not first cost an OCR pass over a long
 scan.
 
-Behind a company gateway, `gr_client(headers = )` sends the headers it
+Behind a company gateway, `hr_client(headers = )` sends the headers it
 wants, such as Azure’s `api-key`;
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 shows how.
 
 The built-in client speaks to OpenAI-compatible `/responses` and
 `/chat/completions` endpoints.
-[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
+[`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
 hands the transport to [ellmer](https://ellmer.tidyverse.org/), which
 covers roughly twenty providers, local models through Ollama among them.
 The spending limit is on by default and can hold only for a model with a
@@ -146,14 +146,14 @@ tokens:
 
 library(ellmer)
 
-gr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 64000,
+hr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 64000,
                   input_usd = 3, output_usd = 15)
-cl <- gr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
+cl <- hr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
 answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
 
 # A local model has no price to register, so let it run unpriced:
-gr_options(allow_unpriced = TRUE)
-gr_ellmer_client(chat_ollama(model = "llama3.1"))
+hr_options(allow_unpriced = TRUE)
+hr_ellmer_client(chat_ollama(model = "llama3.1"))
 ```
 
 Without a registered price, a run under `max_cost_usd` stops before its
@@ -163,11 +163,11 @@ covers unpriced models and what changes through ellmer (temperature and
 embeddings).
 
 Anything else, such as a model behind a queue, goes through
-[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md),
+[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md),
 which makes any function of `messages` and `params` that returns a
 string the transport. Limits, the trace, caching and replay work the
 same way on every client. Register the model’s real context window with
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
+[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md),
 since it is what sizes your chunks.
 
 ## How it works
@@ -275,7 +275,7 @@ answer partial, and a citation of a chunk that was never sent is
 recorded in `ans$notes$cited_unknown`. Both checks are local string
 operations, so they cost nothing and always run.
 
-[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
+[`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)
 prices a run by each step’s own model and counts only the calls that
 were issued;
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
@@ -337,7 +337,7 @@ revision passes.
 
 Two limits are on by default, `max_cost_usd = 5` and `max_calls = 400`
 per run, set with
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 or held together by
 [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md).
 Every request is checked before it is sent, against what the run has
@@ -345,15 +345,15 @@ spent plus the most that request could cost, and a request that could
 pass a limit is not sent. The answer comes back partial, and the trace
 names the limit in `stop_reason`.
 
-[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
+[`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
 stores each successful response, keyed on everything that can change the
 reply, and
-[`gr_cache_client()`](https://elkronos.github.io/harnessr/reference/gr_cache_client.md)
+[`hr_cache_client()`](https://elkronos.github.io/harnessr/reference/hr_cache_client.md)
 attaches it to a client, so a repeat is free and identical. A trace
 records every prompt and response, so
-[`gr_trace_save()`](https://elkronos.github.io/harnessr/reference/gr_trace_save.md)
+[`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md)
 and
-[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
+[`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
 reproduce a run from the saved trace and the source document, with no
 key and no spend.
 
@@ -414,7 +414,7 @@ key is needed and no requests are made; `--check` runs a full
 | `pkgdown.yaml` | builds the website on pushes to the main branch and publishes it; on a pull request that changes the site’s sources, builds it without publishing |
 | `pr-checks.yaml` | fails a pull request that drops an `expect_*()` call, adds a `skip()` or adds a row to a list that may only shrink without the label `tests-reviewed`, adds a dependency without the label `deps-reviewed` (an added package must be on CRAN either way), or removes an export without the label `exports-reviewed`; fails any commit message with a `Co-Authored-By` trailer, a chat or session link or a “Generated with” line. One job, one step per check, rerun when a label changes |
 | `pr-lint.yaml` | lints the changed files under `R/` on each push to a pull request |
-| `ellmer-devel.yaml` | runs weekly and by hand, never on pull requests: installs ellmer from its GitHub repository and runs every test file that exercises [`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md) |
+| `ellmer-devel.yaml` | runs weekly and by hand, never on pull requests: installs ellmer from its GitHub repository and runs every test file that exercises [`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md) |
 | `validation.yaml` | runs nightly and by hand, never on pull requests: simulates clustered benchmarks to check the coverage of [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)’s intervals (`dev/sim-coverage.R`) and [`hr_mdd()`](https://elkronos.github.io/harnessr/reference/hr_mdd.md) against a power simulation (`dev/sim-power.R`), 2000 replicates each, and keeps the tables as an artifact |
 
 `Rscript dev/ci/pr-checks.R tests origin/main HEAD` runs the

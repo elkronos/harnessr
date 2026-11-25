@@ -97,7 +97,7 @@ is a data frame with one row per recipe and these columns:
 - `usd`:
 
   What those requests cost, at the prices registered with
-  [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md).
+  [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md).
   `NA` when a model the recipe used has no registered price.
 
 - `usd_estimated`:
@@ -130,11 +130,11 @@ genuinely different runs.
 
 Each row of `summary` says what its recipe cost, priced from the
 requests on the trace by the model each one used (see
-[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)).
+[`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)).
 A recipe is charged what it would cost run alone: a segmentation it
 shares with an earlier recipe is charged to both, as `max_calls` counts
 it for both, so `sum(summary$usd)` can be more than the comparison
-spent, which is `sum(gr_trace_cost(trace)$usd)`. Give `correct` and each
+spent, which is `sum(hr_trace_cost(trace)$usd)`. Give `correct` and each
 row also says whether the answer was right and what a right answer cost.
 
 The comparison is descriptive: one run of each recipe on one question,
@@ -151,7 +151,7 @@ and read the intervals from
 
 A comparison is one run for the spending and token limits:
 `max_cost_usd` and `max_tokens_total` in
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 are checked against what every recipe and every segmentation has spent
 and used so far, so a recipe that reaches either limit stops `partial`
 and the ones after it are refused and recorded as failed. `max_calls` is
@@ -171,7 +171,7 @@ for the comparison with intervals
 ## Examples
 
 ``` r
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 
 # Three pipelines over one document. Extraction is shared, so this costs one
 # extraction, not three; only the segmentation and the reader vary.
@@ -191,17 +191,17 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "chunks_
 #> 3  needle  semantic      2 retrieve  topk|1|none           2
 
 # One trace covers all three, so this is the cost of the whole comparison.
-gr_trace_summary(cmp$trace)
+hr_trace_summary(cmp$trace)
 #>                          run_id calls cached steps tokens_in tokens_out errors
-#> 1 run_20261125121158.408_afd95e     5      0    16      2122         65      0
+#> 1 run_20261125123541.871_427bb6     5      0    16      2122         65      0
 #>   elapsed_s embed_calls embed_tokens tokens_reasoning tokens_cached_in
-#> 1      0.17           0            0                0                0
+#> 1      0.15           0            0                0                0
 #>   usage_estimated
 #> 1               1
 
 # What each recipe cost, and what a right answer cost. The mock is free, so
 # register a price for it under another name to see the columns filled.
-gr_register_model("priced-mock", context_window = 128000, max_output = 4096,
+hr_register_model("priced-mock", context_window = 128000, max_output = 4096,
                   input_usd = 2, output_usd = 8)
 cmp <- gr_compare(gr_example(), "What was revenue?", c("fast", "precise"),
                   client = cl, model = "priced-mock", correct = "45.2 million")

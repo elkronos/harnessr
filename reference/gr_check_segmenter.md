@@ -24,7 +24,7 @@ gr_check_segmenter(segmenter, client = NULL)
 - client:
 
   A `gr_client` to read with. `NULL` (the default) uses a
-  [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+  [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
   whose reply to a request with a JSON schema is an object of that
   schema's shape, and a fixed sentence otherwise.
 

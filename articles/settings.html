@@ -87,7 +87,7 @@ setting trades off, the signs that point to changing it, where its
 default came from and how to test a change.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
-<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
+<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
 <span><span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_settings_table.html">gr_settings_table</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span>, <span class="va">settings</span><span class="op">$</span><span class="va">tier</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span><span class="op">)</span>, <span class="op">]</span></span>
 <span><span class="co">#&gt;             </span></span>
@@ -115,14 +115,14 @@ blank means nothing is declared, which is the case for switches, limits
 and most function arguments. <code><a href="../reference/gr_settings_table.html">gr_settings_table()</a></code> adds the
 <code>source</code> behind each status, and <code><a href="../reference/gr_read_spec.html">?gr_read_spec</a></code>,
 <code><a href="../reference/gr_segment_spec.html">?gr_segment_spec</a></code>, <code><a href="../reference/gr_ingest_spec.html">?gr_ingest_spec</a></code> and
-<code><a href="../reference/gr_options.html">?gr_options</a></code> give the full help.</p>
+<code><a href="../reference/hr_options.html">?hr_options</a></code> give the full help.</p>
 <p>A setting is given where its stage takes it. Ingest, segment and read
 settings go in a spec (<code>gr_read_spec(top_k = 4)</code>), in a
 recipe, or by name to <code><a href="../reference/answer_document.html">answer_document()</a></code>,
 <code><a href="../reference/gr_read_many.html">gr_read_many()</a></code> and <code><a href="../reference/gr_arm.html">gr_arm()</a></code>, which put each on
 the step it belongs to. The review and evaluation settings are arguments
 of their functions. Options are set for the session with
-<code><a href="../reference/gr_options.html">gr_options()</a></code>.</p>
+<code><a href="../reference/hr_options.html">hr_options()</a></code>.</p>
 <p>To find out whether a value is better for your documents, build one
 arm per value with <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> and compare them with
 <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> and <code><a href="../reference/hr_report.html">hr_report()</a></code>, as
@@ -1801,7 +1801,7 @@ number, at least 1.</td>
 <td align="left">basic</td>
 <td align="left"></td>
 <td align="left">An hr_governor() the whole benchmark is held to, or
-NULL to take the limits from gr_options().</td>
+NULL to take the limits from hr_options().</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>seed</code></td>
@@ -1930,7 +1930,7 @@ below it the report is descriptive only.</td>
 <td align="left">advanced</td>
 <td align="left"></td>
 <td align="left">Draw index passed to every request (see
-gr_call()).</td>
+hr_call()).</td>
 </tr>
 <tr class="even">
 <td align="left"><code>recipes</code></td>
@@ -2037,7 +2037,7 @@ one and left for the scorer.</td>
 <div class="section level2">
 <h2 id="options">Options<a class="anchor" aria-label="anchor" href="#options"></a>
 </h2>
-<p>Session settings, set with <code><a href="../reference/gr_options.html">gr_options()</a></code> and read when a
+<p>Session settings, set with <code><a href="../reference/hr_options.html">hr_options()</a></code> and read when a
 run starts. <code><a href="../articles/runs.html">vignette("runs")</a></code> covers the limits.</p>
 <table class="table">
 <colgroup>
@@ -2059,7 +2059,7 @@ run starts. <code><a href="../articles/runs.html">vignette("runs")</a></code> co
 <tbody>
 <tr class="odd">
 <td align="left"><code>verbose</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>TRUE</code></td>
 <td align="left">basic</td>
 <td align="left"></td>
@@ -2068,17 +2068,17 @@ stage.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>tokenizer</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>heuristic</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
 <td align="left">Token counter: “heuristic” (conservative, no
 dependencies), “words”, “chars”, “tiktoken” (needs reticulate), or a
-name registered via gr_set_tokenizer().</td>
+name registered via hr_set_tokenizer().</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>model</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>gpt-5.6-terra</code></td>
 <td align="left">basic</td>
 <td align="left"></td>
@@ -2086,7 +2086,7 @@ name registered via gr_set_tokenizer().</td>
 </tr>
 <tr class="even">
 <td align="left"><code>embedding_model</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>text-embedding-3-small</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2094,7 +2094,7 @@ name registered via gr_set_tokenizer().</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>api_base</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>https://api.openai.com/v1</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2103,7 +2103,7 @@ endpoint.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>api_headers</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>character(0)</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2113,7 +2113,7 @@ token.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>api</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>responses</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2121,7 +2121,7 @@ token.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>temperature</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>NULL</code></td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
@@ -2129,7 +2129,7 @@ token.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>max_retries</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>4</code></td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
@@ -2137,7 +2137,7 @@ token.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>retry_pause_base</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>2</code></td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
@@ -2145,7 +2145,7 @@ token.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>request_timeout</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>120</code></td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
@@ -2153,7 +2153,7 @@ token.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>safety_margin</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>0.1</code></td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
@@ -2162,16 +2162,16 @@ tokenizer error.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>min_output_tokens</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>256</code></td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
-<td align="left">Floor on the completion room gr_budget() reserves when
+<td align="left">Floor on the completion room hr_budget() reserves when
 reserve_output is not given explicitly.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>cache_documents</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>TRUE</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2179,7 +2179,7 @@ reserve_output is not given explicitly.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>cache_embeddings</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>TRUE</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2187,15 +2187,15 @@ reserve_output is not given explicitly.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>cache_dir</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>NULL</code></td>
 <td align="left">basic</td>
 <td align="left"></td>
-<td align="left">Directory gr_cache() stores model responses in.</td>
+<td align="left">Directory hr_cache() stores model responses in.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>embedder</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>NULL</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2203,7 +2203,7 @@ reserve_output is not given explicitly.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>parallel</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>FALSE</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2211,7 +2211,7 @@ reserve_output is not given explicitly.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>workers</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>4</code></td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
@@ -2219,7 +2219,7 @@ reserve_output is not given explicitly.</td>
 </tr>
 <tr class="even">
 <td align="left"><a href="runs.html#set-limits"><code>max_cost_usd</code></a></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>5</code></td>
 <td align="left">basic</td>
 <td align="left"></td>
@@ -2227,7 +2227,7 @@ reserve_output is not given explicitly.</td>
 </tr>
 <tr class="odd">
 <td align="left"><a href="runs.html#set-limits"><code>max_calls</code></a></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>400</code></td>
 <td align="left">basic</td>
 <td align="left"></td>
@@ -2236,7 +2236,7 @@ request.</td>
 </tr>
 <tr class="even">
 <td align="left"><a href="runs.html#set-limits"><code>max_tokens_total</code></a></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>NULL</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2246,7 +2246,7 @@ embedded.</td>
 </tr>
 <tr class="odd">
 <td align="left"><a href="runs.html#set-limits"><code>max_output_tokens</code></a></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>NULL</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2255,7 +2255,7 @@ with.</td>
 </tr>
 <tr class="even">
 <td align="left"><a href="runs.html#set-limits"><code>allowed_models</code></a></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>NULL</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2264,7 +2264,7 @@ and embedding models alike.</td>
 </tr>
 <tr class="odd">
 <td align="left"><a href="runs.html#set-limits"><code>allow_unpriced</code></a></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>FALSE</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2273,7 +2273,7 @@ called while max_cost_usd is set.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>unknown_model_action</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>warn</code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
@@ -2282,17 +2282,17 @@ registry.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>actor</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code></td>
 <td align="left">advanced</td>
 <td align="left"></td>
 <td align="left">A named list (or character vector) of the actor fields
-every gr_trace() records: system, owner, run_by, purpose and
+every hr_trace() records: system, owner, run_by, purpose and
 approved_by, each one string.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>auto_max_tokens</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>50000</code></td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
@@ -2302,17 +2302,17 @@ read with “thorough”.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>auto_room_share</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>0.5</code></td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
 <td align="left">The second condition of that choice: the document must
-fill at most this share of the input room gr_budget() leaves on every
+fill at most this share of the input room hr_budget() leaves on every
 model of the run.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>reasoning_floor</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>2048</code></td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
@@ -2321,17 +2321,17 @@ is sent with.</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>output_reserve_share</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>0.25</code></td>
 <td align="left">advanced</td>
 <td align="left">untested</td>
-<td align="left">The share of the usable window gr_budget() reserves for
+<td align="left">The share of the usable window hr_budget() reserves for
 the reply when no reserve_output is given, between min_output_tokens and
 the model’s output limit.</td>
 </tr>
 <tr class="even">
 <td align="left"><code>near_verbatim_sim</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>0.9</code></td>
 <td align="left">advanced</td>
 <td align="left">measured</td>
@@ -2342,7 +2342,7 @@ near_verbatim (see gr_verify_evidence()).</td>
 </tr>
 <tr class="odd">
 <td align="left"><code>near_verbatim_sim_short</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>0.95</code></td>
 <td align="left">advanced</td>
 <td align="left">measured</td>
@@ -2353,7 +2353,7 @@ near_verbatim (see gr_verify_evidence()).</td>
 </tr>
 <tr class="even">
 <td align="left"><code>near_verbatim_short_chars</code></td>
-<td align="left"><code><a href="../reference/gr_options.html">gr_options()</a></code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
 <td align="left"><code>40</code></td>
 <td align="left">advanced</td>
 <td align="left">measured</td>
@@ -2370,7 +2370,7 @@ near_verbatim (see gr_verify_evidence()).</td>
 </h2>
 <p>Some settings choose a module from a registry:
 <code>extractor</code>, <code>clean</code>, <code>method</code>,
-<code>reader</code>, <code>gr_options(embedder = )</code>, and the
+<code>reader</code>, <code>hr_options(embedder = )</code>, and the
 recipe given to <code><a href="../reference/answer_document.html">answer_document()</a></code>. The tables below are the
 registries as installed, so a module you register with
 <code><a href="../reference/gr_register_reader.html">gr_register_reader()</a></code> and the like

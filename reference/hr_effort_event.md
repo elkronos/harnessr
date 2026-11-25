@@ -69,6 +69,6 @@ Other harness:
 ## Examples
 
 ``` r
-tr <- gr_trace()
+tr <- hr_trace()
 hr_effort_event(tr, "disagreement")   # no policy has run: nothing recorded
 ```

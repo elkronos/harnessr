@@ -60,7 +60,7 @@ Other harness:
 ## Examples
 
 ``` r
-hr_effort_log(gr_trace())
+hr_effort_log(hr_trace())
 #> [1] after    stage    triggers to       calls    resolved
 #> <0 rows> (or 0-length row.names)
 ```

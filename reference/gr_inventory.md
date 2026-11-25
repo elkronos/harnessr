@@ -32,7 +32,7 @@ gr_inventory(
 
 - model:
 
-  Model id used for the cost floor. Defaults to `gr_options("model")`.
+  Model id used for the cost floor. Defaults to `hr_options("model")`.
 
 - ocr_min_chars:
 
@@ -167,7 +167,7 @@ writeLines("notes", file.path(d, "notes.doc"))   # no extractor claims .doc
 
 inv <- gr_inventory(d)
 inv
-#> <gr_inventory> /tmp/RtmpnKpcaG/file1be9244611ac
+#> <gr_inventory> /tmp/Rtmphe7Fvj/file1b8c4390526b
 #>   2 file(s), 44.0 B; 1 readable
 #>   1 ready, 1 no_extractor
 #>   tokens: 16   cost floor: $0.01 (gpt-5.6-terra, one call per document)

@@ -169,16 +169,16 @@ ref <- hr_reference(sprintf("q%02d", 1:40), labels = rep("yes", 40),
 arm_at <- function(name, effort) {
   hr_arm(name, function(item, ctx) {
     tr <- ctx$trace
-    a <- gr_call(ctx$client, paste("first", item), model = "gpt-5.6-luna", trace = tr,
+    a <- hr_call(ctx$client, paste("first", item), model = "gpt-5.6-luna", trace = tr,
                  label = "task.draft", effort = effort)
-    b <- gr_call(ctx$client, paste("final", item), model = "gpt-5.6-luna", trace = tr,
+    b <- hr_call(ctx$client, paste("final", item), model = "gpt-5.6-luna", trace = tr,
                  label = "task.final", effort = effort)
     b$text
   })
 }
 # Four hard items: the first step finds nothing at low effort, and the
 # answer is wrong unless the final step reasons at high effort.
-cl <- gr_mock_client(function(m, p) {
+cl <- hr_mock_client(function(m, p) {
   hard <- grepl("q0[1-4]", m[[1]]$content)
   if (grepl("first", m[[1]]$content) && hard) return("NOT_IN_DOCUMENT")
   if (hard && identical(p$effort, "low")) "no" else "yes"

@@ -13,7 +13,7 @@ introduces the package and the ideas used here.
 ``` r
 
 library(harnessr)
-old <- gr_options(verbose = FALSE)
+old <- hr_options(verbose = FALSE)
 ```
 
 ## What ingestion produces
@@ -402,7 +402,7 @@ question of the same file, or trying a different way of cutting it into
 chunks, reuses the extracted text instead of reading the file again. The
 cache notices when the file changes (its size or modification time) and
 when any ingestion setting changes. Turn it off with
-`gr_options(cache_documents = FALSE)`.
+`hr_options(cache_documents = FALSE)`.
 
 ## Before reading a whole folder
 
@@ -426,7 +426,7 @@ invisible(file.create(file.path(inbox, "empty.txt")))
 
 inv <- gr_inventory(inbox)
 inv
-#> <gr_inventory> /tmp/RtmpIqzEAT/inbox
+#> <gr_inventory> /tmp/RtmpI1tBUf/inbox
 #>   4 file(s), 1.9 KB; 2 readable
 #>   2 ready, 1 no_extractor, 1 empty
 #>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document)
@@ -517,7 +517,7 @@ intervals.
 qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
                       documents = gr_example(), answers = list("45.2 million"),
                       split = "dev")
-says <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+says <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
 ```
 
 ### Cleaning presets and `references_after`

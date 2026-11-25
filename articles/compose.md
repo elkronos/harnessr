@@ -18,8 +18,8 @@ Everything here runs offline on a stand-in model.
 ``` r
 
 library(harnessr)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
-cl <- gr_mock_client(function(messages, params) {
+old <- hr_options(verbose = FALSE, embedder = "lexical")
+cl <- hr_mock_client(function(messages, params) {
   if (grepl("You grade one response", messages[[1]]$content, fixed = TRUE)) {
     return('{"verdict": "pass", "reason": "It gives the figure."}')
   }
@@ -352,7 +352,7 @@ instructions reach it:
 
 ``` r
 
-units_cl <- gr_mock_client(function(messages, params) {
+units_cl <- hr_mock_client(function(messages, params) {
   skilled <- messages[[1]]$role == "system" &&
     grepl("unit and its currency", messages[[1]]$content, fixed = TRUE)
   if (skilled) "Revenue was 45.2 million dollars." else "Revenue was 45.2."
@@ -450,7 +450,7 @@ work <- file.path(tempdir(), "coding-loop")
 dir.create(work, showWarnings = FALSE)
 tests <- file.path(work, "test-clamp.R")
 writeLines(c("stopifnot(clamp(5, 0, 3) == 3)", "stopifnot(clamp(2, 0, 3) == 2)"), tests)
-coder <- gr_mock_client(function(messages, params) {
+coder <- hr_mock_client(function(messages, params) {
   text <- messages[[length(messages)]]$content
   if (grepl("failed its tests", text, fixed = TRUE)) {
     "clamp <- function(x, lo, hi) max(lo, min(x, hi))"
@@ -615,7 +615,7 @@ checked <- hr_chain(segment = gr_step("segment"), retrieve = gr_step_retrieve(to
                     name = "checked")
 bench <- hr_benchmark(c(list(checked, hr_chain(checked, judge = NULL, name = "nojudge")),
                         hr_sweep(checked, data.frame(retrieve.top_k = c(2, 8)))),
-                      ref, runs = 5, client = gr_cache_client(cl, gr_cache(tempfile())),
+                      ref, runs = 5, client = hr_cache_client(cl, hr_cache(tempfile())),
                       scorer = gr_scorer_answer())
 aggregate(correct ~ arm, bench, mean)
 #>                        arm correct

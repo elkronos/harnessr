@@ -93,7 +93,7 @@ introduces the package and its ideas.</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
-<p>The examples run offline. <code><a href="../reference/gr_mock_client.html">gr_mock_client()</a></code> is a client
+<p>The examples run offline. <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> is a client
 whose handler is an ordinary R function; it goes everywhere a real
 client goes and records every prompt it was sent, which is how you check
 that a module of your own does what you think before you pay for it.
@@ -101,8 +101,8 @@ that a module of your own does what you think before you pay for it.
 too.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
-<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
-<span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
+<span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="getting-text-in-extractors-and-cleaners">Getting text in: extractors and cleaners<a class="anchor" aria-label="anchor" href="#getting-text-in-extractors-and-cleaners"></a>
@@ -206,7 +206,7 @@ answers from the longest chunk only:</p>
 <span>  fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">chunks</span>, <span class="va">question</span>, <span class="va">client</span>, <span class="va">spec</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">chunks</span><span class="op">$</span><span class="va">chunks</span></span>
 <span>    <span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.max</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">tokens</span><span class="op">)</span></span>
-<span>    <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>,</span>
+<span>    <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>,</span>
 <span>             content <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">text</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="st">"\n\nQuestion: "</span>, <span class="va">question</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>           model <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">model</span>, effort <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">effort</span>, trace <span class="op">=</span> <span class="va">trace</span>,</span>
 <span>           label <span class="op">=</span> <span class="st">"longest.answer"</span><span class="op">)</span></span>
@@ -221,7 +221,7 @@ answers from the longest chunk only:</p>
 chunks (<code>chunk_id</code>, <code>text</code>, <code>tokens</code>,
 <code>chars</code>, <code>page</code>, <code>section</code>,
 <code>block_id</code>). Send every request through
-<code><a href="../reference/gr_call.html">gr_call()</a></code> with the client you were given, never one you
+<code><a href="../reference/hr_call.html">hr_call()</a></code> with the client you were given, never one you
 construct, and pass it the <code>trace</code>: that is what counts,
 prices and limits your calls. A request that would pass
 <code>max_calls</code> or <code>max_cost_usd</code> is not sent and
@@ -229,7 +229,7 @@ comes back with <code>refused = TRUE</code>, so stop or degrade when one
 does. Honour at least <code>spec$model</code>,
 <code>spec$max_answer_tokens</code>, <code>spec$temperature</code> and
 <code>spec$effort</code>, and budget the prompt with
-<code><a href="../reference/gr_budget.html">gr_budget()</a></code> rather than assuming the document fits.</p>
+<code><a href="../reference/hr_budget.html">hr_budget()</a></code> rather than assuming the document fits.</p>
 <p>The <code>signature</code>, <code>"select|calls|state"</code>, says
 how the reader traverses the chunks. Two readers with the same signature
 are the same method under two names: <code><a href="../reference/gr_compare.html">gr_compare()</a></code> uses it
@@ -249,7 +249,7 @@ readers claiming to differ can be checked rather than believed.
 <div class="section level2">
 <h2 id="declaring-calls">Declaring calls<a class="anchor" aria-label="anchor" href="#declaring-calls"></a>
 </h2>
-<p>Every <code><a href="../reference/gr_call.html">gr_call()</a></code> carries a <code>label</code>, and the
+<p>Every <code><a href="../reference/hr_call.html">hr_call()</a></code> carries a <code>label</code>, and the
 label is the <code>stage</code> column of the trace. A module declares
 the stems of its labels in <code>calls</code>. A label is covered by a
 stem it equals, or one it starts with followed by a dot. Leave
@@ -301,12 +301,12 @@ one request per chunk plus one:</p>
 <span>  fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">chunks</span>, <span class="va">question</span>, <span class="va">client</span>, <span class="va">spec</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">chunks</span><span class="op">$</span><span class="va">chunks</span></span>
 <span>    <span class="va">notes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>,</span>
+<span>      <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>,</span>
 <span>                content <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">text</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="st">"\n\nQuestion: "</span>, <span class="va">question</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>              model <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">model</span>, effort <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">effort</span>, trace <span class="op">=</span> <span class="va">trace</span>,</span>
 <span>              label <span class="op">=</span> <span class="st">"each.chunk"</span><span class="op">)</span><span class="op">$</span><span class="va">text</span></span>
 <span>    <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>,</span>
+<span>    <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>,</span>
 <span>             content <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">notes</span>, <span class="va">question</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">"\n\n"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>           model <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">model</span>, effort <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">effort</span>, trace <span class="op">=</span> <span class="va">trace</span>,</span>
 <span>           label <span class="op">=</span> <span class="st">"each.merge"</span><span class="op">)</span></span>
@@ -324,11 +324,11 @@ first request, and the governor decides from the sum whether the run
 fits its limits. Under a cap of three calls, the six chunks above are
 refused before anything is sent:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">capped</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>max_calls <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">capped</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>max_calls <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">ch</span>, <span class="st">"What was revenue?"</span>, <span class="va">cl</span>, <span class="st">"each"</span><span class="op">)</span>,</span>
 <span>         gr_call_cap <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Reader 'each' over 6 chunks would need about 7 more model calls (0 already made this run), above the 3-call cap. Use a larger `max_tokens` when segmenting (fewer chunks), pick a top-k reader, or raise gr_options(max_calls = ...)."</span></span>
-<span><span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span><span class="va">capped</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "Reader 'each' over 6 chunks would need about 7 more model calls (0 already made this run), above the 3-call cap. Use a larger `max_tokens` when segmenting (fewer chunks), pick a top-k reader, or raise hr_options(max_calls = ...)."</span></span>
+<span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="va">capped</span><span class="op">)</span></span></code></pre></div>
 <p>A reader registered without <code>cost</code> is counted as one
 request per chunk and, for a signature whose <code>select</code> is
 <code>"all"</code>, every chunk sent once. Declare <code>cost</code> for
@@ -363,7 +363,7 @@ reproducibly:</p>
 <span><span class="co">#&gt;                                                    description version contract</span></span>
 <span><span class="co">#&gt; 1                 Embeddings endpoint on the client's base URL    &lt;NA&gt;     &lt;NA&gt;</span></span>
 <span><span class="co">#&gt; 2 Hashed bag-of-words; free, offline, word overlap not meaning    &lt;NA&gt;     &lt;NA&gt;</span></span></code></pre></div>
-<p><code>gr_options(embedder = "lexical")</code> switches every part of
+<p><code>hr_options(embedder = "lexical")</code> switches every part of
 the package that embeds. An embedder is a function of
 <code>(texts, params)</code> that returns a numeric matrix with one row
 per text, rows L2-normalised, since everything downstream treats the
@@ -386,14 +386,14 @@ with no change to any of them.</p>
 <span>    <span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">26</span><span class="op">)</span>, USE.NAMES <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>embedder <span class="op">=</span> <span class="st">"first-letters"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_embed.html">gr_embed</a></span><span class="op">(</span><span class="va">cl</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"alpha"</span>, <span class="st">"beta"</span><span class="op">)</span><span class="op">)</span>, <span class="st">"embedding_source"</span><span class="op">)</span></span>
+<span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>embedder <span class="op">=</span> <span class="st">"first-letters"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_embed.html">hr_embed</a></span><span class="op">(</span><span class="va">cl</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"alpha"</span>, <span class="st">"beta"</span><span class="op">)</span><span class="op">)</span>, <span class="st">"embedding_source"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "first-letters"</span></span>
-<span><span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span><span class="va">toy</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="va">toy</span><span class="op">)</span></span></code></pre></div>
 <p>Set <code>deterministic = TRUE</code> only if the same text always
 gives the same vector, in any session on any machine. A trace records
 model calls, not vectors, and that flag is what lets
-<code><a href="../reference/gr_replay_client.html">gr_replay_client()</a></code> recompute a run’s chunk ranking instead
+<code><a href="../reference/hr_replay_client.html">hr_replay_client()</a></code> recompute a run’s chunk ranking instead
 of degrading to lexical vectors. Claiming it wrongly makes a replay rank
 chunks from vectors the original run never saw, while reporting an exact
 match.</p>
@@ -405,8 +405,8 @@ match.</p>
 and prices. Register a model the package does not know, or override a
 built-in entry whose prices have gone stale:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_model.html">gr_register_model</a></span><span class="op">(</span><span class="st">"my-local-llama"</span>, context_window <span class="op">=</span> <span class="fl">32768</span>, max_output <span class="op">=</span> <span class="fl">4096</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/gr_model_info.html">gr_model_info</a></span><span class="op">(</span><span class="st">"my-local-llama"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"context_window"</span>, <span class="st">"source"</span>, <span class="st">"certain"</span><span class="op">)</span><span class="op">]</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"my-local-llama"</span>, context_window <span class="op">=</span> <span class="fl">32768</span>, max_output <span class="op">=</span> <span class="fl">4096</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hr_model_info.html">hr_model_info</a></span><span class="op">(</span><span class="st">"my-local-llama"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"context_window"</span>, <span class="st">"source"</span>, <span class="st">"certain"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $context_window</span></span>
 <span><span class="co">#&gt; [1] 32768</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -418,14 +418,14 @@ built-in entry whose prices have gone stale:</p>
 <p>Without prices, a cost cannot be estimated, and harnessr says so
 rather than assuming the run is free:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_estimate_cost.html">gr_estimate_cost</a></span><span class="op">(</span><span class="st">"my-local-llama"</span>, <span class="fl">1000</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"my-local-llama"</span>, <span class="fl">1000</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>While a spending limit is set, a request to a language model with no
 registered price is refused before it is sent (embedding models and
-<code><a href="../reference/gr_mock_client.html">gr_mock_client()</a></code> are exempt). Give <code>input_usd</code>
+<code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> are exempt). Give <code>input_usd</code>
 and <code>output_usd</code> in US dollars per million tokens, or let a
 local model run unpriced with
-<code>gr_options(allow_unpriced = TRUE)</code>.
+<code>hr_options(allow_unpriced = TRUE)</code>.
 <code>reasoning = TRUE</code> marks a model that takes an effort
 setting. The README’s section on connecting a model shows both for a
 model reached through ellmer.</p>
@@ -465,7 +465,7 @@ This reader answers from the shortest chunk:</p>
 <code class="sourceCode R"><span><span class="va">shortest</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">chunks</span>, <span class="va">question</span>, <span class="va">client</span>, <span class="va">spec</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">chunks</span><span class="op">$</span><span class="va">chunks</span></span>
 <span>  <span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">tokens</span><span class="op">)</span></span>
-<span>  <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>, content <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">text</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="st">"\n\nQuestion: "</span>, <span class="va">question</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>    model <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">model</span>, effort <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">effort</span>, trace <span class="op">=</span> <span class="va">trace</span>,</span>
 <span>    label <span class="op">=</span> <span class="st">"shortest.answer"</span><span class="op">)</span></span>
@@ -634,9 +634,9 @@ chunk that does not exist:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_reader.html">gr_register_reader</a></span><span class="op">(</span><span class="st">"loose"</span>, signature <span class="op">=</span> <span class="st">"one|2|none"</span>, calls <span class="op">=</span> <span class="st">"loose.answer"</span>,</span>
 <span>  cost <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">input_stats</span>, <span class="va">params</span><span class="op">)</span> <span class="fu"><a href="../reference/hr_cost.html">hr_cost</a></span><span class="op">(</span>calls <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">chunks</span>, <span class="va">question</span>, <span class="va">client</span>, <span class="va">spec</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>, content <span class="op">=</span> <span class="va">question</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>, content <span class="op">=</span> <span class="va">question</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>            model <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">model</span>, trace <span class="op">=</span> <span class="va">trace</span>, label <span class="op">=</span> <span class="st">"other.answer"</span><span class="op">)</span></span>
-<span>    <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>, content <span class="op">=</span> <span class="va">question</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>, content <span class="op">=</span> <span class="va">question</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                   model <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">model</span>, trace <span class="op">=</span> <span class="va">trace</span>, label <span class="op">=</span> <span class="st">"loose.answer"</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="../reference/new_answer.html">new_answer</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">text</span>, <span class="st">"loose"</span>, <span class="va">question</span>, <span class="fl">99L</span>, <span class="va">trace</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
@@ -723,7 +723,7 @@ first two calls and answers every one after. The <code>longest</code>
 reader still finishes, and stays within its cost, when every request is
 rate limited:</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_check_reader.html">gr_check_reader</a></span><span class="op">(</span><span class="st">"longest"</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="fl">429</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_check_reader.html">gr_check_reader</a></span><span class="op">(</span><span class="st">"longest"</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="fl">429</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;hr_conformance&gt; reader 'longest', contract 0.2</span></span>
 <span><span class="co">#&gt;   passes all 9 rules</span></span>
 <span><span class="co">#&gt;   ok    is_function</span></span>

@@ -170,21 +170,21 @@ members: <code>"model"</code> when the adjudication request answered,
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_trace.html">gr_trace</a></span><span class="op">(</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">hr_signal</span><span class="op">(</span><span class="st">"demo.confident"</span>, <span class="cn">TRUE</span>, <span class="va">tr</span>, item_id <span class="op">=</span> <span class="st">"q1"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">hr_signal</span><span class="op">(</span><span class="st">"demo.confident"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.9</span>, <span class="fl">0.2</span><span class="op">)</span>, <span class="va">tr</span>, item_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"q2"</span>, <span class="st">"q3"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">hr_signals</span><span class="op">(</span><span class="va">tr</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                          run_id step source recipe         signal    type</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261125121238.788_58255c    1   &lt;NA&gt;   &lt;NA&gt; demo.confident logical</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 run_20261125121238.788_58255c    2   &lt;NA&gt;   &lt;NA&gt; demo.confident numeric</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 run_20261125121238.788_58255c    2   &lt;NA&gt;   &lt;NA&gt; demo.confident numeric</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261125123616.853_b1643c    1   &lt;NA&gt;   &lt;NA&gt; demo.confident logical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 run_20261125123616.853_b1643c    2   &lt;NA&gt;   &lt;NA&gt; demo.confident numeric</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 run_20261125123616.853_b1643c    2   &lt;NA&gt;   &lt;NA&gt; demo.confident numeric</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   item_id index value score refs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1      q1     1  TRUE   1.0 &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2      q2     1   0.9   0.9 &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3      q3     2   0.2   0.2 &lt;NA&gt;</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># The readers record their own signals.</span></span></span>
-<span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="st">'{"can_answer": true, "answer": "45.2 million dollars", "next_query": ""}'</span></span></span>
 <span class="r-in"><span><span class="op">}</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ch</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="fu"><a href="gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"sentence"</span>, max_tokens <span class="op">=</span> <span class="fl">150</span><span class="op">)</span><span class="op">)</span></span></span>
@@ -194,7 +194,7 @@ members: <code>"model"</code> when the adjudication request answered,
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'iterative' (topk|rounds*2|forward) over 5 chunk(s).</span>
 <span class="r-in"><span><span class="fu">hr_signals</span><span class="op">(</span><span class="va">ans</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                          run_id step source recipe                  signal</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261125121238.841_268e07    5   &lt;NA&gt;   &lt;NA&gt; gr.iterative.can_answer</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 run_20261125123616.895_8dba13    5   &lt;NA&gt;   &lt;NA&gt; gr.iterative.can_answer</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      type item_id index value score        refs</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 logical    &lt;NA&gt;     1  TRUE     1 {"round":1}</span>
 <span class="r-in"><span></span></span>

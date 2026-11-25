@@ -1,7 +1,7 @@
 # The result of one model call
 
 Returned by
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md).
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md).
 Designed so a caller can never be handed `NULL` or `character(0)` where
 a string is expected.
 
@@ -39,19 +39,19 @@ the token usage and either the text or the error.
 
 ## See also
 
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
 which returns one,
-[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md),
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md),
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md),
-[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md),
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md),
+[`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md),
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 
 ## Examples
 
 ``` r
-res <- gr_call(gr_mock_client(function(m, p) "hello"), "hi")
+res <- hr_call(hr_mock_client(function(m, p) "hello"), "hi")
 c(ok = res$ok, text = res$text)
 #>      ok    text 
 #>  "TRUE" "hello" 

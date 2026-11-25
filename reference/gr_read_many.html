@@ -106,11 +106,11 @@ downloaded as <code><a href="gr_ingest.html">gr_ingest()</a></code> downloads on
 
 
 <dt id="arg-client">client<a class="anchor" aria-label="anchor" href="#arg-client"></a></dt>
-<dd><p>A <code>gr_client</code>. Wrap it in <code><a href="gr_cache_client.html">gr_cache_client()</a></code> for a long run:
+<dd><p>A <code>gr_client</code>. Wrap it in <code><a href="hr_cache_client.html">hr_cache_client()</a></code> for a long run:
 with a durable cache directory, a restart pays for nothing it has already
-answered. A closure-backed client (<code><a href="gr_backend_client.html">gr_backend_client()</a></code> or
-<code><a href="gr_mock_client.html">gr_mock_client()</a></code>) reuses a cache or a <code>store</code> across sessions only if it
-was given a stable <code>id</code>; see <code><a href="gr_backend_client.html">gr_backend_client()</a></code> for why.</p></dd>
+answered. A closure-backed client (<code><a href="hr_backend_client.html">hr_backend_client()</a></code> or
+<code><a href="hr_mock_client.html">hr_mock_client()</a></code>) reuses a cache or a <code>store</code> across sessions only if it
+was given a stable <code>id</code>; see <code><a href="hr_backend_client.html">hr_backend_client()</a></code> for why.</p></dd>
 
 
 <dt id="arg-store">store<a class="anchor" aria-label="anchor" href="#arg-store"></a></dt>
@@ -137,7 +137,7 @@ other hundred and ninety-nine.</p></dd>
 <dd><p>Stop once the run has spent this much, marking the
 remaining documents <code>"skipped"</code>, except any restored from <code>store</code>, which
 costs nothing. This is a <em>corpus</em> ceiling and is separate
-from <code>gr_options(max_cost_usd =)</code>, which is a limit per document.
+from <code>hr_options(max_cost_usd =)</code>, which is a limit per document.
 It needs a model with a registered price: against one without, cost is
 <em>unknown</em> rather than zero, the ceiling cannot be enforced, and you get a
 <code>gr_corpus_cost_unknown</code> warning instead of a silent free pass. The one
@@ -152,13 +152,13 @@ since what those documents cost in full is not known.</p></dd>
 <dd><p>Stop <em>before</em> a document once the run has made this
 many requests, marking the rest <code>"skipped"</code>, except any restored from
 <code>store</code>, which makes no request. Requests are counted as
-<code>gr_options(max_calls =)</code> counts them: model calls and requests to an
+<code>hr_options(max_calls =)</code> counts them: model calls and requests to an
 embeddings endpoint alike, so a document read with <code>"needle"</code> through an
 API embedder spends more of it than its model calls alone, and more than
 the "model calls" a printed trace shows. The counterpart to
 <code>max_total_usd</code> for runs whose model has no registered price, and the only
 ceiling that bounds the run rather than each document:
-<code>gr_options(max_calls =)</code> is per document, so a corpus can make
+<code>hr_options(max_calls =)</code> is per document, so a corpus can make
 <code>length(sources)</code> times that many. Checked before each document, because a
 call ceiling noticed after the calls is not a ceiling. This means the run
 can overshoot by at most one document's worth, exactly as <code>max_total_usd</code>
@@ -176,10 +176,10 @@ runs you out of memory.</p></dd>
 
 
 <dt id="arg-trace">trace<a class="anchor" aria-label="anchor" href="#arg-trace"></a></dt>
-<dd><p>A <code><a href="gr_trace.html">gr_trace()</a></code> to fold this run's accounting into, so several
+<dd><p>An <code><a href="hr_trace.html">hr_trace()</a></code> to fold this run's accounting into, so several
 stages of one review add up to one figure. It is a <em>parent</em>: this run still
 gets its own trace, which is what <code>$trace</code> returns and what
-<code>gr_options(max_calls =)</code> is measured against. Running a stage directly on a
+<code>hr_options(max_calls =)</code> is measured against. Running a stage directly on a
 shared trace would charge the previous stage's calls against this one's
 ceiling. Omit it and there is no parent.</p></dd>
 
@@ -259,12 +259,12 @@ those vectors ranked the chunks the reader sent (<code>retrieve</code>, <code>re
 <code>iterative</code>), but not when they only placed a semantic segmenter's cuts;
 that, like a proposition batch kept as written, shows in <code>warnings</code>, and a
 contextual header that could not be written only in the trace's <code>errors</code>
-(see <code><a href="gr_trace.html">gr_trace()</a></code>). A row that a
+(see <code><a href="hr_trace.html">hr_trace()</a></code>). A row that a
 limit or a failed request stopped keeps <code>document_id</code>, <code>reader</code> and the chunk
 counts, since the text was read; only <code>answer</code> and <code>not_found</code> are left <code>NA</code>.
 A restored row keeps the numbers from when that document was first read, so
 its <code>cost_usd</code> is what it cost then, not what this run spent. That is why the
-run's own spend comes from <code>gr_trace_cost(x$trace)</code> and not from summing the
+run's own spend comes from <code>hr_trace_cost(x$trace)</code> and not from summing the
 column.</p>
     </div>
     <div class="section level2">
@@ -282,7 +282,7 @@ now. Nothing is dropped (every source you passed still
 has a row), so <code>subset(x$summary, is.na(duplicate_of))</code> is the deduplicated
 set and <code>sum(!is.na(x$summary$duplicate_of))</code> is the number to report as
 removed.</p>
-<p>This is about the table, not the bill: a <code><a href="gr_cache_client.html">gr_cache_client()</a></code> already makes the
+<p>This is about the table, not the bill: an <code><a href="hr_cache_client.html">hr_cache_client()</a></code> already makes the
 second copy's calls free. What it could not do is stop the duplicate from
 appearing in the results as a second, independent document, which is how one
 study gets counted twice in a synthesis.</p>
@@ -293,8 +293,8 @@ two documents here; matching those needs bibliographic metadata, not text.</p>
     <h2 id="budgets">Budgets<a class="anchor" aria-label="anchor" href="#budgets"></a></h2>
 
 
-<p>Every document gets its own trace, so <code>gr_options(max_calls =)</code> and
-<code>gr_options(max_cost_usd =)</code> apply per document exactly as they would if you
+<p>Every document gets its own trace, so <code>hr_options(max_calls =)</code> and
+<code>hr_options(max_cost_usd =)</code> apply per document exactly as they would if you
 read it alone. One enormous document therefore cannot starve the rest.</p>
 <p>That is a deliberate design and it leaves the run itself unbounded: two
 hundred documents under a 400-call ceiling is a <em>corpus</em> ceiling of eighty
@@ -312,42 +312,42 @@ parallel, and the per-worker traces the parallel helper already builds would
 carry the accounting across, so the obstacle is not the trace: it is that
 duplicate detection, the resume store and both run-level ceilings are all
 order-dependent, and a parallel loop would have to serialise on each of them. Within a document,
-<code>gr_options(parallel = TRUE)</code> already applies.</p>
+<code>hr_options(parallel = TRUE)</code> already applies.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="answer_document.html">answer_document()</a></code>, <code><a href="gr_compare.html">gr_compare()</a></code>, <code><a href="gr_cache_client.html">gr_cache_client()</a></code>,
-<code><a href="gr_trace_cost.html">gr_trace_cost()</a></code></p></div>
+    <div class="dont-index"><p><code><a href="answer_document.html">answer_document()</a></code>, <code><a href="gr_compare.html">gr_compare()</a></code>, <code><a href="hr_cache_client.html">hr_cache_client()</a></code>,
+<code><a href="hr_trace_cost.html">hr_trace_cost()</a></code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".txt"</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"Revenue was 45.2 million."</span>, <span class="va">a</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".txt"</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"Revenue was 51.8 million."</span>, <span class="va">b</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu">gr_read_many</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">a</span>, <span class="va">b</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"fast"</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 2 document(s), and gr_options(max_calls) is 400 PER DOCUMENT, so this run may make up to 800 call(s). Pass max_total_calls = to cap the run.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/2] file1be966804a2b.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1be966804a2b.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 2 document(s), and hr_options(max_calls) is 400 PER DOCUMENT, so this run may make up to 800 call(s). Pass max_total_calls = to cap the run.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/2] file1b8c37ddb146.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1b8c37ddb146.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~11 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'stuff' (all|1|none) over 1 chunk(s).</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [2/2] file1be97942041.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1be97942041.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [2/2] file1b8c599dd9fb.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1b8c599dd9fb.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~11 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'stuff' (all|1|none) over 1 chunk(s).</span>
 <span class="r-in"><span><span class="va">out</span><span class="op">$</span><span class="va">summary</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"answer"</span>, <span class="st">"not_found"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               document                            answer not_found status</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1be966804a2b.txt Revenue was 45.2 million dollars.     FALSE     ok</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2  file1be97942041.txt Revenue was 45.2 million dollars.     FALSE     ok</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1b8c37ddb146.txt Revenue was 45.2 million dollars.     FALSE     ok</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 file1b8c599dd9fb.txt Revenue was 45.2 million dollars.     FALSE     ok</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># A missing file is one bad row, not a failed run.</span></span></span>
 <span class="r-in"><span><span class="va">bad</span> <span class="op">&lt;-</span> <span class="fu">gr_read_many</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">a</span>, <span class="st">"no-such-file.txt"</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>, <span class="st">"fast"</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 2 document(s), and gr_options(max_calls) is 400 PER DOCUMENT, so this run may make up to 800 call(s). Pass max_total_calls = to cap the run.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/2] file1be966804a2b.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 2 document(s), and hr_options(max_calls) is 400 PER DOCUMENT, so this run may make up to 800 call(s). Pass max_total_calls = to cap the run.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/2] file1b8c37ddb146.txt</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Using cached ingestion for this document + settings.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'stuff' (all|1|none) over 1 chunk(s).</span>
@@ -355,14 +355,14 @@ order-dependent, and a parallel loop would have to serialise on each of them. Wi
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Document 'no-such-file.txt' failed: File not found: 'no-such-file.txt'. If you meant to pass document text rather than a path, it must not end in something that looks like a file extension.</span>
 <span class="r-in"><span><span class="va">bad</span><span class="op">$</span><span class="va">summary</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"document"</span>, <span class="st">"status"</span>, <span class="st">"error"</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>               document status</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1be966804a2b.txt     ok</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 file1b8c37ddb146.txt     ok</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2     no-such-file.txt failed</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                       error</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1                                                                                                                                                      &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2 File not found: 'no-such-file.txt'. If you meant to pass document text rather than a path, it must not end in something that looks like a file extension.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># What the run actually cost, counting only calls that were really issued.</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="gr_trace_cost.html">gr_trace_cost</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="hr_trace_cost.html">hr_trace_cost</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        model calls paid_calls paid_in paid_out usd paid_reasoning</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 mock-model     2          2     190       26   0              0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   paid_cached_in</span>

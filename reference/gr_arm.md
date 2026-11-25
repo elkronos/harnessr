@@ -67,12 +67,12 @@ trace the benchmark made for that run (`ctx$trace`), so the run's
 tokens, cost and refusals are counted and held to the benchmark's
 limits, and the answer's `trace` is that run's trace. That trace also
 gives every request of the run the run's draw index (see `draw_index` in
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)),
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)),
 segmenter and reader requests included, so the runs of one arm on one
-item are separate draws under a
-[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
-or a
-[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
+item are separate draws under an
+[`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
+or an
+[`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
 rather than one stored reply repeated, which
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
 would refuse.
@@ -143,7 +143,7 @@ Other harness:
 ## Examples
 
 ``` r
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ref <- gr_qa_reference(
   questions = c(revenue = "What was revenue in 2024?",
                 ceo = "Who is the chief executive?"),

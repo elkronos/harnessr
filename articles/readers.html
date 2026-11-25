@@ -99,7 +99,7 @@ reader can do its normal work. You do not need to follow its details; it
 plays the part of the model.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
-<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
+<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">stand_in</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">instructions</span> <span class="op">&lt;-</span> <span class="va">messages</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span></span>
@@ -211,7 +211,7 @@ left out: they are built for literature reviews and need a schema or
 criteria.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">read_with</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">reader</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span></span>
+<span>  <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span></span>
 <span>  <span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="va">model</span>, <span class="va">reader</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="va">reader</span>, requests <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">model</span><span class="op">$</span><span class="fu">calls</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>             chunks_used <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">ans</span><span class="op">$</span><span class="va">chunks_used</span><span class="op">)</span>, partial <span class="op">=</span> <span class="va">ans</span><span class="op">$</span><span class="va">partial</span><span class="op">)</span></span>
@@ -556,7 +556,7 @@ reasonable start):</p>
 <span>  <span class="st">"The board approved a dividend of 0.42 dollars per share in March."</span><span class="op">)</span>,</span>
 <span>  collapse <span class="op">=</span> <span class="st">"\n\n"</span><span class="op">)</span></span>
 <span><span class="va">pieces</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="va">repetitive</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"paragraph"</span>, max_tokens <span class="op">=</span> <span class="fl">40</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span></span>
+<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span></span>
 <span><span class="va">picked</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">mmr</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">pieces</span>, <span class="st">"What was revenue?"</span>, <span class="va">model</span>,</span>
 <span>          <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"retrieve"</span>, top_k <span class="op">=</span> <span class="fl">3</span>, mmr <span class="op">=</span> <span class="va">mmr</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">chunks_used</span></span>
@@ -594,7 +594,7 @@ rather than assume.</p>
 (<code><a href="../articles/segment.html">vignette("segment")</a></code>) need <em>embeddings</em>. By default
 harnessr asks the model provider for them, which costs a little and
 needs an internet connection.
-<code>gr_options(embedder = "lexical")</code> uses word-matching vectors
+<code>hr_options(embedder = "lexical")</code> uses word-matching vectors
 computed locally instead: free, offline and exactly repeatable, but they
 match words rather than meaning, so “turnover” will not find “revenue”.
 Use lexical vectors for practice and testing, and real embeddings for
@@ -617,7 +617,7 @@ part of what every request costs. <code>effort</code> in
 <code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code> sets how much of it to do: one value, such
 as <code>"low"</code>, for every request, or a vector named by stage. It
 is sent only to models harnessr lists as reasoning models
-(<code>gr_model_info(model)$reasoning</code>). By default nothing is
+(<code>hr_model_info(model)$reasoning</code>). By default nothing is
 sent, and each request goes out at the provider’s default.</p>
 <p>Every request a reader makes carries a label naming its stage:</p>
 <table class="table">
@@ -703,14 +703,14 @@ are where a lower effort saves most; <code><a href="../reference/gr_read_spec.ht
 a starting profile. A name covers its own label and every label that
 starts with it and a dot, so <code>map</code> covers
 <code>map.answer</code>, and an unnamed value covers the rest.</p>
-<p><code><a href="../reference/gr_trace.html">gr_trace()</a></code> records every request a run makes. Here
+<p><code><a href="../reference/hr_trace.html">hr_trace()</a></code> records every request a run makes. Here
 <code>map_reduce</code> reads the eight chunks at low effort and merges
 at high:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read_spec.html">gr_read_spec</a></span><span class="op">(</span><span class="st">"map_reduce"</span>, model <span class="op">=</span> <span class="st">"gpt-5.6-luna"</span>,</span>
 <span>                     effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>map <span class="op">=</span> <span class="st">"low"</span>, reduce <span class="op">=</span> <span class="st">"high"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_trace.html">gr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span>, <span class="va">spec</span>,</span>
+<span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span>, <span class="va">spec</span>,</span>
 <span>               trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">tr</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">stage</span>, <span class="va">effort</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;             effort</span></span>
@@ -733,7 +733,7 @@ across a literature review and what each trace step records.</p>
 it used, as <code>[chunk 3]</code>. Each chunk id leads back to a page
 and section through <code>ans$evidence</code>:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">citing</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">citing</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span></span>
 <span>  <span class="st">"Revenue was 45.2 million dollars [chunk 2]."</span><span class="op">)</span></span>
 <span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="va">citing</span>,</span>
 <span>               <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"stuff"</span>, cite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
@@ -791,7 +791,7 @@ construction. The passages <code>skim</code> collects are what the model
 <em>says</em> the document contains, so harnessr checks every one
 against the chunk it came from:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">skimmed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span>, <span class="st">"skim"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">skimmed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span>, <span class="st">"skim"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/gr_verify_evidence.html">gr_verify_evidence</a></span><span class="op">(</span><span class="va">skimmed</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"chunk_id"</span>, <span class="st">"verified"</span>, <span class="st">"match"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   chunk_id verified match</span></span>
 <span><span class="co">#&gt; 1        2     TRUE     1</span></span></code></pre></div>
@@ -801,7 +801,7 @@ caught by eye:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">memo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="st">"Revenue rose to 45.2 million dollars.\n\nHeadcount grew to 1,204."</span><span class="op">)</span>,</span>
 <span>                   <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"paragraph"</span>, max_tokens <span class="op">=</span> <span class="fl">40</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">inventing</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<span><span class="va">inventing</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"You extract evidence"</span>, <span class="va">messages</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="st">"Revenue rose to 88.9 billion dollars on record demand."</span><span class="op">)</span></span>
 <span>  <span class="op">}</span></span>
@@ -841,7 +841,7 @@ ends with none accepted keeps the refused answer in
 the document.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vspec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read_spec.html">gr_read_spec</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"skim"</span>, verify <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span>, <span class="va">vspec</span><span class="op">)</span></span>
+<span><span class="va">checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">chunks</span>, <span class="st">"What was revenue in 2024?"</span>, <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span>, <span class="va">vspec</span><span class="op">)</span></span>
 <span><span class="va">checked</span><span class="op">$</span><span class="va">notes</span><span class="op">$</span><span class="va">quotes_checked</span></span>
 <span><span class="co">#&gt; [1] 1</span></span>
 <span><span class="va">checked</span><span class="op">$</span><span class="va">evidence</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"verified"</span>, <span class="st">"match"</span>, <span class="st">"quote_status"</span>, <span class="st">"quote_sim"</span><span class="op">)</span><span class="op">]</span></span>
@@ -896,7 +896,7 @@ members (<code>ans$notes$premise_members</code>).
 question and the other chunks silent. <code>FALSE_PREMISE:</code> is how
 the model is asked to open such a reply:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">loaded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">loaded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">sent</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">messages</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span>, <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="va">m</span><span class="op">$</span><span class="va">content</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                collapse <span class="op">=</span> <span class="st">"\n"</span><span class="op">)</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"45.2 million"</span>, <span class="va">sent</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -933,7 +933,7 @@ chunks between configurations that cut them the same way:</p>
 <span>            read <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"retrieve"</span>, top_k <span class="op">=</span> <span class="fl">6</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="../reference/gr_recipe.html">gr_recipe</a></span><span class="op">(</span><span class="st">"all"</span>, segment <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span>,</span>
 <span>            read <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"map_reduce"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  client <span class="op">=</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span><span class="op">)</span></span>
+<span>  client <span class="op">=</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">cmp</span><span class="op">$</span><span class="va">summary</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"recipe"</span>, <span class="st">"reader"</span>, <span class="st">"settings"</span>, <span class="st">"chunks_used"</span>, <span class="st">"not_found"</span>, <span class="st">"partial"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   recipe     reader                settings chunks_used not_found partial</span></span>
 <span><span class="co">#&gt; 1 narrow   retrieve top_k=2, max_tokens=120           2     FALSE   FALSE</span></span>
@@ -1072,7 +1072,7 @@ is small. Run <code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()<
 <td>answers change between identical runs</td>
 <td>the <code>temperature</code> setting, unset by default</td>
 <td>set <code>temperature = 0</code>. Reasoning models ignore it
-(<code>gr_model_info(m)$supports_temperature</code>)</td>
+(<code>hr_model_info(m)$supports_temperature</code>)</td>
 </tr>
 <tr class="odd">
 <td>
@@ -1092,7 +1092,7 @@ the marker, and models decorate it
 (<code>**NOT_IN_DOCUMENT.**</code>).</p>
 <p>Two habits make all of this cheaper: run
 <code><a href="../reference/gr_chunk_stats.html">gr_chunk_stats()</a></code> before you spend anything, and keep
-<code>gr_options(max_cost_usd = ...)</code> set to something you would
+<code>hr_options(max_cost_usd = ...)</code> set to something you would
 not mind paying by accident.</p>
 </div>
 <div class="section level2">
@@ -1116,7 +1116,7 @@ with intervals.</p>
 <code class="sourceCode R"><span><span class="va">qa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_qa_reference.html">gr_qa_reference</a></span><span class="op">(</span>questions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>revenue <span class="op">=</span> <span class="st">"What was revenue in 2024?"</span><span class="op">)</span>,</span>
 <span>                      documents <span class="op">=</span> <span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, answers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"45.2 million"</span><span class="op">)</span>,</span>
 <span>                      split <span class="op">=</span> <span class="st">"dev"</span><span class="op">)</span></span>
-<span><span class="va">reads</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span></span>
+<span><span class="va">reads</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="va">stand_in</span><span class="op">)</span></span>
 <span><span class="va">sweep</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">arms</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">reads</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
 <span>               scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
@@ -1156,7 +1156,7 @@ because it reads the whole document at any length; no comparison of
 readers is recorded (<code>untested</code>).
 <code><a href="../reference/answer_document.html">answer_document()</a></code> chooses <code>"fast"</code> or
 <code>"thorough"</code> by length (<code>auto_max_tokens</code> in
-<code><a href="../reference/gr_options.html">gr_options()</a></code>).</p>
+<code><a href="../reference/hr_options.html">hr_options()</a></code>).</p>
 <p><strong>How to test it.</strong> Sweep the reader on one
 segmentation:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
@@ -1246,7 +1246,7 @@ none.</p>
 <code>bm25_b</code> and <code>fusion</code><a class="anchor" aria-label="anchor" href="#set-lexical"></a>
 </h3>
 <p><strong>What they control.</strong> With lexical embeddings
-(<code>gr_options(embedder = "lexical")</code>), <code>retrieve</code>
+(<code>hr_options(embedder = "lexical")</code>), <code>retrieve</code>
 scores chunks by a blend of cosine similarity and BM25, with
 <code>lexical_blend</code> the weight on cosine. <code>bm25_k1</code>
 sets how fast repeated words stop adding to a chunk’s score, and
@@ -1450,7 +1450,7 @@ here.</p>
 <span>  <span class="fu">stand_in</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">needle</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>answer_format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"parsed"</span>, <span class="st">"schema"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, <span class="va">qa</span>,</span>
-<span>                      runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">fields</span><span class="op">)</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>                      runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="va">fields</span><span class="op">)</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
 <span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">tokens_in</span>, <span class="va">correct</span><span class="op">)</span> <span class="op">~</span> <span class="va">param.answer_format</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   param.answer_format tokens_in correct</span></span>
@@ -1505,7 +1505,7 @@ it sent before (<code>untested</code>).</p>
 <span><span class="va">stuffed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"thorough"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"structural"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span>,</span>
 <span>                                   overlap_tokens <span class="op">=</span> <span class="fl">0</span>, reader <span class="op">=</span> <span class="st">"stuff"</span>, premise <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">stuffed</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>premise_verdict <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sentence"</span>, <span class="st">"structured"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>                      <span class="va">loaded</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">verdict</span><span class="op">)</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>                      <span class="va">loaded</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="va">verdict</span><span class="op">)</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
 <span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">tokens_in</span> <span class="op">~</span> <span class="va">param.premise_verdict</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   param.premise_verdict tokens_in</span></span>
@@ -1625,7 +1625,7 @@ state <code>refine</code> carried. Neither has been compared with the
 alternatives (<code>untested</code>).</p>
 <p><strong>How to test them.</strong></p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ledger_reads</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<code class="sourceCode R"><span><span class="va">ledger_reads</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"Reply with the edits"</span>, <span class="va">messages</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">messages</span><span class="op">)</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, fixed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">excerpt</span> <span class="op">&lt;-</span> <span class="va">messages</span><span class="op">[[</span><span class="fl">4</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span></span>
 <span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"revenue of [0-9.]+ million"</span>, <span class="va">excerpt</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -1702,7 +1702,7 @@ which holds the revenue figure:</p>
 <span>                                 overlap_tokens <span class="op">=</span> <span class="fl">0</span>, reader <span class="op">=</span> <span class="st">"preview"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="va">looks</span>, <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>unskip_k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>,</span>
 <span>                                                  reread_on <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"never"</span>, <span class="st">"not_found"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>                      <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="va">skips_summary</span><span class="op">)</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>                      <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="va">skips_summary</span><span class="op">)</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
 <span>                      scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">tokens_in</span> <span class="op">~</span> <span class="va">param.unskip_k</span> <span class="op">+</span> <span class="va">param.reread_on</span>, <span class="va">bench</span>, <span class="va">mean</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   param.unskip_k param.reread_on tokens_in</span></span>

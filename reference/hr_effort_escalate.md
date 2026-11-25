@@ -1,7 +1,7 @@
 # Reasoning effort that is raised for the next stage when a trigger fires
 
 A policy for a call's `effort`
-([`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md))
+([`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md))
 or a read's `effort_mode`
 ([`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)).
 Every stage starts at `base` (one level, or a map named by call stem,
@@ -136,17 +136,17 @@ pol
 #>   on:   truncated, parse_failure, schema_failure, verify_failed, not_in_document, unclear, disagreement
 
 # A first stage that found nothing raises the second.
-cl <- gr_mock_client(function(m, p) {
+cl <- hr_mock_client(function(m, p) {
   if (identical(p$effort, "low") && grepl("first", m[[1]]$content)) {
     return("NOT_IN_DOCUMENT")
   }
   paste("done at", p$effort)
 })
-tr <- gr_trace()
-gr_call(cl, "first step", model = "gpt-5.6-luna", trace = tr, label = "plan.draft",
+tr <- hr_trace()
+hr_call(cl, "first step", model = "gpt-5.6-luna", trace = tr, label = "plan.draft",
         effort = pol)$text
 #> [1] "NOT_IN_DOCUMENT"
-gr_call(cl, "second step", model = "gpt-5.6-luna", trace = tr, label = "plan.final",
+hr_call(cl, "second step", model = "gpt-5.6-luna", trace = tr, label = "plan.final",
         effort = pol)$text
 #> [1] "done at high"
 hr_effort_log(tr)

@@ -21,9 +21,9 @@ on your own documents.
 ``` r
 
 library(harnessr)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 op <- options(digits = 3)
-gr_register_model("mock-model", context_window = 128000, max_output = 16384,
+hr_register_model("mock-model", context_window = 128000, max_output = 16384,
                   input_usd = 1, output_usd = 4)
 ```
 
@@ -102,7 +102,7 @@ probability equal to the prompt’s length in characters over 6000.
 pattern <- c(revenue = "Revenue was [0-9.]+ million dollars in fiscal 2024",
              units = "made [0-9,]+ units", staff = "Staff numbered [0-9]+",
              exports = "Exports rose [0-9]+ percent")
-reader <- gr_mock_client(function(messages, params) {
+reader <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), ""), collapse = " ")
   asked <- sub(".*Question", "", seen)
   topic <- names(pattern)[vapply(c("revenue", "units", "staff", "exports"), grepl,
@@ -247,7 +247,7 @@ b_read
 #>  map_reduce 0.906    320  30    0      0           0.2430
 #>  retrieve   0.894    320  34    0      0           0.0686
 #>   Descriptive only: accuracy is the mean over runs within each item, then over labelled items, with no interval.
-gr_trace_summary(attr(b_read, "trace"))[, c("calls", "tokens_in", "tokens_out")]
+hr_trace_summary(attr(b_read, "trace"))[, c("calls", "tokens_in", "tokens_out")]
 #>   calls tokens_in tokens_out
 #> 1  1920    304730      26029
 ```
@@ -559,7 +559,7 @@ on the run’s trace and at its draw index:
 
 ``` r
 
-screener <- gr_mock_client(function(messages, params) {
+screener <- hr_mock_client(function(messages, params) {
   shown <- paste(vapply(messages, function(m) as.character(m$content), ""), collapse = " ")
   reply <- function(d, why, crit) {
     sprintf('{"decision":"%s","reason":"%s","criterion":%s,"quote":null}', d, why, crit)
@@ -679,7 +679,7 @@ whichever text it was shown first:
 
 ``` r
 
-judge_cl <- gr_mock_client(function(messages, params) {
+judge_cl <- hr_mock_client(function(messages, params) {
   txt <- messages[[2]]$content
   a <- grepl("Candidate A:\n[^\n]*fiscal 2024", txt)
   b <- grepl("Candidate B:\n[^\n]*fiscal 2024", txt)
@@ -687,7 +687,7 @@ judge_cl <- gr_mock_client(function(messages, params) {
   sprintf('{"verdict": "%s", "reason": "Compared."}', v)
 })
 rubric <- "Which candidate gives fiscal 2024 revenue?"
-gr_register_model("mock-judge", context_window = 128000, max_output = 4096,
+hr_register_model("mock-judge", context_window = 128000, max_output = 4096,
                   input_usd = 1, output_usd = 4)
 set.seed(5)
 verdicts <- vapply(seq_len(nrow(pairs)), function(i) {
@@ -752,7 +752,7 @@ set.seed(3)
 human <- rep(c(TRUE, FALSE), c(60, 60))
 v_grade <- hr_judge_validate(cfg_grade, data.frame(judge = ifelse(runif(120) < 0.9, human, !human),
                                                    human = human), B = 200)
-grader <- gr_mock_client(function(messages, params) {
+grader <- hr_mock_client(function(messages, params) {
   txt <- messages[[2]]$content
   block <- function(head) regmatches(txt, regexec(paste0(head, ":\n([^\n]*)"), txt))[[1]][2]
   ok <- grepl(block("Reference answer"), block("Response to grade"), fixed = TRUE)
@@ -842,7 +842,7 @@ qa_own <- gr_qa_reference(
 gr_seg_recall(qa_own, seg_specs, k = c(1, 3, 5), split = "dev")
 
 # 3. The arms, tuned on dev.
-cl <- gr_client()
+cl <- hr_client()
 dev <- hr_benchmark(top_k_arms, qa_own, runs = 5, client = cl, split = "dev",
                     scorer = gr_scorer_answer(),
                     governor = hr_governor(max_calls = 5000, max_cost_usd = 20))

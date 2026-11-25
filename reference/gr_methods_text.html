@@ -90,7 +90,7 @@ benchmark it adds the arms, items, runs per item and the scorer.</p>
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
 <dd><p>A <a href="gr_answer.html">gr_answer</a> (its own run's steps; see <a href="gr_answer.html">gr_answer</a>), a
-<a href="gr_trace.html">gr_trace</a>, or a benchmark from <code><a href="hr_benchmark.html">hr_benchmark()</a></code>.</p></dd>
+<code>gr_trace</code> (see <code><a href="hr_trace.html">hr_trace()</a></code>), or a benchmark from <code><a href="hr_benchmark.html">hr_benchmark()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -112,7 +112,7 @@ trace.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="as_json.html">as_json()</a></code> and <code><a href="gr_trace_save.html">gr_trace_save()</a></code> for the full record,
+    <div class="dont-index"><p><code><a href="as_json.html">as_json()</a></code> and <code><a href="hr_trace_save.html">hr_trace_save()</a></code> for the full record,
 <code><a href="gr_audit_report.html">gr_audit_report()</a></code> for a readable account of one answer</p>
 <p>Other reading functions:
 <code><a href="gr_answer.html">gr_answer</a></code>,
@@ -132,7 +132,7 @@ trace.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">ch</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="fu"><a href="gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"paragraph"</span>, max_tokens <span class="op">=</span> <span class="fl">150</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Using cached ingestion for this document + settings.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'paragraph' (cap 150 tokens, overlap 0).</span>
-<span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ans</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">ch</span>, <span class="st">"What was revenue?"</span>, <span class="va">cl</span>, <span class="fu"><a href="gr_read_spec.html">gr_read_spec</a></span><span class="op">(</span><span class="st">"retrieve"</span>, top_k <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'retrieve' (topk|1|none) over 5 chunk(s).</span>
 <span class="r-in"><span><span class="fu">gr_methods_text</span><span class="op">(</span><span class="va">ans</span><span class="op">)</span></span></span>

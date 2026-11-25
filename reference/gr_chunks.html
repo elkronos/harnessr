@@ -104,10 +104,10 @@ cost limit), <code>cap_enforced</code> when oversized chunks had to be split.</p
 
 <dt><code>trace</code></dt>
 <dd><p>Set only when <code><a href="gr_segment.html">gr_segment()</a></code> was called without a <code>trace</code>
-and so made its own: the <a href="gr_trace.html">gr_trace</a> it recorded into, holding the
+and so made its own: the <code>gr_trace</code> (see <code><a href="hr_trace.html">hr_trace()</a></code>) it recorded into, holding the
 requests the segmenter made (embeddings for <code>semantic</code>, model calls for
 <code>proposition</code> and for <code>contextual</code> with <code>context_source = "llm"</code>),
-which were held to <code>gr_options(max_calls =, max_cost_usd =)</code>. When a
+which were held to <code>hr_options(max_calls =, max_cost_usd =)</code>. When a
 <code>trace</code> is passed they are recorded there instead, and this field is
 absent.</p></dd>
 

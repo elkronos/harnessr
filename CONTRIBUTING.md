@@ -3,7 +3,7 @@
 Bug reports, questions and pull requests are welcome at
 <https://github.com/elkronos/harnessr/issues>. For a bug, a short script
 that shows it with
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 is the most useful thing you can send: it runs anywhere, with no key and
 no cost.
 

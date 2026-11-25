@@ -2,6 +2,55 @@
 
 ## harnessr 0.6.0.9000
 
+### Renamed core functions
+
+The 27 core functions that still began with `gr_` now begin with `hr_`,
+like the rest of the core layer. Document-layer functions such as
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
+and
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+keep `gr_`.
+
+| Old name | New name |
+|----|----|
+| `gr_api_key()` | [`hr_api_key()`](https://elkronos.github.io/harnessr/reference/hr_api_key.md) |
+| `gr_backend_client()` | [`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md) |
+| `gr_budget()` | [`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md) |
+| `gr_cache()` | [`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md) |
+| `gr_cache_clear()` | [`hr_cache_clear()`](https://elkronos.github.io/harnessr/reference/hr_cache_clear.md) |
+| `gr_cache_client()` | [`hr_cache_client()`](https://elkronos.github.io/harnessr/reference/hr_cache_client.md) |
+| `gr_cache_stats()` | [`hr_cache_stats()`](https://elkronos.github.io/harnessr/reference/hr_cache_stats.md) |
+| `gr_call()` | [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md) |
+| `gr_client()` | [`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md) |
+| `gr_count_tokens()` | [`hr_count_tokens()`](https://elkronos.github.io/harnessr/reference/hr_count_tokens.md) |
+| `gr_ellmer_client()` | [`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md) |
+| `gr_embed()` | [`hr_embed()`](https://elkronos.github.io/harnessr/reference/hr_embed.md) |
+| `gr_estimate_cost()` | [`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md) |
+| `gr_mock_client()` | [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md) |
+| `gr_model_info()` | [`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md) |
+| `gr_model_limits()` | [`hr_model_limits()`](https://elkronos.github.io/harnessr/reference/hr_model_limits.md) |
+| `gr_models()` | [`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md) |
+| `gr_options()` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) |
+| `gr_register_model()` | [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md) |
+| `gr_replay_client()` | [`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md) |
+| `gr_set_tokenizer()` | [`hr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/hr_set_tokenizer.md) |
+| `gr_tokenizer()` | [`hr_tokenizer()`](https://elkronos.github.io/harnessr/reference/hr_tokenizer.md) |
+| `gr_trace()` | [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md) |
+| `gr_trace_cost()` | [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md) |
+| `gr_trace_save()` | [`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md) |
+| `gr_trace_summary()` | [`hr_trace_summary()`](https://elkronos.github.io/harnessr/reference/hr_trace_summary.md) |
+| `gr_truncate_tokens()` | [`hr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/hr_truncate_tokens.md) |
+
+- The old names are gone, with no alias, so a script that calls
+  `gr_call()` stops with “could not find function”.
+- Class names and condition classes keep `gr_`:
+  `inherits(hr_mock_client(f), "gr_mock_client")` is `TRUE`, and a
+  handler for `gr_call_cap` catches the same condition as before.
+- Caches, traces saved with
+  [`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md),
+  replay cassettes and signal calibrations written by earlier versions
+  still load.
+
 ### Context, effort and revision checks
 
 Each option below is off by default, so a default spec sends the
@@ -13,11 +62,10 @@ and has a walkthrough that says how to test it with
 
 - `hr_truncate(text, n, keep)` cuts text to `n` tokens and keeps the
   part asked for: the start (`"head"`, the default, which is
-  [`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md)
-  itself), the end (`"tail"`), both ends (`"both"`) or the units with
-  the highest `scores` (`"scored"`). With a trace, a cut writes a
-  `"truncate"` step naming the piece, the part dropped (`dropped_part`)
-  and the tokens it held.
+  `gr_truncate_tokens()` itself), the end (`"tail"`), both ends
+  (`"both"`) or the units with the highest `scores` (`"scored"`). With a
+  trace, a cut writes a `"truncate"` step naming the piece, the part
+  dropped (`dropped_part`) and the tokens it held.
   [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
   states which pieces of a request are never cut (`pin`), which are cut
   first (`cut_order`) and which part of each is kept (`keep`), and
@@ -82,9 +130,7 @@ and has a walkthrough that says how to test it with
   `"effort.escalate"` step of the trace and its outcome an
   `"effort.resolve"` step;
   [`hr_effort_log()`](https://elkronos.github.io/harnessr/reference/hr_effort_log.md)
-  lists them.
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
-  takes the policy as its `effort`.
+  lists them. `gr_call()` takes the policy as its `effort`.
 
 - [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
   gains `effort_mode`. `"escalate"` makes the read’s `effort` such a
@@ -663,13 +709,12 @@ The settings come to 219 in all.
   ingest, segment and read schemas (with the entries of `cleaner_opts`
   and `layout_opts` the built-in code reads), the arguments of the
   screening, extraction, synthesis and evaluation functions, and every
-  [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
-  option. Each row has its stage, the function that takes it, its
-  default, tier, evidence status and source, the first sentence of its
-  help, and the guide section that explains how to choose it. It is
-  built from the schemas, the option rules, the functions’ arguments and
-  the installed help when it is called, and a test fails when a declared
-  setting is missing from it.
+  `gr_options()` option. Each row has its stage, the function that takes
+  it, its default, tier, evidence status and source, the first sentence
+  of its help, and the guide section that explains how to choose it. It
+  is built from the schemas, the option rules, the functions’ arguments
+  and the installed help when it is called, and a test fails when a
+  declared setting is missing from it.
 - **[`gr_settings()`](https://elkronos.github.io/harnessr/reference/gr_settings.md)**
   returns the schema of the read, segment or ingest settings, and
   [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) of a
@@ -723,19 +768,16 @@ and a new option is recorded in a trace’s options, and joins a key, only
 then. Each setting’s help says where its default came from; almost none
 has a measurement behind it.
 
-- **[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)**:
-  `auto_max_tokens` (50000) and `auto_room_share` (0.5) set when
-  `answer_document(recipe = "auto")` reads with `"fast"`;
+- **`gr_options()`**: `auto_max_tokens` (50000) and `auto_room_share`
+  (0.5) set when `answer_document(recipe = "auto")` reads with `"fast"`;
   `reasoning_floor` (2048) is the least output cap sent to a reasoning
   model, and `0` turns the raise off; `output_reserve_share` (0.25) is
-  the share of the window
-  [`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
-  reserves for the reply; `near_verbatim_sim` (0.90),
-  `near_verbatim_sim_short` (0.95) and `near_verbatim_short_chars` (40)
-  set when the edit-distance matcher scores a quotation `near_verbatim`.
-  A non-default `reasoning_floor` joins the response-cache key, and it,
-  `output_reserve_share` and the near-verbatim settings join the store
-  key of
+  the share of the window `gr_budget()` reserves for the reply;
+  `near_verbatim_sim` (0.90), `near_verbatim_sim_short` (0.95) and
+  `near_verbatim_short_chars` (40) set when the edit-distance matcher
+  scores a quotation `near_verbatim`. A non-default `reasoning_floor`
+  joins the response-cache key, and it, `output_reserve_share` and the
+  near-verbatim settings join the store key of
   [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md).
 - **[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)**:
   `accept_near_verbatim` (FALSE) lets a near-verbatim quotation stop the
@@ -1007,41 +1049,33 @@ shows both functions.
   still gets the whole map.
 - Reads that look up a module by name, such as running a reader,
   choosing a segmenter’s effort or picking an embedder, go through the
-  kind’s accessor, and
-  [`gr_embed()`](https://elkronos.github.io/harnessr/reference/gr_embed.md)
-  looks embedders up the same way. The listings and the worker snapshot
-  still read the document layer’s slots. The core calls no document
-  layer function.
-- When an embeddings request fails,
-  [`gr_embed()`](https://elkronos.github.io/harnessr/reference/gr_embed.md)
-  falls back on the embedder registered as `"lexical"`, so if you
-  replace `"lexical"` with
+  kind’s accessor, and `gr_embed()` looks embedders up the same way. The
+  listings and the worker snapshot still read the document layer’s
+  slots. The core calls no document layer function.
+- When an embeddings request fails, `gr_embed()` falls back on the
+  embedder registered as `"lexical"`, so if you replace `"lexical"` with
   [`gr_register_embedder()`](https://elkronos.github.io/harnessr/reference/gr_register_embedder.md)
   your function also serves as the fallback. If your function fails
-  there,
-  [`gr_embed()`](https://elkronos.github.io/harnessr/reference/gr_embed.md)
-  warns with its error and uses the built-in hashed lexical vectors.
+  there, `gr_embed()` warns with its error and uses the built-in hashed
+  lexical vectors.
 
 ### Conformance for every kind, and mock failure modes
 
-Nothing here changes a default or adds a setting.
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+Nothing here changes a default or adds a setting. `gr_mock_client()`
 without `mode` keeps the fields and replies it had, and no request or
 cache key changes. “Checking a module against the contract” in
 [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)
 shows a mode in use.
 
-- [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
-  gains `mode`, which breaks each chat reply the way a provider can:
-  `"bad_json"` sends a JSON object cut off part way, `"refuse"` sends an
-  empty reply that
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
-  reports as failed, `"at_cap"` marks the handler’s reply as cut off at
-  the output cap and bills the cap (a failed result from the handler
-  comes back as it is), and a vector of HTTP status codes such as
-  `c(429, 500, 200)` gives call `i` the `i`-th status, marked retryable
-  for the statuses the HTTP transport retries. Embeddings are left as
-  they are. Pass such a client to
+- `gr_mock_client()` gains `mode`, which breaks each chat reply the way
+  a provider can: `"bad_json"` sends a JSON object cut off part way,
+  `"refuse"` sends an empty reply that `gr_call()` reports as failed,
+  `"at_cap"` marks the handler’s reply as cut off at the output cap and
+  bills the cap (a failed result from the handler comes back as it is),
+  and a vector of HTTP status codes such as `c(429, 500, 200)` gives
+  call `i` the `i`-th status, marked retryable for the statuses the HTTP
+  transport retries. Embeddings are left as they are. Pass such a client
+  to
   [`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md)
   or
   [`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md)
@@ -1116,11 +1150,9 @@ changed.
   or through the `harnessr.api_key` option no longer stays in the worker
   process after its item. A worker started from a session with
   `OPENAI_API_KEY` set has that key from the start and keeps it. A
-  backend handler or
-  [`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
-  that reads the key from the environment still gets it. A batch through
-  [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
-  sets no key. Requests and cache keys do not change.
+  backend handler or `gr_ellmer_client()` that reads the key from the
+  environment still gets it. A batch through `gr_mock_client()` sets no
+  key. Requests and cache keys do not change.
 
 - A `gr_claims`, `gr_synthesis` or `gr_calibration` you saved with an
   earlier version gets the fields added since filled with their defaults
@@ -1155,11 +1187,10 @@ changed.
   [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md),
   whose default recipe is `research`: at their defaults their requests
   and cache keys change for a Markdown document with a references
-  heading in its last 60%, so a
-  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
-  built before this misses for those documents. The golden records of
-  the two recipes and the two stages were recorded again. Requests under
-  the `"standard"` preset, the default of
+  heading in its last 60%, so a `gr_cache()` built before this misses
+  for those documents. The golden records of the two recipes and the two
+  stages were recorded again. Requests under the `"standard"` preset,
+  the default of
   [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
   do not change.
 
@@ -1171,9 +1202,8 @@ changed.
   now send their requests at the draw index and draw scope of the trace
   they are given. Each records on a trace of its own, which did not
   carry them, so its requests went out at draw index 0 whatever run of a
-  benchmark the trace was: under a
-  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
-  runs 2 onwards were answered with run 1’s reply, and an
+  benchmark the trace was: under a `gr_cache()` runs 2 onwards were
+  answered with run 1’s reply, and an
   [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
   arm that called `gr_claims(trace = ctx$trace)` was refused for
   repeating a draw. The items of a parallel `gr_lapply()` batch carry
@@ -1207,16 +1237,15 @@ changed.
   from the run’s cost, from `usd` in
   [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
   and from the count the benchmark’s governor checks, and its requests
-  went out at draw index 0: under a
-  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
-  every run was handed run 1’s verdict. Its requests now count against
-  the trace’s governor, are folded into the trace when the judgement
-  ends, and are sent at the trace’s draw index and draw scope unless
-  `draw_index` names another. A `governor` given with a `trace` no
-  longer replaces the trace’s: the judge is held to both, the lower of
-  each limit, so a judge inside a benchmark run cannot take the run past
-  the benchmark’s `max_calls`. Each request folded in names the judge in
-  its `judge` field, and `self_judged` in
+  went out at draw index 0: under a `gr_cache()` every run was handed
+  run 1’s verdict. Its requests now count against the trace’s governor,
+  are folded into the trace when the judgement ends, and are sent at the
+  trace’s draw index and draw scope unless `draw_index` names another. A
+  `governor` given with a `trace` no longer replaces the trace’s: the
+  judge is held to both, the lower of each limit, so a judge inside a
+  benchmark run cannot take the run past the benchmark’s `max_calls`.
+  Each request folded in names the judge in its `judge` field, and
+  `self_judged` in
   [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
   leaves those requests out: an arm that answers on one model and judges
   on another inside its run is not marked as judged on its own model by
@@ -1249,10 +1278,9 @@ changed.
   [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md),
   [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
   or other stage called with `trace = ctx$trace` sent its requests at
-  draw 0, so under a
-  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
-  the arm was refused with `hr_duplicate_draw` unless it set
-  `ctx$trace$draw_index` itself. Arms no longer need that line, and
+  draw 0, so under a `gr_cache()` the arm was refused with
+  `hr_duplicate_draw` unless it set `ctx$trace$draw_index` itself. Arms
+  no longer need that line, and
   [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)
   no longer sets it. A request given a fixed `draw_index` still sends
   that one, and such an arm is still refused.
@@ -1312,9 +1340,7 @@ still looked up, and the corpus store key is computed as before.
   the one 0.6.0 computed. The response-cache and replay keys change
   later in this release (see “Cache and replay keys” below), and the
   keys 0.6.0 computed are still looked up, so a warm cache, a recording
-  made for
-  [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
-  and a
+  made for `gr_replay_client()` and a
   [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
   store all keep answering.
 
@@ -1344,18 +1370,15 @@ still looked up, and the corpus store key is computed as before.
   raised to 2048), the temperature (filled from
   `gr_options("temperature")`, or `NA` when none was sent), the effort,
   the schema name, and SHA-256 hashes of the schema and of the extra
-  body fields. For a
-  [`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
-  it is read from the request body itself. `params` keeps what the
-  caller asked for, as before. Requests, response-cache keys and replay
-  keys are unchanged.
+  body fields. For a `gr_client()` it is read from the request body
+  itself. `params` keeps what the caller asked for, as before. Requests,
+  response-cache keys and replay keys are unchanged.
 
 - **Steps record `served_model`, `response_id` and `fingerprint`** where
   the provider returns them, beside `model`, which stays the model asked
   for and is what a step is priced and replayed by. None of them enters
-  a cache or replay key.
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
-  results carry the same three fields.
+  a cache or replay key. `gr_call()` results carry the same three
+  fields.
 
 - **Steps record `attempts`**, the number of requests sent, retries
   included (0 for a reply from a cache or a recording), and
@@ -1368,10 +1391,9 @@ still looked up, and the corpus store key is computed as before.
   `"tiktoken"` tokenizer, or `"estimated"` with another one. Reasoning
   and cached input tokens the provider reports are kept as
   `tokens$reasoning` and `tokens$cached_input`, parts of `output` and
-  `input` rather than additions.
-  [`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md)
-  gains `tokens_reasoning`, `tokens_cached_in` and `usage_estimated`,
-  the share of requests whose counts were estimated, and
+  `input` rather than additions. `gr_trace_summary()` gains
+  `tokens_reasoning`, `tokens_cached_in` and `usage_estimated`, the
+  share of requests whose counts were estimated, and
   [`print()`](https://rdrr.io/r/base/print.html) on a trace says that
   share when it is above zero. A request that failed before the provider
   sent any usage records a `"counted"` zero, and a handler’s
@@ -1384,48 +1406,39 @@ still looked up, and the corpus store key is computed as before.
   although they are retried, and a failed one had no provenance.
   [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) on a
   trace gains `tokens_reasoning`, `tokens_cached_in` and `served_model`
-  columns when some request has them, and
-  [`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
-  gains `paid_reasoning` and `paid_cached_in`.
+  columns when some request has them, and `gr_trace_cost()` gains
+  `paid_reasoning` and `paid_cached_in`.
 
-- **Cached input can be priced at its own rate.**
-  [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
-  takes `cached_input_usd`,
-  [`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md)
-  takes `cached_input_tokens`, and
-  [`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md)
-  shows `cached_input_usd_per_1m`. A model with no cached rate prices
-  cached input as other input, so every built-in model costs what it
-  did.
+- **Cached input can be priced at its own rate.** `gr_register_model()`
+  takes `cached_input_usd`, `gr_estimate_cost()` takes
+  `cached_input_tokens`, and `gr_models()` shows
+  `cached_input_usd_per_1m`. A model with no cached rate prices cached
+  input as other input, so every built-in model costs what it did.
 
-- **Runs record who they are for.**
-  [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
-  takes `system`, `owner`, `run_by`, `purpose` and `approved_by`, and
-  the new option `gr_options(actor = list(...))` sets them for every
-  trace; a field named nowhere is `NA`. They are written to a saved
-  trace under `actor` and shown by
-  [`print()`](https://rdrr.io/r/base/print.html) when set.
+- **Runs record who they are for.** `gr_trace()` takes `system`,
+  `owner`, `run_by`, `purpose` and `approved_by`, and the new option
+  `gr_options(actor = list(...))` sets them for every trace; a field
+  named nowhere is `NA`. They are written to a saved trace under `actor`
+  and shown by [`print()`](https://rdrr.io/r/base/print.html) when set.
 
 - **Runs record the options in force** when the trace was made, under
   `config`, with the R version. The values of `api_headers` are left
   out, since they can hold credentials.
 
-- [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
-  given one named argument whose value is a list now sets that option.
-  It used to read the list as a set of options to restore, which only an
-  unnamed list should be.
+- `gr_options()` given one named argument whose value is a list now sets
+  that option. It used to read the list as a set of options to restore,
+  which only an unnamed list should be.
 
 ### Cache and replay keys
 
-- **[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
-  takes a `draw_index`** for the draws of a sampled request: 0, the
-  default, for an ordinary call, and 1, 2, … for repeated draws. Above 0
-  it is part of the response-cache key, so N identical calls with draw
-  indexes 1 to N are N cached replies; before, a cache returned the
-  first reply N times and anything that compared them saw perfect
-  agreement. A handler finds it in `params$draw_index` and the trace
-  records it in the step’s `params`; at 0 neither carries it, so an
-  ordinary call is unchanged.
+- **`gr_call()` takes a `draw_index`** for the draws of a sampled
+  request: 0, the default, for an ordinary call, and 1, 2, … for
+  repeated draws. Above 0 it is part of the response-cache key, so N
+  identical calls with draw indexes 1 to N are N cached replies; before,
+  a cache returned the first reply N times and anything that compared
+  them saw perfect agreement. A handler finds it in `params$draw_index`
+  and the trace records it in the step’s `params`; at 0 neither carries
+  it, so an ordinary call is unchanged.
 
 - **The response-cache key is now `harnessr-cache-v3`**, a SHA-256 hash
   (64 hex digits) in place of xxhash64. Entries written under the old
@@ -1433,11 +1446,9 @@ still looked up, and the corpus store key is computed as before.
   harnessr) are still read for calls with no draw index: a call that
   finds nothing under its new key is looked up under the old one. The
   first reply found that way in a session warns once for the cache, with
-  class `hr_legacy_key`, and
-  [`gr_cache_stats()`](https://elkronos.github.io/harnessr/reference/gr_cache_stats.md)
-  has a new column, `legacy_hits`, that counts them. Old entries are
-  never rewritten, new ones are written under the new key only, and
-  [`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md)
+  class `hr_legacy_key`, and `gr_cache_stats()` has a new column,
+  `legacy_hits`, that counts them. Old entries are never rewritten, new
+  ones are written under the new key only, and `gr_cache_clear()`
   removes both.
 
 - **The replay key is now `harnessr-replay-v2`**, and covers the
@@ -1475,24 +1486,22 @@ still looked up, and the corpus store key is computed as before.
   checked before it is sent, by the call path itself, against what the
   run has spent plus the most the request could cost: its prompt at the
   input price and its output cap (for a reasoning model, the raised cap
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
-  sends) at the output price. The prompt is counted with the JSON schema
-  and extra body fields the request carries and a few tokens of framing
-  per message, then raised by `safety_margin`, since the provider bills
-  for all of that. A request that could take the run past a limit is not
-  sent. Runs used to stop only once what they had spent reached the
-  limit, so they ended up to one request over it; they now end at or
-  under it, as long as the provider stops each reply at its cap and
-  counts the prompt within that margin of the local tokenizer. A run
-  that leaves its output caps at the model’s limit stops while it still
-  has headroom a smaller cap would have used.
+  `gr_call()` sends) at the output price. The prompt is counted with the
+  JSON schema and extra body fields the request carries and a few tokens
+  of framing per message, then raised by `safety_margin`, since the
+  provider bills for all of that. A request that could take the run past
+  a limit is not sent. Runs used to stop only once what they had spent
+  reached the limit, so they ended up to one request over it; they now
+  end at or under it, as long as the provider stops each reply at its
+  cap and counts the prompt within that margin of the local tokenizer. A
+  run that leaves its output caps at the model’s limit stops while it
+  still has headroom a smaller cap would have used.
 
-- **A refused request is not a call.** It comes back from
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
-  as a failed result with `refused = TRUE` and an error naming the
-  limit, after a condition of class `hr_budget_refused` is signalled
-  (catch it to stop instead). It adds nothing to the trace’s calls,
-  steps or spend; the trace lists it in a new `refusals` field, sets
+- **A refused request is not a call.** It comes back from `gr_call()` as
+  a failed result with `refused = TRUE` and an error naming the limit,
+  after a condition of class `hr_budget_refused` is signalled (catch it
+  to stop instead). It adds nothing to the trace’s calls, steps or
+  spend; the trace lists it in a new `refusals` field, sets
   `budget_stop` and names the limit in `stop_reason`. Readers and review
   stages treat it as they treated reaching a limit before: the answer or
   section is marked partial, and the request is not counted as failed.
@@ -1501,8 +1510,7 @@ still looked up, and the corpus store key is computed as before.
   Judges, the ensemble’s adjudication, conflict resolution in `extract`,
   context and proposition segmentation, claims, outlines, screening,
   synthesis and embeddings requests all go through the same check, as
-  does any request a custom reader or a script makes with
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md).
+  does any request a custom reader or a script makes with `gr_call()`.
   The readers no longer check `trace_can_call()` themselves. It is kept
   for custom readers written to the 0.6.0 help page, which still work.
 
@@ -1511,19 +1519,15 @@ still looked up, and the corpus store key is computed as before.
   model added nothing to the spend, so the limit never stopped it.
   [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
   stops before its first request with an `hr_unpriced_model` error.
-  Register the model’s prices with
-  [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
-  or set `gr_options(allow_unpriced = TRUE)`; then its requests are
-  sent, still count against `max_calls` and `max_tokens_total`, and are
-  priced `NA` in the trace.
-  [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
-  and replays are never refused for this, and neither are embedding
-  models with no price. An ellmer chat is priced as the model it was
-  built with, whatever a spec names, so a chat on a model with no
-  registered price is refused too; the README and the
-  [`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
-  example now register its price, and allow a local model to run
-  unpriced.
+  Register the model’s prices with `gr_register_model()`, or set
+  `gr_options(allow_unpriced = TRUE)`; then its requests are sent, still
+  count against `max_calls` and `max_tokens_total`, and are priced `NA`
+  in the trace. `gr_mock_client()` and replays are never refused for
+  this, and neither are embedding models with no price. An ellmer chat
+  is priced as the model it was built with, whatever a spec names, so a
+  chat on a model with no registered price is refused too; the README
+  and the `gr_ellmer_client()` example now register its price, and allow
+  a local model to run unpriced.
 
 - **New option `max_tokens_total`** (`NULL`, off) limits the tokens a
   run may use: prompts and replies of every call, and text sent to be
@@ -1539,9 +1543,8 @@ still looked up, and the corpus store key is computed as before.
   `max_output_tokens` (the largest output cap one request may carry; a
   request with a larger one is refused, not cut down), `allowed_models`
   and `allow_unpriced`. Attach one with the new `gr_trace(governor = )`
-  argument; a trace without one reads the limits from
-  [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md),
-  as before. The new limits are also options, `max_tokens_total`,
+  argument; a trace without one reads the limits from `gr_options()`, as
+  before. The new limits are also options, `max_tokens_total`,
   `max_output_tokens`, `allowed_models` (all `NULL`, off) and
   `allow_unpriced` (`FALSE`), so every trace’s config snapshot now lists
   them.
@@ -2051,11 +2054,9 @@ still looked up, and the corpus store key is computed as before.
   describes one configuration to compare: a function of an item and a
   context that carries the client, a trace of the run alone, the
   governor and the run’s `draw_index`, with `ctx$call()` as a shortcut
-  for
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
-  that fills in all three. `run` is required. The arm records its
-  settings, a version and a hash of its code and settings, which is the
-  same in every session and after
+  for `gr_call()` that fills in all three. `run` is required. The arm
+  records its settings, a version and a hash of its code and settings,
+  which is the same in every session and after
   [`saveRDS()`](https://rdrr.io/r/base/readRDS.html), also for an arm
   built inside a function of yours. The hash covers the values the code
   reads from where it was written, the workspace included, so an arm at
@@ -2096,28 +2097,26 @@ still looked up, and the corpus store key is computed as before.
   recorded draws, and an arm whose runs come back as one stored reply
   (the same cache entry, a repeated replay, a repeated response id) is
   refused with an error of class `hr_duplicate_draw`. Each draw is also
-  recorded under the arm’s name, and
-  [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
-  answers an arm only with its own replies, so replaying some of the
-  arms, or the arms in another order, gives each arm what it got even
-  when two arms sent the same request. The whole benchmark is held to
-  one governor; a run with a refused request is recorded as a budget
-  stop and counted wrong, and the benchmark warns (class
-  `hr_budget_stopped`) with the number of runs stopped, the limits that
-  stopped them, how many count against an arm, and the first run
-  stopped. With no governor the limits are
-  [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)’s,
-  set for one run of a reader (400 calls), and the warning gives the
-  values of the options that stopped runs and, for a call, spending or
-  token limit, says to pass a governor sized for the benchmark. A reader
-  stopped by its own check before its first request now leaves a
-  `budget.preflight` note on the run’s trace naming the limit, and the
-  errors that check raises carry the limit in `$limit`. Every run on an
-  item with no label has `correct = NA`, failures included, so such an
-  item never counts against an arm. Rows on the dev split are marked not
-  reportable. [`print()`](https://rdrr.io/r/base/print.html) shows
-  accuracy per arm over the reportable rows and labelled items, with the
-  dev split’s accuracy in its own column, descriptive only.
+  recorded under the arm’s name, and `gr_replay_client()` answers an arm
+  only with its own replies, so replaying some of the arms, or the arms
+  in another order, gives each arm what it got even when two arms sent
+  the same request. The whole benchmark is held to one governor; a run
+  with a refused request is recorded as a budget stop and counted wrong,
+  and the benchmark warns (class `hr_budget_stopped`) with the number of
+  runs stopped, the limits that stopped them, how many count against an
+  arm, and the first run stopped. With no governor the limits are
+  `gr_options()`’s, set for one run of a reader (400 calls), and the
+  warning gives the values of the options that stopped runs and, for a
+  call, spending or token limit, says to pass a governor sized for the
+  benchmark. A reader stopped by its own check before its first request
+  now leaves a `budget.preflight` note on the run’s trace naming the
+  limit, and the errors that check raises carry the limit in `$limit`.
+  Every run on an item with no label has `correct = NA`, failures
+  included, so such an item never counts against an arm. Rows on the dev
+  split are marked not reportable.
+  [`print()`](https://rdrr.io/r/base/print.html) shows accuracy per arm
+  over the reportable rows and labelled items, with the dev split’s
+  accuracy in its own column, descriptive only.
 
 #### Benchmark reports: `hr_report()`
 
@@ -2343,12 +2342,12 @@ still looked up, and the corpus store key is computed as before.
   request or a reply with no allowed verdict is `"failed"`. One order is
   allowed for grading only. With more than two candidates, `orders`
   above 2 shows cyclic rotations. Requests go through the same path as
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md),
-  so the governor, a cache keyed with `draw_index` and the trace all
-  apply, under the labels `judge.<mode>.o<k>`. They are recorded in the
-  judge’s own trace and their cost in `$judge_cost`, never in the trace
-  of the run being judged, which gets a local note pointing at the
-  judge’s trace; the judge is held to what that run’s governor has left.
+  `gr_call()`, so the governor, a cache keyed with `draw_index` and the
+  trace all apply, under the labels `judge.<mode>.o<k>`. They are
+  recorded in the judge’s own trace and their cost in `$judge_cost`,
+  never in the trace of the run being judged, which gets a local note
+  pointing at the judge’s trace; the judge is held to what that run’s
+  governor has left.
 
 - **New
   [`hr_judge_config()`](https://elkronos.github.io/harnessr/reference/hr_judge_config.md)**

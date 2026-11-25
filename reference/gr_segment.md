@@ -33,7 +33,7 @@ gr_segment(doc, spec = NULL, client = NULL, trace = NULL)
 
   Optional `gr_trace`. When none is given one is made, so the model
   calls a segmenter makes are held to
-  `gr_options(max_calls =, max_cost_usd =)` and recorded, and it is
+  `hr_options(max_calls =, max_cost_usd =)` and recorded, and it is
   returned as `$trace`.
 
 ## Value

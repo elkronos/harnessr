@@ -76,7 +76,7 @@ those questions. Unanswerable items and items with no label are left
 out.
 
 The ranking is cosine similarity on the embeddings `client` gives (see
-[`gr_embed()`](https://elkronos.github.io/harnessr/reference/gr_embed.md)),
+[`hr_embed()`](https://elkronos.github.io/harnessr/reference/hr_embed.md)),
 blended with BM25 by `lexical_blend` when the embeddings are lexical, as
 in
 [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md).
@@ -111,7 +111,7 @@ Other segmentation functions:
 ## Examples
 
 ``` r
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 doc <- paste("Revenue was 45.2 million dollars in fiscal 2024.",
              "The plant in Leeds made 12,400 units.",
              "Staff numbered 310 at year end.", sep = "\n\n")
@@ -125,5 +125,5 @@ gr_seg_recall(ref, list(sentence = list(method = "sentence", max_tokens = 40),
 #> 2  sentence 2    2         2      1        0      2         1
 #> 3     fixed 1    2         2      1        0      2         1
 #> 4     fixed 2    2         2      1        0      2         1
-gr_options(old)
+hr_options(old)
 ```

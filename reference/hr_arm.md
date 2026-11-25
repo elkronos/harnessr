@@ -64,10 +64,10 @@ package is hashed by its code and the package's name.
 
 - `trace`:
 
-  A
-  [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
+  An
+  [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
   of this run alone. Every request the arm makes must be recorded into
-  it (`gr_call(..., trace = ctx$trace)`): it is how the benchmark counts
+  it (`hr_call(..., trace = ctx$trace)`): it is how the benchmark counts
   the run's tokens, dollars and refusals, and how it holds the run to
   the benchmark's limits. It carries the run's draw index and the arm's
   name as its draw scope, so a stage called with `trace = ctx$trace`
@@ -89,17 +89,17 @@ package is hashed by its code and the package's name.
 
   The run number, 1 to `runs`. Every request recorded in `ctx$trace` is
   sent at it unless the request names another draw index, so each run is
-  its own draw: under a
-  [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
+  its own draw: under an
+  [`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
   or a
-  [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
+  [`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
   a request sent at one fixed draw index answers every run with the same
   stored reply, and the benchmark refuses such an arm.
 
 - `call`:
 
   A shortcut, `ctx$call(messages, ...)`, for
-  `gr_call(ctx$client, messages, ..., trace = ctx$trace, draw_index = ctx$draw_index)`.
+  `hr_call(ctx$client, messages, ..., trace = ctx$trace, draw_index = ctx$draw_index)`.
 
 - `call_json`:
 
@@ -108,7 +108,7 @@ package is hashed by its code and the package's name.
   `ctx$trace`, held to its governor and at the run's draw. `schema` is a
   JSON schema (a list) the reply must meet, and `...` takes the other
   arguments of
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md),
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md),
   such as `model`, `label` and `schema_name`. It returns the parsed
   reply, a list, when the request succeeded and the reply meets the
   schema. Otherwise it returns a failed

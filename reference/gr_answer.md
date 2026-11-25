@@ -119,8 +119,8 @@ and, with three extra fields, by
 
 - `trace`:
 
-  The
-  [gr_trace](https://elkronos.github.io/harnessr/reference/gr_trace.md)
+  The `gr_trace` (see
+  [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md))
   for this run. From
   [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
   it holds the whole run: ingestion, segmentation and the read. **An
@@ -203,7 +203,7 @@ Other reading functions:
 ## Examples
 
 ``` r
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).

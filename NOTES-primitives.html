@@ -53,7 +53,7 @@
 <div id="core-primitives-and-their-callers" class="section level1">
 
 <p>Every function the core exports under the <code>hr_</code> prefix must have a caller: a function in the document layer (<code>R/doc-*.R</code>) or a test that uses it. A primitive with neither has no reason to be in the core, and is removed or moved into a <code>doc-</code> file. This file lists each exported <code>hr_</code> function with its callers, and says why the ones the document layer does not call stay in the core.</p>
-<p>The list was made from the installed namespace on 2026-11-22: document layer callers with the boundary test’s parsing (<code>tests/testthat/helper-boundary.R</code>, functions only, plus the schemas <code>R/doc-*.R</code> builds at load), and test callers by searching <code>tests/testthat/test-*.R</code>. A test in <code>tests/testthat/test-contract-files.R</code> fails when an <code>hr_</code> export is missing from the tables below or a row names one that is not exported. Update this file when an <code>hr_</code> export is added, removed or gains or loses its last caller.</p>
+<p>The list was made from the installed namespace on 2026-11-22, and the core functions renamed from gr_ to hr_ were added on 2026-11-25: document layer callers with the boundary test’s parsing (<code>tests/testthat/helper-boundary.R</code>, functions only, plus the schemas <code>R/doc-*.R</code> builds at load), and test callers by searching <code>tests/testthat/test-*.R</code>. A test in <code>tests/testthat/test-contract-files.R</code> fails when an <code>hr_</code> export is missing from the tables below or a row names one that is not exported. Update this file when an <code>hr_</code> export is added, removed or gains or loses its last caller.</p>
 <div class="section level2">
 <h2 id="called-by-the-document-layer">Called by the document layer<a class="anchor" aria-label="anchor" href="#called-by-the-document-layer"></a></h2>
 <table class="table"><colgroup><col width="33%"><col width="33%"><col width="33%"></colgroup><thead><tr><th>Function</th>
@@ -67,11 +67,23 @@
 </tr><tr><td><code><a href="reference/hr_arm.html">hr_arm()</a></code></td>
 <td><code><a href="reference/gr_arm.html">gr_arm()</a></code></td>
 <td>test-core-bench.R, test-core-bench-report.R</td>
+</tr><tr><td><code><a href="reference/hr_budget.html">hr_budget()</a></code></td>
+<td>
+<code>cost_stuff()</code>, <code><a href="reference/gr_claims.html">gr_claims()</a></code>, <code><a href="reference/gr_synthesise.html">gr_synthesise()</a></code> and 14 more</td>
+<td>test-adversarial.R, test-claims.R and 8 more</td>
+</tr><tr><td><code><a href="reference/hr_call.html">hr_call()</a></code></td>
+<td>
+<code>answer_request()</code>, <code>ledger_answer()</code>, <code>read_ensemble()</code> and 8 more</td>
+<td>test-adversarial.R, test-backend.R and 39 more</td>
 </tr><tr><td><code><a href="reference/hr_check_module.html">hr_check_module()</a></code></td>
 <td>
 <code><a href="reference/gr_check_reader.html">gr_check_reader()</a></code>, <code><a href="reference/gr_check_segmenter.html">gr_check_segmenter()</a></code>
 </td>
 <td>test-core-contract.R</td>
+</tr><tr><td><code><a href="reference/hr_client.html">hr_client()</a></code></td>
+<td>
+<code><a href="reference/answer_document.html">answer_document()</a></code>, <code>doc_arm_run()</code>, <code><a href="reference/gr_claims.html">gr_claims()</a></code> and 4 more</td>
+<td>test-adversarial.R, test-cache-replay.R and 26 more</td>
 </tr><tr><td><code><a href="reference/hr_context_fit.html">hr_context_fit()</a></code></td>
 <td>
 <code>read_refine()</code>, under a read’s <code>context_policy</code>
@@ -85,6 +97,10 @@
 </tr><tr><td><code><a href="reference/hr_cost.html">hr_cost()</a></code></td>
 <td>the reader cost functions: <code>cost_extract()</code>, <code>cost_map_reduce()</code> and the rest</td>
 <td>test-conformance.R, test-core-schema.R</td>
+</tr><tr><td><code><a href="reference/hr_count_tokens.html">hr_count_tokens()</a></code></td>
+<td>
+<code><a href="reference/answer_document.html">answer_document()</a></code>, <code>call_failure()</code>, <code>cap_gap_lines()</code> and 36 more</td>
+<td>test-adversarial.R, test-claims.R and 20 more</td>
 </tr><tr><td><code><a href="reference/hr_effort_escalate.html">hr_effort_escalate()</a></code></td>
 <td>
 <code>read_escalation()</code>, under a read’s <code>effort_mode = "escalate"</code>
@@ -94,9 +110,28 @@
 <td>
 <code>read_ensemble()</code>, <code>read_iterative()</code> and <code>read_screen()</code>, which report triggers</td>
 <td>test-effort-escalate.R</td>
+</tr><tr><td><code><a href="reference/hr_embed.html">hr_embed()</a></code></td>
+<td>
+<code>check_embedder()</code>, <code>read_iterative()</code>, <code>rerank_prefilter()</code> and 2 more</td>
+<td>test-backend.R, test-cache-replay.R and 14 more</td>
+</tr><tr><td><code><a href="reference/hr_estimate_cost.html">hr_estimate_cost()</a></code></td>
+<td>
+<code>batch_item_usd()</code>, <code>extract_item_usd()</code>, <code><a href="reference/gr_inventory.html">gr_inventory()</a></code> and 3 more</td>
+<td>test-compare-cost.R, test-core-ledger-records.R and 13 more</td>
 </tr><tr><td><code><a href="reference/hr_ht_estimate.html">hr_ht_estimate()</a></code></td>
 <td><code>screening_recall()</code></td>
 <td>test-core-stats.R</td>
+</tr><tr><td><code><a href="reference/hr_mock_client.html">hr_mock_client()</a></code></td>
+<td><code>check_client()</code></td>
+<td>test-adversarial.R, test-audit-header.R and 110 more</td>
+</tr><tr><td><code><a href="reference/hr_model_info.html">hr_model_info()</a></code></td>
+<td>
+<code>batch_item_usd()</code>, <code>call_failure()</code>, <code>extract_item_usd()</code> and 5 more</td>
+<td>test-cache-replay.R, test-context.R and 8 more</td>
+</tr><tr><td><code><a href="reference/hr_options.html">hr_options()</a></code></td>
+<td>
+<code>check_embedder()</code>, <code>corpus_key()</code>, <code>embed_counter()</code> and 14 more</td>
+<td>test-adversarial.R, test-backend.R and 65 more</td>
 </tr><tr><td><code><a href="reference/hr_param.html">hr_param()</a></code></td>
 <td>the read, segment and ingest schemas (<code>.gr_read_schema</code> and the others)</td>
 <td>test-core-schema.R, test-settings.R</td>
@@ -124,16 +159,83 @@
 <code><a href="reference/gr_step.html">gr_step()</a></code>, <code><a href="reference/gr_step.html">gr_step_retrieve()</a></code>
 </td>
 <td>test-compose.R, test-reading-options.R</td>
+</tr><tr><td><code><a href="reference/hr_tokenizer.html">hr_tokenizer()</a></code></td>
+<td><code><a href="reference/gr_segment.html">gr_segment()</a></code></td>
+<td>test-core.R, test-parallel.R and 1 more</td>
+</tr><tr><td><code><a href="reference/hr_trace.html">hr_trace()</a></code></td>
+<td>
+<code><a href="reference/answer_document.html">answer_document()</a></code>, <code>check_reader_governor()</code>, <code>claims_cost_stage()</code> and 10 more</td>
+<td>test-adversarial.R, test-backend.R and 66 more</td>
+</tr><tr><td><code><a href="reference/hr_trace_cost.html">hr_trace_cost()</a></code></td>
+<td>
+<code>audit_cost()</code>, <code>corpus_cost()</code>, <code><a href="reference/gr_compare.html">gr_compare()</a></code> and 4 more</td>
+<td>test-bench-ctx.R, test-compare-cost.R and 19 more</td>
+</tr><tr><td><code><a href="reference/hr_trace_summary.html">hr_trace_summary()</a></code></td>
+<td>
+<code>corpus_row()</code>, <code><a href="reference/gr_read_many.html">gr_read_many()</a></code> and <code>print.gr_answer()</code>
+</td>
+<td>test-backend.R, test-cache-replay.R and 8 more</td>
 </tr><tr><td><code><a href="reference/hr_truncate.html">hr_truncate()</a></code></td>
 <td>
 <code>cut_piece()</code>, which the merge, <code>hierarchical</code> and <code>preview</code> packers call under a <code>context_policy</code>
 </td>
 <td>test-context-policy.R</td>
+</tr><tr><td><code><a href="reference/hr_truncate_tokens.html">hr_truncate_tokens()</a></code></td>
+<td>
+<code>cap_gap_lines()</code>, <code>screen_opening()</code> and <code>seg_contextual()</code>
+</td>
+<td>test-context-policy.R, test-core.R and 5 more</td>
 </tr><tr><td><code><a href="reference/hr_validate.html">hr_validate()</a></code></td>
 <td>
 <code><a href="reference/gr_read_spec.html">gr_read_spec()</a></code>, <code><a href="reference/gr_segment_spec.html">gr_segment_spec()</a></code>, <code><a href="reference/gr_ingest_spec.html">gr_ingest_spec()</a></code>
 </td>
 <td>test-core-schema.R, test-adversarial.R</td>
+</tr></tbody></table></div>
+<div class="section level2">
+<h2 id="entry-points-the-document-layer-is-handed">Entry points the document layer is handed<a class="anchor" aria-label="anchor" href="#entry-points-the-document-layer-is-handed"></a></h2>
+<p>A person builds a run with these: a client, its cache or replay, the model registry and the tokenizer. The document layer receives the client and the trace they make and does not call these itself. Nothing in them knows about documents, which is why they are core.</p>
+<table class="table"><colgroup><col width="33%"><col width="33%"><col width="33%"></colgroup><thead><tr><th>Function</th>
+<th>Tests</th>
+<th>Why it is core</th>
+</tr></thead><tbody><tr><td><code><a href="reference/hr_api_key.html">hr_api_key()</a></code></td>
+<td>test-headers.R and test-review6-client.R</td>
+<td>Reads the API key a client sends, for any provider.</td>
+</tr><tr><td><code><a href="reference/hr_backend_client.html">hr_backend_client()</a></code></td>
+<td>test-backend.R, test-cache-replay.R and 19 more</td>
+<td>Wraps any R function as a client.</td>
+</tr><tr><td><code><a href="reference/hr_cache.html">hr_cache()</a></code></td>
+<td>test-adversarial.R, test-backend.R and 34 more</td>
+<td>An on-disk response cache for any client.</td>
+</tr><tr><td><code><a href="reference/hr_cache_clear.html">hr_cache_clear()</a></code></td>
+<td>test-cache-replay.R, test-compat-legacy-keys.R and 2 more</td>
+<td>Empties a response cache.</td>
+</tr><tr><td><code><a href="reference/hr_cache_client.html">hr_cache_client()</a></code></td>
+<td>test-adversarial.R, test-backend.R and 34 more</td>
+<td>Attaches a response cache to any client.</td>
+</tr><tr><td><code><a href="reference/hr_cache_stats.html">hr_cache_stats()</a></code></td>
+<td>test-cache-replay.R, test-compat-legacy-keys.R and 5 more</td>
+<td>Counts the entries, hits and misses of a response cache.</td>
+</tr><tr><td><code><a href="reference/hr_ellmer_client.html">hr_ellmer_client()</a></code></td>
+<td>test-backend.R, test-effort.R and 7 more</td>
+<td>Wraps an ellmer chat as a client.</td>
+</tr><tr><td><code><a href="reference/hr_model_limits.html">hr_model_limits()</a></code></td>
+<td>test-core-names.R</td>
+<td>The context window and output cap of any registered model.</td>
+</tr><tr><td><code><a href="reference/hr_models.html">hr_models()</a></code></td>
+<td>test-hardening.R</td>
+<td>Lists the model registry.</td>
+</tr><tr><td><code><a href="reference/hr_register_model.html">hr_register_model()</a></code></td>
+<td>test-adversarial.R, test-backend.R and 51 more</td>
+<td>Adds or corrects a model in the registry the budgets and costs read.</td>
+</tr><tr><td><code><a href="reference/hr_replay_client.html">hr_replay_client()</a></code></td>
+<td>test-adversarial.R, test-backend.R and 22 more</td>
+<td>A client that answers from a saved trace, for any run.</td>
+</tr><tr><td><code><a href="reference/hr_set_tokenizer.html">hr_set_tokenizer()</a></code></td>
+<td>test-adversarial.R, test-core.R and 5 more</td>
+<td>Chooses the tokenizer every token count uses.</td>
+</tr><tr><td><code><a href="reference/hr_trace_save.html">hr_trace_save()</a></code></td>
+<td>test-cache-replay.R, test-core-bench.R and 15 more</td>
+<td>Writes any trace to a file that hr_replay_client() reads.</td>
 </tr></tbody></table></div>
 <div class="section level2">
 <h2 id="called-by-the-tests-only">Called by the tests only<a class="anchor" aria-label="anchor" href="#called-by-the-tests-only"></a></h2>
@@ -270,13 +372,13 @@
 <h2 id="other-parts-of-the-core-under-review">Other parts of the core under review<a class="anchor" aria-label="anchor" href="#other-parts-of-the-core-under-review"></a></h2>
 <ul><li>
 <code>tests/testthat/fixtures/boundary/allowed.csv</code> lists three calls from the core into the document layer, each with the change that removes it:
-<ul><li>The embedding request path, <code><a href="reference/gr_embed.html">gr_embed()</a></code>, calls <code>resolve_embedder()</code> and <code>lexical_embed()</code>. These go when embedders become a registered module kind and the core looks them up in the registry.</li>
+<ul><li>The embedding request path, <code><a href="reference/hr_embed.html">hr_embed()</a></code>, calls <code>resolve_embedder()</code> and <code>lexical_embed()</code>. These go when embedders become a registered module kind and the core looks them up in the registry.</li>
 <li>
 <code>segment_effort()</code> (<code>R/core-effort-static.R</code>) hands a segmenter the effort its own requests resolve to, and calls <code>segment_effort_label()</code> (<code>R/doc-segment-run.R</code>) to learn the label a built-in segmenter’s requests carry. This goes when each segmenter declares its own call stems and the label function is deleted.</li>
 </ul></li>
 <li>
 <code>tests/testthat/fixtures/boundary/doc-uses-internal.csv</code> lists the core functions that are not exported and that the document layer still uses. The list may only shrink.</li>
-<li>The refactor plan also named an effective-window probe. No function in <code>R/</code> probes a model’s context window: the core reads it from the model table (<code><a href="reference/gr_model_info.html">gr_model_info()</a></code>, filled by <code><a href="reference/gr_register_model.html">gr_register_model()</a></code>), so there is nothing to review.</li>
+<li>The refactor plan also named an effective-window probe. No function in <code>R/</code> probes a model’s context window: the core reads it from the model table (<code><a href="reference/hr_model_info.html">hr_model_info()</a></code>, filled by <code><a href="reference/hr_register_model.html">hr_register_model()</a></code>), so there is nothing to review.</li>
 </ul></div>
 </div>
 

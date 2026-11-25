@@ -48,15 +48,15 @@ labelled set of questions, with intervals, is in
 ## Setting up
 
 Everything below runs offline.
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 stands in for the model: its handler is an ordinary R function.
 `embedder = "lexical"` keeps retrieval free and deterministic.
 
 ``` r
 
 library(harnessr)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
-cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
+cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
 ```
 
 ## Reading many documents
@@ -108,8 +108,8 @@ hundred and ninety-nine answers survive. Pass `on_error = "stop"` if you
 would rather it aborted.
 
 Budgets are per document, and the run has its own. Every document gets
-its own trace, so `gr_options(max_calls =)` and
-`gr_options(max_cost_usd =)` apply to each one exactly as if you had
+its own trace, so `hr_options(max_calls =)` and
+`hr_options(max_cost_usd =)` apply to each one exactly as if you had
 read it alone, and one enormous document cannot starve the rest. On its
 own that leaves the run unbounded: two hundred documents under a
 400-call ceiling is a corpus ceiling of eighty thousand calls. So there
@@ -142,20 +142,20 @@ nothing:
 
 ``` r
 
-durable <- gr_cache_client(cl, gr_cache(tools::R_user_dir("harnessr", "cache")))
+durable <- hr_cache_client(cl, hr_cache(tools::R_user_dir("harnessr", "cache")))
 gr_read_many(reports, "What was revenue?", "thorough",
              client = durable, store = file.path(tempdir(), "run-store"))
 ```
 
 The store is keyed on the document’s path, size and mtime, the question,
 the whole pipeline and the model, so an edited document is a new job,
-not a stale hit. A
-[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
+not a stale hit. An
+[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md)
 needs a stable `id` for a store or a cache to be reused by a later
 session;
-[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
+[`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md)
 and
-[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
+[`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
 already know what they are.
 
 The same document is read once. The same paper reaches you from three
@@ -176,7 +176,7 @@ passed as text, while the id is the same string for the same document in
 every run and on every machine.
 
 You can see what it cost. `out$trace` holds the run’s calls, and
-[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
+[`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)
 prices them at each step’s own model, counting only the calls that were
 issued. The mock client has no price, so this bill is zero;
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
@@ -184,7 +184,7 @@ explains the columns and how to register a price.
 
 ``` r
 
-gr_trace_cost(out$trace)[, c("model", "calls", "paid_calls", "usd")]
+hr_trace_cost(out$trace)[, c("model", "calls", "paid_calls", "usd")]
 #>        model calls paid_calls usd
 #> 1 mock-model     2          2   0
 ```
@@ -338,7 +338,7 @@ text, and say in an `identity` column whether they found either:
 
 ``` r
 
-said <- gr_mock_client(function(m, p) "A randomised trial.")
+said <- hr_mock_client(function(m, p) "A randomised trial.")
 read <- gr_read_many(recs, "What was the design?", "fast", client = said)
 #> Warning in gr_read_many(recs, "What was the design?", "fast", client = said):
 #> 'smith2019.txt' may not be the paper its record names: the opening of its text
@@ -384,7 +384,7 @@ and
 [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 accumulates the whole review in one place. It is a parent: each stage
 still records on a trace of its own, which is what its `$trace` returns
-and what `gr_options(max_calls =)` is measured against, and adds its
+and what `hr_options(max_calls =)` is measured against, and adds its
 calls to the shared one when it finishes. So the screening cannot spend
 the write-up’s ceiling, the shared trace’s totals are the sum of the
 stages’, and each request is counted once.
@@ -453,7 +453,7 @@ about the southern one:
 
 ``` r
 
-screener <- gr_mock_client(function(messages, params) {
+screener <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                 collapse = " ")
   if (grepl("51.8", seen, fixed = TRUE)) {
@@ -985,7 +985,7 @@ table can be sorted, counted, filtered and published.
 
 ``` r
 
-extractor <- gr_mock_client(function(messages, params) {
+extractor <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                 collapse = " ")
   n <- if (grepl("45.2", seen, fixed = TRUE)) "45.2" else "51.8"
@@ -1113,7 +1113,7 @@ rows it rests on:
 
 ``` r
 
-writer <- gr_mock_client(function(messages, params) {
+writer <- hr_mock_client(function(messages, params) {
   paste("Revenue was higher in the southern region, at 51.8 million dollars [study 2],",
         "than in the northern, at 45.2 million [study 1].")
 })
@@ -1266,7 +1266,7 @@ studies <- data.frame(
   stringsAsFactors = FALSE
 )
 
-cite_writer <- gr_mock_client(function(messages, params)
+cite_writer <- hr_mock_client(function(messages, params)
   "Three studies met the criteria [study 1] [study 2] [study 3].")
 
 cited <- gr_synthesise(
@@ -1380,7 +1380,7 @@ follow:
 
 ``` r
 
-claim_writer <- gr_mock_client(function(messages, params) {
+claim_writer <- hr_mock_client(function(messages, params) {
   sys <- messages[[1]]$content
   if (grepl("turn a table of studies", sys, fixed = TRUE)) {
     return(paste0('{"claims":[{"claim":"Revenue is higher in the south than the north.",',
@@ -1705,7 +1705,7 @@ reported:
 
 ``` r
 
-strict_screener <- gr_mock_client(function(messages, params) {
+strict_screener <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                 collapse = " ")
   south <- grepl("51.8", seen, fixed = TRUE)
@@ -1734,7 +1734,7 @@ three show `include_if_any`:
 
 ``` r
 
-draws <- gr_mock_client(function(messages, params) {
+draws <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                 collapse = " ")
   keep <- !grepl("51.8", seen, fixed = TRUE) || identical(params$draw_index, 2L)
@@ -1907,7 +1907,7 @@ request. Here the writer rounds 51.8 to “about 50”:
 
 ``` r
 
-rounder <- gr_mock_client(function(messages, params) {
+rounder <- hr_mock_client(function(messages, params) {
   "Revenue was about 50 million dollars in the south [study 2]."
 })
 bands <- function(about) {
@@ -1938,7 +1938,7 @@ calls that stronger:
 
 ``` r
 
-strengthen <- gr_mock_client(function(messages, params) {
+strengthen <- hr_mock_client(function(messages, params) {
   if (grepl("You grade one response", messages[[1]]$content, fixed = TRUE)) {
     stronger <- grepl("caused", messages[[2]]$content, fixed = TRUE)
     return(if (stronger) '{"verdict": "stronger", "reason": "A comparison became a cause."}'
@@ -2085,8 +2085,8 @@ flagged:
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
                         extraction = table, open = FALSE)
 grep("UTC</td>", readLines(page), value = TRUE)
-#> [1] "<tr><td>screening</td><td>2026-11-25 12:17:32 UTC</td><td>0.6.0.9000</td></tr>" 
-#> [2] "<tr><td>extraction</td><td>2026-11-25 12:17:33 UTC</td><td>0.6.0.9000</td></tr>"
+#> [1] "<tr><td>screening</td><td>2026-11-25 12:40:38 UTC</td><td>0.6.0.9000</td></tr>" 
+#> [2] "<tr><td>extraction</td><td>2026-11-25 12:40:39 UTC</td><td>0.6.0.9000</td></tr>"
 ```
 
 The report puts the failures near the top: unverified quotes, documents

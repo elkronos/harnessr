@@ -102,7 +102,7 @@ not given.</p></dd>
 
 
 <dt id="arg-client">client<a class="anchor" aria-label="anchor" href="#arg-client"></a></dt>
-<dd><p>A <code><a href="gr_client.html">gr_client()</a></code>. One is built from <code>model</code> if omitted.</p></dd>
+<dd><p>An <code><a href="hr_client.html">hr_client()</a></code>. One is built from <code>model</code> if omitted.</p></dd>
 
 
 <dt id="arg-model-temperature-max-claim-tokens">model, temperature, max_claim_tokens<a class="anchor" aria-label="anchor" href="#arg-model-temperature-max-claim-tokens"></a></dt>
@@ -118,7 +118,7 @@ same as <code><a href="gr_synthesise.html">gr_synthesise()</a></code>.</p></dd>
 
 
 <dt id="arg-trace">trace<a class="anchor" aria-label="anchor" href="#arg-trace"></a></dt>
-<dd><p>A <code><a href="gr_trace.html">gr_trace()</a></code> to add this stage's calls to, or <code>NULL</code>. The
+<dd><p>An <code><a href="hr_trace.html">hr_trace()</a></code> to add this stage's calls to, or <code>NULL</code>. The
 calls are recorded on a trace of the stage's own, returned as <code>$trace</code>,
 and folded into <code>trace</code> when the stage ends, as in <code><a href="gr_read_many.html">gr_read_many()</a></code> and
 <code><a href="gr_synthesise.html">gr_synthesise()</a></code>. Its requests are held to the governor of <code>trace</code>, if
@@ -359,7 +359,7 @@ cover, <code><a href="gr_protocols.html">gr_protocols()</a></code> for the <code
 <span class="r-in"><span>  design <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"randomised trial"</span>, <span class="st">"cross-sectional"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  finding <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"supports"</span>, <span class="st">"contradicts"</span><span class="op">)</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="st">'{"claims":[{"claim":"The effect appears in trials but not in surveys.",'</span>,</span></span>
 <span class="r-in"><span>  <span class="st">'"kind":"finding","supported_by":[1],"contradicted_by":[2],'</span>,</span></span>
 <span class="r-in"><span>  <span class="st">'"moderator":"design","scope":"one trial, one survey"}]}'</span><span class="op">)</span><span class="op">)</span></span></span>

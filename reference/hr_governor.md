@@ -4,7 +4,7 @@ A governor holds the limits that every request a run makes is checked
 against before it is sent: how many calls the run may make, what it may
 spend, the largest output cap one request may carry, and which models it
 may call.
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md),
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md),
 and every reader, judge, adjudication, segmenter and embeddings request
 in the package, goes through the same check, so a limit holds whether or
 not the code that makes the call looks at it.
@@ -13,12 +13,12 @@ not the code that makes the call looks at it.
 
 ``` r
 hr_governor(
-  max_calls = gr_options("max_calls"),
-  max_cost_usd = gr_options("max_cost_usd"),
-  max_tokens_total = gr_options("max_tokens_total"),
-  max_output_tokens = gr_options("max_output_tokens"),
-  allowed_models = gr_options("allowed_models"),
-  allow_unpriced = gr_options("allow_unpriced")
+  max_calls = hr_options("max_calls"),
+  max_cost_usd = hr_options("max_cost_usd"),
+  max_tokens_total = hr_options("max_tokens_total"),
+  max_output_tokens = hr_options("max_output_tokens"),
+  allowed_models = hr_options("allowed_models"),
+  allow_unpriced = hr_options("allow_unpriced")
 )
 ```
 
@@ -62,18 +62,18 @@ An object of class `hr_governor`: a list of the six limits.
 A request is checked against its worst case: the most prompt tokens it
 can be billed for at the model's input price, plus its output cap as
 sent (for a reasoning model the raised cap; see
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md))
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md))
 at the output price. The prompt is counted as the trace counts it, with
 the JSON schema and extra body fields the request carries, a few tokens
 for each message's framing, and `safety_margin` (see
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md))
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md))
 on top. One that would take the run past `max_cost_usd` is refused, so a
 run ends at or under the limit rather than one request over it. That
 bound rests on two things the governor cannot see: that a provider stops
 a reply at its cap (a
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 or
-[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
+[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md)
 handler that returns more is charged for what it returned), and that the
 provider counts the prompt within the margin of the local tokenizer. A
 provider that reports more prompt tokens than that, or a tokenizer far
@@ -84,7 +84,7 @@ cap would have used.
 
 A refused request is not sent and is not a call: it adds nothing to the
 trace's `calls`, steps or spend. It comes back from
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
 as a failed
 [gr_result](https://elkronos.github.io/harnessr/reference/gr_result.md)
 with `refused = TRUE` and an error that names the limit, and a condition
@@ -108,9 +108,9 @@ refused; its requests count against `max_calls` and add nothing to the
 spend, as
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 warns.
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
-makes no paid requests and is never refused as unpriced. A request a
-[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
+makes no paid requests and is never refused as unpriced. A request an
+[`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
 answers spends nothing and is checked only against `max_calls`,
 `max_output_tokens` and `allowed_models`.
 
@@ -120,7 +120,7 @@ text sent to be embedded. A request is refused when what the run has
 used plus its own worst case (prompt as above, reply at its cap) would
 pass it.
 
-A governor is attached to a run with `gr_trace(governor = )`, and then
+A governor is attached to a run with `hr_trace(governor = )`, and then
 governs the requests recorded into that trace. A stage that keeps a
 trace of its own and folds it into the one it is given
 ([`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
@@ -131,28 +131,28 @@ and
 holds its requests to that trace's governor, less the calls the given
 trace has already made and what it has spent and used in tokens, so the
 governor's limits hold for the run as a whole. Without a governor,
-`gr_options(max_calls =)` stays a limit per document for
+`hr_options(max_calls =)` stays a limit per document for
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 and per stage for the others. A trace made without one, including those
 the package makes for itself, reads the limits from
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 each time it checks, so changing an option affects runs that are already
 going, as it always has.
 
 ## See also
 
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 for the session defaults,
-[`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md),
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
+[`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md),
+[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
 to give a model its prices
 
 ## Examples
 
 ``` r
-cl <- gr_mock_client(function(m, p) "ok")
-tr <- gr_trace(governor = hr_governor(max_calls = 2))
-vapply(1:3, function(i) gr_call(cl, "hi", trace = tr)$ok, logical(1))
+cl <- hr_mock_client(function(m, p) "ok")
+tr <- hr_trace(governor = hr_governor(max_calls = 2))
+vapply(1:3, function(i) hr_call(cl, "hi", trace = tr)$ok, logical(1))
 #> [1]  TRUE  TRUE FALSE
 tr$calls
 #> [1] 2
@@ -160,10 +160,10 @@ tr$stop_reason
 #> [1] "calls"
 
 # A request whose worst case would pass the spending limit is not sent.
-tr <- gr_trace(governor = hr_governor(max_cost_usd = 0.001))
-res <- gr_call(cl, "hi", model = "gpt-4o", trace = tr)
+tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.001))
+res <- hr_call(cl, "hi", model = "gpt-4o", trace = tr)
 res$refused
 #> [1] TRUE
 res$error
-#> [1] "spending limit reached: the 'call' request could cost up to $0.16 (up to 13 prompt tokens, and 16384 reply tokens at its cap), and the run has spent $0 of its $0.001 limit, so it was not sent; raise gr_options(max_cost_usd =) or ask for a smaller max_output"
+#> [1] "spending limit reached: the 'call' request could cost up to $0.16 (up to 13 prompt tokens, and 16384 reply tokens at its cap), and the run has spent $0 of its $0.001 limit, so it was not sent; raise hr_options(max_cost_usd =) or ask for a smaller max_output"
 ```

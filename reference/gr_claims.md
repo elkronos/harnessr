@@ -45,8 +45,8 @@ gr_claims(
 
 - client:
 
-  A
-  [`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md).
+  An
+  [`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md).
   One is built from `model` if omitted.
 
 - model, temperature, max_claim_tokens:
@@ -62,8 +62,8 @@ gr_claims(
 
 - trace:
 
-  A
-  [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
+  An
+  [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
   to add this stage's calls to, or `NULL`. The calls are recorded on a
   trace of the stage's own, returned as `$trace`, and folded into
   `trace` when the stage ends, as in
@@ -342,7 +342,7 @@ tab <- data.frame(
   design = c("randomised trial", "cross-sectional"),
   finding = c("supports", "contradicts"), stringsAsFactors = FALSE)
 
-cl <- gr_mock_client(function(messages, params) paste0(
+cl <- hr_mock_client(function(messages, params) paste0(
   '{"claims":[{"claim":"The effect appears in trials but not in surveys.",',
   '"kind":"finding","supported_by":[1],"contradicted_by":[2],',
   '"moderator":"design","scope":"one trial, one survey"}]}'))

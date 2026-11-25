@@ -82,7 +82,7 @@ registered and runs as before. Use it on a reader of your own after
 
 <dt id="arg-client">client<a class="anchor" aria-label="anchor" href="#arg-client"></a></dt>
 <dd><p>A <code>gr_client</code> to read with. <code>NULL</code> (the default) uses a
-<code><a href="gr_mock_client.html">gr_mock_client()</a></code> whose reply to a request with a JSON schema is an
+<code><a href="hr_mock_client.html">hr_mock_client()</a></code> whose reply to a request with a JSON schema is an
 object of that schema's shape, and a fixed sentence otherwise.</p></dd>
 
 </dl></div>
@@ -93,7 +93,7 @@ object of that schema's shape, and a fixed sentence otherwise.</p></dd>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The document is cut with <code>list(method = "paragraph", max_tokens = 150)</code> and
-read on a fresh <code><a href="gr_trace.html">gr_trace()</a></code>. Readers that need more than a question are
+read on a fresh <code><a href="hr_trace.html">hr_trace()</a></code>. Readers that need more than a question are
 given what they need: <code>extract</code> one field, <code>screen</code> one inclusion
 criterion, and <code>ensemble</code> the members <code>"stuff"</code> and <code>"retrieve"</code>.</p>
     </div>
@@ -176,7 +176,7 @@ registered without <code>cost</code>.</p></dd>
 <span class="r-in"><span><span class="co"># A reader whose calls carry a label it did not declare.</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="gr_register_reader.html">gr_register_reader</a></span><span class="op">(</span><span class="st">"loose"</span>, signature <span class="op">=</span> <span class="st">"one|1|none"</span>, calls <span class="op">=</span> <span class="st">"loose.answer"</span>,</span></span>
 <span class="r-in"><span>  fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">chunks</span>, <span class="va">question</span>, <span class="va">client</span>, <span class="va">spec</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>    <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>, content <span class="op">=</span> <span class="va">question</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>, content <span class="op">=</span> <span class="va">question</span><span class="op">)</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                   model <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">model</span>, trace <span class="op">=</span> <span class="va">trace</span>, label <span class="op">=</span> <span class="st">"other.answer"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>    <span class="fu"><a href="new_answer.html">new_answer</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">text</span>, <span class="st">"loose"</span>, <span class="va">question</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>, <span class="va">trace</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">}</span><span class="op">)</span></span></span>

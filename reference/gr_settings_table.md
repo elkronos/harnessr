@@ -24,7 +24,7 @@ gr_settings_table(stage = NULL)
 
 A data frame with one row per setting and the columns `stage`, `name`,
 `where` (the function that takes it, as `"gr_read_spec()"`, or
-`"gr_options()"`), `default` (as text: a string without quotes, the
+`"hr_options()"`), `default` (as text: a string without quotes, the
 first choice of a set of choices, other values as R code), `tier`
 (`"basic"` for the few settings most runs change, else `"advanced"`),
 `status` and `source` (where the default came from: `"measured"`,
@@ -82,7 +82,7 @@ setting, so it says what the installed code does:
 - `options`:
 
   Every
-  [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+  [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
   option, with its default, the evidence its rule declares, and the
   first sentence of its entry in the help page.
 

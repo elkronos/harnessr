@@ -63,7 +63,7 @@ gr_read_spec(
 - model:
 
   Chat model id. `NULL` (the default) means the model of the client the
-  spec is read with, so `gr_client(model = "gpt-4o-mini")` is the model
+  spec is read with, so `hr_client(model = "gpt-4o-mini")` is the model
   that answers, is budgeted for and is billed. A model named here, or in
   a recipe, is used whatever the client's.
 
@@ -73,7 +73,7 @@ gr_read_spec(
   null it yourself for reasoning models: it is dropped automatically for
   any model whose registry entry has `supports_temperature = FALSE`,
   which includes the default model. Check with
-  `gr_model_info(model)$supports_temperature`.
+  `hr_model_info(model)$supports_temperature`.
 
 - max_answer_tokens:
 
@@ -208,7 +208,7 @@ gr_read_spec(
   recording in order.
 
   Two things do not cross the process boundary. The limits in
-  [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+  [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
   are checked before a batch is sent and not inside it, since a worker
   cannot see what the others spend. So the pre-flight check, which runs
   in the parent, holds a parallel run to its worst case, every reply at
@@ -218,9 +218,9 @@ gr_read_spec(
   case, and otherwise runs one request at a time, each checked. And a
   handler that records calls in variables of its own (a closure passed
   to
-  [`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
+  [`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md)
   or
-  [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md))
+  [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md))
   records a worker's calls in that worker's copy, which this process
   never sees; ask the trace, or the client's `$calls()`, instead.
 
@@ -630,7 +630,7 @@ existed.
   takes the client's model.
 
 - `temperature` (default `NULL`, advanced): untested. Not a tuned value:
-  NULL takes gr_options("temperature"), which sends none.
+  NULL takes hr_options("temperature"), which sends none.
 
 - `max_answer_tokens` (default `1500`, advanced): untested. Set as a
   generous cap for an answer; not measured.
@@ -681,7 +681,7 @@ existed.
   value: NULL uses `model`.
 
 - `parallel` (default `NULL`, advanced): untested. Not a tuned value:
-  NULL follows gr_options("parallel"). It does not change output.
+  NULL follows hr_options("parallel"). It does not change output.
 
 - `delay_between_calls` (default `0`, advanced): untested. No pause. It
   does not change output.
@@ -756,19 +756,19 @@ hundreds of per-chunk calls reason as long as the one call that drafts
 its claims.
 
 The effort is sent as `reasoning = {"effort": ...}` on the Responses API
-and as `reasoning_effort` on Chat Completions, and a
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+and as `reasoning_effort` on Chat Completions, and an
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 or
-[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
+[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md)
 handler finds it in `params$effort`. It is sent only to a model whose
-[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md)
+[`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md)
 says `reasoning = TRUE`, and left out without a warning for any other,
 which would refuse the field, as `temperature` is left out for a model
 that refuses that; register a gateway's reasoning model with
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
+[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
 to reach it. For the calls it covers it replaces an effort the client's
-`extra_body` sets. A
-[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
+`extra_body` sets. An
+[`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
 cannot take it per call, says so once (`gr_effort_unsupported`) and does
 not record it as sent. A value is passed through as given; one that is
 not `"none"`, `"minimal"`, `"low"`, `"medium"`, `"high"` or `"xhigh"` is
@@ -779,13 +779,13 @@ Each request's effort is in its trace step (`params$effort`, and an
 `effort` column of `as.data.frame(trace)`), and
 [`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
 shows it beside what each stage cost. It is part of the
-[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
+[`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
 key, and, when set, of a recipe's store key in
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
 of what
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
-counts as a different recipe, and of the key a
-[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
+counts as a different recipe, and of the key an
+[`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
 matches on, so runs at different efforts never share answers. Unset,
 none of those keys change.
 
@@ -860,10 +860,10 @@ suppressWarnings(gr_read_spec("hierarchical", fan_in = 999)$fan_in)
 ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 150 tokens, overlap 0).
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 sp <- gr_read_spec("map_reduce", model = "gpt-5.6-luna",
                    effort = c(map = "low", reduce = "high"))
-tr <- gr_trace()
+tr <- hr_trace()
 invisible(gr_read(ch, "What was revenue?", cl, sp, trace = tr))
 #> Reading with 'map_reduce' (all|N+logN|tree) over 5 chunk(s).
 unique(as.data.frame(tr)[, c("stage", "effort")])
@@ -872,7 +872,7 @@ unique(as.data.frame(tr)[, c("stage", "effort")])
 #> 6     reduce   high
 # A loaded question, checked against the document. The mock plays a model
 # that finds the excerpts contradict it.
-cl <- gr_mock_client(function(m, p)
+cl <- hr_mock_client(function(m, p)
   "FALSE_PREMISE: Revenue rose 12% in 2023, to 45.2 million.")
 ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 400))
 #> Using cached ingestion for this document + settings.

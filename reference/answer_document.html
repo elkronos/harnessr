@@ -129,11 +129,11 @@ answers. Both send every chunk, so the choice changes the number of requests
 and the cost, not how much of the document is read.</p>
 <p>The room is measured for the model that answers: the one passed as <code>model</code>
 in <code>...</code>, or else the client's. A model whose limits harnessr has to guess
-(see <code><a href="gr_model_info.html">gr_model_info()</a></code>) always gets <code>"thorough"</code>; register its real limits
-with <code><a href="gr_register_model.html">gr_register_model()</a></code>.</p>
+(see <code><a href="hr_model_info.html">hr_model_info()</a></code>) always gets <code>"thorough"</code>; register its real limits
+with <code><a href="hr_register_model.html">hr_register_model()</a></code>.</p>
 <p>The answer's <code>recipe</code> names the recipe used, <code>notes$auto_recipe</code> records that
 <code>"auto"</code> chose it, and the trace has an <code>auto_recipe</code> step with the token
-count and the limit the choice was made on. A <code><a href="gr_replay_client.html">gr_replay_client()</a></code> repeats
+count and the limit the choice was made on. An <code><a href="hr_replay_client.html">hr_replay_client()</a></code> repeats
 the recorded choice rather than making it again. Overrides in <code>...</code> apply to
 whichever recipe is chosen. <code><a href="gr_read_many.html">gr_read_many()</a></code>, <code><a href="gr_compare.html">gr_compare()</a></code> and the review
 functions need one fixed recipe and refuse <code>"auto"</code>.</p>
@@ -141,13 +141,13 @@ functions need one fixed recipe and refuse <code>"auto"</code>.</p>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="gr_recipes.html">gr_recipes()</a></code> for the built-in pipelines, <code><a href="gr_compare.html">gr_compare()</a></code> to run
-several, <a href="gr_answer.html">gr_answer</a> for the returned object, <code><a href="gr_options.html">gr_options()</a></code> for the cost
+several, <a href="gr_answer.html">gr_answer</a> for the returned object, <code><a href="hr_options.html">hr_options()</a></code> for the cost
 and call caps</p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"The answer is 42."</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"The answer is 42."</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">txt</span> <span class="op">&lt;-</span> <span class="st">"Chapter one.\n\nThe answer to the great question is 42, as recorded."</span></span></span>
 <span class="r-in"><span><span class="fu">answer_document</span><span class="op">(</span><span class="va">txt</span>, <span class="st">"What is the answer?"</span>, <span class="st">"fast"</span>, client <span class="op">=</span> <span class="va">cl</span>, return <span class="op">=</span> <span class="st">"text"</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 2 block(s), ~24 tokens (0 chars removed by cleaning).</span>

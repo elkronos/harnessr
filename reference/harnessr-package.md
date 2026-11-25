@@ -7,19 +7,19 @@ harnessr has two layers.
 The general core sends model calls and keeps them under control: clients
 for an API, a local backend or [ellmer](https://ellmer.tidyverse.org)
 (see
-[`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md),
-[`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md),
-[`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md),
+[`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md),
+[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md),
+[`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md),
 and
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 for offline work), spending and call limits checked before each request
-([`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)),
+([`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)),
 a response cache
-([`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)),
+([`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)),
 recordings that replay offline
-([`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)),
+([`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)),
 and a trace of every call
-([`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)).
+([`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)).
 
 The document layer, built on that core, controls how a model reads a
 document. The three decisions that drive answer quality are pulled apart
@@ -76,7 +76,7 @@ runs several over one document and reports how they differ.
 
     Sys.setenv(OPENAI_API_KEY = "sk-...")
 
-    # No key yet? Everything below works offline against gr_mock_client() and the
+    # No key yet? Everything below works offline against hr_mock_client() and the
     # bundled document at gr_example().
 
     # One question, one pipeline.
@@ -117,7 +117,7 @@ two or three on your own document and read `cmp$summary`.
 ## Cost control
 
 Two limits are on by default, both
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md):
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md):
 `max_cost_usd` (5) and `max_calls` (400). Before the first request, a
 run is refused with a classed error naming the option to change when it
 would need more calls than `max_calls`, or when its reader sends every
@@ -126,7 +126,7 @@ checked again before every request, so a run that reaches either one
 stops and returns a `partial` answer rather than continuing to spend. A
 parallel read that sends batches, which cannot be stopped part way, is
 held to its worst case instead; see
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md).
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md).
 
 Preview segmentation for free before committing to a reader:
 
@@ -156,14 +156,14 @@ Each axis is a registry, so additions behave exactly like built-ins:
 [`gr_register_cleaner()`](https://elkronos.github.io/harnessr/reference/gr_register_cleaner.md),
 [`gr_register_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_register_segmenter.md),
 [`gr_register_reader()`](https://elkronos.github.io/harnessr/reference/gr_register_reader.md),
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md).
+[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md).
 
 ## See also
 
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
 [`gr_recipes()`](https://elkronos.github.io/harnessr/reference/gr_recipes.md),
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 
 ## Author
 

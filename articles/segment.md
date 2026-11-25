@@ -17,7 +17,7 @@ covers the step before this one.
 ``` r
 
 library(harnessr)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 ```
 
 `embedder = "lexical"` makes the one segmenter that embeds text,
@@ -319,7 +319,7 @@ client below stands in for that model:
 
 ``` r
 
-writer <- gr_mock_client(function(messages, params) "This excerpt reports the 2024 results.")
+writer <- hr_mock_client(function(messages, params) "This excerpt reports the 2024 results.")
 ctx_llm <- gr_segment(doc, list(method = "contextual", max_tokens = 120,
                                 context_source = "llm"), client = writer)
 cat(ctx_llm$chunks$text[2])
@@ -386,7 +386,7 @@ Three segmenters spend something, and each takes a `client`:
 
 ``` r
 
-cl <- gr_mock_client(function(messages, params) "unused")
+cl <- hr_mock_client(function(messages, params) "unused")
 sem <- gr_segment(doc, list(method = "semantic", max_tokens = 120), client = cl)
 gr_chunk_stats(sem)
 #>              method n total_tokens min median  mean max over_cap
@@ -401,7 +401,7 @@ real embeddings endpoint it is `"api"`, and the method is `"semantic"`.
 The label is all that differs; the chunks and the requests are the same.
 
 These requests count against the run’s limits,
-`gr_options(max_calls =, max_cost_usd =)`, like any other. Called
+`hr_options(max_calls =, max_cost_usd =)`, like any other. Called
 without a `trace`,
 [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
 makes its own and returns it as `$trace`, so you can see what segmenting
@@ -409,7 +409,7 @@ cost:
 
 ``` r
 
-gr_trace_summary(ctx_llm$trace)[, c("calls", "tokens_in", "tokens_out")]
+hr_trace_summary(ctx_llm$trace)[, c("calls", "tokens_in", "tokens_out")]
 #>   calls tokens_in tokens_out
 #> 1    14      9104        196
 ```
@@ -494,7 +494,7 @@ choice on test with intervals.
 qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
                       documents = gr_example(), answers = list("45.2 million"),
                       split = "dev")
-says <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+says <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
 sweep <- function(arms) {
   hr_benchmark(arms, qa, runs = 5, client = says, split = "dev",
                scorer = gr_scorer_answer())
@@ -550,7 +550,7 @@ more context together and cost fewer requests.
 
 **Signs it needs changing.** Under `map_reduce` or `skim`, a cost
 dominated by the number of requests
-([`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md))
+([`hr_trace_summary()`](https://elkronos.github.io/harnessr/reference/hr_trace_summary.md))
 points to larger chunks. Under `retrieve`, an answer that is right but
 rests on long chunks of unrelated text points to smaller ones, and an
 answer split across two chunks, of which only one was picked, points to
@@ -887,7 +887,7 @@ those folders, never hidden files or hidden folders. `extract` and
 and
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 ([`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)).
-A blank cost cap leaves `gr_options("max_cost_usd")` in force rather
+A blank cost cap leaves `hr_options("max_cost_usd")` in force rather
 than lifting the limit.
 
 ## Your own segmenter

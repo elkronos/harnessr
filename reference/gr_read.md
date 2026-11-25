@@ -71,8 +71,8 @@ ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
 # The same chunks, two strategies, two very different call patterns. Each gets
 # its own client and trace, so the call counts are comparable.
 run <- function(reader, ...) {
-  cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
-  tr <- gr_trace()
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  tr <- hr_trace()
   a <- gr_read(ch, "What was revenue?", cl, c(list(reader = reader), list(...)), trace = tr)
   data.frame(reader = a$reader, signature = a$signature,
              calls = length(cl$calls()), chunks_used = length(a$chunks_used))

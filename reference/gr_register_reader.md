@@ -107,7 +107,7 @@ Your function receives:
 - `client`:
 
   Pass it to
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md);
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md);
   never construct your own.
 
 - `spec`:
@@ -119,7 +119,7 @@ Your function receives:
   [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
   has already filled `model` from the client when the spec named none.
   Pass `effort = spec$effort` to every
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md),
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md),
   which resolves a setting by stage against the call's `label`, so give
   each call a label of its own and declare its stem in `calls`; a call
   without a label is sent no effort.
@@ -127,7 +127,7 @@ Your function receives:
 - `trace`:
 
   Pass it to every
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
   so your calls are counted, priced and held to the run's limits: a
   request that would pass `max_calls` or `max_cost_usd` is not sent, and
   comes back with `refused = TRUE` (see
@@ -139,7 +139,7 @@ Your function receives:
 Return
 [`new_answer()`](https://elkronos.github.io/harnessr/reference/new_answer.md).
 Budget your prompt with
-[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
+[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
 rather than assuming the document fits.
 
 ## See also
@@ -150,7 +150,7 @@ to build the return value,
 [`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md),
 [`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md),
 [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md),
-[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
+[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
 
 Other reading functions:
 [`gr_answer`](https://elkronos.github.io/harnessr/reference/gr_answer.md),
@@ -174,7 +174,7 @@ gr_register_reader("longest", signature = "one|1|none", cost_calls = "1",
   fn = function(chunks, question, client, spec, trace) {
     d <- chunks$chunks
     i <- which.max(d$tokens)
-    res <- gr_call(client, list(
+    res <- hr_call(client, list(
       list(role = "user", content = paste0(d$text[i], "\n\nQuestion: ", question))),
       model = spec$model, effort = spec$effort, trace = trace,
       label = "longest.answer")
@@ -184,7 +184,7 @@ gr_register_reader("longest", signature = "one|1|none", cost_calls = "1",
 ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 120))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'sentence' (cap 120 tokens, overlap 0).
-gr_read(ch, "What was revenue?", gr_mock_client(function(m, p) "45.2 million"),
+gr_read(ch, "What was revenue?", hr_mock_client(function(m, p) "45.2 million"),
         "longest")$answer
 #> Reading with 'longest' (one|1|none) over 6 chunk(s).
 #> [1] "45.2 million"

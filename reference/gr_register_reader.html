@@ -151,19 +151,19 @@ counts one request per chunk and, for a signature whose <code>select</code> is
 <dd><p>The question, already validated as non-blank.</p></dd>
 
 <dt><code>client</code></dt>
-<dd><p>Pass it to <code><a href="gr_call.html">gr_call()</a></code>; never construct your own.</p></dd>
+<dd><p>Pass it to <code><a href="hr_call.html">hr_call()</a></code>; never construct your own.</p></dd>
 
 <dt><code>spec</code></dt>
 <dd><p>A <code><a href="gr_read_spec.html">gr_read_spec()</a></code>. Honour at least <code>model</code>,
 <code>max_answer_tokens</code>, <code>temperature</code> and <code>effort</code>. <code><a href="gr_read.html">gr_read()</a></code> has already
 filled <code>model</code> from the client when the spec named none. Pass
-<code>effort = spec$effort</code> to every <code><a href="gr_call.html">gr_call()</a></code>, which resolves a setting
+<code>effort = spec$effort</code> to every <code><a href="hr_call.html">hr_call()</a></code>, which resolves a setting
 by stage against the call's <code>label</code>, so give each call a label of its
 own and declare its stem in <code>calls</code>; a call without a label is sent no
 effort.</p></dd>
 
 <dt><code>trace</code></dt>
-<dd><p>Pass it to every <code><a href="gr_call.html">gr_call()</a></code> so your calls are counted,
+<dd><p>Pass it to every <code><a href="hr_call.html">hr_call()</a></code> so your calls are counted,
 priced and held to the run's limits: a request that would pass
 <code>max_calls</code> or <code>max_cost_usd</code> is not sent, and comes back with
 <code>refused = TRUE</code> (see <code><a href="hr_governor.html">hr_governor()</a></code>). Stop or degrade when one does.
@@ -171,13 +171,13 @@ A reader that still checks <code>harnessr:::trace_can_call(trace)</code> first, 
 earlier versions advised, keeps working.</p></dd>
 
 
-</dl><p>Return <code><a href="new_answer.html">new_answer()</a></code>. Budget your prompt with <code><a href="gr_budget.html">gr_budget()</a></code> rather than
+</dl><p>Return <code><a href="new_answer.html">new_answer()</a></code>. Budget your prompt with <code><a href="hr_budget.html">hr_budget()</a></code> rather than
 assuming the document fits.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="new_answer.html">new_answer()</a></code> to build the return value, <code><a href="gr_readers.html">gr_readers()</a></code>,
-<code><a href="gr_reader_signature.html">gr_reader_signature()</a></code>, <code><a href="gr_read.html">gr_read()</a></code>, <a href="gr_answer.html">gr_answer</a>, <code><a href="gr_budget.html">gr_budget()</a></code></p>
+<code><a href="gr_reader_signature.html">gr_reader_signature()</a></code>, <code><a href="gr_read.html">gr_read()</a></code>, <a href="gr_answer.html">gr_answer</a>, <code><a href="hr_budget.html">hr_budget()</a></code></p>
 <p>Other reading functions:
 <code><a href="gr_answer.html">gr_answer</a></code>,
 <code><a href="gr_check_reader.html">gr_check_reader()</a></code>,
@@ -200,7 +200,7 @@ assuming the document fits.</p>
 <span class="r-in"><span>  fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">chunks</span>, <span class="va">question</span>, <span class="va">client</span>, <span class="va">spec</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>    <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">chunks</span><span class="op">$</span><span class="va">chunks</span></span></span>
 <span class="r-in"><span>    <span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.max</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">tokens</span><span class="op">)</span></span></span>
-<span class="r-in"><span>    <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_call.html">gr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">client</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>      <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>role <span class="op">=</span> <span class="st">"user"</span>, content <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">text</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="st">"\n\nQuestion: "</span>, <span class="va">question</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>      model <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">model</span>, effort <span class="op">=</span> <span class="va">spec</span><span class="op">$</span><span class="va">effort</span>, trace <span class="op">=</span> <span class="va">trace</span>,</span></span>
 <span class="r-in"><span>      label <span class="op">=</span> <span class="st">"longest.answer"</span><span class="op">)</span></span></span>
@@ -210,7 +210,7 @@ assuming the document fits.</p>
 <span class="r-in"><span><span class="va">ch</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="fu"><a href="gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"sentence"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Using cached ingestion for this document + settings.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'sentence' (cap 120 tokens, overlap 0).</span>
-<span class="r-in"><span><span class="fu"><a href="gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">ch</span>, <span class="st">"What was revenue?"</span>, <span class="fu"><a href="gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"45.2 million"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span><span class="fu"><a href="gr_read.html">gr_read</a></span><span class="op">(</span><span class="va">ch</span>, <span class="st">"What was revenue?"</span>, <span class="fu"><a href="hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">m</span>, <span class="va">p</span><span class="op">)</span> <span class="st">"45.2 million"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>        <span class="st">"longest"</span><span class="op">)</span><span class="op">$</span><span class="va">answer</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'longest' (one|1|none) over 6 chunk(s).</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "45.2 million"</span>

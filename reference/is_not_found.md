@@ -103,7 +103,7 @@ ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 400))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'sentence' (cap 400 tokens, overlap 0).
 ans <- gr_read(ch, "Who audited the accounts?",
-               gr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), "stuff")
+               hr_mock_client(function(m, p) "NOT_IN_DOCUMENT"), "stuff")
 #> Reading with 'stuff' (all|1|none) over 2 chunk(s).
 ans$outcome
 #> [1] "not_found"

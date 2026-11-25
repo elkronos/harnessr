@@ -41,8 +41,8 @@ gr_outline(
 
 - client:
 
-  A
-  [`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md).
+  An
+  [`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md).
   One is built from `model` if omitted.
 
 - model, temperature:
@@ -60,8 +60,8 @@ gr_outline(
 
 - trace:
 
-  A
-  [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
+  An
+  [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
   to add this stage's calls to, or `NULL`. The calls are recorded on a
   trace of the stage's own, attached as `attr(, "trace")`, and folded
   into `trace` when the stage ends. The trace of `claims` is left as it
@@ -177,7 +177,7 @@ tab <- data.frame(document = c("a.pdf", "b.pdf"), status = "ok",
                   duplicate_of = NA_character_, n_filled = 1L, n_unverified = 0L,
                   conflicts = NA_character_, finding = c("supports", "contradicts"),
                   stringsAsFactors = FALSE)
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   if (grepl("<claims>", paste(unlist(messages), collapse = " "), fixed = TRUE)) {
     return(paste0('{"sections":[{"heading":"What it finds","brief":"the claims",',
                   '"claims":[1],"rationale":"one topic"}]}'))
@@ -205,11 +205,11 @@ o
 #> attr(,"claims_fingerprint")
 #> [1] "28ca983a36369f10"
 #> attr(,"trace")
-#> <gr_trace run_20261125121205.216_a4fdd9>  1 steps, 1 model calls, 240 in / 72 out tokens, 0 error(s)
+#> <gr_trace run_20261125123546.249_ce3ad9>  1 steps, 1 model calls, 240 in / 72 out tokens, 0 error(s)
 #>   steps: outline.derive x1 
 #>   cost: $0.0000 across mock-model
 #>   usage: estimated locally for 100% of requests (the provider reported none)
-#>   started: 2026-11-25T12:12:05.217Z 
+#>   started: 2026-11-25T12:35:46.249Z 
 attr(o, "claims")
 #>         section claim_id
 #> 1 What it finds        1

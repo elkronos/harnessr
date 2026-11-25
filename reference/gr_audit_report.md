@@ -204,7 +204,7 @@ request, is cut to the text around what is highlighted, with each cut
 shown as "\[...\]". Last comes one row per request, from
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) on the
 answer's trace (see
-[`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)),
+[`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)),
 without the prompts and replies. Where the answer records which steps of
 a trace shared with other runs are its own, the requests, the rows and
 the cost are those steps only.
@@ -267,28 +267,28 @@ table of requests has an `effort` column.
 
 ``` r
 fields <- gr_fields(design = "The study design")
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   '{"design":"randomised trial","design__quote":"We ran a randomised trial."}'
 })
 f <- tempfile(fileext = ".txt"); writeLines("We ran a randomised trial.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1be96b3d223d.txt
-#> Extracting 'file1be96b3d223d.txt' with the 'txt' extractor.
+#> [1/1] file1b8c4f72ffbc.txt
+#> Extracting 'file1b8c4f72ffbc.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~10 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).
 
 out <- gr_audit_report(tempfile(fileext = ".html"), extraction = x, open = FALSE)
-#> Audit report written to /tmp/RtmpnKpcaG/file1be94258e619.html
+#> Audit report written to /tmp/Rtmphe7Fvj/file1b8c25c76317.html
 file.exists(out)
 #> [1] TRUE
 
 # One answer and the passages behind it.
-cl2 <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl2 <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl2)
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 4000 tokens, overlap 0).
 #> Reading with 'stuff' (all|1|none) over 1 chunk(s).
 page <- gr_audit_report(tempfile(fileext = ".html"), answer = ans, open = FALSE)
-#> Audit report written to /tmp/RtmpnKpcaG/file1be9441a8243.html
+#> Audit report written to /tmp/Rtmphe7Fvj/file1b8c467e85ba.html
 ```

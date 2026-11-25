@@ -202,7 +202,7 @@ the blocks have no such column. Untested.</p></dd>
 <li><p><code>ocr_min_chars</code> (default <code>40</code>, advanced): untested. Set when OCR was added; not tuned.</p></li>
 <li><p><code>min_chars</code> (default <code>20</code>, basic): untested. A floor that catches an empty extraction; not tuned.</p></li>
 <li><p><code>extractor</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL chooses by file type.</p></li>
-<li><p><code>parallel</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL follows gr_options("parallel"). It does not change output.</p></li>
+<li><p><code>parallel</code> (default <code>NULL</code>, advanced): untested. Not a tuned value: NULL follows hr_options("parallel"). It does not change output.</p></li>
 <li><p><code>cleaner_opts</code> (default <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>, advanced): untested. Empty: each cleaner uses its own defaults, listed under <code>cleaner_opts</code>.</p></li>
 <li><p><code>layout_opts</code> (default <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>, advanced): untested. Empty: the pass uses the values it was written with, listed under <code>layout_opts</code>; none was tuned.</p></li>
 <li><p><code>ocr_trigger</code> (default <code>"raw_text"</code>, advanced): untested. "raw_text" counts the whole text layer, as before; not compared with "after_running_lines".</p></li>

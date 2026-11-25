@@ -260,7 +260,7 @@ keeps the store and cache keys it had before they existed.
   when proposition was written; not tuned.
 
 - `parallel` (default `NULL`, advanced): untested. Not a tuned value:
-  NULL follows gr_options("parallel"). It does not change output.
+  NULL follows hr_options("parallel"). It does not change output.
 
 - `context_reply_tokens` (default `90`, advanced): untested. The cap the
   code had as a constant; not tuned.

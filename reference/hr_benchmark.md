@@ -62,7 +62,7 @@ print(x, ...)
   An
   [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)
   the whole benchmark is held to, or `NULL` to take the limits from
-  [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md).
+  [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md).
 
 - seed:
 
@@ -111,7 +111,7 @@ item x arm x run and the columns
 
   What the run cost, every request priced at its own model, embeddings
   included, as
-  [`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
+  [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)
   prices it: 0 for requests a cache or a recording answered, `NA` when a
   model has no price.
 
@@ -192,10 +192,10 @@ through `ctx$call()`, `ctx$call_json()` or a stage called with
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
 [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md)
 and the like) is sent at the run's draw, and each run is its own entry
-in a
-[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
+in an
+[`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
 and its own recorded draw in a
-[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md).
+[`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md).
 Each request a run makes with a draw index is recorded under the arm's
 name as well, so a replay of a benchmark answers each arm with the
 replies that arm got, even when two arms sent the same request, and
@@ -208,8 +208,8 @@ replies has the provider response id of a reply in an earlier run, or
 when a recording served a reply without its own draw key (a repeat after
 the recording ran out of draws, or a recording made without per-draw
 keys). Every request a run makes should therefore carry the run's draw
-index. A
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+index. An
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 keeps no cache, so under it an arm that leaves the index out is not
 refused; under a cache it would be.
 
@@ -222,7 +222,7 @@ wrong (or `NA` on an item with no label, as below). The runs after it
 are still started, so every row exists and the refusals are visible;
 their requests are refused before anything is sent. With
 `governor = NULL` the limits are read from
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 when the benchmark starts and apply to the whole benchmark, as they
 apply to one run of a reader. Those defaults are set for one run (400
 calls), and a benchmark of two arms on 300 items for 5 runs needs
@@ -232,7 +232,7 @@ the number of runs stopped, the limits that stopped them, how many of
 them count against an arm (runs on the dev split or on items with no
 label do not) and the first run stopped. With `governor = NULL` it also
 gives the
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 values behind those limits.
 
 A reader's pre-flight check that finds the run's limits leave too little
@@ -312,7 +312,7 @@ ref <- hr_reference(
   labels = c("Paris", "Lima", "N'Djamena", "Suva"),
   cluster = c("a", "a", "b", "b"), split = "test")
 capitals <- c(France = "Paris", Peru = "Lima", Chad = "Ndjamena", Fiji = "Suva")
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   country <- sub("Capital of ", "", messages[[1]]$content)
   capitals[[country]]
 })

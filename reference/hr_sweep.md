@@ -168,11 +168,11 @@ names(arms)
 #> [1] "needle:top_k=2,max_tokens=200" "needle:top_k=8,max_tokens=200"
 #> [3] "needle:top_k=2,max_tokens=500" "needle:top_k=8,max_tokens=500"
 
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ref <- gr_qa_reference(
   questions = c(revenue = "What was revenue in 2024?"),
   documents = gr_example(), answers = list("45.2 million"), split = "test")
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 bench <- hr_benchmark(arms, ref, runs = 5, client = cl,
                       scorer = gr_scorer_answer())
 aggregate(correct ~ param.top_k + param.max_tokens, bench, mean)
@@ -181,5 +181,5 @@ aggregate(correct ~ param.top_k + param.max_tokens, bench, mean)
 #> 2           8              200       1
 #> 3           2              500       1
 #> 4           8              500       1
-gr_options(old)
+hr_options(old)
 ```

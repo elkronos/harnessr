@@ -117,8 +117,8 @@ by its code and the package's name.</p>
 <dd><p>The client given to <code><a href="hr_benchmark.html">hr_benchmark()</a></code>.</p></dd>
 
 <dt><code>trace</code></dt>
-<dd><p>A <code><a href="gr_trace.html">gr_trace()</a></code> of this run alone. Every request the arm
-makes must be recorded into it (<code>gr_call(..., trace = ctx$trace)</code>):
+<dd><p>An <code><a href="hr_trace.html">hr_trace()</a></code> of this run alone. Every request the arm
+makes must be recorded into it (<code>hr_call(..., trace = ctx$trace)</code>):
 it is how the benchmark counts the run's tokens, dollars and refusals,
 and how it holds the run to the benchmark's limits. It carries the
 run's draw index and the arm's name as its draw scope, so a stage
@@ -134,20 +134,20 @@ to <code>trace</code>.</p></dd>
 <dt><code>draw_index</code></dt>
 <dd><p>The run number, 1 to <code>runs</code>. Every request
 recorded in <code>ctx$trace</code> is sent at it unless the request names another
-draw index, so each run is its own draw: under a <code><a href="gr_cache.html">gr_cache()</a></code> or a
-<code><a href="gr_replay_client.html">gr_replay_client()</a></code> a request sent at one fixed draw index answers
+draw index, so each run is its own draw: under an <code><a href="hr_cache.html">hr_cache()</a></code> or a
+<code><a href="hr_replay_client.html">hr_replay_client()</a></code> a request sent at one fixed draw index answers
 every run with the same stored reply, and the benchmark refuses such
 an arm.</p></dd>
 
 <dt><code>call</code></dt>
 <dd><p>A shortcut, <code>ctx$call(messages, ...)</code>, for
-<code>gr_call(ctx$client, messages, ..., trace = ctx$trace, draw_index = ctx$draw_index)</code>.</p></dd>
+<code>hr_call(ctx$client, messages, ..., trace = ctx$trace, draw_index = ctx$draw_index)</code>.</p></dd>
 
 <dt><code>call_json</code></dt>
 <dd><p>A structured call, <code>ctx$call_json(messages, schema, ...)</code>, sent as <code>call</code> sends one: with the benchmark's client, recorded
 in <code>ctx$trace</code>, held to its governor and at the run's draw. <code>schema</code> is
 a JSON schema (a list) the reply must meet, and <code>...</code> takes the other
-arguments of <code><a href="gr_call.html">gr_call()</a></code>, such as <code>model</code>, <code>label</code> and
+arguments of <code><a href="hr_call.html">hr_call()</a></code>, such as <code>model</code>, <code>label</code> and
 <code>schema_name</code>. It returns the parsed reply, a list, when the request
 succeeded and the reply meets the schema. Otherwise it returns a failed
 <a href="gr_result.html">gr_result</a> (<code>ok = FALSE</code>): the request's own result when the request

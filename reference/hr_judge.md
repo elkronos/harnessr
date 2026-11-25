@@ -89,7 +89,7 @@ print(x, ...)
 - draw_index:
 
   Draw index passed to every request (see
-  [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)).
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)).
   0, the default, takes the draw index of `trace`, if any.
 
 - x:
@@ -145,9 +145,9 @@ An object of class `hr_judgement`, a list with
 ## Details
 
 Every request goes through
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)'s
-path, so the governor checks it before it is sent, a
-[`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)'s
+path, so the governor checks it before it is sent, an
+[`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
 keys it with its draw index, and the trace records it, under the label
 `judge.<mode>.o<k>` for order k. The requests are recorded in a trace of
 the judge's own (`$trace`), and their cost is reported in `$judge_cost`.
@@ -205,7 +205,7 @@ Other judges:
 
 ``` r
 # A judge that always picks the candidate naming Paris.
-fair <- gr_mock_client(function(messages, params) {
+fair <- hr_mock_client(function(messages, params) {
   txt <- messages[[2]]$content
   pick <- if (grepl("Candidate A:\nParis", txt, fixed = TRUE)) "A" else "B"
   sprintf('{"verdict": "%s", "reason": "It names the capital."}', pick)
@@ -220,7 +220,7 @@ j$verdicts[, c("order", "shown", "verdict", "value")]
 #> 2     2 second,first       B first
 
 # A judge that always says "A" follows the position, so it is unresolved.
-first <- gr_mock_client(function(messages, params) '{"verdict": "A", "reason": "."}')
+first <- hr_mock_client(function(messages, params) '{"verdict": "A", "reason": "."}')
 hr_judge(c("Paris", "Lyon"), first, mode = "select",
          rubric = "Which candidate names the capital of France?")$outcome
 #> [1] "unresolved"

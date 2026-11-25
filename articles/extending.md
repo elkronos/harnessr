@@ -19,7 +19,7 @@ introduces the package and its ideas.
 ## Setting up
 
 The examples run offline.
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 is a client whose handler is an ordinary R function; it goes everywhere
 a real client goes and records every prompt it was sent, which is how
 you check that a module of your own does what you think before you pay
@@ -28,8 +28,8 @@ for it. `embedder = "lexical"` keeps embedding free and offline too.
 ``` r
 
 library(harnessr)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
-cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
+cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
 ```
 
 ## Getting text in: extractors and cleaners
@@ -148,7 +148,7 @@ gr_register_reader("longest", signature = "one|1|none", cost_calls = "1",
   fn = function(chunks, question, client, spec, trace) {
     d <- chunks$chunks
     i <- which.max(d$tokens)
-    res <- gr_call(client, list(list(role = "user",
+    res <- hr_call(client, list(list(role = "user",
              content = paste0(d$text[i], "\n\nQuestion: ", question))),
            model = spec$model, effort = spec$effort, trace = trace,
            label = "longest.answer")
@@ -164,14 +164,14 @@ gr_read(ch, "What was revenue?", cl, "longest")$answer
 Inside the function, `chunks$chunks` is the data frame of chunks
 (`chunk_id`, `text`, `tokens`, `chars`, `page`, `section`, `block_id`).
 Send every request through
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
 with the client you were given, never one you construct, and pass it the
 `trace`: that is what counts, prices and limits your calls. A request
 that would pass `max_calls` or `max_cost_usd` is not sent and comes back
 with `refused = TRUE`, so stop or degrade when one does. Honour at least
 `spec$model`, `spec$max_answer_tokens`, `spec$temperature` and
 `spec$effort`, and budget the prompt with
-[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
+[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
 rather than assuming the document fits.
 
 The `signature`, `"select|calls|state"`, says how the reader traverses
@@ -198,7 +198,7 @@ covers the built-in readers.
 ## Declaring calls
 
 Every
-[`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
 carries a `label`, and the label is the `stage` column of the trace. A
 module declares the stems of its labels in `calls`. A label is covered
 by a stem it equals, or one it starts with followed by a dot. Leave
@@ -258,12 +258,12 @@ gr_register_reader("each", signature = "all|N+1|none", cost_calls = "N + 1",
   fn = function(chunks, question, client, spec, trace) {
     d <- chunks$chunks
     notes <- vapply(seq_len(nrow(d)), function(i) {
-      gr_call(client, list(list(role = "user",
+      hr_call(client, list(list(role = "user",
                 content = paste0(d$text[i], "\n\nQuestion: ", question))),
               model = spec$model, effort = spec$effort, trace = trace,
               label = "each.chunk")$text
     }, character(1))
-    res <- gr_call(client, list(list(role = "user",
+    res <- hr_call(client, list(list(role = "user",
              content = paste(c(notes, question), collapse = "\n\n"))),
            model = spec$model, effort = spec$effort, trace = trace,
            label = "each.merge")
@@ -286,11 +286,11 @@ sent:
 
 ``` r
 
-capped <- gr_options(max_calls = 3)
+capped <- hr_options(max_calls = 3)
 tryCatch(gr_read(ch, "What was revenue?", cl, "each"),
          gr_call_cap = function(e) conditionMessage(e))
-#> [1] "Reader 'each' over 6 chunks would need about 7 more model calls (0 already made this run), above the 3-call cap. Use a larger `max_tokens` when segmenting (fewer chunks), pick a top-k reader, or raise gr_options(max_calls = ...)."
-gr_options(capped)
+#> [1] "Reader 'each' over 6 chunks would need about 7 more model calls (0 already made this run), above the 3-call cap. Use a larger `max_tokens` when segmenting (fewer chunks), pick a top-k reader, or raise hr_options(max_calls = ...)."
+hr_options(capped)
 ```
 
 A reader registered without `cost` is counted as one request per chunk
@@ -332,7 +332,7 @@ gr_embedders()
 #> 2 Hashed bag-of-words; free, offline, word overlap not meaning    <NA>     <NA>
 ```
 
-`gr_options(embedder = "lexical")` switches every part of the package
+`hr_options(embedder = "lexical")` switches every part of the package
 that embeds. An embedder is a function of `(texts, params)` that returns
 a numeric matrix with one row per text, rows L2-normalised, since
 everything downstream treats the cross-product as cosine similarity.
@@ -355,16 +355,16 @@ gr_register_embedder("first-letters", description = "Toy: letter counts",
     }, numeric(26), USE.NAMES = FALSE))
   })
 
-toy <- gr_options(embedder = "first-letters")
-attr(gr_embed(cl, c("alpha", "beta")), "embedding_source")
+toy <- hr_options(embedder = "first-letters")
+attr(hr_embed(cl, c("alpha", "beta")), "embedding_source")
 #> [1] "first-letters"
-gr_options(toy)
+hr_options(toy)
 ```
 
 Set `deterministic = TRUE` only if the same text always gives the same
 vector, in any session on any machine. A trace records model calls, not
 vectors, and that flag is what lets
-[`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
+[`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
 recompute a run’s chunk ranking instead of degrading to lexical vectors.
 Claiming it wrongly makes a replay rank chunks from vectors the original
 run never saw, while reporting an exact match.
@@ -377,8 +377,8 @@ built-in entry whose prices have gone stale:
 
 ``` r
 
-gr_register_model("my-local-llama", context_window = 32768, max_output = 4096)
-gr_model_info("my-local-llama")[c("context_window", "source", "certain")]
+hr_register_model("my-local-llama", context_window = 32768, max_output = 4096)
+hr_model_info("my-local-llama")[c("context_window", "source", "certain")]
 #> $context_window
 #> [1] 32768
 #> 
@@ -394,16 +394,16 @@ than assuming the run is free:
 
 ``` r
 
-is.na(gr_estimate_cost("my-local-llama", 1000, 500))
+is.na(hr_estimate_cost("my-local-llama", 1000, 500))
 #> [1] TRUE
 ```
 
 While a spending limit is set, a request to a language model with no
 registered price is refused before it is sent (embedding models and
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 are exempt). Give `input_usd` and `output_usd` in US dollars per million
 tokens, or let a local model run unpriced with
-`gr_options(allow_unpriced = TRUE)`. `reasoning = TRUE` marks a model
+`hr_options(allow_unpriced = TRUE)`. `reasoning = TRUE` marks a model
 that takes an effort setting. The README’s section on connecting a model
 shows both for a model reached through ellmer.
 
@@ -454,7 +454,7 @@ chunk:
 shortest <- function(chunks, question, client, spec, trace) {
   d <- chunks$chunks
   i <- which.min(d$tokens)
-  res <- gr_call(client, list(
+  res <- hr_call(client, list(
     list(role = "user", content = paste0(d$text[i], "\n\nQuestion: ", question))),
     model = spec$model, effort = spec$effort, trace = trace,
     label = "shortest.answer")
@@ -661,9 +661,9 @@ chunk that does not exist:
 gr_register_reader("loose", signature = "one|2|none", calls = "loose.answer",
   cost = function(input_stats, params) hr_cost(calls = 1),
   fn = function(chunks, question, client, spec, trace) {
-    gr_call(client, list(list(role = "user", content = question)),
+    hr_call(client, list(list(role = "user", content = question)),
             model = spec$model, trace = trace, label = "other.answer")
-    res <- gr_call(client, list(list(role = "user", content = question)),
+    res <- hr_call(client, list(list(role = "user", content = question)),
                    model = spec$model, trace = trace, label = "loose.answer")
     new_answer(res$text, "loose", question, 99L, trace)
   })
@@ -763,7 +763,7 @@ within its cost, when every request is rate limited:
 
 ``` r
 
-gr_check_reader("longest", client = gr_mock_client(mode = 429))
+gr_check_reader("longest", client = hr_mock_client(mode = 429))
 #> <hr_conformance> reader 'longest', contract 0.2
 #>   passes all 9 rules
 #>   ok    is_function

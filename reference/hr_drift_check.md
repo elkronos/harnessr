@@ -81,7 +81,7 @@ print(x, digits = 3, ...)
   An
   [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)
   the live rerun is held to, or `NULL` to take the limits from
-  [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md).
+  [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md).
 
 - B:
 
@@ -318,7 +318,7 @@ ref <- hr_reference(
 capitals <- c(France = "Paris", Peru = "Lima", Chad = "N'Djamena", Fiji = "Suva",
               Chile = "Santiago", Laos = "Vientiane")
 answer <- function(capitals) {
-  gr_mock_client(function(messages, params) {
+  hr_mock_client(function(messages, params) {
     capitals[[sub("Capital of ", "", messages[[1]]$content)]]
   })
 }

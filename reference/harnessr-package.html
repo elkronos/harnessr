@@ -60,11 +60,11 @@
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The general core sends model calls and keeps them under control: clients
 for an API, a local backend or <a href="https://ellmer.tidyverse.org" class="external-link">ellmer</a> (see
-<code><a href="gr_client.html">gr_client()</a></code>, <code><a href="gr_backend_client.html">gr_backend_client()</a></code>, <code><a href="gr_ellmer_client.html">gr_ellmer_client()</a></code>, and
-<code><a href="gr_mock_client.html">gr_mock_client()</a></code> for offline work), spending and call limits checked
-before each request (<code><a href="gr_options.html">gr_options()</a></code>), a response cache (<code><a href="gr_cache.html">gr_cache()</a></code>),
-recordings that replay offline (<code><a href="gr_replay_client.html">gr_replay_client()</a></code>), and a trace of every
-call (<code><a href="gr_trace.html">gr_trace()</a></code>).</p>
+<code><a href="hr_client.html">hr_client()</a></code>, <code><a href="hr_backend_client.html">hr_backend_client()</a></code>, <code><a href="hr_ellmer_client.html">hr_ellmer_client()</a></code>, and
+<code><a href="hr_mock_client.html">hr_mock_client()</a></code> for offline work), spending and call limits checked
+before each request (<code><a href="hr_options.html">hr_options()</a></code>), a response cache (<code><a href="hr_cache.html">hr_cache()</a></code>),
+recordings that replay offline (<code><a href="hr_replay_client.html">hr_replay_client()</a></code>), and a trace of every
+call (<code><a href="hr_trace.html">hr_trace()</a></code>).</p>
 <p>The document layer, built on that core, controls how a model reads a
 document. The three decisions that drive answer quality are pulled apart
 into independent, swappable axes:</p>
@@ -99,7 +99,7 @@ several over one document and reports how they differ.</p>
 
 <p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>OPENAI_API_KEY <span class="op">=</span> <span class="st">"sk-..."</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># No key yet? Everything below works offline against gr_mock_client() and the</span></span>
+<span><span class="co"># No key yet? Everything below works offline against hr_mock_client() and the</span></span>
 <span><span class="co"># bundled document at gr_example().</span></span>
 <span></span>
 <span><span class="co"># One question, one pipeline.</span></span>
@@ -126,14 +126,14 @@ old results rather than assumed.</p>
     <h2 id="cost-control">Cost control<a class="anchor" aria-label="anchor" href="#cost-control"></a></h2>
 
 
-<p>Two limits are on by default, both <code><a href="gr_options.html">gr_options()</a></code>: <code>max_cost_usd</code> (5) and
+<p>Two limits are on by default, both <code><a href="hr_options.html">hr_options()</a></code>: <code>max_cost_usd</code> (5) and
 <code>max_calls</code> (400). Before the first request, a run is refused with a classed
 error naming the option to change when it would need more calls than
 <code>max_calls</code>, or when its reader sends every chunk and sending them would cost
 more than <code>max_cost_usd</code>. Both are checked again before every request, so a
 run that reaches either one stops and returns a <code>partial</code> answer rather than
 continuing to spend. A parallel read that sends batches, which cannot be
-stopped part way, is held to its worst case instead; see <code><a href="gr_options.html">gr_options()</a></code>.</p>
+stopped part way, is held to its worst case instead; see <code><a href="hr_options.html">hr_options()</a></code>.</p>
 <p>Preview segmentation for free before committing to a reader:</p>
 <p></p><div class="sourceCode r"><pre><code><span><span class="va">doc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_ingest.html">gr_ingest</a></span><span class="op">(</span><span class="st">"report.pdf"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/gr_chunk_stats.html">gr_chunk_stats</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="va">doc</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"sentence"</span>, max_tokens <span class="op">=</span> <span class="fl">400</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre><p></p></div>
@@ -158,11 +158,11 @@ recipe.</p>
 
 <p>Each axis is a registry, so additions behave exactly like built-ins:
 <code><a href="gr_register_extractor.html">gr_register_extractor()</a></code>, <code><a href="gr_register_cleaner.html">gr_register_cleaner()</a></code>,
-<code><a href="gr_register_segmenter.html">gr_register_segmenter()</a></code>, <code><a href="gr_register_reader.html">gr_register_reader()</a></code>, <code><a href="gr_register_model.html">gr_register_model()</a></code>.</p>
+<code><a href="gr_register_segmenter.html">gr_register_segmenter()</a></code>, <code><a href="gr_register_reader.html">gr_register_reader()</a></code>, <code><a href="hr_register_model.html">hr_register_model()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="answer_document.html">answer_document()</a></code>, <code><a href="gr_compare.html">gr_compare()</a></code>, <code><a href="gr_recipes.html">gr_recipes()</a></code>, <code><a href="gr_options.html">gr_options()</a></code></p></div>
+    <div class="dont-index"><p><code><a href="answer_document.html">answer_document()</a></code>, <code><a href="gr_compare.html">gr_compare()</a></code>, <code><a href="gr_recipes.html">gr_recipes()</a></code>, <code><a href="hr_options.html">hr_options()</a></code></p></div>
     </div>
     <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>

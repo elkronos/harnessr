@@ -24,8 +24,8 @@ gr_methods_text(x)
   [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
   (its own run's steps; see
   [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)),
-  a
-  [gr_trace](https://elkronos.github.io/harnessr/reference/gr_trace.md),
+  a `gr_trace` (see
+  [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)),
   or a benchmark from
   [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md).
 
@@ -50,7 +50,7 @@ prompts stay in the trace.
 
 [`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
 and
-[`gr_trace_save()`](https://elkronos.github.io/harnessr/reference/gr_trace_save.md)
+[`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md)
 for the full record,
 [`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md)
 for a readable account of one answer
@@ -73,7 +73,7 @@ Other reading functions:
 ch <- gr_segment(gr_example(), list(method = "paragraph", max_tokens = 150))
 #> Using cached ingestion for this document + settings.
 #> Segmenting with 'paragraph' (cap 150 tokens, overlap 0).
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ans <- gr_read(ch, "What was revenue?", cl, gr_read_spec("retrieve", top_k = 3))
 #> Reading with 'retrieve' (topk|1|none) over 5 chunk(s).
 gr_methods_text(ans)

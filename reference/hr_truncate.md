@@ -1,7 +1,7 @@
 # Cut text to a token count, keeping the part you choose
 
 `keep = "head"` (the default) keeps the start of `text` and is
-[`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md)
+[`hr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/hr_truncate_tokens.md)
 itself, so a caller that switches to this function sends what it sent
 before. `"tail"` keeps the end, with `marker` at the front. `"both"`
 keeps the start and the end, about half the budget each, with `marker`
@@ -54,7 +54,7 @@ hr_truncate(
 - marker:
 
   The text that marks a cut; `""` for none. As in
-  [`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md),
+  [`hr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/hr_truncate_tokens.md),
   it is dropped when it would cost half the budget or more.
 
 - trace:
@@ -85,27 +85,27 @@ units dropped, as `"units 2, 5"`), the token counts before and after and
 
 [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md),
 [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
-[`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md)
+[`hr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/hr_truncate_tokens.md)
 
 Other cost and token functions:
-[`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md),
-[`gr_count_tokens()`](https://elkronos.github.io/harnessr/reference/gr_count_tokens.md),
-[`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md),
-[`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md),
-[`gr_model_limits()`](https://elkronos.github.io/harnessr/reference/gr_model_limits.md),
-[`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md),
-[`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md),
-[`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md),
-[`gr_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_tokenizer.md),
-[`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md),
+[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md),
 [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md),
-[`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md)
+[`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md),
+[`hr_count_tokens()`](https://elkronos.github.io/harnessr/reference/hr_count_tokens.md),
+[`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md),
+[`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md),
+[`hr_model_limits()`](https://elkronos.github.io/harnessr/reference/hr_model_limits.md),
+[`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md),
+[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md),
+[`hr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/hr_set_tokenizer.md),
+[`hr_tokenizer()`](https://elkronos.github.io/harnessr/reference/hr_tokenizer.md),
+[`hr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/hr_truncate_tokens.md)
 
 ## Examples
 
 ``` r
 txt <- paste("Para", 1:6, "says something about revenue.", collapse = "\n\n")
-hr_truncate(txt, 20)                      # the start, as gr_truncate_tokens()
+hr_truncate(txt, 20)                      # the start, as hr_truncate_tokens()
 #> [1] "Para 1 says something about revenue. ...[truncated]"
 hr_truncate(txt, 20, keep = "tail")       # the end
 #> [1] "...[truncated] Para 6 says something about revenue."
@@ -120,7 +120,7 @@ cat(hr_truncate(txt, 20, keep = "scored", scores = c(1, 9, 2, 8, 3, 4)))
 #> ...[truncated]
 
 # The cut is written to a trace.
-tr <- gr_trace()
+tr <- hr_trace()
 invisible(hr_truncate(txt, 20, keep = "tail", trace = tr, where = "demo", piece = "notes"))
 tr$steps[[1]]$detail[c("where", "piece", "dropped_part", "tokens_dropped")]
 #> $where

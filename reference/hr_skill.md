@@ -128,7 +128,7 @@ s
 #>   references: style.md 
 
 # In a chain, the step's requests carry the skill as a system message.
-cl <- gr_mock_client(function(m, p) "45.2 million dollars")
+cl <- hr_mock_client(function(m, p) "45.2 million dollars")
 ask <- hr_step("ask", function(input, ctx) ctx$call(input)$text, skill = s)
 chain <- hr_chain(ask = ask, name = "with-skill")
 chain$params

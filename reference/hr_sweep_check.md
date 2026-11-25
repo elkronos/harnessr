@@ -75,11 +75,11 @@ Other harness:
 ## Examples
 
 ``` r
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ref <- gr_qa_reference(
   questions = c(revenue = "What was revenue in 2024?"),
   documents = gr_example(), answers = list("45.2 million"), split = "test")
-old <- gr_options(verbose = FALSE)
+old <- hr_options(verbose = FALSE)
 # `stuff` sends the whole document, so top_k changes nothing.
 arms <- hr_sweep(gr_arm("fast"), list(top_k = c(2, 8)))
 bench <- hr_benchmark(arms, ref, runs = 5, client = cl,
@@ -87,5 +87,5 @@ bench <- hr_benchmark(arms, ref, runs = 5, client = cl,
 hr_sweep_check(bench)
 #>            arm      same_as runs requests      settings
 #> 1 fast:top_k=8 fast:top_k=2    5        5 top_k: 2 vs 8
-gr_options(old)
+hr_options(old)
 ```

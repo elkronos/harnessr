@@ -91,7 +91,7 @@ used here, and <code><a href="../articles/ingest.html">vignette("ingest")</a></c
 this one.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
-<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_options.html">gr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span></code></pre></div>
 <p><code>embedder = "lexical"</code> makes the one segmenter that embeds
 text, <code>semantic</code>, use hashed bag-of-words vectors rather than
 an embeddings endpoint, so this guide runs offline and gives the same
@@ -418,7 +418,7 @@ document can be placed. It makes one request per chunk and never more:
 <code>calls_max</code> as the number of chunks. The mock client below
 stands in for that model:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"This excerpt reports the 2024 results."</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">writer</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"This excerpt reports the 2024 results."</span><span class="op">)</span></span>
 <span><span class="va">ctx_llm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="va">doc</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"contextual"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span>,</span>
 <span>                                context_source <span class="op">=</span> <span class="st">"llm"</span><span class="op">)</span>, client <span class="op">=</span> <span class="va">writer</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">ctx_llm</span><span class="op">$</span><span class="va">chunks</span><span class="op">$</span><span class="va">text</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
@@ -485,7 +485,7 @@ rewritten is kept as written rather than dropped, with a warning, and
 counted in <code>$extra$batches_kept_as_written</code>.</li>
 </ul>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"unused"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"unused"</span><span class="op">)</span></span>
 <span><span class="va">sem</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_segment.html">gr_segment</a></span><span class="op">(</span><span class="va">doc</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"semantic"</span>, max_tokens <span class="op">=</span> <span class="fl">120</span><span class="op">)</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/gr_chunk_stats.html">gr_chunk_stats</a></span><span class="op">(</span><span class="va">sem</span><span class="op">)</span></span>
 <span><span class="co">#&gt;              method n total_tokens min median  mean max over_cap</span></span>
@@ -499,12 +499,12 @@ endpoint it is <code>"api"</code>, and the method is
 <code>"semantic"</code>. The label is all that differs; the chunks and
 the requests are the same.</p>
 <p>These requests count against the run’s limits,
-<code>gr_options(max_calls =, max_cost_usd =)</code>, like any other.
+<code>hr_options(max_calls =, max_cost_usd =)</code>, like any other.
 Called without a <code>trace</code>, <code><a href="../reference/gr_segment.html">gr_segment()</a></code> makes its
 own and returns it as <code>$trace</code>, so you can see what
 segmenting cost:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_trace_summary.html">gr_trace_summary</a></span><span class="op">(</span><span class="va">ctx_llm</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span><span class="op">)</span><span class="op">]</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_trace_summary.html">hr_trace_summary</a></span><span class="op">(</span><span class="va">ctx_llm</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   calls tokens_in tokens_out</span></span>
 <span><span class="co">#&gt; 1    14      9104        196</span></span></code></pre></div>
 <p><code><a href="../articles/runs.html">vignette("runs")</a></code> covers limits and traces.</p>
@@ -567,7 +567,7 @@ chunk sizes on dev, then compares one choice on test with intervals.</p>
 <code class="sourceCode R"><span><span class="va">qa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_qa_reference.html">gr_qa_reference</a></span><span class="op">(</span>questions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>revenue <span class="op">=</span> <span class="st">"What was revenue in 2024?"</span><span class="op">)</span>,</span>
 <span>                      documents <span class="op">=</span> <span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, answers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"45.2 million"</span><span class="op">)</span>,</span>
 <span>                      split <span class="op">=</span> <span class="st">"dev"</span><span class="op">)</span></span>
-<span><span class="va">says</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span>
+<span><span class="va">says</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span>
 <span><span class="va">sweep</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">arms</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">says</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
 <span>               scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
@@ -619,7 +619,7 @@ the answer; larger chunks keep more context together and cost fewer
 requests.</p>
 <p><strong>Signs it needs changing.</strong> Under
 <code>map_reduce</code> or <code>skim</code>, a cost dominated by the
-number of requests (<code><a href="../reference/gr_trace_summary.html">gr_trace_summary()</a></code>) points to larger
+number of requests (<code><a href="../reference/hr_trace_summary.html">hr_trace_summary()</a></code>) points to larger
 chunks. Under <code>retrieve</code>, an answer that is right but rests
 on long chunks of unrelated text points to smaller ones, and an answer
 split across two chunks, of which only one was picked, points to larger
@@ -925,7 +925,7 @@ or hidden folders. <code>extract</code> and <code>screen</code> are not
 offered, since they read against a protocol; use
 <code><a href="../reference/gr_extract.html">gr_extract()</a></code> and <code><a href="../reference/gr_screen.html">gr_screen()</a></code>
 (<code><a href="../articles/review.html">vignette("review")</a></code>). A blank cost cap leaves
-<code>gr_options("max_cost_usd")</code> in force rather than lifting the
+<code>hr_options("max_cost_usd")</code> in force rather than lifting the
 limit.</p>
 </div>
 <div class="section level2">

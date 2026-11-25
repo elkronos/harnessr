@@ -12,7 +12,7 @@ change.
 ``` r
 
 library(harnessr)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 settings <- gr_settings_table()
 table(settings$stage, settings$tier)[unique(settings$stage), ]
 #>             
@@ -44,7 +44,7 @@ adds the `source` behind each status, and
 [`?gr_segment_spec`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md),
 [`?gr_ingest_spec`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
 and
-[`?gr_options`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`?hr_options`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 give the full help.
 
 A setting is given where its stage takes it. Ingest, segment and read
@@ -57,7 +57,7 @@ and
 which put each on the step it belongs to. The review and evaluation
 settings are arguments of their functions. Options are set for the
 session with
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md).
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md).
 
 To find out whether a value is better for your documents, build one arm
 per value with
@@ -338,7 +338,7 @@ cover them.
 | `runs` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `5` | basic |  | How many times each arm runs on each item: a whole number, at least 1. |
 | `scorer` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | [`hr_scorer_exact()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md) | basic |  | An hr_scorer(); hr_scorer_exact() by default. |
 | `split` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `test` | advanced |  | The split or splits of the reference to run on. |
-| [`governor`](https://elkronos.github.io/harnessr/articles/runs.html#set-governor) | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `NULL` | basic |  | An hr_governor() the whole benchmark is held to, or NULL to take the limits from gr_options(). |
+| [`governor`](https://elkronos.github.io/harnessr/articles/runs.html#set-governor) | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `NULL` | basic |  | An hr_governor() the whole benchmark is held to, or NULL to take the limits from hr_options(). |
 | `seed` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `1` | advanced |  | The seed of the arms’ private random stream. |
 | `contrasts` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `NULL` | advanced |  | Pairs of arms to compare: a two-column character matrix of arm names, each row giving first minus second. |
 | `B` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `2000` | advanced |  | Number of cluster bootstrap resamples, at least 100. |
@@ -353,7 +353,7 @@ cover them.
 | `model` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `NULL` | basic |  | The judge’s model; the client’s model when NULL. |
 | `orders` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `2` | basic |  | Presentation orders. |
 | [`governor`](https://elkronos.github.io/harnessr/articles/runs.html#set-governor) | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `NULL` | advanced |  | Optional hr_governor() for the judge’s requests. |
-| `draw_index` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `0` | advanced |  | Draw index passed to every request (see gr_call()). |
+| `draw_index` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `0` | advanced |  | Draw index passed to every request (see hr_call()). |
 | `recipes` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `c("fast", "needle", "thorough")` | basic |  | A character vector of recipe names, or a list of gr_recipes. |
 | `allow_duplicates` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `FALSE` | advanced |  | Run duplicates anyway (useful at temperature \> 0 to measure variance). |
 | `on_error` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `continue` | advanced |  | “continue” keeps going and records the failure; “stop” aborts the whole comparison. |
@@ -369,52 +369,52 @@ cover them.
 ## Options
 
 Session settings, set with
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 and read when a run starts.
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 covers the limits.
 
 | setting | where | default | tier | status | description |
 |:---|:---|:---|:---|:---|:---|
-| `verbose` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `TRUE` | basic |  | Print a line for each ingest, segment and read stage. |
-| `tokenizer` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `heuristic` | advanced |  | Token counter: “heuristic” (conservative, no dependencies), “words”, “chars”, “tiktoken” (needs reticulate), or a name registered via gr_set_tokenizer(). |
-| `model` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `gpt-5.6-terra` | basic |  | Default chat model. |
-| `embedding_model` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `text-embedding-3-small` | advanced |  | Default embedding model. |
-| `api_base` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `https://api.openai.com/v1` | advanced |  | API root; point this at a proxy or a compatible endpoint. |
-| `api_headers` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `character(0)` | advanced |  | Named character vector of extra HTTP headers sent with every request, for gateways that do not authenticate with a bearer token. |
-| `api` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `responses` | advanced |  | “responses” or “chat” request shape. |
-| `temperature` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `NULL` | advanced | untested | Default sampling temperature. |
-| `max_retries` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `4` | advanced | untested | Retries for transient failures. |
-| `retry_pause_base` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `2` | advanced | untested | Seconds; exponential backoff base. |
-| `request_timeout` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `120` | advanced | untested | Per-request timeout, seconds. |
-| `safety_margin` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `0.1` | advanced | untested | Fraction of the context window left unused to absorb tokenizer error. |
-| `min_output_tokens` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `256` | advanced | untested | Floor on the completion room gr_budget() reserves when reserve_output is not given explicitly. |
-| `cache_documents` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `TRUE` | advanced |  | Cache ingestion per file + settings. |
-| `cache_embeddings` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `TRUE` | advanced |  | Cache embeddings per text + model. |
-| `cache_dir` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `NULL` | basic |  | Directory gr_cache() stores model responses in. |
-| `embedder` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `NULL` | advanced |  | Which registered embedder to use. |
-| `parallel` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `FALSE` | advanced |  | Run per-chunk calls concurrently. |
-| `workers` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `4` | advanced | untested | Worker processes when parallel is TRUE. |
-| [`max_cost_usd`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `5` | basic |  | Spending limit per run, in USD. |
-| [`max_calls`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `400` | basic |  | Hard cap on model calls per run, checked before every request. |
-| [`max_tokens_total`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `NULL` | advanced |  | Most tokens one run may use: the prompt and reply tokens of every call, cache hits included, and the text sent to be embedded. |
-| [`max_output_tokens`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `NULL` | advanced |  | The largest output cap one request may be sent with. |
-| [`allowed_models`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `NULL` | advanced |  | Character vector of the model ids a run may call, chat and embedding models alike. |
-| [`allow_unpriced`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `FALSE` | advanced |  | Whether a chat model with no registered price may be called while max_cost_usd is set. |
-| `unknown_model_action` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `warn` | advanced |  | “warn” or “error” when a model id is not in the registry. |
-| `actor` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | [`list()`](https://rdrr.io/r/base/list.html) | advanced |  | A named list (or character vector) of the actor fields every gr_trace() records: system, owner, run_by, purpose and approved_by, each one string. |
-| `auto_max_tokens` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `50000` | advanced | untested | The largest document, in tokens, that answer_document() with recipe = “auto” reads with “fast” (one request); a larger one is read with “thorough”. |
-| `auto_room_share` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `0.5` | advanced | untested | The second condition of that choice: the document must fill at most this share of the input room gr_budget() leaves on every model of the run. |
-| `reasoning_floor` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `2048` | advanced | untested | The smallest output cap a request to a reasoning model is sent with. |
-| `output_reserve_share` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `0.25` | advanced | untested | The share of the usable window gr_budget() reserves for the reply when no reserve_output is given, between min_output_tokens and the model’s output limit. |
-| `near_verbatim_sim` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `0.9` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
-| `near_verbatim_sim_short` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `0.95` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
-| `near_verbatim_short_chars` | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md) | `40` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
+| `verbose` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | basic |  | Print a line for each ingest, segment and read stage. |
+| `tokenizer` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `heuristic` | advanced |  | Token counter: “heuristic” (conservative, no dependencies), “words”, “chars”, “tiktoken” (needs reticulate), or a name registered via hr_set_tokenizer(). |
+| `model` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `gpt-5.6-terra` | basic |  | Default chat model. |
+| `embedding_model` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `text-embedding-3-small` | advanced |  | Default embedding model. |
+| `api_base` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `https://api.openai.com/v1` | advanced |  | API root; point this at a proxy or a compatible endpoint. |
+| `api_headers` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `character(0)` | advanced |  | Named character vector of extra HTTP headers sent with every request, for gateways that do not authenticate with a bearer token. |
+| `api` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `responses` | advanced |  | “responses” or “chat” request shape. |
+| `temperature` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced | untested | Default sampling temperature. |
+| `max_retries` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `4` | advanced | untested | Retries for transient failures. |
+| `retry_pause_base` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `2` | advanced | untested | Seconds; exponential backoff base. |
+| `request_timeout` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `120` | advanced | untested | Per-request timeout, seconds. |
+| `safety_margin` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.1` | advanced | untested | Fraction of the context window left unused to absorb tokenizer error. |
+| `min_output_tokens` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `256` | advanced | untested | Floor on the completion room hr_budget() reserves when reserve_output is not given explicitly. |
+| `cache_documents` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | advanced |  | Cache ingestion per file + settings. |
+| `cache_embeddings` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | advanced |  | Cache embeddings per text + model. |
+| `cache_dir` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | basic |  | Directory hr_cache() stores model responses in. |
+| `embedder` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Which registered embedder to use. |
+| `parallel` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `FALSE` | advanced |  | Run per-chunk calls concurrently. |
+| `workers` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `4` | advanced | untested | Worker processes when parallel is TRUE. |
+| [`max_cost_usd`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `5` | basic |  | Spending limit per run, in USD. |
+| [`max_calls`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `400` | basic |  | Hard cap on model calls per run, checked before every request. |
+| [`max_tokens_total`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Most tokens one run may use: the prompt and reply tokens of every call, cache hits included, and the text sent to be embedded. |
+| [`max_output_tokens`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | The largest output cap one request may be sent with. |
+| [`allowed_models`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Character vector of the model ids a run may call, chat and embedding models alike. |
+| [`allow_unpriced`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `FALSE` | advanced |  | Whether a chat model with no registered price may be called while max_cost_usd is set. |
+| `unknown_model_action` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `warn` | advanced |  | “warn” or “error” when a model id is not in the registry. |
+| `actor` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | [`list()`](https://rdrr.io/r/base/list.html) | advanced |  | A named list (or character vector) of the actor fields every hr_trace() records: system, owner, run_by, purpose and approved_by, each one string. |
+| `auto_max_tokens` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `50000` | advanced | untested | The largest document, in tokens, that answer_document() with recipe = “auto” reads with “fast” (one request); a larger one is read with “thorough”. |
+| `auto_room_share` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.5` | advanced | untested | The second condition of that choice: the document must fill at most this share of the input room hr_budget() leaves on every model of the run. |
+| `reasoning_floor` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `2048` | advanced | untested | The smallest output cap a request to a reasoning model is sent with. |
+| `output_reserve_share` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.25` | advanced | untested | The share of the usable window hr_budget() reserves for the reply when no reserve_output is given, between min_output_tokens and the model’s output limit. |
+| `near_verbatim_sim` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.9` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
+| `near_verbatim_sim_short` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.95` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
+| `near_verbatim_short_chars` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `40` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
 
 ## Building blocks
 
 Some settings choose a module from a registry: `extractor`, `clean`,
-`method`, `reader`, `gr_options(embedder = )`, and the recipe given to
+`method`, `reader`, `hr_options(embedder = )`, and the recipe given to
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md).
 The tables below are the registries as installed, so a module you
 register with

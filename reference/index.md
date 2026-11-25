@@ -29,27 +29,27 @@ See
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 and the README.
 
-- [`gr_client()`](https://elkronos.github.io/harnessr/reference/gr_client.md)
+- [`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md)
   : Construct a model client
-- [`gr_api_key()`](https://elkronos.github.io/harnessr/reference/gr_api_key.md)
+- [`hr_api_key()`](https://elkronos.github.io/harnessr/reference/hr_api_key.md)
   : Resolve the API key
-- [`gr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/gr_ellmer_client.md)
+- [`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
   : Read documents through an ellmer chat
-- [`gr_backend_client()`](https://elkronos.github.io/harnessr/reference/gr_backend_client.md)
+- [`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md)
   : Use any function as the model transport
-- [`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+- [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
   : A deterministic offline client for tests, demos and dry runs
-- [`gr_call()`](https://elkronos.github.io/harnessr/reference/gr_call.md)
+- [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
   : Call a model
 - [`gr_result`](https://elkronos.github.io/harnessr/reference/gr_result.md)
   : The result of one model call
-- [`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md)
+- [`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md)
   : List every known model
-- [`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md)
+- [`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md)
   : Look up a model's capabilities
-- [`gr_model_limits()`](https://elkronos.github.io/harnessr/reference/gr_model_limits.md)
+- [`hr_model_limits()`](https://elkronos.github.io/harnessr/reference/hr_model_limits.md)
   : Context and output limits for a model
-- [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)
+- [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
   : Register a model (or override a built-in entry)
 
 ## Get text out of files
@@ -115,7 +115,7 @@ the check on quoted evidence. See
   : List registered reading strategies
 - [`gr_reader_signature()`](https://elkronos.github.io/harnessr/reference/gr_reader_signature.md)
   : The traversal signature of a reader
-- [`gr_embed()`](https://elkronos.github.io/harnessr/reference/gr_embed.md)
+- [`hr_embed()`](https://elkronos.github.io/harnessr/reference/hr_embed.md)
   : Embed texts
 - [`gr_embedders()`](https://elkronos.github.io/harnessr/reference/gr_embedders.md)
   : List registered embedding backends
@@ -191,25 +191,25 @@ Settings and spending limits, token counts and cost estimates, and the
 trace every run records. See
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md).
 
-- [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+- [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
   : Get or set package options
 
 - [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)
   : Limits on what a run may send
 
-- [`gr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/gr_estimate_cost.md)
+- [`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md)
   : Estimate the USD cost of a set of calls
 
-- [`gr_count_tokens()`](https://elkronos.github.io/harnessr/reference/gr_count_tokens.md)
+- [`hr_count_tokens()`](https://elkronos.github.io/harnessr/reference/hr_count_tokens.md)
   : Count tokens in text
 
-- [`gr_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_tokenizer.md)
+- [`hr_tokenizer()`](https://elkronos.github.io/harnessr/reference/hr_tokenizer.md)
   : The active tokenizer
 
-- [`gr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/gr_set_tokenizer.md)
+- [`hr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/hr_set_tokenizer.md)
   : Register or inspect the active tokenizer
 
-- [`gr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/gr_truncate_tokens.md)
+- [`hr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/hr_truncate_tokens.md)
   :
 
   Truncate text to at most `n` tokens
@@ -235,20 +235,20 @@ trace every run records. See
 - [`hr_effort_log()`](https://elkronos.github.io/harnessr/reference/hr_effort_log.md)
   : The effort raises of a run
 
-- [`gr_budget()`](https://elkronos.github.io/harnessr/reference/gr_budget.md)
+- [`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
   : Compute a usable input-token budget for one model call
 
-- [`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
-  [`as.data.frame(`*`<gr_trace>`*`)`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
+- [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
+  [`as.data.frame(`*`<gr_trace>`*`)`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
   : Create a run trace
 
-- [`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md)
+- [`hr_trace_summary()`](https://elkronos.github.io/harnessr/reference/hr_trace_summary.md)
   : Summarise a trace
 
-- [`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
+- [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)
   : What a run actually cost
 
-- [`gr_trace_save()`](https://elkronos.github.io/harnessr/reference/gr_trace_save.md)
+- [`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md)
   : Save a trace to a file
 
 - [`as_json()`](https://elkronos.github.io/harnessr/reference/as_json.md)
@@ -263,17 +263,17 @@ Paying for a request once, and replaying a recorded run without a model.
 See
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md).
 
-- [`gr_cache()`](https://elkronos.github.io/harnessr/reference/gr_cache.md)
+- [`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
   : A response cache
-- [`gr_cache_client()`](https://elkronos.github.io/harnessr/reference/gr_cache_client.md)
+- [`hr_cache_client()`](https://elkronos.github.io/harnessr/reference/hr_cache_client.md)
   : Attach a cache to a client
-- [`gr_cache_stats()`](https://elkronos.github.io/harnessr/reference/gr_cache_stats.md)
+- [`hr_cache_stats()`](https://elkronos.github.io/harnessr/reference/hr_cache_stats.md)
   : Cache statistics
-- [`gr_cache_clear()`](https://elkronos.github.io/harnessr/reference/gr_cache_clear.md)
+- [`hr_cache_clear()`](https://elkronos.github.io/harnessr/reference/hr_cache_clear.md)
   : Delete every entry in a cache
 - [`gr_flush_caches()`](https://elkronos.github.io/harnessr/reference/gr_flush_caches.md)
   : Clear the session's document and embedding caches
-- [`gr_replay_client()`](https://elkronos.github.io/harnessr/reference/gr_replay_client.md)
+- [`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
   : A client that answers from a recorded run
 
 ## Statistics

@@ -53,13 +53,13 @@ cleaning steps an ingest ran), which are arrays at every length.
 
 ## See also
 
-[`gr_trace_summary()`](https://elkronos.github.io/harnessr/reference/gr_trace_summary.md),
+[`hr_trace_summary()`](https://elkronos.github.io/harnessr/reference/hr_trace_summary.md),
 [gr_answer](https://elkronos.github.io/harnessr/reference/gr_answer.md)
 
 ## Examples
 
 ``` r
-cl <- gr_mock_client(function(m, p) "45.2 million dollars")
+cl <- hr_mock_client(function(m, p) "45.2 million dollars")
 ans <- answer_document(gr_example(), "What was revenue?", "fast", client = cl)
 #> Extracting 'annual_report.md' with the 'md' extractor.
 #> Ingested 17 block(s), ~574 tokens (12 chars removed by cleaning).

@@ -169,7 +169,7 @@ in
   NULL chooses by file type.
 
 - `parallel` (default `NULL`, advanced): untested. Not a tuned value:
-  NULL follows gr_options("parallel"). It does not change output.
+  NULL follows hr_options("parallel"). It does not change output.
 
 - `cleaner_opts` (default [`list()`](https://rdrr.io/r/base/list.html),
   advanced): untested. Empty: each cleaner uses its own defaults, listed

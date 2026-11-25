@@ -131,7 +131,7 @@ in (0, 1), or <code>NULL</code> for no alert.</p></dd>
 
 <dt id="arg-governor">governor<a class="anchor" aria-label="anchor" href="#arg-governor"></a></dt>
 <dd><p>An <code><a href="hr_governor.html">hr_governor()</a></code> the live rerun is held to, or <code>NULL</code>
-to take the limits from <code><a href="gr_options.html">gr_options()</a></code>.</p></dd>
+to take the limits from <code><a href="hr_options.html">hr_options()</a></code>.</p></dd>
 
 
 <dt id="arg-b">B<a class="anchor" aria-label="anchor" href="#arg-b"></a></dt>
@@ -340,7 +340,7 @@ clustered data. <em>Statistics in Medicine</em> 17(13), 1495-1507.</p>
 <span class="r-in"><span><span class="va">capitals</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>France <span class="op">=</span> <span class="st">"Paris"</span>, Peru <span class="op">=</span> <span class="st">"Lima"</span>, Chad <span class="op">=</span> <span class="st">"N'Djamena"</span>, Fiji <span class="op">=</span> <span class="st">"Suva"</span>,</span></span>
 <span class="r-in"><span>              Chile <span class="op">=</span> <span class="st">"Santiago"</span>, Laos <span class="op">=</span> <span class="st">"Vientiane"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">answer</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">capitals</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="gr_mock_client.html">gr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>    <span class="va">capitals</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"Capital of "</span>, <span class="st">""</span>, <span class="va">messages</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span><span class="op">)</span><span class="op">]</span><span class="op">]</span></span></span>
 <span class="r-in"><span>  <span class="op">}</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>

@@ -293,7 +293,7 @@ sentence is really there.
 [`gr_protocol()`](https://elkronos.github.io/harnessr/reference/gr_protocol.md),
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md),
 [`gr_verify_evidence()`](https://elkronos.github.io/harnessr/reference/gr_verify_evidence.md),
-[`gr_trace_cost()`](https://elkronos.github.io/harnessr/reference/gr_trace_cost.md)
+[`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)
 
 ## Examples
 
@@ -304,7 +304,7 @@ fields <- gr_fields(
 )
 
 # A mock that fills the form, so the example runs offline.
-cl <- gr_mock_client(function(messages, params) {
+cl <- hr_mock_client(function(messages, params) {
   '{"design":"randomised controlled trial","n":120,
     "design__quote":"We ran a randomised controlled trial.",
     "n__quote":"We enrolled 120 participants."}'
@@ -314,14 +314,14 @@ f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised controlled trial. We enrolled 120 participants.", f)
 
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1be93dc0b72a.txt
-#> Extracting 'file1be93dc0b72a.txt' with the 'txt' extractor.
+#> [1/1] file1b8c1ece3633.txt
+#> Extracting 'file1b8c1ece3633.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~22 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).
 x$table[, c("document", "design", "n", "n_unverified", "status")]
 #>               document                      design   n n_unverified status
-#> 1 file1be93dc0b72a.txt randomised controlled trial 120            0     ok
+#> 1 file1b8c1ece3633.txt randomised controlled trial 120            0     ok
 x$evidence[, c("field", "quote", "verified")]
 #>    field                                 quote verified
 #> 1 design We ran a randomised controlled trial.     TRUE

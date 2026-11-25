@@ -31,7 +31,7 @@ library(harnessr)
 
 ``` r
 
-gr_count_tokens("Revenue rose to 45.2 million dollars in fiscal 2024.")
+hr_count_tokens("Revenue rose to 45.2 million dollars in fiscal 2024.")
 #> [1] 20
 ```
 
@@ -123,23 +123,23 @@ file.edit("~/.Renviron")
 # OPENAI_API_KEY=sk-...
 ```
 
-[`gr_api_key()`](https://elkronos.github.io/harnessr/reference/gr_api_key.md)
+[`hr_api_key()`](https://elkronos.github.io/harnessr/reference/hr_api_key.md)
 checks that R can see it, and stops with an explanation if it cannot:
 
 ``` r
 
-gr_api_key()
+hr_api_key()
 ```
 
 If the key is missing, a run stops before it reads your document and
 gives the same explanation.
 
-Behind a company gateway, `gr_client(headers = )` sends the headers it
+Behind a company gateway, `hr_client(headers = )` sends the headers it
 wants, such as Azure’s `api-key`:
 
 ``` r
 
-cl <- gr_client(
+cl <- hr_client(
   base_url = "https://gateway.example.com/openai/v1", api = "chat",
   headers  = c("api-key" = Sys.getenv("GATEWAY_KEY"), Authorization = NA))
 ```
@@ -147,7 +147,7 @@ cl <- gr_client(
 Naming a header replaces the automatic `Authorization`, and `NA`
 suppresses one, which keeps a personal `OPENAI_API_KEY` off the gateway.
 Naming any header makes the key optional, so a client that authenticates
-through headers needs no key. `gr_options(api_headers = )` sets the same
+through headers needs no key. `hr_options(api_headers = )` sets the same
 headers for every client, the form for a project’s `.Rprofile`.
 
 The README’s “Connecting a model” section covers other providers through
@@ -157,24 +157,24 @@ Ollama.
 ## Practising without a key
 
 For learning, a real model is unnecessary.
-[`gr_mock_client()`](https://elkronos.github.io/harnessr/reference/gr_mock_client.md)
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 builds a stand-in that replies with whatever an R function returns, and
 it can be used anywhere a real model can. This one always gives the same
 answer, which is enough to see how everything else works:
 
 ``` r
 
-cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
-old <- gr_options(verbose = FALSE)
+cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+old <- hr_options(verbose = FALSE)
 ```
 
 `verbose = FALSE` stops harnessr printing a line for each stage; leave
 it on in your own work while you are learning. In an interactive session
 it also keeps a line up to date with how far a long read has got and
 what it has spent.
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 returns the settings it replaced, so they can be restored later with
-`gr_options(old)`.
+`hr_options(old)`.
 
 ## Your first question
 
@@ -228,7 +228,7 @@ outage would:
 
 ``` r
 
-broken <- gr_mock_client(function(messages, params) stop("no connection"))
+broken <- hr_mock_client(function(messages, params) stop("no connection"))
 bad <- answer_document(gr_example(), "What was revenue in 2024?",
                        client = broken)
 bad
@@ -314,10 +314,10 @@ tokens both used.
 
 ``` r
 
-gr_trace_summary(ans$trace)[, c("calls", "tokens_in", "tokens_out")]
+hr_trace_summary(ans$trace)[, c("calls", "tokens_in", "tokens_out")]
 #>   calls tokens_in tokens_out
 #> 1     1       611         13
-gr_trace_cost(ans$trace)[, c("model", "calls", "usd")]
+hr_trace_cost(ans$trace)[, c("model", "calls", "usd")]
 #>        model calls usd
 #> 1 mock-model     1   0
 ```
@@ -334,14 +334,14 @@ as.data.frame(ans$trace)[, c("stage", "tokens_in", "tokens_out", "usd", "seconds
 ```
 
 `usd` is priced from harnessr’s list of known models
-([`gr_models()`](https://elkronos.github.io/harnessr/reference/gr_models.md)).
+([`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md)).
 A model it does not know is priced as unknown rather than free. You can
 also estimate before sending anything. Here is a 120,000-token document
 with a 4,000-token answer:
 
 ``` r
 
-gr_estimate_cost(gr_options("model"), input_tokens = 120000, output_tokens = 4000)
+hr_estimate_cost(hr_options("model"), input_tokens = 120000, output_tokens = 4000)
 #> [1] 0.288
 ```
 
@@ -356,14 +356,14 @@ need more than 400 requests, or one whose chunks would cost more than
 
 ``` r
 
-unlist(gr_options()[c("max_cost_usd", "max_calls")])
+unlist(hr_options()[c("max_cost_usd", "max_calls")])
 #> max_cost_usd    max_calls 
 #>            5          400
 ```
 
 Change them with
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md),
-for example `gr_options(max_cost_usd = 20)`.
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md),
+for example `hr_options(max_cost_usd = 20)`.
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 covers the other limits, and how to cache a run so it is paid for once.
 
@@ -377,7 +377,7 @@ so here it is given the default model’s name to stand in for it:
 ``` r
 
 low <- answer_document(gr_example(), "What was revenue in 2024?",
-                       client = cl, model = gr_options("model"), effort = "low")
+                       client = cl, model = hr_options("model"), effort = "low")
 as.data.frame(low$trace)[, c("stage", "model", "effort")]
 #>          stage         model effort
 #> 1 stuff.answer gpt-5.6-terra    low
@@ -481,7 +481,7 @@ table(factor(settings$stage, unique(settings$stage)))
 | read | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md), or by name; [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) for a folder | [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md) |
 | screen, extract, synthesise | the arguments of [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md), [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md), [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) and the functions beside them | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
 | evaluate | the arguments of [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md), [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) and [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md), [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md) |
-| options | [`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md), for the whole session | [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
+| options | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md), for the whole session | [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
 
 Most runs change a few of them, which
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
@@ -563,7 +563,7 @@ covers each of these.
 - [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md):
   every setting of every stage, with its default and where the default
   came from.
-- [`?gr_options`](https://elkronos.github.io/harnessr/reference/gr_options.md):
+- [`?hr_options`](https://elkronos.github.io/harnessr/reference/hr_options.md):
   every option, with its default.
 
 `browseVignettes("harnessr")` lists all the guides.

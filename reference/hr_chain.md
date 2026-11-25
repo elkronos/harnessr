@@ -125,7 +125,7 @@ Other harness:
 ## Examples
 
 ``` r
-cl <- gr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
 ref <- gr_qa_reference(
   questions = c(revenue = "What was revenue in 2024?"),
   documents = gr_example(), answers = list("45.2 million"), split = "test")
@@ -140,7 +140,7 @@ checked <- hr_chain(segment = gr_step("segment"),
 plain <- hr_chain(checked, tidy = NULL, name = "plain")
 names(attr(plain, "hr_steps"))
 #> [1] "segment"  "retrieve" "read"    
-old <- gr_options(verbose = FALSE)
+old <- hr_options(verbose = FALSE)
 bench <- hr_benchmark(list(checked, plain), ref, runs = 5, client = cl,
                       scorer = gr_scorer_answer())
 table(bench$arm, bench$correct)
@@ -148,5 +148,5 @@ table(bench$arm, bench$correct)
 #>           TRUE
 #>   checked    5
 #>   plain      5
-gr_options(old)
+hr_options(old)
 ```

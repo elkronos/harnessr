@@ -62,12 +62,12 @@ Summarise with
 
   Set only when
   [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md)
-  was called without a `trace` and so made its own: the
-  [gr_trace](https://elkronos.github.io/harnessr/reference/gr_trace.md)
+  was called without a `trace` and so made its own: the `gr_trace` (see
+  [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md))
   it recorded into, holding the requests the segmenter made (embeddings
   for `semantic`, model calls for `proposition` and for `contextual`
   with `context_source = "llm"`), which were held to
-  `gr_options(max_calls =, max_cost_usd =)`. When a `trace` is passed
+  `hr_options(max_calls =, max_cost_usd =)`. When a `trace` is passed
   they are recorded there instead, and this field is absent.
 
 ## Methods

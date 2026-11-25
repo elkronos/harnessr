@@ -7,8 +7,9 @@ is removed or moved into a `doc-` file. This file lists each exported
 `hr_` function with its callers, and says why the ones the document
 layer does not call stay in the core.
 
-The list was made from the installed namespace on 2026-11-22: document
-layer callers with the boundary test’s parsing
+The list was made from the installed namespace on 2026-11-22, and the
+core functions renamed from gr\_ to hr\_ were added on 2026-11-25:
+document layer callers with the boundary test’s parsing
 (`tests/testthat/helper-boundary.R`, functions only, plus the schemas
 `R/doc-*.R` builds at load), and test callers by searching
 `tests/testthat/test-*.R`. A test in
@@ -23,13 +24,22 @@ loses its last caller.
 |----|----|----|
 | [`hr_agreement()`](https://elkronos.github.io/harnessr/reference/hr_agreement.md) | `agreement_part()`, `reviewer_summary()` | test-core-stats.R, test-screen-reviewers.R |
 | [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md) | [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md) | test-core-bench.R, test-core-bench-report.R |
+| [`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md) | `cost_stuff()`, [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md), [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) and 14 more | test-adversarial.R, test-claims.R and 8 more |
+| [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md) | `answer_request()`, `ledger_answer()`, `read_ensemble()` and 8 more | test-adversarial.R, test-backend.R and 39 more |
 | [`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md) | [`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md), [`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md) | test-core-contract.R |
+| [`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md) | [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md), `doc_arm_run()`, [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md) and 4 more | test-adversarial.R, test-cache-replay.R and 26 more |
 | [`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md) | `read_refine()`, under a read’s `context_policy` | test-context-policy.R |
 | [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md) | `check_context_policy()`, which resolves a read’s `context_policy` | test-context-policy.R |
 | [`hr_cost()`](https://elkronos.github.io/harnessr/reference/hr_cost.md) | the reader cost functions: `cost_extract()`, `cost_map_reduce()` and the rest | test-conformance.R, test-core-schema.R |
+| [`hr_count_tokens()`](https://elkronos.github.io/harnessr/reference/hr_count_tokens.md) | [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md), `call_failure()`, `cap_gap_lines()` and 36 more | test-adversarial.R, test-claims.R and 20 more |
 | [`hr_effort_escalate()`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md) | `read_escalation()`, under a read’s `effort_mode = "escalate"` | test-effort-escalate.R |
 | [`hr_effort_event()`](https://elkronos.github.io/harnessr/reference/hr_effort_event.md) | `read_ensemble()`, `read_iterative()` and `read_screen()`, which report triggers | test-effort-escalate.R |
+| [`hr_embed()`](https://elkronos.github.io/harnessr/reference/hr_embed.md) | `check_embedder()`, `read_iterative()`, `rerank_prefilter()` and 2 more | test-backend.R, test-cache-replay.R and 14 more |
+| [`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md) | `batch_item_usd()`, `extract_item_usd()`, [`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md) and 3 more | test-compare-cost.R, test-core-ledger-records.R and 13 more |
 | [`hr_ht_estimate()`](https://elkronos.github.io/harnessr/reference/hr_ht_estimate.md) | `screening_recall()` | test-core-stats.R |
+| [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md) | `check_client()` | test-adversarial.R, test-audit-header.R and 110 more |
+| [`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md) | `batch_item_usd()`, `call_failure()`, `extract_item_usd()` and 5 more | test-cache-replay.R, test-context.R and 8 more |
+| [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `check_embedder()`, `corpus_key()`, `embed_counter()` and 14 more | test-adversarial.R, test-backend.R and 65 more |
 | [`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md) | the read, segment and ingest schemas (`.gr_read_schema` and the others) | test-core-schema.R, test-settings.R |
 | [`hr_prop_ci()`](https://elkronos.github.io/harnessr/reference/hr_prop_ci.md) | `reviewer_summary()`, `screening_recall()` | test-core-stats.R |
 | [`hr_reference()`](https://elkronos.github.io/harnessr/reference/hr_reference.md) | [`gr_qa_reference()`](https://elkronos.github.io/harnessr/reference/gr_qa_reference.md) | test-core-bench.R, test-core-bench-report.R |
@@ -37,8 +47,36 @@ loses its last caller.
 | [`hr_scorer()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md) | [`gr_scorer_answer()`](https://elkronos.github.io/harnessr/reference/gr_scorer_answer.md) | test-core-bench.R |
 | [`hr_signal()`](https://elkronos.github.io/harnessr/reference/hr_signal.md) | `read_ensemble()`, `read_iterative()`, `read_preview()` | test-core-signals.R |
 | [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md) | [`gr_step()`](https://elkronos.github.io/harnessr/reference/gr_step.md), [`gr_step_retrieve()`](https://elkronos.github.io/harnessr/reference/gr_step.md) | test-compose.R, test-reading-options.R |
+| [`hr_tokenizer()`](https://elkronos.github.io/harnessr/reference/hr_tokenizer.md) | [`gr_segment()`](https://elkronos.github.io/harnessr/reference/gr_segment.md) | test-core.R, test-parallel.R and 1 more |
+| [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md) | [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md), `check_reader_governor()`, `claims_cost_stage()` and 10 more | test-adversarial.R, test-backend.R and 66 more |
+| [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md) | `audit_cost()`, `corpus_cost()`, [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) and 4 more | test-bench-ctx.R, test-compare-cost.R and 19 more |
+| [`hr_trace_summary()`](https://elkronos.github.io/harnessr/reference/hr_trace_summary.md) | `corpus_row()`, [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) and `print.gr_answer()` | test-backend.R, test-cache-replay.R and 8 more |
 | [`hr_truncate()`](https://elkronos.github.io/harnessr/reference/hr_truncate.md) | `cut_piece()`, which the merge, `hierarchical` and `preview` packers call under a `context_policy` | test-context-policy.R |
+| [`hr_truncate_tokens()`](https://elkronos.github.io/harnessr/reference/hr_truncate_tokens.md) | `cap_gap_lines()`, `screen_opening()` and `seg_contextual()` | test-context-policy.R, test-core.R and 5 more |
 | [`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md), [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md), [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | test-core-schema.R, test-adversarial.R |
+
+## Entry points the document layer is handed
+
+A person builds a run with these: a client, its cache or replay, the
+model registry and the tokenizer. The document layer receives the client
+and the trace they make and does not call these itself. Nothing in them
+knows about documents, which is why they are core.
+
+| Function | Tests | Why it is core |
+|----|----|----|
+| [`hr_api_key()`](https://elkronos.github.io/harnessr/reference/hr_api_key.md) | test-headers.R and test-review6-client.R | Reads the API key a client sends, for any provider. |
+| [`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md) | test-backend.R, test-cache-replay.R and 19 more | Wraps any R function as a client. |
+| [`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md) | test-adversarial.R, test-backend.R and 34 more | An on-disk response cache for any client. |
+| [`hr_cache_clear()`](https://elkronos.github.io/harnessr/reference/hr_cache_clear.md) | test-cache-replay.R, test-compat-legacy-keys.R and 2 more | Empties a response cache. |
+| [`hr_cache_client()`](https://elkronos.github.io/harnessr/reference/hr_cache_client.md) | test-adversarial.R, test-backend.R and 34 more | Attaches a response cache to any client. |
+| [`hr_cache_stats()`](https://elkronos.github.io/harnessr/reference/hr_cache_stats.md) | test-cache-replay.R, test-compat-legacy-keys.R and 5 more | Counts the entries, hits and misses of a response cache. |
+| [`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md) | test-backend.R, test-effort.R and 7 more | Wraps an ellmer chat as a client. |
+| [`hr_model_limits()`](https://elkronos.github.io/harnessr/reference/hr_model_limits.md) | test-core-names.R | The context window and output cap of any registered model. |
+| [`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md) | test-hardening.R | Lists the model registry. |
+| [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md) | test-adversarial.R, test-backend.R and 51 more | Adds or corrects a model in the registry the budgets and costs read. |
+| [`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md) | test-adversarial.R, test-backend.R and 22 more | A client that answers from a saved trace, for any run. |
+| [`hr_set_tokenizer()`](https://elkronos.github.io/harnessr/reference/hr_set_tokenizer.md) | test-adversarial.R, test-core.R and 5 more | Chooses the tokenizer every token count uses. |
+| [`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md) | test-cache-replay.R, test-core-bench.R and 15 more | Writes any trace to a file that hr_replay_client() reads. |
 
 ## Called by the tests only
 
@@ -102,7 +140,7 @@ or a test.
   the core into the document layer, each with the change that removes
   it:
   - The embedding request path,
-    [`gr_embed()`](https://elkronos.github.io/harnessr/reference/gr_embed.md),
+    [`hr_embed()`](https://elkronos.github.io/harnessr/reference/hr_embed.md),
     calls `resolve_embedder()` and `lexical_embed()`. These go when
     embedders become a registered module kind and the core looks them up
     in the registry.
@@ -117,7 +155,7 @@ or a test.
 - The refactor plan also named an effective-window probe. No function in
   `R/` probes a model’s context window: the core reads it from the model
   table
-  ([`gr_model_info()`](https://elkronos.github.io/harnessr/reference/gr_model_info.md),
+  ([`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md),
   filled by
-  [`gr_register_model()`](https://elkronos.github.io/harnessr/reference/gr_register_model.md)),
+  [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)),
   so there is nothing to review.

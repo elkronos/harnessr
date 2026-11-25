@@ -1,0 +1,69 @@
+# Resolve the API key
+
+Looks in `key`, then the `harnessr.api_key` option, then
+`OPENAI_API_KEY`. Never prints or logs the key.
+
+## Usage
+
+``` r
+hr_api_key(key = NULL)
+```
+
+## Arguments
+
+- key:
+
+  Optional explicit key.
+
+## Value
+
+The key string. Raises a `gr_auth_error` if none is found, or if the key
+contains a control character.
+
+## Details
+
+Spaces and line endings around the key are dropped, so a key read from a
+file with [`readLines()`](https://rdrr.io/r/base/readLines.html) or
+[`readChar()`](https://rdrr.io/r/base/readChar.html) works as written. A
+key with a control character inside it (a line break in the middle, say)
+is refused with a `gr_auth_error`: sent as it is, it would end the
+`Authorization` header and start another one, and every request would
+fail as a transport error that never mentions the key.
+
+## No key set
+
+A run that would have to send a request without a key stops with a
+`gr_auth_error` that says how to set one.
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
+[`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
+and
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+check before reading the document, so a missing key does not first cost
+an OCR pass; everything else stops at the first request. A client that
+sends its credential in `headers`, a mock, a backend or replay client,
+and a client with a response cache attached are not affected.
+
+## See also
+
+[`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md)
+
+## Examples
+
+``` r
+# Resolution order: explicit argument, then the option, then the env var.
+previous <- Sys.getenv("OPENAI_API_KEY", unset = NA)
+Sys.setenv(OPENAI_API_KEY = "sk-example")
+hr_api_key()
+#> [1] "sk-example"
+hr_api_key("sk-explicit-wins")
+#> [1] "sk-explicit-wins"
+
+# With no key set it says so. A run stops the same way, before its first
+# request; see the section above.
+Sys.unsetenv("OPENAI_API_KEY")
+tryCatch(hr_api_key(), gr_auth_error = function(e) conditionMessage(e))
+#> [1] "No API key. Set OPENAI_API_KEY, or options(harnessr.api_key = '...'), or pass `api_key` to hr_client()."
+
+# Restore. Sys.setenv(x = NA) would leave the variable set to "NA", not unset.
+if (!is.na(previous)) Sys.setenv(OPENAI_API_KEY = previous)
+```

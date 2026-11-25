@@ -24,7 +24,7 @@ plays the part of the model.
 ``` r
 
 library(harnessr)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 
 stand_in <- function(messages, params) {
   instructions <- messages[[1]]$content
@@ -139,7 +139,7 @@ built for literature reviews and need a schema or criteria.
 ``` r
 
 read_with <- function(reader) {
-  model <- gr_mock_client(stand_in)
+  model <- hr_mock_client(stand_in)
   ans <- gr_read(chunks, "What was revenue in 2024?", model, reader)
   data.frame(reader = reader, requests = length(model$calls()),
              chunks_used = length(ans$chunks_used), partial = ans$partial)
@@ -411,7 +411,7 @@ repetitive <- paste(c(
   "The board approved a dividend of 0.42 dollars per share in March."),
   collapse = "\n\n")
 pieces <- gr_segment(gr_ingest(repetitive), list(method = "paragraph", max_tokens = 40))
-model <- gr_mock_client(stand_in)
+model <- hr_mock_client(stand_in)
 picked <- function(mmr) {
   gr_read(pieces, "What was revenue?", model,
           list(reader = "retrieve", top_k = 3, mmr = mmr))$chunks_used
@@ -449,7 +449,7 @@ documents and model; test them rather than assume.
 ([`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md))
 need *embeddings*. By default harnessr asks the model provider for them,
 which costs a little and needs an internet connection.
-`gr_options(embedder = "lexical")` uses word-matching vectors computed
+`hr_options(embedder = "lexical")` uses word-matching vectors computed
 locally instead: free, offline and exactly repeatable, but they match
 words rather than meaning, so “turnover” will not find “revenue”. Use
 lexical vectors for practice and testing, and real embeddings for real
@@ -474,7 +474,7 @@ what every request costs. `effort` in
 [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
 sets how much of it to do: one value, such as `"low"`, for every
 request, or a vector named by stage. It is sent only to models harnessr
-lists as reasoning models (`gr_model_info(model)$reasoning`). By default
+lists as reasoning models (`hr_model_info(model)$reasoning`). By default
 nothing is sent, and each request goes out at the provider’s default.
 
 Every request a reader makes carries a label naming its stage:
@@ -499,7 +499,7 @@ suggests a starting profile. A name covers its own label and every label
 that starts with it and a dot, so `map` covers `map.answer`, and an
 unnamed value covers the rest.
 
-[`gr_trace()`](https://elkronos.github.io/harnessr/reference/gr_trace.md)
+[`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
 records every request a run makes. Here `map_reduce` reads the eight
 chunks at low effort and merges at high:
 
@@ -507,8 +507,8 @@ chunks at low effort and merges at high:
 
 spec <- gr_read_spec("map_reduce", model = "gpt-5.6-luna",
                      effort = c(map = "low", reduce = "high"))
-tr <- gr_trace()
-ans <- gr_read(chunks, "What was revenue in 2024?", gr_mock_client(stand_in), spec,
+tr <- hr_trace()
+ans <- gr_read(chunks, "What was revenue in 2024?", hr_mock_client(stand_in), spec,
                trace = tr)
 with(as.data.frame(tr), table(stage, effort))
 #>             effort
@@ -536,7 +536,7 @@ With `cite = TRUE` the model is asked to cite the chunks it used, as
 
 ``` r
 
-citing <- gr_mock_client(function(messages, params)
+citing <- hr_mock_client(function(messages, params)
   "Revenue was 45.2 million dollars [chunk 2].")
 ans <- gr_read(chunks, "What was revenue in 2024?", citing,
                list(reader = "stuff", cite = TRUE))
@@ -570,7 +570,7 @@ came from:
 
 ``` r
 
-skimmed <- gr_read(chunks, "What was revenue in 2024?", gr_mock_client(stand_in), "skim")
+skimmed <- gr_read(chunks, "What was revenue in 2024?", hr_mock_client(stand_in), "skim")
 gr_verify_evidence(skimmed)[, c("chunk_id", "verified", "match")]
 #>   chunk_id verified match
 #> 1        2     TRUE     1
@@ -584,7 +584,7 @@ caught by eye:
 
 memo <- gr_segment(gr_ingest("Revenue rose to 45.2 million dollars.\n\nHeadcount grew to 1,204."),
                    list(method = "paragraph", max_tokens = 40))
-inventing <- gr_mock_client(function(messages, params) {
+inventing <- hr_mock_client(function(messages, params) {
   if (grepl("You extract evidence", messages[[1]]$content, fixed = TRUE)) {
     return("Revenue rose to 88.9 billion dollars on record demand.")
   }
@@ -626,7 +626,7 @@ that ends with none accepted keeps the refused answer in
 ``` r
 
 vspec <- gr_read_spec(reader = "skim", verify = TRUE)
-checked <- gr_read(chunks, "What was revenue in 2024?", gr_mock_client(stand_in), vspec)
+checked <- gr_read(chunks, "What was revenue in 2024?", hr_mock_client(stand_in), vspec)
 checked$notes$quotes_checked
 #> [1] 1
 checked$evidence[, c("verified", "match", "quote_status", "quote_sim")]
@@ -683,7 +683,7 @@ is asked to open such a reply:
 
 ``` r
 
-loaded <- gr_mock_client(function(messages, params) {
+loaded <- hr_mock_client(function(messages, params) {
   sent <- paste(vapply(messages[-1], function(m) m$content, character(1)),
                 collapse = "\n")
   if (grepl("45.2 million", sent, fixed = TRUE)) {
@@ -724,7 +724,7 @@ cmp <- gr_compare(gr_example(), "What was revenue in 2024?", list(
             read = list(reader = "retrieve", top_k = 6)),
   gr_recipe("all", segment = list(method = "structural", max_tokens = 120),
             read = list(reader = "map_reduce"))),
-  client = gr_mock_client(stand_in))
+  client = hr_mock_client(stand_in))
 cmp$summary[, c("recipe", "reader", "settings", "chunks_used", "not_found", "partial")]
 #>   recipe     reader                settings chunks_used not_found partial
 #> 1 narrow   retrieve top_k=2, max_tokens=120           2     FALSE   FALSE
@@ -774,7 +774,7 @@ guessing. In order of how often each is the cause:
 | a scanned PDF comes back nearly empty | `doc$stats$chars` and `doc$stats$unread_pages`, and any `gr_ocr_unavailable` warning | OCR did not run or is not installed. Force it with `gr_ingest_spec(ocr = "always")`, and check `tesseract` and `magick` are present |
 | every chunk is the whole document | `nrow(doc$blocks)` | the file has no blank lines between paragraphs, so there is nothing to split on. Use `method = "sentence"` or `"fixed"` |
 | the run costs far more than expected | `gr_readers()$cost_calls` | the reader makes one request per chunk and `max_tokens` is small. Run [`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md) first; it is free |
-| answers change between identical runs | the `temperature` setting, unset by default | set `temperature = 0`. Reasoning models ignore it (`gr_model_info(m)$supports_temperature`) |
+| answers change between identical runs | the `temperature` setting, unset by default | set `temperature = 0`. Reasoning models ignore it (`hr_model_info(m)$supports_temperature`) |
 | `NOT_IN_DOCUMENT` for a question that assumes something the document contradicts | `ans$premise`, with `premise = TRUE` | without the check a reader can only answer or say the excerpts are silent; see “Questions that assume something false” above |
 
 Test for the marker with `is_not_found(ans$answer)` rather than
@@ -783,7 +783,7 @@ models decorate it (`**NOT_IN_DOCUMENT.**`).
 
 Two habits make all of this cheaper: run
 [`gr_chunk_stats()`](https://elkronos.github.io/harnessr/reference/gr_chunk_stats.md)
-before you spend anything, and keep `gr_options(max_cost_usd = ...)` set
+before you spend anything, and keep `hr_options(max_cost_usd = ...)` set
 to something you would not mind paying by accident.
 
 ## Choosing the settings
@@ -813,7 +813,7 @@ and reads the result with intervals.
 qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
                       documents = gr_example(), answers = list("45.2 million"),
                       split = "dev")
-reads <- gr_mock_client(stand_in)
+reads <- hr_mock_client(stand_in)
 sweep <- function(arms) {
   hr_benchmark(arms, qa, runs = 5, client = reads, split = "dev",
                scorer = gr_scorer_answer())
@@ -851,7 +851,7 @@ defaults to `map_reduce`, chosen because it reads the whole document at
 any length; no comparison of readers is recorded (`untested`).
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 chooses `"fast"` or `"thorough"` by length (`auto_max_tokens` in
-[`gr_options()`](https://elkronos.github.io/harnessr/reference/gr_options.md)).
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)).
 
 **How to test it.** Sweep the reader on one segmentation:
 
@@ -951,7 +951,7 @@ says when it reached none.
 ### Word matching: `lexical_blend`, `bm25_k1`, `bm25_b` and `fusion`
 
 **What they control.** With lexical embeddings
-(`gr_options(embedder = "lexical")`), `retrieve` scores chunks by a
+(`hr_options(embedder = "lexical")`), `retrieve` scores chunks by a
 blend of cosine similarity and BM25, with `lexical_blend` the weight on
 cosine. `bm25_k1` sets how fast repeated words stop adding to a chunk’s
 score, and `bm25_b` how much long chunks are penalised; `rerank` uses
@@ -1163,7 +1163,7 @@ fields <- function(messages, params) {
   stand_in(messages, params)
 }
 bench <- hr_benchmark(hr_sweep(needle, list(answer_format = c("parsed", "schema"))), qa,
-                      runs = 5, client = gr_mock_client(fields), split = "dev",
+                      runs = 5, client = hr_mock_client(fields), split = "dev",
                       scorer = gr_scorer_answer())
 aggregate(cbind(tokens_in, correct) ~ param.answer_format, bench, mean)
 #>   param.answer_format tokens_in correct
@@ -1219,7 +1219,7 @@ loaded <- gr_qa_reference(questions = c(fall = "Why did revenue fall in 2024?"),
 stuffed <- gr_arm("thorough", list(method = "structural", max_tokens = 120,
                                    overlap_tokens = 0, reader = "stuff", premise = TRUE))
 bench <- hr_benchmark(hr_sweep(stuffed, list(premise_verdict = c("sentence", "structured"))),
-                      loaded, runs = 5, client = gr_mock_client(verdict), split = "dev",
+                      loaded, runs = 5, client = hr_mock_client(verdict), split = "dev",
                       scorer = gr_scorer_answer())
 aggregate(tokens_in ~ param.premise_verdict, bench, mean)
 #>   param.premise_verdict tokens_in
@@ -1350,7 +1350,7 @@ compared with the alternatives (`untested`).
 
 ``` r
 
-ledger_reads <- gr_mock_client(function(messages, params) {
+ledger_reads <- hr_mock_client(function(messages, params) {
   if (grepl("Reply with the edits", messages[[length(messages)]]$content, fixed = TRUE)) {
     excerpt <- messages[[4]]$content
     if (grepl("revenue of [0-9.]+ million", excerpt)) {
@@ -1433,7 +1433,7 @@ looks <- gr_arm("thorough", list(method = "structural", max_tokens = 120,
                                  overlap_tokens = 0, reader = "preview"))
 bench <- hr_benchmark(hr_sweep(looks, expand.grid(unskip_k = c(0, 1),
                                                   reread_on = c("never", "not_found"))),
-                      qa, runs = 5, client = gr_mock_client(skips_summary), split = "dev",
+                      qa, runs = 5, client = hr_mock_client(skips_summary), split = "dev",
                       scorer = gr_scorer_answer())
 aggregate(tokens_in ~ param.unskip_k + param.reread_on, bench, mean)
 #>   param.unskip_k param.reread_on tokens_in
