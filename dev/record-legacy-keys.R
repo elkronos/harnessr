@@ -3,21 +3,29 @@
 # The fixture is a response cache and a recording made before the cache key
 # moved to harnessr-cache-v3 (sha256) and the replay key to harnessr-replay-v2.
 # test-compat-legacy-keys.R checks that the current code still answers every call in
-# it through the old keys. So it has to be written by the old code, once:
+# it through the old keys. So it has to be written by the old code, once.
+#
+# This file and tests/testthat/helper-legacy-keys.R call the core functions by
+# their hr_ names. The build at c91b04b exports them as gr_, and neither file
+# exists at c91b04b. A rerun therefore uses the copies of both files from the
+# parent of the commit that renamed the core functions. Find that commit with
+# git log -S, so the steps still work after a rebase. From the root of the
+# current tree, which supplies the output directory:
 #
 #   mkdir -p /tmp/harnessr-c91b04b /tmp/lib-c91b04b
 #   git archive c91b04b | tar -x -C /tmp/harnessr-c91b04b
 #   R CMD INSTALL -l /tmp/lib-c91b04b /tmp/harnessr-c91b04b
+#   rename=$(git log -1 --format=%H -S'harnessr::gr_backend_client(' \
+#     tests/testthat/helper-legacy-keys.R)
+#   git show "$rename^:dev/record-legacy-keys.R" > dev/record-legacy-keys.R
+#   git show "$rename^:tests/testthat/helper-legacy-keys.R" \
+#     > tests/testthat/helper-legacy-keys.R
 #   R_LIBS=/tmp/lib-c91b04b:$R_LIBS Rscript dev/record-legacy-keys.R
+#   git restore dev/record-legacy-keys.R tests/testthat/helper-legacy-keys.R
 #
-# run from the root of the current tree, which supplies the helper and the
-# output directory. It stops unless the harnessr it loads still writes
-# readgpt-cache-v2 keys. Rerunning it with a later build would record new keys
-# and make the test check nothing.
-#
-# This file and its helper call the core functions by their hr_ names. The
-# build at c91b04b exports them as gr_, so a rerun needs the copies of both
-# files from before the hr_ rename.
+# The script stops unless the harnessr it loads still writes readgpt-cache-v2
+# keys. Rerunning it with a later build would record new keys and make the
+# test check nothing.
 
 if (!file.exists("DESCRIPTION") || !dir.exists(file.path("tests", "testthat"))) {
   stop("Run this from the repository root: Rscript dev/record-legacy-keys.R", call. = FALSE)
