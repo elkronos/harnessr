@@ -10,6 +10,11 @@ typed schema across all of them, and `gr_synthesise()` writes the result up
 with every claim citing the row it rests on. Every model call is budgeted,
 recorded and checked, and can be cached.
 
+![Two stacked layers. Your code calls the document layer (gr_ functions for ingest, segment, read, screen, extract, claims, synthesis and review) or the core (hr_ functions for the client, calls, cache, trace and ledger, budget and governor, registry and modules, and composition). The document layer calls the core, the core sends requests to a model provider, and the core never calls the document layer.](man/figures/layers.svg)
+
+Your code can call either layer: the document functions (`gr_`) build on the
+core functions (`hr_`), and the core never calls the document layer.
+
 harnessr was called readgpt up to version 0.6.0, and so was its GitHub
 repository. Requests, cache keys and recordings are unchanged by the rename,
 and caches and recordings made under the old name still answer. The old
