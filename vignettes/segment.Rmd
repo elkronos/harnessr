@@ -542,16 +542,20 @@ change.
 
 ### Semantic boundaries: `semantic_threshold` {#set-semantic}
 
-**What it controls.** How `semantic` turns the distances between neighbouring
-windows into cuts. `"percentile"` cuts every gap whose distance reaches the
-`semantic_percentile` of them all, so about one gap in ten is cut whether the
-text changes topic or not. `"texttiling"` cuts by depth score, the rule of
-TextTiling (Hearst 1997): it compares the `semantic_window` sentences before
-each gap with those after it, finds the valleys of that similarity, and cuts
-a valley only when it is deep, both by Hearst's cutoff and by being deeper
-than the similarities spread. A text on one topic then gets at most about one
-cut, and a change of topic gets one. It uses the same embeddings, so it sends
-the same requests.
+**What it controls.** `semantic_threshold` sets how `semantic` turns the
+distances between neighbouring windows into cuts.
+
+- `"percentile"` cuts every gap whose distance reaches the
+  `semantic_percentile` of them all. At the default of 90, about one gap in ten
+  is cut whether the text changes topic or not.
+- `"texttiling"` cuts by depth score, the rule of TextTiling (Hearst 1997). It
+  compares the `semantic_window` sentences before each gap with those after
+  it and finds the valleys of that similarity. It cuts a valley only when the
+  valley is deep by two tests: Hearst's cutoff, and a depth greater than the
+  spread of the similarities. A text on one topic then gets at most about one
+  cut, and a change of topic gets one.
+
+Both rules use the same embeddings, so they send the same requests.
 
 **Signs it needs changing.** Under `semantic`, chunks that end in the middle
 of an argument on a page with no change of subject point to `"texttiling"`.
@@ -559,10 +563,10 @@ A long document whose sections run together into a few large chunks under
 `"texttiling"` points back to `"percentile"`.
 
 **Where the default came from.** `"percentile"` is the rule `semantic` was
-written with; it has not been compared with `"texttiling"` (`untested`).
+written with. It has not been compared with `"texttiling"` (`untested`).
 
-**How to test it.** It sends the same embedding request either way, so the
-first test is free: count the cuts.
+**How to test it.** Either rule sends the same embedding request, so the first
+test is free: count the cuts.
 
 ```{r}
 by_rule <- sapply(c("percentile", "texttiling"), function(rule) {
@@ -572,9 +576,9 @@ by_rule <- sapply(c("percentile", "texttiling"), function(rule) {
 by_rule
 ```
 
-The example report has a few short sections, and `"texttiling"` cuts it
-twice where `"percentile"` cuts it three times. What the cuts do to answers is
-tested with arms:
+The example report has a few short sections. `"texttiling"` cuts it twice,
+and `"percentile"` three times. To test what the cuts do to answers, use
+arms:
 
 ```{r}
 bench <- sweep(hr_sweep(gr_arm("needle"),
@@ -582,29 +586,33 @@ bench <- sweep(hr_sweep(gr_arm("needle"),
 aggregate(tokens_in ~ param.semantic_threshold, bench, mean)
 ```
 
-Under `"needle"`, whose chunks are at most 500 tokens, the two sent nearly the
-same prompt tokens here (676 and 675): the packer, not the boundaries, sets
-most of each chunk's size.
+Under `"needle"`, whose chunks are at most 500 tokens, the two arms sent
+nearly the same prompt tokens here (676 and 675). The packer, which holds
+chunks to the cap, sets most of each chunk's size.
 
 ### Tables: `table_packing` {#set-tables}
 
-**What it controls.** How `paragraph` packs the rows of a table. `"rows"`
-packs them as it packs any other blocks, so a long table is cut wherever the
-cap falls and only its first chunk carries the header row. `"grouped"` packs
-each table on its own and opens every chunk of it with the header row, then
-as many rows as fit. Either way, a document's blocks and the chunks of a
-document with a table say which table and which rows they hold (`table_id`
-and `table_rows`); that is provenance only and adds nothing to the text.
+**What it controls.** `table_packing` sets how `paragraph` packs the rows of
+a table.
 
-**Signs it needs changing.** Answers that read a figure from the wrong column
-of a long table, or that cannot say what a row's numbers are, point to
-`"grouped"`, so every chunk of rows says what its columns are. Many small
-tables, each smaller than a chunk, gain nothing from it.
+- `"rows"` packs them as it packs any other blocks, so the cap can cut a long
+  table anywhere, and only its first chunk carries the header row.
+- `"grouped"` packs each table on its own. Every chunk of the table opens with
+  the header row, then as many rows as fit.
 
-**Where the default came from.** `"rows"` is how tables were packed before
-the setting existed; it has not been compared with `"grouped"` (`untested`).
+Under either value, a document's blocks and the chunks of a document with a
+table record which table and which rows they hold (`table_id` and
+`table_rows`). These columns are provenance only and add nothing to the text.
 
-**How to test it.** The chunks show what it does, for nothing:
+**Signs it needs changing.** Try `"grouped"` when answers read a figure from
+the wrong column of a long table, or cannot say what a row's numbers are. With
+it, every chunk of rows names its columns. Many small tables, each smaller
+than a chunk, gain nothing from it.
+
+**Where the default came from.** `"rows"` is how tables were packed before the
+setting existed. It has not been compared with `"grouped"` (`untested`).
+
+**How to test it.** The chunks show what it does, at no cost:
 
 ```{r}
 tab <- tempfile(fileext = ".md")
@@ -619,14 +627,16 @@ lapply(by_packing, function(ch) ch$chunks[, c("chunk_id", "tokens", "table_id", 
 sapply(by_packing, function(ch) sum(startsWith(ch$chunks$text, "| region | units |")))
 ```
 
-Under `"rows"` the table, which Markdown gives as one block, is packed after
-the heading and cut wherever the cap falls, so no chunk opens with the header
-row and each piece reports the rows of the whole block, `"1-31"`. Under
-`"grouped"` every chunk of rows opens with the header, and `table_rows` says
-which rows each holds. A table from Word or HTML comes one row per block, and
-then `"rows"` gives each chunk its own range too. What it
-does to answers is tested with arms on a reference whose documents have
-tables, with `my_tables` that reference and `my_client` your client:
+Markdown gives the table as one block. Under `"rows"` that block is packed
+after the heading and cut wherever the cap falls. No chunk opens with the
+header row, and each piece reports the rows of the whole block, `"1-31"`.
+Under `"grouped"` every chunk of rows opens with the header, and `table_rows`
+gives the rows each chunk holds.
+
+A table from Word or HTML comes one row per block, and then `"rows"` gives
+each chunk its own range too. To test what the setting does to answers, run
+arms on a reference whose documents have tables. Here `my_tables` is that
+reference and `my_client` is your client:
 
 ```{r eval = FALSE}
 arms <- hr_sweep(gr_arm("thorough", list(method = "paragraph")),
