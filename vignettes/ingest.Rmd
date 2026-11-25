@@ -313,8 +313,8 @@ gr_ingest("Tiny.")
 harnessr caches each ingestion for the rest of the R session. A second question
 about the same file, or a different way of cutting it into chunks, reuses the
 extracted text instead of reading the file again. The cache key holds the file's
-size and modification time and every ingestion setting, so a change to any of
-them reads the file again. Turn the cache off with
+size and modification time and every ingestion setting, so harnessr reads the
+file again when any of them changes. Turn the cache off with
 `hr_options(cache_documents = FALSE)`.
 
 ## Before reading a whole folder
