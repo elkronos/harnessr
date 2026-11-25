@@ -143,10 +143,10 @@ hr_trace_cost(out$trace)[, c("model", "calls", "paid_calls", "usd")]
 
 ## From a search to a review
 
-A folder of PDFs cannot say which databases were searched, with what query, on
-what date, or how many records came back, and no care further down substitutes
-for that. `gr_search()` records the search, and `gr_records()` reads the export
-your reference manager already produces (RIS here):
+A folder of PDFs does not record which databases you searched, with what query,
+on what date, or how many records came back, and nothing later in the review
+can recover it. `gr_search()` records the search, and `gr_records()` reads the
+export your reference manager already produces (RIS here):
 
 ```{r}
 search <- gr_search(
@@ -176,42 +176,42 @@ recs <- gr_records(exports, files = pdfs, search = search)
 recs
 ```
 
-Hand `recs` to `gr_screen()` and `gr_extract()` wherever you would have passed a
-folder. Four things follow from it that a folder cannot give you.
+Pass `recs` to `gr_screen()` and `gr_extract()` wherever you would pass a
+folder. A record set gives you four things a folder cannot.
 
-The flow counts start at identification. `gr_flow()` begins at records
-identified rather than at "sources given", which is already past the step that
-decides whether anyone can reproduce the search.
+**The flow counts start at identification.** `gr_flow()` begins at records
+identified. From a folder it begins at "sources given", one step after the
+search that someone else needs to reproduce.
 
-Records with no document stay visible. Fourteen reports sought and not retrieved
-is a finding about the review, and a folder represents it as nothing at all.
+**Records with no document stay visible.** Fourteen reports sought and not
+retrieved is a finding about the review. A folder leaves no trace of them.
 
-Duplicates are settled by DOI, not by text. The same paper from three databases
-is one record, and `duplicate_of` names the row each one repeats. Where a DOI is
-missing (preprints, conference papers), normalised title and year are the
-fallback, but two records that both have DOIs and differ are never merged,
-because similar titles happen and merging two studies is the error this whole
-path exists to avoid.
+**Duplicates are matched by DOI instead of by text.** The same paper from three
+databases is one record, and `duplicate_of` names the row each one repeats.
+Where a DOI is missing (preprints, conference papers), normalised title and year
+are the fallback. Two records that both have DOIs and differ are never merged:
+similar titles happen, and merging two studies is the error this path exists to
+avoid.
 
-Authors and years become facts. `gr_synthesise()` cites by name, and without an
-export those names came from asking a model to read a title page. That is the one
-part of a citation that must be exactly right, resting on the loosest guarantee
-in the pipeline. From an export they are data, joined onto the extraction table,
-and the model is still never shown them.
+**Authors and years come from data.** `gr_synthesise()` cites by name. Without
+an export, those names come from a model reading a title page, the loosest
+check in the pipeline for the one part of a citation that must be exact. From
+an export they are data, joined onto the extraction table, and the model is
+never shown them.
 
-Matching records to files uses the path the export recorded, then the DOI in the
-filename, then the title, then first-author surname and year, which is how
-people name downloads. An ambiguous match is no match: two Smith 2019 papers and
-one `smith2019.pdf` claim nothing, because a coin flip presented as a match is
-how one paper's findings get attributed to another.
+`gr_records()` matches records to files by the path the export recorded, then
+the DOI in the filename, then the title, then first-author surname and year,
+the way people name downloads. An ambiguous match is no match: two Smith 2019
+papers and one `smith2019.pdf` claim nothing, so a guess cannot attribute one
+paper's findings to another.
 
 ### Does the search find the papers you already know?
 
-Before the search is final, test it against papers the team already knows are
-relevant: the seed set. `gr_search_recall()` matches each seed to the search's
-records by the same rules `gr_records()` uses for duplicates, and gives the
-share found with an exact interval. A seed used to write the search was bound
-to be found, so mark it `used_to_build` and it is left out of the figure:
+Before you settle the search, test it against papers your team already knows
+are relevant: the seed set. `gr_search_recall()` matches each seed to the
+search's records by the rules `gr_records()` uses for duplicates, and gives the
+share found with an exact interval. A seed you used to write the search was
+bound to be found, so mark it `used_to_build` to leave it out of the figure:
 
 ```{r}
 seeds <- data.frame(
@@ -226,24 +226,25 @@ known
 known$missed[, c("label", "reason")]
 ```
 
-One of the two seeds kept out of the search was found, and its 95%
-Clopper-Pearson interval runs from 1.3% to 98.7%: two seeds say almost
-nothing, and a real seed set needs dozens. The figure is relative recall, the
-share of the known papers the search found, not of every relevant paper, and
-known papers are usually the easiest to find. `reason` says why each seed was
-missed. A seed the matching rules refused, for a title too short to tell papers
-apart or one shared by records with different DOIs, counts as missed and is
-listed in `$refused`, so check those by hand. `tier =` gives the figure for
-each group of seeds as well, and `gr_audit_report(recall = known)` adds it to
-the report.
+The search found one of the two seeds not used to build it. The 95%
+Clopper-Pearson interval runs from 1.3% to 98.7%, so two seeds tell you almost
+nothing; a real seed set needs dozens. The figure is relative recall: the share
+of the known papers the search found. It is not the share of every relevant
+paper, and known papers are usually the easiest to find.
+
+`reason` says why each seed was missed. A seed the matching rules refused, for
+a title too short to tell papers apart or one shared by records with different
+DOIs, counts as missed and is listed in `$refused`; check those by hand.
+`tier =` also gives the figure for each group of seeds, and
+`gr_audit_report(recall = known)` adds it to the report.
 
 ### Is each file the paper its record names?
 
-A record matched to a file by first author and year can get another paper by
-the same author in the same year. When the documents come from a record set,
+A match by first author and year can pair a record with another paper by the
+same author from the same year. When the documents come from a record set,
 `gr_read_many()`, `gr_screen()` and `gr_extract()` look for the record's DOI
-and title in the opening of each document's text, and say in an `identity`
-column whether they found either:
+and title in the opening of each document's text, and an `identity` column
+records whether they found either:
 
 ```{r}
 said <- hr_mock_client(function(m, p) "A randomised trial.")
@@ -251,18 +252,19 @@ read <- gr_read_many(recs, "What was the design?", "fast", client = said)
 read$summary[, c("document", "identity")]
 ```
 
-`smith2019.txt` was matched to "Cognitive load and retention" by its name, but
-its text is about spacing and prints neither that title nor the DOI, so
-`identity` is `FALSE` and the run warns with class `gr_identity_mismatch`.
-Nothing is dropped and `gr_flow()` counts the same: the column, the
-`warnings` cell and the audit report say which files to check by hand. `NA`
-means there was nothing to check, such as a record with only a short title.
+`gr_records()` matched `smith2019.txt` to "Cognitive load and retention" by its
+name. Its text is about spacing and prints neither that title nor the DOI, so
+`identity` is `FALSE` and `gr_read_many()` warns with class
+`gr_identity_mismatch`. The file is still read and kept, and `gr_flow()`
+counts the same. The column, the `warnings` cell and the audit report list the
+files to check by hand. `NA` means there was nothing to check, such as a record
+with only a short title.
 
 ## The review: protocol, screen, extract, write
 
 The single-document pipeline (ingest, segment, read) answers a question. A
-corpus job usually wants a table, and a review wants a table plus the account of
-it. Four functions cover that, and they compose in one direction:
+corpus job usually needs a table, and a review needs a table plus an account of
+how it was made. Four functions cover that, each feeding the next:
 
 `gr_protocol()` → `gr_screen()` → `gr_extract()` → `gr_synthesise()`
 
