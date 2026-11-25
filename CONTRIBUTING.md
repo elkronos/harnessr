@@ -27,7 +27,7 @@ with `R CMD INSTALL .` before it, or the workers run the old code. The tests
 workflow on GitHub runs the same suite, then runs every R block of the
 README and compares the output each block documents with real output. It
 knits every guide with no key and no network, checks the registry counts
-the documentation states against the registries, fails if two readers
+the get started guide states against the registries, fails if two readers
 share a traversal signature, and fails if any of that left a new or
 changed file in the repository that `git status` reports. Files `.gitignore` names are not reported, so output that matches
 one of its patterns (`docs/`, `*.Rout`, `readgpt_history_*.json`,
@@ -133,10 +133,7 @@ check that never starts stays pending.
 - **Results go outside the package.** Tests, guides and help page
   examples write to `tempdir()` or a directory the user chose, never into
   the repository. Live runs and their results are kept outside the
-  repository too. Two README examples are the exception:
-  `gr_audit_report("answer.html", ...)` and `gr_audit_report("audit.html", ...)`
-  write to the working directory, so `.gitignore` names `/answer.html` and
-  `/audit.html`.
+  repository too.
 
 ### What harnessr does not do
 

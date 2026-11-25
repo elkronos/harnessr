@@ -104,13 +104,14 @@ test_that("every guide section the table points to exists", {
   }
 })
 
-test_that("the README's counts of settings match the table", {
+test_that("the get started guide's counts of settings match the table", {
   s <- gr_settings_table()
   expect_identical(nrow(s), 227L)
-  # The README sits two levels up in the repository; an installed package
-  # has none, and then the count above is what holds the figure.
-  readme <- file.path("..", "..", "README.md")
-  for (f in readme[file.exists(readme)]) {
+  # The counts moved from the README to the get started guide. Its source
+  # sits two levels up in the repository; an installed package has none,
+  # and then the count above is what holds the figure.
+  guide <- file.path("..", "..", "vignettes", "harnessr.Rmd")
+  for (f in guide[file.exists(guide)]) {
     text <- readLines(f, warn = FALSE)
     expect_true(any(grepl(sprintf("lists all %d with", nrow(s)), text, fixed = TRUE)))
     n <- table(s$stage)

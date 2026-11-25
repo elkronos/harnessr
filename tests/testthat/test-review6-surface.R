@@ -364,11 +364,18 @@ test_that("the review guide says a conflict keeps the first value unless resolve
   expect_match(txt, "`resolve = \"model\"` spends one call per disagreeing field", fixed = TRUE)
 })
 
-test_that("the README says a conflict keeps the first value unless resolve = 'model'", {
+# The README's paragraph on reviews moved to the review guide, which already
+# stated the rule. The README must not bring the old claim back, and the
+# guide must keep the rule.
+test_that("the README's conflict rule is kept in the review guide", {
   f <- source_file("README.md")
   skip_if(is.null(f), "the README is not available")
   txt <- gsub("\\s+", " ", paste(readLines(f, warn = FALSE), collapse = " "))
   expect_false(grepl("costs one call where the document contradicts itself", txt, fixed = TRUE))
+  # Where the README is, the guide sources are too, so a missing guide fails.
+  g <- testthat::test_path("..", "..", "vignettes", "review.Rmd")
+  expect_true(file.exists(g))
+  txt <- gsub("\\s+", " ", paste(readLines(g, warn = FALSE), collapse = " "))
   expect_match(txt, "the earliest chunk's value is kept", fixed = TRUE)
   expect_match(txt, "`resolve = \"model\"` spends one call per disagreeing field", fixed = TRUE)
 })
