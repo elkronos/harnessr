@@ -11,35 +11,33 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-`answer_document()` asks one question of one document. Most real work has a
-folder of them, and a literature review has a folder, a search behind it, and a
-write-up at the end that somebody else has to be able to check. This guide
-covers that work in the order it happens:
+`answer_document()` asks one question of one document. You may have a folder
+of documents instead, or a literature review: a folder, the search that found
+it, and a write-up that someone else must be able to check. Here is that work
+in the order you do it:
 
-1. Asking one question of every document, with `gr_read_many()`.
-2. Starting a review from a database search, with `gr_search()` and
-   `gr_records()`.
-3. The review itself: one trace for every stage, `gr_protocol()`, then
-   `gr_screen()`, measuring the screening against a person with
+1. Ask one question of every document with `gr_read_many()`.
+2. Start a review from a database search with `gr_search()` and `gr_records()`.
+3. Run the review: one trace for every stage, `gr_protocol()`, then
+   `gr_screen()`. Measure the screening against a person with
    `gr_reference()` and `gr_calibrate()` (recall against a target, when
-   ranked screening can stop, several reviewers), then `gr_extract()` and its
-   agreement with a person's table, and `gr_synthesise()`.
-4. Writing from claims instead of from rows, with `gr_claims()`,
-   `gr_outline()` and `gr_gaps()`.
-5. Counting and reporting the whole run, with `gr_flow()` and
-   `gr_audit_report()`.
+   ranked screening can stop, several reviewers). Then run `gr_extract()`,
+   check its agreement with a person's table, and write with
+   `gr_synthesise()`.
+4. Write from claims instead of from rows with `gr_claims()`, `gr_outline()`
+   and `gr_gaps()`.
+5. Count and report the whole run with `gr_flow()` and `gr_audit_report()`.
 
-`vignette("harnessr")` introduces the package and its ideas, and how one
-document is read is in `vignette("readers")`. Read `vignette("runs")` first if
-you have not set spending limits or a cache: this guide points to it for both,
-and for replay.
-Comparing whole configurations on a labelled set of questions, with intervals,
-is in `vignette("evaluate")`.
+`vignette("harnessr")` introduces the package and its ideas, and
+`vignette("readers")` shows how one document is read. If you have not set
+spending limits or a cache, read `vignette("runs")` first: this guide points to
+it for both, and for replay. To compare whole configurations on a labelled set
+of questions, with intervals, see `vignette("evaluate")`.
 
 ## Setting up
 
-Everything below runs offline. `hr_mock_client()` stands in for the model: its
-handler is an ordinary R function. `embedder = "lexical"` keeps retrieval free
+Everything below runs offline. `hr_mock_client()` stands in for the model, and
+its handler is an ordinary R function. `embedder = "lexical"` keeps retrieval free
 and deterministic.
 
 ```{r message = FALSE}
@@ -50,14 +48,15 @@ cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollar
 
 ## Reading many documents
 
-Before reading a folder you have not read before, `gr_inventory()` lists what is
-in it: which extractor reads each file, which have no text layer and which would
-be skipped, with no model calls and no key. `vignette("ingest")` shows it on a
-folder and covers what to do about files with no extractor or no text layer.
+Before you read a new folder, list it with `gr_inventory()`. It shows which
+extractor reads each file, which files have no text layer and which would be
+skipped, and it makes no model calls and needs no key. `vignette("ingest")` runs
+it on a folder and says what to do about files with no extractor or no text
+layer.
 
 `gr_compare()` runs several recipes over one document. `gr_read_many()` runs one
-recipe over many, and returns one row per document. That is the shape the work
-usually has: a folder, one question, and a table at the end.
+recipe over many documents and returns one row per document: a folder and a
+question go in, and a table comes out.
 
 ```{r}
 reports <- file.path(tempdir(), "reports")
@@ -69,25 +68,24 @@ out <- gr_read_many(reports, "What was revenue?", "fast", client = cl)
 out$summary[, c("document", "not_found", "chunks_used", "calls", "status")]
 ```
 
-A directory is expanded by the extractor registry, so registering an extractor
-changes which files get picked up. A document keeps the folder it came from, so
-`2019/report.txt` and `2020/report.txt` stay distinguishable instead of
-collapsing to one name. The full summary also carries `answer`, `partial`,
-`reader`, `chunks`, `cached`, `tokens_in`, `tokens_out`, `cost_usd`, `seconds`
-and `error`, and `write.csv(out$summary, ...)` is a reasonable end to a run.
+The extractor registry expands a directory, so registering an extractor
+changes which files get picked up. Each document keeps the folder it came from,
+so `2019/report.txt` and `2020/report.txt` stay two names. The full summary
+also carries `answer`, `partial`, `reader`, `chunks`, `cached`, `tokens_in`,
+`tokens_out`, `cost_usd`, `seconds` and `error`. To keep it, end the run with
+`write.csv(out$summary, ...)`.
 
 `gr_read_many()` does five things a `lapply()` does not.
 
-One bad file costs one row. An unreadable document gets `status = "failed"`
+**One bad file costs one row.** An unreadable document gets `status = "failed"`
 and its error in the `error` column, and the other hundred and ninety-nine
-answers survive. Pass `on_error = "stop"` if you would rather it aborted.
+answers survive. Pass `on_error = "stop"` to abort instead.
 
-Budgets are per document, and the run has its own. Every document gets its
-own trace, so `hr_options(max_calls =)` and `hr_options(max_cost_usd =)` apply to
-each one exactly as if you had read it alone, and one enormous document cannot
-starve the rest. On its own that leaves the run unbounded: two hundred documents
-under a 400-call ceiling is a corpus ceiling of eighty thousand calls. So there
-are two run-level ceilings.
+**Each document has a budget, and so does the run.** Each document gets its own
+trace, so `hr_options(max_calls =)` and `hr_options(max_cost_usd =)` apply to it
+as if you had read it alone, and one enormous document cannot starve the rest.
+That leaves the run itself unbounded: two hundred documents under a 400-call
+ceiling can make eighty thousand calls. Two run-level ceilings bound it:
 
 ```{r}
 out <- gr_read_many(reports, "What was revenue?", "fast", client = cl,
@@ -95,18 +93,18 @@ out <- gr_read_many(reports, "What was revenue?", "fast", client = cl,
                     max_total_usd   = 20)     # checked after each one
 ```
 
-`max_total_calls` is checked before a document, so the overshoot is bounded by
-one document's own ceiling. `max_total_usd` can only be checked after one, since
-what a document costs is not knowable until it has been read. It also needs a
-model with a registered price, or cost is unknown rather than zero and you get a
-`gr_corpus_cost_unknown` warning instead of a silent free pass. Documents past
-either ceiling are marked `"skipped"` rather than dropped. Set neither and the
-run says once what its worst case is. `gr_screen()` and `gr_extract()` take the
-same two arguments.
+`gr_read_many()` checks `max_total_calls` before each document, so the run can
+overshoot it by at most one document's own ceiling. It checks `max_total_usd`
+after each document, because a document's cost is known only once it has been
+read. The cost ceiling also needs a model with a registered price. Without one,
+cost is unknown, not zero, and you get a `gr_corpus_cost_unknown` warning.
+Documents past either ceiling keep their rows, marked `"skipped"`. Set neither,
+and a message states the run's worst case once, before any call.
+`gr_screen()` and `gr_extract()` take the same two arguments.
 
-A run can be resumed. Point `store =` at a directory and each result is
-written as it completes and restored on a later run. Combined with a durable
-response cache, restarting a four-hour job costs approximately nothing:
+**A run can be resumed.** Point `store =` at a directory: each result is written
+as it completes and restored on a later run. Add a durable response cache, and
+a restarted four-hour job pays for almost nothing twice:
 
 ```{r eval = FALSE}
 durable <- hr_cache_client(cl, hr_cache(tools::R_user_dir("harnessr", "cache")))
@@ -115,28 +113,26 @@ gr_read_many(reports, "What was revenue?", "thorough",
 ```
 
 The store is keyed on the document's path, size and mtime, the question, the
-whole pipeline and the model, so an edited document is a new job, not a stale
-hit. An `hr_backend_client()` needs a stable `id` for a store or a cache to be
-reused by a later session; `hr_client()` and `hr_ellmer_client()` already know
-what they are.
+whole pipeline and the model. An edited document is therefore read again, and
+never served from the store. A later session reuses the store or cache of an
+`hr_backend_client()` only if you give that client a stable `id`;
+`hr_client()` and `hr_ellmer_client()` identify themselves.
 
-The same document is read once. The same paper reaches you from three
+**The same document is read once.** One paper can reach you from three
 databases under three filenames. A source whose cleaned text repeats one already
 read is not read again: its row is filled in from the first copy, `status` is
 `"duplicate"`, and `duplicate_of` names the row it repeats. Every source you
-passed still has a row, so `subset(out$summary, is.na(duplicate_of))` is the
+passed keeps a row, so `subset(out$summary, is.na(duplicate_of))` is the
 deduplicated set and `sum(!is.na(out$summary$duplicate_of))` is the number to
-report as removed. A response cache already made the second copy's calls free;
-what it could not do was stop the duplicate appearing in the results as a
-second, independent document.
+report as removed. A response cache would make the second copy's calls free, but
+the duplicate would still appear in the results as a second document.
 
 `document_id`, beside `document` in the summary, is the hash of that cleaned
-text. Cite with it. A filename changes when the file is renamed, collides
-between folders, and does not exist at all for a document passed as text, while
-the id is the same string for the same document in every run and on every
-machine.
+text. Cite with it. A filename changes when you rename the file, collides
+between folders, and does not exist for a document passed as text. The id is
+the same string for the same document in every run and on every machine.
 
-You can see what it cost. `out$trace` holds the run's calls, and
+**You can see what it cost.** `out$trace` holds the run's calls, and
 `hr_trace_cost()` prices them at each step's own model, counting only the calls
 that were issued. The mock client has no price, so this bill is zero;
 `vignette("runs")` explains the columns and how to register a price.
