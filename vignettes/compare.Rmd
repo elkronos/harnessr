@@ -11,18 +11,20 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-Should this corpus be read with `retrieve` or `map_reduce`? Do smaller chunks
-help? Is `top_k = 1` enough? Does the screener need to see more of each record?
-Each of these is a comparison between configurations, and each can be answered
-the same way: build one arm per configuration, run them all on the same
-labelled questions several times, and read the report with its intervals.
+You may want to know whether to read a corpus with `retrieve` or
+`map_reduce`, whether smaller chunks help, whether `top_k = 1` is enough, or
+whether the screener needs to see more of each record. Each question compares
+configurations, and you answer each one the same way. Build one arm per
+configuration, run all the arms on the same labelled questions several times,
+and read the report with its intervals.
 
-`vignette("evaluate")` explains the machinery: references and splits, arms,
-scorers, benchmarks, reports, judges. This guide puts it to work on five
+`vignette("evaluate")` explains the parts: references and splits, arms,
+scorers, benchmarks, reports and judges. This guide uses them for five
 comparisons: readers, segmenters and chunk sizes, one setting swept over its
 values, screening settings, and a judge against people's labels. Each runs
-offline here on a stand-in model, and each ends in a report and what it does
-and does not show. The last section repeats the steps on your own documents.
+offline on a stand-in model and ends in a report, with what that report shows
+and what it leaves open. The last section repeats the steps on your own
+documents.
 
 ## Setting up
 
@@ -34,12 +36,12 @@ hr_register_model("mock-model", context_window = 128000, max_output = 16384,
                   input_usd = 1, output_usd = 4)
 ```
 
-The stand-in model's id is `mock-model`; the price gives the benchmarks a cost
-to compare. The corpus is twelve short annual reports. Each has six paragraphs,
-one topic each, and four questions are asked of each report. Some sentences
-share a question's words without answering it ("Export revenue rose with
-prices"), as real reports do, so ranking chunks by the question's words can
-pick the wrong one:
+The stand-in model's id is `mock-model`, and its price gives each benchmark a
+cost you can compare. The corpus is twelve short annual reports. Each has six
+paragraphs, one topic each, and four questions about it. As in real reports,
+some sentences share a question's words without answering it ("Export revenue
+rose with prices"), so ranking chunks by the question's words can pick the
+wrong one:
 
 ```{r}
 co <- data.frame(
@@ -87,16 +89,15 @@ qa <- gr_qa_reference(
 qa
 ```
 
-The first four reports are the dev split, kept for tuning; the other eight are
-the test split, which every reported comparison is scored on. Each report is
-one cluster, since four questions about one report share its quirks.
-`hr_assign_splits()` draws the split for a set of your own.
+The first four reports form the dev split, kept for tuning. The other eight
+form the test split, and every reported comparison is scored on it. Each report
+is one cluster, because its four questions share its quirks. For a set of your
+own, `hr_assign_splits()` draws the split.
 
-The stand-in reader answers from what it is shown. It finds the sentence that
-answers the question in its prompt and returns it, or `NOT_IN_DOCUMENT` when
-the prompt does not hold it. Like a real model it gets worse as its prompt
-grows: it misses a sentence it was shown with probability equal to the
-prompt's length in characters over 6000.
+The stand-in reader answers from its prompt. It returns the sentence there
+that answers the question, or `NOT_IN_DOCUMENT` if the prompt lacks one. Like a
+real model, it does worse as its prompt grows: it misses a sentence it was
+shown with probability equal to the prompt's length in characters over 6000.
 
 ```{r}
 pattern <- c(revenue = "Revenue was [0-9.]+ million dollars in fiscal 2024",
@@ -116,46 +117,45 @@ reader <- hr_mock_client(function(messages, params) {
 
 ## Which settings there are
 
-Every setting a reader, segmenter or ingest step takes is declared in a
-schema, with its type, default, range, tier and the evidence behind its
-default. `gr_settings()` returns the schema; printed, it shows each setting's
-tier and evidence status:
+A schema declares every setting a reader, segmenter or ingest step takes,
+with its type, default, range, tier and the evidence behind its default.
+`gr_settings()` returns the schema, and its print shows each setting's tier
+and evidence status:
 
 ```{r}
 gr_settings("segment")
 ```
 
-`basic` marks the few settings most comparisons vary; the read schema's are
-`reader`, `model`, `top_k`, `cite` and `verify`. `as.data.frame()` adds the
-default and where it came from:
+The `basic` tier marks the few settings most comparisons vary. In the read
+schema those are `reader`, `model`, `top_k`, `cite` and `verify`.
+`as.data.frame()` adds each default and where it came from:
 
 ```{r}
 rs <- as.data.frame(gr_settings("read"))
 rs[rs$name %in% c("top_k", "lexical_blend", "bm25_k1"), c("name", "default", "status", "source")]
 ```
 
-Most defaults are `untested`: they were chosen, not measured. That is what
-makes them worth comparing. Any setting in these schemas can be given to
+Most defaults are `untested`: someone picked them without measuring them,
+which makes them worth comparing. You can give any setting in these schemas to
 `gr_arm()` in `settings`, which takes what `answer_document()` takes in `...`.
 
 ## The rules every comparison here follows
 
-- **Tune on dev, report on test.** Settings are chosen by looking at dev
-  results, which are never reported. A setting chosen on the test split and
-  then reported on it is fitted to those questions, and its advantage is
-  partly luck. `hr_report()` leaves dev rows out.
+- **Tune on dev, report on test.** Choose settings by their dev results,
+  and never report those results. A setting chosen on the test split and then
+  reported on it is fitted to those questions, so part of its advantage is
+  luck. `hr_report()` leaves dev rows out.
 - **At least five runs, and ten when the report asks.** A model asked the
   same question twice can answer differently. With fewer than five runs,
-  `hr_benchmark()` warns and `hr_report()` gives no intervals. When
-  run-to-run variance is above 10% of the total, the report's notes say
-  "use runs = 10".
-- **One governor for the whole benchmark.** The default limits are for one
-  read (400 calls). Size `hr_governor()` for arms x items x runs x calls per
-  run, and check afterwards how much of it was used.
-- **Intervals, not point estimates.** An arm ahead by 5 points with an
-  interval from -3 to 13 has not been shown to be better.
-- **Know the smallest difference the design can see.** `hr_mdd()` gives it
-  before anything is run.
+  `hr_benchmark()` warns and `hr_report()` gives no intervals. If run-to-run
+  variance is above 10% of the total, the report's notes say "use runs = 10".
+- **One governor for the whole benchmark.** The default limits fit one read
+  (400 calls). Size `hr_governor()` for arms x items x runs x calls per run,
+  and afterwards check how much of it the benchmark used.
+- **Read intervals.** An arm ahead by 5 points with an interval from -3 to 13
+  has not been shown to be better.
+- **Know the smallest difference the design can detect.** `hr_mdd()` gives
+  it before you run anything.
 
 The test split here is 32 questions in 8 reports. If the two arms disagree on
 about 15% of questions and questions in one report are correlated at 0.1:
@@ -165,9 +165,9 @@ hr_mdd(32, n_clusters = 8, icc = 0.1, p_disc = 0.15)
 hr_n_needed(0.05, m = 4, icc = 0.1, p_disc = 0.15)
 ```
 
-So no comparison below is designed to detect a difference smaller than about
-25.5 points, and a 5 point difference would need about 624 questions in 156
-reports. A difference the report calls uncertain at this size is not evidence
+No comparison below is designed to detect a difference smaller than about
+25.5 points. A 5 point difference would need about 624 questions in 156
+reports. At this size, a difference the report calls uncertain is not evidence
 that the arms are the same.
 
 ## Readers on the same questions
