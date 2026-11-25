@@ -71,7 +71,7 @@ test_that("each diagram keeps its labels as text on a white background", {
 test_that("no diagram has an em dash, an en dash or a spaced double hyphen", {
   for (f in diagram_files) {
     txt <- readLines(diagram_path(f), warn = FALSE, encoding = "UTF-8")
-    expect_false(any(grepl("—|–| -- ", txt)), info = f)
+    expect_false(any(grepl("\u2014|\u2013| -- ", txt)), info = f)
   }
 })
 

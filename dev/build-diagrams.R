@@ -239,7 +239,9 @@ svg_file <- function(cv, title, desc) {
     cv$els,
     "</g>",
     "</svg>")
-  bad <- grepl("[^ -~]", out) | grepl("—|–| -- ", out)
+  # Any character outside printable ASCII (an em or en dash among them), or a
+  # spaced double hyphen.
+  bad <- grepl("[^ -~]", out) | grepl(paste0(" ", strrep("-", 2), " "), out, fixed = TRUE)
   if (any(bad)) stop(sprintf("%s has a character outside printable ASCII or a dash: %s",
                              cv$stem, out[bad][1]), call. = FALSE)
   out
