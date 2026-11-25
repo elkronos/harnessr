@@ -14,9 +14,9 @@ has_pdftools <- requireNamespace("pdftools", quietly = TRUE)
 
 Before a model can read a document, harnessr has to get the text out of the
 file. That step, *ingestion*, is easy to overlook and hard to undo. Text lost
-here, or damaged by too much clean-up, never reaches the model. This guide
-covers what harnessr can read, what it keeps and removes, and how to check a
-folder before you spend anything on it.
+here, or damaged by too much clean-up, stays lost or damaged: no later step
+restores it. This guide covers what harnessr can read, what it keeps and
+removes, and how to check a folder before you spend anything on it.
 
 `vignette("harnessr")` introduces the package and the ideas used here.
 
