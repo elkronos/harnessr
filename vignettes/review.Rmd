@@ -13,8 +13,8 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 `answer_document()` asks one question of one document. You may have a folder
 of documents instead, or a literature review: a folder, the search that found
-it, and a write-up that someone else must be able to check. Here is that work
-in the order you do it:
+it, and a write-up that someone else must be able to check. In the order you
+do it:
 
 1. Ask one question of every document with `gr_read_many()`.
 2. Start a review from a database search with `gr_search()` and `gr_records()`.
@@ -180,8 +180,9 @@ Pass `recs` to `gr_screen()` and `gr_extract()` wherever you would pass a
 folder. A record set gives you four things a folder cannot.
 
 **The flow counts start at identification.** `gr_flow()` begins at records
-identified. From a folder it begins at "sources given", one step after the
-search that someone else needs to reproduce.
+identified. From a folder it begins at "sources given", after the steps that
+let someone else repeat the search: records identified, duplicates removed and
+reports sought.
 
 **Records with no document stay visible.** Fourteen reports sought and not
 retrieved is a finding about the review. A folder leaves no trace of them.
@@ -812,8 +813,8 @@ review$figures[, c("number", "studies", "backed", "basis")]
 The check accepts a change of form, such as `.61` for 0.61 or `1204` for 1,204,
 but not a changed digit. A figure found nowhere, such as 54.2 written for 45.2,
 has `backed = FALSE`, is counted in `n_unbacked` and raises a warning. It does
-not make the section partial; partial is about citations. A backed figure was
-copied correctly from the cited row, and it can still be the wrong figure for
+not make the section partial; partial is about citations. A figure found in
+the cited row was copied correctly, and it can still be the wrong figure for
 the sentence.
 
 Each figure found in a row is also linked to the field it reports, and each
@@ -1051,10 +1052,11 @@ studies or fewer, no tally can reach p < 0.05, and `print(cm)` says so: read
 such a tally as a count of directions (Campbell et al. 2020; Boon and Thomson
 2021).
 
-`cm$moderators` tests each moderator a claim names, declared in advance
-(`moderators =`) or exploratory. It gives Fisher's exact p of the split, the
-smallest p a split of that many studies can give, and a Holm adjustment over
-the declared ones. A split of one study against one is always exploratory.
+`gr_claims()` tests each moderator a claim names, declared in advance
+(`moderators =`) or exploratory, and reports it in `cm$moderators`. It gives
+Fisher's exact p of the split, the smallest p a split of that many studies can
+give, and a Holm adjustment over the declared ones. A split of one study
+against one is always exploratory.
 `?gr_claims` lists the ICEMAN items to assess a moderator against; you score
 them yourself.
 
@@ -1082,10 +1084,10 @@ literature.
 
 `gr_outline()` then derives the sections from the claims and returns an
 ordinary outline you can accept, edit or discard; `attr(outline, "claims")`
-assigns the claims to sections. `gr_gaps()` computes in R, with no model call,
-what the corpus does not contain: a declared category nobody studied, a
-dimension with no variation, a claim nobody has replicated, a disagreement
-nothing explains. You can check the gap list by counting:
+holds the assignment of claims to sections. `gr_gaps()` computes in R, with no
+model call, what the corpus does not contain: a declared category nobody
+studied, a dimension with no variation, a claim nobody has replicated, a
+disagreement nothing explains. You can check the gap list by counting:
 
 ```{r}
 outline <- gr_outline(cm, client = claim_writer)
@@ -1423,8 +1425,8 @@ hand.
   flags: the revision is kept as it was, and a person reads the flags.
 
 **Signs they need changing.** A long `cm$unverified` list for values you can
-see in the documents points to the extraction's quotes: look at why they
-failed before you switch to `"include"`. A `$coherence` table where the last
+see in the documents points to the extraction's quotes, not to `"include"`.
+Look at why the quotes failed. A `$coherence` table where the last
 allowed round still changed the text, with nothing discarded, points to
 another round. `$figures` rows with `backed = FALSE` for a rounded figure that
 is right ("about 50 million" for 51.8) point to a wider `about`; rows backed
