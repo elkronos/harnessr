@@ -76,9 +76,10 @@ returns: `"document"`, `"doc"`, `"chunks"`, `"answer"` or `"state"`.
 
 ## Chains
 
-`hr_chain()` runs its steps in order: the first gets the item, each later step
-gets what the step before returned, and the chain returns what the last step
-returns. An argument's name is the step's name in the chain.
+`hr_chain()` runs its steps in order. The first step gets the item, each later
+step gets what the step before it returned, and the chain returns what the
+last step returns. The name you give each argument is that step's name in the
+chain.
 
 ```{r}
 checked <- hr_chain(segment = gr_step("segment"),
@@ -88,10 +89,13 @@ checked <- hr_chain(segment = gr_step("segment"),
 checked
 ```
 
-The arm records each step's settings as `"step.setting"`, so a benchmark gets
-a `param.retrieve.top_k` column for it. A chain is derived from another by
-naming steps: `NULL` drops one, a step under an existing name replaces it
-where it stands, and a step under a new name is added at the end.
+The arm records each step's settings as `"step.setting"`, so a benchmark of
+`checked` has a `param.retrieve.top_k` column. To derive one chain from
+another, pass the old chain and name the steps to change:
+
+- `NULL` drops a step.
+- A step under an existing name replaces that step where it stands.
+- A step under a new name goes at the end.
 
 ```{r}
 nojudge <- hr_chain(checked, judge = NULL, name = "nojudge")
@@ -99,8 +103,8 @@ wider <- hr_chain(checked, retrieve = gr_step_retrieve(top_k = 8), name = "wider
 names(attr(wider, "hr_steps"))
 ```
 
-The three run side by side like any arms. Each run sends its requests at its
-own draw, so a cache does not hand one run's reply to the next:
+The three chains run side by side like any other arms. Each run sends its
+requests at its own draw, so a cache does not hand one run's reply to the next:
 
 ```{r}
 bench <- hr_benchmark(list(checked, nojudge, wider), ref, runs = 5, client = cl,
@@ -111,12 +115,14 @@ head(hr_signals(bench, "judged")[, c("arm", "run", "item", "value")], 3)
 
 ### What a chain checks when it is built
 
-A step that takes chunks when no step before it returns chunks warns with
-class `hr_chain_gap`: a read step would cut the document at the default
-settings without saying so. A segment step first in a chain does not warn,
-though it reads the document at the default ingest settings; put an ingest
-step before it to choose them. After a step that returns the answer, only steps
-that take `"answer"` or `"state"`, or declare nothing, can follow.
+`hr_chain()` warns with class `hr_chain_gap` when a step takes chunks and no
+step before it returns them. Without the warning, a read step would cut the
+document at the default settings without saying so. A segment step first in a
+chain does not warn, though it reads the document at the default ingest
+settings; put an ingest step before it to choose them.
+
+After a step that returns the answer, only steps that take `"answer"` or
+`"state"`, or declare nothing, can follow.
 
 ```{r}
 tryCatch(hr_chain(read = gr_step("read", reader = "stuff"), name = "gap"),
@@ -125,16 +131,16 @@ try(hr_chain(segment = gr_step("segment"), read = gr_step("read", reader = "stuf
              retrieve = gr_step_retrieve(), name = "late"))
 ```
 
-Step names cannot contain a dot, since settings are named `"step.setting"`,
-and cannot repeat.
+Step names cannot repeat, and they cannot contain a dot, because settings are
+named `"step.setting"`.
 
 ### When two chains are the same
 
 A chain's configuration is a hash of its steps' code, the values that code
 reads, and their resolved settings. Two chains with the same configuration
-send the same requests, and `hr_benchmark()` warns (`hr_same_config`) when
-asked to compare them. A setting given at its default gives the same
-configuration as the setting left out:
+send the same requests, and `hr_benchmark()` warns with class
+`hr_same_config` when you ask it to compare them. A setting given at its
+default gives the same configuration as the setting left out:
 
 ```{r}
 a <- hr_chain(segment = gr_step("segment"), retrieve = gr_step_retrieve(), name = "a")
