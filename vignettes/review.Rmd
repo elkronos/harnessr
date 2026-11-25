@@ -38,14 +38,14 @@ is in `vignette("evaluate")`.
 
 ## Setting up
 
-Everything below runs offline. `gr_mock_client()` stands in for the model: its
+Everything below runs offline. `hr_mock_client()` stands in for the model: its
 handler is an ordinary R function. `embedder = "lexical"` keeps retrieval free
 and deterministic.
 
 ```{r message = FALSE}
 library(harnessr)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
-cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
+cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
 ```
 
 ## Reading many documents
@@ -83,7 +83,7 @@ and its error in the `error` column, and the other hundred and ninety-nine
 answers survive. Pass `on_error = "stop"` if you would rather it aborted.
 
 Budgets are per document, and the run has its own. Every document gets its
-own trace, so `gr_options(max_calls =)` and `gr_options(max_cost_usd =)` apply to
+own trace, so `hr_options(max_calls =)` and `hr_options(max_cost_usd =)` apply to
 each one exactly as if you had read it alone, and one enormous document cannot
 starve the rest. On its own that leaves the run unbounded: two hundred documents
 under a 400-call ceiling is a corpus ceiling of eighty thousand calls. So there
@@ -109,15 +109,15 @@ written as it completes and restored on a later run. Combined with a durable
 response cache, restarting a four-hour job costs approximately nothing:
 
 ```{r eval = FALSE}
-durable <- gr_cache_client(cl, gr_cache(tools::R_user_dir("harnessr", "cache")))
+durable <- hr_cache_client(cl, hr_cache(tools::R_user_dir("harnessr", "cache")))
 gr_read_many(reports, "What was revenue?", "thorough",
              client = durable, store = file.path(tempdir(), "run-store"))
 ```
 
 The store is keyed on the document's path, size and mtime, the question, the
 whole pipeline and the model, so an edited document is a new job, not a stale
-hit. A `gr_backend_client()` needs a stable `id` for a store or a cache to be
-reused by a later session; `gr_client()` and `gr_ellmer_client()` already know
+hit. An `hr_backend_client()` needs a stable `id` for a store or a cache to be
+reused by a later session; `hr_client()` and `hr_ellmer_client()` already know
 what they are.
 
 The same document is read once. The same paper reaches you from three
@@ -137,12 +137,12 @@ the id is the same string for the same document in every run and on every
 machine.
 
 You can see what it cost. `out$trace` holds the run's calls, and
-`gr_trace_cost()` prices them at each step's own model, counting only the calls
+`hr_trace_cost()` prices them at each step's own model, counting only the calls
 that were issued. The mock client has no price, so this bill is zero;
 `vignette("runs")` explains the columns and how to register a price.
 
 ```{r}
-gr_trace_cost(out$trace)[, c("model", "calls", "paid_calls", "usd")]
+hr_trace_cost(out$trace)[, c("model", "calls", "paid_calls", "usd")]
 ```
 
 ## From a search to a review
@@ -250,7 +250,7 @@ and title in the opening of each document's text, and say in an `identity`
 column whether they found either:
 
 ```{r}
-said <- gr_mock_client(function(m, p) "A randomised trial.")
+said <- hr_mock_client(function(m, p) "A randomised trial.")
 read <- gr_read_many(recs, "What was the design?", "fast", client = said)
 read$summary[, c("document", "identity")]
 ```
@@ -275,7 +275,7 @@ it. Four functions cover that, and they compose in one direction:
 Passing the same `trace =` to `gr_screen()`, `gr_extract()`, `gr_claims()`,
 `gr_outline()` and `gr_synthesise()` accumulates the whole review in one place.
 It is a parent: each stage still records on a trace of its own, which is what
-its `$trace` returns and what `gr_options(max_calls =)` is measured against, and
+its `$trace` returns and what `hr_options(max_calls =)` is measured against, and
 adds its calls to the shared one when it finishes. So the screening cannot spend
 the write-up's ceiling, the shared trace's totals are the sum of the stages',
 and each request is counted once.
@@ -327,7 +327,7 @@ This stand-in screener includes the northern report and cannot decide about the
 southern one:
 
 ```{r}
-screener <- gr_mock_client(function(messages, params) {
+screener <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                 collapse = " ")
   if (grepl("51.8", seen, fixed = TRUE)) {
@@ -685,7 +685,7 @@ paragraph about two hundred others; a table can be sorted, counted, filtered and
 published.
 
 ```{r}
-extractor <- gr_mock_client(function(messages, params) {
+extractor <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                 collapse = " ")
   n <- if (grepl("45.2", seen, fixed = TRUE)) "45.2" else "51.8"
@@ -769,7 +769,7 @@ never counted as reporting nothing because it was not read.
 cites the rows it rests on:
 
 ```{r}
-writer <- gr_mock_client(function(messages, params) {
+writer <- hr_mock_client(function(messages, params) {
   paste("Revenue was higher in the southern region, at 51.8 million dollars [study 2],",
         "than in the northern, at 45.2 million [study 1].")
 })
@@ -888,7 +888,7 @@ studies <- data.frame(
   stringsAsFactors = FALSE
 )
 
-cite_writer <- gr_mock_client(function(messages, params)
+cite_writer <- hr_mock_client(function(messages, params)
   "Three studies met the criteria [study 1] [study 2] [study 3].")
 
 cited <- gr_synthesise(
@@ -985,7 +985,7 @@ studies that support it, the studies that contradict it, and the field that
 distinguishes them. The stand-in below plays all three stages that follow:
 
 ```{r}
-claim_writer <- gr_mock_client(function(messages, params) {
+claim_writer <- hr_mock_client(function(messages, params) {
   sys <- messages[[1]]$content
   if (grepl("turn a table of studies", sys, fixed = TRUE)) {
     return(paste0('{"claims":[{"claim":"Revenue is higher in the south than the north.",',
@@ -1242,7 +1242,7 @@ instruction, so the first test is what it does to the same reply. This
 stand-in excludes the southern report for a figure it says is not reported:
 
 ```{r}
-strict_screener <- gr_mock_client(function(messages, params) {
+strict_screener <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                 collapse = " ")
   south <- grepl("51.8", seen, fixed = TRUE)
@@ -1264,7 +1264,7 @@ draws from a stand-in that includes the southern report once in three show
 `include_if_any`:
 
 ```{r}
-draws <- gr_mock_client(function(messages, params) {
+draws <- hr_mock_client(function(messages, params) {
   seen <- paste(vapply(messages, function(m) as.character(m$content), character(1)),
                 collapse = " ")
   keep <- !grepl("51.8", seen, fixed = TRUE) || identical(params$draw_index, 2L)
@@ -1414,7 +1414,7 @@ test of their direction tally, then by study weight.
 Here the writer rounds 51.8 to "about 50":
 
 ```{r}
-rounder <- gr_mock_client(function(messages, params) {
+rounder <- hr_mock_client(function(messages, params) {
   "Revenue was about 50 million dollars in the south [study 2]."
 })
 bands <- function(about) {
@@ -1433,7 +1433,7 @@ draft's "was higher in" into "caused", and a stand-in judge calls that
 stronger:
 
 ```{r}
-strengthen <- gr_mock_client(function(messages, params) {
+strengthen <- hr_mock_client(function(messages, params) {
   if (grepl("You grade one response", messages[[1]]$content, fixed = TRUE)) {
     stronger <- grepl("caused", messages[[2]]$content, fixed = TRUE)
     return(if (stronger) '{"verdict": "stronger", "reason": "A comparison became a cause."}'
@@ -1552,7 +1552,7 @@ figure in the write-up is in what the writer was shown for that sentence.
 None of them confirms that a value or a sentence is right.
 
 ```{r include = FALSE}
-gr_options(old)
+hr_options(old)
 ```
 
 ## Next
