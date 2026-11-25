@@ -342,21 +342,26 @@ unlink(skill_dir, recursive = TRUE)
 
 ## A coding sub-agent
 
-Steps need not read documents. A coding sub-agent drafts code with a model,
+Steps do not have to read documents. A coding sub-agent drafts code with a model,
 runs the tests on the draft, and asks the model to fix a draft that failed.
 `hr_step_command()` (see `vignette("evaluate")`) runs the tests: it runs one
 program you name and reads its result as `"passed"` or `"failed"`.
 
-The loop has two checks. A visible check runs after the draft, and the
-revise step reads its result in `input$check`. A held check runs last, and
-only the scorer sees it, in `attr(output, "hr_held")`. A revise step that saw
-the scoring check could fit the code to that check, so a held step must
-come last: `hr_chain()` refuses a step that is not held after one
-that is (`hr_held_not_last`). Here the visible and the held check run the
-same tests; a held check can also run tests the loop never sees.
+The loop has two checks:
 
-The tests and the drafts go in a temporary folder. The stand-in model drafts
-a `clamp()` with a bug, and sends the fixed version when told the draft failed:
+- A visible check runs after the draft. The revise step reads its result in
+  `input$check`.
+- A held check runs last. Only the scorer sees it, in
+  `attr(output, "hr_held")`.
+
+A revise step that saw the scoring check could fit the code to that check, so
+a held step must come last. `hr_chain()` refuses a step that is not held after
+one that is, with an error of class `hr_held_not_last`. Here the visible and
+the held check run the same tests; a held check can also run tests the loop
+never sees.
+
+The example puts the tests and the drafts in a temporary folder. The stand-in
+model drafts a `clamp()` with a bug, and sends the fixed version when told the draft failed:
 
 ```{r}
 rscript <- file.path(R.home("bin"), "Rscript")
@@ -402,8 +407,8 @@ coding <- hr_chain(draft = draft,
                    name = "coding")
 ```
 
-The scorer reads the held check. Compared with the same chain without the
-visible check and the revise step, which scores the first draft, the loop
+The scorer reads the held check. The second arm is the same chain without the
+visible check and the revise step, so it scores the first draft. The loop
 passes on every run:
 
 ```{r}
@@ -425,16 +430,16 @@ For a testthat file, give the check `parse = "testthat"`. It reads the last
 `[ FAIL n | WARN n | SKIP n | PASS n ]` line the run printed, and a run with
 a failed test is `"failed"` whatever its exit code. Run the file with a
 reporter that prints that line, such as the default, `"progress"` or
-`"check"`: a run that prints no such line, as under `"summary"`, is read as
-`"error"`. Giving `testthat::test_file()` `stop_on_failure = TRUE` as well
-makes the exit code agree with the result.
+`"check"`. A run that prints no such line, as under `"summary"`, reads as
+`"error"`. Pass `stop_on_failure = TRUE` to `testthat::test_file()` as well if
+you want the exit code to agree with the result.
 
 A stand-in model's handler must be stateless: its reply should depend only
-on the messages and settings it is given, as `coder`'s does. A handler that
-counts its calls, or remembers the last request, answers by the order the
-requests come in. That order changes when runs go to parallel workers, when
-a cache or a recording answers some of them, and when arms are added, so the
-same benchmark would score differently from one run to the next.
+on the messages and settings it gets, as `coder`'s does. A handler that counts
+its calls, or remembers the last request, answers by the order the requests
+come in. That order changes when runs go to parallel workers, when a cache or
+a recording answers some requests, and when you add arms. The same benchmark
+would then score differently from one run to the next.
 
 ## Two goals, start to finish
 
