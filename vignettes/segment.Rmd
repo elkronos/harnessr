@@ -404,21 +404,21 @@ sweep <- function(arms) {
 
 ### Which segmenter {#set-method}
 
-**What it controls.** `method` is where the cuts fall: on a ruler (`fixed`), at
-the author's paragraphs, sentences or headings, at pages, or where the
+**What it controls.** `method` sets where the cuts fall: on a ruler (`fixed`),
+at the author's paragraphs, sentences or headings, at pages, or where the
 embeddings shift (`semantic`). Each is a guess about where meaning breaks. A
-cut through the middle of a table or an argument separates the parts a model
-needs together; chunks that keep whole sections are larger and fewer.
+cut through the middle of a table or an argument separates parts a model needs
+together. Chunks that keep whole sections are larger and fewer.
 
-**Signs it needs changing.** An answer that gives half a figure, or a quotation
-that stops mid-sentence, points to cuts in the wrong places: look at the chunks
-around it with `chunks$chunks$text`. `gr_seg_recall()` reporting the answer
-outside the top chunks for one segmenter and inside for another is the same
-sign, measured. A document with headings that a `paragraph` chunking runs
-across is a candidate for `structural`; a form or invoice for `page`.
+**Signs it needs changing.** Suspect cuts in the wrong places when an answer
+gives half a figure or a quotation stops mid-sentence. Look at the chunks
+around it with `chunks$chunks$text`. The same sign, measured, is
+`gr_seg_recall()` reporting the answer outside the top chunks for one
+segmenter and inside for another. Try `structural` on a document with headings
+that a `paragraph` chunking runs across, and `page` on a form or invoice.
 
 **Where the default came from.** `paragraph` was chosen because it needs no
-model or embedder; it has not been compared with the others (`untested`).
+model or embedder. It has not been compared with the others (`untested`).
 Each recipe sets its own: `"needle"` uses `semantic`, `"precise"` uses
 `sentence`.
 
@@ -430,26 +430,29 @@ bench <- sweep(hr_sweep(gr_arm("needle"),
 aggregate(tokens_in ~ param.method, bench, mean)
 ```
 
-All three sent different requests here (`hr_sweep_check(bench)` has no rows),
-and `structural` sent the most, 690 prompt tokens against 667 for `sentence`,
-because its chunks carry their headings.
+All three arms sent different requests here (`hr_sweep_check(bench)` has no
+rows). `structural` sent the most, 690 prompt tokens against 667 for
+`sentence`, because its chunks carry their headings.
 
 ### Chunk size: `max_tokens` {#set-max-tokens}
 
-**What it controls.** `max_tokens` caps every chunk. Smaller chunks make more
-requests for a reader that sends every chunk, and let a reader that picks the
-best few send less text around the answer; larger chunks keep more context
+**What it controls.** `max_tokens` caps every chunk. Smaller chunks mean more
+requests for a reader that sends every chunk. They also let a reader that picks
+the best few send less text around the answer. Larger chunks keep more context
 together and cost fewer requests.
 
 **Signs it needs changing.** Under `map_reduce` or `skim`, a cost dominated by
 the number of requests (`hr_trace_summary()`) points to larger chunks. Under
-`retrieve`, an answer that is right but rests on long chunks of unrelated
-text points to smaller ones, and an answer split across two chunks, of which
-only one was picked, points to larger ones or to overlap.
+`retrieve`:
 
-**Where the default came from.** 1200 tokens was set when the segmenters were
-written and not tuned (`untested`). The recipes set their own, from 500
-(`"needle"`) to 4000 (`"fast"`).
+- a right answer that rests on long chunks of unrelated text points to smaller
+  chunks;
+- an answer split across two chunks, of which `retrieve` picked only one,
+  points to larger chunks or to overlap.
+
+**Where the default came from.** The 1200-token default was set when the
+segmenters were written and never tuned (`untested`). The recipes set their
+own, from 500 (`"needle"`) to 4000 (`"fast"`).
 
 **How to test it.**
 
@@ -458,27 +461,26 @@ bench <- sweep(hr_sweep(gr_arm("needle"), list(max_tokens = c(100, 200, 500))))
 aggregate(tokens_in ~ param.max_tokens, bench, mean)
 ```
 
-Under `retrieve`, smaller chunks sent more here, 829 prompt tokens at 100
+Under `retrieve`, smaller chunks sent more here: 829 prompt tokens at 100
 against 676 at 500. At 100 the report became eight chunks holding 704 tokens,
-since each repeats the recipe's 50 tokens of overlap, and `retrieve` sent all
-eight (the recipe's `top_k` is 8); at 500 it became two chunks of 563
-tokens. Whether the answers
-change is what a benchmark on your own reference measures.
+since each repeats the recipe's 50 tokens of overlap. `retrieve` sent all eight,
+because the recipe's `top_k` is 8. At 500 the report became two chunks of 563
+tokens. A benchmark on your own reference measures whether the answers change.
 
 ### Overlap: `overlap_tokens` {#set-overlap}
 
 **What it controls.** `overlap_tokens` copies the end of each chunk into the
-start of the next, so a sentence near a cut is whole in at least one chunk. It
-costs duplicated tokens in every request that carries both chunks, and for a
-reader that sends every chunk, in every request (see "Overlap" above).
+start of the next, so a sentence near a cut is whole in at least one chunk. You
+pay for duplicated tokens in every request that carries both chunks. For a
+reader that sends every chunk, that means every request (see "Overlap" above).
 
 **Signs it needs changing.** An answer that needs the end of one chunk and the
 start of the next, such as a figure in one and its unit in the other, points to
 more overlap. A bill that grew with no change in answers points to less.
 
-**Where the default came from.** 0, so no text is sent twice; it has not been
-compared with other values (`untested`). Several recipes set 10% of their
-chunk size.
+**Where the default came from.** The default is 0, so no text is sent twice.
+It has not been compared with other values (`untested`). Several recipes set
+10% of their chunk size.
 
 **How to test it.**
 
@@ -493,24 +495,27 @@ none (829 against 669).
 
 ### Packing: `packing`, `min_tokens` and `runt_merge` {#set-packing}
 
-**What they control.** How units (paragraphs, sentences, pieces) are packed
-into chunks under the cap. `packing = "greedy"` fills each chunk to
-`max_tokens` and leaves the remainder in the last chunk; `"balanced"` keeps
-the same number of chunks and evens their sizes. `min_tokens` merges a chunk
-smaller than it into the chunk before it; `runt_merge = "both"` also merges
-a first chunk smaller than it forward into the second, which the backward
-rule cannot reach, since nothing comes before it.
+**What they control.** These settings decide how units (paragraphs,
+sentences, pieces) are packed into chunks under the cap.
 
-**Signs they need changing.** A last chunk much smaller than the others, in
-a reader that weighs chunks alike (`retrieve` scoring, `map_reduce` notes),
-points to `"balanced"`. A document whose first chunk is only its title, sent
-as a request of its own, points to `min_tokens` with `runt_merge = "both"`.
+- `packing = "greedy"` fills each chunk to `max_tokens` and leaves the
+  remainder in the last chunk. `"balanced"` keeps the same number of chunks and
+  evens their sizes.
+- `min_tokens` merges a chunk smaller than it into the chunk before it.
+- `runt_merge = "both"` also merges a first chunk smaller than `min_tokens`
+  forward into the second. The backward rule cannot reach a first chunk, since
+  nothing comes before it.
+
+**Signs they need changing.** Try `"balanced"` when the last chunk is much
+smaller than the others and the reader weighs chunks alike (`retrieve`
+scoring, `map_reduce` notes). Try `min_tokens` with `runt_merge = "both"` when
+a document's first chunk is only its title, sent as a request of its own.
 
 **Where the defaults came from.** `"greedy"`, `min_tokens = 0` and
-`"backward"` are how chunks were packed before these settings existed; none
-has been compared with the alternatives (`untested`).
+`"backward"` reproduce how harnessr packed chunks before these settings
+existed. None has been compared with the alternatives (`untested`).
 
-**How to test them.** The chunk sizes show what they do, for nothing:
+**How to test them.** The chunk sizes show what they do, at no cost:
 
 ```{r}
 paras <- sprintf("Paragraph %02d reports the year's results in some detail, %s.", 1:25,
@@ -521,8 +526,8 @@ sizes(max_tokens = 300)
 sizes(max_tokens = 300, packing = "balanced")
 ```
 
-Greedy packing leaves 197 tokens in the last of three chunks; balanced packing
-makes three of 229, 252 and 225. What they do to answers is tested with arms:
+Greedy packing leaves 197 tokens in the last of three chunks. Balanced packing
+makes three of 229, 252 and 225. To test what they do to answers, use arms:
 
 ```{r}
 bench <- sweep(hr_sweep(gr_arm("needle", list(method = "paragraph", max_tokens = 150)),
@@ -530,10 +535,10 @@ bench <- sweep(hr_sweep(gr_arm("needle", list(method = "paragraph", max_tokens =
 aggregate(tokens_in ~ param.packing, bench, mean)
 ```
 
-The two sent different requests here, 901 prompt tokens for `"balanced"`
-against 876 for `"greedy"`, because `retrieve` picked chunks of different
-sizes; whether answers change is what a benchmark on your own reference
-measures.
+The two arms sent different requests here, 901 prompt tokens for
+`"balanced"` against 876 for `"greedy"`, because `retrieve` picked chunks of
+different sizes. A benchmark on your own reference measures whether answers
+change.
 
 ### Semantic boundaries: `semantic_threshold` {#set-semantic}
 
