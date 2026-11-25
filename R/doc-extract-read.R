@@ -1,4 +1,4 @@
-# doc-extract-read.R: the `extract` reader: fill a schema from a document.
+# doc-extract-read.R: the `extract` reader, which fills a schema from a document.
 #
 # Traversal `all|N+conflicts|none`. Every chunk is asked to fill whatever fields
 # it can and to leave the rest null; the per-field answers are then reconciled.

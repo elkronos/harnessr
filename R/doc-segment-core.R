@@ -1,4 +1,4 @@
-# doc-segment-core.R: AXIS 2 machinery: the chunk object and shared packing
+# doc-segment-core.R: AXIS 2 machinery. The chunk object and shared packing
 # logic.
 #
 # WHY THIS FILE EXISTS

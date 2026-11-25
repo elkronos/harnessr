@@ -10,7 +10,7 @@
 #
 # Token counting is now:
 #   * pluggable: swap in a real BPE tokenizer when one is available;
-#   * conservative: the default heuristic is deliberately biased to OVERCOUNT,
+#   * conservative: the default heuristic is biased to OVERCOUNT,
 #     because overcounting wastes a little context while undercounting
 #     produces a hard API failure;
 #   * script-aware: CJK and other dense scripts are counted per-character.

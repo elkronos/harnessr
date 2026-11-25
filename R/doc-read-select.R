@@ -60,9 +60,9 @@ mmr_select <- function(rel, emb, k, lambda = 1) {
 
   # A non-finite row poisons everything downstream of it: one NaN reaches every
   # candidate through `pmax()`, every score becomes NaN, `which.max()` returns
-  # integer(0), `sel` stops growing and the `while` NEVER TERMINATES. Not an
-  # error and not a crash. It is a hang, the worst failure a library can
-  # hand you. A zero vector L2-normalised is 0/0, so any chunk an embedder finds
+  # integer(0), `sel` stops growing and the `while` NEVER TERMINATES. The call
+  # hangs instead of raising an error, the worst failure a library can hand
+  # you. A zero vector L2-normalised is 0/0, so any chunk an embedder finds
   # no words in produces one.
   #
   # Neutralise the ROW, do not drop the CANDIDATE. `cosine_against()` already

@@ -13,8 +13,8 @@
 # time. The outline is fixed before the reading, so the write-up is not shaped
 # by what happened to be found.
 #
-# EVERY CLAIM CITES A ROW. Sections are written with `[study 3]` markers, the
-# markers are parsed back out. A marker pointing at a row that does not exist,
+# EVERY CLAIM CITES A ROW. Sections are written with `[study 3]` markers, and
+# the markers are parsed back out. A marker pointing at a row that does not exist,
 # or at a row the call that wrote it was not shown (with claims, or a section
 # drafted in batches), is reported and marks the section partial. This is the
 # same check `new_answer()`

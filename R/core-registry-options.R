@@ -482,13 +482,13 @@ gr_options <- function(...) {
   }
   for (nm in names(args)) args[nm] <- list(check_option(nm, args[[nm]]))
   cur <- as.list(hr_state$options %||% list())
-  # merged(), not modifyList(). modifyList() DELETES a key whose value is NULL,
-  # so once an option had been *stored* as NULL, the returned "old" value came
-  # back with the name NA and the next gr_options(old) failed with "Unknown
-  # option(s): NA". Restoring a saved list stores NULL for `temperature`,
-  # `max_cost_usd`, `cache_dir` or `embedder`. That is the documented on.exit()
-  # pattern breaking on the second use, and it is the same NULL trap the setter
-  # below was already fixed for.
+  # merged(), not modifyList(). modifyList() DELETES a key whose value is NULL.
+  # Restoring a saved list stores NULL for `temperature`, `max_cost_usd`,
+  # `cache_dir` or `embedder` when they were unset. Once an option had been
+  # *stored* as NULL, the returned "old" value came back with the name NA and
+  # the next gr_options(old) failed with "Unknown option(s): NA". That is the
+  # documented on.exit() pattern breaking on the second use, and it is the same
+  # NULL trap the setter below was already fixed for.
   old <- merged()[names(args)]
   # modifyList() DELETES a key whose value is NULL, which silently reverted the
   # option to its default. So `gr_options(max_cost_usd = NULL)`, documented as

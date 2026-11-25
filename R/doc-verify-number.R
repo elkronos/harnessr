@@ -880,7 +880,7 @@ value_among <- function(x, got) {
 #'   inside "1120 participants", and "2" inside almost anything. The boundary
 #'   test is span_match()'s own (found_at()), run on the chunk as written: a
 #'   separate one here rejected what span_match() rightly accepts (a sentence
-#'   stopping before a superscript reference PDF text keeps inline,
+#'   stopping before a superscript reference that PDF text keeps inline, as in
 #'   "mortality12", or a clause of Thai or Khmer), and require_quote deleted
 #'   those values although their quotes verified.
 #' * For an integer or a number, the value must be one of the numbers the span

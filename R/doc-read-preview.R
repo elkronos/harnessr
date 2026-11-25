@@ -285,8 +285,8 @@ read_preview <- function(chunks, question, client, spec, trace) {
     cut <- sum(keep & vapply(res, function(r) isTRUE(r$cut), logical(1)))
     if (any(keep)) {
       rows1 <- vapply(res[keep], function(r) as.integer(r$rows[1]), integer(1))
-      # Model-written, so it carries its source and is verified, the rule
-      # `skim` follows. The source is the whole section the span was drawn from,
+      # Model-written, so it carries its source and is verified, as `skim`
+      # evidence is. The source is the whole section the span was drawn from,
       # which is what the model actually saw, less anything a segmenter wrote.
       src <- vapply(res[keep], function(r) paste(reader_source_text(d)[r$rows], collapse = "\n\n"),
                     character(1))

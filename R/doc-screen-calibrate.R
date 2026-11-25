@@ -872,8 +872,8 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
                                      levels = c("eligible", "not eligible")))
   # A number, compared as a number. `4 >= "10"` is TRUE because R compares as
   # STRINGS, and as_int1() then turned Inf and anything above 2^31 into the
-  # default of 10. Asking for more eligible studies than the sample could have
-  # therefore declared the calibration adequate. A bar that cannot be read falls
+  # default of 10. So asking for more eligible studies than the sample could
+  # hold declared the calibration adequate. A bar that cannot be read falls
   # back to the default, and says so.
   min_pos <- suppressWarnings(as.numeric(min_positives))
   if (length(min_pos) != 1L || is.na(min_pos)) {

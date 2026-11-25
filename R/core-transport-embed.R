@@ -133,7 +133,7 @@ gr_embed <- function(client, texts, model = NULL, batch_size = 64L, cache = NULL
 
   # A trace records each embeddings request, but not the vectors it returned.
   # So a replay can only reproduce a run's ranking if the embedder is a pure
-  # function of the text. Then the vectors are simply computed again and the
+  # function of the text. If it is, the vectors are computed again and the
   # replay is exact. Anything else has to degrade, and say so.
   if (inherits(client, "gr_replay_client")) {
     recorded <- as_chr1(client$embed_source, NA_character_)
@@ -550,9 +550,9 @@ embed_cache_key <- function(embedder, model, text, endpoint = "") {
   # The endpoint, because `embedder` is the literal "api" for every
   # URL-addressed client: two clients with different `base_url` and the same
   # model id shared one entry, and the second one's vectors were the first
-  # one's. The embedder name was added to prevent exactly that failure ("two
-  # different vector spaces silently mixed in one matrix"), and here it was,
-  # reintroduced one field over, where a cosine similarity is meaningless and looks fine.
+  # one's. The embedder name was added to prevent that failure ("two different
+  # vector spaces silently mixed in one matrix"). The model id reintroduced it
+  # one field over, where a cosine similarity is meaningless and looks fine.
   gr_hash(list("readgpt-embed-v2", as_chr1(embedder, "?"), as_chr1(model, "?"),
                as_chr1(endpoint, ""), key_text(as_chr1(text))))
 }

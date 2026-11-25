@@ -1,4 +1,4 @@
-# doc-segment-run.R: AXIS 2: the public segmentation entry point.
+# doc-segment-run.R: AXIS 2, the public segmentation entry point.
 
 #' Describe a segmentation configuration
 #'
