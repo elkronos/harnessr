@@ -912,25 +912,27 @@ hr_sweep_check(bench)
 ```
 
 `cite` added 22 prompt tokens to each run. `verify` sent the same requests as
-no check, as it should: it acts on the reply, so its effect is in which
-answers are marked partial (`ans$partial`, `ans$notes$unverified_evidence`),
-not in what is sent. Score it with a scorer that counts a partial answer as
-wrong, or compare the `partial` rate by hand.
+no check, because it acts on the reply. Its effect shows in which answers come
+back partial (`ans$partial`, `ans$notes$unverified_evidence`). Score it with a
+scorer that counts a partial answer as wrong, or compare the `partial` rate by
+hand.
 
 ### Outcomes: `answer_format` {#set-answer-format}
 
-**What it controls.** Every answer carries `ans$outcome`: `"answered"`,
+**What it controls.** Every answer carries `ans$outcome`, and
+`is_not_found(ans)` reads it. The outcome is one of `"answered"`,
 `"partial"`, `"not_found"`, `"refused"` (a limit stopped the run) or
 `"failed"` (every model request the run made failed, whichever reader made
-it), and `is_not_found(ans)` reads it.
+it).
+
 `answer_format` decides how the answering request reports the found or
 not-found part. `"parsed"` sends the free-text request and looks for
 `NOT_IN_DOCUMENT` in the reply. `"schema"` sends the request with a JSON
-schema holding `answer` and `outcome`, so a reply such as "The excerpt does
-not mention revenue" is a not-found when the model says so in `outcome`,
-not an answer. A forced schema costs a few prompt tokens and needs a
-provider that supports structured output; published comparisons disagree on
-whether it changes answer quality.
+schema holding `answer` and `outcome`. A reply such as "The excerpt does not
+mention revenue" then counts as a not-found when the model says so in
+`outcome`. A forced schema costs a few prompt tokens and needs a provider that
+supports structured output; published comparisons disagree on whether it
+changes answer quality.
 
 **Signs it needs changing.** Answers that say in words that the document is
 silent, counted as answers because they lack the sentinel, point to
@@ -938,9 +940,8 @@ silent, counted as answers because they lack the sentinel, point to
 `FALSE`) point back to `"parsed"` for that provider.
 
 **Where the default came from.** `"parsed"` is what the readers sent before
-the setting existed (`untested`). The choice is left open until a live
-comparison on the default model settles it, so the default does not change
-here.
+the setting existed (`untested`). The default stays until a live comparison on
+the default model settles the choice.
 
 **How to test it.**
 
@@ -965,17 +966,20 @@ reference, compare `correct`, and how often answers come back not found, by
 
 **What they control.** `premise = TRUE` tells the answering requests to say
 when the excerpts contradict an assumption in the question (see "Questions
-that assume something false"). `premise_verdict` decides how they say it.
-`"sentence"` is a `FALSE_PREMISE:` sentence in the reply. `"structured"`
-asks for a `premise_status` field and the `quote` from the excerpts that
-states the contrary, in a JSON schema, and checks the quote against the
-excerpts that request was shown with the matcher `gr_verify_evidence()`
-uses (and against the document, where it was shown passages or summaries a
-model wrote); the answer gains
-`ans$premise_verdict`. In `map_reduce`, a chunk's verdict goes to the merge
-only when its quote is found in that chunk; the others are dropped and listed
-in `notes$premise_dropped`. The trade is a longer prompt and a schema the
-provider must support, for a verdict that has to point at its evidence.
+that assume something false"). `premise_verdict` decides how they say it:
+
+- `"sentence"` is a `FALSE_PREMISE:` sentence in the reply.
+- `"structured"` asks, in a JSON schema, for a `premise_status` field and the
+  `quote` from the excerpts that states the contrary. harnessr checks the quote
+  against the excerpts that request was shown, with the matcher
+  `gr_verify_evidence()` uses, and against the document where the request was
+  shown passages or summaries a model wrote. The answer gains
+  `ans$premise_verdict`.
+
+In `map_reduce`, a chunk's verdict goes to the merge only when its quote is
+found in that chunk; the reader drops the others and lists them in
+`notes$premise_dropped`. You pay with a longer prompt and a schema the provider
+must support, and get a verdict that has to point at its evidence.
 
 **Signs they need changing.** Questions that take something false for
 granted, answered on their own terms, point to `premise = TRUE`. Verdicts
@@ -1015,9 +1019,10 @@ structured verdict's quote verifies (`ans$premise_verdict$quote_verified`).
 ### Reasoning: `effort` {#set-effort}
 
 **What it controls.** `effort` sets how much a reasoning model reasons, for
-every request or by stage (see "Reasoning effort, stage by stage"). Reasoning
-is billed as output and shares the reply's cap, so lower effort is cheaper and
-faster, and higher effort can help the few requests that judge or combine.
+every request or by stage (see "Reasoning effort, stage by stage"). The
+provider bills reasoning as output and counts it against the reply's cap, so
+lower effort is cheaper and faster, and higher effort can help the few requests
+that judge or combine.
 
 **Signs it needs changing.** `tokens_reasoning` in a benchmark, or the trace,
 taking most of the output of per-chunk requests points to `"low"` for those
@@ -1048,10 +1053,10 @@ requests differ.
 ### Merges: `max_merge_levels` {#set-merge-levels}
 
 **What it controls.** When the findings of `map_reduce`, `skim` and the other
-merging readers do not fit one merge request, they are merged in levels.
-`max_merge_levels` caps the levels; past it the reader returns its findings
-unmerged and cut, and marks the answer partial. `fan_in` and `max_levels` play
-the same parts for `hierarchical`'s summaries.
+merging readers do not fit one merge request, the reader merges them in levels.
+`max_merge_levels` caps the levels. Past the cap, the reader returns its
+findings unmerged and cut, and marks the answer partial. `fan_in` and
+`max_levels` play the same parts for `hierarchical`'s summaries.
 
 **Signs it needs changing.** A partial answer whose notes say a merge fell back
 to joining the answers, on a very long document, points to a higher cap (or to
@@ -1074,34 +1079,41 @@ on this report. Test the cap on your longest documents, where it can bind.
 ### What a request keeps: `context_policy` and `refine_state` {#set-context-policy}
 
 **What they control.** When the text a request carries does not fit, a reader
-cuts it, and every reader keeps the start of what it cuts. `context_policy`,
-an `hr_context_policy()`, states once what to do instead: which pieces are
-never cut (`pin`), which are cut first (`cut_order`), and which part of a cut
-piece is kept (`keep`: `"head"`, `"tail"` or `"both"` ends). The readers have
-no scores for their pieces, so they read a `"scored"` rule as `"head"`;
-`hr_truncate()` and `hr_context_fit()` take scores directly. It applies to `refine`'s draft and excerpt, the findings a
-merge combines, `hierarchical`'s summaries and `preview`'s outline and skims.
-The readers that pack whole chunks write a `"truncate"` step naming the chunks
-they left out, and with `order_merges = TRUE` merges and the `ensemble`
-adjudication place their findings by `context_order`. `refine_state` decides
-what `refine` carries down the document: a draft it rewrites with each chunk
-(`"draft"`), or a numbered ledger of findings that each request adds to,
-replaces or drops from, with one more request at the end to answer from it
-(`"ledger"`). A rewritten draft can lose a finding no later chunk restores; a
-ledger keeps every finding no edit names, word for word, and costs one more
-request.
+cuts it, and every reader keeps the start of what it cuts. `context_policy`, an
+`hr_context_policy()`, states once what to do instead:
+
+- which pieces are never cut (`pin`);
+- which are cut first (`cut_order`);
+- which part of a cut piece is kept (`keep`: `"head"`, `"tail"` or `"both"`
+  ends).
+
+The readers have no scores for their pieces, so they read a `"scored"` rule as
+`"head"`; `hr_truncate()` and `hr_context_fit()` take scores directly. The
+policy applies to `refine`'s draft and excerpt, the findings a merge combines,
+`hierarchical`'s summaries and `preview`'s outline and skims. The readers that
+pack whole chunks write a `"truncate"` step naming the chunks they left out.
+With `order_merges = TRUE`, merges and the `ensemble` adjudication place their
+findings by `context_order`.
+
+`refine_state` decides what `refine` carries down the document. Under
+`"draft"`, it carries a draft it rewrites with each chunk. Under `"ledger"`, it
+carries a numbered ledger of findings that each request adds to, replaces or
+drops from, with one more request at the end to answer from it. A rewritten
+draft can lose a finding no later chunk restores. A ledger keeps every finding
+no edit names, word for word, and costs one more request.
 
 **Signs they need changing.** `"truncate"` steps in the trace (`where`,
-`tokens_dropped`) on the requests whose answers are wrong say a cut lost what
-was needed; `dropped_part` says which part went. A fact stated early in a long
+`tokens_dropped`) on the requests whose answers are wrong show that a cut lost
+what was needed, and `dropped_part` names the part that went. A fact stated early in a long
 document and missing from `refine`'s answer, or a figure that a later
 correction should have replaced, points to `refine_state = "ledger"`.
 `gr_condensation_check()` (see `vignette("evaluate")`) builds a test of
 exactly that.
 
 **Where the defaults came from.** `context_policy = NULL` keeps the cuts every
-reader made before the setting existed, and `refine_state = "draft"` the state
-`refine` carried. Neither has been compared with the alternatives (`untested`).
+reader made before the setting existed, and `refine_state = "draft"` keeps the
+state `refine` carried. Nobody has compared either with the alternatives
+(`untested`).
 
 **How to test them.**
 
@@ -1124,9 +1136,9 @@ aggregate(cbind(calls, tokens_in, correct) ~ param.refine_state, bench, mean)
 ```
 
 The ledger made 9 requests to the draft's 8, the last one answering from the
-list, and sent 2251 prompt tokens to 1839, since its instructions are longer.
-Both answered right. To try a policy, give one arm an `hr_context_policy()`
-and compare the `"truncate"` steps of the two:
+list, and sent 2251 prompt tokens to 1839 because its instructions are longer.
+Both answered right. To try a policy, give one arm an `hr_context_policy()` and
+compare the `"truncate"` steps of the two:
 
 ```{r}
 tight <- function(policy) {
@@ -1139,20 +1151,24 @@ arms <- hr_sweep(function(keep) {
 length(arms)
 ```
 
-The example report fits every request whole, so nothing is cut here; on your
+The example report fits every request whole, so nothing is cut here. On your
 own long documents, run the arms with `hr_benchmark()` as above.
 
 ### Preview safeguards: `unskip_k` and `reread_on` {#set-preview}
 
 **What they control.** `preview` follows a plan its first request makes, and
-a section the plan skips is never read. `unskip_k` reads the `k` sections
-that match the question's words best (BM25 over each section's text) even
-when the plan skips them, so a plan cannot drop the one section that holds
-the question's words; it costs no request, but the answer prompt grows by the
-sections it adds. `reread_on = "not_found"` follows an answer of
-`NOT_IN_DOCUMENT` with one more request over the sections not read in full,
-so it trades at most one request for a second look. Every skip is in the
-trace as a `preview.skip` step with its score, whatever the settings.
+it never reads a section the plan skips. Two settings guard against a bad plan:
+
+- `unskip_k` reads the `k` sections that match the question's words best (BM25
+  over each section's text) even when the plan skips them, so a plan cannot
+  drop the one section that holds the question's words. It costs no request,
+  but the answer prompt grows by the sections it adds.
+- `reread_on = "not_found"` follows an answer of `NOT_IN_DOCUMENT` with one
+  more request over the sections not read in full, trading at most one request
+  for a second look.
+
+Whatever the settings, the trace records every skip as a `preview.skip` step
+with its score.
 
 **Signs they need changing.** `NOT_IN_DOCUMENT` from `preview` for a fact
 you can find, where `ans$notes$plan` shows its section skipped, or a
@@ -1164,7 +1180,7 @@ Not-found answers on questions you know the document answers point to
 `reread_on = "never"`), so `preview` makes the requests it made before they
 existed (`untested`).
 
-**How to test them.** Here the plan skips the summary, which holds the
+**How to test them.** In this test, the plan skips the summary, which holds the
 revenue figure:
 
 ```{r}
@@ -1186,7 +1202,7 @@ hr_sweep_check(bench)
 ```
 
 `unskip_k = 1` put the summary back into the answer prompt, 106 prompt
-tokens more. `reread_on` sent nothing more here, because the stand-in model
+tokens more. `reread_on` sent nothing more here because the stand-in model
 never answers `NOT_IN_DOCUMENT`, and `hr_sweep_check()` lists those arms as
 sending the same requests as the arms without it. Test it on questions your
 reader misses.
@@ -1212,7 +1228,7 @@ switching, point back.
 the setting existed (`untested`). `rerank_min_score = 4` was set when the
 reader was written and not tuned.
 
-**How to test it.** Here a cut of 10 rejects every candidate:
+**How to test it.** In this test, a cut of 10 rejects every candidate:
 
 ```{r}
 ranks <- gr_arm("thorough", list(method = "structural", max_tokens = 120,
@@ -1229,11 +1245,10 @@ At the default the run ends after the scoring requests and is wrong;
 ## Composing a run from steps
 
 `gr_step()` builds one stage of a run (ingest, segment or read) as a step, a
-function of `(input, ctx)`, and `gr_step_retrieve()` ranks the chunks and
-keeps the best, as `retrieve` does, without asking for an answer. Each
-step's settings are checked when it is built. Inside an `hr_arm()` the
-steps use the run's client and trace, so a benchmark counts and limits
-their requests:
+function of `(input, ctx)`. `gr_step_retrieve()` ranks the chunks and keeps the
+best, as `retrieve` does, without asking for an answer. Both check a step's
+settings when they build it. Inside an `hr_arm()`, the steps use the run's
+client and trace, so a benchmark counts and limits their requests:
 
 ```{r}
 steps <- list(gr_step("segment", method = "structural", max_tokens = 120,
