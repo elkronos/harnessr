@@ -11,23 +11,23 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-Once a document is cut into chunks, something has to decide how the model works
-through them. Send everything at once? Ask each chunk separately and combine the
-answers? Find the few chunks most like the question and ignore the rest? These
-are *reading strategies*, which harnessr calls *readers*. They decide most of the
-cost of a run and much of the quality of its answer. The same chunks read two
-ways can take one request or dozens, and can find a fact or miss it.
+Once a document is cut into chunks, a *reading strategy* decides how the
+model works through them. It can send everything in one request, ask each chunk
+separately and combine the answers, or pick the few chunks most like the
+question and ignore the rest. harnessr calls these strategies *readers*. The
+reader sets most of a run's cost and much of its answer's quality: the same
+chunks read two ways can take one request or dozens, and can find a fact or
+miss it.
 
-This guide explains each reader in plain terms, shows how they differ on the same
-document, and gives a way to choose. `vignette("harnessr")` introduces the
-package and its ideas.
+This guide explains each reader, runs them all on one document, and gives you a
+way to choose. `vignette("harnessr")` introduces the package and its ideas.
 
 ## Setting up
 
-The examples use a stand-in for a real model, so they run for free. This one
-answers each kind of request the way a model would: it scores an excerpt when
-asked to score and quotes when asked to quote, so every reader can do its normal
-work. You do not need to follow its details; it plays the part of the model.
+The examples run for free because a stand-in plays the model. It answers each
+kind of request as a model would: it scores an excerpt when a reader asks for a
+score and quotes when a reader asks for a quotation, so every reader does its
+normal work. You can skip its details.
 
 ```{r message = FALSE}
 library(harnessr)
@@ -60,10 +60,11 @@ stand_in <- function(messages, params) {
 }
 ```
 
-`embedder = "lexical"` makes the readers that search for similar text use simple
-word matching instead of a paid embedding service; more on that below.
+With `embedder = "lexical"`, the readers that search for similar text use word
+matching computed on your machine instead of a paid embedding service.
+"Embeddings" below covers the difference.
 
-Now the document, cut into chunks along its section headings:
+Cut the example report into chunks at its section headings:
 
 ```{r}
 chunks <- gr_segment(gr_ingest(gr_example()),
@@ -71,8 +72,8 @@ chunks <- gr_segment(gr_ingest(gr_example()),
 gr_chunk_stats(chunks)
 ```
 
-Eight chunks. A real report would have hundreds, and the differences below would
-be correspondingly larger.
+That gives eight chunks. A real report can have hundreds, and the differences
+below grow with it.
 
 ## Listing the readers
 
@@ -80,15 +81,16 @@ be correspondingly larger.
 gr_readers()[, c("name", "signature", "cost_calls")]
 ```
 
-`cost_calls` is how many requests a reader makes, as a formula in **N**, the
-number of chunks. A reader whose count grows with N makes a hundred times as
-many requests on a document a hundred times longer. But you pay for tokens, not
-requests, and a reader that looks at every chunk sends every token: `stuff`
-makes one request whatever the length, yet that request carries the whole
-document, so its cost grows with the document too. Each request also repeats
-the instructions and writes its own reply, so among readers that see everything,
-more requests cost more. The readers that look at a selection of chunks (the
-`topk` ones below) cost roughly the same however long the document is.
+`cost_calls` gives the number of requests a reader makes as a formula in
+**N**, the number of chunks. When the count grows with N, a document a hundred
+times longer takes a hundred times as many requests.
+
+You pay for tokens, though, and a reader that looks at every chunk sends every
+token. `stuff` makes one request at any length, but that request carries the
+whole document, so its cost grows with the document too. Each request also
+repeats the instructions and writes its own reply, so among readers that see
+everything, more requests cost more. The readers that look at a selection of
+chunks (the `topk` ones below) cost about the same at any document length.
 
 `signature` describes how a reader works, in three parts separated by `|`:
 
@@ -100,15 +102,14 @@ more requests cost more. The readers that look at a selection of chunks (the
   `tree` (answers are combined in stages), or `forward` (each request builds on
   the one before).
 
-The built-in readers all have different signatures, and `ensemble` refuses
-members that share one: two readers with the same signature would be the same
-method under two names.
+No two built-in readers share a signature, and `ensemble` refuses members that
+do: two readers with one signature are one method under two names.
 
 ## Every reader on one document
 
-Here is the same question put to the same eight chunks by each general-purpose
-reader. `extract` and `screen` are left out: they are built for literature
-reviews and need a schema or criteria.
+Each general-purpose reader below gets the same question on the same eight
+chunks. `extract` and `screen` are left out because they are built for
+literature reviews and need a schema or criteria.
 
 ```{r}
 read_with <- function(reader) {
@@ -122,12 +123,12 @@ readers <- c("stuff", "map_reduce", "refine", "skim", "hierarchical",
 do.call(rbind, lapply(readers, read_with))
 ```
 
-The stand-in gives every reader the same answer, and none of the runs degraded
-(`partial` is `FALSE`). What differs is the work: from one request to eleven for
-eight chunks, and from reading everything to relying on a single passage. On a
-long document the gap widens: the number of requests grows with the document for
-some readers and not at all for others, and the cost grows for every reader that
-reads the whole document.
+Every reader gets the same answer from the stand-in, and no run degraded
+(`partial` is `FALSE`). The work differs: from one request to eleven for eight
+chunks, and from reading every chunk to relying on one passage. A long document
+widens the gap. For some readers the number of requests grows with the document
+and for others it stays fixed, and the cost grows for every reader that reads
+the whole document.
 
 ## The readers
 
