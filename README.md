@@ -104,22 +104,41 @@ local models through ellmer, and any other backend.
 
 ## Guides
 
-Each guide is on the website and, once installed, in R as `vignette("name")`.
+Each guide is on the website, under the same groups as here, and once
+installed in R as `vignette("name")`.
 
-| guide | what it covers |
-|---|---|
-| [Get started](https://elkronos.github.io/harnessr/articles/harnessr.html) (`harnessr`) | The ideas, installing, connecting, a first question checked from start to finish, cost, a glossary |
-| [Getting text out of files](https://elkronos.github.io/harnessr/articles/ingest.html) (`ingest`) | PDFs, Word files, web pages and scans, every cleaner, and surveying a folder |
-| [Cutting documents into chunks](https://elkronos.github.io/harnessr/articles/segment.html) (`segment`) | The segmenters, overlap, minimum size, context, and comparing chunkings |
-| [Choosing how the model reads](https://elkronos.github.io/harnessr/articles/readers.html) (`readers`) | The reading strategies, recipes, what each costs, and how to choose |
-| [Many documents and literature reviews](https://elkronos.github.io/harnessr/articles/review.html) (`review`) | Search, screening, calibration and recall, several reviewers, extraction, claims, synthesis, the audit report |
-| [Measuring and comparing configurations](https://elkronos.github.io/harnessr/articles/evaluate.html) (`evaluate`) | Reference sets and label sheets, benchmarks and their intervals, non-inferiority, judges, baselines, drift, signals |
-| [Comparing methods and settings](https://elkronos.github.io/harnessr/articles/compare.html) (`compare`) | Worked comparisons of readers, segmenters and chunk sizes, one setting over its values, screening settings and a judge against labels, and how to read each report |
-| [Composing steps into chains](https://elkronos.github.io/harnessr/articles/compose.html) (`compose`) | Steps of your own and the built-in ones, chains run as one arm, deriving a chain by dropping or replacing a step, and what a chain checks |
-| [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`) | The governor, effort, traces, caching, replay |
-| [Settings reference](https://elkronos.github.io/harnessr/articles/settings.html) (`settings`) | Every setting of every stage with its default and where it came from, and the extractors, cleaners, segmenters, readers, embedders and recipes |
-| [Extending harnessr](https://elkronos.github.io/harnessr/articles/extending.html) (`extending`) | Registering your own extractors, cleaners, segmenters, readers and embedders, and checking them |
-| [Upgrading from older versions](https://elkronos.github.io/harnessr/articles/migrate.html) (`migrate`) | Code written for readgpt or v1: the old names, their replacements and the behaviour that changed |
+### Get started
+
+- [Get started](https://elkronos.github.io/harnessr/articles/harnessr.html) (`harnessr`): the ideas, installing, connecting, a first question checked from start to finish, cost, a glossary.
+
+### Read a document
+
+- [Getting text out of files](https://elkronos.github.io/harnessr/articles/ingest.html) (`ingest`): pDFs, Word files, web pages and scans, every cleaner, and surveying a folder.
+- [Cutting documents into chunks](https://elkronos.github.io/harnessr/articles/segment.html) (`segment`): the segmenters, overlap, minimum size, context, and comparing chunkings.
+- [Choosing how the model reads](https://elkronos.github.io/harnessr/articles/readers.html) (`readers`): the reading strategies, recipes, what each costs, and how to choose.
+
+### Review many documents
+
+- [Many documents and literature reviews](https://elkronos.github.io/harnessr/articles/review.html) (`review`): search, screening, calibration and recall, several reviewers, extraction, claims, synthesis, the audit report.
+
+### Measure and compare
+
+- [Measuring and comparing configurations](https://elkronos.github.io/harnessr/articles/evaluate.html) (`evaluate`): reference sets and label sheets, benchmarks and their intervals, non-inferiority, judges, baselines, drift, signals.
+- [Comparing methods and settings](https://elkronos.github.io/harnessr/articles/compare.html) (`compare`): worked comparisons of readers, segmenters and chunk sizes, one setting over its values, screening settings and a judge against labels, and how to read each report.
+
+### Control cost and settings
+
+- [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`): the governor, effort, traces, caching, replay.
+- [Settings reference](https://elkronos.github.io/harnessr/articles/settings.html) (`settings`): every setting of every stage with its default and where it came from, and the extractors, cleaners, segmenters, readers, embedders and recipes.
+
+### Build your own
+
+- [Composing steps into chains](https://elkronos.github.io/harnessr/articles/compose.html) (`compose`): steps of your own and the built-in ones, chains run as one arm, deriving a chain by dropping or replacing a step, and what a chain checks.
+- [Extending harnessr](https://elkronos.github.io/harnessr/articles/extending.html) (`extending`): registering your own extractors, cleaners, segmenters, readers and embedders, and checking them.
+
+### Upgrade
+
+- [Upgrading from older versions](https://elkronos.github.io/harnessr/articles/migrate.html) (`migrate`): the old names from readgpt and v1, their replacements and the behaviour that changed.
 
 ## Getting help
 
