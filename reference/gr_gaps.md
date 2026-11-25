@@ -52,8 +52,8 @@ gr_gaps(
   [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md)
   and
   [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md).
-  They are not dimensions of the evidence – "every study reports
-  'Lancet'" is not a gap in a literature – and a gap line goes to the
+  They are not dimensions of the evidence ("every study reports
+  'Lancet'" is not a gap in a literature), and a gap line goes to the
   writing model, which is never told who wrote a study. The columns
   `claims` withheld are left out whatever this says; `bib` adds to them.
 

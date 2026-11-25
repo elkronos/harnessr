@@ -1,7 +1,7 @@
 # Truncate text to at most `n` tokens
 
-The result is the start of `text` as written – line breaks, indentation
-and paragraph breaks kept – followed by `marker`. The cut falls at the
+The result is the start of `text` as written (line breaks, indentation
+and paragraph breaks kept), followed by `marker`. The cut falls at the
 end of a word where the text has whitespace. When the next unit is too
 long to be a word (a CJK run, base64, a data URI, minified JSON, a long
 URL: anything that alone would cost more than 16 tokens) the cut goes

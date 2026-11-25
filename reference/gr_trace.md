@@ -284,11 +284,11 @@ ch <- gr_segment(gr_example(), list(method = "sentence", max_tokens = 150))
 invisible(gr_read(ch, "What was revenue?", cl, "map_reduce", trace = tr))
 #> Reading with 'map_reduce' (all|N+logN|tree) over 5 chunk(s).
 print(tr)
-#> <gr_trace run_20261125004546.516_1ea265>  7 steps, 6 model calls, 1118 in / 36 out tokens, 0 error(s)
+#> <gr_trace run_20261125121220.169_fb3942>  7 steps, 6 model calls, 1118 in / 36 out tokens, 0 error(s)
 #>   steps: map.answer x5, preflight x1, reduce x1 
 #>   cost: $0.0000 across mock-model
 #>   usage: estimated locally for 100% of requests (the provider reported none)
-#>   started: 2026-11-25T00:45:46.516Z 
+#>   started: 2026-11-25T12:12:20.170Z 
 
 # One row per request, with what each cost and how long it took.
 reqs <- as.data.frame(tr)

@@ -224,8 +224,8 @@ holding across the whole corpus comes back once per batch with disjoint
 support, which reads as several narrow claims instead of one broad one.
 The reconcile pass may only group claims that already exist: every claim
 it fails to place stays on its own rather than disappearing. When it
-cannot run – a call or cost limit, a failed or cut-off reply, a reply
-that is not a list of groups, or more claims than fit one prompt – the
+cannot run (a call or cost limit, a failed or cut-off reply, a reply
+that is not a list of groups, or more claims than fit one prompt), the
 claims are kept unmerged, with a warning, and `$unmerged` is `TRUE`.
 
 What the reconcile pass cannot check is MEANING. A merged claim keeps

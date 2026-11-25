@@ -93,14 +93,15 @@
 <td>the suite with <code>future</code>, <code>future.apply</code>, <code>ellmer</code> and <code>xml2</code> installed, from the source tree, then the README and guide checks described above</td>
 </tr><tr><td><code>pr-checks.yaml</code></td>
 <td><code>pull request checks</code></td>
-<td>the <code>tests</code>, <code>deps</code>, <code>namespace</code> and <code>commits</code> modes, one step each; every step runs even when an earlier one fails, and the step name says which check failed</td>
+<td>the <code>tests</code>, <code>deps</code>, <code>namespace</code>, <code>commits</code> and <code>dashes</code> modes, one step each; every step runs even when an earlier one fails, and the step name says which check failed</td>
 </tr><tr><td><code>pr-lint.yaml</code></td>
 <td><code>lint changed R files</code></td>
 <td>the <code>lint</code> mode</td>
 </tr><tr><td><code>pkgdown.yaml</code></td>
 <td><code>pkgdown</code></td>
 <td>builds the site without publishing it, only when the pull request changes a file the site is built from (the list is in the workflow)</td>
-</tr></tbody></table><p>Adding or removing a label reruns <code>pr-checks.yaml</code>, so a label added after review turns its check green without a new push. Lint reads no label, so a label change does not rerun it; a push or a reopen does. A new push to a pull request cancels the older runs of the same workflow. On <code>main</code>, each merge gets its own run of <code>R-CMD-check.yaml</code> and <code>tests.yaml</code>, and <code>pkgdown.yaml</code> builds and publishes the site from the newest push to <code>main</code>.</p>
+</tr></tbody></table><p>The <code>dashes</code> step fails when a pull request adds a line with an em dash, an en dash or a double hyphen between spaces. It reads <code>R/</code>, <code>man/</code>, <code>vignettes/</code>, <code>inst/</code> (not <code>inst/extdata/</code>), <code>dev/</code>, <code>.github/</code>, the top-level Markdown files, <code>DESCRIPTION</code> and <code>_pkgdown.yml</code>, and leaves <code>tests/</code> alone. It prints each line with its file and line number. Rewrite the sentence: split it, use a colon before an explanation or a list, or put a short aside in commas or parentheses. Prompt text sent to a model keeps its double hyphens, since changing it would change requests and cache keys; those lines are listed in <code>tests/testthat/fixtures/boundary/dash-allowed.csv</code>. The list also holds the name of the <code>dashes</code> step in <code>.github/workflows/pr-checks.yaml</code>, which quotes the mark it checks for. That list may only shrink, so a row added to it fails the <code>tests</code> step until the pull request carries the label <code>tests-reviewed</code>.</p>
+<p>Adding or removing a label reruns <code>pr-checks.yaml</code>, so a label added after review turns its check green without a new push. Lint reads no label, so a label change does not rerun it; a push or a reopen does. A new push to a pull request cancels the older runs of the same workflow. On <code>main</code>, each merge gets its own run of <code>R-CMD-check.yaml</code> and <code>tests.yaml</code>, and <code>pkgdown.yaml</code> builds and publishes the site from the newest push to <code>main</code>.</p>
 <p><code>pr-checks.yaml</code> used to run five checks: <code>no weakened tests</code>, <code>no unreviewed dependencies</code>, <code>lint changed R files</code>, <code>no unreviewed export removals</code> and <code>no attribution in commit messages</code>. Four of them are now steps of <code>pull request checks</code>, and <code>lint changed R files</code> comes from <code>pr-lint.yaml</code>. A branch rule or ruleset that requires the old names needs updating. Do not require <code>pkgdown</code>: a pull request that changes none of its files never starts it, and a required check that never starts stays pending.</p>
 </div>
 <div class="section level3">
@@ -135,7 +136,7 @@
 <table class="table"><colgroup><col width="50%"><col width="50%"></colgroup><thead><tr><th>Label</th>
 <th>What it allows</th>
 </tr></thead><tbody><tr><td><code>tests-reviewed</code></td>
-<td>removing an <code>expect_*()</code> call, adding a <code>skip()</code>, or adding a row to <code>allowed.csv</code> or <code>doc-uses-internal.csv</code>
+<td>removing an <code>expect_*()</code> call, adding a <code>skip()</code>, or adding a row to <code>allowed.csv</code>, <code>doc-uses-internal.csv</code> or <code>dash-allowed.csv</code>
 </td>
 </tr><tr><td><code>deps-reviewed</code></td>
 <td>adding a package to <code>DESCRIPTION</code> (it must be on CRAN either way)</td>

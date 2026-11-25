@@ -2085,8 +2085,8 @@ flagged:
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
                         extraction = table, open = FALSE)
 grep("UTC</td>", readLines(page), value = TRUE)
-#> [1] "<tr><td>screening</td><td>2026-11-25 00:50:43 UTC</td><td>0.6.0.9000</td></tr>" 
-#> [2] "<tr><td>extraction</td><td>2026-11-25 00:50:45 UTC</td><td>0.6.0.9000</td></tr>"
+#> [1] "<tr><td>screening</td><td>2026-11-25 12:17:32 UTC</td><td>0.6.0.9000</td></tr>" 
+#> [2] "<tr><td>extraction</td><td>2026-11-25 12:17:33 UTC</td><td>0.6.0.9000</td></tr>"
 ```
 
 The report puts the failures near the top: unverified quotes, documents

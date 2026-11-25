@@ -104,11 +104,11 @@ gr_synthesise(
   `gr_protocols("bibliography")` works without configuration: `citation`
   (or `cite`, `citation_key`, `cite_key`), `authors` (or `author`),
   `year`, `title`, `venue` (or `journal`) and `doi`, in any case. Names
-  that are as often findings – `date`, `source`, `url`, `published`,
-  `publication` – are not taken for bibliographic ones unless named
-  here. A column found this way is withheld from the writing prompts and
-  used for the citations and references; give a role as `NA` to keep a
-  column of that name as a finding (`bib = list(venue = NA)`). The most
+  that are as often findings (`date`, `source`, `url`, `published`,
+  `publication`) are not taken for bibliographic ones unless named here.
+  A column found this way is withheld from the writing prompts and used
+  for the citations and references; give a role as `NA` to keep a column
+  of that name as a finding (`bib = list(venue = NA)`). The most
   reliable route is a `citation` field asked for during extraction:
   parsing an arbitrary author list is a heuristic, and where it cannot
   be done confidently the run falls back to markers rather than printing
@@ -194,13 +194,13 @@ gr_synthesise(
   these same claims: the run stops (`gr_claims_mismatch`) when the
   outline says it came from other claims, and (`gr_claims_unplaced`)
   when the assignment places a claim in a heading the outline does not
-  have – a heading renamed after
-  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md),
-  say; rename it in `attr(outline, "claims")$section` too. A section
-  given no claims is written from the rows, as without `claims`, except
-  the closing section, which is written from `gaps` alone and is left
-  out when there are none. A section too large for one prompt is written
-  a few claims at a time, each batch sent only its claims' studies, and
+  have, such as a heading renamed after
+  [`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md).
+  Rename it in `attr(outline, "claims")$section` too. A section given no
+  claims is written from the rows, as without `claims`, except the
+  closing section, which is written from `gaps` alone and is left out
+  when there are none. A section too large for one prompt is written a
+  few claims at a time, each batch sent only its claims' studies, and
   merged.
 
 - gaps:
@@ -524,9 +524,9 @@ section costs batches + merges instead. Either way the cost is per
 The merge folds every batch draft into one reply of at most
 `max_section_tokens`, the same limit each draft had, so a section
 drafted from a very large table covers only what that one reply can
-hold. Nothing checks that it cites every study – a section need not –
-but without `claims` a batch none of whose studies the merged section
-cites is reported (`gr_synth_batch_dropped`) and marks it partial. Raise
+hold. Nothing checks that it cites every study (a section need not), but
+without `claims` a batch none of whose studies the merged section cites
+is reported (`gr_synth_batch_dropped`) and marks it partial. Raise
 `max_section_tokens`, or divide the table between narrower sections.
 
 ## Figures
@@ -626,8 +626,8 @@ cl <- gr_mock_client(function(messages, params) {
 f <- tempfile(fileext = ".txt")
 writeLines("We ran a randomised trial. We enrolled 120 people.", f)
 x <- gr_extract(f, fields, client = cl)
-#> [1/1] file1b9b1397434e.txt
-#> Extracting 'file1b9b1397434e.txt' with the 'txt' extractor.
+#> [1/1] file1be9796cd929.txt
+#> Extracting 'file1be9796cd929.txt' with the 'txt' extractor.
 #> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).
 #> Segmenting with 'structural' (cap 900 tokens, overlap 90).
 #> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).

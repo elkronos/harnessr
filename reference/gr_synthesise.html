@@ -154,7 +154,7 @@ conventional names are looked for, which is why
 <code>gr_protocols("bibliography")</code> works without configuration: <code>citation</code>
 (or <code>cite</code>, <code>citation_key</code>, <code>cite_key</code>), <code>authors</code> (or <code>author</code>), <code>year</code>,
 <code>title</code>, <code>venue</code> (or <code>journal</code>) and <code>doi</code>, in any case. Names that are as
-often findings – <code>date</code>, <code>source</code>, <code>url</code>, <code>published</code>, <code>publication</code> –
+often findings (<code>date</code>, <code>source</code>, <code>url</code>, <code>published</code>, <code>publication</code>)
 are not taken for bibliographic ones unless named here. A column found
 this way is withheld from the writing prompts and used for the citations
 and references; give a role as <code>NA</code> to keep a column of that name as a
@@ -233,12 +233,12 @@ than being handed every study and writing a paragraph per row. Needs an
 an outline derived from these same claims: the run stops
 (<code>gr_claims_mismatch</code>) when the outline says it came from other claims,
 and (<code>gr_claims_unplaced</code>) when the assignment places a claim in a heading
-the outline does not have – a heading renamed after <code><a href="gr_outline.html">gr_outline()</a></code>, say;
-rename it in <code>attr(outline, "claims")$section</code> too. A section given no
+the outline does not have, such as a heading renamed after <code><a href="gr_outline.html">gr_outline()</a></code>.
+Rename it in <code>attr(outline, "claims")$section</code> too. A section given no
 claims is written from the rows, as without <code>claims</code>, except the closing
-section, which is written from <code>gaps</code> alone and is left out when there
-are none. A section too large for one prompt is written a few claims at a
-time, each batch sent only its claims' studies, and merged.</p></dd>
+section, which is written from <code>gaps</code> alone and is left out when there are
+none. A section too large for one prompt is written a few claims at a time,
+each batch sent only its claims' studies, and merged.</p></dd>
 
 
 <dt id="arg-gaps">gaps<a class="anchor" aria-label="anchor" href="#arg-gaps"></a></dt>
@@ -524,7 +524,7 @@ document: the expensive reading has already happened.</p>
 <p>The merge folds every batch draft into one reply of at most
 <code>max_section_tokens</code>, the same limit each draft had, so a section drafted
 from a very large table covers only what that one reply can hold. Nothing
-checks that it cites every study – a section need not – but without
+checks that it cites every study (a section need not), but without
 <code>claims</code> a batch none of whose studies the merged section cites is
 reported (<code>gr_synth_batch_dropped</code>) and marks it partial. Raise
 <code>max_section_tokens</code>, or divide the table between narrower sections.</p>
@@ -620,8 +620,8 @@ check and render an edited <code>text_marked</code> again</p></div>
 <span class="r-in"><span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".txt"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"We ran a randomised trial. We enrolled 120 people."</span>, <span class="va">f</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="gr_extract.html">gr_extract</a></span><span class="op">(</span><span class="va">f</span>, <span class="va">fields</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1b9b1397434e.txt</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1b9b1397434e.txt' with the 'txt' extractor.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [1/1] file1be9796cd929.txt</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Extracting 'file1be9796cd929.txt' with the 'txt' extractor.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Ingested 1 block(s), ~18 tokens (0 chars removed by cleaning).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Segmenting with 'structural' (cap 900 tokens, overlap 90).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Reading with 'extract' (all|N+conflicts|none) over 1 chunk(s).</span>
