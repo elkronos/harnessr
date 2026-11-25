@@ -11,25 +11,31 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-Every axis of harnessr is a registry: extractors and cleaners for ingest,
-segmenters, readers, embedders, and models. You can list each one, swap one
-entry for another, and add your own. An addition behaves exactly like a
-built-in. It gets the same token caps, provenance and reporting, it is held to
-the same call and spending limits, and it can be named in a recipe, put in an
-`ensemble`, and compared against a built-in with `gr_compare()`.
+Each axis of harnessr is a registry: extractors and cleaners for ingest,
+segmenters, readers, embedders, and models. You can list each registry, swap
+one entry for another, and add your own.
 
-This guide shows how to register each kind of module, how a module that calls
-the model declares its calls and its cost, how a spec states its parameters,
-and how to check a module of your own against the contract the built-ins
-follow. `vignette("harnessr")` introduces the package and its ideas.
+harnessr treats your addition exactly as it treats a built-in. Your module
+gets the same token caps, provenance and reporting, and it runs under the same
+call and spending limits. You can name it in a recipe, put it in an
+`ensemble`, and compare it against a built-in with `gr_compare()`.
+
+This guide covers four tasks:
+
+- registering each kind of module;
+- declaring the calls and the cost of a module that calls the model;
+- stating the parameters of a spec;
+- checking your module against the contract the built-ins follow.
+
+`vignette("harnessr")` introduces the package and its ideas.
 
 ## Setting up
 
-The examples run offline. `hr_mock_client()` is a client whose handler is an
-ordinary R function; it goes everywhere a real client goes and records every
-prompt it was sent, which is how you check that a module of your own does what
-you think before you pay for it. `embedder = "lexical"` keeps embedding free and
-offline too.
+The examples run offline. `hr_mock_client()` returns a client whose handler
+is an ordinary R function. You can pass it anywhere a real client goes, and it
+records every prompt it receives. Use it to check that your module does what
+you expect before you pay for real calls. `embedder = "lexical"` keeps
+embedding free and offline too.
 
 ```{r message = FALSE}
 library(harnessr)
@@ -41,8 +47,8 @@ cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollar
 
 An extractor turns a file into text blocks. It is a function of `(path, opts)`
 that returns a data frame with a `text` column, and optionally `page`,
-`section` and `kind`. `gr_register_extractor()` names the file extensions it
-claims.
+`section` and `kind`. When you register it with `gr_register_extractor()`, you
+name the file extensions it claims.
 
 ```{r}
 gr_register_extractor("tsv", "tsv", description = "TSV, one block per row",
@@ -56,14 +62,18 @@ writeLines(c("region\trevenue", "north\t45.2", "south\t51.8"), tsv)
 cat(gr_ingest(tsv)$text)
 ```
 
-Pages an extractor could not turn into text can be listed in
-`attr(result, "gr_unread_pages")`. An answer drawn from the document is then
-marked partial, as it is for a PDF page that needed OCR and did not get it.
+If your extractor cannot turn some pages into text, list them in
+`attr(result, "gr_unread_pages")`. harnessr then marks an answer drawn from the
+document as partial, as it does for a PDF page that needed OCR and did not get
+it.
 
 A cleaner is a function of `(text, opts)` that returns cleaned text. Its
-`stage` says when it runs: `"early"` steps preserve structure (boilerplate
-removal), `"late"` steps normalise destructively (digit stripping), and early
-steps always run before late ones whatever order you list them in.
+`stage` sets when it runs:
+
+- `"early"` steps preserve structure, as boilerplate removal does.
+- `"late"` steps normalise destructively, as digit stripping does.
+
+Early steps always run before late ones, whatever order you list them in.
 
 ```{r}
 gr_register_cleaner("drop_confidential", stage = "early",
@@ -75,11 +85,12 @@ cleaned <- gr_clean("CONFIDENTIAL - DRAFT\n\nThe real content of the document.",
 as.character(cleaned)
 ```
 
-A cleaner runs on each text block by default. One that reasons about position
-or repetition across the whole document, such as dropping a trailing
-bibliography or a running head, needs `scope = "document"`; applied per block,
-it would never fire. `?gr_register_cleaner` says how its result is matched back
-to the blocks. `vignette("ingest")` covers the built-in extractors and cleaners.
+By default a cleaner runs on each text block. A cleaner that looks at position
+or repetition across the whole document, such as one that drops a trailing
+bibliography or a running head, needs `scope = "document"`. Run per block, it
+would never fire. `?gr_register_cleaner` explains how harnessr matches its
+result back to the blocks. `vignette("ingest")` covers the built-in extractors
+and cleaners.
 
 ## Cutting text up: segmenters
 
