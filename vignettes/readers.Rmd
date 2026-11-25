@@ -199,8 +199,9 @@ the depth.
 numbers that place similar text close together) and sends only the `top_k`
 chunks closest to the question, in a single request. The cost of the answer does
 not grow with the document, so `retrieve` is the usual choice for finding one
-fact in something long. It never sends a chunk that answers the question but
-does not *look* like it.
+fact in something long. The risk is a chunk that answers the question but does
+not *look* like it: it can rank below the `top_k` cut and never reach the
+model.
 
 **Use it for** a specific fact in a long document. **Recipe:** `"needle"`.
 
@@ -1156,8 +1157,9 @@ own long documents, run the arms with `hr_benchmark()` as above.
 
 ### Preview safeguards: `unskip_k` and `reread_on` {#set-preview}
 
-**What they control.** `preview` follows a plan its first request makes, and
-it never reads a section the plan skips. Two settings guard against a bad plan:
+**What they control.** `preview` follows a plan its first request makes. By
+default it does not read a section the plan skips. Two settings guard against a
+bad plan:
 
 - `unskip_k` reads the `k` sections that match the question's words best (BM25
   over each section's text) even when the plan skips them, so a plan cannot
