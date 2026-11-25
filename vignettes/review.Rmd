@@ -991,17 +991,18 @@ per pass: what ran, whether it was kept and why not, with `words_before` and
 ## Writing from claims instead of from rows
 
 The write-up above was drafted from the whole table, one section at a time, and
-the prose shows it: the model goes row by row. "Smith (2019) found X. Garcia
-(2022) found Y." That enumeration is a common sign of a weak review, and
-it follows directly from what the prompt holds. The structure has the same
-problem. The outline was fixed before anything was read, so the shape of the
-review is your hypothesis, when often the strongest thing a review has to say is
-structural: that a literature splits into three incompatible measures, and that
-the argument about effect size is an argument about measurement.
+the model goes row by row: "Smith (2019) found X. Garcia (2022) found Y." That
+enumeration is a common sign of a weak review, and it follows from what the
+prompt holds. The outline has the same problem. You fixed it before reading
+anything, so the review's shape is your hypothesis. Often the strongest thing a
+review can say is about structure: that a literature splits into three
+incompatible measures, and that the argument about effect size is an argument
+about measurement.
 
 `gr_claims()` computes the relations between studies first. Each claim names the
 studies that support it, the studies that contradict it, and the field that
-distinguishes them. The stand-in below plays all three stages that follow:
+distinguishes them. The stand-in below plays the model for all three stages
+that follow:
 
 ```{r}
 claim_writer <- hr_mock_client(function(messages, params) {
@@ -1031,27 +1032,30 @@ cm <- gr_claims(table, question = protocol$question, client = claim_writer)
 cm$claims[, c("claim", "moderator", "n_support", "n_contradict", "sign_p")]
 ```
 
-The claims model was shown each value with its check and its quote. A value
-whose quote did not verify, or that came with none, is left out of the claims
-prompt by default (`unverified = "exclude"`), so no claim rests on it, and is
-listed in `cm$unverified`. Here every quote verified, so nothing was left out:
+The claims model sees each value with its check and its quote. By default
+(`unverified = "exclude"`), a value whose quote did not verify, or that came
+with none, is left out of the claims prompt, so no claim rests on it, and
+`cm$unverified` lists it. Here every quote verified, so nothing was left out:
 
 ```{r}
 nrow(cm$unverified)
 ```
 
-`sign_p` is the exact sign test of each claim's direction tally, its
+`sign_p` is the exact sign test of each claim's direction tally: its
 supporting studies out of all it names. A section ranks its claims by it, so a
-claim five studies agree on comes before one three support and three
+claim five studies agree on comes before one that three support and three
 contradict. The test is two-sided, so a claim that more of its studies
-contradict than support is ranked last instead, however small its p. With five studies or fewer no tally can reach p < 0.05, and
-`print(cm)` says so: read such a tally as a count of directions (Campbell et
-al. 2020; Boon and Thomson 2021). A moderator a claim names is tested in
-`cm$moderators`: declared in advance (`moderators =`) or exploratory, with
-Fisher's exact p of the split, the smallest p a split of that many studies
-can give, and a Holm adjustment over the declared ones. A split of one study
-against one is always exploratory. `?gr_claims` lists the ICEMAN items to
-assess a moderator against; nothing scores them for you.
+contradict than support is ranked last instead, however small its p. With five
+studies or fewer, no tally can reach p < 0.05, and `print(cm)` says so: read
+such a tally as a count of directions (Campbell et al. 2020; Boon and Thomson
+2021).
+
+`cm$moderators` tests each moderator a claim names, declared in advance
+(`moderators =`) or exploratory. It gives Fisher's exact p of the split, the
+smallest p a split of that many studies can give, and a Holm adjustment over
+the declared ones. A split of one study against one is always exploratory.
+`?gr_claims` lists the ICEMAN items to assess a moderator against; you score
+them yourself.
 
 The first claim splits one southern report from one northern one by
 `region`, so its moderator is exploratory, and its Fisher p of 1 is the best a
@@ -1062,21 +1066,25 @@ cm$moderators[, c("claim_id", "moderator", "exploratory", "fisher_p", "min_p")]
 ```
 
 `cm$support` is the long form (`claim_id`, `study`, `role`); join it to the
-extraction to reach documents and quotes. Every study number in it was checked
-against the table, the same check the `[study n]` markers in finished prose get,
-one link earlier. A number that is not in the table is dropped and counted. A
-claim left with no supporting study is dropped entirely, because a claim
-attached to nothing is an opinion. A `moderator` naming a column the table does
-not have is cleared, because an invented explanation for a real disagreement is
-the most convincing error this layer can make. `cm$dropped` records all of it,
-so a thin claims table can be told apart from a thin literature.
+extraction to reach documents and quotes. `gr_claims()` checks every study
+number in it against the table, as the `[study n]` markers in finished prose
+are checked, one link earlier:
 
-`gr_outline()` then derives the sections from the claims and hands them back as
-an ordinary outline you can accept, edit or throw away; `attr(outline, "claims")`
-is the assignment of claims to sections. `gr_gaps()` computes what the corpus
-does not contain (a declared category nobody studied, a dimension with no
-variation, a claim nobody has replicated, a disagreement nothing explains) in R,
-with no model call, so the gap list is something you can check by counting:
+- A study number that is not in the table is dropped and counted.
+- A claim left with no supporting study is dropped.
+- A `moderator` naming a column the table does not have is cleared. An
+  invented explanation for a real disagreement would be the hardest error in
+  this layer to spot.
+
+`cm$dropped` records all of it, so you can tell a thin claims table from a thin
+literature.
+
+`gr_outline()` then derives the sections from the claims and returns an
+ordinary outline you can accept, edit or discard; `attr(outline, "claims")`
+assigns the claims to sections. `gr_gaps()` computes in R, with no model call,
+what the corpus does not contain: a declared category nobody studied, a
+dimension with no variation, a claim nobody has replicated, a disagreement
+nothing explains. You can check the gap list by counting:
 
 ```{r}
 outline <- gr_outline(cm, client = claim_writer)
@@ -1085,12 +1093,12 @@ gr_gaps(cm, extraction = table)[, c("kind", "dimension", "detail")]
 ```
 
 That outline is one grouping of the claims, and the grouping is the review's
-argument. `alternatives = 2` asks for a second, shown the first and asked to
-group the claims by a different principle. How far apart two outlines are is
-counted, not asked: `distance` is how far each lies from the first, the share of
-pairs of claims that one puts together and the other apart. One that groups the
-claims as an earlier one did, whatever its headings, is dropped. Nothing ranks
-them, and `gr_outline_pick()` hands back the one you choose:
+argument. `alternatives = 2` asks for a second: the model is shown the first and
+asked to group the claims by a different principle. `distance` counts how far
+each outline lies from the first, as the share of pairs of claims that one puts
+together and the other apart. An outline that groups the claims as an earlier
+one did, whatever its headings, is dropped. Nothing ranks the outlines;
+`gr_outline_pick()` returns the one you choose:
 
 ```{r}
 two <- gr_outline(cm, client = claim_writer, alternatives = 2)
@@ -1098,9 +1106,9 @@ attr(two, "comparison")[, c("alternative", "sections", "claims_per_section", "di
 names(gr_outline_pick(two, 2))
 ```
 
-Each ends with the closing section for the gaps, which holds no claims here. The
-first outline is the same whatever `alternatives` says, and a review written
-from a picked one records which it was.
+Each outline ends with the closing section for the gaps, which holds no claims
+here. The first outline is the same whatever `alternatives` is, and a review
+written from a picked one records which it was.
 
 ```{r}
 from_claims <- gr_synthesise(table, outline = outline, question = protocol$question,
@@ -1113,9 +1121,9 @@ The stand-in wrote the same sentence for the gaps section too, citing two
 studies that section was not shown, so `n_unsupplied` counts them and the
 section is marked partial.
 
-With claims, `from_claims$contradictions` lists any sentence that states a
+With claims, `from_claims$contradictions` lists each sentence that states a
 claim and cites a study on its contradicting side without a hedge or a word of
-contrast, found by counting words rather than by asking a model:
+contrast. It is found by counting words, with no model call:
 
 ```{r}
 from_claims$contradictions[, c("section", "claim_id", "study")]
@@ -1123,42 +1131,41 @@ from_claims$contradictions[, c("section", "claim_id", "study")]
 
 Here the stand-in's sentence states the first claim, that revenue is higher in
 the south, and cites the northern report, which the claim lists as
-contradicting it. The sentence cites it as the comparison, which is sound; the
-check cannot tell that from citing it as agreement, so it flags the sentence for
-a person to read and marks nothing partial. When claims
-come from several batches, the reconcile pass keeps apart two findings whose
-words point different ways (an effect against none, a benefit against a
-harm, a rise against a fall) or that name different populations from a short
-list, and a merged claim takes the wording most studies support, so the
-claims do not depend on the order of the table. The check reads English
-words, not meaning: "improves mood" and "reduces mood" are not told apart,
+contradicting it. The sentence cites it as the comparison, which is sound. The
+check cannot tell that from citing it as agreement, so it flags the sentence
+for a person to read and marks nothing partial.
+
+When claims come from several batches, the reconcile pass keeps two findings
+apart when their words point different ways (an effect against none, a benefit
+against a harm, a rise against a fall) or when they name different populations
+from a short list. A merged claim takes the wording most studies support, so
+the claims do not depend on the order of the table. The check reads English
+words and not meaning: "improves mood" and "reduces mood" are not told apart,
 since a fall can be good or bad, and a population outside the list is not
-recognised, so a merge it should have refused can still happen. The `note`
-of each merged claim names the wordings it absorbed, for a person to read.
+recognised, so a merge it should have refused can still happen. The `note` of
+each merged claim names the wordings it absorbed, for a person to read.
 
 Each section now argues its own claims and is shown only the studies those
-claims rest on, ordered so a twelve-person pilot stops getting the same space as
-a two-thousand-person trial. `claims_missed` is the citation check run
-backwards: a section handed a claim and not writing it up did not do what the
-outline promised, is marked partial, and says which claim it left out.
-`cite_style = "author-year"` and `coherence = TRUE` work here as they do above.
+claims rest on, ordered so a twelve-person pilot no longer gets the same space
+as a two-thousand-person trial. `claims_missed` runs the citation check
+backwards: a section handed a claim that it does not write up is marked partial
+and names the claim it left out. `cite_style = "author-year"` and
+`coherence = TRUE` work here as they do above.
 
-The schema this wants as input is the `claims` protocol
-(`gr_protocols("claims")`). `design` and `finding` are coded as enums so studies
-can be compared mechanically, each paired with the paper's own wording so the
-coding can be checked rather than trusted. `finding` is coded relative to your
-question, which is what lets a non-interventional literature have contradictions
-at all, and why that template is refused until you replace the placeholder
-question in it.
+The input schema for this is the `claims` protocol (`gr_protocols("claims")`).
+It codes `design` and `finding` as enums so studies can be compared
+mechanically, and pairs each with the paper's own wording so you can check the
+coding. `finding` is coded relative to your question. That lets a
+non-interventional literature have contradictions at all, and it is why the
+template is refused until you replace its placeholder question.
 
-Two things it does not do. It does not rank study designs when deciding
-emphasis: that would assert a cohort study beats a qualitative one, and the
-Cochrane Handbook discourages totalling per-item scores into one number. Design
-is a grouping variable here, describing what distinguishes the sides of a
-disagreement, not a score. And nothing asks a model to judge which of its own
-inputs are stale or wrong. If two studies conflict, both are reported and the
-conflict is named, because "the model decided this one was wrong" is not
-something anyone can check.
+The claims layer does not rank study designs when deciding emphasis: that would
+assert a cohort study beats a qualitative one, and the Cochrane Handbook
+discourages totalling per-item scores into one number. Design is a grouping
+variable that describes what distinguishes the sides of a disagreement. No
+model is asked to judge which of its own inputs are stale or wrong either. When
+two studies conflict, both are reported and the conflict is named, because
+nobody can check "the model decided this one was wrong".
 
 ## Choosing the settings
 
