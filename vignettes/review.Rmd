@@ -687,12 +687,11 @@ against an independent reference, and more so with fewer reviewers. On a stacked
 
 ### Extraction
 
-Extraction fills the protocol's fields from every chunk of each included
-document, then reconciles them. The result is one typed row per document, and
-every filled cell carries the sentence it came from, checked against the chunk
-it was attributed to. A paragraph about one paper cannot be compared with a
-paragraph about two hundred others; a table can be sorted, counted, filtered and
-published.
+`gr_extract()` fills the protocol's fields from every chunk of each included
+document, then reconciles them. The result is one typed row per document. Every
+filled cell carries the sentence it came from, checked against the chunk it was
+attributed to. You can sort, count, filter and publish a table; two hundred
+paragraphs, one per paper, cannot be compared.
 
 ```{r}
 extractor <- hr_mock_client(function(messages, params) {
@@ -716,8 +715,8 @@ itself, `conflicts` names the field and the earliest chunk's value is kept;
 `resolve = "model"` spends one call per disagreeing field to have the model
 choose instead.
 
-`n_unverified` is the column to look at before believing a row: zero means every
-value in it can be pointed at in the document. `table$evidence` is the long
+Check `n_unverified` before you trust a row: zero means every value in it has a
+quote found in the document. `table$evidence` is the long
 form, one row per supported cell, with the quote, the page it is on, and whether
 the quote appears there.
 
@@ -725,16 +724,16 @@ the quote appears there.
 table$evidence[, c("document_id", "field", "quote", "verified")]
 ```
 
-Nothing is discarded for failing that check; `require_quote = TRUE` makes
-discarding a choice rather than a surprise. A value is read by its field's type,
-so "1,204" in an integer field is 1204, and a value the field does not allow is
-reported as one it could not read.
+A value that fails the check is kept. To discard such values, set
+`require_quote = TRUE`. Each value is read by its field's type, so "1,204" in
+an integer field is 1204, and a value the field does not allow is reported as
+one it could not read.
 
 ### Agreement on extracted fields
 
-`n_unverified` says whether a value can be found in the document, not whether
-it is the value a person would have taken. For that, have a person fill the
-same fields for a sample of documents (`gr_label_sheet("extraction", ...)`
+`n_unverified` says whether a value can be found in the document. To learn
+whether a person would have taken the same value, have a person fill the same
+fields for a sample of documents (`gr_label_sheet("extraction", ...)`
 writes the sheet; `vignette("evaluate")` shows how sheets are read back) and
 compare the tables with `gr_extract_agreement()`. It matches rows on
 `document` and compares each field on its own, with Krippendorff's alpha at the
@@ -766,12 +765,14 @@ field. In a nominal field that is one more category. A numeric field cannot
 place it on its scale, so it gets two rows: whether the field is reported at
 all, and the value where both tables report it. Alpha at the interval level
 gives partial credit for a near miss, so 94 against 93 costs far less than 58
-against 247, while percent agreement counts both as disagreements. Below 30
+against 247; percent agreement counts both as disagreements. Below 30
 documents, or for a field that never varies, alpha is `NA` and a note says why;
-read percent agreement there. A `gr_extract()` result can be passed directly.
-A row that failed is left out of every field, and an empty cell in a row read
-only in part is left out rather than taken as not reported, so a document is
-never counted as reporting nothing because it was not read.
+read percent agreement there.
+
+You can pass a `gr_extract()` result directly. A row that failed is left out of
+every field. An empty cell in a row read only in part is left out too, instead
+of being taken as not reported, so a document that was not read is never
+counted as reporting nothing.
 
 ### The write-up
 
@@ -792,26 +793,27 @@ cat(review$text_marked)
 `review$text_marked` is the text as the model wrote it, with its markers;
 `review$text` is the same with the citations rendered, which the next section
 covers. `review$citations` resolves each `[study n]` to its `document` and
-`document_id`. The markers are parsed back out and checked against the rows that
-exist; one pointing at a row that is not there is reported and marks the section
-partial. Duplicates never reach the write-up, so no study is counted twice.
+`document_id`. `gr_synthesise()` parses the markers back out and checks them
+against the rows that exist. A marker pointing at a missing row is reported and
+marks its section partial. Duplicates never reach the write-up, so no study is
+counted twice.
 
-The citation check says which rows a sentence rests on, not what it says they
-found, and the figures are what a reader copies out of a review. So every number
-in the write-up is also looked for in the rows its sentence cites, as the writer
-was shown them:
+The citation check says which rows a sentence rests on. It does not check what
+the sentence says they found, and the figures are what a reader copies out of a
+review. `gr_synthesise()` therefore also looks for every number in the write-up
+in the rows its sentence cites, as the writer was shown them:
 
 ```{r}
 review$sections[, c("section", "n_cited", "n_unbacked")]
 review$figures[, c("number", "studies", "backed", "basis")]
 ```
 
-The check forgives form, such as `.61` for 0.61 or `1204` for 1,204, but not a
-changed digit. A figure found nowhere, such as 54.2 written for 45.2, has
-`backed = FALSE`, is counted in `n_unbacked` and is warned about. It does not
-make the section partial, which is about citations. A figure the cited row
-carries was copied correctly, and it can still be the wrong figure for the
-sentence.
+The check accepts a change of form, such as `.61` for 0.61 or `1204` for 1,204,
+but not a changed digit. A figure found nowhere, such as 54.2 written for 45.2,
+has `backed = FALSE`, is counted in `n_unbacked` and raises a warning. It does
+not make the section partial; partial is about citations. A backed figure was
+copied correctly from the cited row, and it can still be the wrong figure for
+the sentence.
 
 Each figure found in a row is also linked to the field it reports, and each
 carries the size of the pool it was checked against and the chance of a match
@@ -822,18 +824,18 @@ review$figures[, c("number", "field", "pool", "chance")]
 ```
 
 A sentence that cites nothing is checked against every row its section was
-shown, where a match by chance is common: among 40 numbers, a "63%" matches one
-more often than not. There a figure counts only when its chance is below 0.05,
-or when the sentence names the field it matched ("n = 236" for a field `n`).
-The check is diagnostic only: it marks nothing partial and sends nothing.
+shown, and there a chance match is common: among 40 numbers, a "63%" matches
+one more often than not. Such a figure counts only when its chance is below
+0.05, or when the sentence names the field it matched ("n = 236" for a field
+`n`). The check marks nothing partial and sends no request.
 
-The writer was shown each value with its check and its quote, as
-`revenue: 51.8 (verified quote: "...")`, and a value whose quote did not
-verify marked as such. `review$sentences` links every sentence of the text to
-the studies it cites that are verified records, those with at least one value
-whose quote verified, or flags it; `review$uncited` lists the studies the text
-cites nowhere, and whether a section was shown each. That is a count, not a
-quota: a review need not cite every study.
+The writer sees each value with its check and its quote, as
+`revenue: 51.8 (verified quote: "...")`, and a value whose quote did not verify
+is marked as such. `review$sentences` links each sentence of the text to the
+verified records it cites (studies with at least one value whose quote
+verified), or flags it. `review$uncited` lists the studies the text cites
+nowhere, and whether a section was shown each. A review need not cite every
+study; `$uncited` only lists them.
 
 ```{r}
 review$sentences[, c("sentence", "studies", "linked", "flag")]
@@ -853,13 +855,17 @@ rechecked$recheck$unknown
 
 ### Citations a reader can use
 
-The model writes and the package checks `[study 2]` markers; extract the
-bibliographic fields alongside your own and they render as citations, with a
-reference list built from the studies the finished text cites. `cite_style =
-"auto"`, the default, names the studies when the table can name all of them;
-`"author-year"` asks for names and warns if they cannot be produced, `"numeric"`
-gives `(1, 2)`, and `"marker"` leaves `[study 1]` as written. A protocol for
-that adds the bibliographic fields:
+The model writes `[study 2]` markers and harnessr checks them. Extract the
+bibliographic fields alongside your own, and the markers render as citations,
+with a reference list built from the studies the finished text cites.
+`cite_style =` picks the form:
+
+- `"auto"`, the default, names the studies when the table can name all of them.
+- `"author-year"` asks for names and warns if they cannot be produced.
+- `"numeric"` gives `(1, 2)`.
+- `"marker"` leaves `[study 1]` as written.
+
+A protocol for that adds the bibliographic fields:
 
 ```{r eval = FALSE}
 protocol <- gr_protocol(
@@ -879,8 +885,8 @@ protocol <- gr_protocol(
 )
 ```
 
-`gr_synthesise()` takes the extraction table, so the shape it needs is easy to
-show directly:
+`gr_synthesise()` takes the extraction table, so a table built by hand shows the
+shape it needs:
 
 ```{r}
 studies <- data.frame(
@@ -910,74 +916,77 @@ cited <- gr_synthesise(
 cat(cited$text)
 ```
 
-The model still writes `[study 3]`. Rendering happens afterwards, from the
-table, so a citation in the finished prose is a fact about the extraction rather
-than something the model asserted. Verifying "Smith & Okafor (2019)" would mean
-matching a name the model wrote against a name in the table, and the near-misses
-(Smith for Smyth, 2019 for 2018) are the errors that matter and also the ones
-fuzzy matching forgives. `cited$text_marked` keeps the marker form, so the check
-can be re-run on what you published.
+The model still writes `[study 3]`. `gr_synthesise()` renders the citation
+afterwards from the table, so a citation in the finished prose comes from the
+extraction and the model never asserts it. Checking a model-written "Smith &
+Okafor (2019)" would mean matching its name against a name in the table, and
+fuzzy matching forgives the near misses that matter (Smith for Smyth, 2019 for
+2018). `cited$text_marked` keeps the marker form, so you can rerun the check on
+what you published.
 
-A study it cannot name makes the whole review fall back to markers. Citing some
-studies by name and others by number reads as a mistake, and inventing "n.d."
-would assert something the extraction never found. Ask for a `citation` field
-directly if your sources are awkward; parsing an arbitrary author list is a
-heuristic and is treated as one.
+If one study cannot be named, the whole review falls back to markers. Citing
+some studies by name and others by number reads as a mistake, and writing
+"n.d." would assert something the extraction never found. If your sources are
+awkward, ask for a `citation` field directly; parsing an arbitrary author list
+is a heuristic and is treated as one.
 
 ### Revision passes
 
-Sections are written independently, which keeps each one answerable to its own
-brief, so nothing joins them: terms drift, a study gets introduced twice, there
-are no transitions. `coherence = TRUE` adds three revision passes over the
-finished draft: `"structure"` reorders and merges, `"cut"` removes repetition,
-and `"register"` polishes sentences. Each is forbidden from doing the others'
-job, and each is a call, so they are off by default. Name a subset if you want
-fewer: `coherence = "cut"`.
+`gr_synthesise()` writes each section on its own, which keeps it answerable to
+its own brief but leaves nothing joining the sections: terms drift, a study gets
+introduced twice, and there are no transitions. `coherence = TRUE` adds three
+revision passes over the finished draft:
 
-A revision pass may reorganise prose. It may not make the review claim more than
-the draft did. The passes are the one step that could quietly undo everything
-above them, so their output is checked rather than trusted, and a pass that
-fails a check is discarded, leaving `review$draft`, the text from before the
-passes.
+- `"structure"` reorders and merges.
+- `"cut"` removes repetition.
+- `"register"` polishes sentences.
 
-A revision that added or lost a citation is discarded. That check is necessary
-and not sufficient, because the most damaging thing an editing pass does leaves
-the citations exactly where they were: editing for impact means deleting hedges,
-and the hedges are where the uncertainty lives. "Three small trials suggest a
-modest benefit" comes back as "trials show a benefit", with the same markers and
-studies and a claim the evidence does not carry. So a revision is also discarded
-if it introduces a universal quantifier that was not there, uses a booster
-("demonstrates", "establishes", "confirms") more often than the draft did, or
-carries fewer hedges than the draft's rate implies.
+Each pass is told not to do the others' job. Each is a call, so they are off by
+default. Name a subset for fewer, as in `coherence = "cut"`.
 
-All three are matched on whole words. As bare substrings, "improved" counted as
-an instance of "prove", so a draft saying "outcomes improved" licensed a
-revision saying "proves the drug works", and a revision that added the hedge
-"unproven" was rejected for introducing a booster. Boosters are counted rather
-than merely listed, so saying "demonstrates" three times where the draft said it
-once is introducing it.
+A revision pass may reorganise prose, but it may not make the review claim more
+than the draft did. The passes could undo every check above them, so
+`gr_synthesise()` checks their output. A pass that fails a check is discarded,
+leaving `review$draft`, the text from before the passes.
+
+A revision that added or lost a citation is discarded. That check alone misses
+the most damaging edit, which leaves the citations in place: editing for impact
+deletes hedges, and the hedges carry the uncertainty. "Three small trials
+suggest a modest benefit" comes back as "trials show a benefit", with the same
+markers and studies and a claim the evidence does not carry. A revision is
+therefore also discarded if it:
+
+- introduces a universal quantifier that was not there,
+- uses a booster ("demonstrates", "establishes", "confirms") more often than
+  the draft did, or
+- carries fewer hedges than the draft's rate implies.
+
+All three are matched on whole words. An earlier version matched bare
+substrings, so "improved" counted as an instance of "prove": a draft saying
+"outcomes improved" licensed a revision saying "proves the drug works", and a
+revision that added the hedge "unproven" was rejected for introducing a
+booster. Boosters are counted, so writing "demonstrates" three times where the
+draft wrote it once counts as introducing it.
 
 The hedge test scales with how much claim-bearing prose survived, so a shorter
-revision may carry fewer hedges, but never none if the draft had any. It does
-not promise that every legitimate cut passes: a pass that removes the most
-heavily hedged sentence lowers the rate and is refused. The cost of that is a
-discarded pass and a warning; the draft stands.
+revision may carry fewer hedges, but not none if the draft had any. Some
+legitimate cuts fail: a pass that removes the most heavily hedged sentence
+lowers the rate and is refused. That costs a discarded pass and a warning, and
+the draft stands.
 
-Hedges and universal quantifiers are measured on sentences carrying a citation,
-because headings, framing and transitions are exactly what an editing pass
-should be free to rewrite, and "the evidence, all of which is relevant" is not a
-claim. Boosters are measured on all of the prose except headings, because there
-is no register in which an editing pass should introduce "demonstrates" into a
-review at all, and the uncited framing between the claims is where such a
-sentence gets written.
+Hedges and universal quantifiers are measured on sentences that carry a
+citation. Headings, framing and transitions are what an editing pass should be
+free to rewrite, and "the evidence, all of which is relevant" is not a claim.
+Boosters are measured on all the prose except headings: an editing pass should
+not introduce "demonstrates" into a review in any register, and the uncited
+framing between claims is where such a sentence gets written.
 
-Two more checks need no model call. A `cut` pass that did not shorten the review
-is discarded, since a cut that cut nothing was a polish under the wrong name. And
-a revision pass that writes a figure its draft did not have, or changes which
-studies are cited, is discarded; the figure check runs on the draft and again on
-the revised text. `review$coherence` has one row per pass: what ran, whether it
-was kept and why not, with `words_before` and `words_after`, so a pass that
-halved the review can be seen.
+Two more checks need no model call. A `cut` pass that did not shorten the
+review is discarded. A revision pass that writes a figure its draft did not
+have, or changes which studies are cited, is also discarded; the figure check
+runs on the draft and again on the revised text. `review$coherence` has one row
+per pass: what ran, whether it was kept and why not, with `words_before` and
+`words_after`, so you can see a pass that halved the review.
 
 ## Writing from claims instead of from rows
 
