@@ -25,8 +25,9 @@ name: pr-checks
 #        double hyphen between spaces under R/, man/, vignettes/, inst/ (not
 #        inst/extdata/), dev/ or .github/, or in the top-level Markdown files,
 #        DESCRIPTION or _pkgdown.yml. tests/ is not read. A line listed in
-#        fixtures/boundary/dash-allowed.csv (prompt text sent to a model) may
-#        keep its double hyphen; that list may only shrink, as above.
+#        fixtures/boundary/dash-allowed.csv may keep its double hyphen. The
+#        list holds prompt text sent to a model and the name of the dashes
+#        step below; it may only shrink, as above.
 #
 # The five checks need base R only, so they share one job and one R setup.
 # Each is its own step and runs even when an earlier one failed, so a red

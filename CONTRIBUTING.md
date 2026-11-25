@@ -62,6 +62,8 @@ the sentence: split it, use a colon before an explanation or a list, or put
 a short aside in commas or parentheses. Prompt text sent to a model keeps
 its double hyphens, since changing it would change requests and cache keys;
 those lines are listed in `tests/testthat/fixtures/boundary/dash-allowed.csv`.
+The list also holds the name of the `dashes` step in
+`.github/workflows/pr-checks.yaml`, which quotes the mark it checks for.
 That list may only shrink, so a row added to it fails the `tests` step until
 the pull request carries the label `tests-reviewed`.
 
