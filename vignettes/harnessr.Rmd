@@ -38,7 +38,7 @@ library(harnessr)
 ```
 
 ```{r}
-gr_count_tokens("Revenue rose to 45.2 million dollars in fiscal 2024.")
+hr_count_tokens("Revenue rose to 45.2 million dollars in fiscal 2024.")
 ```
 
 harnessr estimates token counts itself, without asking the provider, so it can
@@ -120,21 +120,21 @@ file.edit("~/.Renviron")
 # OPENAI_API_KEY=sk-...
 ```
 
-`gr_api_key()` checks that R can see it, and stops with an explanation if it
+`hr_api_key()` checks that R can see it, and stops with an explanation if it
 cannot:
 
 ```{r eval = FALSE}
-gr_api_key()
+hr_api_key()
 ```
 
 If the key is missing, a run stops before it reads your document and gives the
 same explanation.
 
-Behind a company gateway, `gr_client(headers = )` sends the headers it wants,
+Behind a company gateway, `hr_client(headers = )` sends the headers it wants,
 such as Azure's `api-key`:
 
 ```{r eval = FALSE}
-cl <- gr_client(
+cl <- hr_client(
   base_url = "https://gateway.example.com/openai/v1", api = "chat",
   headers  = c("api-key" = Sys.getenv("GATEWAY_KEY"), Authorization = NA))
 ```
@@ -142,7 +142,7 @@ cl <- gr_client(
 Naming a header replaces the automatic `Authorization`, and `NA` suppresses one,
 which keeps a personal `OPENAI_API_KEY` off the gateway. Naming any header makes
 the key optional, so a client that authenticates through headers needs no key.
-`gr_options(api_headers = )` sets the same headers for every client, the form
+`hr_options(api_headers = )` sets the same headers for every client, the form
 for a project's `.Rprofile`.
 
 The README's "Connecting a model" section covers other providers through the
@@ -150,21 +150,21 @@ ellmer package and free models running on your own machine through Ollama.
 
 ## Practising without a key
 
-For learning, a real model is unnecessary. `gr_mock_client()` builds a stand-in
+For learning, a real model is unnecessary. `hr_mock_client()` builds a stand-in
 that replies with whatever an R function returns, and it can be used anywhere a
 real model can. This one always gives the same answer, which is enough to see
 how everything else works:
 
 ```{r}
-cl <- gr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
-old <- gr_options(verbose = FALSE)
+cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
+old <- hr_options(verbose = FALSE)
 ```
 
 `verbose = FALSE` stops harnessr printing a line for each stage; leave it on in
 your own work while you are learning. In an interactive session it also keeps a
 line up to date with how far a long read has got and what it has spent.
-`gr_options()` returns the settings it replaced, so they can be restored later
-with `gr_options(old)`.
+`hr_options()` returns the settings it replaced, so they can be restored later
+with `hr_options(old)`.
 
 ## Your first question
 
@@ -209,7 +209,7 @@ When it is `TRUE`, printing the answer says why, and `ans$notes` holds the
 details. Here is a "model" that fails every request, as a network outage would:
 
 ```{r}
-broken <- gr_mock_client(function(messages, params) stop("no connection"))
+broken <- hr_mock_client(function(messages, params) stop("no connection"))
 bad <- answer_document(gr_example(), "What was revenue in 2024?",
                        client = broken)
 bad
@@ -272,8 +272,8 @@ Every result carries a *trace*: each request sent, each reply, and the tokens
 both used.
 
 ```{r}
-gr_trace_summary(ans$trace)[, c("calls", "tokens_in", "tokens_out")]
-gr_trace_cost(ans$trace)[, c("model", "calls", "usd")]
+hr_trace_summary(ans$trace)[, c("calls", "tokens_in", "tokens_out")]
+hr_trace_cost(ans$trace)[, c("model", "calls", "usd")]
 ```
 
 `as.data.frame()` gives one row per request, with its cost and how long it took.
@@ -283,13 +283,13 @@ The `prompt` and `reply` columns hold exactly what was sent and what came back:
 as.data.frame(ans$trace)[, c("stage", "tokens_in", "tokens_out", "usd", "seconds")]
 ```
 
-`usd` is priced from harnessr's list of known models (`gr_models()`). A model it
+`usd` is priced from harnessr's list of known models (`hr_models()`). A model it
 does not know is priced as unknown rather than free. You can also estimate
 before sending anything. Here is a 120,000-token document with a 4,000-token
 answer:
 
 ```{r}
-gr_estimate_cost(gr_options("model"), input_tokens = 120000, output_tokens = 4000)
+hr_estimate_cost(hr_options("model"), input_tokens = 120000, output_tokens = 4000)
 ```
 
 Two safety limits are on from the start: $5 and 400 requests per document. Each
@@ -301,10 +301,10 @@ request: one that would need more than 400 requests, or one whose chunks would
 cost more than $5 to send once:
 
 ```{r}
-unlist(gr_options()[c("max_cost_usd", "max_calls")])
+unlist(hr_options()[c("max_cost_usd", "max_calls")])
 ```
 
-Change them with `gr_options()`, for example `gr_options(max_cost_usd = 20)`.
+Change them with `hr_options()`, for example `hr_options(max_cost_usd = 20)`.
 `vignette("runs")` covers the other limits, and how to cache a run so it is paid
 for once.
 
@@ -317,7 +317,7 @@ model's name to stand in for it:
 
 ```{r}
 low <- answer_document(gr_example(), "What was revenue in 2024?",
-                       client = cl, model = gr_options("model"), effort = "low")
+                       client = cl, model = hr_options("model"), effort = "low")
 as.data.frame(low$trace)[, c("stage", "model", "effort")]
 ```
 
@@ -392,7 +392,7 @@ table(factor(settings$stage, unique(settings$stage)))
 | read | `gr_read_spec()`, or by name; `gr_read_many()` for a folder | `vignette("readers")` |
 | screen, extract, synthesise | the arguments of `gr_screen()`, `gr_extract()`, `gr_synthesise()` and the functions beside them | `vignette("review")` |
 | evaluate | the arguments of `hr_benchmark()`, `hr_report()` and `hr_judge()` | `vignette("evaluate")`, `vignette("compare")` |
-| options | `gr_options()`, for the whole session | `vignette("runs")` |
+| options | `hr_options()`, for the whole session | `vignette("runs")` |
 
 Most runs change a few of them, which `gr_settings_table()` marks `basic`.
 The ones that matter first, with their defaults and when to change each:
@@ -437,7 +437,7 @@ you ask for, and `gr_synthesise()` writes up the findings with each statement
 citing the study it came from. `vignette("review")` covers each of these.
 
 ```{r include = FALSE}
-gr_options(old)
+hr_options(old)
 ```
 
 ## Where to go next
@@ -457,7 +457,7 @@ gr_options(old)
   readers and embedders.
 - `vignette("settings")`: every setting of every stage, with its default and
   where the default came from.
-- `?gr_options`: every option, with its default.
+- `?hr_options`: every option, with its default.
 
 `browseVignettes("harnessr")` lists all the guides.
 

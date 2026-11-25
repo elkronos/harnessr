@@ -20,7 +20,7 @@ to changing it, where its default came from and how to test a change.
 
 ```{r message = FALSE}
 library(harnessr)
-old <- gr_options(verbose = FALSE, embedder = "lexical")
+old <- hr_options(verbose = FALSE, embedder = "lexical")
 settings <- gr_settings_table()
 table(settings$stage, settings$tier)[unique(settings$stage), ]
 ```
@@ -36,13 +36,13 @@ gives it) or `untested` (it was chosen, and nothing has measured it); a blank
 means nothing is declared, which is the case for switches, limits and most
 function arguments. `gr_settings_table()` adds the `source` behind each
 status, and `?gr_read_spec`, `?gr_segment_spec`, `?gr_ingest_spec` and
-`?gr_options` give the full help.
+`?hr_options` give the full help.
 
 A setting is given where its stage takes it. Ingest, segment and read
 settings go in a spec (`gr_read_spec(top_k = 4)`), in a recipe, or by name to
 `answer_document()`, `gr_read_many()` and `gr_arm()`, which put each on the
 step it belongs to. The review and evaluation settings are arguments of their
-functions. Options are set for the session with `gr_options()`.
+functions. Options are set for the session with `hr_options()`.
 
 To find out whether a value is better for your documents, build one arm per
 value with `hr_sweep()` and compare them with `hr_benchmark()` and
@@ -130,7 +130,7 @@ show_settings("evaluate")
 
 ## Options
 
-Session settings, set with `gr_options()` and read when a run starts.
+Session settings, set with `hr_options()` and read when a run starts.
 `vignette("runs")` covers the limits.
 
 ```{r echo = FALSE}
@@ -140,7 +140,7 @@ show_settings("options")
 ## Building blocks
 
 Some settings choose a module from a registry: `extractor`, `clean`, `method`,
-`reader`, `gr_options(embedder = )`, and the recipe given to
+`reader`, `hr_options(embedder = )`, and the recipe given to
 `answer_document()`. The tables below are the registries as installed, so a
 module you register with `gr_register_reader()` and the like
 (`vignette("extending")`) appears in them too.
@@ -221,7 +221,7 @@ knitr::kable(do.call(rbind, lapply(names(gr_recipes()), function(n) {
 ```
 
 ```{r include = FALSE}
-gr_options(old)
+hr_options(old)
 ```
 
 ## Next
