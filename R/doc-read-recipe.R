@@ -1,8 +1,8 @@
-# doc-read-recipe.R -- the three axes bound into one named configuration.
+# doc-read-recipe.R: the three axes bound into one named configuration.
 #
 # WHY THIS FILE EXISTS
-# `answer_question()` decided ONE chunking method for the whole run --
-# `if ("Semantic" %in% mode) "semantic" else "naive"` -- and then looped over
+# `answer_question()` decided ONE chunking method for the whole run
+# (`if ("Semantic" %in% mode) "semantic" else "naive"`) and then looped over
 # modes sharing a single `chunks` object. Selecting a second mode therefore
 # changed the first mode's input, and its answer:
 #
@@ -128,8 +128,8 @@ gr_recipes <- function(name = NULL) {
     consensus = gr_recipe("consensus",
       segment = list(method = "recursive", max_tokens = 1000, overlap_tokens = 100),
       read = list(reader = "ensemble", members = c("retrieve", "map_reduce", "refine"))),
-    # Reproduces the old defaults -- digit-stripping, word-count budgeting, no
-    # overlap -- so the change in behaviour can be measured rather than asserted.
+    # Reproduces the old defaults (digit-stripping, word-count budgeting, no
+    # overlap) so the change in behaviour can be measured rather than asserted.
     legacy = gr_recipe("legacy",
       ingest = list(clean = "legacy"),
       segment = list(method = "paragraph", max_tokens = 3000, overlap_tokens = 0),
@@ -141,7 +141,7 @@ gr_recipes <- function(name = NULL) {
                      class(name)[1], paste(names(r), collapse = ", ")))
   }
   # Vectorised. `gr_recipes(c("fast", "precise"))` used to die on "the condition
-  # has length > 1" -- which is exactly the call you make to hand a set of
+  # has length > 1", and that is exactly the call you make to hand a set of
   # recipes to gr_compare().
   unknown <- setdiff(name, names(r))
   if (length(unknown)) {

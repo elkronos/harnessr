@@ -27,7 +27,7 @@
 #' Group chunks into the units a plan is made of.
 #'
 #' Sections when the segmenter recorded them, contiguous runs of chunks when it
-#' did not -- `fixed` and `recursive` leave `section` NA on every row, and a
+#' did not. `fixed` and `recursive` leave `section` NA on every row, and a
 #' planner needs something to point at either way.
 #' @noRd
 preview_units <- function(d, target = 8L) {
@@ -37,7 +37,7 @@ preview_units <- function(d, target = 8L) {
   # arrived here with a section column that was entirely placeholder rather
   # than NA. `!all(is.na(sec))` was therefore TRUE, the run-length grouping
   # produced ONE unit spanning the document, and a plan that marked that single
-  # unit "skim" sent one truncated excerpt and reported the answer complete --
+  # unit "skim" sent one truncated excerpt and reported the answer complete:
   # 16% of an 18,000-token document read, `partial = FALSE`.
   sec[!is.na(sec) & (!nzchar(trimws(sec)) | sec %in% .gr_no_section)] <- NA_character_
   if (!all(is.na(sec))) {
@@ -47,7 +47,7 @@ preview_units <- function(d, target = 8L) {
     key[is.na(key)] <- "none"
     run <- cumsum(c(TRUE, key[-1] != key[-length(key)]))
     units <- unname(split(seq_len(nrow(d)), run))
-    # One unit covering everything is not a plan -- there is nothing to decide
+    # One unit covering everything is not a plan. There is nothing to decide
     # between, and every treatment it can be given applies to the whole
     # document. Fall through to blocks, which is what a document with no
     # structure gets anyway.
@@ -208,7 +208,7 @@ read_preview <- function(chunks, question, client, spec, trace) {
                               structure = answer_structure(spec))
   bud <- gr_budget(spec$model, reserve_output = spec$max_answer_tokens, overhead = overhead)
   # as.integer(), because `unlist()` on an empty list returns NULL, not
-  # integer(0) -- and `fit_chunks()` reads `order %||% seq_len(nrow(df))`, so a
+  # integer(0), and `fit_chunks()` reads `order %||% seq_len(nrow(df))`, so a
   # plan that marked every section skip handed it NULL and it read the WHOLE
   # document. The reader silently did the opposite of what the plan said, and
   # charged for it. as.integer(NULL) is integer(0), which `%||%` leaves alone.
@@ -285,7 +285,7 @@ read_preview <- function(chunks, question, client, spec, trace) {
     cut <- sum(keep & vapply(res, function(r) isTRUE(r$cut), logical(1)))
     if (any(keep)) {
       rows1 <- vapply(res[keep], function(r) as.integer(r$rows[1]), integer(1))
-      # Model-written, so it carries its source and is verified -- the rule
+      # Model-written, so it carries its source and is verified, the rule
       # `skim` follows. The source is the whole section the span was drawn from,
       # which is what the model actually saw, less anything a segmenter wrote.
       src <- vapply(res[keep], function(r) paste(reader_source_text(d)[r$rows], collapse = "\n\n"),
@@ -298,7 +298,7 @@ read_preview <- function(chunks, question, client, spec, trace) {
 
   # The answer prompt is budgeted as a whole. The read rows were fitted to all
   # of it and the skim evidence went in on top, which is exactly when the read
-  # rows had filled it -- demotion only happens then -- so gr_call() cut the
+  # rows had filled it (demotion only happens then), so gr_call() cut the
   # reply's room (partial = FALSE, over an answer that could stop mid-sentence)
   # or refused the call. The evidence goes into the room the read rows leave,
   # whole, in document order; what does not fit is left out and counted.

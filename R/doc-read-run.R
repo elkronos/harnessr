@@ -1,4 +1,4 @@
-# doc-read-run.R -- AXIS 3: the public reading entry point and the distinctness
+# doc-read-run.R: AXIS 3, the public reading entry point and the distinctness
 # check.
 
 #' Read chunks and answer a question
@@ -199,7 +199,7 @@ preflight <- function(chunks, spec, trace, client = NULL, question = "",
   # Size the completion estimate by the LARGER of the two caps: only the
   # per-chunk readers use max_chunk_tokens, and the rest size their answers with
   # max_answer_tokens, so using the per-chunk cap under-estimated output by
-  # whatever ratio the user chose -- measured at 97x in one configuration.
+  # whatever ratio the user chose, measured at 97x in one configuration.
   # This is the worst case, recorded below; it refuses only a parallel read.
   # A reasoning model is sent a larger cap than that, with room for its
   # reasoning (reasoning_output_cap()), and bills up to it: priced at the cap

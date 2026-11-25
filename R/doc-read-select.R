@@ -1,4 +1,4 @@
-# doc-read-select.R -- which chunks go in the prompt, and in what order.
+# doc-read-select.R: which chunks go in the prompt, and in what order.
 #
 # WHY THIS FILE EXISTS
 # Top-k by cosine similarity answers "which chunks are most like the question",
@@ -9,13 +9,13 @@
 #
 # Maximal marginal relevance is the standard fix: pick greedily, and at each
 # step trade a chunk's relevance against how much it duplicates what is already
-# selected. It costs nothing -- the vectors are already computed -- and it is off
+# selected. It costs nothing, as the vectors are already computed, and it is off
 # by default, because changing what goes in the prompt changes answers and that
 # should be a decision, not a surprise.
 #
 # Ordering is a separate question with a separate, better-evidenced reason.
 # Transformers attend measurably better to the beginning and end of a long
-# context than to its middle -- the "lost in the middle" effect. That is not a
+# context than to its middle: the "lost in the middle" effect. That is not a
 # claim about which chunks to choose; it is a claim about where to put the ones
 # you chose. Note that this is the opposite of the intuition it resembles: the
 # primacy and recency effects in human memory come from rehearsal and
@@ -61,7 +61,7 @@ mmr_select <- function(rel, emb, k, lambda = 1) {
   # A non-finite row poisons everything downstream of it: one NaN reaches every
   # candidate through `pmax()`, every score becomes NaN, `which.max()` returns
   # integer(0), `sel` stops growing and the `while` NEVER TERMINATES. Not an
-  # error and not a crash -- a hang, which is the worst failure a library can
+  # error and not a crash. It is a hang, the worst failure a library can
   # hand you. A zero vector L2-normalised is 0/0, so any chunk an embedder finds
   # no words in produces one.
   #
@@ -69,7 +69,7 @@ mmr_select <- function(rel, emb, k, lambda = 1) {
   # maps such a row to a relevance of 0, so the chunk is a legitimate if
   # unpromising choice and top-k will happily take it. Dropping it here instead
   # meant `mmr < 1` quietly returned fewer chunks than `top_k` asked for while
-  # `mmr = 1` returned the full set -- a diversity setting silently shrinking
+  # `mmr = 1` returned the full set: a diversity setting silently shrinking
   # the evidence. A zero vector contributes zero similarity, which is the right
   # answer for "we cannot tell how redundant this is".
   bad_row <- !is.finite(rowSums(emb))
@@ -113,7 +113,7 @@ arrange_context <- function(idx, how = "relevance") {
   # Document order is meaningful for two chunks; only "edges" needs a middle to
   # bury anything in. The length guard used to sit above this branch, so
   # `context_order = "document"` was a silent no-op whenever fewer than three
-  # chunks were selected -- which is the common case for a top-k reader.
+  # chunks were selected, the common case for a top-k reader.
   if (identical(how, "document")) return(sort(idx))
   if (length(idx) < 3L) return(idx)
   if (!identical(how, "edges")) return(idx)

@@ -1,10 +1,10 @@
-# doc-read-route.R -- the top-level orchestrator.
+# doc-read-route.R: the top-level orchestrator.
 #
 # WHY THIS FILE EXISTS
 # `answer_question()` had six separate defects packed into 60 lines:
 #
 #   1. `match.arg(mode, several.ok = TRUE)` on a five-element default meant that
-#      calling `answer_question(f, q)` with no mode ran ALL FIVE modes -- 41 API
+#      calling `answer_question(f, q)` with no mode ran ALL FIVE modes: 41 API
 #      calls where the obvious reading of the signature suggests one.
 #   2. One `chunk_method` and one `chunks` object were shared by every mode, so
 #      modes contaminated each other (see pipeline.R).
@@ -15,12 +15,12 @@
 #   4. No `tryCatch` around the loop, so one failure discarded every
 #      already-paid-for answer.
 #   5. `...` was never forwarded to `parse_text()`, so no ingestion option was
-#      reachable from the only public entry point -- and passing one anyway
+#      reachable from the only public entry point, and passing one anyway
 #      (`remove_numbers = FALSE`) was silently swallowed by a downstream `...`.
 #   6. `refine_answer(chunks, question, ans, ...)` forwarded `...` into a
 #      function with no `...` formal, so any extra argument produced
 #      "unused arguments (temperature = 0.2)". It also called `search_text()`,
-#      which is not defined anywhere in the repository -- `refine = TRUE` could
+#      which is not defined anywhere in the repository, so `refine = TRUE` could
 #      never work.
 
 #' Answer a question about a document
@@ -262,7 +262,7 @@ override_held_value <- function(ctor, held, nm) {
 #' Apply flat `...` overrides onto the right axis of a recipe.
 #'
 #' Unknown names are an ERROR. In the old code they were swallowed by a
-#' downstream `...` -- `answer_question(f, q, remove_numbers = FALSE)` ran
+#' downstream `...`: `answer_question(f, q, remove_numbers = FALSE)` ran
 #' cleanly and stripped every digit anyway.
 #' @noRd
 apply_overrides <- function(rec, overrides) {
@@ -282,18 +282,18 @@ apply_overrides <- function(rec, overrides) {
   # `x[nm] <- list(v)`, not `x[[nm]] <- v`. `[[<-` with a NULL right-hand side
   # DELETES the element, and gr_recipe() then rebuilds the spec with
   # do.call(gr_segment_spec, seg), which supplies the constructor's formal
-  # default -- not the recipe's value and not what the constructor would have
-  # made of NULL. `answer_document(f, q, "fast", max_tokens = NULL)` silently
-  # segmented at 1200 tokens instead of the recipe's 4000, and the trace's
-  # `settings` lost the entry too, so the run record no longer said which cap
-  # was used. Fourteen fields were affected.
+  # default. It was neither the recipe's value nor what the constructor would
+  # have made of NULL. `answer_document(f, q, "fast", max_tokens = NULL)`
+  # silently segmented at 1200 tokens instead of the recipe's 4000, and the
+  # trace's `settings` lost the entry too, so the run record no longer said
+  # which cap was used. Fourteen fields were affected.
   set1 <- function(x, nm, v) { x[nm] <- list(v); x }
-  # NULL is a value only where the constructor itself defaults to NULL -- model,
+  # NULL is a value only where the constructor itself defaults to NULL: model,
   # temperature, skim_model, parallel and the like, where it means "use the
   # default model / the session option". Anywhere else NULL is not a setting,
   # and letting it through meant the constructor decided what it meant: a
   # silent FALSE for prefix_section, a warning and the formal default for
-  # max_tokens, and "Unknown segmenter '<missing>'" for method -- raised after
+  # max_tokens, and "Unknown segmenter '<missing>'" for method, raised after
   # the document had already been ingested. Refused here, before any work.
   null_ok <- function(ctor, nm) {
     f <- formals(ctor)
@@ -332,7 +332,7 @@ apply_overrides <- function(rec, overrides) {
 
 #' A short, safe label for whatever the user passed as `source`.
 #'
-#' `basename()` is bounded by PATH_MAX -- 1024 bytes on macOS, and R warns or
+#' `basename()` is bounded by PATH_MAX (1024 bytes on macOS), and R warns or
 #' errors past it. A document passed as raw text is a length-1 character vector,
 #' so the obvious `is.character(x) && length(x) == 1L` guard handed the WHOLE
 #' DOCUMENT to `basename()`. On macOS that warned on every run over ~1KB (which
