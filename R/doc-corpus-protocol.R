@@ -1,4 +1,4 @@
-# doc-corpus-protocol.R -- what a review is looking for, written down before it
+# doc-corpus-protocol.R: what a review is looking for, written down before it
 # starts.
 #
 # WHY THIS FILE EXISTS
@@ -13,7 +13,7 @@
 # reading is a criterion fitted to what was found. That is the difference between
 # a review and a summary of whatever turned up, and it is why every reporting
 # standard for evidence synthesis asks for the protocol to be registered in
-# advance. A protocol object makes the three fixed, inspectable and shareable --
+# advance. A protocol object makes the three fixed, inspectable and shareable:
 # it can be written to a file, diffed, and cited alongside the results.
 #
 # THESE TEMPLATES ARE STARTING POINTS, NOT STANDARDS. `gr_protocols()` ships
@@ -291,8 +291,8 @@ criteria_vector <- function(x, what) {
 #' with itself as the brief, because "Methods", "Findings", "Limitations" is a
 #' perfectly good outline and demanding names for it is bureaucracy.
 #'
-#' A heading is how a section is told apart -- in a saved protocol, and in the
-#' claims gr_outline() assigns to each -- so `warn = TRUE` (a protocol being
+#' A heading is how a section is told apart, in a saved protocol and in the
+#' claims gr_outline() assigns to each. So `warn = TRUE` (a protocol being
 #' built) says when one is used twice.
 #' @noRd
 outline_vector <- function(x, warn = FALSE) {
@@ -343,7 +343,7 @@ protocol_as_list <- function(p) {
     }),
     # A `gr_recipe` is written as its NAME. Pinning every clean and segmentation
     # setting into a shared file would silently pin them for whoever reads it,
-    # on whatever version they have -- a protocol says what to look for, not how
+    # on whatever version they have. A protocol says what to look for, not how
     # this machine happened to chunk.
     outline = as.list(p$outline),
     recipe = if (inherits(p$recipe, "gr_recipe")) p$recipe$name else as_chr1(p$recipe, "research")
@@ -402,8 +402,8 @@ as_protocol <- function(x) {
 
 #' @noRd
 # Anchored, and on the whole word. A template's placeholders all BEGIN with
-# "REPLACE" -- "REPLACE THIS with your review question", "REPLACE: the
-# population the review is about" -- while a real protocol that happens to
+# "REPLACE" ("REPLACE THIS with your review question", "REPLACE: the
+# population the review is about"), while a real protocol that happens to
 # contain the string has it somewhere in the middle, as the name of a trial.
 # Anchoring is the difference between catching an unedited template and
 # refusing a review of the REPLACE trial.
@@ -420,7 +420,7 @@ as_protocol <- function(x) {
 #'
 #' It matters most for `claims`, whose `finding` values are defined RELATIVE to
 #' the question. With the placeholder still in place, "supports" and "contradicts"
-#' mean nothing -- and they are exactly what the claims layer reads to decide that
+#' mean nothing, and they are exactly what the claims layer reads to decide that
 #' two studies disagree.
 #' @noRd
 check_protocol_edited <- function(protocol, what = "run it") {
@@ -482,8 +482,8 @@ register_builtin_protocols <- function() {
   # trial" and "randomized controlled trial" become three designs, so a gap
   # analysis reports a design as absent while three of them sit in the table.
   # Every coded field here is paired with the paper's own wording, so the coding
-  # can be CHECKED rather than trusted -- the same bargain the evidence quotes
-  # make for the values.
+  # can be CHECKED rather than trusted. The evidence quotes make the same
+  # bargain for the values.
   gr_register_protocol("claims", gr_protocol(
     "claims",
     question = "REPLACE THIS with your review question, in one sentence.",
@@ -556,7 +556,7 @@ register_builtin_protocols <- function() {
       funding     = "Who funded the study, as declared",
       # Not `conflicts`: the extraction table uses that name for the fields a
       # document disagreed with itself about, and check_field_names() refuses
-      # it -- which is how this template found out.
+      # it. That is how this template found out.
       coi         = "Declared conflicts of interest"
     ),
     outline = c(
