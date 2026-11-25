@@ -43,7 +43,7 @@
 <path d="M670 124 L670 144" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#document-run-arrow-neutral)"/>
 <rect x="464" y="144" width="412" height="56" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
 <text x="670" y="168.2" text-anchor="middle" font-weight="bold">1. governor, before the cache</text>
-<text x="670" y="185.4" font-size="13" text-anchor="middle">allowed_models, max_output_tokens, max_calls</text>
+<text x="670" y="185.4" font-size="13" text-anchor="middle" class="limits-call">allowed_models, max_output_tokens, max_calls</text>
 <path d="M670 200 L670 220" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#document-run-arrow-neutral)"/>
 <rect x="464" y="220" width="412" height="56" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
 <text x="670" y="244.2" text-anchor="middle" font-weight="bold">2. cache: hr_cache_client()</text>
@@ -51,7 +51,7 @@
 <path d="M670 276 L670 296" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#document-run-arrow-neutral)"/>
 <rect x="464" y="296" width="412" height="56" rx="8" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
 <text x="670" y="320.2" text-anchor="middle" font-weight="bold">3. governor, on a cache miss</text>
-<text x="670" y="337.4" font-size="13" text-anchor="middle">max_tokens_total, max_cost_usd, allow_unpriced</text>
+<text x="670" y="337.4" font-size="13" text-anchor="middle" class="limits-send">max_tokens_total, max_cost_usd, allow_unpriced</text>
 <path d="M670 352 L670 372" fill="none" stroke="#8c959f" stroke-width="1.75" marker-end="url(#document-run-arrow-neutral)"/>
 <rect x="464" y="372" width="412" height="56" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.5"/>
 <text x="670" y="396.2" text-anchor="middle" font-weight="bold">4. the client answers it</text>

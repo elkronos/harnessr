@@ -179,12 +179,14 @@ wrap <- function(s, w, size = 14, bold = FALSE) {
   c(out, cur)
 }
 
-rect <- function(cv, x, y, w, h, style = "neutral", rx = 8, dash = FALSE, fill = NULL) {
+rect <- function(cv, x, y, w, h, style = "neutral", rx = 8, dash = FALSE, fill = NULL,
+                 cls = NULL) {
   p <- pal[[style]]
   add(cv, sprintf(
-    "<rect x=\"%s\" y=\"%s\" width=\"%s\" height=\"%s\" rx=\"%s\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\"%s/>",
+    "<rect x=\"%s\" y=\"%s\" width=\"%s\" height=\"%s\" rx=\"%s\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\"%s%s/>",
     fmt(x), fmt(y), fmt(w), fmt(h), fmt(rx), fill %||% p$fill, p$line,
-    if (dash) " stroke-dasharray=\"6 4\"" else ""))
+    if (dash) " stroke-dasharray=\"6 4\"" else "",
+    if (!is.null(cls)) sprintf(" class=\"%s\"", cls) else ""))
 }
 
 # A box with its lines centred in it. Text that does not fit stops the build.
@@ -207,13 +209,14 @@ box <- function(cv, x, y, w, h, lines, style = "neutral", align = "middle", dash
   }
 }
 
-arrow <- function(cv, points, style = "neutral", dash = FALSE, head = TRUE) {
+arrow <- function(cv, points, style = "neutral", dash = FALSE, head = TRUE, cls = NULL) {
   d <- paste0("M", fmt(points[1]), " ", fmt(points[2]))
   rest <- matrix(points[-(1:2)], nrow = 2)
   for (i in seq_len(ncol(rest))) d <- paste0(d, " L", fmt(rest[1, i]), " ", fmt(rest[2, i]))
-  add(cv, sprintf("<path d=\"%s\" fill=\"none\" stroke=\"%s\" stroke-width=\"1.75\"%s%s/>",
+  add(cv, sprintf("<path d=\"%s\" fill=\"none\" stroke=\"%s\" stroke-width=\"1.75\"%s%s%s/>",
                   d, pal[[style]]$line, if (dash) " stroke-dasharray=\"6 4\"" else "",
-                  if (head) sprintf(" marker-end=\"url(#%s-arrow-%s)\"", cv$stem, style) else ""))
+                  if (head) sprintf(" marker-end=\"url(#%s-arrow-%s)\"", cv$stem, style) else "",
+                  if (!is.null(cls)) sprintf(" class=\"%s\"", cls) else ""))
 }
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
@@ -302,7 +305,7 @@ clients <- c(fn("hr_client", "core"), fn("hr_ellmer_client", "core"),
              fn("hr_mock_client", "core"), fn("hr_replay_client", "core"))
 
 item_lines <- function(it, layer) {
-  c(list(ln(it[[1]], 14, bold = TRUE, color = pal[[layer]]$ink)),
+  c(list(ln(it[[1]], 14, bold = TRUE, color = pal[[layer]]$ink, cls = paste0(layer, "-item"))),
     lapply(it[-1], function(f) ln(paste0(f, "()"), 13, cls = "fn")))
 }
 
@@ -313,9 +316,9 @@ draw_layers <- function() {
   box(cv, 24, 76, 852, 40, list(ln("Your R code", 15, bold = TRUE)))
 
   # The document layer.
-  arrow(cv, c(380, 116, 380, 154))
+  arrow(cv, c(380, 116, 380, 154), cls = "call")
   txt(cv, 388, 140, sprintf("calls %s functions", doc_prefix), 13, color = muted)
-  rect(cv, 24, 154, 720, 166, "doc")
+  rect(cv, 24, 154, 720, 166, "doc", cls = "doc-layer")
   txt(cv, 40, 178, sprintf("Document layer: %s functions in R/doc-*.R", doc_prefix), 15,
       bold = TRUE, color = pal$doc$ink)
   iw <- (720 - 32 - 36) / 4
@@ -327,21 +330,21 @@ draw_layers <- function() {
   }
 
   # Your code can call the core directly.
-  arrow(cv, c(810, 116, 810, 378))
+  arrow(cv, c(810, 116, 810, 378), cls = "call")
   txt(cv, 818, 140, sprintf("calls %s", core_prefix), 13, color = muted)
 
-  arrow(cv, c(380, 320, 380, 378))
+  arrow(cv, c(380, 320, 380, 378), cls = "call")
   txt(cv, 388, 354, sprintf("calls %s functions", core_prefix), 13, color = muted)
 
   # The rule, crossed out: no call goes up.
-  arrow(cv, c(520, 378, 520, 320), "accent", dash = TRUE)
+  arrow(cv, c(520, 378, 520, 320), "accent", dash = TRUE, cls = "never")
   add(cv, sprintf(paste0("<path d=\"M512 341 L528 357 M528 341 L512 357\" stroke=\"%s\" ",
                          "stroke-width=\"2.5\"/>"), pal$accent$line))
   txt(cv, 540, 344, "never: core to document layer", 13, bold = TRUE, color = pal$accent$ink)
   txt(cv, 540, 362, "test-boundary.R checks it", 13, color = muted)
 
   # The core.
-  rect(cv, 24, 378, 852, 194, "core")
+  rect(cv, 24, 378, 852, 194, "core", cls = "core-layer")
   txt(cv, 40, 402, sprintf("Core: %s functions in R/core-*.R", core_prefix), 15,
       bold = TRUE, color = pal$core$ink)
   cw <- (852 - 32 - 36) / 4
@@ -352,7 +355,7 @@ draw_layers <- function() {
         item_lines(core_items[[i]], "core"), "core")
   }
 
-  arrow(cv, c(450, 572, 450, 610))
+  arrow(cv, c(450, 572, 450, 610), cls = "call")
   txt(cv, 458, 596, "sends requests", 13, color = muted)
   box(cv, 24, 610, 852, 44, list(ln(sprintf(
     "A model provider, or a stand-in: %s", paste0(clients, "()", collapse = ", ")),
@@ -481,11 +484,11 @@ draw_document_run <- function() {
   arrow(cv, c(lx + lw, read_mid, 444, read_mid, 444, 104, rx, 104))
   steps <- list(
     list(list(ln("1. governor, before the cache", 14, bold = TRUE),
-              ln(paste(gov_limits[[1]], collapse = ", "), 13)), "core"),
+              ln(paste(gov_limits[[1]], collapse = ", "), 13, cls = "limits-call")), "core"),
     list(list(ln(sprintf("2. cache: %s()", fn("hr_cache_client", "core")), 14, bold = TRUE),
               ln("a hit is returned; nothing is sent", 13)), "core"),
     list(list(ln("3. governor, on a cache miss", 14, bold = TRUE),
-              ln(paste(gov_limits[[2]], collapse = ", "), 13)), "core"),
+              ln(paste(gov_limits[[2]], collapse = ", "), 13, cls = "limits-send")), "core"),
     list(list(ln("4. the client answers it", 14, bold = TRUE),
               ln("a provider over HTTP, a mock or a replay", 13)), "neutral"),
     list(list(ln(sprintf("5. %s()", fn("trace_record", "core", internal = TRUE)), 14,

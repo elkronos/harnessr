@@ -98,6 +98,53 @@ test_that("layers.svg names both layers and the rule between them", {
   expect_match(txt, "test-boundary.R", fixed = TRUE)
 })
 
+test_that("layers.svg lists what each layer holds, as the spec does", {
+  doc <- read_diagram("layers.svg")
+  expect_identical(diagram_text(doc, "core-item"),
+                   c("client", "calls", "cache", "trace and ledger", "budget and governor",
+                     "registry and modules", "composition"))
+  expect_identical(diagram_text(doc, "doc-item"),
+                   c("ingest", "segment", "read", "screen", "extract", "claims", "synthesis",
+                     "review"))
+})
+
+# The points of a <path> drawn with M and L, as a 2-row matrix of x and y.
+path_points <- function(p) {
+  d <- xml2::xml_attr(p, "d")
+  matrix(as.numeric(regmatches(d, gregexpr("-?[0-9.]+", d))[[1]]), nrow = 2)
+}
+
+test_that("layers.svg draws calls going down and the crossed-out arrow going up", {
+  doc <- read_diagram("layers.svg")
+  layer_rect <- function(cls) {
+    r <- xml2::xml_find_all(doc, sprintf("//rect[@class='%s']", cls))
+    expect_length(r, 1)
+    as.numeric(c(xml2::xml_attr(r, "y"), xml2::xml_attr(r, "height")))
+  }
+  core <- layer_rect("core-layer")
+  docl <- layer_rect("doc-layer")
+  expect_lt(docl[1] + docl[2], core[1])
+
+  calls <- xml2::xml_find_all(doc, "//path[@class='call']")
+  expect_gte(length(calls), 4)
+  for (p in calls) {
+    m <- path_points(p)
+    expect_identical(ncol(m), 2L)
+    expect_equal(m[1, 1], m[1, 2])
+    expect_gt(m[2, 2], m[2, 1])
+  }
+
+  never <- xml2::xml_find_all(doc, "//path[@class='never']")
+  expect_length(never, 1)
+  m <- path_points(never[[1]])
+  expect_identical(ncol(m), 2L)
+  expect_equal(m[1, 1], m[1, 2])
+  # It starts at the top of the core and ends at the bottom of the document
+  # layer: the call the core never makes.
+  expect_equal(m[2, 1], core[1])
+  expect_equal(m[2, 2], docl[1] + docl[2])
+})
+
 test_that("document-run.svg shows the stages of a run, in order, and what each hands on", {
   doc <- read_diagram("document-run.svg")
   stages <- setdiff(names(formals(harnessr::gr_recipe)), "name")
@@ -112,6 +159,30 @@ test_that("document-run.svg shows the stages of a run, in order, and what each h
   a <- gr_read(ch, "What is the answer?", hr_mock_client(function(m, p) "42."))
   expect_identical(diagram_text(doc, "object"),
                    c(class(d)[1], class(ch)[1], class(a)[1]))
+})
+
+# Which limits governor_check() reads in its call stage and in its send
+# stage, in the order it reads them.
+governor_stage_limits <- function() {
+  src <- paste(deparse(body(harnessr:::governor_check), width.cutoff = 500L), collapse = "\n")
+  parts <- strsplit(src, "if (stage %in% c(\"both\", \"send\"))", fixed = TRUE)[[1]]
+  expect_length(parts, 2)
+  lapply(parts, function(part) {
+    unique(sub("^gov\\$", "", regmatches(part, gregexpr("gov\\$[a-z_]+", part))[[1]]))
+  })
+}
+
+test_that("document-run.svg puts each governor limit under the stage that checks it", {
+  doc <- read_diagram("document-run.svg")
+  limits <- governor_stage_limits()
+  expect_true(all(c("allowed_models", "max_calls") %in% limits[[1]]))
+  expect_true(all(c("max_tokens_total", "max_cost_usd") %in% limits[[2]]))
+  expect_identical(diagram_text(doc, "limits-call"), paste(limits[[1]], collapse = ", "))
+  expect_identical(diagram_text(doc, "limits-send"), paste(limits[[2]], collapse = ", "))
+  txt <- diagram_text(doc)
+  at <- function(s) which(txt == s)
+  expect_identical(at(diagram_text(doc, "limits-call")), at("1. governor, before the cache") + 1L)
+  expect_identical(at(diagram_text(doc, "limits-send")), at("3. governor, on a cache miss") + 1L)
 })
 
 test_that("registry.svg shows every kind and both contract versions", {
