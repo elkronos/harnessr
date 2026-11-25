@@ -557,7 +557,7 @@ probe <- ns$hr_chain(p = ns$hr_step("p", function(input, ctx) ctx$step_params$k,
                                     params = list(k = 7L)), name = "probe")
 must(identical(probe$run("x", list()), 7L), "a step in a chain reads ctx$step_params")
 
-# The coding loop: a held command step must come last.
+# The coding loop: no step that is not held may follow a held command step.
 rscript <- file.path(R.home("bin"), "Rscript")
 cmd_visible <- ns$hr_step_command("check", c(rscript, "-e", "1"))
 cmd_held <- ns$hr_step_command("held", c(rscript, "-e", "1"), held = TRUE)
@@ -675,7 +675,8 @@ draw_composition <- function() {
                   ". Settings flow from hr_param() and hr_schema() through hr_step() and ",
                   "hr_validate() to ctx$step_params; hr_settings() lists them by path, hr_set() ",
                   "changes them and hr_sweep() makes one arm per row. A coding loop runs draft, ",
-                  "visible check, revise and held check, and a held command step must come last."))
+                  "visible check, revise and held check. No step that is not held may follow a ",
+                  "held command step."))
 }
 
 # ---------------------------------------------------------------------------
