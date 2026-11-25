@@ -1,8 +1,8 @@
 ## Test environments
 
 * Ubuntu 24.04, R 4.3.3 (development container)
-* GitHub Actions: ubuntu-latest and macOS-latest, R release, via
-  `r-lib/actions/check-r-package`
+* GitHub Actions, via `r-lib/actions/check-r-package`: ubuntu-latest with
+  R release and R oldrel-1, and macOS-latest with R release
 
 ## R CMD check results
 
