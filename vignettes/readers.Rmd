@@ -451,7 +451,7 @@ support citations, because it answers from summaries and not from chunks.
 
 ## Checking what an answer rests on
 
-`ans$evidence` holds different things depending on the reader:
+The contents of `ans$evidence` depend on the reader:
 
 | reader | `evidence$text` holds |
 |---|---|
@@ -469,8 +469,9 @@ skimmed <- gr_read(chunks, "What was revenue in 2024?", hr_mock_client(stand_in)
 gr_verify_evidence(skimmed)[, c("chunk_id", "verified", "match")]
 ```
 
-Here is a model that invents one. The passage is fluent, on topic, attributed to
-a real chunk, and not in the document, so it cannot be caught by eye:
+The model below invents one. Its passage is fluent, on topic and attributed to a
+real chunk, yet the document does not contain it, and you could not catch it by
+eye:
 
 ```{r}
 memo <- gr_segment(gr_ingest("Revenue rose to 45.2 million dollars.\n\nHeadcount grew to 1,204."),
@@ -486,26 +487,32 @@ gr_verify_evidence(invented)[, c("kind", "verified", "match")]
 invented$partial
 ```
 
-`match` is 1 for an exact quotation once spacing, quote marks, dashes and
-capitals are folded away, since a faithful quotation can differ in those. A
-changed figure is not folded away. Below 1, `match` is the fraction of the
-passage carried by its longest consecutive run in the source, so where a change
-falls matters as much as how much changed: a changed last word leaves a run of
-nine in ten and scores 0.9, while a changed word in the middle splits the
-passage and scores about 0.5. Below about 0.3 there is no quotation left, only
-shared vocabulary. A run is used rather than word overlap because overlap cannot
-tell a quotation from a paraphrase built from the same words. A passage that
-does not verify is marked `verified = FALSE` and counted in
-`ans$notes$unverified_evidence`, and any one of them makes the answer partial.
+`match` scores how much of a passage the source holds:
 
-`gr_read_spec(verify = TRUE)` runs the same check inside `gr_read()`: it writes
+- It is 1 for an exact quotation once spacing, quote marks, dashes and capitals
+  are folded away, since a faithful quotation can differ in those. A changed
+  figure is not folded away.
+- Below 1, it is the fraction of the passage carried by its longest consecutive
+  run in the source. The place of a change matters as much as its size: a
+  changed last word leaves a run of nine in ten and scores 0.9, while a changed
+  word in the middle splits the passage and scores about 0.5.
+- Below about 0.3, no quotation is left, only shared vocabulary.
+
+The check uses a run instead of word overlap because overlap cannot tell a
+quotation from a paraphrase built from the same words. A passage that does not
+verify gets `verified = FALSE` and counts in `ans$notes$unverified_evidence`,
+and any one of them makes the answer partial.
+
+`gr_read_spec(verify = TRUE)` runs the same check inside `gr_read()`. It writes
 the check's columns onto `$evidence`, marks the answer partial when a quotation
 is not found, counts the quotations it checked in `notes$quotes_checked`, and
-records a `read.verify` step in the trace. It also holds `iterative` to
-quoting: each step must list the passages its answer rests on, word for word
-with their chunk numbers, and the loop stops only when every one is found in the
-chunk it names. A run that ends with none accepted keeps the refused answer in
-`notes$unverified_answer` and reports the answer as not in the document.
+records a `read.verify` step in the trace.
+
+It also holds `iterative` to quoting. Each step must list the passages its
+answer rests on, word for word with their chunk numbers, and the loop stops only
+when every one is found in the chunk it names. If a run ends with none
+accepted, it keeps the refused answer in `notes$unverified_answer` and reports
+the answer as not in the document.
 
 ```{r}
 vspec <- gr_read_spec(reader = "skim", verify = TRUE)
@@ -514,17 +521,19 @@ checked$notes$quotes_checked
 checked$evidence[, c("verified", "match", "quote_status", "quote_sim")]
 ```
 
-The last columns come from a second matcher, recorded beside `verified`:
-`quote_status`, `quote_sim`, `quote_coverage`, `quote_edits` and
+The `quote_` columns come from a second matcher, which harnessr records beside
+`verified`: `quote_status`, `quote_sim`, `quote_coverage`, `quote_edits` and
 `quote_critical_ok`. It expands ligatures, joins words hyphenated across a line,
 and scores the closest window of the source by character edits, with numbers
 and negations required to be identical. Its statuses are `verbatim`,
 `near_verbatim`, `unverified`, and `not_checked` for a passage too long to
-score. On a labelled set of 343 true and 162 false quotations it rejects 1.2% of
-true ones, against 36.4% for the existing check, and accepts none with a changed
-digit, number word, comparison sign or negation. It does accept 25 of 46
-quotations with one content word swapped as `near_verbatim`, so it decides
-nothing in this release: `verified` and `match` still decide.
+score.
+
+On a labelled set of 343 true and 162 false quotations, the second matcher
+rejects 1.2% of true ones, against 36.4% for the existing check, and accepts
+none with a changed digit, number word, comparison sign or negation. It does
+accept 25 of 46 quotations with one content word swapped as `near_verbatim`, so
+in this release it decides nothing: `verified` and `match` still decide.
 
 The other columns of `ans$evidence` are `page`, filled in only for a PDF,
 `section`, `kind`, and `score`, which only `retrieve` (similarity) and
@@ -535,14 +544,15 @@ run.
 ## Questions that assume something false
 
 A question can take for granted something the document contradicts: "Why did
-revenue fall in 2024?" of a report in which revenue rose. A reader then either
-answers on the question's terms or says the answer is not in the document, and
-either way what the document does say is lost. With `premise = TRUE` in
-`gr_read_spec()`, the model is told that if the excerpts state the opposite of
-something the question assumes, it should say so in one sentence and give what
-they state instead. That sentence is `ans$answer` and `ans$premise`, and
-`is_not_found()` is `FALSE` for it. Excerpts that are merely silent still count
-as not found.
+revenue fall in 2024?" asked of a report in which revenue rose. A reader then
+either answers on the question's terms or says the answer is not in the
+document, and either way you lose what the document does say.
+
+With `premise = TRUE` in `gr_read_spec()`, the reader tells the model to say so
+in one sentence when the excerpts state the opposite of something the question
+assumes, and to give what they state instead. That sentence is `ans$answer` and
+`ans$premise`, and `is_not_found()` is `FALSE` for it. Excerpts that are merely
+silent still count as not found.
 
 A reader that answers in one request (`stuff`, `retrieve`, `rerank`, `skim`,
 `hierarchical`, `preview`) gives that request's verdict. `map_reduce` passes a
@@ -551,9 +561,9 @@ chunk that contradicts the question to its merge as a finding, and
 decided; `ensemble` does the same with its members
 (`ans$notes$premise_members`). `?gr_read_spec` describes the rest.
 
-This stand-in plays a model that finds the summary contradicts the question and
-the other chunks silent. `FALSE_PREMISE:` is how the model is asked to open such
-a reply:
+The stand-in below plays a model that finds the summary contradicting the
+question and the other chunks silent. The reader asks the model to open such a
+reply with `FALSE_PREMISE:`, as here:
 
 ```{r}
 loaded <- hr_mock_client(function(messages, params) {
@@ -571,16 +581,18 @@ is_not_found(ans$answer)
 ans$notes$premise_chunks
 ```
 
-The verdict is the model's reading of the excerpts, not something harnessr checks,
-so weigh it as you would any answer. The check is off by default because it
-makes the prompts longer, so a cache or a recorded run made without it does not
-answer a run with it. `extract` and `screen` ignore it.
+The verdict is the model's reading of the excerpts. Under the default
+`premise_verdict = "sentence"`, harnessr does not check it, so weigh it as you
+would any answer; `"structured"` (under "Premise checks" below) asks for a
+quotation and checks it. The check is off by default because it makes the
+prompts longer, so a cache or a recorded run made without it does not answer a
+run with it. `extract` and `screen` ignore it.
 
 ## Trying readers on your own documents
 
-The best way to choose is to test on a few documents where you already know the
-answer. `gr_compare()` runs several configurations on one document, extracting the
-text once and sharing chunks between configurations that cut them the same way:
+To choose, test readers on a few documents whose answers you already know.
+`gr_compare()` runs several configurations on one document. It extracts the text
+once and shares chunks between configurations that cut them the same way:
 
 ```{r}
 cmp <- gr_compare(gr_example(), "What was revenue in 2024?", list(
@@ -594,32 +606,33 @@ cmp <- gr_compare(gr_example(), "What was revenue in 2024?", list(
 cmp$summary[, c("recipe", "reader", "settings", "chunks_used", "not_found", "partial")]
 ```
 
-`settings` names whatever each configuration changed from the defaults, so rows
-that differ only in a number can be told apart. Two configurations that would do
-exactly the same work are run once, with a warning, rather than paid for twice.
+`settings` names whatever each configuration changed from the defaults, so you
+can tell apart rows that differ only in a number. `gr_compare()` runs two
+configurations that would do exactly the same work once, with a warning, so you
+do not pay twice.
 
 ## When a provider cannot do structured replies
 
 `rerank`, `iterative` and `preview` ask the model to reply in a fixed structure
-(JSON), which most current providers support. Where the structure is not supported
-or the reply cannot be read, each one falls back, warns, and marks the answer
-partial: `rerank` to word-matching order, `iterative` to a single retrieval,
-`preview` to reading everything. The answer is still produced; `partial` tells
-you it came by the fallback.
+(JSON), which most current providers support. If the provider does not support
+the structure or the reply cannot be read, each one falls back, warns, and marks
+the answer partial: `rerank` to word-matching order, `iterative` to a single
+retrieval, `preview` to reading everything. You still get an answer, and
+`partial` tells you it came by the fallback.
 
 Every call that asks for JSON (these three, model segmentation, screening,
 claims, outlines and extraction) checks the reply's types, `enum` values and
-`required` fields, through nested objects and arrays, before using it. A reply
-that fails is treated as one that did not parse: the reader takes its failure
-path, the reply is not cached, and the reason says where the reply broke the
-schema, as in `$.groups[0]: expected array, got 1`. `gr_extract()` still reads
-each field's value itself, so "1,204" in an integer field is still 1204; only
-the shape of its replies is checked.
+`required` fields, through nested objects and arrays, before using it.
+harnessr treats a reply that fails as one that did not parse: the reader takes
+its failure path, the cache does not keep the reply, and the reason says where
+the reply broke the schema, as in `$.groups[0]: expected array, got 1`.
+`gr_extract()` still reads each field's value itself, so "1,204" in an integer
+field is still 1204; the check covers only the shape of its replies.
 
 ## When the answer is not what you expected
 
-The answer object and its trace record enough to find the cause without
-guessing. In order of how often each is the cause:
+The answer object and its trace hold enough to find the cause. The table lists
+causes from the most common to the least:
 
 | symptom | check | likely cause |
 |---|---|---|
@@ -639,9 +652,9 @@ Test for the marker with `is_not_found(ans$answer)` rather than
 `grepl("NOT_IN_DOCUMENT", ...)`: a real answer can quote the marker, and models
 decorate it (`**NOT_IN_DOCUMENT.**`).
 
-Two habits make all of this cheaper: run `gr_chunk_stats()` before you spend
-anything, and keep `hr_options(max_cost_usd = ...)` set to something you would
-not mind paying by accident.
+Two habits keep this cheap: run `gr_chunk_stats()` before you spend anything,
+and keep `hr_options(max_cost_usd = ...)` set to an amount you would not mind
+paying by accident.
 
 ## Choosing the settings
 
