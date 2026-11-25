@@ -63,6 +63,14 @@ A fourth choice, which model answers, is independent of all three.
 `vignette("ingest")`, `vignette("segment")` and `vignette("readers")` cover the
 three steps in depth.
 
+Each step is a registry you can extend without editing the package
+(`vignette("extending")`). Ingest has 6 extractors and 14 individually
+toggleable cleaners, segment has 9 segmenters, and read has 12 strategies, each
+with a distinct traversal signature. Any ingest composes with any segmenter and
+any reader. `gr_recipe()` binds one of each into a named pipeline, and a recipe
+run alongside others in `gr_compare()` gives a byte-identical `$answer` and
+`$chunks_used` to the same recipe run alone.
+
 **Models can make things up.** A model may state something the document never
 says, and it can do so fluently. harnessr cannot prevent that. It records which
 text each answer rests on, checks quotations against the document, and tells you
@@ -427,6 +435,12 @@ separately, so a long document means many requests; `"fast"` and `"needle"` make
 one. `vignette("readers")` explains each reading strategy and when to use it,
 and how to change a recipe's settings or build your own.
 
+To choose a recipe or a model on more than one document, `hr_benchmark()` runs
+each configuration several times over a labelled set of questions under one
+spending limit. `hr_report()` gives accuracy, paired differences and cost, with
+intervals that treat the questions about one document as a cluster. See
+`vignette("evaluate")`.
+
 ## What you can change
 
 A recipe is a set of settings, and every one of them can be changed. They are
@@ -437,14 +451,16 @@ settings <- gr_settings_table()
 table(factor(settings$stage, unique(settings$stage)))
 ```
 
-| stage | where you set it | guide |
-|---|---|---|
-| ingest | `gr_ingest_spec()`, or by name in `answer_document()` | `vignette("ingest")` |
-| segment | `gr_segment_spec()`, or by name | `vignette("segment")` |
-| read | `gr_read_spec()`, or by name; `gr_read_many()` for a folder | `vignette("readers")` |
-| screen, extract, synthesise | the arguments of `gr_screen()`, `gr_extract()`, `gr_synthesise()` and the functions beside them | `vignette("review")` |
-| evaluate | the arguments of `hr_benchmark()`, `hr_report()` and `hr_judge()` | `vignette("evaluate")`, `vignette("compare")` |
-| options | `hr_options()`, for the whole session | `vignette("runs")` |
+| stage | settings | where you set it | guide |
+|---|---|---|---|
+| ingest | 21 | `gr_ingest_spec()`, or by name in `answer_document()` | `vignette("ingest")` |
+| segment | 20 | `gr_segment_spec()`, or by name | `vignette("segment")` |
+| read | 50 | `gr_read_spec()`, or by name; `gr_read_many()` for a folder | `vignette("readers")` |
+| screen | 33 | the arguments of `gr_screen()` and the functions beside it | `vignette("review")` |
+| extract | 10 | the arguments of `gr_extract()` | `vignette("review")` |
+| synthesise | 29 | the arguments of `gr_synthesise()` and the functions beside it | `vignette("review")` |
+| evaluate | 30 | the arguments of `hr_benchmark()`, `hr_report()` and `hr_judge()` | `vignette("evaluate")`, `vignette("compare")` |
+| options | 34 | `hr_options()`, for the whole session | `vignette("runs")` |
 
 Most runs change a few of them, which `gr_settings_table()` marks `basic`.
 The ones that matter first, with their defaults and when to change each:
@@ -474,10 +490,11 @@ The ones that matter first, with their defaults and when to change each:
 | options | `max_cost_usd` (5) and `max_calls` (400) | a run is stopped that should finish, or you want a mistake to stop sooner |
 | options | `cache_dir` (a temporary directory) | a long run should be paid for once and survive the session |
 
-`vignette("settings")` lists every setting with its default and where the
-default came from, and links each important one to a walkthrough that says
-what it trades off, the signs that point to changing it and how to test a
-change. `hr_sweep()` builds one arm per value of a setting so the values can
+`vignette("settings")` lists all 227 with their defaults and where each
+default came from, and `gr_settings_table()` returns them in R. The settings
+page links each important one to a walkthrough at the end of one of six
+guides, which says what it trades off, the signs that point to changing it and
+how to test a change. `hr_sweep()` builds one arm per value of a setting so the values can
 be compared, as `vignette("compare")` shows.
 
 ## More than one document
