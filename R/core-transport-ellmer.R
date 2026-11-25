@@ -1,9 +1,9 @@
-# core-transport-ellmer.R -- talk to a model through someone else's client.
+# core-transport-ellmer.R: talk to a model through someone else's client.
 #
 # WHY THIS FILE EXISTS
 # `gr_client()` speaks one HTTP dialect: an OpenAI-compatible /responses or
 # /chat/completions endpoint. That was the right first move and it is the wrong
-# only move. The three axes this package exists for -- ingest, segment, read --
+# only move. The three axes this package exists for (ingest, segment, read)
 # have nothing to do with which vendor answers the call, and wiring them to one
 # request shape means every new provider is a change to this package rather than
 # a change to the caller's code.
@@ -11,15 +11,15 @@
 # It also puts the package in the wrong fight. R already has a good transport
 # layer: `ellmer` covers twenty-odd providers, local Ollama and Hugging Face
 # among them, and `ragnar` covers retrieval and embedding stores. Neither has
-# reading strategies -- no map-reduce, no refine, no iterative, no reranking, no
+# reading strategies: no map-reduce, no refine, no iterative, no reranking, no
 # traversal signatures, no per-run cost accounting. That is what this package
 # is. So the useful thing is not to reimplement their transport, it is to accept
 # it.
 #
 # `gr_backend_client()` is the seam. A backend is any function of
 # `(messages, params)` that returns text, and everything the package does around
-# the call -- token caps, cost rails, provenance, traces, caching, replay,
-# comparison -- keeps working unchanged. `gr_ellmer_client()` is then sixty
+# the call (token caps, cost rails, provenance, traces, caching, replay,
+# comparison) keeps working unchanged. `gr_ellmer_client()` is then sixty
 # lines on top of it rather than a second HTTP stack.
 
 # ---------------------------------------------------------------------------
@@ -182,9 +182,9 @@ gr_ellmer_client <- function(chat, embed = NULL, model = NULL) {
     user <- parts$user
 
     one <- chat$clone(deep = TRUE)
-    # The per-call output cap. Every cap this package sets -- a map step's 700
+    # The per-call output cap. Every cap this package sets (a map step's 700
     # tokens, a revision's room for the whole draft, the context-headroom clamp
-    # in gr_call() -- was dropped here, and the chat's own max_tokens went out
+    # in gr_call()) was dropped here, and the chat's own max_tokens went out
     # instead: a default chat_anthropic() cut a 7000-token revision at 4096, and
     # a chat built with a large limit wrote replies far longer than the caps the
     # cost preflight priced.
@@ -285,8 +285,8 @@ gr_ellmer_client <- function(chat, embed = NULL, model = NULL) {
 
   # Unlike a bare backend, an ellmer chat wraps something addressable and
   # stable: a provider, a model, an endpoint. So this one CAN say what it is,
-  # and a durable cache or a resumable store works across sessions -- which for
-  # the real transport is the whole point of having them.
+  # and a durable cache or a resumable store works across sessions. For the
+  # real transport, that is the whole point of having them.
   cl <- gr_backend_client(handler, embed = embed, model = model,
                           embedding_model = paste0(model, "-embed"),
                           id = ellmer_identity(chat, model))
@@ -300,8 +300,8 @@ gr_ellmer_client <- function(chat, embed = NULL, model = NULL) {
 #'
 #' What answers is more than a provider, a model and an endpoint. The sampling
 #' parameters (temperature, max_tokens, reasoning effort), the provider-specific
-#' `api_args`, and the chat's own system prompt -- which the adapter keeps
-#' whenever this package sends none -- all live on the chat, and none of them
+#' `api_args`, and the chat's own system prompt (which the adapter keeps
+#' whenever this package sends none) all live on the chat, and none of them
 #' were in the id. Two chats that differed only there shared a cache: the one
 #' at temperature 1.5 replayed the temperature-0 chat's answers, including the
 #' replies its 200-token cap had cut off. The per-call cap does not need to be
@@ -488,13 +488,13 @@ ellmer_strict_nullable <- function(chat) {
 
 #' The methods this adapter actually calls, and the check that they are there.
 #'
-#' Separated out so the requirement can be tested without ellmer installed --
-#' which matters, because it is a requirement about ellmer.
+#' Separated out so the requirement can be tested without ellmer installed.
+#' That matters, because it is a requirement about ellmer.
 #'
 #' `set_system_prompt` is required, not optional. In this package the system
 #' prompt IS the contract: "answer only from the excerpt", "reply exactly
 #' NOT_IN_DOCUMENT", "copy passages verbatim", "rate 0 to 10". A chat that
-#' cannot take one would send the user turn alone and report `ok = TRUE` -- an
+#' cannot take one would send the user turn alone and report `ok = TRUE`: an
 #' unconstrained answer with nothing anywhere to say it was unconstrained.
 #' @noRd
 .gr_ellmer_methods <- c("chat", "chat_structured", "clone", "set_turns",
@@ -567,7 +567,7 @@ ellmer_split_messages <- function(messages) {
 #'
 #' `$get_tokens()` returns a data frame whose exact columns are ellmer's to
 #' change. Rather than depend on a shape, read whatever looks like input and
-#' output counts and otherwise count locally -- a wrong usage figure would
+#' output counts and otherwise count locally. A wrong usage figure would
 #' silently corrupt every cost estimate and budget decision downstream, and this
 #' package's own tokenizer is deliberately biased to over-count.
 #' @noRd
@@ -580,8 +580,8 @@ ellmer_usage <- function(chat, params, txt) {
     col <- grep(pattern, names(tk), ignore.case = TRUE, value = TRUE)[1]
     if (is.na(col)) return(NA_integer_)
     v <- suppressWarnings(as.numeric(tk[[col]]))
-    # A column that is there but holds nothing usable -- all NA, or text, which
-    # is what an unfamiliar provider's get_tokens() may well give -- is UNKNOWN,
+    # A column that is there but holds nothing usable (all NA, or text, which
+    # is what an unfamiliar provider's get_tokens() may well give) is UNKNOWN,
     # not zero. `sum(na.rm = TRUE)` returned 0, which is finite, so the NA below
     # never fired and the local estimate was never used: a real call recorded as
     # having spent no tokens at all, and costed at nothing.
@@ -603,13 +603,13 @@ ellmer_usage <- function(chat, params, txt) {
 #'
 #' Returns NULL for anything it cannot express, so the caller can degrade rather
 #' than send something wrong. Handles objects, arrays, scalars and enums, nested
-#' to any depth, and the nullable form `type = c("string", "null")` -- which is
-#' what every schema this package sends is made of.
+#' to any depth, and the nullable form `type = c("string", "null")`. Every
+#' schema this package sends is made of these.
 #'
 #' The type is read as a VECTOR. It was read with as_chr1(), which joins
 #' `c("string", "null")` into "string\nnull"; no branch matched that, so the
-#' screening, extraction and claims schemas -- all of which have nullable fields
-#' -- converted to NULL and went out as a bare chat with no schema. Every
+#' screening, extraction and claims schemas (all of which have nullable fields)
+#' converted to NULL and went out as a bare chat with no schema. Every
 #' document was then screened "unclear" with status "ok". Arrays of objects
 #' (claims, outline, preview plans) and arrays of arrays (claim reconciliation)
 #' were refused the same way.

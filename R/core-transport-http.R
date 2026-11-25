@@ -4,7 +4,7 @@
 #'
 #' Accepts a named character vector, or a named list of length-1 values, and
 #' returns a named character vector. `NA` survives and means "do not send this
-#' header at all" -- which is how the automatic `Authorization` is suppressed for
+#' header at all". That is how the automatic `Authorization` is suppressed for
 #' a gateway that would reject it.
 #'
 #' This rejects rather than repairs, in three places. A name that is not a legal
@@ -14,7 +14,7 @@
 #' values come from environment variables and config files, which is exactly
 #' where a stray line ending comes from. And duplicate names are collapsed
 #' case-insensitively, because HTTP field names are case-insensitive but curl is
-#' not -- given both `Authorization` and `authorization` it sends two headers,
+#' not: given both `Authorization` and `authorization` it sends two headers,
 #' and which one the gateway honours is its business rather than ours.
 #' @noRd
 normalise_headers <- function(headers, arg = "headers") {
@@ -42,7 +42,7 @@ normalise_headers <- function(headers, arg = "headers") {
              class = "gr_header_error")
   }
   # Coerced rather than required, because `c(Authorization = NA)` is a LOGICAL
-  # vector -- and that is the exact spelling of "suppress the bearer and send
+  # vector, and that is the exact spelling of "suppress the bearer and send
   # nothing else", so demanding character here rejected the documented use.
   headers <- stats::setNames(as.character(headers), nms)
   ok <- grepl("^[0-9A-Za-z!#$%&'*+.^_|~`-]+$", nms)
@@ -127,8 +127,8 @@ normalise_messages <- function(messages) {
     # non-UTF-8 locale (LC_ALL=C in cron, Docker, env -i) a question typed in a
     # script or read with readLines() is UTF-8 bytes marked "unknown", and
     # jsonlite, serialising the request body, read those bytes as the native
-    # encoding and sent "Quelle <c3><a9>tait" to the model -- while the trace,
-    # which labels what it records, showed the question intact. This cannot
+    # encoding and sent "Quelle <c3><a9>tait" to the model. The trace, which
+    # labels what it records, showed the question intact. This cannot
     # help text that paste() joined to labelled document text before it got
     # here: paste() escapes the unlabelled part itself, so that has to be
     # labelled where the user's text comes in.
@@ -162,7 +162,7 @@ build_request_body <- function(client, messages, model, max_output, temperature,
     body <- list(model = model, messages = lapply(messages, function(m)
       list(role = m$role, content = m$content)))
     # Reasoning models reject `max_tokens` on Chat Completions with a 400 and
-    # take `max_completion_tokens` instead -- the same kind of rule as the
+    # take `max_completion_tokens` instead. It is the same kind of rule as the
     # temperature one above. Other models keep `max_tokens`, which every
     # OpenAI-compatible server understands. A limit field the caller names in
     # `extra_body` replaces this one rather than joining it, so a gateway that
@@ -194,7 +194,7 @@ http_call <- function(client, url, body) {
   headers <- request_headers(client)
   if (is.null(headers)) no_credentials_error()
   # `.headers =`, not `...`: add_headers() has its own `.headers` argument, so a
-  # header literally named `.headers` -- a legal HTTP field name -- would be
+  # header literally named `.headers` (a legal HTTP field name) would be
   # swallowed as that argument by do.call() instead of being sent. Placed after
   # content_type_json() so a caller who names Content-Type wins.
   hdr <- httr::add_headers(.headers = headers)
@@ -289,7 +289,7 @@ out_of_quota <- function(status, body_text) {
 #' Exponential backoff with real jitter.
 #'
 #' The seed used to be a pure function of `attempt`, so every client and every
-#' parallel worker retrying attempt N slept for the identical duration -- the
+#' parallel worker retrying attempt N slept for the identical duration. The
 #' delay was labelled "jitter" but had none, and a rate-limited fleet re-collided
 #' on every round. Mixing in the process id and the clock decorrelates them. The
 #' draw still goes through a private RNG, so the caller's `set.seed()` stream is
@@ -330,8 +330,8 @@ parse_response <- function(resp, api) {
   text <- extract_text(parsed, api)
   ug <- fld(parsed, "usage")
   # NA, not 0, when the block is missing or holds nothing numeric. A provider
-  # that omits `usage` -- several OpenAI-compatible local servers do, and so
-  # does a gateway that strips it -- had every call recorded as 0 tokens in and
+  # that omits `usage` (several OpenAI-compatible local servers do, and so
+  # does a gateway that strips it) had every call recorded as 0 tokens in and
   # 0 out: a real call costed at nothing. That is the fault `ellmer_usage()` and
   # `gr_estimate_cost()` were fixed for, still alive on the path every HTTP user
   # takes. The caller settles NA against a local count; see settle_usage().
@@ -380,7 +380,7 @@ parse_response <- function(resp, api) {
                      fingerprint = about$fingerprint,
                      error = paste0("Model refused the request: ", substr(text, 1, 200))))
   }
-  # An empty completion is a *successful* call with no content -- report it as
+  # An empty completion is a *successful* call with no content. Report it as
   # a failure so callers do not splice "" into a downstream prompt as evidence.
   if (!nzchar(trimws(text))) {
     return(gr_result(FALSE, text = "", status = httr::status_code(resp), usage = usage,
@@ -403,7 +403,7 @@ parse_response <- function(resp, api) {
 #' `decision` and the screener recorded a real "include" from a key that does
 #' not exist; `can_answer_now` ended the iterative loop and its answer was
 #' returned as final. `extract_text()` below has used `[[exact = TRUE]]` since
-#' the same bug bit the HTTP layer -- the readers were never given the same
+#' the same bug bit the HTTP layer. The readers were never given the same
 #' treatment.
 #'
 #' And `simplifyVector = TRUE` is not type-stable: one element unboxes to a
@@ -460,15 +460,15 @@ json_text <- function(value, name, default = NULL) {
 #' `prefer` names the keys that hold an object's text. An object carrying any of
 #' them is read through those keys only; one carrying none is read through all
 #' of them, so text under an unexpected key is kept rather than lost. With
-#' `object_numbers = FALSE`, a number inside an object is a label -- an `id`, a
-#' page -- and not text. A bare value or array is text whatever its type.
+#' `object_numbers = FALSE`, a number inside an object is a label (an `id`, a
+#' page) and not text. A bare value or array is text whatever its type.
 #' @noRd
 text_leaves <- function(x, prefer = character(0), object_numbers = TRUE,
                         in_object = FALSE) {
   if (is.null(x)) return(character(0))
   again <- function(v, obj) text_leaves(v, prefer, object_numbers, obj)
-  # Decided per OBJECT: a row of a data frame whose text key is empty -- the
-  # reply used a different key for that one -- is read through all its keys.
+  # Decided per OBJECT: a row of a data frame whose text key is empty (the
+  # reply used a different key for that one) is read through all its keys.
   choose <- function(got, nms) {
     pref <- !is.na(nms) & tolower(nms) %in% prefer
     if (any(pref & lengths(got) > 0L)) got[pref] else got

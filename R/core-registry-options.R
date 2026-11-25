@@ -1,4 +1,4 @@
-# core-registry-options.R -- package-private mutable state and user-facing
+# core-registry-options.R: package-private mutable state and user-facing
 # options.
 #
 # The previous codebase kept its document cache in `.GlobalEnv` under
@@ -29,12 +29,12 @@ gr_defaults <- list(
   cache_documents     = TRUE,
   cache_embeddings    = TRUE,
   # Where gr_cache() keeps model responses. NULL means a directory under
-  # tempdir(), resolved at call time -- a package must not write to a user's
+  # tempdir(), resolved at call time. A package must not write to a user's
   # filesystem unasked, and a literal tempdir() here would be frozen at install
   # time rather than evaluated per session.
   cache_dir           = NULL,
   # Which registered embedder to use. NULL means "whatever the client brought,
-  # otherwise api" -- the meaning is in the value, so restoring a saved option
+  # otherwise api". The meaning is in the value, so restoring a saved option
   # list cannot change which embedder is chosen.
   embedder            = NULL,
   parallel            = FALSE,
@@ -95,25 +95,25 @@ nondefault_options <- function(names = .gr_late_options) {
 #'
 #' Every consumer used to invent its own opinion of a bad value, and the
 #' opinions pointed the wrong way. `is.finite(max_cost_usd)` as a guard meant NA
-#' or a value read from a config file as text silently removed the cost cap --
+#' or a value read from a config file as text silently removed the cost cap:
 #' $710 spent against a $5 ceiling, no warning. The old call-cap check did the same
 #' for `max_calls`, and disagreed with `preflight()`, which parsed a character
 #' cap and enforced it: one option, two answers. `as.integer(min_output_tokens)`
 #' turned 1e10 into NA and `gr_budget()` then raised a bare simpleError.
 #'
-#' Two kinds, treated differently on purpose. A CEILING -- `max_cost_usd`,
-#' `max_calls` -- is refused when it cannot be compared: falling back to anything
+#' Two kinds, treated differently on purpose. A CEILING (`max_cost_usd`,
+#' `max_calls`) is refused when it cannot be compared: falling back to anything
 #' would be choosing a limit the user did not set, and every fallback here had
 #' meant "no limit". NULL and Inf are the two explicit ways to say "no limit".
 #' A TUNING knob keeps its current value, with a warning, when the new one
 #' cannot be read, and is clamped into range, as `gr_read_spec()` and
-#' `gr_segment_spec()` clamp theirs -- `gr_options(workers =
+#' `gr_segment_spec()` clamp theirs. `gr_options(workers =
 #' parallel::detectCores())` is a normal thing to write, and detectCores() can
 #' return NA.
 #' @noRd
 .gr_option_rules <- list(
-  # The ranges are the ones the code that reads each option clamps to --
-  # gr_client() for the three request settings, gr_lapply() for `workers` -- so
+  # The ranges are the ones the code that reads each option clamps to:
+  # gr_client() for the three request settings, gr_lapply() for `workers`. So
   # a value accepted here is the value used, and a warning's "using N" is true.
   # Each tuning rule says where its default comes from (`evidence`, as an
   # hr_param() does); see the "Where the defaults come from" section of
@@ -136,7 +136,7 @@ nondefault_options <- function(names = .gr_late_options) {
   workers           = list(kind = "tune", lo = 1, hi = 32,   whole = TRUE,
                            evidence = list(status = "untested",
                                            source = "Set when parallel runs were added.")),
-  # NULL is temperature's default -- "let the model decide" -- so it falls back
+  # NULL is temperature's default ("let the model decide"), so it falls back
   # to NULL; and Inf is out of range for it rather than meaning "no limit",
   # which is the ceilings' meaning and went on the wire as "temperature":"Inf".
   temperature       = list(kind = "tune", lo = 0, hi = 2, whole = FALSE, null_ok = TRUE,
@@ -246,7 +246,7 @@ check_option <- function(name, value) {
   }
   out <- min(max(value, rule$lo), rule$hi)
   # `!=`, not identical(): max(4L, 1) is the double 4, and identical(4, 4L) is
-  # FALSE, so every integer setting -- `workers = 4L` -- was reported as out
+  # FALSE, so every integer setting (`workers = 4L`) was reported as out
   # of range.
   if (out != value) {
     gr_warn(sprintf("gr_options(%s = %s) is outside [%s, %s]; using %s.", name, format(value),
@@ -483,15 +483,15 @@ gr_options <- function(...) {
   for (nm in names(args)) args[nm] <- list(check_option(nm, args[[nm]]))
   cur <- as.list(hr_state$options %||% list())
   # merged(), not modifyList(). modifyList() DELETES a key whose value is NULL,
-  # so once an option had been *stored* as NULL -- which is what restoring a
-  # saved list does for `temperature`, `max_cost_usd`, `cache_dir` or `embedder`
-  # -- the returned "old" value came back with the name NA and the next
-  # gr_options(old) failed with "Unknown option(s): NA". That is the documented
-  # on.exit() pattern breaking on the second use, and it is the same NULL trap
-  # the setter below was already fixed for.
+  # so once an option had been *stored* as NULL, the returned "old" value came
+  # back with the name NA and the next gr_options(old) failed with "Unknown
+  # option(s): NA". Restoring a saved list stores NULL for `temperature`,
+  # `max_cost_usd`, `cache_dir` or `embedder`. That is the documented on.exit()
+  # pattern breaking on the second use, and it is the same NULL trap the setter
+  # below was already fixed for.
   old <- merged()[names(args)]
   # modifyList() DELETES a key whose value is NULL, which silently reverted the
-  # option to its default -- so `gr_options(max_cost_usd = NULL)`, documented as
+  # option to its default. So `gr_options(max_cost_usd = NULL)`, documented as
   # disabling the cost cap, quietly restored the $5 cap instead. Assign directly
   # so NULL is stored as a value.
   for (nm in names(args)) cur[nm] <- list(args[[nm]])

@@ -19,7 +19,7 @@ as_spec_list <- function(x, what = "spec") {
 #'
 #' A trace used to record the recipe's NAME and nothing else about how it was
 #' configured, so two runs of `"thorough"` with `top_k = 3` and `top_k = 8`
-#' produced traces -- and a `gr_compare()` summary -- that could not be told
+#' produced traces (and a `gr_compare()` summary) that could not be told
 #' apart. For a package whose point is comparing configurations, the
 #' configuration has to be in the record. This returns only what was changed
 #' from the defaults, so the record says what the run DID rather than restating

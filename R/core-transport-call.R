@@ -1,11 +1,11 @@
-# core-transport-call.R -- the single place that talks to a model API.
+# core-transport-call.R: the single place that talks to a model API.
 #
 # WHY THIS FILE EXISTS
 # `process_api_call()` had five separate defects that leaked into every caller:
 #
 #   1. It returned a bare `NULL` on transport failure and `character(0)` when
 #      the API returned `content: null`. Callers wrote `if (!nzchar(x))`, which
-#      is `NA` for `character(0)` -- an "argument is not interpretable as
+#      is `NA` for `character(0)`: an "argument is not interpretable as
 #      logical" crash *after* the money was spent. Other callers ran `sapply()`
 #      over responses; one NULL turned the result into a list, `nzchar()` then
 #      deparsed it, and the literal string "NULL" was spliced into the next
@@ -16,14 +16,14 @@
 #   3. It shipped `max_tokens` equal to the model's full output limit with no
 #      regard for prompt length, guaranteeing 400s on long prompts.
 #   4. It carried a branch (`if (!inherits(response, "response")) status <- 200`)
-#      that existed only so the test fakes would work -- production code shaped
-#      by test convenience.
+#      that existed only so the test fakes would work. Test convenience had
+#      shaped production code.
 #   5. `gsub("\n+", " ", result)` flattened every answer, destroying lists,
 #      tables and code blocks unconditionally.
 #
 # The replacement returns a typed `gr_result` that is *always* safe to index,
 # distinguishes retryable from terminal failures, preserves formatting, and
-# never itself calls `stop()` for an API-side error -- the caller decides.
+# never itself calls `stop()` for an API-side error. The caller decides.
 
 #' The result of one model call
 #' @noRd
@@ -75,7 +75,7 @@ gr_result <- function(ok, text = "", error = NULL, status = NA_integer_,
 #' A reply is UTF-8 by contract, but jsonlite decodes a lone low-surrogate
 #' escape ("\udc00", half of a split emoji) into the bytes ED B0 80, which
 #' validUTF8() rejects. The first trimws() or gsub() on that text then stopped
-#' with "input string 1 is invalid UTF-8" -- in parse_response(), outside every
+#' with "input string 1 is invalid UTF-8" in parse_response(), outside every
 #' handler, so a paid call vanished from the trace and one chunk's reply failed
 #' the whole document. The bytes are replaced with U+FFFD, the character that
 #' means "something was here that could not be read", rather than reinterpreted
@@ -120,7 +120,7 @@ repair_utf8_deep <- function(x) {
 #' or `context_window`. Callers checked for `length` alone, so on the default
 #' Responses API and on every ellmer provider a cut-off reply looked complete:
 #' `gr_synthesise()` kept a revision that ended mid-sentence. `incomplete` with
-#' no reason given is read as cut off too -- the provider itself says the reply
+#' no reason given is read as cut off too: the provider itself says the reply
 #' is not whole, and treating it as complete is the direction that misleads.
 #' @noRd
 .gr_truncation_reasons <- c("length", "max_tokens", "max_output_tokens", "incomplete",
@@ -262,7 +262,7 @@ check_draw_index <- function(draw_index) {
 #' `accept` is a function of the reply text. The cache wrote every reply with
 #' ok = TRUE, but for a schema call gr_call_json() parses afterwards, and a
 #' reply cut off mid-JSON is a failure to every reader of it. Caching it turned
-#' a one-off glitch into a permanent failure that re-running could not clear --
+#' a one-off glitch into a permanent failure that re-running could not clear,
 #' the one thing the cache promises never to do. So the caller that knows what
 #' a usable reply is says so, and a stored reply that fails the same test (one
 #' written before this existed) is asked again rather than replayed.
@@ -280,8 +280,8 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
   prompt_tokens <- sum(gr_count_tokens(vapply(messages, function(m) as_chr1(m$content), character(1)),
                                        model = model))
   # A cap that cannot be read is the model's cap, as NULL is. clamp() maps NA
-  # to its floor, so max_output = NA -- a spec field left unset, text that is
-  # not a number -- sent every request capped at ONE token (below the
+  # to its floor, so max_output = NA (a spec field left unset, text that is
+  # not a number) sent every request capped at ONE token (below the
   # Responses API's minimum of 16, so a 400), with no word about the setting.
   # gr_budget() was fixed for the same thing in `reserve_output`.
   if (!is.null(max_output) &&
@@ -336,7 +336,7 @@ model_call <- function(client, messages, model = NULL, max_output = NULL,
 
   # One dispatch, one exit, one trace entry. The mock and HTTP paths each used
   # to `return()` after recording their own trace entry, so every feature that
-  # had to sit between the request and the response -- caching, replay -- would
+  # had to sit between the request and the response (caching, replay) would
   # have had to be written twice and kept in step by hand.
   req <- list(messages = messages, model = model, max_output = max_output,
               temperature = temperature, schema = schema, schema_name = schema_name,
@@ -558,11 +558,11 @@ client_dispatch.gr_replay_client <- function(client, req) {
 client_dispatch.gr_client <- function(client, req) {
   # Resolved BEFORE the key, not after. `temperature` arrives NULL whenever the
   # caller did not name one, and build_request_body() then filled it from
-  # gr_options("temperature") -- after cache_key() had already hashed the NULL.
+  # gr_options("temperature"), after cache_key() had already hashed the NULL.
   # So two runs that sent different temperatures to the API computed the same
   # key: a temperature sweep through one cache directory explored nothing and
   # reported the first sample's answer for every setting. The reasoning-model
-  # drop moves here for the mirror-image reason -- the body does not carry a
+  # drop moves here for the mirror-image reason: the body does not carry a
   # temperature for those models, so the key must not vary with one.
   temperature <- call_temperature(req$temperature, req$info)
   req["temperature"] <- list(temperature)
@@ -776,7 +776,7 @@ client_sends_effort.gr_ellmer_client <- function(client) FALSE
 #' conflict resolution), so on the default model all of the cap could go on
 #' reasoning: the reply came back "incomplete" with no text, context headers
 #' were silently dropped and rerank reported that the endpoint might not
-#' support JSON schema -- while every call was billed. Such a request is sent
+#' support JSON schema. Every one of those calls was billed. Such a request is sent
 #' with room for the reasoning (at least `gr_options("reasoning_floor")` tokens,
 #' 2048 by default, within
 #' the model's limit and what the context window leaves after the prompt). A cap
@@ -804,8 +804,8 @@ reasoning_floor <- function() as_num1(gr_options("reasoning_floor"), 2048)
 #' a number, count locally instead: the prompt was measured before it was sent
 #' and the reply is in hand. This package's tokenizer is deliberately biased to
 #' over-count, so the substitute errs towards charging too much rather than too
-#' little -- the same rule `ellmer_usage()` applies, now applied to the HTTP
-#' path and to a handler-built result that left `usage` out. A figure the
+#' little. `ellmer_usage()` follows the same rule, and it now covers the HTTP
+#' path and a handler-built result that left `usage` out. A figure the
 #' provider did report is kept as reported, including a genuine zero.
 #'
 #' The record says which it is (see usage_record()), and keeps the reasoning
@@ -900,8 +900,8 @@ handler_result <- function(out, model, prompt_tokens) {
     # billed it first is not knowable from here, and for ellmer it usually did:
     # chat_structured() raises when it cannot parse the JSON the model sent
     # back, after the paid round trip. Recording 0 tokens made that spend
-    # invisible to max_cost_usd, so the prompt is charged -- the direction that
-    # keeps a spending limit honest, as settle_usage() does. The reply's
+    # invisible to max_cost_usd, so the prompt is charged. That direction keeps
+    # a spending limit honest, as settle_usage() does. The reply's
     # tokens are unknown and not charged. (The ellmer adapter no longer raises
     # for a reply it could not read: it returns the failure with the tokens
     # ellmer recorded for the turn, and raises only when there was no turn.)
@@ -910,7 +910,7 @@ handler_result <- function(out, model, prompt_tokens) {
   }
   {
     # A handler that returns "" is the mock's version of the API returning
-    # `content: null` -- a refusal, a content filter, a tool-call response. The
+    # `content: null`: a refusal, a content filter, a tool-call response. The
     # real client reports that as ok = FALSE, and `gr_result`'s documented
     # invariant says so. Reporting it as a successful empty answer here made
     # the mock disagree with production on the one case readers most need to

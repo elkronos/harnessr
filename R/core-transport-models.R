@@ -1,4 +1,4 @@
-# core-transport-models.R -- model registry and context-budget arithmetic.
+# core-transport-models.R: model registry and context-budget arithmetic.
 #
 # WHY THIS FILE EXISTS
 # The old `get_model_limits()` was an if/else ladder with three failure modes:
@@ -9,15 +9,15 @@
 #      output_tokens = 4096`. Since budgets were computed as
 #      `context - output - overhead`, unknown models produced a NEGATIVE budget.
 #      Downstream, `split(tokens, ceiling(seq_along(tokens) / -54))` reversed the
-#      document and `chunk_text_minimal(text, -2000)` emitted one chunk -- and
-#      therefore one API call -- PER WORD.
+#      document and `chunk_text_minimal(text, -2000)` emitted one chunk, and
+#      therefore one API call, PER WORD.
 #   3. The list was hard-coded, so it went stale the day it was written and
 #      there was no way for a user to correct it.
 #
 # The replacement is a data-driven registry with explicit match precedence
 # (exact id > alias > family regex > default), user extension via
 # `gr_register_model()`, and a budget function that is mathematically incapable
-# of returning a non-positive value -- it errors with an actionable message
+# of returning a non-positive value. It errors with an actionable message
 # instead.
 
 # Seed data. `as_of` is stamped so a stale entry is visible rather than implied.
@@ -164,7 +164,7 @@ gr_register_model <- function(id, context_window, max_output,
                      max_output, context_window))
   }
   # Every field below becomes a column in gr_models(). NULL or a zero-length
-  # value here does not store "unknown" -- modifyList() deletes the key and
+  # value here does not store "unknown": modifyList() deletes the key and
   # data.frame() drops the column, so one such registration made gr_models()
   # fail for the whole session. Coerce to a scalar, or to NA.
   registry_set("models", id, list(
@@ -249,8 +249,8 @@ gr_model_info <- function(model = NULL) {
       # The option is "what to do when an id is not in the registry", and a
       # family match is not in the registry either. It used to be read only
       # after the patterns, so a typo such as "gpt-5.6-tera" matched ^gpt-5 and
-      # ran -- with a guessed window and no price, so no enforceable spending
-      # limit -- under the setting chosen to stop exactly that.
+      # ran under the setting chosen to stop exactly that, with a guessed
+      # window and no price, so no enforceable spending limit.
       if (identical(action, "error")) gr_abort(msg, class = "gr_unknown_model")
       gr_warn(msg, class = "gr_unknown_model")
       return(out)
@@ -339,7 +339,7 @@ gr_estimate_cost <- function(model, input_tokens, output_tokens = 0, cached_inpu
   info <- gr_model_info(model)
   if (is.na(info$input_usd)) return(NA_real_)
   # An UNKNOWN token count is not a zero one. `sum(na.rm = TRUE)` made
-  # gr_estimate_cost(m, NA, NA) return 0 -- a run reported as free because
+  # gr_estimate_cost(m, NA, NA) return 0: a run reported as free because
   # nobody knew what it was. That is the same defect gr_read_many() had, and the
   # rule it settled on: a cost that cannot be computed comes back NA so a total
   # cannot quietly omit it. NULL still means none, because a length-zero sum

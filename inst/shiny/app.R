@@ -1,10 +1,10 @@
-# inst/shiny/app.R -- a UI that exposes the knobs.
+# inst/shiny/app.R: a UI that exposes the knobs.
 #
 # WHY THIS FILE IS DIFFERENT FROM v1's Shiny/app.R
 #
-#  * v1 called answer_question() TWICE per submission -- once for the answer,
-#    once with return_json = TRUE for the "chain of thought" tab -- exactly
-#    doubling every user's API bill. At any temperature above 0 the two runs were
+#  * v1 called answer_question() TWICE per submission: once for the answer,
+#    once with return_json = TRUE for the "chain of thought" tab. That exactly
+#    doubled every user's API bill. At any temperature above 0 the two runs were
 #    independent generations, so the trace shown did not explain the answer
 #    shown. Here one run produces both.
 #  * v1 stored the API key with Sys.setenv(), which is PROCESS-wide. Two browser
@@ -16,8 +16,8 @@
 #    bubble. Roots are now an explicit allow-list.
 #  * v1 hard-coded `source(file.path("..", "R", ...))`, which breaks on any
 #    deployment that bundles only the app directory. This is a package now.
-#  * v1's UI exposed model, temperature and one penalty. Everything else --
-#    chunking method, chunk size, overlap, cleaning, top-k, reader -- was
+#  * v1's UI exposed model, temperature and one penalty. Everything else
+#    (chunking method, chunk size, overlap, cleaning, top-k, reader) was
 #    unreachable, which is the opposite of fine-grained control.
 #  * v1 ran `output$lastMessage <- renderText({ invalidateLater(500, session);
 #    ... })`, a permanent 2 Hz recompute for the life of every session, which
@@ -57,7 +57,7 @@ list_documents <- function(root) {
 }
 
 # The UI offers only files under ALLOWED_ROOTS, but `input$file` is whatever the
-# browser sends -- a crafted websocket message can set it to any path on the
+# browser sends. A crafted websocket message can set it to any path on the
 # server. Without this check the app is an arbitrary-file-read oracle that reads
 # the file back to the caller through the answer bubble.
 #
@@ -88,7 +88,7 @@ cap_label <- local({
 })
 
 # A history entry has to survive JSON encoding. A gr_answer carries its trace,
-# which is an ENVIRONMENT, and jsonlite refuses to encode one -- so the download
+# which is an ENVIRONMENT, and jsonlite refuses to encode one. So the download
 # button failed on the very first click of every session that had asked anything.
 plain_answer <- function(a) {
   list(reader = a$reader, signature = a$signature, answer = a$answer,
@@ -291,7 +291,7 @@ server <- function(input, output, session) {
   # The question the last run answered. Ask blocks the R process for the whole
   # run and the box is cleared only once it returns, so a second click made
   # meanwhile arrives afterwards with the old question still in input$question,
-  # and it ran -- and billed -- the whole comparison again. A question stays
+  # and it ran (and billed) the whole comparison again. A question stays
   # answered until the browser sends a new value for the box, the clear
   # included. The higher priority runs this before the Ask handler when both
   # arrive together, so it cannot undo the handler's record.
@@ -364,7 +364,7 @@ server <- function(input, output, session) {
     on.exit(gr_options(old), add = TRUE)
 
     # A blank numericInput sends NA, but before the input has registered it is
-    # NULL, and `if (is.na(NULL))` is `if (logical(0))` -- "argument is of length
+    # NULL, and `if (is.na(NULL))` is `if (logical(0))`: "argument is of length
     # zero", which killed the session on the first Ask of a fresh page.
     temp <- if (isTruthy(input$temperature)) as.numeric(input$temperature)[1] else NULL
     recipes <- lapply(input$readers, function(r) gr_recipe(

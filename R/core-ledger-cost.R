@@ -50,7 +50,7 @@ gr_trace_cost <- function(trace) {
   }
   model <- vapply(steps, function(s) as_chr1(s$model, "unknown"), character(1))
   paid <- !vapply(steps, function(s) isTRUE(s$cached), logical(1))
-  # NA, not 0, for a step whose count is unknown -- a trace read back from a
+  # NA, not 0, for a step whose count is unknown. A trace read back from a
   # file can carry one. Summed, it makes that model's total unknown and its cost
   # NA, which the report renders as a dash. Zero would render as free.
   tin  <- vapply(steps, function(s) as_int1(s$tokens$input, NA_integer_), integer(1))

@@ -1,11 +1,11 @@
-# core-registry-parallel.R -- parallelism that actually parallelises.
+# core-registry-parallel.R: parallelism that actually parallelises.
 #
 # WHY THIS FILE EXISTS
 # The old code threaded a `use_parallel` flag through every function and called
 # `future.apply::future_lapply()` when it was TRUE. But `future::plan()` was
 # never called anywhere in the repository, so the default `sequential` strategy
 # applied and `future_lapply` ran the work one item at a time in the calling
-# process -- identical to `lapply`, plus globals-detection overhead. The README
+# process: identical to `lapply`, plus globals-detection overhead. The README
 # advertised "Incorporates parallel processing"; the flag was decorative.
 #
 # There was also a latent trap: had someone added `plan(multisession)`, the
@@ -40,8 +40,8 @@ worker_state <- function() {
 
 #' Apply a function over a list, optionally in parallel.
 #'
-#' Falls back to sequential -- with a warning, not silently -- when the future
-#' packages are unavailable.
+#' Falls back to sequential, with a warning, when the future packages are
+#' unavailable.
 #'
 #' `fn(item, trace)` must make at most one model request per item, which every
 #' caller does: each item is held to an equal share of what the run has left,
@@ -150,7 +150,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   opts <- gr_options()
   # The registries travel too. `future.packages` names this package, so the
   # worker loads it and re-runs .onLoad(), which registers the BUILT-INS and
-  # nothing else -- so a model registered with gr_register_model() was unknown
+  # nothing else. So a model registered with gr_register_model() was unknown
   # there, and the worker read with the fallback context window instead of the
   # one the caller set (4000 output tokens against a real ceiling of 512).
   # Options crossed and the registry they refer to did not, which is worse
@@ -191,7 +191,7 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
   #
   # Each worker therefore gets its OWN trace, returns it alongside the result,
   # and the parent absorbs them. Absorbing in the order `future_lapply()`
-  # returns -- which is the order of `x`, not of completion -- means the
+  # returns (the order of `x`, not of completion) means the
   # assembled trace reads the same whether or not the work was parallel.
   parent_meta <- if (inherits(trace, "gr_trace")) trace$meta else list()
   # The same holds for what the client keeps: a mock's or backend's log of the

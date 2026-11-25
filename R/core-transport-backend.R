@@ -97,9 +97,9 @@ gr_backend_client <- function(handler, embed = NULL, model = "backend-model",
     # The identity the cache and corpus-store keys depend on. See `id` above.
     #
     # Named `.client_id` and NOT `.cache_id`: `$` on a list partial-matches, so
-    # with a field called `.cache_id` the expression `client$.cache` -- which is
-    # how every caller asks whether a cache is attached -- would silently return
-    # this id string for any client that has no cache. That is the same
+    # with a field called `.cache_id` the expression `client$.cache` would
+    # silently return this id string for any client that has no cache. Every
+    # caller uses that expression to ask whether a cache is attached. That is the same
     # partial-matching trap that made `parsed$output` return `output_text` in the
     # previous release, and the only reliable defence is not to create a name
     # that is a prefix of another.

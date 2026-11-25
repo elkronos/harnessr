@@ -41,10 +41,10 @@ as_json <- function(x, pretty = TRUE, ...) UseMethod("as_json")
 as_json.default <- function(x, pretty = TRUE, ..., digits = NA) {
   # Every number as it is, unless the caller asks to round. jsonlite's own
   # default rounds every number to four decimal places, so a p-value of 0.00003
-  # was written as 0 and an effect of 0.84321 as 0.8432 -- in an extraction's
-  # answer text, in the corpus summary built from it, in the audit report and in
-  # every export -- while the typed table, read from the record itself, kept the
-  # real values. And jsonlite's `digits = NA` is not full precision but 15
+  # was written as 0 and an effect of 0.84321 as 0.8432. That happened in an
+  # extraction's answer text, in the corpus summary built from it, in the audit
+  # report and in every export, while the typed table, read from the record
+  # itself, kept the real values. And jsonlite's `digits = NA` is not full precision but 15
   # significant digits, which changed a 16-digit identifier (1234567890123456
   # came out as 1.23456789012346e+15) and an amount like 12345678901234.56,
   # both of which the four-decimal default had written exactly. So `digits = NA`

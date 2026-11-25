@@ -136,7 +136,7 @@ env_name <- function(env) {
 hash_fallback <- function(s) {
   # Deliberately not a hand-rolled hash. The previous fallback was an FNV-1a
   # loop seeded above .Machine$integer.max, so bitwXor() returned NA on the
-  # first byte and EVERY input hashed identically -- every cache key collided
+  # first byte and EVERY input hashed identically. Every cache key collided
   # and gr_ingest() returned the first document it had ever seen, whatever file
   # or settings you asked for. A weak replacement risks the same class of
   # silent wrong-document bug, so cache-key hashing has one implementation and

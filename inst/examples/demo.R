@@ -1,4 +1,4 @@
-# demo.R -- runs entirely offline against a mock client.
+# demo.R: runs entirely offline against a mock client.
 #
 # Demonstrates the three axes and, in particular, PROVES that the reading
 # strategies are distinct by counting the prompts each one actually sends.
@@ -51,7 +51,7 @@ reader_needs <- list(
 reader_spec <- function(r, ...) c(list(reader = r, ...), reader_needs[[r]])
 
 # ---------------------------------------------------------------------------
-rule("AXIS 1 -- ingest: cleaning presets change what the model ever sees")
+rule("AXIS 1, ingest: cleaning presets change what the model ever sees")
 for (p in c("none", "standard", "academic", "legacy")) {
   d <- gr_ingest(doc_text, p)
   cat(sprintf("  %-10s %2d blocks, %4d tokens, %3d chars removed | %s\n",
@@ -62,7 +62,7 @@ cat("\n  Note `legacy` (v1's defaults): every digit is gone, so no question\n",
     " about revenue, headcount or a date can be answered at all.\n", sep = "")
 
 # ---------------------------------------------------------------------------
-rule("AXIS 2 -- segment: same document, different boundary hypotheses")
+rule("AXIS 2, segment: same document, different boundary hypotheses")
 doc <- gr_ingest(doc_text)
 stats <- do.call(rbind, lapply(
   c("fixed", "paragraph", "sentence", "recursive", "structural", "semantic", "contextual"),
@@ -81,7 +81,7 @@ for (ov in c(0, 20, 40)) {
 }
 
 # ---------------------------------------------------------------------------
-rule("AXIS 3 -- read: distinct traversal signatures, distinct call patterns")
+rule("AXIS 3, read: distinct traversal signatures, distinct call patterns")
 ch <- gr_segment(doc, list(method = "paragraph", max_tokens = 90))
 cat(sprintf("  (%d chunks)\n\n", nrow(ch$chunks)))
 cat(sprintf("  %-13s %-24s %5s  %s\n", "reader", "signature", "calls", "breakdown"))

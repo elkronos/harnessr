@@ -1,4 +1,4 @@
-# zzz.R -- package load hooks.
+# zzz.R: package load hooks.
 #
 # WHY THIS FILE EXISTS
 # `packages.R` ran `install.packages()` at source() time, every time, with no
@@ -39,7 +39,7 @@
 }
 
 # Development helper: source every R file in dependency order, for working on a
-# checkout without installing. Deliberately NOT exported -- a user who has the
+# checkout without installing. Deliberately NOT exported: a user who has the
 # package installed should use `library(harnessr)`, and a developer working from
 # a checkout can reach this as `harnessr:::gr_load_all()`. It exists because the
 # v1 repository was a set of `source()`d scripts with hard-coded `../R/...`

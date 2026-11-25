@@ -1,4 +1,4 @@
-# record-golden.R -- write the fixtures test-golden.R compares against.
+# record-golden.R: write the fixtures test-golden.R compares against.
 #
 # Run from the repository root:
 #

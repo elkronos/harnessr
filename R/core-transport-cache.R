@@ -1,11 +1,11 @@
-# core-transport-cache.R -- a content-addressed cache for model responses.
+# core-transport-cache.R: a content-addressed cache for model responses.
 #
 # WHY THIS FILE EXISTS
 # Everything in this package is deterministic except the model call. Ingestion,
 # cleaning, segmentation, ranking and merging are pure functions of their input,
 # and `gr_chunk_stats()` already lets you compare chunkings for nothing. The
 # model call is the only step that costs money, the only step that can fail
-# halfway through a long run, and -- above a temperature of zero -- the only
+# halfway through a long run, and (above a temperature of zero) the only
 # step that does not return the same thing twice.
 #
 # That combination is what made iterating expensive. Changing a merge prompt,
@@ -23,7 +23,7 @@
 # JSON schema and its name, the API shape and base URL, any extra body fields,
 # the reasoning effort when the request carries one, and the draw index when it
 # is above 0. Out: the API key, the timeout, the retry policy, the trace and
-# the label -- none of which can change what the model returns. (A label can
+# the label. None of these can change what the model returns. (A label can
 # choose an effort; the effort it chose is what goes in.)
 #
 # FAILURES ARE NEVER CACHED. A transport error, a rate limit or a refusal is a
@@ -359,7 +359,7 @@ cache_key <- function(client, messages, model, max_output, temperature,
 #'
 #' `digest()` hashes the serialised R object, and a string's declared encoding
 #' is part of that object. So the SAME BYTES marked "UTF-8" and marked "unknown"
-#' hash differently -- which meant a prompt that had been round-tripped through
+#' hash differently. A prompt that had been round-tripped through
 #' JSON (as a saved trace is) never matched the same prompt held in memory, and
 #' any non-ASCII prompt missed on replay while every ASCII one hit. Both key
 #' schemes normalise through the package's own decoder first, so a key depends

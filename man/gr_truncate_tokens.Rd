@@ -19,8 +19,8 @@ A single string. \code{""} when \code{n <= 0} or the input is blank. This is
 not treated as an error.
 }
 \description{
-The result is the start of \code{text} as written -- line breaks, indentation and
-paragraph breaks kept -- followed by \code{marker}. The cut falls at the end of a
+The result is the start of \code{text} as written (line breaks, indentation and
+paragraph breaks kept), followed by \code{marker}. The cut falls at the end of a
 word where the text has whitespace. When the next unit is too long to be a
 word (a CJK run, base64, a data URI, minified JSON, a long URL: anything that
 alone would cost more than 16 tokens) the cut goes inside it at a character,

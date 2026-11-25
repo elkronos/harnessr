@@ -49,7 +49,7 @@ jobs:
         with:
           # knitr is needed by the vignette step below. Without it that step took
           # its own `requireNamespace()` escape hatch and reported success having
-          # checked nothing -- a green tick for a job that did not run.
+          # checked nothing: a green tick for a job that did not run.
           # No pandoc: that step knits to markdown rather than rendering.
           #
           # future/future.apply for the same reason: they are what `parallel =
@@ -59,7 +59,7 @@ jobs:
           #
           # ellmer likewise. Its two tests were the only ones in the suite that
           # always skipped, on the one transport that has never been exercised
-          # against a real provider -- and a token-accounting bug was sitting in
+          # against a real provider, and a token-accounting bug was sitting in
           # it. A test nothing runs is not coverage.
           #
           # xml2 reads Word and HTML files. Without it the reader tests for
@@ -143,7 +143,7 @@ jobs:
               env <- new.env(parent = globalenv())
               # `cl` is assigned explicitly. It used to arrive only as a side
               # effect of the delayedAssign below leaking its local `cl` into the
-              # global environment when some earlier block forced `ans` -- so
+              # global environment when some earlier block forced `ans`. So
               # whether a block resolved `cl` depended on its position in the
               # file, and a block moved above the first `ans` reference would
               # have failed for no reason a reader could see.
@@ -201,7 +201,7 @@ jobs:
             }
             cat(sprintf("README blocks: %d ran, %d skipped, %d failed\n",
                         ran, skipped, length(failed)))
-            if (ran == 0) { cat("No README block ran -- the extractor is broken.\n"); quit(status = 1) }
+            if (ran == 0) { cat("No README block ran, so the extractor is broken.\n"); quit(status = 1) }
             if (length(failed)) { cat(paste0("  ", failed, collapse = "\n"), "\n"); quit(status = 1) }
           '
         shell: bash
@@ -241,7 +241,7 @@ jobs:
               }
             }
             cat(sprintf("\n%d README output block(s) checked, %d stale\n", checked, bad_blocks))
-            if (checked == 0) { cat("No block was checked -- the extractor is broken.\n"); quit(status = 1) }
+            if (checked == 0) { cat("No block was checked, so the extractor is broken.\n"); quit(status = 1) }
             if (bad_blocks) quit(status = 1)
           '
         shell: bash
@@ -260,8 +260,8 @@ jobs:
               quit(status = 1)
             }
             # Knit rather than render: this step is about whether the CODE runs
-            # offline, not about pandoc. A vignette that quietly degraded --
-            # every call failing for want of a key -- would still knit, so the
+            # offline, not about pandoc. A vignette that quietly degraded
+            # (every call failing for want of a key) would still knit, so the
             # output is then checked for the sentinels that degradation leaves.
             # Every guide, each in a fresh environment so none can lean on
             # objects another one left behind.
@@ -315,7 +315,7 @@ jobs:
               bad <- c(bad, sprintf("README should say %d segmenters", claims$segmenters))
             if (!grepl(sprintf("%d strategies", claims$readers), readme, fixed = TRUE))
               bad <- c(bad, sprintf("README should say %d strategies", claims$readers))
-            # Every reader signature must still be unique -- the packages core claim.
+            # Every reader signature must still be unique: the package's core claim.
             sigs <- gr_readers()$signature
             if (anyDuplicated(sigs))
               bad <- c(bad, paste("duplicate reader signatures:",

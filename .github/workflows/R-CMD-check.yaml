@@ -63,7 +63,7 @@ jobs:
           # `VignetteBuilder: knitr` makes the builder a build-time requirement,
           # and rcmdcheck builds the tarball before it checks it, so without them
           # `R CMD build` dies with "vignette builder 'knitr' not found" and the
-          # `--no-build-vignettes` below never gets a chance to apply -- it is an
+          # `--no-build-vignettes` below never gets a chance to apply. It is an
           # argument to CHECK, not to BUILD.
           dependencies: '"hard"'
           extra-packages: |
