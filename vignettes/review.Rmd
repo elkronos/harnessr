@@ -194,10 +194,10 @@ merged: similar titles happen, and merging two studies is the error this path
 exists to avoid.
 
 **Authors and years come from data.** `gr_synthesise()` cites by name. Without
-an export, those names come from a model reading a title page, the loosest
-check in the pipeline for the one part of a citation that must be exact. From
-an export they are data, joined onto the extraction table, and the model is
-never shown them.
+an export, those names come from a model reading a title page: the least
+checked step in the pipeline supplies the one part of a citation that must be
+exact. From an export they are data, joined onto the extraction table, and the
+model is never shown them.
 
 `gr_records()` matches records to files by the path the export recorded, then
 the DOI in the filename, then the title, then first-author surname and year,
@@ -605,9 +605,9 @@ The test treats the last records screened as a random draw from those left,
 and a ranking is not one. If the ranker works, the test is cautious; if the
 ranker does worse than chance, you cannot trust the test. It is also not
 corrected for checking after every record. Report the rule and its settings
-with the result.
-`hr_baseline_ranker()` simulates such an order with a cheap model and no calls,
-and `gr_stop_test()` accepts its result; `vignette("evaluate")` shows it.
+with the result. `hr_baseline_ranker()` simulates such an order with a cheap
+model and no calls, and `gr_stop_test()` accepts its result;
+`vignette("evaluate")` shows it.
 
 ### Several reviewers
 
@@ -717,9 +717,9 @@ itself, `conflicts` names the field and the earliest chunk's value is kept;
 choose instead.
 
 Check `n_unverified` before you trust a row: zero means every value in it has a
-quote found in the document. `table$evidence` is the long
-form, one row per supported cell, with the quote, the page it is on, and whether
-the quote appears there.
+quote found in the document. `table$evidence` is the long form, one row per
+supported cell, with the quote, the page it is on, and whether the quote
+appears there.
 
 ```{r}
 table$evidence[, c("document_id", "field", "quote", "verified")]
@@ -734,10 +734,10 @@ one it could not read.
 
 `n_unverified` says whether a value can be found in the document. To learn
 whether a person would have taken the same value, have a person fill the same
-fields for a sample of documents (`gr_label_sheet("extraction", ...)`
-writes the sheet; `vignette("evaluate")` shows how sheets are read back) and
-compare the tables with `gr_extract_agreement()`. It matches rows on
-`document` and compares each field on its own, with Krippendorff's alpha at the
+fields for a sample of documents (`gr_label_sheet("extraction", ...)` writes
+the sheet; `vignette("evaluate")` shows how sheets are read back) and compare
+the tables with `gr_extract_agreement()`. It matches rows on `document` and
+compares each field on its own, with Krippendorff's alpha at the
 field's level of measurement: interval for `integer` and `number` fields and
 nominal otherwise, unless `levels =` names another. Here a model and a person
 extracted two fields from 40 studies:
@@ -1170,7 +1170,7 @@ nobody can check "the model decided this one was wrong".
 
 ## Choosing the settings
 
-Each walkthrough below takes one group of review settings: what it controls
+Each walkthrough below covers one group of review settings: what it controls
 and what it trades off, the signs in your results that point to changing it,
 where its default came from, and how to test a change. `vignette("settings")`
 lists every argument of every review stage with its default.
@@ -1204,8 +1204,8 @@ commonly set, and `conf = 0.95` the conventional level; both are choices, and
 neither was measured. `max_width = 0.10` was set when the rule was written
 (`untested`).
 
-**How to test them.** Nothing here calls a model, so the effect of each value
-is computed directly. On the stacked sheet above, judged with no misses:
+**How to test them.** Nothing here calls a model, so you can compute the effect
+of each value directly. On the stacked sheet above, judged with no misses:
 
 ```{r}
 targets <- c(0.90, 0.95, 0.97)
@@ -1333,12 +1333,11 @@ document give different values for a field:
   the earliest value, as under `"first"`.
 - `"model"` spends one request per disagreeing field to choose.
 
-`agreement_columns = TRUE` adds a
-`<field>_agreement` column (how many of the chunks that reported the field
-give its most common value, as `"2/3"`) and a `<field>_conflict` column for
-each field; it changes no request. `require_quote = TRUE` drops any value
-whose quotation does not verify, so the table holds fewer values, each with
-a quotation found in the document.
+`agreement_columns = TRUE` adds a `<field>_agreement` column (how many of the
+chunks that reported the field give its most common value, as `"2/3"`) and a
+`<field>_conflict` column for each field; it changes no request.
+`require_quote = TRUE` drops any value whose quotation does not verify, so the
+table holds fewer values, each with a quotation found in the document.
 
 **Signs they need changing.** Many rows with `conflicts` filled, on fields
 where the later value is the right one (a corrected figure, a final sample
@@ -1414,7 +1413,8 @@ hand.
   it changes what `$figures` reports.
 - `prominence` sets the shares of a section's claims, by rank, that the
   writing prompt asks for two or three sentences and for one or two. It is
-  used only with `claims`.
+  used only with `claims`, and shares out the sentence budget over claims
+  ranked by the sign test of their direction tally, then by study weight.
 - `revision_check = "judge"` puts a model judge behind the word-counting guard
   of the `coherence` passes. The judge grades each sentence a kept revision
   changed against the draft sentences it came from, and flags one that claims
@@ -1426,10 +1426,9 @@ hand.
 see in the documents points to the extraction's quotes: look at why they
 failed before you switch to `"include"`. A `$coherence` table where the last
 allowed round still changed the text, with nothing discarded, points to
-another round.
-`$figures` rows with `backed = FALSE` for a rounded figure that is right
-("about 50 million" for 51.8) point to a wider `about`; rows backed for a
-figure you would call wrong point to a narrower one. Sections that give a
+another round. `$figures` rows with `backed = FALSE` for a rounded figure that
+is right ("about 50 million" for 51.8) point to a wider `about`; rows backed
+for a figure you would call wrong point to a narrower one. Sections that give a
 minor claim as much space as the main finding point to a smaller `top` share.
 A kept revision whose claims read stronger than the draft's, compared by hand
 with `$draft`, points to `revision_check = "judge"`.
@@ -1443,8 +1442,7 @@ round here. `figure_bands = c(about = 0.10, over = 0.25, under = 0.25)` was set
 when the check of figures was written, and `prominence = c(top = 1/3,
 middle = 1/3)`, thirds, when claims were added. `revision_check = "lexicon"`
 keeps the guard as it was; the judge is not validated against people's
-labels. All are `untested`. `prominence` shares out the sentence budget over
-claims ranked by the sign test of their direction tally, then by study weight.
+labels. All are `untested`.
 
 **How to test them.** Test `figure_bands` on a draft; it sends no request.
 Here the writer rounds 51.8 to "about 50":
@@ -1493,9 +1491,8 @@ Both kept the revision: the word-counting guard finds no stronger word in
 counts the sentence, and `$revision_flags` holds it with the judge's reason.
 
 `coherence_rounds` and `prominence` change what is sent, so test them as arms.
-With
-`review_ref` an `hr_reference()` of review questions labelled by a person,
-`my_scorer` an `hr_scorer()` (or a judge validated as in
+Here `review_ref` is an `hr_reference()` of review questions labelled by a
+person, `my_scorer` an `hr_scorer()` (or a judge validated as in
 `vignette("evaluate")`) and `my_client` your client:
 
 ```{r eval = FALSE}
