@@ -744,18 +744,20 @@ approximation and runs narrow with few labels at small inclusion probabilities.
 
 ## Checks that run a program
 
-A benchmark can score what a program says about an output, not only what a
-label or a judge says. `hr_step_command()` builds a step that runs one program
-you name, such as `Rscript` on a test file, and reads its result as `"passed"`
-or `"failed"`. Put it in a chain (see `vignette("compose")`) after the step
-that writes what it checks. The step runs the program with your own
-privileges, through `system2()`: each element of `argv` is one argument, never
-split on spaces, there is no default command, and a command is never taken
-from a model's reply. The API key is unset for the call; the rest of the
-environment is inherited. A command step sends no request, so it adds no cost.
+Besides a label or a judge, a benchmark can score what a program says about an
+output. `hr_step_command()` builds a step that runs one program you name, such
+as `Rscript` on a test file, and reads its result as `"passed"` or `"failed"`.
+Put it in a chain (see `vignette("compose")`) after the step that writes what
+it checks.
 
-The examples below run the R that builds this guide, so they work offline.
-The draft step writes a small R file for each item, as a model's draft would;
+The step runs the program with your own privileges, through `system2()`. Each
+element of `argv` is one argument, never split on spaces. There is no default
+command, and the step never takes a command from a model's reply. The API key
+is unset for the call, and the program inherits the rest of the environment. A
+command step sends no request, so it adds no cost.
+
+The examples below run the R that builds this guide, so they work offline. The
+draft step writes a small R file for each item in place of a model's draft, and
 the check runs it:
 
 ```{r}
@@ -782,11 +784,11 @@ one from `output$check`, so it scores a chain either way.
 ### How long a command may run {#set-command-timeout}
 
 **What it controls.** `timeout` is the number of seconds the program may run
-before it is stopped. A program stopped there has the status `"timeout"` and
-the degradation `"command_timeout"`, and counts as neither passed nor failed.
-The program is ended there, but processes it started in the background (or
-that ignore the signal) can keep running, on any platform; on Windows, any
-process it started can.
+before it is stopped. A program stopped at the limit gets the status
+`"timeout"` and the degradation `"command_timeout"`, and counts as neither
+passed nor failed. The step ends the program, but processes it started in the
+background (or that ignore the signal) can keep running on any platform. On
+Windows, any process it started can keep running.
 
 **Signs it needs changing.** Runs whose status is `"timeout"` on items that
 pass when run by hand (the limit is too short for the machine), or a
@@ -796,8 +798,9 @@ waiting out a long limit).
 **Where the default came from.** Sixty seconds, enough for a small test file,
 set when the step was written and not tuned. It is `untested`.
 
-**How to test it.** Sweep it by path. The configuration changes with it, so
-each value is its own arm; here both are long enough, and the outcomes agree:
+**How to test it.** Sweep it by path. Each value changes the configuration, so
+each value is its own arm. Here both values are long enough, and the outcomes
+agree:
 
 ```{r}
 chain <- hr_chain(draft = draft,
@@ -813,18 +816,18 @@ table(tb$arm, tb$outcome)
 **What it controls.** `parse = "exit"` reads the exit code: 0 is
 `"passed"`, anything else `"failed"`. `parse = "testthat"` reads the last
 `[ FAIL n | WARN n | SKIP n | PASS n ]` line the program printed: `"failed"`
-when `FAIL` is above 0, and `"error"` when there is no such line. The exit
-code alone is not enough for testthat, because `testthat::test_file()` exits
-with 0 when a test fails unless it is given `stop_on_failure = TRUE`.
+when `FAIL` is above 0, and `"error"` when there is no such line. For testthat
+the exit code alone falls short, because `testthat::test_file()` exits with 0
+when a test fails unless you give it `stop_on_failure = TRUE`.
 
 **Signs it needs changing.** A check that runs a test file and reports
 `"passed"` for drafts that fail their tests: it is reading the exit code of a
 run that does not stop on failure. With `"testthat"`, a status of `"error"`
-on every run means no summary line is printed, so the command is not running
-the tests.
+on every run means the program prints no summary line, so the command is not
+running the tests.
 
 **Where the default came from.** `"exit"` reads what every program reports.
-It is a choice, not a tuned value, and is `untested`.
+It was chosen, never tuned, and is `untested`.
 
 **How to test it.** Run the same test file both ways. Without
 `stop_on_failure = TRUE` the exit code is 0, so `"exit"` passes what
@@ -854,13 +857,13 @@ the signal `"command.<step>"`, and attaches the result as
 `attr(output, "hr_held")` for the scorer. A held step must come last in its
 chain: `hr_chain()` refuses a step that is not held after one that is.
 
-**Signs it needs changing.** A chain whose revise step sees the very check
-that scores it: the check is then a target, not a measure, and its pass rate
-says little about drafts the check never saw. Hold that check back, and use
-a separate visible check for the revise step.
+**Signs it needs changing.** A chain whose revise step sees the check that
+scores it. The check then becomes a target for the revise step, and its pass
+rate says little about drafts the check never saw. Hold that check back, and
+use a separate visible check for the revise step.
 
-**Where the default came from.** Off, so the result is visible to the steps
-after it. A choice for the chain, not a tuned value, and `untested`.
+**Where the default came from.** Off, so the steps after it see the result. It
+was chosen for the chain, never tuned, and is `untested`.
 
 **How to test it.** Sweep it on the last step. The outcomes agree, since
 nothing after the check reads it, but only the held arm records the signal:
@@ -894,8 +897,8 @@ unlink(tf)
 ```
 
 The revised chain passes every draft, so it is scored wrong on `t2`, whose
-label says the draft should fail. The step is only as good as the command:
-the package never chooses one.
+label says the draft should fail. A command step checks only what its command
+checks, and the package never chooses the command.
 
 ## Baselines without a model
 
