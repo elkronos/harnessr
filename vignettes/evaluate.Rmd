@@ -550,9 +550,9 @@ the same benchmark with intervals.
 
 ## Planning the size, and non-inferiority
 
-Often the question is whether a cheaper arm is worse than the one in use by
-more than a margin you can live with. That is a non-inferiority test. Whether a
-benchmark can answer it depends on its size, which is worth knowing before
+Often you want to know whether a cheaper arm is worse than the one in use by
+more than a margin you can live with. That is a non-inferiority test. The size
+of a benchmark decides whether it can answer that, so check the size before
 anyone labels 500 questions.
 
 `hr_mdd()` gives the smallest paired difference a clustered design can detect.
@@ -570,27 +570,28 @@ Questions in one document count for less than independent ones: the design
 effect DE = 1 + (m - 1) x ICC_D is 2 here, so 480 questions carry the
 information of 240. With nine confirmatory contrasts, Holm's first step tests
 at 0.025 / 9, and the detectable difference grows from 8.2 to 10.7 points.
-`hr_n_needed()` turns it round, giving the items needed for a margin:
+`hr_n_needed()` works the other way and gives the items needed for a margin:
 
 ```{r}
 hr_n_needed(0.08, m = 6, icc = 0.2, p_disc = 0.2, n_contrasts = 9)
 ```
 
 Both use t quantiles on C - 1 degrees of freedom, the ones the report tests
-with. In the power simulation `dev/sim-power.R` the formula's MDD was within
-0.25 points of the simulated one; with normal quantiles it was up to 0.41
-points below it at 80 clusters, which is why t quantiles are used.
+with. In the power simulation `dev/sim-power.R` the formula's MDD came within
+0.25 points of the simulated one. With normal quantiles it fell up to 0.41
+points below it at 80 clusters, so both functions use t quantiles.
 
-`hr_contrast()` states a contrast (the new arm, the reference arm, the margin
-and whether the new arm must also be cheaper) and `hr_register_contrasts()`
-fixes the contrasts against the reference before anything scores it. The help
+`hr_contrast()` states a contrast: the new arm, the reference arm, the margin
+and whether the new arm must also be cheaper. `hr_register_contrasts()` fixes
+the contrasts against the reference before anything scores it. `?hr_contrast`
 suggests a margin of min(0.5 x M1, the loss you would accept in practice), with
-M1 the reference arm's advantage over a minimal baseline in a pilot. A
-confirmatory margin below the design's MDD after Holm is refused with class
-`hr_margin_below_mdd`, since it claims more than the items can show;
-`confirmatory = FALSE` registers it as exploratory instead. A reference a
-benchmark has already begun to score is refused with class
-`hr_registration_after_scoring`.
+M1 the reference arm's advantage over a minimal baseline in a pilot.
+
+`hr_register_contrasts()` refuses a confirmatory margin below the design's MDD
+after Holm, with class `hr_margin_below_mdd`, since such a margin claims more
+than the items can show. `confirmatory = FALSE` registers it as exploratory
+instead. It also refuses a reference a benchmark has already begun to score,
+with class `hr_registration_after_scoring`.
 
 ```{r}
 n <- 300
@@ -628,27 +629,30 @@ ni$ni[, c("new", "reference", "margin", "estimate", "lower", "cost_upper",
 With 300 items in 50 clusters the report switches to the studentised bootstrap.
 A contrast holds only if the one-sided lower bound of the accuracy difference is
 above -margin and, with the cost test, the upper bound of the paired cost
-difference is below 0. Here `small` is 5.3 points less accurate than `large`,
-its lower bound is -8.1 points, inside the margin of 10, and its cost bound is
-below 0, so the verdict is `TRUE`. The accuracy bound is the cluster-robust t
-bound of the paired differences, so at one-sided 0.025 it is the lower end of
-the printed 95% contrast interval. Confirmatory contrasts are tested with Holm's
-step-down procedure. The design and achieved MDD are printed beside the verdict,
-and Tango's paired score interval sits beside it as a cross-check that does not
-enter the verdict.
+difference is below 0.
 
-A report with a registration, or with `confirmatory = TRUE`, is evidence, so
-any row from the dev, exploratory or calibration split is refused with class
-`hr_dev_not_evidence`, and so is a registration edited after it was made.
+Here `small` is 5.3 points less accurate than `large`. Its lower bound is -8.1
+points, inside the margin of 10, and its cost bound is below 0, so the verdict
+is `TRUE`. The accuracy bound is the cluster-robust t bound of the paired
+differences, so at one-sided 0.025 it is the lower end of the printed 95%
+contrast interval. Confirmatory contrasts are tested with Holm's step-down
+procedure. The report prints the design and achieved MDD beside the verdict,
+with Tango's paired score interval as a cross-check that does not enter the
+verdict.
+
+A report with a registration, or with `confirmatory = TRUE`, is evidence.
+`hr_report()` then refuses any row from the dev, exploratory or calibration
+split with class `hr_dev_not_evidence`. It refuses a registration edited after
+it was made too, with class `hr_registration_changed`.
 
 ## Judges
 
-Some answers cannot be scored by matching text: a summary, an explanation, an
-answer that is right in other words. `hr_judge()` asks a model to choose
-between candidates (`"select"`), compare two (`"pairwise"`) or grade one
-against a reference (`"grade"`). Candidates are shown under the letters A, B
-and so on, never their names, and each item is asked in two orders. A verdict
-that changes with the order, mapped back to the candidate it names, is
+Matching text cannot score some answers: a summary, an explanation, an answer
+that is right in other words. `hr_judge()` asks a model to choose between
+candidates (`"select"`), compare two (`"pairwise"`) or grade one against a
+reference (`"grade"`). The model sees the candidates under the letters A, B and
+so on, never their names, and gets each item in two orders. A verdict that
+changes with the order, once mapped back to the candidate it names, is
 `"unresolved"`, never a pick. This stand-in always picks whatever is shown
 first:
 
@@ -660,8 +664,8 @@ j$outcome
 j$verdicts[, c("order", "shown", "verdict", "value")]
 ```
 
-The judge's requests go through the same check as `hr_call()`, under the
-labels `judge.<mode>.o<k>`, into a trace of the judge's own. Their cost is in
+The judge's requests pass the same check as `hr_call()`, under the labels
+`judge.<mode>.o<k>`, and go into a trace of the judge's own. Their cost is in
 `j$judge_cost` and never in the trace of the run being judged.
 
 `hr_judge_config()` holds everything that decides a judge's answers (model,
@@ -669,9 +673,9 @@ mode, rubric, the package's instructions, reply schema, orders, how verdicts
 are combined, the positive grade) with a hash of it. `hr_judge_validate()`
 compares the judge's decisions with blind human labels for one configuration.
 It refuses fewer than 50 human-positive or 50 human-negative items, with class
-`hr_judge_too_few_labels`, and the minimums cannot be lowered: at 10%
-prevalence, 100 labels hold 10 positives and a sensitivity interval of about
-plus or minus 0.3. The judge's decisions here are simulated as right 90% of the
+`hr_judge_too_few_labels`, and you cannot lower those minimums. At 10%
+prevalence, 100 labels hold 10 positives, and sensitivity then has an interval
+of about plus or minus 0.3. Here the simulated judge decides right 90% of the
 time:
 
 ```{r}
@@ -688,11 +692,11 @@ v <- hr_judge_validate(cfg, data.frame(judge = judged, human = human), B = 200)
 v
 ```
 
-Items the judge left unresolved count as not called positive, which is how the
-scorer will count them, so the figures describe the judge as it will be used.
-Whether they are good enough for your purpose is a decision to make before
-labelling; the function measures and does not admit. The record is keyed by the
-configuration's hash, and `hr_judge_valid()` says when it no longer holds:
+Items the judge left unresolved count as not called positive, as the scorer
+will count them, so the figures describe the judge as you will use it. Decide
+before labelling what figures are good enough for your purpose: the function
+measures the judge and does not approve it. The record is keyed by the
+configuration's hash, and `hr_judge_valid()` tells you when it no longer holds:
 
 ```{r}
 hr_judge_valid(v, cfg)
@@ -700,11 +704,11 @@ hr_judge_valid(v, hr_judge_config("mock-judge", "Is the response right?", mode =
 ```
 
 `hr_scorer_judge()` is a benchmark scorer that grades each output against its
-label with a grade-mode judge. It refuses to be built without a valid record
+label with a grade-mode judge. Without a valid record it refuses to build
 (class `hr_judge_unvalidated`). An unresolved judgement counts as wrong and a
 failed one as an error, so an arm's accuracy cannot rise on the items the judge
-could not settle, and the judge's requests stay in the scorer's own trace, out
-of the benchmark's cost columns:
+could not settle. The judge's requests stay in the scorer's own trace, out of
+the benchmark's cost columns:
 
 ```{r}
 grader_judge <- hr_mock_client(function(messages, params) {
@@ -716,10 +720,10 @@ judge_scorer <- hr_scorer_judge(cfg, v, grader_judge)
 judge_scorer$fn("What was revenue?", "It came to 45.2 million dollars.", "45.2 million")$correct
 ```
 
-A judge's accuracy figures carry its own errors. `hr_judge_ppi()` corrects
-judge-scored accuracy with human labels on a sample, by prediction-powered
-inference (PPI++ by default). Here a lenient judge passes 30% of wrong answers
-on 1000 items, and people label 150 of them:
+Accuracy scored by a judge carries the judge's own errors. `hr_judge_ppi()`
+corrects judge-scored accuracy with human labels on a sample, by
+prediction-powered inference (PPI++ by default). Here a lenient judge passes 30%
+of wrong answers on 1000 items, and people label 150 of them:
 
 ```{r}
 set.seed(7)
@@ -732,8 +736,8 @@ hr_judge_ppi(lenient, labelled)[, c("estimate", "lower", "upper", "judge_mean")]
 mean(truth)
 ```
 
-The judge alone says 0.698. Corrected with the 150 labels the estimate is 0.567,
-and its interval, 0.505 to 0.628, holds the true share of 0.594. When the
+The judge alone gives 0.698. Corrected with the 150 labels, the estimate is
+0.567, and its interval, 0.505 to 0.628, holds the true share of 0.594. If the
 labelled items were drawn with unequal probabilities, pass `inclusion_prob` and
 the correction is inverse probability weighted. The interval is a normal
 approximation and runs narrow with few labels at small inclusion probabilities.
