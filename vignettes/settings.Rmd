@@ -136,8 +136,9 @@ show_settings("synthesise")
 
 ## Evaluation
 
-The arguments of `hr_benchmark()`, `hr_report()`, `hr_judge()` and
-`gr_compare()`. `vignette("evaluate")` and `vignette("compare")` cover them.
+The arguments of `hr_benchmark()`, `hr_report()`, `hr_judge()`,
+`gr_compare()`, `hr_error_correlation()` and `hr_step_command()`.
+`vignette("evaluate")` and `vignette("compare")` cover them.
 
 ```{r echo = FALSE}
 show_settings("evaluate")
