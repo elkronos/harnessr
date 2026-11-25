@@ -156,15 +156,15 @@ show_settings("options")
 ## Building blocks
 
 Some settings choose a module from a registry: `extractor`, `clean`, `method`,
-`reader`, `hr_options(embedder = )`, and the recipe given to
-`answer_document()`. The tables below are the registries as installed, so a
-module you register with `gr_register_reader()` and the like
-(`vignette("extending")`) appears in them too.
+`reader`, `hr_options(embedder = )`, and the recipe you give
+`answer_document()`. The tables below show the registries as installed, so a
+module you register with `gr_register_reader()` or another `gr_register_*()`
+function (`vignette("extending")`) appears in them too.
 
 ### Extractors
 
-An extractor turns one kind of file into text. It is chosen by the file's
-extension unless `extractor` names one.
+An extractor turns one kind of file into text. harnessr picks it by the
+file's extension unless you name one with `extractor`.
 
 ```{r}
 knitr::kable(gr_extractors()[, c("name", "extensions", "needs", "description")])
@@ -172,16 +172,16 @@ knitr::kable(gr_extractors()[, c("name", "extensions", "needs", "description")])
 
 ### Cleaners and presets
 
-A cleaner removes one kind of noise from the text. Those marked `default_on`
-run unless the preset or list you give leaves them out; `early` cleaners run
-before `late` ones whatever order they are named in.
+A cleaner removes one kind of noise from the text. Cleaners marked
+`default_on` run unless the preset or list you give leaves them out. `early`
+cleaners run before `late` ones, whatever order you name them in.
 
 ```{r}
 knitr::kable(gr_cleaners()[, c("name", "stage", "default_on", "description")])
 ```
 
-A preset is a named list of cleaners. The steps each one runs, read from what
-it did to the example report:
+A preset is a named list of cleaners. This table shows the steps each preset
+runs, read from what it did to the example report:
 
 ```{r}
 presets <- c("none", "minimal", "standard", "academic", "scan", "legacy")
@@ -194,7 +194,7 @@ knitr::kable(data.frame(preset = presets, cleaners = vapply(presets, function(p)
 ### Segmenters
 
 A segmenter decides where chunks are cut. `cost` says what it spends:
-`free`, one embedding pass, or model requests.
+`free`, `embedding` for one embedding pass, or `llm` for model requests.
 
 ```{r}
 knitr::kable(gr_segmenters()[, c("name", "cost", "needs_client", "description")])
@@ -202,9 +202,9 @@ knitr::kable(gr_segmenters()[, c("name", "cost", "needs_client", "description")]
 
 ### Readers
 
-A reader decides how the chunks reach the model. `signature` is which chunks
-are sent, how many requests, and how information passes between them;
-`cost_calls` is the number of requests.
+A reader decides how the chunks reach the model. `signature` gives which
+chunks it sends, how many requests it makes, and how information passes
+between them. `cost_calls` is the number of requests.
 
 ```{r}
 knitr::kable(gr_readers()[, c("name", "signature", "cost_calls", "description")])
@@ -212,9 +212,9 @@ knitr::kable(gr_readers()[, c("name", "signature", "cost_calls", "description")]
 
 ### Embedders
 
-An embedder turns text into vectors for `retrieve`, `iterative` and the
-`semantic` segmenter. A deterministic one gives the same vectors every run,
-which a replay needs.
+An embedder turns text into vectors for the `retrieve` and `iterative`
+readers and the `semantic` segmenter. A deterministic embedder gives the same
+vectors every run, which a replay needs.
 
 ```{r}
 knitr::kable(gr_embedders()[, c("name", "deterministic", "description")])
@@ -222,9 +222,9 @@ knitr::kable(gr_embedders()[, c("name", "deterministic", "description")])
 
 ### Recipes
 
-A recipe names an ingestion, a segmentation and a reader with their settings.
-These are the values each built-in recipe sets; any of them can be overridden
-by name.
+A recipe names an ingestion, a segmentation and a reader, with their
+settings. The table shows the values each built-in recipe sets, and you can
+override any of them by name.
 
 ```{r}
 knitr::kable(do.call(rbind, lapply(names(gr_recipes()), function(n) {
@@ -242,8 +242,8 @@ hr_options(old)
 
 ## Next
 
-- `vignette("harnessr")`: the basic settings of each stage, with when to change
-  each.
-- `vignette("compare")`: testing a setting on a reference with dev and test
-  splits, and reading the result with intervals.
+- `vignette("harnessr")`: the basic settings of each stage, and when to
+  change each.
+- `vignette("compare")`: how to test a setting on a reference with dev and
+  test splits, and read the result with intervals.
 - `?gr_settings_table`: how the table is built, and its columns.
