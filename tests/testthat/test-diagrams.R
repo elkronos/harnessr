@@ -26,7 +26,10 @@ read_diagram <- function(name) {
 }
 
 # The text of every <text> element, or of those with class `cls`.
+# `doc` is forced first: read_diagram() skips when the tree or xml2 is missing,
+# and that skip has to run before this function calls xml2.
 diagram_text <- function(doc, cls = NULL) {
+  force(doc)
   xp <- if (is.null(cls)) "//text" else sprintf("//text[@class='%s']", cls)
   xml2::xml_text(xml2::xml_find_all(doc, xp))
 }
