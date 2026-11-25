@@ -127,8 +127,21 @@ cannot:
 hr_api_key()
 ```
 
-If the key is missing, a run stops before it reads your document and gives the
-same explanation.
+There are three places to give the key. An argument to `hr_client()` wins over
+the `harnessr.api_key` option, which wins over `OPENAI_API_KEY`:
+
+```{r eval = FALSE}
+Sys.setenv(OPENAI_API_KEY = "sk-...")    # for the session
+options(harnessr.api_key = "sk-...")     # the form for an .Rprofile
+cl <- hr_client(api_key = "sk-...")      # per client, for a Shiny app with many users
+```
+
+If your project is a git repository, list `.Renviron` and `.Rprofile` in its
+`.gitignore`; harnessr's own repository ignores both.
+
+If the key is missing, `answer_document()`, `gr_read_many()` and `gr_compare()`
+stop before they read your document, with a `gr_auth_error` that gives the same
+explanation. So a missing key does not first cost an OCR pass over a long scan.
 
 Behind a company gateway, `hr_client(headers = )` sends the headers it wants,
 such as Azure's `api-key`:
@@ -145,8 +158,37 @@ the key optional, so a client that authenticates through headers needs no key.
 `hr_options(api_headers = )` sets the same headers for every client, the form
 for a project's `.Rprofile`.
 
-The README's "Connecting a model" section covers other providers through the
-ellmer package and free models running on your own machine through Ollama.
+The built-in client speaks to OpenAI-compatible `/responses` and
+`/chat/completions` endpoints. For other providers, `hr_ellmer_client()` hands
+the transport to the [ellmer](https://ellmer.tidyverse.org/) package, which
+covers about twenty providers, local models through Ollama among them.
+
+The spending limit is on by default, and it can hold only for a model with a
+registered price. So register the model the ellmer object was built with, at
+your provider's current prices in US dollars per million tokens. A local model
+has no price to register, so let it run unpriced:
+
+```{r eval = FALSE}
+library(ellmer)
+
+hr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 64000,
+                  input_usd = 3, output_usd = 15)
+cl <- hr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
+answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
+
+hr_options(allow_unpriced = TRUE)
+cl <- hr_ellmer_client(chat_ollama(model = "llama3.1"))
+```
+
+Without a registered price, a run under `max_cost_usd` stops before its first
+request with an `hr_unpriced_model` error. `vignette("runs")` covers unpriced
+models and what changes through ellmer (temperature and embeddings).
+
+Anything else, such as a model behind a queue, goes through
+`hr_backend_client()`. It makes any function of `messages` and `params` that
+returns a string the transport. Limits, the trace, caching and replay work the
+same way on every client. Register the model's real context window with
+`hr_register_model()`, since it sizes your chunks.
 
 ## Practising without a key
 
