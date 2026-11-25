@@ -150,8 +150,8 @@ gr_outline <- function(claims, question = NULL, client = NULL, model = NULL,
   }
   # Labelled UTF-8, as in gr_claims(). The closing heading most of all: it
   # sits among headings read from the model, which are labelled, and
-  # gr_synthesise() pastes it to the claims and trims it with them -- which,
-  # typed with an accent under a C locale, stopped the write-up.
+  # gr_synthesise() pastes it to the claims and trims it with them. Typed with
+  # an accent under a C locale, it stopped the write-up.
   question <- mark_utf8(as_chr1(question %||% claims$question))
   if (is.character(closing)) closing <- mark_utf8(closing)
   if (!is_nonblank(question)) gr_abort("`question` must be a non-empty string.")
@@ -277,8 +277,8 @@ outline_reply_tokens <- function(n, max_sections, info) {
 #' @noRd
 outline_rows <- function(x) {
   # Exact reads throughout: this is a model's reply, and `$` let `claim_draft`
-  # answer for `claim` and `headings` answer for `heading` -- a key the schema
-  # never defined producing a real row.
+  # answer for `claim` and `headings` answer for `heading`. A key the schema
+  # never defined produced a real row.
   fx <- function(o, nm) o[[nm, exact = TRUE]]
   if (is.null(x)) return(NULL)
   if (!is.data.frame(x) && is.list(x) && !is.null(names(x))) x <- list(x)
@@ -357,8 +357,8 @@ finish_outline <- function(secs, cw, closing, max_sections) {
                    length(unplaced)))
   }
 
-  # Everything downstream keys the outline by HEADING -- gr_synthesise() writes
-  # one section per name and looks its claims up by that name -- so two sections
+  # Everything downstream keys the outline by HEADING: gr_synthesise() writes
+  # one section per name and looks its claims up by that name. So two sections
   # called the same thing wrote the same heading twice and each copy took the
   # union of both claim sets. Three claims came out as five section slots. Merge
   # rather than rename: a reply that proposed "Findings" twice meant one section.

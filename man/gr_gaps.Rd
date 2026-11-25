@@ -27,8 +27,8 @@ of two fields' sizes.}
 reported as not reported.}
 
 \item{bib}{Which columns carry bibliographic identity, as in \code{\link[=gr_claims]{gr_claims()}}
-and \code{\link[=gr_synthesise]{gr_synthesise()}}. They are not dimensions of the evidence -- "every
-study reports 'Lancet'" is not a gap in a literature -- and a gap line goes
+and \code{\link[=gr_synthesise]{gr_synthesise()}}. They are not dimensions of the evidence ("every
+study reports 'Lancet'" is not a gap in a literature), and a gap line goes
 to the writing model, which is never told who wrote a study. The columns
 \code{claims} withheld are left out whatever this says; \code{bib} adds to them.}
 }

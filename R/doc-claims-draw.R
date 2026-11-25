@@ -1,4 +1,4 @@
-# doc-claims-draw.R -- the layer between a table of studies and a write-up.
+# doc-claims-draw.R: the layer between a table of studies and a write-up.
 #
 # WHY THIS FILE EXISTS
 # `gr_synthesise()`'s unit is the SECTION, and sections come from an outline
@@ -6,9 +6,9 @@
 # study table. Three things follow, and none of them can be repaired downstream:
 #
 #   1. The review's structure is the author's hypothesis rather than a finding.
-#      Often the strongest sentence a review contains is structural -- "the
+#      Often the strongest sentence a review contains is structural ("the
 #      disagreement about effect size is really a disagreement about
-#      measurement" -- and that can only come from the evidence.
+#      measurement"), and that can only come from the evidence.
 #   2. Studies arrive as rows, so the model writes row by row: "Smith (2019)
 #      found X. Garcia (2022) found Y." That enumeration is the clearest marker
 #      of a weak review and it is a direct consequence of what the prompt holds.
@@ -18,8 +18,8 @@
 # A claim here is checkable in exactly the way a citation already is. It names
 # the studies it rests on, those numbers are verified against the table rather
 # than trusted, and each study's values are backed by a quote that was checked
-# against the page it came from. That extends the audit chain by one link --
-# claim -> studies -> quotes -> pages -- instead of stepping around it.
+# against the page it came from. That extends the audit chain by one link
+# (claim -> studies -> quotes -> pages) instead of stepping around it.
 
 #' What a claim is about.
 #' @noRd
@@ -104,9 +104,9 @@
 #' the whole corpus comes back once per batch with disjoint support, which reads
 #' as several narrow claims instead of one broad one. The reconcile pass may only
 #' group claims that already exist: every claim it fails to place stays on its
-#' own rather than disappearing. When it cannot run -- a call or cost limit, a
+#' own rather than disappearing. When it cannot run (a call or cost limit, a
 #' failed or cut-off reply, a reply that is not a list of groups, or more claims
-#' than fit one prompt -- the claims are kept unmerged, with a warning, and
+#' than fit one prompt), the claims are kept unmerged, with a warning, and
 #' `$unmerged` is `TRUE`.
 #'
 #' What the reconcile pass cannot check is MEANING. A merged claim keeps one
@@ -472,8 +472,8 @@ gr_claims <- function(extraction, question = NULL, protocol = NULL, client = NUL
   }
 
   # The columns the model was SHOWN, not every column in the table. The moderator
-  # check used the reserved-field list, which leaves the bibliographic columns in
-  # -- so a claim could name `year` as the moderator of a disagreement, be
+  # check used the reserved-field list, which leaves the bibliographic columns
+  # in. A claim could then name `year` as the moderator of a disagreement, be
   # accepted, and carry an explanation drawn from a column render_studies()
   # withheld precisely so it could not be used. An invented explanation for a
   # real disagreement is the most convincing error this layer can make.
@@ -593,7 +593,7 @@ claims_batch <- function(block, question, client, spec, trace, shown = NULL) {
 #' `simplifyVector = TRUE` is not type-stable for an array of arrays: with equal
 #' lengths it produces a MATRIX, with unequal lengths a list, and with a single
 #' element a bare vector. A caller that assumes any one of those is broken by the
-#' other two, and the failure is silent -- the ids come out transposed or
+#' other two, and the failure is silent: the ids come out transposed or
 #' recycled rather than absent.
 #' @noRd
 as_id_list <- function(x, n) {
@@ -621,8 +621,8 @@ as_id_list <- function(x, n) {
 #' @noRd
 claim_rows <- function(x) {
   # Exact reads throughout: this is a model's reply, and `$` let `claim_draft`
-  # answer for `claim` and `headings` answer for `heading` -- a key the schema
-  # never defined producing a real row.
+  # answer for `claim` and `headings` answer for `heading`. A key the schema
+  # never defined produced a real row.
   fx <- function(o, nm) o[[nm, exact = TRUE]]
   if (is.null(x)) return(NULL)
   # A single claim can arrive as a bare named list rather than a one-row frame.
@@ -670,7 +670,7 @@ claim_rows <- function(x) {
   x$.support <- sup
   x$.contradict <- con
   # A claim with no text is not a claim. It used to survive to claims_verify(),
-  # which drops it only if it also has no supporting study -- so an entry that
+  # which drops it only if it also has no supporting study. So an entry that
   # was all ids and no sentence became a row in `$claims` with an empty claim,
   # and gr_outline() then wrote a section arguing it. outline_rows() has always
   # dropped blank headings; this is the same rule one file over.
@@ -681,7 +681,7 @@ claim_rows <- function(x) {
 
 #' Group claims that say the same thing, across batches.
 #'
-#' The model is shown the claim TEXTS only -- no studies, no numbers to cite --
+#' The model is shown the claim TEXTS only (no studies, no numbers to cite),
 #' so it cannot invent a claim here, and every study a merged claim names was
 #' verified before this ran. What it CAN do is group badly: a group's support
 #' is the union of its members', under one member's wording, so two claims
@@ -741,7 +741,7 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
   }
   g <- as_id_list(raw, if (is.matrix(raw)) nrow(raw) else length(raw))
   # Defence in depth, not load-bearing: `claims[c(1, 99), ]` yields a row of NAs
-  # rather than an error, and the merge below happens to absorb it -- nchar(NA)
+  # rather than an error, and the merge below happens to absorb it: nchar(NA)
   # loses to any real claim text and NULL support unions to nothing. Mutating
   # this line away changes no output today. It stays because the next change to
   # the merge would not be so lucky, and because a reply naming a claim that was
@@ -826,7 +826,7 @@ claims_reconcile <- function(claims, question, client, spec, trace) {
     # is a DISAGREEMENT, and the setdiff below files it on the supporting side.
     # Silently: `n_contradict` went 1 -> 0 with nothing in `note`, so a merge
     # manufactured consensus that no study agreed to. The study still belongs on
-    # the supporting side -- it does support the merged wording -- but the reader
+    # the supporting side, since it does support the merged wording. The reader
     # has to be told, because this is exactly the kind of loss the claims layer
     # exists to make visible.
     flipped <- intersect(con, sup)
