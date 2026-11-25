@@ -596,35 +596,37 @@ differently from the one you asked for, give the served model id.
 
 ## Reading a comparison honestly
 
-The five comparisons above end in reports, and each has the same limits.
+Each of the five comparisons above ends in a report, and the reports share
+the same limits.
 
 - **Read the interval of the difference, not the two accuracies.** A contrast
   whose interval covers 0 has not shown a difference. With more than two
   arms, read `simultaneous` unless one pair was named before the run.
-- **Hold the result against the minimum detectable difference.** At 32
-  questions in 8 reports, a real gain of 5 points would usually be missed.
-  `hr_n_needed()` says how many questions would show it.
-- **Report only test results.** The grids and sweeps above were read on dev,
-  one setting was chosen there, and only that setting and one comparator were
-  run on test: `paragraph_40` against `paragraph_80`, and `top_k = 2` against
-  `top_k = 4`. Reporting the best of six dev
-  arms as if it were one planned comparison overstates it.
-- **Five runs is the minimum.** When the report's notes say run-to-run
-  variance is more than 10% of the total, use 10. The reader, segmenter, `top_k` and judge benchmarks on
-  test all said so at 5 runs (81%, 15%, 79% and 82%), so they run 10 times.
+- **Compare the result with the minimum detectable difference.** At 32
+  questions in 8 reports, this design would usually miss a real gain of 5
+  points. `hr_n_needed()` gives the number of questions that would show it.
+- **Report only test results.** The grids and sweeps above were read on dev.
+  One setting was chosen there, and only that setting and one comparator ran
+  on test: `paragraph_40` against `paragraph_80`, and `top_k = 2` against
+  `top_k = 4`. If you report the best of six dev arms as if it were one
+  planned comparison, you overstate it.
+- **Five runs is the minimum.** If the report's notes say run-to-run variance
+  is more than 10% of the total, use 10. At 5 runs the notes for the reader,
+  segmenter, `top_k` and judge benchmarks on test all said so (81%, 15%, 79%
+  and 82%), so those benchmarks run 10 times.
 - **Size the governor for the whole benchmark** and compare its limit with the
   calls the trace records. A run stopped by a limit is counted wrong.
-- **The free measures are not the outcome.** Pk, WindowDiff and recall at k say
-  why an arm may do well; only the benchmark says whether it does.
-- **A judge's scores are as good as its validation.** Validate it against
-  blind labels, say when it graded its own model, and correct judge-scored
-  accuracy with `hr_judge_ppi()`.
+- **Treat the free measures as clues.** Pk, WindowDiff and recall at k
+  suggest why an arm may do well. Only the benchmark shows whether it does.
+- **Trust a judge's scores only as far as its validation.** Validate the
+  judge against blind labels, say when it graded its own model, and correct
+  judge-scored accuracy with `hr_judge_ppi()`.
 
 ## On your own documents
 
-The same steps on real documents and a real model. Nothing here runs when the
-guide is built. Results go to a directory you name; this uses the per-user data
-directory, never the package's own folder:
+Here are the same steps on real documents with a real model. Nothing in this
+section runs when the guide is built. Results go to a directory you name. This
+example uses the per-user data directory, never the package's own folder:
 
 ```{r eval = FALSE}
 out <- file.path(tools::R_user_dir("harnessr", "data"), "compare")
@@ -672,7 +674,7 @@ saveRDS(test, file.path(out, "test-bench.rds"))
 writeLines(as_json(rpt), file.path(out, "test-report.json"))
 ```
 
-`max_calls` and `max_cost_usd` above are examples: set them from the number of
+`max_calls` and `max_cost_usd` above are examples. Set them from the number of
 arms, test questions, runs and calls per run (`gr_readers()` lists each
 reader's calls), with room to spare.
 
