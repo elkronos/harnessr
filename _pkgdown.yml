@@ -11,21 +11,57 @@ articles:
   contents:
   - harnessr
 
-- title: Guides
-  navbar: Guides
+- title: Read a document
+  navbar: Read a document
   desc: >
-    One guide per topic, in the order a run uses them.
+    Get text out of a file, cut it into chunks, and choose how the model
+    reads them.
   contents:
   - ingest
   - segment
   - readers
+
+- title: Review many documents
+  navbar: Review many documents
+  desc: >
+    Ask one question of many documents, or run a literature review from a
+    search export to an audit report.
+  contents:
   - review
+
+- title: Measure and compare
+  navbar: Measure and compare
+  desc: >
+    Score configurations against labelled answers and compare readers,
+    segmenters and settings with intervals.
+  contents:
   - evaluate
   - compare
-  - compose
+
+- title: Control cost and settings
+  navbar: Control cost and settings
+  desc: >
+    Set spending limits, pay for a request once, replay a run, and look up
+    every setting with its default.
+  contents:
   - runs
   - settings
+
+- title: Build your own
+  navbar: Build your own
+  desc: >
+    Chain steps of your own into a run, and register extractors, segmenters,
+    readers and other modules.
+  contents:
+  - compose
   - extending
+
+- title: Upgrade
+  navbar: Upgrade
+  desc: >
+    Change code written for readgpt or an older harnessr to the current
+    names.
+  contents:
   - migrate
 
 reference:
