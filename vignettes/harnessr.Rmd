@@ -177,11 +177,12 @@ ans$answer
 ```
 
 That call ran three stages in order. `gr_ingest()` handed a `gr_document` to
-`gr_segment()`, which handed a `gr_chunks` to `gr_read()`, and each request to
-the model went through `hr_call()`, where the governor checks the limits and
-the cache answers a repeat. One trace records every step:
+`gr_segment()`, which handed a `gr_chunks` to `gr_read()`. Each request to the
+model goes through `hr_call()`, where the governor checks the limits and, for a
+client wrapped in `hr_cache_client()`, the cache answers a repeat. One trace
+records every step:
 
-```{r document-run, echo = FALSE, out.width = "100%", fig.alt = "answer_document() runs three stages in order: ingest with gr_ingest() hands a gr_document to segment with gr_segment(), which hands a gr_chunks to read with gr_read(), which returns a gr_answer. Each model request goes through hr_call(), where the governor checks the limits, the cache answers a repeat and the client answers a miss. One trace from hr_trace() goes to every stage, and readers size prompts with hr_budget()."}
+```{r document-run, echo = FALSE, out.width = "100%", fig.alt = "answer_document() runs three stages in order: ingest with gr_ingest() hands a gr_document to segment with gr_segment(), which hands a gr_chunks to read with gr_read(), which returns a gr_answer. Each model request goes through hr_call(), where the governor checks the limits, the cache of a client wrapped in hr_cache_client() answers a repeat and the client answers a miss. One trace from hr_trace() goes to every stage, and readers size prompts with hr_budget()."}
 knitr::include_graphics("../man/figures/document-run.svg")
 ```
 
