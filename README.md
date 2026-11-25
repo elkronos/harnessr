@@ -75,8 +75,8 @@ cmp$summary[, c("recipe", "segmenter", "chunks", "reader", "signature", "setting
 ```
 
 `settings` names whatever each recipe changed from the defaults. The bundled
-example is small (573 tokens as `gr_ingest()` counts them), so `fast` and
-`thorough` fit it in one chunk. On a real report they would not.
+example is small (under 600 tokens as `gr_ingest()` counts them), so `fast`
+and `thorough` fit it in one chunk. On a real report they would not.
 
 Or build a pipeline by hand, one choice per axis:
 
