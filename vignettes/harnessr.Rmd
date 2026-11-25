@@ -458,8 +458,8 @@ intervals that treat the questions about one document as a cluster. See
 
 ## What you can change
 
-A recipe is a set of settings, and every one of them can be changed. They are
-grouped by the stage of a run they belong to:
+A recipe is a set of settings, and you can change every one of them. The table
+groups them by the stage of a run they belong to:
 
 ```{r}
 settings <- gr_settings_table()
@@ -477,8 +477,8 @@ table(factor(settings$stage, unique(settings$stage)))
 | evaluate | 30 | the arguments of `hr_benchmark()`, `hr_report()` and `hr_judge()` | `vignette("evaluate")`, `vignette("compare")` |
 | options | 34 | `hr_options()`, for the whole session | `vignette("runs")` |
 
-Most runs change a few of them, which `gr_settings_table()` marks `basic`.
-The ones that matter first, with their defaults and when to change each:
+Most runs change a few of them, and `gr_settings_table()` marks those `basic`.
+Here are the ones that matter first, with their defaults and when to change each:
 
 | stage | setting (default) | change it when |
 |---|---|---|
@@ -507,10 +507,10 @@ The ones that matter first, with their defaults and when to change each:
 
 `vignette("settings")` lists all 227 with their defaults and where each
 default came from, and `gr_settings_table()` returns them in R. The settings
-page links each important one to a walkthrough at the end of one of six
-guides, which says what it trades off, the signs that point to changing it and
-how to test a change. `hr_sweep()` builds one arm per value of a setting so the values can
-be compared, as `vignette("compare")` shows.
+page links each important one to a walkthrough at the end of one of six guides.
+Each walkthrough says what the setting trades off, the signs that point to
+changing it and how to test a change. To compare the values of a setting,
+`hr_sweep()` builds one arm per value, as `vignette("compare")` shows.
 
 ## More than one document
 
