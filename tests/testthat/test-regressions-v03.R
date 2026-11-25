@@ -49,7 +49,7 @@ test_that("an unusable embedding row is neutralised, not dropped from the answer
 test_that("two closure-backed clients do not share cache entries", {
   # Every mock and backend client is api="mock"/"backend", the same base_url and
   # the same default model, so a key built from those three could not tell them
-  # apart -- and hr_cache() twice gives the same default directory. Two clients
+  # apart, and hr_cache() twice gives the same default directory. Two clients
   # with genuinely different handlers silently traded answers.
   local_registries()
   dir <- withr::local_tempdir()
