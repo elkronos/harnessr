@@ -221,10 +221,13 @@ effort does and which models it is sent to.
 The `cost` argument of `gr_register_reader()` is a function of
 `(input_stats, params)` that returns `hr_cost()`: how many requests one run
 makes, expected and at worst. `params` is the `gr_read_spec()`. `input_stats`
-has `n_chunks`, `tokens` (of all chunks), `texts`, `question`, `out_cap` (the
-largest reply cap a request to `params$model` is sent) and `embed_api` (whether
-embeddings go to the endpoint at all), with helpers `reply_cap(model, cap)`,
-`room(system, restate)` and `embed_requests(texts)`.
+holds:
+
+- `n_chunks`, `tokens` (of all chunks), `texts` and `question`;
+- `out_cap`, the largest reply cap a request to `params$model` is sent;
+- `embed_api`, whether embeddings go to the endpoint at all;
+- the helpers `reply_cap(model, cap)`, `room(system, restate)` and
+  `embed_requests(texts)`.
 
 This reader asks every chunk and then merges the notes, so it makes one request
 per chunk plus one:
@@ -254,9 +257,9 @@ a <- gr_read(ch, "What was revenue?", cl, "each")
 table(as.data.frame(a$trace)$stage)
 ```
 
-`gr_read()` adds up the cost functions of a run before the first request, and
-the governor decides from the sum whether the run fits its limits. Under a cap
-of three calls, the six chunks above are refused before anything is sent:
+Before the first request, `gr_read()` adds up the cost functions of a run, and
+the governor checks the sum against its limits. Under a cap of three calls, the
+governor refuses the six chunks above before anything is sent:
 
 ```{r}
 capped <- hr_options(max_calls = 3)
@@ -265,18 +268,22 @@ tryCatch(gr_read(ch, "What was revenue?", cl, "each"),
 hr_options(capped)
 ```
 
-A reader registered without `cost` is counted as one request per chunk and,
-for a signature whose `select` is `"all"`, every chunk sent once. Declare
-`cost` for any reader that makes a different number of requests.
+For a reader registered without `cost`, the pre-flight check counts one
+request per chunk and, for a signature whose `select` is `"all"`, every chunk sent once.
+Declare `cost` for any reader that makes a different number of requests.
 
-`hr_cost()` has more fields than `calls`. `calls_max` is the worst case, never
-taken as less than `calls`. `tokens_in_max` counts prompt tokens sent beyond the
-input itself, such as replies handed on to a merge. `tokens_out_max` is for a
-reader whose replies can be billed beyond the reply cap; otherwise the check
-prices every request at `input_stats$out_cap`. `embed_max` counts requests to
-the embeddings endpoint, and `sends` lists input every run must send, as
-`list(tokens =, model =)`, so a run that cannot finish under the spending limit
-is refused before it starts.
+`hr_cost()` has more fields than `calls`:
+
+- `calls_max` is the worst case, never taken as less than `calls`.
+- `tokens_in_max` counts prompt tokens sent beyond the input itself, such as
+  replies handed on to a merge.
+- `tokens_out_max` is for a reader whose replies can be billed beyond the
+  reply cap. Without it, the check prices every request at
+  `input_stats$out_cap`.
+- `embed_max` counts requests to the embeddings endpoint.
+- `sends` lists input every run must send, as `list(tokens =, model =)`, so
+  the pre-flight check refuses a run that cannot finish under the spending
+  limit before it starts.
 
 ```{r}
 hr_cost(calls = 4, calls_max = 6)$calls_max
@@ -287,21 +294,25 @@ the trace.
 
 ## Embedders
 
-Embedders are a registry too. They make `retrieve` and the `semantic` segmenter
-work offline, for free, and reproducibly:
+Embedders are a registry too. With a local embedder, `retrieve` and the
+`semantic` segmenter work offline, for free, and reproducibly:
 
 ```{r}
 gr_embedders()
 ```
 
 `hr_options(embedder = "lexical")` switches every part of the package that
-embeds. An embedder is a function of `(texts, params)` that returns a numeric
-matrix with one row per text, rows L2-normalised, since everything downstream
-treats the cross-product as cosine similarity. `params` carries `client`,
-`model`, `batch_size`, `cache` and `trace`. Signal failure by raising an error;
-the caller applies its own fallback. Register your own (a local model, a
-company service) and the `semantic` segmenter and the `retrieve` and
-`iterative` readers all use it, with no change to any of them.
+embeds.
+
+An embedder is a function of `(texts, params)` that returns a numeric matrix
+with one row per text. L2-normalise each row, because harnessr treats the
+cross-product as cosine similarity everywhere downstream. `params` carries
+`client`, `model`, `batch_size`, `cache` and `trace`. To signal failure, raise
+an error; the caller applies its own fallback.
+
+Register your own embedder (a local model, a company service) and select it
+with `hr_options(embedder =)`. The `semantic` segmenter and the `retrieve` and
+`iterative` readers then all use it, with no change to any of them.
 
 ```{r}
 gr_register_embedder("first-letters", description = "Toy: letter counts",
@@ -321,36 +332,39 @@ hr_options(toy)
 ```
 
 Set `deterministic = TRUE` only if the same text always gives the same vector,
-in any session on any machine. A trace records model calls, not vectors, and
-that flag is what lets `hr_replay_client()` recompute a run's chunk ranking
-instead of degrading to lexical vectors. Claiming it wrongly makes a replay rank
-chunks from vectors the original run never saw, while reporting an exact match.
+in any session on any machine. A trace records model calls but not vectors.
+The flag lets `hr_replay_client()` recompute a run's chunk ranking instead of
+degrading to lexical vectors. If you set it wrongly, a replay ranks chunks from
+vectors the original run never saw and still reports an exact match.
 
 ## Models
 
 The model registry holds each model's context window, output limit and prices.
-Register a model the package does not know, or override a built-in entry whose
-prices have gone stale:
+Use `hr_register_model()` to add a model the package does not know, or to
+override a built-in entry whose prices have gone stale:
 
 ```{r}
 hr_register_model("my-local-llama", context_window = 32768, max_output = 4096)
 hr_model_info("my-local-llama")[c("context_window", "source", "certain")]
 ```
 
-Without prices, a cost cannot be estimated, and harnessr says so rather than
+Without prices, harnessr cannot estimate a cost. It returns `NA` instead of
 assuming the run is free:
 
 ```{r}
 is.na(hr_estimate_cost("my-local-llama", 1000, 500))
 ```
 
-While a spending limit is set, a request to a language model with no registered
-price is refused before it is sent (embedding models and `hr_mock_client()` are
-exempt). Give `input_usd` and `output_usd` in US dollars per million tokens, or
-let a local model run unpriced with `hr_options(allow_unpriced = TRUE)`.
-`reasoning = TRUE` marks a model that takes an effort setting. The section on
-connecting to a model in `vignette("harnessr")` shows both for a model reached
-through ellmer.
+While a spending limit is set, harnessr refuses a request to a language model
+with no registered price before sending it. Embedding models and
+`hr_mock_client()` are exempt. You have two ways forward:
+
+- give `input_usd` and `output_usd` in US dollars per million tokens;
+- let a local model run unpriced with `hr_options(allow_unpriced = TRUE)`.
+
+The section on connecting to a model in `vignette("harnessr")` shows both for
+a model reached through ellmer. `reasoning = TRUE` marks a model that takes an
+effort setting.
 
 ## Using what you registered
 
