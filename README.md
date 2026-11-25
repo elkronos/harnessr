@@ -113,7 +113,7 @@ installed in R as `vignette("name")`.
 
 ### Read a document
 
-- [Getting text out of files](https://elkronos.github.io/harnessr/articles/ingest.html) (`ingest`): pDFs, Word files, web pages and scans, every cleaner, and surveying a folder.
+- [Getting text out of files](https://elkronos.github.io/harnessr/articles/ingest.html) (`ingest`): PDFs, Word files, web pages and scans, every cleaner, and surveying a folder.
 - [Cutting documents into chunks](https://elkronos.github.io/harnessr/articles/segment.html) (`segment`): the segmenters, overlap, minimum size, context, and comparing chunkings.
 - [Choosing how the model reads](https://elkronos.github.io/harnessr/articles/readers.html) (`readers`): the reading strategies, recipes, what each costs, and how to choose.
 
@@ -142,7 +142,7 @@ installed in R as `vignette("name")`.
 
 ## Getting help
 
-Questions, bug reports and pull requests are welcome at
+Ask questions and report bugs at
 <https://github.com/elkronos/harnessr/issues>.
 [CONTRIBUTING.md](https://github.com/elkronos/harnessr/blob/main/CONTRIBUTING.md)
 says how to run the tests and what a pull request must keep true.
