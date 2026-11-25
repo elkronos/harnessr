@@ -169,11 +169,11 @@ order a person reads in. harnessr puts it back in reading order:
   each line would join the start of a line from each column.
 - Running heads and feet (short lines repeated at the top or bottom of many
   pages, such as a journal name or "Page 3 of 12") are removed.
-- It finds headings, so blocks carry sections as they do for Markdown and
-  Word. It takes them from the PDF's bookmarks when it has them. Otherwise a
-  line that is only a standard section name ("Introduction", "2. Methods",
-  "Results") counts. That is how harnessr found "Summary" above; "Outlook" is
-  not a standard name, so it stayed text.
+- harnessr finds headings, so blocks carry sections as they do for Markdown
+  and Word. It takes them from the PDF's bookmarks when the PDF has them.
+  Otherwise a line that is only a standard section name ("Introduction",
+  "2. Methods", "Results") counts. That is how harnessr found "Summary"
+  above; "Outlook" is not a standard name, so it stayed text.
 
 `gr_ingest_spec(layout = "raw")` turns all three off and keeps each page as it
 is laid out. Footnotes, tables and pages in three or more columns can still come
