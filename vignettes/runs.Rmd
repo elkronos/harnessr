@@ -66,7 +66,7 @@ request with its stage, tokens, cost, time, prompt and reply:
 
 ```{r}
 hr_trace_summary(ans$trace)[, c("calls", "cached", "tokens_in", "tokens_out", "errors")]
-hr_trace_cost(ans$trace)[, c("model", "calls", "paid_calls", "usd")]
+hr_trace_cost(ans$trace)[, c("model", "calls", "paid_calls", "usd", "priced", "as_of")]
 as.data.frame(ans$trace)[, c("step", "stage", "tokens_in", "tokens_out", "usd")]
 ```
 
@@ -76,10 +76,25 @@ were issued. A call answered from a cache or a recording spent nothing, however
 long its prompt. A model with no registered price contributes `NA`, never 0, so
 no total can leave one out unnoticed.
 
+Each row also says where its price came from: `priced` (whether the model has
+a price), `as_of` (the month of that price) and `certain` (`FALSE` when the
+registry only guessed the model from its name). Every report of a cost in
+dollars carries the same three columns, and a printed cost gives the month,
+as in "prices as of 2026-11". For a model with no price it prints "no price set
+for" the model and names `hr_register_model()` and `hr_load_models()`. A total
+over several models, some without a price, says it covers the priced models
+only.
+
 `hr_estimate_cost()` prices a run before you make it:
 
 ```{r}
 hr_estimate_cost("priced-mock", input_tokens = 120000, output_tokens = 4000)
+```
+
+With `detail = TRUE` it returns the figure with the same three columns:
+
+```{r}
+hr_estimate_cost("priced-mock", 120000, 4000, detail = TRUE)
 ```
 
 ### What each request records

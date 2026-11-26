@@ -37,6 +37,32 @@ no longer ships them. You set the prices you pay.
   class `hr_stale_price`, once per model per session. `NULL` turns the
   warning off. Set the current prices again to clear it.
 
+## Cost reports say where their prices came from
+
+Every report of a cost in dollars now says, for each model it prices,
+whether the model has a price, the month of that price, and whether its
+registry entry is a fact or a guess. Existing columns and fields keep their
+names and meanings, and the new ones come after them (in `gr_compare()`,
+before `premise`, which stays last).
+
+* `hr_trace_cost()`, `as.data.frame()` on a trace, `hr_benchmark()`,
+  `gr_compare()`'s `summary` and the cost table of `hr_effort_check()` gain
+  the columns `priced`, `as_of` and `certain`. `hr_report()`'s `cost` table
+  gains them per arm, and adds a note naming any arm with an unpriced model.
+  `hr_judge()`'s `judge_cost` gains the same fields and `models`.
+  `gr_inventory()`'s `totals` gains them for its cost floor.
+* `hr_estimate_cost()` gains `detail`. `detail = TRUE` returns a one-row
+  data frame: `model`, `usd`, `priced`, `as_of` and `certain`. The default
+  still returns the figure alone.
+* Printed costs give the month of their prices, as in
+  `$0.0021 across gpt-4o, prices as of 2026-11`. A model with no price
+  prints as "no price set for <model>", with `hr_register_model()` and
+  `hr_load_models()` named as the way to set one. A total over several
+  models of which some have no price says that it covers the priced models
+  only, where it used to print "cost unknown". The data still hold `NA` for
+  such a total. The progress line says "spent on priced models" in the
+  same case. The audit report's cost table has a `prices` column.
+
 ## Renamed core functions
 
 The 27 core functions that still began with `gr_` now begin with `hr_`, like
