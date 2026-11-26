@@ -371,6 +371,14 @@ test_that("unclear records go forward, and the flow accounts for every record", 
   expect_warning(x <- suppressMessages(gr_extract(s, fields, client = ex, recipe = "fast")),
                  class = "gr_unclear_dropped")
   expect_equal(nrow(x$table), 3L)
+  # The warning names the release that switches to `forward`. The old text
+  # promised "the next release" with no number.
+  w <- expect_warning(suppressMessages(gr_extract(s, fields, client = ex, recipe = "fast")),
+                      class = "gr_unclear_dropped")
+  msg <- conditionMessage(w)
+  expect_match(msg, "2 record(s) screened as 'unclear' are not read", fixed = TRUE)
+  expect_match(msg, "From 0.9.0 `forward` is the default.", fixed = TRUE)
+  expect_no_match(msg, "next release", fixed = TRUE)
 
   fl <- gr_flow(s)
   n <- function(stage) fl$n[trimws(fl$stage) == stage]
