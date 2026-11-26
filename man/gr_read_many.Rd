@@ -116,14 +116,22 @@ code against.
 
 \code{document}, \code{document_id}, \code{answer}, \code{not_found}, \code{partial}, \code{reader},
 \code{chunks}, \code{chunks_used}, \code{calls}, \code{cached}, \code{tokens_in}, \code{tokens_out},
-\code{cost_usd}, \code{seconds}, \code{status}, \code{duplicate_of}, \code{error}, \code{warnings}.
+\code{cost_usd}, \code{seconds}, \code{status}, \code{duplicate_of}, \code{error}, \code{warnings},
+\code{priced}, \code{as_of}, \code{certain}.
 
 \code{warnings} holds what harnessr warned about while reading that document,
 joined with \code{" | "}, or \code{NA} when it raised nothing. The warnings still print
 as they happen; this column is what lets you tie them to a document afterwards.
 
+\code{priced}, \code{as_of} and \code{certain} say where \code{cost_usd}'s prices came from, as
+in \code{\link[=hr_trace_cost]{hr_trace_cost()}}: \code{priced} is \code{TRUE} when every model the document's
+requests were billed to has a price, \code{as_of} is the oldest month among those
+prices, and \code{certain} is \code{TRUE} when every model's registry entry is a fact.
+All three are \code{NA} for a document with no requests, and for a row restored
+from a store written before these columns existed.
+
 With \code{premise = TRUE} in the recipe's read spec (see \code{\link[=gr_read_spec]{gr_read_spec()}}) there
-is one more column, after \code{warnings}: \code{premise}, the sentence in which the
+is one more column, after \code{certain}: \code{premise}, the sentence in which the
 model said what the document states instead of the question's premise, or
 \code{NA} when it reported nothing contradicting it. Such a row's \code{answer} is that
 sentence and its \code{not_found} is \code{FALSE}.

@@ -2074,6 +2074,15 @@ audit_corpus <- function(x) {
   if (!is.null(tab$cost_usd)) {
     tab$cost_usd <- ifelse(is.na(tab$cost_usd), NA_character_,
                            formatC(as.numeric(tab$cost_usd), format = "f", digits = 4))
+    # Where each cost's prices came from, next to it, as in the cost table.
+    if (!is.null(s[["priced"]])) {
+      prices <- ifelse(s$priced %in% TRUE,
+                       ifelse(is.na(s$as_of), NA_character_, paste("as of", s$as_of)),
+                       ifelse(s$priced %in% FALSE, "no price set", NA_character_))
+      at <- match("cost_usd", names(tab))
+      tab <- cbind(tab[seq_len(at)], data.frame(prices = prices, stringsAsFactors = FALSE),
+                   tab[-seq_len(at)])
+    }
   }
   answers <- x$answers %||% list()
   per <- function(i) {

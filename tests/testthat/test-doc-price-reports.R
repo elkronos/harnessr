@@ -95,3 +95,49 @@ test_that("gr_inventory() says where its cost floor's prices came from", {
                                "with hr_register_model() or hr_load_models())"),
                         capture.output(print(un)), fixed = TRUE)))
 })
+
+test_that("gr_read_many() gives each document's price columns after `warnings`", {
+  local_registries()
+  local_clean_cache()
+  local_mocked_bindings(price_today = function() as.Date("2026-12-01"))
+  dpr_price("dpr-priced", "2026-11")
+  hr_register_model("dpr-unpriced", context_window = 8000, max_output = 500)
+  cl <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+  docs <- c(a = dpr_doc(), b = dpr_doc(4L))
+  out <- quiet(gr_read_many(docs, "What was revenue?", "fast", client = cl,
+                            model = "dpr-priced"))
+  s <- out$summary
+  at <- match("warnings", names(s))
+  expect_identical(names(s)[at + 0:3], c("warnings", "priced", "as_of", "certain"))
+  expect_true(all(s$priced))
+  expect_true(all(s$as_of == "2026-11"))
+  expect_true(all(s$certain))
+  html <- paste(harnessr:::audit_corpus(out), collapse = "\n")
+  expect_match(html, "<th>prices</th>", fixed = TRUE)
+  expect_match(html, "as of 2026-11", fixed = TRUE)
+
+  un <- quiet(gr_read_many(docs, "What was revenue?", "fast", client = cl,
+                           model = "dpr-unpriced"))
+  expect_false(any(un$summary$priced))
+  expect_true(all(is.na(un$summary$as_of)))
+  expect_true(all(is.na(un$summary$cost_usd)))
+  expect_match(paste(harnessr:::audit_corpus(un), collapse = "\n"), "no price set", fixed = TRUE)
+
+  # A row restored from a store written before the columns gets them, unknown,
+  # and binds with a row read now.
+  store <- withr::local_tempdir()
+  quiet(gr_read_many(docs["a"], "What was revenue?", "fast", client = cl,
+                     model = "dpr-priced", store = store))
+  for (f in list.files(store, pattern = "[.]rds$", full.names = TRUE, recursive = TRUE)) {
+    e <- readRDS(f)
+    e$row <- e$row[setdiff(names(e$row), c("priced", "as_of", "certain"))]
+    saveRDS(e, f)
+  }
+  mixed <- quiet(gr_read_many(docs, "What was revenue?", "fast", client = cl,
+                              model = "dpr-priced", store = store))
+  ms <- mixed$summary
+  expect_identical(ms$status, c("restored", "ok"))
+  expect_identical(names(ms), names(s))
+  expect_identical(ms$priced, c(NA, TRUE))
+  expect_identical(ms$as_of, c(NA, "2026-11"))
+})

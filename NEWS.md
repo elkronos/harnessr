@@ -63,6 +63,9 @@ before `premise`, which stays last).
   gains them per arm, and adds a note naming any arm with an unpriced model.
   `hr_judge()`'s `judge_cost` gains the same fields and `models`.
   `gr_inventory()`'s `totals` gains them for its cost floor.
+  `gr_read_many()`'s `summary` gains them after `warnings` (before
+  `premise`), and the audit report's corpus table shows them in a `prices`
+  column.
 * `hr_estimate_cost()` gains `detail`. `detail = TRUE` returns a one-row
   data frame: `model`, `usd`, `priced`, `as_of` and `certain`. The default
   still returns the figure alone.

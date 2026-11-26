@@ -194,14 +194,22 @@ corpus_models_have <- function(models) {
 #' @section The summary:
 #' `document`, `document_id`, `answer`, `not_found`, `partial`, `reader`,
 #' `chunks`, `chunks_used`, `calls`, `cached`, `tokens_in`, `tokens_out`,
-#' `cost_usd`, `seconds`, `status`, `duplicate_of`, `error`, `warnings`.
+#' `cost_usd`, `seconds`, `status`, `duplicate_of`, `error`, `warnings`,
+#' `priced`, `as_of`, `certain`.
 #'
 #' `warnings` holds what harnessr warned about while reading that document,
 #' joined with `" | "`, or `NA` when it raised nothing. The warnings still print
 #' as they happen; this column is what lets you tie them to a document afterwards.
 #'
+#' `priced`, `as_of` and `certain` say where `cost_usd`'s prices came from, as
+#' in [hr_trace_cost()]: `priced` is `TRUE` when every model the document's
+#' requests were billed to has a price, `as_of` is the oldest month among those
+#' prices, and `certain` is `TRUE` when every model's registry entry is a fact.
+#' All three are `NA` for a document with no requests, and for a row restored
+#' from a store written before these columns existed.
+#'
 #' With `premise = TRUE` in the recipe's read spec (see [gr_read_spec()]) there
-#' is one more column, after `warnings`: `premise`, the sentence in which the
+#' is one more column, after `certain`: `premise`, the sentence in which the
 #' model said what the document states instead of the question's premise, or
 #' `NA` when it reported nothing contradicting it. Such a row's `answer` is that
 #' sentence and its `not_found` is `FALSE`.
@@ -477,6 +485,15 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       }
       if (is.null(restored$row[["warnings", exact = TRUE]])) {
         restored$row$warnings <- NA_character_
+      }
+      # A store written before the price columns: unknown, in their place
+      # after `warnings`, so the rows bind.
+      if (is.null(restored$row[["priced", exact = TRUE]])) {
+        at <- seq_len(match("warnings", names(restored$row)))
+        restored$row <- cbind(restored$row[at],
+                              data.frame(priced = NA, as_of = NA_character_, certain = NA,
+                                         stringsAsFactors = FALSE),
+                              restored$row[-at])
       }
       if (check_premise && is.null(restored$row[["premise", exact = TRUE]])) {
         restored$row$premise <- answer_premise(restored$answer)
@@ -1086,7 +1103,13 @@ corpus_row <- function(document, status, answer = NULL, trace = NULL, error = NA
     warnings    = corpus_warnings(warnings %||% answer[["warnings", exact = TRUE]]),
     stringsAsFactors = FALSE
   )
-  # After `warnings`, and only for a recipe that checks the question's premise
+  # Where `cost_usd`'s prices came from, after `warnings`, as gr_compare()
+  # gives them for a recipe.
+  prices <- cost_prices(if (inherits(trace, "gr_trace")) hr_trace_cost(trace))
+  row$priced <- prices$priced
+  row$as_of <- prices$as_of
+  row$certain <- prices$certain
+  # After the price columns, and only for a recipe that checks the question's premise
   # (`premise`, whether it does): every row of a run has the same recipe, so
   # the rows bind, and a run that did not check keeps the columns it had. What
   # the model said the document states instead, or NA.
