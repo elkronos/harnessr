@@ -451,3 +451,26 @@ test_that("a reference that records its frame size prints it as before", {
   expect_identical(sampled_from_line(gr_calibrate(scr, ref)),
                    "  sampled from: stacked (8 of 8 screened)")
 })
+
+test_that("an `all` reference with no frame size takes the screened count as its frame", {
+  scr <- screening_of(c("include", "include", "unclear", "exclude",
+                        "exclude", "exclude", "include", "exclude"))
+  ref <- data.frame(document = paste0("d", 1:8, ".pdf"),
+                    human_decision = c("include", "exclude", "include", "exclude",
+                                       "exclude", "include", "include", "exclude"),
+                    stringsAsFactors = FALSE)
+  cal <- gr_calibrate(scr, ref, of = "all")
+  # The frame gr_reference(of = "all") draws from: every decided record.
+  expect_identical(cal$frame$frame_n, 8L)
+  expect_identical(cal$frame$frame_n,
+                   attr(gr_reference(scr, n = Inf, of = "all"), "frame_n"))
+  expect_identical(sampled_from_line(cal), "  sampled from: all (8 of 8 screened)")
+  expect_false(any(grepl("\\bNA\\b", utils::capture.output(print(cal)))))
+  expect_null(cal$projected)
+
+  # A record the screener never decided is not in the frame.
+  scr$table$decision[2] <- NA
+  cal <- gr_calibrate(scr, ref[-2, ], of = "all")
+  expect_identical(cal$frame$frame_n, 7L)
+  expect_identical(sampled_from_line(cal), "  sampled from: all (7 of 8 screened)")
+})

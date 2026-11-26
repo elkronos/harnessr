@@ -547,7 +547,10 @@ as_screening_table <- function(screening) {
 #'     \item{`adequacy`}{How that was judged: `rule` (`"positives"`,
 #'       `"interval"` or `"whole frame"`), `bar`, `width`, and `note`, a
 #'       sentence saying why the sample fell short (`NA` when it did not).}
-#'     \item{`frame`}{Which rows the sample was drawn from, and how many.}
+#'     \item{`frame`}{Which rows the sample was drawn from, and how many: `of`,
+#'       `frame_n` (records in that frame) and `screened_n`. `frame_n` is `NA`
+#'       when the reference does not record it, except for `of = "all"`, where
+#'       the frame is every screened record.}
 #'     \item{`recall`}{Recall: `estimate`, `lower` and `upper` (two-sided at
 #'       `conf`), `bound` (the one-sided lower bound), `method`, `conf`, `n`
 #'       (eligible records in the sample) and `note`. `NA` where the frame
@@ -748,6 +751,14 @@ gr_calibrate <- function(screening, reference, positive = "include", min_positiv
     }
   }
   of <- as_chr1(of %||% recorded %||% "unknown", "unknown")
+  # An "all" frame is every record the screener decided: gr_reference() draws
+  # it from the decided rows and records their count as both frame_n and
+  # screened_n, and screening_recall() counts the same rows. So its size is
+  # known when the reference does not record it (a plain data frame, or a file
+  # whose own frame `of` overrode), and print() said "NA of 8 screened".
+  if (identical(of, "all") && is.na(frame_n)) {
+    frame_n <- as.integer(attr(ref, "screened_n") %||% sum(!is.na(tab$decision)))
+  }
   if (identical(of, "mixed")) {
     # Two strata stacked into one file. This is not a corner case: it is what
     # following this package's own advice produces (judge everything kept AND
