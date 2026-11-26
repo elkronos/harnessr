@@ -39,25 +39,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -111,8 +103,18 @@ model;</li>
 <li>stating the parameters of a spec;</li>
 <li>checking your module against the contract the built-ins follow.</li>
 </ul>
-<p><code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduces the package and its
-ideas.</p>
+<p>A module that calls the model builds on the core. It sends each
+request with <code><a href="../reference/hr_call.html">hr_call()</a></code> and records it in the run’s trace
+(“The trace” in <code><a href="../articles/core.html">vignette("core")</a></code>), the run’s limits can
+refuse it (“Limits and refusals” in <code><a href="../articles/core.html">vignette("core")</a></code>), it
+sizes its prompts with <code><a href="../reference/hr_budget.html">hr_budget()</a></code>
+(<code><a href="../articles/context.html">vignette("context")</a></code>), and it passes on the run’s effort
+(<code><a href="../articles/effort.html">vignette("effort")</a></code>). Models and their prices belong to the
+core too (<code><a href="../articles/models.html">vignette("models")</a></code>). Steps register in the same
+registry, and “Registering a step” in <code><a href="../articles/compose.html">vignette("compose")</a></code>
+covers them, with <code><a href="../reference/hr_modules.html">hr_modules()</a></code> across every kind and
+<code><a href="../reference/hr_check_module.html">hr_check_module()</a></code> for a module of any kind.
+<code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduces the package.</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
@@ -266,16 +268,19 @@ chunks (<code>chunk_id</code>, <code>text</code>, <code>tokens</code>,
 <li>Send every request through <code><a href="../reference/hr_call.html">hr_call()</a></code> with the client
 you were given, never one you construct, and pass it the
 <code>trace</code>. Through the trace, <code><a href="../reference/hr_call.html">hr_call()</a></code> counts,
-prices and limits your calls.</li>
+prices and limits your calls (“The trace” in
+<code><a href="../articles/core.html">vignette("core")</a></code>).</li>
 <li>Expect refusals. harnessr does not send a request that would pass
 <code>max_calls</code> or <code>max_cost_usd</code>, and
 <code><a href="../reference/hr_call.html">hr_call()</a></code> returns a result with <code>refused = TRUE</code>
-instead. Stop or degrade when that happens.</li>
+instead (“Limits and refusals” in <code><a href="../articles/core.html">vignette("core")</a></code>). Stop
+or degrade when that happens.</li>
 <li>Honour at least <code>spec$model</code>,
 <code>spec$max_answer_tokens</code>, <code>spec$temperature</code> and
 <code>spec$effort</code>.</li>
 <li>Budget the prompt with <code><a href="../reference/hr_budget.html">hr_budget()</a></code> instead of assuming
-the document fits.</li>
+the document fits (“How much room a prompt has:
+<code><a href="../reference/hr_budget.html">hr_budget()</a></code>” in <code><a href="../articles/context.html">vignette("context")</a></code>).</li>
 </ul>
 <p>The <code>signature</code>, <code>"select|calls|state"</code>,
 describes how the reader traverses the chunks. Two readers with the same
@@ -323,8 +328,8 @@ check, that setting would silently reach no request:</p>
 module first, with its labels in <code>calls</code>. The
 <code>calls</code> column of <code><a href="../reference/gr_readers.html">gr_readers()</a></code> and
 <code><a href="../reference/gr_segmenters.html">gr_segmenters()</a></code> lists every module’s stems.
-<code><a href="../articles/runs.html">vignette("runs")</a></code> explains what effort does and which models
-it is sent to.</p>
+<code><a href="../articles/effort.html">vignette("effort")</a></code> explains what effort does and which
+models it is sent to.</p>
 </div>
 <div class="section level2">
 <h2 id="declaring-cost">Declaring cost<a class="anchor" aria-label="anchor" href="#declaring-cost"></a>
@@ -414,8 +419,8 @@ run that cannot finish under the spending limit before it starts.</li>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_cost.html">hr_cost</a></span><span class="op">(</span>calls <span class="op">=</span> <span class="fl">4</span>, calls_max <span class="op">=</span> <span class="fl">6</span><span class="op">)</span><span class="op">$</span><span class="va">calls_max</span></span>
 <span><span class="co">#&gt; [1] 6</span></span></code></pre></div>
-<p><code><a href="../articles/runs.html">vignette("runs")</a></code> covers the governor, its limits and the
-pre-flight step in the trace.</p>
+<p>“Limits” in <code><a href="../articles/runs.html">vignette("runs")</a></code> covers the governor, its
+limits and the pre-flight step in the trace.</p>
 </div>
 <div class="section level2">
 <h2 id="embedders">Embedders<a class="anchor" aria-label="anchor" href="#embedders"></a>
@@ -467,47 +472,19 @@ model calls but not vectors. The flag lets
 <code><a href="../reference/hr_replay_client.html">hr_replay_client()</a></code> recompute a run’s chunk ranking instead
 of degrading to lexical vectors. If you set it wrongly, a replay ranks
 chunks from vectors the original run never saw and still reports an
-exact match.</p>
+exact match. “Embeddings in a replay” in <code><a href="../articles/runs.html">vignette("runs")</a></code>
+shows what a replay does with each kind of embedder.</p>
 </div>
 <div class="section level2">
 <h2 id="models">Models<a class="anchor" aria-label="anchor" href="#models"></a>
 </h2>
-<p>The model registry holds each model’s context window, output limit
-and prices. harnessr ships the limits of its built-in models and no
-prices. Use <code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> to add a model the package
-does not know, to correct a built-in entry, or to give a model the
-prices you pay:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"my-local-llama"</span>, context_window <span class="op">=</span> <span class="fl">32768</span>, max_output <span class="op">=</span> <span class="fl">4096</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/hr_model_info.html">hr_model_info</a></span><span class="op">(</span><span class="st">"my-local-llama"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"context_window"</span>, <span class="st">"source"</span>, <span class="st">"certain"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt; $context_window</span></span>
-<span><span class="co">#&gt; [1] 32768</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $source</span></span>
-<span><span class="co">#&gt; [1] "registered"</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $certain</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>Without prices, harnessr cannot estimate a cost. It returns
-<code>NA</code> instead of assuming the run is free:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"my-local-llama"</span>, <span class="fl">1000</span>, <span class="fl">500</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>While a spending limit is set, harnessr sends a request to a language
-model with no registered price and warns, once per model per session,
-that the limit does not count it. Embedding models and
-<code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> are exempt. Give <code>input_usd</code>
-and <code>output_usd</code> in US dollars per million tokens, zero for a
-local model, and the limit counts the model’s requests. To refuse
-unpriced requests instead, set
-<code>hr_options(allow_unpriced = FALSE)</code>.</p>
-<p>The section on connecting to a model in
-<code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> registers a hosted model at its prices
-and a local one at zero, both reached through ellmer.
-<code>reasoning = TRUE</code> marks a model that takes an effort
-setting. To set the prices of many models at once from a file, and to
-keep them current, see “Models, prices and token counts” in
-<code><a href="../articles/runs.html">vignette("runs")</a></code>.</p>
+<p>The model registry belongs to the core.
+<code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> adds a model harnessr does not know,
+corrects a built-in entry, or gives a model the prices you pay.
+<code><a href="../articles/models.html">vignette("models")</a></code> covers each of these and what harnessr
+does with a model that has no price. The section on connecting to a
+model in <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> registers a hosted model at
+its prices and a local one at zero, both reached through ellmer.</p>
 </div>
 <div class="section level2">
 <h2 id="using-what-you-registered">Using what you registered<a class="anchor" aria-label="anchor" href="#using-what-you-registered"></a>
@@ -515,7 +492,7 @@ keep them current, see “Models, prices and token counts” in
 <p>You name a registered module as you name a built-in. A recipe binds
 one choice from each axis, and <code><a href="../reference/answer_document.html">answer_document()</a></code> runs
 it:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_recipe.html">gr_recipe</a></span><span class="op">(</span><span class="st">"bullets_longest"</span>,</span>
 <span>                  segment <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"by_bullet"</span>, max_tokens <span class="op">=</span> <span class="fl">400</span><span class="op">)</span>,</span>
 <span>                  read <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reader <span class="op">=</span> <span class="st">"longest"</span><span class="op">)</span><span class="op">)</span></span>
@@ -525,7 +502,7 @@ it:</p>
 <p><code><a href="../reference/gr_compare.html">gr_compare()</a></code> runs several recipes on one document and
 question, sharing one trace, so you can measure your addition against a
 built-in on calls, tokens and cost:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_compare.html">gr_compare</a></span><span class="op">(</span><span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"What was revenue?"</span>,</span>
 <span>                  recipes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">mine</span>, <span class="st">"fast"</span><span class="op">)</span>, client <span class="op">=</span> <span class="va">cl</span><span class="op">)</span></span>
 <span><span class="va">cmp</span><span class="op">$</span><span class="va">summary</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"recipe"</span>, <span class="st">"segmenter"</span>, <span class="st">"chunks"</span>, <span class="st">"reader"</span>, <span class="st">"calls"</span><span class="op">)</span><span class="op">]</span></span>
@@ -541,7 +518,7 @@ kind first. The other arguments are those of that kind’s own function,
 so <code>hr_register("reader", ...)</code> takes what
 <code><a href="../reference/gr_register_reader.html">gr_register_reader()</a></code> takes and runs the same checks. This
 reader answers from the shortest chunk:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">shortest</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">chunks</span>, <span class="va">question</span>, <span class="va">client</span>, <span class="va">spec</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">chunks</span><span class="op">$</span><span class="va">chunks</span></span>
 <span>  <span class="va">i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">tokens</span><span class="op">)</span></span>
@@ -560,7 +537,7 @@ reader answers from the shortest chunk:</p>
 <code>"step"</code>. For any other kind, <code><a href="../reference/hr_register.html">hr_register()</a></code>
 raises an error of class <code>hr_unknown_kind</code>. It also refuses a
 module that the kind’s own function would refuse:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_register.html">hr_register</a></span><span class="op">(</span><span class="st">"reader"</span>, <span class="st">"auto"</span>, fn <span class="op">=</span> <span class="va">identity</span>, signature <span class="op">=</span> <span class="st">"one|1|none"</span><span class="op">)</span>,</span>
 <span>         gr_reserved_name <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "'auto' is reserved: answer_document() uses it to choose a recipe. Register the reader under another name."</span></span></code></pre></div>
@@ -569,16 +546,10 @@ module that the kind’s own function would refuse:</p>
 contract, and a lookup such as <code><a href="../reference/gr_read.html">gr_read()</a></code> finds the entry by
 name and calls its function:</p>
 <p><img src="../reference/figures/registry.svg" class="r-plt" alt="hr_register(kind, name, fn, ..., version) stores an entry in the registry under one of seven kinds: extractor, cleaner, segmenter, reader, embedder, protocol and step. hr_register() stamps each entry it stores with its version and module contract 0.2. A lookup such as gr_read() calls registry_get() with the kind and name and calls the entry's fn; an unknown name raises gr_unknown_method and an unknown kind hr_unknown_kind. Signal calibrations keep their own contract, 0.1." width="100%"></p>
-<p><code><a href="../reference/hr_modules.html">hr_modules()</a></code> lists the modules of every kind in one
-table, with the call stems each declares as a list column. Give it a
-kind to add that kind’s own columns:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_modules.html">hr_modules</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">kind</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   cleaner  embedder extractor  protocol    reader segmenter </span></span>
-<span><span class="co">#&gt;        15         3         7         4        15        10</span></span>
-<span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_modules.html">hr_modules</a></span><span class="op">(</span><span class="st">"reader"</span><span class="op">)</span></span>
+<p><code>hr_modules("reader")</code> lists the readers with the columns
+of their kind and the call stems each declares:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_modules.html">hr_modules</a></span><span class="op">(</span><span class="st">"reader"</span><span class="op">)</span></span>
 <span><span class="va">r</span><span class="op">[</span><span class="va">r</span><span class="op">$</span><span class="va">name</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"longest"</span>, <span class="st">"shortest"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"signature"</span>, <span class="st">"calls"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;        name  signature           calls</span></span>
 <span><span class="co">#&gt; 6   longest one|1|none  longest.answer</span></span>
@@ -598,7 +569,7 @@ under.</li>
 <p>A module registered with a <code>gr_register_*()</code> function has
 <code>NA</code> in both. Pass <code>version</code> when you register,
 and the listings show which version of your module is in place:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register.html">hr_register</a></span><span class="op">(</span><span class="st">"reader"</span>, <span class="st">"shortest"</span>, signature <span class="op">=</span> <span class="st">"one|1|none"</span>, cost_calls <span class="op">=</span> <span class="st">"1"</span>,</span>
 <span>  description <span class="op">=</span> <span class="st">"answer from the shortest chunk only"</span>, calls <span class="op">=</span> <span class="st">"shortest.answer"</span>,</span>
 <span>  version <span class="op">=</span> <span class="st">"1.1.0"</span>, fn <span class="op">=</span> <span class="va">shortest</span><span class="op">)</span></span>
@@ -608,15 +579,8 @@ and the listings show which version of your module is in place:</p>
 <span><span class="co">#&gt; 6   longest    &lt;NA&gt;     &lt;NA&gt;</span></span>
 <span><span class="co">#&gt; 13 shortest   1.1.0      0.2</span></span></code></pre></div>
 <p>A step from <code><a href="../reference/hr_step.html">hr_step()</a></code> registers the same way, under the
-kind <code>"step"</code>. Its version is the step’s own unless you give
-another:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register.html">hr_register</a></span><span class="op">(</span><span class="st">"step"</span>, <span class="st">"shout"</span>, fn <span class="op">=</span> <span class="fu"><a href="../reference/hr_step.html">hr_step</a></span><span class="op">(</span><span class="st">"shout"</span>, <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">ctx</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/chartr.html" class="external-link">toupper</a></span><span class="op">(</span><span class="va">input</span><span class="op">)</span>,</span>
-<span>                                          input <span class="op">=</span> <span class="st">"answer"</span>, output <span class="op">=</span> <span class="st">"state"</span>,</span>
-<span>                                          version <span class="op">=</span> <span class="st">"0.2.0"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/hr_modules.html">hr_modules</a></span><span class="op">(</span><span class="st">"step"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"input"</span>, <span class="st">"output"</span>, <span class="st">"version"</span>, <span class="st">"contract"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;    name  input output version contract</span></span>
-<span><span class="co">#&gt; 1 shout answer  state   0.2.0      0.2</span></span></code></pre></div>
+kind <code>"step"</code>; “Registering a step” in
+<code><a href="../articles/compose.html">vignette("compose")</a></code> shows it.</p>
 <p>Through <code><a href="../reference/hr_register.html">hr_register()</a></code>, a segmenter that calls a model
 can also take <code>effort_label</code>. It is a function of the segment
 spec that returns the label the segmenter’s requests carry, or
@@ -633,83 +597,11 @@ its own labels from it.</p>
 <p>Each spec constructor states its parameters once, as a schema: type,
 default, range and choices. <code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code>,
 <code><a href="../reference/gr_segment_spec.html">gr_segment_spec()</a></code> and <code><a href="../reference/gr_ingest_spec.html">gr_ingest_spec()</a></code> check
-their arguments against a schema. You can use the same three schema
-functions for a module of your own:</p>
-<ul>
-<li>
-<code><a href="../reference/hr_param.html">hr_param()</a></code> declares one parameter;</li>
-<li>
-<code><a href="../reference/hr_schema.html">hr_schema()</a></code> collects them;</li>
-<li>
-<code><a href="../reference/hr_validate.html">hr_validate()</a></code> applies the rules.</li>
-</ul>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_schema.html">hr_schema</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="../reference/hr_param.html">hr_param</a></span><span class="op">(</span><span class="st">"max_tokens"</span>, <span class="st">"integer"</span>, default <span class="op">=</span> <span class="fl">1200L</span>, min <span class="op">=</span> <span class="fl">32</span>, max <span class="op">=</span> <span class="fl">1e6</span>,</span>
-<span>           help <span class="op">=</span> <span class="st">"Largest chunk, in tokens."</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="../reference/hr_param.html">hr_param</a></span><span class="op">(</span><span class="st">"overlap_tokens"</span>, <span class="st">"integer"</span>, default <span class="op">=</span> <span class="fl">0L</span>, min <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>           max <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="va">p</span><span class="op">$</span><span class="va">max_tokens</span> <span class="op">-</span> <span class="fl">1L</span>,</span>
-<span>           help <span class="op">=</span> <span class="st">"Tokens repeated between neighbouring chunks."</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="../reference/hr_param.html">hr_param</a></span><span class="op">(</span><span class="st">"order"</span>, <span class="st">"enum"</span>, choices <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"relevance"</span>, <span class="st">"document"</span><span class="op">)</span>,</span>
-<span>           help <span class="op">=</span> <span class="st">"How chosen chunks are ordered in the prompt."</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">s</span></span>
-<span><span class="co">#&gt; &lt;hr_schema&gt; 3 parameter(s)</span></span>
-<span><span class="co">#&gt;   max_tokens                 integer       basic     -         [32, 1e+06]</span></span>
-<span><span class="co">#&gt;   overlap_tokens             integer       basic     -         [0, f()]</span></span>
-<span><span class="co">#&gt;   order                      enum          basic     -         relevance|document</span></span></code></pre></div>
-<p><code><a href="../reference/hr_validate.html">hr_validate()</a></code> resolves the parameters in schema order,
-so a parameter whose bound depends on another, such as
-<code>overlap_tokens</code> above, comes after it. It moves a number out
-of range to the nearest bound and warns with class
-<code>gr_clamped</code> (and <code>hr_param_clamped</code>). It matches
-an <code>enum</code> as <code><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg()</a></code> does, so it accepts an
-unambiguous abbreviation:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_validate.html">hr_validate</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>max_tokens <span class="op">=</span> <span class="fl">100</span>, overlap_tokens <span class="op">=</span> <span class="fl">500</span>, order <span class="op">=</span> <span class="st">"doc"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  gr_clamped <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">w</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">invokeRestart</a></span><span class="op">(</span><span class="st">"muffleWarning"</span><span class="op">)</span></span>
-<span>  <span class="op">}</span><span class="op">)</span></span>
-<span><span class="co">#&gt; `overlap_tokens` 500 is outside [0, 99]; using 99.</span></span>
-<span><span class="co">#&gt; List of 3</span></span>
-<span><span class="co">#&gt;  $ max_tokens    : int 100</span></span>
-<span><span class="co">#&gt;  $ overlap_tokens: int 99</span></span>
-<span><span class="co">#&gt;  $ order         : chr "document"</span></span></code></pre></div>
-<p>A name the schema does not have raises an error of class
-<code>hr_unknown_param</code>. A value outside an <code>enum</code>’s
-choices raises an error that names the choices:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_validate.html">hr_validate</a></span><span class="op">(</span><span class="va">s</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>top_k <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>         hr_unknown_param <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "'top_k' not a parameter of this schema. Parameters: max_tokens, overlap_tokens, order."</span></span></code></pre></div>
-<p>The types are <code>integer</code>, <code>number</code>,
-<code>string</code>, <code>boolean</code>, <code>enum</code>,
-<code>string_vector</code>, <code>named_map</code>,
-<code>module_ref</code> and <code>file</code>; <code><a href="../reference/hr_param.html">?hr_param</a></code>
-gives the rule for each. For a parameter that needs a rule of its own, a
-<code>resolve</code> function replaces the type’s rule.</p>
-<p>The other fields describe the parameter and do not check it:</p>
-<ul>
-<li>
-<code>help</code>: one plain sentence.</li>
-<li>
-<code>cost_class</code>: how it moves the cost of a run, one of
-<code>"none"</code>, <code>"local"</code>,
-<code>"per_call_constant"</code>, <code>"per_unit"</code>,
-<code>"per_sample"</code> or <code>"per_round"</code>.</li>
-<li>
-<code>affects_output</code>: whether it belongs in cache and store
-keys.</li>
-<li>
-<code>tier</code>: <code>"basic"</code> or <code>"advanced"</code>,
-for grouping in a user interface.</li>
-<li>
-<code>evidence</code>, <code>depends_on</code> and
-<code>since</code>.</li>
-</ul>
-<p>These fields let a later UI or command line be built from the same
-list.</p>
+their arguments against a schema. A module of your own can state its
+parameters with the same three core functions: <code><a href="../reference/hr_param.html">hr_param()</a></code>
+declares one, <code><a href="../reference/hr_schema.html">hr_schema()</a></code> collects them and
+<code><a href="../reference/hr_validate.html">hr_validate()</a></code> applies the rules. “Checking settings” in
+<code><a href="../articles/core.html">vignette("core")</a></code> shows them, with every type and field.</p>
 </div>
 <div class="section level2">
 <h2 id="checking-a-module-against-the-contract">Checking a module against the contract<a class="anchor" aria-label="anchor" href="#checking-a-module-against-the-contract"></a>
@@ -722,7 +614,7 @@ them, and a module that breaks a rule stays registered and runs as
 before. Every built-in reader and segmenter passes.</p>
 <p>The <code>longest</code> reader above passes all nine reader
 rules:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_check_reader.html">gr_check_reader</a></span><span class="op">(</span><span class="st">"longest"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;hr_conformance&gt; reader 'longest', contract 0.2</span></span>
 <span><span class="co">#&gt;   passes all 9 rules</span></span>
@@ -738,7 +630,7 @@ rules:</p>
 <p>This one does not. It sends a call under a label it did not declare,
 makes two requests where its cost function promised one, and names a
 chunk that does not exist:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_reader.html">gr_register_reader</a></span><span class="op">(</span><span class="st">"loose"</span>, signature <span class="op">=</span> <span class="st">"one|2|none"</span>, calls <span class="op">=</span> <span class="st">"loose.answer"</span>,</span>
 <span>  cost <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">input_stats</span>, <span class="va">params</span><span class="op">)</span> <span class="fu"><a href="../reference/hr_cost.html">hr_cost</a></span><span class="op">(</span>calls <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">chunks</span>, <span class="va">question</span>, <span class="va">client</span>, <span class="va">spec</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
@@ -788,7 +680,7 @@ without <code>cost</code>.</li>
 example document has no bullets, so <code>by_bullet</code> returns it as
 a single chunk over the 150-token cap the check cuts with, and
 <code><a href="../reference/gr_segment.html">gr_segment()</a></code> has to split it:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_check_segmenter.html">gr_check_segmenter</a></span><span class="op">(</span><span class="st">"by_bullet"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;hr_conformance&gt; segmenter 'by_bullet', contract 0.2</span></span>
 <span><span class="co">#&gt;   fails 1 of 8 rules</span></span>
@@ -802,7 +694,7 @@ a single chunk over the 150-token cap the check cuts with, and
 <span><span class="co">#&gt;   ok    calls_declared: no model calls</span></span></code></pre></div>
 <p>Splitting on blank lines as well as bullets keeps every chunk under
 the cap:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_register_segmenter.html">gr_register_segmenter</a></span><span class="op">(</span><span class="st">"by_bullet"</span>, description <span class="op">=</span> <span class="st">"one chunk per bullet or paragraph"</span>,</span>
 <span>  fn <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">doc</span>, <span class="va">spec</span>, <span class="va">client</span>, <span class="va">trace</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">units</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/strsplit.html" class="external-link">strsplit</a></span><span class="op">(</span><span class="va">doc</span><span class="op">$</span><span class="va">text</span>, <span class="st">"\n(?=[-*])|\n\\s*\n"</span>, perl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
@@ -831,7 +723,7 @@ Pass <code>client =</code> to check it against another client.</p>
 <code>rule</code>, <code>ok</code> and <code>detail</code> columns. If
 you maintain a package of modules, its tests can assert on that data
 frame:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_check_reader.html">gr_check_reader</a></span><span class="op">(</span><span class="st">"loose"</span><span class="op">)</span></span>
 <span><span class="va">res</span><span class="op">$</span><span class="va">rule</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">ok</span><span class="op">)</span> <span class="op">&amp;</span> <span class="op">!</span><span class="va">res</span><span class="op">$</span><span class="va">ok</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "chunks_used"       "calls_declared"    "calls_within_cost"</span></span></code></pre></div>
@@ -851,7 +743,7 @@ first two calls and answers every one after.</li>
 </ul>
 <p>The <code>longest</code> reader still finishes, and stays within its
 cost, when every request is rate limited:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gr_check_reader.html">gr_check_reader</a></span><span class="op">(</span><span class="st">"longest"</span>, client <span class="op">=</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span>mode <span class="op">=</span> <span class="fl">429</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;hr_conformance&gt; reader 'longest', contract 0.2</span></span>
 <span><span class="co">#&gt;   passes all 9 rules</span></span>
@@ -864,31 +756,9 @@ cost, when every request is rate limited:</p>
 <span><span class="co">#&gt;   ok    chunks_used</span></span>
 <span><span class="co">#&gt;   ok    calls_declared: 1 call(s), all under declared stems</span></span>
 <span><span class="co">#&gt;   ok    calls_within_cost: 1 request(s) made, at most 1 expected</span></span></code></pre></div>
-<p><code><a href="../reference/hr_check_module.html">hr_check_module()</a></code> is the core helper both checks use,
-and it works for a module of any kind. Give it three things:</p>
-<ul>
-<li>the module’s function;</li>
-<li>a closure of no arguments that runs the module once;</li>
-<li>a named list of rules, each a function of the value the closure
-returned.</li>
-</ul>
-<p>A rule returns <code>TRUE</code>, <code>FALSE</code>, <code>NA</code>
-(could not be checked), or a list with <code>ok</code> and a
-<code>detail</code> string. The closure runs in a temporary working
-directory that <code><a href="../reference/hr_check_module.html">hr_check_module()</a></code> removes afterwards, and
-the <code>runs</code> rule reports any error the closure raises.</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">double_it</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span> <span class="op">*</span> <span class="fl">2</span></span>
-<span><span class="fu"><a href="../reference/hr_check_module.html">hr_check_module</a></span><span class="op">(</span><span class="va">double_it</span>, <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu">double_it</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>,</span>
-<span>  rules <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>numeric <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">is.numeric</a></span><span class="op">(</span><span class="va">v</span><span class="op">)</span>,</span>
-<span>               above_three <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>ok <span class="op">=</span> <span class="va">v</span> <span class="op">&gt;</span> <span class="fl">3</span>, detail <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"got %s"</span>, <span class="va">v</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  kind <span class="op">=</span> <span class="st">"function"</span>, name <span class="op">=</span> <span class="st">"double_it"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; &lt;hr_conformance&gt; function 'double_it', contract 0.2</span></span>
-<span><span class="co">#&gt;   passes all 4 rules</span></span>
-<span><span class="co">#&gt;   ok    is_function</span></span>
-<span><span class="co">#&gt;   ok    runs</span></span>
-<span><span class="co">#&gt;   ok    numeric</span></span>
-<span><span class="co">#&gt;   ok    above_three: got 4</span></span></code></pre></div>
+<p>Both checks use the core helper <code><a href="../reference/hr_check_module.html">hr_check_module()</a></code>, which
+checks a module of any kind against rules you write. “Checking a module”
+in <code><a href="../articles/compose.html">vignette("compose")</a></code> covers it.</p>
 </div>
 <div class="section level2">
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>
@@ -902,8 +772,21 @@ every argument a module receives.</li>
 <code><a href="../reference/new_chunks.html">?new_chunks</a></code> and <code><a href="../reference/new_answer.html">?new_answer</a></code>: the
 constructors a segmenter and a reader return.</li>
 <li>
-<code><a href="../articles/runs.html">vignette("runs")</a></code>: limits, the pre-flight check, effort,
-and replaying a run.</li>
+<code><a href="../articles/core.html">vignette("core")</a></code>: <code><a href="../reference/hr_call.html">hr_call()</a></code>, the trace and
+refusals, which every module that calls the model uses.</li>
+<li>
+<code><a href="../articles/compose.html">vignette("compose")</a></code>: registering a step, listing the
+modules of every kind, and checking a module against rules of your
+own.</li>
+<li>
+<code><a href="../articles/context.html">vignette("context")</a></code>: budgets, and fitting pieces into
+one.</li>
+<li>
+<code><a href="../articles/runs.html">vignette("runs")</a></code>: limits, the pre-flight check, and
+replaying a run.</li>
+<li>
+<code><a href="../articles/effort.html">vignette("effort")</a></code>: effort, by stage or raised when a
+stage goes wrong.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

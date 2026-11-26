@@ -25,25 +25,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -68,14 +60,14 @@
 
     <div class="section ">
       <h3>Get started</h3>
-      <div class="section-desc"><p>The ideas, installing, connecting a model, and a first question checked from start to finish.</p></div>
+      <div class="section-desc"><p>The ideas, installing, connecting a model, the core in brief, and a first question about a document checked from start to finish.</p></div>
 
       <dl><dt><a href="harnessr.html">Get started with harnessr</a></dt>
         <dd>
       </dd></dl></div>
     <div class="section ">
       <h3>Core</h3>
-      <div class="section-desc"><p>Calls and clients without a document: what a call returns, the trace that records it, structured replies, checks on a reply, signals and errors by class. The model registry, the prices you set and how tokens are counted. How a prompt is kept inside a context window, and what is cut when it does not fit. How hard a reasoning model reasons, by stage or raised when a stage goes wrong.</p></div>
+      <div class="section-desc"><p>Model calls with or without a document. What a call returns and the trace that records it; the model registry, the prices you set and token counts; keeping a prompt inside the context window; how hard a reasoning model reasons; spending limits, the cache and replay; composing steps into chains; measuring and comparing configurations; and every setting with its default.</p></div>
 
       <dl><dt><a href="core.html">The core: calls, clients and results</a></dt>
         <dd>
@@ -85,10 +77,20 @@
         <dd>
         </dd><dt><a href="effort.html">Effort: how hard the model reasons</a></dt>
         <dd>
+        </dd><dt><a href="runs.html">Limits, caching and replay</a></dt>
+        <dd>
+        </dd><dt><a href="compose.html">Composing steps into chains</a></dt>
+        <dd>
+        </dd><dt><a href="evaluate.html">Measuring and comparing configurations</a></dt>
+        <dd>
+        </dd><dt><a href="compare.html">Comparing methods and settings</a></dt>
+        <dd>
+        </dd><dt><a href="settings.html">Settings reference</a></dt>
+        <dd>
       </dd></dl></div>
     <div class="section ">
-      <h3>Read a document</h3>
-      <div class="section-desc"><p>Get text out of a file, cut it into chunks, and choose how the model reads them.</p></div>
+      <h3>Documents</h3>
+      <div class="section-desc"><p>The document layer, built on the core. Get text out of a file, cut it into chunks, choose how the model reads them, review many documents from a search export to an audit report, and register document modules of your own.</p></div>
 
       <dl><dt><a href="ingest.html">Getting text out of files</a></dt>
         <dd>
@@ -96,37 +98,7 @@
         <dd>
         </dd><dt><a href="readers.html">Choosing how the model reads</a></dt>
         <dd>
-      </dd></dl></div>
-    <div class="section ">
-      <h3>Review many documents</h3>
-      <div class="section-desc"><p>Ask one question of many documents, or run a literature review from a search export to an audit report.</p></div>
-
-      <dl><dt><a href="review.html">Many documents and literature reviews</a></dt>
-        <dd>
-      </dd></dl></div>
-    <div class="section ">
-      <h3>Measure and compare</h3>
-      <div class="section-desc"><p>Score configurations against labelled answers and compare readers, segmenters and settings with intervals.</p></div>
-
-      <dl><dt><a href="evaluate.html">Measuring and comparing configurations</a></dt>
-        <dd>
-        </dd><dt><a href="compare.html">Comparing methods and settings</a></dt>
-        <dd>
-      </dd></dl></div>
-    <div class="section ">
-      <h3>Control cost and settings</h3>
-      <div class="section-desc"><p>Set model prices and spending limits, pay for a request once, replay a run, and look up every setting with its default.</p></div>
-
-      <dl><dt><a href="runs.html">Cost, limits and reproducible runs</a></dt>
-        <dd>
-        </dd><dt><a href="settings.html">Settings reference</a></dt>
-        <dd>
-      </dd></dl></div>
-    <div class="section ">
-      <h3>Build your own</h3>
-      <div class="section-desc"><p>Chain steps of your own into a run, and register extractors, segmenters, readers and other modules.</p></div>
-
-      <dl><dt><a href="compose.html">Composing steps into chains</a></dt>
+        </dd><dt><a href="review.html">Many documents and literature reviews</a></dt>
         <dd>
         </dd><dt><a href="extending.html">Extending harnessr</a></dt>
         <dd>

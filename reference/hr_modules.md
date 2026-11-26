@@ -40,6 +40,7 @@ the module contract it was registered under with
 ## See also
 
 [`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md),
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md),
 [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)
 
 Other harness:

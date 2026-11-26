@@ -39,25 +39,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -102,10 +94,16 @@ read them side by side. This guide covers the nine ways harnessr cuts a
 document, the settings all nine share, and how to compare chunkings
 before you pay for any reading.</p>
 <p>Six of the nine segmenters make no model calls. A seventh makes none
-by default. At their defaults, you can try all seven for nothing.
-<code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduces the package and the ideas
-this guide uses, and <code><a href="../articles/ingest.html">vignette("ingest")</a></code> covers the step
-before this one.</p>
+by default. At their defaults, you can try all seven for nothing.</p>
+<p>Segmenting builds on the core in two ways. Every chunk size is a
+count of tokens, made by the counter that “Counting tokens” in
+<code><a href="../articles/models.html">vignette("models")</a></code> describes. The segmenters that call a
+model send their requests with <code><a href="../reference/hr_call.html">hr_call()</a></code>, so the run’s
+limits apply to them (“Limits and refusals” in
+<code><a href="../articles/core.html">vignette("core")</a></code>) and a trace records them (“The trace” in
+<code><a href="../articles/core.html">vignette("core")</a></code>). <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>
+introduces the package, and <code><a href="../articles/ingest.html">vignette("ingest")</a></code> covers the
+step before this one.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span></code></pre></div>
@@ -472,10 +470,10 @@ need;</li>
 </ul>
 <p>A line that still does not fit is shortened. The document text is
 not.</p>
-<p>If a context call fails or is skipped at the run’s limits, the chunk
-keeps its text without a line. <code>$extra$blurbs_missing</code> counts
-those chunks, and a <code>gr_segment_fallback</code> warning reports
-them.</p>
+<p>If a context call fails or is refused at the run’s limits (“Limits
+and refusals” in <code><a href="../articles/core.html">vignette("core")</a></code>), the chunk keeps its
+text without a line. <code>$extra$blurbs_missing</code> counts those
+chunks, and a <code>gr_segment_fallback</code> warning reports them.</p>
 <p>The context line is not the document’s text, and a model may have
 written it. The chunk therefore keeps its body alone in a
 <code>source_text</code> column. harnessr checks a quotation from the
@@ -556,7 +554,9 @@ segmenting cost:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_trace_summary.html">hr_trace_summary</a></span><span class="op">(</span><span class="va">ctx_llm</span><span class="op">$</span><span class="va">trace</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"calls"</span>, <span class="st">"tokens_in"</span>, <span class="st">"tokens_out"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   calls tokens_in tokens_out</span></span>
 <span><span class="co">#&gt; 1    14      9104        196</span></span></code></pre></div>
-<p><code><a href="../articles/runs.html">vignette("runs")</a></code> covers limits and traces.</p>
+<p>“The trace” in <code><a href="../articles/core.html">vignette("core")</a></code> covers what a trace
+records, and “Limits” in <code><a href="../articles/runs.html">vignette("runs")</a></code> covers the limits
+and how to set them.</p>
 </div>
 <div class="section level2">
 <h2 id="comparing-segmentations">Comparing segmentations<a class="anchor" aria-label="anchor" href="#comparing-segmentations"></a>

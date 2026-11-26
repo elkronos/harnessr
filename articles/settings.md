@@ -1,8 +1,8 @@
 # Settings reference
 
-This page lists every setting in harnessr, stage by stage, and the
-building blocks those settings choose between. harnessr builds the
-tables from
+This page lists every setting in harnessr: the core’s first, then the
+document layer’s, stage by stage, and last the building blocks the
+document settings choose between. harnessr builds the tables from
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
 and the registries when the page is built, so they match the installed
 code.
@@ -16,17 +16,20 @@ should change it, where its default came from and how to test a change.
 library(harnessr)
 old <- hr_options(verbose = FALSE, embedder = "lexical")
 settings <- gr_settings_table()
-table(settings$stage, settings$tier)[unique(settings$stage), ]
+core <- c("options", "evaluate")
+stages <- unique(settings$stage)
+stages <- c(intersect(core, stages), setdiff(stages, core))
+table(settings$stage, settings$tier)[stages, ]
 #>             
 #>              advanced basic
+#>   options          30     5
+#>   evaluate         20    10
 #>   ingest           18     3
 #>   segment          17     3
 #>   read             42     8
 #>   screen           22    11
 #>   extract           7     3
 #>   synthesise       24     5
-#>   evaluate         20    10
-#>   options          30     5
 ```
 
 ## Reading the tables
@@ -52,16 +55,18 @@ also returns the `source` behind each status. For the full help, see
 and
 [`?hr_options`](https://elkronos.github.io/harnessr/reference/hr_options.md).
 
-You give a setting where its stage takes it. Ingest, segment and read
-settings go in a spec (`gr_read_spec(top_k = 4)`), in a recipe, or by
-name to
+You give a setting where its stage takes it. You set options for the
+session with
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md),
+and evaluation settings are arguments of their functions. Ingest,
+segment and read settings go in a spec (`gr_read_spec(top_k = 4)`), in a
+recipe, or by name to
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md),
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 and
 [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md),
-which put each on the step it belongs to. Review and evaluation settings
-are arguments of their functions. You set options for the session with
-[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md).
+which put each on the step it belongs to. Review settings are arguments
+of their functions.
 
 To find out whether a value works better on your documents, build one
 arm per value with
@@ -96,7 +101,127 @@ show_settings <- function(stage) {
 }
 ```
 
-## Ingest
+## Core settings
+
+These settings belong to the core: the session options every call reads,
+and the arguments of the functions that measure configurations.
+
+### Options
+
+Session settings. You set them with
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md),
+and a run reads them when it starts. Most apply to every call, with or
+without a document; a few, such as `cache_documents` and `embedder`,
+serve the document layer. Each core guide covers its own: the model,
+endpoint, retries and actor in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md),
+prices and the token counter in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md),
+the safety margin and the reply’s reserve in
+[`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md),
+the reasoning floor in
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md),
+and the limits in
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md).
+
+| setting | where | default | tier | status | description |
+|:---|:---|:---|:---|:---|:---|
+| `verbose` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | basic |  | Print a line for each ingest, segment and read stage. |
+| [`tokenizer`](https://elkronos.github.io/harnessr/articles/models.html#set-tokenizer) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `heuristic` | advanced |  | Token counter: “heuristic” (conservative, no dependencies), “words”, “chars”, “tiktoken” (needs reticulate), or a name registered via hr_set_tokenizer(). |
+| [`model`](https://elkronos.github.io/harnessr/articles/core.html#set-endpoint) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `gpt-5.6-terra` | basic |  | Default chat model. |
+| [`embedding_model`](https://elkronos.github.io/harnessr/articles/core.html#set-endpoint) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `text-embedding-3-small` | advanced |  | Default embedding model. |
+| [`api_base`](https://elkronos.github.io/harnessr/articles/core.html#set-endpoint) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `https://api.openai.com/v1` | advanced |  | API root; point this at a proxy or a compatible endpoint. |
+| [`api_headers`](https://elkronos.github.io/harnessr/articles/core.html#set-endpoint) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `character(0)` | advanced |  | Named character vector of extra HTTP headers sent with every request, for gateways that do not authenticate with a bearer token. |
+| [`api`](https://elkronos.github.io/harnessr/articles/core.html#set-endpoint) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `responses` | advanced |  | “responses” or “chat” request shape. |
+| [`temperature`](https://elkronos.github.io/harnessr/articles/core.html#set-temperature) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced | untested | Default sampling temperature. |
+| [`max_retries`](https://elkronos.github.io/harnessr/articles/core.html#set-retries) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `4` | advanced | untested | Retries for transient failures. |
+| [`retry_pause_base`](https://elkronos.github.io/harnessr/articles/core.html#set-retries) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `2` | advanced | untested | Seconds; exponential backoff base. |
+| [`request_timeout`](https://elkronos.github.io/harnessr/articles/core.html#set-retries) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `120` | advanced | untested | Per-request timeout, seconds. |
+| [`safety_margin`](https://elkronos.github.io/harnessr/articles/context.html#set-safety-margin) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.1` | advanced | untested | Fraction of the context window left unused to absorb tokenizer error. |
+| [`min_output_tokens`](https://elkronos.github.io/harnessr/articles/context.html#set-reply-reserve) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `256` | advanced | untested | Floor on the completion room hr_budget() reserves when reserve_output is not given explicitly. |
+| `cache_documents` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | advanced |  | Cache ingestion per file + settings. |
+| `cache_embeddings` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | advanced |  | Cache embeddings per text + model. |
+| `cache_dir` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | basic |  | Directory hr_cache() stores model responses in. |
+| `embedder` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Which registered embedder to use. |
+| `parallel` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `FALSE` | advanced |  | Run per-chunk calls concurrently. |
+| `workers` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `4` | advanced | untested | Worker processes when parallel is TRUE. |
+| [`max_cost_usd`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `5` | basic |  | Spending limit per run, in USD. |
+| [`max_calls`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `400` | basic |  | Hard cap on model calls per run, checked before every request. |
+| [`max_tokens_total`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Most tokens one run may use: the prompt and reply tokens of every call, cache hits included, and the text sent to be embedded. |
+| [`max_output_tokens`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | The largest output cap one request may be sent with. |
+| [`allowed_models`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Character vector of the model ids a run may call, chat and embedding models alike. |
+| [`allow_unpriced`](https://elkronos.github.io/harnessr/articles/models.html#set-unpriced) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | advanced | untested | Whether a chat model with no registered price may be called while max_cost_usd is set. |
+| [`price_max_age_days`](https://elkronos.github.io/harnessr/articles/models.html#set-price-age) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `120` | advanced | untested | How old a price may be, in days, before a cost computed from it warns with class hr_stale_price. |
+| [`unknown_model_action`](https://elkronos.github.io/harnessr/articles/models.html#set-unknown-model) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `warn` | advanced |  | “warn” or “error” when a model id is not in the registry. |
+| [`actor`](https://elkronos.github.io/harnessr/articles/core.html#set-actor) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | [`list()`](https://rdrr.io/r/base/list.html) | advanced |  | A named list (or character vector) of the actor fields every hr_trace() records: system, owner, run_by, purpose and approved_by, each one string. |
+| `auto_max_tokens` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `50000` | advanced | untested | The largest document, in tokens, that answer_document() with recipe = “auto” reads with “fast” (one request); a larger one is read with “thorough”. |
+| `auto_room_share` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.5` | advanced | untested | The second condition of that choice: the document must fill at most this share of the input room hr_budget() leaves on every model of the run. |
+| [`reasoning_floor`](https://elkronos.github.io/harnessr/articles/effort.html#set-reasoning-floor) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `2048` | advanced | untested | The smallest output cap a request to a reasoning model is sent with. |
+| [`output_reserve_share`](https://elkronos.github.io/harnessr/articles/context.html#set-reply-reserve) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.25` | advanced | untested | The share of the usable window hr_budget() reserves for the reply when no reserve_output is given, between min_output_tokens and the model’s output limit. |
+| `near_verbatim_sim` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.9` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
+| `near_verbatim_sim_short` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.95` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
+| `near_verbatim_short_chars` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `40` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
+
+### Evaluation
+
+The arguments of
+[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
+[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
+[`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md),
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
+[`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md)
+and
+[`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md).
+[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
+and
+[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
+cover them, and “The governor of a benchmark or a batch” in
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+covers the `governor` a benchmark is held to.
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+belongs to the document layer and is listed here with the other
+comparisons.
+
+| setting | where | default | tier | status | description |
+|:---|:---|:---|:---|:---|:---|
+| `runs` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `5` | basic |  | How many times each arm runs on each item: a whole number, at least 1. |
+| `scorer` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | [`hr_scorer_exact()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md) | basic |  | An hr_scorer(); hr_scorer_exact() by default. |
+| `split` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `test` | advanced |  | The split or splits of the reference to run on. |
+| [`governor`](https://elkronos.github.io/harnessr/articles/runs.html#set-governor) | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `NULL` | basic |  | An hr_governor() the whole benchmark is held to, or NULL to take the limits from hr_options(). |
+| `seed` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `1` | advanced |  | The seed of the arms’ private random stream. |
+| `contrasts` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `NULL` | advanced |  | Pairs of arms to compare: a two-column character matrix of arm names, each row giving first minus second. |
+| `B` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `2000` | advanced |  | Number of cluster bootstrap resamples, at least 100. |
+| `conf` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `0.95` | basic |  | Confidence level of every interval. |
+| `k` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `c(1, 3, 5)` | advanced |  | The values of k for pass^k. |
+| `seed` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `1` | advanced |  | Seed of the private random stream the resamples are drawn from; the caller’s random state is left as it was. |
+| `method` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `auto` | basic |  | “auto”, “bootstrap”, “cluster_t”, “bayes” or “exact”, as above. |
+| `confirmatory` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `FALSE` | advanced |  | TRUE for a confirmatory report, which raises the default B to 5000 and refuses dev-split rows. |
+| `auto_bootstrap_at` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `c(items = 300, clusters = 30)` | advanced |  | Under method = “auto”, the size at which the report switches from the cluster-robust t interval to the studentised cluster bootstrap: c(items = , clusters = ), both reached. |
+| `min_runs` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `5` | advanced |  | The fewest runs for which the report gives intervals; below it the report is descriptive only. |
+| `mode` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `select` | basic |  | “select”, “grade” or “pairwise”. |
+| `model` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `NULL` | basic |  | The judge’s model; the client’s model when NULL. |
+| `orders` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `2` | basic |  | Presentation orders. |
+| [`governor`](https://elkronos.github.io/harnessr/articles/runs.html#set-governor) | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `NULL` | advanced |  | Optional hr_governor() for the judge’s requests. |
+| `draw_index` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `0` | advanced |  | Draw index passed to every request (see hr_call()). |
+| `recipes` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `c("fast", "needle", "thorough")` | basic |  | A character vector of recipe names, or a list of gr_recipes. |
+| `allow_duplicates` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `FALSE` | advanced |  | Run duplicates anyway (useful at temperature \> 0 to measure variance). |
+| `on_error` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `continue` | advanced |  | “continue” keeps going and records the failure; “stop” aborts the whole comparison. |
+| [`strata`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `NULL` | advanced | untested | NULL to stratify by difficulty, or each item’s stratum: a vector named by item, or one value per item in the order of unique(bench\$item). |
+| [`n_strata`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `3` | advanced | untested | How many difficulty strata, when strata is NULL: a whole number from 1 to 10, default 3. |
+| [`n_check`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `10` | advanced | untested | How many items every arm got wrong to sample for a hand check: a whole number, 0 or more, default 10. |
+| [`held_out`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `TRUE` | advanced | untested | TRUE (the default) reads only the rows that count as evidence (reportable, so not the dev split); FALSE reads every row. |
+| [`seed`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `1` | advanced | untested | The seed of the private random stream the sample is drawn with; the caller’s random state is left as it was. |
+| [`parse`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-parse) | [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md) | `exit` | basic | untested | How the result is read: “exit” or “testthat”. |
+| [`timeout`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-timeout) | [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md) | `60` | advanced | untested | Seconds the program may run before it is stopped, from 1 to 86400. |
+| [`held`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-held) | [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md) | `FALSE` | advanced | untested | Whether the result is kept from the steps after this one and left for the scorer. |
+
+## Document settings
+
+The document layer’s settings, in the order a run meets its stages. A
+document run also reads the core options above: its requests are calls
+like any other, under the same model, limits and token counter.
+
+### Ingest
 
 These settings control what comes out of a file: cleaning, OCR, the PDF
 layout pass, and the floor on how much text must survive. The entries of
@@ -129,7 +254,7 @@ covers them.
 | `layout_opts.max_chars` | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | `200` | advanced | untested | The longest line, in characters, that can be a running head or foot. |
 | `layout_opts.max_words` | [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md) | `5` | advanced | untested | Above this many words, a numbered line must carry its number where a page number is set. |
 
-## Segment
+### Segment
 
 harnessr cuts the text into chunks with these settings.
 [`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md)
@@ -158,14 +283,19 @@ covers them.
 | [`packing`](https://elkronos.github.io/harnessr/articles/segment.html#set-packing) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `greedy` | advanced | untested | How units are packed into chunks under the cap. |
 | [`runt_merge`](https://elkronos.github.io/harnessr/articles/segment.html#set-packing) | [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md) | `backward` | advanced | untested | Which way a chunk under min_tokens is merged. |
 
-## Read
+### Read
 
 With these settings you choose how the model reads the chunks. The stage
 also holds the ones
 [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)
 adds for a folder.
 [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
-covers them.
+covers them. `effort`, `effort_mode` and `context_policy` hand a read
+the core’s effort and context rules, which
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)
+and
+[`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)
+explain.
 
 | setting | where | default | tier | status | description |
 |:---|:---|:---|:---|:---|:---|
@@ -211,7 +341,7 @@ covers them.
 | [`premise_verdict`](https://elkronos.github.io/harnessr/articles/readers.html#set-premise) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `sentence` | advanced | untested | Under premise = TRUE: the verdict as a sentence in the reply, or as schema fields with a quote that is checked against the excerpts. |
 | [`context_policy`](https://elkronos.github.io/harnessr/articles/readers.html#set-context-policy) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `NULL` | advanced | untested | Which pieces of a request are never cut, which are cut first, and which part of a cut piece is kept. |
 | [`refine_state`](https://elkronos.github.io/harnessr/articles/readers.html#set-context-policy) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `draft` | advanced | untested | For refine: carry a rewritten draft down the document, or a numbered list of findings that each request adds to, replaces or drops from. |
-| [`effort_mode`](https://elkronos.github.io/harnessr/articles/runs.html#set-effort-mode) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `static` | advanced | untested | Under “escalate”, every stage starts at `effort` (“low” when unset), and the next stage is sent at “high” when a trigger fires. |
+| [`effort_mode`](https://elkronos.github.io/harnessr/articles/effort.html#set-effort-mode) | [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md) | `static` | advanced | untested | Under “escalate”, every stage starts at `effort` (“low” when unset), and the next stage is sent at “high” when a trigger fires. |
 | `recipe` | [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | `thorough` | basic |  | One recipe, applied to every document. |
 | `store` | [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | `NULL` | basic |  | Optional directory. |
 | `on_error` | [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | `continue` | advanced |  | “continue” (default) records the failure and moves on; “stop” aborts. |
@@ -220,7 +350,7 @@ covers them.
 | `keep_answers` | [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | `TRUE` | advanced |  | Keep every gr_answer in the result. |
 | `recursive` | [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md) | `FALSE` | advanced |  | Descend into subdirectories when sources is a directory. |
 
-## Screening
+### Screening
 
 The arguments of these functions, which
 [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md)
@@ -273,7 +403,7 @@ covers:
 | `alpha` | [`gr_stop_test()`](https://elkronos.github.io/harnessr/reference/gr_stop_test.md) | `0.05` | advanced |  | Significance level, strictly between 0 and 1. |
 | `n_total` | [`gr_stop_test()`](https://elkronos.github.io/harnessr/reference/gr_stop_test.md) | `NULL` | advanced |  | Total number of records, screened or not. |
 
-## Extraction
+### Extraction
 
 The arguments of
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md).
@@ -293,7 +423,7 @@ settings above.
 | `recursive` | [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | `FALSE` | advanced |  | Descend into subdirectories when sources is a directory. |
 | [`agreement_columns`](https://elkronos.github.io/harnessr/articles/review.html#set-extract) | [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | `FALSE` | advanced | untested | Add two columns per field to table, after the field columns: \<field\>\_agreement, how many of the chunks that reported the field give its most common value, of all that reported it (“2/3”), and \<field\>\_conflict, TRUE when they gave more than one value. |
 
-## Synthesis
+### Synthesis
 
 The arguments of
 [`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
@@ -334,104 +464,11 @@ and
 | `study_weights` | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `NULL` | advanced |  | How much each study counts when claims are ranked, among claims whose sign tests tie (and so which tier each claim gets, see prominence): NULL (the default) for the package’s weight, 0.5 + 0.5 \* size + 0.5 \* filled, where size is log1p(n) over its largest value (the mean of the known ones when n is missing) and filled the share of a row’s filled cells whose quotations verified (0.5 when unknown). |
 | [`revision_check`](https://elkronos.github.io/harnessr/articles/review.html#set-synthesis) | [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) | `lexicon` | advanced | untested | What checks a kept revision pass beyond the citation, figure and length checks. |
 
-## Evaluation
-
-The arguments of
-[`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md),
-[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
-[`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md),
-[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
-[`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md)
-and
-[`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md).
-[`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
-and
-[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
-cover them.
-
-| setting | where | default | tier | status | description |
-|:---|:---|:---|:---|:---|:---|
-| `runs` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `5` | basic |  | How many times each arm runs on each item: a whole number, at least 1. |
-| `scorer` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | [`hr_scorer_exact()`](https://elkronos.github.io/harnessr/reference/hr_scorer.md) | basic |  | An hr_scorer(); hr_scorer_exact() by default. |
-| `split` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `test` | advanced |  | The split or splits of the reference to run on. |
-| [`governor`](https://elkronos.github.io/harnessr/articles/runs.html#set-governor) | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `NULL` | basic |  | An hr_governor() the whole benchmark is held to, or NULL to take the limits from hr_options(). |
-| `seed` | [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md) | `1` | advanced |  | The seed of the arms’ private random stream. |
-| `contrasts` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `NULL` | advanced |  | Pairs of arms to compare: a two-column character matrix of arm names, each row giving first minus second. |
-| `B` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `2000` | advanced |  | Number of cluster bootstrap resamples, at least 100. |
-| `conf` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `0.95` | basic |  | Confidence level of every interval. |
-| `k` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `c(1, 3, 5)` | advanced |  | The values of k for pass^k. |
-| `seed` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `1` | advanced |  | Seed of the private random stream the resamples are drawn from; the caller’s random state is left as it was. |
-| `method` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `auto` | basic |  | “auto”, “bootstrap”, “cluster_t”, “bayes” or “exact”, as above. |
-| `confirmatory` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `FALSE` | advanced |  | TRUE for a confirmatory report, which raises the default B to 5000 and refuses dev-split rows. |
-| `auto_bootstrap_at` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `c(items = 300, clusters = 30)` | advanced |  | Under method = “auto”, the size at which the report switches from the cluster-robust t interval to the studentised cluster bootstrap: c(items = , clusters = ), both reached. |
-| `min_runs` | [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) | `5` | advanced |  | The fewest runs for which the report gives intervals; below it the report is descriptive only. |
-| `mode` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `select` | basic |  | “select”, “grade” or “pairwise”. |
-| `model` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `NULL` | basic |  | The judge’s model; the client’s model when NULL. |
-| `orders` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `2` | basic |  | Presentation orders. |
-| [`governor`](https://elkronos.github.io/harnessr/articles/runs.html#set-governor) | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `NULL` | advanced |  | Optional hr_governor() for the judge’s requests. |
-| `draw_index` | [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | `0` | advanced |  | Draw index passed to every request (see hr_call()). |
-| `recipes` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `c("fast", "needle", "thorough")` | basic |  | A character vector of recipe names, or a list of gr_recipes. |
-| `allow_duplicates` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `FALSE` | advanced |  | Run duplicates anyway (useful at temperature \> 0 to measure variance). |
-| `on_error` | [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md) | `continue` | advanced |  | “continue” keeps going and records the failure; “stop” aborts the whole comparison. |
-| [`strata`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `NULL` | advanced | untested | NULL to stratify by difficulty, or each item’s stratum: a vector named by item, or one value per item in the order of unique(bench\$item). |
-| [`n_strata`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `3` | advanced | untested | How many difficulty strata, when strata is NULL: a whole number from 1 to 10, default 3. |
-| [`n_check`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `10` | advanced | untested | How many items every arm got wrong to sample for a hand check: a whole number, 0 or more, default 10. |
-| [`held_out`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `TRUE` | advanced | untested | TRUE (the default) reads only the rows that count as evidence (reportable, so not the dev split); FALSE reads every row. |
-| [`seed`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-errcorr) | [`hr_error_correlation()`](https://elkronos.github.io/harnessr/reference/hr_error_correlation.md) | `1` | advanced | untested | The seed of the private random stream the sample is drawn with; the caller’s random state is left as it was. |
-| [`parse`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-parse) | [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md) | `exit` | basic | untested | How the result is read: “exit” or “testthat”. |
-| [`timeout`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-timeout) | [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md) | `60` | advanced | untested | Seconds the program may run before it is stopped, from 1 to 86400. |
-| [`held`](https://elkronos.github.io/harnessr/articles/evaluate.html#set-command-held) | [`hr_step_command()`](https://elkronos.github.io/harnessr/reference/hr_step_command.md) | `FALSE` | advanced | untested | Whether the result is kept from the steps after this one and left for the scorer. |
-
-## Options
-
-Session settings. You set them with
-[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md),
-and a run reads them when it starts.
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-covers the limits.
-
-| setting | where | default | tier | status | description |
-|:---|:---|:---|:---|:---|:---|
-| `verbose` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | basic |  | Print a line for each ingest, segment and read stage. |
-| [`tokenizer`](https://elkronos.github.io/harnessr/articles/models.html#set-tokenizer) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `heuristic` | advanced |  | Token counter: “heuristic” (conservative, no dependencies), “words”, “chars”, “tiktoken” (needs reticulate), or a name registered via hr_set_tokenizer(). |
-| [`model`](https://elkronos.github.io/harnessr/articles/core.html#set-endpoint) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `gpt-5.6-terra` | basic |  | Default chat model. |
-| [`embedding_model`](https://elkronos.github.io/harnessr/articles/core.html#set-endpoint) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `text-embedding-3-small` | advanced |  | Default embedding model. |
-| [`api_base`](https://elkronos.github.io/harnessr/articles/core.html#set-endpoint) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `https://api.openai.com/v1` | advanced |  | API root; point this at a proxy or a compatible endpoint. |
-| [`api_headers`](https://elkronos.github.io/harnessr/articles/core.html#set-endpoint) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `character(0)` | advanced |  | Named character vector of extra HTTP headers sent with every request, for gateways that do not authenticate with a bearer token. |
-| [`api`](https://elkronos.github.io/harnessr/articles/core.html#set-endpoint) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `responses` | advanced |  | “responses” or “chat” request shape. |
-| [`temperature`](https://elkronos.github.io/harnessr/articles/core.html#set-temperature) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced | untested | Default sampling temperature. |
-| [`max_retries`](https://elkronos.github.io/harnessr/articles/core.html#set-retries) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `4` | advanced | untested | Retries for transient failures. |
-| [`retry_pause_base`](https://elkronos.github.io/harnessr/articles/core.html#set-retries) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `2` | advanced | untested | Seconds; exponential backoff base. |
-| [`request_timeout`](https://elkronos.github.io/harnessr/articles/core.html#set-retries) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `120` | advanced | untested | Per-request timeout, seconds. |
-| [`safety_margin`](https://elkronos.github.io/harnessr/articles/context.html#set-safety-margin) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.1` | advanced | untested | Fraction of the context window left unused to absorb tokenizer error. |
-| [`min_output_tokens`](https://elkronos.github.io/harnessr/articles/context.html#set-reply-reserve) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `256` | advanced | untested | Floor on the completion room hr_budget() reserves when reserve_output is not given explicitly. |
-| `cache_documents` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | advanced |  | Cache ingestion per file + settings. |
-| `cache_embeddings` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | advanced |  | Cache embeddings per text + model. |
-| `cache_dir` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | basic |  | Directory hr_cache() stores model responses in. |
-| `embedder` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Which registered embedder to use. |
-| `parallel` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `FALSE` | advanced |  | Run per-chunk calls concurrently. |
-| `workers` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `4` | advanced | untested | Worker processes when parallel is TRUE. |
-| [`max_cost_usd`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `5` | basic |  | Spending limit per run, in USD. |
-| [`max_calls`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `400` | basic |  | Hard cap on model calls per run, checked before every request. |
-| [`max_tokens_total`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Most tokens one run may use: the prompt and reply tokens of every call, cache hits included, and the text sent to be embedded. |
-| [`max_output_tokens`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | The largest output cap one request may be sent with. |
-| [`allowed_models`](https://elkronos.github.io/harnessr/articles/runs.html#set-limits) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `NULL` | advanced |  | Character vector of the model ids a run may call, chat and embedding models alike. |
-| [`allow_unpriced`](https://elkronos.github.io/harnessr/articles/models.html#set-unpriced) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `TRUE` | advanced | untested | Whether a chat model with no registered price may be called while max_cost_usd is set. |
-| [`price_max_age_days`](https://elkronos.github.io/harnessr/articles/models.html#set-price-age) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `120` | advanced | untested | How old a price may be, in days, before a cost computed from it warns with class hr_stale_price. |
-| [`unknown_model_action`](https://elkronos.github.io/harnessr/articles/models.html#set-unknown-model) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `warn` | advanced |  | “warn” or “error” when a model id is not in the registry. |
-| [`actor`](https://elkronos.github.io/harnessr/articles/core.html#set-actor) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | [`list()`](https://rdrr.io/r/base/list.html) | advanced |  | A named list (or character vector) of the actor fields every hr_trace() records: system, owner, run_by, purpose and approved_by, each one string. |
-| `auto_max_tokens` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `50000` | advanced | untested | The largest document, in tokens, that answer_document() with recipe = “auto” reads with “fast” (one request); a larger one is read with “thorough”. |
-| `auto_room_share` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.5` | advanced | untested | The second condition of that choice: the document must fill at most this share of the input room hr_budget() leaves on every model of the run. |
-| [`reasoning_floor`](https://elkronos.github.io/harnessr/articles/effort.html#set-reasoning-floor) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `2048` | advanced | untested | The smallest output cap a request to a reasoning model is sent with. |
-| [`output_reserve_share`](https://elkronos.github.io/harnessr/articles/context.html#set-reply-reserve) | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.25` | advanced | untested | The share of the usable window hr_budget() reserves for the reply when no reserve_output is given, between min_output_tokens and the model’s output limit. |
-| `near_verbatim_sim` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.9` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
-| `near_verbatim_sim_short` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `0.95` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
-| `near_verbatim_short_chars` | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md) | `40` | advanced | measured | The least similarity a quotation of at least near_verbatim_short_chars characters (after normalising), and one shorter than that, needs for the edit-distance matcher to score it near_verbatim (see gr_verify_evidence()). |
-
 ## Building blocks
 
-Some settings choose a module from a registry: `extractor`, `clean`,
-`method`, `reader`, `hr_options(embedder = )`, and the recipe you give
+Some document settings choose a module from a registry: `extractor`,
+`clean`, `method`, `reader`, `hr_options(embedder = )`, and the recipe
+you give
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md).
 The tables below show the registries as installed, so a module you
 register with
@@ -607,6 +644,8 @@ knitr::kable(do.call(rbind, lapply(names(gr_recipes()), function(n) {
 
 - [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md):
   the basic settings of each stage, and when to change each.
+- [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md):
+  the core guides, and what a call does with the options above.
 - [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md):
   how to test a setting on a reference with dev and test splits, and
   read the result with intervals.

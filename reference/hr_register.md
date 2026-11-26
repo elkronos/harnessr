@@ -109,6 +109,7 @@ in both, and its conformance check stays advisory.
 ## See also
 
 [`hr_modules()`](https://elkronos.github.io/harnessr/reference/hr_modules.md),
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md),
 [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)
 
 Other harness:

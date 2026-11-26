@@ -67,7 +67,8 @@ detail. When `run()` fails, no rule is asked and each is reported as
 ## See also
 
 [`gr_check_reader()`](https://elkronos.github.io/harnessr/reference/gr_check_reader.md),
-[`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md)
+[`gr_check_segmenter()`](https://elkronos.github.io/harnessr/reference/gr_check_segmenter.md),
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
 
 ## Examples
 

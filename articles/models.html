@@ -39,25 +39,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -383,7 +375,7 @@ its target named:</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="prices">Prices<a class="anchor" aria-label="anchor" href="#prices"></a>
+<h2 id="models-prices">Prices<a class="anchor" aria-label="anchor" href="#models-prices"></a>
 </h2>
 <div class="section level3">
 <h3 id="why-harnessr-ships-none">Why harnessr ships none<a class="anchor" aria-label="anchor" href="#why-harnessr-ships-none"></a>
@@ -502,7 +494,8 @@ stamps the current month, and a later month is an error</td>
 </tr>
 </tbody>
 </table>
-<p>A row that leaves a limit blank changes the model’s current entry, as
+<p><code><a href="../reference/hr_load_models.html">?hr_load_models</a></code> documents the format in full. A row that
+leaves a limit blank changes the model’s current entry, as
 <code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> does without one. A row that gives both
 limits registers the model in full. This file prices two built-in chat
 models, with a cached input rate for one, and adds a gateway model with
@@ -532,7 +525,10 @@ its limits:</p>
 <span><span class="co">#&gt; 21                      NA 2026-10</span></span></code></pre></div>
 <p><code><a href="../reference/hr_load_models.html">hr_load_models()</a></code> returns, invisibly, the ids it
 registered, in file order. gpt-4o kept the 8,000-token output cap set
-earlier, because its row left the limits blank.</p>
+earlier, because its row left the limits blank.
+<code>subset(hr_models(), !is.na(input_usd_per_1m))</code> lists every
+model with a price. Check the ids against the ones your runs name: a
+price set under a misspelt id prices nothing.</p>
 <p>harnessr checks the whole file before it registers anything. A file
 it cannot use stops with an error of class
 <code>hr_bad_models_file</code> that names the row and column at fault,
@@ -543,7 +539,7 @@ was:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id,input_usd,output_usd"</span>, <span class="st">"gpt-4.1,2,8"</span>, <span class="st">"gpt-4.1-mini,two,1.6"</span><span class="op">)</span>, <span class="va">bad</span><span class="op">)</span></span>
 <span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_load_models.html">hr_load_models</a></span><span class="op">(</span><span class="va">bad</span><span class="op">)</span>, hr_bad_models_file <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">err</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Models file '/tmp/Rtmp5NpH7X/models-guide-bad.csv', row 2, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."</span></span>
+<span><span class="co">#&gt; [1] "Models file '/tmp/RtmpPht8XI/models-guide-bad.csv', row 2, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>row <span class="op">=</span> <span class="va">err</span><span class="op">$</span><span class="va">row</span>, column <span class="op">=</span> <span class="va">err</span><span class="op">$</span><span class="va">column</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         row      column </span></span>
 <span><span class="co">#&gt;         "2" "input_usd"</span></span>
@@ -555,11 +551,29 @@ names as <code><a href="../reference/hr_register_model.html">hr_register_model()
 they are: a value a row leaves blank keeps its current value. Removing a
 cached rate from the file therefore does not remove it from the
 registry; register the model in full, with both limits, or start a new
-session. To set the same prices in every session, keep one file per
-project under version control and load it at the top of each script, as
-<code><a href="../articles/runs.html">vignette("runs")</a></code> describes:</p>
+session.</p>
+</div>
+<div class="section level3">
+<h3 id="keeping-your-prices-current">Keeping your prices current<a class="anchor" aria-label="anchor" href="#keeping-your-prices-current"></a>
+</h3>
+<p>A registration lasts for the R session. One file of prices per
+project sets the same prices in every session, keeps every script on the
+same figures and puts a date on each:</p>
+<ol style="list-style-type: decimal">
+<li>Keep <code>prices.csv</code> beside your scripts, under version
+control, with an <code>as_of</code> column holding the month you checked
+each row.</li>
+<li>Load it at the top of each script, or in the project’s
+<code>.Rprofile</code>, before anything reports a cost.</li>
+<li>When your provider changes a price, or the stale warning (below)
+appears, look up the current prices, change the row and its
+<code>as_of</code>, and load the file again.</li>
+</ol>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_load_models.html">hr_load_models</a></span><span class="op">(</span><span class="st">"prices.csv"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">harnessr</span><span class="fu">::</span><span class="fu"><a href="../reference/hr_load_models.html">hr_load_models</a></span><span class="op">(</span><span class="st">"prices.csv"</span><span class="op">)</span></span></code></pre></div>
+<p>The file’s commit history records when each price changed, and the
+<code>as_of</code> column of a cost report says which month’s prices the
+cost used.</p>
 </div>
 </div>
 <div class="section level2">
@@ -616,10 +630,11 @@ a pattern or the default):</p>
 registry, and its row says why the figure is missing: no price, and an
 entry that is a guess. Every report of a cost in dollars, such as
 <code><a href="../reference/hr_trace_cost.html">hr_trace_cost()</a></code>, carries the same <code>priced</code>,
-<code>as_of</code> and <code>certain</code> columns. The figure is an
-estimate: it uses the token counts you give and the prices you set, and
-it does not know about a provider’s discounts, minimum charges or
-taxes.</p>
+<code>as_of</code> and <code>certain</code> columns, as “What a run
+records” in <code><a href="../articles/runs.html">vignette("runs")</a></code> shows for a document run. The
+figure is an estimate: it uses the token counts you give and the prices
+you set, and it does not know about a provider’s discounts, minimum
+charges or taxes.</p>
 </div>
 <div class="section level2">
 <h2 id="a-model-with-no-price">A model with no price<a class="anchor" aria-label="anchor" href="#a-model-with-no-price"></a>
@@ -665,9 +680,15 @@ whose <code>refusal</code> is a condition of class
 <span><span class="co">#&gt; [1] "hr_unpriced_model" "hr_budget_refused" "condition"</span></span>
 <span><span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span><span class="va">prev</span><span class="op">)</span></span></code></pre></div>
 <p><code>hr_governor(allow_unpriced = FALSE)</code> does the same for
-one run. <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> and replays are never refused or
-warned about for this, and neither is an embedding model with no
-price.</p>
+one run. Under either, <code><a href="../reference/gr_read.html">gr_read()</a></code> stops before its first
+request, with an error of the same class. <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code>
+and replays are never refused or warned about for this, and neither is
+an embedding model with no price.</p>
+<p>An <code><a href="../reference/hr_ellmer_client.html">hr_ellmer_client()</a></code> is priced as the model its ellmer
+object was built with, whatever a recipe names, so set the price of that
+model. One built on a model with no price runs outside the spending
+limit. “Connecting to a model” in <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>
+registers a hosted model at its prices and a local one at zero.</p>
 </div>
 <div class="section level2">
 <h2 id="when-prices-go-stale">When prices go stale<a class="anchor" aria-label="anchor" href="#when-prices-go-stale"></a>
@@ -991,8 +1012,8 @@ reported prompt tokens is the one to keep.</p>
 <p>The segmenters size chunks with <code><a href="../reference/hr_count_tokens.html">hr_count_tokens()</a></code>, the
 readers fit each prompt to the model’s window from
 <code><a href="../reference/hr_model_info.html">hr_model_info()</a></code>, and every cost the document layer reports
-comes from these prices. <code><a href="../articles/runs.html">vignette("runs")</a></code> sets prices for a
-whole document run and shows the costs it reports.</p>
+comes from these prices. <code><a href="../articles/runs.html">vignette("runs")</a></code> shows the costs a
+whole document run reports.</p>
 </div>
 <div class="section level2">
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>

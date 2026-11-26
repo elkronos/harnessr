@@ -25,25 +25,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -67,9 +59,694 @@
     </div>
 
     <div class="section level2">
-      <h2 id="ask-a-question">Ask a question<a class="anchor" aria-label="anchor" href="#ask-a-question"></a></h2>
+      <h2 id="core">Core<a class="anchor" aria-label="anchor" href="#core"></a></h2>
 
-      <div class="section-desc"><p>Start here. One call reads a document and answers a question, and the answer says what it rests on and whether anything went wrong. See <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>.</p></div>
+      <div class="section-desc"><p>The harness for model calls, with or without a document: calls and clients, models and prices, context, effort, limits, caching and replay, composition and measurement. The groups follow the core guides in order, starting with <code><a href="../articles/core.html">vignette("core")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+      <h3 id="calls-clients-and-results">Calls, clients and results<a class="anchor" aria-label="anchor" href="#calls-clients-and-results"></a></h3>
+      <div class="section-desc"><p>One call to a model, the result it returns and the trace that records it. Clients for OpenAI-compatible endpoints, any provider ellmer supports, any function you write, and an offline stand-in for practice and tests. Signals a run records about its own work, and the schemas that check settings. See <code><a href="../articles/core.html">vignette("core")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_call.html">hr_call()</a></code>
+
+        </dt>
+        <dd>Call a model</dd>
+
+        <dt>
+
+          <code><a href="gr_result.html">gr_result</a></code>
+
+        </dt>
+        <dd>The result of one model call</dd>
+
+        <dt>
+
+          <code><a href="hr_client.html">hr_client()</a></code>
+
+        </dt>
+        <dd>Construct a model client</dd>
+
+        <dt>
+
+          <code><a href="hr_api_key.html">hr_api_key()</a></code>
+
+        </dt>
+        <dd>Resolve the API key</dd>
+
+        <dt>
+
+          <code><a href="hr_ellmer_client.html">hr_ellmer_client()</a></code>
+
+        </dt>
+        <dd>Read documents through an ellmer chat</dd>
+
+        <dt>
+
+          <code><a href="hr_backend_client.html">hr_backend_client()</a></code>
+
+        </dt>
+        <dd>Use any function as the model transport</dd>
+
+        <dt>
+
+          <code><a href="hr_mock_client.html">hr_mock_client()</a></code>
+
+        </dt>
+        <dd>A deterministic offline client for tests, demos and dry runs</dd>
+
+        <dt>
+
+          <code><a href="hr_embed.html">hr_embed()</a></code>
+
+        </dt>
+        <dd>Embed texts</dd>
+
+        <dt>
+
+          <code><a href="hr_trace.html">hr_trace()</a></code> <code><a href="hr_trace.html">as.data.frame(<i>&lt;gr_trace&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Create a run trace</dd>
+
+        <dt>
+
+          <code><a href="hr_trace_summary.html">hr_trace_summary()</a></code>
+
+        </dt>
+        <dd>Summarise a trace</dd>
+
+        <dt>
+
+          <code><a href="hr_trace_cost.html">hr_trace_cost()</a></code>
+
+        </dt>
+        <dd>What a run actually cost</dd>
+
+        <dt>
+
+          <code><a href="hr_trace_save.html">hr_trace_save()</a></code>
+
+        </dt>
+        <dd>Save a trace to a file</dd>
+
+        <dt>
+
+          <code><a href="as_json.html">as_json()</a></code>
+
+        </dt>
+        <dd>Serialise an object to JSON</dd>
+
+        <dt>
+
+          <code><a href="hr_signal.html">hr_signal()</a></code> <code><a href="hr_signal.html">hr_signals()</a></code>
+
+        </dt>
+        <dd>Record a self-signal</dd>
+
+        <dt>
+
+          <code><a href="hr_param.html">hr_param()</a></code>
+
+        </dt>
+        <dd>Declare one parameter of a module or spec</dd>
+
+        <dt>
+
+          <code><a href="hr_schema.html">hr_schema()</a></code> <code><a href="hr_schema.html">as.data.frame(<i>&lt;hr_schema&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Collect parameters into a schema</dd>
+
+        <dt>
+
+          <code><a href="hr_validate.html">hr_validate()</a></code>
+
+        </dt>
+        <dd>Validate and resolve settings against a schema</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="models-prices-and-tokens">Models, prices and tokens<a class="anchor" aria-label="anchor" href="#models-prices-and-tokens"></a></h3>
+      <div class="section-desc"><p>The model registry, the prices you set, cost estimates and token counts. See <code><a href="../articles/models.html">vignette("models")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_models.html">hr_models()</a></code>
+
+        </dt>
+        <dd>List every known model</dd>
+
+        <dt>
+
+          <code><a href="hr_model_info.html">hr_model_info()</a></code>
+
+        </dt>
+        <dd>Look up a model's capabilities</dd>
+
+        <dt>
+
+          <code><a href="hr_model_limits.html">hr_model_limits()</a></code>
+
+        </dt>
+        <dd>Context and output limits for a model</dd>
+
+        <dt>
+
+          <code><a href="hr_register_model.html">hr_register_model()</a></code>
+
+        </dt>
+        <dd>Register a model, or set the prices of a known one</dd>
+
+        <dt>
+
+          <code><a href="hr_load_models.html">hr_load_models()</a></code>
+
+        </dt>
+        <dd>Register models from a CSV file</dd>
+
+        <dt>
+
+          <code><a href="hr_estimate_cost.html">hr_estimate_cost()</a></code>
+
+        </dt>
+        <dd>Estimate the USD cost of a set of calls</dd>
+
+        <dt>
+
+          <code><a href="hr_count_tokens.html">hr_count_tokens()</a></code>
+
+        </dt>
+        <dd>Count tokens in text</dd>
+
+        <dt>
+
+          <code><a href="hr_tokenizer.html">hr_tokenizer()</a></code>
+
+        </dt>
+        <dd>The active tokenizer</dd>
+
+        <dt>
+
+          <code><a href="hr_set_tokenizer.html">hr_set_tokenizer()</a></code>
+
+        </dt>
+        <dd>Register or inspect the active tokenizer</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="context">Context<a class="anchor" aria-label="anchor" href="#context"></a></h3>
+      <div class="section-desc"><p>How much room a prompt has, fitting its pieces into that room, and cutting one piece. See <code><a href="../articles/context.html">vignette("context")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_budget.html">hr_budget()</a></code>
+
+        </dt>
+        <dd>Compute a usable input-token budget for one model call</dd>
+
+        <dt>
+
+          <code><a href="hr_context_fit.html">hr_context_fit()</a></code>
+
+        </dt>
+        <dd>Fit named pieces of text into a token budget under a context policy</dd>
+
+        <dt>
+
+          <code><a href="hr_context_policy.html">hr_context_policy()</a></code> <code><a href="hr_context_policy.html">print(<i>&lt;hr_context_policy&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Rules for what a request keeps when its text does not fit</dd>
+
+        <dt>
+
+          <code><a href="hr_truncate.html">hr_truncate()</a></code>
+
+        </dt>
+        <dd>Cut text to a token count, keeping the part you choose</dd>
+
+        <dt>
+
+          <code><a href="hr_truncate_tokens.html">hr_truncate_tokens()</a></code>
+
+        </dt>
+        <dd>Truncate text to at most <code>n</code> tokens</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="effort">Effort<a class="anchor" aria-label="anchor" href="#effort"></a></h3>
+      <div class="section-desc"><p>Raising reasoning effort when a stage goes wrong, the log of each raise, and checking whether more effort pays. See <code><a href="../articles/effort.html">vignette("effort")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_effort_escalate.html">hr_effort_escalate()</a></code> <code><a href="hr_effort_escalate.html">print(<i>&lt;hr_effort_escalate&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Reasoning effort that is raised for the next stage when a trigger fires</dd>
+
+        <dt>
+
+          <code><a href="hr_effort_event.html">hr_effort_event()</a></code>
+
+        </dt>
+        <dd>Report a trigger for an effort escalation</dd>
+
+        <dt>
+
+          <code><a href="hr_effort_log.html">hr_effort_log()</a></code>
+
+        </dt>
+        <dd>The effort raises of a run</dd>
+
+        <dt>
+
+          <code><a href="hr_effort_check.html">hr_effort_check()</a></code> <code><a href="hr_effort_check.html">print(<i>&lt;hr_effort_check&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Compare an effort policy with fixed efforts on a benchmark</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="limits-caching-and-replay">Limits, caching and replay<a class="anchor" aria-label="anchor" href="#limits-caching-and-replay"></a></h3>
+      <div class="section-desc"><p>Settings and spending limits, paying for a request once, and replaying a recorded run without a model. See <code><a href="../articles/runs.html">vignette("runs")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_options.html">hr_options()</a></code>
+
+        </dt>
+        <dd>Get or set package options</dd>
+
+        <dt>
+
+          <code><a href="hr_governor.html">hr_governor()</a></code>
+
+        </dt>
+        <dd>Limits on what a run may send</dd>
+
+        <dt>
+
+          <code><a href="hr_cache.html">hr_cache()</a></code>
+
+        </dt>
+        <dd>A response cache</dd>
+
+        <dt>
+
+          <code><a href="hr_cache_client.html">hr_cache_client()</a></code>
+
+        </dt>
+        <dd>Attach a cache to a client</dd>
+
+        <dt>
+
+          <code><a href="hr_cache_stats.html">hr_cache_stats()</a></code>
+
+        </dt>
+        <dd>Cache statistics</dd>
+
+        <dt>
+
+          <code><a href="hr_cache_clear.html">hr_cache_clear()</a></code>
+
+        </dt>
+        <dd>Delete every entry in a cache</dd>
+
+        <dt>
+
+          <code><a href="hr_replay_client.html">hr_replay_client()</a></code>
+
+        </dt>
+        <dd>A client that answers from a recorded run</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="compose-steps-and-chains">Compose steps and chains<a class="anchor" aria-label="anchor" href="#compose-steps-and-chains"></a></h3>
+      <div class="section-desc"><p>Build a run from steps, run them in order as one arm, derive a chain by dropping or replacing a step, list, change and sweep its settings by path, give a step a skill, and check a step’s output by running a program. See <code><a href="../articles/compose.html">vignette("compose")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_step.html">hr_step()</a></code>
+
+        </dt>
+        <dd>A step of a run, with the settings it was built with</dd>
+
+        <dt>
+
+          <code><a href="hr_chain.html">hr_chain()</a></code>
+
+        </dt>
+        <dd>Run steps in order as one arm</dd>
+
+        <dt>
+
+          <code><a href="hr_settings.html">hr_settings()</a></code>
+
+        </dt>
+        <dd>List the settings of a step or a chain</dd>
+
+        <dt>
+
+          <code><a href="hr_set.html">hr_set()</a></code>
+
+        </dt>
+        <dd>Change some settings of a step or a chain</dd>
+
+        <dt>
+
+          <code><a href="hr_step_command.html">hr_step_command()</a></code>
+
+        </dt>
+        <dd>A step that runs a program</dd>
+
+        <dt>
+
+          <code><a href="hr_skill.html">hr_skill()</a></code>
+
+        </dt>
+        <dd>Read a skill folder</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="modules-and-the-registry">Modules and the registry<a class="anchor" aria-label="anchor" href="#modules-and-the-registry"></a></h3>
+      <div class="section-desc"><p>Register and list modules of any kind, check a module against rules of your own, and declare what a module’s run costs. See “Registering a step” in <code><a href="../articles/compose.html">vignette("compose")</a></code>. “Declaring cost” in <code><a href="../articles/extending.html">vignette("extending")</a></code>, a document guide, covers <code><a href="../reference/hr_cost.html">hr_cost()</a></code> with a reader.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_register.html">hr_register()</a></code>
+
+        </dt>
+        <dd>Register a module of any kind</dd>
+
+        <dt>
+
+          <code><a href="hr_modules.html">hr_modules()</a></code>
+
+        </dt>
+        <dd>List the registered modules of every kind</dd>
+
+        <dt>
+
+          <code><a href="hr_check_module.html">hr_check_module()</a></code>
+
+        </dt>
+        <dd>Check a module against a set of rules</dd>
+
+        <dt>
+
+          <code><a href="hr_cost.html">hr_cost()</a></code>
+
+        </dt>
+        <dd>What one run of a module can cost</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="benchmarks">Benchmarks<a class="anchor" aria-label="anchor" href="#benchmarks"></a></h3>
+      <div class="section-desc"><p>Compare configurations on a labelled reference: arms, sweeps of a setting, the reference and its splits, scorers, and repeated runs held to one spending limit. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> and <code><a href="../articles/compare.html">vignette("compare")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_benchmark.html">hr_benchmark()</a></code> <code><a href="hr_benchmark.html">print(<i>&lt;hr_bench&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Run arms against a reference</dd>
+
+        <dt>
+
+          <code><a href="hr_report.html">hr_report()</a></code> <code><a href="hr_report.html">print(<i>&lt;hr_bench_report&gt;</i>)</a></code> <code><a href="hr_report.html">as_json(<i>&lt;hr_bench_report&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Report a benchmark with intervals</dd>
+
+        <dt>
+
+          <code><a href="hr_error_correlation.html">hr_error_correlation()</a></code>
+
+        </dt>
+        <dd>Correlated errors between the arms of a benchmark</dd>
+
+        <dt>
+
+          <code><a href="hr_mdd.html">hr_mdd()</a></code> <code><a href="hr_mdd.html">hr_n_needed()</a></code> <code><a href="hr_mdd.html">print(<i>&lt;hr_mdd&gt;</i>)</a></code> <code><a href="hr_mdd.html">print(<i>&lt;hr_n_needed&gt;</i>)</a></code>
+
+        </dt>
+        <dd>The minimum detectable difference of a paired, clustered design</dd>
+
+        <dt>
+
+          <code><a href="hr_contrast.html">hr_contrast()</a></code> <code><a href="hr_contrast.html">hr_register_contrasts()</a></code> <code><a href="hr_contrast.html">print(<i>&lt;hr_contrast&gt;</i>)</a></code> <code><a href="hr_contrast.html">print(<i>&lt;hr_contrast_registration&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Non-inferiority contrasts, registered before scoring</dd>
+
+        <dt>
+
+          <code><a href="hr_drift_check.html">hr_drift_check()</a></code> <code><a href="hr_drift_check.html">print(<i>&lt;hr_drift_check&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Check an arm for drift against a frozen benchmark</dd>
+
+        <dt>
+
+          <code><a href="hr_arm.html">hr_arm()</a></code>
+
+        </dt>
+        <dd>A configuration to compare in a benchmark</dd>
+
+        <dt>
+
+          <code><a href="hr_sweep.html">hr_sweep()</a></code>
+
+        </dt>
+        <dd>Build one arm per row of a grid of settings</dd>
+
+        <dt>
+
+          <code><a href="hr_sweep_check.html">hr_sweep_check()</a></code>
+
+        </dt>
+        <dd>Find the settings of a sweep that changed nothing that was sent</dd>
+
+        <dt>
+
+          <code><a href="hr_reference.html">hr_reference()</a></code> <code><a href="hr_reference.html">hr_reference_add()</a></code>
+
+        </dt>
+        <dd>A reference set to score arms against</dd>
+
+        <dt>
+
+          <code><a href="hr_scorer.html">hr_scorer()</a></code> <code><a href="hr_scorer.html">hr_scorer_exact()</a></code>
+
+        </dt>
+        <dd>A rule for scoring an arm's output</dd>
+
+        <dt>
+
+          <code><a href="hr_assign_splits.html">hr_assign_splits()</a></code>
+
+        </dt>
+        <dd>Assign reference items to splits by cluster</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="judges">Judges<a class="anchor" aria-label="anchor" href="#judges"></a></h3>
+      <div class="section-desc"><p>A model that chooses between candidates or grades one against a reference, asked in both orders, validated against blind human labels before it scores, with its accuracy corrected by those labels. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_judge.html">hr_judge()</a></code> <code><a href="hr_judge.html">print(<i>&lt;hr_judgement&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Judge candidates with a model, in more than one order</dd>
+
+        <dt>
+
+          <code><a href="hr_judge_config.html">hr_judge_config()</a></code> <code><a href="hr_judge_config.html">print(<i>&lt;hr_judge_config&gt;</i>)</a></code>
+
+        </dt>
+        <dd>A judge configuration</dd>
+
+        <dt>
+
+          <code><a href="hr_judge_validate.html">hr_judge_validate()</a></code> <code><a href="hr_judge_validate.html">hr_judge_valid()</a></code> <code><a href="hr_judge_validate.html">print(<i>&lt;hr_judge_validation&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Validate a judge against blind human labels</dd>
+
+        <dt>
+
+          <code><a href="hr_scorer_judge.html">hr_scorer_judge()</a></code>
+
+        </dt>
+        <dd>Score benchmark runs with a validated judge</dd>
+
+        <dt>
+
+          <code><a href="hr_judge_ppi.html">hr_judge_ppi()</a></code>
+
+        </dt>
+        <dd>Judge-scored accuracy corrected with human labels</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="baselines">Baselines<a class="anchor" aria-label="anchor" href="#baselines"></a></h3>
+      <div class="section-desc"><p>Comparisons that use no model: tf-idf features, a cross-fitted classifier and a simulated active-learning ranker for screening. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_tfidf.html">hr_tfidf()</a></code>
+
+        </dt>
+        <dd>Tf-idf features from texts</dd>
+
+        <dt>
+
+          <code><a href="hr_baseline_classifier.html">hr_baseline_classifier()</a></code> <code><a href="hr_baseline_classifier.html">print(<i>&lt;hr_baseline_classifier&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Cross-fitted text classifier baseline</dd>
+
+        <dt>
+
+          <code><a href="hr_baseline_ranker.html">hr_baseline_ranker()</a></code> <code><a href="hr_baseline_ranker.html">print(<i>&lt;hr_baseline_ranker&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Active-learning screening baseline</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="signal-calibration">Signal calibration<a class="anchor" aria-label="anchor" href="#signal-calibration"></a></h3>
+      <div class="section-desc"><p>The calibration records that measure how well a signal predicts being right, and the thresholds and policy that decide whether a signal may gate an action. Nothing gates by default. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_calibrate_signal.html">hr_calibrate_signal()</a></code>
+
+        </dt>
+        <dd>Calibrate a self-signal against graded items</dd>
+
+        <dt>
+
+          <code><a href="hr_calibration_valid.html">hr_calibration_valid()</a></code>
+
+        </dt>
+        <dd>Is a calibration record valid for a run?</dd>
+
+        <dt>
+
+          <code><a href="hr_gate_threshold.html">hr_gate_threshold()</a></code>
+
+        </dt>
+        <dd>Choose a gate threshold by Learn-then-Test</dd>
+
+        <dt>
+
+          <code><a href="hr_signal_policy.html">hr_signal_policy()</a></code> <code><a href="hr_signal_policy.html">hr_apply_signal()</a></code>
+
+        </dt>
+        <dd>What a signal may do, and what happens when it may not</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="statistics">Statistics<a class="anchor" aria-label="anchor" href="#statistics"></a></h3>
+      <div class="section-desc"><p>Intervals for proportions, agreement between raters and coders, design- weighted and prediction-powered estimates, and the test of whether a model’s labels can stand in for people’s. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hr_prop_ci.html">hr_prop_ci()</a></code>
+
+        </dt>
+        <dd>Confidence intervals for binomial proportions</dd>
+
+        <dt>
+
+          <code><a href="hr_agreement.html">hr_agreement()</a></code>
+
+        </dt>
+        <dd>Agreement between raters, with every measure that should go with it</dd>
+
+        <dt>
+
+          <code><a href="hr_ht_estimate.html">hr_ht_estimate()</a></code>
+
+        </dt>
+        <dd>Design-weighted estimates from a probability sample</dd>
+
+        <dt>
+
+          <code><a href="hr_ppi.html">hr_ppi()</a></code>
+
+        </dt>
+        <dd>Prediction-powered inference for a mean</dd>
+
+        <dt>
+
+          <code><a href="hr_alt_test.html">hr_alt_test()</a></code>
+
+        </dt>
+        <dd>The alternative annotator test</dd>
+      </dl></div><div class="section level2">
+      <h2 id="documents">Documents<a class="anchor" aria-label="anchor" href="#documents"></a></h2>
+
+      <div class="section-desc"><p>The document layer, built on the core: ingest, segment, read, and review many documents. See <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> for a first question.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+      <h3 id="ask-a-question">Ask a question<a class="anchor" aria-label="anchor" href="#ask-a-question"></a></h3>
+      <div class="section-desc"><p>One call reads a document and answers a question, and the answer says what it rests on and whether anything went wrong. See <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -124,102 +801,16 @@
 
         </dt>
         <dd>Run several recipes over one document and compare them</dd>
+
+        <dt>
+
+          <code><a href="gr_methods_text.html">gr_methods_text()</a></code>
+
+        </dt>
+        <dd>A methods paragraph from a run's record</dd>
       </dl></div><div class="section level2">
-      <h2 id="connect-to-a-model">Connect to a model<a class="anchor" aria-label="anchor" href="#connect-to-a-model"></a></h2>
 
-      <div class="section-desc"><p>Clients for OpenAI-compatible endpoints, any provider ellmer supports, any function you write, and an offline stand-in for practice and tests. See <code><a href="../articles/core.html">vignette("core")</a></code>, <code><a href="../articles/models.html">vignette("models")</a></code>, <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> and the README.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="hr_client.html">hr_client()</a></code>
-
-        </dt>
-        <dd>Construct a model client</dd>
-
-        <dt>
-
-          <code><a href="hr_api_key.html">hr_api_key()</a></code>
-
-        </dt>
-        <dd>Resolve the API key</dd>
-
-        <dt>
-
-          <code><a href="hr_ellmer_client.html">hr_ellmer_client()</a></code>
-
-        </dt>
-        <dd>Read documents through an ellmer chat</dd>
-
-        <dt>
-
-          <code><a href="hr_backend_client.html">hr_backend_client()</a></code>
-
-        </dt>
-        <dd>Use any function as the model transport</dd>
-
-        <dt>
-
-          <code><a href="hr_mock_client.html">hr_mock_client()</a></code>
-
-        </dt>
-        <dd>A deterministic offline client for tests, demos and dry runs</dd>
-
-        <dt>
-
-          <code><a href="hr_call.html">hr_call()</a></code>
-
-        </dt>
-        <dd>Call a model</dd>
-
-        <dt>
-
-          <code><a href="gr_result.html">gr_result</a></code>
-
-        </dt>
-        <dd>The result of one model call</dd>
-
-        <dt>
-
-          <code><a href="hr_models.html">hr_models()</a></code>
-
-        </dt>
-        <dd>List every known model</dd>
-
-        <dt>
-
-          <code><a href="hr_model_info.html">hr_model_info()</a></code>
-
-        </dt>
-        <dd>Look up a model's capabilities</dd>
-
-        <dt>
-
-          <code><a href="hr_model_limits.html">hr_model_limits()</a></code>
-
-        </dt>
-        <dd>Context and output limits for a model</dd>
-
-        <dt>
-
-          <code><a href="hr_register_model.html">hr_register_model()</a></code>
-
-        </dt>
-        <dd>Register a model, or set the prices of a known one</dd>
-
-        <dt>
-
-          <code><a href="hr_load_models.html">hr_load_models()</a></code>
-
-        </dt>
-        <dd>Register models from a CSV file</dd>
-      </dl></div><div class="section level2">
-      <h2 id="get-text-out-of-files">Get text out of files<a class="anchor" aria-label="anchor" href="#get-text-out-of-files"></a></h2>
-
+      <h3 id="get-text-out-of-files">Get text out of files<a class="anchor" aria-label="anchor" href="#get-text-out-of-files"></a></h3>
       <div class="section-desc"><p>Extraction, cleaning and a survey of a folder before anything is spent. See <code><a href="../articles/ingest.html">vignette("ingest")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
@@ -275,9 +866,16 @@
 
         </dt>
         <dd>What is in a folder, before you read any of it</dd>
-      </dl></div><div class="section level2">
-      <h2 id="cut-documents-into-chunks">Cut documents into chunks<a class="anchor" aria-label="anchor" href="#cut-documents-into-chunks"></a></h2>
 
+        <dt>
+
+          <code><a href="gr_flush_caches.html">gr_flush_caches()</a></code>
+
+        </dt>
+        <dd>Clear the session's document and embedding caches</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="cut-documents-into-chunks">Cut documents into chunks<a class="anchor" aria-label="anchor" href="#cut-documents-into-chunks"></a></h3>
       <div class="section-desc"><p>The segmenters, their settings, and the free statistics for comparing chunkings: size, boundary error against a reference (Pk and WindowDiff) and retrieval recall. See <code><a href="../articles/segment.html">vignette("segment")</a></code> and <code><a href="../articles/compare.html">vignette("compare")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
@@ -341,9 +939,9 @@
         </dt>
         <dd>Retrieval recall at k, per segmenter</dd>
       </dl></div><div class="section level2">
-      <h2 id="read-the-chunks">Read the chunks<a class="anchor" aria-label="anchor" href="#read-the-chunks"></a></h2>
 
-      <div class="section-desc"><p>The reading strategies, the settings that choose and place chunks, and the check on quoted evidence. See <code><a href="../articles/readers.html">vignette("readers")</a></code>.</p></div>
+      <h3 id="read-the-chunks">Read the chunks<a class="anchor" aria-label="anchor" href="#read-the-chunks"></a></h3>
+      <div class="section-desc"><p>The reading strategies, the settings that choose and place chunks, the embedders that rank them, and the check on quoted evidence. See <code><a href="../articles/readers.html">vignette("readers")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -380,13 +978,6 @@
 
         <dt>
 
-          <code><a href="hr_embed.html">hr_embed()</a></code>
-
-        </dt>
-        <dd>Embed texts</dd>
-
-        <dt>
-
           <code><a href="gr_embedders.html">gr_embedders()</a></code>
 
         </dt>
@@ -399,9 +990,9 @@
         </dt>
         <dd>Check that quoted evidence really is in the document</dd>
       </dl></div><div class="section level2">
-      <h2 id="many-documents-and-literature-reviews">Many documents and literature reviews<a class="anchor" aria-label="anchor" href="#many-documents-and-literature-reviews"></a></h2>
 
-      <div class="section-desc"><p>One question over many documents, and a review from a search export to screened studies, an extraction table, a written review and an audit report, with the screening measured against a hand-screened sample. See <code><a href="../articles/review.html">vignette("review")</a></code>.</p></div>
+      <h3 id="many-documents-and-literature-reviews">Many documents and literature reviews<a class="anchor" aria-label="anchor" href="#many-documents-and-literature-reviews"></a></h3>
+      <div class="section-desc"><p>One question over many documents, and a review from a search export to screened studies, an extraction table, a written review and an audit report, with the screening measured against a hand-screened sample and a stopping test for prioritised screening. See <code><a href="../articles/review.html">vignette("review")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -501,6 +1092,13 @@
 
         <dt>
 
+          <code><a href="gr_stop_test.html">gr_stop_test()</a></code> <code><a href="gr_stop_test.html">print(<i>&lt;gr_stop_test&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Hypergeometric stopping test for prioritised screening</dd>
+
+        <dt>
+
           <code><a href="gr_resolve.html">gr_resolve()</a></code>
 
         </dt>
@@ -597,9 +1195,9 @@
         </dt>
         <dd>Write the run out as an auditable report</dd>
       </dl></div><div class="section level2">
-      <h2 id="cost-limits-and-tracing">Cost, limits and tracing<a class="anchor" aria-label="anchor" href="#cost-limits-and-tracing"></a></h2>
 
-      <div class="section-desc"><p>Settings and spending limits, token counts and cost estimates, context budgets and cuts, reasoning effort, and the trace every run records. See <code><a href="../articles/runs.html">vignette("runs")</a></code>, <code><a href="../articles/models.html">vignette("models")</a></code>, <code><a href="../articles/context.html">vignette("context")</a></code> and <code><a href="../articles/effort.html">vignette("effort")</a></code>.</p></div>
+      <h3 id="document-arms-steps-and-references">Document arms, steps and references<a class="anchor" aria-label="anchor" href="#document-arms-steps-and-references"></a></h3>
+      <div class="section-desc"><p>Document arms and steps for the core benchmarks and chains, question- answer references, label sheets, and the checks on what a reader keeps. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> and <code><a href="../articles/compose.html">vignette("compose")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -607,339 +1205,18 @@
 
 
       <dl><dt>
-
-          <code><a href="hr_options.html">hr_options()</a></code>
-
-        </dt>
-        <dd>Get or set package options</dd>
-
-        <dt>
-
-          <code><a href="hr_governor.html">hr_governor()</a></code>
-
-        </dt>
-        <dd>Limits on what a run may send</dd>
-
-        <dt>
-
-          <code><a href="hr_estimate_cost.html">hr_estimate_cost()</a></code>
-
-        </dt>
-        <dd>Estimate the USD cost of a set of calls</dd>
-
-        <dt>
-
-          <code><a href="hr_count_tokens.html">hr_count_tokens()</a></code>
-
-        </dt>
-        <dd>Count tokens in text</dd>
-
-        <dt>
-
-          <code><a href="hr_tokenizer.html">hr_tokenizer()</a></code>
-
-        </dt>
-        <dd>The active tokenizer</dd>
-
-        <dt>
-
-          <code><a href="hr_set_tokenizer.html">hr_set_tokenizer()</a></code>
-
-        </dt>
-        <dd>Register or inspect the active tokenizer</dd>
-
-        <dt>
-
-          <code><a href="hr_truncate_tokens.html">hr_truncate_tokens()</a></code>
-
-        </dt>
-        <dd>Truncate text to at most <code>n</code> tokens</dd>
-
-        <dt>
-
-          <code><a href="hr_truncate.html">hr_truncate()</a></code>
-
-        </dt>
-        <dd>Cut text to a token count, keeping the part you choose</dd>
-
-        <dt>
-
-          <code><a href="hr_context_policy.html">hr_context_policy()</a></code> <code><a href="hr_context_policy.html">print(<i>&lt;hr_context_policy&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Rules for what a request keeps when its text does not fit</dd>
-
-        <dt>
-
-          <code><a href="hr_context_fit.html">hr_context_fit()</a></code>
-
-        </dt>
-        <dd>Fit named pieces of text into a token budget under a context policy</dd>
-
-        <dt>
-
-          <code><a href="hr_effort_escalate.html">hr_effort_escalate()</a></code> <code><a href="hr_effort_escalate.html">print(<i>&lt;hr_effort_escalate&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Reasoning effort that is raised for the next stage when a trigger fires</dd>
-
-        <dt>
-
-          <code><a href="hr_effort_event.html">hr_effort_event()</a></code>
-
-        </dt>
-        <dd>Report a trigger for an effort escalation</dd>
-
-        <dt>
-
-          <code><a href="hr_effort_log.html">hr_effort_log()</a></code>
-
-        </dt>
-        <dd>The effort raises of a run</dd>
-
-        <dt>
-
-          <code><a href="hr_budget.html">hr_budget()</a></code>
-
-        </dt>
-        <dd>Compute a usable input-token budget for one model call</dd>
-
-        <dt>
-
-          <code><a href="hr_trace.html">hr_trace()</a></code> <code><a href="hr_trace.html">as.data.frame(<i>&lt;gr_trace&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Create a run trace</dd>
-
-        <dt>
-
-          <code><a href="hr_trace_summary.html">hr_trace_summary()</a></code>
-
-        </dt>
-        <dd>Summarise a trace</dd>
-
-        <dt>
-
-          <code><a href="hr_trace_cost.html">hr_trace_cost()</a></code>
-
-        </dt>
-        <dd>What a run actually cost</dd>
-
-        <dt>
-
-          <code><a href="hr_trace_save.html">hr_trace_save()</a></code>
-
-        </dt>
-        <dd>Save a trace to a file</dd>
-
-        <dt>
-
-          <code><a href="as_json.html">as_json()</a></code>
-
-        </dt>
-        <dd>Serialise an object to JSON</dd>
-
-        <dt>
-
-          <code><a href="gr_methods_text.html">gr_methods_text()</a></code>
-
-        </dt>
-        <dd>A methods paragraph from a run's record</dd>
-      </dl></div><div class="section level2">
-      <h2 id="caching-and-replaying-runs">Caching and replaying runs<a class="anchor" aria-label="anchor" href="#caching-and-replaying-runs"></a></h2>
-
-      <div class="section-desc"><p>Paying for a request once, and replaying a recorded run without a model. See <code><a href="../articles/runs.html">vignette("runs")</a></code>.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="hr_cache.html">hr_cache()</a></code>
-
-        </dt>
-        <dd>A response cache</dd>
-
-        <dt>
-
-          <code><a href="hr_cache_client.html">hr_cache_client()</a></code>
-
-        </dt>
-        <dd>Attach a cache to a client</dd>
-
-        <dt>
-
-          <code><a href="hr_cache_stats.html">hr_cache_stats()</a></code>
-
-        </dt>
-        <dd>Cache statistics</dd>
-
-        <dt>
-
-          <code><a href="hr_cache_clear.html">hr_cache_clear()</a></code>
-
-        </dt>
-        <dd>Delete every entry in a cache</dd>
-
-        <dt>
-
-          <code><a href="gr_flush_caches.html">gr_flush_caches()</a></code>
-
-        </dt>
-        <dd>Clear the session's document and embedding caches</dd>
-
-        <dt>
-
-          <code><a href="hr_replay_client.html">hr_replay_client()</a></code>
-
-        </dt>
-        <dd>A client that answers from a recorded run</dd>
-      </dl></div><div class="section level2">
-      <h2 id="statistics">Statistics<a class="anchor" aria-label="anchor" href="#statistics"></a></h2>
-
-      <div class="section-desc"><p>Intervals for proportions, agreement between raters and coders, design-weighted and prediction-powered estimates, and the test of whether a model’s labels can stand in for people’s. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="hr_prop_ci.html">hr_prop_ci()</a></code>
-
-        </dt>
-        <dd>Confidence intervals for binomial proportions</dd>
-
-        <dt>
-
-          <code><a href="hr_agreement.html">hr_agreement()</a></code>
-
-        </dt>
-        <dd>Agreement between raters, with every measure that should go with it</dd>
-
-        <dt>
-
-          <code><a href="hr_ht_estimate.html">hr_ht_estimate()</a></code>
-
-        </dt>
-        <dd>Design-weighted estimates from a probability sample</dd>
-
-        <dt>
-
-          <code><a href="hr_ppi.html">hr_ppi()</a></code>
-
-        </dt>
-        <dd>Prediction-powered inference for a mean</dd>
-
-        <dt>
-
-          <code><a href="hr_alt_test.html">hr_alt_test()</a></code>
-
-        </dt>
-        <dd>The alternative annotator test</dd>
-      </dl></div><div class="section level2">
-      <h2 id="benchmarks">Benchmarks<a class="anchor" aria-label="anchor" href="#benchmarks"></a></h2>
-
-      <div class="section-desc"><p>Compare configurations on a labelled reference: arms, sweeps of a setting, the reference and its splits, scorers, and repeated runs held to one spending limit. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> and <code><a href="../articles/compare.html">vignette("compare")</a></code>.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="hr_benchmark.html">hr_benchmark()</a></code> <code><a href="hr_benchmark.html">print(<i>&lt;hr_bench&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Run arms against a reference</dd>
-
-        <dt>
-
-          <code><a href="hr_report.html">hr_report()</a></code> <code><a href="hr_report.html">print(<i>&lt;hr_bench_report&gt;</i>)</a></code> <code><a href="hr_report.html">as_json(<i>&lt;hr_bench_report&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Report a benchmark with intervals</dd>
-
-        <dt>
-
-          <code><a href="hr_error_correlation.html">hr_error_correlation()</a></code>
-
-        </dt>
-        <dd>Correlated errors between the arms of a benchmark</dd>
-
-        <dt>
-
-          <code><a href="hr_mdd.html">hr_mdd()</a></code> <code><a href="hr_mdd.html">hr_n_needed()</a></code> <code><a href="hr_mdd.html">print(<i>&lt;hr_mdd&gt;</i>)</a></code> <code><a href="hr_mdd.html">print(<i>&lt;hr_n_needed&gt;</i>)</a></code>
-
-        </dt>
-        <dd>The minimum detectable difference of a paired, clustered design</dd>
-
-        <dt>
-
-          <code><a href="hr_contrast.html">hr_contrast()</a></code> <code><a href="hr_contrast.html">hr_register_contrasts()</a></code> <code><a href="hr_contrast.html">print(<i>&lt;hr_contrast&gt;</i>)</a></code> <code><a href="hr_contrast.html">print(<i>&lt;hr_contrast_registration&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Non-inferiority contrasts, registered before scoring</dd>
-
-        <dt>
-
-          <code><a href="hr_drift_check.html">hr_drift_check()</a></code> <code><a href="hr_drift_check.html">print(<i>&lt;hr_drift_check&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Check an arm for drift against a frozen benchmark</dd>
-
-        <dt>
-
-          <code><a href="hr_arm.html">hr_arm()</a></code>
-
-        </dt>
-        <dd>A configuration to compare in a benchmark</dd>
-
-        <dt>
-
-          <code><a href="hr_sweep.html">hr_sweep()</a></code>
-
-        </dt>
-        <dd>Build one arm per row of a grid of settings</dd>
-
-        <dt>
-
-          <code><a href="hr_sweep_check.html">hr_sweep_check()</a></code>
-
-        </dt>
-        <dd>Find the settings of a sweep that changed nothing that was sent</dd>
-
-        <dt>
-
-          <code><a href="hr_effort_check.html">hr_effort_check()</a></code> <code><a href="hr_effort_check.html">print(<i>&lt;hr_effort_check&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Compare an effort policy with fixed efforts on a benchmark</dd>
-
-        <dt>
-
-          <code><a href="hr_reference.html">hr_reference()</a></code> <code><a href="hr_reference.html">hr_reference_add()</a></code>
-
-        </dt>
-        <dd>A reference set to score arms against</dd>
-
-        <dt>
-
-          <code><a href="hr_scorer.html">hr_scorer()</a></code> <code><a href="hr_scorer.html">hr_scorer_exact()</a></code>
-
-        </dt>
-        <dd>A rule for scoring an arm's output</dd>
-
-        <dt>
 
           <code><a href="gr_arm.html">gr_arm()</a></code> <code><a href="gr_arm.html">gr_arms()</a></code>
 
         </dt>
         <dd>A reading recipe as an arm of a benchmark</dd>
+
+        <dt>
+
+          <code><a href="gr_step.html">gr_step()</a></code> <code><a href="gr_step.html">gr_step_retrieve()</a></code>
+
+        </dt>
+        <dd>Built-in steps for composing a run</dd>
 
         <dt>
 
@@ -968,205 +1245,6 @@
 
         </dt>
         <dd>Reverse the order of a text's paragraphs or sentences</dd>
-      </dl></div><div class="section level2">
-      <h2 id="compose-steps-and-chains">Compose steps and chains<a class="anchor" aria-label="anchor" href="#compose-steps-and-chains"></a></h2>
-
-      <div class="section-desc"><p>Build a run from steps (ingest, segment, retrieve, read, or a function of your own), run them in order as one arm, derive a chain by dropping or replacing a step, list, change and sweep its settings by path, give a step a skill, and check a step’s output by running a program. See <code><a href="../articles/compose.html">vignette("compose")</a></code> and <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="hr_step.html">hr_step()</a></code>
-
-        </dt>
-        <dd>A step of a run, with the settings it was built with</dd>
-
-        <dt>
-
-          <code><a href="hr_chain.html">hr_chain()</a></code>
-
-        </dt>
-        <dd>Run steps in order as one arm</dd>
-
-        <dt>
-
-          <code><a href="hr_settings.html">hr_settings()</a></code>
-
-        </dt>
-        <dd>List the settings of a step or a chain</dd>
-
-        <dt>
-
-          <code><a href="hr_set.html">hr_set()</a></code>
-
-        </dt>
-        <dd>Change some settings of a step or a chain</dd>
-
-        <dt>
-
-          <code><a href="hr_step_command.html">hr_step_command()</a></code>
-
-        </dt>
-        <dd>A step that runs a program</dd>
-
-        <dt>
-
-          <code><a href="hr_skill.html">hr_skill()</a></code>
-
-        </dt>
-        <dd>Read a skill folder</dd>
-
-        <dt>
-
-          <code><a href="gr_step.html">gr_step()</a></code> <code><a href="gr_step.html">gr_step_retrieve()</a></code>
-
-        </dt>
-        <dd>Built-in steps for composing a run</dd>
-      </dl></div><div class="section level2">
-      <h2 id="baselines">Baselines<a class="anchor" aria-label="anchor" href="#baselines"></a></h2>
-
-      <div class="section-desc"><p>Comparisons that use no model: tf-idf features, a cross-fitted classifier, a simulated active-learning ranker for screening, and the stopping test for prioritised screening. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>, and <code><a href="../articles/review.html">vignette("review")</a></code> for the stopping test.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="hr_tfidf.html">hr_tfidf()</a></code>
-
-        </dt>
-        <dd>Tf-idf features from texts</dd>
-
-        <dt>
-
-          <code><a href="hr_baseline_classifier.html">hr_baseline_classifier()</a></code> <code><a href="hr_baseline_classifier.html">print(<i>&lt;hr_baseline_classifier&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Cross-fitted text classifier baseline</dd>
-
-        <dt>
-
-          <code><a href="hr_baseline_ranker.html">hr_baseline_ranker()</a></code> <code><a href="hr_baseline_ranker.html">print(<i>&lt;hr_baseline_ranker&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Active-learning screening baseline</dd>
-
-        <dt>
-
-          <code><a href="gr_stop_test.html">gr_stop_test()</a></code> <code><a href="gr_stop_test.html">print(<i>&lt;gr_stop_test&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Hypergeometric stopping test for prioritised screening</dd>
-      </dl></div><div class="section level2">
-      <h2 id="judges">Judges<a class="anchor" aria-label="anchor" href="#judges"></a></h2>
-
-      <div class="section-desc"><p>A model that chooses between candidates or grades one against a reference, asked in both orders, validated against blind human labels before it scores, with its accuracy corrected by those labels. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="hr_judge.html">hr_judge()</a></code> <code><a href="hr_judge.html">print(<i>&lt;hr_judgement&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Judge candidates with a model, in more than one order</dd>
-
-        <dt>
-
-          <code><a href="hr_judge_config.html">hr_judge_config()</a></code> <code><a href="hr_judge_config.html">print(<i>&lt;hr_judge_config&gt;</i>)</a></code>
-
-        </dt>
-        <dd>A judge configuration</dd>
-
-        <dt>
-
-          <code><a href="hr_judge_validate.html">hr_judge_validate()</a></code> <code><a href="hr_judge_validate.html">hr_judge_valid()</a></code> <code><a href="hr_judge_validate.html">print(<i>&lt;hr_judge_validation&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Validate a judge against blind human labels</dd>
-
-        <dt>
-
-          <code><a href="hr_scorer_judge.html">hr_scorer_judge()</a></code>
-
-        </dt>
-        <dd>Score benchmark runs with a validated judge</dd>
-
-        <dt>
-
-          <code><a href="hr_judge_ppi.html">hr_judge_ppi()</a></code>
-
-        </dt>
-        <dd>Judge-scored accuracy corrected with human labels</dd>
-      </dl></div><div class="section level2">
-      <h2 id="signals-and-calibration">Signals and calibration<a class="anchor" aria-label="anchor" href="#signals-and-calibration"></a></h2>
-
-      <div class="section-desc"><p>Values the package records about its own work, the calibration records that measure how well they predict being right, and the thresholds and policy that decide whether a signal may gate an action. Nothing gates by default. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="hr_signal.html">hr_signal()</a></code> <code><a href="hr_signal.html">hr_signals()</a></code>
-
-        </dt>
-        <dd>Record a self-signal</dd>
-
-        <dt>
-
-          <code><a href="hr_calibrate_signal.html">hr_calibrate_signal()</a></code>
-
-        </dt>
-        <dd>Calibrate a self-signal against graded items</dd>
-
-        <dt>
-
-          <code><a href="hr_calibration_valid.html">hr_calibration_valid()</a></code>
-
-        </dt>
-        <dd>Is a calibration record valid for a run?</dd>
-
-        <dt>
-
-          <code><a href="hr_gate_threshold.html">hr_gate_threshold()</a></code>
-
-        </dt>
-        <dd>Choose a gate threshold by Learn-then-Test</dd>
-
-        <dt>
-
-          <code><a href="hr_signal_policy.html">hr_signal_policy()</a></code> <code><a href="hr_signal_policy.html">hr_apply_signal()</a></code>
-
-        </dt>
-        <dd>What a signal may do, and what happens when it may not</dd>
-      </dl></div><div class="section level2">
-      <h2 id="reference-sets-and-splits">Reference sets and splits<a class="anchor" aria-label="anchor" href="#reference-sets-and-splits"></a></h2>
-
-      <div class="section-desc"><p>Splitting reference items into tuning, calibration and test sets by document, and the sheets people fill in to label them. See <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code>.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="hr_assign_splits.html">hr_assign_splits()</a></code>
-
-        </dt>
-        <dd>Assign reference items to splits by cluster</dd>
 
         <dt>
 
@@ -1182,9 +1260,32 @@
         </dt>
         <dd>Read a filled label sheet</dd>
       </dl></div><div class="section level2">
-      <h2 id="extending-harnessr">Extending harnessr<a class="anchor" aria-label="anchor" href="#extending-harnessr"></a></h2>
 
-      <div class="section-desc"><p>Every axis is a registry, and an addition is used exactly like a built-in. <code><a href="../reference/hr_register.html">hr_register()</a></code> and <code><a href="../reference/hr_modules.html">hr_modules()</a></code> register and list modules of any kind. See <code><a href="../articles/extending.html">vignette("extending")</a></code>.</p></div>
+      <h3 id="settings-of-the-document-stages">Settings of the document stages<a class="anchor" aria-label="anchor" href="#settings-of-the-document-stages"></a></h3>
+      <div class="section-desc"><p>The settings of a read, segment or ingest spec, and every setting of every stage in one table. See <code><a href="../articles/settings.html">vignette("settings")</a></code>.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="gr_settings.html">gr_settings()</a></code>
+
+        </dt>
+        <dd>The settings of a read, segment or ingest spec</dd>
+
+        <dt>
+
+          <code><a href="gr_settings_table.html">gr_settings_table()</a></code>
+
+        </dt>
+        <dd>Every setting of every stage</dd>
+      </dl></div><div class="section level2">
+
+      <h3 id="extending-the-document-layer">Extending the document layer<a class="anchor" aria-label="anchor" href="#extending-the-document-layer"></a></h3>
+      <div class="section-desc"><p>Every document axis is a registry, and an addition is used exactly like a built-in. Register extractors, cleaners, segmenters, readers and embedders, build the objects they return, and check them against the contract. See <code><a href="../articles/extending.html">vignette("extending")</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -1228,20 +1329,6 @@
 
         <dt>
 
-          <code><a href="hr_register.html">hr_register()</a></code>
-
-        </dt>
-        <dd>Register a module of any kind</dd>
-
-        <dt>
-
-          <code><a href="hr_modules.html">hr_modules()</a></code>
-
-        </dt>
-        <dd>List the registered modules of every kind</dd>
-
-        <dt>
-
           <code><a href="new_chunks.html">new_chunks()</a></code>
 
         </dt>
@@ -1253,55 +1340,6 @@
 
         </dt>
         <dd>Build a <code>gr_answer</code>, the object every reader must return</dd>
-
-        <dt>
-
-          <code><a href="hr_cost.html">hr_cost()</a></code>
-
-        </dt>
-        <dd>What one run of a module can cost</dd>
-
-        <dt>
-
-          <code><a href="gr_settings.html">gr_settings()</a></code>
-
-        </dt>
-        <dd>The settings of a read, segment or ingest spec</dd>
-
-        <dt>
-
-          <code><a href="gr_settings_table.html">gr_settings_table()</a></code>
-
-        </dt>
-        <dd>Every setting of every stage</dd>
-
-        <dt>
-
-          <code><a href="hr_schema.html">hr_schema()</a></code> <code><a href="hr_schema.html">as.data.frame(<i>&lt;hr_schema&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Collect parameters into a schema</dd>
-
-        <dt>
-
-          <code><a href="hr_param.html">hr_param()</a></code>
-
-        </dt>
-        <dd>Declare one parameter of a module or spec</dd>
-
-        <dt>
-
-          <code><a href="hr_validate.html">hr_validate()</a></code>
-
-        </dt>
-        <dd>Validate and resolve settings against a schema</dd>
-
-        <dt>
-
-          <code><a href="hr_check_module.html">hr_check_module()</a></code>
-
-        </dt>
-        <dd>Check a module against a set of rules</dd>
 
         <dt>
 

@@ -802,9 +802,10 @@ before you change a default.
 
 ## Choosing the settings
 
-One option belongs to effort. The walkthrough says what it controls, the
-signs that point to changing it, where its default came from and how to
-test a change.
+Two settings belong to effort: the option `reasoning_floor`, and
+`effort_mode`, a setting of a document read. Each walkthrough says what
+the setting controls, the signs that point to changing it, where its
+default came from and how to test a change.
 
 ### The output cap floor: `reasoning_floor`
 
@@ -862,20 +863,153 @@ c(res$finish_reason, res$usage$reasoning)
 tr$steps[[1]]$params_sent$max_output
 ```
 
+### Effort that rises when needed: `effort_mode`
+
+**What it controls.** `effort_mode` is a setting of
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md).
+With `effort_mode = "escalate"`, a read starts every stage at its
+`effort` (`"low"` when `effort` is unset). It sends the next stage at
+`"high"` when one of these went wrong in the stage before:
+
+- a cut;
+- a reply stopped at its output cap;
+- a reply that is not the JSON asked for;
+- `NOT_IN_DOCUMENT` from every request of the stage;
+- a quotation `iterative` could not verify;
+- `ensemble` members that disagree.
+
+Effort changes only at a stage boundary, at most once a read, and the
+stage after a raised one goes back to the base effort. The setting
+trades the cost of reasoning at a high effort on every request against
+the cost of a wrong answer where low effort was not enough. A raise
+costs nothing but the raised stage’s reasoning.
+
+**Signs it needs changing.** Look for a fixed `"high"` effort whose bill
+is mostly reasoning on requests that a low effort answers as well, or
+for answers at a fixed `"low"` that come back cut off, unparsed or not
+found. The trace records each raise as an `"effort.escalate"` step.
+[`hr_effort_log()`](https://elkronos.github.io/harnessr/reference/hr_effort_log.md)
+shows which trigger fired and whether the raised stage fired it again.
+
+**Where the default came from.** `"static"` sends the effort `effort`
+names, as harnessr did before the setting existed; the settings table
+marks it `untested`. No one has compared escalation with a fixed effort
+here, and
+[`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
+makes that comparison.
+
+**How to test it.** `qa` below holds one question about the example
+report. `refine` reads the report with a stand-in reasoning model that,
+at low effort, finds nothing in the first chunk, where `refine` drafts
+its answer:
+
+``` r
+
+qa <- gr_qa_reference(questions = c(revenue = "What was revenue in 2024?"),
+                      documents = gr_example(), answers = list("45.2 million"),
+                      split = "dev")
+hr_register_model("priced-reasoner", context_window = 128000, max_output = 8192,
+                  input_usd = 1, output_usd = 4, reasoning = TRUE)
+thinks <- hr_mock_client(function(messages, params) {
+  if (identical(params$effort, "low") &&
+      startsWith(messages[[2]]$content, "<excerpts>")) {
+    return("NOT_IN_DOCUMENT")
+  }
+  "Revenue was 45.2 million dollars."
+})
+efforts <- hr_sweep(function(effort) {
+  gr_arm("thorough", list(method = "sentence", max_tokens = 150, overlap_tokens = 0,
+                          model = "priced-reasoner", reader = "refine",
+                          effort = if (effort != "escalate") effort,
+                          effort_mode = if (effort == "escalate") "escalate" else "static"))
+}, list(effort = c("low", "high", "escalate")))
+eb <- hr_benchmark(efforts, qa, runs = 5, client = thinks, split = "dev",
+                   scorer = gr_scorer_answer(),
+                   governor = hr_governor(max_calls = 200, max_cost_usd = 1))
+sent <- do.call(rbind, lapply(seq_len(nrow(eb)), function(i) {
+  d <- as.data.frame(attr(eb, "traces")[[eb$ledger_id[i]]])
+  d <- d[!is.na(d$effort), ]
+  data.frame(arm = eb$arm[i], stage = d$stage, effort = d$effort)
+}))
+table(sent$arm, paste(sent$stage, sent$effort))
+#>                           
+#>                            refine.draft high refine.draft low
+#>   thorough:effort=escalate                 0                5
+#>   thorough:effort=high                     5                0
+#>   thorough:effort=low                      0                5
+#>                           
+#>                            refine.revise high refine.revise low
+#>   thorough:effort=escalate                 20                 0
+#>   thorough:effort=high                     20                 0
+#>   thorough:effort=low                       0                20
+hr_effort_log(attr(eb, "traces")[[eb$ledger_id[eb$arm == "thorough:effort=escalate"][1]]])
+#>          after         stage        triggers   to calls resolved
+#> 1 refine.draft refine.revise not_in_document high     4     TRUE
+```
+
+At `"low"` every request went out low, and at `"high"` every one went
+out high. Under `"escalate"` the draft went out low and found nothing.
+That raised the four revisions after it to high, and the log shows that
+the raise resolved the trigger: the revisions found the figure.
+
+Four of the five requests of each run went out raised here, because the
+draft is one request. On a reader whose first stage is many requests
+(`map_reduce`’s chunks), the raised stage is the smaller share.
+
+[`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
+reads a benchmark of such arms with the non-inferiority test of
+[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md),
+as [Does more effort pay?](#check) shows. That test needs a reference
+with a test split and enough items and runs for intervals, which `qa`
+lacks, so run the check on a benchmark of your own:
+
+``` r
+
+chk <- hr_effort_check(your_bench, candidate = "thorough:effort=escalate", margin = 0.05)
+chk$contrasts[, c("reference", "estimate", "lower", "verdict")]
+chk$cost
+```
+
+Register the margin with
+[`hr_register_contrasts()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md)
+before the benchmark runs and pass it as `registration`; without one,
+the result is marked post hoc.
+
 ## Where the document layer builds on this
 
 A read takes an effort map as the `effort` setting of
 [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
 and its `effort_mode = "escalate"` builds an
 [`hr_effort_escalate()`](https://elkronos.github.io/harnessr/reference/hr_effort_escalate.md)
-policy from it. The document layer checks the names of a map against the
-labels its readers declare, and stops with an error of class
-`hr_unknown_effort_key` for one that covers no call. “Reasoning effort,
-stage by stage” in
+policy from it, as the [`effort_mode` walkthrough](#set-effort-mode)
+above shows. “Reasoning effort, stage by stage” in
 [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
-lists each reader’s labels, and
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-raises the effort of a read with `effort_mode`.
+lists each reader’s labels.
+
+In a review, the same vector goes to each stage.
+[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
+and
+[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
+take it as a recipe override;
+[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
+[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
+and
+[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
+take it as an argument. With
+`effort = c(extract = "low", synthesise = "high")`, the per-chunk
+extraction stays cheap and the spending goes to the writing.
+
+The document layer checks the names of a map against the labels its
+readers declare. A name that matches no declared call stops with an
+error of class `hr_unknown_effort_key` that lists the stems. A misspelt
+`c(extrac = "low")` therefore cannot send every extraction at the
+provider’s default unnoticed, as it can through
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+(see [One effort for every call, or one per
+stage](#one-effort-for-every-call-or-one-per-stage)).
+[`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
+lists every label and suggests a profile: low for the many per-chunk
+calls, high for the few that judge.
 
 ## Next
 

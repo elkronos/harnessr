@@ -52,8 +52,8 @@ harnessr no longer ships them. You set the prices you pay.
   for one model, or keep a CSV file of prices with an `as_of` column and
   load it with
   [`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md)
-  at the top of each script. “Models, prices and token counts” in
-  [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+  at the top of each script. “Prices” in
+  [`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
   walks through both, checking prices with
   [`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md),
   unpriced models and stale prices.
@@ -182,6 +182,59 @@ before `premise`, which stays last).
   covers `reasoning_floor`, and
   [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
   links that option to it.
+- The site and the README group the guides in two parts after Get
+  started. Core holds `core`, `models`, `context`, `effort`, `runs`,
+  `compose`, `evaluate`, `compare` and `settings`; Documents holds
+  `ingest`, `segment`, `readers`, `review` and `extending`. The
+  reference index lists the core functions first, by topic in the order
+  of the core guides, then the document layer.
+- The README and
+  [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
+  introduce harnessr as a harness for model calls with a document layer
+  built on it. The get started guide shows a call, its trace, prices and
+  limits, context and effort before the first question about a document.
+- The walkthrough of parameter schemas
+  ([`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md),
+  [`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md),
+  [`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md))
+  moved from
+  [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)
+  to “Checking settings” in
+  [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md).
+  The extending guide’s section on models now points to
+  [`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md),
+  which covers the same ground.
+- The walkthrough of registering a step, listing the modules of every
+  kind with
+  [`hr_modules()`](https://elkronos.github.io/harnessr/reference/hr_modules.md)
+  and checking a module with
+  [`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md)
+  moved from
+  [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)
+  to “Registering a step” in
+  [`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md).
+  The reference index lists these functions after the compose functions.
+- [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+  is now “Limits, caching and replay”. Its walkthrough of models, prices
+  and token counts moved to
+  [`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md),
+  whose Prices section keeps the `#models-prices` anchor. Its effort
+  sections moved to
+  [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md),
+  including the `effort_mode` walkthrough with its `#set-effort-mode`
+  anchor, and
+  [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
+  links `effort_mode` there.
+- Each document guide (`ingest`, `segment`, `readers`, `review`,
+  `extending`) opens by naming the core pieces it builds on, and links
+  to the core section where it mentions a budget, the trace, a refusal,
+  the cache, effort or a price.
+  [`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
+  and
+  [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
+  open as core guides.
+  [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
+  lists the core settings before the document settings.
 - [`?gr_result`](https://elkronos.github.io/harnessr/reference/gr_result.md)
   lists every field a result carries, including `cached`,
   `served_model`, `response_id`, `fingerprint`, `attempts` and, for a

@@ -1,12 +1,16 @@
 # Get started with harnessr
 
-harnessr asks a large language model questions about your documents (a
-report, a contract, a folder of research papers) and returns the answer
-with a record of how it was reached: which parts of the document the
-model saw, what it was asked, what it said, and what that cost. You need
-no previous experience with language models. This guide covers the few
-ideas you need, then installing the package, then a first question from
-start to finish.
+harnessr is a harness for calls to large language models. Its core (the
+`hr_` functions) sends each request, checks it against your spending
+limits before it goes, can cache the reply, records it in a trace and
+checks what came back. The document layer (the `gr_` functions) is built
+on the core. It asks a model questions about your documents (a report, a
+contract, a folder of research papers) and returns the answer with a
+record of how it was reached: which parts of the document the model saw,
+what it was asked, what it said, and what that cost. You need no
+previous experience with language models. This guide covers the few
+ideas you need, installing and connecting, the core in brief, and then a
+first question about a document from start to finish.
 
 Everything below runs without an account or an internet connection, so
 you can follow along for free.
@@ -45,43 +49,11 @@ middle of a very long prompt. harnessr therefore cuts documents into
 smaller pieces, called *chunks*, and puts the question to the chunks in
 some order.
 
-**That makes three decisions**, and harnessr keeps them separate so you
-can see and change each one:
-
-1.  **Ingest**: get the text out of the file and tidy it.
-2.  **Segment**: cut the text into chunks.
-3.  **Read**: decide how the model works through the chunks. It can take
-    all of them in one request, each one separately, or only the most
-    relevant few, among other strategies.
-
-A fourth choice, which model answers, is independent of all three.
-[`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md),
-[`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md)
-and
-[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
-cover the three steps in depth.
-
-Each step is a registry you can extend without editing the package
-([`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)).
-The built-in entries:
-
-- Ingest has 6 extractors and 14 individually toggleable cleaners.
-- Segment has 9 segmenters.
-- Read has 12 strategies, each with a distinct traversal signature.
-
-Any ingest composes with any segmenter and any reader.
-[`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)
-binds one of each into a named pipeline. Run a recipe alongside others
-in
-[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
-and it gives the same `$answer` and `$chunks_used`, byte for byte, as
-when you run it alone.
-
 **Models can make things up.** A model may state something the document
 never says, and it can do so fluently. harnessr cannot prevent that. It
 records which text each answer rests on, checks quotations against the
-document, and tells you when anything went wrong. The first example
-below shows where to look.
+document, and tells you when anything went wrong. The first question
+about a document below shows where to look.
 
 ## Installing
 
@@ -217,9 +189,11 @@ cl <- hr_ellmer_client(chat_ollama(model = "llama3.1"))
 
 Without a registered price, a run under `max_cost_usd` is sent with an
 `hr_unpriced_model` warning, and the spending limit does not count it.
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-covers unpriced models and what changes through ellmer (temperature and
-embeddings).
+“A model with no price” in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
+covers unpriced models, and
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)
+covers what changes through ellmer (temperature and embeddings).
 
 Anything else, such as a model behind a queue, goes through
 [`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md).
@@ -251,6 +225,204 @@ what it has spent.
 [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md)
 returns the settings it replaced, so you can restore them later with
 `hr_options(old)`.
+
+## The core in brief
+
+Every chat request harnessr makes goes through
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md),
+and every embedding request through
+[`hr_embed()`](https://elkronos.github.io/harnessr/reference/hr_embed.md),
+whether a document reader sends it or your own code does. You can use
+the core with no document at all. The parts below each link to the core
+guide that covers them in depth.
+
+### A call
+
+``` r
+
+tr  <- hr_trace()
+res <- hr_call(cl, "What was revenue in fiscal 2024?", trace = tr, label = "ask")
+res$ok
+#> [1] TRUE
+res$text
+#> [1] "Revenue was 45.2 million dollars."
+```
+
+A failed request does not stop your script.
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+returns a result with `ok = FALSE` and the reason in `error`, so check
+`ok` before you use `text`.
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)
+covers what a result holds, every kind of client, structured replies and
+checks on a reply.
+
+### Its trace
+
+The trace `tr` now holds one row for the request. Its `label` is the
+row’s `stage`:
+
+``` r
+
+as.data.frame(tr)[, c("stage", "model", "tokens_in", "tokens_out", "usd")]
+#>   stage      model tokens_in tokens_out usd
+#> 1   ask mock-model        14         13   0
+```
+
+[`hr_trace_save()`](https://elkronos.github.io/harnessr/reference/hr_trace_save.md)
+writes a trace to a file, and
+[`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
+answers the same calls from that file later, with no model and no key.
+“The trace” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)
+covers what it records, and
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+covers replay.
+
+### Prices and limits
+
+`usd` comes from the prices in harnessr’s model registry
+([`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md)).
+The mock costs nothing. For a real model, harnessr knows the limits but
+ships no prices, because providers change prices more often than the
+package is released. You set the price you pay, in US dollars per
+million tokens. Until you do, the model’s cost is `NA`, never 0.
+
+Set the default model’s price, then estimate before sending anything.
+Here is a 120,000-token document with a 4,000-token answer:
+
+``` r
+
+# Illustrative figures: use your provider's current prices.
+hr_register_model(hr_options("model"), input_usd = 2, output_usd = 12)
+hr_estimate_cost(hr_options("model"), input_tokens = 120000, output_tokens = 4000)
+#> [1] 0.288
+```
+
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
+covers the model registry, how to set the prices of many models from a
+file and what happens to a model with no price.
+
+Two safety limits are on from the start: \$5 and 400 requests per run.
+harnessr checks each request before sending it, against what the run has
+spent plus the most that request could cost, and does not send one that
+could pass a limit.
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+then returns a result with `refused = TRUE`, and its `error` names the
+limit.
+
+``` r
+
+unlist(hr_options()[c("max_cost_usd", "max_calls")])
+#> max_cost_usd    max_calls 
+#>            5          400
+```
+
+Change them with
+[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md),
+for example `hr_options(max_cost_usd = 20)`.
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+covers the other limits, a governor for one run, and how to cache a run
+so you pay for it once.
+
+### Context
+
+A model’s context window bounds one request, prompt and reply together.
+[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
+works out how much of it a prompt may use:
+
+``` r
+
+unlist(hr_budget(hr_options("model"))[c("context_window", "input", "output")])
+#> context_window          input         output 
+#>        1050000         817000         128000
+```
+
+A tenth of the window is held back for error in the local token count,
+and the reply gets a reserve, here the model’s output cap. The prompt
+gets the rest.
+[`hr_context_fit()`](https://elkronos.github.io/harnessr/reference/hr_context_fit.md)
+fits the pieces of a prompt into that room and records in the trace what
+it cut. The document readers size their prompts the same way.
+[`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)
+covers budgets, fitting and cutting.
+
+### Effort
+
+The default models also *reason* before they answer: they work through
+the question in text you never see, and it is charged as text the model
+writes back. `effort` sets how much, for example `"low"` or `"high"`.
+Unless you set it, harnessr sends no effort and the provider’s default
+applies. harnessr sends it only to a model it knows reasons. The mock is
+not one, so the call below gives it the default model’s name to stand in
+for that model:
+
+``` r
+
+low <- hr_call(cl, "What was revenue in fiscal 2024?", model = hr_options("model"),
+               effort = "low", trace = tr, label = "ask.low")
+as.data.frame(tr)[, c("stage", "model", "effort")]
+#>     stage         model effort
+#> 1     ask    mock-model   <NA>
+#> 2 ask.low gpt-5.6-terra    low
+```
+
+The trace records the effort each request carried; the `effort` column
+appears only when a request carried one. Less reasoning costs less.
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)
+covers the levels, an effort per stage, and effort that rises only when
+a stage goes wrong.
+
+### More of the core
+
+The core also composes calls into steps and chains that run as one unit
+([`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)),
+and measures configurations against labelled answers, with intervals
+([`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
+and
+[`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)).
+
+## The document layer
+
+The document layer asks questions of documents. Its requests go through
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+and
+[`hr_embed()`](https://elkronos.github.io/harnessr/reference/hr_embed.md),
+which check them against the same limits and record them in a trace of
+the same kind, returned in `ans$trace`.
+
+A long document does not fit in one request, so the document layer cuts
+it into chunks. Asking a question of a document **takes three
+decisions**, and harnessr keeps them separate so you can see and change
+each one:
+
+1.  **Ingest**: get the text out of the file and tidy it.
+2.  **Segment**: cut the text into chunks.
+3.  **Read**: decide how the model works through the chunks. It can take
+    all of them in one request, each one separately, or only the most
+    relevant few, among other strategies.
+
+A fourth choice, which model answers, is independent of all three.
+[`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md),
+[`vignette("segment")`](https://elkronos.github.io/harnessr/articles/segment.md)
+and
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
+cover the three steps in depth.
+
+Each step is a registry you can extend without editing the package
+([`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)).
+The built-in entries:
+
+- Ingest has 6 extractors and 14 individually toggleable cleaners.
+- Segment has 9 segmenters.
+- Read has 12 strategies, each with a distinct traversal signature.
+
+Any ingest composes with any segmenter and any reader.
+[`gr_recipe()`](https://elkronos.github.io/harnessr/reference/gr_recipe.md)
+binds one of each into a named pipeline. Run a recipe alongside others
+in
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
+and it gives the same `$answer` and `$chunks_used`, byte for byte, as
+when you run it alone.
 
 ## Your first question
 
@@ -435,77 +607,29 @@ as.data.frame(ans$trace)[, c("stage", "tokens_in", "tokens_out", "usd", "seconds
 #> 1 stuff.answer       611         13   0   0.001
 ```
 
-`usd` comes from the prices in harnessr’s model registry
-([`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md)).
-The mock costs nothing. For a real model, harnessr knows the limits but
-ships no prices, because providers change prices more often than the
-package is released. You set the price you pay, in US dollars per
-million tokens. Until you do, the model’s cost is `NA`, never 0.
+`usd` comes from the prices you set (“Prices and limits” above). The
+mock costs nothing.
 
-Set the default model’s price, then estimate before sending anything.
-Here is a 120,000-token document with a 4,000-token answer:
-
-``` r
-
-# Illustrative figures: use your provider's current prices.
-hr_register_model(hr_options("model"), input_usd = 2, output_usd = 12)
-hr_estimate_cost(hr_options("model"), input_tokens = 120000, output_tokens = 4000)
-#> [1] 0.288
-```
-
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-shows how to set the prices of many models from a file and keep them
-current.
-
-Two safety limits are on from the start: \$5 and 400 requests per
-document. harnessr checks each request before sending it, against what
-the run has spent plus the most that request could cost, and does not
-send one that could pass a limit. A run stopped that way is marked
-partial, and printing it names the limit that stopped it.
+The limits above hold for a document run as a whole. A run stopped by
+one is marked partial, and printing it names the limit that stopped it.
 
 harnessr also refuses, before the first request, a run that could not
 finish inside the limits: one that would need more than 400 requests, or
-one whose chunks would cost more than \$5 to send once:
-
-``` r
-
-unlist(hr_options()[c("max_cost_usd", "max_calls")])
-#> max_cost_usd    max_calls 
-#>            5          400
-```
-
-Change them with
-[`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md),
-for example `hr_options(max_cost_usd = 20)`.
+one whose chunks would cost more than \$5 to send once.
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-covers the other limits, and how to cache a run so you pay for it once.
+covers the pre-flight check and how to cache a run so you pay for it
+once.
 
-The default models also *reason* before they answer: they work through
-the question in text you never see, and it is charged as text the model
-writes back. `effort` sets how much, for example `"low"` or `"high"`.
-Unless you set it, harnessr sends no effort and the provider’s default
-applies. harnessr sends it only to a model it knows reasons. The mock is
-not one, so the example below gives it the default model’s name to stand
-in for that model:
-
-``` r
-
-low <- answer_document(gr_example(), "What was revenue in 2024?",
-                       client = cl, model = hr_options("model"), effort = "low")
-as.data.frame(low$trace)[, c("stage", "model", "effort")]
-#>          stage         model effort
-#> 1 stuff.answer gpt-5.6-terra    low
-```
-
-With a real client on the default model, `effort = "low"` alone is
-enough. The trace records the effort each request carried; the `effort`
-column appears only when a request carried one. Less reasoning costs
-less.
-
-You can also set `effort` by stage: low for the many routine requests,
+A document run takes `effort` too, as in “Effort” above:
+`answer_document(..., effort = "low")` sends it with every request that
+goes to a model that reasons, and the trace’s `effort` column records
+it. You can also set it by stage: low for the many routine requests,
 high for the few that judge.
 [`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
-lists the stages and suggests a starting point, and
+lists the stages and suggests a starting point, “Reasoning effort, stage
+by stage” in
+[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
+runs a read with an effort per stage, and
 [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)
 covers effort in full.
 
@@ -611,7 +735,7 @@ table(factor(settings$stage, unique(settings$stage)))
 | extract | 10 | the arguments of [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md) | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
 | synthesise | 29 | the arguments of [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md) and the functions beside it | [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md) |
 | evaluate | 30 | the arguments of [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md), [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md) and [`hr_judge()`](https://elkronos.github.io/harnessr/reference/hr_judge.md) | [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md), [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md) |
-| options | 35 | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md), for the whole session | [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
+| options | 35 | [`hr_options()`](https://elkronos.github.io/harnessr/reference/hr_options.md), for the whole session | [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md), [`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md), [`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md), [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md), [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md) |
 
 Most runs change a few of them, and
 [`gr_settings_table()`](https://elkronos.github.io/harnessr/reference/gr_settings_table.md)
@@ -673,6 +797,8 @@ covers each of these.
 
 ## Where to go next
 
+The core guides:
+
 - [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md):
   the calls underneath every guide here: clients, what a call returns,
   the trace, structured replies and errors by class.
@@ -685,6 +811,24 @@ covers each of these.
 - [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md):
   how hard a reasoning model reasons, by stage or raised only when a
   stage goes wrong, and what that costs.
+- [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
+  limits and the governor, caching a run so you pay for it once, and
+  replaying it.
+- [`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md):
+  building a run of your own from steps, and comparing it with the
+  recipes.
+- [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md)
+  and
+  [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md):
+  benchmarks, judges and comparisons of configurations, with intervals.
+- [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md):
+  every setting of every stage, with its default and where the default
+  came from.
+- [`?hr_options`](https://elkronos.github.io/harnessr/reference/hr_options.md):
+  every option, with its default.
+
+The document guides:
+
 - [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md):
   getting text out of PDFs, Word files, web pages and scans, and
   cleaning it.
@@ -697,19 +841,9 @@ covers each of these.
 - [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md):
   many documents and literature reviews, from a search export to a
   written review.
-- [`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md):
-  building a run of your own from steps, and comparing it with the
-  recipes.
-- [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
-  cost, limits, the trace, caching and replaying a run.
 - [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md):
   adding your own extractors, cleaners, segmenters, readers and
   embedders.
-- [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md):
-  every setting of every stage, with its default and where the default
-  came from.
-- [`?hr_options`](https://elkronos.github.io/harnessr/reference/hr_options.md):
-  every option, with its default.
 
 `browseVignettes("harnessr")` lists all the guides.
 

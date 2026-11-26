@@ -1,17 +1,29 @@
 # Composing steps into chains
 
-A recipe such as `needle` runs a fixed sequence of stages: segment the
-document, rank the chunks, read the best. For a sequence of your own,
-such as one with a check after the answer or a step that rewrites the
-question, you build it from steps and run them in order as one arm. That
-arm is an ordinary
+A step does one part of a run: a model call, a check, a program to run,
+or a stage of the document layer.
+[`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
+runs steps in order as one arm. That arm is an ordinary
 [`hr_arm()`](https://elkronos.github.io/harnessr/reference/hr_arm.md),
 so
 [`hr_benchmark()`](https://elkronos.github.io/harnessr/reference/hr_benchmark.md)
 compares it with recipes and with other chains on the same labelled
 questions, as
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
-does for recipes.
+does for recipes. A recipe such as `needle` runs a fixed sequence of
+stages: segment the document, rank the chunks, read the best. A chain
+can add what a recipe lacks, such as a check after the answer or a step
+that rewrites the question.
+
+Steps and chains are part of the core. Most examples below chain the
+document layer’s stages over the example report, because a short
+document makes each step’s input and output easy to see. The coding
+sub-agent near the end reads no document. A step makes its requests
+through its `ctx`, so the trace, the limits and the cache apply to them
+as to any call
+([`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)
+and
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)).
 
 [`hr_chain()`](https://elkronos.github.io/harnessr/reference/hr_chain.md)
 passes each step’s output to the next step. A step’s settings come from
@@ -124,7 +136,8 @@ names(attr(wider, "hr_steps"))
 
 The three chains run side by side like any other arms. Each run sends
 its requests at its own draw, so a cache does not hand one run’s reply
-to the next:
+to the next (“Repeated draws” in
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)):
 
 ``` r
 
@@ -186,6 +199,86 @@ b <- hr_chain(segment = gr_step("segment"), retrieve = gr_step_retrieve(top_k = 
 identical(attr(a, "hr_config"), attr(b, "hr_config"))
 #> [1] TRUE
 ```
+
+## Registering a step
+
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
+files a module in the registry under a kind. The kinds are
+`"extractor"`, `"cleaner"`, `"segmenter"`, `"reader"`, `"embedder"`,
+`"protocol"` and `"step"`. The first six belong to the document layer,
+and
+[`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)
+registers them. For any other kind,
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
+raises an error of class `hr_unknown_kind`.
+
+A step from
+[`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md)
+registers under the kind `"step"`. Its version is the step’s own unless
+you give
+[`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md)
+another:
+
+``` r
+
+hr_register("step", "shout", fn = hr_step("shout", function(input, ctx) toupper(input),
+                                          input = "answer", output = "state",
+                                          version = "0.2.0"))
+hr_modules("step")[, c("name", "input", "output", "version", "contract")]
+#>    name  input output version contract
+#> 1 shout answer  state   0.2.0      0.2
+```
+
+[`hr_modules()`](https://elkronos.github.io/harnessr/reference/hr_modules.md)
+with no kind lists the modules of every kind in one table, with the call
+stems each declares as a list column. Give it a kind, as above, to add
+that kind’s own columns:
+
+``` r
+
+m <- hr_modules()
+table(m$kind)
+#> 
+#>   cleaner  embedder extractor  protocol    reader segmenter      step 
+#>        14         2         6         4        12         9         1
+```
+
+### Checking a module
+
+[`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md)
+runs a module once and reports which of your rules it breaks. It works
+for a module of any kind. Give it three things:
+
+- the module’s function;
+- a closure of no arguments that runs the module once;
+- a named list of rules, each a function of the value the closure
+  returned.
+
+A rule returns `TRUE`, `FALSE`, `NA` (could not be checked), or a list
+with `ok` and a `detail` string. The closure runs in a temporary working
+directory that
+[`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md)
+removes afterwards, and the `runs` rule reports any error the closure
+raises.
+
+``` r
+
+double_it <- function(x) x * 2
+hr_check_module(double_it, function() double_it(2),
+  rules = list(numeric = function(v) is.numeric(v),
+               above_three = function(v) list(ok = v > 3, detail = sprintf("got %s", v))),
+  kind = "function", name = "double_it")
+#> <hr_conformance> function 'double_it', contract 0.2
+#>   passes all 4 rules
+#>   ok    is_function
+#>   ok    runs
+#>   ok    numeric
+#>   ok    above_three: got 4
+```
+
+The reader and segmenter checks of the document layer use it (“Checking
+a module against the contract” in
+[`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)).
 
 ## Settings and sweeps
 
@@ -321,10 +414,11 @@ with
 and change it further with
 [`hr_set()`](https://elkronos.github.io/harnessr/reference/hr_set.md).
 
-A replay of a recorded benchmark matches each run’s sampled requests by
-the arm’s name. A renamed or swept chain therefore does not replay a
-recording made under another name; record the benchmark again under the
-new names.
+A replay of a recorded benchmark (“Replaying a run” in
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md))
+matches each run’s sampled requests by the arm’s name. A renamed or
+swept chain therefore does not replay a recording made under another
+name; record the benchmark again under the new names.
 
 ## Skills
 
@@ -584,8 +678,10 @@ to the next.
 ### Run your own tests on the recipes
 
 Here you sweep a recipe over a grid of its settings and run your own arm
-beside it, on the same questions and under one spending limit. Given a
-function,
+beside it, on the same questions and under one spending limit (“A
+governor for one run” in
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)).
+Given a function,
 [`hr_sweep()`](https://elkronos.github.io/harnessr/reference/hr_sweep.md)
 builds one arm per row of the grid, and each arm records its settings as
 `param.*` columns:
@@ -683,10 +779,19 @@ draft step, a visible check, a revise step, and the held check last.
   report.
 - [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md):
   references, scorers, judges and signals.
+- [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md):
+  the calls a step makes, and the trace that records them.
+- [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
+  the limits, the cache and the replay a chain runs under.
 - [`?hr_step`](https://elkronos.github.io/harnessr/reference/hr_step.md)
   and
   [`?hr_chain`](https://elkronos.github.io/harnessr/reference/hr_chain.md):
   every argument, and what a chain records.
+- [`?hr_register`](https://elkronos.github.io/harnessr/reference/hr_register.md),
+  [`?hr_modules`](https://elkronos.github.io/harnessr/reference/hr_modules.md)
+  and
+  [`?hr_check_module`](https://elkronos.github.io/harnessr/reference/hr_check_module.md):
+  registering, listing and checking a module of any kind.
 - [`?hr_settings`](https://elkronos.github.io/harnessr/reference/hr_settings.md)
   and
   [`?hr_set`](https://elkronos.github.io/harnessr/reference/hr_set.md):

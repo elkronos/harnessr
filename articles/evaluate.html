@@ -39,25 +39,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -100,11 +92,15 @@ reasoning effort) changes the answers, and one run on one document
 cannot tell you by how much. A model asked the same question five times
 can answer it five ways. Ten questions about one report share that
 report’s quirks, so they are closer to one observation than to ten.</p>
-<p><code><a href="../reference/gr_compare.html">gr_compare()</a></code> shows what each recipe does to one
-document, and its output is descriptive only. With the functions in this
-guide you answer the next question: on a labelled set of questions, is
-configuration A more accurate than B, by how much, at what cost, and how
-sure can you be?</p>
+<p>The functions in this guide answer what one run cannot: on a labelled
+set of questions, is configuration A more accurate than B, by how much,
+at what cost, and how sure can you be? They are part of the core. An arm
+wraps any function of an item and a context, so a benchmark compares
+prompts, models, efforts and chains as well as reading recipes. Many
+examples use the document layer’s recipes, because the example report
+and a few questions about it make a short labelled set.
+<code><a href="../reference/gr_compare.html">gr_compare()</a></code>, from the document layer, shows what each
+recipe does to one document, and its output is descriptive only.</p>
 <p>The sections follow the order of the work: a reference set and its
 splits, the arms to compare and the rule that scores them, a benchmark
 held to one spending limit, the report and how to read it, planning the
@@ -302,12 +298,13 @@ answering.</p>
 </h2>
 <p>An arm is one configuration to compare: a function of an item and a
 context that returns the arm’s output for that item. <code>ctx</code>
-carries the benchmark’s client, a trace of this run alone, the governor
-the run is held to and the run’s <code>draw_index</code>.
-<code>ctx$call()</code> is <code><a href="../reference/hr_call.html">hr_call()</a></code> with the client, the
-trace and the draw index filled in. Send every request an arm makes
-through that trace: the benchmark counts the run’s tokens and dollars
-there and holds the run to the limit through it:</p>
+carries the benchmark’s client, a trace of this run alone (“The trace”
+in <code><a href="../articles/core.html">vignette("core")</a></code>), the governor the run is held to and
+the run’s <code>draw_index</code>. <code>ctx$call()</code> is
+<code><a href="../reference/hr_call.html">hr_call()</a></code> with the client, the trace and the draw index
+filled in. Send every request an arm makes through that trace: the
+benchmark counts the run’s tokens and dollars there and holds the run to
+the limit through it:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ask</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span>, <span class="va">model</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/hr_arm.html">hr_arm</a></span><span class="op">(</span><span class="va">name</span>, <span class="kw">function</span><span class="op">(</span><span class="va">item</span>, <span class="va">ctx</span><span class="op">)</span> <span class="op">{</span></span>
@@ -429,10 +426,11 @@ the spread from run to run apart from the difference between arms.</p>
 <div class="section level3">
 <h3 id="one-limit-for-the-whole-benchmark">One limit for the whole benchmark<a class="anchor" aria-label="anchor" href="#one-limit-for-the-whole-benchmark"></a>
 </h3>
-<p>The whole benchmark is one run under one <code><a href="../reference/hr_governor.html">hr_governor()</a></code>.
-Each run’s trace is held to the governor’s limits less what the runs
-before it used, so the limit you set is the most the whole comparison
-can spend. With <code>governor = NULL</code> the limits come from
+<p>The whole benchmark is one run under one <code><a href="../reference/hr_governor.html">hr_governor()</a></code>
+(“A governor for one run” in <code><a href="../articles/runs.html">vignette("runs")</a></code>). Each run’s
+trace is held to the governor’s limits less what the runs before it
+used, so the limit you set is the most the whole comparison can spend.
+With <code>governor = NULL</code> the limits come from
 <code><a href="../reference/hr_options.html">hr_options()</a></code>, and its default of 400 calls is easy to
 exceed: two arms on 300 items for 5 runs make 3000 calls. A run stopped
 by a refused request is recorded as a <code>"budget_stop"</code> and
@@ -472,10 +470,11 @@ pass a governor sized for the benchmark.</p>
 <code>ctx$trace</code> carries <code>r</code>, so
 <code>ctx$call()</code> and every stage called with
 <code>trace = ctx$trace</code> send their requests at the run’s draw.
-Under an <code><a href="../reference/hr_cache.html">hr_cache()</a></code> each run is its own cache entry, and
-under an <code><a href="../reference/hr_replay_client.html">hr_replay_client()</a></code> its own recorded draw. The
-recorded draw also names the arm, so a replay answers each arm with its
-own replies, whether it replays every arm or a few, in any order.</p>
+Under an <code><a href="../reference/hr_cache.html">hr_cache()</a></code> each run is its own cache entry
+(“Repeated draws” in <code><a href="../articles/runs.html">vignette("runs")</a></code>), and under an
+<code><a href="../reference/hr_replay_client.html">hr_replay_client()</a></code> its own recorded draw. The recorded draw
+also names the arm, so a replay answers each arm with its own replies,
+whether it replays every arm or a few, in any order.</p>
 <p>Five runs answered from one stored reply would agree perfectly and
 measure nothing. <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> therefore refuses an arm
 whose runs come back as copies, with an error of class
@@ -840,10 +839,10 @@ begun to score, with class
 <span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mdd.html">hr_mdd</a></span><span class="op">(</span><span class="va">n</span>, n_clusters <span class="op">=</span> <span class="fl">50</span>, icc <span class="op">=</span> <span class="fl">0.1</span>, p_disc <span class="op">=</span> <span class="fl">0.15</span><span class="op">)</span></span>
 <span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_contrast.html">hr_register_contrasts</a></span><span class="op">(</span><span class="va">plan</span>, <span class="fu"><a href="../reference/hr_contrast.html">hr_contrast</a></span><span class="op">(</span><span class="st">"small"</span>, <span class="st">"large"</span>, margin <span class="op">=</span> <span class="fl">0.10</span><span class="op">)</span>, <span class="va">design</span><span class="op">)</span></span>
 <span><span class="va">reg</span></span>
-<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-26T22:22:03.524Z</span></span>
+<span><span class="co">#&gt; &lt;hr_contrast_registration&gt; 1 contrast(s), 1 confirmatory; registered 2026-11-26T23:22:14.251Z</span></span>
 <span><span class="co">#&gt;  contrast       label        margin mdd cost_test</span></span>
 <span><span class="co">#&gt;  small vs large confirmatory 10.0   7.8 yes      </span></span>
-<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash e09685718453</span></span></code></pre></div>
+<span><span class="co">#&gt;   Margins and MDD in points; reference d453122a93af; hash cc6b28558931</span></span></code></pre></div>
 <p>Here the stand-in model finds each item easier or harder by document
 and by item, and <code>mock-small</code> is a little worse on every one.
 The governor allows the 3000 calls the benchmark needs:</p>
@@ -1448,6 +1447,13 @@ several reviewers, and agreement between extraction tables.</li>
 <li>
 <code><a href="../articles/runs.html">vignette("runs")</a></code>: the governor, caching and replay that
 a benchmark relies on.</li>
+<li>
+<code><a href="../articles/core.html">vignette("core")</a></code>: the calls an arm makes, and the trace
+that records them.</li>
+<li>
+<code><a href="../articles/effort.html">vignette("effort")</a></code>: <code><a href="../reference/hr_effort_check.html">hr_effort_check()</a></code>,
+which reads a benchmark to test whether effort that starts low answers
+as well as a fixed effort.</li>
 <li>
 <code><a href="../articles/readers.html">vignette("readers")</a></code>: the recipes <code><a href="../reference/gr_arm.html">gr_arm()</a></code>
 turns into arms.</li>

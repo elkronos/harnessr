@@ -9,8 +9,18 @@ before you pay for any reading.
 
 Six of the nine segmenters make no model calls. A seventh makes none by
 default. At their defaults, you can try all seven for nothing.
+
+Segmenting builds on the core in two ways. Every chunk size is a count
+of tokens, made by the counter that “Counting tokens” in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
+describes. The segmenters that call a model send their requests with
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md),
+so the run’s limits apply to them (“Limits and refusals” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md))
+and a trace records them (“The trace” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)).
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
-introduces the package and the ideas this guide uses, and
+introduces the package, and
 [`vignette("ingest")`](https://elkronos.github.io/harnessr/articles/ingest.md)
 covers the step before this one.
 
@@ -354,9 +364,11 @@ is:
 
 A line that still does not fit is shortened. The document text is not.
 
-If a context call fails or is skipped at the run’s limits, the chunk
-keeps its text without a line. `$extra$blurbs_missing` counts those
-chunks, and a `gr_segment_fallback` warning reports them.
+If a context call fails or is refused at the run’s limits (“Limits and
+refusals” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)),
+the chunk keeps its text without a line. `$extra$blurbs_missing` counts
+those chunks, and a `gr_segment_fallback` warning reports them.
 
 The context line is not the document’s text, and a model may have
 written it. The chunk therefore keeps its body alone in a `source_text`
@@ -438,8 +450,11 @@ hr_trace_summary(ctx_llm$trace)[, c("calls", "tokens_in", "tokens_out")]
 #> 1    14      9104        196
 ```
 
+“The trace” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)
+covers what a trace records, and “Limits” in
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-covers limits and traces.
+covers the limits and how to set them.
 
 ## Comparing segmentations
 

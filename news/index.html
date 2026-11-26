@@ -25,25 +25,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -80,7 +72,7 @@
 <li>
 <code>allow_unpriced</code> now defaults to <code>TRUE</code>. Under a spending limit, a request to a chat model with no price is sent instead of refused. The trace prices it <code>NA</code>, and the first such request to each model in a session warns with class <code>hr_unpriced_model</code> that the spending limit does not cover the model until you set its prices. Token and call limits still apply. <code>hr_options(allow_unpriced = FALSE)</code> or <code>hr_governor(allow_unpriced = FALSE)</code> restores the refusal. A trace’s config snapshot records the new default. A read gives this warning before it starts, and no longer adds a <code>gr_cost_uncheckable</code> warning on every run. <code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> and replays are not warned about. With <code>parallel = TRUE</code> the workers do not repeat this warning or the stale price warning, and it names the limit you set, not a worker’s share.</li>
 <li>New option <code>price_max_age_days</code> (120). A cost computed from prices older than that, counted from the first day of their <code>as_of</code> month, warns with class <code>hr_stale_price</code>, once per model per session. <code>NULL</code> turns the warning off. Set the current prices again to clear it.</li>
-<li>To set prices, call <code>hr_register_model(id, input_usd =, output_usd =)</code> for one model, or keep a CSV file of prices with an <code>as_of</code> column and load it with <code><a href="../reference/hr_load_models.html">hr_load_models()</a></code> at the top of each script. “Models, prices and token counts” in <code><a href="../articles/runs.html">vignette("runs")</a></code> walks through both, checking prices with <code><a href="../reference/hr_models.html">hr_models()</a></code>, unpriced models and stale prices. <code><a href="../articles/migrate.html">vignette("migrate")</a></code> lists what changes for code written for 0.6.0. The guides, the README and the examples set illustrative prices before they show a cost.</li>
+<li>To set prices, call <code>hr_register_model(id, input_usd =, output_usd =)</code> for one model, or keep a CSV file of prices with an <code>as_of</code> column and load it with <code><a href="../reference/hr_load_models.html">hr_load_models()</a></code> at the top of each script. “Prices” in <code><a href="../articles/models.html">vignette("models")</a></code> walks through both, checking prices with <code><a href="../reference/hr_models.html">hr_models()</a></code>, unpriced models and stale prices. <code><a href="../articles/migrate.html">vignette("migrate")</a></code> lists what changes for code written for 0.6.0. The guides, the README and the examples set illustrative prices before they show a cost.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="cost-reports-say-where-their-prices-came-from-0-6-0-9000">Cost reports say where their prices came from<a class="anchor" aria-label="anchor" href="#cost-reports-say-where-their-prices-came-from-0-6-0-9000"></a></h3>
@@ -99,6 +91,13 @@
 <li>
 <code><a href="../reference/hr_budget.html">?hr_budget</a></code> gives the default reply reserve as <code>output_reserve_share</code> of the usable window rather than a fixed quarter, and says that a reserve leaving no input room, an explicit one included, drops to <code>min_output_tokens</code> before the error. <code><a href="../reference/hr_options.html">?hr_options</a></code> says that <code>output_reserve_share</code> does not change how much of a document a reader fits, since the readers give <code>max_answer_tokens</code> as the reserve.</li>
 <li>New guide, <code><a href="../articles/effort.html">vignette("effort")</a></code> (“Effort: how hard the model reasons”), in the Core group. It covers which models take a reasoning effort and what a model that does not reason is sent, the levels, the request field and a client’s <code>extra_body</code> default, an effort per call label, what reasoning costs, what effort does to the response cache, a replay and the trace, effort raised for the next stage (<code><a href="../reference/hr_effort_escalate.html">hr_effort_escalate()</a></code>, <code><a href="../reference/hr_effort_event.html">hr_effort_event()</a></code>, <code><a href="../reference/hr_effort_log.html">hr_effort_log()</a></code>), and <code><a href="../reference/hr_effort_check.html">hr_effort_check()</a></code> on a benchmark of fixed and raised efforts. Its settings walkthrough covers <code>reasoning_floor</code>, and <code><a href="../reference/gr_settings_table.html">gr_settings_table()</a></code> links that option to it.</li>
+<li>The site and the README group the guides in two parts after Get started. Core holds <code>core</code>, <code>models</code>, <code>context</code>, <code>effort</code>, <code>runs</code>, <code>compose</code>, <code>evaluate</code>, <code>compare</code> and <code>settings</code>; Documents holds <code>ingest</code>, <code>segment</code>, <code>readers</code>, <code>review</code> and <code>extending</code>. The reference index lists the core functions first, by topic in the order of the core guides, then the document layer.</li>
+<li>The README and <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduce harnessr as a harness for model calls with a document layer built on it. The get started guide shows a call, its trace, prices and limits, context and effort before the first question about a document.</li>
+<li>The walkthrough of parameter schemas (<code><a href="../reference/hr_param.html">hr_param()</a></code>, <code><a href="../reference/hr_schema.html">hr_schema()</a></code>, <code><a href="../reference/hr_validate.html">hr_validate()</a></code>) moved from <code><a href="../articles/extending.html">vignette("extending")</a></code> to “Checking settings” in <code><a href="../articles/core.html">vignette("core")</a></code>. The extending guide’s section on models now points to <code><a href="../articles/models.html">vignette("models")</a></code>, which covers the same ground.</li>
+<li>The walkthrough of registering a step, listing the modules of every kind with <code><a href="../reference/hr_modules.html">hr_modules()</a></code> and checking a module with <code><a href="../reference/hr_check_module.html">hr_check_module()</a></code> moved from <code><a href="../articles/extending.html">vignette("extending")</a></code> to “Registering a step” in <code><a href="../articles/compose.html">vignette("compose")</a></code>. The reference index lists these functions after the compose functions.</li>
+<li>
+<code><a href="../articles/runs.html">vignette("runs")</a></code> is now “Limits, caching and replay”. Its walkthrough of models, prices and token counts moved to <code><a href="../articles/models.html">vignette("models")</a></code>, whose Prices section keeps the <code>#models-prices</code> anchor. Its effort sections moved to <code><a href="../articles/effort.html">vignette("effort")</a></code>, including the <code>effort_mode</code> walkthrough with its <code>#set-effort-mode</code> anchor, and <code><a href="../reference/gr_settings_table.html">gr_settings_table()</a></code> links <code>effort_mode</code> there.</li>
+<li>Each document guide (<code>ingest</code>, <code>segment</code>, <code>readers</code>, <code>review</code>, <code>extending</code>) opens by naming the core pieces it builds on, and links to the core section where it mentions a budget, the trace, a refusal, the cache, effort or a price. <code><a href="../articles/compose.html">vignette("compose")</a></code> and <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> open as core guides. <code><a href="../articles/settings.html">vignette("settings")</a></code> lists the core settings before the document settings.</li>
 <li>
 <code><a href="../reference/gr_result.html">?gr_result</a></code> lists every field a result carries, including <code>cached</code>, <code>served_model</code>, <code>response_id</code>, <code>fingerprint</code>, <code>attempts</code> and, for a request the limits did not send, <code>refused</code> and <code>refusal</code>.</li>
 <li>

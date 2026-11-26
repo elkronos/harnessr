@@ -144,9 +144,8 @@ hr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
 ```
 
 To refuse unpriced requests instead, set the new option
-`hr_options(allow_unpriced = FALSE)`. “Models, prices and token counts”
-in
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+`hr_options(allow_unpriced = FALSE)`. “Prices” in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
 walks through setting prices from a file, checking them and keeping them
 current.
 

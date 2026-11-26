@@ -6,11 +6,16 @@ cannot tell you by how much. A model asked the same question five times
 can answer it five ways. Ten questions about one report share that
 report’s quirks, so they are closer to one observation than to ten.
 
-[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
-shows what each recipe does to one document, and its output is
-descriptive only. With the functions in this guide you answer the next
-question: on a labelled set of questions, is configuration A more
-accurate than B, by how much, at what cost, and how sure can you be?
+The functions in this guide answer what one run cannot: on a labelled
+set of questions, is configuration A more accurate than B, by how much,
+at what cost, and how sure can you be? They are part of the core. An arm
+wraps any function of an item and a context, so a benchmark compares
+prompts, models, efforts and chains as well as reading recipes. Many
+examples use the document layer’s recipes, because the example report
+and a few questions about it make a short labelled set.
+[`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md),
+from the document layer, shows what each recipe does to one document,
+and its output is descriptive only.
 
 The sections follow the order of the work: a reference set and its
 splits, the arms to compare and the rule that scores them, a benchmark
@@ -236,8 +241,10 @@ answering.
 
 An arm is one configuration to compare: a function of an item and a
 context that returns the arm’s output for that item. `ctx` carries the
-benchmark’s client, a trace of this run alone, the governor the run is
-held to and the run’s `draw_index`. `ctx$call()` is
+benchmark’s client, a trace of this run alone (“The trace” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)),
+the governor the run is held to and the run’s `draw_index`. `ctx$call()`
+is
 [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
 with the client, the trace and the draw index filled in. Send every
 request an arm makes through that trace: the benchmark counts the run’s
@@ -388,7 +395,9 @@ from run to run apart from the difference between arms.
 ### One limit for the whole benchmark
 
 The whole benchmark is one run under one
-[`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md).
+[`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)
+(“A governor for one run” in
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)).
 Each run’s trace is held to the governor’s limits less what the runs
 before it used, so the limit you set is the most the whole comparison
 can spend. With `governor = NULL` the limits come from
@@ -435,7 +444,9 @@ Run `r` gets `ctx$draw_index = r`, and its `ctx$trace` carries `r`, so
 `ctx$call()` and every stage called with `trace = ctx$trace` send their
 requests at the run’s draw. Under an
 [`hr_cache()`](https://elkronos.github.io/harnessr/reference/hr_cache.md)
-each run is its own cache entry, and under an
+each run is its own cache entry (“Repeated draws” in
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)),
+and under an
 [`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
 its own recorded draw. The recorded draw also names the arm, so a replay
 answers each arm with its own replies, whether it replays every arm or a
@@ -840,10 +851,10 @@ plan <- hr_reference(ids, labels = rep("yes", n), cluster = docs, split = "test"
 design <- hr_mdd(n, n_clusters = 50, icc = 0.1, p_disc = 0.15)
 reg <- hr_register_contrasts(plan, hr_contrast("small", "large", margin = 0.10), design)
 reg
-#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-26T22:22:03.524Z
+#> <hr_contrast_registration> 1 contrast(s), 1 confirmatory; registered 2026-11-26T23:22:14.251Z
 #>  contrast       label        margin mdd cost_test
 #>  small vs large confirmatory 10.0   7.8 yes      
-#>   Margins and MDD in points; reference d453122a93af; hash e09685718453
+#>   Margins and MDD in points; reference d453122a93af; hash cc6b28558931
 ```
 
 Here the stand-in model finds each item easier or harder by document and
@@ -1543,6 +1554,12 @@ warns below 50.
   between extraction tables.
 - [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
   the governor, caching and replay that a benchmark relies on.
+- [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md):
+  the calls an arm makes, and the trace that records them.
+- [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md):
+  [`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md),
+  which reads a benchmark to test whether effort that starts low answers
+  as well as a fixed effort.
 - [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md):
   the recipes
   [`gr_arm()`](https://elkronos.github.io/harnessr/reference/gr_arm.md)

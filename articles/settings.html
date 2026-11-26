@@ -39,25 +39,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -95,10 +87,11 @@
 
     
     
-<p>This page lists every setting in harnessr, stage by stage, and the
-building blocks those settings choose between. harnessr builds the
-tables from <code><a href="../reference/gr_settings_table.html">gr_settings_table()</a></code> and the registries when the
-page is built, so they match the installed code.</p>
+<p>This page lists every setting in harnessr: the core’s first, then the
+document layer’s, stage by stage, and last the building blocks the
+document settings choose between. harnessr builds the tables from
+<code><a href="../reference/gr_settings_table.html">gr_settings_table()</a></code> and the registries when the page is
+built, so they match the installed code.</p>
 <p>A setting with a walkthrough links to it. The walkthrough is a
 section of a guide that covers what the setting trades off, the signs
 that you should change it, where its default came from and how to test a
@@ -107,17 +100,20 @@ change.</p>
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/elkronos/harnessr" class="external-link">harnessr</a></span><span class="op">)</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_options.html">hr_options</a></span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">FALSE</span>, embedder <span class="op">=</span> <span class="st">"lexical"</span><span class="op">)</span></span>
 <span><span class="va">settings</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_settings_table.html">gr_settings_table</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span>, <span class="va">settings</span><span class="op">$</span><span class="va">tier</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">core</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"options"</span>, <span class="st">"evaluate"</span><span class="op">)</span></span>
+<span><span class="va">stages</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span><span class="op">)</span></span>
+<span><span class="va">stages</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span><span class="va">core</span>, <span class="va">stages</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="va">stages</span>, <span class="va">core</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">settings</span><span class="op">$</span><span class="va">stage</span>, <span class="va">settings</span><span class="op">$</span><span class="va">tier</span><span class="op">)</span><span class="op">[</span><span class="va">stages</span>, <span class="op">]</span></span>
 <span><span class="co">#&gt;             </span></span>
 <span><span class="co">#&gt;              advanced basic</span></span>
+<span><span class="co">#&gt;   options          30     5</span></span>
+<span><span class="co">#&gt;   evaluate         20    10</span></span>
 <span><span class="co">#&gt;   ingest           18     3</span></span>
 <span><span class="co">#&gt;   segment          17     3</span></span>
 <span><span class="co">#&gt;   read             42     8</span></span>
 <span><span class="co">#&gt;   screen           22    11</span></span>
 <span><span class="co">#&gt;   extract           7     3</span></span>
-<span><span class="co">#&gt;   synthesise       24     5</span></span>
-<span><span class="co">#&gt;   evaluate         20    10</span></span>
-<span><span class="co">#&gt;   options          30     5</span></span></code></pre></div>
+<span><span class="co">#&gt;   synthesise       24     5</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="reading-the-tables">Reading the tables<a class="anchor" aria-label="anchor" href="#reading-the-tables"></a>
 </h2>
@@ -143,13 +139,13 @@ declared, as for switches, limits and most function arguments.</li>
 behind each status. For the full help, see <code><a href="../reference/gr_read_spec.html">?gr_read_spec</a></code>,
 <code><a href="../reference/gr_segment_spec.html">?gr_segment_spec</a></code>, <code><a href="../reference/gr_ingest_spec.html">?gr_ingest_spec</a></code> and
 <code><a href="../reference/hr_options.html">?hr_options</a></code>.</p>
-<p>You give a setting where its stage takes it. Ingest, segment and read
-settings go in a spec (<code>gr_read_spec(top_k = 4)</code>), in a
-recipe, or by name to <code><a href="../reference/answer_document.html">answer_document()</a></code>,
-<code><a href="../reference/gr_read_many.html">gr_read_many()</a></code> and <code><a href="../reference/gr_arm.html">gr_arm()</a></code>, which put each on
-the step it belongs to. Review and evaluation settings are arguments of
-their functions. You set options for the session with
-<code><a href="../reference/hr_options.html">hr_options()</a></code>.</p>
+<p>You give a setting where its stage takes it. You set options for the
+session with <code><a href="../reference/hr_options.html">hr_options()</a></code>, and evaluation settings are
+arguments of their functions. Ingest, segment and read settings go in a
+spec (<code>gr_read_spec(top_k = 4)</code>), in a recipe, or by name to
+<code><a href="../reference/answer_document.html">answer_document()</a></code>, <code><a href="../reference/gr_read_many.html">gr_read_many()</a></code> and
+<code><a href="../reference/gr_arm.html">gr_arm()</a></code>, which put each on the step it belongs to. Review
+settings are arguments of their functions.</p>
 <p>To find out whether a value works better on your documents, build one
 arm per value with <code><a href="../reference/hr_sweep.html">hr_sweep()</a></code> and compare the arms with
 <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code> and <code><a href="../reference/hr_report.html">hr_report()</a></code>, as
@@ -174,8 +170,664 @@ reports which values sent the same requests.</p>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="ingest">Ingest<a class="anchor" aria-label="anchor" href="#ingest"></a>
+<h2 id="core-settings">Core settings<a class="anchor" aria-label="anchor" href="#core-settings"></a>
 </h2>
+<p>These settings belong to the core: the session options every call
+reads, and the arguments of the functions that measure
+configurations.</p>
+<div class="section level3">
+<h3 id="options">Options<a class="anchor" aria-label="anchor" href="#options"></a>
+</h3>
+<p>Session settings. You set them with <code><a href="../reference/hr_options.html">hr_options()</a></code>, and a
+run reads them when it starts. Most apply to every call, with or without
+a document; a few, such as <code>cache_documents</code> and
+<code>embedder</code>, serve the document layer. Each core guide covers
+its own: the model, endpoint, retries and actor in
+<code><a href="../articles/core.html">vignette("core")</a></code>, prices and the token counter in
+<code><a href="../articles/models.html">vignette("models")</a></code>, the safety margin and the reply’s
+reserve in <code><a href="../articles/context.html">vignette("context")</a></code>, the reasoning floor in
+<code><a href="../articles/effort.html">vignette("effort")</a></code>, and the limits in
+<code><a href="../articles/runs.html">vignette("runs")</a></code>.</p>
+<table class="table">
+<colgroup>
+<col width="9%">
+<col width="4%">
+<col width="9%">
+<col width="2%">
+<col width="2%">
+<col width="71%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">setting</th>
+<th align="left">where</th>
+<th align="left">default</th>
+<th align="left">tier</th>
+<th align="left">status</th>
+<th align="left">description</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>verbose</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>TRUE</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">Print a line for each ingest, segment and read
+stage.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="models.html#set-tokenizer"><code>tokenizer</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>heuristic</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Token counter: “heuristic” (conservative, no
+dependencies), “words”, “chars”, “tiktoken” (needs reticulate), or a
+name registered via hr_set_tokenizer().</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="core.html#set-endpoint"><code>model</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>gpt-5.6-terra</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">Default chat model.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="core.html#set-endpoint"><code>embedding_model</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>text-embedding-3-small</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Default embedding model.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="core.html#set-endpoint"><code>api_base</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>https://api.openai.com/v1</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">API root; point this at a proxy or a compatible
+endpoint.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="core.html#set-endpoint"><code>api_headers</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>character(0)</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Named character vector of extra HTTP headers sent with
+every request, for gateways that do not authenticate with a bearer
+token.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="core.html#set-endpoint"><code>api</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>responses</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">“responses” or “chat” request shape.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="core.html#set-temperature"><code>temperature</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Default sampling temperature.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="core.html#set-retries"><code>max_retries</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>4</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Retries for transient failures.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="core.html#set-retries"><code>retry_pause_base</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>2</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Seconds; exponential backoff base.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="core.html#set-retries"><code>request_timeout</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>120</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Per-request timeout, seconds.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="context.html#set-safety-margin"><code>safety_margin</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>0.1</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Fraction of the context window left unused to absorb
+tokenizer error.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="context.html#set-reply-reserve"><code>min_output_tokens</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>256</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Floor on the completion room hr_budget() reserves when
+reserve_output is not given explicitly.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>cache_documents</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>TRUE</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Cache ingestion per file + settings.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>cache_embeddings</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>TRUE</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Cache embeddings per text + model.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>cache_dir</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">Directory hr_cache() stores model responses in.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>embedder</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Which registered embedder to use.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>parallel</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>FALSE</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Run per-chunk calls concurrently.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>workers</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>4</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Worker processes when parallel is TRUE.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="runs.html#set-limits"><code>max_cost_usd</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>5</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">Spending limit per run, in USD.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="runs.html#set-limits"><code>max_calls</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>400</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">Hard cap on model calls per run, checked before every
+request.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="runs.html#set-limits"><code>max_tokens_total</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Most tokens one run may use: the prompt and reply
+tokens of every call, cache hits included, and the text sent to be
+embedded.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="runs.html#set-limits"><code>max_output_tokens</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">The largest output cap one request may be sent
+with.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="runs.html#set-limits"><code>allowed_models</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Character vector of the model ids a run may call, chat
+and embedding models alike.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="models.html#set-unpriced"><code>allow_unpriced</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>TRUE</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Whether a chat model with no registered price may be
+called while max_cost_usd is set.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="models.html#set-price-age"><code>price_max_age_days</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>120</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">How old a price may be, in days, before a cost computed
+from it warns with class hr_stale_price.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="models.html#set-unknown-model"><code>unknown_model_action</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>warn</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">“warn” or “error” when a model id is not in the
+registry.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="core.html#set-actor"><code>actor</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">A named list (or character vector) of the actor fields
+every hr_trace() records: system, owner, run_by, purpose and
+approved_by, each one string.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>auto_max_tokens</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>50000</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">The largest document, in tokens, that answer_document()
+with recipe = “auto” reads with “fast” (one request); a larger one is
+read with “thorough”.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>auto_room_share</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>0.5</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">The second condition of that choice: the document must
+fill at most this share of the input room hr_budget() leaves on every
+model of the run.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="effort.html#set-reasoning-floor"><code>reasoning_floor</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>2048</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">The smallest output cap a request to a reasoning model
+is sent with.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="context.html#set-reply-reserve"><code>output_reserve_share</code></a></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>0.25</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">The share of the usable window hr_budget() reserves for
+the reply when no reserve_output is given, between min_output_tokens and
+the model’s output limit.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>near_verbatim_sim</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>0.9</code></td>
+<td align="left">advanced</td>
+<td align="left">measured</td>
+<td align="left">The least similarity a quotation of at least
+near_verbatim_short_chars characters (after normalising), and one
+shorter than that, needs for the edit-distance matcher to score it
+near_verbatim (see gr_verify_evidence()).</td>
+</tr>
+<tr class="even">
+<td align="left"><code>near_verbatim_sim_short</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>0.95</code></td>
+<td align="left">advanced</td>
+<td align="left">measured</td>
+<td align="left">The least similarity a quotation of at least
+near_verbatim_short_chars characters (after normalising), and one
+shorter than that, needs for the edit-distance matcher to score it
+near_verbatim (see gr_verify_evidence()).</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>near_verbatim_short_chars</code></td>
+<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
+<td align="left"><code>40</code></td>
+<td align="left">advanced</td>
+<td align="left">measured</td>
+<td align="left">The least similarity a quotation of at least
+near_verbatim_short_chars characters (after normalising), and one
+shorter than that, needs for the edit-distance matcher to score it
+near_verbatim (see gr_verify_evidence()).</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="evaluation">Evaluation<a class="anchor" aria-label="anchor" href="#evaluation"></a>
+</h3>
+<p>The arguments of <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code>,
+<code><a href="../reference/hr_report.html">hr_report()</a></code>, <code><a href="../reference/hr_judge.html">hr_judge()</a></code>,
+<code><a href="../reference/gr_compare.html">gr_compare()</a></code>, <code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code> and
+<code><a href="../reference/hr_step_command.html">hr_step_command()</a></code>. <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> and
+<code><a href="../articles/compare.html">vignette("compare")</a></code> cover them, and “The governor of a
+benchmark or a batch” in <code><a href="../articles/runs.html">vignette("runs")</a></code> covers the
+<code>governor</code> a benchmark is held to. <code><a href="../reference/gr_compare.html">gr_compare()</a></code>
+belongs to the document layer and is listed here with the other
+comparisons.</p>
+<table class="table">
+<colgroup>
+<col width="7%">
+<col width="9%">
+<col width="12%">
+<col width="3%">
+<col width="3%">
+<col width="64%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">setting</th>
+<th align="left">where</th>
+<th align="left">default</th>
+<th align="left">tier</th>
+<th align="left">status</th>
+<th align="left">description</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>runs</code></td>
+<td align="left"><code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code></td>
+<td align="left"><code>5</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">How many times each arm runs on each item: a whole
+number, at least 1.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>scorer</code></td>
+<td align="left"><code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code></td>
+<td align="left"><code><a href="../reference/hr_scorer.html">hr_scorer_exact()</a></code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">An hr_scorer(); hr_scorer_exact() by default.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>split</code></td>
+<td align="left"><code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code></td>
+<td align="left"><code>test</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">The split or splits of the reference to run on.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="runs.html#set-governor"><code>governor</code></a></td>
+<td align="left"><code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">An hr_governor() the whole benchmark is held to, or
+NULL to take the limits from hr_options().</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>seed</code></td>
+<td align="left"><code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code></td>
+<td align="left"><code>1</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">The seed of the arms’ private random stream.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>contrasts</code></td>
+<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Pairs of arms to compare: a two-column character matrix
+of arm names, each row giving first minus second.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>B</code></td>
+<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
+<td align="left"><code>2000</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Number of cluster bootstrap resamples, at least
+100.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>conf</code></td>
+<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
+<td align="left"><code>0.95</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">Confidence level of every interval.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>k</code></td>
+<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
+<td align="left"><code>c(1, 3, 5)</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">The values of k for pass^k.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>seed</code></td>
+<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
+<td align="left"><code>1</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Seed of the private random stream the resamples are
+drawn from; the caller’s random state is left as it was.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>method</code></td>
+<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
+<td align="left"><code>auto</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">“auto”, “bootstrap”, “cluster_t”, “bayes” or “exact”,
+as above.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>confirmatory</code></td>
+<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
+<td align="left"><code>FALSE</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">TRUE for a confirmatory report, which raises the
+default B to 5000 and refuses dev-split rows.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>auto_bootstrap_at</code></td>
+<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
+<td align="left"><code>c(items = 300, clusters = 30)</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Under method = “auto”, the size at which the report
+switches from the cluster-robust t interval to the studentised cluster
+bootstrap: c(items = , clusters = ), both reached.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>min_runs</code></td>
+<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
+<td align="left"><code>5</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">The fewest runs for which the report gives intervals;
+below it the report is descriptive only.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>mode</code></td>
+<td align="left"><code><a href="../reference/hr_judge.html">hr_judge()</a></code></td>
+<td align="left"><code>select</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">“select”, “grade” or “pairwise”.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>model</code></td>
+<td align="left"><code><a href="../reference/hr_judge.html">hr_judge()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">The judge’s model; the client’s model when NULL.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>orders</code></td>
+<td align="left"><code><a href="../reference/hr_judge.html">hr_judge()</a></code></td>
+<td align="left"><code>2</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">Presentation orders.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="runs.html#set-governor"><code>governor</code></a></td>
+<td align="left"><code><a href="../reference/hr_judge.html">hr_judge()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Optional hr_governor() for the judge’s requests.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>draw_index</code></td>
+<td align="left"><code><a href="../reference/hr_judge.html">hr_judge()</a></code></td>
+<td align="left"><code>0</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Draw index passed to every request (see
+hr_call()).</td>
+</tr>
+<tr class="even">
+<td align="left"><code>recipes</code></td>
+<td align="left"><code><a href="../reference/gr_compare.html">gr_compare()</a></code></td>
+<td align="left"><code>c("fast", "needle", "thorough")</code></td>
+<td align="left">basic</td>
+<td align="left"></td>
+<td align="left">A character vector of recipe names, or a list of
+gr_recipes.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>allow_duplicates</code></td>
+<td align="left"><code><a href="../reference/gr_compare.html">gr_compare()</a></code></td>
+<td align="left"><code>FALSE</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">Run duplicates anyway (useful at temperature &gt; 0 to
+measure variance).</td>
+</tr>
+<tr class="even">
+<td align="left"><code>on_error</code></td>
+<td align="left"><code><a href="../reference/gr_compare.html">gr_compare()</a></code></td>
+<td align="left"><code>continue</code></td>
+<td align="left">advanced</td>
+<td align="left"></td>
+<td align="left">“continue” keeps going and records the failure; “stop”
+aborts the whole comparison.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="evaluate.html#set-errcorr"><code>strata</code></a></td>
+<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
+<td align="left"><code>NULL</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">NULL to stratify by difficulty, or each item’s stratum:
+a vector named by item, or one value per item in the order of
+unique(bench$item).</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="evaluate.html#set-errcorr"><code>n_strata</code></a></td>
+<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
+<td align="left"><code>3</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">How many difficulty strata, when strata is NULL: a
+whole number from 1 to 10, default 3.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="evaluate.html#set-errcorr"><code>n_check</code></a></td>
+<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
+<td align="left"><code>10</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">How many items every arm got wrong to sample for a hand
+check: a whole number, 0 or more, default 10.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="evaluate.html#set-errcorr"><code>held_out</code></a></td>
+<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
+<td align="left"><code>TRUE</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">TRUE (the default) reads only the rows that count as
+evidence (reportable, so not the dev split); FALSE reads every row.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="evaluate.html#set-errcorr"><code>seed</code></a></td>
+<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
+<td align="left"><code>1</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">The seed of the private random stream the sample is
+drawn with; the caller’s random state is left as it was.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="evaluate.html#set-command-parse"><code>parse</code></a></td>
+<td align="left"><code><a href="../reference/hr_step_command.html">hr_step_command()</a></code></td>
+<td align="left"><code>exit</code></td>
+<td align="left">basic</td>
+<td align="left">untested</td>
+<td align="left">How the result is read: “exit” or “testthat”.</td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="evaluate.html#set-command-timeout"><code>timeout</code></a></td>
+<td align="left"><code><a href="../reference/hr_step_command.html">hr_step_command()</a></code></td>
+<td align="left"><code>60</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Seconds the program may run before it is stopped, from
+1 to 86400.</td>
+</tr>
+<tr class="even">
+<td align="left"><a href="evaluate.html#set-command-held"><code>held</code></a></td>
+<td align="left"><code><a href="../reference/hr_step_command.html">hr_step_command()</a></code></td>
+<td align="left"><code>FALSE</code></td>
+<td align="left">advanced</td>
+<td align="left">untested</td>
+<td align="left">Whether the result is kept from the steps after this
+one and left for the scorer.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section level2">
+<h2 id="document-settings">Document settings<a class="anchor" aria-label="anchor" href="#document-settings"></a>
+</h2>
+<p>The document layer’s settings, in the order a run meets its stages. A
+document run also reads the core options above: its requests are calls
+like any other, under the same model, limits and token counter.</p>
+<div class="section level3">
+<h3 id="ingest">Ingest<a class="anchor" aria-label="anchor" href="#ingest"></a>
+</h3>
 <p>These settings control what comes out of a file: cleaning, OCR, the
 PDF layout pass, and the floor on how much text must survive. The
 entries of <code>cleaner_opts</code> and <code>layout_opts</code> appear
@@ -386,9 +1038,9 @@ number where a page number is set.</td>
 </tbody>
 </table>
 </div>
-<div class="section level2">
-<h2 id="segment">Segment<a class="anchor" aria-label="anchor" href="#segment"></a>
-</h2>
+<div class="section level3">
+<h3 id="segment">Segment<a class="anchor" aria-label="anchor" href="#segment"></a>
+</h3>
 <p>harnessr cuts the text into chunks with these settings.
 <code><a href="../articles/segment.html">vignette("segment")</a></code> covers them.</p>
 <table class="table">
@@ -583,12 +1235,15 @@ batch’s request carries.</td>
 </tbody>
 </table>
 </div>
-<div class="section level2">
-<h2 id="read">Read<a class="anchor" aria-label="anchor" href="#read"></a>
-</h2>
+<div class="section level3">
+<h3 id="read">Read<a class="anchor" aria-label="anchor" href="#read"></a>
+</h3>
 <p>With these settings you choose how the model reads the chunks. The
 stage also holds the ones <code><a href="../reference/gr_read_many.html">gr_read_many()</a></code> adds for a folder.
-<code><a href="../articles/readers.html">vignette("readers")</a></code> covers them.</p>
+<code><a href="../articles/readers.html">vignette("readers")</a></code> covers them. <code>effort</code>,
+<code>effort_mode</code> and <code>context_policy</code> hand a read the
+core’s effort and context rules, which <code><a href="../articles/effort.html">vignette("effort")</a></code>
+and <code><a href="../articles/context.html">vignette("context")</a></code> explain.</p>
 <table class="table">
 <colgroup>
 <col width="10%">
@@ -972,7 +1627,7 @@ or a numbered list of findings that each request adds to, replaces or
 drops from.</td>
 </tr>
 <tr class="odd">
-<td align="left"><a href="runs.html#set-effort-mode"><code>effort_mode</code></a></td>
+<td align="left"><a href="effort.html#set-effort-mode"><code>effort_mode</code></a></td>
 <td align="left"><code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code></td>
 <td align="left"><code>static</code></td>
 <td align="left">advanced</td>
@@ -1046,9 +1701,9 @@ directory.</td>
 </tbody>
 </table>
 </div>
-<div class="section level2">
-<h2 id="screening">Screening<a class="anchor" aria-label="anchor" href="#screening"></a>
-</h2>
+<div class="section level3">
+<h3 id="screening">Screening<a class="anchor" aria-label="anchor" href="#screening"></a>
+</h3>
 <p>The arguments of these functions, which
 <code><a href="../articles/review.html">vignette("review")</a></code> covers:</p>
 <ul>
@@ -1375,9 +2030,9 @@ where with prevalence it caps the draw at the whole frame.</td>
 </tbody>
 </table>
 </div>
-<div class="section level2">
-<h2 id="extraction">Extraction<a class="anchor" aria-label="anchor" href="#extraction"></a>
-</h2>
+<div class="section level3">
+<h3 id="extraction">Extraction<a class="anchor" aria-label="anchor" href="#extraction"></a>
+</h3>
 <p>The arguments of <code><a href="../reference/gr_extract.html">gr_extract()</a></code>. The recipe settings you
 pass to it in <code>...</code> are the ingest and segment settings
 above.</p>
@@ -1495,9 +2150,9 @@ value.</td>
 </tbody>
 </table>
 </div>
-<div class="section level2">
-<h2 id="synthesis">Synthesis<a class="anchor" aria-label="anchor" href="#synthesis"></a>
-</h2>
+<div class="section level3">
+<h3 id="synthesis">Synthesis<a class="anchor" aria-label="anchor" href="#synthesis"></a>
+</h3>
 <p>The arguments of <code><a href="../reference/gr_claims.html">gr_claims()</a></code>, <code><a href="../reference/gr_outline.html">gr_outline()</a></code>,
 <code><a href="../reference/gr_gaps.html">gr_gaps()</a></code> and <code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code>.</p>
 <table class="table">
@@ -1787,642 +2442,11 @@ figure and length checks.</td>
 </tbody>
 </table>
 </div>
-<div class="section level2">
-<h2 id="evaluation">Evaluation<a class="anchor" aria-label="anchor" href="#evaluation"></a>
-</h2>
-<p>The arguments of <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code>,
-<code><a href="../reference/hr_report.html">hr_report()</a></code>, <code><a href="../reference/hr_judge.html">hr_judge()</a></code>,
-<code><a href="../reference/gr_compare.html">gr_compare()</a></code>, <code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code> and
-<code><a href="../reference/hr_step_command.html">hr_step_command()</a></code>. <code><a href="../articles/evaluate.html">vignette("evaluate")</a></code> and
-<code><a href="../articles/compare.html">vignette("compare")</a></code> cover them.</p>
-<table class="table">
-<colgroup>
-<col width="7%">
-<col width="9%">
-<col width="12%">
-<col width="3%">
-<col width="3%">
-<col width="64%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">setting</th>
-<th align="left">where</th>
-<th align="left">default</th>
-<th align="left">tier</th>
-<th align="left">status</th>
-<th align="left">description</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left"><code>runs</code></td>
-<td align="left"><code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code></td>
-<td align="left"><code>5</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">How many times each arm runs on each item: a whole
-number, at least 1.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>scorer</code></td>
-<td align="left"><code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code></td>
-<td align="left"><code><a href="../reference/hr_scorer.html">hr_scorer_exact()</a></code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">An hr_scorer(); hr_scorer_exact() by default.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>split</code></td>
-<td align="left"><code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code></td>
-<td align="left"><code>test</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">The split or splits of the reference to run on.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="runs.html#set-governor"><code>governor</code></a></td>
-<td align="left"><code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code></td>
-<td align="left"><code>NULL</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">An hr_governor() the whole benchmark is held to, or
-NULL to take the limits from hr_options().</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>seed</code></td>
-<td align="left"><code><a href="../reference/hr_benchmark.html">hr_benchmark()</a></code></td>
-<td align="left"><code>1</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">The seed of the arms’ private random stream.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>contrasts</code></td>
-<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
-<td align="left"><code>NULL</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Pairs of arms to compare: a two-column character matrix
-of arm names, each row giving first minus second.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>B</code></td>
-<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
-<td align="left"><code>2000</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Number of cluster bootstrap resamples, at least
-100.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>conf</code></td>
-<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
-<td align="left"><code>0.95</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">Confidence level of every interval.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>k</code></td>
-<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
-<td align="left"><code>c(1, 3, 5)</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">The values of k for pass^k.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>seed</code></td>
-<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
-<td align="left"><code>1</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Seed of the private random stream the resamples are
-drawn from; the caller’s random state is left as it was.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>method</code></td>
-<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
-<td align="left"><code>auto</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">“auto”, “bootstrap”, “cluster_t”, “bayes” or “exact”,
-as above.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>confirmatory</code></td>
-<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
-<td align="left"><code>FALSE</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">TRUE for a confirmatory report, which raises the
-default B to 5000 and refuses dev-split rows.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>auto_bootstrap_at</code></td>
-<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
-<td align="left"><code>c(items = 300, clusters = 30)</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Under method = “auto”, the size at which the report
-switches from the cluster-robust t interval to the studentised cluster
-bootstrap: c(items = , clusters = ), both reached.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>min_runs</code></td>
-<td align="left"><code><a href="../reference/hr_report.html">hr_report()</a></code></td>
-<td align="left"><code>5</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">The fewest runs for which the report gives intervals;
-below it the report is descriptive only.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>mode</code></td>
-<td align="left"><code><a href="../reference/hr_judge.html">hr_judge()</a></code></td>
-<td align="left"><code>select</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">“select”, “grade” or “pairwise”.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>model</code></td>
-<td align="left"><code><a href="../reference/hr_judge.html">hr_judge()</a></code></td>
-<td align="left"><code>NULL</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">The judge’s model; the client’s model when NULL.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>orders</code></td>
-<td align="left"><code><a href="../reference/hr_judge.html">hr_judge()</a></code></td>
-<td align="left"><code>2</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">Presentation orders.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="runs.html#set-governor"><code>governor</code></a></td>
-<td align="left"><code><a href="../reference/hr_judge.html">hr_judge()</a></code></td>
-<td align="left"><code>NULL</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Optional hr_governor() for the judge’s requests.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>draw_index</code></td>
-<td align="left"><code><a href="../reference/hr_judge.html">hr_judge()</a></code></td>
-<td align="left"><code>0</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Draw index passed to every request (see
-hr_call()).</td>
-</tr>
-<tr class="even">
-<td align="left"><code>recipes</code></td>
-<td align="left"><code><a href="../reference/gr_compare.html">gr_compare()</a></code></td>
-<td align="left"><code>c("fast", "needle", "thorough")</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">A character vector of recipe names, or a list of
-gr_recipes.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>allow_duplicates</code></td>
-<td align="left"><code><a href="../reference/gr_compare.html">gr_compare()</a></code></td>
-<td align="left"><code>FALSE</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Run duplicates anyway (useful at temperature &gt; 0 to
-measure variance).</td>
-</tr>
-<tr class="even">
-<td align="left"><code>on_error</code></td>
-<td align="left"><code><a href="../reference/gr_compare.html">gr_compare()</a></code></td>
-<td align="left"><code>continue</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">“continue” keeps going and records the failure; “stop”
-aborts the whole comparison.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="evaluate.html#set-errcorr"><code>strata</code></a></td>
-<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
-<td align="left"><code>NULL</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">NULL to stratify by difficulty, or each item’s stratum:
-a vector named by item, or one value per item in the order of
-unique(bench$item).</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="evaluate.html#set-errcorr"><code>n_strata</code></a></td>
-<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
-<td align="left"><code>3</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">How many difficulty strata, when strata is NULL: a
-whole number from 1 to 10, default 3.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="evaluate.html#set-errcorr"><code>n_check</code></a></td>
-<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
-<td align="left"><code>10</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">How many items every arm got wrong to sample for a hand
-check: a whole number, 0 or more, default 10.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="evaluate.html#set-errcorr"><code>held_out</code></a></td>
-<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
-<td align="left"><code>TRUE</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">TRUE (the default) reads only the rows that count as
-evidence (reportable, so not the dev split); FALSE reads every row.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="evaluate.html#set-errcorr"><code>seed</code></a></td>
-<td align="left"><code><a href="../reference/hr_error_correlation.html">hr_error_correlation()</a></code></td>
-<td align="left"><code>1</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">The seed of the private random stream the sample is
-drawn with; the caller’s random state is left as it was.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="evaluate.html#set-command-parse"><code>parse</code></a></td>
-<td align="left"><code><a href="../reference/hr_step_command.html">hr_step_command()</a></code></td>
-<td align="left"><code>exit</code></td>
-<td align="left">basic</td>
-<td align="left">untested</td>
-<td align="left">How the result is read: “exit” or “testthat”.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="evaluate.html#set-command-timeout"><code>timeout</code></a></td>
-<td align="left"><code><a href="../reference/hr_step_command.html">hr_step_command()</a></code></td>
-<td align="left"><code>60</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">Seconds the program may run before it is stopped, from
-1 to 86400.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="evaluate.html#set-command-held"><code>held</code></a></td>
-<td align="left"><code><a href="../reference/hr_step_command.html">hr_step_command()</a></code></td>
-<td align="left"><code>FALSE</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">Whether the result is kept from the steps after this
-one and left for the scorer.</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section level2">
-<h2 id="options">Options<a class="anchor" aria-label="anchor" href="#options"></a>
-</h2>
-<p>Session settings. You set them with <code><a href="../reference/hr_options.html">hr_options()</a></code>, and a
-run reads them when it starts. <code><a href="../articles/runs.html">vignette("runs")</a></code> covers the
-limits.</p>
-<table class="table">
-<colgroup>
-<col width="9%">
-<col width="4%">
-<col width="9%">
-<col width="2%">
-<col width="2%">
-<col width="71%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">setting</th>
-<th align="left">where</th>
-<th align="left">default</th>
-<th align="left">tier</th>
-<th align="left">status</th>
-<th align="left">description</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left"><code>verbose</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>TRUE</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">Print a line for each ingest, segment and read
-stage.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="models.html#set-tokenizer"><code>tokenizer</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>heuristic</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Token counter: “heuristic” (conservative, no
-dependencies), “words”, “chars”, “tiktoken” (needs reticulate), or a
-name registered via hr_set_tokenizer().</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="core.html#set-endpoint"><code>model</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>gpt-5.6-terra</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">Default chat model.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="core.html#set-endpoint"><code>embedding_model</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>text-embedding-3-small</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Default embedding model.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="core.html#set-endpoint"><code>api_base</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>https://api.openai.com/v1</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">API root; point this at a proxy or a compatible
-endpoint.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="core.html#set-endpoint"><code>api_headers</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>character(0)</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Named character vector of extra HTTP headers sent with
-every request, for gateways that do not authenticate with a bearer
-token.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="core.html#set-endpoint"><code>api</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>responses</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">“responses” or “chat” request shape.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="core.html#set-temperature"><code>temperature</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>NULL</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">Default sampling temperature.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="core.html#set-retries"><code>max_retries</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>4</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">Retries for transient failures.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="core.html#set-retries"><code>retry_pause_base</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>2</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">Seconds; exponential backoff base.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="core.html#set-retries"><code>request_timeout</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>120</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">Per-request timeout, seconds.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="context.html#set-safety-margin"><code>safety_margin</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>0.1</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">Fraction of the context window left unused to absorb
-tokenizer error.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="context.html#set-reply-reserve"><code>min_output_tokens</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>256</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">Floor on the completion room hr_budget() reserves when
-reserve_output is not given explicitly.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>cache_documents</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>TRUE</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Cache ingestion per file + settings.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>cache_embeddings</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>TRUE</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Cache embeddings per text + model.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>cache_dir</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>NULL</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">Directory hr_cache() stores model responses in.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>embedder</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>NULL</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Which registered embedder to use.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>parallel</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>FALSE</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Run per-chunk calls concurrently.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>workers</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>4</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">Worker processes when parallel is TRUE.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="runs.html#set-limits"><code>max_cost_usd</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>5</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">Spending limit per run, in USD.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="runs.html#set-limits"><code>max_calls</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>400</code></td>
-<td align="left">basic</td>
-<td align="left"></td>
-<td align="left">Hard cap on model calls per run, checked before every
-request.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="runs.html#set-limits"><code>max_tokens_total</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>NULL</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Most tokens one run may use: the prompt and reply
-tokens of every call, cache hits included, and the text sent to be
-embedded.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="runs.html#set-limits"><code>max_output_tokens</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>NULL</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">The largest output cap one request may be sent
-with.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="runs.html#set-limits"><code>allowed_models</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>NULL</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">Character vector of the model ids a run may call, chat
-and embedding models alike.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="models.html#set-unpriced"><code>allow_unpriced</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>TRUE</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">Whether a chat model with no registered price may be
-called while max_cost_usd is set.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="models.html#set-price-age"><code>price_max_age_days</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>120</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">How old a price may be, in days, before a cost computed
-from it warns with class hr_stale_price.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="models.html#set-unknown-model"><code>unknown_model_action</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>warn</code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">“warn” or “error” when a model id is not in the
-registry.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="core.html#set-actor"><code>actor</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code></td>
-<td align="left">advanced</td>
-<td align="left"></td>
-<td align="left">A named list (or character vector) of the actor fields
-every hr_trace() records: system, owner, run_by, purpose and
-approved_by, each one string.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>auto_max_tokens</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>50000</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">The largest document, in tokens, that answer_document()
-with recipe = “auto” reads with “fast” (one request); a larger one is
-read with “thorough”.</td>
-</tr>
-<tr class="even">
-<td align="left"><code>auto_room_share</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>0.5</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">The second condition of that choice: the document must
-fill at most this share of the input room hr_budget() leaves on every
-model of the run.</td>
-</tr>
-<tr class="odd">
-<td align="left"><a href="effort.html#set-reasoning-floor"><code>reasoning_floor</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>2048</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">The smallest output cap a request to a reasoning model
-is sent with.</td>
-</tr>
-<tr class="even">
-<td align="left"><a href="context.html#set-reply-reserve"><code>output_reserve_share</code></a></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>0.25</code></td>
-<td align="left">advanced</td>
-<td align="left">untested</td>
-<td align="left">The share of the usable window hr_budget() reserves for
-the reply when no reserve_output is given, between min_output_tokens and
-the model’s output limit.</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>near_verbatim_sim</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>0.9</code></td>
-<td align="left">advanced</td>
-<td align="left">measured</td>
-<td align="left">The least similarity a quotation of at least
-near_verbatim_short_chars characters (after normalising), and one
-shorter than that, needs for the edit-distance matcher to score it
-near_verbatim (see gr_verify_evidence()).</td>
-</tr>
-<tr class="even">
-<td align="left"><code>near_verbatim_sim_short</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>0.95</code></td>
-<td align="left">advanced</td>
-<td align="left">measured</td>
-<td align="left">The least similarity a quotation of at least
-near_verbatim_short_chars characters (after normalising), and one
-shorter than that, needs for the edit-distance matcher to score it
-near_verbatim (see gr_verify_evidence()).</td>
-</tr>
-<tr class="odd">
-<td align="left"><code>near_verbatim_short_chars</code></td>
-<td align="left"><code><a href="../reference/hr_options.html">hr_options()</a></code></td>
-<td align="left"><code>40</code></td>
-<td align="left">advanced</td>
-<td align="left">measured</td>
-<td align="left">The least similarity a quotation of at least
-near_verbatim_short_chars characters (after normalising), and one
-shorter than that, needs for the edit-distance matcher to score it
-near_verbatim (see gr_verify_evidence()).</td>
-</tr>
-</tbody>
-</table>
 </div>
 <div class="section level2">
 <h2 id="building-blocks">Building blocks<a class="anchor" aria-label="anchor" href="#building-blocks"></a>
 </h2>
-<p>Some settings choose a module from a registry:
+<p>Some document settings choose a module from a registry:
 <code>extractor</code>, <code>clean</code>, <code>method</code>,
 <code>reader</code>, <code>hr_options(embedder = )</code>, and the
 recipe you give <code><a href="../reference/answer_document.html">answer_document()</a></code>. The tables below show
@@ -3047,6 +3071,9 @@ can override any of them by name.</p>
 <li>
 <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>: the basic settings of each stage,
 and when to change each.</li>
+<li>
+<code><a href="../articles/core.html">vignette("core")</a></code>: the core guides, and what a call does
+with the options above.</li>
 <li>
 <code><a href="../articles/compare.html">vignette("compare")</a></code>: how to test a setting on a
 reference with dev and test splits, and read the result with

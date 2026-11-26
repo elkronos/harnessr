@@ -130,6 +130,6 @@ m[m$id %in% c("gpt-4o", "gpt-4o-mini"),
 # A malformed file names the row and column, and registers nothing.
 writeLines(c("id,input_usd,output_usd", "gpt-4o,two,10"), prices)
 tryCatch(hr_load_models(prices), hr_bad_models_file = conditionMessage)
-#> [1] "Models file '/tmp/RtmpHP7OlR/file1bf2199f5488.csv', row 1, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."
+#> [1] "Models file '/tmp/RtmpRuV8it/file1b203c833fc.csv', row 1, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."
 unlink(prices)
 ```

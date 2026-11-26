@@ -17,8 +17,29 @@ This guide covers four tasks:
 - stating the parameters of a spec;
 - checking your module against the contract the built-ins follow.
 
+A module that calls the model builds on the core. It sends each request
+with
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+and records it in the run’s trace (“The trace” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)),
+the run’s limits can refuse it (“Limits and refusals” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)),
+it sizes its prompts with
+[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
+([`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)),
+and it passes on the run’s effort
+([`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)).
+Models and their prices belong to the core too
+([`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)).
+Steps register in the same registry, and “Registering a step” in
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
+covers them, with
+[`hr_modules()`](https://elkronos.github.io/harnessr/reference/hr_modules.md)
+across every kind and
+[`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md)
+for a module of any kind.
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
-introduces the package and its ideas.
+introduces the package.
 
 ## Setting up
 
@@ -190,17 +211,23 @@ When you write the function:
   with the client you were given, never one you construct, and pass it
   the `trace`. Through the trace,
   [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
-  counts, prices and limits your calls.
+  counts, prices and limits your calls (“The trace” in
+  [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)).
 - Expect refusals. harnessr does not send a request that would pass
   `max_calls` or `max_cost_usd`, and
   [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
-  returns a result with `refused = TRUE` instead. Stop or degrade when
-  that happens.
+  returns a result with `refused = TRUE` instead (“Limits and refusals”
+  in
+  [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)).
+  Stop or degrade when that happens.
 - Honour at least `spec$model`, `spec$max_answer_tokens`,
   `spec$temperature` and `spec$effort`.
 - Budget the prompt with
   [`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
-  instead of assuming the document fits.
+  instead of assuming the document fits (“How much room a prompt has:
+  [`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)”
+  in
+  [`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)).
 
 The `signature`, `"select|calls|state"`, describes how the reader
 traverses the chunks. Two readers with the same signature are the same
@@ -260,7 +287,7 @@ module first, with its labels in `calls`. The `calls` column of
 and
 [`gr_segmenters()`](https://elkronos.github.io/harnessr/reference/gr_segmenters.md)
 lists every module’s stems.
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)
 explains what effort does and which models it is sent to.
 
 ## Declaring cost
@@ -351,6 +378,7 @@ hr_cost(calls = 4, calls_max = 6)$calls_max
 #> [1] 6
 ```
 
+“Limits” in
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
 covers the governor, its limits and the pre-flight step in the trace.
 
@@ -409,56 +437,23 @@ not vectors. The flag lets
 [`hr_replay_client()`](https://elkronos.github.io/harnessr/reference/hr_replay_client.md)
 recompute a run’s chunk ranking instead of degrading to lexical vectors.
 If you set it wrongly, a replay ranks chunks from vectors the original
-run never saw and still reports an exact match.
+run never saw and still reports an exact match. “Embeddings in a replay”
+in
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+shows what a replay does with each kind of embedder.
 
 ## Models
 
-The model registry holds each model’s context window, output limit and
-prices. harnessr ships the limits of its built-in models and no prices.
-Use
+The model registry belongs to the core.
 [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
-to add a model the package does not know, to correct a built-in entry,
-or to give a model the prices you pay:
-
-``` r
-
-hr_register_model("my-local-llama", context_window = 32768, max_output = 4096)
-hr_model_info("my-local-llama")[c("context_window", "source", "certain")]
-#> $context_window
-#> [1] 32768
-#> 
-#> $source
-#> [1] "registered"
-#> 
-#> $certain
-#> [1] TRUE
-```
-
-Without prices, harnessr cannot estimate a cost. It returns `NA` instead
-of assuming the run is free:
-
-``` r
-
-is.na(hr_estimate_cost("my-local-llama", 1000, 500))
-#> [1] TRUE
-```
-
-While a spending limit is set, harnessr sends a request to a language
-model with no registered price and warns, once per model per session,
-that the limit does not count it. Embedding models and
-[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
-are exempt. Give `input_usd` and `output_usd` in US dollars per million
-tokens, zero for a local model, and the limit counts the model’s
-requests. To refuse unpriced requests instead, set
-`hr_options(allow_unpriced = FALSE)`.
-
-The section on connecting to a model in
+adds a model harnessr does not know, corrects a built-in entry, or gives
+a model the prices you pay.
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
+covers each of these and what harnessr does with a model that has no
+price. The section on connecting to a model in
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 registers a hosted model at its prices and a local one at zero, both
-reached through ellmer. `reasoning = TRUE` marks a model that takes an
-effort setting. To set the prices of many models at once from a file,
-and to keep them current, see “Models, prices and token counts” in
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md).
+reached through ellmer.
 
 ## Using what you registered
 
@@ -546,18 +541,11 @@ entry's fn; an unknown name raises gr_unknown_method and an unknown kind
 hr_unknown_kind. Signal calibrations keep their own contract,
 0.1.](../reference/figures/registry.svg)
 
-[`hr_modules()`](https://elkronos.github.io/harnessr/reference/hr_modules.md)
-lists the modules of every kind in one table, with the call stems each
-declares as a list column. Give it a kind to add that kind’s own
-columns:
+`hr_modules("reader")` lists the readers with the columns of their kind
+and the call stems each declares:
 
 ``` r
 
-m <- hr_modules()
-table(m$kind)
-#> 
-#>   cleaner  embedder extractor  protocol    reader segmenter 
-#>        15         3         7         4        15        10
 r <- hr_modules("reader")
 r[r$name %in% c("longest", "shortest"), c("name", "signature", "calls")]
 #>        name  signature           calls
@@ -594,18 +582,9 @@ r[r$name %in% c("longest", "shortest"), c("name", "version", "contract")]
 
 A step from
 [`hr_step()`](https://elkronos.github.io/harnessr/reference/hr_step.md)
-registers the same way, under the kind `"step"`. Its version is the
-step’s own unless you give another:
-
-``` r
-
-hr_register("step", "shout", fn = hr_step("shout", function(input, ctx) toupper(input),
-                                          input = "answer", output = "state",
-                                          version = "0.2.0"))
-hr_modules("step")[, c("name", "input", "output", "version", "contract")]
-#>    name  input output version contract
-#> 1 shout answer  state   0.2.0      0.2
-```
+registers the same way, under the kind `"step"`; “Registering a step” in
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
+shows it.
 
 Through
 [`hr_register()`](https://elkronos.github.io/harnessr/reference/hr_register.md),
@@ -625,84 +604,16 @@ default, range and choices.
 [`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md)
 and
 [`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md)
-check their arguments against a schema. You can use the same three
-schema functions for a module of your own:
-
-- [`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md)
-  declares one parameter;
-- [`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md)
-  collects them;
-- [`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md)
-  applies the rules.
-
-``` r
-
-s <- hr_schema(
-  hr_param("max_tokens", "integer", default = 1200L, min = 32, max = 1e6,
-           help = "Largest chunk, in tokens."),
-  hr_param("overlap_tokens", "integer", default = 0L, min = 0,
-           max = function(p) p$max_tokens - 1L,
-           help = "Tokens repeated between neighbouring chunks."),
-  hr_param("order", "enum", choices = c("relevance", "document"),
-           help = "How chosen chunks are ordered in the prompt."))
-s
-#> <hr_schema> 3 parameter(s)
-#>   max_tokens                 integer       basic     -         [32, 1e+06]
-#>   overlap_tokens             integer       basic     -         [0, f()]
-#>   order                      enum          basic     -         relevance|document
-```
-
+check their arguments against a schema. A module of your own can state
+its parameters with the same three core functions:
+[`hr_param()`](https://elkronos.github.io/harnessr/reference/hr_param.md)
+declares one,
+[`hr_schema()`](https://elkronos.github.io/harnessr/reference/hr_schema.md)
+collects them and
 [`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md)
-resolves the parameters in schema order, so a parameter whose bound
-depends on another, such as `overlap_tokens` above, comes after it. It
-moves a number out of range to the nearest bound and warns with class
-`gr_clamped` (and `hr_param_clamped`). It matches an `enum` as
-[`match.arg()`](https://rdrr.io/r/base/match.arg.html) does, so it
-accepts an unambiguous abbreviation:
-
-``` r
-
-withCallingHandlers(
-  str(hr_validate(s, list(max_tokens = 100, overlap_tokens = 500, order = "doc"))),
-  gr_clamped = function(w) {
-    message(conditionMessage(w))
-    invokeRestart("muffleWarning")
-  })
-#> `overlap_tokens` 500 is outside [0, 99]; using 99.
-#> List of 3
-#>  $ max_tokens    : int 100
-#>  $ overlap_tokens: int 99
-#>  $ order         : chr "document"
-```
-
-A name the schema does not have raises an error of class
-`hr_unknown_param`. A value outside an `enum`’s choices raises an error
-that names the choices:
-
-``` r
-
-tryCatch(hr_validate(s, list(top_k = 3)),
-         hr_unknown_param = function(e) conditionMessage(e))
-#> [1] "'top_k' not a parameter of this schema. Parameters: max_tokens, overlap_tokens, order."
-```
-
-The types are `integer`, `number`, `string`, `boolean`, `enum`,
-`string_vector`, `named_map`, `module_ref` and `file`;
-[`?hr_param`](https://elkronos.github.io/harnessr/reference/hr_param.md)
-gives the rule for each. For a parameter that needs a rule of its own, a
-`resolve` function replaces the type’s rule.
-
-The other fields describe the parameter and do not check it:
-
-- `help`: one plain sentence.
-- `cost_class`: how it moves the cost of a run, one of `"none"`,
-  `"local"`, `"per_call_constant"`, `"per_unit"`, `"per_sample"` or
-  `"per_round"`.
-- `affects_output`: whether it belongs in cache and store keys.
-- `tier`: `"basic"` or `"advanced"`, for grouping in a user interface.
-- `evidence`, `depends_on` and `since`.
-
-These fields let a later UI or command line be built from the same list.
+applies the rules. “Checking settings” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)
+shows them, with every type and field.
 
 ## Checking a module against the contract
 
@@ -867,36 +778,12 @@ gr_check_reader("longest", client = hr_mock_client(mode = 429))
 #>   ok    calls_within_cost: 1 request(s) made, at most 1 expected
 ```
 
-[`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md)
-is the core helper both checks use, and it works for a module of any
-kind. Give it three things:
-
-- the module’s function;
-- a closure of no arguments that runs the module once;
-- a named list of rules, each a function of the value the closure
-  returned.
-
-A rule returns `TRUE`, `FALSE`, `NA` (could not be checked), or a list
-with `ok` and a `detail` string. The closure runs in a temporary working
-directory that
-[`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md)
-removes afterwards, and the `runs` rule reports any error the closure
-raises.
-
-``` r
-
-double_it <- function(x) x * 2
-hr_check_module(double_it, function() double_it(2),
-  rules = list(numeric = function(v) is.numeric(v),
-               above_three = function(v) list(ok = v > 3, detail = sprintf("got %s", v))),
-  kind = "function", name = "double_it")
-#> <hr_conformance> function 'double_it', contract 0.2
-#>   passes all 4 rules
-#>   ok    is_function
-#>   ok    runs
-#>   ok    numeric
-#>   ok    above_three: got 4
-```
+Both checks use the core helper
+[`hr_check_module()`](https://elkronos.github.io/harnessr/reference/hr_check_module.md),
+which checks a module of any kind against rules you write. “Checking a
+module” in
+[`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)
+covers it.
 
 ## Next
 
@@ -908,5 +795,15 @@ hr_check_module(double_it, function() double_it(2),
   and
   [`?new_answer`](https://elkronos.github.io/harnessr/reference/new_answer.md):
   the constructors a segmenter and a reader return.
+- [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md):
+  [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md),
+  the trace and refusals, which every module that calls the model uses.
+- [`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md):
+  registering a step, listing the modules of every kind, and checking a
+  module against rules of your own.
+- [`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md):
+  budgets, and fitting pieces into one.
 - [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
-  limits, the pre-flight check, effort, and replaying a run.
+  limits, the pre-flight check, and replaying a run.
+- [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md):
+  effort, by stage or raised when a stage goes wrong.

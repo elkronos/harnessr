@@ -39,25 +39,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -108,7 +100,9 @@ them for five comparisons: readers, segmenters and chunk sizes, one
 setting swept over its values, screening settings, and a judge against
 people’s labels. Each runs offline on a stand-in model and ends in a
 report, with what that report shows and what it leaves open. The last
-section repeats the steps on your own documents.</p>
+section repeats the steps on your own documents. Four of the five
+compare settings of the document layer. The same steps apply to any arm,
+a chain of your own included (<code><a href="../articles/compose.html">vignette("compose")</a></code>).</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
@@ -268,10 +262,11 @@ than five runs, <code><a href="../reference/hr_benchmark.html">hr_benchmark()</a
 <code><a href="../reference/hr_report.html">hr_report()</a></code> gives no intervals. If run-to-run variance is
 above 10% of the total, the report’s notes say “use runs = 10”.</li>
 <li>
-<strong>One governor for the whole benchmark.</strong> The default
-limits fit one read (400 calls). Size <code><a href="../reference/hr_governor.html">hr_governor()</a></code> for
-arms x items x runs x calls per run, and afterwards check how much of it
-the benchmark used.</li>
+<strong>One governor for the whole benchmark</strong> (“The governor
+of a benchmark or a batch” in <code><a href="../articles/runs.html">vignette("runs")</a></code>). The
+default limits fit one read (400 calls). Size <code><a href="../reference/hr_governor.html">hr_governor()</a></code>
+for arms x items x runs x calls per run, and afterwards check how much
+of it the benchmark used.</li>
 <li>
 <strong>Read intervals.</strong> An arm ahead by 5 points with an
 interval from -3 to 13 has not been shown to be better.</li>
@@ -931,6 +926,9 @@ settings.</li>
 <li>
 <code><a href="../articles/readers.html">vignette("readers")</a></code>: the readers and recipes the arms
 are built from.</li>
+<li>
+<code><a href="../articles/runs.html">vignette("runs")</a></code>: the governor every benchmark here is
+held to.</li>
 <li>
 <code><a href="../reference/gr_seg_pk.html">?gr_seg_pk</a></code>, <code><a href="../reference/gr_seg_recall.html">?gr_seg_recall</a></code> and
 <code><a href="../reference/hr_scorer_judge.html">?hr_scorer_judge</a></code>: the measures and the self-judging rule in

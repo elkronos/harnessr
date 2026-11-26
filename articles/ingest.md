@@ -7,8 +7,20 @@ no later step restores it. This guide covers what harnessr can read,
 what it keeps and removes, and how to check a folder before you spend
 anything on it.
 
+Ingestion makes no model calls, so it rests on only two pieces of the
+core. The token counts in `doc$stats` and in
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md)
+come from the counter that “Counting tokens” in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
+describes. The cost floor that
+[`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md)
+reports uses the prices you set, as “Prices” in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
+shows.
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)
+covers the model calls that later steps make, and
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
-introduces the package and the ideas used here.
+introduces the package.
 
 ``` r
 
@@ -429,7 +441,9 @@ without text, an empty file, or a subfolder you forgot about.
 [`gr_inventory()`](https://elkronos.github.io/harnessr/reference/gr_inventory.md)
 finds all of these in seconds, without calling a model and without an
 API key. Its cost floor needs your model’s price, which harnessr does
-not ship, so the example sets one first:
+not ship (“Prices” in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)),
+so the example sets one first:
 
 ``` r
 
@@ -448,7 +462,7 @@ invisible(file.create(file.path(inbox, "empty.txt")))
 
 inv <- gr_inventory(inbox)
 inv
-#> <gr_inventory> /tmp/Rtmphnes4n/inbox
+#> <gr_inventory> /tmp/RtmpCKNPG9/inbox
 #>   4 file(s), 1.9 KB; 2 readable
 #>   2 ready, 1 no_extractor, 1 empty
 #>   tokens: 549   cost floor: $0.01 (gpt-5.6-terra, one call per document), prices as of 2026-11
@@ -502,10 +516,17 @@ covers reading a whole folder.
 
 `inv$totals` adds up the tokens and prices one request per readable file
 with your model: the file’s tokens in, and an assumed 500-token answer
-out. Treat `cost_floor_usd` as a rough guide, not a bound. Reading
-strategies that make several requests per document cost more, and short
-answers cost less. The total leaves out files whose size is unknown
-until OCR reads them; `tokens_unknown` counts those.
+out.
+[`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md)
+gives the figure and its `priced`, `as_of` and `certain` columns (“What
+a cost estimate says:
+[`hr_estimate_cost()`](https://elkronos.github.io/harnessr/reference/hr_estimate_cost.md)”
+in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)).
+Treat `cost_floor_usd` as a rough guide, not a bound. Reading strategies
+that make several requests per document cost more, and short answers
+cost less. The total leaves out files whose size is unknown until OCR
+reads them; `tokens_unknown` counts those.
 
 ``` r
 

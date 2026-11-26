@@ -3,18 +3,25 @@
 [![R-CMD-check](https://github.com/elkronos/harnessr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/elkronos/harnessr/actions/workflows/R-CMD-check.yaml)
 [![tests](https://github.com/elkronos/harnessr/actions/workflows/tests.yaml/badge.svg)](https://github.com/elkronos/harnessr/actions/workflows/tests.yaml)
 
-For one document,
+harnessr is a harness for calls to large language models. It composes
+calls into steps and chains, checks spending limits before each request,
+can cache replies so a repeated request is paid for once, records every
+call in a trace you can save and replay offline, and checks what came
+back. Any client goes through it: an OpenAI-compatible endpoint, any
+provider ellmer supports, a function of your own, or an offline
+stand-in.
+
+A document layer is built on that core. For one document,
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
 picks an ingest, a segmentation and a reading strategy, and returns an
-answer with a trace of everything it did. For a folder,
+answer with the trace of everything it did. For a folder,
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 decides which documents count,
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 fills a typed schema across all of them, and
 [`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
 writes the result up, citing the rows each section rests on and flagging
-any sentence that cites none. Every model call is budgeted, recorded and
-checked, and can be cached.
+any sentence that cites none.
 
 ![Two stacked layers. Your code calls the document layer (gr\_ functions
 for ingest, segment, read, screen, extract, claims, synthesis and
@@ -34,16 +41,22 @@ provider, and the core never calls the document layer.
 Your code can call either layer: the document functions (`gr_`) build on
 the core functions (`hr_`), and the core never calls the document layer.
 
+The [guides](#guides) explain each part in depth and all run offline,
+without a key.
+[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
+walks through the core in brief and then a first document question. The
+core guides follow, starting with
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)
+for calls, clients and the trace, then models and prices, context,
+effort, limits and caching, composing steps, and measuring. The document
+guides build on them. All are on the website,
+<https://elkronos.github.io/harnessr/>, with the reference for every
+function.
+
 harnessr was called readgpt up to version 0.6.0. If you have code
 written for readgpt,
 [`vignette("migrate")`](https://elkronos.github.io/harnessr/articles/migrate.md)
 lists the old names and what replaced them.
-
-The [guides](#guides) explain each part in depth and all run offline,
-without a key. Start with
-[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md).
-They are also on the website, <https://elkronos.github.io/harnessr/>,
-with the reference for every function.
 
 ## Install
 
@@ -72,9 +85,31 @@ lists them.
 
 ## Quick start
 
+One call through the core, with
+[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
+standing in for a model so it runs without a key. The trace records the
+request, its tokens and its cost:
+
 ``` r
 
 library(harnessr)
+
+cl  <- hr_mock_client(function(m, p) "Revenue was 45.2 million dollars.")
+tr  <- hr_trace()
+res <- hr_call(cl, "What was revenue in fiscal 2024?", trace = tr, label = "ask")
+as.data.frame(tr)[, c("stage", "model", "tokens_in", "tokens_out", "usd")]
+#>   stage      model tokens_in tokens_out usd
+#> 1   ask mock-model        14         13   0
+```
+
+`res$text` holds the reply and `res$ok` says whether the call succeeded.
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)
+covers every kind of client, what a result holds, the trace, structured
+replies and checks on a reply.
+
+The document layer runs a whole pipeline over a file in one call:
+
+``` r
 
 ans <- answer_document("report.pdf", "What was Q3 revenue?", recipe = "needle")
 ans$answer
@@ -148,24 +183,33 @@ warning that the limit does not cover it.
 hr_register_model("gpt-5.6-terra", input_usd = 2, output_usd = 12)
 ```
 
-Then the quick start above runs against the real model.
+Then
+[`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
+in the quick start runs against the real model, and
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+does too when you give it
+[`hr_client()`](https://elkronos.github.io/harnessr/reference/hr_client.md)
+in place of the stand-in.
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 covers the other ways to give a key, company gateways, other providers
 and local models through ellmer, and any other backend.
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
 shows how to set many prices from a file and keep them current.
 
 ## Guides
 
 Each guide is on the website, under the same groups as here, and once
-installed in R as `vignette("name")`.
+installed in R as `vignette("name")`. The core guides come first because
+the document guides build on them.
 
 ### Get started
 
 - [Get
   started](https://elkronos.github.io/harnessr/articles/harnessr.html)
-  (`harnessr`): the ideas, installing, connecting, a first question
-  checked from start to finish, cost, a glossary.
+  (`harnessr`): the ideas, installing, connecting, the core in brief (a
+  call, its trace, prices and limits, context, effort), then a first
+  question about a document checked from start to finish, cost, a
+  glossary.
 
 ### Core
 
@@ -189,8 +233,34 @@ installed in R as `vignette("name")`.
   (`effort`): which models take a reasoning effort, setting it per call
   or per stage, what it costs and does to the cache, raising it only
   when a stage goes wrong, and measuring whether that pays.
+- [Limits, caching and
+  replay](https://elkronos.github.io/harnessr/articles/runs.html)
+  (`runs`): what a document run records, spending limits and the
+  governor, parallel batches, paying once with a cache, repeated draws,
+  replaying a run, and what recipes cost.
+- [Composing steps into
+  chains](https://elkronos.github.io/harnessr/articles/compose.html)
+  (`compose`): steps of your own and the built-in ones, chains run as
+  one arm, registering a step and checking a module, deriving a chain by
+  dropping or replacing a step, settings and sweeps by path, skills, and
+  a coding sub-agent.
+- [Measuring and comparing
+  configurations](https://elkronos.github.io/harnessr/articles/evaluate.html)
+  (`evaluate`): reference sets and label sheets, benchmarks and their
+  intervals, non-inferiority, judges, checks that run a program,
+  baselines, drift, signals.
+- [Comparing methods and
+  settings](https://elkronos.github.io/harnessr/articles/compare.html)
+  (`compare`): worked comparisons of readers, segmenters and chunk
+  sizes, one setting over its values, screening settings and a judge
+  against labels, and how to read each report.
+- [Settings
+  reference](https://elkronos.github.io/harnessr/articles/settings.html)
+  (`settings`): every setting of every stage with its default and where
+  it came from, and the extractors, cleaners, segmenters, readers,
+  embedders and recipes.
 
-### Read a document
+### Documents
 
 - [Getting text out of
   files](https://elkronos.github.io/harnessr/articles/ingest.html)
@@ -204,49 +274,15 @@ installed in R as `vignette("name")`.
   reads](https://elkronos.github.io/harnessr/articles/readers.html)
   (`readers`): the reading strategies, recipes, what each costs, and how
   to choose.
-
-### Review many documents
-
 - [Many documents and literature
   reviews](https://elkronos.github.io/harnessr/articles/review.html)
   (`review`): search, screening, calibration and recall, several
   reviewers, extraction, claims, synthesis, the audit report.
-
-### Measure and compare
-
-- [Measuring and comparing
-  configurations](https://elkronos.github.io/harnessr/articles/evaluate.html)
-  (`evaluate`): reference sets and label sheets, benchmarks and their
-  intervals, non-inferiority, judges, baselines, drift, signals.
-- [Comparing methods and
-  settings](https://elkronos.github.io/harnessr/articles/compare.html)
-  (`compare`): worked comparisons of readers, segmenters and chunk
-  sizes, one setting over its values, screening settings and a judge
-  against labels, and how to read each report.
-
-### Control cost and settings
-
-- [Cost, limits and reproducible
-  runs](https://elkronos.github.io/harnessr/articles/runs.html)
-  (`runs`): the governor, setting model prices, effort, traces, caching,
-  replay.
-- [Settings
-  reference](https://elkronos.github.io/harnessr/articles/settings.html)
-  (`settings`): every setting of every stage with its default and where
-  it came from, and the extractors, cleaners, segmenters, readers,
-  embedders and recipes.
-
-### Build your own
-
-- [Composing steps into
-  chains](https://elkronos.github.io/harnessr/articles/compose.html)
-  (`compose`): steps of your own and the built-in ones, chains run as
-  one arm, deriving a chain by dropping or replacing a step, and what a
-  chain checks.
 - [Extending
   harnessr](https://elkronos.github.io/harnessr/articles/extending.html)
   (`extending`): registering your own extractors, cleaners, segmenters,
-  readers and embedders, and checking them.
+  readers and embedders, declaring their calls and cost, and checking
+  them against the contract.
 
 ### Upgrade
 

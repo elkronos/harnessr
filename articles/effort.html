@@ -39,25 +39,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -806,9 +798,11 @@ so run the check on your own task before you change a default.</p>
 <div class="section level2">
 <h2 id="choosing-the-settings">Choosing the settings<a class="anchor" aria-label="anchor" href="#choosing-the-settings"></a>
 </h2>
-<p>One option belongs to effort. The walkthrough says what it controls,
-the signs that point to changing it, where its default came from and how
-to test a change.</p>
+<p>Two settings belong to effort: the option
+<code>reasoning_floor</code>, and <code>effort_mode</code>, a setting of
+a document read. Each walkthrough says what the setting controls, the
+signs that point to changing it, where its default came from and how to
+test a change.</p>
 <div class="section level3">
 <h3 id="set-reasoning-floor">The output cap floor: <code>reasoning_floor</code><a class="anchor" aria-label="anchor" href="#set-reasoning-floor"></a>
 </h3>
@@ -859,6 +853,109 @@ client, and compare <code>finish_reason</code>,
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">finish_reason</span>, <span class="va">res</span><span class="op">$</span><span class="va">usage</span><span class="op">$</span><span class="va">reasoning</span><span class="op">)</span></span>
 <span><span class="va">tr</span><span class="op">$</span><span class="va">steps</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">params_sent</span><span class="op">$</span><span class="va">max_output</span></span></code></pre></div>
 </div>
+<div class="section level3">
+<h3 id="set-effort-mode">Effort that rises when needed: <code>effort_mode</code><a class="anchor" aria-label="anchor" href="#set-effort-mode"></a>
+</h3>
+<p><strong>What it controls.</strong> <code>effort_mode</code> is a
+setting of <code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code>. With
+<code>effort_mode = "escalate"</code>, a read starts every stage at its
+<code>effort</code> (<code>"low"</code> when <code>effort</code> is
+unset). It sends the next stage at <code>"high"</code> when one of these
+went wrong in the stage before:</p>
+<ul>
+<li>a cut;</li>
+<li>a reply stopped at its output cap;</li>
+<li>a reply that is not the JSON asked for;</li>
+<li>
+<code>NOT_IN_DOCUMENT</code> from every request of the stage;</li>
+<li>a quotation <code>iterative</code> could not verify;</li>
+<li>
+<code>ensemble</code> members that disagree.</li>
+</ul>
+<p>Effort changes only at a stage boundary, at most once a read, and the
+stage after a raised one goes back to the base effort. The setting
+trades the cost of reasoning at a high effort on every request against
+the cost of a wrong answer where low effort was not enough. A raise
+costs nothing but the raised stage’s reasoning.</p>
+<p><strong>Signs it needs changing.</strong> Look for a fixed
+<code>"high"</code> effort whose bill is mostly reasoning on requests
+that a low effort answers as well, or for answers at a fixed
+<code>"low"</code> that come back cut off, unparsed or not found. The
+trace records each raise as an <code>"effort.escalate"</code> step.
+<code><a href="../reference/hr_effort_log.html">hr_effort_log()</a></code> shows which trigger fired and whether the
+raised stage fired it again.</p>
+<p><strong>Where the default came from.</strong> <code>"static"</code>
+sends the effort <code>effort</code> names, as harnessr did before the
+setting existed; the settings table marks it <code>untested</code>. No
+one has compared escalation with a fixed effort here, and
+<code><a href="../reference/hr_effort_check.html">hr_effort_check()</a></code> makes that comparison.</p>
+<p><strong>How to test it.</strong> <code>qa</code> below holds one
+question about the example report. <code>refine</code> reads the report
+with a stand-in reasoning model that, at low effort, finds nothing in
+the first chunk, where <code>refine</code> drafts its answer:</p>
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">qa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_qa_reference.html">gr_qa_reference</a></span><span class="op">(</span>questions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>revenue <span class="op">=</span> <span class="st">"What was revenue in 2024?"</span><span class="op">)</span>,</span>
+<span>                      documents <span class="op">=</span> <span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, answers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"45.2 million"</span><span class="op">)</span>,</span>
+<span>                      split <span class="op">=</span> <span class="st">"dev"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"priced-reasoner"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">8192</span>,</span>
+<span>                  input_usd <span class="op">=</span> <span class="fl">1</span>, output_usd <span class="op">=</span> <span class="fl">4</span>, reasoning <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">thinks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">effort</span>, <span class="st">"low"</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/startsWith.html" class="external-link">startsWith</a></span><span class="op">(</span><span class="va">messages</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, <span class="st">"&lt;excerpts&gt;"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="st">"NOT_IN_DOCUMENT"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="st">"Revenue was 45.2 million dollars."</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">efforts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">effort</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"thorough"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"sentence"</span>, max_tokens <span class="op">=</span> <span class="fl">150</span>, overlap_tokens <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>                          model <span class="op">=</span> <span class="st">"priced-reasoner"</span>, reader <span class="op">=</span> <span class="st">"refine"</span>,</span>
+<span>                          effort <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="va">effort</span> <span class="op">!=</span> <span class="st">"escalate"</span><span class="op">)</span> <span class="va">effort</span>,</span>
+<span>                          effort_mode <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="va">effort</span> <span class="op">==</span> <span class="st">"escalate"</span><span class="op">)</span> <span class="st">"escalate"</span> <span class="kw">else</span> <span class="st">"static"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"low"</span>, <span class="st">"high"</span>, <span class="st">"escalate"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">eb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">efforts</span>, <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">thinks</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
+<span>                   scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>                   governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_calls <span class="op">=</span> <span class="fl">200</span>, max_cost_usd <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sent</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">eb</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">eb</span>, <span class="st">"traces"</span><span class="op">)</span><span class="op">[[</span><span class="va">eb</span><span class="op">$</span><span class="va">ledger_id</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">effort</span><span class="op">)</span>, <span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>arm <span class="op">=</span> <span class="va">eb</span><span class="op">$</span><span class="va">arm</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, stage <span class="op">=</span> <span class="va">d</span><span class="op">$</span><span class="va">stage</span>, effort <span class="op">=</span> <span class="va">d</span><span class="op">$</span><span class="va">effort</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">sent</span><span class="op">$</span><span class="va">arm</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">sent</span><span class="op">$</span><span class="va">stage</span>, <span class="va">sent</span><span class="op">$</span><span class="va">effort</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                           </span></span>
+<span><span class="co">#&gt;                            refine.draft high refine.draft low</span></span>
+<span><span class="co">#&gt;   thorough:effort=escalate                 0                5</span></span>
+<span><span class="co">#&gt;   thorough:effort=high                     5                0</span></span>
+<span><span class="co">#&gt;   thorough:effort=low                      0                5</span></span>
+<span><span class="co">#&gt;                           </span></span>
+<span><span class="co">#&gt;                            refine.revise high refine.revise low</span></span>
+<span><span class="co">#&gt;   thorough:effort=escalate                 20                 0</span></span>
+<span><span class="co">#&gt;   thorough:effort=high                     20                 0</span></span>
+<span><span class="co">#&gt;   thorough:effort=low                       0                20</span></span>
+<span><span class="fu"><a href="../reference/hr_effort_log.html">hr_effort_log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">eb</span>, <span class="st">"traces"</span><span class="op">)</span><span class="op">[[</span><span class="va">eb</span><span class="op">$</span><span class="va">ledger_id</span><span class="op">[</span><span class="va">eb</span><span class="op">$</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"thorough:effort=escalate"</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;          after         stage        triggers   to calls resolved</span></span>
+<span><span class="co">#&gt; 1 refine.draft refine.revise not_in_document high     4     TRUE</span></span></code></pre></div>
+<p>At <code>"low"</code> every request went out low, and at
+<code>"high"</code> every one went out high. Under
+<code>"escalate"</code> the draft went out low and found nothing. That
+raised the four revisions after it to high, and the log shows that the
+raise resolved the trigger: the revisions found the figure.</p>
+<p>Four of the five requests of each run went out raised here, because
+the draft is one request. On a reader whose first stage is many requests
+(<code>map_reduce</code>’s chunks), the raised stage is the smaller
+share.</p>
+<p><code><a href="../reference/hr_effort_check.html">hr_effort_check()</a></code> reads a benchmark of such arms with
+the non-inferiority test of <code><a href="../reference/hr_report.html">hr_report()</a></code>, as <a href="#check">Does more effort pay?</a> shows. That test needs a
+reference with a test split and enough items and runs for intervals,
+which <code>qa</code> lacks, so run the check on a benchmark of your
+own:</p>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">chk</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_effort_check.html">hr_effort_check</a></span><span class="op">(</span><span class="va">your_bench</span>, candidate <span class="op">=</span> <span class="st">"thorough:effort=escalate"</span>, margin <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
+<span><span class="va">chk</span><span class="op">$</span><span class="va">contrasts</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"reference"</span>, <span class="st">"estimate"</span>, <span class="st">"lower"</span>, <span class="st">"verdict"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">chk</span><span class="op">$</span><span class="va">cost</span></span></code></pre></div>
+<p>Register the margin with <code><a href="../reference/hr_contrast.html">hr_register_contrasts()</a></code> before
+the benchmark runs and pass it as <code>registration</code>; without
+one, the result is marked post hoc.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="document-layer">Where the document layer builds on this<a class="anchor" aria-label="anchor" href="#document-layer"></a>
@@ -866,13 +963,25 @@ client, and compare <code>finish_reason</code>,
 <p>A read takes an effort map as the <code>effort</code> setting of
 <code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code>, and its
 <code>effort_mode = "escalate"</code> builds an
-<code><a href="../reference/hr_effort_escalate.html">hr_effort_escalate()</a></code> policy from it. The document layer
-checks the names of a map against the labels its readers declare, and
-stops with an error of class <code>hr_unknown_effort_key</code> for one
-that covers no call. “Reasoning effort, stage by stage” in
-<code><a href="../articles/readers.html">vignette("readers")</a></code> lists each reader’s labels, and
-<code><a href="../articles/runs.html">vignette("runs")</a></code> raises the effort of a read with
-<code>effort_mode</code>.</p>
+<code><a href="../reference/hr_effort_escalate.html">hr_effort_escalate()</a></code> policy from it, as the <a href="#set-effort-mode"><code>effort_mode</code> walkthrough</a> above
+shows. “Reasoning effort, stage by stage” in
+<code><a href="../articles/readers.html">vignette("readers")</a></code> lists each reader’s labels.</p>
+<p>In a review, the same vector goes to each stage.
+<code><a href="../reference/gr_screen.html">gr_screen()</a></code> and <code><a href="../reference/gr_extract.html">gr_extract()</a></code> take it as a
+recipe override; <code><a href="../reference/gr_claims.html">gr_claims()</a></code>, <code><a href="../reference/gr_outline.html">gr_outline()</a></code> and
+<code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code> take it as an argument. With
+<code>effort = c(extract = "low", synthesise = "high")</code>, the
+per-chunk extraction stays cheap and the spending goes to the
+writing.</p>
+<p>The document layer checks the names of a map against the labels its
+readers declare. A name that matches no declared call stops with an
+error of class <code>hr_unknown_effort_key</code> that lists the stems.
+A misspelt <code>c(extrac = "low")</code> therefore cannot send every
+extraction at the provider’s default unnoticed, as it can through
+<code><a href="../reference/hr_call.html">hr_call()</a></code> (see <a href="#one-effort-for-every-call-or-one-per-stage">One effort for every
+call, or one per stage</a>). <code><a href="../reference/gr_read_spec.html">?gr_read_spec</a></code> lists every
+label and suggests a profile: low for the many per-chunk calls, high for
+the few that judge.</p>
 </div>
 <div class="section level2">
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>

@@ -398,7 +398,15 @@ temperature and the reasoning effort are those the chat was built with
 (a call that asks for another warns once), and the output cap carries
 over only with ellmer 0.5.0 or later.
 [`?hr_ellmer_client`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
-lists what carries over.
+lists what carries over. A `temperature` in a document read spec is
+ignored the same way, with a warning.
+
+The chat is priced as the model it was built with, so register that
+model’s prices (“A model with no price” in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)).
+Embeddings come from a function you pass as `embed =`. Without one,
+`retrieve` and the `semantic` segmenter fall back to lexical vectors and
+warn.
 
 ### A cache: `hr_cache_client()`
 
@@ -536,12 +544,12 @@ a <- hr_call(cl, "What was revenue in 2024?", model = "priced-mock",
 b <- hr_call(cl, "Check the draft against the report.", model = "priced-mock",
              trace = tr, label = "check")
 tr
-#> <gr_trace run_20261126222131.915_ecae2b>  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)
+#> <gr_trace run_20261126232155.958_0beac9>  2 steps, 2 model calls, 23 in / 26 out tokens, 0 error(s)
 #>   steps: check x1, draft x1 
 #>   cost: $0.0003 across priced-mock, prices as of 2026-11
 #>   usage: estimated locally for 100% of requests (the provider reported none)
 #>   actor: purpose = core guide 
-#>   started: 2026-11-26T22:21:31.916Z
+#>   started: 2026-11-26T23:21:55.958Z
 ```
 
 The trace is an environment, so every call that is passed it records
@@ -788,9 +796,74 @@ tryCatch(hr_validate(reply_settings, list(max_word = 10)),
 #> [1] "'max_word' not a parameter of this schema. Parameters: max_words, style."
 ```
 
-“Parameter schemas” in
-[`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)
-covers every type and field.
+The spec constructors of the document layer,
+[`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md),
+[`gr_segment_spec()`](https://elkronos.github.io/harnessr/reference/gr_segment_spec.md)
+and
+[`gr_ingest_spec()`](https://elkronos.github.io/harnessr/reference/gr_ingest_spec.md),
+check their arguments against schemas built the same way. A bound can
+depend on another setting.
+[`hr_validate()`](https://elkronos.github.io/harnessr/reference/hr_validate.md)
+resolves the parameters in schema order, so a parameter whose bound
+depends on another, such as `overlap_tokens` below, comes after it:
+
+``` r
+
+chunk_settings <- hr_schema(
+  hr_param("max_tokens", "integer", default = 1200L, min = 32, max = 1e6,
+           help = "Largest chunk, in tokens."),
+  hr_param("overlap_tokens", "integer", default = 0L, min = 0,
+           max = function(p) p$max_tokens - 1L,
+           help = "Tokens repeated between neighbouring chunks."),
+  hr_param("order", "enum", choices = c("relevance", "document"),
+           help = "How chosen chunks are ordered in the prompt."))
+chunk_settings
+#> <hr_schema> 3 parameter(s)
+#>   max_tokens                 integer       basic     -         [32, 1e+06]
+#>   overlap_tokens             integer       basic     -         [0, f()]
+#>   order                      enum          basic     -         relevance|document
+```
+
+The `gr_clamped` warning also has class `hr_param_clamped`. An `enum` is
+matched as [`match.arg()`](https://rdrr.io/r/base/match.arg.html)
+matches, so an unambiguous abbreviation is accepted:
+
+``` r
+
+withCallingHandlers(
+  str(hr_validate(chunk_settings,
+                  list(max_tokens = 100, overlap_tokens = 500, order = "doc"))),
+  gr_clamped = function(w) {
+    message(conditionMessage(w))
+    invokeRestart("muffleWarning")
+  })
+#> `overlap_tokens` 500 is outside [0, 99]; using 99.
+#> List of 3
+#>  $ max_tokens    : int 100
+#>  $ overlap_tokens: int 99
+#>  $ order         : chr "document"
+```
+
+A value outside an `enum`’s choices raises an error of class
+`gr_bad_setting` that names the choices.
+
+The types are `integer`, `number`, `string`, `boolean`, `enum`,
+`string_vector`, `named_map`, `module_ref` and `file`;
+[`?hr_param`](https://elkronos.github.io/harnessr/reference/hr_param.md)
+gives the rule for each. For a parameter that needs a rule of its own, a
+`resolve` function replaces the type’s rule.
+
+The other fields describe the parameter and do not check it:
+
+- `help`: one plain sentence.
+- `cost_class`: how it moves the cost of a run, one of `"none"`,
+  `"local"`, `"per_call_constant"`, `"per_unit"`, `"per_sample"` or
+  `"per_round"`.
+- `affects_output`: whether it belongs in cache and store keys.
+- `tier`: `"basic"` or `"advanced"`, for grouping in a user interface.
+- `evidence`, `depends_on` and `since`.
+
+These fields let a later UI or command line be built from the same list.
 
 ## Checking a reply
 
@@ -1267,8 +1340,11 @@ hr_options(prev)
 
 ## Where the document layer builds on this
 
-Every reading function in the document layer makes its requests with
+Every reading function in the document layer makes its chat requests
+with
 [`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+and its embedding requests with
+[`hr_embed()`](https://elkronos.github.io/harnessr/reference/hr_embed.md),
 and records them in a trace, so everything above applies to a whole
 document.
 [`answer_document()`](https://elkronos.github.io/harnessr/reference/answer_document.md)
@@ -1285,8 +1361,8 @@ starts there.
 - [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md):
   how hard a reasoning model reasons, call by call or stage by stage.
 - [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
-  limits, the governor, caching across sessions, replaying a whole run,
-  and model prices.
+  limits, the governor, caching across sessions, and replaying a whole
+  run.
 - [`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md):
   steps and chains built from calls like these, and a coding sub-agent
   that checks its own code.
@@ -1294,6 +1370,6 @@ starts there.
   benchmarks, judges, checks that run a program, and calibrating
   signals.
 - [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md):
-  parameter schemas, and registering your own modules.
+  registering your own modules and checking them against the contract.
 - [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md):
   every setting with its default.

@@ -382,7 +382,9 @@ would. `id` is the only column every file needs, and a blank cell, or
 | `kind` | `chat` or `embedding` |
 | `dimensions` | how many dimensions an embedding model’s vectors have |
 
-A row that leaves a limit blank changes the model’s current entry, as
+[`?hr_load_models`](https://elkronos.github.io/harnessr/reference/hr_load_models.md)
+documents the format in full. A row that leaves a limit blank changes
+the model’s current entry, as
 [`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
 does without one. A row that gives both limits registers the model in
 full. This file prices two built-in chat models, with a cached input
@@ -417,7 +419,9 @@ m[m$id %in% loaded, c("id", "context_window", "max_output", "input_usd_per_1m",
 [`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md)
 returns, invisibly, the ids it registered, in file order. gpt-4o kept
 the 8,000-token output cap set earlier, because its row left the limits
-blank.
+blank. `subset(hr_models(), !is.na(input_usd_per_1m))` lists every model
+with a price. Check the ids against the ones your runs name: a price set
+under a misspelt id prices nothing.
 
 harnessr checks the whole file before it registers anything. A file it
 cannot use stops with an error of class `hr_bad_models_file` that names
@@ -430,7 +434,7 @@ bad <- file.path(tempdir(), "models-guide-bad.csv")
 writeLines(c("id,input_usd,output_usd", "gpt-4.1,2,8", "gpt-4.1-mini,two,1.6"), bad)
 err <- tryCatch(hr_load_models(bad), hr_bad_models_file = function(e) e)
 conditionMessage(err)
-#> [1] "Models file '/tmp/Rtmp5NpH7X/models-guide-bad.csv', row 2, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."
+#> [1] "Models file '/tmp/RtmpPht8XI/models-guide-bad.csv', row 2, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."
 c(row = err$row, column = err$column)
 #>         row      column 
 #>         "2" "input_usd"
@@ -445,16 +449,29 @@ names as
 does, and leaves the others as they are: a value a row leaves blank
 keeps its current value. Removing a cached rate from the file therefore
 does not remove it from the registry; register the model in full, with
-both limits, or start a new session. To set the same prices in every
-session, keep one file per project under version control and load it at
-the top of each script, as
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-describes:
+both limits, or start a new session.
+
+### Keeping your prices current
+
+A registration lasts for the R session. One file of prices per project
+sets the same prices in every session, keeps every script on the same
+figures and puts a date on each:
+
+1.  Keep `prices.csv` beside your scripts, under version control, with
+    an `as_of` column holding the month you checked each row.
+2.  Load it at the top of each script, or in the project’s `.Rprofile`,
+    before anything reports a cost.
+3.  When your provider changes a price, or the stale warning (below)
+    appears, look up the current prices, change the row and its `as_of`,
+    and load the file again.
 
 ``` r
 
-hr_load_models("prices.csv")
+harnessr::hr_load_models("prices.csv")
 ```
+
+The file’s commit history records when each price changed, and the
+`as_of` column of a cost report says which month’s prices the cost used.
 
 ## What a cost estimate says: `hr_estimate_cost()`
 
@@ -528,10 +545,12 @@ The second call warned that `acme-chat-7` is not in the registry, and
 its row says why the figure is missing: no price, and an entry that is a
 guess. Every report of a cost in dollars, such as
 [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md),
-carries the same `priced`, `as_of` and `certain` columns. The figure is
-an estimate: it uses the token counts you give and the prices you set,
-and it does not know about a provider’s discounts, minimum charges or
-taxes.
+carries the same `priced`, `as_of` and `certain` columns, as “What a run
+records” in
+[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
+shows for a document run. The figure is an estimate: it uses the token
+counts you give and the prices you set, and it does not know about a
+provider’s discounts, minimum charges or taxes.
 
 ## A model with no price
 
@@ -583,10 +602,21 @@ class(res$refusal)
 hr_options(prev)
 ```
 
-`hr_governor(allow_unpriced = FALSE)` does the same for one run.
+`hr_governor(allow_unpriced = FALSE)` does the same for one run. Under
+either,
+[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
+stops before its first request, with an error of the same class.
 [`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
 and replays are never refused or warned about for this, and neither is
 an embedding model with no price.
+
+An
+[`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
+is priced as the model its ellmer object was built with, whatever a
+recipe names, so set the price of that model. One built on a model with
+no price runs outside the spending limit. “Connecting to a model” in
+[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
+registers a hosted model at its prices and a local one at zero.
 
 ## When prices go stale
 
@@ -958,7 +988,7 @@ the readers fit each prompt to the model’s window from
 [`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md),
 and every cost the document layer reports comes from these prices.
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-sets prices for a whole document run and shows the costs it reports.
+shows the costs a whole document run reports.
 
 ## Next
 

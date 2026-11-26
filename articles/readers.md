@@ -10,8 +10,22 @@ or dozens, and can find a fact or miss it.
 
 This guide explains each reader, runs them all on one document, and
 gives you a way to choose.
+
+The readers build on three pieces of the core. Each one sizes its
+prompts to the model’s window with
+[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
+(“How much room a prompt has:
+[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)”
+in
+[`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)).
+Each takes a reasoning effort, one for the whole read or one per stage
+([`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)).
+Each sends its requests with
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md),
+under the run’s limits and into the run’s trace (“The trace” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)).
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
-introduces the package and its ideas.
+introduces the package.
 
 ## Setting up
 
@@ -177,11 +191,12 @@ document, with one set of instructions and one reply. Its cost still
 grows with the document’s length. The model sees everything at once, so
 it can connect facts from different places.
 
-The context window sets the limit. If the document does not fit, `stuff`
-sends what fits, warns, and marks the answer partial
-(`on_overflow = "error"` makes it stop instead). Very long prompts also
-dilute attention, and a model misses details in the middle of a long
-prompt more easily.
+The context window sets the limit: `stuff` fills the room
+[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
+leaves for the input. If the document does not fit, `stuff` sends what
+fits, warns, and marks the answer partial (`on_overflow = "error"` makes
+it stop instead). Very long prompts also dilute attention, and a model
+misses details in the middle of a long prompt more easily.
 
 **Use it for** documents comfortably inside the model’s context window.
 **Recipe:** `"fast"`, which
@@ -470,15 +485,14 @@ gr_embedders()[, c("name", "deterministic", "description")]
 
 ## Reasoning effort, stage by stage
 
-The default models reason before they answer. The provider bills that
-reasoning as output and counts it against the same cap as the reply, so
-it adds to every request’s cost. `effort` in
+The default models reason before they answer, and the provider bills the
+reasoning as output. `effort` in
 [`gr_read_spec()`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
 sets how much reasoning to ask for: one value, such as `"low"`, for
-every request, or a vector named by stage. harnessr sends it only to
-models it lists as reasoning models (`hr_model_info(model)$reasoning`).
-By default it sends nothing, and each request goes out at the provider’s
-default.
+every request, or a vector named by stage. By default a read sends none.
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)
+covers effort in the core: which models take it, how it is billed
+against the reply’s cap, and what it does to the cache and the trace.
 
 Every request a reader makes carries a label naming its stage:
 
@@ -498,13 +512,16 @@ Every request a reader makes carries a label naming its stage:
 The per-chunk requests are many and each does a small job, so a lower
 effort saves most there;
 [`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
-suggests a starting profile. A name covers its own label and every label
-that starts with it and a dot, so `map` covers `map.answer`, and an
-unnamed value covers the rest.
+suggests a starting profile. Names follow the rules in “One effort for
+every call, or one per stage” in
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md):
+`map` covers `map.answer`, and an unnamed value covers the rest.
 
 [`hr_trace()`](https://elkronos.github.io/harnessr/reference/hr_trace.md)
-records every request a run makes. Here `map_reduce` reads the eight
-chunks at low effort and merges at high:
+records every request a run makes (“The trace” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)).
+Here `map_reduce` reads the eight chunks at low effort and merges at
+high:
 
 ``` r
 
@@ -528,11 +545,11 @@ reasoning and come back cut off, so give it room with
 [`gr_compare()`](https://elkronos.github.io/harnessr/reference/gr_compare.md)
 (below) counts recipes that differ only in effort as different, so you
 can test what a lower effort costs.
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-covers effort across a literature review, and
 [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)
 covers effort in the core: its cost, the cache, the trace and raising it
-when a stage goes wrong.
+when a stage goes wrong. Its “Where the document layer builds on this”
+covers effort across a literature review, and its `effort_mode`
+walkthrough raises the effort of a read.
 
 ## Asking for citations
 
@@ -763,13 +780,16 @@ word-matching order, `iterative` to a single retrieval, `preview` to
 reading everything. You still get an answer, and `partial` tells you it
 came by the fallback.
 
-Every call that asks for JSON (these three, model segmentation,
-screening, claims, outlines and extraction) checks the reply’s types,
-`enum` values and `required` fields, through nested objects and arrays,
-before using it. harnessr treats a reply that fails as one that did not
-parse: the reader takes its failure path, the cache does not keep the
-reply, and the reason says where the reply broke the schema, as in
-`$.groups[0]: expected array, got 1`.
+[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
+itself does not parse a structured reply (“Structured replies” in
+[`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)).
+Every call in the document layer that asks for JSON (these three, model
+segmentation, screening, claims, outlines and extraction) checks the
+reply’s types, `enum` values and `required` fields, through nested
+objects and arrays, before using it. harnessr treats a reply that fails
+as one that did not parse: the reader takes its failure path, the cache
+does not keep the reply, and the reason says where the reply broke the
+schema, as in `$.groups[0]: expected array, got 1`.
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
 still reads each field’s value itself, so “1,204” in an integer field is
 still 1204; the check covers only the shape of its replies.
@@ -1341,12 +1361,11 @@ can bind.
 reader cuts it, and every reader keeps the start of what it cuts.
 `context_policy`, an
 [`hr_context_policy()`](https://elkronos.github.io/harnessr/reference/hr_context_policy.md),
-states once what to do instead:
-
-- which pieces are never cut (`pin`);
-- which are cut first (`cut_order`);
-- which part of a cut piece is kept (`keep`: `"head"`, `"tail"` or
-  `"both"` ends).
+states once what to do instead: which pieces are never cut (`pin`),
+which are cut first (`cut_order`) and which part of a cut piece is kept
+(`keep`). “Choosing what gets cut” in
+[`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)
+covers the policy in full.
 
 The readers have no scores for their pieces, so they read a `"scored"`
 rule as `"head"`;
@@ -1587,8 +1606,14 @@ covers it.
 - [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md):
   reading many documents, and literature reviews with `extract` and
   `screen`.
+- [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md):
+  the calls every reader makes, the trace and refusals.
+- [`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)
+  and
+  [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md):
+  the budgets and the reasoning effort the readers build on.
 - [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
-  limits, the trace, caching and replaying a run.
+  limits, caching and replaying a run.
 - [`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md):
   registering a reader of your own.
 - [`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md):

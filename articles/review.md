@@ -35,14 +35,25 @@ it:
     and
     [`gr_audit_report()`](https://elkronos.github.io/harnessr/reference/gr_audit_report.md).
 
+A review builds on four pieces of the core:
+
+- the spending limits every request is checked against (“Limits” in
+  [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md));
+- the cache that makes a repeated request free (“Paying once” in
+  [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md));
+- the replay that reruns a recorded review with no key and no spend
+  (“Replaying a run” in
+  [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md));
+- the trace that records every request (“The trace” in
+  [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)).
+
+If you have not set spending limits or a cache, read those sections
+first.
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
-introduces the package and its ideas, and
+introduces the package, and
 [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
-shows how one document is read. If you have not set spending limits or a
-cache, read
-[`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-first: this guide points to it for both, and for replay. To compare
-whole configurations on a labelled set of questions, with intervals, see
+shows how one document is read. To compare whole configurations on a
+labelled set of questions, with intervals, see
 [`vignette("evaluate")`](https://elkronos.github.io/harnessr/articles/evaluate.md).
 
 ## Setting up
@@ -125,10 +136,11 @@ checks `max_total_calls` before each document, so the run can overshoot
 it by at most one document’s own ceiling. It checks `max_total_usd`
 after each document, because a document’s cost is known only once it has
 been read. The cost ceiling also needs a model with a registered price.
-Without one, cost is unknown, not zero, and you get a
-`gr_corpus_cost_unknown` warning. Documents past either ceiling keep
-their rows, marked `"skipped"`. Set neither, and a message states the
-run’s worst case once, before any call.
+Without one, cost is unknown, not zero (“A model with no price” in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)),
+and you get a `gr_corpus_cost_unknown` warning. Documents past either
+ceiling keep their rows, marked `"skipped"`. Set neither, and a message
+states the run’s worst case once, before any call.
 [`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
 and
 [`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
@@ -176,9 +188,12 @@ on every machine.
 **You can see what it cost.** `out$trace` holds the run’s calls, and
 [`hr_trace_cost()`](https://elkronos.github.io/harnessr/reference/hr_trace_cost.md)
 prices them at each step’s own model, counting only the calls that were
-issued. The mock client has no price, so this bill is zero;
+issued. The mock client has no price, so this bill is zero. “What a run
+records” in
 [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)
-explains the columns and how to register a price.
+explains the columns, and “Prices” in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
+shows how to set a price.
 
 ``` r
 
@@ -2140,8 +2155,8 @@ is checked: a stage run on a version other than the report’s is flagged:
 page <- gr_audit_report(tempfile(fileext = ".html"), screening = screened,
                         extraction = table, open = FALSE)
 grep("UTC</td>", readLines(page), value = TRUE)
-#> [1] "<tr><td>screening</td><td>2026-11-26 22:23:50 UTC</td><td>0.6.0.9000</td></tr>" 
-#> [2] "<tr><td>extraction</td><td>2026-11-26 22:23:51 UTC</td><td>0.6.0.9000</td></tr>"
+#> [1] "<tr><td>screening</td><td>2026-11-26 23:23:18 UTC</td><td>0.6.0.9000</td></tr>" 
+#> [2] "<tr><td>extraction</td><td>2026-11-26 23:23:19 UTC</td><td>0.6.0.9000</td></tr>"
 ```
 
 The report puts the failures near the top and counts them there:
@@ -2160,6 +2175,8 @@ that a value or a sentence is right.
 - [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
   spending limits, caching a run so it is paid for once, and replaying
   it offline.
+- [`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md):
+  the calls each stage makes, and the trace that records them.
 - [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md):
   how each document is read, which `recipe =` chooses for
   [`gr_read_many()`](https://elkronos.github.io/harnessr/reference/gr_read_many.md)

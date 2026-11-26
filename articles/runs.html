@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Cost, limits and reproducible runs • harnessr</title>
+<title>Limits, caching and replay • harnessr</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Cost, limits and reproducible runs">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Limits, caching and replay">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -39,25 +39,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -86,7 +78,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Cost, limits and reproducible runs</h1>
+      <h1>Limits, caching and replay</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/elkronos/harnessr/blob/main/vignettes/runs.Rmd" class="external-link"><code>vignettes/runs.Rmd</code></a></small>
@@ -104,11 +96,13 @@ can differ from one call to the next.</p>
 <p>This guide covers how harnessr handles that step: the record each run
 keeps, the limits every request is checked against before it is sent, a
 cache that makes a repeat free, and a replay that reproduces a run from
-its trace with no key and no spend. harnessr ships no model prices, so
-the guide also shows how to set the prices you pay and keep them
-current, in <a href="#models-prices">Models, prices and token
-counts</a>. <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduces the package and
-its ideas.</p>
+its trace with no key and no spend. harnessr ships no model prices:
+“Prices” in <code><a href="../articles/models.html">vignette("models")</a></code> shows how to set the prices
+you pay and keep them current, with the model registry and token counts.
+How much a reasoning model reasons, and effort that rises only when a
+stage needs it (<code>effort_mode</code>), are in
+<code><a href="../articles/effort.html">vignette("effort")</a></code>. <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>
+introduces the package and its ideas.</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
@@ -245,7 +239,7 @@ are kept as <code>tokens$reasoning</code> and
 <span><span class="co">#&gt; List of 4</span></span>
 <span><span class="co">#&gt;  $ label      : chr "reduce"</span></span>
 <span><span class="co">#&gt;  $ attempts   : int 1</span></span>
-<span><span class="co">#&gt;  $ started_utc: chr "2026-11-26T22:24:00.470Z"</span></span>
+<span><span class="co">#&gt;  $ started_utc: chr "2026-11-26T23:23:24.454Z"</span></span>
 <span><span class="co">#&gt;  $ tokens     :List of 3</span></span>
 <span><span class="co">#&gt;   ..$ input     : int 296</span></span>
 <span><span class="co">#&gt;   ..$ output    : int 13</span></span>
@@ -325,10 +319,10 @@ values of <code>api_headers</code>, since they can hold credentials.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>owner <span class="op">=</span> <span class="st">"finance team"</span>, run_by <span class="op">=</span> <span class="st">"ana"</span>, purpose <span class="op">=</span> <span class="st">"Q3 check"</span><span class="op">)</span></span>
 <span><span class="va">tr</span></span>
-<span><span class="co">#&gt; &lt;gr_trace run_20261126222401.047_b4d016&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
+<span><span class="co">#&gt; &lt;gr_trace run_20261126232324.763_c96aeb&gt;  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)</span></span>
 <span><span class="co">#&gt;   cost: no cost recorded</span></span>
 <span><span class="co">#&gt;   actor: owner = finance team, run_by = ana, purpose = Q3 check </span></span>
-<span><span class="co">#&gt;   started: 2026-11-26T22:24:01.047Z</span></span>
+<span><span class="co">#&gt;   started: 2026-11-26T23:23:24.764Z</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">tr</span><span class="op">$</span><span class="va">config</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "options"   "r_version"</span></span></code></pre></div>
 <p><code>as_json(ans)</code> writes the answer with every prompt and
@@ -350,11 +344,12 @@ alone, and a replay reads that file.</p>
 <code>gr_missing_dep</code>.</li>
 <li>
 <code>gr_bad_setting</code> for a setting outside its choices
-(<code><a href="../articles/extending.html">vignette("extending")</a></code>).</li>
+(<code><a href="../articles/core.html">vignette("core")</a></code>).</li>
 <li>
-<code>hr_unknown_effort_key</code>, covered below, and
-<code>hr_unpriced_model</code> when <code>allow_unpriced = FALSE</code>
-refuses a model with no price.</li>
+<code>hr_unknown_effort_key</code>
+(<code><a href="../articles/effort.html">vignette("effort")</a></code>), and <code>hr_unpriced_model</code>
+when <code>allow_unpriced = FALSE</code> refuses a model with no
+price.</li>
 <li>
 <code>hr_dim_mismatch</code> when two vectors of different lengths
 are compared, such as a lexical fallback vector against an API
@@ -370,7 +365,7 @@ and <code>gr_ocr_unavailable</code>.</li>
 <li>
 <code>gr_clamped</code> with <code>hr_param_clamped</code> for a
 parameter moved to its nearest bound
-(<code><a href="../articles/extending.html">vignette("extending")</a></code>).</li>
+(<code><a href="../articles/core.html">vignette("core")</a></code>).</li>
 <li>
 <code>gr_parallel_share</code> for a parallel item whose share
 refused a later request (below).</li>
@@ -568,9 +563,9 @@ the first request to each such model in a session warns with class
 <code>allow_unpriced = FALSE</code>, in <code><a href="../reference/hr_options.html">hr_options()</a></code> or
 <code><a href="../reference/hr_governor.html">hr_governor()</a></code>, refuses it instead, with
 <code>stop_reason</code> <code>"unpriced"</code>.</p>
-<p><a href="#models-prices">Models, prices and token counts</a>, below,
-shows how to set prices for one model or many, runs both cases, and
-covers the warning harnessr gives when the prices you set grow old.</p>
+<p><code><a href="../articles/models.html">vignette("models")</a></code> shows how to set prices for one model
+or many, runs both cases, and covers the warning harnessr gives when the
+prices you set grow old.</p>
 </div>
 <div class="section level3">
 <h3 id="parallel-batches">Parallel batches<a class="anchor" aria-label="anchor" href="#parallel-batches"></a>
@@ -590,29 +585,6 @@ later one refused by its share, warns with class
 <code>gr_parallel_share</code>, and the run is not marked as
 stopped.</li>
 </ul>
-</div>
-<div class="section level3">
-<h3 id="how-much-the-model-reasons">How much the model reasons<a class="anchor" aria-label="anchor" href="#how-much-the-model-reasons"></a>
-</h3>
-<p><code>effort</code> sets how much a reasoning model reasons on each
-call, stage by stage. <code><a href="../articles/effort.html">vignette("effort")</a></code> covers effort in
-the core: which models take it, how it is billed, the cache and the
-trace, and effort that rises when needed.
-<code><a href="../articles/readers.html">vignette("readers")</a></code> lists the label each reader’s calls
-carry.</p>
-<p>In a review, the same vector goes to each stage.
-<code><a href="../reference/gr_screen.html">gr_screen()</a></code> and <code><a href="../reference/gr_extract.html">gr_extract()</a></code> take it as a
-recipe override; <code><a href="../reference/gr_claims.html">gr_claims()</a></code>, <code><a href="../reference/gr_outline.html">gr_outline()</a></code> and
-<code><a href="../reference/gr_synthesise.html">gr_synthesise()</a></code> take it as an argument. With
-<code>effort = c(extract = "low", synthesise = "high")</code>, the
-per-chunk extraction stays cheap and the spending goes to the
-writing.</p>
-<p>A name that matches no declared call stops with an error of class
-<code>hr_unknown_effort_key</code> that lists the stems. A misspelt
-<code>c(extrac = "low")</code> therefore cannot send every extraction at
-the provider’s default unnoticed. <code><a href="../reference/gr_read_spec.html">?gr_read_spec</a></code> lists every
-label and suggests a profile: low for the many per-chunk calls, high for
-the few that judge.</p>
 </div>
 </div>
 <div class="section level2">
@@ -854,365 +826,16 @@ as if it ran alone, so the <code>usd</code> column can add up to more
 than <code>hr_trace_cost(cmp$trace)</code>.</p>
 </div>
 <div class="section level2">
-<h2 id="models-prices">Models, prices and token counts<a class="anchor" aria-label="anchor" href="#models-prices"></a>
-</h2>
-<p>harnessr knows each built-in model’s limits: its context window, its
-output cap, whether it is a chat or an embedding model, whether it
-reasons, whether it takes a temperature and, for an embedding model, how
-many dimensions its vectors have. harnessr sizes every prompt from
-these, so they ship with the package.</p>
-<p>It ships no prices. Providers change prices more often than harnessr
-is released, so a price list in the package would be wrong for most of
-its life, and a wrong price makes a spending limit hold at the wrong
-place. You set the prices you pay, and harnessr uses them for every cost
-it reports and for <code>max_cost_usd</code>.</p>
-<p>The prices below are illustrative. Use your provider’s current
-prices, in US dollars per million tokens.
-<code><a href="../articles/models.html">vignette("models")</a></code> covers the registry, prices and token
-counts in full.</p>
-<div class="section level3">
-<h3 id="what-harnessr-knows-about-a-model">What harnessr knows about a model<a class="anchor" aria-label="anchor" href="#what-harnessr-knows-about-a-model"></a>
-</h3>
-<p><code><a href="../reference/hr_models.html">hr_models()</a></code> lists the registry, one row per model:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_models.html">hr_models</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">m</span><span class="op">[</span><span class="va">m</span><span class="op">$</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"gpt-4o"</span>, <span class="st">"gpt-4o-mini"</span>, <span class="st">"text-embedding-3-small"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id"</span>, <span class="st">"kind"</span>, <span class="st">"context_window"</span>, <span class="st">"max_output"</span>, <span class="st">"input_usd_per_1m"</span>,</span>
-<span>    <span class="st">"output_usd_per_1m"</span>, <span class="st">"as_of"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;                        id      kind context_window max_output input_usd_per_1m</span></span>
-<span><span class="co">#&gt; 7                  gpt-4o      chat         128000      16384               NA</span></span>
-<span><span class="co">#&gt; 8             gpt-4o-mini      chat         128000      16384               NA</span></span>
-<span><span class="co">#&gt; 23 text-embedding-3-small embedding           8191          0               NA</span></span>
-<span><span class="co">#&gt;    output_usd_per_1m   as_of</span></span>
-<span><span class="co">#&gt; 7                 NA 2026-08</span></span>
-<span><span class="co">#&gt; 8                 NA 2026-08</span></span>
-<span><span class="co">#&gt; 23                NA 2026-08</span></span></code></pre></div>
-<p>The price columns are <code>NA</code> because nothing has set them
-yet. For a model with no price, <code>as_of</code> is the month harnessr
-last checked its limits. Once you set prices, it is the month of the
-prices.</p>
-<p><code><a href="../reference/hr_model_info.html">hr_model_info()</a></code> looks up one model. Its
-<code>source</code> says where the entry came from, and
-<code>certain</code> is <code>FALSE</code> when harnessr guessed the
-model from its name or fell back to its default. An id the registry does
-not know warns with <code>gr_unknown_model</code> and gets the limits of
-a family pattern its name matches, or else a 128k context window, and no
-price. Its cost then shows as <code>NA</code> rather than a wrong
-figure.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_model_info.html">hr_model_info</a></span><span class="op">(</span><span class="st">"gpt-4o-mini"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"context_window"</span>, <span class="st">"max_output"</span>, <span class="st">"source"</span>, <span class="st">"certain"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 4</span></span>
-<span><span class="co">#&gt;  $ context_window: int 128000</span></span>
-<span><span class="co">#&gt;  $ max_output    : int 16384</span></span>
-<span><span class="co">#&gt;  $ source        : chr "builtin"</span></span>
-<span><span class="co">#&gt;  $ certain       : logi TRUE</span></span></code></pre></div>
-<p>Without a price, a cost is <code>NA</code>, never 0:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"gpt-4o-mini"</span>, input_tokens <span class="op">=</span> <span class="fl">120000</span>, output_tokens <span class="op">=</span> <span class="fl">4000</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] NA</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="setting-one-models-price">Setting one model’s price<a class="anchor" aria-label="anchor" href="#setting-one-models-price"></a>
-</h3>
-<p>Give <code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> the model’s
-<code>input_usd</code> and <code>output_usd</code>. For a model harnessr
-knows, the prices are all you give, and the model keeps its limits:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Illustrative figures: use your provider's current prices.</span></span>
-<span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"gpt-4o-mini"</span>, input_usd <span class="op">=</span> <span class="fl">0.15</span>, output_usd <span class="op">=</span> <span class="fl">0.60</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_model_info.html">hr_model_info</a></span><span class="op">(</span><span class="st">"gpt-4o-mini"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"context_window"</span>, <span class="st">"max_output"</span>, <span class="st">"input_usd"</span>,</span>
-<span>                                   <span class="st">"output_usd"</span>, <span class="st">"as_of"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 5</span></span>
-<span><span class="co">#&gt;  $ context_window: int 128000</span></span>
-<span><span class="co">#&gt;  $ max_output    : int 16384</span></span>
-<span><span class="co">#&gt;  $ input_usd     : num 0.15</span></span>
-<span><span class="co">#&gt;  $ output_usd    : num 0.6</span></span>
-<span><span class="co">#&gt;  $ as_of         : chr "2026-11"</span></span>
-<span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"gpt-4o-mini"</span>, input_tokens <span class="op">=</span> <span class="fl">120000</span>, output_tokens <span class="op">=</span> <span class="fl">4000</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 0.0204</span></span></code></pre></div>
-<p>The entry is stamped with the current month. For a model harnessr
-does not know, such as one behind a company gateway, give its limits as
-well:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"priced-reasoner"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">16000</span>,</span>
-<span>                  input_usd <span class="op">=</span> <span class="fl">2</span>, output_usd <span class="op">=</span> <span class="fl">8</span>, reasoning <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p>A few rules hold for every price:</p>
-<ul>
-<li>A chat model needs both prices. One without the other is an error,
-since a cost with half its price missing cannot be estimated. An
-embedding model needs only <code>input_usd</code>.</li>
-<li>
-<code>cached_input_usd</code> sets a separate rate for input the
-provider served from its prompt cache. Without it, cached input is
-priced as other input, which never undercounts.</li>
-<li>A local model costs nothing, so give it <code>input_usd = 0</code>
-and <code>output_usd = 0</code>. The spending limit then counts its
-requests at zero, with no warning.</li>
-<li>When you change an entry, any price you leave out keeps its current
-value.</li>
-</ul>
-<p>A registration lasts for the R session. To set prices in every
-session, keep them in a file.</p>
-</div>
-<div class="section level3">
-<h3 id="setting-many-prices-from-a-file">Setting many prices from a file<a class="anchor" aria-label="anchor" href="#setting-many-prices-from-a-file"></a>
-</h3>
-<p><code><a href="../reference/hr_load_models.html">hr_load_models()</a></code> reads a CSV file with a header row and
-registers each row as <code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> would.
-<code>id</code> is the only column every file needs; a blank cell means
-the value is not given.</p>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr class="header">
-<th>column</th>
-<th>what it holds</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td><code>id</code></td>
-<td>the model id, exactly as the API expects it; each id once</td>
-</tr>
-<tr class="even">
-<td>
-<code>input_usd</code>, <code>output_usd</code>
-</td>
-<td>price per million tokens, in USD; both for a chat model</td>
-</tr>
-<tr class="odd">
-<td><code>cached_input_usd</code></td>
-<td>price per million input tokens served from the provider’s prompt
-cache</td>
-</tr>
-<tr class="even">
-<td><code>as_of</code></td>
-<td>the month you checked the prices, as <code>YYYY-MM</code>; blank
-stamps the current month</td>
-</tr>
-<tr class="odd">
-<td>
-<code>context_window</code>, <code>max_output</code>
-</td>
-<td>limits in tokens; needed only for a model harnessr does not
-know</td>
-</tr>
-<tr class="even">
-<td>
-<code>reasoning</code>, <code>supports_temperature</code>
-</td>
-<td>
-<code>TRUE</code> or <code>FALSE</code>
-</td>
-</tr>
-<tr class="odd">
-<td><code>kind</code></td>
-<td>
-<code>chat</code> or <code>embedding</code>
-</td>
-</tr>
-<tr class="even">
-<td><code>dimensions</code></td>
-<td>how many dimensions an embedding model’s vectors have</td>
-</tr>
-</tbody>
-</table>
-<p>A row that leaves the limits blank prices a known model and keeps its
-limits. A row for a model harnessr does not know gives both limits. This
-file prices two built-in chat models, a built-in embedding model and a
-gateway model. In a project, the file would live beside your scripts;
-here it goes in a temporary directory:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">prices</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"prices.csv"</span><span class="op">)</span></span>
-<span><span class="co"># Illustrative figures: use your provider's current prices.</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"id,input_usd,output_usd,cached_input_usd,context_window,max_output"</span>,</span>
-<span>  <span class="st">"gpt-4o,2.50,10.00,1.25,,"</span>,</span>
-<span>  <span class="st">"gpt-5.6-terra,2,12,,,"</span>,</span>
-<span>  <span class="st">"text-embedding-3-small,0.02,,,,"</span>,</span>
-<span>  <span class="st">"my-gateway-model,3,15,,200000,8192"</span></span>
-<span><span class="op">)</span>, <span class="va">prices</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">loaded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_load_models.html">hr_load_models</a></span><span class="op">(</span><span class="va">prices</span><span class="op">)</span></span>
-<span><span class="va">loaded</span></span>
-<span><span class="co">#&gt; [1] "gpt-4o"                 "gpt-5.6-terra"          "text-embedding-3-small"</span></span>
-<span><span class="co">#&gt; [4] "my-gateway-model"</span></span></code></pre></div>
-<p>It returns, invisibly, the ids it registered. harnessr checks the
-whole file before it registers anything. A file it cannot use stops with
-an error of class <code>hr_bad_models_file</code> that names the row and
-column at fault, with row 1 the first row after the header, and leaves
-the registry as it was:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">bad</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"bad-prices.csv"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id,input_usd,output_usd"</span>, <span class="st">"gpt-4.1,two,8"</span><span class="op">)</span>, <span class="va">bad</span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/hr_load_models.html">hr_load_models</a></span><span class="op">(</span><span class="va">bad</span><span class="op">)</span>, hr_bad_models_file <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Models file '/tmp/RtmpqYP24p/bad-prices.csv', row 1, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."</span></span></code></pre></div>
-<p><code><a href="../reference/hr_load_models.html">?hr_load_models</a></code> documents the format in full.</p>
-</div>
-<div class="section level3">
-<h3 id="checking-the-prices-you-set">Checking the prices you set<a class="anchor" aria-label="anchor" href="#checking-the-prices-you-set"></a>
-</h3>
-<p><code><a href="../reference/hr_models.html">hr_models()</a></code> shows what the file set.
-<code>subset(hr_models(), !is.na(input_usd_per_1m))</code> lists every
-model with a price; here, the four the file named:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_models.html">hr_models</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">m</span><span class="op">[</span><span class="va">m</span><span class="op">$</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">loaded</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id"</span>, <span class="st">"context_window"</span>, <span class="st">"input_usd_per_1m"</span>, <span class="st">"output_usd_per_1m"</span>,</span>
-<span>    <span class="st">"cached_input_usd_per_1m"</span>, <span class="st">"as_of"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;                        id context_window input_usd_per_1m output_usd_per_1m</span></span>
-<span><span class="co">#&gt; 7                  gpt-4o         128000             2.50                10</span></span>
-<span><span class="co">#&gt; 17          gpt-5.6-terra        1050000             2.00                12</span></span>
-<span><span class="co">#&gt; 19       my-gateway-model         200000             3.00                15</span></span>
-<span><span class="co">#&gt; 25 text-embedding-3-small           8191             0.02                NA</span></span>
-<span><span class="co">#&gt;    cached_input_usd_per_1m   as_of</span></span>
-<span><span class="co">#&gt; 7                     1.25 2026-11</span></span>
-<span><span class="co">#&gt; 17                      NA 2026-11</span></span>
-<span><span class="co">#&gt; 19                      NA 2026-11</span></span>
-<span><span class="co">#&gt; 25                      NA 2026-11</span></span></code></pre></div>
-<p>Check the ids against the ones your runs name: a price set under a
-misspelt id prices nothing. <code>hr_estimate_cost(detail = TRUE)</code>
-says where a figure’s prices came from:</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"gpt-4o"</span>, input_tokens <span class="op">=</span> <span class="fl">120000</span>, output_tokens <span class="op">=</span> <span class="fl">4000</span>, detail <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    model  usd priced   as_of certain</span></span>
-<span><span class="co">#&gt; 1 gpt-4o 0.34   TRUE 2026-11    TRUE</span></span></code></pre></div>
-<p>Every report of a cost in dollars carries the same
-<code>priced</code>, <code>as_of</code> and <code>certain</code>
-columns, as <a href="#what-a-run-records">What a run records</a>
-shows.</p>
-</div>
-<div class="section level3">
-<h3 id="when-a-model-has-no-price">When a model has no price<a class="anchor" aria-label="anchor" href="#when-a-model-has-no-price"></a>
-</h3>
-<p>A request to a chat model with no price is sent, and the first one to
-each such model in a session warns. The mock is exempt, so this example
-uses <code><a href="../reference/hr_backend_client.html">hr_backend_client()</a></code>, which wraps an R function as a
-paying client:</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"unpriced-model"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">4096</span><span class="op">)</span></span>
-<span><span class="va">backend</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_backend_client.html">hr_backend_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="st">"Revenue was 45.2 million dollars."</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">backend</span>, <span class="st">"What was revenue?"</span>, model <span class="op">=</span> <span class="st">"unpriced-model"</span>, trace <span class="op">=</span> <span class="va">tr</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: Model 'unpriced-model' has no price set, so the $5 spending limit</span></span>
-<span><span class="co">#&gt; (max_cost_usd) does not cover its requests: they are sent, and the trace</span></span>
-<span><span class="co">#&gt; records their cost as NA. Set its prices with hr_register_model(input_usd =,</span></span>
-<span><span class="co">#&gt; output_usd =) or hr_load_models(). Token and call limits still apply.</span></span>
-<span><span class="co">#&gt; hr_options(allow_unpriced = FALSE) refuses such requests instead. Shown once</span></span>
-<span><span class="co">#&gt; per model per session.</span></span>
-<span><span class="va">res</span><span class="op">$</span><span class="va">ok</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu"><a href="../reference/hr_trace_cost.html">hr_trace_cost</a></span><span class="op">(</span><span class="va">tr</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"model"</span>, <span class="st">"calls"</span>, <span class="st">"usd"</span>, <span class="st">"priced"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;            model calls usd priced</span></span>
-<span><span class="co">#&gt; 1 unpriced-model     1  NA  FALSE</span></span></code></pre></div>
-<p>The request counts against <code>max_calls</code> and
-<code>max_tokens_total</code>, and <code>max_tokens_total</code> is then
-the limit that bounds what the run spends. To refuse every request the
-spending limit cannot price, set
-<code>hr_options(allow_unpriced = FALSE)</code> or
-<code>hr_governor(allow_unpriced = FALSE)</code>. <code><a href="../reference/gr_read.html">gr_read()</a></code>
-then stops before its first request, and <code><a href="../reference/hr_call.html">hr_call()</a></code>
-refuses:</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_call.html">hr_call</a></span><span class="op">(</span><span class="va">backend</span>, <span class="st">"What was revenue?"</span>, model <span class="op">=</span> <span class="st">"unpriced-model"</span>,</span>
-<span>               trace <span class="op">=</span> <span class="fu"><a href="../reference/hr_trace.html">hr_trace</a></span><span class="op">(</span>governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>allow_unpriced <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">res</span><span class="op">$</span><span class="va">refused</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="va">res</span><span class="op">$</span><span class="va">error</span></span>
-<span><span class="co">#&gt; [1] "unpriced model: 'unpriced-model' has no registered price, so what the 'call' request costs cannot be held to the $5 spending limit, and it was not sent. Register its prices with hr_register_model(input_usd =, output_usd =) or hr_load_models(), or send it unpriced with hr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"</span></span></code></pre></div>
-<p><code><a href="../reference/hr_mock_client.html">hr_mock_client()</a></code> and replays are never refused or warned
-about for this, and neither are embedding models with no price.</p>
-<p>An <code><a href="../reference/hr_ellmer_client.html">hr_ellmer_client()</a></code> is priced as the model its ellmer
-object was built with, whatever a recipe names, so set the price of that
-model. One built on a model with no price runs outside the spending
-limit. <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> registers a hosted model at its
-prices and a local one at zero.</p>
-<p>Through ellmer, a <code>temperature</code> in a read spec is ignored
-with a warning, because sampling parameters belong to the ellmer object.
-Embeddings come from a function you pass as <code>embed =</code>.
-Without one, <code>retrieve</code> and the <code>semantic</code>
-segmenter fall back to lexical vectors and warn.</p>
-</div>
-<div class="section level3">
-<h3 id="set-price-age">When prices go stale<a class="anchor" aria-label="anchor" href="#set-price-age"></a>
-</h3>
-<p>The prices you set go out of date too. A cost computed from prices
-older than <code>hr_options("price_max_age_days")</code>, 120 days by
-default, warns with class <code>hr_stale_price</code>, once per model
-per session. The age counts from the first day of the <code>as_of</code>
-month. A file whose prices were checked in January 2025 shows it:</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">old_prices</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"old-prices.csv"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id,input_usd,output_usd,as_of"</span>, <span class="st">"gpt-4.1,2,8,2025-01"</span><span class="op">)</span>, <span class="va">old_prices</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/hr_load_models.html">hr_load_models</a></span><span class="op">(</span><span class="va">old_prices</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/hr_estimate_cost.html">hr_estimate_cost</a></span><span class="op">(</span><span class="st">"gpt-4.1"</span>, input_tokens <span class="op">=</span> <span class="fl">120000</span>, output_tokens <span class="op">=</span> <span class="fl">4000</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: The prices of model 'gpt-4.1' are as of 2025-01, 694 days ago, more</span></span>
-<span><span class="co">#&gt; than the 120 days of hr_options(price_max_age_days =). Check your provider's</span></span>
-<span><span class="co">#&gt; current prices and set them with hr_register_model(input_usd =, output_usd =)</span></span>
-<span><span class="co">#&gt; or hr_load_models(). Shown once per model per session.</span></span>
-<span><span class="co">#&gt; [1] 0.272</span></span></code></pre></div>
-<p>harnessr still returns the figure. To clear the warning, look up your
-provider’s current prices and set them again:
-<code><a href="../reference/hr_register_model.html">hr_register_model()</a></code> stamps the current month, and so does
-<code><a href="../reference/hr_load_models.html">hr_load_models()</a></code> for a row with a blank <code>as_of</code>.
-<code>hr_options(price_max_age_days = 365)</code> allows older prices,
-and <code>NULL</code> turns the warning off.</p>
-</div>
-<div class="section level3">
-<h3 id="keeping-your-prices-current">Keeping your prices current<a class="anchor" aria-label="anchor" href="#keeping-your-prices-current"></a>
-</h3>
-<p>One file of prices per project keeps every script on the same figures
-and puts a date on each:</p>
-<ol style="list-style-type: decimal">
-<li>Keep <code>prices.csv</code> beside your scripts, under version
-control, with an <code>as_of</code> column holding the month you checked
-each row.</li>
-<li>Load it at the top of each script, or in the project’s
-<code>.Rprofile</code>, before anything reports a cost.</li>
-<li>When your provider changes a price, or the stale warning appears,
-look up the current prices, change the row and its <code>as_of</code>,
-and load the file again.</li>
-</ol>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">harnessr</span><span class="fu">::</span><span class="fu"><a href="../reference/hr_load_models.html">hr_load_models</a></span><span class="op">(</span><span class="st">"prices.csv"</span><span class="op">)</span></span></code></pre></div>
-<p>Loading a file again replaces the prices of the models it names and
-leaves the others as they are. The file’s commit history records when
-each price changed, and the <code>as_of</code> column of a cost report
-says which month’s prices the cost used.</p>
-</div>
-<div class="section level3">
-<h3 id="token-counts">Token counts<a class="anchor" aria-label="anchor" href="#token-counts"></a>
-</h3>
-<p><code><a href="../reference/hr_tokenizer.html">hr_tokenizer()</a></code> reports which counter is in use. The
-default, <code>"heuristic"</code>, needs nothing installed.
-<code>hr_set_tokenizer("tiktoken")</code> switches to OpenAI’s own
-tokenizer where the reticulate package and Python’s
-<code>tiktoken</code> are installed. It counts in a model’s encoding
-when one is given. Otherwise it counts, as the package’s budgets do, in
-the larger of <code>cl100k_base</code> and <code>o200k_base</code>. For
-a model that is not OpenAI’s, the count is an estimate. Without those
-packages, <code>hr_set_tokenizer("tiktoken")</code> stops rather than
-falling back, because a silent fallback would change every budget
-calculation.</p>
-<p><code><a href="../reference/hr_budget.html">hr_budget()</a></code> does the context arithmetic for every
-request. It cannot return a non-positive input budget: in that case it
-raises an error that says what to change.
-<code><a href="../articles/context.html">vignette("context")</a></code> covers budgets and cuts in full, and
-<code><a href="../reference/hr_options.html">?hr_options</a></code> documents every setting.</p>
-</div>
-</div>
-<div class="section level2">
 <h2 id="choosing-the-settings">Choosing the settings<a class="anchor" aria-label="anchor" href="#choosing-the-settings"></a>
 </h2>
-<p>Three walkthroughs cover the settings that hold a run in: the limits
-every run has, the governor a benchmark or a batch shares, and effort
-that rises only when a stage needs it. Each gives what the setting
-controls and what it trades off, the signs in your results that point to
-changing it, where its default came from, and how to test a change.
-<code><a href="../articles/settings.html">vignette("settings")</a></code> lists every option with its
-default.</p>
+<p>Two walkthroughs cover the settings that hold a run in: the limits
+every run has, and the governor a benchmark or a batch shares. Each
+gives what the setting controls and what it trades off, the signs in
+your results that point to changing it, where its default came from, and
+how to test a change. <code>effort_mode</code>, effort that rises only
+when a stage needs it, has its walkthrough in
+<code><a href="../articles/effort.html">vignette("effort")</a></code>. <code><a href="../articles/settings.html">vignette("settings")</a></code> lists
+every option with its default.</p>
 <div class="section level3">
 <h3 id="set-limits">The global limits<a class="anchor" aria-label="anchor" href="#set-limits"></a>
 </h3>
@@ -1254,7 +877,7 @@ request must count against the spending limit.</p>
 an arm, so a sweep can only test which settings fit under it. A reader’s
 output caps decide how much of the limit each request reserves, so sweep
 the merge’s cap and hold each arm’s five runs to the same $0.02:</p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">qa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_qa_reference.html">gr_qa_reference</a></span><span class="op">(</span>questions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>revenue <span class="op">=</span> <span class="st">"What was revenue in 2024?"</span><span class="op">)</span>,</span>
 <span>                      documents <span class="op">=</span> <span class="fu"><a href="../reference/gr_example.html">gr_example</a></span><span class="op">(</span><span class="op">)</span>, answers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"45.2 million"</span><span class="op">)</span>,</span>
 <span>                      split <span class="op">=</span> <span class="st">"dev"</span><span class="op">)</span></span>
@@ -1300,7 +923,7 @@ runs needs several thousand. Size the governor for the benchmark: arms x
 items x runs x requests per run.</p>
 <p><strong>How to test it.</strong> Count the requests one run makes,
 multiply, and check how much of the governor was used:</p>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">per_run</span> <span class="op">&lt;-</span> <span class="fl">6</span>  <span class="co"># map_reduce over five chunks: five chunk requests and a merge</span></span>
 <span><span class="va">needed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">arms</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1</span> <span class="op">*</span> <span class="fl">5</span> <span class="op">*</span> <span class="va">per_run</span></span>
 <span><span class="va">bench</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">arms</span>, <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">cl</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
@@ -1313,109 +936,17 @@ multiply, and check how much of the governor was used:</p>
 <p><code><a href="../articles/compare.html">vignette("compare")</a></code> sizes a governor this way for every
 benchmark it runs.</p>
 </div>
-<div class="section level3">
-<h3 id="set-effort-mode">Effort that rises when needed: <code>effort_mode</code><a class="anchor" aria-label="anchor" href="#set-effort-mode"></a>
-</h3>
-<p><strong>What it controls.</strong> With
-<code>effort_mode = "escalate"</code>, a read starts every stage at its
-<code>effort</code> (<code>"low"</code> when <code>effort</code> is
-unset). It sends the next stage at <code>"high"</code> when one of these
-went wrong in the stage before:</p>
-<ul>
-<li>a cut;</li>
-<li>a reply stopped at its output cap;</li>
-<li>a reply that is not the JSON asked for;</li>
-<li>
-<code>NOT_IN_DOCUMENT</code> from every request of the stage;</li>
-<li>a quotation <code>iterative</code> could not verify;</li>
-<li>
-<code>ensemble</code> members that disagree.</li>
-</ul>
-<p>Effort changes only at a stage boundary, at most once a read, and the
-stage after a raised one goes back to the base effort. The setting
-trades the cost of reasoning at a high effort on every request against
-the cost of a wrong answer where low effort was not enough. A raise
-costs nothing but the raised stage’s reasoning.</p>
-<p><strong>Signs it needs changing.</strong> Look for a fixed
-<code>"high"</code> effort whose bill is mostly reasoning on requests
-that a low effort answers as well, or for answers at a fixed
-<code>"low"</code> that come back cut off, unparsed or not found. The
-trace records each raise as an <code>"effort.escalate"</code> step.
-<code><a href="../reference/hr_effort_log.html">hr_effort_log()</a></code> shows which trigger fired and whether the
-raised stage fired it again.</p>
-<p><strong>Where the default came from.</strong> <code>"static"</code>
-sends the effort <code>effort</code> names, as harnessr did before the
-setting existed; the settings table marks it <code>untested</code>. No
-one has compared escalation with a fixed effort here, and
-<code><a href="../reference/hr_effort_check.html">hr_effort_check()</a></code> makes that comparison.</p>
-<p><strong>How to test it.</strong> Here <code>refine</code> reads the
-report with a stand-in reasoning model that, at low effort, finds
-nothing in the first chunk, where <code>refine</code> drafts its
-answer:</p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/hr_register_model.html">hr_register_model</a></span><span class="op">(</span><span class="st">"priced-reasoner"</span>, context_window <span class="op">=</span> <span class="fl">128000</span>, max_output <span class="op">=</span> <span class="fl">8192</span>,</span>
-<span>                  input_usd <span class="op">=</span> <span class="fl">1</span>, output_usd <span class="op">=</span> <span class="fl">4</span>, reasoning <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">thinks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_mock_client.html">hr_mock_client</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">messages</span>, <span class="va">params</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">effort</span>, <span class="st">"low"</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/startsWith.html" class="external-link">startsWith</a></span><span class="op">(</span><span class="va">messages</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">content</span>, <span class="st">"&lt;excerpts&gt;"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="st">"NOT_IN_DOCUMENT"</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  <span class="st">"Revenue was 45.2 million dollars."</span></span>
-<span><span class="op">}</span><span class="op">)</span></span>
-<span><span class="va">efforts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_sweep.html">hr_sweep</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">effort</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="../reference/gr_arm.html">gr_arm</a></span><span class="op">(</span><span class="st">"thorough"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"sentence"</span>, max_tokens <span class="op">=</span> <span class="fl">150</span>, overlap_tokens <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>                          model <span class="op">=</span> <span class="st">"priced-reasoner"</span>, reader <span class="op">=</span> <span class="st">"refine"</span>,</span>
-<span>                          effort <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="va">effort</span> <span class="op">!=</span> <span class="st">"escalate"</span><span class="op">)</span> <span class="va">effort</span>,</span>
-<span>                          effort_mode <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="va">effort</span> <span class="op">==</span> <span class="st">"escalate"</span><span class="op">)</span> <span class="st">"escalate"</span> <span class="kw">else</span> <span class="st">"static"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"low"</span>, <span class="st">"high"</span>, <span class="st">"escalate"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">eb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_benchmark.html">hr_benchmark</a></span><span class="op">(</span><span class="va">efforts</span>, <span class="va">qa</span>, runs <span class="op">=</span> <span class="fl">5</span>, client <span class="op">=</span> <span class="va">thinks</span>, split <span class="op">=</span> <span class="st">"dev"</span>,</span>
-<span>                   scorer <span class="op">=</span> <span class="fu"><a href="../reference/gr_scorer_answer.html">gr_scorer_answer</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>                   governor <span class="op">=</span> <span class="fu"><a href="../reference/hr_governor.html">hr_governor</a></span><span class="op">(</span>max_calls <span class="op">=</span> <span class="fl">200</span>, max_cost_usd <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">sent</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">eb</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">eb</span>, <span class="st">"traces"</span><span class="op">)</span><span class="op">[[</span><span class="va">eb</span><span class="op">$</span><span class="va">ledger_id</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">d</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">effort</span><span class="op">)</span>, <span class="op">]</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>arm <span class="op">=</span> <span class="va">eb</span><span class="op">$</span><span class="va">arm</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, stage <span class="op">=</span> <span class="va">d</span><span class="op">$</span><span class="va">stage</span>, effort <span class="op">=</span> <span class="va">d</span><span class="op">$</span><span class="va">effort</span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">sent</span><span class="op">$</span><span class="va">arm</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">sent</span><span class="op">$</span><span class="va">stage</span>, <span class="va">sent</span><span class="op">$</span><span class="va">effort</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;                           </span></span>
-<span><span class="co">#&gt;                            refine.draft high refine.draft low</span></span>
-<span><span class="co">#&gt;   thorough:effort=escalate                 0                5</span></span>
-<span><span class="co">#&gt;   thorough:effort=high                     5                0</span></span>
-<span><span class="co">#&gt;   thorough:effort=low                      0                5</span></span>
-<span><span class="co">#&gt;                           </span></span>
-<span><span class="co">#&gt;                            refine.revise high refine.revise low</span></span>
-<span><span class="co">#&gt;   thorough:effort=escalate                 20                 0</span></span>
-<span><span class="co">#&gt;   thorough:effort=high                     20                 0</span></span>
-<span><span class="co">#&gt;   thorough:effort=low                       0                20</span></span>
-<span><span class="fu"><a href="../reference/hr_effort_log.html">hr_effort_log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">eb</span>, <span class="st">"traces"</span><span class="op">)</span><span class="op">[[</span><span class="va">eb</span><span class="op">$</span><span class="va">ledger_id</span><span class="op">[</span><span class="va">eb</span><span class="op">$</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"thorough:effort=escalate"</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;          after         stage        triggers   to calls resolved</span></span>
-<span><span class="co">#&gt; 1 refine.draft refine.revise not_in_document high     4     TRUE</span></span></code></pre></div>
-<p>At <code>"low"</code> every request went out low, and at
-<code>"high"</code> every one went out high. Under
-<code>"escalate"</code> the draft went out low and found nothing. That
-raised the four revisions after it to high, and the log shows that the
-raise resolved the trigger: the revisions found the figure.</p>
-<p>Four of the five requests of each run went out raised here, because
-the draft is one request. On a reader whose first stage is many requests
-(<code>map_reduce</code>’s chunks), the raised stage is the smaller
-share.</p>
-<p><code><a href="../reference/hr_effort_check.html">hr_effort_check()</a></code> reads a benchmark of such arms with
-the non-inferiority test of <code><a href="../reference/hr_report.html">hr_report()</a></code>. That test needs a
-reference with a test split and enough items and runs for intervals, so
-run the check on your own benchmark:</p>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">chk</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hr_effort_check.html">hr_effort_check</a></span><span class="op">(</span><span class="va">bench</span>, candidate <span class="op">=</span> <span class="st">"thorough:effort=escalate"</span>, margin <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
-<span><span class="va">chk</span><span class="op">$</span><span class="va">contrasts</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"reference"</span>, <span class="st">"estimate"</span>, <span class="st">"lower"</span>, <span class="st">"verdict"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="va">chk</span><span class="op">$</span><span class="va">cost</span></span></code></pre></div>
-<p>Register the margin with <code><a href="../reference/hr_contrast.html">hr_register_contrasts()</a></code> before
-the benchmark runs and pass it as <code>registration</code>; without
-one, the result is marked post hoc.</p>
-</div>
 </div>
 <div class="section level2">
 <h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>
 </h2>
 <ul>
+<li>
+<code><a href="../articles/models.html">vignette("models")</a></code>: the model registry, setting the
+prices the limits count, and token counts.</li>
+<li>
+<code><a href="../articles/effort.html">vignette("effort")</a></code>: how much a reasoning model reasons,
+and effort that rises only when a stage needs it.</li>
 <li>
 <code><a href="../articles/readers.html">vignette("readers")</a></code>: how each reader spends its calls,
 and choosing one.</li>

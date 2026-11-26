@@ -39,25 +39,17 @@
     <li><a class="dropdown-item" href="../articles/models.html">Models, prices and tokens</a></li>
     <li><a class="dropdown-item" href="../articles/context.html">Context: budgets, fitting and cutting</a></li>
     <li><a class="dropdown-item" href="../articles/effort.html">Effort: how hard the model reasons</a></li>
+    <li><a class="dropdown-item" href="../articles/runs.html">Limits, caching and replay</a></li>
+    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
+    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
+    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
+    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Read a document</h6></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Documents</h6></li>
     <li><a class="dropdown-item" href="../articles/ingest.html">Getting text out of files</a></li>
     <li><a class="dropdown-item" href="../articles/segment.html">Cutting documents into chunks</a></li>
     <li><a class="dropdown-item" href="../articles/readers.html">Choosing how the model reads</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Review many documents</h6></li>
     <li><a class="dropdown-item" href="../articles/review.html">Many documents and literature reviews</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Measure and compare</h6></li>
-    <li><a class="dropdown-item" href="../articles/evaluate.html">Measuring and comparing configurations</a></li>
-    <li><a class="dropdown-item" href="../articles/compare.html">Comparing methods and settings</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Control cost and settings</h6></li>
-    <li><a class="dropdown-item" href="../articles/runs.html">Cost, limits and reproducible runs</a></li>
-    <li><a class="dropdown-item" href="../articles/settings.html">Settings reference</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Build your own</h6></li>
-    <li><a class="dropdown-item" href="../articles/compose.html">Composing steps into chains</a></li>
     <li><a class="dropdown-item" href="../articles/extending.html">Extending harnessr</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Upgrade</h6></li>
@@ -103,8 +95,16 @@ these strategies <em>readers</em>. The reader sets most of a run’s cost
 and much of its answer’s quality: the same chunks read two ways can take
 one request or dozens, and can find a fact or miss it.</p>
 <p>This guide explains each reader, runs them all on one document, and
-gives you a way to choose. <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code> introduces
-the package and its ideas.</p>
+gives you a way to choose.</p>
+<p>The readers build on three pieces of the core. Each one sizes its
+prompts to the model’s window with <code><a href="../reference/hr_budget.html">hr_budget()</a></code> (“How much
+room a prompt has: <code><a href="../reference/hr_budget.html">hr_budget()</a></code>” in
+<code><a href="../articles/context.html">vignette("context")</a></code>). Each takes a reasoning effort, one
+for the whole read or one per stage (<code><a href="../articles/effort.html">vignette("effort")</a></code>).
+Each sends its requests with <code><a href="../reference/hr_call.html">hr_call()</a></code>, under the run’s
+limits and into the run’s trace (“The trace” in
+<code><a href="../articles/core.html">vignette("core")</a></code>). <code><a href="../articles/harnessr.html">vignette("harnessr")</a></code>
+introduces the package.</p>
 <div class="section level2">
 <h2 id="setting-up">Setting up<a class="anchor" aria-label="anchor" href="#setting-up"></a>
 </h2>
@@ -266,11 +266,12 @@ is the simplest reader, and usually the cheapest way to have the model
 read all of a document, with one set of instructions and one reply. Its
 cost still grows with the document’s length. The model sees everything
 at once, so it can connect facts from different places.</p>
-<p>The context window sets the limit. If the document does not fit,
-<code>stuff</code> sends what fits, warns, and marks the answer partial
-(<code>on_overflow = "error"</code> makes it stop instead). Very long
-prompts also dilute attention, and a model misses details in the middle
-of a long prompt more easily.</p>
+<p>The context window sets the limit: <code>stuff</code> fills the room
+<code><a href="../reference/hr_budget.html">hr_budget()</a></code> leaves for the input. If the document does not
+fit, <code>stuff</code> sends what fits, warns, and marks the answer
+partial (<code>on_overflow = "error"</code> makes it stop instead). Very
+long prompts also dilute attention, and a model misses details in the
+middle of a long prompt more easily.</p>
 <p><strong>Use it for</strong> documents comfortably inside the model’s
 context window. <strong>Recipe:</strong> <code>"fast"</code>, which
 <code><a href="../reference/answer_document.html">answer_document()</a></code> uses by default for a document of up to
@@ -633,14 +634,14 @@ embeddings for real work.</p>
 <div class="section level2">
 <h2 id="reasoning-effort-stage-by-stage">Reasoning effort, stage by stage<a class="anchor" aria-label="anchor" href="#reasoning-effort-stage-by-stage"></a>
 </h2>
-<p>The default models reason before they answer. The provider bills that
-reasoning as output and counts it against the same cap as the reply, so
-it adds to every request’s cost. <code>effort</code> in
+<p>The default models reason before they answer, and the provider bills
+the reasoning as output. <code>effort</code> in
 <code><a href="../reference/gr_read_spec.html">gr_read_spec()</a></code> sets how much reasoning to ask for: one
 value, such as <code>"low"</code>, for every request, or a vector named
-by stage. harnessr sends it only to models it lists as reasoning models
-(<code>hr_model_info(model)$reasoning</code>). By default it sends
-nothing, and each request goes out at the provider’s default.</p>
+by stage. By default a read sends none. <code><a href="../articles/effort.html">vignette("effort")</a></code>
+covers effort in the core: which models take it, how it is billed
+against the reply’s cap, and what it does to the cache and the
+trace.</p>
 <p>Every request a reader makes carries a label naming its stage:</p>
 <table class="table">
 <colgroup>
@@ -724,12 +725,12 @@ under <code>refine_state = "ledger"</code>
 </table>
 <p>The per-chunk requests are many and each does a small job, so a lower
 effort saves most there; <code><a href="../reference/gr_read_spec.html">?gr_read_spec</a></code> suggests a starting
-profile. A name covers its own label and every label that starts with it
-and a dot, so <code>map</code> covers <code>map.answer</code>, and an
-unnamed value covers the rest.</p>
-<p><code><a href="../reference/hr_trace.html">hr_trace()</a></code> records every request a run makes. Here
-<code>map_reduce</code> reads the eight chunks at low effort and merges
-at high:</p>
+profile. Names follow the rules in “One effort for every call, or one
+per stage” in <code><a href="../articles/effort.html">vignette("effort")</a></code>: <code>map</code> covers
+<code>map.answer</code>, and an unnamed value covers the rest.</p>
+<p><code><a href="../reference/hr_trace.html">hr_trace()</a></code> records every request a run makes (“The
+trace” in <code><a href="../articles/core.html">vignette("core")</a></code>). Here <code>map_reduce</code>
+reads the eight chunks at low effort and merges at high:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gr_read_spec.html">gr_read_spec</a></span><span class="op">(</span><span class="st">"map_reduce"</span>, model <span class="op">=</span> <span class="st">"gpt-5.6-luna"</span>,</span>
 <span>                     effort <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>map <span class="op">=</span> <span class="st">"low"</span>, reduce <span class="op">=</span> <span class="st">"high"</span><span class="op">)</span><span class="op">)</span></span>
@@ -747,10 +748,11 @@ have no <code>effort</code> column. A request at <code>"high"</code> can
 spend the whole output cap reasoning and come back cut off, so give it
 room with <code>max_answer_tokens</code>. <code><a href="../reference/gr_compare.html">gr_compare()</a></code>
 (below) counts recipes that differ only in effort as different, so you
-can test what a lower effort costs. <code><a href="../articles/runs.html">vignette("runs")</a></code> covers
-effort across a literature review, and <code><a href="../articles/effort.html">vignette("effort")</a></code>
+can test what a lower effort costs. <code><a href="../articles/effort.html">vignette("effort")</a></code>
 covers effort in the core: its cost, the cache, the trace and raising it
-when a stage goes wrong.</p>
+when a stage goes wrong. Its “Where the document layer builds on this”
+covers effort across a literature review, and its
+<code>effort_mode</code> walkthrough raises the effort of a read.</p>
 </div>
 <div class="section level2">
 <h2 id="asking-for-citations">Asking for citations<a class="anchor" aria-label="anchor" href="#asking-for-citations"></a>
@@ -987,7 +989,9 @@ partial: <code>rerank</code> to word-matching order,
 <code>iterative</code> to a single retrieval, <code>preview</code> to
 reading everything. You still get an answer, and <code>partial</code>
 tells you it came by the fallback.</p>
-<p>Every call that asks for JSON (these three, model segmentation,
+<p><code><a href="../reference/hr_call.html">hr_call()</a></code> itself does not parse a structured reply
+(“Structured replies” in <code><a href="../articles/core.html">vignette("core")</a></code>). Every call in
+the document layer that asks for JSON (these three, model segmentation,
 screening, claims, outlines and extraction) checks the reply’s types,
 <code>enum</code> values and <code>required</code> fields, through
 nested objects and arrays, before using it. harnessr treats a reply that
@@ -1637,14 +1641,11 @@ where it can bind.</p>
 <p><strong>What they control.</strong> If the text a request carries
 does not fit, a reader cuts it, and every reader keeps the start of what
 it cuts. <code>context_policy</code>, an
-<code><a href="../reference/hr_context_policy.html">hr_context_policy()</a></code>, states once what to do instead:</p>
-<ul>
-<li>which pieces are never cut (<code>pin</code>);</li>
-<li>which are cut first (<code>cut_order</code>);</li>
-<li>which part of a cut piece is kept (<code>keep</code>:
-<code>"head"</code>, <code>"tail"</code> or <code>"both"</code>
-ends).</li>
-</ul>
+<code><a href="../reference/hr_context_policy.html">hr_context_policy()</a></code>, states once what to do instead: which
+pieces are never cut (<code>pin</code>), which are cut first
+(<code>cut_order</code>) and which part of a cut piece is kept
+(<code>keep</code>). “Choosing what gets cut” in
+<code><a href="../articles/context.html">vignette("context")</a></code> covers the policy in full.</p>
 <p>The readers have no scores for their pieces, so they read a
 <code>"scored"</code> rule as <code>"head"</code>;
 <code><a href="../reference/hr_truncate.html">hr_truncate()</a></code> and <code><a href="../reference/hr_context_fit.html">hr_context_fit()</a></code> take scores
@@ -1869,8 +1870,15 @@ comparing chunkings for nothing before you read.</li>
 literature reviews with <code>extract</code> and
 <code>screen</code>.</li>
 <li>
-<code><a href="../articles/runs.html">vignette("runs")</a></code>: limits, the trace, caching and
-replaying a run.</li>
+<code><a href="../articles/core.html">vignette("core")</a></code>: the calls every reader makes, the
+trace and refusals.</li>
+<li>
+<code><a href="../articles/context.html">vignette("context")</a></code> and
+<code><a href="../articles/effort.html">vignette("effort")</a></code>: the budgets and the reasoning effort
+the readers build on.</li>
+<li>
+<code><a href="../articles/runs.html">vignette("runs")</a></code>: limits, caching and replaying a
+run.</li>
 <li>
 <code><a href="../articles/extending.html">vignette("extending")</a></code>: registering a reader of your
 own.</li>

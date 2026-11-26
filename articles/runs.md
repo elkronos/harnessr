@@ -1,4 +1,4 @@
-# Cost, limits and reproducible runs
+# Limits, caching and replay
 
 Every stage of harnessr except one is a pure function of its input.
 Extraction, cleaning, segmentation, ranking and merging give the same
@@ -10,9 +10,13 @@ can differ from one call to the next.
 This guide covers how harnessr handles that step: the record each run
 keeps, the limits every request is checked against before it is sent, a
 cache that makes a repeat free, and a replay that reproduces a run from
-its trace with no key and no spend. harnessr ships no model prices, so
-the guide also shows how to set the prices you pay and keep them
-current, in [Models, prices and token counts](#models-prices).
+its trace with no key and no spend. harnessr ships no model prices:
+“Prices” in
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
+shows how to set the prices you pay and keep them current, with the
+model registry and token counts. How much a reasoning model reasons, and
+effort that rises only when a stage needs it (`effort_mode`), are in
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md).
 [`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
 introduces the package and its ideas.
 
@@ -167,7 +171,7 @@ str(step[c("label", "attempts", "started_utc", "tokens")])
 #> List of 4
 #>  $ label      : chr "reduce"
 #>  $ attempts   : int 1
-#>  $ started_utc: chr "2026-11-26T22:24:00.470Z"
+#>  $ started_utc: chr "2026-11-26T23:23:24.454Z"
 #>  $ tokens     :List of 3
 #>   ..$ input     : int 296
 #>   ..$ output    : int 13
@@ -254,10 +258,10 @@ out the values of `api_headers`, since they can hold credentials.
 
 tr <- hr_trace(owner = "finance team", run_by = "ana", purpose = "Q3 check")
 tr
-#> <gr_trace run_20261126222401.047_b4d016>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
+#> <gr_trace run_20261126232324.763_c96aeb>  0 steps, 0 model calls, 0 in / 0 out tokens, 0 error(s)
 #>   cost: no cost recorded
 #>   actor: owner = finance team, run_by = ana, purpose = Q3 check 
-#>   started: 2026-11-26T22:24:01.047Z
+#>   started: 2026-11-26T23:23:24.764Z
 names(tr$config)
 #> [1] "options"   "r_version"
 ```
@@ -276,9 +280,11 @@ Errors are classed, so you can catch a specific failure:
   `gr_budget_error`, `gr_unknown_model`, `gr_unknown_override`,
   `gr_no_recipes`, `gr_bad_ensemble` and `gr_missing_dep`.
 - `gr_bad_setting` for a setting outside its choices
-  ([`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)).
-- `hr_unknown_effort_key`, covered below, and `hr_unpriced_model` when
-  `allow_unpriced = FALSE` refuses a model with no price.
+  ([`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)).
+- `hr_unknown_effort_key`
+  ([`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)),
+  and `hr_unpriced_model` when `allow_unpriced = FALSE` refuses a model
+  with no price.
 - `hr_dim_mismatch` when two vectors of different lengths are compared,
   such as a lexical fallback vector against an API embedding.
 
@@ -289,7 +295,7 @@ Degradations are classed warnings:
   `gr_duplicate_recipe` and `gr_ocr_unavailable`.
 - `gr_clamped` with `hr_param_clamped` for a parameter moved to its
   nearest bound
-  ([`vignette("extending")`](https://elkronos.github.io/harnessr/articles/extending.md)).
+  ([`vignette("core")`](https://elkronos.github.io/harnessr/articles/core.md)).
 - `gr_parallel_share` for a parallel item whose share refused a later
   request (below).
 - `gr_bad_correct` for a
@@ -477,9 +483,9 @@ or
 [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md),
 refuses it instead, with `stop_reason` `"unpriced"`.
 
-[Models, prices and token counts](#models-prices), below, shows how to
-set prices for one model or many, runs both cases, and covers the
-warning harnessr gives when the prices you set grow old.
+[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
+shows how to set prices for one model or many, runs both cases, and
+covers the warning harnessr gives when the prices you set grow old.
 
 ### Parallel batches
 
@@ -495,37 +501,6 @@ be stopped part way. The limits apply to them like this:
 - Batch items make one request each. An item that made more, and had a
   later one refused by its share, warns with class `gr_parallel_share`,
   and the run is not marked as stopped.
-
-### How much the model reasons
-
-`effort` sets how much a reasoning model reasons on each call, stage by
-stage.
-[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md)
-covers effort in the core: which models take it, how it is billed, the
-cache and the trace, and effort that rises when needed.
-[`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md)
-lists the label each reader’s calls carry.
-
-In a review, the same vector goes to each stage.
-[`gr_screen()`](https://elkronos.github.io/harnessr/reference/gr_screen.md)
-and
-[`gr_extract()`](https://elkronos.github.io/harnessr/reference/gr_extract.md)
-take it as a recipe override;
-[`gr_claims()`](https://elkronos.github.io/harnessr/reference/gr_claims.md),
-[`gr_outline()`](https://elkronos.github.io/harnessr/reference/gr_outline.md)
-and
-[`gr_synthesise()`](https://elkronos.github.io/harnessr/reference/gr_synthesise.md)
-take it as an argument. With
-`effort = c(extract = "low", synthesise = "high")`, the per-chunk
-extraction stays cheap and the spending goes to the writing.
-
-A name that matches no declared call stops with an error of class
-`hr_unknown_effort_key` that lists the stems. A misspelt
-`c(extrac = "low")` therefore cannot send every extraction at the
-provider’s default unnoticed.
-[`?gr_read_spec`](https://elkronos.github.io/harnessr/reference/gr_read_spec.md)
-lists every label and suggests a profile: low for the many per-chunk
-calls, high for the few that judge.
 
 ## Paying once
 
@@ -784,370 +759,15 @@ recipe is charged for a segmentation it shares with an earlier recipe,
 as if it ran alone, so the `usd` column can add up to more than
 `hr_trace_cost(cmp$trace)`.
 
-## Models, prices and token counts
-
-harnessr knows each built-in model’s limits: its context window, its
-output cap, whether it is a chat or an embedding model, whether it
-reasons, whether it takes a temperature and, for an embedding model, how
-many dimensions its vectors have. harnessr sizes every prompt from
-these, so they ship with the package.
-
-It ships no prices. Providers change prices more often than harnessr is
-released, so a price list in the package would be wrong for most of its
-life, and a wrong price makes a spending limit hold at the wrong place.
-You set the prices you pay, and harnessr uses them for every cost it
-reports and for `max_cost_usd`.
-
-The prices below are illustrative. Use your provider’s current prices,
-in US dollars per million tokens.
-[`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md)
-covers the registry, prices and token counts in full.
-
-### What harnessr knows about a model
-
-[`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md)
-lists the registry, one row per model:
-
-``` r
-
-m <- hr_models()
-m[m$id %in% c("gpt-4o", "gpt-4o-mini", "text-embedding-3-small"),
-  c("id", "kind", "context_window", "max_output", "input_usd_per_1m",
-    "output_usd_per_1m", "as_of")]
-#>                        id      kind context_window max_output input_usd_per_1m
-#> 7                  gpt-4o      chat         128000      16384               NA
-#> 8             gpt-4o-mini      chat         128000      16384               NA
-#> 23 text-embedding-3-small embedding           8191          0               NA
-#>    output_usd_per_1m   as_of
-#> 7                 NA 2026-08
-#> 8                 NA 2026-08
-#> 23                NA 2026-08
-```
-
-The price columns are `NA` because nothing has set them yet. For a model
-with no price, `as_of` is the month harnessr last checked its limits.
-Once you set prices, it is the month of the prices.
-
-[`hr_model_info()`](https://elkronos.github.io/harnessr/reference/hr_model_info.md)
-looks up one model. Its `source` says where the entry came from, and
-`certain` is `FALSE` when harnessr guessed the model from its name or
-fell back to its default. An id the registry does not know warns with
-`gr_unknown_model` and gets the limits of a family pattern its name
-matches, or else a 128k context window, and no price. Its cost then
-shows as `NA` rather than a wrong figure.
-
-``` r
-
-str(hr_model_info("gpt-4o-mini")[c("context_window", "max_output", "source", "certain")])
-#> List of 4
-#>  $ context_window: int 128000
-#>  $ max_output    : int 16384
-#>  $ source        : chr "builtin"
-#>  $ certain       : logi TRUE
-```
-
-Without a price, a cost is `NA`, never 0:
-
-``` r
-
-hr_estimate_cost("gpt-4o-mini", input_tokens = 120000, output_tokens = 4000)
-#> [1] NA
-```
-
-### Setting one model’s price
-
-Give
-[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
-the model’s `input_usd` and `output_usd`. For a model harnessr knows,
-the prices are all you give, and the model keeps its limits:
-
-``` r
-
-# Illustrative figures: use your provider's current prices.
-hr_register_model("gpt-4o-mini", input_usd = 0.15, output_usd = 0.60)
-str(hr_model_info("gpt-4o-mini")[c("context_window", "max_output", "input_usd",
-                                   "output_usd", "as_of")])
-#> List of 5
-#>  $ context_window: int 128000
-#>  $ max_output    : int 16384
-#>  $ input_usd     : num 0.15
-#>  $ output_usd    : num 0.6
-#>  $ as_of         : chr "2026-11"
-hr_estimate_cost("gpt-4o-mini", input_tokens = 120000, output_tokens = 4000)
-#> [1] 0.0204
-```
-
-The entry is stamped with the current month. For a model harnessr does
-not know, such as one behind a company gateway, give its limits as well:
-
-``` r
-
-hr_register_model("priced-reasoner", context_window = 128000, max_output = 16000,
-                  input_usd = 2, output_usd = 8, reasoning = TRUE)
-```
-
-A few rules hold for every price:
-
-- A chat model needs both prices. One without the other is an error,
-  since a cost with half its price missing cannot be estimated. An
-  embedding model needs only `input_usd`.
-- `cached_input_usd` sets a separate rate for input the provider served
-  from its prompt cache. Without it, cached input is priced as other
-  input, which never undercounts.
-- A local model costs nothing, so give it `input_usd = 0` and
-  `output_usd = 0`. The spending limit then counts its requests at zero,
-  with no warning.
-- When you change an entry, any price you leave out keeps its current
-  value.
-
-A registration lasts for the R session. To set prices in every session,
-keep them in a file.
-
-### Setting many prices from a file
-
-[`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md)
-reads a CSV file with a header row and registers each row as
-[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
-would. `id` is the only column every file needs; a blank cell means the
-value is not given.
-
-| column | what it holds |
-|----|----|
-| `id` | the model id, exactly as the API expects it; each id once |
-| `input_usd`, `output_usd` | price per million tokens, in USD; both for a chat model |
-| `cached_input_usd` | price per million input tokens served from the provider’s prompt cache |
-| `as_of` | the month you checked the prices, as `YYYY-MM`; blank stamps the current month |
-| `context_window`, `max_output` | limits in tokens; needed only for a model harnessr does not know |
-| `reasoning`, `supports_temperature` | `TRUE` or `FALSE` |
-| `kind` | `chat` or `embedding` |
-| `dimensions` | how many dimensions an embedding model’s vectors have |
-
-A row that leaves the limits blank prices a known model and keeps its
-limits. A row for a model harnessr does not know gives both limits. This
-file prices two built-in chat models, a built-in embedding model and a
-gateway model. In a project, the file would live beside your scripts;
-here it goes in a temporary directory:
-
-``` r
-
-prices <- file.path(tempdir(), "prices.csv")
-# Illustrative figures: use your provider's current prices.
-writeLines(c(
-  "id,input_usd,output_usd,cached_input_usd,context_window,max_output",
-  "gpt-4o,2.50,10.00,1.25,,",
-  "gpt-5.6-terra,2,12,,,",
-  "text-embedding-3-small,0.02,,,,",
-  "my-gateway-model,3,15,,200000,8192"
-), prices)
-
-loaded <- hr_load_models(prices)
-loaded
-#> [1] "gpt-4o"                 "gpt-5.6-terra"          "text-embedding-3-small"
-#> [4] "my-gateway-model"
-```
-
-It returns, invisibly, the ids it registered. harnessr checks the whole
-file before it registers anything. A file it cannot use stops with an
-error of class `hr_bad_models_file` that names the row and column at
-fault, with row 1 the first row after the header, and leaves the
-registry as it was:
-
-``` r
-
-bad <- file.path(tempdir(), "bad-prices.csv")
-writeLines(c("id,input_usd,output_usd", "gpt-4.1,two,8"), bad)
-tryCatch(hr_load_models(bad), hr_bad_models_file = function(e) conditionMessage(e))
-#> [1] "Models file '/tmp/RtmpqYP24p/bad-prices.csv', row 1, column 'input_usd': 'two' is not a price; give USD per 1M tokens as a number of 0 or more, such as 2.5."
-```
-
-[`?hr_load_models`](https://elkronos.github.io/harnessr/reference/hr_load_models.md)
-documents the format in full.
-
-### Checking the prices you set
-
-[`hr_models()`](https://elkronos.github.io/harnessr/reference/hr_models.md)
-shows what the file set. `subset(hr_models(), !is.na(input_usd_per_1m))`
-lists every model with a price; here, the four the file named:
-
-``` r
-
-m <- hr_models()
-m[m$id %in% loaded,
-  c("id", "context_window", "input_usd_per_1m", "output_usd_per_1m",
-    "cached_input_usd_per_1m", "as_of")]
-#>                        id context_window input_usd_per_1m output_usd_per_1m
-#> 7                  gpt-4o         128000             2.50                10
-#> 17          gpt-5.6-terra        1050000             2.00                12
-#> 19       my-gateway-model         200000             3.00                15
-#> 25 text-embedding-3-small           8191             0.02                NA
-#>    cached_input_usd_per_1m   as_of
-#> 7                     1.25 2026-11
-#> 17                      NA 2026-11
-#> 19                      NA 2026-11
-#> 25                      NA 2026-11
-```
-
-Check the ids against the ones your runs name: a price set under a
-misspelt id prices nothing. `hr_estimate_cost(detail = TRUE)` says where
-a figure’s prices came from:
-
-``` r
-
-hr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000, detail = TRUE)
-#>    model  usd priced   as_of certain
-#> 1 gpt-4o 0.34   TRUE 2026-11    TRUE
-```
-
-Every report of a cost in dollars carries the same `priced`, `as_of` and
-`certain` columns, as [What a run records](#what-a-run-records) shows.
-
-### When a model has no price
-
-A request to a chat model with no price is sent, and the first one to
-each such model in a session warns. The mock is exempt, so this example
-uses
-[`hr_backend_client()`](https://elkronos.github.io/harnessr/reference/hr_backend_client.md),
-which wraps an R function as a paying client:
-
-``` r
-
-hr_register_model("unpriced-model", context_window = 128000, max_output = 4096)
-backend <- hr_backend_client(function(messages, params) "Revenue was 45.2 million dollars.")
-
-tr <- hr_trace()
-res <- hr_call(backend, "What was revenue?", model = "unpriced-model", trace = tr)
-#> Warning: Model 'unpriced-model' has no price set, so the $5 spending limit
-#> (max_cost_usd) does not cover its requests: they are sent, and the trace
-#> records their cost as NA. Set its prices with hr_register_model(input_usd =,
-#> output_usd =) or hr_load_models(). Token and call limits still apply.
-#> hr_options(allow_unpriced = FALSE) refuses such requests instead. Shown once
-#> per model per session.
-res$ok
-#> [1] TRUE
-hr_trace_cost(tr)[, c("model", "calls", "usd", "priced")]
-#>            model calls usd priced
-#> 1 unpriced-model     1  NA  FALSE
-```
-
-The request counts against `max_calls` and `max_tokens_total`, and
-`max_tokens_total` is then the limit that bounds what the run spends. To
-refuse every request the spending limit cannot price, set
-`hr_options(allow_unpriced = FALSE)` or
-`hr_governor(allow_unpriced = FALSE)`.
-[`gr_read()`](https://elkronos.github.io/harnessr/reference/gr_read.md)
-then stops before its first request, and
-[`hr_call()`](https://elkronos.github.io/harnessr/reference/hr_call.md)
-refuses:
-
-``` r
-
-res <- hr_call(backend, "What was revenue?", model = "unpriced-model",
-               trace = hr_trace(governor = hr_governor(allow_unpriced = FALSE)))
-res$refused
-#> [1] TRUE
-res$error
-#> [1] "unpriced model: 'unpriced-model' has no registered price, so what the 'call' request costs cannot be held to the $5 spending limit, and it was not sent. Register its prices with hr_register_model(input_usd =, output_usd =) or hr_load_models(), or send it unpriced with hr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"
-```
-
-[`hr_mock_client()`](https://elkronos.github.io/harnessr/reference/hr_mock_client.md)
-and replays are never refused or warned about for this, and neither are
-embedding models with no price.
-
-An
-[`hr_ellmer_client()`](https://elkronos.github.io/harnessr/reference/hr_ellmer_client.md)
-is priced as the model its ellmer object was built with, whatever a
-recipe names, so set the price of that model. One built on a model with
-no price runs outside the spending limit.
-[`vignette("harnessr")`](https://elkronos.github.io/harnessr/articles/harnessr.md)
-registers a hosted model at its prices and a local one at zero.
-
-Through ellmer, a `temperature` in a read spec is ignored with a
-warning, because sampling parameters belong to the ellmer object.
-Embeddings come from a function you pass as `embed =`. Without one,
-`retrieve` and the `semantic` segmenter fall back to lexical vectors and
-warn.
-
-### When prices go stale
-
-The prices you set go out of date too. A cost computed from prices older
-than `hr_options("price_max_age_days")`, 120 days by default, warns with
-class `hr_stale_price`, once per model per session. The age counts from
-the first day of the `as_of` month. A file whose prices were checked in
-January 2025 shows it:
-
-``` r
-
-old_prices <- file.path(tempdir(), "old-prices.csv")
-writeLines(c("id,input_usd,output_usd,as_of", "gpt-4.1,2,8,2025-01"), old_prices)
-hr_load_models(old_prices)
-hr_estimate_cost("gpt-4.1", input_tokens = 120000, output_tokens = 4000)
-#> Warning: The prices of model 'gpt-4.1' are as of 2025-01, 694 days ago, more
-#> than the 120 days of hr_options(price_max_age_days =). Check your provider's
-#> current prices and set them with hr_register_model(input_usd =, output_usd =)
-#> or hr_load_models(). Shown once per model per session.
-#> [1] 0.272
-```
-
-harnessr still returns the figure. To clear the warning, look up your
-provider’s current prices and set them again:
-[`hr_register_model()`](https://elkronos.github.io/harnessr/reference/hr_register_model.md)
-stamps the current month, and so does
-[`hr_load_models()`](https://elkronos.github.io/harnessr/reference/hr_load_models.md)
-for a row with a blank `as_of`. `hr_options(price_max_age_days = 365)`
-allows older prices, and `NULL` turns the warning off.
-
-### Keeping your prices current
-
-One file of prices per project keeps every script on the same figures
-and puts a date on each:
-
-1.  Keep `prices.csv` beside your scripts, under version control, with
-    an `as_of` column holding the month you checked each row.
-2.  Load it at the top of each script, or in the project’s `.Rprofile`,
-    before anything reports a cost.
-3.  When your provider changes a price, or the stale warning appears,
-    look up the current prices, change the row and its `as_of`, and load
-    the file again.
-
-``` r
-
-harnessr::hr_load_models("prices.csv")
-```
-
-Loading a file again replaces the prices of the models it names and
-leaves the others as they are. The file’s commit history records when
-each price changed, and the `as_of` column of a cost report says which
-month’s prices the cost used.
-
-### Token counts
-
-[`hr_tokenizer()`](https://elkronos.github.io/harnessr/reference/hr_tokenizer.md)
-reports which counter is in use. The default, `"heuristic"`, needs
-nothing installed. `hr_set_tokenizer("tiktoken")` switches to OpenAI’s
-own tokenizer where the reticulate package and Python’s `tiktoken` are
-installed. It counts in a model’s encoding when one is given. Otherwise
-it counts, as the package’s budgets do, in the larger of `cl100k_base`
-and `o200k_base`. For a model that is not OpenAI’s, the count is an
-estimate. Without those packages, `hr_set_tokenizer("tiktoken")` stops
-rather than falling back, because a silent fallback would change every
-budget calculation.
-
-[`hr_budget()`](https://elkronos.github.io/harnessr/reference/hr_budget.md)
-does the context arithmetic for every request. It cannot return a
-non-positive input budget: in that case it raises an error that says
-what to change.
-[`vignette("context")`](https://elkronos.github.io/harnessr/articles/context.md)
-covers budgets and cuts in full, and
-[`?hr_options`](https://elkronos.github.io/harnessr/reference/hr_options.md)
-documents every setting.
-
 ## Choosing the settings
 
-Three walkthroughs cover the settings that hold a run in: the limits
-every run has, the governor a benchmark or a batch shares, and effort
-that rises only when a stage needs it. Each gives what the setting
-controls and what it trades off, the signs in your results that point to
-changing it, where its default came from, and how to test a change.
+Two walkthroughs cover the settings that hold a run in: the limits every
+run has, and the governor a benchmark or a batch shares. Each gives what
+the setting controls and what it trades off, the signs in your results
+that point to changing it, where its default came from, and how to test
+a change. `effort_mode`, effort that rises only when a stage needs it,
+has its walkthrough in
+[`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md).
 [`vignette("settings")`](https://elkronos.github.io/harnessr/articles/settings.md)
 lists every option with its default.
 
@@ -1264,114 +884,14 @@ c(allowed = needed, used = attr(bench, "trace")$calls,
 [`vignette("compare")`](https://elkronos.github.io/harnessr/articles/compare.md)
 sizes a governor this way for every benchmark it runs.
 
-### Effort that rises when needed: `effort_mode`
-
-**What it controls.** With `effort_mode = "escalate"`, a read starts
-every stage at its `effort` (`"low"` when `effort` is unset). It sends
-the next stage at `"high"` when one of these went wrong in the stage
-before:
-
-- a cut;
-- a reply stopped at its output cap;
-- a reply that is not the JSON asked for;
-- `NOT_IN_DOCUMENT` from every request of the stage;
-- a quotation `iterative` could not verify;
-- `ensemble` members that disagree.
-
-Effort changes only at a stage boundary, at most once a read, and the
-stage after a raised one goes back to the base effort. The setting
-trades the cost of reasoning at a high effort on every request against
-the cost of a wrong answer where low effort was not enough. A raise
-costs nothing but the raised stage’s reasoning.
-
-**Signs it needs changing.** Look for a fixed `"high"` effort whose bill
-is mostly reasoning on requests that a low effort answers as well, or
-for answers at a fixed `"low"` that come back cut off, unparsed or not
-found. The trace records each raise as an `"effort.escalate"` step.
-[`hr_effort_log()`](https://elkronos.github.io/harnessr/reference/hr_effort_log.md)
-shows which trigger fired and whether the raised stage fired it again.
-
-**Where the default came from.** `"static"` sends the effort `effort`
-names, as harnessr did before the setting existed; the settings table
-marks it `untested`. No one has compared escalation with a fixed effort
-here, and
-[`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
-makes that comparison.
-
-**How to test it.** Here `refine` reads the report with a stand-in
-reasoning model that, at low effort, finds nothing in the first chunk,
-where `refine` drafts its answer:
-
-``` r
-
-hr_register_model("priced-reasoner", context_window = 128000, max_output = 8192,
-                  input_usd = 1, output_usd = 4, reasoning = TRUE)
-thinks <- hr_mock_client(function(messages, params) {
-  if (identical(params$effort, "low") &&
-      startsWith(messages[[2]]$content, "<excerpts>")) {
-    return("NOT_IN_DOCUMENT")
-  }
-  "Revenue was 45.2 million dollars."
-})
-efforts <- hr_sweep(function(effort) {
-  gr_arm("thorough", list(method = "sentence", max_tokens = 150, overlap_tokens = 0,
-                          model = "priced-reasoner", reader = "refine",
-                          effort = if (effort != "escalate") effort,
-                          effort_mode = if (effort == "escalate") "escalate" else "static"))
-}, list(effort = c("low", "high", "escalate")))
-eb <- hr_benchmark(efforts, qa, runs = 5, client = thinks, split = "dev",
-                   scorer = gr_scorer_answer(),
-                   governor = hr_governor(max_calls = 200, max_cost_usd = 1))
-sent <- do.call(rbind, lapply(seq_len(nrow(eb)), function(i) {
-  d <- as.data.frame(attr(eb, "traces")[[eb$ledger_id[i]]])
-  d <- d[!is.na(d$effort), ]
-  data.frame(arm = eb$arm[i], stage = d$stage, effort = d$effort)
-}))
-table(sent$arm, paste(sent$stage, sent$effort))
-#>                           
-#>                            refine.draft high refine.draft low
-#>   thorough:effort=escalate                 0                5
-#>   thorough:effort=high                     5                0
-#>   thorough:effort=low                      0                5
-#>                           
-#>                            refine.revise high refine.revise low
-#>   thorough:effort=escalate                 20                 0
-#>   thorough:effort=high                     20                 0
-#>   thorough:effort=low                       0                20
-hr_effort_log(attr(eb, "traces")[[eb$ledger_id[eb$arm == "thorough:effort=escalate"][1]]])
-#>          after         stage        triggers   to calls resolved
-#> 1 refine.draft refine.revise not_in_document high     4     TRUE
-```
-
-At `"low"` every request went out low, and at `"high"` every one went
-out high. Under `"escalate"` the draft went out low and found nothing.
-That raised the four revisions after it to high, and the log shows that
-the raise resolved the trigger: the revisions found the figure.
-
-Four of the five requests of each run went out raised here, because the
-draft is one request. On a reader whose first stage is many requests
-(`map_reduce`’s chunks), the raised stage is the smaller share.
-
-[`hr_effort_check()`](https://elkronos.github.io/harnessr/reference/hr_effort_check.md)
-reads a benchmark of such arms with the non-inferiority test of
-[`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md).
-That test needs a reference with a test split and enough items and runs
-for intervals, so run the check on your own benchmark:
-
-``` r
-
-chk <- hr_effort_check(bench, candidate = "thorough:effort=escalate", margin = 0.05)
-chk$contrasts[, c("reference", "estimate", "lower", "verdict")]
-chk$cost
-```
-
-Register the margin with
-[`hr_register_contrasts()`](https://elkronos.github.io/harnessr/reference/hr_contrast.md)
-before the benchmark runs and pass it as `registration`; without one,
-the result is marked post hoc.
-
 ## Next
 
+- [`vignette("models")`](https://elkronos.github.io/harnessr/articles/models.md):
+  the model registry, setting the prices the limits count, and token
+  counts.
+- [`vignette("effort")`](https://elkronos.github.io/harnessr/articles/effort.md):
+  how much a reasoning model reasons, and effort that rises only when a
+  stage needs it.
 - [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md):
   how each reader spends its calls, and choosing one.
 - [`vignette("review")`](https://elkronos.github.io/harnessr/articles/review.md):

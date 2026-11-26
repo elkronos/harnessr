@@ -14,7 +14,9 @@ segmenters and chunk sizes, one setting swept over its values, screening
 settings, and a judge against people’s labels. Each runs offline on a
 stand-in model and ends in a report, with what that report shows and
 what it leaves open. The last section repeats the steps on your own
-documents.
+documents. Four of the five compare settings of the document layer. The
+same steps apply to any arm, a chain of your own included
+([`vignette("compose")`](https://elkronos.github.io/harnessr/articles/compose.md)).
 
 ## Setting up
 
@@ -194,8 +196,10 @@ takes in `...`.
   [`hr_report()`](https://elkronos.github.io/harnessr/reference/hr_report.md)
   gives no intervals. If run-to-run variance is above 10% of the total,
   the report’s notes say “use runs = 10”.
-- **One governor for the whole benchmark.** The default limits fit one
-  read (400 calls). Size
+- **One governor for the whole benchmark** (“The governor of a benchmark
+  or a batch” in
+  [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md)).
+  The default limits fit one read (400 calls). Size
   [`hr_governor()`](https://elkronos.github.io/harnessr/reference/hr_governor.md)
   for arms x items x runs x calls per run, and afterwards check how much
   of it the benchmark used.
@@ -906,6 +910,8 @@ lists each reader’s calls), with room to spare.
   the segmenters and their settings.
 - [`vignette("readers")`](https://elkronos.github.io/harnessr/articles/readers.md):
   the readers and recipes the arms are built from.
+- [`vignette("runs")`](https://elkronos.github.io/harnessr/articles/runs.md):
+  the governor every benchmark here is held to.
 - [`?gr_seg_pk`](https://elkronos.github.io/harnessr/reference/gr_seg_pk.md),
   [`?gr_seg_recall`](https://elkronos.github.io/harnessr/reference/gr_seg_recall.md)
   and
