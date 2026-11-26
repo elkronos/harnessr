@@ -1353,7 +1353,7 @@ hand. A protocol that says "no quote, no datum" needs it on.
 disagreement visible; it has not been compared with `"model"` or `"vote"`.
 `agreement_columns = FALSE` keeps the table's columns as they were.
 `require_quote = FALSE`, so no extracted value is thrown away unasked;
-`n_unverified` counts the same values without dropping them. Both are
+`n_unverified` counts the same values without dropping them. All three are
 `untested`.
 
 **How to test them.** `require_quote` changes no request, only which values
