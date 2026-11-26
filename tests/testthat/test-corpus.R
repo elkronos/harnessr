@@ -287,7 +287,9 @@ test_that("cost counts only the calls that were actually issued", {
 
 test_that("cost is reported per model, and an unpriced model is NA rather than free", {
   local_registries()
-  # A chat model with no price is sent only when the run allows it.
+  local_price_warnings()
+  # A chat model with no price is sent only when the run allows it, as it
+  # does by default, with a warning.
   hr_options(allow_unpriced = TRUE)
   hr_register_model("cheap", context_window = 100000L, max_output = 4096L,
                     input_usd = 1, output_usd = 1)
@@ -295,7 +297,7 @@ test_that("cost is reported per model, and an unpriced model is NA rather than f
   tr <- hr_trace()
   cl <- hr_backend_client(function(m, p) "an answer", model = "cheap")
   invisible(hr_call(cl, "one", model = "cheap", trace = tr))
-  invisible(hr_call(cl, "two", model = "unpriced", trace = tr))
+  expect_warning(hr_call(cl, "two", model = "unpriced", trace = tr), class = "hr_unpriced_model")
 
   cost <- suppressWarnings(hr_trace_cost(tr))
   expect_identical(nrow(cost), 2L)
