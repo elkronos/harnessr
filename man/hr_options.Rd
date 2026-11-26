@@ -159,7 +159,9 @@ default joins the response-cache key and the store key of
 \item{\code{output_reserve_share} (0.25)}{The share of the usable window
 \code{\link[=hr_budget]{hr_budget()}} reserves for the reply when no \code{reserve_output} is given,
 between \code{min_output_tokens} and the model's output limit. It sets the
-input room, so how much of a document fits one request. Untested.}
+input room of such a budget. The readers give \code{max_answer_tokens} as
+the reserve, so it does not change how much of a document they fit
+in one request. Untested.}
 \item{\code{near_verbatim_sim} (0.90), \code{near_verbatim_sim_short} (0.95),
 \code{near_verbatim_short_chars} (40)}{The least similarity a quotation of at
 least \code{near_verbatim_short_chars} characters (after normalising), and

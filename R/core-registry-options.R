@@ -423,7 +423,9 @@ check_option <- function(name, value) {
 #'   \item{`output_reserve_share` (0.25)}{The share of the usable window
 #'     [hr_budget()] reserves for the reply when no `reserve_output` is given,
 #'     between `min_output_tokens` and the model's output limit. It sets the
-#'     input room, so how much of a document fits one request. Untested.}
+#'     input room of such a budget. The readers give `max_answer_tokens` as
+#'     the reserve, so it does not change how much of a document they fit
+#'     in one request. Untested.}
 #'   \item{`near_verbatim_sim` (0.90), `near_verbatim_sim_short` (0.95),
 #'     `near_verbatim_short_chars` (40)}{The least similarity a quotation of at
 #'     least `near_verbatim_short_chars` characters (after normalising), and
