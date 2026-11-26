@@ -63,7 +63,7 @@
 #'   `worst_usd`, the run's `calls` and `spent_usd` at that moment, and the
 #'   `message`. A refused request is not a call and has no step. `spent_usd`
 #'   is what the calls so far cost. A call to a model with no registered price
-#'   (sent under `allow_unpriced = TRUE`) adds nothing to it, so
+#'   (sent under `allow_unpriced = TRUE`, the default) adds nothing to it, so
 #'   [hr_trace_cost()] is the full account. `replayed_usd` is what the calls a
 #'   [hr_replay_client()] answered cost when they were recorded, counted when
 #'   the spending limit stopped the recorded run: nothing was paid for them,
@@ -139,6 +139,10 @@
 #'     reasoning and cached input tokens the provider reported and the model
 #'     it said answered, `NA` where it did not. Each is present only when some
 #'     request in the trace has it.}
+#'   \item{`priced`, `as_of`, `certain`}{Last, where `usd`'s price came from, as in
+#'     [hr_trace_cost()]: whether the model has a price, the month of its
+#'     prices (`NA` without one), and whether its registry entry is a fact
+#'     rather than a guess.}
 #' }
 #' A request's `usd` prices its cached input tokens at the model's cached
 #' input rate when [hr_register_model()] gave it one, and at the input rate
@@ -304,9 +308,10 @@ step_tokens <- function(usage) {
 #' @noRd
 usage_cost <- function(model, usage) {
   u <- if (is.list(usage)) usage else list()
+  # The unknown-model warning only: a stale price warns, once per model.
   tryCatch(suppressWarnings(as.numeric(hr_estimate_cost(
     as_chr1(model, "unknown"), u$input %||% 0L, u$output %||% 0L,
-    cached_input_tokens = u$cached_input %||% 0L))),
+    cached_input_tokens = u$cached_input %||% 0L)), classes = "gr_unknown_model"),
     error = function(e) NA_real_)
 }
 
@@ -677,7 +682,10 @@ as_parent_trace <- function(trace, arg = "trace") {
 #'
 #' # What the run cost, each request priced at its own model (nothing, for a
 #' # mock), and what its model calls would cost at another model's prices.
+#' # harnessr ships no prices, so set that model's first. The figures are
+#' # illustrative: use your provider's current prices.
 #' hr_trace_cost(ans$trace)
+#' hr_register_model("gpt-4o", input_usd = 2.50, output_usd = 10)
 #' hr_estimate_cost("gpt-4o", ans$trace$tokens_in, ans$trace$tokens_out)
 hr_trace_summary <- function(trace) {
   stopifnot(inherits(trace, "gr_trace"))
@@ -789,6 +797,12 @@ as.data.frame.gr_trace <- function(x, row.names = NULL, optional = FALSE, ...) {
   if (any(!is.na(cached_in))) out$tokens_cached_in <- cached_in
   served <- chr(function(s) s$served_model)
   if (any(!is.na(served))) out$served_model <- served
+  # Where each request's price came from, as hr_trace_cost() gives it per
+  # model. Last, so every other column is where it was.
+  prices <- price_status(model)
+  out$priced <- prices$priced
+  out$as_of <- prices$as_of
+  out$certain <- prices$certain
   if (!is.null(row.names)) rownames(out) <- row.names
   out
 }

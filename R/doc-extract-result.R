@@ -380,14 +380,12 @@ print.gr_extraction <- function(x, ...) {
                                        100 * mean(m >= 1)) else "",
                 if (length(v)) sprintf(", %.0f%% verified", 100 * mean(v)) else ""))
   }
+  # The cost with the month of its prices, or the models that have none.
   cost <- hr_trace_cost(x$trace)
-  total <- if (nrow(cost)) sum(cost$usd) else 0
   # format_call_counts(): the trace's `calls` counts embeddings requests too,
   # and printed them as model calls.
   cat(sprintf("  this run: %s, %s\n", format_call_counts(x$trace),
-              if (!nrow(cost)) "no cost recorded"
-              else if (is.na(total)) "cost unknown (unpriced model)"
-              else sprintf("$%.4f", total)))
+              format_trace_cost(cost)))
   invisible(x)
 }
 

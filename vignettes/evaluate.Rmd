@@ -44,6 +44,8 @@ two mock model ids prices, so the benchmarks below have a cost to compare:
 library(harnessr)
 old <- hr_options(verbose = FALSE, embedder = "lexical")
 
+# Illustrative prices for a stand-in model. For a real model, use your
+# provider's current prices.
 hr_register_model("mock-small", context_window = 128000, max_output = 4096,
                   input_usd = 0.2, output_usd = 0.8)
 hr_register_model("mock-large", context_window = 128000, max_output = 4096,
@@ -679,6 +681,8 @@ of about plus or minus 0.3. Here the judge's simulated decisions are right 90%
 of the time:
 
 ```{r}
+# Illustrative prices for a stand-in model. For a real model, use your
+# provider's current prices.
 hr_register_model("mock-judge", context_window = 128000, max_output = 4096,
                   input_usd = 1, output_usd = 4)
 cfg <- hr_judge_config("mock-judge", "Does the response give the reference's answer?",

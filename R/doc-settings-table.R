@@ -226,7 +226,8 @@
   evaluate.hr_step_command.held = "evaluate#set-command-held",
   options.max_cost_usd = "runs#set-limits", options.max_calls = "runs#set-limits",
   options.max_tokens_total = "runs#set-limits", options.max_output_tokens = "runs#set-limits",
-  options.allowed_models = "runs#set-limits", options.allow_unpriced = "runs#set-limits")
+  options.allowed_models = "runs#set-limits", options.allow_unpriced = "runs#set-limits",
+  options.price_max_age_days = "runs#set-price-age")
 
 #' The stages of gr_settings_table(), in the order a run uses them.
 #' @noRd

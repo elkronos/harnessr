@@ -27,15 +27,13 @@ print.gr_screening <- function(x, ...) {
   if (trunc) {
     cat(sprintf("  %d decided on the opening of the document, not all of it\n", trunc))
   }
+  # The cost with the month of its prices, or the models that have none.
   cost <- hr_trace_cost(x$trace)
-  total <- if (nrow(cost)) sum(cost$usd) else 0
   # format_call_counts(), not trace$calls: `calls` counts embeddings requests
   # too, so a run with 2 model calls and 4 embeddings requests printed "6 model
   # call(s)" above a trace that said 2.
   cat(sprintf("  this run: %s, %s\n", format_call_counts(x$trace),
-              if (!nrow(cost)) "no cost recorded"
-              else if (is.na(total)) "cost unknown (unpriced model)"
-              else sprintf("$%.4f", total)))
+              format_trace_cost(cost)))
   invisible(x)
 }
 

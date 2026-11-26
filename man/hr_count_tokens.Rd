@@ -61,6 +61,7 @@ Other cost and token functions:
 \code{\link{hr_context_fit}()},
 \code{\link{hr_context_policy}()},
 \code{\link{hr_estimate_cost}()},
+\code{\link{hr_load_models}()},
 \code{\link{hr_model_info}()},
 \code{\link{hr_model_limits}()},
 \code{\link{hr_models}()},

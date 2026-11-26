@@ -256,11 +256,13 @@ test_that("the progress line keeps the spend through a failed empty request", {
   expect_identical(harnessr:::progress_cost(p),
                    sprintf(", $%.4f spent", hr_estimate_cost("gpt-4o", 1000L, 10L)))
 
-  # A request that sent tokens to an unpriced model still makes it unknown.
+  # A request that sent tokens to an unpriced model leaves the spend of the
+  # priced models, said to be theirs alone.
   harnessr:::trace_record(tr, "map.answer", list(list(role = "user", content = "q2")),
                          gr_result(TRUE, text = "a", model = "no-such-model",
                                    usage = list(input = 5L, output = 1L)))
-  expect_identical(harnessr:::progress_cost(p), ", cost unknown")
+  expect_identical(harnessr:::progress_cost(p),
+                   sprintf(", $%.4f spent on priced models", hr_estimate_cost("gpt-4o", 1000L, 10L)))
 
   # And so does a failed request that sent tokens, from a fresh line.
   tr2 <- r4_trace_with_free_failure()
@@ -269,7 +271,8 @@ test_that("the progress line keeps the spend through a failed empty request", {
                                    usage = list(input = 3L, output = 0L)),
                          embedding = TRUE)
   p2 <- harnessr:::progress_start(3L, "item", trace = tr2)
-  expect_identical(harnessr:::progress_cost(p2), ", cost unknown")
+  expect_identical(harnessr:::progress_cost(p2),
+                   sprintf(", $%.4f spent on priced models", hr_estimate_cost("gpt-4o", 1000L, 10L)))
 })
 
 # ---------------------------------------------------------------------------

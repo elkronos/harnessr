@@ -194,14 +194,22 @@ corpus_models_have <- function(models) {
 #' @section The summary:
 #' `document`, `document_id`, `answer`, `not_found`, `partial`, `reader`,
 #' `chunks`, `chunks_used`, `calls`, `cached`, `tokens_in`, `tokens_out`,
-#' `cost_usd`, `seconds`, `status`, `duplicate_of`, `error`, `warnings`.
+#' `cost_usd`, `seconds`, `status`, `duplicate_of`, `error`, `warnings`,
+#' `priced`, `as_of`, `certain`.
 #'
 #' `warnings` holds what harnessr warned about while reading that document,
 #' joined with `" | "`, or `NA` when it raised nothing. The warnings still print
 #' as they happen; this column is what lets you tie them to a document afterwards.
 #'
+#' `priced`, `as_of` and `certain` say where `cost_usd`'s prices came from, as
+#' in [hr_trace_cost()]: `priced` is `TRUE` when every model the document's
+#' requests were billed to has a price, `as_of` is the oldest month among those
+#' prices, and `certain` is `TRUE` when every model's registry entry is a fact.
+#' All three are `NA` for a document with no requests, and for a row restored
+#' from a store written before these columns existed.
+#'
 #' With `premise = TRUE` in the recipe's read spec (see [gr_read_spec()]) there
-#' is one more column, after `warnings`: `premise`, the sentence in which the
+#' is one more column, after `certain`: `premise`, the sentence in which the
 #' model said what the document states instead of the question's premise, or
 #' `NA` when it reported nothing contradicting it. Such a row's `answer` is that
 #' sentence and its `not_found` is `FALSE`.
@@ -478,6 +486,15 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       if (is.null(restored$row[["warnings", exact = TRUE]])) {
         restored$row$warnings <- NA_character_
       }
+      # A store written before the price columns: unknown, in their place
+      # after `warnings`, so the rows bind.
+      if (is.null(restored$row[["priced", exact = TRUE]])) {
+        at <- seq_len(match("warnings", names(restored$row)))
+        restored$row <- cbind(restored$row[at],
+                              data.frame(priced = NA, as_of = NA_character_, certain = NA,
+                                         stringsAsFactors = FALSE),
+                              restored$row[-at])
+      }
       if (check_premise && is.null(restored$row[["premise", exact = TRUE]])) {
         restored$row$premise <- answer_premise(restored$answer)
       }
@@ -719,8 +736,9 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
     if (!is.null(max_total_usd) && length(unpriced_chat) && is.null(warned_unpriced)) {
       warned_unpriced <- TRUE
       gr_warn(sprintf(paste0("`max_total_usd` cannot be enforced: %s no registered price, so ",
-                             "what it costs is unknown rather than zero. Register the price with ",
-                             "hr_register_model(input_usd =, output_usd =), or drop the ceiling. ",
+                             "what it costs is unknown rather than zero. Set its prices with ",
+                             "hr_register_model(input_usd =, output_usd =) or hr_load_models(), ",
+                             "or drop the ceiling. ",
                              "The run continues, uncapped."), corpus_models_have(unpriced_chat)),
               class = "gr_corpus_cost_unknown")
     }
@@ -731,9 +749,9 @@ gr_read_many <- function(sources, question, recipe = "thorough", client = NULL,
       warned_floor <- TRUE
       gr_warn(sprintf(paste0("`max_total_usd` is checked against the spend that has a price: ",
                              "embedding %s no registered price, so %s requests are not counted ",
-                             "and the run can pass the ceiling by what they cost. Register it with ",
-                             "hr_register_model('%s', context_window =, max_output = 0, ",
-                             "input_usd =, kind = \"embedding\") to count them."),
+                             "and the run can pass the ceiling by what they cost. Set its price ",
+                             "with hr_register_model('%s', input_usd =), which keeps the ",
+                             "model's limits, or with hr_load_models(), to count them."),
                       corpus_models_have(unpriced_embed),
                       if (length(unpriced_embed) == 1L) "its" else "their", unpriced_embed[[1]]),
               class = "gr_corpus_cost_floor")
@@ -1085,7 +1103,13 @@ corpus_row <- function(document, status, answer = NULL, trace = NULL, error = NA
     warnings    = corpus_warnings(warnings %||% answer[["warnings", exact = TRUE]]),
     stringsAsFactors = FALSE
   )
-  # After `warnings`, and only for a recipe that checks the question's premise
+  # Where `cost_usd`'s prices came from, after `warnings`, as gr_compare()
+  # gives them for a recipe.
+  prices <- cost_prices(if (inherits(trace, "gr_trace")) hr_trace_cost(trace))
+  row$priced <- prices$priced
+  row$as_of <- prices$as_of
+  row$certain <- prices$certain
+  # After the price columns, and only for a recipe that checks the question's premise
   # (`premise`, whether it does): every row of a run has the same recipe, so
   # the rows bind, and a run that did not check keeps the columns it had. What
   # the model said the document states instead, or NA.

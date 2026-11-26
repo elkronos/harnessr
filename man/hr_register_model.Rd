@@ -2,7 +2,7 @@
 % Please edit documentation in R/core-transport-models.R
 \name{hr_register_model}
 \alias{hr_register_model}
-\title{Register a model (or override a built-in entry)}
+\title{Register a model, or set the prices of a known one}
 \usage{
 hr_register_model(
   id,
@@ -20,14 +20,18 @@ hr_register_model(
 \arguments{
 \item{id}{Model id string, exactly as the API expects it.}
 
-\item{context_window}{Total context window in tokens.}
+\item{context_window}{Total context window in tokens. Leave it out to keep
+the current entry's.}
 
-\item{max_output}{Maximum tokens the model will emit in one response.}
+\item{max_output}{Maximum tokens the model will emit in one response. Leave
+it out to keep the current entry's.}
 
-\item{input_usd, output_usd}{Price per 1M tokens; used for cost estimates.
-Give both or neither for a chat model: one without the other is an error,
-since a cost with half its price missing cannot be estimated. An embedding
-model needs only \code{input_usd}.}
+\item{input_usd, output_usd}{Price per 1M tokens, in USD; used for cost
+estimates and the \code{max_cost_usd} limit. Give both or neither for a chat
+model: one without the other is an error, since a cost with half its
+price missing cannot be estimated. An embedding model needs only
+\code{input_usd}. When you change an existing entry, a price you leave out
+keeps its current value.}
 
 \item{reasoning}{Whether this is a reasoning model (affects prompt shape).}
 
@@ -45,9 +49,28 @@ default) prices them as other input tokens, which never undercounts.}
 Invisibly, \code{id}.
 }
 \description{
-Use this whenever the shipped registry is stale or you are pointing the
-client at a compatible non-OpenAI endpoint. Registered entries take
+Use this to add a model the registry does not know, to correct a built-in
+entry, or to give a model its prices. harnessr ships each built-in model's
+limits but no prices, because providers change prices more often than the
+package is released: cost estimates and the \code{max_cost_usd} limit use the
+prices you set here or with \code{\link[=hr_load_models]{hr_load_models()}}. Registered entries take
 precedence over everything built in.
+}
+\details{
+Give both \code{context_window} and \code{max_output} to register a model in full:
+every other argument you leave out takes its default. Leave either limit
+out to change the model's current entry, built in or registered: the new
+entry keeps every value you leave out. That is how you price a built-in
+model without restating its limits.
+
+The entry's \code{as_of}, shown by \code{\link[=hr_models]{hr_models()}}, is the current month. When you
+change an entry that has prices without giving new ones, it keeps the
+month of those prices. When you give only some of its prices, such as
+\code{cached_input_usd} alone, the prices you leave out are as old as before, so
+the entry keeps their month too. An alias such as \code{"chatgpt-4o-latest"}
+takes its entry from its target: set the prices on the target. Once prices are older than
+\code{hr_options("price_max_age_days")} (120 days by default), the first cost
+computed from them in a session warns with class \code{hr_stale_price}.
 }
 \examples{
 hr_register_model("my-local-llama", context_window = 32768, max_output = 4096)
@@ -56,10 +79,16 @@ hr_model_info("my-local-llama")[c("context_window", "source", "certain")]
 # Without prices, the cost cap cannot be checked; harnessr says so rather
 # than assuming the run is free.
 is.na(hr_estimate_cost("my-local-llama", 1000, 500))
+
+# Price a built-in model and keep its limits. The figures are illustrative:
+# use your provider's current prices.
+hr_register_model("gpt-4o-mini", input_usd = 0.15, output_usd = 0.60)
+hr_model_info("gpt-4o-mini")[c("context_window", "input_usd", "output_usd")]
 }
 \seealso{
-\code{\link[=hr_models]{hr_models()}} to see the registry, \code{\link[=hr_model_info]{hr_model_info()}} for lookup and
-its \code{certain} flag, \code{\link[=hr_budget]{hr_budget()}}, \code{\link[=hr_estimate_cost]{hr_estimate_cost()}}
+\code{\link[=hr_load_models]{hr_load_models()}} to register many models from a file,
+\code{\link[=hr_models]{hr_models()}} to see the registry, \code{\link[=hr_model_info]{hr_model_info()}} for lookup and its
+\code{certain} flag, \code{\link[=hr_budget]{hr_budget()}}, \code{\link[=hr_estimate_cost]{hr_estimate_cost()}}
 
 Other cost and token functions: 
 \code{\link{hr_budget}()},
@@ -67,6 +96,7 @@ Other cost and token functions:
 \code{\link{hr_context_policy}()},
 \code{\link{hr_count_tokens}()},
 \code{\link{hr_estimate_cost}()},
+\code{\link{hr_load_models}()},
 \code{\link{hr_model_info}()},
 \code{\link{hr_model_limits}()},
 \code{\link{hr_models}()},

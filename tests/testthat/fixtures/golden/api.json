@@ -441,7 +441,7 @@
       "type": "function"
     },
     "hr_estimate_cost": {
-      "formals": ["model", "input_tokens", "output_tokens = 0", "cached_input_tokens = 0"],
+      "formals": ["model", "input_tokens", "output_tokens = 0", "cached_input_tokens = 0", "detail = FALSE"],
       "type": "function"
     },
     "hr_gate_threshold": {
@@ -474,6 +474,10 @@
     },
     "hr_judge_validate": {
       "formals": ["judge_config", "labels", "n_pos_min = 50", "n_neg_min = 50", "positive = NULL", "B = 2000", "conf = 0.95", "seed = 1"],
+      "type": "function"
+    },
+    "hr_load_models": {
+      "formals": ["file"],
       "type": "function"
     },
     "hr_mdd": {

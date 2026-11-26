@@ -15,7 +15,9 @@ Read this page if you have code written for readgpt, the package's name up to
 version 0.6.0, or for its first version (v1). Each table lists an old name,
 the name that replaced it and what to change in your code. None of the old
 names has an alias: calling an old function stops with "could not find
-function". `NEWS.md` lists every change release by release.
+function". One section has no table: built-in models now carry no prices, so
+you set the prices you pay.
+`NEWS.md` lists every change release by release.
 
 The files listed under "What still loads", at the end of this page, still
 load. A response cache written by readgpt 0.5.1 or earlier is not read.
@@ -107,6 +109,43 @@ move the response cache to the key `harnessr-cache-v3` and replay to
 | `options(readgpt.allow_local_urls =)` | `options(harnessr.allow_local_urls =)` | Rename the option. harnessr ignores the old one. |
 | `gr_calibrate()`'s `$kappa_legacy` | `gr_calibrate()`'s `$kappa` | Read `$kappa`. `$decisions` holds the 3x2 counts the old figure came from. |
 | the `gr_deprecated` warning class | none | Drop handlers for it. Nothing warns about an old name now. |
+
+## From readgpt 0.6.0: models carry no prices
+
+readgpt 0.6.0 shipped a price for each built-in model. harnessr ships their
+limits and no prices, because providers change prices more often than the
+package is released. Three things change for code written for 0.6.0:
+
+- A cost for a built-in model is `NA` until you set its prices. That holds for
+  `hr_estimate_cost()`, `hr_trace_cost()` and every other report of a cost in
+  dollars.
+- Under `max_cost_usd`, a request to a chat model with no price is sent, as in
+  0.6.0. 0.6.0 warned with class `gr_cost_uncheckable` on every read; now the
+  first such request to each model in a session warns with class
+  `hr_unpriced_model`, and later ones do not. The spending limit does not
+  count the request; `max_calls` and `max_tokens_total` do.
+- A cost computed from prices older than `price_max_age_days` (120 by default)
+  warns with class `hr_stale_price`, once per model per session.
+
+Set the prices you pay with `hr_register_model()` for one model, or with
+`hr_load_models()` for a file of them. A built-in model keeps its limits when
+you give only its prices:
+
+```{r message = FALSE}
+old <- hr_options(verbose = FALSE)
+# Illustrative figures: use your provider's current prices.
+hr_register_model("gpt-4o", input_usd = 2.50, output_usd = 10)
+hr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
+```
+
+```{r include = FALSE}
+hr_options(old)
+```
+
+To refuse unpriced requests instead, set the new option
+`hr_options(allow_unpriced = FALSE)`. "Models, prices and token counts" in
+`vignette("runs")` walks through setting prices from a file, checking them and
+keeping them current.
 
 ## From v1
 

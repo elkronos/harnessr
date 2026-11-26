@@ -48,16 +48,21 @@
 #' model) or `"unpriced"`.
 #'
 #' A text-generation model with no registered price cannot be held to a
-#' spending limit, so while `max_cost_usd` is a finite number a request to one
-#' is refused (a condition of class `hr_unpriced_model` as well as
-#' `hr_budget_refused`), unless `allow_unpriced = TRUE`. With
-#' `allow_unpriced = TRUE` the request is sent, the trace prices it at `NA`,
-#' never 0, and `max_calls`, `max_tokens_total` and the other limits still
-#' apply: `max_tokens_total` is the limit that bounds such a run, since the
-#' spending limit cannot. An embedding model with no price is not refused; its
-#' requests count against `max_calls` and add nothing to the spend, as
-#' [gr_read_many()] warns. [hr_mock_client()] makes no paid requests and is
-#' never refused as unpriced. A request an [hr_cache()] answers spends nothing
+#' spending limit. harnessr ships no prices, so by default
+#' (`allow_unpriced = TRUE`) a request to one is sent while `max_cost_usd` is a
+#' finite number, and the trace prices it at `NA`, never 0. The first such
+#' request to each model in a session warns, with class `hr_unpriced_model`,
+#' that the spending limit does not cover the model until you set its prices
+#' with [hr_register_model()] or [hr_load_models()]. `max_calls`,
+#' `max_tokens_total` and the other limits still apply: `max_tokens_total` is
+#' the limit that bounds such a run, since the spending limit cannot. With
+#' `allow_unpriced = FALSE` the request is refused instead (a condition of
+#' class `hr_unpriced_model` as well as `hr_budget_refused`), for a run in
+#' which every request must be priced. An embedding model with no price is
+#' neither refused nor warned about here; its requests count against
+#' `max_calls` and add nothing to the spend, as [gr_read_many()] warns.
+#' [hr_mock_client()] makes no paid requests, so it is never refused or warned
+#' about as unpriced. A request an [hr_cache()] answers spends nothing
 #' and is checked only against `max_calls`, `max_output_tokens` and
 #' `allowed_models`.
 #'
@@ -90,7 +95,8 @@
 #' @param allowed_models Character vector of the model ids the run may call
 #'   (chat and embedding models alike), or `NULL` for any.
 #' @param allow_unpriced `TRUE` to send requests to models with no registered
-#'   price under a spending limit.
+#'   price under a spending limit, with a warning once per model per session;
+#'   `FALSE` to refuse them.
 #' @return An object of class `hr_governor`: a list of the six limits.
 #' @seealso [hr_options()] for the session defaults, [hr_trace()],
 #'   [hr_register_model()] to give a model its prices
@@ -103,8 +109,12 @@
 #' tr$stop_reason
 #'
 #' # A request whose worst case would pass the spending limit is not sent.
+#' # The limit needs a price; this one is illustrative, so use your
+#' # provider's current prices.
+#' hr_register_model("my-priced-model", context_window = 128000, max_output = 4096,
+#'                   input_usd = 2.5, output_usd = 10)
 #' tr <- hr_trace(governor = hr_governor(max_cost_usd = 0.001))
-#' res <- hr_call(cl, "hi", model = "gpt-4o", trace = tr)
+#' res <- hr_call(cl, "hi", model = "my-priced-model", trace = tr)
 #' res$refused
 #' res$error
 hr_governor <- function(max_calls = hr_options("max_calls"),
@@ -213,9 +223,12 @@ governor_tighter <- function(a, b) {
 #' output cap at the output price. NA when the model has no price.
 #' @noRd
 worst_case_usd <- function(model, input_tokens, output_tokens) {
+  # Only the unknown-model warning is muffled: a stale price is worth hearing
+  # the first time a request is priced from it.
   tryCatch(suppressWarnings(as.numeric(hr_estimate_cost(as_chr1(model, "unknown"),
                                                         max(as_num1(input_tokens, 0), 0),
-                                                        max(as_num1(output_tokens, 0), 0)))),
+                                                        max(as_num1(output_tokens, 0), 0))),
+                            classes = "gr_unknown_model"),
            error = function(e) NA_real_)
 }
 
@@ -289,12 +302,16 @@ governor_check <- function(trace, request, stage = c("both", "call", "send")) {
     if (is.null(limit)) return(NULL)
     worst <- request$worst_usd %||% worst_case_usd(model, request$input_tokens, out_tokens)
     if (is.na(worst)) {
-      if (isTRUE(request$unpriced_ok) || isTRUE(gov$allow_unpriced)) return(NULL)
+      if (isTRUE(request$unpriced_ok)) return(NULL)
+      if (isTRUE(gov$allow_unpriced)) {
+        warn_unpriced_model(model, limit)
+        return(NULL)
+      }
       return(refuse("unpriced", sprintf(paste0(
         "unpriced model: '%s' has no registered price, so what the '%s' request costs cannot ",
         "be held to the $%s spending limit, and it was not sent. Register its prices with ",
-        "hr_register_model(input_usd =, output_usd =), or send it unpriced with ",
-        "hr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"),
+        "hr_register_model(input_usd =, output_usd =) or hr_load_models(), or send it ",
+        "unpriced with hr_options(allow_unpriced = TRUE) or hr_governor(allow_unpriced = TRUE)"),
         model, label, format(limit, scientific = FALSE))))
     }
     spent <- budget_spent(trace)
@@ -463,8 +480,8 @@ governor_exhausted <- function(trace) {
 #' of one input and one output token for each model the run may use, named by
 #' model, NA for a model with no price. The caller
 #' words the refusal, since it knows what the run is. `unpriced` lists the
-#' unpriced models whatever the outcome, for a warning that their cost is not
-#' counted.
+#' unpriced models whatever the outcome. When they are allowed, each one not
+#' `exempt` is warned about here (warn_unpriced_model()), once per session.
 #' @noRd
 governor_run_check <- function(trace, calls, calls_max, parallel = FALSE, calls_only = FALSE,
                                unit_usd = NULL, exempt = FALSE, floor_usd = NULL,
@@ -488,6 +505,10 @@ governor_run_check <- function(trace, calls, calls_max, parallel = FALSE, calls_
   if (length(out$unpriced) && !isTRUE(gov$allow_unpriced) && !isTRUE(exempt)) {
     return(done("unpriced"))
   }
+  # Allowed: said here, before the first request, with the run's own limit,
+  # and once per model per session, as each request's check says it. A mock
+  # or a replay is not warned about, since what it answers is not billed.
+  if (!isTRUE(exempt)) for (m in out$unpriced) warn_unpriced_model(m, budget)
   spent <- budget_spent(trace)
   out$spent <- spent
   if (spent > 0 && spent >= budget) return(done("spent"))

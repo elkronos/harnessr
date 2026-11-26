@@ -137,6 +137,11 @@
 #'     `"model-x"` and `"model-x-2026-01"` differ. Nothing is refused; see the
 #'     note [hr_report()] adds.}
 #'   \item{`reportable`}{`FALSE` for rows on the dev split.}
+#'   \item{`priced`, `as_of`, `certain`}{Where the run's `usd` came from,
+#'     over the models its requests used: `TRUE` when every one has a price,
+#'     the oldest month among their prices, and `TRUE` when every registry
+#'     entry is a fact rather than a guess (see [hr_trace_cost()]). `NA` for
+#'     a run that made no request.}
 #'   \item{`param.<name>`}{One column per setting the arms record: the
 #'     settings of an arm built by [gr_arm()] (`param.recipe`,
 #'     `param.top_k` and so on) or by [hr_sweep()], `NA` for an arm that
@@ -149,8 +154,8 @@
 #' traces. `print()` shows each arm's accuracy over the reportable rows, the
 #' mean over runs within each item and then over items, leaving out items
 #' with no label; the dev split's accuracy, when there is one, is shown apart
-#' in its own column. It adds failures and cost, and is descriptive only: no
-#' interval.
+#' in its own column. It adds failures and cost, with the month of the prices
+#' or the models that have none, and is descriptive only: no interval.
 #' @seealso [hr_arm()], [hr_reference()], [hr_scorer()], [hr_governor()]
 #' @family harness
 #' @export
@@ -228,6 +233,9 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
               tokens_cached = integer(n), usd = numeric(n), usd_provenance = character(n),
               seconds = numeric(n), draw_index = integer(n), ledger_id = character(n),
               self_judged = logical(n))
+  # Where each run's prices came from; columns after `reportable`, so the
+  # others keep their places.
+  pr <- list(priced = logical(n), as_of = character(n), certain = logical(n))
   traces <- vector("list", n)
   stop_limit <- rep(NA_character_, n)
   k <- 0L
@@ -321,6 +329,14 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
           col$draw_index[k] <- r
           col$ledger_id[k] <- child$run_id
           col$self_judged[k] <- self_judged(child, scorer$judge_model)
+          # A request that failed before it sent a token costs nothing whatever
+          # its model (hr_trace_cost()), so a missing price on its model leaves
+          # the cost known and is not counted as unpriced.
+          billed <- !(cost$priced %in% FALSE & cost$usd %in% 0)
+          prices <- price_summary(cost$model[billed])
+          pr$priced[k] <- prices$priced
+          pr$as_of[k] <- prices$as_of
+          pr$certain[k] <- prices$certain
           traces[[k]] <- child
         }
       }
@@ -328,6 +344,9 @@ hr_benchmark <- function(arms, reference, runs = 5, client, scorer = hr_scorer_e
   })
   out <- as.data.frame(col, stringsAsFactors = FALSE)
   out$reportable <- out$split != "dev"
+  out$priced <- pr$priced
+  out$as_of <- pr$as_of
+  out$certain <- pr$certain
   out <- bench_param_columns(out, arms)
   warn_budget_stops(out, stop_limit, governor, from_options)
   names(traces) <- out$ledger_id
@@ -605,6 +624,9 @@ print.hr_bench <- function(x, ...) {
                stringsAsFactors = FALSE))
   }))
   print(tab, row.names = FALSE, right = FALSE)
+  # The month of the prices, or which models have none, under the table.
+  tr <- attr(x, "trace")
+  if (inherits(tr, "gr_trace")) cat(sprintf("  cost: %s\n", format_trace_cost(tr)))
   dev <- sum(!df$reportable)
   if (dev) {
     cat(sprintf(paste0("  %d row(s) on the dev split are not reportable; their accuracy is ",

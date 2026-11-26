@@ -275,7 +275,11 @@
 #'   \item{`pass_k`}{Per arm and k: `pass_k` with `lower` and `upper`.}
 #'   \item{`cost`}{Per arm: `usd_per_item`, `usd_per_correct`,
 #'     `tokens_per_item`, `tokens_per_correct`, each with `_lower` and
-#'     `_upper`, `usd_estimated_share` and `estimated_flag`.}
+#'     `_upper`, `usd_estimated_share`, `estimated_flag`, and where the
+#'     prices came from: `priced` (every run's models have a price), `as_of`
+#'     (the oldest month among those prices) and `certain` (every model's
+#'     registry entry is a fact, not a guess), from the columns of the same
+#'     names in an [hr_benchmark()] result, `NA` for a table without them.}
 #'   \item{`frontier`}{Per arm: `usd_per_item`, `accuracy`, `on_frontier`,
 #'     `frontier_share`.}
 #'   \item{`failures`}{Per arm: counts by failure kind, `accuracy` and
@@ -655,6 +659,17 @@ hr_report <- function(bench, contrasts = NULL, B = 2000, conf = 0.95, k = c(1, 3
   cost_stat("tokens_per_correct", Tk, S)
   cost$usd_estimated_share <- d$estimated_share
   cost$estimated_flag <- !is.na(d$estimated_share) & d$estimated_share > 0.05
+  # Where each arm's prices came from, after the columns that were always
+  # there.
+  cost$priced <- d$prices$priced
+  cost$as_of <- d$prices$as_of
+  cost$certain <- d$prices$certain
+  if (any(cost$priced %in% FALSE)) {
+    notes <- c(notes, sprintf(paste0(
+      "No price set for a model that %s used, so its cost is NA. Set prices with ",
+      "hr_register_model() or hr_load_models(), then run the benchmark again."),
+      paste(cost$arm[cost$priced %in% FALSE], collapse = ", ")))
+  }
   if (any(cost$estimated_flag)) {
     notes <- c(notes, sprintf(paste0(
       "More than 5%% of the cost of %s rests on estimated token counts; read its cost ",
@@ -925,7 +940,37 @@ report_design <- function(bench) {
        n = tabulate(ci, nbins = length(clusters)), y = y,
        p = matrix(y_mat, I, A), key = fill(key, NA_character_), failure = fk,
        usd = fill(usd_raw, NA_real_), tokens = fill(tok_raw, NA_real_),
-       estimated_share = unname(share), notes = notes)
+       estimated_share = unname(share), prices = report_prices(df, idx, arm, arms),
+       notes = notes)
+}
+
+#' Per arm, where its cost's prices came from, from the `priced`, `as_of` and
+#' `certain` columns an hr_benchmark() result has: `priced` when every run's
+#' models have a price, the oldest month among them, `certain` when every
+#' entry is a fact. `NA` for a table without the columns, or an arm whose
+#' runs made no request.
+#' @noRd
+report_prices <- function(df, idx, arm, arms) {
+  cols <- names(df)
+  col <- function(name, cast) {
+    if (name %in% cols) cast(df[[name]][idx]) else cast(rep(NA, length(idx)))
+  }
+  priced <- col("priced", as.logical)
+  as_of <- col("as_of", as.character)
+  certain <- col("certain", as.logical)
+  all_of <- function(v) if (all(is.na(v))) NA else all(v, na.rm = TRUE)
+  out <- lapply(arms, function(a) {
+    w <- arm == a
+    months <- as_of[w & !is.na(as_of) & nzchar(as_of)]
+    list(priced = all_of(priced[w]),
+         as_of = if (length(months)) min(months) else NA_character_,
+         certain = all_of(certain[w]))
+  })
+  data.frame(arm = arms,
+             priced = vapply(out, function(o) o$priced, logical(1)),
+             as_of = vapply(out, function(o) o$as_of, character(1)),
+             certain = vapply(out, function(o) o$certain, logical(1)),
+             stringsAsFactors = FALSE)
 }
 
 #' The note on runs graded by a judge on the arm's own model, or on runs
@@ -1024,6 +1069,15 @@ print.hr_bench_report <- function(x, digits = 3, ...) {
                                         ifelse(x$frontier$on_frontier, "yes", "no")),
                    frontier_share = f(x$frontier$frontier_share),
                    stringsAsFactors = FALSE), row.names = FALSE, right = FALSE)
+  # One short line on where the prices came from, when the table says.
+  if (!is.null(co$priced)) {
+    dated <- price_as_of_text(co$as_of[co$priced %in% TRUE])
+    missing <- co$arm[co$priced %in% FALSE]
+    line <- c(if (nzchar(dated)) dated,
+              if (length(missing)) sprintf("no price set for a model of %s",
+                                           paste(missing, collapse = ", ")))
+    if (length(line)) cat(sprintf("  %s\n", paste(line, collapse = "; ")))
+  }
   fa <- x$failures
   shown <- setdiff(names(fa), c("arm", "accuracy", "accuracy_without_parse_refusal",
                                 "runs_dropped"))

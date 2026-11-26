@@ -8,7 +8,8 @@ hr_estimate_cost(
   model,
   input_tokens,
   output_tokens = 0,
-  cached_input_tokens = 0
+  cached_input_tokens = 0,
+  detail = FALSE
 )
 }
 \arguments{
@@ -20,21 +21,42 @@ are summed).}
 \item{cached_input_tokens}{How many of \code{input_tokens} the provider served
 from its prompt cache. They are priced at the model's \code{cached_input_usd}
 when it has one, and as other input tokens when it does not.}
+
+\item{detail}{\code{FALSE} (the default) for the figure alone; \code{TRUE} for a
+data frame that also says where the prices came from.}
 }
 \value{
 A single numeric USD figure, or \code{NA_real_} when the model has no
 pricing in the registry, or no output price and \code{output_tokens} above zero
 (an embedding model's missing output price counts as zero, since it
-produces no output tokens). Pricing is seeded from the registry's \code{as_of}
-snapshot. Treat it as an estimate, and use \code{\link[=hr_register_model]{hr_register_model()}} to
-correct it.
+produces no output tokens). harnessr ships no prices: set them with
+\code{\link[=hr_register_model]{hr_register_model()}} or \code{\link[=hr_load_models]{hr_load_models()}}. Treat the figure as an
+estimate. When the model's prices are older than
+\code{hr_options("price_max_age_days")} (120 days by default, counted from the
+first day of their \code{as_of} month), the first figure computed from them in
+a session warns with class \code{hr_stale_price}.
+
+With \code{detail = TRUE}, a one-row data frame instead: \code{model}, \code{usd} (the
+same figure), \code{priced} (whether the model has a price), \code{as_of} (the
+month of its prices, \code{NA} without one) and \code{certain} (\code{FALSE} when the
+model's registry entry is a family guess or the default; see
+\code{\link[=hr_model_info]{hr_model_info()}}).
 }
 \description{
 Estimate the USD cost of a set of calls
 }
 \examples{
+# harnessr ships no prices, so a built-in model's cost is NA until you set
+# them. Not 0: nothing says the run is free.
 hr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
-hr_estimate_cost("a-model-with-no-pricing", 1000, 100)
+
+# Set the prices you pay. These figures are illustrative: use your
+# provider's current prices, in USD per million tokens.
+hr_register_model("gpt-4o", input_usd = 2.50, output_usd = 10)
+hr_estimate_cost("gpt-4o", input_tokens = 120000, output_tokens = 4000)
+
+# Where the figure's prices came from.
+hr_estimate_cost("gpt-4o", 120000, 4000, detail = TRUE)
 }
 \seealso{
 \code{\link[=hr_model_info]{hr_model_info()}}, \code{\link[=hr_register_model]{hr_register_model()}}, \code{\link[=hr_trace_summary]{hr_trace_summary()}}
@@ -44,6 +66,7 @@ Other cost and token functions:
 \code{\link{hr_context_fit}()},
 \code{\link{hr_context_policy}()},
 \code{\link{hr_count_tokens}()},
+\code{\link{hr_load_models}()},
 \code{\link{hr_model_info}()},
 \code{\link{hr_model_limits}()},
 \code{\link{hr_models}()},

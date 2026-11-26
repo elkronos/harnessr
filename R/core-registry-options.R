@@ -52,8 +52,14 @@ gr_defaults <- list(
   # The models a run may call. NULL = any.
   allowed_models      = NULL,
   # Whether a model with no registered price may be called under a spending
-  # limit. Off: a limit that cannot see what a request costs is not a limit.
-  allow_unpriced      = FALSE,
+  # limit. On: harnessr ships no prices, so off would refuse every request to
+  # a built-in model until its prices are set. Each such model is warned
+  # about once per session (warn_unpriced_model()).
+  allow_unpriced      = TRUE,
+  # Prices older than this many days, counted from the first day of their
+  # as_of month, warn once per model when a cost is computed from them. NULL =
+  # never.
+  price_max_age_days  = 120L,
   unknown_model_action = "warn",       # "warn" | "error"
   # Who runs are for and who runs them, recorded on every trace (see
   # hr_trace()). Empty: every field NA unless hr_trace() is given it.
@@ -69,15 +75,16 @@ gr_defaults <- list(
   near_verbatim_short_chars = 40L
 )
 
-#' The options that were constants in the code until they were declared. A
-#' trace records them only when one is not its default (config_snapshot()), so
-#' a trace made at the defaults reads as it did before they existed; and the
-#' ones that change a reply or an answer join the cache and store keys only
-#' then (nondefault_options()).
+#' The options that were constants in the code until they were declared, and
+#' the options added since that change no request. A trace records them only
+#' when one is not its default (config_snapshot()), so a trace made at the
+#' defaults reads as it did before they existed; and the ones that change a
+#' reply or an answer join the cache and store keys only then
+#' (nondefault_options()).
 #' @noRd
 .gr_late_options <- c("auto_max_tokens", "auto_room_share", "reasoning_floor",
                       "output_reserve_share", "near_verbatim_sim", "near_verbatim_sim_short",
-                      "near_verbatim_short_chars")
+                      "near_verbatim_short_chars", "price_max_age_days")
 
 #' The options among `names` that are not their default, as a named list.
 #' Empty at the defaults, so a key built with it is the key built without it.
@@ -179,7 +186,18 @@ nondefault_options <- function(names = .gr_late_options) {
   # max_calls = 0 says more plainly.
   max_output_tokens = list(kind = "ceiling", lo = 1, whole = TRUE),
   # lo = 0, as for max_calls: a run that may use no tokens sends nothing.
-  max_tokens_total  = list(kind = "ceiling", lo = 0, whole = TRUE)
+  max_tokens_total  = list(kind = "ceiling", lo = 0, whole = TRUE),
+  # NULL turns the warning off; 3650 days is ten years.
+  price_max_age_days = list(kind = "tune", lo = 0, hi = 3650, whole = TRUE, null_ok = TRUE,
+                            evidence = list(status = "untested", source = paste0(
+                              "A choice, not a measured value: about four months, so prices ",
+                              "set once are checked again a few times a year."))),
+  # A switch, checked by check_option() itself; listed for its evidence.
+  allow_unpriced    = list(kind = "switch",
+                           evidence = list(status = "untested", source = paste0(
+                             "A choice, not a tuned value: harnessr ships no prices, so FALSE ",
+                             "would refuse every request to a built-in model until you set ",
+                             "its prices.")))
 )
 
 #' @noRd
@@ -338,9 +356,9 @@ check_option <- function(name, value) {
 #'     every reply at its token cap and the price of the dearest model it uses,
 #'     would pass the limit, and each worker is held to its share of what is
 #'     left. A chat model with no registered price (see [hr_models()]) is
-#'     refused under a limit unless `allow_unpriced` is `TRUE`. Under a limit of 0 a
-#'     model registered at no cost runs and one with a price is refused. `NULL`
-#'     removes the limit.}
+#'     not held by the limit: its requests are sent with a warning, unless
+#'     `allow_unpriced` is `FALSE`. Under a limit of 0 a model registered at no
+#'     cost runs and one with a price is refused. `NULL` removes the limit.}
 #'   \item{`max_calls` (400)}{Hard cap on model calls per run, checked before
 #'     every request. A request to an embeddings endpoint (the built-in `"api"`
 #'     embedder) counts as one, and is checked and priced against
@@ -351,8 +369,8 @@ check_option <- function(name, value) {
 #'     prompt and reply tokens of every call, cache hits included, and the
 #'     text sent to be embedded. A request is refused when what the run has
 #'     used plus its prompt and its reply at the cap would pass it. The limit
-#'     that still bounds a run on a model with no price under
-#'     `allow_unpriced = TRUE`. `NULL` for no limit.}
+#'     that still bounds a run on a model with no price. `NULL` for no
+#'     limit.}
 #'   \item{`max_output_tokens` (NULL)}{The largest output cap one request may
 #'     be sent with. A request with a larger cap (for a reasoning model, the
 #'     raised cap [hr_call()] sends) is refused rather than cut down. `NULL`
@@ -360,10 +378,20 @@ check_option <- function(name, value) {
 #'   \item{`allowed_models` (NULL)}{Character vector of the model ids a run
 #'     may call, chat and embedding models alike. A request to any other is
 #'     refused. `NULL` for any model.}
-#'   \item{`allow_unpriced` (FALSE)}{Whether a chat model with no registered price
-#'     may be called while `max_cost_usd` is set. Off, such a request is
-#'     refused with a condition of class `hr_unpriced_model`; on, it is sent
-#'     and its cost is recorded as unknown (`NA`).}
+#'   \item{`allow_unpriced` (TRUE)}{Whether a chat model with no registered price
+#'     may be called while `max_cost_usd` is set. On, such a request is sent,
+#'     its cost is recorded as unknown (`NA`), and the first request to each
+#'     such model in a session warns with class `hr_unpriced_model`. Off, it is
+#'     refused with a condition of that class. Untested: harnessr ships no
+#'     prices, so off would refuse every built-in model until you set its
+#'     prices with [hr_register_model()] or [hr_load_models()].}
+#'   \item{`price_max_age_days` (120)}{How old a price may be, in days, before
+#'     a cost computed from it warns with class `hr_stale_price`. A price's age
+#'     is counted from the first day of its `as_of` month (see [hr_models()]),
+#'     and the warning is given once per model per session. Built-in models
+#'     have no prices, so it applies to prices you set. `NULL` turns the
+#'     warning off. Untested: about four months, so prices set once are
+#'     checked again a few times a year.}
 #'   \item{`unknown_model_action` ("warn")}{`"warn"` or `"error"` when a model id
 #'     is not in the registry.}
 #'   \item{`actor` (none)}{A named list (or character vector) of the actor
@@ -409,14 +437,15 @@ check_option <- function(name, value) {
 #'
 #' @section Where the defaults come from:
 #' The settings listed last above were constants in the code until they were
-#' options; each keeps the constant's value. A trace records them (in its
-#' options snapshot) only when one is not its default, so a trace made at the
-#' defaults reads as it did before they existed. Each tuning setting's entry
-#' above (`temperature`, `max_retries`, `retry_pause_base`, `request_timeout`,
-#' `safety_margin`, `min_output_tokens`, `workers` and the settings listed
-#' last) says where its default came from; "untested" means no measurement
-#' backs the value. The other entries are switches, limits and names, which
-#' are choices rather than tuned values.
+#' options; each keeps the constant's value. A trace records them, and
+#' `price_max_age_days`, (in its options snapshot) only when one is not its
+#' default, so a trace made at the defaults reads as it did before they
+#' existed. Each tuning setting's entry above (`temperature`, `max_retries`,
+#' `retry_pause_base`, `request_timeout`, `safety_margin`,
+#' `min_output_tokens`, `workers`, `price_max_age_days` and the settings
+#' listed last) says where its default came from, as does `allow_unpriced`'s;
+#' "untested" means no measurement backs the value. The other entries are
+#' switches, limits and names, which are choices rather than tuned values.
 #'
 #' @section Checked values:
 #' Numeric options are checked when they are set, and the two kinds are treated
@@ -435,12 +464,14 @@ check_option <- function(name, value) {
 #' `request_timeout` \[1, 3600\], `workers` \[1, 32\], `temperature`
 #' \[0, 2\], `auto_max_tokens` \[0, 1e7\], `auto_room_share` \[0, 1\],
 #' `reasoning_floor` \[0, 1e6\], `output_reserve_share` \[0, 0.9\],
-#' `near_verbatim_sim` and `near_verbatim_sim_short` \[0, 1\] and
-#' `near_verbatim_short_chars` \[0, 1e4\]) read a number written as text as that number. A value they cannot
+#' `near_verbatim_sim` and `near_verbatim_sim_short` \[0, 1\],
+#' `near_verbatim_short_chars` \[0, 1e4\] and `price_max_age_days`
+#' \[0, 3650\]) read a number written as text as that number. A value they cannot
 #' read, such as `NA` or `"x"`, warns (`gr_bad_option`) and leaves the current
 #' setting unchanged; a value outside the range is clamped into it, with the
 #' same warning. Whole-number settings are rounded down. `temperature` also
-#' takes `NULL`, its default.
+#' takes `NULL`, its default, and `price_max_age_days` takes `NULL` to turn
+#' its warning off.
 #'
 #' @seealso [hr_register_model()] to correct a model's limits,
 #'   [hr_set_tokenizer()], [hr_budget()], [hr_cache()]

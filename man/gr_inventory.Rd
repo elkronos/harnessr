@@ -51,8 +51,10 @@ sampled pages when not every page was read, which \code{note} then says),
 \code{\link[=gr_read_many]{gr_read_many()}}.}
 \item{\code{by_status}}{Counts and sizes per status.}
 \item{\code{totals}}{Files, readable files, bytes, known \code{tokens},
-\code{tokens_unknown} (readable files whose size cannot be counted yet), and
-\code{cost_floor_usd}.}
+\code{tokens_unknown} (readable files whose size cannot be counted yet),
+\code{cost_floor_usd}, and where its prices came from: \code{priced}, \code{as_of}
+and \code{certain}, as \code{\link[=hr_estimate_cost]{hr_estimate_cost()}} gives them with
+\code{detail = TRUE}.}
 \item{\code{root}}{The directory surveyed, or \code{NA}.}
 }
 

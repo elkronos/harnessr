@@ -82,6 +82,11 @@ they graded the run's answers, they did not make them. The match is exact, so
 \code{"model-x"} and \code{"model-x-2026-01"} differ. Nothing is refused; see the
 note \code{\link[=hr_report]{hr_report()}} adds.}
 \item{\code{reportable}}{\code{FALSE} for rows on the dev split.}
+\item{\code{priced}, \code{as_of}, \code{certain}}{Where the run's \code{usd} came from,
+over the models its requests used: \code{TRUE} when every one has a price,
+the oldest month among their prices, and \code{TRUE} when every registry
+entry is a fact rather than a guess (see \code{\link[=hr_trace_cost]{hr_trace_cost()}}). \code{NA} for
+a run that made no request.}
 \item{\verb{param.<name>}}{One column per setting the arms record: the
 settings of an arm built by \code{\link[=gr_arm]{gr_arm()}} (\code{param.recipe},
 \code{param.top_k} and so on) or by \code{\link[=hr_sweep]{hr_sweep()}}, \code{NA} for an arm that
@@ -94,8 +99,8 @@ the reference hash, \code{runs}, \code{split}, \code{seed}, the scorer's name, a
 traces. \code{print()} shows each arm's accuracy over the reportable rows, the
 mean over runs within each item and then over items, leaving out items
 with no label; the dev split's accuracy, when there is one, is shown apart
-in its own column. It adds failures and cost, and is descriptive only: no
-interval.
+in its own column. It adds failures and cost, with the month of the prices
+or the models that have none, and is descriptive only: no interval.
 }
 \description{
 Runs every arm on every item of the chosen split(s) of \code{reference}, \code{runs}

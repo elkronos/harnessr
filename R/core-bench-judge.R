@@ -274,7 +274,10 @@ print.hr_judge_config <- function(x, ...) {
 #'   \item{`degradation`}{`"judge_inconsistent"` when unresolved, else `NA`.}
 #'   \item{`swap_checked`}{`FALSE` when only one order was asked.}
 #'   \item{`judge_cost`}{A list of `usd` (`NA` when the model has no price),
-#'     `tokens_in`, `tokens_out` and `calls`, over the judge's own requests.}
+#'     `tokens_in`, `tokens_out` and `calls`, over the judge's own requests,
+#'     then where the prices came from: `priced`, `as_of` and `certain` (as
+#'     in [hr_trace_cost()], over the judge's models) and `models`, the
+#'     models priced.}
 #'   \item{`mode`, `model`, `candidates` (the ids), `config_hash`}{What was
 #'     judged and under which configuration.}
 #'   \item{`trace`}{The judge's own `gr_trace`.}
@@ -499,8 +502,16 @@ judge_steps_cost <- function(jt, from) {
   tmp$steps <- steps
   cost <- hr_trace_cost(tmp)
   tok <- function(f) sum(vapply(steps, function(s) as_int1(s$tokens[[f]], 0L), integer(1)))
+  # A request that failed before it sent a token costs nothing whatever
+  # its model (hr_trace_cost()), so a missing price on its model leaves
+  # the cost known and is not counted as unpriced.
+  billed <- !(cost$priced %in% FALSE & cost$usd %in% 0)
+  prices <- price_summary(cost$model[billed])
   list(usd = if (nrow(cost)) sum(cost$usd) else 0, tokens_in = tok("input"),
-       tokens_out = tok("output"), calls = length(steps))
+       tokens_out = tok("output"), calls = length(steps),
+       # Where the prices came from, and the model(s) priced.
+       priced = prices$priced, as_of = prices$as_of, certain = prices$certain,
+       models = cost$model)
 }
 
 #' @rdname hr_judge
@@ -514,9 +525,17 @@ print.hr_judgement <- function(x, ...) {
                 if (v$ok) sprintf("%s -> %s", v$verdict, v$value) else paste("failed:", v$error)))
   }
   if (!isTRUE(x$swap_checked)) cat("  one order only: no swap check\n")
-  usd <- x$judge_cost$usd
-  cat(sprintf("  judge cost: %d call(s), %s\n", x$judge_cost$calls,
-              if (is.na(usd)) "unknown (unpriced model)" else sprintf("$%.6f", usd)))
+  jc <- x$judge_cost
+  usd <- jc$usd
+  models <- jc[["models", exact = TRUE]] %||% character(0)
+  dated <- if (isTRUE(jc$priced)) price_as_of_text(jc$as_of) else ""
+  missing <- models[!price_status(models)$priced]
+  shown <- if (!is.na(usd)) {
+    paste0(sprintf("$%.6f", usd), if (nzchar(dated)) paste0(", ", dated))
+  } else if (length(missing)) {
+    paste("unknown:", price_missing_text(missing))
+  } else "unknown"
+  cat(sprintf("  judge cost: %d call(s), %s\n", jc$calls, shown))
   invisible(x)
 }
 

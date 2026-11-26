@@ -281,7 +281,10 @@ test_that("an unpriced embedding model leaves max_total_usd enforced on the pric
   expect_length(floor_w, 1L)
   msg <- conditionMessage(floor_w[[1]])
   expect_match(msg, "'unpriced-embed'", fixed = TRUE)
-  expect_match(msg, "hr_register_model('unpriced-embed'", fixed = TRUE)
+  expect_match(msg, "hr_register_model('unpriced-embed', input_usd =)", fixed = TRUE)
+  expect_match(msg, "hr_load_models()", fixed = TRUE)
+  # A full registration would reset the limits and dimensions the model has.
+  expect_no_match(msg, "context_window", fixed = TRUE)
   expect_identical(out$summary$status, c("ok", "skipped", "skipped", "skipped"))
   # The row's cost is still unknown, not the priced part passed off as the whole.
   expect_true(is.na(out$summary$cost_usd[1]))
@@ -311,6 +314,8 @@ test_that("an unpriced chat model still makes max_total_usd unenforceable, and s
   expect_false(any(c("gr_corpus_cost_floor", "gr_corpus_cost_cap") %in% classes))
   expect_match(conditionMessage(seen[[which(classes == "gr_corpus_cost_unknown")]]),
                "'unpriced-chat'", fixed = TRUE)
+  expect_match(conditionMessage(seen[[which(classes == "gr_corpus_cost_unknown")]]),
+               "hr_load_models()", fixed = TRUE)
   expect_identical(out$summary$status, rep("ok", 4L))
   expect_true(all(is.na(out$summary$cost_usd)))
 })

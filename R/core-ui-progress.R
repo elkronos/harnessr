@@ -37,6 +37,7 @@ progress_start <- function(n, label, trace = NULL) {
   # Steps already checked for a model with no price, and the verdict so far.
   p$seen <- 0L
   p$unpriced <- FALSE
+  p$priced_paid <- FALSE
   p$priced <- logical(0)
   p
 }
@@ -58,9 +59,10 @@ progress_tick <- function(p, k) {
   progress_draw(p, txt)
 }
 
-#' What the run has spent, for the line. A request to a model with no registered
-#' price adds nothing to `spent_usd`, so once one has been made the total is not
-#' known and the line says so rather than show a figure that is too low. A
+#' What the run has spent, for the line. A request to a model with no price
+#' adds nothing to `spent_usd`, so once one has been made the total is not
+#' known. The line then gives the spend on priced models and says that is what
+#' it is, or "cost unknown" when no priced model was paid for. A
 #' request that failed without sending a token cost nothing whatever its model,
 #' as hr_trace_cost() prices it, so it leaves the total known: an embeddings
 #' request to a gateway without embeddings fails like that, usually for an
@@ -80,11 +82,12 @@ progress_cost <- function(p) {
       m <- as_chr1(st$model, "unknown")
       known <- unname(p$priced[m])
       if (is.na(known)) {
-        known <- !is.na(tryCatch(suppressWarnings(hr_estimate_cost(m, 1, 1)),
+        known <- !is.na(tryCatch(suppressWarnings(hr_estimate_cost(m, 1, 1),
+                                                  classes = "gr_unknown_model"),
                                  error = function(e) NA_real_))
         p$priced[m] <- known
       }
-      if (!known) p$unpriced <- TRUE
+      if (known) p$priced_paid <- TRUE else p$unpriced <- TRUE
     }
     p$seen <- n
   }
@@ -92,8 +95,11 @@ progress_cost <- function(p) {
   # comparison) gives each part its own trace, holding what the run spent
   # before it in `spent_before`, so the line shows the run's total.
   before <- if (is.null(tr$spent_before)) 0 else as_num1(tr$spent_before, NA_real_)
-  if (p$unpriced || is.na(before)) return(", cost unknown")
-  sprintf(", $%.4f spent", before + as_num1(tr$spent_usd, 0))
+  if (is.na(before) || (p$unpriced && !isTRUE(p$priced_paid))) return(", cost unknown")
+  # With a model that has no price, the spend is that of the others alone,
+  # and the line says so rather than show it as the run's.
+  sprintf(", $%.4f spent%s", before + as_num1(tr$spent_usd, 0),
+          if (p$unpriced) " on priced models" else "")
 }
 
 #' Write the line over the previous one. The count and the spend only grow, so

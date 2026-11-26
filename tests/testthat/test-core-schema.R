@@ -273,7 +273,8 @@ test_that("hr_cost checks its counts and costs add up", {
 
 test_that("the governor names the limit a whole run cannot fit", {
   chk <- function(...) harnessr:::governor_run_check(...)$limit
-  tr <- hr_trace(governor = hr_governor(max_calls = 5, max_cost_usd = 1))
+  tr <- hr_trace(governor = hr_governor(max_calls = 5, max_cost_usd = 1,
+                                        allow_unpriced = FALSE))
   expect_identical(chk(tr, calls = 6, calls_max = 6), "calls")
   expect_identical(chk(tr, calls = 4, calls_max = 9, parallel = TRUE), "calls_worst")
   expect_true(is.na(chk(tr, calls = 4, calls_max = 9, parallel = FALSE, calls_only = TRUE)))

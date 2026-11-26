@@ -343,7 +343,7 @@ test_that("a reader stopped before it starts by a spending limit or an unpriced 
     withCallingHandlers(quiet(expr), hr_budget_stopped = function(w) {
       msg <<- conditionMessage(w)
       invokeRestart("muffleWarning")
-    }, gr_cost_uncheckable = function(w) invokeRestart("muffleWarning"))
+    })
     msg
   }
   cl <- hr_mock_client(function(messages, params) "Revenue was 45.2 million dollars.")
@@ -359,14 +359,21 @@ test_that("a reader stopped before it starts by a spending limit or an unpriced 
                             governor = hr_governor(max_cost_usd = 0.05)))
   expect_match(w, "\\(cost: [0-9]+\\)")
   expect_false(grepl("unknown", w, fixed = TRUE))
-  # With no price, a spending limit stops a real client's reader before it
-  # starts; a mock is let through with a warning instead. Nothing is sent:
-  # the check comes before the first request, and the address is closed.
+  # With no price and allow_unpriced = FALSE, a spending limit stops a real
+  # client's reader before it starts. A mock is let through with no warning,
+  # since what it answers is not billed.
   local_model()
+  expect_no_warning(suppressMessages(hr_benchmark(arm, ref, runs = 5, client = cl,
+                                       scorer = gr_scorer_answer(),
+                                       governor = hr_governor(max_cost_usd = 1,
+                                                              allow_unpriced = FALSE))))
+  # For the real client nothing is sent: the check comes before the first
+  # request, and the address is closed.
   real <- hr_client(model = "bench-priced-model", api_key = "sk-not-a-real-key",
                     base_url = "http://127.0.0.1:9/v1", max_retries = 0L)
   w <- stop_of(hr_benchmark(gr_arm("fast"), ref, runs = 5, client = real,
-                            scorer = gr_scorer_answer(), governor = hr_governor(max_cost_usd = 1)))
+                            scorer = gr_scorer_answer(),
+                            governor = hr_governor(max_cost_usd = 1, allow_unpriced = FALSE)))
   expect_match(w, "\\(unpriced: 10\\)")
   # A priced model under a limit too small for one read is stopped by the
   # reader's own check, before the governor sees a request: the cost label

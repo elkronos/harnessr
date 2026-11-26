@@ -340,8 +340,9 @@ vectors the original run never saw and still reports an exact match.
 ## Models
 
 The model registry holds each model's context window, output limit and prices.
-Use `hr_register_model()` to add a model the package does not know, or to
-override a built-in entry whose prices have gone stale:
+harnessr ships the limits of its built-in models and no prices. Use
+`hr_register_model()` to add a model the package does not know, to correct a
+built-in entry, or to give a model the prices you pay:
 
 ```{r}
 hr_register_model("my-local-llama", context_window = 32768, max_output = 4096)
@@ -355,16 +356,19 @@ assuming the run is free:
 is.na(hr_estimate_cost("my-local-llama", 1000, 500))
 ```
 
-While a spending limit is set, harnessr refuses a request to a language model
-with no registered price before sending it. Embedding models and
-`hr_mock_client()` are exempt. You have two ways forward:
+While a spending limit is set, harnessr sends a request to a language model
+with no registered price and warns, once per model per session, that the limit
+does not count it. Embedding models and `hr_mock_client()` are exempt. Give
+`input_usd` and `output_usd` in US dollars per million tokens, zero for a local
+model, and the limit counts the model's requests. To refuse unpriced requests
+instead, set `hr_options(allow_unpriced = FALSE)`.
 
-- give `input_usd` and `output_usd` in US dollars per million tokens;
-- let a local model run unpriced with `hr_options(allow_unpriced = TRUE)`.
-
-The section on connecting to a model in `vignette("harnessr")` shows both for
-a model reached through ellmer. `reasoning = TRUE` marks a model that takes an
-effort setting.
+The section on connecting to a model in `vignette("harnessr")` registers a
+hosted model at its prices and a local one at zero, both reached through
+ellmer. `reasoning = TRUE` marks a model that takes an
+effort setting. To set the prices of many models at once from a file, and to
+keep them current, see "Models, prices and token counts" in
+`vignette("runs")`.
 
 ## Using what you registered
 

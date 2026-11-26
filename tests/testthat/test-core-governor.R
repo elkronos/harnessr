@@ -145,8 +145,12 @@ test_that("judge and adjudication calls count against max_calls", {
   expect_true(a$partial)
 })
 
-test_that("an unpriced model is refused unless allow_unpriced = TRUE", {
+test_that("an unpriced model is refused under allow_unpriced = FALSE", {
   local_registries()
+  local_price_warnings()
+  # The default is TRUE, since harnessr ships no prices; FALSE is the switch
+  # for a run in which every request must be priced.
+  hr_options(allow_unpriced = FALSE)
   hr_register_model("gov-unpriced", context_window = 100000, max_output = 4000)
   n <- 0L
   cl <- hr_backend_client(function(m, p) { n <<- n + 1L; "sent" }, model = "gov-unpriced")
@@ -166,7 +170,9 @@ test_that("an unpriced model is refused unless allow_unpriced = TRUE", {
   # Allowed, it is sent, and its cost is unknown rather than zero.
   hr_options(allow_unpriced = TRUE)
   tr2 <- hr_trace()
-  expect_true(hr_call(cl, "hi", trace = tr2)$ok)
+  res2 <- NULL
+  expect_warning(res2 <- hr_call(cl, "hi", trace = tr2), class = "hr_unpriced_model")
+  expect_true(res2$ok)
   expect_identical(n, 1L)
   expect_true(is.na(hr_trace_cost(tr2)$usd[1]))
   expect_identical(tr2$spent_usd, 0)

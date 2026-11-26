@@ -98,9 +98,22 @@ the session:
 Sys.setenv(OPENAI_API_KEY = "sk-...")
 ```
 
+harnessr knows each built-in model's limits but ships no prices, because
+providers change them more often than the package is released. Set the price
+you pay for the model you use, so the default $5 spending limit counts its
+requests. Without a price, a request is still sent, with a warning that the
+limit does not cover it.
+
+```r
+# Illustrative figures, in USD per million tokens: use your provider's current
+# prices.
+hr_register_model("gpt-5.6-terra", input_usd = 2, output_usd = 12)
+```
+
 Then the quick start above runs against the real model. `vignette("harnessr")`
 covers the other ways to give a key, company gateways, other providers and
-local models through ellmer, and any other backend.
+local models through ellmer, and any other backend. `vignette("runs")` shows how
+to set many prices from a file and keep them current.
 
 ## Guides
 
@@ -128,7 +141,7 @@ installed in R as `vignette("name")`.
 
 ### Control cost and settings
 
-- [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`): the governor, effort, traces, caching, replay.
+- [Cost, limits and reproducible runs](https://elkronos.github.io/harnessr/articles/runs.html) (`runs`): the governor, setting model prices, effort, traces, caching, replay.
 - [Settings reference](https://elkronos.github.io/harnessr/articles/settings.html) (`settings`): every setting of every stage with its default and where it came from, and the extractors, cleaners, segmenters, readers, embedders and recipes.
 
 ### Build your own

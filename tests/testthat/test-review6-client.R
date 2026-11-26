@@ -202,7 +202,9 @@ test_that("unknown_model_action = 'error' stops a family-pattern guess too", {
   expect_error(hr_model_info("gpt-5.6-tera"), class = "gr_unknown_model")
   expect_error(hr_call(hr_mock_client(), "hi", model = "gpt-5.6-tera"),
                class = "gr_unknown_model")
-  # Registered, built-in and alias ids are known and unaffected.
+  # Registered, built-in and alias ids are known and unaffected. helper-prices.R
+  # registers gpt-4o's test prices; without them it is the built-in entry.
+  local_unpriced("gpt-4o")
   expect_identical(hr_model_info("gpt-4o")$source, "builtin")
   expect_identical(hr_model_info("chatgpt-4o-latest")$source, "alias")
   hr_options(unknown_model_action = "warn")

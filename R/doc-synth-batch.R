@@ -1017,14 +1017,12 @@ print.gr_synthesis <- function(x, ...) {
                        "their batch cut off, failed or not sent; see $claims$lost\n"),
                 length(lost), nrow(x$studies)))
   }
+  # The cost with the month of its prices, or the models that have none.
   cost <- hr_trace_cost(x$trace)
-  total <- if (nrow(cost)) sum(cost$usd) else 0
   # format_call_counts(), not `calls`: that counts embeddings requests too, and
   # a run that made any showed them as model calls, disagreeing with the trace.
   cat(sprintf("  this run: %s, %s\n", format_call_counts(x$trace),
-              if (!nrow(cost)) "no cost recorded"
-              else if (is.na(total)) "cost unknown (unpriced model)"
-              else sprintf("$%.4f", total)))
+              format_trace_cost(cost)))
   invisible(saved)
 }
 

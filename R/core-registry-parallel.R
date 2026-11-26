@@ -19,11 +19,14 @@
 #' The parts of the core's state a worker process needs to behave like its
 #' parent, and what each layer above the core says its workers need.
 #'
+#' `price_warned` is the record of the price warnings already given in this
+#' session, so a worker does not give one again.
+#'
 #' Not the embedding cache: it holds whole vectors, and shipping it to every
 #' worker would cost more than the work. A layer above the core keeps its own
 #' caches out of what it hands over for the same reason.
 #' @noRd
-.hr_worker_state <- c("models", "model_patterns", "tokenizers", "steps")
+.hr_worker_state <- c("models", "model_patterns", "tokenizers", "steps", "price_warned")
 
 #' Everything a worker is handed so its registries match this process's: the
 #' core's own registries, and for each provider registered with
@@ -236,6 +239,23 @@ gr_lapply <- function(x, fn, parallel = NULL, workers = NULL, key = NULL, label 
     warning = function(w) {
       if (grepl("Canceling all iterations", conditionMessage(w), fixed = TRUE)) {
         cancelled <<- w
+        invokeRestart("muffleWarning")
+      }
+      # A price warning is given once per model per session, and each worker
+      # keeps its own record of that, so every worker of every batch gave it
+      # again, and an unpriced one named the worker's share of the spending
+      # limit as the limit. Given here instead, at most once, with the run's
+      # own limit.
+      if (inherits(w, "hr_unpriced_model") || inherits(w, "hr_stale_price")) {
+        model <- as_chr1(w$model, NA_character_)
+        limit <- finite_limit(trace_governor(trace)$max_cost_usd)
+        if (inherits(w, "hr_unpriced_model") && !is.na(model) && !is.null(limit)) {
+          warn_unpriced_model(model, limit)
+        } else if (is.na(model) ||
+                   price_warning_first(if (inherits(w, "hr_stale_price")) "stale" else "unpriced",
+                                       model)) {
+          warning(w)
+        }
         invokeRestart("muffleWarning")
       }
     }),

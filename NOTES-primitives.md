@@ -69,6 +69,7 @@ about documents, which is why they are core.
 | `hr_cache_client()` | test-adversarial.R, test-backend.R and 34 more | Attaches a response cache to any client. |
 | `hr_cache_stats()` | test-cache-replay.R, test-compat-legacy-keys.R and 5 more | Counts the entries, hits and misses of a response cache. |
 | `hr_ellmer_client()` | test-backend.R, test-effort.R and 7 more | Wraps an ellmer chat as a client. |
+| `hr_load_models()` | test-core-models-file.R | Registers models and their prices from a CSV file, for any provider. |
 | `hr_model_limits()` | test-core-names.R | The context window and output cap of any registered model. |
 | `hr_models()` | test-hardening.R | Lists the model registry. |
 | `hr_register_model()` | test-adversarial.R, test-backend.R and 51 more | Adds or corrects a model in the registry the budgets and costs read. |

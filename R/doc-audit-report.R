@@ -1181,9 +1181,12 @@ audit_cost <- function(screening = NULL, extraction = NULL, synthesis = NULL, re
                tokens_in = as.integer(x$trace$tokens_in),
                tokens_out = as.integer(x$trace$tokens_out),
                usd = if (nrow(cost)) sum(cost$usd) else 0,
+               prices = audit_prices_text(cost),
                stringsAsFactors = FALSE)
   })
   tab <- do.call(rbind, rows)
+  # Where the prices came from, last, after any effort column.
+  tab <- tab[c(setdiff(names(tab), "prices"), "prices")]
   # What reasoning effort each stage's requests carried, beside what the stage
   # cost, since that is the cost it changes. Only when some request carried
   # one, so a report on a run without the setting is the report it was.
@@ -1194,8 +1197,25 @@ audit_cost <- function(screening = NULL, extraction = NULL, synthesis = NULL, re
       paste0("<p class='sub'>The claims row is the calls gr_claims() made and, when the ",
              "write-up's outline came from gr_outline(), those it made.</p>"),
     "<p class='sub'>Only requests that were sent are counted. A reply served from a cache",
-    "cost nothing, however large its prompt.</p>",
+    "cost nothing, however large its prompt. A model with no price set makes its stage's",
+    "cost unknown, shown as a dash, never as 0.</p>",
     html_table(tab, numeric_cols = c("calls", "cached", "tokens_in", "tokens_out", "usd")))
+}
+
+#' The prices column of the cost table: the month of the prices behind a
+#' stage's cost, and each model with no price, named with the function that
+#' sets one. Empty for a stage that paid for nothing.
+#' @noRd
+audit_prices_text <- function(cost) {
+  if (!nrow(cost)) return("")
+  months <- sort(unique(cost$as_of[cost$priced %in% TRUE & !is.na(cost$as_of)]))
+  missing <- cost$model[!(cost$priced %in% TRUE) & is.na(cost$usd)]
+  paste(c(if (length(months) == 1L) sprintf("as of %s", months)
+          else if (length(months)) sprintf("as of %s to %s", months[1], months[length(months)]),
+          if (length(missing)) sprintf(paste0("no price set for %s (set one with ",
+                                              "hr_register_model() or hr_load_models())"),
+                                       paste(missing, collapse = ", "))),
+        collapse = "; ")
 }
 
 #' The claims stage of the cost table, as a stage audit_cost() can read: the
@@ -2054,6 +2074,15 @@ audit_corpus <- function(x) {
   if (!is.null(tab$cost_usd)) {
     tab$cost_usd <- ifelse(is.na(tab$cost_usd), NA_character_,
                            formatC(as.numeric(tab$cost_usd), format = "f", digits = 4))
+    # Where each cost's prices came from, next to it, as in the cost table.
+    if (!is.null(s[["priced"]])) {
+      prices <- ifelse(s$priced %in% TRUE,
+                       ifelse(is.na(s$as_of), NA_character_, paste("as of", s$as_of)),
+                       ifelse(s$priced %in% FALSE, "no price set", NA_character_))
+      at <- match("cost_usd", names(tab))
+      tab <- cbind(tab[seq_len(at)], data.frame(prices = prices, stringsAsFactors = FALSE),
+                   tab[-seq_len(at)])
+    }
   }
   answers <- x$answers %||% list()
   per <- function(i) {

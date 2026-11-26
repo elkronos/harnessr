@@ -32,6 +32,8 @@ documents.
 library(harnessr)
 old <- hr_options(verbose = FALSE, embedder = "lexical")
 op <- options(digits = 3)
+# Illustrative prices for a stand-in model. For a real model, use your
+# provider's current prices.
 hr_register_model("mock-model", context_window = 128000, max_output = 16384,
                   input_usd = 1, output_usd = 4)
 ```
@@ -525,6 +527,8 @@ judge_cl <- hr_mock_client(function(messages, params) {
   sprintf('{"verdict": "%s", "reason": "Compared."}', v)
 })
 rubric <- "Which candidate gives fiscal 2024 revenue?"
+# Illustrative prices for a stand-in model. For a real model, use your
+# provider's current prices.
 hr_register_model("mock-judge", context_window = 128000, max_output = 4096,
                   input_usd = 1, output_usd = 4)
 set.seed(5)

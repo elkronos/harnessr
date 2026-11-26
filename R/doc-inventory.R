@@ -75,8 +75,10 @@
 #'       [gr_read_many()].}
 #'     \item{`by_status`}{Counts and sizes per status.}
 #'     \item{`totals`}{Files, readable files, bytes, known `tokens`,
-#'       `tokens_unknown` (readable files whose size cannot be counted yet), and
-#'       `cost_floor_usd`.}
+#'       `tokens_unknown` (readable files whose size cannot be counted yet),
+#'       `cost_floor_usd`, and where its prices came from: `priced`, `as_of`
+#'       and `certain`, as [hr_estimate_cost()] gives them with
+#'       `detail = TRUE`.}
 #'     \item{`root`}{The directory surveyed, or `NA`.}
 #'   }
 #'
@@ -183,11 +185,17 @@ gr_inventory <- function(sources, recursive = TRUE, model = NULL,
   base <- if (is_dir) root else common_parent(paths)
 
   if (!length(paths)) {
+    # The same totals as a survey with files, so code that reads `priced`
+    # finds it: where the model's prices come from, with no cost floor.
+    model <- as_chr1(model %||% hr_options("model"))
+    priced <- suppressWarnings(hr_estimate_cost(model, 0, 0, detail = TRUE),
+                               classes = "gr_unknown_model")
     return(structure(list(files = inventory_frame(), by_status = inventory_status_frame(),
                           totals = list(files = 0L, readable = 0L, bytes = 0,
                                         tokens = 0, tokens_unknown = 0L,
-                                        cost_floor_usd = NA_real_),
-                          root = root, model = as_chr1(model %||% hr_options("model"))),
+                                        cost_floor_usd = NA_real_, priced = priced$priced,
+                                        as_of = priced$as_of, certain = priced$certain),
+                          root = root, model = model),
                      class = "gr_inventory"))
   }
 
@@ -234,7 +242,9 @@ gr_inventory <- function(sources, recursive = TRUE, model = NULL,
   tok <- sum(files$tokens[readable], na.rm = TRUE)
   unknown <- sum(readable & is.na(files$tokens))
   model <- as_chr1(model %||% hr_options("model"))
-  cost <- suppressWarnings(hr_estimate_cost(model, tok, sum(readable) * 500))
+  priced <- suppressWarnings(hr_estimate_cost(model, tok, sum(readable) * 500, detail = TRUE),
+                             classes = "gr_unknown_model")
+  cost <- priced$usd
 
   by <- as.data.frame(table(factor(files$status,
                                    levels = c("ready", "needs_ocr", "needs_package",
@@ -249,7 +259,8 @@ gr_inventory <- function(sources, recursive = TRUE, model = NULL,
                  totals = list(files = nrow(files), readable = sum(readable),
                                bytes = sum(files$bytes, na.rm = TRUE),
                                tokens = tok, tokens_unknown = unknown,
-                               cost_floor_usd = cost),
+                               cost_floor_usd = cost, priced = priced$priced,
+                               as_of = priced$as_of, certain = priced$certain),
                  root = root, model = model),
             class = "gr_inventory")
 }
@@ -478,6 +489,22 @@ pdf_pages_text <- function(path, take, n) {
   pdftools::pdf_text(path)[take]
 }
 
+#' The cost floor as print.gr_inventory() shows it: the figure with the
+#' model and the month of its prices, or, for a model with no price, that
+#' none is set and how to set one. A survey saved before the price fields
+#' were kept shows the figure alone.
+#' @noRd
+inventory_cost_text <- function(t, model) {
+  what <- sprintf("(%s, one call per document)", model)
+  if (!is.null(t$priced) && !isTRUE(t$priced)) {
+    return(sprintf(paste0("unknown: no price set for %s (set one with hr_register_model() ",
+                          "or hr_load_models())"), model))
+  }
+  if (is.na(t$cost_floor_usd)) return(paste("unknown", what))
+  paste0(sprintf("$%.2f %s", t$cost_floor_usd, what),
+         if (!is.null(t$as_of) && !is.na(t$as_of)) sprintf(", prices as of %s", t$as_of) else "")
+}
+
 #' @export
 print.gr_inventory <- function(x, ...) {
   t <- x$totals
@@ -488,12 +515,11 @@ print.gr_inventory <- function(x, ...) {
     cat(sprintf("  %s\n", paste(sprintf("%d %s", x$by_status$files, x$by_status$status),
                                 collapse = ", ")))
   }
-  cat(sprintf("  tokens: %s%s   cost floor: %s (%s, one call per document)\n",
+  cat(sprintf("  tokens: %s%s   cost floor: %s\n",
               format(round(t$tokens), big.mark = ","),
               if (isTRUE(t$tokens_unknown > 0L))
                 sprintf(" + %d file(s) not yet countable", t$tokens_unknown) else "",
-              if (is.na(t$cost_floor_usd)) "unknown" else sprintf("$%.2f", t$cost_floor_usd),
-              x$model))
+              inventory_cost_text(t, x$model)))
 
   # The two lines somebody actually has to act on.
   ocr <- x$files[x$files$status == "needs_ocr", , drop = FALSE]

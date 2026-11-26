@@ -14,7 +14,8 @@ test_that("as.data.frame() on a trace gives one row per request, and no local st
   df <- as.data.frame(ans$trace)
   expect_s3_class(df, "data.frame")
   expect_named(df, c("step", "document", "recipe", "stage", "model", "ok", "cached",
-                     "tokens_in", "tokens_out", "usd", "seconds", "error", "prompt", "reply"))
+                     "tokens_in", "tokens_out", "usd", "seconds", "error", "prompt", "reply",
+                     "priced", "as_of", "certain"))
   expect_equal(nrow(df), ans$trace$calls)
   local <- vapply(ans$trace$steps, function(s) identical(s$kind, "local"), logical(1))
   expect_true(any(local))
@@ -90,7 +91,8 @@ test_that("an empty trace gives a table with no rows and the same columns", {
   df <- as.data.frame(hr_trace())
   expect_equal(nrow(df), 0L)
   expect_named(df, c("step", "document", "recipe", "stage", "model", "ok", "cached",
-                     "tokens_in", "tokens_out", "usd", "seconds", "error", "prompt", "reply"))
+                     "tokens_in", "tokens_out", "usd", "seconds", "error", "prompt", "reply",
+                     "priced", "as_of", "certain"))
   expect_type(df$usd, "double")
   tr <- hr_trace()
   hr_call(hr_mock_client(function(m, p) "x"), "hi", trace = tr)

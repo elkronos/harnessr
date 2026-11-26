@@ -177,9 +177,9 @@ the transport to the [ellmer](https://ellmer.tidyverse.org/) package, which
 covers about twenty providers, local models through Ollama among them.
 
 The spending limit is on by default, and it can hold only for a model with a
-registered price. Register the model you built the ellmer object with, at your
-provider's current prices in US dollars per million tokens. A local model has no
-price to register, so let it run unpriced:
+registered price. harnessr ships no prices, so register the model you built the
+ellmer object with, at your provider's current prices in US dollars per million
+tokens. A local model costs nothing, so register it at zero:
 
 ```{r eval = FALSE}
 library(ellmer)
@@ -189,13 +189,15 @@ hr_register_model("claude-sonnet-4-5", context_window = 200000, max_output = 640
 cl <- hr_ellmer_client(chat_anthropic(model = "claude-sonnet-4-5"))
 answer_document("report.pdf", "What was revenue?", "thorough", client = cl)
 
-hr_options(allow_unpriced = TRUE)
+hr_register_model("llama3.1", context_window = 128000, max_output = 4096,
+                  input_usd = 0, output_usd = 0)
 cl <- hr_ellmer_client(chat_ollama(model = "llama3.1"))
 ```
 
-Without a registered price, a run under `max_cost_usd` stops before its first
-request with an `hr_unpriced_model` error. `vignette("runs")` covers unpriced
-models and what changes through ellmer (temperature and embeddings).
+Without a registered price, a run under `max_cost_usd` is sent with an
+`hr_unpriced_model` warning, and the spending limit does not count it.
+`vignette("runs")` covers unpriced models and what changes through ellmer
+(temperature and embeddings).
 
 Anything else, such as a model behind a queue, goes through
 `hr_backend_client()`. Give it any function of `messages` and `params` that
@@ -354,14 +356,23 @@ The `prompt` and `reply` columns hold exactly what was sent and what came back:
 as.data.frame(ans$trace)[, c("stage", "tokens_in", "tokens_out", "usd", "seconds")]
 ```
 
-`usd` is priced from harnessr's list of known models (`hr_models()`). A model it
-does not know is priced as unknown rather than free. You can also estimate
-before sending anything. Here is a 120,000-token document with a 4,000-token
-answer:
+`usd` comes from the prices in harnessr's model registry (`hr_models()`). The
+mock costs nothing. For a real model, harnessr knows the limits but ships no
+prices, because providers change prices more often than the package is
+released. You set the price you pay, in US dollars per million tokens. Until
+you do, the model's cost is `NA`, never 0.
+
+Set the default model's price, then estimate before sending anything. Here is a
+120,000-token document with a 4,000-token answer:
 
 ```{r}
+# Illustrative figures: use your provider's current prices.
+hr_register_model(hr_options("model"), input_usd = 2, output_usd = 12)
 hr_estimate_cost(hr_options("model"), input_tokens = 120000, output_tokens = 4000)
 ```
+
+`vignette("runs")` shows how to set the prices of many models from a file and
+keep them current.
 
 Two safety limits are on from the start: $5 and 400 requests per document.
 harnessr checks each request before sending it, against what the run has spent
@@ -478,7 +489,7 @@ table(factor(settings$stage, unique(settings$stage)))
 | extract | 10 | the arguments of `gr_extract()` | `vignette("review")` |
 | synthesise | 29 | the arguments of `gr_synthesise()` and the functions beside it | `vignette("review")` |
 | evaluate | 30 | the arguments of `hr_benchmark()`, `hr_report()` and `hr_judge()` | `vignette("evaluate")`, `vignette("compare")` |
-| options | 34 | `hr_options()`, for the whole session | `vignette("runs")` |
+| options | 35 | `hr_options()`, for the whole session | `vignette("runs")` |
 
 Most runs change a few of them, and `gr_settings_table()` marks those `basic`.
 Here are the ones that matter first, with their defaults and when to change each:
@@ -508,7 +519,7 @@ Here are the ones that matter first, with their defaults and when to change each
 | options | `max_cost_usd` (5) and `max_calls` (400) | a run is stopped that should finish, or you want a mistake to stop sooner |
 | options | `cache_dir` (a temporary directory) | a long run should be paid for once and survive the session |
 
-`vignette("settings")` lists all 227 with their defaults and where each
+`vignette("settings")` lists all 228 with their defaults and where each
 default came from, and `gr_settings_table()` returns them in R. The settings
 page links each important one to a walkthrough at the end of one of six guides.
 Each walkthrough says what the setting trades off, the signs that point to

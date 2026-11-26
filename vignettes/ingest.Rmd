@@ -324,9 +324,15 @@ them again when next asked for. Turn the cache off with
 In a folder of documents, problems that a single file makes obvious are easy to
 miss: a few old `.doc` files nobody can read, scanned PDFs without text, an
 empty file, or a subfolder you forgot about. `gr_inventory()` finds all of these
-in seconds, without calling a model and without an API key:
+in seconds, without calling a model and without an API key. Its cost floor
+needs your model's price, which harnessr does not ship, so the example sets one
+first:
 
 ```{r}
+# Illustrative figures, in USD per million tokens: use your provider's current
+# prices.
+hr_register_model(hr_options("model"), input_usd = 2, output_usd = 12)
+
 inbox <- file.path(tempdir(), "inbox")
 dir.create(inbox, showWarnings = FALSE)
 invisible(file.copy(gr_example(), file.path(inbox, "annual_report.md"),

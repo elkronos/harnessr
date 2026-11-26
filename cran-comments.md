@@ -22,11 +22,11 @@ NOTE and skipped the CRAN incoming check. That check gives the second NOTE.
 * checking installed package size ... NOTE
 
   ```
-  installed size is  6.3Mb
+  installed size is  6.5Mb
   sub-directories of 1Mb or more:
     doc    1.9Mb
     help   1.1Mb
-    R      3.0Mb
+    R      3.1Mb
   ```
 
   The R code and the guides in `doc` make up most of it.

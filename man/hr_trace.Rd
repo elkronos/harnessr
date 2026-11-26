@@ -80,7 +80,7 @@ says which: \code{"calls"} for \code{max_calls}, \code{"cost"} for \code{max_cos
 \code{worst_usd}, the run's \code{calls} and \code{spent_usd} at that moment, and the
 \code{message}. A refused request is not a call and has no step. \code{spent_usd}
 is what the calls so far cost. A call to a model with no registered price
-(sent under \code{allow_unpriced = TRUE}) adds nothing to it, so
+(sent under \code{allow_unpriced = TRUE}, the default) adds nothing to it, so
 \code{\link[=hr_trace_cost]{hr_trace_cost()}} is the full account. \code{replayed_usd} is what the calls a
 \code{\link[=hr_replay_client]{hr_replay_client()}} answered cost when they were recorded, counted when
 the spending limit stopped the recorded run: nothing was paid for them,
@@ -162,6 +162,10 @@ one sent none. Present only when some request in the trace carried one
 reasoning and cached input tokens the provider reported and the model
 it said answered, \code{NA} where it did not. Each is present only when some
 request in the trace has it.}
+\item{\code{priced}, \code{as_of}, \code{certain}}{Last, where \code{usd}'s price came from, as in
+\code{\link[=hr_trace_cost]{hr_trace_cost()}}: whether the model has a price, the month of its
+prices (\code{NA} without one), and whether its registry entry is a fact
+rather than a guess.}
 }
 A request's \code{usd} prices its cached input tokens at the model's cached
 input rate when \code{\link[=hr_register_model]{hr_register_model()}} gave it one, and at the input rate
