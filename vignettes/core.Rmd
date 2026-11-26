@@ -1004,8 +1004,8 @@ hr_options(old)
   does not fit.
 - `vignette("effort")`: how hard a reasoning model reasons, call by call or
   stage by stage.
-- `vignette("runs")`: limits, the governor, caching across sessions, replaying
-  a whole run, and model prices.
+- `vignette("runs")`: limits, the governor, caching across sessions, and
+  replaying a whole run.
 - `vignette("compose")`: steps and chains built from calls like these, and a
   coding sub-agent that checks its own code.
 - `vignette("evaluate")`: benchmarks, judges, checks that run a program, and
