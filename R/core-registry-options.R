@@ -324,7 +324,8 @@ check_option <- function(name, value) {
 #'     measured against it.}
 #'   \item{`min_output_tokens` (256)}{Floor on the completion room [hr_budget()]
 #'     reserves *when `reserve_output` is not given explicitly*. An explicit
-#'     `reserve_output` is honoured down to 1, unless it leaves no input room;
+#'     `reserve_output` is used between 1 token and the model's `max_output`,
+#'     unless it leaves no input room;
 #'     then it drops to this floor, as the default reserve does. Untested: set
 #'     as a floor for a short reply.}
 #'   \item{`cache_documents` (TRUE)}{Cache ingestion per file + settings. The key

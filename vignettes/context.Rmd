@@ -21,7 +21,8 @@ three tools to keep the request inside it:
 - `hr_truncate()` and `hr_truncate_tokens()` cut one piece to a number of
   tokens, keeping the part you choose.
 
-Every cut can be written to the trace, so a run says what it left out.
+Every cut can be written to the trace, so the trace records what a run left
+out.
 
 harnessr does not summarise or compact a conversation. Each call is one
 request with the messages you pass it, and nothing carries over from the call
@@ -99,7 +100,8 @@ The figures come from four steps:
 1. The usable window is the context window less `safety_margin`, a tenth by
    default: `floor(300 * 0.9)` is 270. The margin absorbs the error of
    counting tokens locally (see `vignette("models")`).
-2. The reply's reserve, `output`, is the `reserve_output` you give. Without
+2. The reply's reserve, `output`, is the `reserve_output` you give, held
+   between 1 token and the model's output cap. Without
    one, it is a quarter of the usable window (`output_reserve_share`), raised
    to at least `min_output_tokens` (256) and held to the model's output cap.
    Here a quarter is 67, the floor raises it to 256, and the cap of 100 holds
@@ -211,7 +213,10 @@ The result is a list:
 - `fits`: whether the total is now within the budget.
 - `tokens`: the total after cutting.
 - `cut`: the names of the pieces that were cut, in the order they were cut.
-- `tokens_dropped`: the tokens the cuts removed.
+- `tokens_dropped`: the tokens the cuts saved, the source text removed less
+  the marker put in its place. The trace counts a cut differently (see
+  [the trace's truncate steps](#trace-steps)), so its figure for the same cut
+  is larger by the marker's tokens.
 
 The default policy pins `question` and `instructions`, so neither is cut. Of
 the other pieces, the last one in the prompt goes first: the excerpt. It is
@@ -280,7 +285,7 @@ p <- hr_context_policy(pin = "question", cut_order = c("notes", "excerpt"),
 p
 ```
 
-The policy checks itself when it is built. A piece both pinned and in
+`hr_context_policy()` checks its arguments. A piece both pinned and in
 `cut_order`, two unnamed keep rules, or a rule that does not exist is an error
 of class `gr_bad_setting`:
 
@@ -478,7 +483,7 @@ c(hr_truncate_tokens(txt, 0), hr_truncate_tokens("", 10),
 Neither function writes anything by itself. `hr_truncate()` writes to a trace
 when you give it one; `hr_truncate_tokens()` takes no trace.
 
-## Cuts in the trace
+## Cuts in the trace {#trace-steps}
 
 Give `hr_context_fit()` or `hr_truncate()` a trace, and each cut becomes a
 step labelled `"truncate"`. `hr_context_fit()` names each step's `where` as
@@ -502,6 +507,12 @@ Each step's `detail` holds:
 | `piece` | The piece's name, or `NA`. |
 | `keep` | The rule the cut used. |
 | `dropped_part` | `"end"`, `"start"`, `"middle"`, `"all"`, or for `"scored"` the units dropped, as `"units 2, 5"`. |
+
+The two counts of one cut differ. The step above says the notes lost
+`r cuts[[1]]$detail$tokens_dropped` tokens of source text, while
+`fit$tokens_dropped` is `r fit$tokens_dropped`: the fit counts the marker as
+kept text, so it gives the tokens the cut saved, and the trace gives the source
+text lost.
 
 A text that fits writes nothing, so a trace with no `"truncate"` steps had no
 cuts. The printed trace counts them among its steps, and
@@ -589,8 +600,8 @@ the reply's reserve is `output_reserve_share` (0.25) of the usable window,
 raised to at least `min_output_tokens` (256) and held to the model's output
 cap. Whatever the reserve takes, the prompt cannot use. `min_output_tokens` is
 also the floor the reserve drops to when the default reserve leaves no input
-room. An explicit `reserve_output` is used as given, down to 1 token, unless it
-leaves no input room, in which case it drops to the same floor. The readers of
+room. An explicit `reserve_output` is used as given between 1 token and the
+model's output cap, unless it leaves no input room, in which case it drops to the same floor. The readers of
 the document layer give an explicit reserve, their `max_answer_tokens`, so
 `output_reserve_share` changes only the budgets you compute without one, while
 `min_output_tokens` still sets the floor theirs drops to.
