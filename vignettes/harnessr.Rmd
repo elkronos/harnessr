@@ -487,20 +487,13 @@ inside the limits: one that would need more than 400 requests, or one whose
 chunks would cost more than $5 to send once. `vignette("runs")` covers the
 pre-flight check and how to cache a run so you pay for it once.
 
-A document run takes `effort` too, and sends it with every request that goes to
-a model that reasons:
-
-```{r}
-low <- answer_document(gr_example(), "What was revenue in 2024?",
-                       client = cl, model = hr_options("model"), effort = "low")
-as.data.frame(low$trace)[, c("stage", "model", "effort")]
-```
-
-With a real client on the default model, `effort = "low"` alone is enough.
-
-You can also set `effort` by stage: low for the many routine requests, high for
-the few that judge. `?gr_read_spec` lists the stages and suggests a starting
-point, and `vignette("effort")` covers effort in full.
+A document run takes `effort` too, as in "Effort" above:
+`answer_document(..., effort = "low")` sends it with every request that goes to
+a model that reasons, and the trace's `effort` column records it. You can also
+set it by stage: low for the many routine requests, high for the few that
+judge. `?gr_read_spec` lists the stages and suggests a starting point,
+"Reasoning effort, stage by stage" in `vignette("readers")` runs a read with
+an effort per stage, and `vignette("effort")` covers effort in full.
 
 ## Choosing a recipe
 
