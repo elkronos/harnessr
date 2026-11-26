@@ -74,12 +74,14 @@ A tenth of the window is left unused, for error in the token count (see
 str(hr_model_info("gpt-5.6-terra"))
 ```
 
-Three fields here change how a request is built. A model with `reasoning =
-TRUE` gets no `temperature`, and its output cap is raised to at least the
-`reasoning_floor` option (2,048 tokens) where the window has room, because its
-reasoning is billed as output inside the same cap. A model with
-`supports_temperature = FALSE` gets no `temperature` either. `kind` says
-whether the model answers prompts or returns embeddings.
+Three fields here change how an `hr_client()` request is built. A model with
+`reasoning = TRUE` gets no `temperature`, and its output cap is raised to at
+least the `reasoning_floor` option (2,048 tokens) where the window has room,
+because its reasoning is billed as output inside the same cap. A model with
+`supports_temperature = FALSE` gets no `temperature` either. A mock or backend
+handler is given the temperature and cap the call asked for, and passing them
+on is its business. `kind` says whether the model answers prompts or returns
+embeddings.
 
 `source` says where the entry came from, and `certain` says whether harnessr
 knows the model or guessed. harnessr tries five places in order and stops at
